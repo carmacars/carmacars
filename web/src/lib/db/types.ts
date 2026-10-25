@@ -36,6 +36,75 @@ export type Database = {
         };
         Relationships: [];
       };
+      ad_postings: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          channel: string;
+          url: string | null;
+          posted_on: string;
+          status: string;
+          title: string | null;
+          body: string | null;
+          price_line: string | null;
+          snapshot: Json;
+          needs_update: boolean;
+          update_reason: string | null;
+          update_task_id: string | null;
+          updated_on: string | null;
+          removed_on: string | null;
+          removed_reason: string | null;
+          note: string | null;
+          posted_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          channel: string;
+          url?: string | null;
+          posted_on: string;
+          status?: string;
+          title?: string | null;
+          body?: string | null;
+          price_line?: string | null;
+          snapshot?: Json;
+          needs_update?: boolean;
+          update_reason?: string | null;
+          update_task_id?: string | null;
+          updated_on?: string | null;
+          removed_on?: string | null;
+          removed_reason?: string | null;
+          note?: string | null;
+          posted_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          channel?: string;
+          url?: string | null;
+          posted_on?: string;
+          status?: string;
+          title?: string | null;
+          body?: string | null;
+          price_line?: string | null;
+          snapshot?: Json;
+          needs_update?: boolean;
+          update_reason?: string | null;
+          update_task_id?: string | null;
+          updated_on?: string | null;
+          removed_on?: string | null;
+          removed_reason?: string | null;
+          note?: string | null;
+          posted_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       addons: {
         Row: {
           id: string;
@@ -138,6 +207,24 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      ads_job_state: {
+        Row: {
+          singleton: boolean;
+          last_run_at: string | null;
+          last_result: Json | null;
+        };
+        Insert: {
+          singleton?: boolean;
+          last_run_at?: string | null;
+          last_result?: Json | null;
+        };
+        Update: {
+          singleton?: boolean;
+          last_run_at?: string | null;
+          last_result?: Json | null;
         };
         Relationships: [];
       };
@@ -840,6 +927,66 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           countersignature_record_id?: string | null;
+        };
+        Relationships: [];
+      };
+      booking_attribution: {
+        Row: {
+          booking_id: string;
+          visitor_id: string | null;
+          first_at: string | null;
+          first_source: string | null;
+          first_medium: string | null;
+          first_campaign: string | null;
+          first_referrer: string | null;
+          first_landing: string | null;
+          first_channel: string | null;
+          last_at: string | null;
+          last_source: string | null;
+          last_medium: string | null;
+          last_campaign: string | null;
+          last_referrer: string | null;
+          last_landing: string | null;
+          last_channel: string | null;
+          captured_at: string;
+        };
+        Insert: {
+          booking_id: string;
+          visitor_id?: string | null;
+          first_at?: string | null;
+          first_source?: string | null;
+          first_medium?: string | null;
+          first_campaign?: string | null;
+          first_referrer?: string | null;
+          first_landing?: string | null;
+          first_channel?: string | null;
+          last_at?: string | null;
+          last_source?: string | null;
+          last_medium?: string | null;
+          last_campaign?: string | null;
+          last_referrer?: string | null;
+          last_landing?: string | null;
+          last_channel?: string | null;
+          captured_at?: string;
+        };
+        Update: {
+          booking_id?: string;
+          visitor_id?: string | null;
+          first_at?: string | null;
+          first_source?: string | null;
+          first_medium?: string | null;
+          first_campaign?: string | null;
+          first_referrer?: string | null;
+          first_landing?: string | null;
+          first_channel?: string | null;
+          last_at?: string | null;
+          last_source?: string | null;
+          last_medium?: string | null;
+          last_campaign?: string | null;
+          last_referrer?: string | null;
+          last_landing?: string | null;
+          last_channel?: string | null;
+          captured_at?: string;
         };
         Relationships: [];
       };
@@ -2157,6 +2304,10 @@ export type Database = {
           insurer_sheet_daily_rate_cents: number | null;
           insurer_rate_reason: string | null;
           referral_partner_id: string | null;
+          marketing_source: string | null;
+          marketing_source_note: string | null;
+          marketing_source_by: string | null;
+          marketing_source_at: string | null;
         };
         Insert: {
           id?: string;
@@ -2313,6 +2464,10 @@ export type Database = {
           insurer_sheet_daily_rate_cents?: number | null;
           insurer_rate_reason?: string | null;
           referral_partner_id?: string | null;
+          marketing_source?: string | null;
+          marketing_source_note?: string | null;
+          marketing_source_by?: string | null;
+          marketing_source_at?: string | null;
         };
         Update: {
           id?: string;
@@ -2469,6 +2624,10 @@ export type Database = {
           insurer_sheet_daily_rate_cents?: number | null;
           insurer_rate_reason?: string | null;
           referral_partner_id?: string | null;
+          marketing_source?: string | null;
+          marketing_source_note?: string | null;
+          marketing_source_by?: string | null;
+          marketing_source_at?: string | null;
         };
         Relationships: [];
       };
@@ -7778,6 +7937,12 @@ export type Database = {
           closed_reason: string | null;
           created_at: string;
           updated_at: string;
+          listing_url: string | null;
+          listing_site: string | null;
+          contact_kind: string | null;
+          business_name: string | null;
+          vehicle_text: string | null;
+          do_not_contact_at: string | null;
         };
         Insert: {
           id?: string;
@@ -7804,6 +7969,12 @@ export type Database = {
           closed_reason?: string | null;
           created_at?: string;
           updated_at?: string;
+          listing_url?: string | null;
+          listing_site?: string | null;
+          contact_kind?: string | null;
+          business_name?: string | null;
+          vehicle_text?: string | null;
+          do_not_contact_at?: string | null;
         };
         Update: {
           id?: string;
@@ -7830,6 +8001,12 @@ export type Database = {
           closed_reason?: string | null;
           created_at?: string;
           updated_at?: string;
+          listing_url?: string | null;
+          listing_site?: string | null;
+          contact_kind?: string | null;
+          business_name?: string | null;
+          vehicle_text?: string | null;
+          do_not_contact_at?: string | null;
         };
         Relationships: [];
       };
@@ -8406,6 +8583,51 @@ export type Database = {
           status?: string;
           occurred_at?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      meta_publishing: {
+        Row: {
+          singleton: boolean;
+          enabled: boolean;
+          page_id: string | null;
+          ig_user_id: string | null;
+          graph_version: string;
+          token_ref: string | null;
+          token_store: string | null;
+          token_hint: string | null;
+          last_ok_at: string | null;
+          last_error: string | null;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          singleton?: boolean;
+          enabled?: boolean;
+          page_id?: string | null;
+          ig_user_id?: string | null;
+          graph_version?: string;
+          token_ref?: string | null;
+          token_store?: string | null;
+          token_hint?: string | null;
+          last_ok_at?: string | null;
+          last_error?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          singleton?: boolean;
+          enabled?: boolean;
+          page_id?: string | null;
+          ig_user_id?: string | null;
+          graph_version?: string;
+          token_ref?: string | null;
+          token_store?: string | null;
+          token_hint?: string | null;
+          last_ok_at?: string | null;
+          last_error?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -12585,6 +12807,9 @@ export type Database = {
           field_overtime_bps: number;
           field_vacation_pay_bps: number;
           field_shift_max_hours: number;
+          ads_rate_change_bps: number;
+          ads_social_drafts_enabled: boolean;
+          recruit_outreach_enabled: boolean;
         };
         Insert: {
           id?: string;
@@ -13071,6 +13296,9 @@ export type Database = {
           field_overtime_bps?: number;
           field_vacation_pay_bps?: number;
           field_shift_max_hours?: number;
+          ads_rate_change_bps?: number;
+          ads_social_drafts_enabled?: boolean;
+          recruit_outreach_enabled?: boolean;
         };
         Update: {
           id?: string;
@@ -13557,6 +13785,9 @@ export type Database = {
           field_overtime_bps?: number;
           field_vacation_pay_bps?: number;
           field_shift_max_hours?: number;
+          ads_rate_change_bps?: number;
+          ads_social_drafts_enabled?: boolean;
+          recruit_outreach_enabled?: boolean;
         };
         Relationships: [];
       };
@@ -13911,6 +14142,126 @@ export type Database = {
           created_at?: string;
           stopped_at?: string | null;
           stop_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      recruit_calls: {
+        Row: {
+          id: string;
+          lead_id: string;
+          outcome: string;
+          note: string | null;
+          called_by: string | null;
+          called_at: string;
+        };
+        Insert: {
+          id?: string;
+          lead_id: string;
+          outcome: string;
+          note?: string | null;
+          called_by?: string | null;
+          called_at?: string;
+        };
+        Update: {
+          id?: string;
+          lead_id?: string;
+          outcome?: string;
+          note?: string | null;
+          called_by?: string | null;
+          called_at?: string;
+        };
+        Relationships: [];
+      };
+      recruit_consents: {
+        Row: {
+          id: string;
+          lead_id: string;
+          channel: string;
+          basis: string;
+          method: string | null;
+          source: string;
+          evidence: string | null;
+          referrer_name: string | null;
+          obtained_on: string;
+          expires_on: string | null;
+          recorded_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          lead_id: string;
+          channel: string;
+          basis: string;
+          method?: string | null;
+          source: string;
+          evidence?: string | null;
+          referrer_name?: string | null;
+          obtained_on: string;
+          expires_on?: string | null;
+          recorded_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          lead_id?: string;
+          channel?: string;
+          basis?: string;
+          method?: string | null;
+          source?: string;
+          evidence?: string | null;
+          referrer_name?: string | null;
+          obtained_on?: string;
+          expires_on?: string | null;
+          recorded_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      recruit_messages: {
+        Row: {
+          id: string;
+          lead_id: string;
+          channel: string;
+          template: string;
+          subject: string | null;
+          body: string;
+          to_address: string;
+          consent_id: string | null;
+          basis: string;
+          outbox_id: string | null;
+          phone_outbox_id: string | null;
+          sent_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          lead_id: string;
+          channel: string;
+          template: string;
+          subject?: string | null;
+          body: string;
+          to_address: string;
+          consent_id?: string | null;
+          basis: string;
+          outbox_id?: string | null;
+          phone_outbox_id?: string | null;
+          sent_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          lead_id?: string;
+          channel?: string;
+          template?: string;
+          subject?: string | null;
+          body?: string;
+          to_address?: string;
+          consent_id?: string | null;
+          basis?: string;
+          outbox_id?: string | null;
+          phone_outbox_id?: string | null;
+          sent_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -15852,6 +16203,72 @@ export type Database = {
           sort_order?: number;
           updated_at?: string;
           updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      social_drafts: {
+        Row: {
+          id: string;
+          slot_date: string;
+          kind: string;
+          channels: string[];
+          vehicle_id: string | null;
+          caption: string;
+          link: string | null;
+          photos: Json;
+          status: string;
+          source: string;
+          edited: boolean;
+          approved_by: string | null;
+          approved_at: string | null;
+          posted: Json;
+          publish_error: string | null;
+          publish_attempts: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slot_date: string;
+          kind: string;
+          channels?: string[];
+          vehicle_id?: string | null;
+          caption: string;
+          link?: string | null;
+          photos?: Json;
+          status?: string;
+          source?: string;
+          edited?: boolean;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          posted?: Json;
+          publish_error?: string | null;
+          publish_attempts?: number;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slot_date?: string;
+          kind?: string;
+          channels?: string[];
+          vehicle_id?: string | null;
+          caption?: string;
+          link?: string | null;
+          photos?: Json;
+          status?: string;
+          source?: string;
+          edited?: boolean;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          posted?: Json;
+          publish_error?: string | null;
+          publish_attempts?: number;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -21829,6 +22246,7 @@ export type Database = {
       server_account_set_name: { Args: { p_user: string; p_name: string }; Returns: Json };
       server_account_set_sign_in: { Args: { p_user: string; p_method: string }; Returns: Json };
       server_addons_paid_online: { Args: { p_booking: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
+      server_ads_job: { Args: never; Returns: Json };
       server_agreement_auto_done: { Args: { p_booking: string; p_ok: boolean; p_error?: string; p_source?: string }; Returns: Json };
       server_agreement_companion: { Args: { p_booking: string }; Returns: Json };
       server_agreement_extra: { Args: { p_booking: string; p_by: string }; Returns: Json };
@@ -22038,6 +22456,8 @@ export type Database = {
       server_signin_phone_request: { Args: { p: Json }; Returns: Json };
       server_signing_package_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
+      server_social_drafts_put: { Args: { p: Json }; Returns: number };
+      server_social_published: { Args: { p: Json }; Returns: Json };
       server_statement_mail_due: { Args: never; Returns: Json };
       server_statement_mail_release: { Args: { p_kind: string; p_key: string }; Returns: Json };
       server_stripe_dispute_event: { Args: { p: Json }; Returns: Json };

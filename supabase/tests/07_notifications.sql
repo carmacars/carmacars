@@ -16,11 +16,11 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '184/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '185/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 78::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 79::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
@@ -32,7 +32,7 @@ select test.eq('A priority classes: customer, owner and investor, staff, digests
   '1:renter,2:owner,3:staff,4:staff,5:mkt');
 select test.eq('A each come-back email needs express consent, the review request implied consent',
   (select string_agg(code || '=' || consent_rule, ',' order by code) from notification_catalogue where category = 'marketing'),
-  'renter_comeback_1m=express,renter_comeback_1w=express,renter_google_review_request=implied,renter_promo_expiry_1d=express,renter_promo_expiry_3d=express,renter_recovery_request=express,renter_review_ask=implied,renter_review_final=implied,renter_review_reminder=implied,renter_review_request=implied');
+  'owner_recruit_outreach=express,renter_comeback_1m=express,renter_comeback_1w=express,renter_google_review_request=implied,renter_promo_expiry_1d=express,renter_promo_expiry_3d=express,renter_recovery_request=express,renter_review_ask=implied,renter_review_final=implied,renter_review_reminder=implied,renter_review_request=implied');
 select test.ok('A every program setting the layer reads has a value',
   (select notify_daily_cap = 100 and notify_class_limits = array[97, 95, 90, 80, 60] and notify_comeback_1w_bps = 1000
           and notify_comeback_1m_bps = 1500 and notify_comeback_valid_days = 30 and notify_digest_morning = time '07:30'
@@ -773,6 +773,12 @@ select app.review_request_row(test.id('booking:NT-9'));
 select app.ntf_emit(c, 'booking', test.id('booking:NT-9'), 'nt07', jsonb_build_object('booking_id', test.id('booking:NT-9')))
   from unnest(array['renter_trip_checkin', 'renter_review_ask', 'renter_review_reminder', 'renter_review_final']) c;
 select test.flush();
+-- the owner recruitment email (0167): a dealer that published its address (suite 99 ads tests the consent rules)
+select app.recruit_consent_add(test.id('nt_admin'), jsonb_build_object('lead', (r ->> 'id'), 'channel', 'email', 'basis', 'implied_published', 'method', 'published',
+         'source', 'Contact page, no no-solicitation note', 'evidence', 'https://dealer.example.test/contact'))
+  from (select app.recruit_lead_save(test.id('nt_admin'), jsonb_build_object('business_name', 'NT Auto Sales', 'name', 'Nina Dealer', 'contact_kind', 'dealer', 'email', 'nt.dealer@example.test')) r) x;
+select app.recruit_send(test.id('nt_admin'), jsonb_build_object('lead', (select id from leads where email = 'nt.dealer@example.test'), 'channel', 'email', 'subject', 'Cars between sales',
+  'body', 'Hello Nina, CarmaCars rents cars in Toronto for their owners.'));
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');
 select test.eq('G no wired code is missing a variable (built here or supplied by the sender)',

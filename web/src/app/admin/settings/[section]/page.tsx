@@ -62,6 +62,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Partners, rentals added by hand and agreements', (k) => /^(partner_|manual_rental_|staff_agreement_)/.test(k)],
   ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|custom_price_)/.test(k)],
   ['Referral partners (body shops, tow trucks)', (k) => k.startsWith('referral_partner_')],
+  ['Advertising and owner recruitment', (k) => /^(ads_|recruit_)/.test(k)],
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
   ['Review requests', (k) => k.startsWith('review_')],
   ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],

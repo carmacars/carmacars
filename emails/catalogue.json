@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 184,
+  "count": 185,
   "emails": [
     {
       "code": "account_password_reset",
@@ -12179,6 +12179,97 @@
       ],
       "template_html": "templates/owner_payout_sent.html",
       "template_text": "templates/owner_payout_sent.txt"
+    },
+    {
+      "code": "owner_recruit_outreach",
+      "audience": "owner",
+      "category": "marketing",
+      "trigger": "An Admin sends a message to a prospective owner from Admin > Marketing > Owner recruitment (migration 0167). It is sent only when the consent log allows email for that person: express consent (a yes on a call, a form or a reply), implied consent from their inquiry (6 months) or a business relationship (2 years), a business address published with no \"no solicitation\" note, or one message after a referral. The message is a template the Admin may edit; the footer names CarmaCars, its mailing address and the reason for the email, and carries the unsubscribe link. One email per send.",
+      "timing": "Immediate, when the Admin sends it",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "{{subject_line}}",
+      "preheader": "A message from {{sender_name}} at CarmaCars about the owner program.",
+      "sample_subject": "Your 2021 Honda Civic and the CarmaCars owner program",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "consent_reason",
+          "type": "string",
+          "sample": "you agreed on a phone call to hear from CarmaCars about the owner program"
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "message_body",
+          "type": "string",
+          "sample": "As we discussed on the phone today, here are the details of the CarmaCars owner program. Your car goes on our fleet insurance policy, we rent it out in Toronto and pay you every month. Fees apply; the page below explains them."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "sender_name",
+          "type": "string",
+          "sample": "Priya"
+        },
+        {
+          "name": "subject_line",
+          "type": "string",
+          "sample": "Your 2021 Honda Civic and the CarmaCars owner program"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "unsubscribe_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/unsubscribe?token=sample",
+          "note": "One-click unsubscribe link, tokenised per recipient. Also send it in the List-Unsubscribe header."
+        }
+      ],
+      "template_html": "templates/owner_recruit_outreach.html",
+      "template_text": "templates/owner_recruit_outreach.txt"
     },
     {
       "code": "owner_registry_visit",

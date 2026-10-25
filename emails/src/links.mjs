@@ -17,6 +17,7 @@ export const PATHS = {
   terms: '/terms',
   privacy: '/privacy',
   cancellation_policy: '/terms#cancellation',
+  list_your_car: '/list-your-car',
 
   // Renter portal
   booking: '/account/bookings/{{booking_number}}',

@@ -1,0 +1,32 @@
+CarmaCars  |  Owner program
+
+========================================
+
+[Owner program]
+Hello {{first_name}}
+
+{{sender_name}} at CarmaCars wrote to you.
+
+{{subject_line}}
+{{message_body}}
+
+How the owner program works:
+https://carmacars.ca/list-your-car
+
+Reply to this email with any question. If you would rather not hear from us, use the unsubscribe link below and we will not write again.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because {{consent_reason}}.
+Unsubscribe at any time: {{unsubscribe_url}}
+We act on it within 10 business days.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

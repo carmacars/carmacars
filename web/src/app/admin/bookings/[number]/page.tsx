@@ -30,6 +30,7 @@ import { BookingSummary } from '@/features/admin/BookingSummary';
 import { ReviewPanel } from '@/features/reviews/ReviewPanel';
 import { AgreementPanel } from '@/features/agreements/AgreementPanel';
 import { OwnerDeductionsPanel, OwnerVisibilityPanel } from '@/features/admin/OwnerControls';
+import { MarketingSource, type MarketingData } from '@/features/ads/MarketingSource';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -60,6 +61,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
   if (!b) notFound();
   // who the booking is credited to for sales tracking, and who an Admin may give it to (0057)
   const credit = await read<SalesCredit>('booking_sales', { booking: b.id }).catch(() => null);
+  // where the renter came from, for Marketing > Bookings by channel (0167)
+  const came = b.booking_type === 'owner' ? null : await read<MarketingData>('booking_marketing', { booking: b.booking_number }).catch(() => null);
   // the insurance replacement: the rate sheet for this car, the rate and the insurer's invoices (0163)
   const insurerCard = b.bill_to !== 'renter' || ['requested', 'offered', 'pending_payment'].includes(b.status)
     ? await read<BookingInsurerData | null>('booking_insurer', { booking: b.booking_number }).catch(() => null) : null;
@@ -130,7 +133,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
               <Kv rows={[['Pickup', t(b.request_sent.pickup_at)], ['Return', t(b.request_sent.return_at)], ['Note', String(b.request_note ?? '')],
                 ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · {b.renter?.mobile} · {b.renter?.bookings ? `${b.renter.bookings} past bookings` : 'first booking'}{b.renter?.is_blocked ? <b className="ad-late"> blocked</b> : null}</>],
                 ['Offer', b.current_offer_version ? `version ${b.current_offer_version}${b.offer_expires_at ? `, open until ${t(b.offer_expires_at)}` : ''}` : 'not sent yet'],
-                ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : '']]} />
+                ['Came from', came ? <MarketingSource key="mk" m={came} booking={b.booking_number} refresh={refresh} /> : ''],
+              ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : '']]} />
             </Card>
             <Card title="Competing for these dates" aside={<span className="small">{b.available ? 'car free' : <b className="ad-late">car not free</b>}</span>}>
               {b.competing.length ? <ul className="ad-list">{b.competing.map((c) => <li key={String(c.id)}><Link prefetch={false} className="link" href={`/admin/bookings/${c.booking_number}`}>{String(c.booking_number)}</Link><Badge s={String(c.status)} /><span className="ad-sub">{t(c.pickup_at)} to {t(c.return_at)}</span></li>)}</ul> : <p className="small muted">No other request, offer or booking overlaps.</p>}
@@ -154,6 +158,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
               ['Return', `${t(b.return_at)}, ${b.return_place ?? 'our location'}`], ['Days', String(b.billable_days)], ['Bill to', `${label(b.bill_to)}${b.insurer_name ? `, ${b.insurer_name} claim ${b.insurer_claim_number ?? ''}` : ''}`],
               ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · {b.renter?.mobile}</>], ['Identity', label(b.renter?.identity_status)],
               ...(b.added_by_staff ? [['Added by hand', <span key="a" data-testid="booking-added">{b.added_mode === 'past' ? 'A past rental recorded by staff' : b.added_mode === 'in_progress' ? 'Added by staff while already underway (recorded as on trip at the pickup)' : 'Added by staff'}; source {label(b.source)}; payment: {label(b.payment_mode)}{b.do_not_email ? '; renter not emailed' : ''}{b.clash_override_reason ? `; added over a clash: ${String(b.clash_override_reason)}` : ''}</span>] as [string, React.ReactNode]] : []),
+              ['Came from', came ? <MarketingSource key="mk" m={came} booking={b.booking_number} refresh={refresh} /> : ''],
               ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : ''],
               ['Ready for handover', b.readiness ? ((b.readiness.missing as string[] | undefined)?.length ? `missing: ${(b.readiness.missing as string[]).map(label).join(', ')}` : 'yes') : '']]} />
           </Card>

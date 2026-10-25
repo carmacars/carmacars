@@ -2,7 +2,8 @@ import { Suspense } from 'react';
 import { GroupNav, type NavGroup } from './GroupNav';
 
 // The admin portal's navigation (October 16, 2026: the owner found 31 links "super difficult to navigate"; October 23,
-// 2026: six groups, the long ones in labelled parts): six groups with plain names, every page still two taps away. The
+// 2026: six groups, the long ones in labelled parts; October 25, 2026: Marketing, migration 0167): seven groups with plain
+// names, every page still two taps away. The
 // pages keep their addresses, so links in emails and bookmarks work.
 export const GROUPS: NavGroup[] = [
   { key: 'today', label: 'Today', links: [
@@ -21,6 +22,9 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/partners', label: 'Partners' }, { href: '/admin/referral-partners', label: 'Referral partners' }, { href: '/admin/owner-forms', label: 'Owner forms' }, { href: '/admin/owners?view=checklist', label: 'Paid and signed' },
     { href: '/admin/renters', label: 'Renters', section: 'Renters, staff and investors' }, { href: '/admin/settings/staff', label: 'Staff' }, { href: '/admin/investors', label: 'Investors' },
     { href: '/admin/portals', label: 'Portals and view as' }] },
+  { key: 'marketing', label: 'Marketing', links: [
+    { href: '/admin/marketing/listings', label: 'Listings', section: 'Ads' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' },
+    { href: '/admin/marketing/report', label: 'Bookings by channel', section: 'Results' }, { href: '/admin/marketing/recruit', label: 'Owner recruitment', section: 'Owners' }] },
   { key: 'money', label: 'Money', links: [
     { href: '/admin/invoices', label: 'Owner invoices', section: 'Owners' }, { href: '/admin/debits', label: 'Owner debits' }, { href: '/admin/statements', label: 'Owner statements' }, { href: '/admin/payouts', label: 'Payouts' },
     { href: '/admin/payments', label: 'Payments by day', section: 'Renters' }, { href: '/admin/money', label: 'Payments and refunds', key: 'm' }, { href: '/admin/tolls', label: 'Tolls and tickets' },
@@ -30,7 +34,7 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/settings', label: 'All settings', key: 's' },
     { href: '/admin/settings/site', label: 'Site', section: 'Website' }, { href: '/admin/settings/vehicle-pages', label: 'Vehicle pages' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' },
     { href: '/admin/settings/addons', label: 'Add-ons' }, { href: '/admin/settings/discount-games', label: 'Discount games' }, { href: '/admin/settings/guides', label: 'Guides' },
-    { href: '/admin/settings/program', label: 'Program', section: 'Rules' }, { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/card-coverage', label: 'Card coverage' }, { href: '/admin/settings/coverage-affiliate', label: 'RentalCoverage affiliate' }, { href: '/admin/settings/reviews', label: 'Reviews' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/settings/email', label: 'Emails' },
+    { href: '/admin/settings/program', label: 'Program', section: 'Rules' }, { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/card-coverage', label: 'Card coverage' }, { href: '/admin/settings/coverage-affiliate', label: 'RentalCoverage affiliate' }, { href: '/admin/settings/meta-publishing', label: 'Meta publishing' }, { href: '/admin/settings/reviews', label: 'Reviews' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/settings/email', label: 'Emails' },
     { href: '/admin/messages', label: 'Email log', section: 'Records' }, { href: '/admin/audit', label: 'Audit log' }] }
 ];
 

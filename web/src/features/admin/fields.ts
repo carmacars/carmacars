@@ -45,6 +45,8 @@ const LABELS: Record<string, string> = {
   sales_tier_low_bps: 'Sales commission under the middle tier\'s days', sales_tier_mid_bps: 'Sales commission from the middle tier\'s days', sales_tier_high_bps: 'Sales commission from the top tier\'s days',
   sales_tier_mid_days: 'Sales: rental days in a month for the middle tier', sales_tier_high_days: 'Sales: rental days in a month for the top tier (the month\'s target)',
   custom_price_floor_daily_cents: 'Price typed by hand: floor a day (empty: no floor)', custom_price_max_discount_bps: 'Price typed by hand: flag a discount from the rate sheet above',
+  ads_rate_change_bps: 'Advertising: a rate change of at least this share opens a task to update each posted ad of the car', ads_social_drafts_enabled: 'Advertising: write the week\'s Facebook Page and Instagram drafts from the fleet (approval needed; nothing posts by itself)',
+  recruit_outreach_enabled: 'Owner recruitment: emails and texts may be sent (each still needs consent in the log)',
   referral_partner_flat_cents: 'Referral partners: the flat kickback a new partner starts with, per completed rental', referral_partner_percent_bps: 'Referral partners: the share of the rental charge a new partner starts with when a percentage is chosen',
   street_address: 'Street address (pickup and returns)', signing_officer_authorized_on: 'Signing officer: date of the standing authorization',
   visitor_tracking_enabled: 'Live visitors: record visits on the site', visitor_events_keep_days: 'Live visitors: keep page views and events (days)',
