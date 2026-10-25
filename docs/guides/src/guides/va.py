@@ -294,9 +294,19 @@ def build():
     g.task('Cards, holds and deposits given back', 'On the booking\'s Money tab.')
     g.steps([
         f'{B("Charge the saved card")}: a later charge (extra kilometres, fuel, damage, a late return) with the reason on the renter\'s receipt, or the deposit of a rental over 7 days.',
-        f'A deposit hold: {B("Capture the hold")} for all or part of it, with the reason (the rest is released), or {B("Release the hold")}.',
+        f'A deposit hold: {B("Capture the hold")} for all of it, with the reason. A part capture (the rest is released) or {B("Release the hold")} waits for the settlement while the car is out, inside the toll window or while something is open; an Admin may do it with the reason.',
         f'A deposit taken in cash or by e-Transfer is given back the same way: the task Give the deposit back the way it came; then press {B("Returned")} with the reference or receipt number.',
     ])
+
+    g.task('Settle a deposit', f'The deposit is never given back by itself. Finance or an Admin settles it after the return: on the booking\'s Money tab, under Deposit, press {B("Settle the deposit")}. Issue the Check-in statement first.')
+    g.steps([
+        'The form shows the deposit, what is still available, the charges owed from the statement and what is taken from the deposit for them. What the deposit does not cover is charged to the card on file; with no card (or a card declined), the renter gets a pay link by email and text, and Finance has a task until it is paid.',
+        'Tolls and tickets can take up to 7 days to come in. Inside that window the whole rest of the deposit is filled in as the hold-back, until the window ends. To give it back sooner, tick Release now anyway: a toll that comes in later is charged to the card on file.',
+        'Something still open keeps the whole deposit: an incident, a claim, new damage at the return not priced, damage found later not billed, a toll or ticket on the car during the rental not matched or not charged, a card dispute, or charges not on a statement yet. The form lists them. Only an Admin can release part of it, with the reason; it is recorded.',
+        f'Damage: an Admin keeps the whole deposit ({B("Keep the whole deposit (damage)")}) or bills a damage charge up to the $2,500 deductible. Ask an Admin, with the photos.',
+        f'Press {B("Settle")}. The money moves at Stripe at once: the charges are collected and what is not owed is refunded or the hold released. A step Stripe refuses is tried again by itself, and Finance gets a task if it keeps failing.',
+    ])
+    g.tip('A card hold lapses after about 7 days. While the car is out, or returned and not settled, the hold is collected in full a day and a half before it lapses: that keeps the money, and the settlement refunds what is not owed. A hold that lapses anyway is charged to the saved card, and Finance is told at once.', label='Good to know')
 
     g.task('Read a toll notice')
     g.steps([

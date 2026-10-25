@@ -438,6 +438,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      balance_followups: {
+        Row: {
+          booking_id: string;
+          last_step: string;
+          last_at: string;
+          open_cents: number;
+          attempts: number;
+          note: string | null;
+        };
+        Insert: {
+          booking_id: string;
+          last_step: string;
+          last_at?: string;
+          open_cents?: number;
+          attempts?: number;
+          note?: string | null;
+        };
+        Update: {
+          booking_id?: string;
+          last_step?: string;
+          last_at?: string;
+          open_cents?: number;
+          attempts?: number;
+          note?: string | null;
+        };
+        Relationships: [];
+      };
       booking_addons: {
         Row: {
           id: string;
@@ -4139,6 +4166,57 @@ export type Database = {
           payment_id?: string | null;
           note?: string | null;
           created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      deposit_guard_state: {
+        Row: {
+          id: boolean;
+          last_sweep_at: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          last_sweep_at?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          last_sweep_at?: string | null;
+        };
+        Relationships: [];
+      };
+      deposit_overrides: {
+        Row: {
+          id: string;
+          booking_id: string;
+          deposit_id: string | null;
+          kind: string;
+          amount_cents: number;
+          blockers: Json;
+          reason: string;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          deposit_id?: string | null;
+          kind: string;
+          amount_cents?: number;
+          blockers?: Json;
+          reason: string;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          deposit_id?: string | null;
+          kind?: string;
+          amount_cents?: number;
+          blockers?: Json;
+          reason?: string;
+          created_by?: string;
           created_at?: string;
         };
         Relationships: [];
@@ -9951,7 +10029,7 @@ export type Database = {
           processor_intent_id: string | null;
           payment_id: string | null;
           expires_at: string;
-          created_by: string;
+          created_by: string | null;
           created_at: string;
           completed_at: string | null;
           last_error: string | null;
@@ -9970,7 +10048,7 @@ export type Database = {
           processor_intent_id?: string | null;
           payment_id?: string | null;
           expires_at: string;
-          created_by: string;
+          created_by?: string | null;
           created_at?: string;
           completed_at?: string | null;
           last_error?: string | null;
@@ -9989,7 +10067,7 @@ export type Database = {
           processor_intent_id?: string | null;
           payment_id?: string | null;
           expires_at?: string;
-          created_by?: string;
+          created_by?: string | null;
           created_at?: string;
           completed_at?: string | null;
           last_error?: string | null;
@@ -10022,6 +10100,10 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          server_action: string | null;
+          server_attempts: number;
+          server_last_error: string | null;
+          server_attempted_at: string | null;
         };
         Insert: {
           id?: string;
@@ -10048,6 +10130,10 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          server_action?: string | null;
+          server_attempts?: number;
+          server_last_error?: string | null;
+          server_attempted_at?: string | null;
         };
         Update: {
           id?: string;
@@ -10074,6 +10160,10 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          server_action?: string | null;
+          server_attempts?: number;
+          server_last_error?: string | null;
+          server_attempted_at?: string | null;
         };
         Relationships: [];
       };
@@ -11461,6 +11551,10 @@ export type Database = {
           field_jobs_auto_assign: string;
           field_offline_deposit_methods: string[];
           field_tracker_override: boolean;
+          deposit_toll_window_days: number;
+          deposit_hold_capture_hours: number;
+          deposit_auto_capture: boolean;
+          balance_auto_collect: boolean;
         };
         Insert: {
           id?: string;
@@ -11924,6 +12018,10 @@ export type Database = {
           field_jobs_auto_assign?: string;
           field_offline_deposit_methods?: string[];
           field_tracker_override?: boolean;
+          deposit_toll_window_days?: number;
+          deposit_hold_capture_hours?: number;
+          deposit_auto_capture?: boolean;
+          balance_auto_collect?: boolean;
         };
         Update: {
           id?: string;
@@ -12387,6 +12485,10 @@ export type Database = {
           field_jobs_auto_assign?: string;
           field_offline_deposit_methods?: string[];
           field_tracker_override?: boolean;
+          deposit_toll_window_days?: number;
+          deposit_hold_capture_hours?: number;
+          deposit_auto_capture?: boolean;
+          balance_auto_collect?: boolean;
         };
         Relationships: [];
       };
@@ -20365,6 +20467,9 @@ export type Database = {
       server_attach_signed_amendment: { Args: { p_amendment: string; p_storage_path: string; p_sha256: string }; Returns: string };
       server_auth_sms: { Args: { p: Json }; Returns: Json };
       server_auth_sms_result: { Args: { p: Json }; Returns: Json };
+      server_balance_next: { Args: { p_booking: string }; Returns: Json };
+      server_balance_payreq: { Args: { p_booking: string; p_token_sha256: string; p_amount: number }; Returns: Json };
+      server_balance_payreq_send: { Args: { p_id: string; p_link: string }; Returns: Json };
       server_blindspot_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_booking_addon_buy: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_booking_addon_failed: { Args: { p_row: string; p_by: string; p_reason: string }; Returns: undefined };
@@ -20394,6 +20499,9 @@ export type Database = {
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
       server_db_busy: { Args: never; Returns: Json };
+      server_deposit_capture_begin: { Args: { p_deposit: string }; Returns: Json };
+      server_deposit_guard_sweep: { Args: never; Returns: Json };
+      server_deposit_hold_lapsed: { Args: { p_intent: string }; Returns: Json };
       server_document_content_key: { Args: { p_by: string; p_path: string; p_key: string }; Returns: number };
       server_document_file: { Args: { p_document: string }; Returns: Json };
       server_documents_due_for_purge: { Args: { p_limit?: number }; Returns: Json };
@@ -20431,6 +20539,8 @@ export type Database = {
       server_manual_rental_sign_charged: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_maps_take: { Args: { p_sku: string }; Returns: boolean };
       server_mark_documents_purged: { Args: { p_ids: string[] }; Returns: number };
+      server_money_action: { Args: { p_payment: string }; Returns: Json };
+      server_money_action_finish: { Args: { p_payment: string; p: Json }; Returns: Json };
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
       server_my_booking_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_my_notify_channel: { Args: { p_user: string }; Returns: Json };
@@ -20520,6 +20630,7 @@ export type Database = {
       server_statement_mail_release: { Args: { p_kind: string; p_key: string }; Returns: Json };
       server_stripe_dispute_event: { Args: { p: Json }; Returns: Json };
       server_stripe_refund_event: { Args: { p: Json }; Returns: Json };
+      server_stripe_refund_event_pre0155: { Args: { p: Json }; Returns: Json };
       server_stripe_requires_action: { Args: { p: Json }; Returns: Json };
       server_submit_owner_application: { Args: { p: Json; p_by?: string }; Returns: Json };
       server_unsubscribe: { Args: { p_token: string }; Returns: boolean };

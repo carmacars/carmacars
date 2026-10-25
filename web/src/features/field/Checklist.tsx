@@ -229,7 +229,7 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
       try { x = await fieldAct<{ booking_status: string; minutes_late?: number }>('complete_return', { job: jobId, report: strip(r) }); } catch { setMsg(OFFLINE); return; }
       if (!x.ok) { setMsg(x.message); return; }
       try { localStorage.removeItem(key); } catch { /* ignore */ }
-      setDone('Checked in. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos.');
+      setDone('Checked in. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos. The deposit is not given back today: Finance settles it once tolls and tickets have had time to come in (about 7 days), and any damage you marked keeps it held.');
     }), body: <><Sign who="staff" label="You sign" done={Boolean(r.staff_signature_ref)} sign={sign} /><Upload q={q} total={required.length} shotsDone={shotsDone} /></> }
   ];
 
