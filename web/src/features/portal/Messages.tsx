@@ -9,13 +9,14 @@ import { useAct } from './useAct';
 // which reach customer service as a task.
 export interface Msg { id: string; direction: 'inbound' | 'outbound'; subject: string | null; body: string; at: string; from: string }
 
-export function Messages({ number, thread }: { number: string; thread: Msg[] }) {
+export function Messages({ number, thread, prefill }: { number: string; thread: Msg[]; prefill?: string }) {
   const router = useRouter();
   const a = useAct();
-  const [text, setText] = useState('');
+  // an action tile (Add a driver, Report a problem) opens the box with the start of the message (?ask=)
+  const [text, setText] = useState(prefill ?? '');
   return (
-    <section className="pt-card" id="messages" aria-labelledby="pt-msgs" data-testid="booking-messages">
-      <h2 className="d4" id="pt-msgs">Messages</h2>
+    <section className="pt-card pu-card" id="messages" aria-labelledby="pt-msgs" data-testid="booking-messages">
+      <h2 className="pu-card__title" id="pt-msgs">Messages</h2>
       {thread.length ? <ol className="pt-thread">{thread.map((m) => (
         <li key={m.id} className={`pt-msg${m.direction === 'inbound' ? ' pt-msg--me' : ''}`}>
           <p className="xs muted">{m.direction === 'inbound' ? 'You' : m.from === 'CarmaCars' ? 'CarmaCars' : `${m.from}, CarmaCars`} · {when(m.at)}</p>
