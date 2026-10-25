@@ -117,6 +117,8 @@ function insurerInvoice(f: F): Block[] {
   blocks.push({ t: 'table', head: ['Description', 'Amount'], kv: true, rows: lines.length ? lines.map((l) => [s(l.label ?? l.description) || 'Rental', dollars(l.amount_cents)]) : [['Replacement rental', dollars(f.amount_cents)]] });
   blocks.push({ t: 'table', head: ['Total', ''], kv: true, rows: [['Amount before HST', dollars(f.amount_cents)], ['HST', dollars(f.hst_cents)], ['**Total due**', `**${dollars(f.total_cents)}**`],
     ...(n(f.paid_cents) > 0 ? [['Paid', dollars(f.paid_cents)] as [string, string], ['**Balance**', `**${dollars(f.balance_cents)}**`] as [string, string]] : [])] });
+  // the insurer's taxes note from its rate sheet (0163)
+  if (s(f.note)) blocks.push({ t: 'p', text: s(f.note) });
   blocks.push({ t: 'p', text: `Please pay by bank transfer and quote invoice ${s(f.invoice_number)}. Questions: ${f.company.email}.` });
   return blocks;
 }

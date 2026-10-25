@@ -44,7 +44,7 @@ def build():
         ['Today', 'To do, Overview, Staff tasks, Live visitors'],
         ['Bookings', 'Trips: Requests, Bookings, Calendar, Add a rental, Chauffeur. Customers: Live chat, Renter leads, Reviews. Problems: Damage, Incidents and claims'],
         ['Cars', 'Vehicles, Listings, Maintenance, Rates for many cars, Calendar sync, Similar cars, Retire or delete'],
-        ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments by day, Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer invoices, Staff commissions'],
+        ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments by day, Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer rates, Insurer invoices, Staff commissions'],
         ['People', 'Owners and partners: Applications, Owners, Add a car for an owner, Partners, Owner forms, Paid and signed. Renters, staff and investors: Renters, Staff, Investors, Portals and view as'],
         ['Settings', 'All settings. Website: Site, Vehicle pages, Sample photos, Add-ons, Discount games, Guides. Rules: Program, Forms, Maintenance, Emails. Records: Email log, Audit log'],
     ], head=['Group', 'Pages'])
@@ -644,7 +644,7 @@ def build():
         'Any length: the dates may run past 30 days (up to the staff limit in Program settings, 730 days by default). From 30 days the rental charge is the monthly rate for each 30 days, and the monthly periods are listed. On the booking, Monthly periods shows each period: its share, and its own version of the agreement (CarmaCars\' and Blind Spot\'s), sent to the renter to sign a few days before it starts (Program settings: long_rental_agreement_lead_days, 3 by default), with what is due for it on the renter\'s Balance due. With Program settings, Charge the saved card for each period, on, that share is charged to the saved card when the agreement goes out (the renter gets the receipt; a declined or missing card gives Finance a task).',
         'A car whose listing is not finished (a draft listing, onboarding, no photos or no rates yet) can be rented at once: it shows Listing not finished in the car list and stays off the public site. With no rates yet, type the rental charge for the whole rental and the reason.',
         f'An owner\'s car that is not on the fleet insurance policy yet: only an Admin adds its rentals, and ticks I checked that this car is insured for this rental. An owner\'s car needs its terms (Revenue Share) first. The handover still needs the car on the fleet policy: press {B("Insurer confirmed")} once the insurer confirms it.',
-        'Insurer billed later (or the Insurance replacement quick start): choose the insurer (Not listed: type its name, and it is added to the list), the claim number, the adjuster, the days and the daily rate authorized, the provisional end, and whether the insurer pays everything or the rental only. The booking is billed to the insurer; the renter owes only what it does not cover.',
+        'Insurer billed later (or the Insurance replacement quick start): choose the insurer (Not listed: type its name, and it is added to the list), the claim number, the adjuster, the days and the daily rate authorized, the provisional end, and whether the insurer pays everything or the rental only. The booking is billed to the insurer; the renter owes only what it does not cover. The daily rate authorized is filled from the insurer\'s rate sheet for the car (Insurance replacements: rates and billing); a different rate needs the reason.',
         f'The rent is paid by: e-Transfer or cash (received), card on file (charged when the renter signs), payment link, platform payout (Turo), insurer billed later, cheque, bank transfer, or unpaid. Paid in parts (some cash, some e-Transfer): press {B("Add another payment (paid in parts)")} and type each amount. Then the deposit, its own way: card hold, cash, e-Transfer (with its reference and date) or no deposit.',
         'Before you save checks it all in one box: the renter, the car, the days, the total, what was received and what is still to collect, the deposit and the agreement.',
         'The rental agreement: Send it to sign online, or Already signed on paper (a task asks for the scan). The calendar: untick Blocks the car\'s calendar for an insurance replacement with dates not known yet, with the reason.',
@@ -681,6 +681,42 @@ def build():
     g.task('Tolls when two rentals overlap')
     g.para('Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: '
            'the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.')
+
+    # ---------------------------------------------------------------- insurance replacements: rates and billing (0163)
+    g.chapter('Insurance replacements: rates and billing',
+              'Each insurance company pays an agreed rate a day for a replacement car, by car class. The rate sheet keeps those rates with their history; '
+              'a rental billed to an insurer takes its rate from it, the insurer\'s invoice follows it, and each insurer\'s page shows what it was billed, paid and still owes.',
+              blurb='The rate sheet by insurer and car class, the rate on a rental, the invoices and the billing history.')
+    g.task('The rate sheet', f'Open {P("Money", "Insurer rates")}.')
+    g.steps([
+        'One row for each insurer, one column for each car class (the list in Settings > Vehicle classes). Each cell shows the rate today and, under it, a rate already saved for a later date. On a phone each insurer is a card with its classes.',
+        f'Press {B("Set")} (or {B("Change")}) in a cell. Type the Daily rate and, when the insurer has them, a weekly cap, a cap for 30 days, a delivery and pickup allowance, the kilometres a day and a taxes note (printed on its invoices). Choose From, say why it changed, and press {B("Save the rate")}.',
+        f'A change never overwrites the rate before it: it is a new rate from its date, and the earlier one stays in the history. {B("End")} stops a rate from a date.',
+        'Add an insurer, or change its billing contact and email, in Settings > Insurers.',
+    ])
+    g.tip('A car takes the rate of its pricing class; when the insurer has no rate for that class, the rate of the car\'s other classes, in the order of the list. A 2024 Jetta (standard, also a sedan) replaced for an insurer that pays $65 a day for sedans is billed $65 a day.', label='Good to know')
+    g.task('The rate on a rental')
+    g.bullets([
+        'Add a rental, Insurance replacement (or Insurer billed later): once the price is checked and the insurer chosen, the daily rate authorized is filled from its rate sheet for the car, with the caps and the taxes note under it.',
+        'A different rate: type it, and Differs from the rate sheet asks for the reason. The rental is not added without it. Empty the field to take the sheet\'s rate again.',
+        'The review screen of a request or an offer does the same when you choose Bill to and the insurer: the rate follows the insurer chosen, and a rate typed that differs needs the reason.',
+        'An insurer with no rate for the car: type the rate the adjuster authorized, as before.',
+        'The booking\'s Insurance replacement card (Overview and Money tabs) shows the insurer and the claim, the daily rate and where it comes from, Differs with the reason when it is not the sheet\'s, the caps, the days covered, what the insurer pays and its invoices.',
+    ])
+    g.task('Invoices to the insurer')
+    g.bullets([
+        f'{B("Draft insurer invoice")} on the booking bills the insurer at the booking\'s daily rate (the sheet\'s, or the one typed with its reason) for the days authorized.',
+        'The weekly cap and the cap for 30 days lower the amount of a long rental. Billed for the rental only, the insurer also pays delivery and pickup up to its allowance; billed for everything, delivery and pickup above the allowance are the renter\'s.',
+        'The invoice line says the rate and where it comes from (for example at $65.00 a day, Example Mutual rate sheet, Sedan), and the PDF prints the taxes note. Send it and record its payments in Money > Insurer invoices, as before.',
+    ])
+    g.task('Billing history', f'{P("Money", "Insurer rates")}, then the insurer\'s name.')
+    g.steps([
+        'The tiles: bookings, days used and authorized, billed, paid, outstanding, the average daily rate and the days the insurer takes to pay (from sent to paid).',
+        'Rates by class (Set, Change and End work here too), then the History of the rates: each rate with its dates, its status, why it changed and who saved it.',
+        'Billing by class: for each class the bookings, days authorized and used, billed, paid, outstanding, the average rate and the days to pay.',
+        'Bookings: each booking with its class, claim, dates, days, rate (Sheet and the reason when it differs), what was billed, paid and outstanding, and its invoices (each opens its PDF).',
+        f'Choose Picked up from and to and press {B("Show")} for a period. {B("Download CSV")} saves the bookings of the period for a spreadsheet.',
+    ])
 
     g.chapter('Chauffeur service',
               'Visitors book a driver and a luxury car or van by the hour on carmacars.ca/chauffeur. The vehicles come from a partner\'s chauffeur price guide, each with a rate for 2 hours and a rate for 3 hours or more.',
@@ -1279,7 +1315,7 @@ def build():
 
     g.task('Insurers and the other lists')
     g.steps([
-        'Open Insurers. Each insurer on file opens to edit its billing contact, email, phone, address and notes.',
+        f'Open Insurers. Each insurer on file opens to edit its billing contact, email, phone, address and notes. Its rates by car class are in {P("Money", "Insurer rates")}.',
         f'To add one, fill in the Add form (Name, Billing contact, Billing email and the rest) and press {B("Add")}.',
         'Deposit tiers, Kilometre choices, Vehicle classes, Airports, Promo codes and Quick replies work the same way.',
     ])

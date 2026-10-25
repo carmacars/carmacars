@@ -23,7 +23,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['text-alerts', 'Text alerts', 'Email, text or both: the defaults, quiet hours, opt-outs and the text of each notification'],
   ['email', 'Email aliases and reply-to', 'Sending addresses and where replies go'],
   ['staff', 'Staff and roles', 'Invite, set limits, end access'],
-  ['insurers', 'Insurers', 'Insurance companies billed for bookings'],
+  ['insurers', 'Insurers', 'Insurance companies billed for bookings (their rates: Money > Insurer rates)'],
   ['promo-codes', 'Promo codes', 'Codes, values, dates and uses'],
   ['quick-replies', 'Quick replies', 'Snippets for staff messages']
 ];

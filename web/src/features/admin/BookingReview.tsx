@@ -14,6 +14,7 @@ import { addonsPayload, type AddonChoice, type AddonOption, type BookingAddon } 
 import { PRICE_TAX_OPTIONS } from '@/features/sales/priceTax';
 import { offersDo } from '@/server/actions/offers';
 import { DEPOSIT_PAY, RENTAL_PAY, describeRevision } from '@/features/offers/model';
+import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/insurers/rates';
 
 // Review and adjust a booking request (03-admin.md section 4.2). Staff change the booking itself; every
 // edit is priced by the database (adjust_booking and the pricing functions inside a rolled-back
@@ -83,7 +84,9 @@ const Place = ({ leg }: { leg: 'pickup' | 'return' }) => { const { v } = useCont
   </>
 ); };
 
-export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: { b: B; insurers: Array<{ id: string; name: string }>; kmChoices: number[]; offerHours: number; editable: boolean }) {
+export function BookingReview({ b, insurers, kmChoices, offerHours, editable, insurerRates = [] }: { b: B; insurers: Array<{ id: string; name: string }>; kmChoices: number[]; offerHours: number; editable: boolean;
+  /** 0163: each insurer's rate sheet for this car on the pickup day (the rate is filled from it when the insurer is chosen) */
+  insurerRates?: SheetRate[] }) {
   const { act: adminAct, preview: adminPreview, kind } = useDoor();
   const va = kind === 'va';
   const router = useRouter();
@@ -98,7 +101,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
     coverage: dollars(coverageLine?.amount_cents ?? null), promo_code: b.promo_code ?? '',
     bill_to: b.bill_to, insurer_id: b.insurer_id ?? '', insurer_claim_number: b.insurer_claim_number ?? '', insurer_adjuster_name: b.insurer_adjuster_name ?? '',
     insurer_adjuster_email: b.insurer_adjuster_email ?? '', insurer_adjuster_phone: b.insurer_adjuster_phone ?? '', insurer_authorized_days: b.insurer_authorized_days?.toString() ?? '',
-    insurer_authorized_until: b.insurer_authorized_until ?? '', dates_provisional: b.dates_provisional, blocks_calendar: b.blocks_calendar, blocks_reason: '',
+    insurer_authorized_until: b.insurer_authorized_until ?? '', insurer_rate_reason: '', dates_provisional: b.dates_provisional, blocks_calendar: b.blocks_calendar, blocks_reason: '',
     ...Object.fromEntries(feeLines.map((l) => [`fee:${l.charge_type}`, dollars(l.amount_cents)])), fee_reason: '',
     message: '', expires_hours: String(offerHours), note: b.notes ?? '',
     rental_pay: b.rental_pay_method ?? 'card', deposit_pay: b.deposit_pay_method ?? 'card', notify: true, by_email: true, by_text: false
@@ -120,6 +123,21 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
   const addonsChanged = norm(addons) !== norm(addons0);
   const set = (k: string) => (x: string | boolean) => { setDone(null); setV((s) => ({ ...s, [k]: x })); };
   const changed = (k: string) => v[k] !== start[k];
+  // 0163: the insurer's rate sheet for this car: the daily rate authorized is filled from it when the insurer is chosen
+  const sheetFor = (id: unknown) => insurerRates.find((r) => r.insurer_id === id) ?? null;
+  const filled = useRef<string | null>((() => { const s0 = sheetFor(b.insurer_id); return s0 && s0.daily_rate_cents === b.insurer_authorized_daily_rate_cents ? dollars(s0.daily_rate_cents) : null; })());
+  const firstInsurer = useRef(true);
+  useEffect(() => {
+    if (firstInsurer.current) { firstInsurer.current = false; return; }
+    if (!editable || v.bill_to === 'renter') return;
+    const sheet = sheetFor(v.insurer_id);
+    const cur = String(v.insurer_authorized_daily_rate_cents ?? '');
+    const next = prefillRate(cur, filled.current, sheet);
+    filled.current = sheet?.daily_rate_cents != null && next === dollars(sheet.daily_rate_cents) && (!cur.trim() || cur === filled.current || cur === next) ? next : null;
+    if (next !== v.insurer_authorized_daily_rate_cents) setV((x) => ({ ...x, insurer_authorized_daily_rate_cents: next }));
+  }, [v.insurer_id, v.bill_to]); // eslint-disable-line react-hooks/exhaustive-deps
+  const insurerSheet = sheetFor(v.insurer_id);
+  const rateState = rateCheck(cents(String(v.insurer_authorized_daily_rate_cents ?? '')), insurerSheet, insurers.find((i) => i.id === v.insurer_id)?.name);
 
   // what differs from the booking as stored, in the database's words
   const payload = useMemo(() => {
@@ -128,7 +146,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
     if (changed('pickup_at') && v.pickup_at) ch.pickup_at = new Date(String(v.pickup_at)).toISOString();
     if (changed('return_at') && v.return_at) ch.return_at = new Date(String(v.return_at)).toISOString();
     if (changed('booking_type')) ch.booking_type = v.booking_type;
-    for (const k of MONEY_KEYS) if (changed(k)) ch[k] = cents(String(v[k])) ?? 0;
+    for (const k of MONEY_KEYS) if (changed(k)) ch[k] = cents(String(v[k])) ?? (k === 'insurer_authorized_daily_rate_cents' ? null : 0);
+    if ((changed('insurer_authorized_daily_rate_cents') || changed('insurer_id')) && String(v.insurer_rate_reason).trim()) ch.insurer_rate_reason = String(v.insurer_rate_reason).trim();
     if (String(v.rental_charge_cents).trim()) { ch.rental_charge_cents = cents(String(v.rental_charge_cents)); ch.price_tax = v.price_tax; ch.price_reason = String(v.price_reason).trim() || null; }
     if (changed('staff_discount_reason') || changed('staff_discount_cents')) ch.staff_discount_reason = String(v.staff_discount_reason).trim() || null;
     if (changed('km_allowance_per_day')) ch.km_allowance_per_day = Number(v.km_allowance_per_day);
@@ -285,7 +304,9 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
             <S k="insurer_id" l="Insurer" options={[['', 'Choose'], ...insurers.map((i) => [i.id, i.name] as [string, string])]} />
             <F k="insurer_claim_number" l="Claim number" /><F k="insurer_adjuster_name" l="Adjuster" />
             <F k="insurer_adjuster_email" l="Adjuster email" type="email" /><F k="insurer_adjuster_phone" l="Adjuster phone" type="tel" />
-            <F k="insurer_authorized_daily_rate_cents" l="Authorized daily rate" money /><F k="insurer_authorized_days" l="Authorized days" />
+            <F k="insurer_authorized_daily_rate_cents" l="Authorized daily rate" money hint={insurerSheet ? `Rate sheet (${insurerSheet.class_label ?? insurerSheet.class_code}): ${rateLine(insurerSheet)}. Empty takes the sheet's.` : undefined} /><F k="insurer_authorized_days" l="Authorized days" />
+            {rateState.state === 'differs' && <><p className="small ad-field--wide" role="note" data-testid="review-rate-differs"><span className="ad-flag">Differs from the rate sheet</span> {rateState.message}</p>
+              <F k="insurer_rate_reason" l="Reason for a different rate" /></>}
             <F k="insurer_authorized_until" l="Authorized until" type="date" />
             <div className="field ad-field"><label className="check"><input type="checkbox" checked={Boolean(v.dates_provisional)} onChange={(e) => set('dates_provisional')(e.target.checked)} /> <span>Dates are provisional</span></label></div>
           </>}

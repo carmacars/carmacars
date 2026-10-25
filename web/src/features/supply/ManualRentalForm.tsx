@@ -12,6 +12,7 @@ import { AddonPicker } from '@/features/addons/AddonPicker';
 import { Info } from '@/features/forms/Info';
 import { FEE_LABEL, lineHelp } from '@/features/offers/help';
 import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/addons/model';
+import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/insurers/rates';
 import { DEPOSIT_PAY, PART_METHODS, RENTAL_LINE, RENTAL_PAID_BY, feeOverrides, lineKey, needsReference, paidSoFar, paymentOf, periodShares, type DepositPay, type PayPart, type RentalPaidBy } from '@/features/offers/model';
 
 // Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, the same screen for every assistant function
@@ -31,6 +32,8 @@ type Quote = { role: 'admin' | 'va' | 'field'; phase?: Phase | null; phase_note?
   card: { brand: string; last4: string } | null; vehicle: { name: string; supply_type: string; bookable: boolean; retired: boolean };
   /** 0148: the insurers an insurance replacement can bill. */
   insurers?: Array<{ id: string; name: string }>;
+  /** 0163: each insurer's rate sheet for this car on the pickup day (the daily rate authorized is filled from it). */
+  insurer_rates?: SheetRate[];
   /** 0132: fee lines this person may set by hand; the monthly periods of a long rental. */
   may_edit_fees?: boolean; periods?: Period[];
   has_rates?: boolean; listing_finished?: boolean; needs_policy_confirm?: boolean; notes?: string[]; price_typed_cents?: number | null;
@@ -132,6 +135,18 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     && (f.price_tax === 'included' ? quote.price_tax.with_tax_cents : quote.price_tax.before_tax_cents) === typed ? quote.price_tax : null;
   const typedBeforeTax = f.price_tax === 'included' ? split?.before_tax_cents : typed;
   const id = (k: string) => `mr-${k}`;
+  // 0163: the insurer's rate sheet for the car fills the daily rate authorized (staff may type another, with the reason)
+  const insurerSheet = paidBy === 'insurer' ? quote?.insurer_rates?.find((r) => r.insurer_id === f.insurer_id) ?? null : null;
+  const rateFilled = useRef<string | null>(null);
+  useEffect(() => {
+    if (paidBy !== 'insurer' || !quote) return;
+    const cur = f.authorized_rate ?? '';
+    const next = prefillRate(cur, rateFilled.current, insurerSheet);
+    rateFilled.current = insurerSheet?.daily_rate_cents != null && next === (insurerSheet.daily_rate_cents / 100).toFixed(2) && (!cur.trim() || cur === rateFilled.current || cur === next) ? next : null;
+    if (next !== cur) setF((x) => ({ ...x, authorized_rate: next }));
+  }, [f.insurer_id, quote, paidBy]); // eslint-disable-line react-hooks/exhaustive-deps
+  const insurerName = f.insurer_id === 'new' ? (f.insurer_name ?? '') : quote?.insurers?.find((x) => x.id === f.insurer_id)?.name;
+  const rateState = rateCheck(cents(f.authorized_rate ?? ''), insurerSheet, insurerName || undefined);
   const text = (k: string, label: string, o: { type?: string; hint?: string; inputMode?: 'decimal' | 'numeric' | 'tel' | 'email'; wide?: boolean } = {}) => (
     <div className={`field ad-field${o.wide ? ' ad-field--wide' : ''}`}><label className="label" htmlFor={id(k)}>{label}</label>
       <input className="input" id={id(k)} type={o.type ?? 'text'} inputMode={o.inputMode} value={f[k] ?? ''} onChange={set(k)} data-testid={`mr-${k}`} aria-describedby={o.hint ? `${id(k)}-h` : undefined} />
@@ -291,6 +306,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
 
   const submit = () => start(async () => {
     if (paidBy === 'insurer' && !(f.insurer_id && (f.insurer_id !== 'new' || (f.insurer_name ?? '').trim()))) { setErr('Insurance replacement: choose the insurer (or Not listed, and type its name).'); return; }
+    if (paidBy === 'insurer' && rateState.state === 'differs' && !(f.rate_reason ?? '').trim()) { setErr(`${rateState.message.replace(/: say why\.$/, '')}: type the reason for the different rate, or empty the field to take the sheet's.`); return; }
     setErr(null);
     if (!blocks && !(f.blocks_reason ?? '').trim()) { setErr('Say why it does not block the calendar (for example: insurance replacement, dates not known yet).'); return; }
     if (needsReference(paidBy) && !(f.reference ?? '').trim()) { setErr('Enter the reference of the payment (the e-Transfer, cheque or transfer number).'); return; }
@@ -313,7 +329,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
       deposit: { method: depositBy, reference: f.deposit_reference || undefined, received_on: f.deposit_received_on || f.received_on }, agreement, ...(blocks ? {} : { blocks_calendar: false, blocks_calendar_reason: f.blocks_reason }),
       ...(paidBy === 'insurer' ? { insurance: { insurer_id: f.insurer_id && f.insurer_id !== 'new' ? f.insurer_id : undefined, insurer_name: f.insurer_id === 'new' ? (f.insurer_name ?? '').trim() : undefined,
         claim_number: f.claim_number || undefined, adjuster_name: f.adjuster_name || undefined, adjuster_email: f.adjuster_email || undefined, adjuster_phone: f.adjuster_phone || undefined,
-        authorized_days: f.authorized_days ? Number(f.authorized_days) : undefined, authorized_daily_rate_cents: cents(f.authorized_rate ?? ''), authorized_until: f.authorized_until || undefined,
+        authorized_days: f.authorized_days ? Number(f.authorized_days) : undefined, authorized_daily_rate_cents: cents(f.authorized_rate ?? ''), authorized_until: f.authorized_until || undefined, rate_reason: rateState.state === 'differs' ? (f.rate_reason ?? '').trim() || undefined : undefined,
         dates_provisional: f.dates_provisional === 'yes', pays: f.insurer_pays === 'rental' ? 'split' : 'insurer' } } : {}),
       ...(draftId ? { draft_id: draftId } : {}), ...(f.odometer_out ? { odometer_out_km: Number(f.odometer_out.replace(/\D/g, '')) } : {}), ...(f.fuel_out ? { fuel_out_pct: Number(f.fuel_out) } : {}),
       ...(hasOwner ? ownerChoicePayload(ownerChoice, owner, true) : {}) };
@@ -540,7 +556,10 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
               {text('claim_number', 'Claim number')}
               {text('adjuster_name', 'Adjuster')}{text('adjuster_email', 'Adjuster\'s email', { type: 'email', inputMode: 'email' })}{text('adjuster_phone', 'Adjuster\'s phone', { inputMode: 'tel' })}
               {text('authorized_days', 'Days authorized', { inputMode: 'numeric' })}
-              {text('authorized_rate', 'Daily rate authorized ($)', { inputMode: 'decimal', hint: 'The insurer pays up to this a day; the rest is the renter\'s.' })}
+              {text('authorized_rate', 'Daily rate authorized ($)', { inputMode: 'decimal', hint: insurerSheet ? `${insurerName}'s rate sheet for ${insurerSheet.class_label ?? insurerSheet.class_code}: ${rateLine(insurerSheet)}. Empty takes the sheet's.` : 'The insurer pays up to this a day; the rest is the renter\'s.' })}
+              {rateState.state === 'differs' && <><p className="small ad-field--wide" role="note" data-testid="mr-rate-differs"><span className="ad-flag">Differs from the rate sheet</span> {rateState.message}</p>
+                {text('rate_reason', 'Reason for a different rate', { wide: true })}</>}
+              {insurerSheet?.taxes_note ? <p className="hint ad-field--wide" data-testid="mr-rate-taxes">Taxes: {insurerSheet.taxes_note}</p> : null}
               {text('authorized_until', 'Authorized until (provisional end)', { type: 'date' })}
               {select('insurer_pays', 'The insurer pays', [['all', 'The rental and the fees'], ['rental', 'The rental only (the renter pays the fees)']])}
               <label className="check ad-field--wide" htmlFor={id('dates_provisional')}><input id={id('dates_provisional')} type="checkbox" checked={f.dates_provisional === 'yes'} onChange={(e) => setF((x) => ({ ...x, dates_provisional: e.target.checked ? 'yes' : '' }))} /> <span>The return date is provisional (the repair is not finished)</span></label>
