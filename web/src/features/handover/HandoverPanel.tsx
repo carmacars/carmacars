@@ -30,7 +30,7 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
           {canHandover && b.status === 'confirmed' && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'pickup' }} label="Check out (pickup)" variant="primary" go={`${base}/handover/{job}`} testId="checkout-start" />}
           {canHandover && b.status === 'on_rent' && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'return' }} label="Check in (return)" variant="primary" go={`${base}/handover/{job}`} testId="checkin-start" />}
           {reported && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/report`} data-testid="photo-report-link">Photo report</Link>}
-          {unsigned.length > 0 && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/sign-now`} data-testid="sign-now-link">Sign now on this device</Link>}
+          {(unsigned.length > 0 || (signing && !signing.agreement)) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/sign-now`} data-testid="sign-now-link">Sign now on this device</Link>}
         </div>
         {canHandover && ['confirmed', 'on_rent'].includes(b.status) && <p className="small muted">{b.status === 'confirmed'
           ? 'The checklist: ready check, licence and card, odometer and fuel, the photo set (every side, wheels, interior, odometer and fuel gauge, plate), damage close-ups, then the renter and you sign. Photos upload in the background and wait on the phone without a connection.'

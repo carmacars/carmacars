@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { offersDo, offersRead } from '@/server/actions/offers';
-import { supplyRead } from '@/server/actions/supply';
+import { deliveryDistance, draftClose, draftSave, supplyRead } from '@/server/actions/supply';
 import { SourcedChoice } from '@/features/sales/SourcedChoice';
 import { PRICE_TAX_OPTIONS } from '@/features/sales/priceTax';
 import { AddonPicker } from '@/features/addons/AddonPicker';
@@ -22,7 +22,7 @@ import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults
 // and the deposit are paid, who found the client, the message and how long the offer is open. The right side is the
 // offer as the renter will see it, priced by the database (and rolled back) as you type. Send makes the same records a
 // website request and its offer make; the renter gets the link by email, by text, both or neither.
-type Car = { id: string; name: string; plate: string | null; car_code: string | null; daily_rate_cents: number | null; weekly_rate_cents: number | null; deposit_cents: number | null; free: boolean | null };
+type Car = { id: string; name: string; plate: string | null; car_code: string | null; daily_rate_cents: number | null; weekly_rate_cents: number | null; deposit_cents: number | null; free: boolean | null; class?: string | null; body_type?: string | null };
 type Form = { role: Role; offer_hours: number; min_notice_minutes: number; km_choices: number[]; text_enabled: boolean; cars: Car[]; may_edit_fees?: boolean; period_days?: number; cycle?: string };
 type Found = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; is_blocked: boolean; bookings: number; card: { brand: string; last4: string } | null };
 type Line = { id: string; charge_type: string; description: string | null; amount_cents: number; hst_cents: number; stage: string; charged_to_renter: boolean; booking_addon_id?: string | null; addon_code?: string | null };
@@ -37,7 +37,10 @@ const fmt = (c: number | null | undefined) => money(Number(c ?? 0), { cents: tru
 const lineLabel = (l: Line) => l.description || l.charge_type.replace(/_/g, ' ');
 const PLAN_TYPES = ['coverage_sold', 'coverage', 'coverage_option', 'carmacars_coverage', 'coverage_daily'];
 
-export function OfferComposer({ base, initialCar = null, owner = null }: { base: '/admin' | '/va'; initialCar?: string | null; owner?: OwnerDefaults | null }) {
+/** What an offer draft keeps (0148). */
+export interface OcDraft { f?: Partial<OfferForm>; addons?: AddonChoice[]; customs?: Array<{ label: string; amount: string; hst: boolean }>; chosen?: Found | null; renter_id?: string | null }
+
+export function OfferComposer({ base, initialCar = null, draft = null, owner = null }: { base: '/admin' | '/va'; initialCar?: string | null; draft?: { id: string; data: OcDraft } | null; owner?: OwnerDefaults | null }) {
   // 0156: what the car's owner sees of the booking
   const [ownerChoice, setOwnerChoice] = useState(() => ownerChoiceInitial(owner));
   const start = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
@@ -48,15 +51,19 @@ export function OfferComposer({ base, initialCar = null, owner = null }: { base:
     pickup_kind: 'our_location', pickup_address: '', pickup_km: '', return_kind: 'our_location', return_address: '', return_km: '',
     price_mode: 'sheet', price_total: '', price_day: '', price_tax: 'plus', price_reason: '',
     deposit: '', discount: '', discount_reason: '', promo_code: '', km: '', coverage_option: '1', plan_price: '', fees: {}, fee_reason: '',
-    rental_pay: 'card', deposit_pay: 'card', choice: '', message: '', note: '', hours: '24', by_email: true, by_text: false, notify: true
+    rental_pay: 'card', deposit_pay: 'card', choice: '', message: '', note: '', hours: '24', by_email: true, by_text: false, notify: true,
+    ...(draft?.data.f ?? {})
   }));
   const set = <K extends keyof OfferForm>(k: K) => (v: OfferForm[K]) => setF((s) => ({ ...s, [k]: v }));
   const [q, setQ] = useState('');
   const [found, setFound] = useState<Found[]>([]);
-  const [chosen, setChosen] = useState<Found | null>(null);
+  const [chosen, setChosen] = useState<Found | null>(draft?.data.chosen ?? null);
   const [adding, setAdding] = useState(false);
   const [carQ, setCarQ] = useState('');
-  const [addons, setAddons] = useState<AddonChoice[]>([]);
+  // 0148 (sim item 9): narrow the cars to a type and to the ones free for the dates
+  const [carType, setCarType] = useState('');
+  const [freeOnly, setFreeOnly] = useState(false);
+  const [addons, setAddons] = useState<AddonChoice[]>(draft?.data.addons ?? []);
   const [addonOptions, setAddonOptions] = useState<AddonOption[]>([]);
   const [priced, setPriced] = useState<{ booking: Priced; available: boolean } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -107,7 +114,23 @@ export function OfferComposer({ base, initialCar = null, owner = null }: { base:
 
   const need = missing(f, role).filter((m) => m !== 'who found this client');
   // 0132: charges of its own on the offer (the renter sees what is typed)
-  const [customs, setCustoms] = useState<Array<{ label: string; amount: string; hst: boolean }>>([]);
+  const [customs, setCustoms] = useState<Array<{ label: string; amount: string; hst: boolean }>>(draft?.data.customs ?? []);
+  // 0148: saved as a draft as you type; opened again from Unfinished rentals on any device
+  const [draftId, setDraftId] = useState<string | null>(draft?.id ?? null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const snapKey = JSON.stringify({ f, addons, customs, chosen });
+  const firstSnap = useRef(snapKey);
+  const saveDraft = async () => {
+    const data: OcDraft = { f, addons, customs, chosen, renter_id: f.renter_id };
+    const r = await draftSave({ id: draftId, kind: 'offer', data: data as Record<string, unknown>, title: [chosen?.legal_name ?? f.full_name, form?.cars.find((c) => c.id === f.vehicle_id)?.name].filter(Boolean).join(', ') });
+    if (r.ok) { setDraftId(r.data.id); setSavedAt(r.data.updated_at); }
+  };
+  useEffect(() => {
+    if (sent || snapKey === firstSnap.current) return;
+    if (!f.renter_id && !f.full_name.trim() && !f.email.trim()) return;
+    const t = setTimeout(() => { void saveDraft(); }, 1500);
+    return () => clearTimeout(t);
+  }, [snapKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const payload = useMemo(() => {
     const p = offerPayload(f, role, days, addonsPayload(addons), editFees);
     const c = customs.filter((x) => x.label.trim() && Number(x.amount) > 0).map((x) => ({ label: x.label.trim(), amount_cents: Math.round(Number(x.amount) * 100), hst: x.hst }));
@@ -135,6 +158,7 @@ export function OfferComposer({ base, initialCar = null, owner = null }: { base:
     const o = ownerChoicePayload(ownerChoice, owner);
     const r = await offersDo<Sent & { booking_id: string }>('offer_create', draft ? { ...payload, ...o, draft: true } : { ...payload, ...o }, [`${base}/bookings`]);
     if (!r.ok) { setErr(r.message); return; }
+    if (draftId) void draftClose(draftId, 'done');
     if (draft) { router.push(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`); return; }
     setSent(r.data);
   });
@@ -157,7 +181,10 @@ export function OfferComposer({ base, initialCar = null, owner = null }: { base:
   const feeLines = (b?.lines ?? []).filter((l) => l.stage === 'booking' && !RENTAL_LINE.has(l.charge_type) && !PLAN_TYPES.includes(l.charge_type));
   const keyOf = (l: Line) => (l.booking_addon_id && l.addon_code ? `addon:${l.addon_code}` : lineKey({ charge_type: l.charge_type }));
   const total = b ? (b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents) : 0;
-  const cars = (form?.cars ?? []).filter((c) => { const k = carQ.trim().toLowerCase(); return !k || `${c.name} ${c.plate ?? ''} ${c.car_code ?? ''}`.toLowerCase().includes(k); });
+  const cars = (form?.cars ?? []).filter((c) => { const k = carQ.trim().toLowerCase(); return (!k || `${c.name} ${c.plate ?? ''} ${c.car_code ?? ''}`.toLowerCase().includes(k))
+    && (!carType || c.body_type === carType || c.class === carType) && (!freeOnly || c.free !== false || c.id === f.vehicle_id); });
+  const bodyTypes = [...new Set((form?.cars ?? []).map((c) => c.body_type).filter((x): x is string => !!x))].sort();
+  const classes = [...new Set((form?.cars ?? []).map((c) => c.class).filter((x): x is string => !!x))].sort();
   const car = form?.cars.find((c) => c.id === f.vehicle_id);
   const id = (k: string) => `oc-${k}`;
   const text = (k: keyof OfferForm, l: string, o: { type?: string; hint?: string; inputMode?: 'decimal' | 'numeric' | 'tel' | 'email'; wide?: boolean; placeholder?: string; auto?: string } = {}) => (
@@ -171,13 +198,19 @@ export function OfferComposer({ base, initialCar = null, owner = null }: { base:
   const placeFields = (leg: 'pickup' | 'return') => (<>
     {select(`${leg}_kind`, leg === 'pickup' ? 'Pickup' : 'Return', PLACES.map(([v, x]) => [v, leg === 'return' && v === 'delivery' ? 'We collect' : leg === 'pickup' && v === 'delivery' ? 'We deliver' : x]))}
     {(f[`${leg}_kind`] as PlaceKind) === 'delivery' && <><div className="field ad-field"><label className="label" htmlFor={id(`${leg}_address`)}>{leg === 'pickup' ? 'Delivery address' : 'Collection address'}</label>
-      <AddressInput id={id(`${leg}_address`)} name={`${leg}_address`} value={{ label: String(f[`${leg}_address`] ?? ''), placeId: '' }} onChange={(x) => set(`${leg}_address`)(x.label as never)} testId={`oc-${leg}_address`} /></div>{text(`${leg}_km`, 'Distance (km)', { inputMode: 'decimal', hint: 'Prices the delivery fee' })}</>}
+      <AddressInput id={id(`${leg}_address`)} name={`${leg}_address`} value={{ label: String(f[`${leg}_address`] ?? ''), placeId: '' }} onChange={(x) => {
+        set(`${leg}_address`)(x.label as never);
+        // a suggestion chosen: the distance is measured, and prices the delivery (sim item 12); typed by hand stays as typed
+        if (x.placeId) void deliveryDistance(x.placeId, x.session).then((r) => { if (r.ok && r.data.km !== null) set(`${leg}_km`)(String(r.data.km) as never); });
+      }} testId={`oc-${leg}_address`} /></div>{text(`${leg}_km`, 'Distance (km)', { inputMode: 'decimal', hint: 'Measured from our location when you pick the address from the list; prices the delivery fee' })}</>}
     {(f[`${leg}_kind`] as PlaceKind) === 'airport' && text(`${leg}_address`, 'Airport code', { placeholder: 'YYZ' })}
   </>);
 
   return (
     <div className="ad-review" data-testid="offer-composer">
       <form className="pt-card ad-card ad-form ad-form--narrow" aria-label="The offer" noValidate onSubmit={(e) => { e.preventDefault(); send(); }}>
+        <p className="small muted" role="status" aria-live="polite" data-testid="oc-draft-status">{savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}: finish it later from Unfinished rentals.` : 'Saved as a draft as you type.'}
+          {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); router.push(`${base}/offers/new`); })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
         <fieldset className="stack"><legend className="d4">1. The customer</legend>
           {chosen ? (
             <p data-testid="oc-customer"><b>{chosen.legal_name}</b> <span className="small">{chosen.email} · {chosen.mobile} · {chosen.bookings ? `${chosen.bookings} past rental${chosen.bookings === 1 ? '' : 's'}` : 'no rental yet'}{chosen.card ? ` · card ${chosen.card.brand} ${chosen.card.last4}` : ''}</span>{' '}
@@ -214,6 +247,13 @@ export function OfferComposer({ base, initialCar = null, owner = null }: { base:
                 const hit = k.length >= 4 ? form?.cars.find((c) => (c.car_code ?? '').replace(/[^A-Z0-9]/g, '') === k || (c.car_code ?? '').replace(/[^A-Z0-9]/g, '') === `CC${k}` || (c.plate ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '') === k) : undefined;
                 if (hit) set('vehicle_id')(hit.id);
               }} data-testid="oc-car-q" />
+              <div className="row">
+                <label className="sr-only" htmlFor="oc-car-type">Type of car</label>
+                <select className="select" id="oc-car-type" value={carType} onChange={(e) => setCarType(e.target.value)} data-testid="oc-car-type">
+                  <option value="">Every type</option>
+                  {bodyTypes.length > 0 && <optgroup label="Body">{bodyTypes.map((x) => <option key={`b-${x}`} value={x}>{x}</option>)}</optgroup>}
+                  {classes.length > 0 && <optgroup label="Class">{classes.map((x) => <option key={`c-${x}`} value={x}>{x[0]!.toUpperCase() + x.slice(1)}</option>)}</optgroup>}</select>
+                <label className="check" htmlFor="oc-free-only"><input id="oc-free-only" type="checkbox" checked={freeOnly} onChange={(e) => setFreeOnly(e.target.checked)} data-testid="oc-free-only" /> <span>Free for these dates only</span></label></div>
               <select className="select" id="oc-vehicle_id" value={f.vehicle_id} onChange={(e) => set('vehicle_id')(e.target.value)} data-testid="oc-vehicle_id">
                 <option value="">Choose the car ({cars.length})</option>
                 {cars.map((c) => <option key={c.id} value={c.id}>{c.free === false ? 'Not free · ' : c.free ? 'Free · ' : ''}{c.name}{c.car_code ? `, ${c.car_code}` : ''}{c.plate ? `, ${c.plate}` : ''}{c.daily_rate_cents ? ` · ${fmt(c.daily_rate_cents)} a day` : ' · no rates'}</option>)}

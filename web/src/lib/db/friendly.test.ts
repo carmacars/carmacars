@@ -41,3 +41,8 @@ test('the log masks email addresses and phone numbers', () => {
   assert.equal(maskPersonal('Key (email)=(riley.renter@example.test) already exists'), 'Key (email)=([email]) already exists');
   assert.equal(maskPersonal('mobile +1 (647) 555-0123 taken'), 'mobile [number] taken');
 });
+
+test('a constraint a person can act on is named in words (0148)', () => {
+  assert.match(friendlyText({ message: 'new row for relation "bookings" violates check constraint "bookings_bill_to_insurer"', code: '23514' }, 'E-1'), /pick the insurer.*E-1/);
+  assert.match(friendlyText({ message: 'duplicate key value violates unique constraint "renters_email_key"', code: '23505' }, 'E-2'), /find them by email/);
+});

@@ -43,12 +43,25 @@ export function isRawDbError(e: DbLike | null | undefined): boolean {
   return RAW.some((r) => r.test(m));
 }
 
+// 0148: the constraints a person can act on, by name (the simulation of October 24, 2026, item 15)
+const CONSTRAINT: Record<string, string> = {
+  bookings_bill_to_insurer: 'An insurer is billed only when the insurer is chosen: pick the insurer (Admin > Settings > Insurers adds one), or choose another way of payment.',
+  bookings_billable_days_check: 'The rental is too long or too short: check the pickup and return dates.',
+  bookings_check: 'The return must be after the pickup.',
+  bookings_check1: 'The days do not match the dates: check the pickup and return.',
+  bookings_check4: 'The discount is larger than the rental charge.',
+  renters_email_key: 'A renter with this email address already exists: find them by email instead of adding a new one.',
+  users_email_key: 'An account with this email address already exists.'
+};
+
 /** The sentence a person reads for a raw error. */
 export function friendlyText(e: DbLike, ref: string): string {
   const m = typeof e.message === 'string' ? e.message : '';
   const code = typeof e.code === 'string' ? e.code : '';
   let what = 'That did not go through and nothing was changed.';
-  if (code === '23505' || /duplicate key value/i.test(m)) what = 'That is already recorded (it may have been saved a moment ago). Refresh the page to see it.';
+  const named = m.match(/constraint "([^"]+)"/)?.[1];
+  if (named && CONSTRAINT[named]) what = CONSTRAINT[named]!;
+  else if (code === '23505' || /duplicate key value/i.test(m)) what = 'That is already recorded (it may have been saved a moment ago). Refresh the page to see it.';
   else if (code === '23503' || /foreign key constraint/i.test(m)) what = 'Something this refers to has changed or no longer exists. Refresh the page and try again.';
   else if (code === '23502' || code === '23514' || /null value in column|check constraint/i.test(m)) what = 'A value is missing or not allowed here. Check what you entered and try again.';
   else if (code === '22P02' || code === '22007' || code === '22008' || code === '22003' || /invalid input|out of range|value too long/i.test(m)) what = 'One of the values is not in the expected format. Check what you entered and try again.';

@@ -1647,6 +1647,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_periods: {
+        Row: {
+          id: string;
+          booking_id: string;
+          seq: number;
+          starts_at: string;
+          ends_at: string;
+          days: number;
+          amount_cents: number;
+          status: string;
+          send_after: string | null;
+          agreement_id: string | null;
+          issued_at: string | null;
+          attempts: number;
+          last_error: string | null;
+          created_at: string;
+          updated_at: string;
+          charge_payment_id: string | null;
+          charge_status: string | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          seq: number;
+          starts_at: string;
+          ends_at: string;
+          days: number;
+          amount_cents?: number;
+          status?: string;
+          send_after?: string | null;
+          agreement_id?: string | null;
+          issued_at?: string | null;
+          attempts?: number;
+          last_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          charge_payment_id?: string | null;
+          charge_status?: string | null;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          seq?: number;
+          starts_at?: string;
+          ends_at?: string;
+          days?: number;
+          amount_cents?: number;
+          status?: string;
+          send_after?: string | null;
+          agreement_id?: string | null;
+          issued_at?: string | null;
+          attempts?: number;
+          last_error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          charge_payment_id?: string | null;
+          charge_status?: string | null;
+        };
+        Relationships: [];
+      };
       booking_renewals: {
         Row: {
           id: string;
@@ -13702,6 +13762,7 @@ export type Database = {
           completed_at: string | null;
           voided_at: string | null;
           void_reason: string | null;
+          period_seq: number | null;
           rendered_pickup: Json | null;
           rendered_snapshot: Json | null;
           signed_snapshot: Json | null;
@@ -13724,6 +13785,7 @@ export type Database = {
           completed_at?: string | null;
           voided_at?: string | null;
           void_reason?: string | null;
+          period_seq?: number | null;
           rendered_pickup?: Json | null;
           rendered_snapshot?: Json | null;
           signed_snapshot?: Json | null;
@@ -13746,9 +13808,61 @@ export type Database = {
           completed_at?: string | null;
           voided_at?: string | null;
           void_reason?: string | null;
+          period_seq?: number | null;
           rendered_pickup?: Json | null;
           rendered_snapshot?: Json | null;
           signed_snapshot?: Json | null;
+        };
+        Relationships: [];
+      };
+      rental_drafts: {
+        Row: {
+          id: string;
+          kind: string;
+          created_by: string;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+          status: string;
+          quick: boolean;
+          data: Json;
+          title: string | null;
+          vehicle_id: string | null;
+          hold_block_id: string | null;
+          booking_id: string | null;
+          finished_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          kind: string;
+          created_by: string;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          status?: string;
+          quick?: boolean;
+          data?: Json;
+          title?: string | null;
+          vehicle_id?: string | null;
+          hold_block_id?: string | null;
+          booking_id?: string | null;
+          finished_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          created_by?: string;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          status?: string;
+          quick?: boolean;
+          data?: Json;
+          title?: string | null;
+          vehicle_id?: string | null;
+          hold_block_id?: string | null;
+          booking_id?: string | null;
+          finished_at?: string | null;
         };
         Relationships: [];
       };
@@ -13845,6 +13959,7 @@ export type Database = {
           sms_opt_out_at: string | null;
           notify_channel: string | null;
           staff_note: string | null;
+          merged_into: string | null;
         };
         Insert: {
           id?: string;
@@ -13869,6 +13984,7 @@ export type Database = {
           sms_opt_out_at?: string | null;
           notify_channel?: string | null;
           staff_note?: string | null;
+          merged_into?: string | null;
         };
         Update: {
           id?: string;
@@ -13893,6 +14009,7 @@ export type Database = {
           sms_opt_out_at?: string | null;
           notify_channel?: string | null;
           staff_note?: string | null;
+          merged_into?: string | null;
         };
         Relationships: [];
       };
@@ -21068,6 +21185,7 @@ export type Database = {
       server_agreement_companion: { Args: { p_booking: string }; Returns: Json };
       server_agreement_extra: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_agreement_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_agreement_facts_pre0148: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_agreement_job_done: { Args: { p_kind: string; p_ref: string; p_seq: number }; Returns: undefined };
       server_agreement_job_fail: { Args: { p_kind: string; p_ref: string; p_error: string }; Returns: undefined };
       server_agreement_jobs_claim: { Args: { p_limit?: number; p_ahead_seconds?: number }; Returns: Json };
@@ -21225,6 +21343,11 @@ export type Database = {
       server_pdf_jobs_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_pdf_jobs_enqueue: { Args: { p: Json }; Returns: number };
       server_pdf_jobs_pending: { Args: { p_owner: string }; Returns: number };
+      server_period_begin: { Args: { p_booking: string; p_seq: number }; Returns: Json };
+      server_period_charge_begin: { Args: { p_booking: string; p_seq: number }; Returns: Json };
+      server_period_charge_finish: { Args: { p_booking: string; p_seq: number; p_ok: boolean; p_error?: string; p_intent?: string; p_charge?: string }; Returns: Json };
+      server_period_done: { Args: { p_booking: string; p_seq: number; p_ok: boolean; p_error?: string }; Returns: Json };
+      server_periods_due: { Args: { p_limit?: number }; Returns: Json };
       server_phone_ai_log: { Args: { p: Json }; Returns: Json };
       server_phone_due: { Args: { p_limit?: number }; Returns: Json };
       server_phone_event: { Args: { p: Json }; Returns: Json };
@@ -21256,6 +21379,7 @@ export type Database = {
       server_seo_result: { Args: { p: Json }; Returns: Json };
       server_seo_snapshots: { Args: never; Returns: number };
       server_set_notify_channel: { Args: { p_user: string; p_channel: string }; Returns: Json };
+      server_sign_now_prepare: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };
       server_sign_request_document: { Args: { p_id: string }; Returns: Json };
       server_signature_lines: { Args: { p_request: string }; Returns: Json };

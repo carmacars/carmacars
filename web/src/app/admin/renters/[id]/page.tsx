@@ -9,6 +9,7 @@ import { ReachCard } from '@/features/admin/ReachCard';
 import type { Reach } from '@/features/phone/alerts';
 import type { PhoneTimelineData } from '@/features/phone/client';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
+import { RenterMerge, type DuplicateRow } from '@/features/money/RenterMerge';
 import { door } from '@/server/door';
 
 export const dynamic = 'force-dynamic';
@@ -29,12 +30,15 @@ export default async function Renter({ params }: { params: Promise<{ id: string 
   if (!r) notFound();
   // correct the renter's details (0132)
   const rf = await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { renter: id }).catch(() => null);
+  // the same person entered twice (0148)
+  const dupes = await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: id }).catch(() => [] as DuplicateRow[]);
   return (
     <>
       <PageHead title={r.name} kicker="Renter"><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/renters">All renters</Link></PageHead>
       <div className="ad-cols ad-cols--2">
         <div className="stack">
           {rf && <RenterEdit x={rf} />}
+          <RenterMerge renterId={id} name={r.name} rows={dupes} />
           <Card title="Details"><Kv rows={[['Email', <span key="e">{r.email ?? ''}{r.has_sign_in && !r.email_confirmed && <> <span className="ad-b ad-b--amber" data-testid="email-not-confirmed">Email not confirmed</span></>}</span>], ['Phone', r.mobile ?? ''], ['City', r.city ?? ''], ['Identity', <Badge key="i" s={r.identity_status} />], ['Blocked', r.is_blocked ? 'Yes' : 'No'], ['Since', d(r.created_at)]]} /></Card>
           {!!r.captured?.length && (
             <Card title="Typed into forms" testId="renter-captured">
