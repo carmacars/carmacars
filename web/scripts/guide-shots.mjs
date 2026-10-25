@@ -432,7 +432,8 @@ async function renterStory(browser, ids) {
       await shoot(page, 'renter', 'pay', 'Pay: the card is authorized now and charged once the booking is confirmed; it becomes the Card on File for the deposit.');
     } catch (e) { problems.push(`renter/pay (${page.viewportSize().width}): ${String(e.message).split('\n')[0]}`); }
   }
-  await d.goto(`/account/bookings/${number}/pay`, { waitUntil: 'networkidle' });
+  await d.goto(`/account/bookings/${number}/pay`, { waitUntil: 'domcontentloaded' });
+  try { await d.locator('#pt-card-name').waitFor({ timeout: 40_000 }); } catch (e) { await shoot(d, 'renter', 'pay-failed', `Debug: ${d.url()}`, { step: 97 }); throw e; }
   await d.locator('#pt-card-name').fill('Jordan Lee');
   if (await d.getByTestId('fake-card').isVisible().catch(() => false)) {
     await d.locator('#pt-card-number').fill('4242 4242 4242 4242'); await d.locator('#pt-card-exp').fill('12 / 31'); await d.locator('#pt-card-cvc').fill('123');
