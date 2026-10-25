@@ -95,6 +95,7 @@ test('quick start at pickup, unfinished rentals, and a draft opened again', asyn
   // D. typed into the full form: saved as a draft as you go
   await page.goto('/admin/bookings/new', { waitUntil: 'networkidle' });
   const typed = `Tara Typed ${tag()}`;
+  if (!(await page.getByTestId('mr-new-renter').isChecked())) await page.getByTestId('mr-new-renter').check();
   await page.getByTestId('mr-full_name').fill(typed);
   await expect(page.getByTestId('mr-draft-bar')).toContainText('Saved as a draft at', { timeout: 15_000 });
   await expect.poll(async () => (await sql`select count(*)::int as n from rental_drafts where created_by = ${admin.id} and status = 'open' and data #>> '{f,full_name}' = ${typed}`)[0]!.n).toBe(1);

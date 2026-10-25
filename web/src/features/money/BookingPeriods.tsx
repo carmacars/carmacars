@@ -19,7 +19,7 @@ export function BookingPeriods({ rows, booking }: { rows: PeriodRow[]; booking: 
     <section className="pt-card ad-card stack" aria-labelledby="periods-h" data-testid="booking-periods">
       <h2 className="d4" id="periods-h">Monthly periods ({rows.length})</h2>
       <p className="small muted">A rental this long is cut into periods. Each later period gets its own version of the agreement (CarmaCars&apos; and Blind Spot&apos;s), sent to the renter to sign a few days before it starts, with what is due for it.</p>
-      <div className="ad-table-wrap"><table className="ad-table"><caption className="sr-only">Periods</caption>
+      <div className="ad-table-wrap" tabIndex={0} role="region" aria-label="The periods (scrolls sideways)"><table className="ad-table"><caption className="sr-only">Periods</caption>
         <thead><tr><th scope="col">Period</th><th scope="col">Dates</th><th scope="col">Days</th><th scope="col">Share</th><th scope="col">Agreement</th></tr></thead>
         <tbody>{rows.map((r) => (
           <tr key={r.seq} data-testid="period-row">
