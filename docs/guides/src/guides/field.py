@@ -87,7 +87,7 @@ def build():
         f'Identity not verified: for each driver, press {B("Take")} for the licence front, the back and the selfie. Hold the original licence: tick that the name matches, the photo is the person, it is valid past the return and it is class G2 or G. No expiry on file? Type the licence number and the expiry. Press {B("The licence checks out")}.',
         f'Deposit not taken: press {B("Card hold: hand this phone to the renter")}. They type their card in Stripe\'s secure form; take the phone back and press {B("Back to the job")}.',
         f'Paid by e-Transfer instead: open {B("Paid by e-Transfer")}, type the reference number from their confirmation and press {B("Record the e-Transfer")}.',
-        f'Paid in cash: open {B("Paid in cash")}, count the amount in front of the renter and press {B("I received")}. Bring the cash to the office: Finance gets a task to collect it from you.',
+        f'Paid in cash: open {B("Paid in cash")}, count the amount in front of the renter and press {B("I received")}. Keep the cash apart from your own money and hand it to CarmaCars within 1 business day, as Finance directs: Finance gets a task to collect it from you.',
         f'Additional driver not accepted: press {B("Sign now on this device (additional driver)")}.',
     ])
     g.tip('An expired licence, a face that does not match or a renter who will not sign: do not fix it. Press Stop and call us.')
@@ -187,7 +187,7 @@ def build():
     g.steps([
         f'Open {B("Add a rental")}. Choose the car, the dates and the places, then type the renter\'s details. A renter already on file is found by their email. Car already out with the renter? Enter the pickup as when it left: it is recorded as on trip.',
         f'Press {B("Check the calendar and the price")}. To charge another price, type it with the reason: a price far under the rate sheet is flagged for an Admin, not refused.',
-        f'Choose {B("Send a payment link")} or {B("Charge the saved card when the renter signs")}. You never take payment yourself.',
+        f'Choose {B("Send a payment link")} or {B("Charge the saved card when the renter signs")}. The renter pays online: you take no payment for it yourself.',
         f'Under Who found this client, choose {B("I sourced this client")} or {B("Entered for CarmaCars")}, then press {B("Add the rental")}.',
     ])
     g.task('Commissions')
