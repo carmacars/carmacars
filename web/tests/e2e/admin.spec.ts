@@ -1,7 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import path from 'node:path';
 import { acceptCookies, db, noOverflow, watch } from './helpers';
 
 // The admin portal end to end. At 375 and 1440: the dashboard, the request review (adjust, live
@@ -248,7 +249,14 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
   await sql`update listing_intakes set state = 'cancelled' where vehicle_id = ${lc!.id} and state not in ('published', 'cancelled')`;
   const [ik] = await sql`insert into listing_intakes (vehicle_id, started_by, started_role, state, review_required) values (${lc!.id}, ${a.id}, 'owner', 'started', true) returning id`;
   const [cover] = await sql`select coalesce(processed_path, original_path) p from vehicle_photos where vehicle_id = ${lc!.id} and replaced_at is null and coalesce(processed_path, original_path) is not null order by is_cover desc limit 1`;
-  // the photo pipeline's worker, faked: every required shot uploaded and processed, a copy draft written
+  // the photo pipeline's worker, faked: every required shot uploaded and processed, a copy draft written; the original
+  // stored where the pipeline stores it (the vehicle-originals bucket; the crawl renders the listing that shows it)
+  {
+    const store = process.env.LOCAL_STORAGE_DIR ?? '.local-storage';
+    const from = [path.join('public/sample-photos/cars', path.basename(cover!.p as string)), path.join(store, 'vehicle-public', cover!.p as string)].find((f) => existsSync(f));
+    const to = path.join(store, 'vehicle-originals', cover!.p as string);
+    if (from && !existsSync(to)) { mkdirSync(path.dirname(to), { recursive: true }); copyFileSync(from, to); }
+  }
   await sql`select app.record_listing_upload(${a.id}, ${ik!.id}, jsonb_build_object('shot_type', s.code, 'original_path', ${cover!.p}::text, 'width', 3000, 'height', 2000, 'byte_size', 900000, 'mime_type', 'image/jpeg'))
     from listing_shot_types s where s.required and s.is_active order by s.seq`;
   await sql`select app.submit_listing_intake(${a.id}, ${ik!.id})`;
