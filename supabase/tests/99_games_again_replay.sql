@@ -6,7 +6,7 @@
 -- privileges. Fixtures start with "ga".
 select test.suite('99 games again: pop up again, play again');
 
-select test.mk_user('ga_admin', 'admin');
+select test.mk_user('gar_admin', 'admin');
 create or replace function test.gavid(p text) returns uuid language sql immutable as $$ select md5('gavid:' || p)::uuid $$;
 create or replace function test.gastart(p text, p_extra jsonb default '{}') returns jsonb language sql as $$
   select public.game_start(jsonb_build_object('vid', test.gavid(p), 'device', 'phone', 'path', '/cars/ga-car', 'trigger', 'pages', 'seen', '[]'::jsonb) || p_extra) $$;
@@ -161,9 +161,9 @@ select test.eq('after the 14 days the saved prize ends: a new game', (select coa
 -- ================================================================ 5. the report
 select test.eq('the report: a Play again row with its plays, no claims, and the second games',
   (select (x ->> 'plays')::int > 200 and (x ->> 'claims')::int = 0 and (r ->> 'replays')::int >= 200
-     from (select app.game_report(test.id('ga_admin'), '{"days": 30}') r) y, jsonb_array_elements(r -> 'by_prize') x where x ->> 'prize' = 'Play again'), true);
-select test.eq('every prize row has its plays', (select bool_and(x ? 'plays') from jsonb_array_elements(app.game_report(test.id('ga_admin'), '{}') -> 'by_prize') x), true);
-select test.eq('the leads read works with replay plays about', jsonb_typeof(app.game_leads(test.id('ga_admin'), '{}') -> 'rows'), 'array');
+     from (select app.game_report(test.id('gar_admin'), '{"days": 30}') r) y, jsonb_array_elements(r -> 'by_prize') x where x ->> 'prize' = 'Play again'), true);
+select test.eq('every prize row has its plays', (select bool_and(x ? 'plays') from jsonb_array_elements(app.game_report(test.id('gar_admin'), '{}') -> 'by_prize') x), true);
+select test.eq('the leads read works with replay plays about', jsonb_typeof(app.game_leads(test.id('gar_admin'), '{}') -> 'rows'), 'array');
 
 -- ================================================================ 6. privileges
 select test.eq('privileges: the core and the claim stay with the service role; the browser''s doors as before; the replay check for the settings check',
