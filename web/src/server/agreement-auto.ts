@@ -48,10 +48,29 @@ export async function runPeriodJobs(max = 2): Promise<{ done: number; failed: nu
       await openAgreement(d.booking_id, d.renter_user_id);
       await rpc('server_period_done', { p_booking: d.booking_id, p_seq: d.seq, p_ok: true }, SR);
       done++;
+      await chargePeriod(d.booking_id, d.seq).catch((e) => console.error('period charge', e));
     } catch (e) {
       await rpc('server_period_done', { p_booking: d.booking_id, p_seq: d.seq, p_ok: false, p_error: e instanceof Error ? e.message : String(e) }, SR).catch(() => undefined);
       failed++;
     }
   }
   return { done, failed };
+}
+
+type ChargeBegin = { charge: boolean; why?: string; payment_id?: string; amount_cents?: number; customer_id?: string; method_id?: string; booking_number?: string; idempotency_key?: string; reason?: string };
+
+/** long_rental_autocharge (0148): the period's share, still open, charged to the saved card off session; the database
+ *  records the result, sends the receipt, or raises a Finance task when it is declined or there is no card. */
+export async function chargePeriod(bookingId: string, seq: number): Promise<boolean> {
+  const b = (await rpc('server_period_charge_begin', { p_booking: bookingId, p_seq: seq }, SR)) as unknown as ChargeBegin;
+  if (!b.charge || !b.payment_id) return false;
+  let ok = false; let error: string | undefined; let intent: string | undefined; let charge: string | null = null;
+  try {
+    const { payments } = await import('@/integrations/payments');
+    const i = await (await payments()).chargeOffSession({ customerId: b.customer_id!, paymentMethodId: b.method_id!, amountCents: b.amount_cents!, description: `CarmaCars booking ${b.booking_number}: ${b.reason}`,
+      metadata: { booking_id: bookingId, purpose: 'period_charge', payment_id: b.payment_id, covers: 'balance' }, idempotencyKey: b.idempotency_key! });
+    ok = i.status === 'succeeded'; intent = i.id; charge = i.chargeId; error = ok ? undefined : i.lastError ?? 'The card was declined.';
+  } catch (e) { error = e instanceof Error ? e.message : 'The card could not be charged.'; }
+  await rpc('server_period_charge_finish', { p_booking: bookingId, p_seq: seq, p_ok: ok, p_error: error ?? null, p_intent: intent ?? null, p_charge: charge }, SR);
+  return ok;
 }

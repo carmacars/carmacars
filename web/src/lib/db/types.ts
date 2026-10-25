@@ -1310,6 +1310,8 @@ export type Database = {
           last_error: string | null;
           created_at: string;
           updated_at: string;
+          charge_payment_id: string | null;
+          charge_status: string | null;
         };
         Insert: {
           id?: string;
@@ -1327,6 +1329,8 @@ export type Database = {
           last_error?: string | null;
           created_at?: string;
           updated_at?: string;
+          charge_payment_id?: string | null;
+          charge_status?: string | null;
         };
         Update: {
           id?: string;
@@ -1344,6 +1348,8 @@ export type Database = {
           last_error?: string | null;
           created_at?: string;
           updated_at?: string;
+          charge_payment_id?: string | null;
+          charge_status?: string | null;
         };
         Relationships: [];
       };
@@ -19729,6 +19735,8 @@ export type Database = {
       server_pdf_jobs_enqueue: { Args: { p: Json }; Returns: number };
       server_pdf_jobs_pending: { Args: { p_owner: string }; Returns: number };
       server_period_begin: { Args: { p_booking: string; p_seq: number }; Returns: Json };
+      server_period_charge_begin: { Args: { p_booking: string; p_seq: number }; Returns: Json };
+      server_period_charge_finish: { Args: { p_booking: string; p_seq: number; p_ok: boolean; p_error?: string; p_intent?: string; p_charge?: string }; Returns: Json };
       server_period_done: { Args: { p_booking: string; p_seq: number; p_ok: boolean; p_error?: string }; Returns: Json };
       server_periods_due: { Args: { p_limit?: number }; Returns: Json };
       server_phone_ai_log: { Args: { p: Json }; Returns: Json };

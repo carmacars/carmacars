@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { AddressLookup } from '@/features/forms/AddressFields';
 import Link from 'next/link';
-import { createManualRental, draftClose, draftSave, supplyRead, type ManualRentalResult } from '@/server/actions/supply';
+import { createManualRental, deliveryDistance, draftClose, draftSave, supplyRead, type ManualRentalResult } from '@/server/actions/supply';
 import { money } from '@/lib/format';
 import { SourcedChoice, priceFlags, type Choice } from '@/features/sales/SourcedChoice';
 import { PRICE_TAX_OPTIONS, PRICE_TAX_LABEL, type PriceTaxSplit } from '@/features/sales/priceTax';
@@ -135,7 +135,13 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
   // a place or an address, with the address lookup (0130): the suggestion fills it, typing works too
   const addr = (k: string, label: string) => (
     <div className="field ad-field"><label className="label" htmlFor={id(k)}>{label}</label>
-      <AddressInput id={id(k)} name={k} value={{ label: f[k] ?? '', placeId: '' }} onChange={(x) => setF((s) => ({ ...s, [k]: x.label }))} testId={`mr-${k}`} /></div>);
+      <AddressInput id={id(k)} name={k} value={{ label: f[k] ?? '', placeId: '' }} onChange={(x) => {
+        // 0148: an address picked from the suggestions is measured from our location and prices the delivery (as the offer screen)
+        const km = k === 'pickup_place' ? 'pickup_km' : k === 'return_place' ? 'return_km' : null;
+        setF((s) => ({ ...s, [k]: x.label, ...(km && !x.placeId ? { [km]: '' } : {}) }));
+        if (km && x.placeId) void deliveryDistance(x.placeId, x.session).then((r) => { if (r.ok && r.data.km !== null) { setF((s) => ({ ...s, [km]: String(r.data.km) })); setQuote(null); } });
+      }} testId={`mr-${k}`} />
+      {(k === 'pickup_place' || k === 'return_place') && f[k === 'pickup_place' ? 'pickup_km' : 'return_km'] ? <p className="hint" data-testid={`mr-${k}-km`}>{f[k === 'pickup_place' ? 'pickup_km' : 'return_km']} km from our location: the fee follows the distance.</p> : null}</div>);
   const select = (k: string, label: string, options: Array<[string, string]>) => (
     <div className="field ad-field"><label className="label" htmlFor={id(k)}>{label}</label>
       <select className="select" id={id(k)} value={f[k] ?? ''} onChange={set(k)} data-testid={`mr-${k}`}>{options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>);
@@ -145,7 +151,9 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
     <div className="field ad-field"><label className="label" htmlFor={id(`q-${k}`)}>{label}</label>
       <input className="input" id={id(`q-${k}`)} type="text" inputMode={mode} value={f[k] ?? ''} onChange={set(k)} data-testid={`mr-q-${k}`} /></div>);
   const spec = () => ({ vehicle_id: f.vehicle_id, pickup_at: iso(f.pickup_at), return_at: iso(f.return_at), booking_type: f.booking_type, coverage_option: Number(f.coverage_option),
-    pickup_method: f.pickup_method, return_method: f.return_method, promo_code: f.promo_code || undefined, renter_id: renter?.id, rental_charge_cents: cents(f.rental_charge ?? ''),
+    pickup_method: f.pickup_method, return_method: f.return_method, promo_code: f.promo_code || undefined,
+    ...(f.pickup_method === 'delivered' && f.pickup_km ? { pickup_location: { kind: 'delivery', address: f.pickup_place || undefined, distance_km: Number(f.pickup_km) } } : {}),
+    ...(f.return_method === 'picked_up' && f.return_km ? { return_location: { kind: 'delivery', address: f.return_place || undefined, distance_km: Number(f.return_km) } } : {}), renter_id: renter?.id, rental_charge_cents: cents(f.rental_charge ?? ''),
     price_tax: cents(f.rental_charge ?? '') !== undefined ? f.price_tax : undefined,
     addons: addonsPayload(addons),
     ...(Object.keys(feeOverrides(fees)).length ? { line_overrides: feeOverrides(fees), fee_reason: f.price_reason || f.fee_reason || undefined } : {}),
@@ -186,7 +194,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
     const n = ++auto.current;
     const t = setTimeout(() => { if (n === auto.current) check(); }, 500);
     return () => clearTimeout(t);
-  }, [f.vehicle_id, f.pickup_at, f.return_at, f.booking_type, f.promo_code, f.coverage_option, f.pickup_method, f.return_method, f.date_of_birth, renter, addons, quote]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [f.vehicle_id, f.pickup_at, f.return_at, f.booking_type, f.promo_code, f.coverage_option, f.pickup_method, f.return_method, f.pickup_km, f.return_km, f.date_of_birth, renter, addons, quote]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // a rate a day typed: the trip's total follows the days
   useEffect(() => { if (rentMode !== 'day' || !quote) return; const c = cents(rentDay); const t = c === undefined ? '' : ((c * (quote.quote.billable_days || 1)) / 100).toFixed(2); if (t !== (f.rental_charge ?? '')) setF((x) => ({ ...x, rental_charge: t })); }, [quote?.quote.billable_days]); // eslint-disable-line react-hooks/exhaustive-deps

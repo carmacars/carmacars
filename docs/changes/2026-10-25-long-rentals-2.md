@@ -65,6 +65,19 @@ later", and "a monthly agreement for each period of a long rental, sent ahead".
     too when it has none; the other record stays blocked with `merged_into`, and both histories say so.
 18. The (i) beside every line of the booking's Fees table and the offer review's price lines.
 
+### Finished after the audit
+
+19. long_rental_autocharge: once a later period's agreement is made, what is still open for it (its share, never more
+    than the booking's balance) is charged to the saved card off session (`server_period_charge_begin` and `_finish`,
+    the five-minute job). The renter gets the receipt; a declined or missing card raises a Finance task
+    (period_charge_failed). Monthly periods shows each period's charge.
+20. Add a rental prices the delivery and the collection from the address, as the offer screen: an address picked from
+    the suggestions is measured from our location; the check and the booking (pickup_distance_km, set while the booking
+    is inserted, so its first pricing uses it) price it by app.delivery_fee.
+21. The offer's email and text carry a one-time sign-in link for a renter whose email was never confirmed (staff
+    entered them by phone): `app.offer_continue_link` makes a "continue" link (0090) landing on the booking, and the
+    offer's payload uses it as its link.
+
 ## Privileges
 
 Every new function is executable by service_role only; staff reach drafts and periods through the door
@@ -73,11 +86,6 @@ Every new function is executable by service_role only; staff reach drafts and pe
 
 ## Not done yet
 
-- Charging the saved card by itself for each later period (`long_rental_autocharge`): the period's share shows on the
-  renter's Balance due, and staff take it as before.
-- Sim item 8, the offer link signing in a renter who has no password (a one-time link): the notification payload is a
-  stable function and cannot make a token; needs its own step when the offer is sent.
-- Sim item 12 on Add a rental: the delivery there is still the rate card's flat fee (the offer screen measures it).
 - The renter's licence review (Verify) stays with customer service.
 
 ## Guides

@@ -181,3 +181,27 @@ select test.eq('the other record points at the kept one', (select merged_into fr
 select test.eq('and is blocked', (select is_blocked from renters where id = test.mia(2)), true);
 select test.eq('the merge is in the change history', (select count(*) from renter_edits where renter_id = test.mia(1) and after ? 'merged_from'), 1::bigint);
 select test.throws('merged twice: refused', format($$ select app.renter_merge(test.id('dr_cs'), '{"keep":"%s","merge":"%s"}'::jsonb) $$, test.mia(1), test.mia(2)), '%already merged%');
+
+-- ================================================================ 7. each later period charged to the saved card; the delivery priced from the address; the offer's sign-in link
+update program_settings set long_rental_autocharge = false;
+select test.eq('autocharge off: nothing charged', public.server_period_charge_begin(test.drlong(), 2) ->> 'why', 'off');
+update program_settings set long_rental_autocharge = true;
+update booking_periods set charge_status = null where booking_id = test.drlong();
+select test.ok('autocharge on: no saved card or nothing open, never a charge',
+  public.server_period_charge_begin(test.drlong(), 2) ->> 'why' in ('no_card', 'nothing_due'));
+select test.ok('the period records why', (select charge_status from booking_periods where booking_id = test.drlong() and seq = 2) in ('no_card', 'nothing_due'));
+update program_settings set long_rental_autocharge = false;
+
+select test.eq('the check prices the delivery from the distance',
+  (select q #>> '{quote,delivery,pickup,distance_km}' from (select app.manual_rental_quote(test.id('dr_admin'), test.drins('{"pickup_method": "delivered", "pickup_location": {"kind": "delivery", "distance_km": 40}}'::jsonb)) q) x), '40');
+insert into test.dr select 'deliv', app.door(test.id('dr_admin'), 'aal2', 'ops_do', 'manual_rental_create', test.drins(jsonb_build_object('pickup_method', 'delivered', 'pickup_place', '1 Test St, Toronto',
+  'pickup_location', jsonb_build_object('kind', 'delivery', 'distance_km', 25), 'pickup_at', date_trunc('hour', now()) + interval '30 days', 'return_at', date_trunc('hour', now()) + interval '33 days',
+  'payment', jsonb_build_object('mode', 'other_way', 'method', 'cash', 'received_on', app.today()))));
+select test.eq('the booking keeps the distance', (select pickup_distance_km::integer from bookings where id = (test.drv('deliv') ->> 'booking_id')::uuid), 25);
+select test.eq('and the kind', (select pickup_location_kind from bookings where id = (test.drv('deliv') ->> 'booking_id')::uuid), 'delivery');
+
+select test.ok('a renter who never confirmed the email gets a one-time link in the offer',
+  app.offer_continue_link((test.drv('deliv') ->> 'booking_id')::uuid) like '%/continue?t=%'
+  or (select u.email_verified_at is not null from bookings b join renters r on r.id = b.renter_id join users u on u.id = r.user_id where b.id = (test.drv('deliv') ->> 'booking_id')::uuid));
+update users set email_verified_at = now() - interval '2 days' where id = (select r.user_id from bookings b join renters r on r.id = b.renter_id where b.id = (test.drv('deliv') ->> 'booking_id')::uuid);
+select test.ok('one with a confirmed email gets none', app.offer_continue_link((test.drv('deliv') ->> 'booking_id')::uuid) is null);

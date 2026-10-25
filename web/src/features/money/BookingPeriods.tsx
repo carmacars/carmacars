@@ -5,8 +5,9 @@ import { when } from '@/features/agreement/model';
 import { periodSendNow } from '@/server/actions/supply';
 
 export type PeriodRow = { seq: number; starts_at: string; ends_at: string; days: number; amount_cents: number; status: 'upcoming' | 'opening' | 'issued' | 'cancelled';
-  issued_at: string | null; attempts: number; last_error: string | null; sends_on: string | null; agreement: { number: string; status: string; signed_at: string | null } | null };
+  issued_at: string | null; attempts: number; last_error: string | null; sends_on: string | null; charge?: 'pending' | 'charged' | 'failed' | 'nothing_due' | 'no_card' | null; agreement: { number: string; status: string; signed_at: string | null } | null };
 
+const CHARGE: Record<string, string> = { pending: 'card being charged', charged: 'charged to the saved card', failed: 'card declined: Finance has a task', nothing_due: 'nothing open', no_card: 'no saved card: Finance has a task' };
 const AGREEMENT: Record<string, string> = { open: 'sent, not signed yet', signed: 'signed', completed: 'signed', superseded: 'signed (earlier period)', voided: 'replaced' };
 
 /** The periods of a long rental (0148): each with its own agreement, sent lead days before it starts, and its share. */
@@ -23,7 +24,7 @@ export function BookingPeriods({ rows, booking }: { rows: PeriodRow[]; booking: 
         <thead><tr><th scope="col">Period</th><th scope="col">Dates</th><th scope="col">Days</th><th scope="col">Share</th><th scope="col">Agreement</th></tr></thead>
         <tbody>{rows.map((r) => (
           <tr key={r.seq} data-testid="period-row">
-            <td>{r.seq}</td><td>{when(r.starts_at, false)} to {when(r.ends_at, false)}</td><td>{r.days}</td><td>{money(r.amount_cents)}</td>
+            <td>{r.seq}</td><td>{when(r.starts_at, false)} to {when(r.ends_at, false)}</td><td>{r.days}</td><td>{money(r.amount_cents)}{r.charge ? <span className="small muted"> ({CHARGE[r.charge]})</span> : null}</td>
             <td>{r.status === 'cancelled' ? 'Cancelled' : r.status === 'upcoming' ? `Sent on ${when(r.sends_on, false)}${r.attempts ? ` (not made: ${r.last_error ?? 'try again'})` : ''}`
               : r.status === 'opening' ? 'Being made' : r.agreement ? `${r.agreement.number}: ${AGREEMENT[r.agreement.status] ?? r.agreement.status}` : r.seq === 1 ? 'The booking\'s agreement' : 'Sent'}</td>
           </tr>))}</tbody></table></div>
