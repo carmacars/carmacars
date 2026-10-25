@@ -8,7 +8,10 @@
 // Pages with ids are sampled (two of each shape, e.g. /admin/bookings/:id). Local stack only: it signs in
 // accounts it picks from the database (the richest of each role) after giving them a known password in
 // local_auth; it never submits a form that writes.
-//   BASE_URL=http://localhost:3000 node tests/lint/crawl-roles.mjs [--roles anon,renter] [--per-shape 2] [--fresh] [--out reports/crawl.json]
+//   BASE_URL=http://localhost:3000 node tests/lint/crawl-roles.mjs [--roles anon,renter] [--per-shape 2] [--fresh] [--part 1/3] [--out reports/crawl.json]
+// --part i/n (CI runs the large portals in parallel jobs): the same crawl, but this run renders and checks only the pages
+// whose shape falls in part i of n (a hash of the shape); the other pages are still requested (status checked) and their
+// links followed from the server's HTML, so the n parts together render and check every page one run would.
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -22,6 +25,10 @@ const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? proces
 const PER_SHAPE = Number(arg('--per-shape', '2'));
 const OUT = arg('--out', 'reports/crawl.json');
 const ONLY = arg('--roles', '')?.split(',').filter(Boolean);
+const [PART, PARTS] = (/^(\d+)\/(\d+)$/.exec(arg('--part', '1/1')) ?? [0, 1, 1]).slice(1).map(Number);
+if (!(PARTS >= 1 && PART >= 1 && PART <= PARTS)) throw new Error('--part i/n: 1 <= i <= n');
+// FNV-1a of the shape: which part renders it
+const mine = (sh) => { let h = 0x811c9dc5; for (let i = 0; i < sh.length; i++) h = Math.imul(h ^ sh.charCodeAt(i), 0x01000193) >>> 0; return h % PARTS === PART - 1; };
 const PW = 'crawl-roles password 1';
 const FRESH = process.argv.includes('--fresh'); // new bare accounts instead of the richest existing ones
 const sql = postgres(process.env.DATABASE_URL ?? 'postgresql://postgres@127.0.0.1:54322/carmacars', { max: 2, onnotice: () => {} });
@@ -213,6 +220,25 @@ async function crawlRole(browser, role) {
     return v;
   };
 
+  const discover = async (href) => {
+    const r = await ctx.request.get(BASE + href, { maxRedirects: 5, failOnStatusCode: false, timeout: 30_000 }).catch(() => null);
+    if (!r || r.status() >= 400) return;
+    const at = r.url();
+    if (new URL(at).origin !== BASE) return;
+    const html = await r.text().catch(() => '');
+    for (const m of html.matchAll(/<a\b[^>]*\bhref="([^"]+)"/g)) {
+      const h = m[1].replace(/&amp;/g, '&');
+      if (/^(mailto:|tel:|javascript:|#)/.test(h) || h.startsWith('blob:') || h.startsWith('data:')) continue;
+      const t = new URL(h, at);
+      if (t.origin !== BASE) continue;
+      const p = t.pathname + t.search;
+      // a generated family's links: followed only while a rendered page would still request them (budget not spent here)
+      const fam = family(shape(t));
+      if (fam && !checked.has(p) && (familyLinks.get(fam) ?? 0) >= LINK_PER_FAMILY) continue;
+      if (!seen.has(p)) queue.push(p);
+    }
+  };
+
   while (queue.length) {
     const href = queue.shift();
     if (seen.has(href)) continue;
@@ -227,6 +253,8 @@ async function crawlRole(browser, role) {
     if (SKIP_RENDER.test(u.pathname) || !s.type.includes('text/html')) continue;
     // public pages are rendered once, by the anonymous visitor; a signed-in role only checks they answer
     if (role !== 'anon' && !PRIVATE.test(u.pathname)) continue;
+    // another part renders and checks this page: here only its links are followed (from the server's HTML)
+    if (!mine(sh)) { await discover(href); continue; }
 
     errors.length = 0;
     const resp = await page.goto(BASE + href, { waitUntil: 'load', timeout: 45_000 }).catch((e) => { bad(role, href, 'load: ' + String(e).slice(0, 150)); return null; });
@@ -302,7 +330,7 @@ for (const role of ROLES) {
   const t = Date.now();
   try { await crawlRole(browser, role); } catch (e) { bad(role, 'crawl', String(e).slice(0, 300)); }
   const s = report.roles[role] ?? {};
-  console.log(`crawl ${role.padEnd(10)} ${String(s.pages ?? 0).padStart(4)} pages ${String(s.links ?? 0).padStart(5)} links ${String(s.forms ?? 0).padStart(4)} forms  ${s.who ?? ''}  ${Math.round((Date.now() - t) / 1000)}s`);
+  console.log(`crawl ${(role + (PARTS > 1 ? ` ${PART}/${PARTS}` : '')).padEnd(10)} ${String(s.pages ?? 0).padStart(4)} pages ${String(s.links ?? 0).padStart(5)} links ${String(s.forms ?? 0).padStart(4)} forms  ${s.who ?? ''}  ${Math.round((Date.now() - t) / 1000)}s`);
 }
 await browser.close();
 await sql.end();

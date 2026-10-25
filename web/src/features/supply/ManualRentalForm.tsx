@@ -148,7 +148,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
     pickup_method: f.pickup_method, return_method: f.return_method, promo_code: f.promo_code || undefined, renter_id: renter?.id, rental_charge_cents: cents(f.rental_charge ?? ''),
     price_tax: cents(f.rental_charge ?? '') !== undefined ? f.price_tax : undefined,
     addons: addonsPayload(addons),
-    ...(Object.keys(feeOverrides(fees)).length ? { line_overrides: feeOverrides(fees), fee_reason: f.fee_reason || undefined } : {}),
+    ...(Object.keys(feeOverrides(fees)).length ? { line_overrides: feeOverrides(fees), fee_reason: f.price_reason || f.fee_reason || undefined } : {}),
     ...(customs.some((c) => c.label.trim() && cents(c.amount)) ? { custom_fees: customs.filter((c) => c.label.trim() && cents(c.amount)).map((c) => ({ label: c.label.trim(), amount_cents: cents(c.amount), hst: c.hst })) } : {}),
     ...(f.km && /^\d+$/.test(f.km.trim()) ? { km_allowance_per_day: Number(f.km) } : {}),
     drivers: [{ role: 'renter', date_of_birth: renter?.date_of_birth ?? (f.date_of_birth || undefined) }, ...drivers.filter((d) => d.date_of_birth).map((d) => ({ role: 'additional', date_of_birth: d.date_of_birth }))] });
@@ -455,10 +455,10 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
                 return <tr key={i} data-testid={`mr-line-${k}`}><td>{rent ? `Rental charge (${days} day${days === 1 ? '' : 's'})` : l.description}<Info text={lineHelp(l.charge_type)} />
                   {l.set_by_hand || l.detail?.set_by_hand ? <span className="small muted"> (changed)</span> : null}</td><td className="num">{fmt(l.amount_cents)}</td>
                   {edit && <td>{editable ? <span className="row">{box(k, l.description, l.amount_cents)}{remove(k)}</span>
-                    : rent && quote.may_override_price ? <span className="stack">
+                    : rent && quote.may_override_price && quote.has_rates !== false ? <span className="stack">
                       <span className="row"><input className="input input--sm" inputMode="decimal" aria-label={rentMode === 'day' ? 'Rental rate a day ($)' : 'Rental charge for the whole trip, before fees and tax ($)'}
                         placeholder={((rentMode === 'day' ? Math.round(l.amount_cents / days) : l.amount_cents) / 100).toFixed(2)}
-                        value={rentMode === 'day' ? rentDay : f.rental_charge ?? ''} data-testid="mr-rental-inline"
+                        value={rentMode === 'day' ? rentDay : f.rental_charge ?? ''} data-testid="mr-rental_charge"
                         onChange={(e) => { const v = e.target.value; if (rentMode === 'day') { setRentDay(v); const c = cents(v); setF((x) => ({ ...x, rental_charge: c === undefined ? '' : ((c * days) / 100).toFixed(2) })); } else set('rental_charge')(e); }} />
                         <select className="select select--sm" aria-label="The amount typed is" value={rentMode} onChange={(e) => { setRentMode(e.target.value as 'trip' | 'day'); setRentDay(''); setF((x) => ({ ...x, rental_charge: '' })); }} data-testid="mr-rent-mode">
                           <option value="trip">for the trip</option><option value="day">a day</option></select></span>
@@ -478,7 +478,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
               <tr><td>Deposit at pickup<Info text={lineHelp('deposit')} /></td><td className="num">{fmt(quote.quote.deposit_cents)}</td>{edit && <td>{isAdmin ? <input className="input input--sm" inputMode="decimal" aria-label="Deposit: change it to ($)" placeholder={(quote.quote.deposit_cents / 100).toFixed(2)} value={f.deposit ?? ''} onChange={set('deposit')} data-testid="mr-deposit-inline" /> : null}</td>}</tr>
               <tr><td>Kilometres included<Info text={lineHelp('km')} /></td><td className="num">{quote.quote.km_allowance_total} km</td>{edit && <td><span className="row"><input className="input input--sm" inputMode="numeric" aria-label="Kilometres a day" placeholder={String(Math.round(quote.quote.km_allowance_total / days))} value={f.km ?? ''} onChange={set('km')} data-testid="mr-km-inline" /><span className="small muted">a day</span></span></td>}</tr>
             </tbody></table>; })()}
-            {(Object.keys(feeOverrides(fees)).length > 0 || customs.length > 0 || cents(f.rental_charge ?? '') !== undefined) && <div className="ad-fields">{text('fee_reason', 'Reason for the changes (optional)', { wide: true, hint: 'Kept on the booking. A price far under the rate sheet is flagged for an Admin, never refused.' })}</div>}
+            {(Object.keys(feeOverrides(fees)).length > 0 || customs.length > 0 || cents(f.rental_charge ?? '') !== undefined) && <div className="ad-fields">{text('price_reason', 'Reason for the changes (optional)', { wide: true, hint: 'Kept on the booking. A price far under the rate sheet is flagged for an Admin, never refused.' })}</div>}
             {(quote.periods?.length ?? 0) > 1 && (() => { const ps = quote.periods!; const shares = periodShares(quote.quote.total_due_at_booking_cents, ps.map((x) => x.days));
               return <div className="stack" data-testid="mr-periods"><p className="small"><b>{ps.length} monthly periods</b> of 30 days (the last one shorter), each priced at the monthly rate. The amounts are each period&apos;s share of the total.</p>
                 <table className="ad-table"><caption className="sr-only">Monthly periods</caption><thead><tr><th scope="col">Period</th><th scope="col">From</th><th scope="col">To</th><th scope="col" className="num">Days</th><th scope="col" className="num">About</th></tr></thead>
@@ -486,7 +486,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
             <p className="small muted">Rental charge: {quote.quote.rate_rule}; {quote.quote.km_allowance_total} km included. Type a new amount in any line to change it (amounts before HST).{quote.quote.problems.length ? ` ${quote.quote.problems.map((p) => p.message).join(' ')}` : ''}{quote.quote.promo?.problem ? ` Promo code: ${quote.quote.promo.problem}` : ''}</p>
             {quote.may_override_price && (
               <div className="stack" data-testid="mr-custom-price">
-                {quote.has_rates === false && <p className="small">This car has no rates yet. Type the rental charge for the whole rental.</p>}
+                {quote.has_rates === false ? <p className="small">This car has no rates yet. Type the rental charge for the whole rental.</p>
+                  : <p className="small">Rental charge from the rate sheet: <b>{fmt(quote.rate_sheet_cents)}</b>. To charge another price, type it {quote.may_edit_fees ? 'in the Rental charge line of the price above' : 'below'}. The rate-sheet price stays on the booking for an Admin to see.</p>}
                 {(quote.has_rates === false || !quote.may_edit_fees) && <div className="ad-fields">{text('rental_charge', quote.has_rates === false ? 'Rental charge for the whole rental ($)' : 'Rental charge typed by hand ($, empty: the rate sheet)', { inputMode: 'decimal' })}
                   {isAdmin && !quote.may_edit_fees && text('deposit', 'Deposit ($, empty: the rate sheet)', { inputMode: 'decimal' })}</div>}
                 {cents(f.rental_charge ?? '') !== undefined && <div className="ad-fields">{select('price_tax', 'The rental charge typed is', PRICE_TAX_OPTIONS)}</div>}

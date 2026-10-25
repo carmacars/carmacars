@@ -129,9 +129,11 @@ test('check-out by Sales from the booking, a late check-in by an Admin from Toda
   const admin = await mkUser(sql, 'ho', 'admin');
   const sales = await mkUser(sql, 'ho', 'va', 'sales');
   const renter = await mkUser(sql, 'rho', 'renter');
-  const car = await freeCar(sql, 0, 2, 4);
+  const car = await freeCar(sql, 1, 2, 4);
   const req = await seedRequest(sql, renter, car.id, car.from, car.to);
   await confirmBooking(sql, req.booking_id, admin.id);
+  // pickup moves to just ahead of now (the request itself must be 2 hours out, so a fixed 10:00 failed after 8 a.m.)
+  await sql`update bookings set pickup_at = now() + interval '10 minutes', return_at = now() + interval '2 days' where id = ${req.booking_id}`;
   await tracker(sql, car.id);
   const [odo] = await sql`select coalesce(odometer_km, 0)::int o from vehicles where id = ${car.id}`;
 
@@ -342,9 +344,11 @@ test('field staff open a check-out from their job card in one tap', async ({ bro
   const admin = await mkUser(sql, 'fc', 'admin');
   const field = await mkUser(sql, 'fc', 'field');
   const renter = await mkUser(sql, 'rfc', 'renter');
-  const car = await freeCar(sql, 0, 2, 2);
+  const car = await freeCar(sql, 1, 2, 2);
   const req = await seedRequest(sql, renter, car.id, car.from, car.to);
   await confirmBooking(sql, req.booking_id, admin.id);
+  // pickup moves to just ahead of now (the request itself must be 2 hours out, so a fixed 10:00 failed after 8 a.m.)
+  await sql`update bookings set pickup_at = now() + interval '10 minutes', return_at = now() + interval '2 days' where id = ${req.booking_id}`;
   const [job] = await sql`select app.create_field_job('handover', ${car.id}::uuid, now() + interval '1 hour', ${admin.id}::uuid, ${req.booking_id}::uuid, ${field.id}::uuid, '1 Front St W, Toronto') id`;
   const page = await ctx(browser, true);
   await signIn(page, field.email, '/field');

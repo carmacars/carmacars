@@ -57,6 +57,7 @@ test('car copy: a car added in Admin gets its page copy by itself, nothing typed
   test.setTimeout(400_000);
   unlockAi = await aiAllowanceLock('shared');   // the AI copy: not while the usage guard tests use the allowance up
   const sql = db();
+  await sql`update program_settings set seo_ai_writer_enabled = true`;   // 0133: the site's own copy writer is off by default (the daily Claude batch writes); this test checks the writer
   const admin = await mkAdmin(sql);
   const page = await ctx(browser);
   await page.goto('/sign-in', { waitUntil: 'networkidle' });

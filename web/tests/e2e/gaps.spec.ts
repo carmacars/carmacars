@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { acceptCookies, db, noOverflow, watch } from './helpers';
+import { acceptCookies, db, noOverflow, watch, storeFixturePdf } from './helpers';
 
 // The gaps of 0031 and 0032 closed (migration 0033), end to end at 375 and 1440: renter and customer service
 // messages both ways with the email, Finance's reconciliation and Turo trips, the Fleet daily check, the photo
@@ -344,6 +344,7 @@ test('gaps: an investor downloads a year of statements; an Admin reads an assist
   const ids = { a: randomUUID(), ia: randomUUID(), ra: randomUUID(), rb: randomUUID(), dc: randomUUID(), ga: randomUUID() };
   await sql`insert into investors (id, user_id, legal_name, investor_type, status, email) values (${ids.a}, ${me.id}, 'Ivy Year', 'individual', 'active', ${me.email})`;
   await sql`insert into documents (id, kind, storage_bucket, storage_path) values (${ids.dc}, 'other', 'documents', 'x/c.pdf')`;
+  storeFixturePdf('documents', 'x/c.pdf');
   await sql`insert into investment_agreements (id, investor_id, agreement_number, status, schedule_c_document_id, schedule_d_document_id, exemption_category, legal_advice_choice)
     values (${ids.ga}, ${ids.a}, ${`IA-${ids.a.slice(0, 6)}`}, 'signed', ${ids.dc}, ${ids.dc}, 'accredited_investor', 'declined')`;
   await sql`insert into investments (id, investor_id, agreement_id, is_initial, principal_cents, yearly_bps, investment_date, lockup_end_date) values (${ids.ia}, ${ids.a}, ${ids.ga}, true, 2500000, 1200, date '2026-01-05', date '2026-07-05')`;
