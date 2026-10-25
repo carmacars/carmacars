@@ -88,7 +88,7 @@ Tested in `85_owner_terms_per_car.sql` section 10.
 
 - A lower management fee applies without the owner's signature: CarmaCars gives up part of what it keeps, by written
   notice it signs. A higher one always waits for the owner's signature. This is the Program setting "Lower management %
-  without owner signature" (Admin > Settings > Program, Owners and fleet), on by default. **For the lawyer:** clause 4.8
+  without owner signature" (Admin > Settings > Program, Owners and fleet), on by default. **Lawyer approved (October 25, 2026): the setting stays on.** For the record: clause 4.8
   of the Enrollment Agreement says "A Revenue Share changes only in writing signed by both parties", which on its words
   covers a lower share too. If the lawyer reads it that way, turn the setting off: a lower share then waits for the
   owner's signature like a higher one (lower Insurance and Tracker Fees still apply by notice, which 4.8 allows).

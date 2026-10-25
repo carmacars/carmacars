@@ -67,7 +67,7 @@ This agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 
 ## 6. Customers and confidentiality
 
-6.1 With customers you are polite and professional. You do not argue, harass or discriminate, and you contact a customer only about a Job. You refer questions about price, insurance or fault to CarmaCars. You take no cash or payment from a customer, and you never offer a private rental or side service.
+6.1 With customers you are polite and professional. You do not argue, harass or discriminate, and you contact a customer only about a Job. You refer questions about price, insurance or fault to CarmaCars. You take no cash or payment from a customer, except a cash deposit at a handover when CarmaCars' app offers it. If you take one, you record it in the app at that moment (the amount, and any photo or receipt the app asks for), keep it apart from your own money, and hand it to CarmaCars, as its finance team directs, within 1 business day. The cash belongs to CarmaCars. You never offer a private rental or side service.
 
 6.2 "Confidential Information" means everything not public that you learn through your work. It includes customer and owner names, addresses, identification and licence details, Vehicle locations, pricing, Procedures, and material belonging to CarmaCars' franchisor.
 

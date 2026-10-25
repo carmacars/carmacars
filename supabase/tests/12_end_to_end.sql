@@ -13,9 +13,12 @@ select test.suite('12 end to end');
 
 -- ------------------------------------------------------------------ helpers and fixture
 create or replace function test.at(p_local text) returns timestamptz
-language sql immutable as $$ select p_local::timestamp at time zone 'America/Toronto' $$;
+language sql immutable as $$
+  select case when p_local ~ '[+-][0-9][0-9]$' then p_local::timestamptz else p_local::timestamp at time zone 'America/Toronto' end $$;
+-- an exact instant as text (UTC offset included, which test.at above takes as it is): a Toronto wall-clock text is
+-- ambiguous for the hour that happens twice when daylight saving ends, and the booking times here follow the clock
 create function test.e2_local(p_at timestamptz) returns text
-language sql immutable as $$ select to_char(p_at at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI') $$;
+language sql immutable as $$ select to_char(p_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS') || '+00' $$;
 create table test.e2_ids (k text primary key, id uuid);
 create function test.e2(p_key text) returns uuid language sql stable as $$ select id from test.e2_ids where k = p_key $$;
 create function test.e2_put(p_key text, p_id uuid) returns uuid language sql as $$
@@ -77,7 +80,7 @@ insert into test.rq_ids values ('e2:1', test.ba('e2:1'));
 select test.op_handover('e2:1', 'e2_fleet', test.e2_local((select pickup_at from bookings where id = test.ba('e2:1'))));
 select test.eq('B handed over', test.ba_st('e2:1'), 'on_rent');
 create table test.e2_ext as
-  select app.calendar_apply_change(b.id, test.id('e2_cs'), jsonb_build_object('return_at', ((b.return_at at time zone 'America/Toronto') + interval '1 day') at time zone 'America/Toronto'), 'the renter keeps the car a day') as r
+  select app.calendar_apply_change(b.id, test.id('e2_cs'), jsonb_build_object('return_at', b.return_at + interval '1 day'), 'the renter keeps the car a day') as r
     from bookings b where b.id = test.ba('e2:1');
 select test.e2_put('ext', (select (r ->> 'extension_id')::uuid from test.e2_ext));
 select test.eq('B (item 4) a calendar extension is priced by 0019: rental and the young driver fee for the added day, with HST; the preview showed the same total',
