@@ -10935,6 +10935,12 @@ export type Database = {
           booking_licence_selfie_required: boolean;
           booking_return_auto_charges: boolean;
           statement_fuel_cents_per_eighth: number | null;
+          ai_assistant_reserve_bps: number;
+          ai_background_bps: number;
+          ai_release_hour: number | null;
+          ai_assistant_cushion: number;
+          seo_ai_writer_enabled: boolean;
+          owner_lower_share_without_signature: boolean;
           staff_max_rental_days: number;
           long_rental_period_days: number;
           long_rental_cycle: string;
@@ -10942,11 +10948,6 @@ export type Database = {
           long_rental_autocharge: boolean;
           staff_may_edit_fees: boolean;
           staff_may_edit_bookings: boolean;
-          ai_assistant_reserve_bps: number;
-          ai_background_bps: number;
-          ai_release_hour: number | null;
-          ai_assistant_cushion: number;
-          seo_ai_writer_enabled: boolean;
         };
         Insert: {
           id?: string;
@@ -11379,6 +11380,12 @@ export type Database = {
           booking_licence_selfie_required?: boolean;
           booking_return_auto_charges?: boolean;
           statement_fuel_cents_per_eighth?: number | null;
+          ai_assistant_reserve_bps?: number;
+          ai_background_bps?: number;
+          ai_release_hour?: number | null;
+          ai_assistant_cushion?: number;
+          seo_ai_writer_enabled?: boolean;
+          owner_lower_share_without_signature?: boolean;
           staff_max_rental_days?: number;
           long_rental_period_days?: number;
           long_rental_cycle?: string;
@@ -11386,11 +11393,6 @@ export type Database = {
           long_rental_autocharge?: boolean;
           staff_may_edit_fees?: boolean;
           staff_may_edit_bookings?: boolean;
-          ai_assistant_reserve_bps?: number;
-          ai_background_bps?: number;
-          ai_release_hour?: number | null;
-          ai_assistant_cushion?: number;
-          seo_ai_writer_enabled?: boolean;
         };
         Update: {
           id?: string;
@@ -11823,6 +11825,12 @@ export type Database = {
           booking_licence_selfie_required?: boolean;
           booking_return_auto_charges?: boolean;
           statement_fuel_cents_per_eighth?: number | null;
+          ai_assistant_reserve_bps?: number;
+          ai_background_bps?: number;
+          ai_release_hour?: number | null;
+          ai_assistant_cushion?: number;
+          seo_ai_writer_enabled?: boolean;
+          owner_lower_share_without_signature?: boolean;
           staff_max_rental_days?: number;
           long_rental_period_days?: number;
           long_rental_cycle?: string;
@@ -11830,11 +11838,6 @@ export type Database = {
           long_rental_autocharge?: boolean;
           staff_may_edit_fees?: boolean;
           staff_may_edit_bookings?: boolean;
-          ai_assistant_reserve_bps?: number;
-          ai_background_bps?: number;
-          ai_release_hour?: number | null;
-          ai_assistant_cushion?: number;
-          seo_ai_writer_enabled?: boolean;
         };
         Relationships: [];
       };
