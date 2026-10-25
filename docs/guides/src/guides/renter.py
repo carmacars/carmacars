@@ -211,8 +211,8 @@ def build():
         'Under the photo: when and where you pick up and return the car (tap a place to open it in Maps), the kilometres included, the fuel rule and the deposit.',
         f'Next step tells you the one thing still needed, with its button, for example {B("Upload documents")}. When nothing is needed it says you are all set, with {B("Add to calendar")}.',
         f'Manage your trip holds {B("Licence and coverage")}, {B("Extend")}, {B("Ask to change dates")}, {B("Message us")}, {B("Call us")}, {B("Add a driver")}, {B("Documents")} and {B("Cancel booking")}.',
-    ], shot=S('renter/08-booking-confirmed-desktop', 0, 280, 1440, 1240,
-              pins=[(1, 140, 760), (2, 135, 990), (3, 1100, 1010)]))
+    ], shot=S('renter/08-booking-confirmed-desktop', 0, 230, 1440, 1130,
+              pins=[(1, 150, 692), (2, 135, 925), (3, 1330, 905)]))
     g.para(f'Money, on the right (below on a phone), shows what you paid and what is owing, part by part, with a {B("Pay")} button when something is open and your receipts. {B("Price details")} opens every line of the price. Progress shows how many steps are done; {B("Every step")} lists them, from Request sent to Statement.')
 
     g.task('Upload your licence, selfie and coverage', 'Do this at least 24 hours before pickup. It takes a few minutes with your phone.')
