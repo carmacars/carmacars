@@ -152,7 +152,7 @@ def build():
         f'Compare with pickup: for new damage, tap the diagram, fill in Where and What it is, press {B("Add the damage")} and take a close-up photo.',
         'Belongings: check the seats, the trunk, the glovebox and the door pockets.',
         'Renter reviews and signs. Then you sign.',
-        f'Press {B("Complete the return")}. The check-in time is the moment you press it: a late return, the kilometres over the allowance and the fuel or charge used are charged from it automatically.',
+        f'Press {B("Complete the return")}. The check-in time is the moment you press it: a late return, the kilometres over the allowance and the fuel or charge used are charged from it automatically. The deposit is not given back at the return: Finance settles it once tolls and tickets have had time to come in (about 7 days), and new damage you mark keeps it held.',
     ])
     g.warn('New damage needs a close-up photo and a clear note. Finance uses your photos and notes to bill the renter, so take your time.')
 

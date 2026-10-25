@@ -31,20 +31,21 @@ const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toront
 
 export function BookingMoney({ m }: { m: Money }) {
   const router = useRouter();
-  const [open, setOpen] = useState<'' | 'record' | 'collect' | 'charge' | 'capture'>('');
+  const [open, setOpen] = useState<'' | 'record' | 'collect' | 'charge' | 'capture' | 'release'>('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, run] = useTransition();
   const [rec, setRec] = useState({ covers: (m.parts.some((p) => p.covers !== 'later' && p.open_cents > 0) ? 'both' : m.parts.find((p) => p.open_cents > 0)?.covers ?? (m.deposit ? 'later' : 'deposit')) as string, method: m.rental_pay_method !== 'card' ? m.rental_pay_method : 'e_transfer', amount: '', reference: '', received_on: today(), note: '' });
   const [col, setCol] = useState({ kind: 'charge' as 'charge' | 'hold' | 'setup', covers: m.parts.find((p) => p.open_cents > 0)?.covers ?? 'later', amount: '', reason: '', channel: 'device' as 'device' | 'text' | 'email' });
   const [chg, setChg] = useState({ amount: '', reason: '', covers: 'later' as 'later' | 'deposit' });
   const [cap, setCap] = useState({ amount: '', reason: '' });
+  const [rel, setRel] = useState('');
   const [ret, setRet] = useState<Record<string, string>>({});
   const done = (ok: boolean, text: string) => { setMsg({ ok, text }); if (ok) { setOpen(''); router.refresh(); } };
   const offlineReturns = m.payments.filter((p) => p.purpose === 'deposit' && p.kind === 'refund' && p.status === 'pending' && ['cash', 'e_transfer'].includes(p.method));
   const openPart = (c: string) => m.parts.find((p) => p.covers === c)?.open_cents ?? 0;
   const dep = m.deposit;
   const depWords = !dep || ['pending', 'failed'].includes(dep.status) ? (m.deposit_cents > 0 ? `${fmt(m.deposit_cents)} to take (${(METHOD[m.deposit_pay_method] ?? m.deposit_pay_method).toLowerCase()})` : 'No deposit')
-    : dep.method === 'card_hold' && dep.status === 'held' ? `${fmt(dep.amount_cents)} held on the card${dep.hold_days_left !== null ? `, about ${dep.hold_days_left} day${dep.hold_days_left === 1 ? '' : 's'} left` : ''}`
+    : dep.method === 'card_hold' && dep.status === 'held' ? `${fmt(dep.amount_cents)} held on the card${dep.hold_days_left !== null ? `, about ${dep.hold_days_left} day${dep.hold_days_left === 1 ? '' : 's'} left (collected by itself before it lapses once the car is out)` : ''}`
     : dep.method === 'offline' ? `${fmt(dep.amount_cents)} taken by ${(METHOD[dep.paid_method ?? ''] ?? '').toLowerCase()}, ${dep.status}`
     : `${fmt(dep.amount_cents)}, ${dep.status.replace(/_/g, ' ')}`;
 
@@ -78,7 +79,7 @@ export function BookingMoney({ m }: { m: Money }) {
         {m.may.charge && m.card && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'charge'} onClick={() => setOpen(open === 'charge' ? '' : 'charge')} data-testid="bm-charge-open">Charge the saved card</button>}
         {m.may.hold && dep?.method === 'card_hold' && dep.status === 'held' && <>
           <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'capture'} onClick={() => setOpen(open === 'capture' ? '' : 'capture')} data-testid="bm-capture-open">Capture the hold</button>
-          <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="bm-release" onClick={() => run(async () => { const r = await holdAction({ booking: m.booking_number, action: 'release' }); done(r.ok && r.data.ok, r.ok ? (r.data.ok ? 'Hold released.' : r.data.message ?? 'Not released.') : r.message); })}>Release the hold</button></>}
+          <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'release'} data-testid="bm-release" onClick={() => setOpen(open === 'release' ? '' : 'release')}>Release the hold</button></>}
       </div>
 
       {open === 'record' && (
@@ -158,13 +159,23 @@ export function BookingMoney({ m }: { m: Money }) {
       {open === 'capture' && dep && (
         <form className="ad-form ad-form--narrow" aria-label="Capture the hold" data-testid="bm-capture" onSubmit={(e) => { e.preventDefault(); run(async () => {
           const r = await holdAction({ booking: m.booking_number, action: 'capture', amount_cents: cents(cap.amount), reason: cap.reason });
-          done(r.ok && r.data.ok, r.ok ? (r.data.ok ? 'Captured; the rest of the hold is released.' : r.data.message ?? 'Not captured.') : r.message);
+          done(r.ok && r.data.ok, r.ok ? (r.data.ok ? (cents(cap.amount) !== null && cents(cap.amount)! < dep.amount_cents ? 'Captured; the rest of the hold is released.' : 'Captured.') : r.data.message ?? 'Not captured.') : r.message);
         }); }}>
           <div className="ad-fields">
             <div className="field ad-field"><label className="label" htmlFor="bm-kamount">Amount ($, up to {fmt(dep.amount_cents)})</label><input className="input" id="bm-kamount" inputMode="decimal" value={cap.amount} onChange={(e) => setCap({ ...cap, amount: e.target.value })} placeholder={(dep.amount_cents / 100).toFixed(2)} /></div>
             <div className="field ad-field"><label className="label" htmlFor="bm-kreason">Reason</label><input className="input" id="bm-kreason" value={cap.reason} onChange={(e) => setCap({ ...cap, reason: e.target.value })} /></div>
           </div>
           <button className="btn btn--primary btn--sm" type="submit" disabled={pending}>Capture</button>
+        </form>)}
+
+      {open === 'release' && dep && (
+        <form className="ad-form ad-form--narrow" aria-label="Release the hold" data-testid="bm-release-form" onSubmit={(e) => { e.preventDefault(); run(async () => {
+          const r = await holdAction({ booking: m.booking_number, action: 'release', reason: rel });
+          done(r.ok && r.data.ok, r.ok ? (r.data.ok ? 'Hold released.' : r.data.message ?? 'Not released.') : r.message);
+        }); }}>
+          <p className="small muted">The deposit stays held while the car is out, until tolls and tickets have had time to come in, and while anything is still open. Settle the deposit after the return instead; an Admin may release it now with the reason.</p>
+          <div className="field ad-field ad-field--wide"><label className="label" htmlFor="bm-rreason">Reason (an Admin, 10 characters or more)</label><input className="input" id="bm-rreason" value={rel} onChange={(e) => setRel(e.target.value)} /></div>
+          <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="bm-release-go">Release</button>
         </form>)}
 
       {offlineReturns.length > 0 && m.may.return_deposit && <div className="stack" data-testid="bm-returns">
