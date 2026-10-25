@@ -129,18 +129,10 @@ in their colour.
 
 ## Coverage
 
-<<<<<<< HEAD
-The production numbers (models and model years of the whole catalog with a photo, the popular models still without
-one) are in Admin > Settings > Vehicle pages, Stock photos, and in each run's annotations, from the first scheduled run
-after the deploy. The photos cannot be stored before migration 0149 is in the database, and this sandbox cannot reach
-Wikimedia (its egress proxy refuses the hosts), so the choice was run live three times as the push dry run on GitHub
-(the popular list, 154 models, model years 2000 on, nothing stored), and the rules were tightened after each:
-=======
 The production numbers (the whole catalog, its own model years) are in Admin > Settings > Vehicle pages, Stock photos,
 and in each run's annotations, from the first scheduled run after the deploy. This sandbox cannot reach Wikimedia, so
 the choice was run live as the push dry run on GitHub (the popular list, 154 models, nothing stored; model years 2015
 on unless noted), and the rules were tightened after each run:
->>>>>>> b1ecae90 (Stock photos: Wikipedia by name when Wikidata lags; run 5 coverage)
 
 | Dry run | Models found | With a photo | With generation photos | Model years: exact, near, model, none | Notes |
 | --- | --- | --- | --- | --- | --- |
