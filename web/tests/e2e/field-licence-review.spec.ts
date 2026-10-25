@@ -164,7 +164,7 @@ test('field staff review the renter\'s licence from their home and from the job'
   await expect(onJob).toBeVisible({ timeout: 30_000 });
   await check(page, 'job page with the licence check');
   await onJob.getByTestId('licence-review-open').click();
-  await expect(onJob.getByTestId('licence-doc-licence_front')).toBeVisible({ timeout: 30_000 });
+  await expect(onJob.getByTestId('licence-doc-licence_front').filter({ hasText: 'Waiting' })).toBeVisible({ timeout: 30_000 });
   await onJob.getByTestId('licence-approve-all').click();
   await expect(onJob.getByTestId('licence-review-msg')).toContainText('3 approved', { timeout: 30_000 });
   const [ok] = await sql`select (select count(*)::int from verification_uploads where booking_id = ${b.booking_id} and status = 'approved' and reviewed_by = ${field.id}) n,
