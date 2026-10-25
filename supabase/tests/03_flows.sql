@@ -439,7 +439,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'agreement_jobs', 'esign_events',
                             -- RentalCoverage clicks (0164): a log of visits (place, visitor, booking; no money or status); the link and the
                             -- payments entered by hand are audited
-                            'coverage_clicks')
+                            'coverage_clicks',
+
+                            -- field pay (0165): the log of edits to field hours (itself an append-only log; the shifts, pay runs and lines are audited)
+                            'field_shift_edits')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

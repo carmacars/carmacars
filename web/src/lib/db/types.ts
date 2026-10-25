@@ -5457,6 +5457,219 @@ export type Database = {
         };
         Relationships: [];
       };
+      field_pay_lines: {
+        Row: {
+          id: string;
+          run_id: string;
+          staff_id: string;
+          rate_cents: number;
+          minutes_total: number;
+          minutes_regular: number;
+          minutes_overtime: number;
+          overtime_bps: number;
+          wage_cents: number;
+          overtime_cents: number;
+          commission_cents: number;
+          commission_ids: string[];
+          vacation_cents: number;
+          gross_cents: number;
+          status: string;
+          statement_number: string | null;
+          paid_on: string | null;
+          method: string | null;
+          reference: string | null;
+          note: string | null;
+          paid_by: string | null;
+          paid_at: string | null;
+          payout_id: string | null;
+          emailed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          run_id: string;
+          staff_id: string;
+          rate_cents: number;
+          minutes_total?: number;
+          minutes_regular?: number;
+          minutes_overtime?: number;
+          overtime_bps?: number;
+          wage_cents?: number;
+          overtime_cents?: number;
+          commission_cents?: number;
+          commission_ids?: string[];
+          vacation_cents?: number;
+          gross_cents?: number;
+          status?: string;
+          statement_number?: string | null;
+          paid_on?: string | null;
+          method?: string | null;
+          reference?: string | null;
+          note?: string | null;
+          paid_by?: string | null;
+          paid_at?: string | null;
+          payout_id?: string | null;
+          emailed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          run_id?: string;
+          staff_id?: string;
+          rate_cents?: number;
+          minutes_total?: number;
+          minutes_regular?: number;
+          minutes_overtime?: number;
+          overtime_bps?: number;
+          wage_cents?: number;
+          overtime_cents?: number;
+          commission_cents?: number;
+          commission_ids?: string[];
+          vacation_cents?: number;
+          gross_cents?: number;
+          status?: string;
+          statement_number?: string | null;
+          paid_on?: string | null;
+          method?: string | null;
+          reference?: string | null;
+          note?: string | null;
+          paid_by?: string | null;
+          paid_at?: string | null;
+          payout_id?: string | null;
+          emailed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      field_pay_runs: {
+        Row: {
+          id: string;
+          period_start: string;
+          period_end: string;
+          status: string;
+          settings: Json;
+          created_by: string | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          void_reason: string | null;
+          voided_by: string | null;
+          voided_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          period_start: string;
+          period_end: string;
+          status?: string;
+          settings?: Json;
+          created_by?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          void_reason?: string | null;
+          voided_by?: string | null;
+          voided_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          period_start?: string;
+          period_end?: string;
+          status?: string;
+          settings?: Json;
+          created_by?: string | null;
+          approved_by?: string | null;
+          approved_at?: string | null;
+          void_reason?: string | null;
+          voided_by?: string | null;
+          voided_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      field_shift_edits: {
+        Row: {
+          id: string;
+          shift_id: string;
+          action: string;
+          reason: string | null;
+          before: Json | null;
+          after: Json | null;
+          edited_by: string;
+          edited_at: string;
+        };
+        Insert: {
+          id?: string;
+          shift_id: string;
+          action: string;
+          reason?: string | null;
+          before?: Json | null;
+          after?: Json | null;
+          edited_by: string;
+          edited_at?: string;
+        };
+        Update: {
+          id?: string;
+          shift_id?: string;
+          action?: string;
+          reason?: string | null;
+          before?: Json | null;
+          after?: Json | null;
+          edited_by?: string;
+          edited_at?: string;
+        };
+        Relationships: [];
+      };
+      field_shifts: {
+        Row: {
+          id: string;
+          staff_id: string;
+          started_at: string;
+          ended_at: string | null;
+          note: string | null;
+          source: string;
+          created_by: string | null;
+          ended_by: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_id: string;
+          started_at: string;
+          ended_at?: string | null;
+          note?: string | null;
+          source?: string;
+          created_by?: string | null;
+          ended_by?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          staff_id?: string;
+          started_at?: string;
+          ended_at?: string | null;
+          note?: string | null;
+          source?: string;
+          created_by?: string | null;
+          ended_by?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       fleet_counts: {
         Row: {
           id: string;
@@ -12273,6 +12486,13 @@ export type Database = {
           promo_reminders_enabled: boolean;
           promo_reminder_3d_days: number;
           promo_reminder_1d_on: boolean;
+          field_pay_anchor: string;
+          field_default_hourly_cents: number;
+          field_overtime_on: boolean;
+          field_overtime_weekly_hours: number;
+          field_overtime_bps: number;
+          field_vacation_pay_bps: number;
+          field_shift_max_hours: number;
         };
         Insert: {
           id?: string;
@@ -12750,6 +12970,13 @@ export type Database = {
           promo_reminders_enabled?: boolean;
           promo_reminder_3d_days?: number;
           promo_reminder_1d_on?: boolean;
+          field_pay_anchor?: string;
+          field_default_hourly_cents?: number;
+          field_overtime_on?: boolean;
+          field_overtime_weekly_hours?: number;
+          field_overtime_bps?: number;
+          field_vacation_pay_bps?: number;
+          field_shift_max_hours?: number;
         };
         Update: {
           id?: string;
@@ -13227,6 +13454,13 @@ export type Database = {
           promo_reminders_enabled?: boolean;
           promo_reminder_3d_days?: number;
           promo_reminder_1d_on?: boolean;
+          field_pay_anchor?: string;
+          field_default_hourly_cents?: number;
+          field_overtime_on?: boolean;
+          field_overtime_weekly_hours?: number;
+          field_overtime_bps?: number;
+          field_vacation_pay_bps?: number;
+          field_shift_max_hours?: number;
         };
         Relationships: [];
       };
@@ -15525,6 +15759,7 @@ export type Database = {
           home_postal_code: string | null;
           home_address_set_at: string | null;
           home_address_set_by: string | null;
+          hourly_rate_cents: number | null;
         };
         Insert: {
           user_id: string;
@@ -15546,6 +15781,7 @@ export type Database = {
           home_postal_code?: string | null;
           home_address_set_at?: string | null;
           home_address_set_by?: string | null;
+          hourly_rate_cents?: number | null;
         };
         Update: {
           user_id?: string;
@@ -15567,6 +15803,7 @@ export type Database = {
           home_postal_code?: string | null;
           home_address_set_at?: string | null;
           home_address_set_by?: string | null;
+          hourly_rate_cents?: number | null;
         };
         Relationships: [];
       };
@@ -19182,6 +19419,8 @@ export type Database = {
           countersignature: string | null;
           cancelled_reason: string | null;
           edit_id: string | null;
+          new_management_mode: Database["public"]["Enums"]["management_mode"] | null;
+          new_onboarding_method: Database["public"]["Enums"]["onboarding_method"] | null;
         };
         Insert: {
           id?: string;
@@ -19212,6 +19451,8 @@ export type Database = {
           countersignature?: string | null;
           cancelled_reason?: string | null;
           edit_id?: string | null;
+          new_management_mode?: Database["public"]["Enums"]["management_mode"] | null;
+          new_onboarding_method?: Database["public"]["Enums"]["onboarding_method"] | null;
         };
         Update: {
           id?: string;
@@ -19242,6 +19483,8 @@ export type Database = {
           countersignature?: string | null;
           cancelled_reason?: string | null;
           edit_id?: string | null;
+          new_management_mode?: Database["public"]["Enums"]["management_mode"] | null;
+          new_onboarding_method?: Database["public"]["Enums"]["onboarding_method"] | null;
         };
         Relationships: [];
       };

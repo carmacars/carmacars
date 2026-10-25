@@ -38,3 +38,21 @@ export async function fieldAct<T = Record<string, unknown>>(action: typeof ACTIO
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }
+
+/** Clock in or out (0165, My hours): the database checks the person is field staff and the shift's rules; its refusal is shown as written. */
+export async function fieldClock<T = Record<string, unknown>>(what: 'in' | 'out', note: string | null): Promise<R<T>> {
+  try {
+    const user = await currentUser();
+    if (!user) throw new Error('Sign in first.');
+    const roles = await rolesOf(user.id);
+    if (!roles.field) throw new Error('Only field staff clock in and out.');
+    const aal = await sessionAal();
+    if (roles.two_step_required && aal !== 'aal2') throw new Error('Two-step sign-in is required.');
+    const data = await door<T>(user.id, 'ops_do', what === 'in' ? 'field_clock_in' : 'field_clock_out', { note: note?.trim() || null }, aal);
+    revalidatePath('/field/hours');
+    revalidatePath('/field');
+    revalidatePath('/va/field-hours');
+    revalidatePath('/admin/money/field-pay');
+    return { ok: true, data };
+  } catch (e) { return fail(e); }
+}

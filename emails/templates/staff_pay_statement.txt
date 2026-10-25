@@ -1,0 +1,36 @@
+CarmaCars  |  Pay statement
+
+========================================
+
+[Pay statement]
+Your pay for {{period_label}}
+
+Hi {{first_name}}. Your pay for this period is recorded. The statement ({{statement_number}}) is in My hours.
+
+Paid: {{gross_total}}
+{{hours_total}} worked
+
+How: {{payout_method}}
+Date: {{payout_date}}
+{{#if payout_reference}}
+Reference: {{payout_reference}}
+{{/if}}
+
+{{#each pay_lines}}
+  What: {{what}} | Amount: {{amount}}
+{{/each}}
+
+See my hours and statements:
+{{hours_url}}
+
+No income tax, CPP or EI is taken off on this statement. If something looks wrong, reply to this email.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

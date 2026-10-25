@@ -44,7 +44,7 @@ def build():
         ['Today', 'To do, Overview, Staff tasks, Live visitors'],
         ['Bookings', 'Trips: Requests, Bookings, Calendar, Add a rental, Chauffeur. Customers: Live chat, Renter leads, Reviews. Problems: Damage, Incidents and claims'],
         ['Cars', 'Vehicles, Listings, Maintenance, Rates for many cars, Calendar sync, Similar cars, Retire or delete'],
-        ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments by day, Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer rates, Insurer invoices, Staff commissions'],
+        ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments by day, Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer rates, Insurer invoices, Staff commissions, Field pay'],
         ['People', 'Owners and partners: Applications, Owners, Add a car for an owner, Partners, Owner forms, Paid and signed. Renters, staff and investors: Renters, Staff, Investors, Portals and view as'],
         ['Settings', 'All settings. Website: Site, Vehicle pages, Sample photos, Add-ons, Discount games, Guides. Rules: Program, Forms, Maintenance, Emails. Records: Email log, Audit log'],
     ], head=['Group', 'Pages'])
@@ -832,6 +832,16 @@ def build():
     g.para('History, under each car, lists every period of terms (from, to, the amounts, and why: the Vehicle Schedule, a written notice, lowered) and every change with its notice. A change that has not started yet has Cancel (give the reason): the terms before it run on. An updated schedule waiting for the owner has Record signed on paper (with the date) and Withdraw it. One change at a time: cancel or finish the one waiting before making the next.')
     g.para('The same editor is on the car\'s page (Records tab, Owner terms). The owner\'s default terms (for cars whose terms are set later) and the first and last month invoice stay on the Terms tab.')
     g.tip('Invoices follow the dates: a month whose Insurance Fee or Tracker Fee changes part way is billed per day at each rate. The Revenue Share of a rental is the one in force on the day it is booked.', label='Good to know')
+    g.task('Change a signed car\'s Management Mode', 'Managed, Self-Managed or Turo-Only, from a date, for a car whose Vehicle Schedule is signed. An Admin only.')
+    g.steps([
+        f'Open the owner\'s Cars and terms table (or the car\'s page) and press {B("Change mode")} on the car\'s row.',
+        f'Choose the {B("New Management Mode")} and its Onboarding Method (the options that fit how the car is held), the date under {B("From")}, and write the Reason: the owner reads it. Tick {B("The owner asked for this")} only when it is their own request.',
+        f'Press {B("Review")}: it lists each value before and after (a Self-Managed car has no management fee; a Turo-Only car has no Fees and leaves the fleet insurance policy) and says whether the owner has to sign. Nothing is saved yet.',
+        'The owner asked and no amount goes up: no signature and no notice period. From today (or the date you chose) the car has the new mode, an updated Vehicle Schedule is issued with CarmaCars\' signature and the owner is emailed the notice.',
+        f'Anything else (CarmaCars\' own decision, or a higher fee): the owner is emailed the notice and an updated Vehicle Schedule to sign, the date is at least 30 days away and the car stays as it is until it is signed. In History, {B("Record signed on paper")} or {B("Withdraw it")}.',
+        f'A change dated ahead applies by itself on its date: the schedule is issued and the car moves. {B("Cancel")} in History (give the reason) stops it and emails the owner that their terms stay as they are. The same email goes when a notice of a higher fee is cancelled.',
+    ])
+    g.tip('A shareholder-owned car has fixed terms. A car whose schedule is not signed yet changes its mode in the terms editor, where it applies at once.', label='Good to know')
     g.task('Paid and signed', f'{P("People", "Paid and signed")}. What each owner still has to pay or sign, and how each item was done.')
     g.steps([
         'Each owner shows how many items are open and how many are done. Owners with nothing left are hidden; press Show every owner to see them.',
@@ -929,6 +939,27 @@ def build():
         ['On the owner statement', 'An owner\'s car: deducted with the kickbacks before Owner Revenue, its own line on the statement. A partner\'s car: from CarmaCars\' commission. A CarmaCars-owned car: a CarmaCars expense'],
     ], head=['', 'Commission'])
     g.tip('A commission that changes after an owner statement was built (a refund, or the month\'s Sales tier) goes on the owner\'s next statement as an adjustment line.')
+
+    g.task('Field pay', f'{P("Money", "Field pay")}. Field staff clock in and out on their phones (My hours); you run the pay every two weeks. Nothing is paid automatically.')
+    g.flow([('Clocked in and out', 'Field staff press Clock in and Clock out; Fleet or you fix a forgotten clock-out'),
+            ('Pay run started', 'Hours times the hourly rate, plus the approved commissions'),
+            ('Approved', 'The figures are frozen, the period\'s hours are locked, the statements are numbered'),
+            ('Paid', 'You recorded how each person was paid; they get their statement by email')])
+    g.steps([
+        f'The tab {B("Pay run")} shows the current two-week period (Sunday to Saturday: the first day is Settings > Program, Field pay). {B("Earlier period")} and {B("Later period")} move between periods.',
+        f'After the period ends, press {B("Start the pay run")}: one line for each person with hours times their hourly rate, plus the staff commissions and referral fees approved by the end of the period (see Staff commissions). {B("Refresh the figures")} takes in a change made since.',
+        f'Press {B("Approve")}. The period\'s hours are locked, each line gets a statement number and the figures are frozen. Someone still clocked in blocks it: fix their shift under {B("Hours")} first. {B("Withdraw")} takes an approved run back while no payment is recorded.',
+        f'Press {B("Record payment")} on a line: choose e-Transfer, bank transfer or cash, the reference (not needed for cash) and the date. The commissions in the line are marked paid and the person gets their pay statement by email ({B("Send again")} repeats it). The statement\'s number opens its PDF; {B("CSV")} gives the run for your accountant.',
+        f'{B("Hours")} lists everyone\'s shifts of the period. {B("Add hours")} enters a shift for someone who forgot to clock in, {B("Change")} fixes one and {B("Remove")} takes one out. Each needs a reason and is kept in a log. Fleet does the same under Field hours but sees no pay.',
+        f'{B("Hourly rates")} shows each person\'s rate: CA$18.00 an hour unless you give them their own with {B("Set the rate")} (a reason is needed). A pay run keeps the rate it was started with.',
+    ])
+    g.table([
+        ['Overtime', 'Off. Settings > Program, Field pay: pay overtime, after 44 hours in a week, at 150% of the rate'],
+        ['Vacation pay', 'Off. Settings > Program, Field pay: vacation pay (Ontario: 4%) adds that share of wages, overtime and commissions to each statement'],
+        ['Deductions', 'None are worked out: income tax, CPP, EI and the employer\'s contributions are for your accountant. Each statement says so'],
+        ['Commissions that net to nothing', 'A person whose approved commissions add up to nothing or less (a clawback) is not paid them this period: they carry to the next'],
+    ], head=['', 'Field pay'])
+    g.tip('A shift of more than 16 hours (a setting) is refused, and so are hours that overlap another shift of the same person. The field staff member sees their hours and statements under My hours on their phone.')
 
     g.task('Company statements', 'CarmaCars\' own monthly statement, in twelve sections.')
     g.steps([
@@ -1295,7 +1326,7 @@ def build():
         'Forms: Blind Spot\'s rental agreement for every booking, and the official ServiceOntario PDFs and what goes in each field.',
         'Insurers: insurance companies billed for bookings.',
     ], shot=S('admin/24-settings-desktop', 0, 0, 1440, 900, pins=[(1, 470, 297), (2, 372, 362), (3, 1115, 362), (4, 372, 659), (5, 372, 764)]))
-    g.para('The other tiles: Site content (headings, FAQs, legal text), Fee defaults, Deposit tiers, Kilometre choices, Vehicle classes, '
+    g.para('The other tiles: Site content (headings, FAQs, legal text), Fee defaults, Deposit tiers, Kilometre choices, Vehicle classes, Vehicle class rules, '
            'Airports and delivery, Protection Plan prices, Card coverage, Reviews, Text alerts, Partners (each partner company\'s CRM link: see Partners, company cars and rentals added by hand), '
            'Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
 
@@ -1309,11 +1340,20 @@ def build():
         'Live visitors and live chat: recording visits, the signal thresholds, follow-up tasks, the chat and its assistant, and how long visits and chats are kept.',
         'Discount games: the same values as Settings, Discount games (the prize table and the games are easier to change there).',
         'Deposits: the toll and ticket window after the return (7 days: settling sooner suggests a hold-back), the longest hold-back (30 days after the return), how long before a card hold lapses it is collected (36 hours), and collecting what is owed after the deposit by itself (the card on file, then a pay link, then a Finance task). A deposit is never released by itself.',
-        'Field jobs and handovers: field jobs made from each confirmed booking (on) and who gets them (the least busy field staff member, or nobody so Fleet assigns), how field staff may take a deposit at the check-out besides a card (e-Transfer and cash), and whether they may release a car whose tracker is not reporting, with a reason (on; you get an urgent task).',
+        'Field jobs and handovers: field jobs made from each confirmed booking (on) and who gets them (the least busy field staff member, or nobody so Fleet assigns), how field staff may take a deposit at the check-out besides a card (e-Transfer and cash), and whether they may release a car whose tracker is not reporting, with a reason (on; you get an urgent task). Field pay: the first day of a pay period (every period is two weeks), the default hourly rate (CA$18.00), whether overtime is paid (off), after how many hours in a week (44) and at what share of the rate (150%), vacation pay added to each statement (off; Ontario 4%) and the longest shift (16 hours).',
         'Sign-in by phone: codes by text from the CarmaCars number (on), US numbers (off until the Quo number is registered for US texting, A2P 10DLC), codes per number and per connection an hour, and whether a verified phone confirms an account like a confirmed email. Accepting an offer, signing and paying need a confirmed account; an account made by phone gives its email on the pay page before its first payment.',
         'Calendar sync, Turo by email, Booking recovery emails and Site check: how often calendar links are read, the Turo inbound address and who may forward to it, the reminder delays and sending hours, and the site check with the address its alerts go to (rent@carmacars.ca), the minutes before an email, the daily limit and the quiet hours.',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
+
+    g.task('Vehicle class rules', f'Open {B("Settings")}, then {B("Vehicle class rules")}. How a new car\'s class is decided from its VIN: the first rule that matches wins.')
+    g.steps([
+        'The table lists each rule: its rank, what the car must be (a make, and patterns for the model, the trim and the body), the class it gets, the class once the car is old enough, a note and whether it is on. The lowest rank that matches is used; a car that matches no rule is Standard.',
+        f'Press {B("Add a rule")} or {B("Change")}: a rank, at least one condition, the class, optionally the years old after which an older class applies, and a note (it is shown as the reason for the class). A pattern is not case sensitive: ^911 matches models that start with 911. A rule with no condition, a pattern that does not compile and an older class equal to the class are refused.',
+        f'{B("Try a car")} gives the class the rules decide for a year, make, model, trim and body, and why.',
+        f'{B("Delete")} removes a rule; switch it off instead to keep it. Every add, change and delete is in the audit log, with before and after.',
+    ])
+    g.tip('A rule changes the cars entered from then on. A car already listed keeps its class until you change it on the car.')
 
     g.task('Official ServiceOntario forms', 'The five official forms are loaded with a mapping to the owner, car, company and lender details. Each is the form exactly as ServiceOntario publishes it: only its empty text boxes are filled. Its checkboxes, drop-downs and signatures are done by hand at the counter, in ink. Until you check a form, owners get a data sheet with the values.')
     g.steps([

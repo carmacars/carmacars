@@ -6,6 +6,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['deposits', 'Deposit tiers', 'The deposit amounts a car can take'],
   ['km', 'Kilometre choices', 'Kilometres a day offered on rate cards'],
   ['classes', 'Vehicle classes', 'Classes shown on the site'],
+  ['class-rules', 'Vehicle class rules', 'How a new car\'s class is decided from its make, model, trim and body, and when an older car changes class'],
   ['airports', 'Airports and delivery', 'Airports, surcharges, per-km delivery rate and origin'],
   ['coverage', 'Protection Plan prices', 'Price table for the Protection Plan sold to renters'],
   ['card-coverage', 'Card coverage', 'Which credit cards include rental car coverage: limits, exclusions, guides and the day each was checked'],

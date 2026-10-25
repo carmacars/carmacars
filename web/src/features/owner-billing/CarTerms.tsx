@@ -2,7 +2,7 @@
 import { Fragment, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
-import { carTermsCancel, carTermsChange, scheduleChange, type CarTermsInput, type CarTermsPlan } from '@/server/actions/owner-billing';
+import { carModeChange, carTermsCancel, carTermsChange, scheduleChange, type CarTermsInput, type CarTermsPlan, type ModeChangeInput, type ModeChangePlan } from '@/server/actions/owner-billing';
 import { MODE_LABEL } from '@/features/owner/types';
 import { dollars, pctOf, toCents } from './shared';
 import './car-terms.css';
@@ -43,7 +43,7 @@ function History({ c, today, paths }: { c: CarTermsRow; today: string; paths: st
         <ul className="ct-changes">{c.changes.map((x) => (
           <li key={x.id} data-testid="car-terms-change">
             <span><b>{x.label}</b> · {STATUS_TEXT[x.status] ?? x.status}</span>
-            <span className="small">Notice {fmtDay(x.notice_on)}, from {fmtDay(x.effective_from)}: {[
+            <span className="small">Notice {fmtDay(x.notice_on)}, from {fmtDay(x.effective_from)}: {x.kind === 'mode_change' ? `Management Mode ${MODE_LABEL[x.mode_before ?? ''] ?? x.mode_before} to ${MODE_LABEL[x.mode_after ?? ''] ?? x.mode_after}${x.method_after && x.method_after !== 'none' ? ` (${x.method_after.replace(/_/g, ' ')})` : ''}; ` : ''}{[
               x.before.insurance_fee_cents !== x.after.insurance_fee_cents && `insurance ${m(x.before.insurance_fee_cents)} to ${m(x.after.insurance_fee_cents)}`,
               x.before.tracker_fee_cents !== x.after.tracker_fee_cents && `tracker ${m(x.before.tracker_fee_cents)} to ${m(x.after.tracker_fee_cents)}`,
               x.before.revenue_share_bps !== x.after.revenue_share_bps && `management fee ${pc(x.before.revenue_share_bps)} to ${pc(x.after.revenue_share_bps)}`].filter(Boolean).join(', ') || 'same amounts'}.
@@ -73,12 +73,71 @@ function History({ c, today, paths }: { c: CarTermsRow; today: string; paths: st
   );
 }
 
+// A signed car's Management Mode (0165): Admin only. The new mode, how the car is onboarded, from when and why. "The owner asked" is
+// the owner's own request (a lower or equal share applies without a signature); otherwise it is against the owner: their signature on an
+// updated Vehicle Schedule and the notice period. Review shows what will happen (nothing saved); Confirm does it.
+function ModeChange({ c, data, paths, onClose }: { c: CarTermsRow; data: CarTermsData; paths: string[]; onClose: () => void }) {
+  const router = useRouter();
+  const a = useAct<ModeChangePlan>();
+  const uid = `mc-${useId().replace(/[^\w-]/g, '')}`;
+  const opts = c.mode_change?.options ?? {};
+  const modes = Object.keys(MODE_LABEL).filter((k) => k !== c.mode);
+  const [mode, setMode] = useState(modes[0] ?? '');
+  const [method, setMethod] = useState('');
+  const [from, setFrom] = useState(data.today);
+  const [reason, setReason] = useState('');
+  const [asked, setAsked] = useState(false);
+  const [share, setShare] = useState('');
+  const [plan, setPlan] = useState<ModeChangePlan | null>(null);
+  const [done, setDone] = useState<ModeChangePlan | null>(null);
+  const list = opts[mode] ?? [];
+  const chosen = method && list.some((o) => o.method === method) ? method : mode === 'turo_only' ? 'none' : list.find((o) => o.recommended)?.method ?? list[0]?.method ?? '';
+  const body = (over: Partial<ModeChangeInput> = {}): ModeChangeInput => ({ vehicle_id: c.vehicle_id, management_mode: mode, onboarding_method: chosen || undefined, effective_from: from || undefined,
+    reason: reason.trim() || undefined, owner_requested: asked, ...(mode === 'managed' && /^\d+(\.\d{0,2})?$/.test(share.trim()) ? { revenue_share_bps: Math.round(Number(share) * 100) } : {}), ...over });
+  const review = (over?: Partial<ModeChangeInput>) => a.run(() => carModeChange(body({ ...over, preview: true }), paths), (r) => { if (r.ok) setPlan(r.data); });
+  const confirm = () => a.run(() => carModeChange(body(), paths), (r) => { if (r.ok) { setDone(r.data); setPlan(null); router.refresh(); } });
+  if (done) return <div className="alert alert--ok stack" role="status" data-testid="car-mode-done"><span className="alert__title">{done.needs_signature ? 'Waiting for the owner' : 'Done'}</span>{done.steps.map((s, i) => <span key={i}>{s}</span>)}
+    <button type="button" className="btn btn--quiet btn--sm" onClick={onClose}>Close</button></div>;
+  return (
+    <div className="stack ct-panel" data-testid="car-mode-panel">
+      <p className="small">Change {c.name} from {MODE_LABEL[c.mode] ?? c.mode}. At the owner&apos;s request the change applies from the date you choose with no signature (unless a fee goes up). Otherwise the owner signs an updated Vehicle Schedule and the notice is {c.mode_change?.notice_days ?? data.notice_days} days at least.</p>
+      <div className="field-row">
+        <div className="field"><label className="label" htmlFor={`${uid}-mode`}>New Management Mode</label>
+          <select className="select" id={`${uid}-mode`} value={mode} onChange={(e) => { setMode(e.target.value); setMethod(''); setPlan(null); }} data-testid="car-mode-select">{modes.map((k) => <option key={k} value={k}>{MODE_LABEL[k]}</option>)}</select></div>
+        {list.length > 0 && <div className="field"><label className="label" htmlFor={`${uid}-method`}>Onboarding Method</label>
+          <select className="select" id={`${uid}-method`} value={chosen} onChange={(e) => { setMethod(e.target.value); setPlan(null); }} data-testid="car-mode-method">{list.map((o) => <option key={o.method} value={o.method}>{o.label}{o.recommended ? ' (recommended)' : ''}</option>)}</select></div>}
+        {mode === 'managed' && <div className="field"><label className="label" htmlFor={`${uid}-share`}>Management fee (Revenue Share, %)</label>
+          <input className="input" id={`${uid}-share`} inputMode="decimal" value={share} placeholder="the standard share" onChange={(e) => { setShare(e.target.value); setPlan(null); }} data-testid="car-mode-share" /></div>}
+        <div className="field"><label className="label" htmlFor={`${uid}-from`}>From</label>
+          <input className="input" type="date" id={`${uid}-from`} value={from} min={data.today} onChange={(e) => { setFrom(e.target.value); setPlan(null); }} data-testid="car-mode-from" /></div>
+      </div>
+      <div className="field"><label className="check" htmlFor={`${uid}-asked`}><input id={`${uid}-asked`} type="checkbox" checked={asked} onChange={(e) => { setAsked(e.target.checked); setPlan(null); }} data-testid="car-mode-asked" /> <span>The owner asked for this</span></label></div>
+      <div className="field"><label className="label" htmlFor={`${uid}-why`}>Reason (the owner reads it)</label>
+        <input className="input" id={`${uid}-why`} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="car-mode-reason" /></div>
+      {plan && (
+        <div className="ct-plan stack" data-testid="car-mode-plan" aria-live="polite">
+          <ul className="ct-fields">{plan.lines.map((l) => <li key={l.label}><span>{l.label}</span><span><s>{l.before}</s> to <b>{l.after}</b></span></li>)}</ul>
+          <ul className="ct-steps">{plan.steps.map((s, i) => <li key={i}>{s}</li>)}</ul>
+          {plan.needs_signature && plan.earliest && from < plan.earliest && <p className="alert alert--error" role="alert"><span>The earliest date is {fmtDay(plan.earliest)}.</span>
+            {' '}<button type="button" className="btn btn--quiet btn--sm" onClick={() => { setFrom(plan.earliest!); review({ effective_from: plan.earliest }); }}>Use it</button></p>}
+        </div>)}
+      {a.res && !a.res.ok && <p className="alert alert--error" role="alert" data-testid="car-mode-error"><span>{a.res.message}</span></p>}
+      <div className="row ct-actions">
+        {!plan ? <button type="button" className="btn btn--primary btn--sm" disabled={a.pending} onClick={() => review()} data-testid="car-mode-review">{a.pending ? 'Checking' : 'Review'}</button>
+          : <button type="button" className="btn btn--primary btn--sm" disabled={a.pending || !reason.trim()} onClick={confirm} data-testid="car-mode-confirm">{a.pending ? 'Saving' : plan.needs_signature ? 'Confirm and ask the owner to sign' : 'Confirm'}</button>}
+        <button type="button" className="btn btn--quiet btn--sm" onClick={onClose}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: string[] }) {
   const router = useRouter();
   const a = useAct<CarTermsPlan>();
   const uid = `ct-${useId().replace(/[^\w-]/g, '')}`;
   const [edit, setEdit] = useState(false);
   const [hist, setHist] = useState(false);
+  const [modeOpen, setModeOpen] = useState(false);
   const [v, setV] = useState<Vals>(() => valsOf(c));
   const [plan, setPlan] = useState<CarTermsPlan | null>(null);
   const [lower, setLower] = useState(data.today);
@@ -125,7 +184,7 @@ function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: st
     <>
       <tr data-testid="car-terms-row" data-vehicle={c.vehicle_id}>
         <th scope="row" data-label="Car"><span className="ct-car"><b>{c.name}</b>{c.plate ? <span className="small muted"> {c.plate}</span> : null}</span>
-          <span className="small ct-state" data-testid="car-terms-state">{stateLine(c)}{c.awaiting ? ' · updated schedule waiting for the owner' : ''}{c.scheduled.length ? ` · change from ${fmtDay(c.scheduled[0]!.from)}` : ''}</span></th>
+          <span className="small ct-state" data-testid="car-terms-state">{stateLine(c)}{c.awaiting ? ' · updated schedule waiting for the owner' : ''}{c.scheduled.length ? ` · change from ${fmtDay(c.scheduled[0]!.from)}` : ''}{c.mode_next ? ` · ${MODE_LABEL[c.mode_next.mode] ?? c.mode_next.mode} from ${fmtDay(c.mode_next.from)}${c.mode_next.status === 'awaiting_signature' ? ' (waiting for the owner)' : ''}` : ''}</span></th>
         {cell('ins', 'Insurance Fee a month ($)', ed.fees, m(c.current.insurance_fee_cents), 'insurance')}
         {cell('trk', 'Tracker Fee a month ($)', ed.fees, m(c.current.tracker_fee_cents), 'tracker')}
         {cell('share', 'Management fee (Revenue Share, %)', ed.fees, pc(c.current.revenue_share_bps), 'share')}
@@ -143,6 +202,7 @@ function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: st
         <td data-label="Since">{sinceLine(c)}</td>
         <td data-label="Actions" className="ct-buttons">
           {ed.fees && !edit && <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setV(valsOf(c)); setEdit(true); setDone(null); setPlan(null); }} data-testid="car-terms-edit" aria-label={`Edit the terms of ${c.name}`}>Edit</button>}
+          {c.mode_change?.may && !modeOpen && <button type="button" className="btn btn--ghost btn--sm" onClick={() => setModeOpen(true)} data-testid="car-mode-open" aria-label={`Change the Management Mode of ${c.name}`}>Change mode</button>}
           <button type="button" className="btn btn--quiet btn--sm" aria-expanded={hist} onClick={() => setHist(!hist)} data-testid="car-terms-history-toggle" aria-label={`History of ${c.name}`}>History</button>
         </td>
       </tr>
@@ -182,6 +242,7 @@ function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: st
               </div>
             </div>)}
         </td></tr>)}
+      {modeOpen && <tr className="ct-panel-row"><td colSpan={cols} data-label=""><ModeChange c={c} data={data} paths={paths} onClose={() => setModeOpen(false)} /></td></tr>}
       {hist && <tr className="ct-panel-row"><td colSpan={cols} data-label=""><History c={c} today={data.today} paths={paths} /></td></tr>}
     </>
   );

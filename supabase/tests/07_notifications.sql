@@ -16,11 +16,11 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '181/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '184/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 77::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 78::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
@@ -550,6 +550,11 @@ insert into test.nt_synth values
   ('owner_exit_completed', 'vehicle_exit', test.id('ex:NT'), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'vehicle_id', test.id('vehicle:NT1'), 'exit_date', date '2031-08-01', 'retransfer_fees_paid_by', 'carmacars')),
   ('owner_fee_change_notice', 'vehicle_term_change', gen_random_uuid(), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'vehicle_id', test.id('vehicle:NT1'), 'effective_from', date '2031-08-01',
      'old_insurance_fee_cents', 45000, 'new_insurance_fee_cents', 47500, 'old_tracker_fee_cents', 2500, 'new_tracker_fee_cents', 2500, 'reason', 'Policy renewal')),
+  ('owner_mode_change_notice', 'vehicle_term_change', gen_random_uuid(), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'vehicle_id', test.id('vehicle:NT1'), 'vehicle_name', '2022 Audi A4', 'effective_from', date '2031-08-01',
+     'needs_signature', true, 'mode_before', 'managed', 'mode_after', 'self_managed', 'reason', 'Owner request', 'summary', 'Management Mode Managed to Self-Managed',
+     'changes', jsonb_build_array(jsonb_build_object('label', 'Management Mode', 'before', 'Managed', 'after', 'Self-Managed')))),
+  ('owner_fee_change_cancelled', 'vehicle_term_change', gen_random_uuid(), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'vehicle_id', test.id('vehicle:NT1'), 'vehicle_name', '2022 Audi A4', 'effective_from', date '2031-08-01',
+     'summary', 'Insurance Fee 450.00 to 475.00', 'changes', jsonb_build_array(jsonb_build_object('label', 'Insurance Fee', 'before', '$450.00', 'after', '$475.00')))),
   ('owner_bank_details_changed', 'owner', test.id('owner:nt_olga'), jsonb_build_object('owner_id', test.id('owner:nt_olga'), 'change_summary', 'New account ending 1234 submitted', 'changed_at', now(), 'changed_by', 'you')),
   -- emitted by this layer's triggers, for records the sections above did not create
   ('owner_agreement_ready', 'vehicle_onboarding', test.id('onb:NT'), jsonb_build_object('vehicle_id', test.id('vehicle:NT1'), 'owner_id', test.id('owner:nt_olga'))),
@@ -696,6 +701,11 @@ select app.emit_event('staff_commission_approved', 'user', test.id('nt_seller'),
 insert into staff_commission_payouts (id, staff_id, method, reference, paid_on, amount_cents, recorded_by)
 values (test.id('nt_cpay'), test.id('nt_seller'), 'e_transfer', 'NT-1', date '2031-05-01', 1000, test.id('nt_admin'));
 select app.emit_event('staff_commission_paid', 'staff_commission_payout', test.id('nt_cpay'), jsonb_build_object('staff_id', test.id('nt_seller'), 'payout_id', test.id('nt_cpay')), 'staff_commission_paid:nt');
+-- the field pay statement (0165): a paid line of an approved run
+insert into field_pay_runs (id, period_start, period_end, status) values (test.id('nt_fpr'), date '2031-05-04', date '2031-05-17', 'paid');
+insert into field_pay_lines (id, run_id, staff_id, rate_cents, minutes_total, minutes_regular, wage_cents, gross_cents, status, statement_number, paid_on, method, reference)
+values (test.id('nt_fpl'), test.id('nt_fpr'), test.id('nt_field'), 1800, 480, 480, 14400, 14400, 'paid', 'PS-NT-1', date '2031-05-20', 'e_transfer', 'NT-PAY-1');
+select app.emit_event('staff_pay_statement', 'field_pay_line', test.id('nt_fpl'), jsonb_build_object('staff_id', test.id('nt_field'), 'line_id', test.id('nt_fpl')), 'staff_pay_statement:nt');
 -- live chat (0060): the transcript to the visitor's email, and the email to staff on shift who asked for it
 insert into chat_conversations (id, visitor_id, name, email, human_reason) values (test.id('nt_chat'), test.id('nt_chatv'), 'Nia Chat', 'nia.chat@example.test', 'asked for a person');
 insert into chat_messages (conversation_id, sender, body) values (test.id('nt_chat'), 'visitor', 'Is the car free on Friday?');
