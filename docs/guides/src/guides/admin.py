@@ -1369,7 +1369,8 @@ def build():
     g.para(f'To hide or show it in one click, use {B("Hide the deck from investors")} or {B("Show the deck to investors")} on Investors.')
     g.para('How we make money is one slide with the seven revenue lines: our own cars, owners\' cars fully managed with coverage under our fleet policy, '
            'coverage under our fleet policy for owners who manage their own cars, Turo management, brokering partner fleets with the chauffeur service, detailing, and the body shop. '
-           'The features include maintenance and service tracking, phone number sign-in, saving contacts from unfinished forms and smart Turo car matching.')
+           'The features include maintenance and service tracking, phone number sign-in, saving contacts from unfinished forms and smart Turo car matching, and the newest: the redesigned renter, owner, investor, assistant, field and Admin screens, '
+           'terms car by car, deposits settled after the bills come in, offers and rentals added fast, the staff assistant, and promo code end dates. Their screens in the deck are real screens with fictional people.')
     g.tip('The deck shows no internal costs, fleet counts or staff pay. Every example is labelled as an illustration, with the forward-looking statements notice '
           'on every slide and in the PDF.', label='Good to know')
 

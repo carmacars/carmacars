@@ -98,6 +98,7 @@ def build():
     g.task('Open the deck')
     g.steps([
         f'On {B("Investments")}, press {B("Open the deck")}, or press {B("Investor deck")} in the menu.',
+        f'Above the slides, {B("Watch the deck")} plays the whole deck, narrated, in a few minutes, with captions in the player (it is there once CarmaCars has published the video).',
         f'Move with {B("Previous")} and {B("Next")}, the arrow keys, or a swipe left or right on a phone. The list at the top jumps to any slide.',
         f'Press {B("Download PDF")} to save or print it: each slide prints on its own landscape page.',
     ])

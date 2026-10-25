@@ -81,23 +81,23 @@ One platform for everyone in the business: seven portals, and the automation beh
 
 ## For renters (group)
 
-For renters, it all happens on the phone: the whole price, request, sign, pay, upload ID and manage the trip.
+For renters, it all happens on the phone: the whole price, request, sign with a code and a drawn signature, pay, upload ID, and a trip page that always shows the next step.
 
 ## For car owners (group)
 
-Owners apply in minutes, see every booking, get a statement with every line, and are paid to their bank.
+Owners apply in minutes, see each car with its status and earnings by month, have terms car by car, get a statement with every line, and are paid to their bank.
 
 ## For investors (group)
 
-Investors have their own portal, with every statement.
+Investors have their own portal: the account month by month, the payment schedule, and every statement.
 
 ## For our team (group)
 
-A small team runs a large fleet: queues with targets, tolls matched to the renter, and handovers guided on a phone.
+A small team runs a large fleet: queues with live timers against reply targets, offers and rentals added fast, tolls matched to the renter, deposits settled after the bills come in, and handovers guided on a phone.
 
 ## Admin and automation (group)
 
-The platform does the busywork: one calendar, AI listings, Turo sync, automated emails and self-updating guides.
+The platform does the busywork: an Admin home that says what needs you, one calendar, AI listings, Turo sync, a staff assistant, automated emails and self-updating guides.
 
 ## Growth and marketing (group)
 

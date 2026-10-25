@@ -17,7 +17,7 @@ fictional (`@example.com`).
 | Email not confirmed | The form offers "Send the confirmation link again". |
 | Too many tries | "Too many tries. Wait a minute, then try again." |
 | Forgot the password | https://carmacars.ca/reset-password: "Email", "Send the link". The email "Reset your CarmaCars password" has "Choose a new password"; on the page: "New password" (8 characters or more), "Save the new password". |
-| Email links last one hour | Invitation, confirmation and reset links work for one hour, once. An expired or used link opens "Link expired" with "Send me a new link" (one step, the address is filled in). |
+| Email links last 24 hours | Confirmation, reset and staff invitation links work for 24 hours, once (`mailer_otp_exp`, scripts/deploy/auth-templates.mjs); an owner's application invitation lasts 14 days. An expired or used link opens "Link expired" with "Send me a new link" (one step, the address is filled in). |
 | Two-step sign-in | Offered to staff, field staff and investors from their profile ("Set up two-step sign-in"; page `/two-step/setup`: "Set up an authenticator app", scan the code, type the 6 digits, "Continue"). Required for staff only when an Admin switches on `require_staff_two_step` (off today). After that, every sign-in asks for the 6-digit code. |
 | Signing out | "Sign out" in the portal header. It signs out this device only. |
 | A page shows "Error 1102" | Cloudflare's free plan stopped the page for using too much processing time. Reload the page; you are still signed in. (Goes away with the Workers Paid plan.) |
@@ -169,7 +169,7 @@ Main tasks:
 7. **Tolls.** Tolls and tickets > "Read a notice": upload the PDF, photo or CSV, "Read it"; check each line beside the notice ("Checked against the notice", "Leave out", "Put it back", "Save as checked"), then "Confirm and import". A single toll: "Log one" > "Save and match". In a toll: "Charge the renter", "Bill to the owner", "CarmaCars pays", "Dispute".
 8. **Forms C and D.** Owner forms > open the scan > "Approve", or "Send back" with "What to fix (the owner reads this)".
 9. **Official ServiceOntario PDFs.** Settings > Forms: upload the fillable PDF, choose what goes in each field, "Download a filled preview", then "Checked: use for owners".
-10. **Let someone in.** Portals and sign-in > Invite a person: "Name", "Email", "Role" (Admin, Staff (assistant) with "Main function" and "Also covers", Field staff with "Field function", Owner on file, Investor on file), "Invite". They get the invitation email (one hour). Someone who forgot: "Send password link".
+10. **Let someone in.** Portals and sign-in > Invite a person: "Name", "Email", "Role" (Admin, Staff (assistant) with "Main function" and "Also covers", Field staff with "Field function", Owner on file, Investor on file), "Invite". They get the invitation email (24 hours). Someone who forgot: "Send password link".
 11. **See what someone sees.** Portals and sign-in > a portal > choose the person > "Open as this person" (or "View as (...)" on their row). A red banner says "Viewing as Name (email), read only." with "Exit". Nothing can be changed; it ends after 30 minutes; every view is in the audit log.
 12. **End a staff member's access.** Settings > Staff > "End access" (their staff portal closes at once); "Restore" to undo.
 
@@ -227,7 +227,7 @@ Main tasks:
 
 | Problem | What to do |
 | --- | --- |
-| The invitation or reset link says it expired | Links work for one hour, once. Press "Send me a new link" on that page, or ask an Admin for "Send password link". |
+| The invitation or reset link says it expired | Links work for 24 hours, once. Press "Send me a new link" on that page, or ask an Admin for "Send password link". |
 | "That email and password do not match an account." | Check the address; if you were invited and never chose a password, use "Set a new password" on the sign-in page. |
 | No confirmation email | Check spam; on the sign-in form use "Send the confirmation link again". |
 | Asked for a 6-digit code | Open your authenticator app (two-step sign-in). Lost the phone: there is no reset button in Admin yet; the owner removes the factor in the Supabase dashboard (Authentication > Users > the person). |
