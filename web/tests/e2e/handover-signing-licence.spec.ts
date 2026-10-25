@@ -348,8 +348,9 @@ test('field staff open a check-out from their job card in one tap', async ({ bro
   const req = await seedRequest(sql, renter, car.id, car.from, car.to);
   await confirmBooking(sql, req.booking_id, admin.id);
   // pickup moves to just ahead of now (the request itself must be 2 hours out, so a fixed 10:00 failed after 8 a.m.)
-  await sql`update bookings set pickup_at = now() + interval '10 minutes', return_at = now() + interval '2 days' where id = ${req.booking_id}`;
-  const [job] = await sql`select app.create_field_job('handover', ${car.id}::uuid, now() + interval '1 hour', ${admin.id}::uuid, ${req.booking_id}::uuid, ${field.id}::uuid, '1 Front St W, Toronto') id`;
+  // the job and the pickup a few minutes ahead, so both are today's even late in the evening (the field list is today's jobs)
+  await sql`update bookings set pickup_at = now() + interval '3 minutes', return_at = now() + interval '2 days' where id = ${req.booking_id}`;
+  const [job] = await sql`select app.create_field_job('handover', ${car.id}::uuid, now() + interval '3 minutes', ${admin.id}::uuid, ${req.booking_id}::uuid, ${field.id}::uuid, '1 Front St W, Toronto') id`;
   const page = await ctx(browser, true);
   await signIn(page, field.email, '/field');
   await page.goto('/field', { waitUntil: 'networkidle' });
