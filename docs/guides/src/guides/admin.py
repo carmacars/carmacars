@@ -1119,7 +1119,8 @@ def build():
         'Insurers: insurance companies billed for bookings.',
     ], shot=S('admin/24-settings-desktop', 0, 0, 1440, 900, pins=[(1, 470, 297), (2, 372, 362), (3, 1115, 362), (4, 372, 659), (5, 372, 764)]))
     g.para('The other tiles: Site content (headings, FAQs, legal text), Fee defaults, Deposit tiers, Kilometre choices, Vehicle classes, '
-           'Airports and delivery, Protection Plan prices, Card coverage, Reviews, Text alerts, Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
+           'Airports and delivery, Protection Plan prices, Card coverage, Reviews, Text alerts, Partners (each partner company\'s CRM link: see Partners, company cars and rentals added by hand), '
+           'Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
 
     g.task('Program settings')
     g.steps([
