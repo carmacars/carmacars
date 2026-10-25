@@ -94,7 +94,14 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   // 3. the portal shows the next step; the offer page shows the version, price, countdown and the rule
   await page.goto('/account');
   await expect(page.getByTestId('next-step')).toContainText('Approve your offer');
+  // the trip hero (redesign of October 24, 2026): the car's photo or the placeholder, the clock, pickup and return
+  const hero = page.locator('.pu-ph').first();
+  await expect(hero.locator('.pu-photo')).toBeVisible();
+  await expect(hero.getByTestId('trip-countdown')).toContainText(/^Pickup in /);
+  await expect(hero.getByTestId('trip-pickup')).toBeVisible();
+  await expect(hero.getByTestId('trip-return')).toBeVisible();
   await axe(page, '/account');
+  await page.screenshot({ path: `${SHOTS}-${info.project.name}-trips.png`, fullPage: true });
   await page.getByTestId('next-step').getByRole('link', { name: 'Review offer' }).click();
   await page.waitForURL(/\/offer$/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Your offer');
@@ -165,7 +172,17 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await page.waitForURL(new RegExp(`/account/bookings/${number}\\?paid=1`), { timeout: 30_000 });
   await expect(page.getByTestId('paid-panel')).toContainText('Booking confirmed');
   await expect(page.getByTestId('status-badge').first()).toHaveText('Confirmed');
+  // the booking page: money by part (paid, nothing owing), the manage tiles, the progress ring
+  await expect(page.getByTestId('money-paid')).toHaveText(dollars(due!.c));
+  await expect(page.getByTestId('money-owing')).toHaveText('Nothing');
+  await expect(page.getByTestId('money-paid-booking_total')).toContainText('card ending 4242');
+  await expect(page.getByTestId('trip-actions')).toContainText('Licence and coverage');
+  await expect(page.getByTestId('trip-actions')).toContainText('Cancel booking');
+  await expect(page.getByTestId('progress-ring')).toBeVisible();
+  await page.getByTestId('action-add-driver').click();
+  await expect(page.locator('#pt-msg-body')).toHaveValue(/add a driver/);
   await axe(page, 'booking');
+  await page.screenshot({ path: `${SHOTS}-${info.project.name}-booking.png`, fullPage: true });
 
   // 0077: the signed copy is made by a background job, within seconds of the payment
   await expect.poll(async () => (await sql`select count(*)::int n from rental_agreements a join signature_requests s on s.id = a.signature_request_id

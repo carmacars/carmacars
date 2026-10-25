@@ -16,6 +16,8 @@ import { keyTerms, loadBundle } from '@/server/agreements/bundle';
 import { viewAs } from '@/server/view-as';
 import { companionOf, openCompanionQuietly } from '@/server/portal/blindspot';
 import { rpc } from '@/lib/db/repo';
+import { StepHeader } from '@/features/portal/trip';
+import { myTripPhotos } from '@/server/portal/data';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Sign your rental agreement', path: '/account/bookings', noindex: true, description: 'Read and sign the rental agreement for your booking.' });
@@ -36,7 +38,7 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
   // the second agreement (Blind Spot's, 0127): made here when the rental agreement was opened before it was in use
   let companion = b.agreement?.status === 'open' ? await companionOf(b.id) : null;
   if (b.agreement?.status === 'open' && !companion && !(await viewAs())) { await openCompanionQuietly(b.id, user.id); companion = await companionOf(b.id); }
-  const bundle = await loadBundle(b.id, user.id);
+  const [bundle, photos] = await Promise.all([loadBundle(b.id, user.id), myTripPhotos(user)]);
   const facts = bundle.f;
   const r = facts.renter;
   const me = facts.drivers.find((d) => d.role === 'renter');
@@ -49,10 +51,7 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
-      <header className="stack">
-        <p className="pt-kicker">{added ? 'Your rental agreement' : 'Step 2 of 3 · Sign'}</p>
-        <h1 className="d2">Sign your rental agreement</h1>
-      </header>
+      <StepHeader b={b} photo={photos[b.vehicle_id] ?? null} kicker={added ? 'Your rental agreement' : 'Step 2 of 3 · Sign'} title="Sign your rental agreement" step={added ? undefined : 2} />
       <div className="pt-strip" data-testid="sign-summary" role="group" aria-label="Summary">
         <div><span>Car</span>{carName(b)}</div>
         <div><span>Dates</span>{when(b.pickup_at)} to {when(b.return_at)}</div>
