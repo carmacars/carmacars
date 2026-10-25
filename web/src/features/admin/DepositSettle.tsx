@@ -136,9 +136,9 @@ export function DepositSettle({ bookingId, bookingNumber, refresh = [] }: { book
           {!pv.has_statement && <p className="alert alert--error" role="alert"><span>Issue the Check-in statement first (Overview, Issue final statement).</span></p>}
           {g.deposit_to_charge && g.card_on_file && pv.has_statement && <div className="alert alert--info" data-testid="deposit-charge-first"><span>No deposit was taken (a long rental saves the card instead). Charge the deposit of {$(g.deposit_cents)} to the saved card first, so it covers what comes in later.</span>
             <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={chargeDeposit} data-testid="deposit-charge-go">Charge the deposit to the saved card</button></div>}
-          {g.blocked && <div className="alert alert--warn" role="status" data-testid="deposit-blockers"><span><b>Keep the whole deposit: something can still be owed.</b></span>
+          {g.blocked && <div className="alert alert--warn" data-testid="deposit-blockers"><span><b>Keep the whole deposit: something can still be owed.</b></span>
             <ul className="small">{g.blockers.map((b, i) => <li key={i}>{b.label}</li>)}</ul></div>}
-          {!g.blocked && g.within_window && <p className="alert alert--info" role="status" data-testid="deposit-window"><span>The car came back less than {g.toll_window_days} days ago. Tolls and tickets can take up to {g.toll_window_days} days to come in, so the deposit is held back until {day(g.toll_window_ends_on)}.</span></p>}
+          {!g.blocked && g.within_window && <p className="alert alert--info" data-testid="deposit-window"><span>The car came back less than {g.toll_window_days} days ago. Tolls and tickets can take up to {g.toll_window_days} days to come in, so the deposit is held back until {day(g.toll_window_ends_on)}.</span></p>}
           <div className="ad-fields">
             <div className={`field ad-field${tooMuch ? ' has-error' : ''}`}><label className="label" htmlFor={`${id}-h`}>Hold back ($)</label>
               <input className="input" id={`${id}-h`} inputMode="decimal" value={hold} onChange={(e) => setHold(e.target.value)} aria-describedby={`${id}-hh`} data-testid="deposit-hold" />
@@ -146,7 +146,7 @@ export function DepositSettle({ bookingId, bookingNumber, refresh = [] }: { book
             {holdCents > 0 && <>
               <div className="field ad-field"><label className="label" htmlFor={`${id}-r`}>Why</label>
                 <select className="select" id={`${id}-r`} value={why} onChange={(e) => setWhy(e.target.value)}>{REASONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
-              <div className="field ad-field ad-field--wide"><label className="label" htmlFor={`${id}-d`}>What it is</label>
+              <div className="field ad-field ad-field--wide"><label className="label" htmlFor={`${id}-d`}>What it is (claim, toll or ticket)</label>
                 <input className="input" id={`${id}-d`} value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="Rear bumper scuff, estimate requested" /></div>
               <div className="field ad-field"><label className="label" htmlFor={`${id}-u`}>Hold until</label>
                 <input className="input" id={`${id}-u`} type="date" value={until} max={pv.hold_back_until_max ?? undefined} onChange={(e) => setUntil(e.target.value)} /></div>
