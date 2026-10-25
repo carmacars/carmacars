@@ -58,5 +58,5 @@ payment for it yourself." (was "you never take payment yourself", which read as 
 
 ## What still needs the owner
 
-- **The lawyer**: Field Staff Agreement 6.1 as amended (cash held for CarmaCars and handed in within 1 business day).
+- **The lawyer**: approved Field Staff Agreement 6.1 as amended (October 25, 2026).
 - Send the new Field Staff Agreement to field staff who signed `person-475a128136` or earlier.
