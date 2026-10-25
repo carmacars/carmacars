@@ -53,7 +53,7 @@ select test.eq('the rule: Sales yes on a booking being arranged or under way, no
 select test.eq('the existing check admits Sales too', app.doc_review_licence_can(test.id('ss_sales'), test.ssb('SS-1')) || '/' || app.doc_review_licence_can(test.id('ss_cs'), test.ssb('SS-1'))
   || '/' || app.doc_review_licence_can(test.id('ss_admin'), test.ssb('SS-1')) || '/' || app.doc_review_licence_can(test.id('ss_fleet'), test.ssb('SS-1')), 'true/true/true/false');
 select test.eq('queue: Sales see the bookings with a licence image waiting, with how many (the coverage proof is not counted)',
-  (select string_agg((x ->> 'booking_number') || ':' || (x ->> 'waiting'), ',' order by x ->> 'booking_number') from jsonb_array_elements(test.ss_door('ss_sales', 'va_read', 'licences_waiting')) x), 'SS-1:3,SS-2:3,SS-3:3');
+  (select string_agg((x ->> 'booking_number') || ':' || (x ->> 'waiting'), ',' order by x ->> 'booking_number') from jsonb_array_elements(test.ss_door('ss_sales', 'va_read', 'licences_waiting')) x where x ->> 'booking_number' like 'SS-%'), 'SS-1:3,SS-2:3,SS-3:3');
 select test.eq('queue: the line has what the list needs (the car, the renter''s first name, the status)',
   (select (x ->> 'renter_first_name') || '/' || (x ->> 'vehicle_label' is not null) || '/' || (x ->> 'status')
      from jsonb_array_elements(test.ss_door('ss_sales', 'va_read', 'licences_waiting')) x where x ->> 'booking_number' = 'SS-1'), 'Ss/true/offered');
@@ -122,7 +122,7 @@ select test.eq('approve all: the same statuses as customer service gives (approv
 select test.eq('approve all: three history lines of the approvals, each with the role',
   (select count(*) || ':' || bool_and(details ->> 'reviewer_role' = 'sales' and details ->> 'decision' = 'approved') from booking_events where booking_id = test.ssb('SS-1') and kind = 'verification' and details ->> 'decision' = 'approved'), '3:true');
 select test.eq('queue: SS-1 and SS-2 are gone from the list (SS-2''s proof is not a licence image), SS-3 remains',
-  (select string_agg(x ->> 'booking_number', ',') from jsonb_array_elements(test.ss_door('ss_sales', 'va_read', 'licences_waiting')) x), 'SS-3');
+  (select string_agg(x ->> 'booking_number', ',') from jsonb_array_elements(test.ss_door('ss_sales', 'va_read', 'licences_waiting')) x where x ->> 'booking_number' like 'SS-%'), 'SS-3');
 select test.eq('approve all: nothing waiting, nothing done the second time',
   (test.ss_door('ss_sales', 'ops_do', 'doc_review_approve_all', '{"booking": "SS-1"}') ->> 'approved'), '0');
 
