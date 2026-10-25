@@ -111,6 +111,7 @@ def build():
         'Bookings shows two months of your cars on a calendar. Each block is a booking number.',
         'All bookings lists every trip with its car, dates, amount and status.',
     ], shot=S('owner/04-calendar-desktop', 0, 280, 980, 1300, pins=[(1, 520, 380), (2, 120, 1240)]), fig_w=3.9)
+    g.tip('A booking can show as Booked, with its dates and no amount: its amounts show once we approve the statement that covers it, and your statement always includes every booking. Unavailable is time your car is in use by us with no revenue for you (for example an insurance hold). A booking expense or a Revenue Share set for one booking is listed on that booking with the reason, and on your statement.', label='Good to know')
     g.task('Book your own car', 'You pay no rental charge, fee or deposit. A renter\'s confirmed booking comes first.')
     g.steps([
         f'Open Bookings and use {B("Book my own car")} on the right (or {B("Book it for myself")} on the car\'s page).',

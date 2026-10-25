@@ -10,7 +10,9 @@ A renter has signed and paid, {{first_name}}. The dates are blocked on your cale
 Pickup: {{pickup_date}}, {{pickup_time}}
 Return: {{return_date}}, {{return_time}}
 
+{{#if show_amounts}}
 Rental charge: {{rental_charge}} before tax
+{{/if}}
 Length: {{billable_days}} days
 {{#if is_self_managed}}
 Renter: {{renter_name}}, {{renter_phone}}

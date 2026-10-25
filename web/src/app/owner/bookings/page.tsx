@@ -1,11 +1,12 @@
 import { pageMeta } from '@/features/seo/meta';
 import { More, PageHeader } from '@/features/portal/Chrome';
-import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { OwnBookingForm } from '@/features/owner/OwnerForms';
 import { ownerBookings, requireOwner } from '@/server/owner/data';
 import type { OwnerBooking } from '@/features/owner/types';
-import { upcoming } from '@/features/owner/insights';
+import { amountText, upcoming, viewOf } from '@/features/owner/insights';
+import { bookingTitle, OwnerBookingRow } from '@/features/owner/Blocks';
+import { money } from '@/lib/format';
 import { Timeline, TimelineItem } from '@/components/portal-ui';
 
 export const dynamic = 'force-dynamic';
@@ -34,7 +35,7 @@ function Month({ year, month, bookings }: { year: number; month: number; booking
           {cells.map((c, i) => c ? (
             <div key={i} className={`ow-cal__day${on(c.iso).length ? ' is-booked' : ''}`}>
               <span className="ow-cal__n">{c.d}</span>
-              {on(c.iso).slice(0, 2).map((b) => <span key={b.booking_id} className={`ow-cal__b${b.booking_type === 'owner' ? ' is-owner' : ''}`} title={`${b.booking_number}, ${b.vehicle_name}`}>{b.booking_number}</span>)}
+              {on(c.iso).slice(0, 2).map((b) => <span key={b.booking_id} className={`ow-cal__b${b.booking_type === 'owner' ? ' is-owner' : ''}`} title={bookingTitle(b)}>{b.booking_number ?? 'Unavailable'}</span>)}
             </div>
           ) : <div key={i} className="ow-cal__day is-blank" />)}
         </div>
@@ -59,13 +60,13 @@ export default async function OwnerBookings({ searchParams }: { searchParams: Pr
           {soon.length > 0 && <section className="pu-panel" aria-labelledby="ow-soon" data-testid="owner-coming-up"><h2 className="pu-title" id="ow-soon">Coming up</h2>
             <Timeline label="Bookings coming up">{soon.map((b) => (
               <TimelineItem key={b.booking_id} date={b.pickup_at} dateLabel={when(b.pickup_at, false)} state={b.status === 'on_rent' ? 'now' : 'future'} title={b.vehicle_name}
-                amount={b.booking_type === 'owner' ? 'Your booking' : money(b.rental_charge_cents, { cents: true })}
-                meta={<><span>{b.booking_number}</span><span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{b.status === 'on_rent' ? 'On rent now' : b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}</span>}</>} />))}
+                amount={amountText(b, (c) => money(c, { cents: true }))}
+                meta={<>{b.booking_number && <span>{b.booking_number}</span>}<span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{viewOf(b) === 'unavailable' ? 'Unavailable' : b.status === 'on_rent' ? 'On rent now' : b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}</span>}</>} />))}
             </Timeline></section>}
           <section className="stack" aria-labelledby="ow-bl"><h2 className="pt-section-title" id="ow-bl">All bookings</h2>
-            {list.length ? <ul className="ow-rows">{list.map((b) => <li key={b.booking_id}><span>{b.booking_number} · {b.vehicle_name}</span><span className="ow-amount">{b.booking_type === 'owner' ? 'Your booking' : money(b.rental_charge_cents, { cents: true })}</span><span className="ow-meta"><span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}{b.renter_mobile ? `, ${b.renter_mobile}` : ''}</span>}</span></li>)}</ul>
+            {list.length ? <ul className="ow-rows">{list.map((b) => <OwnerBookingRow key={b.booking_id} b={b} />)}</ul>
               : <p className="pt-empty muted">No bookings on your vehicles yet.</p>}
-            <p className="small muted">On a managed rental we show dates and status only; renter details stay with CarmaCars.</p>
+            <p className="small muted">On a managed rental we show dates and status only; renter details stay with CarmaCars. A booking marked Booked shows its amounts once CarmaCars approves the statement that covers it; your statement always includes every booking.</p>
           </section>
           <More summary="Calendar: this month and next" testId="owner-calendar">
             <Month year={y} month={m - 1} bookings={list} />

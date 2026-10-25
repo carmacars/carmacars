@@ -34,6 +34,7 @@ export function MonthToDate({ m }: { m: OwnerMonthToDate | null }) {
           <div><dt><b>Expected payout</b></dt><dd className="pt-total" data-testid="owner-mtd-payout">{c(t.payout_cents)}{m.payout_date ? <span className="small muted"> on {day(m.payout_date)}</span> : null}</dd></div>
         </dl>
       ) : <p className="small">{m.unavailable ? 'The month so far cannot be worked out right now. Your approved statements are below.' : 'Nothing finished yet this month.'}</p>}
+      {(m.held_back ?? 0) > 0 && <p className="small muted" data-testid="owner-mtd-held">{m.held_back === 1 ? 'One more rental' : `${m.held_back} more rentals`} finished this month will show with the approved statement, which always includes every booking.</p>}
       {(m.vehicles ?? []).filter((v) => v.lines.length).map((v) => (
         <div key={v.vehicle_id} className="ow-mtd__car">
           <h3 className="pt-kicker">{v.name}{v.plate ? ` · ${v.plate}` : ''}</h3>
@@ -44,9 +45,9 @@ export function MonthToDate({ m }: { m: OwnerMonthToDate | null }) {
       {m.in_progress.length > 0 && (
         <div className="ow-mtd__live" data-testid="owner-mtd-live">
           <h3 className="pt-kicker">Still under way</h3>
-          <ul className="ow-rows">{m.in_progress.map((b) => (
-            <li key={b.booking_number}><span>{b.vehicle_name} · {b.booking_number}</span><span className="ow-meta"><span>{day(b.pickup_at)} to {day(b.return_at)}</span>
-              <span>{b.status === 'on_rent' ? 'On rent' : 'Booked'}</span></span></li>))}</ul>
+          <ul className="ow-rows">{m.in_progress.map((b, i) => (
+            <li key={b.booking_number ?? `u${i}`}><span>{b.vehicle_name}{b.booking_number ? ` · ${b.booking_number}` : ''}</span><span className="ow-meta"><span>{day(b.pickup_at)} to {day(b.return_at)}</span>
+              <span>{b.status === 'unavailable' ? 'Unavailable' : b.status === 'on_rent' ? 'On rent' : 'Booked'}</span></span></li>))}</ul>
           <p className="small muted">These join the month once the car is back.</p>
         </div>)}
     </section>

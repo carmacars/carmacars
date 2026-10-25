@@ -55,9 +55,12 @@ function ownerStatement(f: F): Block[] {
     const lines = (v.lines ?? []) as Row[];
     const rentals = lines.filter((l) => l.line_type === 'rental' || l.line_type === 'turo_trip');
     // every kickback is an expense of the booking before Owner Revenue: the Referral Kickback and the staff commission apart (0058)
-    if (rentals.length) blocks.push({ t: 'table', head: ['Rental', 'Dates', 'Rental Charge', 'Referral Kickback', 'Staff commission', 'Owner Revenue'],
+    if (rentals.length) blocks.push({ t: 'table', head: ['Rental', 'Dates', 'Rental Charge', 'Referral Kickback', 'Staff commission', 'Booking expenses', 'Owner Revenue'],
       rows: rentals.map((l) => [s(l.booking_number) || label(l.line_type), `${day(l.starts_on)} to ${day(l.ends_on)}`, dollars(n(l.rental_charge_cents) + n(l.mileage_overage_cents)),
-        dollars(-(n(l.kickback_cents) - n(l.staff_commission_cents))), dollars(-n(l.staff_commission_cents)), dollars(l.owner_revenue_cents)]) });
+        dollars(-(n(l.kickback_cents) - n(l.staff_commission_cents))), dollars(-n(l.staff_commission_cents)), dollars(-n(l.owner_expense_cents)), dollars(l.owner_revenue_cents)]) });
+    // 0156: every documented deduction on a booking, with its reason (an expense line, a Revenue Share for the booking)
+    const itemized = rentals.filter((l) => n(l.owner_expense_cents) > 0 || (l.booking_share_bps !== null && l.booking_share_bps !== undefined));
+    if (itemized.length) blocks.push({ t: 'table', head: ['Booking', 'Deductions on the booking'], rows: itemized.map((l) => [s(l.booking_number), s(l.description).split('; ').slice(1).join('; ')]) });
     const others = lines.filter((l) => !['rental', 'turo_trip'].includes(String(l.line_type)));
     if (others.length) blocks.push({ t: 'table', head: ['Item', 'Detail', 'Amount'], rows: others.map((l) => [label(l.line_type), s(l.description) || s(l.booking_number), dollars(n(l.amount_cents) || n(l.fee_cents) + n(l.late_fee_cents))]) });
     blocks.push({ t: 'table', head: ['Vehicle totals', ''], kv: true, rows: [
