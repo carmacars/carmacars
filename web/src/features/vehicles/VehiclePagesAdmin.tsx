@@ -22,7 +22,7 @@ export type VpData = {
 const LEVELS: Array<[string, string]> = [['make', 'Makes'], ['model', 'Models'], ['year', 'Model years'], ['trim', 'Trims']];
 const KEYS = ['vpage_index_mode', 'vpage_place_index', 'vpage_colour_index', 'vpage_term_index', 'vpage_buy_index', 'vpage_detailing_index', 'vpage_bodyshop_index', 'vpage_finance_disclaimer',
   'db_plan', 'db_cap_pro_mb', 'db_cap_free_mb', 'indexnow_daily_max', 'indexnow_batch', 'vpage_model_min_years', 'vpage_popular_from_year', 'vpage_year_min_cars', 'vpage_trim_min_cars',
-  'vpage_gas_cents_per_litre', 'vpage_premium_extra_cents', 'vpage_electricity_cents_per_kwh', 'vpage_import_every_days'];
+  'vpage_gas_cents_per_litre', 'vpage_premium_extra_cents', 'vpage_electricity_cents_per_kwh', 'vpage_import_every_days', 'vpage_stock_photos'];
 
 export function VehiclePagesAdmin({ d, program }: { d: VpData; program: Record<string, unknown> }) {
   const T = d.tiers;

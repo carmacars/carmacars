@@ -24,6 +24,7 @@ const LABELS: Record<string, string> = {
   e_transfer_email: 'E-Transfer email (where renters send an e-Transfer)', stripe_moto_enabled: 'Staff may type a card the renter reads out (phone orders, Stripe MOTO)',
   vpage_place_index: 'Index the place pages', vpage_colour_index: 'Index the colour pages', vpage_term_index: 'Index the search term pages', vpage_buy_index: 'Index the /buy pages',
   vpage_detailing_index: 'Index the detailing pages', vpage_bodyshop_index: 'Index the body shop pages', vpage_finance_disclaimer: 'Financing disclaimer',
+  vpage_stock_photos: 'Show stock photos (licensed, credited) on the vehicle, place and service pages',
   vpage_import_db_cap_mb: 'Database size cap for the catalog import (MB)', db_plan: 'Database plan (Supabase)', db_cap_pro_mb: 'Database size cap on Pro, for the imports (MB)',
   db_cap_free_mb: 'Database size cap on Free, for the imports (MB)', indexnow_daily_max: 'IndexNow: most addresses a day', indexnow_batch: 'IndexNow: addresses a request (at most 10,000)',
   turnaround_buffer_minutes: 'Turnaround between trips (minutes)', turnaround_block_enabled: 'Show the turnaround as a cleaning block on the calendar',

@@ -18,6 +18,7 @@ import { CostBlock, InventoryBlock, productLd, Questions, requestHref, SpecsTabl
 import { chooseText, writeKit } from '@/features/kit';
 import { KitText } from '@/features/kit/KitText';
 import { vehicleInput, vehicleKit } from '@/features/kit/pages';
+import { stockPhoto } from './photo';
 import '@/styles/vehicles.css';
 
 // The twins of the vehicle pages (migration 0097): every page of the /cars tree again under /buy (for sale) and under
@@ -105,14 +106,17 @@ function titles(tw: Twin) {
     cars: tw.p.inventory.exact.length, recalls: tw.x.recalls ? tw.x.recalls.length : null }) };
 }
 
+// 0149: the licensed photo of the page's make, model or generation (a colour page keeps the studio drawing in its colour)
+const twinPhoto = (p: AnyPage) => (isTier(p) && p.colour ? Promise.resolve(null) : stockPhoto(p.make.slug, 'model' in p ? p.model.slug : null, 'year' in p ? p.year : null));
+
 export async function twinMeta(tw: Twin): Promise<Metadata> {
-  const t = await getTokens();
   const { p } = tw;
+  const [t, photo] = await Promise.all([getTokens(), twinPhoto(p)]);
   const o = parts(p);
   const ok = indexable(tw);
   const fallback = tw.tree.mode === 'sale' && tw.tree.term && (p.settings as unknown as Record<string, unknown>).buy_index !== false ? at(BUY, p.path) : p.path;
   const tt = titles(tw);
-  return vehicleMeta({ title: fit(tt.title, (s) => fill(s, t), 70), path: at(tw.tree, p.path), indexable: ok, canonical: ok ? at(tw.tree, p.path) : fallback,
+  return vehicleMeta({ title: fit(tt.title, (s) => fill(s, t), 70), path: at(tw.tree, p.path), indexable: ok, canonical: ok ? at(tw.tree, p.path) : fallback, photo,
     description: fit(tt.description, (s) => fill(s, t), 170, 70),
     image: standIn({ path: isTier(p) ? p.trim_path : p.path, group: 'body_group' in p ? p.body_group : 'car', vclass: 'vclass' in p ? p.vclass : null, model: o.model ?? o.make, paint: isTier(p) ? p.colour?.slug : undefined }),
     imageAlt: `${o.colour ? `${o.colour} ` : ''}${nameOf(p)} studio image` });
@@ -225,7 +229,7 @@ export async function TermIndex({ tree }: { tree: Tree }) {
 
 export async function TwinView(tw: Twin) {
   const { p, x, tree } = tw;
-  const [t, consent, tiers, labels] = await Promise.all([getTokens(), consentTexts(), getTiers(), labelsOf()]);
+  const [t, consent, tiers, labels, photo] = await Promise.all([getTokens(), consentTexts(), getTiers(), labelsOf(), twinPhoto(p)]);
   const F = (s: string) => fill(s, t);
   const o = parts(p);
   const name = nameOf(p);
@@ -262,7 +266,7 @@ export async function TwinView(tw: Twin) {
   const offers = x.for_sale.map((c) => ({ '@type': 'Offer', price: (c.asking_price_cents / 100).toFixed(2), priceCurrency: 'CAD', availability: 'https://schema.org/InStock', itemCondition: 'https://schema.org/UsedCondition',
     businessFunction: 'http://purl.org/goodrelations/v1#Sell', seller: { '@id': `${siteUrl()}/#business` }, url: siteUrl() + path, name: c.name }));
   const ld = 'model' in p ? productLd({ name: full, make: o.make, model: o.model!, year: o.year, trim: o.trim, path, image: img, description: lead, inv: p.inventory, offers: mode === 'rental',
-    fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: 'vclass' in p ? p.vclass : null, extra: { ...vehicleProps(sp, dims, null, o.colour ?? null), ...(mode === 'sale' && offers.length ? { offers } : {}) } }) : null;
+    fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: 'vclass' in p ? p.vclass : null, extra: { ...vehicleProps(sp, dims, null, o.colour ?? null), ...(mode === 'sale' && offers.length ? { offers } : {}) }, photo }) : null;
   const rentPath = p.path;
   // the renting term for an insurance replacement rental (place_terms: insurance-replacement-rental; the default list: insurance-replacement)
   const ir = tiers.terms.find((x2) => x2.kind === 'rental' && /^insurance-replacement/.test(x2.slug));
@@ -278,7 +282,7 @@ export async function TwinView(tw: Twin) {
   return (
     <div className="p-vehicle" data-page={`${tree.term ? `term-${mode}` : 'buy'}-${p.level.replace('_', '-')}`}>
       <JsonLd graph={[breadcrumbLd(trail, path), ...(ld ? [ld] : []), ...(faq.length ? [faqLd(faq)] : [])]} />
-      <VehicleHead trail={trail} h1={h1} lead={lead} img={img} alt={`${full} in the studio, a representative image`}
+      <VehicleHead trail={trail} h1={h1} lead={lead} img={img} alt={`${full} in the studio, a representative image`} photo={photo}
         cta={mode === 'sale' ? (x.for_sale.length ? ['#h-sale', 'See the cars for sale'] : ['#find', finance ? 'Ask about it' : 'Find me this car']) : svc ? ['#find', 'Request it'] : ['#inventory', 'See cars to rent']}
         facts={[...(mode === 'sale' ? [['For sale by us', String(x.for_sale.length)] as [string, string]] : []), ['Combined', sp.length ? ratingRange(sp).split(', or')[0]! : ''],
           ...(svc && bodyOf(p) ? [['Body', String(bodyOf(p))] as [string, string]] : []), ...(svc && lengthOf(p) ? [['Length', String(lengthOf(p))] as [string, string]] : []),

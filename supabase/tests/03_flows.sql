@@ -431,7 +431,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- are mappings to the partner's CRM, the run log, the lead log and the referral marks (their effects on
                             -- cars, rates and blocks are audited where they land)
                             'partner_crm_connections', 'partner_crm_records', 'partner_crm_inbound', 'partner_crm_blocks', 'partner_crm_photos',
-                            'partner_crm_runs', 'partner_crm_leads', 'partner_referrals')
+                            'partner_crm_runs', 'partner_crm_leads', 'partner_referrals',
+                            -- stock photos (0149): the pipeline's work list and run log (the photos themselves are audited)
+                            'vehicle_stock_photo_checks', 'vehicle_stock_photo_runs')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

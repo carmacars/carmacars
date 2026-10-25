@@ -30,3 +30,13 @@
 .vp-citynotes dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 @media (max-width: 560px) { .vp-citynotes { grid-template-columns: 1fr; } .vp-citynotes dd { margin-bottom: var(--s-2); } }
 .vp-sec .data td.wrap { white-space: normal; min-width: 16rem; }
+
+/* 0149: the licensed stock photo (the vehicle pages' head, the place and service pages) with its credit, always visible.
+   The image keeps its own shape (its width and height attributes reserve the space: no layout shift). */
+.vp-photo { margin: 0; min-width: 0; }
+.vp-photo img { display: block; width: 100%; height: auto; background: #0b0b0b; }
+.vp-head__media.vp-photo { overflow: visible; background: transparent; }
+.vp-photo__credit { margin-top: var(--s-2); font-size: var(--fs-2xs); line-height: 1.4; color: var(--grey-600); overflow-wrap: anywhere; }
+.vp-photo__credit .link { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.on-dark .vp-photo__credit { color: rgba(255, 255, 255, 0.78); }
+.landing__photo { margin-top: var(--s-5); max-width: 40rem; }

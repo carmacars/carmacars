@@ -13,6 +13,7 @@ import { CostBlock, type Inventory, InventoryBlock, productLd, Questions, Simila
 import { chooseText, writeKit } from '@/features/kit';
 import { KitText } from '@/features/kit/KitText';
 import { vehicleInput, vehicleKit } from '@/features/kit/pages';
+import { stockPhoto } from './photo';
 
 // The figures people look up, on every trim page and its city, colour and /buy twins (migration 0097), and the city and
 // colour pages themselves. Only sourced figures: EPA and vPIC's Canadian specifications; no source, no row.
@@ -151,18 +152,21 @@ export function cityFaq(c: City, name: string): Array<{ question: string; answer
 // ---------------------------------------------------------------- the city, city and colour, and colour pages
 const tierName = (p: TierPage) => `${p.year} ${p.make.name} ${p.model.name} ${p.trim.name}`;
 
+// 0149: a place page shows the generation's licensed photo; a colour page keeps the studio drawing in that colour
+const tierPhoto = (p: TierPage) => (p.colour ? Promise.resolve(null) : stockPhoto(p.make.slug, p.model.slug, p.year));
+
 export async function tierMeta(p: TierPage): Promise<Metadata> {
-  const t = await getTokens();
+  const [t, photo] = await Promise.all([getTokens(), tierPhoto(p)]);
   const sp = specs(p.variants, p.settings, p.trim.variant_ids);
   const o = { make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name, city: p.city?.name, colour: p.colour?.name };
-  return vehicleMeta({ title: fit(tierTitleOptions({ ...o, home: t.city }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical,
+  return vehicleMeta({ title: fit(tierTitleOptions({ ...o, home: t.city }), (x) => fill(x, t), 70), path: p.path, indexable: p.indexable, canonical: p.canonical, photo,
     description: fit(tierDescriptionOptions({ ...o, use: ratingRange(sp), km: p.city?.km ?? null, fee: p.city?.delivery?.fee_cents ? money(p.city.delivery.fee_cents) : null, cars: p.inventory.exact.length }), (x) => fill(x, t), 170, 70),
     image: standIn({ path: p.trim_path, group: p.body_group, vclass: p.vclass, model: p.model.name, paint: p.colour?.slug }),
     imageAlt: `${p.colour ? `${p.colour.name} ` : ''}${tierName(p)} studio image` });
 }
 
 export async function TierView({ p }: { p: TierPage }) {
-  const [t, labels] = await Promise.all([getTokens(), labelsOf()]);
+  const [t, labels, photo] = await Promise.all([getTokens(), labelsOf(), tierPhoto(p)]);
   const F = (x: string) => fill(x, t);
   const name = tierName(p);
   const colourWord = p.colour ? p.colour.name.toLowerCase() : '';
@@ -191,8 +195,8 @@ export async function TierView({ p }: { p: TierPage }) {
   return (
     <div className="p-vehicle" data-page={`vehicle-${p.level.replace('_', '-')}`}>
       <JsonLd graph={[breadcrumbLd(trail, p.path), productLd({ name: p.colour ? `${p.colour.name} ${name}` : name, make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name, path: p.path, image: img, description: lead,
-        inv, fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: p.vclass, extra: vehicleProps(sp, dimsFor(p.dims, p.model.name, p.trim.name), seats, p.colour?.name ?? null) }), faqLd(questions)]} />
-      <VehicleHead trail={trail} h1={h1u} lead={lead} img={img} alt={`${p.colour ? `${p.colour.name} ` : ''}${name} in the studio, a representative image`}
+        inv, fuel: sp[0] ? fuelWord(sp[0].fuel) : undefined, body: p.vclass, extra: vehicleProps(sp, dimsFor(p.dims, p.model.name, p.trim.name), seats, p.colour?.name ?? null), photo }), faqLd(questions)]} />
+      <VehicleHead trail={trail} h1={h1u} lead={lead} img={img} alt={`${p.colour ? `${p.colour.name} ` : ''}${name} in the studio, a representative image`} photo={photo}
         facts={[['Engine', sp.length === 1 ? sp[0]!.engine : sp.length ? `${sp.length} choices` : ''], ['Combined', sp.length ? ratingRange(sp).split(', or')[0]! : ''],
           ...(p.city ? [['Delivery', p.city.delivery?.fee_cents ? `from ${money(p.city.delivery.fee_cents)}` : 'in your offer'] as [string, string]] : []),
           ...(p.colour ? [['Colour', p.colour.name] as [string, string]] : []), ['Our cars', String(inv.exact.length)]].filter(([, v]) => v) as Array<[string, string]>} />
