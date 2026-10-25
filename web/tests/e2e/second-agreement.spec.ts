@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { PDFArray, PDFDocument, PDFName, PDFString, StandardFonts } from 'pdf-lib';
-import { acceptCookies, db, noOverflow, pdfText, watch, giveLicence } from './helpers';
+import { acceptCookies, db, noOverflow, pdfText, watch, giveLicence, strongSign } from './helpers';
 
 // The second rental agreement (docs/changes/2026-10-23-second-rental-agreement.md), end to end at 1440:
 // - an Admin uploads Blind Spot's form in Settings > Forms (a stand-in made here: Blind Spot's PDF is private and never
@@ -135,6 +135,8 @@ test('the Blind Spot agreement: uploaded and checked by an Admin, filled for the
     expect(text).not.toMatch(/crockford/i);
     await axe(page, 'sign with the second agreement');
     await page.getByTestId('consents-all').check();
+    // 0143: the code, the initials, the consents and the drawn signature sign both agreements
+    await strongSign(page);
     await page.getByRole('button', { name: 'Sign and continue to payment' }).click();
     await page.waitForURL(/\/pay$/, { timeout: 30_000 });
     const [c1] = await sql`select c.status, s.signer_role from rental_agreement_companions c join signature_records s on s.id = c.renter_record_id where c.booking_id = ${bk.booking_id} and c.status <> 'superseded'`;
@@ -154,8 +156,11 @@ test('the Blind Spot agreement: uploaded and checked by an Admin, filled for the
     const signed = await page.request.get(`/account/documents/${doc!.id}`);
     expect(signed.status()).toBe(200);
     const pdf = await PDFDocument.load(await signed.body());
-    expect(pdf.getPageCount()).toBe(3);
-    expect(await pdfText(await signed.body())).toContain('Signature record');
+    // the form's two pages, the signature record, then the certificate of completion (0143)
+    expect(pdf.getPageCount()).toBeGreaterThanOrEqual(4);
+    const signedText = await pdfText(await signed.body());
+    expect(signedText).toContain('Signature record');
+    expect(signedText).toContain('Certificate of completion');
     expect(errors).toEqual([]);
   } finally {
     await sql`update pdf_templates set verified = false, verified_by = null, verified_at = null where form_code = 'BLINDSPOT-RA' and is_current`;

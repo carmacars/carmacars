@@ -1,51 +1,65 @@
 import 'server-only';
 import { companySignature } from '@/server/signature-lines';
-import { env } from '@/lib/env';
 import { rpc } from '@/lib/db/repo';
+import type { Json } from '@/lib/db/types';
 import { storage } from '@/integrations/storage';
 import { agreementBlocks, AGREEMENT_TEMPLATE_VERSION, when, type AgreementFacts, type SignatureRow } from '@/features/agreement/model';
-import { agreementPdf } from '@/features/agreement/pdf';
 import { sha256Hex } from '@/server/links';
+import { loadBundle, privacyUrl, renderCarmaCars, verifyUrl, initialsOf, type Bundle } from '@/server/agreements/bundle';
+import type { Certificate, CertSigner } from '@/features/signing/certificate';
 
 // Built-in signing (0019 section 4): the server renders the agreement for the approved offer, stores
 // the PDF in the private agreements bucket and opens it with its SHA-256; after confirmation it renders
-// the signed copy (signature images and the signature record) and attaches it.
+// the signed copy (signature images, the initials, the signature record and the certificate of completion, 0143).
+// 0143: both documents print everything the booking holds (server/agreements/bundle.ts); an agreement opened while
+// the check-out readings are in (signed at pickup) prints them, and the database keeps what it printed.
 const SR = { role: 'service_role' as const };
 
-export const privacyUrl = () => `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/privacy`;
+export { privacyUrl };
 
 export async function agreementFacts(bookingId: string, by: string): Promise<AgreementFacts> {
   return (await rpc('server_agreement_facts', { p_booking: bookingId, p_by: by }, SR)) as unknown as AgreementFacts;
 }
 
-export function blocksFor(f: AgreementFacts, signatures?: SignatureRow[]) {
-  return agreementBlocks(f, { privacyUrl: privacyUrl(), signatures });
+/** The agreement's blocks for the screen and the PDF. With the bundle, the same as the PDF prints. */
+export function blocksFor(f: AgreementFacts, signatures?: SignatureRow[], b?: Bundle | null) {
+  return agreementBlocks(f, { privacyUrl: privacyUrl(), signatures, extra: b?.x ?? null, insurer: b?.bs.insurer ?? null, multiDayRateCents: b?.x.multi_day_rate_cents ?? b?.bs.multi_day_rate_cents ?? null });
 }
-
-const footer = (f: AgreementFacts) => `CarmaCars rental agreement ${f.booking.agreement_number ?? ''} for booking ${f.booking.booking_number}. ${AGREEMENT_TEMPLATE_VERSION}`;
 
 /** The unsigned document: without the agreement number, which the opening assigns. */
 export function unsignedFacts(f: AgreementFacts): AgreementFacts {
   return { ...f, booking: { ...f.booking, agreement_number: null } };
 }
-export async function renderUnsigned(raw: AgreementFacts): Promise<Uint8Array> {
-  const f = unsignedFacts(raw);
-  return agreementPdf(blocksFor(f), { title: `Rental agreement ${f.booking.booking_number}`, createdAt: new Date(f.booking.offer_approved_at ?? f.booking.booked_at ?? 0), footer: footer(f) });
+export const unsignedBundle = (b: Bundle): Bundle => ({ ...b, f: unsignedFacts(b.f) });
+
+/** What the signing screens show: the unsigned agreement, exactly as its PDF. */
+export async function screenBlocks(bookingId: string, by: string) {
+  const b = unsignedBundle(await loadBundle(bookingId, by));
+  return blocksFor(b.f, undefined, b);
+}
+
+export async function renderUnsigned(raw: Bundle): Promise<Uint8Array> {
+  const b = unsignedBundle(raw);
+  return renderCarmaCars(b, { title: `Rental agreement ${b.f.booking.booking_number}`, createdAt: new Date(b.f.booking.offer_approved_at ?? b.f.booking.booked_at ?? 0) });
 }
 
 /** Renders, stores and opens the agreement for the approved offer. The same document returns the open agreement.
  *  The agreement number is assigned by the opening itself, so the unsigned document carries the booking number
  *  and the signed copy carries both. */
 export async function openAgreement(bookingId: string, by: string): Promise<string> {
-  const f = await agreementFacts(bookingId, by);
-  const pdf = await renderUnsigned(f);
+  const b = await loadBundle(bookingId, by);
+  const pdf = await renderUnsigned(b);
   const sha = await sha256Hex(pdf);
-  const key = `bookings/${bookingId}/agreement-v${f.booking.offer_approved_version ?? 'owner'}-${sha.slice(0, 16)}.pdf`;
+  const key = `bookings/${bookingId}/agreement-v${b.f.booking.offer_approved_version ?? 'owner'}-${sha.slice(0, 16)}.pdf`;
   await (await storage()).put('agreements', key, pdf, 'application/pdf');
   const id = (await rpc('renter_open_agreement', { p_booking: bookingId, p_by: by, p_template_version: AGREEMENT_TEMPLATE_VERSION, p_document_sha256: sha, p_storage_path: key }, SR)) as unknown as string;
+  // what the document printed of the check-out (an agreement signed at pickup after the readings): the database
+  // compares it with the completed check-out, so no separate pickup copy is made when they match
+  const p = b.x.pickup;
+  await rpc('server_agreement_rendered', { p_booking: bookingId, p_pickup: (p ? { report_id: p.report_id, odometer_km: p.odometer_km, fuel_pct: p.fuel_pct, completed: p.completed } : null) as unknown as Json }, SR).catch(() => undefined);
   // the second agreement (Blind Spot's, 0127) beside it, when its template is in use; never in the way of this one
   const { openCompanionQuietly } = await import('@/server/portal/blindspot');
-  await openCompanionQuietly(bookingId, by);
+  await openCompanionQuietly(bookingId, by, b);
   // each additional driver with an email address gets their own signing link (migration 0040)
   const { sendFirstDriverLinks } = await import('@/server/portal/driver-links');
   await sendFirstDriverLinks(bookingId, by).catch(() => undefined);
@@ -66,10 +80,16 @@ export async function attachSignedCopy(bookingId: string, renterUserId: string):
   await attachCompanionSigned(bookingId, renterUserId);
 }
 
+/** The signing sessions of the booking's live agreement (0143): the certificate of completion's signers. */
+export async function certificateSigners(bookingId: string): Promise<CertSigner[]> {
+  return ((await rpc('server_esign_certificate_for_booking', { p_booking: bookingId }, SR).catch(() => [])) as unknown as CertSigner[]) ?? [];
+}
+
 async function attachAgreementSignedCopy(bookingId: string, renterUserId: string): Promise<void> {
   const rec = (await rpc('server_signing_record', { p_booking: bookingId }, SR)) as unknown as SigningRecord | null;
   if (!rec || rec.status !== 'completed' || rec.signed_document_id) return;
-  const f = await agreementFacts(bookingId, renterUserId);
+  const b = await loadBundle(bookingId, renterUserId);
+  const f = b.f;
   const s = await storage();
   const rows: SignatureRow[] = [];
   const company = await companySignature(rec.signature_request_id);
@@ -95,9 +115,16 @@ async function attachAgreementSignedCopy(bookingId: string, renterUserId: string
       return [`${r.signer_role.replace('_', ' ')}: ${r.signer_name}`, `${r.signed_at ? when(r.signed_at) : 'signed on paper'}; method ${r.method}${r.ip_address ? `; IP address ${r.ip_address}` : ''}${ip ? `; ${ip.line}` : r.user_agent ? `; device ${r.user_agent}` : ''}`]; }),
     ...company.lines
   ];
-  const pdf = await agreementPdf(blocksFor(f, rows), {
+  // 0143: the renter's initials on the key terms, and the certificate of completion
+  const signers = await certificateSigners(bookingId);
+  const renterCert = signers.find((x) => x.signer_role === 'renter');
+  const cert: Certificate | null = signers.length ? {
+    document: `Rental agreement ${rec.agreement_number} for booking ${f.booking.booking_number}`, hashes: [{ label: 'CarmaCars rental agreement', sha256: rec.document_sha256 }],
+    signers, countersign: cc ? { name: cc.signer_name, at: cc.signed_at, text: company.text ?? 'Signed electronically for CarmaCars.' } : null, verifyUrl: verifyUrl(), at: cc?.signed_at ?? new Date().toISOString()
+  } : null;
+  const pdf = await renderCarmaCars(b, {
     title: `Signed rental agreement ${rec.agreement_number}`, createdAt: new Date(cc?.signed_at ?? Date.now()), images,
-    record: { heading: 'Signature record', lines }, footer: footer(f)
+    initials: await initialsOf(b, renterCert), record: { heading: 'Signature record', lines }, certificate: cert
   });
   const sha = await sha256Hex(pdf);
   const key = `bookings/${bookingId}/agreement-${rec.agreement_number}-signed.pdf`;

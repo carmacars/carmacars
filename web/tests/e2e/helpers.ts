@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import postgres from 'postgres';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -100,6 +100,22 @@ export async function aiAllowanceLock(mode: 'alone' | 'shared'): Promise<() => P
 
 /** The renter's licence on file (front, back, selfie and an expiry after the return), as the licence step leaves it
  *  (0130): needed before an offer is accepted. Call it once the request exists (requested or offered). */
+/** A finished e-signature session (migration 0143) for a signer signed through the database functions: the code, the
+ *  reading, the five initials, the consents and a drawn signature. Returns the signature's path, which the signing
+ *  function must be given as the drawn signature. */
+export async function readyEsign(sql: ReturnType<typeof db>, signerId: string, context = 'rental_agreement'): Promise<string> {
+  const [s] = await sql`select (public.server_esign_start(jsonb_build_object('context', ${context}::text, 'signer_ref', ${signerId}::uuid, 'ip', '203.0.113.9', 'user_agent', 'e2e')) ->> 'id') id`;
+  const id = s!.id as string;
+  await sql`select public.server_esign_code_set(${id}::uuid, 'email', ${'c'.repeat(64)})`;
+  await sql`select public.server_esign_code_check(${id}::uuid, ${'c'.repeat(64)})`;
+  await sql`select public.server_esign_step(${id}::uuid, 'viewed', '{}')`;
+  for (const k of ['damage', 'charges', 'fees', 'coverage', 'cancellation']) await sql`select public.server_esign_step(${id}::uuid, 'initial', ${sql.json({ code: k, path: `esign/${id}/initials-${k}.png` })})`;
+  for (const k of ['esign', 'erecords', 'card']) await sql`select public.server_esign_step(${id}::uuid, 'consent', ${sql.json({ code: k, text: 'I agree' })})`;
+  const path = `esign/${id}/signature.png`;
+  await sql`select public.server_esign_step(${id}::uuid, 'signature', ${sql.json({ method: 'drawn', path })})`;
+  return path;
+}
+
 export async function giveLicence(sql: ReturnType<typeof db>, booking: string) {
   await sql`update booking_drivers set licence_expiry = coalesce(licence_expiry, date '2031-01-01') where booking_id = ${booking}::uuid and role = 'renter'`;
   for (const k of ['licence_front', 'licence_back', 'selfie']) {
@@ -107,4 +123,67 @@ export async function giveLicence(sql: ReturnType<typeof db>, booking: string) {
                 from booking_drivers d where d.booking_id = ${booking}::uuid and d.role = 'renter'
                  and not exists (select 1 from verification_uploads u where u.booking_id = d.booking_id and u.driver_id = d.driver_id and u.kind = ${k} and u.status in ('submitted', 'approved'))`;
   }
+}
+
+/** A stroke across a canvas (a signature or initials pad). */
+export async function drawOn(page: Page, pad: Locator, points = 24) {
+  await pad.scrollIntoViewIfNeeded();
+  // the page scrolls smoothly and the steps above it change height as they finish: draw once the pad stands still
+  let b = (await pad.boundingBox())!;
+  for (let i = 0; i < 20; i++) {
+    await page.waitForTimeout(150);
+    const n = (await pad.boundingBox())!;
+    if (Math.abs(n.x - b.x) < 0.5 && Math.abs(n.y - b.y) < 0.5) break;
+    b = n;
+  }
+  // and nothing lies over it (a toast, such as the cookie choice's "Saved", stays a few seconds)
+  const handle = await pad.elementHandle();
+  for (let i = 0; i < 40; i++) {
+    if (await page.evaluate(([x, y, el]) => document.elementFromPoint(x as number, y as number) === el, [b.x + 12, b.y + b.height * 0.6, handle] as const)) break;
+    await page.waitForTimeout(250);
+  }
+  await page.mouse.move(b.x + 12, b.y + b.height * 0.6);
+  await page.mouse.down();
+  for (let i = 1; i <= points; i++) await page.mouse.move(b.x + 12 + i * ((b.width - 30) / points), b.y + b.height * (0.55 + 0.25 * Math.sin(i / 2)), { steps: 2 });
+  await page.mouse.up();
+}
+
+/** The signature that holds up (migration 0143), on any signing page: the code (shown on the page by the local fake
+ *  line), the reading, each key term initialled, each consent, the drawn signature; resolves once the page's Sign
+ *  button may be pressed. */
+export async function strongSign(page: Page, scope: Page | Locator = page, channel: 'sms' | 'email' = 'sms') {
+  const flow = scope.getByTestId('esign-flow');
+  await expect(flow).toBeVisible({ timeout: 20_000 });
+  const ch = flow.getByTestId(`esign-channel-${channel}`);
+  if (await ch.count()) await ch.check();
+  await flow.getByTestId('esign-send').click();
+  const dev = flow.getByTestId('esign-dev-code');
+  await expect(dev).toBeVisible({ timeout: 15_000 });
+  const code = ((await dev.textContent()) ?? '').replace(/\D/g, '').slice(-6);
+  await flow.getByTestId('esign-code').fill(code);
+  await flow.getByTestId('esign-confirm').click();
+  await expect(flow.getByTestId('esign-verified')).toBeVisible({ timeout: 15_000 });
+  // the boxes follow the record: each tick is saved first, then shown ticked (so a click, then the wait)
+  await flow.getByTestId('esign-viewed').click();
+  await expect(flow.getByTestId('esign-viewed')).toBeChecked({ timeout: 10_000 });
+  for (let n = 0; n < 6; n++) {
+    const pad = flow.locator('canvas[data-testid^="initials-"]').first();
+    if (!(await pad.count())) break;
+    const id = await pad.getAttribute('data-testid');
+    await drawOn(page, pad, 10);
+    await expect(flow.locator(`canvas[data-testid="${id}"]`)).toHaveCount(0, { timeout: 15_000 });
+  }
+  for (let n = 0; n < 4; n++) {
+    const c = flow.locator('input[data-testid^="esign-consent-"]:not(:checked)').first();
+    if (!(await c.count())) break;
+    const id = await c.getAttribute('data-testid');
+    await c.click();
+    await expect(flow.getByTestId(id!)).toBeChecked({ timeout: 10_000 });
+  }
+  await expect(flow.locator('input[data-testid^="esign-consent-"]:not(:checked)')).toHaveCount(0, { timeout: 15_000 });
+  await drawOn(page, flow.getByTestId('signature-pad'), 30);
+  await expect(flow).toHaveAttribute('data-ready', 'true', { timeout: 15_000 });
+  // the page's Sign button takes the session once the drawn signature is stored
+  await expect(flow).toHaveAttribute('data-complete', 'true', { timeout: 15_000 });
+  await page.waitForTimeout(300);
 }

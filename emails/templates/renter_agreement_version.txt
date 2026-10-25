@@ -1,0 +1,39 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Rental agreement]
+{{version_title}}
+
+{{kind_line}}
+
+{{#if has_changes}}
+{{#each changes}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+{{/if}}
+
+{{#if needs_signature}}
+Read and sign:
+https://carmacars.ca/sign/agreement/{{sign_token}}
+
+You confirm it is you with a code sent to your phone or email, initial the key terms and draw your signature. It takes about three minutes.
+{{else}}
+Open your booking and its documents: https://carmacars.ca/account/bookings/{{booking_number}}
+{{/if}}
+
+Every version of your agreements stays in your booking's documents. Questions? Reply to this email or call us.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

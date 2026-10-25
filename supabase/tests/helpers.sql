@@ -282,3 +282,10 @@ alter table program_settings alter column booking_licence_required set default f
 alter table program_settings alter column booking_return_auto_charges set default false;
 alter table program_settings alter column statement_fuel_cents_per_eighth set default null;
 update program_settings set booking_licence_required = false, booking_return_auto_charges = false, statement_fuel_cents_per_eighth = null;
+
+-- The signing session (identity code, initials, consents, drawn signature) and the agreement check at check-out (0143,
+-- on by default) are off for the earlier suites: they sign with typed names and check cars out with made-up drivers
+-- whose licence details are partly blank. 87_agreement_accuracy.sql switches them on and tests them.
+alter table program_settings alter column esign_strict set default false;
+alter table program_settings alter column agreement_claim_check set default false;
+update program_settings set esign_strict = false, agreement_claim_check = false;

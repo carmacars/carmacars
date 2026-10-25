@@ -2,18 +2,18 @@
 import { useState } from 'react';
 import { acceptChange, declineChangeProposal, retryChangePayment } from '@/server/actions/portal';
 import { AMENDMENT_STATEMENT } from '@/features/agreement/amendment';
-import { SignaturePad } from './SignaturePad';
+import { EsignFlow } from '@/features/signing/EsignFlow';
+import type { EsignReady } from '@/features/signing/types';
 import { useAct } from './useAct';
 
-// Accept a change by signing the amendment (drawn or typed), or decline it. The extra amount, if any, is charged to
+// Accept a change by signing the amendment (the signing session of 0143: the code, the payment term initialled, the
+// consents, a drawn signature), or decline it. The extra amount, if any, is charged to
 // the card on file when the amendment is signed; the booking changes only then.
 export function ChangeAnswer({ number, requestId, stamp, legalName, payLine, signedUnpaid }: {
   number: string; requestId: string; stamp: string; legalName: string; payLine: string; signedUnpaid: boolean;
 }) {
   const [agree, setAgree] = useState(false);
-  const [mode, setMode] = useState<'draw' | 'type'>('draw');
-  const [png, setPng] = useState<string | null>(null);
-  const [typed, setTyped] = useState('');
+  const [sig, setSig] = useState<EsignReady | null>(null);
   const [local, setLocal] = useState<Record<string, string>>({});
   const [declining, setDeclining] = useState(false);
   const [reason, setReason] = useState('');
@@ -33,11 +33,10 @@ export function ChangeAnswer({ number, requestId, stamp, legalName, payLine, sig
     e.preventDefault();
     const fe: Record<string, string> = {};
     if (!agree) fe.consents = 'Tick the statement to sign.';
-    if (mode === 'draw' && !png) fe.signature = 'Please sign your name in the box.';
-    if (mode === 'type' && typed.replace(/\s+/g, '').toLowerCase() !== legalName.replace(/\s+/g, '').toLowerCase()) fe.signature = `Type your full legal name exactly: ${legalName}.`;
+    if (!sig) fe.signature = 'Finish the steps above: the code, the initials, the consents and your signature.';
     setLocal(fe);
     if (Object.keys(fe).length) { requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); return; }
-    a.run(() => acceptChange(number, requestId, { agree, stamp, drawn: mode === 'draw' ? png ?? undefined : undefined, typedName: mode === 'type' ? typed : undefined }));
+    a.run(() => acceptChange(number, requestId, { agree, stamp, session: sig!.session, drawnPath: sig!.method === 'drawn' ? sig!.drawnPath : undefined, typedName: sig!.method === 'typed' ? sig!.typedName : undefined }));
   };
   return (
     <div className="stack-lg">
@@ -49,14 +48,9 @@ export function ChangeAnswer({ number, requestId, stamp, legalName, payLine, sig
           <p className="error" role="alert" id="pt-amend-err">{err('consents') ?? ''}</p>
         </fieldset>
         <div className={`field${err('signature') ? ' has-error' : ''}`}>
-          <div className="sigpad__tools">
-            <span className="label" id="pt-amend-sig-label">{mode === 'draw' ? 'Draw your signature' : 'Type your full legal name'}</span>
-            <button type="button" className="btn btn--quiet btn--sm" onClick={() => { setMode(mode === 'draw' ? 'type' : 'draw'); setLocal({}); }} data-testid="amend-mode">{mode === 'draw' ? 'Type my name instead' : 'Draw instead'}</button>
-          </div>
-          {mode === 'draw'
-            ? <SignaturePad id="pt-amend-sig" onChange={(p) => { setPng(p); if (p) setLocal((l) => ({ ...l, signature: '' })); }} invalid={!!err('signature')} describedBy="pt-amend-sig-err" />
-            : <input className="input sigpad__typed" id="pt-amend-sig" aria-labelledby="pt-amend-sig-label" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="name" placeholder={legalName} aria-invalid={!!err('signature') || undefined} aria-describedby="pt-amend-sig-hint pt-amend-sig-err" data-testid="amend-typed" />}
-          {mode === 'type' && <p className="hint" id="pt-amend-sig-hint">It must match your legal name: {legalName}.</p>}
+          <EsignFlow ctx={{ kind: 'amendment', number, requestId }} docsLabel="the amendment" onReady={(v) => { setSig(v); if (v) setLocal((l) => ({ ...l, signature: '' })); }}
+            terms={[{ code: 'charges', title: 'The payment for this change', text: `${payLine} I authorize it on my card on file.` }]} />
+          <span className="vh">{legalName}</span>
           <p className="error" role="alert" id="pt-amend-sig-err">{err('signature') ?? ''}</p>
         </div>
         {a.res && !a.res.ok && !a.res.fieldErrors && <p className="alert alert--error" role="alert" data-testid="change-error"><span>{a.res.message}</span></p>}

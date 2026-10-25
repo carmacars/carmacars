@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, pdfText, storeFixturePdf, giveLicence } from './helpers';
+import { acceptCookies, db, noOverflow, pdfText, storeFixturePdf, giveLicence, strongSign } from './helpers';
 
 // Migration 0040 end to end, at 375 and 1440, with the fake providers of the local stack:
 // - an Admin proposes a change to a confirmed booking (a day longer); the renter reviews it, signs the amendment
@@ -224,8 +224,8 @@ test('change: staff propose a longer trip, the renter signs the amendment and pa
     await rp.getByTestId('change-accept').click();
     await expect(rp.getByText('Tick the statement to sign.').first()).toBeVisible();
     await rp.getByTestId('amend-agree').check();
-    await rp.getByTestId('amend-mode').click();
-    await rp.getByTestId('amend-typed').fill('Riley Renter');
+    // 0143: the amendment is signed with the code, the payment term initialled, the consents and a drawn signature
+    await strongSign(rp);
     await rp.getByTestId('change-accept').click();
     await rp.waitForURL(/\?changed=1/, { timeout: 30_000 });
     await expect(rp.getByTestId('changed-panel')).toContainText('Booking updated');

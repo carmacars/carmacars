@@ -2,14 +2,17 @@
 import { useState } from 'react';
 import { signAgreement, signAsDriver } from '@/server/actions/portal';
 import type { Consent } from '@/features/agreement/model';
-import { SignatureInput, type SignatureValue } from '@/features/signing/SignatureInput';
+import type { Clause } from '@/features/agreement/extra';
+import { EsignFlow } from '@/features/signing/EsignFlow';
+import type { EsignReady } from '@/features/signing/types';
 import { useAct } from './useAct';
 
-// The rental agreement's signature (migration 0049, simpler): the four statements of Part 6 stay on screen word for
-// word, and one tap on "All four" ticks them; the signature is the legal name on file (adopted) or drawn; one button.
-export function SignForm({ number, token, sha, companionSha, consents, legalName, button, onDone, fixNameHref }: { number?: string; token?: string; sha: string; companionSha?: string | null; consents: Consent[]; legalName: string; button: string; onDone?: () => void; fixNameHref?: string }) {
+// The rental agreement's signature: the four statements of Part 6 stay on screen word for word, and one tap on "All
+// four" ticks them; then the signature that holds up (0143): the code, the reading, the initials on the key terms, the
+// consents and the drawn signature (EsignFlow); one button.
+export function SignForm({ number, token, sha, companionSha, consents, legalName, button, onDone, terms }: { number?: string; token?: string; sha: string; companionSha?: string | null; consents: Consent[]; legalName: string; button: string; onDone?: () => void; fixNameHref?: string; terms: Clause[] }) {
   const [ticked, setTicked] = useState<Set<string>>(new Set());
-  const [sig, setSig] = useState<SignatureValue>(null);
+  const [sig, setSig] = useState<EsignReady | null>(null);
   const [local, setLocal] = useState<Record<string, string>>({});
   const a = useAct();
   const err = (k: string) => local[k] ?? a.err(k);
@@ -18,10 +21,10 @@ export function SignForm({ number, token, sha, companionSha, consents, legalName
     e.preventDefault();
     const fe: Record<string, string> = {};
     if (!all) fe.consents = consents.length > 1 ? `Tick the ${consents.length === 4 ? 'four' : consents.length} statements (one tap on "All ${consents.length === 4 ? 'four' : consents.length}").` : 'Tick the statement.';
-    if (!sig) fe.signature = 'Draw your signature in the box, or use your name.';
+    if (!sig) fe.signature = 'Finish the steps above: the code, the initials, the consents and your signature.';
     setLocal(fe);
     if (Object.keys(fe).length) { requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()); return; }
-    const input = { consents: [...ticked], sha, companionSha: companionSha ?? undefined, drawn: sig!.method === 'drawn' ? sig!.png : undefined, typedName: sig!.method === 'typed' ? sig!.typedName : undefined };
+    const input = { consents: [...ticked], sha, companionSha: companionSha ?? undefined, session: sig!.session, drawnPath: sig!.method === 'drawn' ? sig!.drawnPath : undefined, typedName: sig!.method === 'typed' ? sig!.typedName : undefined };
     a.run(() => (token ? signAsDriver(token, input) : signAgreement(number!, input)), (r) => { if (r.ok) onDone?.(); });
   };
   return (
@@ -43,7 +46,10 @@ export function SignForm({ number, token, sha, companionSha, consents, legalName
         <p className="error" role="alert" id="pt-consents-err">{err('consents') ?? ''}</p>
       </fieldset>
       <div className={`field${err('signature') ? ' has-error' : ''}`}>
-        <SignatureInput id="pt-sig" name={legalName} fixHref={fixNameHref} onChange={(v) => { setSig(v); if (v) setLocal((l) => ({ ...l, signature: '' })); }} invalid={!!err('signature')} describedBy="pt-sig-err" />
+        {/* a re-rendered agreement (details saved) is a new document: its own session */}
+        <EsignFlow key={`${sha}:${companionSha ?? ''}`} ctx={token ? { kind: 'driver', token } : { kind: 'renter', number: number! }} terms={terms} docsLabel={companionSha ? 'both agreements' : 'the agreement'}
+          onReady={(v) => { setSig(v); if (v) setLocal((l) => ({ ...l, signature: '' })); }} />
+        <span className="vh">{legalName}</span>
         <p className="error" role="alert" id="pt-sig-err">{err('signature') ?? ''}</p>
       </div>
       {a.res && !a.res.ok && !a.res.fieldErrors && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}

@@ -108,6 +108,13 @@ def build():
         f'Press {B("Hand the device to")} and their name. They read the agreements (CarmaCars\' and Blind Spot\'s), tick the statements and sign with their name or their finger.',
         f'They hand the phone back: press {B("Back to the staff view")}. The signature record says it was signed in person, collected by you, on your phone.',
     ])
+    g.task('The agreements at check-out', 'Both rental agreements follow the check-out.')
+    g.steps([
+        'Signing at pickup? Record the odometer and the fuel on the check-out first, then hand over the device: the agreement then shows the time, kilometres and fuel out, and the signed copy holds them.',
+        'The signer gets a code on their phone, initials the key terms, ticks the consents and draws their signature.',
+        'Already signed online? When you complete the check-out, the "as picked up" copy of both agreements is made with your readings and your countersignature, and emailed to the renter.',
+        'The check-out stops if the agreement is missing something a claim needs (a licence expiry, a VIN). Ask the office to fill it on the booking, or an Admin to override.',
+    ])
     g.task('The deposit on your phone', 'Deposit not taken yet? Once the job is started, the job shows the card Deposit. You never take cash or type a card number.')
     g.steps([
         f'Press {B("Place the deposit hold on this phone")} and hand the phone to the renter. They type their credit card in Stripe\'s secure form and press the button with the amount.',
@@ -140,6 +147,7 @@ def build():
         'Belongings: check the seats, the trunk, the glovebox and the door pockets.',
         'Renter reviews and signs. Then you sign.',
         f'Press {B("Complete the return")}. The check-in time is the moment you press it: a late return, the kilometres over the allowance and the fuel or charge used are charged from it automatically.',
+        'The closing copy of both rental agreements follows by itself: time and date in, kilometres in, driven and charged, fuel in, the hours late, the new damage, the return charges and the totals, countersigned with your name, emailed to the renter.',
     ])
     g.warn('New damage needs a close-up photo and a clear note. Finance uses your photos and notes to bill the renter, so take your time.')
 

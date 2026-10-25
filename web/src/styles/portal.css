@@ -96,6 +96,21 @@
 .sigpad__box { position: relative; border: var(--bw) dashed var(--grey-500); background: var(--white); border-radius: var(--r-2); touch-action: none; }
 .sigpad__box.is-signed { border-style: solid; border-color: var(--black); }
 .sigpad canvas { display: block; width: 100%; height: 180px; touch-action: none; cursor: crosshair; }
+/* 0143: the initials of a key term: a small box beside its text */
+.sigpad--small { max-width: 11rem; }
+.sigpad--small canvas { height: 72px; }
+.sigpad--small .sigpad__line { bottom: 1.4rem; }
+.es-flow { display: grid; gap: var(--s-4); min-width: 0; }
+.es-flow > *, .es-step > *, .es-term > * { min-width: 0; }
+.es-step { border: var(--bw) solid var(--grey-300); border-radius: var(--r-2); padding: var(--s-3); display: grid; gap: var(--s-3); }
+.es-step[data-state="done"] { border-color: var(--grey-500); }
+.es-step__head { display: flex; justify-content: space-between; gap: var(--s-2); align-items: baseline; flex-wrap: wrap; }
+.es-term { display: grid; gap: var(--s-2); grid-template-columns: 1fr; padding-block: var(--s-2); border-top: 1px solid var(--grey-200); }
+@media (min-width: 48rem) { .es-term { grid-template-columns: 1fr 11rem; align-items: center; } }
+.es-code { max-width: 10rem; letter-spacing: 0.3em; font-variant-numeric: tabular-nums; }
+.es-flow .check { grid-template-columns: auto minmax(0, 1fr); max-width: 100%; min-width: 0; }
+.es-flow .check > span { min-width: 0; overflow-wrap: anywhere; }
+.es-flow fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
 .sigpad__line { position: absolute; left: 1rem; right: 1rem; bottom: 2.6rem; border-bottom: 1px solid var(--grey-300); pointer-events: none; }
 .sigpad__hint { position: absolute; left: 1rem; bottom: 0.6rem; font-size: var(--fs-xs); color: var(--text-2); pointer-events: none; }
 .sigpad__tools { display: flex; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; }

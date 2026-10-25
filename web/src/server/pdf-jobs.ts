@@ -9,7 +9,8 @@ import { workerToken } from '@/server/listing-worker';
 // signed copy (a PDF with the signatures and the signature record) is a job in pdf_jobs, rendered in its own Worker
 // request (/api/jobs/pdf), so the person who signs never waits for it and a slow or failed render never undoes or
 // hides their signature. The job is kicked right after the response; the five-minute cron runs whatever is left,
-// with retries and backoff (1, 2, 5, 15 and 60 minutes; then a task for an Admin).
+// with retries and backoff (1, 2, 5, 15 and 60 minutes; then a task for an Admin). The agreements' own queue (0143) runs
+// in the same requests once the signed copies are done.
 const SR = { role: 'service_role' as const };
 
 export type PdfJobKind = 'owner_signed_copy' | 'sign_request_record' | 'renter_signed_copy' | 'amendment_signed_copy';
@@ -74,7 +75,14 @@ export async function runPdfJobs(o: { maxJobs?: number; deadlineMs?: number } = 
     if (Date.now() - start > (o.deadlineMs ?? 20_000)) { more = true; break; }
     const jobs = (await rpc('server_pdf_jobs_claim', { p_worker: worker, p_limit: 1 }, SR)) as unknown as PdfJob[];
     const job = jobs[0];
-    if (!job) break;
+    if (!job) {
+      // 0143: then the agreements' work (new versions, signed copies of versions, dispute packs), the same way; a job due
+      // in the next seconds (a change waits ten seconds for the next) is waited for
+      const { runAgreementJobs } = await import('@/server/agreements/versions');
+      const a = await runAgreementJobs({ max: (o.maxJobs ?? 2) - n, deadlineMs: Math.max(1000, (o.deadlineMs ?? 20_000) - (Date.now() - start)), aheadSeconds: 12 });
+      done += a.done; failed += a.failed; more = more || a.more;
+      break;
+    }
     try {
       await (await handler(job.kind))(job);
       await rpc('server_pdf_job_done', { p_job: job.id }, SR);

@@ -4,6 +4,7 @@ import { DbError } from '@/lib/db/repo';
 import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
+import { kickPdfJobs } from '@/server/pdf-jobs';
 
 // The field staff member's steps (06-field.md, migration 0031): acknowledge, start, save the checklist,
 // complete the handover or the return, block a handover, vehicle moves, damage found later. The database
@@ -25,7 +26,11 @@ export async function fieldAct<T = Record<string, unknown>>(action: typeof ACTIO
     if (roles.two_step_required && aal !== 'aal2') throw new Error('Two-step sign-in is required.');
     const data = await door<T>(user.id, 'field_do', action, p, aal);
     revalidatePath('/field');
-    if (action === 'complete_handover' || action === 'complete_return') { revalidatePath('/admin/bookings', 'layout'); revalidatePath('/va/bookings', 'layout'); }
+    if (action === 'complete_handover' || action === 'complete_return') {
+      revalidatePath('/admin/bookings', 'layout'); revalidatePath('/va/bookings', 'layout');
+      // 0143: the "as picked up" (or closing) copies of both agreements are rendered right after this response
+      kickPdfJobs();
+    }
     if (typeof p.job === 'string') revalidatePath(`/field/jobs/${p.job}`);
     return { ok: true, data };
   } catch (e) { return fail(e); }

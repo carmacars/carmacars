@@ -425,7 +425,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- regions, terms and services Admins change are audited
                             'places', 'places_staging', 'place_imports',
                             -- visitor history (0118): counts a day worked out by the visitor job (no person, money, pricing or status)
-                            'visitor_daily', 'visitor_daily_top')
+                            'visitor_daily', 'visitor_daily_top',
+                            -- agreements (0143): the queue of rendering work (no money; each version it makes is audited) and the signing
+                            -- audit trail (itself an append-only log)
+                            'agreement_jobs', 'esign_events')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

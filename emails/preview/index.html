@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>172 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>67</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>174 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>69</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (67)</h2>
+<h2 id="renter">Renter (69)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -67,6 +67,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A rental agreement signature request is completed (every signer has signed and CarmaCars has countersigned). Sent to the renter and to each additional driver who signed.</div>
 <div class="ln"><a href="../dist/renter_agreement_signed.html">HTML</a><a href="../dist/renter_agreement_signed.txt">Text</a><a href="../shots/renter_agreement_signed.desktop.png">Desktop</a><a href="../shots/renter_agreement_signed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_agreement_version.html"><img loading="lazy" src="../shots/renter_agreement_version.desktop.png" alt="Screenshot of renter_agreement_version"></a><div class="b">
+<div class="code">renter_agreement_version</div><div class="sub">Version 3 of your rental agreement needs your signature, booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A new version of the booking's two rental agreements (CarmaCars' and Blind Spot's) is made after the agreement was signed (migration 0143): the car checked out (the &quot;as picked up&quot; copy), checked in (the closing copy), a correction, or a material change (dates, price, car, drivers, coverage option) that the renter and the affected drivers sign again with their own link. Also sent with the signed copies once every signature of a changed version is in. Both PDFs are attached.</div>
+<div class="ln"><a href="../dist/renter_agreement_version.html">HTML</a><a href="../dist/renter_agreement_version.txt">Text</a><a href="../shots/renter_agreement_version.desktop.png">Desktop</a><a href="../shots/renter_agreement_version.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_balance_overdue.html"><img loading="lazy" src="../shots/renter_balance_overdue.desktop.png" alt="Screenshot of renter_balance_overdue"></a><div class="b">
 <div class="code">renter_balance_overdue</div><div class="sub">Overdue: $80.57 on booking CC-10482</div>
@@ -415,6 +421,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span class="m">Marketing</span></div>
 <div class="tr">2 days after booking status becomes closed. Only if the renter has not unsubscribed and no review exists for it. A booking that had a problem (an incident, a dispute, an unpaid balance or a damage charge) is not sent automatically: it waits for a staff member to approve it (review_request_decision task, app.decide_review_request). Only an approval sends it, at once; a refusal means it is never sent. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
 <div class="ln"><a href="../dist/renter_review_request.html">HTML</a><a href="../dist/renter_review_request.txt">Text</a><a href="../shots/renter_review_request.desktop.png">Desktop</a><a href="../shots/renter_review_request.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_signing_code.html"><img loading="lazy" src="../shots/renter_signing_code.desktop.png" alt="Screenshot of renter_signing_code"></a><div class="b">
+<div class="code">renter_signing_code</div><div class="sub">Your CarmaCars signing code: 482913</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A renter or driver about to sign a rental agreement, an amendment or a new version asks for the identity code by email (migration 0143). The code proves the signer controls the email on file; it is never stored in clear.</div>
+<div class="ln"><a href="../dist/renter_signing_code.html">HTML</a><a href="../dist/renter_signing_code.txt">Text</a><a href="../shots/renter_signing_code.desktop.png">Desktop</a><a href="../shots/renter_signing_code.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_staff_message.html"><img loading="lazy" src="../shots/renter_staff_message.desktop.png" alt="Screenshot of renter_staff_message"></a><div class="b">
 <div class="code">renter_staff_message</div><div class="sub">A message about your booking CC-10482</div>

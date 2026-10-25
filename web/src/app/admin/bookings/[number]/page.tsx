@@ -19,6 +19,7 @@ import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/
 import { REFUND_OF } from '@/features/admin/refunds';
 import { BookingMoney, type Money } from '@/features/money/BookingMoney';
 import { HandoverPanel } from '@/features/handover/HandoverPanel';
+import { AgreementPanel } from '@/features/agreements/AgreementPanel';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -92,6 +93,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
       </PageHead>
       {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} base={base} canHandover canSign
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
+      {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} base={base} b={{ id: b.id, status: b.status }} docBase="/admin/documents" finance={true} />}
       <Tabs current={`${base}?tab=${tab}`} items={[
         ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : [[`${base}?tab=overview`, 'Overview']] as Array<[string, string]>),
         [`${base}?tab=money`, 'Money'], [`${base}?tab=changes`, 'Changes', pendingChanges.length + pendingExt.length], [`${base}?tab=history`, 'History'], [`${base}?tab=documents`, 'Drivers and documents']]} />
