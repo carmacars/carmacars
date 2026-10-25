@@ -23,5 +23,5 @@ is signed in, or known by email (a staff member testing on their own browser), n
 as a visitor would, use a private window that has never signed in.
 
 ## Guides
-No guide text changes: the Admin "Discount games and leads" chapter already says known visitors get no game, and
+No guide change: the Admin "Discount games and leads" chapter already says known visitors get no game, and
 leads are under Bookings > Leads (Renter leads).
