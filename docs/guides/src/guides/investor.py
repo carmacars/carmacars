@@ -121,10 +121,10 @@ def build():
         'Statements lists each Return Month with the Invested Amount, days, the return and whether it was paid or reinvested.',
         f'Press a month to open it, or {B("PDF")} beside it.',
         'Download a year: all statements of a year (ZIP) and the summary table (CSV). Yearly summaries come as PDF.',
-    ], shot=S('investor/02-statements-phone', 0, 595, 390, 1200, pins=[(1, 380, 790), (2, 120, 880), (3, 380, 1060)]))
+    ], shot=S('investor/02-statements-phone', 0, 640, 390, 1300, pins=[(1, 365, 1090), (2, 135, 1022)]))
     g.steps([
         f'A statement shows the investor, the agreement, the amount at the start of the month, the Yearly Percentage, the days earning, the return for the month, when it is paid, and the amount at the end. Press {B("Download PDF")} to keep it.',
-    ], shot=S('investor/03-statement-phone', 0, 595, 390, 1300, pins=[(4, 300, 803)]))
+    ], shot=S('investor/03-statement-phone', 0, 640, 390, 1300, pins=[(4, 325, 955)]))
 
     g.chapter('Profile and notices',
               'Your contact details, and the notices you can send us: how returns are handled, your bank account, '
@@ -136,19 +136,19 @@ def build():
     g.steps([
         'Under How returns are handled, choose Paid monthly or Reinvested.',
         f'Press {B("Send the notice")}. The change applies from the first Return Month that starts at least 10 days after we receive it.',
-    ], shot=S('investor/04-profile-phone', 0, 1180, 390, 1470, hdr=False, pins=[(1, 360, 1335), (2, 360, 1427)]))
+    ], shot=S('investor/04-profile-phone', 0, 1940, 390, 2110, hdr=False))
     g.task('Bank account and transfers')
     g.steps([
         f'To change the account we pay, press {B("Ask to change the bank account")}. We call you at the number on file to take the new details. A change applies 10 days after notice.',
         f'To transfer an investment, choose it, fill in To (full name) and a Note, then press {B("Send the request")}. A transfer needs CarmaCars\' written consent.',
         'You see "Received. CarmaCars will confirm in writing." We confirm each request by email.',
-    ], shot=S('investor/04-profile-phone', 0, 1490, 390, 2100, hdr=False, pins=[(1, 362, 1630), (2, 362, 1860)]))
+    ])
     g.task('Two-step sign-in (recommended)')
     g.steps([
         f'At the bottom of Profile and notices, press {B("Set up two-step sign-in")}.',
         'Scan the code with your authenticator app.',
         f'Type the 6 digits and press {B("Continue")}. From then on, every sign-in asks for a code.',
-    ], shot=S('investor/04-profile-desktop', 0, 1530, 320, 1680, hdr=False, pins=[(1, 300, 1638)]), fig_w=3.0)
+    ])
     g.para('Documents, further down the same page, lists your statements as files.')
 
     g.chapter('Keeping your account safe',

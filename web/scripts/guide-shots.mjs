@@ -440,6 +440,8 @@ async function renterStory(browser, ids) {
     await d.locator('#pt-card-number').fill('4242 4242 4242 4242'); await d.locator('#pt-card-exp').fill('12 / 31'); await d.locator('#pt-card-cvc').fill('123');
     await d.getByRole('button', { name: /^Pay \$/ }).click();
     await d.waitForURL((u) => !u.pathname.endsWith('/pay'), { timeout: 45_000 }).catch(() => problems.push('pay: the fake payment did not finish'));
+    await d.waitForTimeout(1500);
+    await shoot(d, 'renter', 'pay-done', `Debug: ${d.url()} ${String(await d.locator('[role="alert"], .error, .hint').allInnerTexts().catch(() => '')).slice(0, 300)}`, { step: 96 });
   }
   // the screens that follow show the licence photos still to upload
   await sql`delete from verification_uploads where booking_id = ${b.id}`;
