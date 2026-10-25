@@ -1256,7 +1256,7 @@ def build():
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
 
-    g.task('Vehicle class rules', f'{P("Settings", "Vehicle class rules")}. How a new car\'s class is decided from its VIN: the first rule that matches wins.')
+    g.task('Vehicle class rules', f'Open {B("Settings")}, then {B("Vehicle class rules")}. How a new car\'s class is decided from its VIN: the first rule that matches wins.')
     g.steps([
         'The table lists each rule: its rank, what the car must be (a make, and patterns for the model, the trim and the body), the class it gets, the class once the car is old enough, a note and whether it is on. The lowest rank that matches is used; a car that matches no rule is Standard.',
         f'Press {B("Add a rule")} or {B("Change")}: a rank, at least one condition, the class, optionally the years old after which an older class applies, and a note (it is shown as the reason for the class). A pattern is not case sensitive: ^911 matches models that start with 911. A rule with no condition, a pattern that does not compile and an older class equal to the class are refused.',
