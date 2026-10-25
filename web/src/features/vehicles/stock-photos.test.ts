@@ -100,7 +100,9 @@ test('generations: model year ranges, gaps, duplicates and the catalog\'s years'
     { id: 'Q0', label: 'Toyota Camry undated', start: null, end: null }
   ];
   const r = generationRanges(camry, 2000, 2025);
-  assert.deepEqual(r.map((x) => [x.id, x.from, x.to]), [['Q1', 2007, 2011], ['Q2', 2012, 2017], ['Q3', 2018, 2025]]);
+  // an undated generation exists (Q0): the newest dated one's open end is 5 model years
+  assert.deepEqual(r.map((x) => [x.id, x.from, x.to]), [['Q1', 2007, 2011], ['Q2', 2012, 2017], ['Q3', 2018, 2022]]);
+  assert.deepEqual(generationRanges(camry.filter((g) => g.id !== 'Q0'), 2000, 2025).map((x) => [x.id, x.to]).pop(), ['Q3', 2025]);
   // the newest generation with no end: 8 model years at most (a newer one Wikidata does not list gets no photo)
   assert.deepEqual(generationRanges([{ id: 'E120', label: 'Corolla E120', start: 2000, end: null }], 2000, 2027).map((x) => [x.from, x.to]), [[2000, 2008]]);
   assert.equal(generationFor(r, 2017)!.id, 'Q2');
@@ -115,6 +117,9 @@ test('generations: model year ranges, gaps, duplicates and the catalog\'s years'
   assert.deepEqual(m3.map((x) => [x.from, x.to]), [[2017, 2025]]);
   // clipped to the catalog
   assert.deepEqual(generationRanges(camry, 2015, 2020).map((x) => [x.id, x.from, x.to]), [['Q2', 2015, 2017], ['Q3', 2018, 2020]]);
+  // the Camry as Wikidata had it on October 24, 2026: the XV50 dated, the XV70 not; the XV50 never reaches 2018
+  assert.deepEqual(generationRanges([{ id: 'XV50', label: 'Toyota Camry (XV50)', start: 2011, end: null }, { id: 'XV70', label: 'Toyota Camry (XV70)', start: null, end: null }], 2000, 2027)
+    .map((x) => [x.from, x.to]), [[2012, 2016]]);
 });
 
 const photo: StockPhoto = { id: '1', make: 'toyota', model: 'camry', make_name: 'Toyota', model_name: 'Camry', year_from: 2018, year_to: 2024, generation: 'Toyota Camry (XV70)',

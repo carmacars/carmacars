@@ -183,12 +183,14 @@ export function generationRanges(gens: Generation[], first: number, last: number
   const dated = gens.map((g) => ({ g, from: firstModelYear(g) })).filter((x): x is { g: Generation; from: number } => x.from !== null).sort((a, b) => a.from - b.from || Number(!!b.g.image) - Number(!!a.g.image));
   const one: Array<{ g: Generation; from: number }> = [];
   for (const x of dated) if (!one.length || one[one.length - 1]!.from !== x.from) one.push(x);
+  // a generation Wikidata lists without a date could come after any of the dated ones: an open end is then shorter
+  const span = gens.some((g) => g.start === null) ? 4 : 7;
   const out: GenRange[] = [];
   one.forEach((x, i) => {
     const next = one[i + 1];
-    // the newest generation with no end on record: at most 8 model years (a generation Wikidata does not list yet
-    // must not get the old one's photo)
-    let to = next ? next.from - 1 : x.g.end !== null ? Math.max(x.g.end + 1, x.from) : Math.min(last, x.from + 7);
+    // the newest generation with no end on record: at most 8 model years, 5 when an undated generation exists (a
+    // generation Wikidata does not list or date must not get the old one's photo)
+    let to = next ? next.from - 1 : x.g.end !== null ? Math.max(x.g.end + 1, x.from) : Math.min(last, x.from + span);
     if (next && x.g.end !== null) to = Math.min(to, Math.max(x.g.end + 1, x.from));
     const from = Math.max(x.from, first), to2 = Math.min(to, last);
     if (from <= to2) out.push({ ...x.g, from, to: to2 });

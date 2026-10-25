@@ -28,7 +28,8 @@ Migration `supabase/migrations/0137_seo_photos.sql` (SCHEMA_MARKER `0137`), its 
 3. **Model years of each generation** (North American): production that starts in the second half of a year, or in a
    year whose month is not known, is the next model year; in the first half, the same year. A generation runs to the
    year before the next one's first model year (or a year past its production end), clipped to the catalog's years. A
-   year no generation covers has no photo: its page keeps the studio drawing (never another generation's photo).
+   year no generation covers has no photo: its page keeps the studio drawing (never another generation's photo). The
+   newest generation with no end on record runs 8 model years at most, 5 when Wikidata lists a generation without a date.
 4. **The photo of each generation**: the generation's Wikidata image (an editor already chose it), then the Quality
    images in its Commons category, then the rest of the category. Scored: front three-quarter view in the file's name or
    description (in English, German, French, Spanish, Polish), Quality, Featured or Valued image, the model's name in the
@@ -103,7 +104,30 @@ Migration `supabase/migrations/0137_seo_photos.sql` (SCHEMA_MARKER `0137`), its 
 
 ## Coverage
 
-COVERAGE_PLACEHOLDER
+The production numbers (models and model years of the whole catalog with a photo, the popular models still without
+one) are in Admin > Settings > Vehicle pages, Stock photos, and in each run's annotations, from the first scheduled run
+after the deploy. The photos cannot be stored before migration 0137 is in the database, and this sandbox cannot reach
+Wikimedia (its egress proxy refuses the hosts), so the choice was run live three times as the push dry run on GitHub
+(the popular list, 154 models, model years 2000 on, nothing stored), and the rules were tightened after each:
+
+| Dry run | Models found on Wikidata | Models with a photo | Generation photos | Notes |
+| --- | --- | --- | --- | --- |
+| 1 (SPARQL) | 0 of 154 | 0 | 0 | the Wikidata query service answered 500 to every query: replaced by the Action API |
+| 2 | 152 of 154 | 152 (158 photos) | 14 | wrong cars found: twins under another name (Tahoe as GMC Yukon, Canyon as Colorado, Rogue as X-Trail, Sentra as Sunny), old photos (1972 Maverick, 1959 Mini, 1970 Fiat 500), detail shots |
+| 3 | 152 of 154 | 132 (144 photos, 86%) | 23 | the stricter rules; 0 errors, 1,078 requests, the job 19 minutes, no 429 |
+
+Popular models still without a photo after run 3 (their files do not name the model, or are older than the rules
+allow): Toyota RAV4, Nissan Rogue, Jeep Wrangler, Kia Forte, Kia Soul, Chrysler Pacifica, Subaru Forester, Volkswagen
+Tiguan, Nissan Sentra, Mazda 3, Chevrolet Trailblazer, Chevrolet Tahoe, GMC Canyon, Mitsubishi Outlander Sport, BMW 3
+Series, Mercedes-Benz C-Class, Mercedes-Benz CLA, Lexus RX, Acura MDX, Chevrolet Cruze, Subaru WRX, MINI Cooper. An
+Admin can name a Commons file for any of them (Replace).
+
+What limits the year and trim pages: Wikidata dates few generations. Most models get one photo of the model in general
+(recent, shown on the make and model pages only); generation photos (and so the year and trim pages) come where
+Wikidata lists and dates the generations (VW Golf, Jetta and Passat, Audi A4, Honda Civic, Ford Ranger, BMW X3 and
+others). A generation listed without a date shortens the open end of the newest dated one to 5 model years (the Camry:
+the XV50 covers 2012 to 2016, never the XV70's 2018), so a page never shows the wrong generation. Generic photos chosen
+in run 3: Highway 401 and the Gardiner Expressway (Toronto), car washes, auto body shops, used car lots.
 
 ## Checks
 
