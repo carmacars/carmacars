@@ -25,7 +25,7 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/invoices', label: 'Owner invoices', section: 'Owners' }, { href: '/admin/debits', label: 'Owner debits' }, { href: '/admin/statements', label: 'Owner statements' }, { href: '/admin/payouts', label: 'Payouts' },
     { href: '/admin/payments', label: 'Payments by day', section: 'Renters' }, { href: '/admin/money', label: 'Payments and refunds', key: 'm' }, { href: '/admin/tolls', label: 'Tolls and tickets' },
     { href: '/admin/reports', label: 'Company statements', section: 'Company' }, { href: '/admin/reconciliation', label: 'Reconciliation' }, { href: '/admin/expenses', label: 'Expenses' },
-    { href: '/admin/insurer-invoices', label: 'Insurer invoices' }, { href: '/admin/money/commissions', label: 'Staff commissions' }] },
+    { href: '/admin/insurers', label: 'Insurer rates' }, { href: '/admin/insurer-invoices', label: 'Insurer invoices' }, { href: '/admin/money/commissions', label: 'Staff commissions' }] },
   { key: 'settings', label: 'Settings', links: [
     { href: '/admin/settings', label: 'All settings', key: 's' },
     { href: '/admin/settings/site', label: 'Site', section: 'Website' }, { href: '/admin/settings/vehicle-pages', label: 'Vehicle pages' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' },

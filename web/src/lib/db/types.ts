@@ -2153,6 +2153,9 @@ export type Database = {
           owner_visibility_reason: string | null;
           owner_visibility_by: string | null;
           owner_visibility_at: string | null;
+          insurer_rate_id: string | null;
+          insurer_sheet_daily_rate_cents: number | null;
+          insurer_rate_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -2305,6 +2308,9 @@ export type Database = {
           owner_visibility_reason?: string | null;
           owner_visibility_by?: string | null;
           owner_visibility_at?: string | null;
+          insurer_rate_id?: string | null;
+          insurer_sheet_daily_rate_cents?: number | null;
+          insurer_rate_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -2457,6 +2463,9 @@ export type Database = {
           owner_visibility_reason?: string | null;
           owner_visibility_by?: string | null;
           owner_visibility_at?: string | null;
+          insurer_rate_id?: string | null;
+          insurer_sheet_daily_rate_cents?: number | null;
+          insurer_rate_reason?: string | null;
         };
         Relationships: [];
       };
@@ -6817,6 +6826,9 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          daily_rate_cents: number | null;
+          rate_source: string | null;
+          insurer_rate_id: string | null;
         };
         Insert: {
           id?: string;
@@ -6845,6 +6857,9 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          daily_rate_cents?: number | null;
+          rate_source?: string | null;
+          insurer_rate_id?: string | null;
         };
         Update: {
           id?: string;
@@ -6873,6 +6888,57 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          daily_rate_cents?: number | null;
+          rate_source?: string | null;
+          insurer_rate_id?: string | null;
+        };
+        Relationships: [];
+      };
+      insurer_rates: {
+        Row: {
+          id: string;
+          insurer_id: string;
+          class_code: string;
+          effective_from: string;
+          daily_rate_cents: number | null;
+          weekly_cap_cents: number | null;
+          monthly_cap_cents: number | null;
+          delivery_allowance_cents: number | null;
+          km_per_day: number | null;
+          taxes_note: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          insurer_id: string;
+          class_code: string;
+          effective_from: string;
+          daily_rate_cents?: number | null;
+          weekly_cap_cents?: number | null;
+          monthly_cap_cents?: number | null;
+          delivery_allowance_cents?: number | null;
+          km_per_day?: number | null;
+          taxes_note?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          insurer_id?: string;
+          class_code?: string;
+          effective_from?: string;
+          daily_rate_cents?: number | null;
+          weekly_cap_cents?: number | null;
+          monthly_cap_cents?: number | null;
+          delivery_allowance_cents?: number | null;
+          km_per_day?: number | null;
+          taxes_note?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
