@@ -18,6 +18,9 @@ export interface Hub {
   service: { code: string; name: string; description: string; from_price_cents: number | null } | null;
   related_terms: Array<{ slug: string; title: string; path: string }>; rental_terms: Array<{ slug: string; title: string; path: string }> | null;
   indexable: boolean; lastmod: string;
+  /** Text written for this page (seo-import, the daily batch): when it has sections, it is shown instead of the writing
+   *  kit's (docs/changes/2026-10-24-writing-kit.md). Absent until the read returns it. */
+  written?: { intro?: string | null; sections?: Array<{ heading: string; body: string }> | null; faq?: Array<{ question: string; answer: string }> | null } | null;
 }
 export interface ShopServices { services: Array<{ code: string; name: string; description: string; from_price_cents: number | null; terms: Array<{ slug: string; title: string }> }>; reach_km: number; origin: { label: string } }
 export interface PlaceRoots { tops: PlaceBrief[]; cities: PlaceBrief[]; attribution: { geonames: boolean; osm: boolean } }

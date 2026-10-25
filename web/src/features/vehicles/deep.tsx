@@ -10,6 +10,9 @@ import { type Dim, dimRows, dimsFor, dollars, fit, fuelWord, list, priceBasis, p
   tierDescriptionOptions, tierTitleOptions, trimDiffs } from './content';
 import { type TrimPage, vehicleMeta } from './data';
 import { CostBlock, type Inventory, InventoryBlock, productLd, Questions, SimilarModels, SpecsTable, standIn, VehicleHead } from './parts';
+import { chooseText, writeKit } from '@/features/kit';
+import { KitText } from '@/features/kit/KitText';
+import { vehicleInput, vehicleKit } from '@/features/kit/pages';
 
 // The figures people look up, on every trim page and its city, colour and /buy twins (migration 0097), and the city and
 // colour pages themselves. Only sourced figures: EPA and vPIC's Canadian specifications; no source, no row.
@@ -183,6 +186,8 @@ export async function TierView({ p }: { p: TierPage }) {
     ...rentalFaq({ name, cars: inv.exact.length, similar: inv.similar.length + inv.same_model.length, ev: cheapest?.fuel === 'electric', cost100: cheapest ? dollars(cheapest.cost100) : null,
       cheapestUse: cheapest ? `${ratingText(cheapest)} (${ptName(cheapest)})` : undefined, basis: cheapest ? priceBasis(cheapest, p.settings) : undefined }).filter((q) => !/delivered\?$/.test(q.question) || !p.city)];
   const questions = faq.map((q) => ({ question: F(q.question).replace(/in Toronto\?$/, `in ${where}?`), answer: F(q.answer) }));
+  // the writing kit (docs/changes/2026-10-24-writing-kit.md): written text first, else the kit's
+  const text = chooseText(p.written, writeKit(vehicleKit(vehicleInput(p, { sp, dims: dimsFor(p.dims, p.model.name, p.trim.name) }), t)));
   return (
     <div className="p-vehicle" data-page={`vehicle-${p.level.replace('_', '-')}`}>
       <JsonLd graph={[breadcrumbLd(trail, p.path), productLd({ name: p.colour ? `${p.colour.name} ${name}` : name, make: p.make.name, model: p.model.name, year: p.year, trim: p.trim.name, path: p.path, image: img, description: lead,
@@ -199,6 +204,7 @@ export async function TierView({ p }: { p: TierPage }) {
         </section>
         <StatsBlock sp={sp} dims={p.dims} model={p.model.name} trim={p.trim.name} name={name} s={p.settings} seats={seats} />
         <CostBlock sp={sp} s={p.settings} name={name} />
+        <KitText sections={text.sections} source={text.source} look="vehicle" />
         <section className="vp-sec" aria-labelledby="h-diff">
           <h2 className="d3" id="h-diff">The {p.trim.name} and the other {p.year} trims</h2>
           <ul className="featlist">{diffs.map((d) => <li key={d}>{d}</li>)}</ul>
