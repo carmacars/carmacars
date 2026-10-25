@@ -129,30 +129,29 @@ in their colour.
 
 ## Coverage
 
-The production numbers (models and model years of the whole catalog with a photo, the popular models still without
-one) are in Admin > Settings > Vehicle pages, Stock photos, and in each run's annotations, from the first scheduled run
-after the deploy. The photos cannot be stored before migration 0137 is in the database, and this sandbox cannot reach
-Wikimedia (its egress proxy refuses the hosts), so the choice was run live three times as the push dry run on GitHub
-(the popular list, 154 models, model years 2000 on, nothing stored), and the rules were tightened after each:
+The production numbers (the whole catalog, its own model years) are in Admin > Settings > Vehicle pages, Stock photos,
+and in each run's annotations, from the first scheduled run after the deploy. This sandbox cannot reach Wikimedia, so
+the choice was run live as the push dry run on GitHub (the popular list, 154 models, nothing stored; model years 2015
+on unless noted), and the rules were tightened after each run:
 
-| Dry run | Models found on Wikidata | Models with a photo | Generation photos | Notes |
-| --- | --- | --- | --- | --- |
-| 1 (SPARQL) | 0 of 154 | 0 | 0 | the Wikidata query service answered 500 to every query: replaced by the Action API |
-| 2 | 152 of 154 | 152 (158 photos) | 14 | wrong cars found: twins under another name (Tahoe as GMC Yukon, Canyon as Colorado, Rogue as X-Trail, Sentra as Sunny), old photos (1972 Maverick, 1959 Mini, 1970 Fiat 500), detail shots |
-| 3 | 152 of 154 | 132 (144 photos, 86%) | 23 | the stricter rules; 0 errors, 1,078 requests, the job 19 minutes, no 429 |
+| Dry run | Models found | With a photo | With generation photos | Model years: exact, near, model, none | Notes |
+| --- | --- | --- | --- | --- | --- |
+| 1 (SPARQL) | 0 of 154 | 0 | 0 | | the Wikidata query service answered 500 to every query: replaced by the Action API |
+| 2 | 152 of 154 | 152 | 14 | | twins under another name (Tahoe as GMC Yukon), old photos (1972 Maverick), detail shots |
+| 3 | 152 of 154 | 132 | 23 | | stricter rules; generations from Wikidata only |
+| 4 | 70 of 71 done | 69 | 62 (87%) | 79%, 3%, 15%, 3% | Wikipedia generations, per-year categories, Openverse; the 90-minute budget ran out on Wikimedia lag |
+| 5 (two jobs) | 140 done, 14 left by Wikidata lag | 138 (99% of done) | 126 (90% of done) | 75%, 4%, 19%, 1% | every year from 2015 counted, even before a model existed (an EV6 in 2015) |
 
-Popular models still without a photo after run 3 (their files do not name the model, or are older than the rules
-allow): Toyota RAV4, Nissan Rogue, Jeep Wrangler, Kia Forte, Kia Soul, Chrysler Pacifica, Subaru Forester, Volkswagen
-Tiguan, Nissan Sentra, Mazda 3, Chevrolet Trailblazer, Chevrolet Tahoe, GMC Canyon, Mitsubishi Outlander Sport, BMW 3
-Series, Mercedes-Benz C-Class, Mercedes-Benz CLA, Lexus RX, Acura MDX, Chevrolet Cruze, Subaru WRX, MINI Cooper. An
-Admin can name a Commons file for any of them (Replace).
-
-What limits the year and trim pages: Wikidata dates few generations. Most models get one photo of the model in general
-(recent, shown on the make and model pages only); generation photos (and so the year and trim pages) come where
-Wikidata lists and dates the generations (VW Golf, Jetta and Passat, Audi A4, Honda Civic, Ford Ranger, BMW X3 and
-others). A generation listed without a date shortens the open end of the newest dated one to 5 model years (the Camry:
-the XV50 covers 2012 to 2016, never the XV70's 2018), so a page never shows the wrong generation. Generic photos chosen
-in run 3: Highway 401 and the Gardiner Expressway (Toronto), car washes, auto body shops, used car lots.
+Run 5 in detail: 1,371 of the 1,416 model years inside the span of each model's photographed generations (97%) have a
+photo of their own generation; the 14 models Wikidata's lag stopped (Mercedes-Benz CLA, Audi A4, Q5, Lexus RX, ES,
+Acura RDX, TLX, Infiniti QX50, Volvo XC40, XC90, Porsche Cayenne, Cadillac Escalade, Lincoln Aviator, Land Rover
+Defender) now carry on with the Wikipedia article of that name, and are taken again by the next run. Without
+generation photos: Kia Soul, Nissan Sentra, Ford Maverick, Mitsubishi Outlander Sport, Tesla Model 3 and Y, Nissan
+Versa, Volkswagen ID.4, MINI Cooper, Chrysler Pacifica, Mazda CX-90, Jeep Gladiator, Chevrolet Blazer, Fiat 500 (their
+files do not name the model with a year inside a generation, or the article's generations are not dated): their year
+pages show the model's photo, marked "not the exact year". Sources: 313 photos from Wikimedia Commons, 6 from Flickr
+via Openverse (each licence confirmed on the Flickr page). The dry run now counts only the years each model was sold in
+(as production counts the catalog's own years).
 
 ## Checks
 
