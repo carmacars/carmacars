@@ -1,0 +1,4197 @@
+{
+ "batch": "2026-10-25-top-pages",
+ "items": [
+  {
+   "kind": "page",
+   "id": "billy-bishop-airport-ytz",
+   "copy": {
+    "seo_title": "Billy Bishop Airport (YTZ) Car Rental | CarmaCars",
+    "meta_description": "Car rental at Billy Bishop Airport (YTZ): we meet you on the mainland at Eireann Quay with your car, at the time confirmed in your offer.",
+    "h1": "Car rental at Billy Bishop Airport (YTZ)",
+    "intro": "Billy Bishop sits on the Toronto Islands, and no rental car waits on the island side. You cross to the mainland on foot through the pedestrian tunnel or on the short ferry, and you come out at Eireann Quay at the foot of Bathurst Street. That is where CarmaCars hands you the keys. Tell us your flight when you send a request, and we confirm the car, the price and the meeting time in your offer before you pay anything.",
+    "sections": [
+     {
+      "heading": "Your handover at Eireann Quay",
+      "body": "The quay is a small, busy drop-off area, so we plan the meeting before you land. Your offer names the time and the spot. Once you are through the tunnel or off the ferry, we check your licence and the card you paid with, walk around the car with you, take photos of its condition and hand over the keys. If your flight lands early or late, send us a message and we move the time with you."
+     },
+     {
+      "heading": "Heading into the city",
+      "body": "From the foot of Bathurst Street you are close to the downtown core and to Union Station, so a short first drive is the norm for most travellers. If you would rather settle into your hotel before you take the car, you can ask for delivery to that address instead of the quay. Tell us in the request which you prefer, and the offer reflects it."
+     },
+     {
+      "heading": "Flying out of Billy Bishop",
+      "body": "You can end the rental at Eireann Quay too. Pick the airport as your return place when you send the request, and we agree a time that leaves you room to walk through the tunnel and check in. Bring the car back with the fuel it had at pickup and take your things out first, so the final check with us is short."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Where exactly do you meet me at Billy Bishop?",
+      "answer": "On the mainland, at Eireann Quay at the foot of Bathurst Street, where the tunnel and the ferry come out."
+     },
+     {
+      "question": "Can I drop the car off before my flight?",
+      "answer": "Yes. Choose Billy Bishop as the return place, and we collect the car at Eireann Quay at the time we agree."
+     },
+     {
+      "question": "Is airport delivery priced differently?",
+      "answer": "Airport delivery is priced in your offer, and an airport surcharge may apply. You see the full price before you pay."
+     },
+     {
+      "question": "Could you bring the car to my hotel instead?",
+      "answer": "Yes. Give us the hotel address in your request and we meet you there at a time we confirm."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "brampton",
+   "copy": {
+    "seo_title": "Car Rental in Brampton, Delivered | CarmaCars",
+    "meta_description": "Rental cars delivered in Brampton: Bramalea, Springdale, Heart Lake, Castlemore and Downtown Brampton. See the price in your offer before you pay.",
+    "h1": "Car rental in Brampton with delivery to your door",
+    "intro": "A second car for a busy week, a bigger one while relatives stay over, or a ride for a trip to Pearson: renting in Brampton usually starts at home. CarmaCars brings the car to your address in Downtown Brampton, Bramalea, Springdale, Heart Lake, Mount Pleasant or Castlemore. Choose a car below and send a request with your dates and address. Your offer shows the car, the full price and the handover time, and nothing is charged until you approve it.",
+    "sections": [
+     {
+      "heading": "A handover in your driveway",
+      "body": "Most Brampton rentals start on the driveway. We arrive at the time in your offer, check your licence and card, and walk around the car with you while we photograph its condition. Then we show you the controls and leave you the keys. At the end we can collect the car from the same address for its return pickup fee, or you can drop it at our location yourself at no charge."
+     },
+     {
+      "heading": "The 410, the 401 and the 407 ETR",
+      "body": "The 410 is the spine of the city, running north and south and meeting the 401 near the Mississauga border. The 427 is close on the east side. The 407 ETR crosses Brampton and has no toll booths: cameras read the plate and the bill reaches us after your trip. We pass each toll on at cost plus {{tollFee}} for each notice. The 401 and the 410 cost nothing to drive."
+     },
+     {
+      "heading": "Meeting near transit or the mall",
+      "body": "If a driveway does not work, we can meet you somewhere easy to stop, such as the parking areas around Bramalea City Centre. Renters coming in on the GO Kitchener line or a Brampton Transit Züm bus can ask for a meeting point near their stop. Put the place you have in mind in the request, and we confirm it in the offer."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Which parts of Brampton do you deliver to?",
+      "answer": "Any address in the city, including Bramalea, Springdale, Heart Lake, Mount Pleasant, Castlemore and Downtown Brampton, for the car's delivery fee."
+     },
+     {
+      "question": "Do I have to use the 407 ETR?",
+      "answer": "No. The 410 and the 401 are free. If you do use the 407 ETR, the toll is charged at cost plus {{tollFee}} for each notice."
+     },
+     {
+      "question": "Can my partner drive the car too?",
+      "answer": "Yes. Add each driver to the request. Every driver meets the same rules and signs the agreement, and a daily fee applies for each additional driver."
+     },
+     {
+      "question": "How long can a single booking run?",
+      "answer": "Up to {{maxDays}} days. After that you can renew with a new agreement."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "downtown-toronto",
+   "copy": {
+    "seo_title": "Downtown Toronto Car Rental, Delivered | CarmaCars",
+    "meta_description": "Car rental in downtown Toronto with delivery to your condo, hotel or office in King West, CityPlace, St. Lawrence or the Financial District.",
+    "h1": "Car rental in Downtown Toronto, brought to your building",
+    "intro": "Living downtown often means living without a car, right up to the weekend you need one. CarmaCars brings it to you: a condo in CityPlace or Harbourfront, an office in the Financial District, a hotel near the Entertainment District, a loft in King West or by the Distillery District. Send a request with the address and the time that suits you. We confirm the car and the full price in an offer, and a member of our team meets you at the door with the keys.",
+    "sections": [
+     {
+      "heading": "Planning a handover in the core",
+      "body": "Space to stop is the hard part downtown, so tell us what your building has: visitor parking, a loading dock, a valet lane or a quiet laneway. We use it for the few minutes the handover takes. We check your licence and the card you paid with, walk around the car together and photograph its condition, then show you the controls. At the end we can collect it from the same spot, or you can return it to our location."
+     },
+     {
+      "heading": "Where to park",
+      "body": "Condo visitor spaces usually need a permit from the concierge. Green P runs municipal garages and lots across the core, and hotel valet is an option if you are staying downtown. Street parking is metered and time limited, and rush hour rules on main streets are enforced, so read every sign before you leave the car. Parking tickets and towing during the rental are the renter's to pay."
+     },
+     {
+      "heading": "Getting out of downtown",
+      "body": "The Gardiner Expressway runs west along the lake, Lake Shore Boulevard runs beside it at street level, and the Don Valley Parkway heads north out of the core. A Friday evening handover lets you leave before Saturday traffic builds. Near the CN Tower, the Rogers Centre or Scotiabank Arena on game or concert nights, allow extra time to reach your building."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Will you bring the car to my condo lobby?",
+      "answer": "Yes. Tell us the address and how visitor parking or the loading area works, and we meet you there at the agreed time."
+     },
+     {
+      "question": "Where can I leave the car overnight downtown?",
+      "answer": "In your building's visitor parking, a Green P garage or lot, or a hotel valet. Metered street spaces have time limits, so check the signs."
+     },
+     {
+      "question": "Can the rental end at my address?",
+      "answer": "Yes. We collect the car from you for its return pickup fee, or you can bring it to our location at no charge."
+     },
+     {
+      "question": "Do you also cover Union Station and Billy Bishop?",
+      "answer": "Yes. Both are close to the core and each has its own page with the meeting details."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "etobicoke",
+   "copy": {
+    "seo_title": "Car Rental in Etobicoke | CarmaCars",
+    "meta_description": "Rent a car in Etobicoke with delivery to Humber Bay, Mimico, The Kingsway, Islington Village, Long Branch or Rexdale. Close to Pearson and the 427.",
+    "h1": "Car rental in Etobicoke, near Pearson and the 427",
+    "intro": "Etobicoke has the shortest run to Pearson of any part of Toronto, and the 427, the QEW and the Gardiner Expressway all meet at its south end. CarmaCars delivers rental cars to the towers at Humber Bay, the streets of Mimico and Long Branch, homes in Islington Village and The Kingsway, and up into Rexdale. Choose a car below and send a request with your dates and address. You see the car and the full price in an offer before you pay.",
+    "sections": [
+     {
+      "heading": "Towers by the lake, houses inland",
+      "body": "Humber Bay condo driveways are busy and visitor parking is short, so tell us your building's rules in the request and we keep the handover brief. In Mimico, Long Branch and The Kingsway we usually meet you at the door. If you travel by subway, we can meet you near Kipling or Islington station instead, and the Mimico GO station works for renters coming in on the train."
+     },
+     {
+      "heading": "Highways in every direction",
+      "body": "The 427 runs north from the Gardiner Expressway and the QEW to the 401 and the 409, and the 409 leads to Pearson. Mississauga is next door to the west, and downtown is a short drive east along the Gardiner outside rush hour. Farther north the 407 ETR begins: it has no booths, and its tolls are billed to the car's plate after the trip and passed on to you."
+     },
+     {
+      "heading": "Before a flight from Pearson",
+      "body": "Because Pearson is next door, many Etobicoke renters keep a car for the trip to the airport and back, or end the rental at the terminal. Delivery to the airport is priced in your offer, and an airport surcharge may apply. Shoppers heading to Sherway Gardens or a day at Woodbine can simply book the days they need and return the car to our location."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you deliver to Humber Bay Shores condos?",
+      "answer": "Yes. Tell us the building and its visitor parking rules, and we meet you there at the agreed time."
+     },
+     {
+      "question": "How close is Etobicoke to Pearson?",
+      "answer": "Pearson is next door. The 427 and the 409 take you to the terminals, and we can deliver or collect a car there."
+     },
+     {
+      "question": "When is the deposit taken?",
+      "answer": "About {{depLead}} before pickup, never when you send the request. Each car's page shows its deposit."
+     },
+     {
+      "question": "Can you meet me at a subway station?",
+      "answer": "Yes. Kipling and Islington stations both work. Tell us which one in your request."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "markham",
+   "copy": {
+    "seo_title": "Car Rental in Markham | CarmaCars",
+    "meta_description": "Rent a car in Markham with delivery to Unionville, Cornell, Milliken, Markham Village or an office lot. Daily, weekly and monthly rentals.",
+    "h1": "Car rental in Markham for home, work and longer stays",
+    "intro": "Markham runs from the 401 up past the 407 ETR, with the 404 on its west edge and Highway 7 through its centre. CarmaCars delivers rental cars to houses in Unionville, Cornell and Markham Village, to homes in Milliken and Thornhill, and to offices in Downtown Markham. Pick a car below and send your dates and address. We send an offer with the car, the full price and the handover time, and you pay only once you approve it.",
+    "sections": [
+     {
+      "heading": "Rentals for work projects",
+      "body": "Many Markham renters are here for a work assignment or waiting for their own car to arrive. A rental of {{weekFrom}} days or more is priced at the weekly rate, and a booking can run up to {{maxDays}} days at the monthly rate. We can bring the car to your office parking lot during the working day, so you can drive straight home after work."
+     },
+     {
+      "heading": "Roads and transit across the city",
+      "body": "Highway 7 and the 407 ETR cross the city east to west, the 404 runs north and south, and the 401 lies just south of the border with Scarborough. Viva and YRT buses cover the main roads and the GO Stouffville line runs through the middle, but a dinner on Main Street Unionville or a trip to Pacific Mall or CF Markville is simpler by car. Tolls on the 407 ETR are charged at cost plus {{tollFee}} for each notice."
+     },
+     {
+      "heading": "How the handover goes",
+      "body": "We meet you at the address in your offer, check your licence and card, and walk around the car with you while we photograph its condition. Then we show you how it works and hand over the keys. When the rental ends we can collect the car from you, or you can return it to our location at no charge."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can you deliver to my office in Markham?",
+      "answer": "Yes. We can meet you in your office parking lot at a time that fits your working day."
+     },
+     {
+      "question": "How are 407 ETR tolls charged?",
+      "answer": "At cost, plus {{tollFee}} for each toll notice, on a statement after the rental."
+     },
+     {
+      "question": "Can I keep the car for a few months?",
+      "answer": "Yes. A booking runs up to {{maxDays}} days, and before it ends we prepare a new agreement for the next period."
+     },
+     {
+      "question": "What card do I need?",
+      "answer": "A credit card in the renter's name, for the payment and the deposit."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "mississauga",
+   "copy": {
+    "seo_title": "Car Rental in Mississauga, Delivered | CarmaCars",
+    "meta_description": "Rent a car in Mississauga with delivery to City Centre, Port Credit, Streetsville, Meadowvale, Erin Mills or Malton. Price confirmed before you pay.",
+    "h1": "Car rental in Mississauga, delivered to your address",
+    "intro": "Mississauga is a big city to cross, so CarmaCars comes to you. We deliver rental cars to the towers of City Centre near Square One, to houses in Streetsville, Meadowvale, Erin Mills and Cooksville, to Malton near the airport and down to Port Credit by the harbour. Send a request with your dates and the address. Your offer shows the car, the full price and the handover time, and you rent for a day, a week or longer.",
+    "sections": [
+     {
+      "heading": "Delivery across a wide city",
+      "body": "Give us the exact address and a time window, since a trip from Port Credit to Meadowvale takes a while at rush hour. We meet you in a driveway, the visitor parking of your building or an office lot. At the end of the rental we can collect the car from the same address for its return pickup fee, or you can drop it at our location in Toronto at no charge."
+     },
+     {
+      "heading": "The 401, the 403, the QEW and the 407 ETR",
+      "body": "The 401, the 403 and the 410 meet in the north of the city, the QEW follows the lake through Port Credit, and the 407 ETR crosses the north end. The 407 ETR has no booths: cameras read the plate, the toll comes to us, and we pass it on at cost plus {{tollFee}} for each notice. Toronto Pearson is inside Mississauga, so an airport drop is short from most neighbourhoods."
+     },
+     {
+      "heading": "Longer stays in Mississauga",
+      "body": "Families hosting visitors, people whose car is in the shop and workers on a project often need a car for weeks. A rental of {{weekFrom}} days or more uses the weekly rate, and a booking can run up to {{maxDays}} days at the monthly rate. Renters who ride MiWay, the GO Lakeshore West line or the GO Milton line can ask to meet near their stop."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can you meet me near Square One?",
+      "answer": "Yes. We can meet you at an address near Square One Shopping Centre or a parking area we agree on."
+     },
+     {
+      "question": "Can I return the car in Toronto?",
+      "answer": "Yes. Bring it to our location at no charge, or we collect it from your Mississauga address for the return pickup fee."
+     },
+     {
+      "question": "What happens if I drive on the 407 ETR?",
+      "answer": "The toll is billed to the car's plate. After the rental we charge you the toll at cost plus {{tollFee}} for each notice."
+     },
+     {
+      "question": "Who can rent?",
+      "answer": "Drivers {{minAge}} and older with an Ontario {{licence}} licence and a credit card in their own name."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "north-york",
+   "copy": {
+    "seo_title": "Car Rental in North York | CarmaCars",
+    "meta_description": "Rent a car in North York with delivery to Yonge and Sheppard, Willowdale, Bayview Village, Don Mills or York University. Confirmed before you pay.",
+    "h1": "Car rental in North York, from Willowdale to Don Mills",
+    "intro": "North York straddles the 401, with Yorkdale and the 400 on its west side and the 404 and the Don Valley Parkway on its east. CarmaCars delivers rental cars to condos around Yonge and Sheppard and North York Centre, houses in Willowdale, Bayview Village and Don Mills, and homes near York University. Choose a car below and send a request with your dates and address. We confirm the car and the full price in an offer, and you pay only after you approve it.",
+    "sections": [
+     {
+      "heading": "Condos on Yonge, houses off it",
+      "body": "A lot of our North York renters live in the towers along Yonge Street, where visitor parking is short and busy. Tell us the building's rules in your request and we time the handover to fit. In Willowdale or Don Mills we can meet you in the driveway. The car's delivery fee covers the trip to you, and we can collect the car again at the end for its return pickup fee."
+     },
+     {
+      "heading": "The 401 and the subway",
+      "body": "The 401 cuts through the middle of North York and is very busy at rush hour, so leave time for airport runs. The 404 and the Don Valley Parkway begin near Don Mills, and Allen Road links the 401 with midtown. On the subway, Line 1 stops at Sheppard and North York Centre, and Line 4 Sheppard runs east to Don Mills. We can meet you near a station if that is easier."
+     },
+     {
+      "heading": "Renting for weeks at a time",
+      "body": "Students near York University and people between homes often keep a car for several weeks. A rental of {{weekFrom}} days or more is priced at the weekly rate, and a booking can run up to {{maxDays}} days at the monthly rate. A rental day is 24 hours from the pickup time, so pick a start time that suits the way you will return the car."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you deliver near York University?",
+      "answer": "Yes. We deliver to residences and homes nearby, and we can agree a meeting point when parking is hard."
+     },
+     {
+      "question": "Can I collect the car near a subway stop?",
+      "answer": "Yes. Tell us which Line 1 or Line 4 Sheppard station suits you, and we agree a safe place nearby."
+     },
+     {
+      "question": "How long is a rental day?",
+      "answer": "24 hours from your pickup time. The shortest rental is one day."
+     },
+     {
+      "question": "How do I return the car?",
+      "answer": "We collect it from your address for the car's return pickup fee, or you bring it back to our location at no charge."
+     },
+     {
+      "question": "Do you deliver to Bayview Village?",
+      "answer": "Yes, to any address in North York, for the car's delivery fee."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "oakville",
+   "copy": {
+    "seo_title": "Car Rental in Oakville | CarmaCars",
+    "meta_description": "Rent a car in Oakville with delivery to Bronte, Glen Abbey, River Oaks, Joshua Creek or Downtown Oakville, or meet us near Oakville GO.",
+    "h1": "Car rental in Oakville, at home or at the GO station",
+    "intro": "Oakville sits on the lake west of Mississauga, with the QEW along its south side, the 403 through the middle and the 407 ETR across the north. CarmaCars delivers rental cars to homes in Downtown Oakville, Bronte, Glen Abbey, River Oaks, Joshua Creek and Palermo. If you ride the GO train, we can meet you near Oakville GO or Bronte GO instead. Send a request with your dates and the place, and you pay only after we confirm the car and the price.",
+    "sections": [
+     {
+      "heading": "Meeting a GO train",
+      "body": "The GO Lakeshore West line stops at Oakville and Bronte stations. Put your train and arrival time in the request, and we agree a spot near the station where the car can stop for a few minutes. It is an easy way to start a weekend away without driving out of Toronto first, and you can end the rental the same way on your return."
+     },
+     {
+      "heading": "QEW, 403 and 407 ETR",
+      "body": "The QEW is the main road toward Toronto and Niagara and fills up at rush hour. The 403 links Oakville with Mississauga, and the 407 ETR crosses the north end of town as a toll road with no booths. Its tolls are billed to the car's plate after the trip, and we pass them on at cost with a {{tollFee}} fee for each notice."
+     },
+     {
+      "heading": "Delivery to your home",
+      "body": "For a house, we meet you in the driveway at the time in your offer. We check your licence and card, walk around the car with you and photograph its condition. Families heading to Bronte Creek Provincial Park, students near Sheridan College and visitors staying by the Oakville harbour can all book this way. At the end we collect the car, or you return it to our location at no charge."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can you meet me at Oakville GO?",
+      "answer": "Yes. Tell us your arrival time and we agree a meeting point near the station."
+     },
+     {
+      "question": "Can I take the car to Niagara?",
+      "answer": "Yes. The car can go anywhere in Ontario. Driving into the United States needs our written agreement first."
+     },
+     {
+      "question": "Do you deliver to Glen Abbey and Bronte?",
+      "answer": "Yes, to any address in Oakville, for the car's delivery fee."
+     },
+     {
+      "question": "What comes with the rental?",
+      "answer": "Third-party liability coverage, roadside assistance and the kilometres shown on each car's page. HST is added."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "pearson-airport-yyz",
+   "copy": {
+    "seo_title": "Toronto Pearson (YYZ) Car Rental | CarmaCars",
+    "meta_description": "Car rental at Toronto Pearson (YYZ): we meet you at Terminal 1 or Terminal 3 with your car. No counter, and your price is confirmed before you pay.",
+    "h1": "Car rental at Toronto Pearson Airport (YYZ)",
+    "intro": "Toronto Pearson has two passenger terminals, Terminal 1 and Terminal 3, and no CarmaCars counter at either one. Instead we bring the car to you. Send a request with your airline, flight and terminal, and we reply with an offer that names the car, the full price and the meeting point. When you land, you call or message us and we meet you with the keys. You can also end a rental at Pearson before your flight home.",
+    "sections": [
+     {
+      "heading": "Meeting you at the terminal",
+      "body": "Before pickup we confirm the meeting point at your terminal and how to reach us when you land. Flights move, so tell us if yours is early or late and we plan around the new time. At the handover we check your licence and the card you paid with, walk around the car with you and note its condition. Ending at Pearson works the same way in reverse: we agree a time and place and take the car from you."
+     },
+     {
+      "heading": "Driving away from Pearson",
+      "body": "The 409 connects the terminals with the 427 and the 401. The 427 heads south toward Etobicoke and the Gardiner Expressway into downtown, and the 401 runs east and west just south of the airport. The 407 ETR is close to the north. It has no booths, so its toll is billed to the car's plate and passed on to you at cost plus {{tollFee}} for each notice."
+     },
+     {
+      "heading": "Taking the train first",
+      "body": "If you would rather not drive straight from the airport, the UP Express runs from Pearson to Union Station, and the Terminal Link train connects Terminal 1 and Terminal 3. We can deliver the car to your hotel or home in the city instead, and you skip the airport handover. Pearson is in Mississauga, so homes there and in Etobicoke and Brampton are a short drive."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Is there a CarmaCars counter at Pearson?",
+      "answer": "No. We meet you with the car at a point we confirm before pickup, or deliver it to your hotel or home."
+     },
+     {
+      "question": "What if my flight is late?",
+      "answer": "Send us the new arrival time and we plan the handover around it, as agreed in your offer."
+     },
+     {
+      "question": "Can I end the rental at the airport?",
+      "answer": "Yes. We collect the car at Pearson at a time and place we agree. Any airport surcharge is shown in your offer."
+     },
+     {
+      "question": "Do you serve both terminals?",
+      "answer": "Yes, Terminal 1 and Terminal 3. Tell us your terminal in the request."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "richmond-hill",
+   "copy": {
+    "seo_title": "Car Rental in Richmond Hill | CarmaCars",
+    "meta_description": "Rent a car in Richmond Hill with delivery to Mill Pond, Bayview Hill, Elgin Mills, Oak Ridges or Richmond Hill Centre. Price confirmed before you pay.",
+    "h1": "Car rental in Richmond Hill, delivered along Yonge Street",
+    "intro": "Richmond Hill runs north along Yonge Street, from Highway 7 and the 407 ETR up to Lake Wilcox and Oak Ridges. CarmaCars delivers rental cars to houses in Mill Pond, Bayview Hill and Elgin Mills, homes in Oak Ridges and condos around Richmond Hill Centre. Choose a car below and send a request with your dates and address. We reply with an offer for the car and the full price, and you sign and pay online only when you agree.",
+    "sections": [
+     {
+      "heading": "Driveways and condo visitor spots",
+      "body": "For a house we meet you in the driveway. For a condo near Highway 7 and Richmond Hill Centre we use the visitor parking, so add its rules to your request. We confirm the handover time in your offer, check your licence and card, walk around the car with you and photograph its condition. Then the keys are yours."
+     },
+     {
+      "heading": "North, south and the 407 ETR",
+      "body": "The 404 on the east side of town is the quick way south to Toronto or north toward the lakes. Yonge Street and Highway 7 are free and slower. The 407 ETR crosses the south end with no booths, so the toll is billed to the car's plate and reaches us later. We pass it on at cost plus {{tollFee}} for each notice. Commuters on the GO Richmond Hill line or the Viva Blue bus can ask to meet near their stop."
+     },
+     {
+      "heading": "Kilometres and timing",
+      "body": "Each car's page shows its daily kilometre allowance. It is added up over the days you book, so a long Saturday drive can be balanced by a short Sunday. If your plans change and you will be late back, tell us early: late returns follow the rules on the car's page and in the agreement. Shoppers at Hillcrest Mall and families out to Lake Wilcox can book by the day."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you deliver in Oak Ridges?",
+      "answer": "Yes, to any address in Richmond Hill, for the car's delivery fee."
+     },
+     {
+      "question": "Can I pick the car up from you?",
+      "answer": "Yes. Collecting the car at our location costs nothing."
+     },
+     {
+      "question": "How do kilometres work?",
+      "answer": "Each car's page shows its daily allowance, added up over the days you book and used however you like."
+     },
+     {
+      "question": "What if I am late returning the car?",
+      "answer": "Tell us as early as you can. Late returns are charged under the rules on each car's page and in the agreement."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "scarborough",
+   "copy": {
+    "seo_title": "Car Rental in Scarborough | CarmaCars",
+    "meta_description": "Rent a car in Scarborough with delivery to Agincourt, Malvern, Guildwood, Birch Cliff or near Scarborough Town Centre. Confirmed before you pay.",
+    "h1": "Car rental in Scarborough, delivered to your home",
+    "intro": "Scarborough is spread out, and some trips are far simpler by car: the Toronto Zoo, the Scarborough Bluffs, the University of Toronto Scarborough or a relative on the other side of the city. CarmaCars delivers rental cars to homes in Agincourt, Malvern, Guildwood, Birch Cliff and Cliffside, and to meeting points near Scarborough Town Centre. Choose a car below and send a request. We confirm the car and the full price in an offer before you pay anything.",
+    "sections": [
+     {
+      "heading": "Where the handover happens",
+      "body": "At a house we usually meet you in the driveway. In an apartment building, tell us how visitor parking works. If neither suits, the large parking areas around Scarborough Town Centre make an easy place to stop. We check your licence and card, walk around the car with you while we photograph its condition, and show you the controls before you drive away."
+     },
+     {
+      "heading": "Roads out of Scarborough",
+      "body": "The 401 crosses Scarborough east to west and connects with the Don Valley Parkway for downtown. Kingston Road follows the lake past Birch Cliff, Cliffside and Guildwood. Line 2 of the subway ends at Kennedy, and the Scarborough GO stations serve the south of the area, so a car is often the quickest way to the eastern edge of the city and the zoo."
+     },
+     {
+      "heading": "Young drivers in Scarborough",
+      "body": "Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, and each car's page says whether it takes drivers aged {{youngA}}. Drivers under {{fullAge}} pay a young driver fee for each day, shown on the car's page and in your offer. Students near the university campus often book this way for a weekend or a move."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do you deliver anywhere in Scarborough?",
+      "answer": "Yes, to any address, for the car's delivery fee. We can also meet you near Scarborough Town Centre."
+     },
+     {
+      "question": "Can I rent if I am under {{fullAge}}?",
+      "answer": "Yes, from {{minAge}} with an Ontario {{licence}} licence. A young driver fee applies for each day."
+     },
+     {
+      "question": "Can I drive outside Toronto?",
+      "answer": "Yes, anywhere in Ontario. Leaving the province needs our written agreement first."
+     },
+     {
+      "question": "What if the car breaks down?",
+      "answer": "Roadside assistance comes with every rental. Call the number on your agreement and help is arranged."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "toronto",
+   "copy": {
+    "seo_title": "Car Rental in Toronto | CarmaCars",
+    "meta_description": "Car rental in Toronto from CarmaCars: pickup at our location or delivery to your address, a day to {{maxDays}} days, price confirmed before you pay.",
+    "h1": "Car rental in Toronto, at our location or your door",
+    "intro": "CarmaCars is a Toronto car rental company with a fleet we know car by car. Choose one on this page, send a request with your dates, and we reply with an offer: the car, the full price, the deposit and the kilometres included. Nothing is charged until you approve it. We hand every car over in person, at our location or at your address anywhere in the city, from Downtown to North York and from Etobicoke to Scarborough, for a day or up to {{maxDays}} days.",
+    "sections": [
+     {
+      "heading": "From request to keys",
+      "body": "Your request is free and does not hold the car. We check the dates and send an offer. If you approve it, you sign the rental agreement online and pay, and the car is booked. Before pickup we check your licence and identity. On the day, we meet you with the car, walk around it with you and record its condition with photos, so the state of the car is clear to both of us from the start."
+     },
+     {
+      "heading": "Toronto roads and the 407 ETR",
+      "body": "The 401 crosses the top of the city, the Gardiner Expressway and the Don Valley Parkway lead downtown, and the 427, the 400 and the 404 run north to the suburbs. Weekday mornings and late afternoons are the slowest times. The 407 ETR runs north of the city and bills by camera, so the toll comes to us. We pass it on at cost with a {{tollFee}} fee for each toll notice."
+     },
+     {
+      "heading": "Pickup or delivery",
+      "body": "Collecting the car from our location costs nothing. Delivery to a home, office, hotel or condo anywhere in Toronto costs the delivery fee on each car's page. Give us the address, a time and, for a tower, the visitor parking or loading dock details, so the handover takes minutes. If you arrive by TTC subway Line 1 or Line 2, or at Union Station, we can agree a meeting point nearby."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I rent with a G2 licence?",
+      "answer": "Yes. We accept an Ontario {{licence}} licence for every car. Drivers {{minAge}} and older can rent, and drivers under {{fullAge}} pay a young driver fee for each day."
+     },
+     {
+      "question": "Do you deliver across Toronto?",
+      "answer": "Yes. We deliver to any address in the city for the car's delivery fee, and we can collect the car from you at the end."
+     },
+     {
+      "question": "Is the request free?",
+      "answer": "Yes. It does not hold the car, and you pay only after we confirm the car and the price and you approve the offer."
+     },
+     {
+      "question": "How are 407 ETR tolls billed?",
+      "answer": "The toll is billed to the car's plate. We charge you the toll at cost plus {{tollFee}} for each notice, after the rental."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "union-station",
+   "copy": {
+    "seo_title": "Car Rental at Union Station, Toronto | CarmaCars",
+    "meta_description": "Arriving at Union Station by GO, VIA Rail or the UP Express? We meet you near the station on Front Street with your rental car.",
+    "h1": "Car rental at Union Station, Toronto",
+    "intro": "Union Station on Front Street is where GO Transit, VIA Rail, the UP Express to Pearson and TTC Line 1 come together. If you arrive by train and need a car for the rest of the trip, CarmaCars meets you close to the station with it. Send a request with your train and arrival time. We confirm the car, the full price and a meeting point in an offer, and you pay only once you approve it.",
+    "sections": [
+     {
+      "heading": "A safe place to stop",
+      "body": "Front Street outside the station is crowded and has almost nowhere for a car to wait, so we agree a nearby spot where it can stand for a few minutes. The details come with your offer, along with how to reach us when you arrive. The handover is short: we check your licence and card, walk around the car with you while we photograph its condition, and hand you the keys."
+     },
+     {
+      "heading": "When your train is late",
+      "body": "VIA Rail, GO trains and the UP Express all run to a timetable, and sometimes they run behind it. Message us if yours is late and we adjust the meeting time with you. If you would rather not drive in the downtown core at all, ask us to deliver the car to your hotel or home instead, and take the subway there first."
+     },
+     {
+      "heading": "Ending the trip at Union",
+      "body": "You can finish the rental near the station too, before a train out of the city. Choose the station as your return place in the request and we agree the time and spot. Leave a few minutes for the walk-around, bring the car back with the fuel it had at pickup, and you are on the platform without a detour. Billy Bishop airport is a short distance away if you are flying instead."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can you meet me at Union Station?",
+      "answer": "Yes, at a nearby meeting point we confirm with your offer, where the car can stop safely."
+     },
+     {
+      "question": "Can I return the car near the station?",
+      "answer": "Yes. We can collect it near Union Station or at your address, as agreed in your offer."
+     },
+     {
+      "question": "What should I bring?",
+      "answer": "Your original licence and the credit card you paid with."
+     },
+     {
+      "question": "Can I drive the car out of Ontario?",
+      "answer": "Only with our written agreement first. Ask in your request."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "vaughan",
+   "copy": {
+    "seo_title": "Car Rental in Vaughan | CarmaCars",
+    "meta_description": "Rent a car in Vaughan with delivery to Woodbridge, Maple, Concord, Kleinburg or Thornhill, or meet us at Vaughan Metropolitan Centre station.",
+    "h1": "Car rental in Vaughan, from Woodbridge to Kleinburg",
+    "intro": "Vaughan is where the 400 meets the 407 ETR and where subway Line 1 ends, a place that is easy with a car and slow without one. CarmaCars delivers rental cars to homes in Woodbridge, Maple, Concord, Thornhill and Kleinburg. If you ride Line 1 north from the city, we can meet you near Vaughan Metropolitan Centre station. Choose a car below and send your request, and you pay only after we confirm the car and the full price.",
+    "sections": [
+     {
+      "heading": "Picking up at the end of Line 1",
+      "body": "Living in Toronto without a car? Take Line 1 to Vaughan Metropolitan Centre and collect your rental there, and you are on Highway 7 and the 400 within minutes instead of crawling out of downtown. Say in your request that you are coming by subway and when, and we agree a spot near the station where the car can stop. GO Barrie line and Viva riders can ask for a stop nearby too."
+     },
+     {
+      "heading": "Wonderland, Vaughan Mills and the 400",
+      "body": "Canada's Wonderland and Vaughan Mills are close by, and the 400 is the main road north to cottage country. For a weekend away, check each car's weekend day rate and its kilometres included: the allowance is added up over the whole rental, so a long Friday drive can be balanced by a quiet Saturday. The 427 reaches the city's west end and the airport side."
+     },
+     {
+      "heading": "Tolls on the 407 ETR",
+      "body": "The 407 ETR crosses Vaughan from east to west and has no toll booths. A camera reads the plate, and the toll is billed to us after your trip. We charge it to you at cost plus {{tollFee}} for each notice, on a statement after the rental. Highway 7 runs alongside and costs nothing, if you have a little more time."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I collect a car at Vaughan Metropolitan Centre station?",
+      "answer": "Yes. Tell us your arrival time and we agree a meeting point near the station."
+     },
+     {
+      "question": "Can I drive to cottage country?",
+      "answer": "Yes, anywhere in Ontario. Check the kilometres included on the car's page and plan the trip around them."
+     },
+     {
+      "question": "Do you deliver to Woodbridge and Maple?",
+      "answer": "Yes, to any address in Vaughan, for the car's delivery fee."
+     },
+     {
+      "question": "What do I need at pickup?",
+      "answer": "Your original licence and the credit card you paid with. We check both before handing over the keys."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "airport",
+   "copy": {
+    "seo_title": "Toronto Airport Car Rental, YYZ and YTZ | CarmaCars",
+    "meta_description": "Airport car rental in Toronto: your car is brought to Pearson (YYZ) Terminal 1 or 3, or to Eireann Quay for Billy Bishop (YTZ).",
+    "h1": "Airport car rental in Toronto: Pearson and Billy Bishop",
+    "intro": "CarmaCars delivers rental cars to both Toronto airports. At Toronto Pearson (YYZ) we meet you at Terminal 1 or Terminal 3, and for Billy Bishop (YTZ) we wait on the mainland at Eireann Quay at the foot of Bathurst Street. There is no counter to queue at and no shuttle bus to a lot. Send a request with your flight, and your offer confirms the car, the full price and where we meet. Each car's page shows its delivery fee, and an airport surcharge may apply.",
+    "sections": [
+     {
+      "heading": "Pearson or Billy Bishop",
+      "body": "Pearson is the large airport west of the city, near the 401 and the 427, and we meet you at the terminal you land at. Billy Bishop is on the Toronto Islands, where cars do not go. You walk through the tunnel or take the ferry to the mainland, and we meet you at Eireann Quay. Each airport has its own page with the details of the handover."
+     },
+     {
+      "heading": "Booking around your flight",
+      "body": "Add your airline and flight number to the request, and send it at least {{notice}} before you land. If the flight moves, message us and we shift the handover to the new time, as agreed in your offer. At the meeting we check your licence and card, walk around the car with you and photograph its condition. Then you load your bags and go."
+     },
+     {
+      "heading": "Returning before you fly",
+      "body": "Pick the airport as your return place and we agree a time with you. Leave enough of a margin for the final walk-around and for check-in. Bring the car back with the fuel or charge it had at pickup, so no refuelling charge is added to your statement, and clear out your things before we meet."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Is there a rental desk at the airport?",
+      "answer": "No. We meet you with the car at your Pearson terminal, or at Eireann Quay for Billy Bishop, at the time in your offer."
+     },
+     {
+      "question": "What does airport delivery cost?",
+      "answer": "Each car's page shows its delivery fee, and an airport surcharge may apply. Your offer shows the full price before you pay."
+     },
+     {
+      "question": "Can the rental end at the airport?",
+      "answer": "Yes. Choose the airport as the return place in your request, and we collect the car from you there."
+     },
+     {
+      "question": "How far ahead should I book?",
+      "answer": "At least {{notice}} before you land. For holidays and long weekends, earlier is better."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "car-delivery",
+   "copy": {
+    "seo_title": "Car Rental Delivery in Toronto and the GTA | CarmaCars",
+    "meta_description": "We deliver your rental car to your home, condo, hotel or office in Toronto and the GTA, and collect it at the end. Or pick it up from us at no charge.",
+    "h1": "Car rental delivered to your home, hotel or office",
+    "intro": "With CarmaCars you never have to cross the city to fetch a rental. We bring the car to the address you choose: a home, a condo, a hotel or an office, and Toronto Pearson or Billy Bishop airport too. At the end we can collect it again. Each car's page shows its delivery fee and its return pickup fee, so you know the cost before you send a request. If you prefer, you can collect the car from our location yourself at no charge.",
+    "sections": [
+     {
+      "heading": "What happens on delivery day",
+      "body": "Put the address and a time window in your request, and we confirm both in the offer with the delivery fee included in the price. On the day, a member of our team arrives with the car, checks your licence and the card you paid with, and walks around the car with you while we photograph its condition. We show you the controls, hand over the keys and leave you to it."
+     },
+     {
+      "heading": "Getting the place right",
+      "body": "Tell us what we will find when we arrive. In a condo, that means visitor parking and how the concierge handles it. At a hotel, the valet lane or a lot nearby. At an office, the parking lot or loading area. The more we know, the shorter the handover. For airports, delivery is priced in your offer and an airport surcharge may apply."
+     },
+     {
+      "heading": "Collection when you are done",
+      "body": "When the rental ends we can collect the car from the same address or a different one, for the car's return pickup fee. Leave it with the fuel or charge it had at pickup and take your belongings out. We check the car with you and photograph it again. If you cannot be there, tell us in advance and we agree where the keys will be."
+     }
+    ],
+    "faq": [
+     {
+      "question": "How much is delivery?",
+      "answer": "Each car's page shows its delivery fee and its return pickup fee. Airport delivery is priced in your offer."
+     },
+     {
+      "question": "Do you deliver outside Toronto?",
+      "answer": "Yes, across the GTA, including Mississauga, Brampton, Vaughan, Markham, Richmond Hill and Oakville."
+     },
+     {
+      "question": "Can I pick the car up myself?",
+      "answer": "Yes. Collecting it from our location costs nothing."
+     },
+     {
+      "question": "Do I need to be home when you collect it?",
+      "answer": "It is best, so we can check the car together. If you cannot be, tell us ahead and we agree where to leave the keys."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "convertible",
+   "copy": {
+    "seo_title": "Convertible Rental in Toronto | CarmaCars",
+    "meta_description": "Rent a convertible in Toronto for summer drives, weekends and special occasions. Every car shows its seats, rates and calendar, delivered to you.",
+    "h1": "Convertible rental in Toronto",
+    "intro": "Some drives are the point of the day: the lakeshore on a warm evening, a weekend out of the city, a birthday or an anniversary. The convertibles on this page are in our fleet now, and each one has its own photos, seats, rates and calendar. Send a request with your dates. We reply with an offer for that car and the full price, then deliver it to your door or hand it over at our location once you approve.",
+    "sections": [
+     {
+      "heading": "Fewer seats, smaller trunk",
+      "body": "A folding roof has to go somewhere, and usually it takes up part of the trunk. Many convertibles also seat fewer people than a sedan of the same size. Check each car's page for its seats before you plan a trip for a group or with a lot of luggage. If you need room for more people or bags, an SUV or a sedan may serve you better."
+     },
+     {
+      "heading": "Summer weekends go first",
+      "body": "Warm weekends are when convertibles are most wanted, and a request does not hold the car until you approve the offer, sign and pay. A rental day that starts on a Friday or a Saturday is charged at the car's weekend day rate. At the handover we show you how the roof opens and closes. Keep it closed whenever the car is parked."
+     },
+     {
+      "heading": "For an occasion",
+      "body": "A convertible is a popular choice for a wedding, a graduation or a milestone birthday. Tell us the date and the addresses, and we can bring the car to your home or the venue and collect it afterwards. Ask us before adding decorations that could mark the paint."
+     }
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in a convertible?",
+      "answer": "It depends on the car. Each car's page shows its seats."
+     },
+     {
+      "question": "Are weekend days priced differently?",
+      "answer": "Yes. A rental day that starts on a Friday or a Saturday uses the car's weekend day rate."
+     },
+     {
+      "question": "Can a convertible be delivered?",
+      "answer": "Yes, to your address in Toronto and the GTA, for the delivery fee on the car's page."
+     },
+     {
+      "question": "Can I book one for a wedding?",
+      "answer": "Yes. Send the date and the addresses in your request, and we confirm delivery and collection in the offer."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "economy",
+   "copy": {
+    "seo_title": "Cheap Car Rental in Toronto, Economy Cars | CarmaCars",
+    "meta_description": "Economy and standard car rental in Toronto: sedans with seats for five, the lowest daily rate first. Price confirmed before you pay.",
+    "h1": "Cheap and economy car rental in Toronto",
+    "intro": "Most trips do not need a big car. Errands, a commute while yours is in the shop, a visit to family across the city: an economy or standard car handles them, parks easily and costs the least to rent. The cars on this page are our economy and standard cars, sorted with the lowest daily rate first. Send a request with your dates, and we confirm the car and the full price in an offer before you pay.",
+    "sections": [
+     {
+      "heading": "What these cars are like",
+      "body": "Our economy and standard cars are compact and mid-size cars with seats for 5 and a trunk that takes a few bags. Each car's page lists its seats, its transmission and the kilometres included each day. Every rental includes third-party liability coverage and roadside assistance, and we hand the car over in person with a walk-around."
+     },
+     {
+      "heading": "Ways to spend less",
+      "body": "Book by the week when you need the car for more than a few days: trips of 1 to {{weekFromLess1}} days are capped at the weekly rate. If your plans are fixed, the non-refundable option in your request takes {{nonRef}} off the rental charge. Collecting the car from our location saves the delivery fee. And a booking can run as long as {{maxDays}} days at the monthly rate."
+     },
+     {
+      "heading": "Who books them",
+      "body": "Students, newcomers, young drivers and anyone who wants a simple car for a few days. Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, and drivers under {{fullAge}} pay a young driver fee for each day. A smaller car is also the easiest to fit into a tight condo garage or a city street space."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Which car costs the least right now?",
+      "answer": "The first car on this page has the lowest daily rate in our fleet today."
+     },
+     {
+      "question": "Is there a discount if my plans are fixed?",
+      "answer": "Yes. A non-refundable booking takes {{nonRef}} off the rental charge, and it is not refunded if you cancel."
+     },
+     {
+      "question": "Can I rent an economy car for a month?",
+      "answer": "Yes. Every car has a monthly rate, and a booking can run up to {{maxDays}} days."
+     },
+     {
+      "question": "Are they automatic?",
+      "answer": "Each car's page shows its transmission."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "exotic",
+   "copy": {
+    "seo_title": "Exotic Car Rental in Toronto | CarmaCars",
+    "meta_description": "Exotic car rental in Toronto: the cars listed are in our fleet now, with photos of the actual car, its rates, deposit and calendar.",
+    "h1": "Exotic car rental in Toronto",
+    "intro": "Every exotic car on this page is one we have in the fleet today, shown in photos of that very car with its own rates, deposit and calendar. If nothing is listed, nothing is available: we do not show cars we cannot rent you. Send a request with your dates and we confirm the car and the full price in an offer before anything is charged. Exotic cars carry a larger deposit, taken about {{depLead}} before pickup and never at the moment you book.",
+    "sections": [
+     {
+      "heading": "Read the car's page first",
+      "body": "Each exotic car has its own deposit, its own kilometres included and its own driver rules, and some take only older drivers. All of that is on the car's page. You also need an Ontario {{licence}} licence and a credit card in your name for the payment and the deposit. Drivers {{minAge}} and older can rent our cars where the page allows it."
+     },
+     {
+      "heading": "An in-person handover",
+      "body": "We hand the car over at our location or at your address in Toronto and the GTA. We walk around it with you, photograph its condition and take the time to show you how it works before you set off. Ask anything you need to. At the end we collect it from you, or you bring it back to our location at no charge, and we check it together again."
+     },
+     {
+      "heading": "Planning the day",
+      "body": "Exotic cars are booked for weekends, celebrations and the occasional business trip. Plan the route around the kilometres included on the car's page, and remember that parking matters more with a car like this: a private driveway or a supervised garage is the better choice overnight. Ask us in your request if you want the car delivered to a venue."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Is the deposit larger for an exotic car?",
+      "answer": "Yes. Each car's page shows its deposit. It is taken about {{depLead}} before pickup and released after the return."
+     },
+     {
+      "question": "Are the photos of the real car?",
+      "answer": "Yes. The photos on each car's page show that car."
+     },
+     {
+      "question": "Can young drivers rent one?",
+      "answer": "Drivers {{minAge}} and older can rent our cars, but some exotic cars take only older drivers. Each car's page says which drivers it accepts."
+     },
+     {
+      "question": "Can you deliver an exotic car to an event?",
+      "answer": "Yes. Give us the address and time in your request, and we confirm it in your offer."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "insurance-included",
+   "copy": {
+    "seo_title": "Toronto Car Rental, Insurance Comes With the Car | CarmaCars",
+    "meta_description": "Rent a car in Toronto that comes with its owner's insurance: for the cars on this page you need no auto policy of your own. Price confirmed first.",
+    "h1": "Toronto car rental where the car comes with its own insurance",
+    "intro": "Some of the cars we rent come with the owner's insurance, so the renter does not need an auto policy of their own. Only those cars appear on this page. Each one says so on its page, and your offer confirms it before you pay. If no car is listed right now, none is available on these terms at the moment. Check back, or browse the whole fleet and read each car's requirements.",
+    "sections": [
+     {
+      "heading": "What it means when you rent",
+      "body": "For the cars listed here, you do not have to bring proof of a personal auto policy to rent them. The car's page and your offer spell out what applies, so read both before you approve. Third-party liability coverage is part of every rental with us. If anything on the car's page is unclear, ask in your request and we answer before you commit."
+     },
+     {
+      "heading": "The rest of the rental is the same",
+      "body": "You need an Ontario {{licence}} licence valid for the whole rental, and you upload photos of it and a selfie before pickup. The deposit shown on the car's page is taken about {{depLead}} before pickup and released after the return. Young driver fees, the kilometres included, tolls and fuel follow the same rules as on every other car in the fleet."
+     },
+     {
+      "heading": "Who chooses these cars",
+      "body": "Renters without a car of their own, newcomers to Ontario and people whose own policy does not extend to rentals often look for this kind of car first. If you are also short of a credit card, or a young driver, see the pages for those rentals too: the rules can combine, and each car's page shows which apply."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do I need my own auto policy for these cars?",
+      "answer": "No. For the cars listed here, the owner's insurance comes with the car, and the car's page says so."
+     },
+     {
+      "question": "Is there still a deposit?",
+      "answer": "Yes. Each car's page shows its deposit, taken about {{depLead}} before pickup."
+     },
+     {
+      "question": "Why are only some cars listed?",
+      "answer": "Only cars whose owner's insurance comes with the car appear here. Other cars have their own requirements on their pages."
+     },
+     {
+      "question": "What if no car is listed?",
+      "answer": "Then none is available on these terms right now. Check back, or look through the full fleet."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "insurance-replacement",
+   "copy": {
+    "seo_title": "Insurance Replacement Car Rental in Toronto | CarmaCars",
+    "meta_description": "Need a car while yours is repaired after a claim? We can bill your insurer directly for the days your adjuster approves, and deliver the car to you.",
+    "h1": "Insurance replacement rental while your car is off the road",
+    "intro": "After a collision or a theft, your auto policy may pay for a replacement car while your own is repaired. CarmaCars can bill your insurance company directly for the days your adjuster approves. We can deliver the car to your home, your work or the body shop where your car is, and collect it once yours is ready. You pay only the part your insurer does not, such as the deposit or any days past the approval.",
+    "sections": [
+     {
+      "heading": "What to get from your adjuster",
+      "body": "Ask your adjuster for the claim number, the number of authorized days and the daily limit. Send them with your request, or ask the adjuster or the shop to contact us directly. We confirm the car and the dates, then invoice your insurer for the approved part. If the approval changes, the adjuster tells us and we update the rental."
+     },
+     {
+      "heading": "What we need from you",
+      "body": "The same as any rental with us: a valid Ontario {{licence}} licence, a credit card in your name for the deposit, and your signature on the rental agreement. If the repair runs past the approved days, tell both us and your adjuster early. Extra days are yours to pay unless the insurer extends the approval."
+     },
+     {
+      "heading": "Delivery to wherever you are",
+      "body": "When you drop your car at the shop, you should not be left without one. We can meet you there with the replacement, or bring it to your home or work. When the repair is finished, we collect our car from the address that suits you, for the car's return pickup fee, or you can bring it to our location."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Will my insurer pay for the rental?",
+      "answer": "It depends on your policy and the claim. Your adjuster can tell you how many days are approved and the daily limit."
+     },
+     {
+      "question": "Can you bill my insurance company directly?",
+      "answer": "Yes, for the days and the daily limit your adjuster approves. You pay the deposit and anything the insurer does not."
+     },
+     {
+      "question": "Can you bring the car to the body shop?",
+      "answer": "Yes, to any address in Toronto and the GTA, for the car's delivery fee."
+     },
+     {
+      "question": "What if the repair takes longer?",
+      "answer": "Ask your adjuster to extend the approval. Days past the approval are charged to you at the car's rates."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "luxury",
+   "copy": {
+    "seo_title": "Luxury Car Rental in Toronto | CarmaCars",
+    "meta_description": "Luxury car rental in Toronto: Mercedes-Benz, BMW and Porsche from our own fleet, with photos of each car, its rates, deposit and calendar.",
+    "h1": "Luxury car rental in Toronto",
+    "intro": "A wedding, a client to impress, an anniversary, or a car you have wanted to drive for years: sometimes the car is part of the plan. The premium, luxury and exotic cars on this page are in our fleet now, including Mercedes-Benz, BMW and Porsche, each shown in photos of that very car with its rates, deposit and calendar. Send a request and we reply with an offer for the car and the full price before you pay.",
+    "sections": [
+     {
+      "heading": "How a luxury rental differs",
+      "body": "Premium and luxury cars carry a larger deposit. It is shown on each car's page and taken about {{depLead}} before pickup, never when you book. Otherwise the rules are the ones you would expect: an Ontario {{licence}} licence, a credit card in your own name, and the requirements listed on the car's page. Drivers {{minAge}} and older can rent, with a young driver fee under {{fullAge}}."
+     },
+     {
+      "heading": "For weddings and events",
+      "body": "Tell us the date, the addresses and whether the car will be parked for photos. We can deliver it to the venue or your home and collect it after the day is over. Ribbons, tape or anything tied to the body can mark the paint, so ask us before you decorate the car."
+     },
+     {
+      "heading": "Handed over in person",
+      "body": "Wherever you are in Toronto or the GTA, we meet you with the car, walk around it with you and photograph its condition. Use that moment to ask how the car's features work. When the rental ends we collect the car, or you bring it back to our location at no charge, and we check it with you again. Downtown hotels and condos are a common place for this handover."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Is the deposit higher for luxury cars?",
+      "answer": "Yes. Each car's page shows its deposit, taken about {{depLead}} before pickup and released after the return."
+     },
+     {
+      "question": "Can I book a luxury car for my wedding?",
+      "answer": "Yes. Tell us the date and the addresses, and we can deliver the car to the venue or your home."
+     },
+     {
+      "question": "Can drivers aged {{youngA}} rent these cars?",
+      "answer": "Some can. Each car's page says whether it takes drivers aged {{youngA}}."
+     },
+     {
+      "question": "Are the photos of the actual car?",
+      "answer": "Yes. The photos on each car's page show that car."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "minivan",
+   "copy": {
+    "seo_title": "Minivan and 7 Seat Rental in Toronto | CarmaCars",
+    "meta_description": "Rent a minivan or a 7 or 8 seat car in Toronto for families, groups and airport runs with luggage. One car instead of 2, delivered to your door.",
+    "h1": "Van and minivan rental in Toronto, 7 seats and up",
+    "intro": "When there are more than 5 of you, one car with 7 or 8 seats beats driving 2. The cars on this page all have 7 or more seats, for families, groups and airport runs with luggage. Each has its own page with its seats, rates and calendar. Send a request with your dates, and we confirm the car and the full price in an offer. Then we deliver it to your door, or you collect it from our location.",
+    "sections": [
+     {
+      "heading": "People first, then bags",
+      "body": "With every seat in use, the space behind the third row is limited. For an airport run with a full car and a suitcase each, check the luggage details on each car's page before you choose. Baby seats are {{baby}} a day each, capped at {{babyCap}}, and you can ask for them in your request so they are fitted when the car arrives."
+     },
+     {
+      "heading": "Visits, weddings and group trips",
+      "body": "Big cars are booked when relatives fly in, for weddings, and for group trips to Niagara or a cottage. A rental of {{weekFrom}} days or more is priced at the weekly rate, which usually works out better than paying day by day for a long visit. We can also bring the car to Toronto Pearson for an airport pickup, priced in your offer."
+     },
+     {
+      "heading": "Sharing the driving",
+      "body": "On a long drive it helps to take turns. Add each driver to your request: every driver meets the same rules and signs the agreement, and each one adds {{addDrvPct}} of the daily rate for each day. Only drivers named in the agreement may drive, so add everyone who will take the wheel before pickup."
+     }
+    ],
+    "faq": [
+     {
+      "question": "How many people fit?",
+      "answer": "7 or 8, depending on the car. Each car's page shows its seats."
+     },
+     {
+      "question": "Can I add baby seats?",
+      "answer": "Yes. Ask in your request. Each baby seat is {{baby}} a day, capped at {{babyCap}}."
+     },
+     {
+      "question": "Can you bring a minivan to the airport?",
+      "answer": "Yes. Airport delivery is priced in your offer."
+     },
+     {
+      "question": "Can more than one person drive?",
+      "answer": "Yes. Add each driver to the request. Every driver meets the same rules and signs the agreement."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "monthly",
+   "copy": {
+    "seo_title": "Monthly Car Rental in Toronto, Long Term | CarmaCars",
+    "meta_description": "Monthly and long-term car rental in Toronto. One booking runs up to {{maxDays}} days, renews with a new agreement, and the deposit carries over.",
+    "h1": "Monthly and long-term car rental in Toronto",
+    "intro": "A month with a car covers a lot of situations: you have just moved to Toronto, your own car is off the road, a contract has you here for a while, or family is staying for the season. Every car on this page has a monthly rate for {{maxDays}} days, shown on its card and its page. Send a request with your dates, and we confirm the car and the full price in an offer. We deliver it to your door, and you can renew when the period ends.",
+    "sections": [
+     {
+      "heading": "How the monthly rate is applied",
+      "body": "A single booking runs up to {{maxDays}} days. Any trip of {{weekFrom}} to {{maxDaysLess1}} days is capped at the car's monthly rate, so booking a little less than a full period never costs more than the whole. Your kilometres are the car's daily allowance multiplied by the days you book, and you can use them however you like. HST is added to the rate."
+     },
+     {
+      "heading": "Renewing for another period",
+      "body": "Before the rental ends, tell us you want to keep the car. We prepare a new agreement for the next period at the rate in force, you sign it online, and the next payment is taken. The deposit carries over, so nothing has to be handed back and taken again. If you want a different car for the next period, we can swap it at renewal."
+     },
+     {
+      "heading": "When a claim is involved",
+      "body": "If you need the car because yours is being repaired after a collision or a theft, look at the insurance replacement page first. Your insurer may pay for some or all of the rental, and we can bill them directly for the days your adjuster approves. Delivery to your home or the shop works the same way as any other rental."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Is there a minimum for the monthly rate?",
+      "answer": "No. Any trip of {{weekFrom}} to {{maxDaysLess1}} days is capped at the monthly rate, and a full booking is {{maxDays}} days."
+     },
+     {
+      "question": "Can I rent for longer than one booking?",
+      "answer": "Yes. Each booking runs up to {{maxDays}} days, and you renew it with a new agreement before it ends."
+     },
+     {
+      "question": "How does the deposit work on a long rental?",
+      "answer": "For rentals longer than {{holdDays}} days the deposit is charged and refunded after the return. When you renew, it carries over."
+     },
+     {
+      "question": "Are kilometres limited?",
+      "answer": "Each car has a daily allowance, added up over the whole rental. Extra kilometres are charged at the rate on the car's page."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "no-credit-card",
+   "copy": {
+    "seo_title": "Car Rental With No Credit Card in Toronto | CarmaCars",
+    "meta_description": "Rent a car in Toronto without a credit card: on the cars listed here, a debit card in your name pays for the rental and holds the deposit.",
+    "h1": "Car rental in Toronto with no credit card",
+    "intro": "Most of our cars need a credit card in the renter's name. The cars on this page are the exception: a debit card in your own name pays for the rental and holds the deposit. Each of them says no credit card needed on its page, so you can see before you ask. If no car is listed right now, none is available on these terms at the moment. Send a request for a listed car, and you see the full price in an offer before anything is charged.",
+    "sections": [
+     {
+      "heading": "Paying with a debit card",
+      "body": "Pick one of the cars below and send your dates. When we confirm the car and the price, you approve the offer and pay with a debit card in your name. The deposit shown on the car's page comes off the same card about {{depLead}} before pickup and is released after the return, so make sure the account can hold it for the length of the rental."
+     },
+     {
+      "heading": "The other rules still apply",
+      "body": "You still need an Ontario {{licence}} licence valid for the whole rental, and you upload photos of it and a selfie before pickup. At the handover we check the original licence and the card you paid with. The young driver fee, the kilometres included and the rules for tolls and fuel are the same as on every other car."
+     },
+     {
+      "heading": "If you have no credit card yet",
+      "body": "Students, newcomers and people who simply prefer debit are the renters who use this page most. If you are also a young driver, or looking for a car to keep for weeks, the pages for those rentals list the rules that apply. Each car's page shows exactly what it needs, so check it before you send the request."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I rent a car in Toronto without a credit card?",
+      "answer": "Yes, on the cars listed here. A debit card in your name pays for the rental and holds the deposit."
+     },
+     {
+      "question": "When does the deposit come off my debit card?",
+      "answer": "About {{depLead}} before pickup. It is the deposit shown on the car's page, released after the return."
+     },
+     {
+      "question": "Can I pay with someone else's card?",
+      "answer": "No. The card must be in the renter's own name."
+     },
+     {
+      "question": "What if no car is listed?",
+      "answer": "Then none is available on these terms right now. Check back soon."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "suv",
+   "copy": {
+    "seo_title": "SUV Rental in Toronto | CarmaCars",
+    "meta_description": "Rent an SUV in Toronto for families, luggage, winter roads and cottage trips. Most seat 5. Each car shows its seats, drive, rates and calendar.",
+    "h1": "SUV rental in Toronto for families, luggage and winter",
+    "intro": "When the trip involves bags, children, sports gear or a long drive north, most people reach for an SUV. The SUVs on this page are in our fleet now, each with its own photos, seats, drive, rates and calendar. Send a request with your dates. We confirm the car and the full price in an offer, then deliver it to your door or hand it over at our location once you approve.",
+    "sections": [
+     {
+      "heading": "Picking a size",
+      "body": "Compact SUVs carry 4 or 5 people and are easy to park downtown. Most of ours seat 5, and larger models have more space behind the back seats. Some have all-wheel drive, which helps on snowy side streets and cottage roads. Each car's page lists its seats and drive. For more than 5 people, look at our 7 seat cars instead."
+     },
+     {
+      "heading": "Driving in winter",
+      "body": "Roads north of the city can be snowy through the colder months. Winter tires make a real difference, and you can ask for them in your request: the fee is {{winter}} a day, capped at {{winterCap}}. Leave extra time, clear the windows and lights before you set off, and check the forecast before a trip to cottage country."
+     },
+     {
+      "heading": "Children and luggage",
+      "body": "Tell us in your request if you need a baby seat. Each one is {{baby}} a day, capped at {{babyCap}}, and we fit it before the handover. A full car with a roof bag uses more fuel, and the car should come back with the fuel it had at pickup, so plan a stop at the end of the trip."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Do your SUVs have all-wheel drive?",
+      "answer": "Some do. Each car's page lists its drive."
+     },
+     {
+      "question": "Can I get winter tires on an SUV?",
+      "answer": "Ask for them in your request. The winter tire fee is {{winter}} a day, capped at {{winterCap}}."
+     },
+     {
+      "question": "How many people fit in an SUV?",
+      "answer": "Most of ours seat 5. Each car's page shows its seats."
+     },
+     {
+      "question": "Can you deliver an SUV to the airport?",
+      "answer": "Yes. Airport delivery is priced in your offer."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "under-25",
+   "copy": {
+    "seo_title": "Car Rental Under 25 in Toronto | CarmaCars",
+    "meta_description": "Car rental under 25 in Toronto: drivers {{minAge}} and older with an Ontario G or G2 licence can rent every car, with a daily young driver fee.",
+    "h1": "Car rental under 25 in Toronto",
+    "intro": "Being under 25 does not close the door on a rental car at CarmaCars. Every car in our fleet takes drivers {{minAge}} and older with an Ontario {{licence}} licence, G or G2. Drivers under {{fullAge}} pay a young driver fee for each day, and each car shows its own fee on its page, so you know the cost before you ask. Your offer lists the full price with the fee included, and you pay only if you approve it.",
+    "sections": [
+     {
+      "heading": "How the young driver fee works",
+      "body": "There are two age bands, {{youngA}} and {{youngB}}. The usual fee is {{ydA}} a day for the first and {{ydB}} a day for the second, and some cars have their own amount. It is added for each rental day as a separate line in your offer, with no maximum. An additional driver under {{fullAge}} pays it as well, on top of the additional driver fee."
+     },
+     {
+      "heading": "What you bring",
+      "body": "Your Ontario {{licence}} licence, valid for the whole rental, and a credit card in your own name for the payment and the deposit. Before pickup you upload photos of your licence and a selfie, and at the handover we check the original licence and the card. If you are 21 with a G2, that is enough for every car."
+     },
+     {
+      "heading": "Keeping the total down",
+      "body": "A trip of {{weekFrom}} days or more uses the weekly rate, and shorter trips never cost more than it. Collecting the car from our location costs nothing, while delivery adds the car's delivery fee. Bring the car back with the fuel it had, stay within the kilometres included, and skip the 407 ETR unless you are ready to pay its tolls plus {{tollFee}} for each notice."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I rent a car in Toronto if I am under 25?",
+      "answer": "Yes. Drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, and drivers under {{fullAge}} pay a young driver fee for each day."
+     },
+     {
+      "question": "What is the fee for drivers under 25?",
+      "answer": "Usually {{ydA}} a day for ages {{youngA}} and {{ydB}} a day for ages {{youngB}}, with no maximum. Each car's page shows its fee."
+     },
+     {
+      "question": "Can I rent at 21 with a G2?",
+      "answer": "Yes. We accept an Ontario {{licence}} licence for every car."
+     },
+     {
+      "question": "Does every car accept drivers under 25?",
+      "answer": "Every car takes drivers aged {{youngB}}. Most also take drivers aged {{youngA}}, and each car's page says so."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "weekend",
+   "copy": {
+    "seo_title": "Weekend Car Rental in Toronto | CarmaCars",
+    "meta_description": "Weekend car rental in Toronto: delivery on Friday, collection on Sunday or Monday, and a weekend day rate for days that start Friday or Saturday.",
+    "h1": "Weekend car rental in Toronto",
+    "intro": "A weekend car is how a lot of Torontonians without a car get away: a cottage, a wedding, a visit home or a day at the beach. We can bring the car to you on Friday evening and collect it on Sunday night or Monday morning. Every car on this page shows its weekend day rate, which applies to rental days that start on a Friday or a Saturday. Send a request and your offer shows the full price before you pay.",
+    "sections": [
+     {
+      "heading": "How weekend days are priced",
+      "body": "A rental day is 24 hours from your pickup time. A day that starts on a Friday or a Saturday is charged at the car's weekend day rate, and any other day at its daily rate. Your offer lists each day with the rate applied, so the total is clear before you approve. HST is added."
+     },
+     {
+      "heading": "Long weekends book up early",
+      "body": "Summer long weekends and the holidays go first. A request does not hold the car until you approve the offer, sign and pay, so send it early and approve promptly when the offer arrives. If someone else confirms the same car for the same dates before you, we offer you another car or other dates."
+     },
+     {
+      "heading": "Friday drop-off, Sunday pickup",
+      "body": "Tell us in your request when and where you want the car. For a condo, add the visitor parking details so the handover is quick. On Sunday or Monday we can collect the car from the same address for its return pickup fee, or you can return it to our location at no charge. Plan the drive home around the kilometres included."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Which days count as weekend days?",
+      "answer": "Any rental day that starts on a Friday or a Saturday is charged at the weekend day rate."
+     },
+     {
+      "question": "Can I pick up on Friday evening?",
+      "answer": "Yes. Choose your pickup time in the request, and we confirm it in your offer."
+     },
+     {
+      "question": "Is the car held once I send a request?",
+      "answer": "No. It is booked once you approve the offer, sign and pay."
+     },
+     {
+      "question": "Can I drive to a cottage?",
+      "answer": "Yes, anywhere in Ontario. Check the kilometres included on the car's page."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "weekly",
+   "copy": {
+    "seo_title": "Weekly Car Rental in Toronto | CarmaCars",
+    "meta_description": "Weekly car rental in Toronto: shorter trips capped at the weekly rate, kilometres added up over the week, delivery to your door.",
+    "h1": "Weekly car rental in Toronto",
+    "intro": "A week is the length many of our renters choose: family in town, a road trip around Ontario, or a stretch of work outside the city. Every car on this page shows its weekly rate on its card and its page. Send a request with your dates, and we confirm the car and the full price in an offer. You pay only once you approve it. We deliver the car to your home, hotel or office, or you collect it from our location at no charge.",
+    "sections": [
+     {
+      "heading": "The weekly cap",
+      "body": "Daily rates add up quickly, so we cap them. A trip of 1 to {{weekFromLess1}} days never costs more than the car's weekly rate, and a trip of {{weekFrom}} days or more is priced from the weekly rate. Your offer shows which rate applies to each day before you pay, so there are no surprises on the statement."
+     },
+     {
+      "heading": "Kilometres over a whole week",
+      "body": "Each car has a daily allowance of kilometres. For a week it is added up: the allowance times the days you book. Drive a long way on the first day and a little on the rest, and you stay inside it. Past the allowance, each extra kilometre is charged at the rate on the car's page."
+     },
+     {
+      "heading": "Where a week can take you",
+      "body": "The car can go anywhere in Ontario, from Niagara to Muskoka, Ottawa, Prince Edward County or Georgian Bay. Crossing into Quebec or the United States needs our written agreement first, so mention it in your request. Before a long trip, check the kilometres included and plan your stops, since a long return drive uses a good share of a week's allowance."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Is a weekly rental cheaper than paying by the day?",
+      "answer": "Usually. A trip of 1 to {{weekFromLess1}} days is capped at the weekly rate, so a shorter trip never costs more than a week."
+     },
+     {
+      "question": "Can I extend a weekly rental?",
+      "answer": "Yes. Ask for an extension before your return time. We price it, and you pay before the current return time."
+     },
+     {
+      "question": "What if I bring the car back early?",
+      "answer": "You can, but the rental charge for the booked days is not reduced. The agreement explains early returns."
+     },
+     {
+      "question": "Do you deliver for weekly rentals?",
+      "answer": "Yes. Delivery to your address costs the car's delivery fee, shown on its page."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "young-drivers",
+   "copy": {
+    "seo_title": "Car Rental at 18 to 20 in Toronto | CarmaCars",
+    "meta_description": "Car rental at 18, 19 or 20 in Toronto: drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, with a young driver fee for each day.",
+    "h1": "Car rental at 18 to 20 in Toronto",
+    "intro": "Many rental companies will not hand keys to an 18, 19 or 20 year old. At CarmaCars, drivers {{minAge}} and older with an Ontario {{licence}} licence can rent, and almost every car in the fleet takes drivers aged {{youngA}}. Drivers under {{fullAge}} pay a young driver fee for each day of the rental, with no maximum, and each car's page shows its own fee. Every car listed below accepts drivers aged {{youngA}}.",
+    "sections": [
+     {
+      "heading": "The fee, explained",
+      "body": "At 18, 19 or 20 you fall in the {{youngA}} band, where the usual charge is {{ydA}} for every day you have the car. In the {{youngB}} band the usual charge is {{ydB}} a day, and it stops once you reach {{fullAge}}. A few cars set a different amount, and their pages say so. Your offer lists the charge on a line of its own, and anyone else on the agreement who is under {{fullAge}} pays it as well."
+     },
+     {
+      "heading": "Documents and card",
+      "body": "Bring a valid Ontario {{licence}} licence that will not expire during the trip, plus a credit card with your name on it, which pays for the rental and holds the deposit. Before pickup you upload a picture of the licence and a selfie, which lets us confirm it is really you. On the day we compare them with the real licence and card. Debit cards are not accepted on this page."
+     },
+     {
+      "heading": "Your first rental",
+      "body": "At the handover, walk around the car with us and point out any mark you see. We photograph each one, so it is on record before you drive. Bring the car back with the fuel it had, keep to the kilometres included, and stay off the 407 ETR unless you are happy to pay its tolls plus {{tollFee}} for each notice."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Can I rent a car at 18 in Toronto?",
+      "answer": "Yes, on the cars listed here, which take drivers aged {{youngA}}, with an Ontario {{licence}} licence and a credit card in your name."
+     },
+     {
+      "question": "How much is the young driver fee?",
+      "answer": "Usually {{ydA}} a day for ages {{youngA}} and {{ydB}} a day for ages {{youngB}}, with no maximum. Each car's page shows its fee."
+     },
+     {
+      "question": "Is a G2 licence enough?",
+      "answer": "Yes. We accept an Ontario {{licence}} licence for every car."
+     },
+     {
+      "question": "Can I pay with a debit card?",
+      "answer": "No. The payment and the deposit need a credit card in the renter's name."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "page",
+   "id": "electric",
+   "copy": {
+    "seo_title": "Electric and Hybrid Car Rental in Toronto | CarmaCars",
+    "meta_description": "Rent an electric, plug-in hybrid or hybrid car in Toronto. Return it with the charge it had at pickup. Price confirmed before you pay.",
+    "h1": "Electric and hybrid car rental in Toronto",
+    "intro": "Renting an electric or hybrid car is a simple way to try driving with less gas, or to keep fuel costs down on a longer rental. The cars on this page are the electric, plug-in hybrid and hybrid cars in our fleet, each with its own page, rates and calendar. When none is listed, none is available right now. Send a request with your dates, and we confirm the car and the full price before you pay.",
+    "sections": [
+     {
+      "heading": "The charging rule",
+      "body": "Bring an electric car back with the charge it had at pickup. You do not need to fill it up. If it comes back lower, recharging costs {{evPer}} for each 10% of battery, plus a {{fuelFee}} service fee. At the handover we show you the car's charging port and cable, so you know what to plug into."
+     },
+     {
+      "heading": "Hybrids fill up like any car",
+      "body": "A regular hybrid runs on gas and charges its own battery as you drive, so there is nothing to plug in. A plug-in hybrid can be charged for some driving on electricity and then runs on gas. Either way, return the car with the fuel it had at pickup, as you would any other rental."
+     },
+     {
+      "heading": "Cold weather planning",
+      "body": "Cold weather reduces how far an electric car goes on a charge, so plan a longer winter trip with a charging stop. Warming the car while it is still plugged in helps, and so does a slightly cooler cabin on the highway. A hybrid is not affected in the same way, which makes it the easier pick for a long winter drive."
+     }
+    ],
+    "faq": [
+     {
+      "question": "Must I return an electric car fully charged?",
+      "answer": "No. Return it with the charge it had at pickup."
+     },
+     {
+      "question": "What if it comes back with less charge?",
+      "answer": "Recharging costs {{evPer}} for each 10% of battery, plus a {{fuelFee}} service fee."
+     },
+     {
+      "question": "Do hybrids need to be plugged in?",
+      "answer": "A regular hybrid never does. A plug-in hybrid can be, but it also runs on gas."
+     },
+     {
+      "question": "Are there electric cars available now?",
+      "answer": "The cars on this page are the ones available now. When none are listed, browse the whole fleet."
+     }
+    ]
+   },
+   "prompt_version": "landing-v1"
+  },
+  {
+   "kind": "car",
+   "id": "d222bd0f-6f46-49c0-9999-9a0efc865746",
+   "copy": {
+    "intro": "The AMG version of the C-Class sedan in grey: four doors, five seats and all-wheel drive, for a sharp business trip or a winter weekend.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Business trips around the GTA",
+     "Winter driving with all-wheel drive",
+     "A special night out"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the C-Class?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the C-Class good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the C-Class automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the C-Class at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "0a436b1e-06b8-4598-9f47-98e944bd46ee",
+   "copy": {
+    "intro": "Seven seats, third-row space and four-wheel drive in a full-size Cadillac. Everybody and their luggage go in one car.",
+    "highlights": [
+     "Four-wheel drive",
+     "Third-row seating",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control"
+    ],
+    "good_for": [
+     "Family airport runs",
+     "Group trips to a cottage",
+     "Weddings and events"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Escalade have?",
+      "answer": "It has 7 seats."
+     },
+     {
+      "question": "Does the Escalade handle snow?",
+      "answer": "It has four-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the Escalade use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "0bd944b5-b802-4732-9e59-89a5dc036247",
+   "copy": {
+    "intro": "A two-seat Audi with a roof that folds away, all-wheel drive underneath and nothing to carry but you and one passenger.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Summer drives along the lake",
+     "A birthday or anniversary",
+     "Weekend getaways for two"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the R8?",
+      "answer": "One. It has 2 seats, the driver's and one more."
+     },
+     {
+      "question": "Can I drive the R8 in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the R8 a manual?",
+      "answer": "No, it is an automatic with a dual clutch. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the R8?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "0e7271e8-80b3-4b66-a78c-1119db4dd0a1",
+   "copy": {
+    "intro": "A compact Mercedes SUV with AMG badges, five seats and all-wheel drive. Small enough for city parking, ready for snowy side streets.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "City errands with room for bags",
+     "Winter trips out of town",
+     "Small families"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the GLB?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the GLB good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the GLB automatic?",
+      "answer": "Yes, it is an automatic with a dual clutch, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the GLB at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "135bba8f-cd75-41a3-abf0-76b9f2cfa435",
+   "copy": {
+    "intro": "A two-door E-Class with four seats and all-wheel drive. Grand touring comfort for a couple, with room for two more in the back.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend trips for two",
+     "An anniversary dinner",
+     "Highway drives across Ontario"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the E-Class have?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "Does the E-Class handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the E-Class use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "144267bb-680e-43d5-b496-3d6ceac83145",
+   "copy": {
+    "intro": "The Maybach S-Class, with four seats and all-wheel drive. The car you send when someone important needs collecting.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Wedding transport",
+     "Collecting a VIP from the airport",
+     "Formal events"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the S-Class?",
+      "answer": "Yes. It has 4 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the S-Class in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the S-Class a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the S-Class?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "197dc5c0-398d-430b-b86a-f93f7483dd9f",
+   "copy": {
+    "intro": "A mid-size Mercedes SUV in AMG form, with five seats, a tall tailgate and all-wheel drive for whatever the forecast says.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend trips with luggage",
+     "Winter driving",
+     "Families of four or five"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the GLC?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the GLC good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the GLC automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the GLC at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "1b1e8392-bec7-4618-8e0e-3e28f6a37cc0",
+   "copy": {
+    "intro": "The Mustang with the roof down: rear-wheel drive, an automatic gearbox and four seats for a lakeshore drive on a warm day.",
+    "highlights": [
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Summer evening drives",
+     "Weekend road trips",
+     "Birthdays and celebrations"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Mustang have?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "Is the Mustang a good winter car?",
+      "answer": "It is rear-wheel drive, so it is happiest on dry roads. For snow, an all-wheel drive car from our fleet is the easier choice."
+     },
+     {
+      "question": "What gearbox and fuel does the Mustang use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "20768b2c-c7b8-4b7c-acc1-102404ba7dde",
+   "copy": {
+    "intro": "BMW's compact SUV in its M Competition version, with five seats and all-wheel drive. Practical shape, serious badge.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend escapes with gear",
+     "Winter roads",
+     "Business travel with luggage"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the X3 M?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the X3 M in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the X3 M a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the X3 M?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "209f6a1c-cd59-4d82-a57d-0e386339e9be",
+   "copy": {
+    "intro": "A black Jetta with automatic emergency braking and LED headlights. Five seats, a real trunk and simple to drive every day.",
+    "highlights": [
+     "Automatic emergency braking",
+     "Backup camera",
+     "Turbocharged engine",
+     "Forward collision alert",
+     "Automatic high beams",
+     "LED headlights"
+    ],
+    "good_for": [
+     "Daily commuting",
+     "Errands around the city",
+     "Students and young drivers"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Jetta?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Which wheels drive the Jetta?",
+      "answer": "The front wheels. It is a front-wheel drive car."
+     },
+     {
+      "question": "Is the Jetta automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the Jetta at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "281af42f-5f24-44f3-9b41-1865d82bcaef",
+   "copy": {
+    "intro": "A mid-size BMW sedan with M Sport styling, five seats and all-wheel drive. Calm on the highway and smart at a client meeting.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Business travel",
+     "Long highway drives",
+     "Airport pickups with luggage"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the 5 Series have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the 5 Series handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the 5 Series use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "2860f117-e1df-4c6d-8f75-3309106effcc",
+   "copy": {
+    "intro": "Five seats, a big cargo area and all-wheel drive in the AMG version of the GLE. A family SUV that does not feel ordinary.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Family trips with luggage",
+     "Winter getaways",
+     "Airport runs"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the GLE?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the GLE in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the GLE a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the GLE?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "2b447b35-625b-4e0c-868a-b72cd4f15bf0",
+   "copy": {
+    "intro": "An Audi with a soft top, four seats and all-wheel drive. Open on a sunny afternoon, closed and steady when the weather turns.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Summer weekends",
+     "Couples' getaways",
+     "Scenic drives out of the city"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the A5?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "Is the A5 good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the A5 automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the A5 at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "3003c462-580a-4bd0-862b-ee77dba73f8f",
+   "copy": {
+    "intro": "A compact BMW sedan with M Sport styling and all-wheel drive. Five seats and an easy size for downtown streets.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "City driving",
+     "Business trips",
+     "Winter commuting"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the 3 Series have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the 3 Series handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the 3 Series use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "31dce377-665b-4a63-bd8b-27c702260af3",
+   "copy": {
+    "intro": "A small Mercedes SUV with five seats and all-wheel drive, easy to park and roomy enough for a weekend's bags.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Small families",
+     "Weekend trips",
+     "Snowy commutes"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the GLB?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the GLB in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the GLB a manual?",
+      "answer": "No, it is an automatic with a dual clutch. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the GLB?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "32d509c4-d28b-4458-8981-6252d383f8ca",
+   "copy": {
+    "intro": "A Rolls-Royce Ghost: five seats, all-wheel drive and an arrival nobody forgets. Made for the day that matters.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Wedding days",
+     "Milestone celebrations",
+     "Executive transport"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Ghost?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the Ghost good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the Ghost automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the Ghost at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "389394e6-9cde-4b10-8b31-970e5b35d367",
+   "copy": {
+    "intro": "The four-door version of the BMW 4 Series, with a sloping roof, five seats and all-wheel drive. Coupe looks, sedan practicality.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Business trips",
+     "Weekend drives",
+     "Winter commuting"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the 4 Series have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the 4 Series handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the 4 Series use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "3f141d8c-e9ae-4bd9-b817-8f0f20f56085",
+   "copy": {
+    "intro": "A black M4 Competition: two doors, four seats and all-wheel drive. A driver's car that still handles a Toronto winter.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "A weekend drive for enthusiasts",
+     "Special occasions",
+     "Couples' road trips"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the M4?",
+      "answer": "Yes. It has 4 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the M4 in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the M4 a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the M4?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "4067c332-8d2b-4263-be3f-23f12c7b40ca",
+   "copy": {
+    "intro": "A Ferrari convertible with four seats and rear-wheel drive. Top down on a summer day, closed for the drive home.",
+    "highlights": [
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Milestone birthdays",
+     "Summer weekends",
+     "Weddings and photos"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the California?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "Is the California a good winter car?",
+      "answer": "It is rear-wheel drive, so it is happiest on dry roads. For snow, an all-wheel drive car from our fleet is the easier choice."
+     },
+     {
+      "question": "Is the California automatic?",
+      "answer": "Yes, it is an automatic with a dual clutch, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the California at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "4135f403-719c-4c12-b589-4c1bf0fce277",
+   "copy": {
+    "intro": "The S580 sedan, with five seats and all-wheel drive. A long drive to Ottawa feels short in a car like this.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Executive travel",
+     "Long highway trips",
+     "Wedding guests and family"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the S-Class have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the S-Class handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the S-Class use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "41bbbd37-ff62-47cc-acb3-e7dd6f8b9373",
+   "copy": {
+    "intro": "The G63: boxy, tall and unmistakable, with five seats and four-wheel drive. It looks the part downtown and handles snow.",
+    "highlights": [
+     "Four-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Making an entrance at events",
+     "Winter trips north",
+     "Photo shoots"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the G-Class?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the G-Class in winter?",
+      "answer": "It has four-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the G-Class a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the G-Class?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "426ec2c5-1e4c-4d27-b387-3b8e5c3555b4",
+   "copy": {
+    "intro": "An Infiniti coupe with two doors, four seats and all-wheel drive. Stylish for the city, sure-footed when the roads get slick.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Date nights",
+     "Winter weekend drives",
+     "Couples' trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Q60?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "Is the Q60 good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the Q60 automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the Q60 at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "43ac2392-e578-4e9a-84e7-7cf6a712adb1",
+   "copy": {
+    "intro": "A silver GLA with a turbocharged engine and five seats. The small Mercedes SUV that slips into tight condo garages.",
+    "highlights": [
+     "Backup camera",
+     "Turbocharged engine",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Downtown living",
+     "Errands and weekend trips",
+     "Small families"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the GLA-Class have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "What gearbox and fuel does the GLA-Class use?",
+      "answer": "It is an automatic with a dual clutch, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "49e77105-a57f-4efb-97b4-e367370cdf49",
+   "copy": {
+    "intro": "The 911 Turbo S, with all-wheel drive, a dual-clutch automatic and two small rear seats. A once-in-a-while kind of rental.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Bucket-list drives",
+     "Special celebrations",
+     "Weekend road trips"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the 911?",
+      "answer": "Yes. It has 4 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the 911 in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the 911 a manual?",
+      "answer": "No, it is an automatic with a dual clutch. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the 911?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "4a1de744-a20c-43e7-9493-537de04b0f38",
+   "copy": {
+    "intro": "A grey Jetta with adaptive cruise control, blind spot assist and lane keeping assist. Easy company on a long highway run.",
+    "highlights": [
+     "Adaptive cruise control",
+     "Blind spot assist",
+     "Lane keeping assist",
+     "Automatic emergency braking",
+     "Backup camera",
+     "Turbocharged engine"
+    ],
+    "good_for": [
+     "Highway trips across Ontario",
+     "Daily commuting",
+     "Visiting family"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Jetta?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the Jetta automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the Jetta at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "4d3affd5-4113-4a45-ad21-ca37ba3f8723",
+   "copy": {
+    "intro": "The A-Class sedan: the small Mercedes with five seats and all-wheel drive, easy to park on a crowded street.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "City driving",
+     "First luxury rental",
+     "Winter commuting"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the A-Class have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the A-Class handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the A-Class use?",
+      "answer": "It is an automatic with a dual clutch, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "4f5bda2f-c8e5-4cca-b23b-32047bfbdb63",
+   "copy": {
+    "intro": "A white Range Rover Velar with five seats and all-wheel drive. Sleek enough for downtown, tall enough for a snowy cottage lane.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend escapes",
+     "Winter driving",
+     "Business travel"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the Range Rover Velar?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the Range Rover Velar in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the Range Rover Velar a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the Range Rover Velar?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "507f7aec-04d0-4943-bdfa-c85207f55f81",
+   "copy": {
+    "intro": "The Range Rover Autobiography: five seats, all-wheel drive and a cabin made for long distances in comfort.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Executive travel",
+     "Family trips north",
+     "Weddings and events"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Range Rover?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the Range Rover good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the Range Rover automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the Range Rover at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "54847b71-9c56-4f1c-bdf9-b97d3029bc7a",
+   "copy": {
+    "intro": "A Porsche Boxster with two seats, rear-wheel drive and a roof that opens. Pick a sunny day and a winding route.",
+    "highlights": [
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Summer drives for two",
+     "Anniversaries",
+     "Weekend escapes"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the 718 Boxster have?",
+      "answer": "Two: the driver and one passenger."
+     },
+     {
+      "question": "Is the 718 Boxster a good winter car?",
+      "answer": "It is rear-wheel drive, so it is happiest on dry roads. For snow, an all-wheel drive car from our fleet is the easier choice."
+     },
+     {
+      "question": "What gearbox and fuel does the 718 Boxster use?",
+      "answer": "It is an automatic with a dual clutch, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "56715cac-5b37-4489-8a03-51a7b92c2b39",
+   "copy": {
+    "intro": "An S500 sedan with five seats and all-wheel drive. Long-distance calm for clients, family or a trip out of the city.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Client meetings",
+     "Long highway trips",
+     "Family celebrations"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the S-Class?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the S-Class in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the S-Class a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the S-Class?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "586e1a8c-8249-4115-8ef7-43c488904aeb",
+   "copy": {
+    "intro": "The two-door M440i, with four seats and all-wheel drive. A coupe that keeps its grip when the weather does not.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend drives",
+     "Couples' getaways",
+     "Winter road trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the 4 Series?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "Is the 4 Series good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the 4 Series automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the 4 Series at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "5c021eee-4a9c-47f4-a4b0-b5d051a19e16",
+   "copy": {
+    "intro": "The Maybach version of the GLS, with four seats, all-wheel drive and the space of a large SUV. First-class travel by road.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "VIP transport",
+     "Wedding parties",
+     "Long trips in comfort"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the GLS have?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "Does the GLS handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the GLS use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "5d36c006-9781-4e0c-9003-4e89220096f8",
+   "copy": {
+    "intro": "A 430i coupe with M Sport styling, two doors, four seats and all-wheel drive. Good looking and easy to live with.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Date nights",
+     "Weekend trips",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the 4 Series?",
+      "answer": "Yes. It has 4 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the 4 Series in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the 4 Series a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the 4 Series?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "64da30f8-c017-44a5-bf8b-2633f5e89618",
+   "copy": {
+    "intro": "The M4 Competition in white, with four seats, two doors and all-wheel drive. Bright, quick to spot in a lot and fun on a back road.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Enthusiast weekends",
+     "Celebrations",
+     "Road trips for two"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the M4?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "Is the M4 good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the M4 automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the M4 at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "732aeb68-d409-42b5-b504-116931b38b24",
+   "copy": {
+    "intro": "A blue Macan with five seats and a dual-clutch automatic. A compact Porsche SUV that fits a family's weekend bags.",
+    "highlights": [
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend trips",
+     "Small families",
+     "City and highway mix"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Macan have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "What gearbox and fuel does the Macan use?",
+      "answer": "It is an automatic with a dual clutch, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "748cfc6c-562d-4dee-9503-6c101f09dba2",
+   "copy": {
+    "intro": "The Lamborghini Urus: an SUV with five seats and all-wheel drive, and the badge of a supercar. Bring friends along.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Special occasions with friends",
+     "Photo shoots",
+     "Weekend trips"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the Urus?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the Urus in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the Urus a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the Urus?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "8043b1ef-61d5-49b1-9e5e-c76ce4731f17",
+   "copy": {
+    "intro": "A McLaren 570S with two seats, rear-wheel drive and a dual-clutch automatic. Low, wide and made for a dry summer road.",
+    "highlights": [
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Bucket-list drives",
+     "Milestone birthdays",
+     "Car enthusiasts"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the 570S?",
+      "answer": "Two: the driver and one passenger."
+     },
+     {
+      "question": "Is the 570S a good winter car?",
+      "answer": "It is rear-wheel drive, so it is happiest on dry roads. For snow, an all-wheel drive car from our fleet is the easier choice."
+     },
+     {
+      "question": "Is the 570S automatic?",
+      "answer": "Yes, it is an automatic with a dual clutch, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the 570S at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "80cd1419-a47b-4a47-bba8-5b14fd67ddf0",
+   "copy": {
+    "intro": "A black Kia Forte with five seats and lane keeping assist. Cheap to rent, simple to drive and fine for the daily run.",
+    "highlights": [
+     "Lane keeping assist",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Commuting",
+     "Students and young drivers",
+     "Errands around town"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Forte have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Which wheels drive the Forte?",
+      "answer": "The front wheels. It is a front-wheel drive car."
+     },
+     {
+      "question": "What gearbox and fuel does the Forte use?",
+      "answer": "It is an automatic (CVT), and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "86e97b86-8fb5-4478-8403-1ac92842a88a",
+   "copy": {
+    "intro": "The GLE53 Coupe, with a sloping roofline, five seats and all-wheel drive. An SUV for people who like a sportier shape.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend escapes",
+     "Winter driving",
+     "Business travel"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the GLE?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the GLE in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the GLE a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the GLE?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "895ee80c-5e4b-4092-9745-e2843664a135",
+   "copy": {
+    "intro": "A grey Jetta S with a turbocharged engine and automatic high beams. Five seats, an automatic and nothing complicated.",
+    "highlights": [
+     "Backup camera",
+     "Turbocharged engine",
+     "Automatic high beams",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control"
+    ],
+    "good_for": [
+     "Daily errands",
+     "First rentals",
+     "Visiting relatives"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Jetta?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Which wheels drive the Jetta?",
+      "answer": "The front wheels. It is a front-wheel drive car."
+     },
+     {
+      "question": "Is the Jetta automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the Jetta at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "8d6dab08-89c5-4409-8161-40ce76e72b07",
+   "copy": {
+    "intro": "The C63 S, the top AMG version of the C-Class sedan, with five seats and all-wheel drive. A practical sedan with a sharp edge.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Enthusiast weekends",
+     "Business trips",
+     "Winter drives"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the C-Class have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the C-Class handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the C-Class use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "924e000b-8055-4be0-ad94-1dc78cf6cb6e",
+   "copy": {
+    "intro": "A C-Class with a soft top, four seats and all-wheel drive. Open air in July, a closed roof and good grip in November.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Summer drives",
+     "Weekends for two",
+     "Lakeshore evenings"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the C-Class?",
+      "answer": "Yes. It has 4 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the C-Class in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the C-Class a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the C-Class?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "94570239-4cd1-4882-942a-dc710c2732f7",
+   "copy": {
+    "intro": "A white C43 AMG sedan with five seats and all-wheel drive. Clean lines for a wedding, a sure grip for the drive home.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Wedding guests",
+     "Business travel",
+     "Winter weekends"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the C-Class?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the C-Class good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the C-Class automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the C-Class at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "9987a4f7-51ee-447b-9ad1-8d522c256fd0",
+   "copy": {
+    "intro": "A blue Velar with five seats and all-wheel drive, at home on the highway north and easy to place in a city lot.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Cottage weekends",
+     "Winter road trips",
+     "Family visits"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Range Rover Velar have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the Range Rover Velar handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the Range Rover Velar use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "9e8a853e-71e9-46f2-bac1-7090167aa74e",
+   "copy": {
+    "intro": "A Maserati SUV with five seats and all-wheel drive. Italian style with space for a weekend's luggage.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend getaways",
+     "Special occasions",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the Levante?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the Levante in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the Levante a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the Levante?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "9f22210a-7745-41c5-9133-826e1174eec4",
+   "copy": {
+    "intro": "A black Jetta SEL with forward collision alert, LED headlights and automatic high beams. Five seats and an easy drive for night trips.",
+    "highlights": [
+     "Automatic emergency braking",
+     "Backup camera",
+     "Turbocharged engine",
+     "Forward collision alert",
+     "Automatic high beams",
+     "LED headlights"
+    ],
+    "good_for": [
+     "Commuting after dark",
+     "Weekend visits",
+     "Airport runs"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Jetta?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Which wheels drive the Jetta?",
+      "answer": "The front wheels. It is a front-wheel drive car."
+     },
+     {
+      "question": "Is the Jetta automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the Jetta at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "9fbdc79d-5eee-4743-a83e-e34493a1581f",
+   "copy": {
+    "intro": "A Bentley Bentayga with five seats and all-wheel drive. Big, comfortable and ready for both a gala and a winter highway.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weddings and galas",
+     "Executive travel",
+     "Long family trips"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Bentayga have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the Bentayga handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the Bentayga use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "a090059c-473b-494b-93d8-4f9252235536",
+   "copy": {
+    "intro": "A black C300 sedan with five seats and all-wheel drive. A Mercedes for everyday use that handles snowy mornings.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Daily commuting",
+     "Business meetings",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the C-Class?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the C-Class in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the C-Class a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the C-Class?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "a4b2f404-85b4-459e-91b7-177d6ac60bad",
+   "copy": {
+    "intro": "The 488 Spider: two seats, rear-wheel drive and a roof that folds back. A Ferrari for a summer afternoon you will remember.",
+    "highlights": [
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Milestone celebrations",
+     "Summer drives",
+     "Photo shoots"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the 488?",
+      "answer": "Two: the driver and one passenger."
+     },
+     {
+      "question": "Is the 488 a good winter car?",
+      "answer": "It is rear-wheel drive, so it is happiest on dry roads. For snow, an all-wheel drive car from our fleet is the easier choice."
+     },
+     {
+      "question": "Is the 488 automatic?",
+      "answer": "Yes, it is an automatic with a dual clutch, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the 488 at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "a6593671-70ab-441a-a6cd-d11bc642f03d",
+   "copy": {
+    "intro": "A Range Rover Sport with the V6, five seats and all-wheel drive. Tall seating and space for a family's luggage.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Family road trips",
+     "Winter driving",
+     "Cottage weekends"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Range Rover Sport have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the Range Rover Sport handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the Range Rover Sport use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "a86df9d3-630b-43d1-8459-81e4ab6930c5",
+   "copy": {
+    "intro": "The four-door AMG GT 53, with four seats and all-wheel drive. A sports car shape with doors for your passengers.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Business travel with style",
+     "Weekend drives",
+     "Special evenings"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the AMG GT?",
+      "answer": "Yes. It has 4 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the AMG GT in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the AMG GT a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the AMG GT?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "aa720579-8ee6-4aaf-9c5a-d0b3609889d8",
+   "copy": {
+    "intro": "A black Malibu with push-button start and LED headlights. Five seats and a proper trunk, for the daily drive and the odd long one.",
+    "highlights": [
+     "Backup camera",
+     "Push-button start",
+     "Turbocharged engine",
+     "Automatic high beams",
+     "LED headlights",
+     "Bluetooth"
+    ],
+    "good_for": [
+     "Commuting",
+     "Highway trips",
+     "Visiting family"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Malibu?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Which wheels drive the Malibu?",
+      "answer": "The front wheels. It is a front-wheel drive car."
+     },
+     {
+      "question": "Is the Malibu automatic?",
+      "answer": "Yes, it is an automatic (CVT), and it runs on gas."
+     },
+     {
+      "question": "Can I rent the Malibu at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "ac6fef69-3645-40f1-af6d-7bf6c931593a",
+   "copy": {
+    "intro": "The BMW X4 M40i, with five seats and all-wheel drive in a coupe-like SUV shape. Weekend bags fit, so do winter roads.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend escapes",
+     "Winter driving",
+     "Couples with luggage"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the X4 have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the X4 handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the X4 use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "b6addcc3-925a-4915-b494-fce1acbd585c",
+   "copy": {
+    "intro": "A Porsche Cayenne with five seats and all-wheel drive. A family SUV that still feels like a Porsche.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Family trips",
+     "Cottage weekends",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the Cayenne?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the Cayenne in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the Cayenne a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the Cayenne?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "be771855-f3a9-4b90-8f2a-8c768f6abdf5",
+   "copy": {
+    "intro": "A Chevrolet Suburban with seven seats, third-row seating and four-wheel drive. The whole family, the bags and the cooler.",
+    "highlights": [
+     "Four-wheel drive",
+     "Third-row seating",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control"
+    ],
+    "good_for": [
+     "Large family trips",
+     "Airport runs with luggage",
+     "Group outings"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Suburban?",
+      "answer": "It has 7 seats."
+     },
+     {
+      "question": "Is the Suburban good in winter?",
+      "answer": "It has four-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the Suburban automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the Suburban at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "c319be26-02c3-4400-8d86-228c3e296a2b",
+   "copy": {
+    "intro": "A black Beetle convertible with four seats and blind spot assist. Roof down, easy to park and easy to like.",
+    "highlights": [
+     "Blind spot assist",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Summer drives",
+     "City weekends",
+     "Young drivers"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Beetle have?",
+      "answer": "It has 4 seats."
+     },
+     {
+      "question": "What gearbox and fuel does the Beetle use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "c529faba-3f8c-4e2c-a6e3-464fe9c4f56f",
+   "copy": {
+    "intro": "A grey C300 with five seats and all-wheel drive. A sensible Mercedes sedan for work trips and family visits.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Business travel",
+     "Family visits",
+     "Winter commuting"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the C-Class?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the C-Class in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the C-Class a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the C-Class?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "d11bcd10-104f-453a-991c-2bbda3c26adb",
+   "copy": {
+    "intro": "A BMW X5 with M Sport styling, five seats and all-wheel drive. Plenty of space for a family and its weekend gear.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Family vacations",
+     "Winter road trips",
+     "Airport runs with luggage"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the X5?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the X5 good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the X5 automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the X5 at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "d2562565-92dc-40d4-be17-8ab4457ce856",
+   "copy": {
+    "intro": "The Macan S, with five seats, all-wheel drive and a dual-clutch automatic. Compact outside, ready for a weekend away.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend trips",
+     "Winter driving",
+     "Couples with luggage"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Macan have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the Macan handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the Macan use?",
+      "answer": "It is an automatic with a dual clutch, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "d773701f-660b-4b84-aed7-a90d1d1598c7",
+   "copy": {
+    "intro": "A GLC43 AMG Coupe with five seats and all-wheel drive. The SUV for someone who wants a sloping roof and a sure grip.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weekend drives",
+     "Winter trips",
+     "Small families"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the GLC?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the GLC in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the GLC a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the GLC?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "dd56ddc2-e895-48ff-a87b-448122c76b0e",
+   "copy": {
+    "intro": "The E43 AMG sedan, with five seats and all-wheel drive. A business-class sedan for meetings and long highway days.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Business trips",
+     "Long highway drives",
+     "Client pickups"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the E-Class?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the E-Class good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the E-Class automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the E-Class at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "df3bec9d-44eb-4715-a58c-8b44fa02ac16",
+   "copy": {
+    "intro": "A Corvette Stingray with two seats, rear-wheel drive and a dual-clutch automatic. American sports car, summer road.",
+    "highlights": [
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Summer weekends",
+     "Birthday drives",
+     "Car enthusiasts"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Corvette have?",
+      "answer": "Two: the driver and one passenger."
+     },
+     {
+      "question": "Is the Corvette a good winter car?",
+      "answer": "It is rear-wheel drive, so it is happiest on dry roads. For snow, an all-wheel drive car from our fleet is the easier choice."
+     },
+     {
+      "question": "What gearbox and fuel does the Corvette use?",
+      "answer": "It is an automatic with a dual clutch, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "e1842ec2-7258-4a16-b7b9-8117bf0ecefc",
+   "copy": {
+    "intro": "An Audi S5 sedan with five seats and all-wheel drive. A sporty Audi that still takes the family and the groceries.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Daily driving with some fun",
+     "Winter commuting",
+     "Weekend trips"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the S5?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the S5 in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the S5 a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the S5?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "e6989c4d-206f-4a38-afe3-10b960e60c16",
+   "copy": {
+    "intro": "The long Escalade ESV: seven seats, third-row seating and four-wheel drive, with extra length for everyone's luggage.",
+    "highlights": [
+     "Four-wheel drive",
+     "Third-row seating",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control"
+    ],
+    "good_for": [
+     "Large groups with luggage",
+     "Airport transfers",
+     "Weddings and events"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Escalade?",
+      "answer": "It has 7 seats."
+     },
+     {
+      "question": "Is the Escalade good in winter?",
+      "answer": "It has four-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the Escalade automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the Escalade at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "e7519a31-a9ec-472e-a457-722b62c7c5a6",
+   "copy": {
+    "intro": "A blue C43 AMG sedan with five seats and all-wheel drive. A colour that stands out and grip for every season.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Special occasions",
+     "Business travel",
+     "Winter weekends"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the C-Class have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the C-Class handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the C-Class use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "f1b6d16a-ec77-4d92-ab3d-ed5074dbe1c4",
+   "copy": {
+    "intro": "The BMW X6 M, a five-seat SUV with all-wheel drive and a fastback roof. Bold to look at, practical to load.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Making an impression",
+     "Winter trips",
+     "Weekend getaways"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the X6 M?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the X6 M in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the X6 M a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the X6 M?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "f43eccf0-4a99-4e6d-902f-716f4330433f",
+   "copy": {
+    "intro": "A silver Cadillac CTS with adaptive cruise control and all-wheel drive. Five seats and a relaxed pace on a long drive.",
+    "highlights": [
+     "All-wheel drive",
+     "Adaptive cruise control",
+     "Turbocharged engine",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control"
+    ],
+    "good_for": [
+     "Highway road trips",
+     "Business travel",
+     "Winter commuting"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the CTS?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the CTS good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the CTS automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the CTS at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "f4d9e21d-c218-490c-8889-37d3b75dc8c5",
+   "copy": {
+    "intro": "A Range Rover Sport with the V8, five seats and all-wheel drive. A strong, roomy SUV for long trips north.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Cottage trips",
+     "Winter driving",
+     "Executive travel"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Range Rover Sport have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the Range Rover Sport handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the Range Rover Sport use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "f99a3016-00ce-41f5-9356-0bf214d7695b",
+   "copy": {
+    "intro": "The A35 AMG, a small Mercedes sedan with five seats, all-wheel drive and a dual-clutch automatic. City-sized, never dull.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "City driving",
+     "Weekend fun",
+     "Winter commuting"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the A-Class?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the A-Class in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the A-Class a manual?",
+      "answer": "No, it is an automatic with a dual clutch. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the A-Class?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "fba03795-4245-4baf-9662-e4c67fcc2ea4",
+   "copy": {
+    "intro": "The S63 AMG: a full-size S-Class sedan with five seats and all-wheel drive, made for passengers who notice the details.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Executive travel",
+     "Weddings",
+     "Long-distance trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the S-Class?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Is the S-Class good in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the S-Class automatic?",
+      "answer": "Yes, it is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can I rent the S-Class at 18?",
+      "answer": "Yes. Drivers 18 and older with an Ontario G or G2 licence can rent it. A young driver fee applies at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "fbeb9bad-5e3d-426b-ae7f-aa17d54760bb",
+   "copy": {
+    "intro": "An M340i sedan with five seats and all-wheel drive. A BMW that does the school run and enjoys the highway after.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Daily driving",
+     "Weekend trips",
+     "Winter commuting"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the 3 Series have?",
+      "answer": "It has 5 seats."
+     },
+     {
+      "question": "Does the 3 Series handle snow?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "What gearbox and fuel does the 3 Series use?",
+      "answer": "It is an automatic, and it runs on gas."
+     },
+     {
+      "question": "Can young drivers rent it?",
+      "answer": "Yes, from 18 with an Ontario G or G2 licence. Drivers aged 18 to 20 and 21 to 25 pay a young driver fee."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  },
+  {
+   "kind": "car",
+   "id": "fdad6b61-8795-46ea-8880-4fb34c0cf867",
+   "copy": {
+    "intro": "The M3 Competition sedan, with four doors, five seats and all-wheel drive. An M badge with room for the family.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Air conditioning",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Enthusiast weekends",
+     "Business trips",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "Can I bring passengers in the M3?",
+      "answer": "Yes. It has 5 seats in total, the driver's included."
+     },
+     {
+      "question": "Can I drive the M3 in winter?",
+      "answer": "It has all-wheel drive, which helps on snowy and icy roads. Leave extra time and drive to the conditions."
+     },
+     {
+      "question": "Is the M3 a manual?",
+      "answer": "No, it is an automatic. It runs on gas."
+     },
+     {
+      "question": "What licence do I need for the M3?",
+      "answer": "An Ontario G or G2 licence. Drivers 18 and older can rent it, with a young driver fee at ages 18 to 20 and 21 to 25."
+     }
+    ],
+    "alt_texts": {}
+   },
+   "prompt_version": "car-copy-v2"
+  }
+ ]
+}
