@@ -11,8 +11,10 @@ A booking on your car changed
   {{label}}: was {{before}}, now {{after}}
 {{/each}}
 
+{{#if show_amounts}}
 Your share before: {{income_before}}
 Your share now: {{income_after}}
+{{/if}}
 
 {{#if income_changed}}
 Your earnings changed

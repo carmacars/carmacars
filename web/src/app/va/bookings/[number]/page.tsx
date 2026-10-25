@@ -21,6 +21,7 @@ import { LatePanel, type Late } from '@/features/va/LatePanel';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
 import { HandoverPanel } from '@/features/handover/HandoverPanel';
+import { OwnerDeductionsPanel, OwnerVisibilityPanel } from '@/features/admin/OwnerControls';
 import { ReviewPanel } from '@/features/reviews/ReviewPanel';
 import { AgreementPanel } from '@/features/agreements/AgreementPanel';
 import type { PhoneTimelineData } from '@/features/phone/client';
@@ -108,6 +109,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} aal={aal} refresh={[base]} />}
       {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} aal={aal} base={base} b={{ id: b.id, status: b.status }} docBase="/va/documents" finance={fn === 'finance'} />}
+      {/* what the owner sees of this booking (0156) */}
+      <OwnerVisibilityPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />
       <Tabs current={`${base}?tab=${tab}`} items={tabs} />
       {tab === 'review' && arranging && (
         <>
@@ -135,6 +138,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           {fn === 'cs' && <Card title="Signed on paper" testId="booking-paper"><div className="stack"><p className="small muted">The renter signed the rental agreement or a change on paper: upload the scan and it counts as signed. Only an Admin can void it.</p><PaperSignatureList rows={paper} canVoid={false} docBase="/va/documents" /><PaperSignatureForm docs={paperDocs} today={today} refresh={R} /></div></Card>}
         </div>
       )}
+      {tab === 'money' && <OwnerDeductionsPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />}
       {tab === 'money' && moneyByPart && !b.payments && <><BookingMoney m={moneyByPart} />{fees && <BookingFees x={fees} />}</>}
       {tab === 'money' && b.payments && (
         <div className="stack">

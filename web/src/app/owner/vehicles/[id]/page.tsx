@@ -4,12 +4,12 @@ import { pageMeta } from '@/features/seo/meta';
 import { money, pct } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { Back, Dl } from '@/features/portal/Blocks';
-import { CarPhoto, Checklist, day, InvoiceRows } from '@/features/owner/Blocks';
+import { CarPhoto, Checklist, day, InvoiceRows, OwnerBookingRow } from '@/features/owner/Blocks';
 import { ExitNoticeForm } from '@/features/owner/OwnerForms';
 import { OwnerUpload } from '@/features/owner/OwnerUpload';
 import { MODE_LABEL, ONBOARDING_STATUS, TRACKER_LATER } from '@/features/owner/types';
 import { ownerView, requireOwner } from '@/server/owner/data';
-import { upcoming } from '@/features/owner/insights';
+import { amountText, upcoming, viewOf } from '@/features/owner/insights';
 import { OwnerMonths } from '@/features/owner/OwnerMonths';
 import { Timeline, TimelineItem } from '@/components/portal-ui';
 import { door } from '@/server/door';
@@ -80,11 +80,11 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
           {enrolled && <OwnerMonths months={view.months} only={id} testId="vehicle-months" />}
           {soon.length > 0 && <section className="pu-panel" aria-labelledby="ow-soon" data-testid="vehicle-coming-up"><h2 className="pu-title" id="ow-soon">Coming up</h2>
             <Timeline label={`Bookings coming up for the ${v.name}`}>{soon.map((b) => (
-              <TimelineItem key={b.booking_id} date={b.pickup_at} dateLabel={when(b.pickup_at, false)} state={b.status === 'on_rent' ? 'now' : 'future'} title={b.booking_type === 'owner' ? 'Your booking' : b.booking_number}
-                amount={b.booking_type === 'owner' ? undefined : money(b.rental_charge_cents)} meta={<><span>{b.status === 'on_rent' ? 'On rent now' : 'Confirmed'}</span><span>{when(b.pickup_at)} to {when(b.return_at)}</span></>} />))}
+              <TimelineItem key={b.booking_id} date={b.pickup_at} dateLabel={when(b.pickup_at, false)} state={b.status === 'on_rent' ? 'now' : 'future'} title={b.booking_type === 'owner' ? 'Your booking' : b.booking_number ?? 'Unavailable'}
+                amount={b.booking_type === 'owner' ? undefined : amountText(b, (c) => money(c))} meta={<><span>{viewOf(b) === 'unavailable' ? 'Unavailable' : b.status === 'on_rent' ? 'On rent now' : 'Confirmed'}</span><span>{when(b.pickup_at)} to {when(b.return_at)}</span></>} />))}
             </Timeline></section>}
           <section className="pt-card" aria-labelledby="ow-bk"><h2 className="d4" id="ow-bk">Bookings</h2>
-            {bookings.length ? <ul className="ow-rows">{bookings.map((b) => <li key={b.booking_id}><span>{b.booking_number}{b.booking_type === 'owner' ? ' · Your booking' : ''}</span><span className="ow-amount">{money(b.rental_charge_cents, { cents: true })}</span><span className="ow-meta"><span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}{b.renter_mobile ? `, ${b.renter_mobile}` : ''}</span>}</span></li>)}</ul>
+            {bookings.length ? <ul className="ow-rows">{bookings.map((b) => <OwnerBookingRow key={b.booking_id} b={b} withCar={false} />)}</ul>
               : <p className="muted small">No bookings yet.</p>}
             <p><Link prefetch={false} className="btn btn--ghost btn--sm" href={`/owner/bookings?vehicle=${id}#book-own`}>Book it for myself</Link></p>
           </section>

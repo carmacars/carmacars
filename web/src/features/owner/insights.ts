@@ -1,7 +1,7 @@
 // What the owner portal's charts and figures show, worked out from the owner's own reads (owner_portal_home and
 // owner_portal_bookings): their cars, their bookings, their invoices and their statements. Display only: nothing here
 // bills, splits or pays; the statement stays the record of what is paid. No fleet-wide figure is read or shown.
-import type { OwnerBooking, OwnerHome, OwnerVehicle } from './types.ts';
+import type { OwnerBooking, OwnerHome, OwnerVehicle, OwnerView } from './types.ts';
 
 const TZ = 'America/Toronto';
 const ymdFmt = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -17,14 +17,30 @@ export const monthLabel = (key: string, style: 'long' | 'short' = 'long') => new
 const RENTED = new Set(['confirmed', 'on_rent', 'returned', 'closed']);
 const UPCOMING = new Set(['confirmed', 'on_rent', 'pending_payment']);
 
-export type LiveKey = 'on_rent' | 'available' | 'service' | 'onboarding' | 'leaving' | 'off';
+/** What the owner may see of a booking (0156; the database decides and leaves the amount out): full, booked (dates and
+ *  status, the amount comes with the approved statement) or unavailable (the car is busy, nothing more). */
+export const viewOf = (b: Pick<OwnerBooking, 'owner_view' | 'rental_charge_cents'>): OwnerView => b.owner_view ?? (b.rental_charge_cents === null ? 'booked' : 'full');
+/** The amount cell of a booking: the owner's own booking, a hidden one ("Booked"), one not shown ("Unavailable"), or the money. */
+export function amountText(b: Pick<OwnerBooking, 'owner_view' | 'rental_charge_cents' | 'booking_type'>, fmt: (cents: number) => string): string {
+  const v = viewOf(b);
+  if (v === 'unavailable') return 'Unavailable';
+  if (b.booking_type === 'owner') return 'Your booking';
+  if (v === 'booked' || b.rental_charge_cents === null) return 'Booked';
+  return fmt(b.rental_charge_cents);
+}
+
+export type LiveKey = 'on_rent' | 'available' | 'service' | 'onboarding' | 'leaving' | 'off' | 'unavailable';
 export interface Live { key: LiveKey; label: string; tone: 'live' | 'ready' | 'service' | 'accent' | 'muted' }
 
 /** A car's status right now, in the owner's words: on rent, available or in service (and the states around them). */
 export function liveStatus(v: OwnerVehicle, bookings: OwnerBooking[], now = new Date()): Live {
   if (v.onboarding_status && v.onboarding_status !== 'enrolled' || v.status === 'onboarding') return { key: 'onboarding', label: 'Onboarding', tone: 'accent' };
   const t = now.getTime();
-  const onNow = bookings.some((b) => b.vehicle_id === v.vehicle_id && (b.status === 'on_rent' || (RENTED.has(b.status) && b.status !== 'closed' && b.status !== 'returned' && new Date(b.pickup_at).getTime() <= t && new Date(b.return_at).getTime() > t)));
+  // a booking not shown to the owner that covers now: the car is unavailable (nothing more is said)
+  const blockedNow = bookings.some((b) => b.vehicle_id === v.vehicle_id && viewOf(b) === 'unavailable' && !['cancelled', 'no_show', 'returned', 'closed'].includes(b.status)
+    && new Date(b.pickup_at).getTime() <= t && new Date(b.return_at).getTime() > t);
+  if (blockedNow) return { key: 'unavailable', label: 'Unavailable', tone: 'muted' };
+  const onNow = bookings.some((b) => b.vehicle_id === v.vehicle_id && viewOf(b) !== 'unavailable' && (b.status === 'on_rent' || (RENTED.has(b.status) && b.status !== 'closed' && b.status !== 'returned' && new Date(b.pickup_at).getTime() <= t && new Date(b.return_at).getTime() > t)));
   if (v.status === 'on_rent' || onNow) return { key: 'on_rent', label: 'On rent', tone: 'live' };
   if (v.status === 'available' || v.status === 'ready_to_list') return { key: 'available', label: 'Available', tone: 'ready' };
   if (v.status === 'cleaning' || v.status === 'out_of_service') return { key: 'service', label: 'In service', tone: 'service' };
@@ -37,6 +53,8 @@ export interface MonthStat {
   key: string; label: string; short: string; current: boolean;
   /** Rental charges before tax on the owner's cars, counted by rental day (a rental over two months counts in each). */
   rental_cents: number; days: number; bookings: number; fees_cents: number;
+  /** Rentals of the month whose figures are not shown yet (0156): they come with the approved statement. */
+  held: number;
   /** The payout of the month's approved statement, if there is one. */
   payout_cents: number | null; statement_id: string | null; statement_number: string | null;
   cars: MonthCar[];
@@ -50,18 +68,22 @@ export function monthStats(home: Pick<OwnerHome, 'vehicles' | 'invoices' | 'stat
   const thisMonth = monthKey(today);
   const keys = Array.from({ length: count }, (_, i) => addMonth(thisMonth, i - count + 1));
   const cars = home.vehicles.filter((v) => !['declined'].includes(v.status));
-  const out = keys.map((key) => ({ key, label: monthLabel(key), short: monthLabel(key, 'short'), current: key === thisMonth, rental_cents: 0, days: 0, bookings: 0, fees_cents: 0,
+  const out = keys.map((key) => ({ key, label: monthLabel(key), short: monthLabel(key, 'short'), current: key === thisMonth, rental_cents: 0, days: 0, bookings: 0, fees_cents: 0, held: 0,
     payout_cents: null as number | null, statement_id: null as string | null, statement_number: null as string | null,
     cars: cars.map((v) => ({ vehicle_id: v.vehicle_id, name: v.name, bookings: 0, days: 0, rental_cents: 0, fees_cents: 0 })) }));
   const at = new Map(out.map((m) => [m.key, m]));
   for (const b of bookings) {
     if (!RENTED.has(b.status) || b.booking_type === 'owner') continue;
+    const view = viewOf(b);
+    if (view === 'unavailable') continue;
     const a = torontoDay(b.pickup_at), z = torontoDay(b.return_at);
     const nights = Math.max(1, dayNum(z) - dayNum(a));
     for (const m of out) {
       const first = dayNum(`${m.key}-01`), last = first + daysIn(m.key); // [first, last)
       const s = Math.max(dayNum(a), first), e = Math.min(Math.max(dayNum(z), dayNum(a) + 1), last);
       if (e <= s) continue;
+      // a hidden booking counts nowhere in the figures (not its days either): only that one is still to come
+      if (view !== 'full' || b.rental_charge_cents === null) { m.held += 1; continue; }
       const d = e - s;
       const cents = Math.round((b.rental_charge_cents * d) / nights);
       const c = m.cars.find((x) => x.vehicle_id === b.vehicle_id);

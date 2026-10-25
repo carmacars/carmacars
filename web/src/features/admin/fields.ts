@@ -13,6 +13,7 @@ const LABELS: Record<string, string> = {
   ai_assistant_reserve_bps: 'Workers AI: share of the day kept for the staff assistant', ai_background_bps: 'Workers AI: share of the day for background writing',
   ai_release_hour: 'Workers AI: from this hour (Toronto) what is left goes to the others (empty: never)', ai_assistant_cushion: 'Workers AI: neurons always kept for the assistant after the release hour',
   owner_lower_share_without_signature: 'Lower management % without owner signature',
+  owner_revenue_visibility: 'Owners see a booking\'s revenue',
   // review requests (0146)
   review_program_enabled: 'Send review requests (check-in, request, reminder, final follow-up)', review_checkin_enabled: 'Mid-trip check-in ("How\'s the car?")',
   review_checkin_min_days: 'Check-in only for rentals of at least (days)', review_checkin_after_hours: 'Check-in this many hours after the pickup',
@@ -104,6 +105,7 @@ const LABELS: Record<string, string> = {
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
+  owner_revenue_visibility: 'For new bookings (0156). Right away by default. "After the return" or "when the statement is approved": the owner sees the booking as Booked with its dates, without the amounts, until then. Staff change it on each booking (Add a rental, an offer, the booking page). The statement always includes every booking at its true amounts.',
   max_rental_days: 'A booking longer than one period is cut into monthly periods: each gets its own rental agreement (and Blind Spot agreement) to sign and its own invoice. 365 by default.',
   long_rental_period_days: '30 by default: the monthly rate covers 30 days. Used when the periods are in days.',
   long_rental_autocharge: 'On: when a period\'s invoice is due, the card on file is charged and Finance gets a task only if it fails. Off: Finance collects each one.',
@@ -182,4 +184,8 @@ function fieldForBase(k: string, v: unknown, options?: Array<[string, string]>):
   if (typeof v === 'string' && v.length > 80) return { name: k, label: nice(k), type: 'textarea', value: v };
   return { name: k, label: nice(k), type: 'text', value: v };
 }
-export const fieldsFrom = (row: Record<string, unknown>, keys: string[], options: Record<string, Array<[string, string]>> = {}) => keys.filter((k) => k in row).map((k) => fieldFor(k, row[k], options[k]));
+// settings that are one of a few words (a select)
+const OPTIONS: Record<string, Array<[string, string]>> = {
+  owner_revenue_visibility: [['right_away', 'Right away (default)'], ['after_return', 'After the return'], ['statement', 'When the statement is approved']]
+};
+export const fieldsFrom = (row: Record<string, unknown>, keys: string[], options: Record<string, Array<[string, string]>> = {}) => keys.filter((k) => k in row).map((k) => fieldFor(k, row[k], options[k] ?? OPTIONS[k]));
