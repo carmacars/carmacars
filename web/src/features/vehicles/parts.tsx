@@ -8,7 +8,7 @@ import { money } from '@/lib/format';
 import { siteUrl } from '@/lib/site';
 import type { CarRow } from '@/lib/types';
 import { Availability } from './Availability';
-import { photoLd, StockFigure, stockAlt } from './photo';
+import { photoLd, StockFigure, stockAlt, stockNote } from './photo';
 import type { StockPhoto } from './stock-photos';
 import { type Spec, type YearRow, dollars, fuelWord, list, paintFor, priceBasis, shapeFor, tripCosts, ratingText } from './content';
 
@@ -33,8 +33,8 @@ export function VehicleHead({ trail, h1, lead, img, alt, facts, cta = ['#invento
           {facts.length > 0 && <dl className="keyspecs vp-head__facts">{facts.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
           <p className="vp-head__cta"><a className="btn btn--primary btn--lg" href={cta[0]}>{cta[1]}</a></p>
         </div>
-        {/* 0137: the licensed photo of the model's generation with its credit; else the studio drawing */}
-        {photo ? <StockFigure p={photo} alt={stockAlt(photo)} className="vp-head__media" main note="Representative photo, not one of our cars" />
+        {/* 0137: the licensed photo of the model's generation with its credit (a photo of another year says so); else the studio drawing */}
+        {photo ? <StockFigure p={photo} alt={stockAlt(photo)} className="vp-head__media" main note={stockNote(photo)} />
           : <figure className="vp-head__media photo photo--32">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={img} alt={alt} width={1800} height={1200} decoding="async" fetchPriority="high" />

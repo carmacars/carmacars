@@ -9,7 +9,8 @@ import { acceptCookies, db, noOverflow } from './helpers';
 // catalog's Volkswagen Jetta (2019 to 2021): a photo of the 2019 to 2020 generation shows on the model, 2020 year, 2020
 // trim and /buy pages with its always-visible credit (author, licence, Wikimedia Commons, with links), the alt text of
 // its generation, a srcset, its own width and height (no layout shift) and an ImageObject with license and creditText;
-// the 2021 page, which no generation covers, keeps the studio drawing; an Admin's Hide takes it off at once.
+// the 2021 page (a model year off) shows it marked "not the exact year"; a colour page keeps the studio drawing; an
+// Admin's Hide takes it off at once (the Jetta then has no photo: the drawing).
 // At 375 and 1440, with axe and no sideways scroll. Fixture rows are removed at the end.
 const PW = 'correct horse battery';
 const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${salt.toString('base64')}$${scryptSync(pw, salt, 64).toString('base64')}`; };
@@ -83,11 +84,15 @@ for (const url of ['/cars/volkswagen/jetta', '/cars/volkswagen/jetta/2020', '/ca
   });
 }
 
-test('a year no generation covers keeps the studio drawing', async ({ page }) => {
+test('a model year off the generation shows it, marked not the exact year; a colour page keeps the drawing', async ({ page }) => {
   const res = await page.goto('/cars/volkswagen/jetta/2021');
   expect(res?.status()).toBe(200);
+  const credit = page.getByTestId('stock-photo').first().getByTestId('photo-credit');
+  await expect(credit).toContainText('Photo: E2E Tester, CC BY-SA 4.0, Wikimedia Commons');
+  await expect(credit).toContainText('Representative photo of the Volkswagen Jetta, not the exact year');
+  await axe(page, '/cars/volkswagen/jetta/2021');
+  await page.goto('/cars/volkswagen/jetta/2020/sportline/colour/gold');
   await expect(page.getByTestId('stock-photo')).toHaveCount(0);
-  await expect(page.locator('.vp-head__media img')).toHaveAttribute('src', /\/sample-photos\/studio\//);
 });
 
 test('an Admin hides the photo in Settings > Vehicle pages and the page goes back to the studio drawing', async ({ page }) => {

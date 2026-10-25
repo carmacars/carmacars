@@ -62,7 +62,7 @@ env:
 jobs:
   photos:
     runs-on: ubuntu-24.04
-    timeout-minutes: 80
+    timeout-minutes: 110
     defaults:
       run:
         working-directory: web
@@ -99,16 +99,19 @@ jobs:
         if: steps.due.outputs.mode == 'dry'
         run: |
           set -euo pipefail
-          node --experimental-strip-types --no-warnings scripts/seo-photos/run.mjs --targets popular --limit "${{ inputs.limit || '160' }}" --minutes "${{ inputs.minutes || '45' }}" \
+          node --experimental-strip-types --no-warnings scripts/seo-photos/run.mjs --targets popular --limit "${{ inputs.limit || '160' }}" --minutes "${{ inputs.minutes || '90' }}" --first-year 2010 \
             ${{ inputs.models && format('--models {0}', inputs.models) || '' }} --samples 3 --generic --manifest "$RUNNER_TEMP/manifest.json" | tee "$RUNNER_TEMP/dry.txt"
           echo "::notice title=seo-photos dry run::$(jq -c '{models, found, photos, failed, http, errors: (.errors | length)}' "$RUNNER_TEMP/manifest.json")"
+          echo "::notice title=seo-photos coverage::$(jq -c '.coverage | del(.without_generation)' "$RUNNER_TEMP/manifest.json")"
+          echo "::notice title=seo-photos without generation photos::$(jq -r '.coverage.without_generation | join(", ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
+          echo "::notice title=seo-photos sources::$(jq -c '[.picks[].src] | group_by(.) | map({(.[0] // "?"): length}) | add' "$RUNNER_TEMP/manifest.json")"
           echo "::notice title=seo-photos missing::$(jq -r '.missing | join(", ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
           echo "::notice title=seo-photos generic::$(jq -c '.generic' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
           echo "::notice title=seo-photos errors::$(jq -r '.errors | join(" | ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
           echo "::notice title=seo-photos generations::$(jq -r '.diag | join("; ")' "$RUNNER_TEMP/manifest.json" | head -c 3900)"
-          grep '^sample ' "$RUNNER_TEMP/dry.txt" | head -n 3 | sed 's/^/::notice title=seo-photos conversion::/' || true
+          grep '^sample ' "$RUNNER_TEMP/dry.txt" | head -n 1 | sed 's/^/::notice title=seo-photos conversion::/' || true
           # the picks, compact, gzip and base64 in parts of 3,900 characters
-          jq -c '[.picks[] | [.m, .y, .g, .f, .w, .h, .l, .a, .s]]' "$RUNNER_TEMP/manifest.json" | gzip -9 | base64 -w0 > "$RUNNER_TEMP/picks.b64"
+          jq -c '[.picks[] | [.m, .y, .g, .f, .w, .h, .l, .a, .s, .src]]' "$RUNNER_TEMP/manifest.json" | gzip -9 | base64 -w0 > "$RUNNER_TEMP/picks.b64"
           echo "parts=$(( ($(wc -c < "$RUNNER_TEMP/picks.b64") + 3899) / 3900 ))" >> "$GITHUB_ENV"
       # GitHub keeps at most 10 notices per step: the parts get steps of their own
       - name: Picks, parts 0 to 9

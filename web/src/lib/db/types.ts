@@ -17225,6 +17225,7 @@ export type Database = {
           category: string | null;
           file_title: string;
           source_url: string;
+          source_name: string;
           author: string;
           author_url: string | null;
           licence: string;
@@ -17259,6 +17260,7 @@ export type Database = {
           category?: string | null;
           file_title: string;
           source_url: string;
+          source_name?: string;
           author: string;
           author_url?: string | null;
           licence: string;
@@ -17293,6 +17295,7 @@ export type Database = {
           category?: string | null;
           file_title?: string;
           source_url?: string;
+          source_name?: string;
           author?: string;
           author_url?: string | null;
           licence?: string;

@@ -29,7 +29,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomBytes } from 'node:crypto';
-import { authorUrl, generationRanges, licenceOk, pickBest, plainAuthor, scoreGeneric } from '../../src/features/vehicles/stock-photos.ts';
+import { articleYears, authorUrl, categoryFor, firstModelYear, generationRanges, licenceOk, openverseMeta, parseGenerations, pickBest, plainAuthor, scoreGeneric,
+  sourceShowsLicence } from '../../src/features/vehicles/stock-photos.ts';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -62,7 +63,7 @@ async function polite(url, { json = true, tries = 5 } = {}) {
     stats.requests++;
     let r;
     try {
-      r = await fetch(url, { headers: { 'user-agent': UA, 'api-user-agent': UA, accept: json ? 'application/json' : 'image/*' }, signal: AbortSignal.timeout(60_000) });
+      r = await fetch(url, { headers: { 'user-agent': UA, 'api-user-agent': UA, accept: json ? 'application/json' : 'image/*,text/html;q=0.9' }, signal: AbortSignal.timeout(60_000) });
     } catch (e) {
       if (i >= tries) throw e;
       stats.retries++; await sleep(5000 * (i + 1)); continue;
@@ -89,6 +90,8 @@ async function polite(url, { json = true, tries = 5 } = {}) {
 // the endpoints (WM_* only for the script's own offline check, scripts/seo-photos/offline-check.mjs)
 const API = process.env.WM_COMMONS_API ?? 'https://commons.wikimedia.org/w/api.php';
 const WD = process.env.WM_WIKIDATA_API ?? 'https://www.wikidata.org/w/api.php';
+const WP = process.env.WM_WIKIPEDIA_API ?? 'https://en.wikipedia.org/w/api.php';
+const OV = process.env.WM_OPENVERSE_API ?? 'https://api.openverse.org/v1';
 const GAP_MS = Number(process.env.WM_GAP_MS ?? 1000);
 const qs = (o) => new URLSearchParams({ format: 'json', formatversion: '2', maxlag: '5', ...o }).toString();
 const EXT = 'LicenseShortName|License|LicenseUrl|UsageTerms|Artist|Credit|AttributionRequired|Copyrighted|NonFree|Restrictions|ImageDescription|ObjectName|Categories|DateTimeOriginal';
@@ -138,7 +141,7 @@ function wdTime(v) {
 async function entities(list) {
   const out = {};
   for (let i = 0; i < list.length; i += 50) {
-    const b = await polite(`${WD}?${qs({ action: 'wbgetentities', ids: list.slice(i, i + 50).join('|'), props: 'labels|aliases|claims', languages: 'en' })}`);
+    const b = await polite(`${WD}?${qs({ action: 'wbgetentities', ids: list.slice(i, i + 50).join('|'), props: 'labels|aliases|claims|sitelinks', sitefilter: 'enwiki', languages: 'en' })}`);
     Object.assign(out, b.entities ?? {});
   }
   return out;
@@ -196,42 +199,139 @@ async function generations(model) {
   return { self, gens };
 }
 
+// ---------------------------------------------------------------- Wikipedia: the generations and their model years
+async function wikitext(title) {
+  if (!title) return null;
+  const b = await polite(`${WP}?${qs({ action: 'parse', page: title, prop: 'wikitext', redirects: '1' })}`);
+  return typeof b?.parse?.wikitext === 'string' ? b.parse.wikitext : null;
+}
+/** The model's generations from its English Wikipedia article (the Wikidata item's sitelink), each completed from its
+ *  own article ({{Main|...}}) when the main article gives no years or image (at most 8 articles a model). */
+async function wikipediaGenerations(model, t) {
+  const title = model.entity?.sitelinks?.enwiki?.title ?? `${t.make_name} ${t.model_name}`;
+  const wt = await wikitext(title);
+  if (!wt) return [];
+  const gens = parseGenerations(wt);
+  let fetched = 0;
+  for (const g of gens) {
+    if (!g.main || fetched >= 8 || (g.myFrom && g.image)) continue;
+    // only generations that can reach the catalog's years
+    if (firstModelYear(g) !== null && (g.myTo ?? g.end ?? 9999) < (t.first_year ?? 0) - 1) continue;
+    fetched++;
+    const a = articleYears((await wikitext(g.main)) ?? '');
+    if (!a) continue;
+    // the generation's own article is the more precise: its years replace the heading's
+    if (firstModelYear(g) === null || (!g.myFrom && (a.myFrom || a.start))) Object.assign(g, { start: a.start, startMonth: a.startMonth, end: a.end, myFrom: a.myFrom, myTo: a.myTo, current: a.current });
+    g.image ??= a.image;
+  }
+  return gens.map((g) => ({ ...g, label: /^(the )?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|[A-Z]{1,4}\d)/i.test(g.label) ? `${model.label} ${g.label}` : g.label }));
+}
+async function subcategories(cat) {
+  if (!cat) return [];
+  const b = await polite(`${API}?${qs({ action: 'query', list: 'categorymembers', cmtitle: `Category:${cat.replace(/^Category:/i, '')}`, cmtype: 'subcat', cmlimit: '200' })}`);
+  return (b.query?.categorymembers ?? []).map((x) => x.title);
+}
+/** Files of the model's categories by model year ("Category:2019 Toyota RAV4"): the photo is of that model year. */
+async function yearCategoryFiles(names, years) {
+  const cats = [...new Set(years.flatMap((y) => names.map((n) => `"${y} ${n}"`.replace(/ /g, '_'))))].slice(0, 6);
+  if (!cats.length) return [];
+  const b = await polite(`${API}?${qs({ action: 'query', generator: 'search', gsrsearch: `incategory:${cats.join('|')} filetype:bitmap`, gsrnamespace: '6', gsrlimit: '30', ...II })}`);
+  return candidates(b.query?.pages);
+}
+async function searchFiles(q, limit = 20) {
+  const b = await polite(`${API}?${qs({ action: 'query', generator: 'search', gsrsearch: q, gsrnamespace: '6', gsrlimit: String(limit), ...II })}`);
+  return candidates(b.query?.pages);
+}
+
+// ---------------------------------------------------------------- Openverse: a second source (CC0, PDM, BY, BY-SA)
+let openverseOff = !!process.env.NO_OPENVERSE;
+const PROVIDER = { flickr: 'Flickr', wikimedia: 'Wikimedia Commons', geographorguk: 'Geograph', nappy: 'nappy', rawpixel: 'rawpixel', stocksnap: 'StockSnap' };
+async function openverse(q) {
+  if (openverseOff) return [];
+  try {
+    const b = await polite(`${OV}/images/?${new URLSearchParams({ q, license: 'cc0,pdm,by,by-sa', page_size: '20', mature: 'false', filter_dead: 'true' })}`, { tries: 1 });
+    return (b.results ?? []).filter((x) => x.source !== 'wikimedia' && x.url && x.foreign_landing_url && x.width && x.height).map((x) => ({
+      title: `${x.title ?? ''} [openverse ${x.id}]`, width: x.width, height: x.height, mime: /png$/i.test(x.filetype ?? '') ? 'image/png' : 'image/jpeg',
+      meta: openverseMeta(x.license, x.license_version, x.creator), thumb: x.url, thumbWidth: x.width, page: x.foreign_landing_url.replace(/^http:/, 'https:'), verifyAt: x.foreign_landing_url, sha1: null,
+      openverse: { license: x.license, version: x.license_version, where: `${PROVIDER[x.source] ?? PROVIDER[x.provider] ?? String(x.source ?? x.provider ?? 'Openverse')} via Openverse`, creatorUrl: x.creator_url ?? null }
+    }));
+  } catch (e) {
+    // a refusal (no key, the day's limit): Openverse is left out for the rest of the run
+    openverseOff = true; diag.push(`openverse off: ${e.message}`);
+    return [];
+  }
+}
+/** An Openverse hit is used only when its source page shows the same licence. */
+async function verifiedAtSource(c) {
+  try {
+    const html = (await polite(c.verifyAt ?? c.page, { json: false, tries: 1 })).toString('utf8');
+    return sourceShowsLicence(html, c.openverse.license, c.openverse.version);
+  } catch { return false; }
+}
+/** The best candidate, an Openverse one only once its source page confirms the licence. */
+async function bestOf(pool, ctx) {
+  for (let i = 0; i < 4; i++) {
+    const b = pickBest(pool, ctx);
+    if (!b || !b.c.openverse || b.c.verified) return b;
+    if (await verifiedAtSource(b.c)) { b.c.verified = true; return b; }
+    ctx.rejected = [...(ctx.rejected ?? []), b.c.title];
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------- one model
+const STOP = 80;
 async function chooseFor(t, rejectedBy = new Map()) {
-  const r = { make: t.make, model: t.model, wikidata: null, rows: [], note: '' };
+  const r = { make: t.make, model: t.model, wikidata: null, rows: [], note: '', gens: 0 };
   const hit = await resolveModel(t.make_name, t.model_name);
   if (!hit) { r.note = 'not found on Wikidata'; return r; }
   r.wikidata = hit.id;
-  const { self, gens } = await generations(hit);
   const first = t.first_year ?? 1980, lastY = t.last_year ?? new Date().getUTCFullYear() + 1;
+  const self = genOf(hit.id, hit.entity);
+  // generations: Wikipedia's article first (model years), Wikidata's items when the article gives none
+  let gens = await wikipediaGenerations(hit, t);
+  let source = 'Wikipedia';
+  if (!generationRanges(gens, first, lastY).length) { gens = (await generations(hit)).gens; source = 'Wikidata'; }
   const ranges = generationRanges(gens, first, lastY);
+  r.gens = ranges.length;
+  const modelCat = self.category ?? `${hit.label}`;
+  const subcats = ranges.length ? await subcategories(modelCat) : [];
+  const names = [...new Set([hit.label, `${t.make_name} ${t.model_name}`])];
   const slots = ranges.length ? ranges.map((g) => ({ g, from: g.from, to: g.to })) : [{ g: self, from: null, to: null }];
-  // the Wikidata images of every generation (and the model) in one request
-  const p18 = [...new Set([...slots.map((s) => s.g.image), self.image].filter(Boolean))];
-  const info = new Map(candidates(p18.length ? await imageInfo(p18) : []).map((c) => [c.title, c]));
+  const curated = [...new Set([...slots.map((s) => s.g.image), self.image].filter(Boolean))];
+  const info = new Map(candidates(curated.length ? await imageInfo(curated) : []).map((c) => [c.title, c]));
   for (const s of slots) {
+    if (Date.now() - T0 > BUDGET_MS) break;
     const key = s.from ?? 0;
     // a photo of the model in general is recent: from the 12 model years before the catalog's newest
-    const ctx = { make: t.make_name, model: t.model_name, yearFrom: s.from, yearTo: s.to, rejected: rejectedBy.get(key) ?? [], minYear: s.from ? null : lastY - 12 };
+    const ctx = { make: t.make_name, model: t.model_name, yearFrom: s.from, yearTo: s.to, rejected: [...(rejectedBy.get(key) ?? [])], minYear: s.from ? null : lastY - 12 };
     const pool = [];
+    const add = async (fn) => { if (best && best.score >= STOP) return; try { pool.push(...await fn()); } catch (e) { diag.push(`${t.make}/${t.model}: ${e.message}`); } best = await bestOf(pool, ctx); };
+    let best = null;
     if (s.g.image && info.get(s.g.image)) pool.push({ ...info.get(s.g.image), wikidata: true });
-    let best = pickBest(pool, ctx);
-    const cat = s.g.category ?? (ranges.length ? null : self.category);
-    if (cat && (!best || best.score < 75)) { pool.push(...await categoryFiles(cat, true)); best = pickBest(pool, ctx); }
-    if (cat && (!best || best.score < 55)) { pool.push(...await categoryFiles(cat, false)); best = pickBest(pool, ctx); }
+    best = await bestOf(pool, ctx);
+    const cat = s.from ? (categoryFor(s.g, subcats) ?? s.g.category ?? null) : modelCat;
+    if (cat) await add(() => categoryFiles(cat, true));
+    if (s.from) await add(() => yearCategoryFiles(names, [s.from + 1, s.from, s.from + 2].filter((y) => y <= s.to)));
+    if (cat) await add(() => categoryFiles(cat, false));
+    await add(() => searchFiles(`intitle:"${hit.label}" ${s.from ? `${Math.min(s.from + 1, s.to)} ` : ''}filetype:bitmap`));
+    if (s.g.wikidata || (source === 'Wikidata' && /^Q\d+$/.test(s.g.id))) await add(() => searchFiles(`haswbstatement:P180=${s.g.wikidata ?? s.g.id}`));
+    await add(() => openverse(`${t.make_name} ${t.model_name}${s.from ? ` ${Math.min(s.from + 1, s.to)}` : ''}`));
     if (!best) continue;
     r.rows.push(rowOf(best, s, cat));
   }
-  r.note = `${gens.length} generation${gens.length === 1 ? '' : 's'} on Wikidata, ${ranges.length} dated in the catalog's years, ${r.rows.length} photo${r.rows.length === 1 ? '' : 's'}`;
+  diag.push(`${t.make}/${t.model}: ${source} ${ranges.length} generations, ${r.rows.length} photos`);
+  r.note = `${ranges.length} generation${ranges.length === 1 ? '' : 's'} in the catalog's years (${source}), ${r.rows.length} photo${r.rows.length === 1 ? '' : 's'}`;
   return r;
 }
 function rowOf(best, s, cat) {
   const c = best.c, lic = licenceOk(c.meta);
+  const ov = c.openverse;
   return {
-    year_from: s.from, year_to: s.to, generation: s.g.label ?? null, wikidata: s.g.id ?? null, category: cat ?? null,
-    file_title: c.title, source_url: c.page ?? `https://commons.wikimedia.org/wiki/${encodeURI(c.title.replace(/ /g, '_'))}`, width: c.width, height: c.height,
-    author: plainAuthor(c.meta.Artist) || 'Unknown author', author_url: authorUrl(c.meta.Artist), licence: lic.licence, licence_url: lic.licenceUrl,
-    sha1: c.sha1 ?? null, score: best.score, thumb: c.thumb, thumb_width: c.thumbWidth
+    year_from: s.from, year_to: s.to, generation: s.g.label ?? null, wikidata: /^Q\d+$/.test(s.g.wikidata ?? s.g.id ?? '') ? (s.g.wikidata ?? s.g.id) : null, category: cat ?? null,
+    file_title: c.title, source_url: c.page ?? `https://commons.wikimedia.org/wiki/${encodeURI(c.title.replace(/ /g, '_'))}`, source_name: ov ? ov.where : 'Wikimedia Commons',
+    width: c.width, height: c.height, author: plainAuthor(c.meta.Artist) || 'Unknown author', author_url: ov ? (/^https:\/\//.test(ov.creatorUrl ?? '') ? ov.creatorUrl : null) : authorUrl(c.meta.Artist),
+    licence: lic.licence, licence_url: lic.licenceUrl, sha1: c.sha1 ?? null, score: best.score, thumb: c.thumb, thumb_width: c.thumbWidth
   };
 }
 
@@ -297,12 +397,15 @@ const one = async (q) => Object.values((await sql(q))[0] ?? {})[0] ?? null;
 function popularTargets() {
   return readFileSync(join(HERE, '..', 'catalog', 'popular.txt'), 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#')).map((l) => {
     const [mk, md] = l.split('|').map((s) => s.trim());
-    return { make: seg(mk), model: seg(md), make_name: mk, model_name: md, first_year: 2000, last_year: new Date().getUTCFullYear() + 1, existing: [] };
+    return { make: seg(mk), model: seg(md), make_name: mk, model_name: md, first_year: Number(opt('first-year', '2010')), last_year: new Date().getUTCFullYear() + 1, existing: [] };
   }).filter((t) => !MODELS.length || MODELS.includes(`${t.make}/${t.model}`));
 }
 
 // ---------------------------------------------------------------- main
-const run = { started: new Date().toISOString(), mode: WRITE ? 'write' : 'dry', targets: TARGETS, models: 0, found: 0, photos: 0, stored: 0, failed: 0, missing: [], picks: [], generic: [], pending: 0, errors: [] };
+const run = { started: new Date().toISOString(), mode: WRITE ? 'write' : 'dry', targets: TARGETS, models: 0, found: 0, photos: 0, stored: 0, failed: 0, missing: [], picks: [], generic: [], pending: 0, errors: [],
+  // model years from 2015 (the years the popular list indexes) covered by a photo of their own generation, by the next
+  // generation a year off (near), by a photo of the model only (model), or not at all
+  coverage: { models: 0, models_generation: 0, models_any: 0, years: 0, exact: 0, near: 0, model: 0, none: 0, without_generation: [] } };
 const out = (s) => console.log(s);
 let runId = null;
 if (WRITE) {
@@ -355,6 +458,19 @@ for (const t of targets) {
     if (r.wikidata) run.found++;
     if (!r.rows.length) run.missing.push(`${t.make_name} ${t.model_name}`);
     run.photos += r.rows.length;
+    {
+      const cv = run.coverage, gensRows = r.rows.filter((x) => x.year_from);
+      cv.models++;
+      if (gensRows.length) cv.models_generation++; else cv.without_generation.push(`${t.make_name} ${t.model_name}`);
+      if (r.rows.length) cv.models_any++;
+      for (let y = Math.max(2015, t.first_year ?? 2015); y <= (t.last_year ?? new Date().getUTCFullYear() + 1); y++) {
+        cv.years++;
+        if (gensRows.some((x) => y >= x.year_from && y <= x.year_to)) cv.exact++;
+        else if (gensRows.some((x) => y >= x.year_from - 1 && y <= x.year_to + 1)) cv.near++;
+        else if (r.rows.length) cv.model++;
+        else cv.none++;
+      }
+    }
     if (WRITE) {
       const have = new Map((t.existing ?? []).map((e) => [`${e.year_from ?? 0}`, e]));
       for (const row of r.rows) {
@@ -372,7 +488,7 @@ for (const t of targets) {
       out(`sample ${t.make}/${t.model}: ${sized.map((s) => `${s.width}x${s.height} ${Math.round(s.data.length / 1024)} KB`).join(', ')}`);
     }
     for (const row of r.rows) run.picks.push({ m: `${t.make}/${t.model}`, y: row.year_from ? `${row.year_from}-${row.year_to}` : '', g: row.generation, f: row.file_title.replace(/^File:/, ''),
-      w: row.width, h: row.height, l: row.licence, a: row.author.slice(0, 40), s: row.score });
+      w: row.width, h: row.height, l: row.licence, a: row.author.slice(0, 40), s: row.score, src: row.source_name });
     out(`${t.make}/${t.model}: ${r.note}`);
   } catch (e) { run.errors.push(`${t.make}/${t.model}: ${e.message}`); run.failed++; out(`${t.make}/${t.model}: error ${e.message}`); }
 }
@@ -400,9 +516,11 @@ if (flag('generic') && Date.now() - T0 < BUDGET_MS) {
 
 run.finished = new Date().toISOString();
 run.diag = diag;
+if (process.env.OFFLINE_DEBUG) console.error(diag.join("\n"));
 run.http = stats;
 if (WRITE) await one(`select app.stock_photo_run_finish(${lit({ id: runId, counts: { models: run.models, found: run.found, photos: run.photos, stored: run.stored, failed: run.failed, pending: run.pending,
   requests: stats.requests, megabytes: Math.round(stats.bytes / 1048576) }, errors: run.errors.slice(0, 50) })})`);
 if (MANIFEST) writeFileSync(MANIFEST, JSON.stringify(run, null, 1));
+out(`coverage: ${JSON.stringify({ ...run.coverage, without_generation: run.coverage.without_generation.length })}`);
 out(`done: ${run.models} models, ${run.found} on Wikidata, ${run.photos} photos chosen, ${run.stored} stored, ${run.failed} failed, ${stats.requests} requests (${stats.retries} retried), ${Math.round(stats.bytes / 1048576)} MB downloaded`);
 if (run.missing.length) out(`missing: ${run.missing.join(', ')}`);

@@ -5,13 +5,16 @@
 --
 -- 1. vehicle_stock_photos: one photo per make, model and generation (model years year_from to year_to; none for a
 --    photo of the model in general), and a few generic photos per kind of place and service page (slot). Each with its
---    Wikimedia Commons file, author, licence (public domain, CC0, CC BY or CC BY-SA only: a check) and source, the
+--    file (Wikimedia Commons, or Openverse when Commons has none, its licence confirmed at the source page), author,
+--    licence (public domain, CC0, CC BY or CC BY-SA only: a check) and source, the
 --    stored WebP widths in the public bucket (vehicle-public, seo-photos/...), and a status (active, hidden by an
 --    Admin, pending a replacement, failed). Never a fleet car's photo: the fleet's photos stay in vehicle_photos.
 -- 2. vehicle_stock_photo_checks (each model the pipeline has looked at: resumable runs and the coverage report) and
 --    vehicle_stock_photo_runs (each run of .github/workflows/seo-photos.yml).
--- 3. The pages' reads: public.vehicle_stock_photo(make, model, year) (the generation of that model year; a model
---    page, the newest generation; a make page, its most popular model's) and public.stock_photos_generic(slot).
+-- 3. The pages' reads: public.vehicle_stock_photo(make, model, year): the generation of that model year (match
+--    exact); else the next generation a model year off (near); else any photo of the model (model, labelled on the
+--    page "not the exact year"); a model page, the newest generation; a make page, its most popular model's. And
+--    public.stock_photos_generic(slot).
 --    Program settings vpage_stock_photos (on by default) turns them off at once.
 -- 4. The pipeline's calls (service role only): targets (fleet models first, then the popular list, then newest),
 --    save a model, save a slot, the Admin's pending requests and their result, runs, coverage.
@@ -31,8 +34,9 @@ create table if not exists vehicle_stock_photos (
   generation    text,
   wikidata      text check (wikidata is null or wikidata ~ '^Q[0-9]+$'),
   category      text,
-  file_title    text not null check (file_title ~ '^File:.+'),
-  source_url    text not null check (source_url ~ '^https://commons\.wikimedia\.org/[^[:space:]]+$'),
+  file_title    text not null check (btrim(file_title) <> ''),
+  source_url    text not null check (source_url ~ '^https://[^[:space:]]+$'),
+  source_name   text not null default 'Wikimedia Commons' check (btrim(source_name) <> ''),
   author        text not null check (btrim(author) <> ''),
   author_url    text check (author_url is null or author_url ~ '^https://[^[:space:]]+$'),
   licence       text not null check (licence ~ '^(Public domain|CC0|CC BY( [0-9]\.[0-9])?|CC BY-SA( [0-9]\.[0-9])?)$'),
@@ -59,6 +63,7 @@ create table if not exists vehicle_stock_photos (
   check (status <> 'active' or (path is not null and cardinality(sizes) > 0 and width is not null and height is not null))
 );
 comment on table vehicle_stock_photos is 'Licensed stock photos (0137) for the vehicle pages (a make, model and generation) and the place and service pages (generic, by slot), from Wikimedia Commons: public domain, CC0, CC BY or CC BY-SA, always credited on the page. Never a fleet car''s photo.';
+comment on column vehicle_stock_photos.source_name is 'Where the photo is from, as the credit names it: Wikimedia Commons, or "<site> via Openverse" (its licence confirmed at source_url)';
 comment on column vehicle_stock_photos.path is 'The stored files without their width: <path>-<width>.webp in the vehicle-public bucket, for each width in sizes';
 comment on column vehicle_stock_photos.want_file is 'An Admin asked for this Commons file instead (status pending): the next run checks its licence, stores it and makes it active';
 comment on column vehicle_stock_photos.rejected_files is 'Files an Admin hid or asked to replace: never picked again for this make, model and generation';
@@ -114,22 +119,29 @@ language sql stable security definer set search_path = public, app as $$
     'model_name', (select m.name from vehicle_catalog_models m where m.make_slug = ph.make and m.slug = ph.model),
     'year_from', ph.year_from, 'year_to', ph.year_to, 'generation', ph.generation, 'path', ph.path, 'sizes', to_jsonb(ph.sizes),
     'width', ph.width, 'height', ph.height, 'author', ph.author, 'author_url', ph.author_url, 'licence', ph.licence, 'licence_url', ph.licence_url,
-    'source_url', ph.source_url, 'alt', ph.alt)
+    'source_url', ph.source_url, 'source_name', ph.source_name, 'alt', ph.alt)
 $$;
 
--- The photo for a vehicle page: the generation of that model year (never another generation's: a year no generation
--- covers keeps the studio drawing); a model page, the newest generation (or the model's general photo); a make page,
--- the photo of its most popular model. Null when there is none or the setting is off.
+-- The photo for a vehicle page, best fit first: the generation of that model year (match exact); the next generation
+-- when the year is a model year off its range (near: a model year a generation's dates miss by one); any photo of the
+-- model (model: the page says "Representative photo of the <model>, not the exact year"; the owner prefers a real
+-- photo to the drawing). A model page gets the newest generation, a make page its most popular model's. Null when there
+-- is none (the studio drawing) or the setting is off.
 create or replace function public.vehicle_stock_photo(p_make text, p_model text default null, p_year integer default null) returns jsonb
 language sql stable security definer set search_path = public, app as $$
   select case when coalesce((app.settings()).vpage_stock_photos, true) then (
-    select app.stock_photo_json(ph)
-      from vehicle_stock_photos ph
-      left join vehicle_catalog_popular pop on pop.make_slug = ph.make and pop.model_slug = ph.model
-     where ph.kind = 'model' and ph.status = 'active' and ph.make = p_make
-       and (p_model is null or ph.model = p_model)
-       and (p_year is null or (ph.year_from <= p_year and ph.year_to >= p_year))
-     order by (pop.sort is null), pop.sort, ph.year_to desc nulls last, ph.score desc nulls last
+    select app.stock_photo_json(x.ph) || jsonb_build_object('match', case when p_year is null or p_model is null then 'exact' when x.rank = 0 then 'exact' when x.rank = 1 then 'near' else 'model' end)
+      from (select ph,
+                   case when p_year is null or p_model is null then 0
+                        when ph.year_from <= p_year and ph.year_to >= p_year then 0
+                        when ph.year_from - 1 <= p_year and ph.year_to + 1 >= p_year then 1
+                        else 2 end as rank,
+                   case when p_year is null or ph.year_from is null then 0 else least(abs(p_year - ph.year_from), abs(p_year - ph.year_to)) end as dist,
+                   pop.sort
+              from vehicle_stock_photos ph
+              left join vehicle_catalog_popular pop on pop.make_slug = ph.make and pop.model_slug = ph.model
+             where ph.kind = 'model' and ph.status = 'active' and ph.make = p_make and (p_model is null or ph.model = p_model)) x
+     order by x.rank, (x.sort is null), x.sort, case when p_year is null then 0 else x.dist end, (x.ph).year_to desc nulls last, (x.ph).score desc nulls last
      limit 1) end
 $$;
 
@@ -204,15 +216,16 @@ begin
     if found then
       if e.path is not null and e.path <> r ->> 'path' then v_old := v_old || jsonb_build_array(jsonb_build_object('path', e.path, 'sizes', to_jsonb(e.sizes))); end if;
       update vehicle_stock_photos set year_to = (r ->> 'year_to')::smallint, generation = r ->> 'generation', wikidata = r ->> 'wikidata', category = r ->> 'category',
-             file_title = r ->> 'file_title', source_url = r ->> 'source_url', author = r ->> 'author', author_url = r ->> 'author_url', licence = r ->> 'licence',
+             file_title = r ->> 'file_title', source_url = r ->> 'source_url', source_name = coalesce(r ->> 'source_name', 'Wikimedia Commons'),
+             author = r ->> 'author', author_url = r ->> 'author_url', licence = r ->> 'licence',
              licence_url = r ->> 'licence_url', path = r ->> 'path', sizes = array(select jsonb_array_elements_text(r -> 'sizes'))::smallint[],
              width = (r ->> 'width')::int, height = (r ->> 'height')::int, sha1 = r ->> 'sha1', score = (r ->> 'score')::numeric, status = 'active', note = null, checked_at = now()
        where id = e.id;
     else
-      insert into vehicle_stock_photos (kind, make, model, year_from, year_to, generation, wikidata, category, file_title, source_url, author, author_url, licence, licence_url,
+      insert into vehicle_stock_photos (kind, make, model, year_from, year_to, generation, wikidata, category, file_title, source_url, source_name, author, author_url, licence, licence_url,
                                         path, sizes, width, height, sha1, score, status)
       values ('model', v_make, v_model, (r ->> 'year_from')::smallint, (r ->> 'year_to')::smallint, r ->> 'generation', r ->> 'wikidata', r ->> 'category', r ->> 'file_title',
-              r ->> 'source_url', r ->> 'author', r ->> 'author_url', r ->> 'licence', r ->> 'licence_url', r ->> 'path',
+              r ->> 'source_url', coalesce(r ->> 'source_name', 'Wikimedia Commons'), r ->> 'author', r ->> 'author_url', r ->> 'licence', r ->> 'licence_url', r ->> 'path',
               array(select jsonb_array_elements_text(r -> 'sizes'))::smallint[], (r ->> 'width')::int, (r ->> 'height')::int, r ->> 'sha1', (r ->> 'score')::numeric, 'active');
     end if;
     v_n := v_n + 1;
@@ -236,8 +249,8 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object('path', ph.path, 'sizes', to_jsonb(ph.sizes))) filter (where ph.path is not null), '[]'::jsonb) into v_old
     from vehicle_stock_photos ph where ph.kind = 'generic' and ph.slot = v_slot and ph.status = 'active' and ph.picked_by = 'pipeline' and not (ph.file_title = any (v_keep));
   delete from vehicle_stock_photos ph where ph.kind = 'generic' and ph.slot = v_slot and ph.status = 'active' and ph.picked_by = 'pipeline' and not (ph.file_title = any (v_keep));
-  insert into vehicle_stock_photos (kind, slot, file_title, source_url, author, author_url, licence, licence_url, alt, path, sizes, width, height, sha1, score, status)
-  select 'generic', v_slot, x ->> 'file_title', x ->> 'source_url', x ->> 'author', x ->> 'author_url', x ->> 'licence', x ->> 'licence_url', x ->> 'alt', x ->> 'path',
+  insert into vehicle_stock_photos (kind, slot, file_title, source_url, source_name, author, author_url, licence, licence_url, alt, path, sizes, width, height, sha1, score, status)
+  select 'generic', v_slot, x ->> 'file_title', x ->> 'source_url', coalesce(x ->> 'source_name', 'Wikimedia Commons'), x ->> 'author', x ->> 'author_url', x ->> 'licence', x ->> 'licence_url', x ->> 'alt', x ->> 'path',
          array(select jsonb_array_elements_text(x -> 'sizes'))::smallint[], (x ->> 'width')::int, (x ->> 'height')::int, x ->> 'sha1', (x ->> 'score')::numeric, 'active'
     from jsonb_array_elements(p -> 'rows') x
   on conflict (slot, file_title) where kind = 'generic' do update set checked_at = now()
@@ -271,7 +284,8 @@ begin
     update vehicle_stock_photos set status = 'failed', note = coalesce(p ->> 'note', 'Not found'), checked_at = now() where id = e.id;
     return '[]'::jsonb;
   end if;
-  update vehicle_stock_photos set file_title = r ->> 'file_title', source_url = r ->> 'source_url', author = r ->> 'author', author_url = r ->> 'author_url',
+  update vehicle_stock_photos set file_title = r ->> 'file_title', source_url = r ->> 'source_url', source_name = coalesce(r ->> 'source_name', 'Wikimedia Commons'),
+         author = r ->> 'author', author_url = r ->> 'author_url',
          licence = r ->> 'licence', licence_url = r ->> 'licence_url', path = r ->> 'path', sizes = array(select jsonb_array_elements_text(r -> 'sizes'))::smallint[],
          width = (r ->> 'width')::int, height = (r ->> 'height')::int, sha1 = r ->> 'sha1', score = (r ->> 'score')::numeric, status = 'active', want_file = null,
          picked_by = case when e.want_file is not null then 'admin' else 'pipeline' end, note = null, checked_at = now()
@@ -285,7 +299,10 @@ language sql stable security definer set search_path = public, app as $$
   with ys as (
     select y.make_slug, y.model_slug, y.year,
            exists (select 1 from vehicle_stock_photos ph where ph.kind = 'model' and ph.status = 'active' and ph.make = y.make_slug and ph.model = y.model_slug
-                      and y.year between ph.year_from and ph.year_to) has
+                      and y.year between ph.year_from and ph.year_to) has,
+           exists (select 1 from vehicle_stock_photos ph where ph.kind = 'model' and ph.status = 'active' and ph.make = y.make_slug and ph.model = y.model_slug
+                      and y.year between ph.year_from - 1 and ph.year_to + 1) near,
+           exists (select 1 from vehicle_stock_photos ph where ph.kind = 'model' and ph.status = 'active' and ph.make = y.make_slug and ph.model = y.model_slug) any_photo
       from vehicle_catalog_years y),
   ms as (
     select m.make_slug, m.slug, m.name, mk.name make_name, pop.sort,
@@ -296,12 +313,16 @@ language sql stable security definer set search_path = public, app as $$
   select jsonb_build_object(
     'models', (select count(*) from ms), 'models_checked', (select count(*) from ms where checked), 'models_with_photo', (select count(*) from ms where has),
     'model_years', (select count(*) from ys), 'model_years_with_photo', (select count(*) from ys where has),
+    'model_years_near', (select count(*) from ys where near and not has), 'model_years_model_only', (select count(*) from ys where any_photo and not near),
     'generations', (select count(*) from vehicle_stock_photos where kind = 'model' and status = 'active' and year_from is not null),
     'model_only', (select count(*) from vehicle_stock_photos where kind = 'model' and status = 'active' and year_from is null),
     'hidden', (select count(*) from vehicle_stock_photos where status = 'hidden'), 'pending', (select count(*) from vehicle_stock_photos where status = 'pending'),
     'failed', (select count(*) from vehicle_stock_photos where status = 'failed'),
     'generic', (select coalesce(jsonb_object_agg(slot, n), '{}'::jsonb) from (select slot, count(*) n from vehicle_stock_photos where kind = 'generic' and status = 'active' group by slot) g),
     'popular', (select count(*) from ms where sort is not null), 'popular_with_photo', (select count(*) from ms where sort is not null and has),
+    'popular_with_generation', (select count(*) from ms where sort is not null and exists (select 1 from vehicle_stock_photos ph where ph.kind = 'model' and ph.status = 'active'
+                                  and ph.make = ms.make_slug and ph.model = ms.slug and ph.year_from is not null)),
+    'sources', (select coalesce(jsonb_object_agg(source_name, n), '{}'::jsonb) from (select source_name, count(*) n from vehicle_stock_photos where status = 'active' group by source_name) z),
     'popular_missing', coalesce((select jsonb_agg(make_name || ' ' || name order by sort) from ms where sort is not null and not has), '[]'::jsonb),
     'last_run', (select to_jsonb(r) from vehicle_stock_photo_runs r order by started_at desc limit 1))
 $$;

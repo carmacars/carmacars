@@ -157,3 +157,68 @@ test('generic photos: about the page\'s subject, nothing misleading', async () =
   assert.equal(scoreGeneric(cand('File:Highway 401 traffic.jpg', { meta: by('CC BY-ND 2.0') }), road), null);
   assert.ok(scoreGeneric(cand('File:Highway 401 traffic.jpg', { quality: true }), road)! > scoreGeneric(cand('File:Highway 401 traffic.jpg'), road)!);
 });
+
+test('Wikipedia: generation sections, model years first (North America), production, images, main articles', async () => {
+  const { parseGenerations, generationRanges, yearSpan, wikiPlain, articleYears, categoryFor } = await import('./stock-photos.ts');
+  assert.deepEqual(yearSpan('December 2018 – present'), { from: 2018, fromMonth: 12, to: null, current: true });
+  assert.deepEqual(yearSpan('2012–2018 (Japan)\n2013–2018 (North America)'), { from: 2013, fromMonth: null, to: 2018, current: false });
+  assert.equal(wikiPlain("{{nowrap|1996–2000}}<ref>x</ref> ([[North America]])"), '1996–2000 (North America)');
+  const wt = `Intro text.
+== First generation (XA10; 1994) ==
+{{Main|Toyota RAV4 (XA10)}}
+{{Infobox automobile
+| name = First generation (XA10)
+| image = 1994 Toyota RAV4 (SXA10) 3-door wagon (2010-09-08).jpg
+| production = May 1994 – 2000
+| model_years = 1996–2000 (North America)
+}}
+== Fourth generation (XA40; 2012) ==
+{{Infobox automobile
+| image = [[File:2013 Toyota RAV4.jpg]]
+| production = 2012–2018<ref>a</ref>
+}}
+== Fifth generation (XA50; 2018) ==
+{{Main|Toyota RAV4 (XA50)}}
+{{Infobox automobile
+| image = 2019 Toyota RAV4 LE front.jpg
+| production = December 2018 – present
+| model_years = 2019–present
+}}
+== Sixth generation (XA60; 2025) ==
+{{Main|Toyota RAV4 (XA60)}}
+== Sales ==
+| production = 2020
+== Safety ==
+`;
+  const g = parseGenerations(wt);
+  assert.deepEqual(g.map((x) => [x.code, x.myFrom ?? null, x.start, x.current, x.image, x.main]), [
+    ['XA10', 1996, 1994, false, 'File:1994 Toyota RAV4 (SXA10) 3-door wagon (2010-09-08).jpg', 'Toyota RAV4 (XA10)'],
+    ['XA40', null, 2012, false, 'File:2013 Toyota RAV4.jpg', null],
+    ['XA50', 2019, 2018, true, 'File:2019 Toyota RAV4 LE front.jpg', 'Toyota RAV4 (XA50)'],
+    ['XA60', null, 2025, false, null, 'Toyota RAV4 (XA60)']
+  ]);
+  // XA40 production 2012 (month unknown): model year 2013; XA50 from 2019 to the year before the XA60 (2026)
+  assert.deepEqual(generationRanges(g, 1995, 2027).map((x) => [x.code, x.from, x.to]), [['XA10', 1996, 2000], ['XA40', 2013, 2018], ['XA50', 2019, 2025], ['XA60', 2026, 2027]]);
+  // a generation's own article fills what the main article lacks
+  assert.deepEqual(articleYears('{{Infobox automobile\n| image = Camry XV70.jpg\n| production = August 2017 – 2024\n| model_years = 2018–2024\n}}'),
+    { start: 2017, startMonth: 8, end: 2024, myFrom: 2018, myTo: 2024, current: false, image: 'File:Camry XV70.jpg' });
+  // headings without a code: ordinals with a year; the Commons category by code or ordinal
+  const civic = parseGenerations('== Tenth generation (2015) ==\n{{Infobox automobile\n| model_years = 2016–2021\n}}\n== Eleventh generation (FE/FL; 2021) ==\n{{Infobox automobile\n| model_years = 2022–present\n}}');
+  assert.deepEqual(generationRanges(civic, 2010, 2027).map((x) => [x.label, x.from, x.to]), [['Tenth generation (2015)', 2016, 2021], ['Eleventh generation (FE/FL; 2021)', 2022, 2027]]);
+  const cats = ['Category:Honda Civic (tenth generation)', 'Category:Honda Civic (eleventh generation)', 'Category:Toyota RAV4 (XA50)'];
+  assert.equal(categoryFor(civic[0]!, cats), 'Category:Honda Civic (tenth generation)');
+  assert.equal(categoryFor({ code: 'XA50', label: 'Fifth generation (XA50; 2018)' }, cats), 'Category:Toyota RAV4 (XA50)');
+});
+
+test('Openverse: the licence in Commons words, checked again at the source page; the credit names the source; the year note', async () => {
+  const { openverseMeta, sourceShowsLicence, licenceOk, approxNote, credit } = await import('./stock-photos.ts');
+  assert.deepEqual(licenceOk(openverseMeta('by-sa', '2.0', 'Jane')), { ok: true, licence: 'CC BY-SA 2.0', licenceUrl: 'https://creativecommons.org/licenses/by-sa/2.0/', attribution: true });
+  assert.equal(licenceOk(openverseMeta('pdm', null, null)).ok, true);
+  assert.equal(licenceOk(openverseMeta('by-nc', '2.0', 'Jane')).ok, false);
+  assert.equal(sourceShowsLicence('<a href="https://creativecommons.org/licenses/by-sa/2.0/">Some rights reserved</a>', 'by-sa', '2.0'), true);
+  assert.equal(sourceShowsLicence('<a href="https://creativecommons.org/licenses/by-nc-sa/2.0/">x</a>', 'by-sa', '2.0'), false);
+  assert.equal(sourceShowsLicence('All rights reserved', 'by', '2.0'), false);
+  assert.equal(credit({ ...photo, source_name: 'Flickr via Openverse' }).text, 'Photo: Mr.choppers, CC BY-SA 4.0, Flickr via Openverse');
+  assert.equal(approxNote({ ...photo, match: 'exact' }), null);
+  assert.equal(approxNote({ ...photo, match: 'model' }), 'Representative photo of the Toyota Camry, not the exact year');
+});

@@ -11,6 +11,7 @@ type Row = StockPhoto & { kind: 'model' | 'generic'; slot: string | null; status
 export type StockData = {
   coverage: { models: number; models_checked: number; models_with_photo: number; model_years: number; model_years_with_photo: number; generations: number; model_only: number;
     hidden: number; pending: number; failed: number; generic: Record<string, number>; popular: number; popular_with_photo: number; popular_missing: string[];
+    model_years_near?: number; model_years_model_only?: number; popular_with_generation?: number; sources?: Record<string, number>;
     last_run: { started_at: string; finished_at: string | null; counts: Record<string, number> | null; run_url: string | null } | null };
   photos: Row[];
 };
@@ -26,7 +27,7 @@ function PhotoRow({ r }: { r: Row }) {
       {small ? <img src={small} alt="" width={160} height={Math.round((160 * r.height) / r.width)} loading="lazy" decoding="async" /> : <span className="stock-row__none">No file</span>}
       <div className="stock-row__text">
         <b>{what}</b>{r.generation && r.kind === 'model' ? <span className="muted"> ({r.generation})</span> : null}
-        <span className="small">Photo: <a className="link" href={r.source_url} target="_blank" rel="noopener">{r.author}</a>, {r.licence}, Wikimedia Commons</span>
+        <span className="small">Photo: <a className="link" href={r.source_url} target="_blank" rel="noopener">{r.author}</a>, {r.licence}, {r.source_name || 'Wikimedia Commons'}</span>
         <span className="xs muted">{STATUS[r.status]}{r.picked_by === 'admin' ? ', chosen by an Admin' : ''}{r.want_file ? `: ${r.want_file}` : ''}{r.note ? `. ${r.note}` : ''}. Checked {t(r.checked_at)}.</span>
         <span className="row stock-row__acts">
           {r.status === 'active' || r.status === 'pending' || r.status === 'failed'
@@ -51,10 +52,12 @@ export function StockPhotosAdmin({ d }: { d: StockData }) {
   const lr = c.last_run;
   return (
     <Card title={`Stock photos (${c.models_with_photo.toLocaleString('en-CA')} models)`} testId="vp-stock-photos">
-      <p className="small muted">Licensed photos of each make, model and generation from Wikimedia Commons (public domain, CC0, CC BY or CC BY-SA only), shown at the top of the vehicle pages with the credit always visible, and a few photos of roads, detailing and body shops on the place and service pages. Our own cars always show their own photos. The seo-photos workflow adds photos every day, our fleet&apos;s models and the popular models first; a year no generation covers keeps the studio drawing. Turn them off with &ldquo;Show stock photos&rdquo; in the settings above.</p>
+      <p className="small muted">Licensed photos of each make, model and generation from Wikimedia Commons, or Openverse when Commons has none (public domain, CC0, CC BY or CC BY-SA only, an Openverse photo&apos;s licence checked again at its source), shown at the top of the vehicle pages with the credit always visible, and a few photos of roads, detailing and body shops on the place and service pages. Our own cars always show their own photos. The seo-photos workflow adds photos every day, our fleet&apos;s models and the popular models first; a year with no photo of its own generation shows the next generation&apos;s (a model year off) or another photo of the model, marked &ldquo;not the exact year&rdquo;; a model with no photo keeps the studio drawing. Turn them off with &ldquo;Show stock photos&rdquo; in the settings above.</p>
       <Kv rows={[
         ['Models with a photo', `${c.models_with_photo.toLocaleString('en-CA')} of ${c.models.toLocaleString('en-CA')} (${pct(c.models_with_photo, c.models)}); ${c.models_checked.toLocaleString('en-CA')} looked at so far`],
-        ['Model years with a photo', `${c.model_years_with_photo.toLocaleString('en-CA')} of ${c.model_years.toLocaleString('en-CA')} (${pct(c.model_years_with_photo, c.model_years)}), in ${c.generations.toLocaleString('en-CA')} generations; ${c.model_only} photos of a model in general (model and make pages only)`],
+        ['Model years with a photo of their generation', `${c.model_years_with_photo.toLocaleString('en-CA')} of ${c.model_years.toLocaleString('en-CA')} (${pct(c.model_years_with_photo, c.model_years)}), in ${c.generations.toLocaleString('en-CA')} generations; ${(c.model_years_near ?? 0).toLocaleString('en-CA')} more a year off a generation, ${(c.model_years_model_only ?? 0).toLocaleString('en-CA')} with a photo of the model only`],
+        ['Popular models with generation photos', `${c.popular_with_generation ?? 0} of ${c.popular}`],
+        ['Sources', Object.entries(c.sources ?? {}).map(([k, n]) => `${k} ${n}`).join(', ')],
         ['Popular models', `${c.popular_with_photo} of ${c.popular} have a photo${c.popular_missing.length ? `. Missing: ${c.popular_missing.slice(0, 40).join(', ')}${c.popular_missing.length > 40 ? '...' : ''}` : ''}`],
         ['Place and service pages', Object.keys(c.generic).length ? Object.entries(c.generic).map(([k, n]) => `${k} ${n}`).join(', ') : 'None yet'],
         ['Hidden, waiting, not replaced', `${c.hidden}, ${c.pending}, ${c.failed}`],
