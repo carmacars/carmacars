@@ -5,6 +5,7 @@ import { day } from '@/features/owner/Blocks';
 import { ownerDocuments, ownerForms, requireOwner } from '@/server/owner/data';
 import { rpc } from '@/lib/db/repo';
 import { WitnessedForms, type WForm } from '@/features/owner/WitnessedForms';
+import { DocumentList, DocumentRow } from '@/components/portal-ui';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Documents', path: '/owner/documents', noindex: true, description: 'Your agreements, schedules and registry form data.' });
@@ -24,21 +25,29 @@ export default async function OwnerDocuments() {
       <div className="pt-split">
         <div className="stack-lg">
         {screen.length > 0 && <section className="stack" aria-labelledby="ow-ab"><h2 className="pt-section-title" id="ow-ab">Forms to sign on screen</h2>
-          <ul className="ow-rows" data-testid="owner-screen-forms">{screen.map((f) => (
-            <li key={f.code}><Link prefetch={false} className="ow-row-link" href={`/owner/documents/screen/${f.code.toLowerCase()}`}>{f.title}</Link>
-              <span className="ow-meta"><span className={`badge ${f.status === 'signed' ? 'badge--outline' : 'badge--red'}`} data-testid="screen-form-status">{f.status === 'signed' ? `Signed ${f.method === 'paper' ? 'on paper' : 'on screen'}` : 'To sign'}</span>{f.signed_at && <span>{day(f.signed_at)}</span>}</span></li>))}</ul></section>}
+          <DocumentList testId="owner-screen-forms" label="Forms to sign on screen">{screen.map((f) => (
+            <DocumentRow key={f.code} href={`/owner/documents/screen/${f.code.toLowerCase()}`} badge="SIGN" accent={f.status !== 'signed'} title={f.title}
+              meta={f.signed_at ? <span>{day(f.signed_at)}</span> : <span>Signed on this screen</span>}
+              status={<span className={`badge ${f.status === 'signed' ? 'badge--outline' : 'badge--red'}`} data-testid="screen-form-status">{f.status === 'signed' ? `Signed ${f.method === 'paper' ? 'on paper' : 'on screen'}` : 'To sign'}</span>} />))}
+          </DocumentList></section>}
         {witnessed.length > 0 && <section className="stack" aria-labelledby="ow-wit"><h2 className="pt-section-title" id="ow-wit">Forms to sign with witnesses</h2>
           <p className="small muted">Form D of your Title Agreement is signed on paper in front of two witnesses. Form C is signed on paper in front of one witness, or on screen with your witness beside you. {witnessed.every((f) => f.status === 'approved') ? 'All approved.' : `${witnessed.filter((f) => f.status !== 'approved').length} still to finish.`}</p>
           <WitnessedForms forms={witnessed} />
         </section>}
         <section className="stack" aria-labelledby="ow-docs"><h2 className="pt-section-title" id="ow-docs">Agreements and files</h2>
-          {docs.length ? <ul className="ow-rows" data-testid="owner-docs">{docs.map((d) => <li key={d.id}><a className="ow-row-link" href={`/owner/documents/${d.id}`}>{d.title ?? KIND[d.kind] ?? d.kind}</a><span className="small muted">PDF</span><span className="ow-meta"><span>{KIND[d.kind] ?? d.kind.replace(/_/g, ' ')}</span>{name(d.vehicle_id) && <span>{name(d.vehicle_id)}</span>}<span>{day(d.created_at)}</span></span></li>)}</ul>
+          {docs.length ? <DocumentList testId="owner-docs" label="Agreements and files">{docs.map((d) => (
+            <DocumentRow key={d.id} external href={`/owner/documents/${d.id}`} title={d.title ?? KIND[d.kind] ?? d.kind}
+              meta={<><span>{KIND[d.kind] ?? d.kind.replace(/_/g, ' ')}</span>{name(d.vehicle_id) && <span>{name(d.vehicle_id)}</span>}<span>{day(d.created_at)}</span></>} />))}
+          </DocumentList>
             : <p className="pt-empty muted">Your agreements appear here once they are ready to sign. {home.signing.needed && <Link prefetch={false} href="/owner/sign">Sign them now</Link>}</p>}
         </section>
         </div>
         <aside className="pt-split__aside">
           <section className="pt-card" aria-labelledby="ow-forms"><h2 className="d4" id="ow-forms">Government forms</h2>
-            {forms.length ? <ul className="ow-rows" data-testid="owner-gov-forms">{forms.map((f) => <li key={f.id}><a className="ow-row-link" href={f.official ? `/owner/documents/forms/${f.id}/official` : `/owner/documents/forms/${f.id}`}>{f.form_code}</a><span className="small muted">{f.official ? (f.status === 'signed' || f.status === 'filed' ? 'Official form, signed' : 'Official form, filled for you') : f.has_pdf ? 'Pre-filled PDF' : 'Data sheet'}</span><span className="ow-meta"><span>{f.vehicle_name}</span>{f.missing.length > 0 && <span>Missing: {f.missing.join(', ')}</span>}</span></li>)}</ul>
+            {forms.length ? <DocumentList testId="owner-gov-forms" label="Government forms">{forms.map((f) => (
+              <DocumentRow key={f.id} external href={f.official ? `/owner/documents/forms/${f.id}/official` : `/owner/documents/forms/${f.id}`} badge="FORM" title={f.form_code}
+                meta={<><span>{f.official ? (f.status === 'signed' || f.status === 'filed' ? 'Official form, signed' : 'Official form, filled for you') : f.has_pdf ? 'Pre-filled PDF' : 'Data sheet'}</span><span>{f.vehicle_name}</span>{f.missing.length > 0 && <span>Missing: {f.missing.join(', ')}</span>}</>} />))}
+            </DocumentList>
               : <p className="small muted">Prepared for each vehicle once its onboarding method is set.</p>}
             <p className="small muted">You pay ServiceOntario, the inspection station and the appraiser directly. CarmaCars does not collect these amounts.</p>
           </section>

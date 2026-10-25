@@ -5,6 +5,8 @@ import { when } from '@/features/agreement/model';
 import { OwnBookingForm } from '@/features/owner/OwnerForms';
 import { ownerBookings, requireOwner } from '@/server/owner/data';
 import type { OwnerBooking } from '@/features/owner/types';
+import { upcoming } from '@/features/owner/insights';
+import { Timeline, TimelineItem } from '@/components/portal-ui';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Bookings', path: '/owner/bookings', noindex: true, description: 'Bookings on your vehicles.' });
@@ -44,6 +46,7 @@ function Month({ year, month, bookings }: { year: number; month: number; booking
 export default async function OwnerBookings({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ user, home }, sp] = await Promise.all([requireOwner('/owner/bookings'), searchParams]);
   const list = await ownerBookings(user);
+  const soon = upcoming(list, new Date(), 6);
   const now = new Date();
   const [y, m] = ymd(now).split('-').map(Number) as [number, number];
   const bookable = home.vehicles.filter((v) => ['available', 'ready_to_list', 'cleaning', 'exit_notice'].includes(v.status)).map((v) => ({ id: v.vehicle_id, name: v.name }));
@@ -53,6 +56,12 @@ export default async function OwnerBookings({ searchParams }: { searchParams: Pr
         action={bookable.length ? <a className="btn btn--ghost btn--sm ph__phone-only" href="#book-own">Book my own car</a> : undefined} />
       <div className="pt-split">
         <div className="stack-lg">
+          {soon.length > 0 && <section className="pu-panel" aria-labelledby="ow-soon" data-testid="owner-coming-up"><h2 className="pu-title" id="ow-soon">Coming up</h2>
+            <Timeline label="Bookings coming up">{soon.map((b) => (
+              <TimelineItem key={b.booking_id} date={b.pickup_at} dateLabel={when(b.pickup_at, false)} state={b.status === 'on_rent' ? 'now' : 'future'} title={b.vehicle_name}
+                amount={b.booking_type === 'owner' ? 'Your booking' : money(b.rental_charge_cents, { cents: true })}
+                meta={<><span>{b.booking_number}</span><span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{b.status === 'on_rent' ? 'On rent now' : b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}</span>}</>} />))}
+            </Timeline></section>}
           <section className="stack" aria-labelledby="ow-bl"><h2 className="pt-section-title" id="ow-bl">All bookings</h2>
             {list.length ? <ul className="ow-rows">{list.map((b) => <li key={b.booking_id}><span>{b.booking_number} · {b.vehicle_name}</span><span className="ow-amount">{b.booking_type === 'owner' ? 'Your booking' : money(b.rental_charge_cents, { cents: true })}</span><span className="ow-meta"><span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}{b.renter_mobile ? `, ${b.renter_mobile}` : ''}</span>}</span></li>)}</ul>
               : <p className="pt-empty muted">No bookings on your vehicles yet.</p>}
