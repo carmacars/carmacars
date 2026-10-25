@@ -17,8 +17,8 @@ export default async function AddRental() {
   return (
     <>
       <PageHead kicker={<Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link>} title="Add a rental" />
-      <p className="small muted" style={{ maxWidth: '52rem' }}>For a rental taken by phone, at the counter, from Turo, a partner or an insurer. The dates decide the rest: an upcoming rental is confirmed at once (or waits for the renter&apos;s online payment when you send a payment link); one already underway is recorded as on trip, with a task for anything still missing; one that has ended is kept as completed for the history and the statements. Every case goes on the calendars, and the renter signs the agreement in their portal or on paper.</p>
-      <div style={{ maxWidth: '60rem' }}><ManualRentalForm cars={cars} base="/admin" isAdmin /></div>
+      <p className="ad-intro">For a rental taken by phone, at the counter, from Turo, a partner or an insurer. The dates decide the rest: an upcoming rental is confirmed at once (or waits for the renter&apos;s online payment when you send a payment link); one already underway is recorded as on trip, with a task for anything still missing; one that has ended is kept as completed for the history and the statements. Every case goes on the calendars, and the renter signs the agreement in their portal or on paper.</p>
+      <div className="ad-narrow"><ManualRentalForm cars={cars} base="/admin" isAdmin /></div>
     </>
   );
 }

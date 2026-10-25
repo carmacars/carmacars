@@ -1,15 +1,21 @@
 import '@/styles/portal.css';
 import '@/styles/owner.css';
 import '@/styles/admin.css';
+import '@/styles/admin-ui.css';
 import { realUser as currentUser } from '@/server/portal/data';
 import { signOut } from '@/server/actions/auth';
-import { AdminNav, AdminSearch } from '@/features/admin/AdminNav';
+import { AdminNav, AdminSearch, GROUPS } from '@/features/admin/AdminNav';
+import { AdminCommand } from '@/features/admin/shell/AdminCommand';
+import { SECTIONS } from './settings/sections';
 import { adminGate } from '@/server/admin/data';
 import { rpc } from '@/lib/db/repo';
 import { door } from '@/server/door';
 import { PortalSwitch } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
+
+// Ctrl+K reaches every page of the menu and every settings page (the menu lists the common settings only)
+const JUMP = [...GROUPS, { key: 'settings-all', label: 'Settings', links: SECTIONS.map(([k, title]) => ({ href: `/admin/settings/${k}`, label: title })) }];
 
 // The admin portal's frame (docs/blueprint/03-admin.md; simpler since October 16, 2026): who is signed in, one search
 // box, seven groups of pages with the counts that need someone. Every page checks the Admin role and two-step sign-in itself (requireAdmin);
@@ -36,7 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <div className="ad__who"><span className="muted">Admin · <b data-testid="account-email">{gate.name ?? user?.email}</b></span>
               <span className="gd-frame-links"><AssistantPanel portal="admin" /><GuideLink portal="admin" /><form action={signOut}><button className="btn btn--quiet btn--sm" type="submit">Sign out</button></form></span></div>
             <PortalSwitch current="admin" />
-            <AdminSearch />
+            <div className="ad__find"><AdminSearch /><AdminCommand groups={JUMP} /></div>
             <AdminNav counts={counts} />
           </aside>
         ) : <div />}

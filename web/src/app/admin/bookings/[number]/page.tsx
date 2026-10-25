@@ -22,6 +22,7 @@ import { BookingFees, type Fees } from '@/features/money/BookingFees';
 import { BookingEdit, type EditForm } from '@/features/money/BookingEdit';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
 import { HandoverPanel } from '@/features/handover/HandoverPanel';
+import { BookingSummary } from '@/features/admin/BookingSummary';
 import { ReviewPanel } from '@/features/reviews/ReviewPanel';
 
 export const dynamic = 'force-dynamic';
@@ -100,6 +101,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
         {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && b.bill_to !== 'renter' && <Act action="draft_insurer_invoice" payload={P} label="Draft insurer invoice" refresh={['/admin/insurer-invoices']} />}
         {b.status === 'returned' && <Act action="issue_booking_statement" payload={P} label="Issue final statement" confirm="Issue the Check-in statement from the assessed lines and settle the deposit plan." refresh={refresh} />}
       </PageHead>
+      <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />
       {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} base={base} canHandover canSign
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} refresh={[base]} />}
