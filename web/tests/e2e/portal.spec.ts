@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, watch, giveLicence } from './helpers';
+import { acceptCookies, db, noOverflow, watch, giveLicence, storeFixturePdf } from './helpers';
 
 // The renter portal end to end, at 375 and 1440: request (the wizard, signed in), the staff step seeded
 // through app.send_offer, approve, details, sign by drawing on the canvas, pay with the fake adapter
@@ -338,6 +338,7 @@ test('race: another renter pays first, the authorization is voided and the push-
 
   // meanwhile B approves, signs and pays (through the database functions): B is confirmed first
   await sql`select app.approve_offer(${b.booking_id}, (select current_offer_version from bookings where id = ${b.booking_id}), ${userB})`;
+  storeFixturePdf('agreements', `bookings/${b.booking_id}/agreement.pdf`);
   await sql`select app.open_rental_agreement(${b.booking_id}, ${userB}, 'rental-e2e', encode(sha256(${b.booking_number}::bytea), 'hex'), ${`bookings/${b.booking_id}/agreement.pdf`})`;
   await sql`select app.record_signature(bk.signature_request_id, g.id, g.signer_name, null, '203.0.113.10', 'e2e', 'I sign.')
               from bookings bk join rental_agreements ra on ra.signature_request_id = bk.signature_request_id

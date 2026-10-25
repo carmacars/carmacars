@@ -372,6 +372,7 @@ test('investor: sees only their own records', async ({ browser }, info) => {
   await sql`delete from user_roles where user_id in (${me.id}, ${other.id}) and role = 'renter'`;
   await sql`insert into investors (id, user_id, legal_name, investor_type, status, email) values (${ids.a}, ${me.id}, 'Ivy Investor', 'individual', 'active', ${me.email}), (${ids.b}, ${other.id}, 'Otto Other', 'individual', 'active', ${other.email})`;
   await sql`insert into documents (id, kind, storage_bucket, storage_path) values (${ids.dc}, 'other', 'documents', 'x/c.pdf'), (${ids.dd}, 'other', 'documents', 'x/d.pdf')`;
+  storeFixturePdf('documents', 'x/c.pdf'); storeFixturePdf('documents', 'x/d.pdf');
   await sql`insert into investment_agreements (id, investor_id, agreement_number, status, schedule_c_document_id, schedule_d_document_id, exemption_category, legal_advice_choice)
     values (${ids.ga}, ${ids.a}, ${`IA-${ids.a.slice(0, 6)}`}, 'signed', ${ids.dc}, ${ids.dd}, 'accredited_investor', 'declined'), (${ids.gb}, ${ids.b}, ${`IA-${ids.b.slice(0, 6)}`}, 'signed', ${ids.dc}, ${ids.dd}, 'accredited_investor', 'declined')`;
   await sql`insert into investments (id, investor_id, agreement_id, is_initial, principal_cents, yearly_bps, investment_date, lockup_end_date)
