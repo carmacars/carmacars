@@ -104,7 +104,7 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await page.goto('/account');
   await expect(page.getByTestId('next-step')).toContainText('Approve your offer');
   // the trip hero (redesign of October 24, 2026): the car's photo or the placeholder, the clock, pickup and return
-  const hero = page.locator('.pu-hero').first();
+  const hero = page.locator('.pu-ph').first();
   await expect(hero.locator('.pu-photo')).toBeVisible();
   await expect(hero.getByTestId('trip-countdown')).toContainText(/^Pickup in /);
   await expect(hero.getByTestId('trip-pickup')).toBeVisible();
