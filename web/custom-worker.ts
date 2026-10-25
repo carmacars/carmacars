@@ -229,6 +229,8 @@ const worker = {
     if (due.agreements) run('/api/jobs/agreements');
     // the partner CRM links (0136): every 15 minutes and soon after a change, when the database says one is due
     if (due.crm) run('/api/jobs/partner-crm');
+    // the deposit guard (0155): card holds captured before they lapse, money steps waiting for Stripe, balances followed up
+    if (due.deposits) run('/api/jobs/deposits');
     // the retention purge of private files (0071), once an hour on the second tick
     if (new Date().getUTCMinutes() >= 5 && new Date().getUTCMinutes() < 10) run('/api/jobs/purge');
     // the usage guard (0080): Cloudflare's figures when the Worker has an analytics token, the alerts, once an hour on the third tick

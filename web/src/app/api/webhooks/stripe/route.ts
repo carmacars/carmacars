@@ -6,6 +6,8 @@ import { settleAddonIntent } from '@/server/portal/addon-payment';
 import { settleDebitIntent, settleInvoiceIntent, verifyDebitSetup } from '@/server/owner/payment';
 import { settlePayreq } from '@/server/paylink';
 import { stripeEventCalls } from '@/server/stripe-events';
+import { isHoldLapse } from '@/server/money-steps';
+import { runMoneyAction } from '@/server/deposit-guard';
 
 // Stripe webhook (docs/blueprint/13-security.md section 8). A route on the Worker rather than a
 // Supabase Edge Function: the settlement code, the payments module and the signed-copy renderer live
@@ -44,6 +46,12 @@ export async function POST(req: Request): Promise<Response> {
       // a card payment, deposit hold or saved card staff started from a booking (0129), when the pay page did not finish
       if (['payment_intent.succeeded', 'payment_intent.amount_capturable_updated', 'setup_intent.succeeded'].includes(event.type)) {
         result = await settlePayreq(obj.metadata.payment_request_id, obj.id, obj.object === 'setup_intent' ? 'setup' : obj.metadata.covers === 'deposit' ? 'hold' : 'charge');
+      } else if (isHoldLapse(event.type, obj as Record<string, unknown>)) {
+        // a deposit hold lapsed at the bank (0155): recorded, and on a rental on the road or after it the deposit is
+        // charged to the saved card (the database says so and gives the payment)
+        const lapsed = (await rpc('server_deposit_hold_lapsed', { p_intent: obj.id }, SR)) as unknown as { next?: { payment_id?: string } | null };
+        if (lapsed?.next?.payment_id) await runMoneyAction(lapsed.next.payment_id);
+        result = lapsed;
       }
     } else if (obj.object === 'payment_intent' && obj.id && obj.metadata?.purpose === 'addon_unpaid') {
       // add-ons paid on the booking's add-on pay page (0079), when the browser did not finish
