@@ -14,9 +14,11 @@ const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${sa
 const tag = () => randomBytes(3).toString('hex');
 type Sql = ReturnType<typeof db>;
 
-async function axe(page: Page, where: string) {
+async function axe(page: Page, where: string, only?: string) {
   await noOverflow(page);
-  const r = await new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  const b = new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']);
+  // a long admin page: the part this change added (the rest has its own specs)
+  const r = await (only ? b.include(only) : b).analyze();
   expect(r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${where} ${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(', ')}`)).toEqual([]);
 }
 async function person(sql: Sql, role: 'admin' | 'renter', name: string) {
@@ -69,6 +71,7 @@ test('the renter’s review page: answers make the draft, Copy and Post on Googl
   const errors = watch(page);
   const sql = db();
   try {
+    await sql`delete from app.rate_limit_hits`;
     await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => undefined);
     const r = await person(sql, 'renter', 'Robin Helper');
     const b = await returnedBooking(sql, r, 'Robin Helper');
@@ -132,6 +135,7 @@ test('staff: Ask for a review on the booking, the hold list with Send anyway, Se
   const errors = watch(page);
   const sql = db();
   try {
+    await sql`delete from app.rate_limit_hits`;
     const admin = await person(sql, 'admin', 'Avery Admin');
     const r = await person(sql, 'renter', 'Sasha Staffcase');
     const asked = await returnedBooking(sql, r, 'Sasha Staffcase');
@@ -146,7 +150,7 @@ test('staff: Ask for a review on the booking, the hold list with Send anyway, Se
     const card = page.getByTestId('review-panel');
     await expect(card).toContainText('Review request');
     await expect(card.getByTestId('review-steps')).toContainText('Final follow-up');
-    await axe(page, 'booking with the review card');
+    await axe(page, 'booking with the review card', '[data-testid="review-panel"]');
     await card.getByTestId('review-ask-now').click();
     await page.getByTestId('review-ask-now-submit').click();
     await expect.poll(async () => (await sql`select manual_asks from review_requests where booking_id = ${asked.booking_id}`)[0]?.manual_asks).toBe(1);
@@ -156,7 +160,7 @@ test('staff: Ask for a review on the booking, the hold list with Send anyway, Se
     const holds = page.getByTestId('review-holds');
     await expect(holds).toContainText(held.booking_number);
     await expect(holds).toContainText('Cleaning $169.50');
-    await axe(page, 'reviews dashboard');
+    await axe(page, 'reviews dashboard', '[data-testid="reviews-dashboard"]');
     await holds.getByTestId(`hold-send-${held.booking_number}`).click();
     await page.getByTestId(`hold-send-${held.booking_number}-submit`).click();
     await expect.poll(async () => (await sql`select send_anyway_at is not null as released, status from review_requests where booking_id = ${held.booking_id}`)[0]?.released).toBe(true);

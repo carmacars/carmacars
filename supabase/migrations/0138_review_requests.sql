@@ -597,8 +597,8 @@ begin
       v_step := 'manual';
     end if;
   end if;
-  return jsonb_build_object('sent', v_step in ('manual', 'ask'),
-    'at', case when v_step in ('manual', 'ask') then p_now else app.review_next_window(p_now, s.review_send_from_hour, s.review_send_until_hour) end);
+  return jsonb_build_object('sent', coalesce(v_step in ('manual', 'ask'), false),
+    'at', case when coalesce(v_step in ('manual', 'ask'), false) then p_now else app.review_next_window(p_now, s.review_send_from_hour, s.review_send_until_hour) end);
 end $$;
 
 create or replace function app.review_send_anyway(p_user uuid, p_booking uuid, p_now timestamptz default now()) returns jsonb
