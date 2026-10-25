@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { coinFlip, dieFace, nextGame, requestInProgress, reshowDue, savedPrize, savedWords, slotStops, slotStrip, SAVED_DAYS } from './rules.ts';
+import { coinFlip, dieFace, isReplay, nextGame, requestInProgress, reshowDue, savedPrize, savedWords, shortScale, slotStops, slotStrip, SAVED_DAYS, waitingWords, wonWords } from './rules.ts';
 import { addPage, addSeen, countShown, gameDay, shownToday, expectedCost, packCards, prizeCost, tearProgress, TORN, type PrizeRow, bookingIneligible, bookingPath, carSlug, claimProblems, closed, cupSwaps, deck, excludedPath, GAMES, handValue, ineligible, isSearchReferrer, nextCheck, plinkoPath, plinkoSlots,
   SEARCH_LANDING_DELAY, settle, shown, trigger, unseen, wheelSlices, wheelStop, type GameCfg, type GameKind, type PrizeWord, type Visit } from './rules.ts';
 
@@ -150,15 +150,70 @@ describe('a booking request in progress, and a prize already won (0100)', () => 
     assert.equal(bookingPath('/book/tesla-model-3'), true);
     assert.equal(bookingPath('/book/tesla-model-3/pay'), false);
   });
-  it('a prize won here is saved, never a new game or a new win', () => {
+  it('a prize won here is saved, never a new win; 0171: it pops up again on the usual rules', () => {
     const won = { label: '5% off', short: '5%', at: NOW - 1000 };
-    assert.equal(ineligible({ ...base, mem: { won } }), 'saved');
+    // 0171: the saved prize no longer keeps the card away (the server returns the saved play, the card says "still waiting")
+    assert.equal(ineligible({ ...base, mem: { won } }), null);
+    assert.equal(ineligible({ ...base, mem: { won }, busy: true }), 'in_progress');
+    assert.equal(ineligible({ ...base, mem: { won, claimed: true } }), 'claimed');
+    assert.equal(ineligible({ ...base, mem: { won }, signedIn: true }), 'signed_in');
+    assert.equal(ineligible({ ...base, mem: { won }, path: '/checkout' }), 'page');
     assert.deepEqual(savedPrize({ won }, NOW), won);
     assert.equal(savedWords(won), 'Your 5% off is saved');
     // claimed, or older than the days a prize is kept: no badge
     assert.equal(savedPrize({ won, claimed: true }, NOW), null);
     assert.equal(savedPrize({ won }, NOW + SAVED_DAYS * 86_400_000), null);
     assert.equal(ineligible({ ...base, mem: { won: { ...won, at: NOW - SAVED_DAYS * 86_400_000 - 1 } }, now: NOW }), null);
+  });
+});
+
+describe('0171: the card comes back, and the replay prize', () => {
+  const won = { label: '5% off', short: '5%', at: NOW - 1000 };
+  it('a won prize pops up again after a close on the re-show rules, and on a later visit on the first-show rules', () => {
+    const v = closed(shown(visit({ pages: 2 })), NOW);
+    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: false, path: '/faq', visit: v, now: NOW }), null);
+    assert.equal(t(v), null);
+    assert.deepEqual(t({ ...v, pages: v.pages + 3 }), { why: 'pages', slim: false });
+    assert.deepEqual(t(v, { now: NOW + 120_000 }), { why: 'time', slim: false });
+    // at most per_visit cards a visit, the saved prize's included
+    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: false, path: '/faq', visit: visit({ shows: 4 }), now: NOW }), 'visit_cap');
+    // a later visit (a new session): the first-show rules
+    assert.deepEqual(t(visit({ pages: 2 })), { why: 'pages', slim: false });
+  });
+  it('a game closed before its prize: the next visit may show one again (no wait of days)', () => {
+    assert.equal(ineligible({ cfg: CFG, mem: { seen: ['wheel'], last: 'wheel', dismissedAt: NOW - 60_000 }, signedIn: false, path: '/faq', visit: visit(), now: NOW }), null);
+  });
+  it('the words: never "You won" twice for one prize', () => {
+    assert.equal(waitingWords(won), 'Your 5% off is still waiting');
+    assert.equal(wonWords({ label: '5% off' }, 'new'), 'You won 5% off');
+    assert.equal(wonWords({ label: '5% off' }, 'saved'), 'Your 5% off is saved');
+    assert.equal(wonWords({ label: '5% off' }, 'waiting'), 'Your 5% off is still waiting');
+    assert.equal(wonWords({ label: 'another go', replay: true }, 'new'), 'You won another go!');
+    assert.equal(wonWords({ label: 'another go', replay: true }, 'waiting'), 'You still have another go');
+    assert.equal(wonWords({ label: 'another go', replay: true }, 'saved'), 'You still have another go');
+    assert.equal(isReplay({ replay: true }), true);
+    assert.equal(isReplay({}), false);
+    assert.equal(isReplay(null), false);
+  });
+  it('the replay prize costs nothing and a claimed code is drawn from the other prizes', () => {
+    const basis = { charge_cents: 40000, days: 4 };
+    const replay: PrizeRow = { key: 'replay', replay: true, weight: 15 };
+    assert.equal(prizeCost(replay, basis, 7500), 0);
+    const real: PrizeRow[] = [{ key: 'pct5', percent_bps: 500, weight: 54 }, { key: 'pct10', percent_bps: 1000, weight: 25 }];
+    assert.ok(Math.abs(expectedCost([real[0]!, replay, real[1]!], basis, 7500) - expectedCost(real, basis, 7500)) < 0.001);
+    assert.equal(expectedCost([replay], basis, 7500), 0);
+  });
+  it('every game can show the replay prize: on the wheel, the reels and the Plinko board, a smaller word', () => {
+    const withReplay: PrizeWord[] = [PRIZES[0]!, PRIZES[1]!, { key: 'replay', short: 'REPLAY', label: 'another go', replay: true }, PRIZES[2]!, PRIZES[3]!];
+    const slices = wheelSlices(withReplay);
+    assert.ok(slices.some((s) => s.key === 'replay'));
+    assert.equal(slices[wheelStop(slices, 'replay', rand).index]!.key, 'replay');
+    const slots = plinkoSlots(withReplay);
+    assert.equal(slots[plinkoPath(slots, 'replay', rand).slot]!.key, 'replay');
+    const strip = slotStrip(withReplay);
+    assert.ok(slotStops(strip, 'replay', rand).every((i) => strip[i]!.key === 'replay'));
+    assert.equal(shortScale('$100'), 1);
+    assert.ok(shortScale('REPLAY') < 0.7);
   });
 });
 

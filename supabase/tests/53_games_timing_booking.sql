@@ -28,11 +28,14 @@ select test.eq('the column defaults are the new ones too',
   'game_max_per_visit=4 game_reshow_car_pages=3 game_reshow_seconds=120 game_trigger_car_pages=2 game_trigger_seconds=30');
 select test.throws('a per-visit cap of 0 is refused', $$update program_settings set game_max_per_visit = 0$$, 'check');
 select test.throws('a re-show after more than an hour is refused', $$update program_settings set game_reshow_seconds = 3601$$, 'check');
-select test.eq('the four prizes of 0069 stay (5% now 69), three rare ones join them, the $75 cap and the code length stay',
+select test.eq('the four prizes of 0069 stay, three rare ones join them (0081), another go at 15 from 5% (0171: 54), the $75 cap and the code length stay',
   (select string_agg(app.game_prize_label(x) || ' ' || (x ->> 'weight'), ', ' order by o) || ' | ' || (app.settings()).game_max_discount_cents || ' ' || (app.settings()).game_code_valid_days
-     from jsonb_array_elements((app.settings()).game_prizes) with ordinality t(x, o)), '5% off 69, 10% off 25, 15% off 4, $50 off 1, 25% off 0.6, $100 off 0.3, 1 free day 0.1 | 7500 7');
+     from jsonb_array_elements((app.settings()).game_prizes) with ordinality t(x, o)), '5% off 54, 10% off 25, another go 15, 15% off 4, $50 off 1, 25% off 0.6, $100 off 0.3, 1 free day 0.1 | 7500 7');
 
 -- ================================================================ 2. the re-show: a game not seen yet, the same prize
+-- the plays of sections 2 and 3 are claimed whatever they drew: without the replay prize (0171: never claimed; its own
+-- suite is 99_games_again_replay.sql); the owner's table is back in section 5
+update program_settings set game_prizes = app.game_prizes_real(game_prizes);
 create temp table g2 (n int primary key, v jsonb);
 grant all on g2 to public;
 insert into g2 values (1, test.g2start('a'));
@@ -126,6 +129,7 @@ select test.eq('the privacy policy says when and where the games show where it s
               from site_content_blocks where block_key = 'legal.privacy' and body like '%Discount games are shown%'), 'true'), 'true');
 
 -- ================================================================ 5. the card pack and the rare prizes (0081, later the same day)
+update program_settings set game_prizes = default;
 select test.eq('the card pack is one of the games (0100: eleven), on at the same weight', array_to_string(app.game_kinds(), ' ') || ' | ' || ((app.settings()).game_weights ->> 'pack'),
   'wheel scratch blackjack cups plinko pack coin dice slots drop mystery | 1');
 delete from app.rate_limit_hits where key like 'game-%';
@@ -143,8 +147,8 @@ select test.eq('the chances add up to 100', (select sum((x ->> 'weight')::numeri
 select test.eq('20,000 draws stay within statistical bounds of the table (about 4 standard deviations)',
   (select string_agg(k || '=' || (n between lo and hi)::text, ' ' order by k) from (
      select k, count(*) n from (select app.game_draw((app.settings()).game_prizes) ->> 'key' as k from generate_series(1, 20000)) x group by k) c
-   join (values ('pct5', 13530, 14070), ('pct10', 4755, 5245), ('pct15', 690, 910), ('amt50', 145, 260), ('pct25', 75, 170), ('amt100', 25, 95), ('day1', 3, 45)) b(kk, lo, hi) on b.kk = c.k),
-  'amt100=true amt50=true day1=true pct10=true pct15=true pct25=true pct5=true');
+   join (values ('pct5', 10530, 11070), ('pct10', 4755, 5245), ('replay', 2780, 3220), ('pct15', 690, 910), ('amt50', 145, 260), ('pct25', 75, 170), ('amt100', 25, 95), ('day1', 3, 45)) b(kk, lo, hi) on b.kk = c.k),
+  'amt100=true amt50=true day1=true pct10=true pct15=true pct25=true pct5=true replay=true');
 select test.eq('the prize table is checked: free days with a longer minimum, a cap only on a percentage or free days, one kind',
   app.game_prizes_ok('[{"key": "d", "free_days": 1, "min_days": 3, "weight": 1}]')::text || app.game_prizes_ok('[{"key": "d", "free_days": 1, "weight": 1}]')::text
   || app.game_prizes_ok('[{"key": "d", "free_days": 3, "min_days": 3, "weight": 1}]')::text || app.game_prizes_ok('[{"key": "a", "amount_cents": 5000, "max_cents": 100, "weight": 1}]')::text

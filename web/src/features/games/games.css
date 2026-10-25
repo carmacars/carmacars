@@ -157,6 +157,10 @@
 .ccg-reel__strip { list-style: none; margin: 0; padding: 0; transition-property: transform; transition-timing-function: cubic-bezier(.15,.7,.25,1.04); }
 .ccg-reel__strip li { height: 44px; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 1.15rem; color: #000; }
 .ccg-reel__strip li.is-big { color: var(--red-600); }
+/* 0171: a longer word (the replay prize, "REPLAY") a little smaller so it fits the reel, the card and the box */
+.ccg-reel__strip li[data-long] { font-size: 0.8rem; }
+.ccg-pcard__win[data-long] { font-size: 1.05rem; }
+.ccg-box.is-open .ccg-box__base b[data-long] { font-size: 0.8rem; }
 .ccg-slots__line { position: absolute; left: 6px; right: 6px; top: 50%; height: 46px; margin-top: -23px; border: 2px solid #000; border-radius: 6px; pointer-events: none; }
 
 /* 0100: the prize drop (a capsule machine) */

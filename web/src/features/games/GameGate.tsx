@@ -3,16 +3,17 @@ import './games.css';
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { usePathname } from 'next/navigation';
 import { browserRpc } from '@/lib/browser-rpc';
-import { addPage, addSeen, closed, countShown, excludedPath, shownToday, ineligible, isSearchReferrer, nextCheck, requestInProgress, savedPrize, savedWords, shown, trigger, type Fire, type GameCfg, type GameKind, type GameMemory, type PrizeWord, type Visit } from './rules';
+import { addPage, addSeen, closed, countShown, excludedPath, shownToday, ineligible, isReplay, isSearchReferrer, nextCheck, requestInProgress, savedPrize, savedWords, shown, trigger, type Fire, type GameCfg, type GameKind, type GameMemory, type PrizeWord, type Visit } from './rules';
 import type { GamePopupProps } from './GamePopup';
 
-// Discount games (migrations 0069, 0081, 0094 and 0100): the watcher. Loaded after the page is idle (with the beacon and
+// Discount games (migrations 0069, 0081, 0094, 0100 and 0171): the watcher. Loaded after the page is idle (with the beacon and
 // the chat), it counts this visit's pages and time in the browser only (sessionStorage: nothing leaves the device for
 // this). 0100 (the owner's defaults, all Admin settings): the first game on the 2nd page view (any page) or after 30
 // seconds, whichever first; after a close another game, never the one just shown, on the 3rd page view after the close
 // or 2 minutes later, whichever first; at most 4 a visit, no daily cap unless one is set; and again on later visits.
 // Never after a claim, never once a booking request is in progress in this browser, and never as a new win once a
-// prize was won here: a small badge "Your 5% off is saved" opens its claim form instead. Never for a signed-in visitor (they get it in the request-to-book
+// prize was won here: a small badge "Your 5% off is saved" opens its claim form, and (0171) the card itself pops up again
+// with that prize ("Your 5% off is still waiting") on the same rules as a game. Never for a signed-in visitor (they get it in the request-to-book
 // form only), never on booking, pay, sign, sign-in or portal pages, never over the cookie banner. On the first page of
 // a phone visit from a search engine it waits for the second page, or comes 15 seconds later as a small slide-in. The
 // game's code is fetched in idle time once the visitor can get one, so it opens at once.
@@ -24,7 +25,11 @@ export const remember = (m: Partial<GameMemory>) => { try { write(globalThis.loc
 /** A game was on screen: this browser has seen it (the round), and it is the last one shown (0100: never twice in a row). */
 export const rememberSeen = (g: GameKind) => remember({ seen: addSeen(memory().seen, g), last: g });
 /** A prize won here and not claimed yet (0100): later pages show the saved badge, never a new win. */
-export const rememberWon = (p: PrizeWord) => { const m = memory(); if (!m.won || m.won.label !== p.label) remember({ won: { label: p.label, short: p.short, at: Date.now() } }); };
+export const rememberWon = (p: PrizeWord) => {
+  // 0171: the replay prize is a second game, never a discount to keep
+  if (isReplay(p)) return;
+  const m = memory(); if (!m.won || m.won.label !== p.label) remember({ won: { label: p.label, short: p.short, at: Date.now() } });
+};
 export const forgetSaved = () => remember({ won: undefined });
 
 /** A game card is on screen (0100): the chat's greeting waits for it to close. */
@@ -82,7 +87,8 @@ export function GameGate() {
 
   const [badge, setBadge] = useState<{ label: string } | null>(null);
   const may = useCallback(() => !automated() && !ineligible({ cfg: cfg.current, mem: memory(), signedIn: signedIn(), path: pathRef.current, visit: visitNow(), now: Date.now(), busy: busy() }), []);
-  // 0100: a prize won here and not claimed: the small badge instead of any game (closed: not again this visit)
+  // 0100: a prize won here and not claimed: the small badge between cards (closed: not again this visit); 0171: the
+  // card itself still pops up again with that prize on the usual rules
   const showBadge = useCallback(() => {
     const p = savedPrize(memory(), Date.now());
     let hidden = false;

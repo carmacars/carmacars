@@ -8,8 +8,9 @@ import { expectedCost, prizeCost, type PrizeRow } from './rules';
 // database checks them again). A prize is a percentage, dollars or free days, with its own minimum rental length and
 // its own cap (a percentage or free days without one takes the games' cap). Below the table: what one claimed code is
 // expected to cost on the average booking, worked out live from the table. Saved as a new dated Program settings row.
+// 0171: or "Play again" (another go): a second game drawn from the other prizes, at most one, never the only prize.
 export type Prize = PrizeRow;
-type Kind = 'percent' | 'amount' | 'days';
+type Kind = 'percent' | 'amount' | 'days' | 'replay';
 type Row = { kind: Kind; value: string; min_days: string; cap: string; weight: string };
 const GAMES: Array<[string, string]> = [['wheel', 'Spin the wheel'], ['scratch', 'Scratch to reveal'], ['blackjack', 'Quick blackjack'], ['cups', 'Cup shuffle'], ['plinko', 'Plinko'], ['pack', 'Card pack'],
   ['coin', 'Coin flip'], ['dice', 'Dice roll'], ['slots', 'Slot machine'], ['drop', 'Prize drop'], ['mystery', 'Mystery box']];
@@ -17,12 +18,13 @@ const num = (v: string) => /^\d+(\.\d+)?$/.test(v.trim());
 const dollars = (c: number) => `$${(c / 100).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 export interface CostBasis { source: 'bookings' | 'rates'; bookings: number; charge_cents: number; days: number }
 
-const toRow = (p: Prize): Row => ({
+const toRow = (p: Prize): Row => (p.replay ? { kind: 'replay', value: '', min_days: '', cap: '', weight: String(p.weight) } : {
   kind: p.percent_bps ? 'percent' : p.free_days ? 'days' : 'amount',
   value: String(p.percent_bps ? p.percent_bps / 100 : p.free_days ? p.free_days : (p.amount_cents ?? 0) / 100),
   min_days: p.min_days ? String(p.min_days) : '', cap: p.max_cents ? String(p.max_cents / 100) : '', weight: String(p.weight)
 });
 function toPrize(r: Row, i: number, rows: Row[]): Prize | null {
+  if (r.kind === 'replay') return num(r.weight) ? { key: 'replay', replay: true, weight: Number(r.weight) } : null;
   if (!num(r.value) || !num(r.weight)) return null;
   const v = Number(r.value);
   const base = r.kind === 'percent' ? `pct${String(v).replace('.', '_')}` : r.kind === 'days' ? `day${v}` : `amt${String(v).replace('.', '_')}`;
@@ -48,7 +50,10 @@ export function GameSettings({ prizes, weights, cap, basis }: { prizes: Prize[];
   function save(e: React.FormEvent) {
     e.preventDefault();
     if (!rows.length) { setMsg({ ok: false, text: 'Keep at least one prize.' }); return; }
+    if (rows.filter((r) => r.kind === 'replay').length > 1) { setMsg({ ok: false, text: 'Keep one Play again prize at most.' }); return; }
+    if (!rows.some((r) => r.kind !== 'replay')) { setMsg({ ok: false, text: 'Keep at least one discount: the second game of Play again draws from them.' }); return; }
     for (const [i, r] of rows.entries()) {
+      if (r.kind === 'replay') { if (!num(r.weight) || Number(r.weight) <= 0) { setMsg({ ok: false, text: `Prize ${i + 1}: the chance must be above 0.` }); return; } continue; }
       const what = r.kind === 'percent' ? 'percentage' : r.kind === 'days' ? 'number of free days' : 'amount';
       if (!num(r.value) || Number(r.value) <= 0) { setMsg({ ok: false, text: `Prize ${i + 1}: enter the ${what}.` }); return; }
       if (r.kind === 'percent' && Number(r.value) > 50) { setMsg({ ok: false, text: `Prize ${i + 1}: at most 50% off.` }); return; }
@@ -70,19 +75,19 @@ export function GameSettings({ prizes, weights, cap, basis }: { prizes: Prize[];
   return (
     <form onSubmit={save} className="stack" data-testid="game-settings">
       <fieldset className="stack-sm"><legend className="d4">Prizes</legend>
-        <p className="small muted">Every play wins one prize. The chance is a weight: with 69, 25, 4, 1, 0.6, 0.3 and 0.1 the first prize comes up 69 times in 100. A prize with a minimum length applies only to rentals that long; a cap is the most it takes off one booking (empty: the games&apos; cap{cap ? ` of ${dollars(cap)}` : ''} for a percentage or free days). A free day is the booking&apos;s average day of the rental charge. Prizes with a chance of 1 in 100 or less get a bigger celebration. The game&apos;s short terms list the prizes and say the chances differ.</p>
+        <p className="small muted">Every play wins one prize. The chance is a weight: with 54, 25, 15, 4, 1, 0.6, 0.3 and 0.1 the first prize comes up 54 times in 100. Play again is another go: a second game, always a different one, whose prize is drawn from the other prizes, so it always ends in a code (one replay at a time). A prize with a minimum length applies only to rentals that long; a cap is the most it takes off one booking (empty: the games&apos; cap{cap ? ` of ${dollars(cap)}` : ''} for a percentage or free days). A free day is the booking&apos;s average day of the rental charge. Prizes with a chance of 1 in 100 or less get a bigger celebration. The game&apos;s short terms list the prizes and say the chances differ.</p>
         <div className="ad-scroll"><table className="data"><thead><tr><th scope="col">Prize</th><th scope="col">Off</th><th scope="col">Minimum days</th><th scope="col">Cap ($)</th><th scope="col">Chance</th><th scope="col">On the average booking</th><th scope="col"><span className="vh">Remove</span></th></tr></thead>
           <tbody>{rows.map((r, i) => {
             const p = toPrize(r, i, rows);
             return (<tr key={i}>
-              <td><label className="vh" htmlFor={`${idp}-k${i}`}>Prize {i + 1} kind</label><select className="select" id={`${idp}-k${i}`} value={r.kind} onChange={(e) => set(i, 'kind', e.target.value)}><option value="percent">Percent off</option><option value="amount">Dollars off</option><option value="days">Free days</option></select></td>
-              <td><label className="vh" htmlFor={`${idp}-v${i}`}>Prize {i + 1} value</label><input className="input" id={`${idp}-v${i}`} inputMode="decimal" value={r.value} onChange={(e) => set(i, 'value', e.target.value)} /></td>
-              <td><label className="vh" htmlFor={`${idp}-m${i}`}>Prize {i + 1} minimum rental days</label><input className="input" id={`${idp}-m${i}`} inputMode="numeric" value={r.min_days} placeholder="any" onChange={(e) => set(i, 'min_days', e.target.value)} /></td>
-              <td><label className="vh" htmlFor={`${idp}-c${i}`}>Prize {i + 1} cap in dollars</label><input className="input" id={`${idp}-c${i}`} inputMode="decimal" value={r.kind === 'amount' ? '' : r.cap} disabled={r.kind === 'amount'}
-                placeholder={r.kind === 'amount' ? 'its amount' : cap ? String(cap / 100) : 'none'} onChange={(e) => set(i, 'cap', e.target.value)} /></td>
+              <td><label className="vh" htmlFor={`${idp}-k${i}`}>Prize {i + 1} kind</label><select className="select" id={`${idp}-k${i}`} value={r.kind} onChange={(e) => set(i, 'kind', e.target.value)}><option value="percent">Percent off</option><option value="amount">Dollars off</option><option value="days">Free days</option><option value="replay">Play again (another go)</option></select></td>
+              <td><label className="vh" htmlFor={`${idp}-v${i}`}>Prize {i + 1} value</label><input className="input" id={`${idp}-v${i}`} inputMode="decimal" value={r.kind === 'replay' ? '' : r.value} disabled={r.kind === 'replay'} placeholder={r.kind === 'replay' ? 'a second game' : undefined} onChange={(e) => set(i, 'value', e.target.value)} /></td>
+              <td><label className="vh" htmlFor={`${idp}-m${i}`}>Prize {i + 1} minimum rental days</label><input className="input" id={`${idp}-m${i}`} inputMode="numeric" value={r.kind === 'replay' ? '' : r.min_days} disabled={r.kind === 'replay'} placeholder={r.kind === 'replay' ? '' : 'any'} onChange={(e) => set(i, 'min_days', e.target.value)} /></td>
+              <td><label className="vh" htmlFor={`${idp}-c${i}`}>Prize {i + 1} cap in dollars</label><input className="input" id={`${idp}-c${i}`} inputMode="decimal" value={r.kind === 'amount' || r.kind === 'replay' ? '' : r.cap} disabled={r.kind === 'amount' || r.kind === 'replay'}
+                placeholder={r.kind === 'amount' ? 'its amount' : r.kind === 'replay' ? '' : cap ? String(cap / 100) : 'none'} onChange={(e) => set(i, 'cap', e.target.value)} /></td>
               <td><label className="vh" htmlFor={`${idp}-w${i}`}>Prize {i + 1} chance</label><input className="input" id={`${idp}-w${i}`} inputMode="decimal" value={r.weight} onChange={(e) => set(i, 'weight', e.target.value)} />
                 <span className="small muted">{total > 0 && num(r.weight) ? `${Math.round((Number(r.weight) / total) * 1000) / 10}%` : ''}</span></td>
-              <td className="num small">{basis && p ? dollars(prizeCost(p, basis, cap)) : ''}</td>
+              <td className="num small">{p?.replay ? 'a second game' : basis && p ? dollars(prizeCost(p, basis, cap)) : ''}</td>
               <td><button type="button" className="btn btn--quiet btn--sm" onClick={() => setRows((x) => x.filter((_, j) => j !== i))}>Remove</button></td>
             </tr>);
           })}</tbody></table></div>

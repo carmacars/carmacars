@@ -6,6 +6,8 @@ create or replace function test.gsvid(p text) returns uuid language sql immutabl
 create or replace function test.gsstart(p text) returns jsonb language sql as $$
   select public.game_start(jsonb_build_object('vid', test.gsvid(p), 'device', 'phone', 'path', '/cars/gs-car', 'trigger', 'pages', 'seen', '[]'::jsonb)) $$;
 delete from app.rate_limit_hits where key like 'game-%';
+-- the plays below are claimed whatever they drew: without the replay prize (0171: never claimed; 99_games_again_replay.sql)
+update program_settings set game_prizes = app.game_prizes_real(game_prizes);
 create temp table gs (n text primary key, v jsonb);
 grant all on gs to public;
 
@@ -36,5 +38,6 @@ insert into gs values ('u', test.gsstart('unrev'));
 insert into visitor_sessions (id, visitor_id, known_email) values (gen_random_uuid(), test.gsvid('unrev'), 'gs.unrev@example.test');
 select test.eq('known, the prize never shown: no game', test.gsstart('unrev') ->> 'reason', 'known');
 
+update program_settings set game_prizes = default;
 select test.eq('privileges: the core stays for the service role only',
   has_function_privilege('anon', 'app.game_start_core(jsonb, uuid)', 'execute')::text || ' ' || has_function_privilege('service_role', 'app.game_start_core(jsonb, uuid)', 'execute')::text, 'false true');

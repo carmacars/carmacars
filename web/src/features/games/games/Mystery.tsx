@@ -23,7 +23,7 @@ export default function Mystery({ prize, reduced, onReveal }: GameProps) {
           <button key={i} type="button" className={`ccg-box${picked === i ? (open ? ' is-open' : ' is-shaking') : ''}`} onClick={() => pick(i)} disabled={picked !== null}
             aria-label={`Box ${i + 1} of ${MYSTERY_BOXES}`} data-testid={`game-box-${i + 1}`}>
             <span className="ccg-box__lid" aria-hidden="true" />
-            <span className="ccg-box__base" aria-hidden="true">{picked === i && open ? <b>{prize.short}</b> : '?'}</span>
+            <span className="ccg-box__base" aria-hidden="true">{picked === i && open ? <b data-long={prize.short.length > 4 || undefined}>{prize.short}</b> : '?'}</span>
           </button>
         ))}
       </div>

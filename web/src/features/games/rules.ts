@@ -1,4 +1,4 @@
-// Discount games (migrations 0069, 0081, 0094 and 0100): the rules that decide when a game may show (first, again after
+// Discount games (migrations 0069, 0081, 0094, 0100 and 0171): the rules that decide when a game may show (first, again after
 // a close, in the request-to-book form), the rotation, and the layouts the games draw. Pure functions (no browser, no imports) so they are
 // unit tested and shared by the trigger and the games. The prize itself is drawn by the database; nothing here can
 // change it.
@@ -36,6 +36,17 @@ export const savedPrize = (m: GameMemory, now: number): SavedPrize | null =>
   (m.won && !m.claimed && now - m.won.at < SAVED_DAYS * 86_400_000 ? m.won : null);
 /** The words of the saved badge: "Your 5% off is saved". */
 export const savedWords = (p: { label: string }) => `Your ${p.label} is saved`;
+/** 0171: the card of a prize won and not claimed, popping up again by itself: "Your 5% off is still waiting". */
+export const waitingWords = (p: { label: string }) => `Your ${p.label} is still waiting`;
+/** 0171: the replay prize ("another go"): a second game, never a code, never saved as a discount. */
+export const isReplay = (p: { replay?: boolean } | null | undefined) => p?.replay === true;
+/** 0171: the card's heading when the game is over: "You won 5% off", "You won another go!", or for a prize won in an
+ *  earlier game "Your 5% off is saved" (opened from the badge or the request-to-book form), "Your 5% off is still
+ *  waiting" (popped up again by itself) and "You still have another go". Never "You won" twice for one prize. */
+export function wonWords(p: { label: string; replay?: boolean }, how: 'new' | 'saved' | 'waiting'): string {
+  if (isReplay(p)) return how === 'new' ? 'You won another go!' : 'You still have another go';
+  return how === 'new' ? `You won ${p.label}` : how === 'saved' ? savedWords(p) : waitingWords(p);
+}
 /** How long a booking request in progress keeps the games away (0100). */
 export const REQUEST_DAYS = 30;
 /** A booking request in progress in this browser (0100): the request form's draft (localStorage cc.request.v2, with a
@@ -73,14 +84,15 @@ export function isSearchReferrer(ref: string | null | undefined): boolean {
 }
 
 /** Why the site's game may not show to this visitor now (null: it may). Signed-in people never see it on the site.
- *  0100: never once a prize was won here (the saved badge shows instead) or a booking request is in progress. */
+ *  0100: never once a booking request is in progress. 0171: a prize won here and not claimed no longer stops it: the
+ *  card pops up again with that prize ("Your 5% off is still waiting"; the server returns the saved play), on the same
+ *  rules as a game, with the small badge between pops. */
 export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: boolean; path: string; visit?: Visit | null; now?: number; busy?: boolean }): string | null {
   if (a.signedIn) return 'signed_in';
   if (a.mem.claimed) return 'claimed';
   if (a.mem.never) return a.mem.never;
   if (excludedPath(a.path)) return 'page';
   if (a.busy) return 'in_progress';
-  if (savedPrize(a.mem, a.now ?? Date.now())) return 'saved';
   if (!a.cfg) return 'no_settings';
   if (!a.cfg.on) return 'off';
   if (a.visit && (a.visit.shows ?? 0) >= Math.max(1, a.cfg.per_visit)) return 'visit_cap';
@@ -197,7 +209,8 @@ export function addPage(v: Visit, path: string): Visit {
   return { ...v, pages: v.pages + 1, cars: slug && !v.cars.includes(slug) ? [...v.cars, slug] : v.cars };
 }
 
-export interface PrizeWord { key: string; short: string; label: string }
+/** A prize's words; replay (0171): "another go", a second game. */
+export interface PrizeWord { key: string; short: string; label: string; replay?: boolean }
 
 /** The wheel's 12 slices: the most common prize on every other slice, the rest in turn between them (the rarest once
  *  or twice), so the wheel looks lively; the terms say the chances differ. Every prize is on the wheel: with more
@@ -319,24 +332,30 @@ export function claimProblems(v: { first: string; email: string; phone: string }
   return e;
 }
 
-/** A prize of the table (Settings, Discount games): a percentage, an amount or free days, its own minimum length and cap. */
-export interface PrizeRow { key: string; percent_bps?: number; amount_cents?: number; free_days?: number; min_days?: number; max_cents?: number; weight: number }
+/** A prize of the table (Settings, Discount games): a percentage, an amount or free days, its own minimum length and
+ *  cap; or (0171) replay: another go, a second game drawn from the other prizes. */
+export interface PrizeRow { key: string; percent_bps?: number; amount_cents?: number; free_days?: number; min_days?: number; max_cents?: number; replay?: boolean; weight: number }
 /** What one prize takes off the average booking (net rental charge, billable days), as the database applies it: never
  *  on a shorter booking than its minimum, never above its cap (or the games' cap for a percentage or free days). */
 export function prizeCost(p: PrizeRow, basis: { charge_cents: number; days: number }, defaultCap: number | null): number {
   const { charge_cents: c, days } = basis;
-  if (c <= 0 || days <= 0) return 0;
+  if (p.replay || c <= 0 || days <= 0) return 0;
   if (p.min_days && days < p.min_days) return 0;
   const cap = p.amount_cents ? null : (p.max_cents ?? defaultCap);
   const raw = p.percent_bps ? Math.round((c * p.percent_bps) / 10000) : p.free_days ? Math.round((c * Math.min(p.free_days, days)) / days) : (p.amount_cents ?? 0);
   return Math.min(raw, c, cap ?? c);
 }
-/** The expected discount of one claimed code: each prize's cost on the average booking, by its chance. */
+/** The expected discount of one claimed code: each prize's cost on the average booking, by its chance. A code is never
+ *  the replay prize (0171: its second game draws from the others), so the chances are those of the other prizes. */
 export function expectedCost(prizes: PrizeRow[], basis: { charge_cents: number; days: number }, defaultCap: number | null): number {
-  const total = prizes.reduce((a, p) => a + (p.weight > 0 ? p.weight : 0), 0);
+  const real = prizes.filter((p) => !p.replay);
+  const total = real.reduce((a, p) => a + (p.weight > 0 ? p.weight : 0), 0);
   if (total <= 0) return 0;
-  return prizes.reduce((a, p) => a + (p.weight > 0 ? (p.weight / total) * prizeCost(p, basis, defaultCap) : 0), 0);
+  return real.reduce((a, p) => a + (p.weight > 0 ? (p.weight / total) * prizeCost(p, basis, defaultCap) : 0), 0);
 }
+/** 0171: a prize's words on a small surface (a wheel slice, a reel, a Plinko slot): the font scale for its short word,
+ *  1 up to four letters ("$100", "FREE"), smaller for a longer one ("REPLAY"). */
+export const shortScale = (short: string) => (short.length <= 4 ? 1 : 4 / short.length);
 
 /** The card pack: five cards, four CarmaCars picture cards (never a real trading card design) and the prize last. */
 export type PackCard = { kind: 'art'; title: string; hue: number } | { kind: 'prize' };

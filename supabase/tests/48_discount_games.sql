@@ -36,9 +36,9 @@ select test.eq('settings: on, five games at equal weights, 7 days, $75 cap, 1 ca
   (select format('%s %s %s %s %s/%s/%s %s %s %s', game_enabled, game_weights::text, game_code_valid_days, game_max_discount_cents, game_trigger_car_pages, game_trigger_seconds,
                  game_exit_intent, game_dismiss_days, game_task_min_cars, game_reminder_hours) from (select (app.settings()).*) s),
   't {"coin": 1, "cups": 1, "dice": 1, "drop": 1, "pack": 1, "slots": 1, "wheel": 1, "plinko": 1, "mystery": 1, "scratch": 1, "blackjack": 1} 7 7500 2/30/t 14 3 24');
-select test.eq('the owner''s prize table (0081: three rare prizes, 5% at 69): 5% 69, 10% 25, 15% 4, $50 off 3+ days 1, 25% 0.6, $100 off 4+ days 0.3, a free day 0.1',
+select test.eq('the owner''s prize table (0081: three rare prizes; 0171: another go 15, 5% at 54): 5% 54, 10% 25, another go 15, 15% 4, $50 off 3+ days 1, 25% 0.6, $100 off 4+ days 0.3, a free day 0.1',
   (select string_agg(app.game_prize_label(x) || coalesce(' ' || (x ->> 'min_days') || '+d', '') || ' ' || (x ->> 'weight'), ', ' order by o)
-     from jsonb_array_elements((app.settings()).game_prizes) with ordinality t(x, o)), '5% off 69, 10% off 25, 15% off 4, $50 off 3+d 1, 25% off 0.6, $100 off 4+d 0.3, 1 free day 3+d 0.1');
+     from jsonb_array_elements((app.settings()).game_prizes) with ordinality t(x, o)), '5% off 54, 10% off 25, another go 15, 15% off 4, $50 off 3+d 1, 25% off 0.6, $100 off 4+d 0.3, 1 free day 3+d 0.1');
 select test.eq('the prize table is checked: a weight of 0, both kinds, no kind, a duplicate key, a 60% prize',
   app.game_prizes_ok('[{"key": "a", "percent_bps": 500, "weight": 0}]')::text || app.game_prizes_ok('[{"key": "a", "percent_bps": 500, "amount_cents": 500, "weight": 1}]')::text
   || app.game_prizes_ok('[{"key": "a", "weight": 1}]')::text || app.game_prizes_ok('[{"key": "a", "percent_bps": 500, "weight": 1}, {"key": "a", "percent_bps": 600, "weight": 1}]')::text
@@ -46,17 +46,17 @@ select test.eq('the prize table is checked: a weight of 0, both kinds, no kind, 
 select test.throws('a bad prize table is refused by the database', $$update program_settings set game_prizes = '[]'$$, 'check');
 select test.throws('a game not known is refused', $$update program_settings set game_weights = '{"poker": 1}'$$, 'check');
 select test.throws('all games at 0 is refused', $$update program_settings set game_weights = '{"wheel": 0}'$$, 'check');
-select test.eq('the draw follows the weights: below 0.69 is 5%, to 0.94 10%, to 0.98 15%, to 0.99 $50, to 0.996 25%, to 0.999 $100, the rest a free day',
-  (select string_agg(app.game_draw((app.settings()).game_prizes, r) ->> 'key', ' ' order by r) from unnest(array[0.0, 0.689, 0.69, 0.939, 0.94, 0.979, 0.98, 0.989, 0.99, 0.995, 0.996, 0.998, 0.999, 0.9999]) r),
-  'pct5 pct5 pct10 pct10 pct15 pct15 amt50 amt50 pct25 pct25 amt100 amt100 day1 day1');
+select test.eq('the draw follows the weights: below 0.54 is 5%, to 0.79 10%, to 0.94 another go (0171), to 0.98 15%, to 0.99 $50, to 0.996 25%, to 0.999 $100, the rest a free day',
+  (select string_agg(app.game_draw((app.settings()).game_prizes, r) ->> 'key', ' ' order by r) from unnest(array[0.0, 0.539, 0.54, 0.789, 0.79, 0.939, 0.94, 0.979, 0.98, 0.989, 0.99, 0.995, 0.996, 0.998, 0.999, 0.9999]) r),
+  'pct5 pct5 pct10 pct10 replay replay pct15 pct15 amt50 amt50 pct25 pct25 amt100 amt100 day1 day1');
 select test.eq('the draw of games: equal weights, by name', (select string_agg(app.game_draw((app.settings()).game_weights, r) #>> '{}', ' ' order by r) from unnest(array[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99]) r),
   'blackjack coin cups dice drop mystery pack plinko scratch slots wheel');
-select test.eq('10,000 draws stay near the table (5% between 66 and 72 in 100, $50 under 2.5 in 100)',
-  (select (count(*) filter (where k = 'pct5') between 6600 and 7200) and (count(*) filter (where k = 'amt50') < 250)
+select test.eq('10,000 draws stay near the table (5% between 51 and 57 in 100, $50 under 2.5 in 100)',
+  (select (count(*) filter (where k = 'pct5') between 5100 and 5700) and (count(*) filter (where k = 'amt50') < 250)
      from (select app.game_draw((app.settings()).game_prizes) ->> 'key' as k from generate_series(1, 10000)) x), true);
 select test.eq('the short terms list the prizes and say the chances differ',
   app.game_terms_text(),
-  'Prizes: 5%, 10%, 15% or 25% off, or $50 off 3+ day rentals, or $100 off 4+ day rentals, or 1 free day on 3+ day rentals. The chances differ: most players win 5% off. Off the rental charge only, up to $75 per code (25% off: up to $150, 1 free day: up to $150). One use, on one booking, within 7 days. One per person, email, phone and device. Not combinable with other promo codes.');
+  'Prizes: 5%, 10%, 15% or 25% off, or $50 off 3+ day rentals, or $100 off 4+ day rentals, or 1 free day on 3+ day rentals, or another go (a second game, which always ends in a discount). The chances differ: most players win 5% off. Off the rental charge only, up to $75 per code (25% off: up to $150, 1 free day: up to $150). One use, on one booking, within 7 days. One per person, email, phone and device. Not combinable with other promo codes.');
 select test.eq('the consent wording with the tokens filled from Site settings',
   (app.game_marketing_text() ->> 'text') = 'Yes, send me CarmaCars offers and news by email and text message. I can unsubscribe at any time. Sent by CarmaCars'
     || coalesce(', ' || nullif((select mailing_address from site_settings), ''), '') || ', ' || coalesce((select public_email from site_settings), '') || '.', true);
@@ -64,6 +64,9 @@ select test.eq('the browser''s settings (0100, the owner''s defaults: the 2nd pa
   '{"on": true, "exit": true, "booking": true, "seconds": 30, "car_pages": 2, "per_day": 0, "per_visit": 4, "reshow_pages": 3, "reshow_seconds": 120}'::jsonb);
 
 -- ================================================================ 2. who may play
+-- the plays below are claimed whatever they drew: without the replay prize (0171: it is never claimed; its own suite is
+-- 99_games_again_replay.sql); the owner's table is back before the report
+update program_settings set game_prizes = app.game_prizes_real(game_prizes);
 select test.eq('a new visitor gets a game and a prize from the table, the terms and the consent wording', (select (r ->> 'ok') || ' ' || ((r ->> 'game') = any (app.game_kinds())) || ' ' || ((r -> 'prize' ->> 'key') in (select t.x ->> 'key' from jsonb_array_elements((app.settings()).game_prizes) t(x)))
   || ' ' || jsonb_array_length(r -> 'prizes') || ' ' || length(r ->> 'token') || ' ' || ((r ->> 'terms') like 'Prizes:%') || ' ' || ((r ->> 'consent') like 'Yes, send me%') from (select test.gstart('a') as r) x), 'true true true 7 64 true true');
 select test.eq('the same visitor again: the same play (no new draw by reloading)', (select count(distinct x ->> 'token') from (select test.gstart('a') as x from generate_series(1, 5)) y), 1::bigint);
@@ -202,6 +205,7 @@ update game_plays set created_at = now() - interval '200 days' where claimed_at 
 select test.eq('plays never claimed go after the visit records'' period', (select app.job_game_reminders()) like '% 1 old plays removed', true);
 
 -- ================================================================ 6. staff: leads, the report, the next step
+update program_settings set game_prizes = default;
 select test.eq('Leads: every claim, with the prize, the code''s state, consent and the visit',
   (select format('%s %s %s %s %s %s', r ->> 'prize_label', r ->> 'status', r ->> 'marketing_consent', r ->> 'cars_viewed', r ->> 'city', r ->> 'device')
      from jsonb_array_elements(app.game_leads(test.id('dg_cs')) -> 'rows') r where r ->> 'email' = 'dana.a@example.test'), '10% off on_request false 6 Toronto phone');
@@ -210,7 +214,7 @@ select test.throws('Leads: not for Finance', $$select app.game_leads(test.id('dg
 select test.eq('the report: plays, claims, codes on requests, bookings, the redemption rate, revenue and discounts',
   (select format('%s %s %s %s %s %s', (r ->> 'plays')::integer >= 8, r ->> 'claims', r ->> 'on_requests', r ->> 'bookings', (r ->> 'discount_cents'), (r ->> 'revenue_cents')::bigint > 0)
      from (select app.game_report(test.id('dg_admin')) as r) x), 't 5 2 1 5000 t');
-select test.eq('the report by game and prize (0100: eleven games)', (select jsonb_array_length(r -> 'by_game') || ' ' || jsonb_array_length(r -> 'by_prize') from (select app.game_report(test.id('dg_admin')) as r) x), '11 7');
+select test.eq('the report by game and prize (0100: eleven games; 0171: eight prizes with Play again)', (select jsonb_array_length(r -> 'by_game') || ' ' || jsonb_array_length(r -> 'by_prize') from (select app.game_report(test.id('dg_admin')) as r) x), '11 8');
 select test.eq('a lead marked contacted and taken, through the door', app.door(test.id('dg_sales'), 'aal2', 'va_do', 'game_lead_update',
   jsonb_build_object('id', (select lead_id from game_claims where email = 'remind.r@example.test'), 'status', 'contacted', 'take', true)) ? 'id', true);
 select test.eq('the lead is contacted and with Sales', (select l.status || ' ' || (l.assigned_to = test.id('dg_sales')) from leads l join game_claims c on c.lead_id = l.id where c.email = 'remind.r@example.test'), 'contacted true');

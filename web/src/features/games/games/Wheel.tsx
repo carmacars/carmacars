@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useRef, useState } from 'react';
-import { wheelSlices, wheelStop } from '../rules';
+import { shortScale, wheelSlices, wheelStop } from '../rules';
 import type { GameProps } from '../GamePopup';
 
 // Spin the wheel: 12 slices (the prizes of the table, the most common one on every other slice). The database drew the
@@ -39,7 +39,7 @@ export default function Wheel({ prize, prizes, reduced, onReveal }: GameProps) {
               const mid = i * size + size / 2;
               return (<g key={i}>
                 <path d={arc(i)} fill={fill} stroke="#000" strokeWidth="1" />
-                <text x="100" y="30" transform={`rotate(${mid} 100 100)`} textAnchor="middle" fontSize="13" fontWeight="800" fill={text} fontFamily="inherit">{s.short}</text>
+                <text x="100" y="30" transform={`rotate(${mid} 100 100)`} textAnchor="middle" fontSize={13 * shortScale(s.short)} fontWeight="800" fill={text} fontFamily="inherit">{s.short}</text>
               </g>);
             })}
             <circle cx="100" cy="100" r="16" fill="#fff" stroke="#000" strokeWidth="3" />

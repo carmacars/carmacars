@@ -1,6 +1,6 @@
 'use client';
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { plinkoPath, plinkoSlots } from '../rules';
+import { plinkoPath, plinkoSlots, shortScale } from '../rules';
 import type { GameProps } from '../GamePopup';
 
 // Plinko: the disc bounces down 8 rows of pegs into one of 9 slots. The slot is the prize the database drew; the path
@@ -41,7 +41,7 @@ export default function Plinko({ prize, prizes, reduced, onReveal }: GameProps) 
             const hit = done && path?.slot === i;
             return (<g key={i}>
               <rect x={x - DX / 2 + 2} y={H - 40} width={DX - 4} height="32" rx="5" fill={hit ? '#fff' : i === Math.floor(ROWS / 2) ? '#D0111B' : '#2a2a2a'} />
-              <text x={x} y={H - 19} textAnchor="middle" fontSize="10.5" fontWeight="800" fill={hit ? '#D0111B' : '#fff'} fontFamily="inherit">{s.short}</text>
+              <text x={x} y={H - 19} textAnchor="middle" fontSize={10.5 * shortScale(s.short)} fontWeight="800" fill={hit ? '#D0111B' : '#fff'} fontFamily="inherit">{s.short}</text>
             </g>);
           })}
           <circle className="ccg-plinko__disc" cx="0" cy="0" r="9" fill="#D0111B" stroke="#fff" strokeWidth="2.5" style={{ transform: `translate(${d.x}px, ${d.y}px)` }} />

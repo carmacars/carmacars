@@ -32,7 +32,7 @@ export default function Slots({ prize, prizes, reduced, onReveal }: GameProps) {
         {reels.map((i) => (
           <div key={i} className="ccg-reel">
             <ul className="ccg-reel__strip" style={{ transform: `translateY(${-top(i) * ROW}px)`, transitionDuration: reduced || !stops ? '0ms' : `${1300 + i * 600}ms` }}>
-              {Array.from({ length: REPEAT }, (_, k) => strip.map((s, j) => <li key={`${k}-${j}`} className={s.key === strip[0]!.key ? '' : 'is-big'}>{s.short}</li>))}
+              {Array.from({ length: REPEAT }, (_, k) => strip.map((s, j) => <li key={`${k}-${j}`} className={s.key === strip[0]!.key ? '' : 'is-big'} data-long={s.short.length > 4 || undefined}>{s.short}</li>))}
             </ul>
           </div>
         ))}

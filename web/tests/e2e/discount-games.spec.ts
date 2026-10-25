@@ -504,8 +504,9 @@ test('Admin: Bookings > Leads shows the claims and the report; Settings > Discou
   await page.goto('/admin/settings/discount-games', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('game-rules')).toBeVisible();
   await expect(page.getByTestId('game-settings').locator('input').first()).toHaveValue('5');
-  // 0081: seven prizes, the card pack's weight, and what a claimed code costs on the average booking
-  await expect(page.getByTestId('game-settings').locator('tbody tr')).toHaveCount(7);
+  // 0081: seven prizes; 0171: and Play again (another go); the card pack's weight, and what a claimed code costs on the average booking
+  await expect(page.getByTestId('game-settings').locator('tbody tr')).toHaveCount(8);
+  await expect(page.getByTestId('game-settings').locator('select').nth(2)).toHaveValue('replay');
   await expect(page.getByLabel('Card pack')).toHaveValue('1');
   // 0100: the five newer games, on at the same weight
   for (const g of ['Coin flip', 'Dice roll', 'Slot machine', 'Prize drop', 'Mystery box']) await expect(page.getByLabel(g)).toHaveValue('1');

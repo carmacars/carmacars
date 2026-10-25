@@ -2,22 +2,23 @@ import Link from 'next/link';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, Card, Filters, Search, Table, Tiles, t } from '@/features/admin/ui';
 
-// Discount games (migration 0069), staff side: who claimed a prize, whether the code was used, their consent and what
+// Discount games (migration 0069; 0171: plays by prize, the Play again prize as its own row), staff side: who claimed a prize, whether the code was used, their consent and what
 // they looked at, with call, email and "contacted" one tap away; and the report (plays, claims, codes used, bookings
 // and revenue). Admin > Bookings > Leads and the assistants' Game leads (customer service and Sales).
 type R = Record<string, unknown>;
 export interface GameReport { days: number; plays: number; revealed: number; claims: number; claim_rate_bps: number; with_consent: number; on_requests: number; bookings: number;
   redemption_rate_bps: number; revenue_cents: number; discount_cents: number; by_game: Array<{ game: string; plays: number; claims: number; bookings: number }>;
-  by_prize: Array<{ prize: string; claims: number; bookings: number }> }
+  by_prize: Array<{ prize: string; plays?: number; claims: number; bookings: number; replay?: boolean }>; replays?: number }
 export interface GameLeadsData { rows: R[]; report: GameReport }
-const GAME: Record<string, string> = { wheel: 'Spin the wheel', scratch: 'Scratch to reveal', blackjack: 'Quick blackjack', cups: 'Cup shuffle', plinko: 'Plinko', pack: 'Card pack' };
+const GAME: Record<string, string> = { wheel: 'Spin the wheel', scratch: 'Scratch to reveal', blackjack: 'Quick blackjack', cups: 'Cup shuffle', plinko: 'Plinko', pack: 'Card pack',
+  coin: 'Coin flip', dice: 'Dice roll', slots: 'Slot machine', drop: 'Prize drop', mystery: 'Mystery box' };
 const STATUS: Record<string, string> = { unused: 'Not used yet', on_request: 'On a request', used: 'Used (booked)', expired: 'Expired' };
 const pct = (bps: number) => `${(bps / 100).toFixed(bps % 100 ? 1 : 0)}%`;
 
 export function GameReportTiles({ r, settingsHref }: { r: GameReport; settingsHref?: string }) {
   return (<>
     <Tiles items={[
-      { k: `Plays, ${r.days} days`, v: r.plays, sub: `${r.revealed} played to the prize` },
+      { k: `Plays, ${r.days} days`, v: r.plays, sub: `${r.revealed} played to the prize${r.replays ? `, ${r.replays} second games from Play again` : ''}` },
       { k: 'Claims', v: r.claims, sub: `${pct(r.claim_rate_bps)} of plays, ${r.with_consent} with marketing consent` },
       { k: 'Codes on requests', v: r.on_requests },
       { k: 'Bookings', v: r.bookings, sub: `${pct(r.redemption_rate_bps)} of claims` },
@@ -27,7 +28,8 @@ export function GameReportTiles({ r, settingsHref }: { r: GameReport; settingsHr
       <Card title="By game"><Table rows={r.by_game as unknown as R[]} rowKey={(x) => String(x.game)} cols={[{ key: 'game', label: 'Game', render: (x) => GAME[String(x.game)] ?? String(x.game) },
         { key: 'plays', label: 'Plays', num: true }, { key: 'claims', label: 'Claims', num: true }, { key: 'bookings', label: 'Bookings', num: true }]} /></Card>
       <Card title="By prize" aside={settingsHref ? <Link prefetch={false} className="link small" href={settingsHref}>Settings</Link> : undefined}>
-        <Table rows={r.by_prize as unknown as R[]} rowKey={(x) => String(x.prize)} cols={[{ key: 'prize', label: 'Prize' }, { key: 'claims', label: 'Claims', num: true }, { key: 'bookings', label: 'Bookings', num: true }]} /></Card>
+        <Table rows={r.by_prize as unknown as R[]} rowKey={(x) => String(x.prize)} cols={[{ key: 'prize', label: 'Prize' }, { key: 'plays', label: 'Plays', num: true, render: (x) => String(x.plays ?? '') },
+          { key: 'claims', label: 'Claims', num: true, render: (x) => (x.replay ? 'none (a second game)' : String(x.claims)) }, { key: 'bookings', label: 'Bookings', num: true, render: (x) => (x.replay ? '' : String(x.bookings)) }]} /></Card>
     </div>
   </>);
 }

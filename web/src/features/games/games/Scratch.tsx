@@ -49,7 +49,7 @@ export default function Scratch({ prize, reduced, onReveal }: GameProps) {
   return (
     <div className="ccg-stage">
       <div className="ccg-scratch">
-        <p className="ccg-scratch__prize" aria-hidden={!gone}>{prize.short}<small>off your rental</small></p>
+        <p className="ccg-scratch__prize" aria-hidden={!gone}>{prize.short}<small>{prize.replay ? 'one more game' : 'off your rental'}</small></p>
         <canvas ref={canvas} className={gone ? 'is-gone' : ''} aria-hidden="true"
           onPointerDown={(e) => { down.current = true; e.currentTarget.setPointerCapture(e.pointerId); scratch(e); }}
           onPointerMove={scratch} onPointerUp={() => { down.current = false; }} onPointerCancel={() => { down.current = false; }} />
