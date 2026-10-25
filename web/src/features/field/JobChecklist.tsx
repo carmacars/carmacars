@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { fieldAct } from '@/server/actions/field';
 import { preparePhoto, uploads, useUploads } from './queue';
 import type { Answer, FieldJob, JobChecklistData, Step } from './types';
+import { FdIcon } from './icons';
 
 // The checklist of a detail, photo shoot, tracker install or removal, registry run, recovery, other job, or
 // a re-shoot (06-field.md section 7; migration 0033): one card per step, each answer saved to the server as
@@ -63,6 +64,9 @@ export function JobChecklist({ j, listing }: { j: FieldJob; listing?: ReactNode 
     router.refresh();
   });
 
+  // a step counts as answered once it has a value or a photo (the server decides what is still missing)
+  const isAnswered = (s: Step) => Boolean(a[s.key]?.v || a[s.key]?.photos?.length);
+  const answered = c.steps.filter(isAnswered).length;
   const body = (s: Step) => {
     const v = a[s.key] ?? {};
     switch (s.type) {
@@ -108,10 +112,12 @@ export function JobChecklist({ j, listing }: { j: FieldJob; listing?: ReactNode 
 
   return (
     <div className="stack" data-testid="job-checklist">
+      <div className="fd-upload" aria-hidden="true"><div className="fd-meter"><span style={{ width: `${Math.round((answered / Math.max(1, c.steps.length)) * 100)}%` }} /></div></div>
+      <p className="fd-upload__line">{answered} of {c.steps.length} steps answered</p>
       {c.steps.map((s, i) => (
-        <section key={s.key} className="fd-card" aria-labelledby={`ck-${s.key}-t`}>
-          <p className="pt-kicker">{i + 1} of {c.steps.length}{s.required ? '' : ' · optional'}</p>
-          <h2 className="d4" id={`ck-${s.key}-t`}>{s.label}</h2>
+        <section key={s.key} className={`fd-card fd-ckstep${isAnswered(s) ? ' is-done' : ''}`} aria-labelledby={`ck-${s.key}-t`}>
+          <p className="fd-ckstep__n">{isAnswered(s) ? <span className="fd-shot__ok" aria-hidden="true"><FdIcon name="check" /></span> : null}Step {i + 1} of {c.steps.length}{s.required ? '' : ', optional'}</p>
+          <h2 className="fd-ckstep__h" id={`ck-${s.key}-t`}>{s.label}</h2>
           {s.help && <p className="small muted">{s.help}</p>}
           {body(s)}
         </section>

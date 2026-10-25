@@ -120,7 +120,10 @@ test('field staff fix the ready check on the phone and release a car whose track
   // the jobs were made from the booking at its confirmation (0144)
   const jobs = await sql`select kind, auto_created, place from field_jobs where booking_id = ${b.booking_id} and status <> 'cancelled' order by kind`;
   expect(jobs.map((j) => `${j.kind}:${j.auto_created}:${j.place ? 'place' : 'none'}`)).toEqual(['handover:true:place', 'return_check_in:true:place']);
-  const [job] = await sql`update field_jobs set assigned_to = ${field.id}, scheduled_at = now() + interval '1 hour', auto_at = now() + interval '1 hour'
+  // the pickup and the job a few minutes ahead, so both fall on today at any hour of the run (the booking was made for
+  // 10:00 the day after tomorrow's start: late in the evening the job sat on tomorrow and the check-out ran a day early)
+  await sql`update bookings set pickup_at = now() + interval '3 minutes', return_at = now() + interval '2 days' where id = ${b.booking_id}`;
+  const [job] = await sql`update field_jobs set assigned_to = ${field.id}, scheduled_at = now() + interval '3 minutes', auto_at = now() + interval '3 minutes'
                            where booking_id = ${b.booking_id} and kind = 'handover' returning id`;
 
   // Fleet: the jobs are there with their place, marked as made from the booking
@@ -201,7 +204,9 @@ test('field staff fix the ready check on the phone and release a car whose track
   await next(page, 'Hand over the keys');
   await expect(page.getByTestId('upload-count')).toContainText('all uploaded', { timeout: 60_000 });
   await page.getByTestId('complete').click();
-  await expect(page.getByTestId('field-done').or(page.locator('.fd-screen .alert--error'))).toBeVisible({ timeout: 30_000 });
+  // the finished checklist, or (once the server action's refresh reloads the job page) the job as done: the refresh
+  // can replace the finished checklist before it is seen, so both count (as in staff.spec.ts)
+  await expect(page.getByTestId('field-done').or(page.getByTestId('job-done')).or(page.locator('.fd-screen .alert--error'))).toBeVisible({ timeout: 30_000 });
   expect(await page.locator('.fd-screen .alert--error').innerText({ timeout: 500 }).catch(() => ''), 'the database refused the completion').toBe('');
   const [done] = await sql`select (select status::text from bookings where id = ${b.booking_id}) s,
                                   (select tracker_reporting from condition_reports where booking_id = ${b.booking_id} and kind = 'pickup') t,

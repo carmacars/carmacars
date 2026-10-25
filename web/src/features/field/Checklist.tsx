@@ -7,6 +7,8 @@ import { fieldAct } from '@/server/actions/field';
 import { CarDiagram, type Mark } from './CarDiagram';
 import { ResolveDeposit, ResolveIdentity, ResolveSignature, TrackerOverride } from './ReadyResolve';
 import { preparePhoto, uploads, useUploads } from './queue';
+import { FdIcon } from './icons';
+import { Plate } from './Plate';
 import type { FieldJob } from './types';
 
 // The handover and return checklists (06-field.md sections 4 and 5): one decision or one photo per screen,
@@ -55,6 +57,9 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
   const [msg, setMsg] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // the answers' save state, shown on every step (2026-10-25): saved on the server, or kept on this phone while there
+  // is no signal and sent again as soon as there is
+  const [saved, setSaved] = useState<'idle' | 'saving' | 'saved' | 'phone'>('idle');
   const q = useUploads(jobId);
   const onServer = useMemo(() => new Set((j.report?.photos ?? []).map((p) => p.seq)), [j.report]);
   const has = (seq: number) => onServer.has(seq) || q.arrived(seq) || q.pending.some((x) => x.seq === seq && x.mode === 'photo');
@@ -65,10 +70,28 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
   const at = here ?? { signNow: `/field/jobs/${jobId}/sign-now`, self: `/field/jobs/${jobId}` };
 
   const save = (extra: Record<string, unknown> = {}) => fieldAct('save_report', { job: jobId, report: { ...strip(r), ...extra } });
-  const next = () => { setMsg(null); start(async () => { const s = await save(); if (!s.ok) { setMsg(s.message); return; } setStep((n) => n + 1); window.scrollTo(0, 0); }); };
+  const forward = () => { setStep((n) => n + 1); window.scrollTo(0, 0); };
+  // no signal: the answers stay on the phone (they are kept there as they are given) and the step moves on; the
+  // completion sends every answer again, and a refused answer still stops the step
+  const next = () => { setMsg(null); start(async () => {
+    setSaved('saving');
+    let s: Awaited<ReturnType<typeof save>>;
+    try { s = await save(); } catch { setSaved('phone'); forward(); return; }
+    if (!s.ok) { setSaved('idle'); setMsg(s.message); return; }
+    setSaved('saved'); forward();
+  }); };
+  const resend = () => start(async () => { setSaved('saving'); try { const s = await save(); setSaved(s.ok ? 'saved' : 'phone'); } catch { setSaved('phone'); } });
+  useEffect(() => {
+    if (saved !== 'phone') return;
+    const on = () => resend();
+    window.addEventListener('online', on);
+    return () => window.removeEventListener('online', on);
+  });
   const block = (reason: string) => start(async () => {
-    const x = await fieldAct('block_handover', { job: jobId, reason });
-    setStop(x.ok ? `${reason}. CarmaCars has an urgent task.` : `${reason}. ${x.message}`);
+    try {
+      const x = await fieldAct('block_handover', { job: jobId, reason });
+      setStop(x.ok ? `${reason}. CarmaCars has an urgent task.` : `${reason}. ${x.message}`);
+    } catch { setStop(`${reason}. No connection: the office was not told yet.`); }
   });
 
   const photo = async (seq: number, shot: string, file: File | undefined, damage_label?: string) => {
@@ -94,6 +117,8 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
   const readyOk = Boolean(ready && ready.signed !== false && ready.identity && ready.coverage && ready.drivers_accepted && ready.calendar && ['taken', 'waived', 'none'].includes(ready.deposit));
   const screens: Array<{ title: string; body: React.ReactNode; can?: boolean; primary?: string; onPrimary?: () => void }> = pickup ? [
     { title: 'Ready check', can: readyOk, body: (
+      <div className="stack">
+      <ReadySum items={ready ? [ready.signed !== false, ready.identity, ready.coverage, ready.drivers_accepted, ready.calendar, ['taken', 'waived', 'none'].includes(ready.deposit)] : []} />
       <ul className="fd-checks" data-testid="ready-check">
         {/* 0151: what is not ready is fixed here, under its line; Stop stays for what cannot be */}
         <Row ok={ready ? ready.signed !== false : false} text={ready?.signed === false ? 'Awaiting signature: the renter has not signed the rental agreement' : 'Rental agreement signed'}>
@@ -108,10 +133,10 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
           {ready && !ready.calendar && <p className="fd-office small">The office turns the calendar on for this booking. Call CarmaCars.</p>}</Row>
         <Row ok={ready ? ['taken', 'waived', 'none'].includes(ready.deposit) : false} text={`Deposit: ${ready?.deposit === 'taken' ? 'taken' : ready?.deposit === 'waived' ? 'waived by an Admin' : ready?.deposit === 'declined' ? 'declined' : ready?.deposit === 'none' ? 'none on this booking' : 'not taken yet'}`}>
           {ready && !['taken', 'waived', 'none'].includes(ready.deposit) && res && j.job.status === 'in_progress' && <ResolveDeposit j={j} r={res} back={at.self} />}</Row>
-        <li><button className="btn btn--ghost fd-wide" type="button" onClick={() => router.refresh()} data-testid="ready-refresh">Check again</button></li>
+        <li><button className="btn btn--ghost fd-wide" type="button" onClick={() => router.refresh()} data-testid="ready-refresh"><FdIcon name="retry" />Check again</button></li>
         {ready && !readyOk &&
           <li><button className="btn btn--primary fd-stop" type="button" onClick={() => block('The ready check failed')}>Stop: do not release the car</button></li>}
-      </ul>) },
+      </ul></div>) },
     { title: 'Car ready', body: (
       <div className="stack">
         <YesNo label="Fuel full, or charge 80% or more" value={r.fuel_or_charge_ok} set={(v) => set({ fuel_or_charge_ok: v })} />
@@ -121,7 +146,7 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
       </div>) },
     ...(unattended ? [] : [
       { title: 'Is this the renter?', can: r.renter_present === true, body: (
-        <div className="stack"><p className="fd-big">{j.booking?.renter?.name}</p>
+        <div className="stack"><p className="fd-who">{j.booking?.renter?.name}</p>
           <YesNo label="The person in front of me is the renter named on the booking" value={r.renter_present} set={(v) => { set({ renter_present: v }); if (!v) block('The person is not the renter on the booking'); }} /></div>) },
       { title: 'Original licence', can: r.licence_seen === true, body: (
         <div className="stack">
@@ -135,7 +160,7 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
     ]),
     { title: 'Odometer', can: (r.odometer_km ?? 0) > 0 && !((j.vehicle.odometer_km ?? 0) > (r.odometer_km ?? 0) && !r.odometer_confirmed), body: (
       <div className="stack">
-        <label className="field"><span className="label">Odometer (km)</span><input className="input fd-num" inputMode="numeric" pattern="[0-9]*" data-testid="odometer" value={r.odometer_km ?? ''} onChange={(e) => set({ odometer_km: Number(e.target.value.replace(/\D/g, '')) || undefined })} /></label>
+        <Odo value={r.odometer_km} set={(v) => set({ odometer_km: v })} hint={j.vehicle.odometer_km ? `Last reading: ${j.vehicle.odometer_km.toLocaleString('en-CA')} km` : null} />
         {j.vehicle.odometer_km && (r.odometer_km ?? 0) > 0 && (r.odometer_km ?? 0) < j.vehicle.odometer_km ? <label className="check"><input type="checkbox" checked={Boolean(r.odometer_confirmed)} onChange={(e) => set({ odometer_confirmed: e.target.checked })} /> <span>Lower than the last reading ({j.vehicle.odometer_km} km). I checked it.</span></label> : null}
       </div>) },
     { title: 'Fuel or charge', can: r.fuel_pct !== undefined, body: <Fuel value={r.fuel_pct} set={(v) => set({ fuel_pct: v })} /> },
@@ -146,7 +171,7 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
       <div className="stack" data-testid="tracker">
         <ul className="fd-checks"><Line ok={j.tracker.reporting}>{j.tracker.reporting ? 'Tracker in place and reporting' : j.tracker.installed ? 'Tracker not reporting' : 'No tracker installed'}</Line></ul>
         <p className="small">Last reading: {j.tracker.reported_at ? new Date(j.tracker.reported_at).toLocaleTimeString('en-CA') : 'none'}</p>
-        <button className="btn btn--ghost" type="button" onClick={() => router.refresh()}>Check again</button>
+        <button className="btn btn--ghost fd-wide" type="button" onClick={() => router.refresh()}><FdIcon name="retry" />Check again</button>
         {!j.tracker.reporting && res && <TrackerOverride j={j} r={res} />}
         {!j.tracker.reporting && !j.tracker.override && <button className="btn btn--primary fd-stop" type="button" onClick={() => block('The Tracker is not reporting')}>Stop: do not release the car</button>}
       </div>) },
@@ -158,7 +183,8 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
       </div>) },
     { title: 'Hand over the keys', can: queueEmpty && shotsDone === required.length, primary: 'Hand over the keys', onPrimary: () => start(async () => {
       setMsg(null);
-      const x = await fieldAct<{ booking_status: string }>('complete_handover', { job: jobId, report: { ...strip(r), unattended, renter_present: unattended ? false : r.renter_present } });
+      let x: Awaited<ReturnType<typeof fieldAct<{ booking_status: string }>>>;
+      try { x = await fieldAct<{ booking_status: string }>('complete_handover', { job: jobId, report: { ...strip(r), unattended, renter_present: unattended ? false : r.renter_present } }); } catch { setMsg(OFFLINE); return; }
       if (!x.ok) { setMsg(x.message); return; }
       try { localStorage.removeItem(key); } catch { /* ignore */ }
       setDone('Checked out. The rental has started; the renter gets the photo report by email.');
@@ -169,10 +195,10 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
         <p className="small muted">Check-in is the moment you complete this return; the server stamps the time.</p></div>) },
     { title: 'Odometer', can: (r.odometer_km ?? 0) > 0, body: (
       <div className="stack">
-        <label className="field"><span className="label">Odometer (km)</span><input className="input fd-num" inputMode="numeric" pattern="[0-9]*" data-testid="odometer" value={r.odometer_km ?? ''} onChange={(e) => set({ odometer_km: Number(e.target.value.replace(/\D/g, '')) || undefined })} /></label>
-        {j.pickup?.odometer_km && r.odometer_km ? <p className="small">Driven: {r.odometer_km - j.pickup.odometer_km} km{j.booking?.km_allowance_total ? ` of ${j.booking.km_allowance_total} km included` : ''}</p> : null}
+        <Odo value={r.odometer_km} set={(v) => set({ odometer_km: v })} hint={j.pickup?.odometer_km ? `At pickup: ${j.pickup.odometer_km.toLocaleString('en-CA')} km` : null} />
+        {j.pickup?.odometer_km && r.odometer_km ? <p className="fd-delta">Driven: {r.odometer_km - j.pickup.odometer_km} km{j.booking?.km_allowance_total ? ` of ${j.booking.km_allowance_total} km included` : ''}</p> : null}
       </div>) },
-    { title: 'Fuel or charge', can: r.fuel_pct !== undefined, body: <><Fuel value={r.fuel_pct} set={(v) => set({ fuel_pct: v })} />{j.pickup?.fuel_pct !== undefined && r.fuel_pct !== undefined ? <p className="small">At pickup: {j.pickup.fuel_pct}%. Difference: {r.fuel_pct - (j.pickup.fuel_pct ?? 0)}%.</p> : null}</> },
+    { title: 'Fuel or charge', can: r.fuel_pct !== undefined, body: <><Fuel value={r.fuel_pct} set={(v) => set({ fuel_pct: v })} />{j.pickup?.fuel_pct !== undefined && r.fuel_pct !== undefined ? <p className="fd-delta">At pickup: {j.pickup.fuel_pct}%. Difference: {r.fuel_pct - (j.pickup.fuel_pct ?? 0)}%.</p> : null}</> },
     { title: 'Keys and extras', can: (r.keys_count ?? 0) >= 1, body: <Stepper label={`Keys returned${j.pickup?.keys_count ? ` (${j.pickup.keys_count} handed over)` : ''}`} value={r.keys_count ?? 0} set={(v) => set({ keys_count: v })} /> },
     { title: 'Cleanliness', can: Boolean(r.cleanliness), body: (
       <fieldset className="fd-choices"><legend className="label">How is the car?</legend>
@@ -199,27 +225,34 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
       </div>) },
     { title: 'You sign and complete', can: Boolean(r.staff_signature_ref) && queueEmpty && shotsDone === required.length, primary: 'Complete the return', onPrimary: () => start(async () => {
       setMsg(null);
-      const x = await fieldAct<{ booking_status: string; minutes_late?: number }>('complete_return', { job: jobId, report: strip(r) });
+      let x: Awaited<ReturnType<typeof fieldAct<{ booking_status: string; minutes_late?: number }>>>;
+      try { x = await fieldAct<{ booking_status: string; minutes_late?: number }>('complete_return', { job: jobId, report: strip(r) }); } catch { setMsg(OFFLINE); return; }
       if (!x.ok) { setMsg(x.message); return; }
       try { localStorage.removeItem(key); } catch { /* ignore */ }
       setDone('Checked in. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos. The deposit is not given back today: Finance settles it once tolls and tickets have had time to come in (about 7 days), and any damage you marked keeps it held.');
     }), body: <><Sign who="staff" label="You sign" done={Boolean(r.staff_signature_ref)} sign={sign} /><Upload q={q} total={required.length} shotsDone={shotsDone} /></> }
   ];
 
-  if (done) return <div className="fd-screen" role="status" data-testid="field-done"><h2 className="d3">{done}</h2><Link className="btn btn--primary fd-wide" href={back} data-testid="checklist-back">{backLabel}</Link></div>;
-  if (stop) return <div className="fd-screen fd-stopped" role="alert" data-testid="field-stop"><h2 className="d3">Do not release the car. Call CarmaCars.</h2><p>{stop}</p><Link className="btn btn--ghost fd-wide" href={back}>{backLabel}</Link></div>;
+  if (done) return <div className="fd-screen fd-finish" role="status" data-testid="field-done"><span className="fd-finish__mark" aria-hidden="true"><FdIcon name="check" /></span><h2 className="d3">{done}</h2><Link className="btn btn--primary fd-wide" href={back} data-testid="checklist-back">{backLabel}</Link></div>;
+  if (stop) return <div className="fd-screen fd-stopped" role="alert" data-testid="field-stop"><span className="fd-finish__mark" aria-hidden="true"><FdIcon name="cross" /></span><h2 className="d3">Do not release the car. Call CarmaCars.</h2><p>{stop}</p><Link className="btn btn--ghost fd-wide" href={back}>{backLabel}</Link></div>;
   const s = screens[Math.min(step, screens.length - 1)]!;
   const last = step >= screens.length - 1;
   return (
-    <div className="fd-screen" data-testid="checklist">
-      <p className="pt-kicker">Step {step + 1} of {screens.length}</p>
-      <div className="fd-screen" data-step-panel key={step}>
-        <h2 className="d3" data-testid="step-title">{s.title}</h2>
+    <div className="fd-screen fd-flow" data-testid="checklist">
+      <div className="fd-flow__head">
+        <p className="fd-stepcount">Step {step + 1} of {screens.length}<span className="fd-stepcount__job">{pickup ? 'Check out' : 'Check in'}{j.vehicle.plate ? <>, <Plate plate={j.vehicle.plate} small /></> : null}</span></p>
+        <div className="fd-progress" role="progressbar" aria-label="Checklist progress" aria-valuemin={1} aria-valuemax={screens.length} aria-valuenow={step + 1} aria-valuetext={`Step ${step + 1} of ${screens.length}`}>
+          {screens.map((x, i) => <span key={x.title} className={i < step ? 'is-done' : i === step ? 'is-now' : undefined} />)}
+        </div>
+        <SaveState state={saved} pending={q.pending.length} resend={resend} />
+      </div>
+      <div className="fd-screen fd-step" data-step-panel key={step}>
+        <h2 className="fd-step__h" data-testid="step-title">{s.title}</h2>
         {s.body}
       </div>
       {msg && <p className="alert alert--error" role="alert"><span>{msg}</span></p>}
       <div className="fd-bar">
-        {step > 0 && <button className="btn btn--ghost" type="button" onClick={() => { setMsg(null); setStep((n) => n - 1); }}>Back</button>}
+        {step > 0 && <button className="btn btn--ghost fd-bar__back" type="button" onClick={() => { setMsg(null); setStep((n) => n - 1); }}><FdIcon name="back" />Back</button>}
         {last
           ? <button className="btn btn--primary" type="button" disabled={pending || s.can === false} onClick={s.onPrimary} data-testid="complete">{pending ? 'Working' : s.primary}</button>
           : <button className="btn btn--primary" type="button" disabled={pending || s.can === false} onClick={next} data-testid="next">{pending ? 'Saving' : 'Next'}</button>}
@@ -234,68 +267,134 @@ function strip(r: Report): Record<string, unknown> {
   for (const k of Object.keys(out)) if (out[k] === undefined || out[k] === '') delete out[k];
   return out;
 }
+const OFFLINE = 'Not sent: no connection, or the server did not answer. Your answers are kept on this phone: press again.';
 function damageSeqs(ds: Damage[]): Array<[string, number]> { return ds.filter((d) => d.is_new).map((d, i) => [d.label, 20 + i]); }
 
 function Line({ ok, children }: { ok: boolean | undefined; children: React.ReactNode }) {
-  return <li className={`fd-line ${ok ? 'is-ok' : 'is-bad'}`}><span aria-hidden="true">{ok ? '✓' : '✕'}</span><span>{children}</span><span className="vh">{ok ? 'yes' : 'no'}</span></li>;
+  return <li className={`fd-line ${ok ? 'is-ok' : 'is-bad'}`}><span className="fd-line__mark" aria-hidden="true"><FdIcon name={ok ? 'check' : 'cross'} /></span><span>{children}</span><span className="vh">{ok ? 'yes' : 'no'}</span></li>;
 }
 // a ready check line with what fixes it under it (0151)
 function Row({ ok, text, children }: { ok: boolean | undefined; text: string; children?: React.ReactNode }) {
   return (
-    <li className="fd-fixrow">
-      <span className={`fd-line ${ok ? 'is-ok' : 'is-bad'}`}><span aria-hidden="true">{ok ? '✓' : '✕'}</span><span>{text}</span><span className="vh">{ok ? 'yes' : 'no'}</span></span>
+    <li className={`fd-fixrow ${ok ? 'is-ok' : 'is-bad'}`}>
+      <span className={`fd-line ${ok ? 'is-ok' : 'is-bad'}`}><span className="fd-line__mark" aria-hidden="true"><FdIcon name={ok ? 'check' : 'cross'} /></span><span>{text}</span><span className="vh">{ok ? 'yes' : 'no'}</span></span>
       {children}
     </li>
+  );
+}
+// the ready check at a glance: green when the car may go, red with how many lines are left to fix
+function ReadySum({ items }: { items: Array<boolean | undefined> }) {
+  const left = items.filter((x) => !x).length;
+  const ok = items.length > 0 && left === 0;
+  return (
+    <div className={`fd-readysum ${ok ? 'is-ok' : 'is-bad'}`}>
+      <span className="fd-line__mark" aria-hidden="true"><FdIcon name={ok ? 'check' : 'cross'} /></span>
+      <p><b>{ok ? 'Ready: the car may be released' : items.length ? `${left} of ${items.length} to fix before the car is released` : 'The ready check could not be read'}</b>
+        {!ok && <span className="small"> Fix each red line below, then press Check again.</span>}</p>
+    </div>
+  );
+}
+// where the answers are: on the server, being sent, or kept on this phone until there is signal
+function SaveState({ state, pending, resend }: { state: 'idle' | 'saving' | 'saved' | 'phone'; pending: number; resend: () => void }) {
+  return (
+    <div className={`fd-savestate is-${state}`} role="status" aria-live="polite" data-testid="save-state">
+      {state === 'phone' ? <><FdIcon name="offline" /><span>No signal. Answers kept on this phone.</span><button type="button" className="fd-savestate__retry" onClick={resend}>Try again</button></>
+        : state === 'saving' ? <><FdIcon name="cloud" /><span>Saving</span></>
+        : state === 'saved' ? <><FdIcon name="check" /><span>Saved</span></>
+        : <><FdIcon name="cloud" /><span>Answers save as you go</span></>}
+      {pending > 0 && <span className="fd-savestate__photos">{pending} photo{pending > 1 ? 's' : ''} sending</span>}
+    </div>
   );
 }
 function YesNo({ label, value, set }: { label: string; value: boolean | undefined; set: (v: boolean) => void }) {
   return (
     <fieldset className="fd-yesno"><legend className="label">{label}</legend>
-      <div className="row"><button type="button" className={`btn ${value === true ? 'btn--primary' : 'btn--ghost'}`} aria-pressed={value === true} onClick={() => set(true)}>Yes</button>
-        <button type="button" className={`btn ${value === false ? 'btn--primary' : 'btn--ghost'}`} aria-pressed={value === false} onClick={() => set(false)}>No</button></div>
+      <div className="fd-yesno__row">
+        <button type="button" className={`btn fd-yes${value === true ? ' is-on' : ''}`} aria-pressed={value === true} onClick={() => set(true)}><FdIcon name="check" />Yes</button>
+        <button type="button" className={`btn fd-no${value === false ? ' is-on' : ''}`} aria-pressed={value === false} onClick={() => set(false)}><FdIcon name="cross" />No</button></div>
     </fieldset>
   );
 }
+function Odo({ value, set, hint }: { value: number | undefined; set: (v: number | undefined) => void; hint: string | null }) {
+  return (
+    <label className="field fd-odo"><span className="label">Odometer (km)</span>
+      <span className="fd-odo__box"><input className="input fd-num" inputMode="numeric" pattern="[0-9]*" autoComplete="off" enterKeyHint="done" data-testid="odometer" value={value ?? ''} onChange={(e) => set(Number(e.target.value.replace(/\D/g, '')) || undefined)} /><span className="fd-odo__unit" aria-hidden="true">km</span></span>
+      {hint && <span className="small muted">{hint}</span>}
+    </label>
+  );
+}
+// fuel or charge in eighths (2026-10-25): eight segments to tap, as the gauge in the car reads; the slider under them is
+// the same value for the keyboard and screen readers
+const FUEL_MARKS: Record<number, string> = { 0: 'E', 2: '1/4', 4: '1/2', 6: '3/4', 8: 'F' };
 function Fuel({ value, set }: { value: number | undefined; set: (v: number) => void }) {
   const eighths = value === undefined ? 8 : Math.round(value / 12.5);
+  const pick = (n: number) => set(Math.round(n * 12.5));
   return (
-    <label className="field"><span className="label">Fuel or charge: <b className="fd-big" data-testid="fuel-value">{value === undefined ? 'not set' : `${eighths}/8 (${Math.round(eighths * 12.5)}%)`}</b></span>
-      <input type="range" min={0} max={8} step={1} value={eighths} onChange={(e) => set(Math.round(Number(e.target.value) * 12.5))} onClick={() => set(Math.round(eighths * 12.5))} data-testid="fuel" className="fd-range" />
-    </label>
+    <div className="field fd-fuel">
+      <span className="label" id="fuel-l">Fuel or charge</span>
+      <p className="fd-fuel__read" data-testid="fuel-value">{value === undefined ? 'Tap the level' : <>{eighths === 8 ? 'Full' : eighths === 0 ? 'Empty' : `${eighths}/8`}<span>{Math.round(eighths * 12.5)}%</span></>}</p>
+      <div className={`fd-fuel__gauge${value === undefined ? ' is-unset' : ''}`} aria-hidden="true">
+        <span className={`fd-fuel__e${value !== undefined && eighths === 0 ? ' is-on' : ''}`} onClick={() => pick(0)}>E</span>
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <span key={n} className={`fd-fuel__seg${value !== undefined && n <= eighths ? ' is-on' : ''}`} onClick={() => pick(n)} />)}
+      </div>
+      <div className="fd-fuel__marks" aria-hidden="true">{[0, 2, 4, 6, 8].map((n) => <span key={n}>{FUEL_MARKS[n]}</span>)}</div>
+      <input type="range" min={0} max={8} step={1} value={eighths} aria-labelledby="fuel-l" aria-valuetext={value === undefined ? 'not set' : `${eighths} eighths, ${Math.round(eighths * 12.5)}%`}
+        onChange={(e) => pick(Number(e.target.value))} onClick={() => pick(eighths)} data-testid="fuel" className="fd-range" />
+    </div>
   );
 }
 function Stepper({ label, value, set }: { label: string; value: number; set: (v: number) => void }) {
   return (
     <div className="field"><span className="label" id="st-l">{label}</span>
-      <div className="row fd-stepper" role="group" aria-labelledby="st-l">
+      <div className="fd-stepper" role="group" aria-labelledby="st-l">
         <button type="button" className="btn btn--ghost" aria-label="One fewer" onClick={() => set(Math.max(0, value - 1))}>−</button>
-        <output className="fd-big" data-testid="keys" aria-live="polite">{value}</output>
+        <output className="fd-stepper__n" data-testid="keys" aria-live="polite"><FdIcon name="key" />{value}</output>
         <button type="button" className="btn btn--ghost" aria-label="One more" onClick={() => set(Math.min(9, value + 1))} data-testid="keys-more">+</button>
       </div>
     </div>
   );
 }
 function Upload({ q, total, shotsDone }: { q: ReturnType<typeof useUploads>; total: number; shotsDone: number }) {
+  const all = shotsDone === total && !q.pending.length;
   return (
-    <div className="stack" aria-live="polite">
-      <p className="small" data-testid="upload-count">{shotsDone} of {total} photos taken · {q.pending.length ? `${q.pending.length} still uploading` : 'all uploaded'}</p>
-      {q.failed.length > 0 && <p className="alert alert--error small"><span>{q.failed[0]!.error}</span></p>}
+    <div className="fd-upload" aria-live="polite">
+      <div className="fd-meter" aria-hidden="true"><span style={{ width: `${total ? Math.round((shotsDone / total) * 100) : 0}%` }} /></div>
+      <p className={`fd-upload__line${all ? ' is-ok' : ''}`} data-testid="upload-count">{shotsDone} of {total} photos taken · {q.pending.length ? `${q.pending.length} still uploading` : 'all uploaded'}</p>
+      {q.failed.length > 0 && <div className="alert alert--error small"><span>{q.failed[0]!.error} <button type="button" className="link" onClick={() => void uploads.run()}>Send again now</button></span></div>}
     </div>
   );
 }
+// the photo set, camera first (2026-10-25): the next photo to take is the big button at the top, with what to frame;
+// every shot of the list stays one tap away below, done ones ticked
 function Shots({ j, has, q, photo }: { j: FieldJob; has: (seq: number) => boolean; q: ReturnType<typeof useUploads>; photo: (seq: number, shot: string, f: File | undefined) => Promise<void> }) {
+  const todo = j.shots.find((s) => !has(s.seq));
+  const done = j.shots.filter((s) => has(s.seq)).length;
   return (
     <div className="stack">
-      <Upload q={q} total={j.shots.length} shotsDone={j.shots.filter((s) => has(s.seq)).length} />
+      <Upload q={q} total={j.shots.length} shotsDone={done} />
+      {todo ? (
+        <label className="fd-shoot">
+          <span className="fd-shoot__n">Photo {done + 1} of {j.shots.length}</span>
+          <span className="fd-shoot__name">{shotName(todo.shot)}</span>
+          {todo.guide && <span className="fd-shoot__guide">{todo.guide}</span>}
+          <span className="fd-shoot__btn"><FdIcon name="camera" />Take this photo</span>
+          <input className="vh" type="file" accept="image/*" capture="environment" data-testid="next-shot" onChange={(e) => { void photo(todo.seq, todo.shot, e.target.files?.[0]); e.target.value = ''; }} />
+        </label>
+      ) : <p className="fd-line is-ok"><span className="fd-line__mark" aria-hidden="true"><FdIcon name="check" /></span><span>Every photo taken</span></p>}
       <p className="small">Landscape, whole car in frame. Confirm the plate is <b>{j.vehicle.plate}</b> in the first photo; a different car stops the job.</p>
-      <ol className="fd-shots">{j.shots.map((s) => {
+      <ol className="fd-shotgrid">{j.shots.map((s) => {
         const f = q.pending.find((x) => x.seq === s.seq && x.mode === 'photo');
+        const ok = has(s.seq);
         return (
-          <li key={s.seq} className={has(s.seq) ? 'is-done' : undefined}>
-            <span><b>{s.seq}. {shotName(s.shot)}</b>{s.guide ? <span className="small muted"> {s.guide}</span> : null}
-              <span className="small">{f ? (f.state === 'failed' ? ` ${f.error}` : ' waiting to upload') : has(s.seq) ? ' uploaded' : ''}</span></span>
-            <label className="btn btn--ghost btn--sm fd-cam">{has(s.seq) ? 'Retake' : 'Take photo'}
-              <input className="vh" type="file" accept="image/*" capture="environment" data-testid={`shot-${s.seq}`} onChange={(e) => { void photo(s.seq, s.shot, e.target.files?.[0]); e.target.value = ''; }} /></label>
+          <li key={s.seq} className={`${ok ? 'is-done' : ''}${f?.state === 'failed' ? ' is-failed' : ''}`}>
+            <label className="fd-shot">
+              <span className="fd-shot__top"><span className="fd-shot__n">{s.seq}</span>{ok && <span className="fd-shot__ok" aria-hidden="true"><FdIcon name="check" /></span>}</span>
+              <span className="fd-shot__name">{shotName(s.shot)}</span>
+              {s.guide ? <span className="fd-shot__guide">{s.guide}</span> : null}
+              <span className="fd-shot__state">{f ? (f.state === 'failed' ? f.error : 'waiting to upload') : ok ? 'uploaded' : ''}</span>
+              <span className="fd-shot__do"><FdIcon name="camera" />{ok ? 'Retake' : 'Take photo'}</span>
+              <input className="vh" type="file" accept="image/*" capture="environment" data-testid={`shot-${s.seq}`} onChange={(e) => { void photo(s.seq, s.shot, e.target.files?.[0]); e.target.value = ''; }} />
+            </label>
           </li>);
       })}</ol>
     </div>
