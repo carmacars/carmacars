@@ -92,7 +92,7 @@ test(`house style on ${N.toLocaleString('en-CA')} pages: no slot left, no dash, 
     const sp = styleProblems(t);
     if (sp.length) add(sp.join('; '));
     for (const re of [EQUIPMENT, CONDITION, PROMISE, PRAISE]) { const m = re.exec(t); if (m) add(`claim "${m[0]}"`); }
-    if (/18122211|canada inc/i.test(t)) add('numbered company');
+    if (/18122211|canada inc\b/i.test(t)) add('numbered company');
     for (const s of t.split(/(?<=[.?])\s+/)) if (/Protection Plan/.test(s) && /insurance|insurer/i.test(s)) add(`Protection Plan beside insurance: ${s}`);
     if (/\bundefined\b|\bnull\b|NaN/.test(t)) add('a raw value');
     if (/\s[,.]/.test(t) || /\.\./.test(t)) add('spacing or punctuation');

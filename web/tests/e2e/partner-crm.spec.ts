@@ -55,7 +55,8 @@ test('Settings > Partners > 01 Motors: connect, test, sync, what they see (no pa
     await page.waitForURL(`**/admin/settings/partners/${partnerId}`);
     await expect(page.getByTestId('crm-status')).toContainText('Not connected');
     await expect(page.getByTestId('crm-sample')).toContainText(car.car_code);
-    await expect(page.getByTestId('crm-shared-count')).toContainText('1 (0 CarmaCars, 1 program owners)');
+    // the count is every real car on the site except partners' (other tests in this job publish cars too): at least this one
+    await expect(page.getByTestId('crm-shared-count')).toContainText(/^\d+ \(\d+ CarmaCars, [1-9]\d* program owners\)/);
     await expect(page.getByTestId('crm-test')).toBeDisabled();
 
     // connect: the token is a password field, cleared after sending, never on the page again

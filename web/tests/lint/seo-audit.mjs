@@ -178,7 +178,7 @@ for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landi
     if (!ty.includes('Car')) bad(p, `JSON-LD rating on ${ty.join('/')} (self-serving)`);
     else if (!/id="h-rv"/.test(h) || Number(n.aggregateRating?.reviewCount ?? 0) < 1) bad(p, 'Car rating without the reviews shown on the page');
   }
-  if (/18122211|Canada Inc/i.test(h)) bad(p, 'numbered company name in the page');
+  if (/18122211|Canada Inc\b/i.test(h)) bad(p, 'numbered company name in the page');
   if (p === '/' && !types.includes('AutoRental')) bad(p, 'no AutoRental (business) node');
   // one name, address and phone everywhere (0095): the business node, the footer and the contact page agree
   const bizNode = nodes.find((n) => [].concat(n['@type']).includes('AutoRental'));

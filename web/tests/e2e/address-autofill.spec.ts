@@ -110,6 +110,8 @@ for (const r of ROWS) {
   test(`address autofill: ${r.name}`, async ({ browser }) => {
     test.setTimeout(90_000);
     const sql = db();
+    // the daily lookup cap (0113) counts every address test in this job's database: not what is tested here
+    await sql`update program_settings set maps_daily_cap_autocomplete = greatest(maps_daily_cap_autocomplete, 100000), maps_daily_cap_place_details = greatest(maps_daily_cap_place_details, 100000)`;
     const page = await newPage(browser);
     const ids: Record<string, string> = {};
     let uid = '';
