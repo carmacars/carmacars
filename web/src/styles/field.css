@@ -31,7 +31,9 @@
 .fd { background: var(--fd-bg); color: var(--fd-ink); min-height: 100vh; }
 .fd__frame { max-width: 30rem; margin: 0 auto; padding: var(--s-3) var(--s-4) 8rem; }
 .fd__top { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); padding: var(--s-1) 0 var(--s-3); border-bottom: 3px solid var(--fd-rule); margin-bottom: var(--s-3); flex-wrap: nowrap; }
-.fd__top > .link { min-width: 0; text-decoration: none; }
+/* on a narrow phone the brand and the Assistant, Guide and Sign out links do not fit one line: the links wrap under the brand instead of over it */
+.fd__top { flex-wrap: wrap; row-gap: var(--s-2); }
+.fd__top > .link { flex: none; text-decoration: none; }
 .fd__top .gd-frame-links { flex: none; flex-wrap: nowrap; }
 .fd-brand { font-family: var(--font-display); font-weight: 800; font-size: 1.25rem; letter-spacing: -0.02em; white-space: nowrap; }
 .fd-brand__cars { color: var(--fd-red); }

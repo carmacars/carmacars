@@ -38,7 +38,7 @@ def build():
         'Beside the list (under it on a phone): today\'s pickups (ready or not ready), today\'s returns (due or late) and today\'s chauffeur bookings, by time.',
         f'Press {B("Overview")} for the money, fleet and queue figures, the alerts and the team\'s sales for the month.',
         'The dark band at the top counts the day, each count one tap from its page: requests waiting (with how long the oldest has waited, red past the reply target), pickups and returns today, payments to chase, deposits to settle, staff tasks open and alerts. A count that needs you now is red and says so.',
-    ], shot=S('admin/01-today-desktop', 0, 0, 1440, 900, pins=[(1, 300, 640), (2, 910, 630), (5, 1100, 580), (6, 1215, 255), (7, 840, 345)]))
+    ], shot=S('admin/01-today-desktop', 0, 0, 1440, 900, pins=[(1, 330, 585), (2, 890, 590), (5, 1100, 505), (6, 1215, 222), (7, 840, 340)]))
     g.task('The menu', 'The current group is open, with its pages; press another group to open it. On a phone the whole menu sits behind one Menu button that says where you are.')
     g.table([
         ['Today', 'To do, Overview, Staff tasks, Live visitors'],
@@ -157,7 +157,7 @@ def build():
     g.steps([
         'Filter by New, Waiting on the renter, Pushed back, Offer out, Signing and payment, or Offer expired.',
         'Waiting shows how long the renter has waited; red means past the first reply target (5 minutes, set in Program settings). Open a booking number to answer it.',
-    ], shot=S('admin/02-requests-desktop', 0, 0, 1440, 820, pins=[(1, 560, 318), (2, 320, 428)]))
+    ], shot=S('admin/02-requests-desktop', 0, 0, 1440, 820, pins=[(1, 560, 245), (2, 320, 355)]))
     g.tip('A request whose pickup time passes without an offer expires by itself, with a note in its history. The renter is not emailed unless '
           '"Email the renter when their request expires that way" is on in Program settings.', label='Good to know')
 
@@ -167,13 +167,13 @@ def build():
         'Adjust the car, the dates, the rate type, the places, the rates and fees, the deposit and extras.',
         'Price on the right updates as you change things.',
         f'Add a message, choose how long the offer stays open, then press {B("Send the offer")}.',
-    ], shot=S('admin/03-booking-review-desktop', 240, 600, 1440, 2150,
-              pins=[(1, 300, 700), (2, 330, 1310), (3, 1130, 1260), (4, 1160, 2120)]))
+    ], shot=S('admin/03-booking-review-desktop', 240, 527, 1440, 2077,
+              pins=[(1, 300, 627), (2, 330, 1237), (3, 1130, 1187), (4, 1160, 2047)]))
     g.steps([
         f'Changed fields but not ready to send? Press {B("Save changes")}. The panel "The offer as the renter sees it" shows the result.',
         f'Can\'t do it? Press {B("Decline")} and fill in Reason and any alternative.',
         f'Need an answer first? Press {B("Ask the renter")} to send a question.',
-    ], shot=S('admin/03-booking-review-desktop', 940, 170, 1440, 250, pins=[(6, 1146, 212), (7, 1030, 212)]), fig_w=5.0)
+    ], shot=S('admin/03-booking-review-desktop', 940, 97, 1440, 177, pins=[(6, 1146, 139), (7, 1030, 139)]), fig_w=5.0)
     g.task('Send an offer without a request', f'{P("Bookings", "Send an offer")}, or {B("Send an offer")} on Bookings and on Requests. For a customer on the phone, by text or at the counter: no request needed.')
     g.steps([
         f'The customer: type a name, phone or email and choose them. Not on file? Press {B("Add a new customer")}: full legal name, mobile, email (the offer link goes there) and date of birth. A customer already on file with the same email or phone is shown with Use: one person, one record.',
@@ -248,7 +248,7 @@ def build():
         'Open tasks for this booking, with the queue and the due time.',
         f'Top right: {B("Stop blocking the calendar")}, {B("Cancel for the renter")} and {B("Cancel by CarmaCars")}.',
         'Under the booking number: where the booking is on its way, from Request to Closed, with the dates, the days, the total and who pays.',
-    ], shot=S('admin/04-booking-desktop', 0, 0, 1440, 960, pins=[(2, 720, 520), (4, 1230, 212), (5, 330, 330)]))
+    ], shot=S('admin/04-booking-desktop', 0, 0, 1440, 960, pins=[(2, 720, 447), (4, 1230, 139), (5, 330, 257)]))
 
     g.task('Check a car out or in', 'From the booking, with your phone or a tablet: the same checklist field staff use.')
     g.steps([
@@ -334,7 +334,7 @@ def build():
         'To price it by hand, type a New rental charge before tax. Leave it empty to use the car\'s rates.',
         'Write the Reason, for the renter. They read it.',
         f'Press {B("Preview the price")}, then {B("Send to the renter")}.',
-    ], shot=S('admin/05-booking-changes-desktop', 240, 1630, 1440, 2150, pins=[(1, 450, 1805), (2, 350, 1890), (3, 700, 2000), (4, 395, 2108)]))
+    ], shot=S('admin/05-booking-changes-desktop', 240, 1557, 1440, 2077, pins=[(1, 450, 1732), (2, 350, 1817), (3, 700, 1927), (4, 395, 2035)]))
     g.task('Who a booking is credited to', 'Overview (and Review and offer) shows the Sales credit: the staff member the booking counts for in their sales.')
     g.steps([
         'A quote or a rental is credited to whoever created or added it. A request from the website is credited to whoever sent its first offer.',
@@ -387,7 +387,7 @@ def build():
         f'Choose the range: {B("Today")}, {B("Week")}, {B("2 weeks")} or {B("Month")}. {B("Agenda")} shows a list instead.',
         'The legend: confirmed, on rent, request, offer, not blocking, block and Turo.',
         'Each row is a car. Bars are bookings and blocks; the red line is now.',
-    ], shot=S('admin/06-calendar-desktop', 0, 0, 1440, 1000, pins=[(1, 340, 273), (2, 690, 273), (3, 560, 387), (4, 900, 520)]))
+    ], shot=S('admin/06-calendar-desktop', 0, 0, 1440, 1000, pins=[(1, 340, 200), (2, 690, 200), (3, 560, 314), (4, 900, 447)]))
     g.task('Move a booking, add or remove a block')
     g.steps([
         f'To move a booking, drag its bar to the new car or time, then press {B("Confirm the move")}.',
@@ -400,7 +400,7 @@ def build():
     g.steps([
         'The Calendar tab shows only this car, with its bookings and blocks.',
         f'Turnaround between trips on this car shows the time used. Press {B("Change")} to give this car its own time.',
-    ], shot=S('admin/07-vehicle-calendar-desktop', 0, 0, 1440, 560, pins=[(1, 670, 272), (2, 722, 332)]))
+    ], shot=S('admin/07-vehicle-calendar-desktop', 0, 0, 1440, 560, pins=[(1, 670, 199), (2, 722, 259)]))
 
     # ---------------------------------------------------------------- calendar sync (0062, 0063: Turo by email)
     g.chapter('Calendar sync with Turo and other platforms',
@@ -473,7 +473,7 @@ def build():
         'Filter by status; More filters has who supplies the car, retired cars and the mode. Each row shows the plate, class, owner, mode, status, listing and daily rate.',
         f'Search by plate, model or owner. {P("Cars", "Rates for many cars")} changes the rates of many cars at once.',
         'Open a car for its tabs: Overview, Rates, Fees and coverage, Calendar, Listing, and Owner, documents, tracker.',
-    ], shot=S('admin/08-vehicles-desktop', 0, 0, 1440, 900, pins=[(1, 1070, 353), (2, 540, 292), (3, 700, 545)]))
+    ], shot=S('admin/08-vehicles-desktop', 0, 0, 1440, 900, pins=[(1, 1070, 280), (2, 540, 219), (3, 700, 472)]))
 
     g.task('Set a car\'s rates and kilometres', f'Open the car, then the {B("Rates")} tab. Everything on it saves together, in one step.')
     g.steps([

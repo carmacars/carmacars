@@ -70,8 +70,8 @@ def build():
         'At the top: each car with its photo and its status right now (On rent, Available or In service), this month\'s rental charges against last month, the next payout and the days rented this month.',
         f'Your earnings: a column per month. Press a month, or the arrows, for its bookings, days rented, rental charges, fees billed and the payout on its statement. Choose a car to see it alone, or {B("Payouts")} for the statement amounts. Beside it, Money (what is due now, your fees each month, the next billing date and the next payout date) and Coming up, your next bookings.',
         f'Your vehicles: each car with this month so far, its next booking and what it needs next. Got another car? Press {B("Add a vehicle")}.',
-    ], shot=S('owner/01-home-desktop', 0, 60, 1440, 1400,
-              pins=[(1, 275, 163), (2, 700, 380), (3, 440, 1165)]))
+    ], shot=S('owner/01-home-desktop', 0, 60, 1440, 1330,
+              pins=[(1, 275, 163), (2, 1050, 450), (3, 450, 1140)]))
     g.tip('When something needs you (a signature, a payment or an upload), it is the first thing on Home.')
 
     g.task('A car\'s page', 'Open Vehicles, then a car.')
@@ -80,8 +80,8 @@ def build():
         'Terms: the Insurance Fee, the Revenue Share, your enrolment date and a link to the listing.',
         f'This car by month (choose a month with the arrows or its column), Coming up, and Bookings with every trip in your car. {B("Book it for myself")} reserves it for you.',
         'Leaving explains the exit notice and has the button to give it.',
-    ], shot=S('owner/03-vehicle-desktop', 0, 230, 1440, 1450,
-              pins=[(1, 520, 450), (2, 1200, 700), (3, 400, 905), (4, 1090, 1272)]))
+    ], shot=S('owner/03-vehicle-desktop', 0, 230, 1440, 1400,
+              pins=[(1, 800, 470), (2, 1200, 630), (3, 525, 835), (4, 1170, 990)]))
     g.para('While a car is being set up, its page also shows the onboarding checklist and the uploads it still needs: '
            'the ownership permit, the lender\'s permission and the insurance.')
 

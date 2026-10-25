@@ -41,7 +41,7 @@ def build():
         f'The next job is the big card at the top: its time and how long until it, the car and its plate, the place with {B("Open in maps")} and a button to call the renter, and what to put in the car. The rest of the day follows in time order.',
         f'A handover or a return has its own button: {B("Check out (pickup)")} or {B("Check in (return)")}. One tap acknowledges and starts the job and opens its photo checklist. Other jobs: press {B("Open the job")}.',
         'Moving a car that has no job? Use Vehicle moves (see below).',
-    ], shot=S('field/01-today-phone', 0, 595, 390, 1480, pins=[(1, 30, 720), (2, 300, 795), (3, 350, 885), (4, 345, 975), (5, 300, 1067)]))
+    ], shot=S('field/01-today-phone', 0, 595, 390, 2110, pins=[(1, 40, 790), (2, 330, 972), (3, 340, 1120), (4, 340, 1535)]))
     g.tip('Need help on a job? Call CarmaCars at 289-312-5991. The link is at the bottom of My jobs.')
 
     g.task('Open a job')
@@ -57,7 +57,7 @@ def build():
         f'Under Vehicle moves, press {B("Start a move")}. Choose the Car and Why (for example Reposition).',
         f'Fill in From and the Odometer (km), then press {B("Start the move now")}.',
         f'When you arrive, press {B("End the move")}, fill in Now at and the odometer, then press {B("End the move now")}.',
-    ], shot=S('field/01-today-phone', 0, 1040, 390, 1490, hdr=False, pins=[(1, 340, 1140), (2, 340, 1312), (3, 340, 1460)]))
+    ])
 
     g.task('Documents to sign', 'Your staff agreement, when CarmaCars sends it.')
     g.steps([

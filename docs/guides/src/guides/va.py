@@ -48,7 +48,7 @@ def build():
         f'Press {B("Take it")} to make it yours. Pressing the task opens the screen where it is done: a chat waiting for a person opens that chat, documents to check open the review, a request opens the booking. {B("Sheet")} opens the step-by-step procedure.',
         'Tasks close by themselves when their work is done elsewhere (an invoice paid or voided, a chat answered or closed); a day\'s opening and closing checks close at the end of that day.',
         f'On a computer, press {B("/")} to search (Find a renter; Sales: Find a car).',
-    ], shot=S('va-cs/01-queue-desktop', 0, 60, 1440, 1000, pins=[(1, 700, 300), (2, 460, 706), (3, 600, 860)]))
+    ], shot=S('va-cs/01-queue-desktop', 0, 60, 1440, 1000, pins=[(1, 700, 250), (2, 460, 550), (3, 600, 740)]))
 
     g.task('Work a task', 'Open the task. The buttons along the top move it on.')
     g.table([
@@ -65,7 +65,7 @@ def build():
     g.steps([
         'Today lists pickups and returns, and what is due, for your function.',
         f'Press a booking number to open it. {B("To do")} takes you back to your tasks.',
-    ], shot=S('va-cs/02-today-desktop', 0, 60, 1440, 760, pins=[(1, 330, 305)]))
+    ], shot=S('va-cs/02-today-desktop', 0, 60, 1440, 760, pins=[(1, 330, 232)]))
 
     g.task('Documents to sign', 'Your staff agreement, when CarmaCars sends it.')
     g.steps([
@@ -272,7 +272,7 @@ def build():
     g.para('Your rail: Queue, Today, Payments, deposits, refunds, Tolls and tickets, Reconciliation, Turo trips, Find a renter, '
            'Calendar and Scorecard.')
     g.task('Your queue', 'Finance tasks include failed owner debits, toll notices with no match, statements to review and refunds to issue.')
-    g.figure(S('va-finance/01-queue-desktop', 210, 540, 1440, 1480, pins=[(1, 460, 768)]),
+    g.figure(S('va-finance/01-queue-desktop', 210, 465, 1440, 1405, pins=[(1, 460, 693)]),
              note='The lanes show what Finance handles: payments to fix, refunds waiting, tolls and tickets, deposits to settle and owner statements. Money today counts them below.')
 
     g.task('Payments by day', f'{B("Payments by day")} is your day in one screen: every payment and refund, by method, with the cash drawer and the refunds to decide.')
@@ -290,7 +290,7 @@ def build():
         'Deposits to take before pickup, and deposits due back.',
         f'Refunds in progress. Press {B("Request the refund")} and choose What it refunds (the rental charge, delivery or pickup, kilometres, add-ons or other charges); above your limit it waits for an Admin. Then {B("Issue the refund")}.',
         'Owner invoices that failed, and owner statements to prepare.',
-    ], shot=S('va-finance/02-money-desktop', 210, 60, 1440, 1000, pins=[(1, 340, 657), (2, 1100, 322), (3, 1110, 427), (4, 345, 532)]), fig_w=4.0)
+    ], shot=S('va-finance/02-money-desktop', 210, 60, 1440, 925, pins=[(1, 340, 582), (2, 1100, 247), (3, 1110, 352), (4, 345, 457)]), fig_w=4.0)
 
     g.task('A payment received another way', 'An owner or renter paid by e-Transfer, cheque, cash or bank transfer.')
     g.steps([
@@ -350,7 +350,7 @@ def build():
         f'Change a job with {B("Assign")}, {B("Reassign")}, {B("Move")} (time and place) or {B("Cancel")}.',
         f'Handovers and returns without a job (when the automatic jobs are off, or one was cancelled) are listed first: press {B("Schedule")}, the place filled in from the booking.',
         'An Admin turns the automatic jobs or the assignment off in Settings > Program.',
-    ], shot=S('va-fleet/02-field-jobs-desktop', 210, 60, 1440, 700, pins=[(1, 430, 425)]), fig_w=4.3)
+    ], shot=S('va-fleet/02-field-jobs-desktop', 210, 60, 1440, 625, pins=[(1, 430, 350)]), fig_w=4.3)
 
     g.task('Daily checks', 'Twice a day: the opening check by 9:00 and the closing check by 18:00.')
     g.steps([
@@ -425,7 +425,7 @@ def build():
         f'{B("Requests and offers")}: the same queue customer service works. Answer requests and follow offers out.',
         f'{B("Send an offer")}: one screen for a caller, sent at once, as in chapter 2. {B("New quote")} still makes a request to offer later.',
         f'An offer that is out: {B("Edit the offer")}, then {B("Save and send the update")}.',
-    ], shot=S('va-sales/02-requests-desktop', 210, 60, 1440, 640, pins=[(1, 700, 480)]))
+    ], shot=S('va-sales/02-requests-desktop', 210, 60, 1440, 640, pins=[(1, 700, 405)]))
     g.tip('Your first reply target is 5 minutes, the "Quote sent" measure on your scorecard. Follow every offer out before it expires.')
     g.task('My sales', f'Open {P("My work", "My sales")}. It shows your own sales and commissions only.')
     g.steps([
