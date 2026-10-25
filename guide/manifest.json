@@ -1,0 +1,105 @@
+{
+  "generated_at": "2026-10-25T15:14:45.710Z",
+  "source": "the local stack (same build as carmacars.ca) with sample data; every person is fictional (example.com)",
+  "viewports": {
+    "desktop": "1440 x 900 at device scale 2",
+    "phone": "390 x 844 at device scale 3"
+  },
+  "cut_at": "2.5 screen heights",
+  "people": {
+    "owner": {
+      "email": "priya.shah@example.com",
+      "full_name": "Priya Shah"
+    },
+    "investor": {
+      "email": "daniel.okafor@example.com",
+      "full_name": "Daniel Okafor"
+    },
+    "admin": {
+      "email": "sam.rivera@example.com",
+      "full_name": "Sam Rivera"
+    },
+    "va_cs": {
+      "email": "maya.chen@example.com",
+      "full_name": "Maya Chen"
+    },
+    "va_finance": {
+      "email": "omar.haddad@example.com",
+      "full_name": "Omar Haddad"
+    },
+    "va_fleet": {
+      "email": "lucas.martin@example.com",
+      "full_name": "Lucas Martin"
+    },
+    "va_sales": {
+      "email": "nina.kowalski@example.com",
+      "full_name": "Nina Kowalski"
+    },
+    "field": {
+      "email": "diego.alvarez@example.com",
+      "full_name": "Diego Alvarez"
+    },
+    "renter": {
+      "email": "jordan.lee@example.com",
+      "full_name": "Jordan Lee"
+    }
+  },
+  "screens": [
+    {
+      "portal": "public",
+      "step": 1,
+      "name": "book-5-sent",
+      "file": "public/01-book-5-sent-desktop.png",
+      "path": "/book/sent/CC-10003",
+      "viewport": "desktop",
+      "width": 1440,
+      "height": 2250,
+      "scale": 2,
+      "title": "Request sent",
+      "description": "After Send request: the request number and what happens next (CarmaCars replies with an offer)."
+    },
+    {
+      "portal": "public",
+      "step": 1,
+      "name": "book-5-sent",
+      "file": "public/01-book-5-sent-phone.png",
+      "path": "/book/sent/CC-10003",
+      "viewport": "phone",
+      "width": 390,
+      "height": 2110,
+      "scale": 3,
+      "title": "Request sent",
+      "description": "After Send request: the request number and what happens next (CarmaCars replies with an offer)."
+    },
+    {
+      "portal": "renter",
+      "step": 1,
+      "name": "trips-requested",
+      "file": "renter/01-trips-requested-desktop.png",
+      "path": "/account",
+      "viewport": "desktop",
+      "width": 1440,
+      "height": 1406,
+      "scale": 2,
+      "title": "Your trips",
+      "description": "Trips: the request waits for CarmaCars to send an offer."
+    },
+    {
+      "portal": "renter",
+      "step": 1,
+      "name": "trips-requested",
+      "file": "renter/01-trips-requested-phone.png",
+      "path": "/account",
+      "viewport": "phone",
+      "width": 390,
+      "height": 2110,
+      "scale": 3,
+      "title": "Your trips",
+      "description": "Trips: the request waits for CarmaCars to send an offer."
+    }
+  ],
+  "problems": [
+    "renter: Confirm the model year of the Audi A5 Cabriolet first (Admin > Partners, the car's Edit): the offer and the agreement name it",
+    "field: Confirm the model year of the Audi A5 Cabriolet first (Admin > Partners, the car's Edit): the offer and the agreement name it"
+  ]
+}
