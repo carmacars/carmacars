@@ -122,17 +122,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Oct 24 (run 40142213899): e2e shards 5-9 min; on the seed alone: links 7, copy 5, SEO 8, crawl anon+renter+owner
-        # 6, investor+field+va_finance 5, va_fleet+va_sales 5, va_cs 3.5 (11-16 after the whole suite), Admin parts 4-7
+        # Balanced on run 40145710637 (after its tests, the data each shard left): setup 2-3 min, e2e shards 4-8.5,
+        # link check 9.5, copy lint 10, SEO 8.5, crawl Admin parts 5-8, va_cs 5, va_fleet 4.7, va_sales 3.7,
+        # va_finance 3.4, anon 3.2, renter, owner, investor, field 1-1.5 each; every job about 20 minutes
         include:
-          - { project: phone-375, shard: 1, label: 'copy lint, crawl admin 2 of 4', copy: true, roles: admin, part: '2/4' }
-          - { project: phone-375, shard: 2, label: 'crawl anon, renter, owner', roles: 'anon,renter,owner', part: '1/1' }
-          - { project: phone-375, shard: 3, label: 'crawl investor, field, va_finance, admin 4 of 4', roles: 'investor,field,va_finance', part: '1/1', roles2: admin, part2: '4/4' }
-          - { project: phone-375, shard: 4, label: 'SEO, crawl va_fleet, va_sales', seo: true, roles: 'va_fleet,va_sales', part: '1/1' }
-          - { project: desktop-1440, shard: 1, label: 'crawl admin 1 of 4', roles: admin, part: '1/4' }
-          - { project: desktop-1440, shard: 2, label: 'crawl va_cs', roles: va_cs, part: '1/1' }
-          - { project: desktop-1440, shard: 3, label: 'link check', links: true }
-          - { project: desktop-1440, shard: 4, label: 'crawl admin 3 of 4', roles: admin, part: '3/4' }
+          - { project: phone-375, shard: 1, label: 'link check, crawl owner', links: true, roles: owner, part: '1/1' }
+          - { project: phone-375, shard: 2, label: 'crawl anon, admin 1 of 4', roles: anon, part: '1/1', roles2: admin, part2: '1/4' }
+          - { project: phone-375, shard: 3, label: 'copy lint, crawl va_finance', copy: true, roles: va_finance, part: '1/1' }
+          - { project: phone-375, shard: 4, label: 'SEO, crawl investor', seo: true, roles: investor, part: '1/1' }
+          - { project: desktop-1440, shard: 1, label: 'crawl va_sales, admin 4 of 4', roles: va_sales, part: '1/1', roles2: admin, part2: '4/4' }
+          - { project: desktop-1440, shard: 2, label: 'crawl renter, admin 3 of 4', roles: renter, part: '1/1', roles2: admin, part2: '3/4' }
+          - { project: desktop-1440, shard: 3, label: 'crawl field, admin 2 of 4', roles: field, part: '1/1', roles2: admin, part2: '2/4' }
+          - { project: desktop-1440, shard: 4, label: 'crawl va_cs, va_fleet', roles: 'va_cs,va_fleet', part: '1/1' }
     defaults:
       run:
         working-directory: web
@@ -140,7 +141,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/full-stack
         with:
-          save-caches: ${{ matrix.project == 'desktop-1440' && matrix.shard == 3 }}
+          save-caches: ${{ matrix.project == 'phone-375' && matrix.shard == 3 }}
       - name: End to end, accessibility
         env:
           BASE_URL: http://localhost:3000
