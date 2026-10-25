@@ -29,7 +29,7 @@ function Reject({ kind, pending, onReject }: { kind: string; pending: boolean; o
   );
 }
 
-function Image({ u, pending, reject }: { u: DocUpload; pending: boolean; reject: (reason: string) => void }) {
+function Shot({ u, pending, reject }: { u: DocUpload; pending: boolean; reject: (reason: string) => void }) {
   return (
     <div className="fd-lic__doc" data-testid={`licence-doc-${u.kind}`}>
       <p className="fd-lic__kind"><b>{KIND[u.kind] ?? u.kind.replace(/_/g, ' ')}</b> <span className={`fd-chip is-${u.status === 'approved' ? 'done' : u.status === 'rejected' ? 'blocked' : 'scheduled'}`}>{u.status === 'submitted' ? 'Waiting' : u.status === 'approved' ? 'Approved' : 'Rejected'}</span></p>
@@ -105,7 +105,7 @@ export function LicenceReview({ job, waiting, label = 'Review the licence' }: { 
               <section key={dr.driver_id} className="fd-lic__driver stack" aria-label={dr.full_name}>
                 <p><b>{dr.full_name}</b> <span className="small muted">{dr.role.replace(/_/g, ' ')}{dr.verified_on ? ', verified' : ''}</span></p>
                 <p className="small muted">Born {dr.date_of_birth ?? 'not given'} · licence {dr.licence_number ?? 'not given'} {dr.licence_class ?? ''} · expires {dr.licence_expiry ?? 'not given'}</p>
-                {ups.length ? ups.map((u) => <Image key={u.id} u={u} pending={pending} reject={(reason) => reject(u.id, u.kind, reason)} />) : <p className="small muted">Nothing uploaded for this driver.</p>}
+                {ups.length ? ups.map((u) => <Shot key={u.id} u={u} pending={pending} reject={(reason) => reject(u.id, u.kind, reason)} />) : <p className="small muted">Nothing uploaded for this driver.</p>}
               </section>);
           })}
         </div>)}

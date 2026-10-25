@@ -5,7 +5,6 @@ import { acceptCookies, claimReady, db, giveLicence, noOverflow, storeFixturePdf
 
 const PW = 'correct horse battery';
 type Sql = ReturnType<typeof db>;
-const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${salt.toString('base64')}$${scryptSync(pw, salt, 64).toString('base64')}`; };
 const tag = () => randomBytes(3).toString('hex');
 
@@ -108,16 +107,18 @@ test('field staff review the renter\'s licence from their home and from the job'
   const car = await freeCar(sql);
   const b = await confirmedButNotReady(sql, admin.id, renter, car.id, car.from, car.to);
   // the handover job: this field staff member's, two days from now (within 7 days, beyond the job page's 36 hours)
+  await sql`update field_jobs set assigned_to = ${field.id} where booking_id = ${b.booking_id}`; // the return job went to the least busy member too
   const [job] = await sql`update field_jobs set assigned_to = ${field.id}, scheduled_at = now() + interval '2 days', auto_at = now() + interval '2 days'
                            where booking_id = ${b.booking_id} and kind = 'handover' returning id`;
   await giveLicence(sql, b.booking_id);
   const waiting = await sql`select count(*)::int n from verification_uploads where booking_id = ${b.booking_id} and status = 'submitted' and kind in ('licence_front', 'licence_back', 'selfie')`;
   expect(waiting[0]!.n).toBe(3);
 
-  // another field staff member's home has no such section
+  // another field staff member's home does not show this booking
   const op = await ctx(browser, true);
   await signIn(op, other.email, '/field');
-  await expect(op.getByTestId('field-licences')).toHaveCount(0);
+  await op.waitForLoadState('networkidle');
+  await expect(op.locator('body')).not.toContainText(b.booking_number);
   await op.context().close();
 
   const page = await ctx(browser, true);
@@ -126,11 +127,12 @@ test('field staff review the renter\'s licence from their home and from the job'
   await page.goto('/field', { waitUntil: 'networkidle' });
   const home = page.getByTestId('field-licences');
   await expect(home).toBeVisible({ timeout: 30_000 });
-  await expect(home.getByTestId('licence-card')).toHaveCount(1);
-  await expect(home).toContainText(b.booking_number);
+  // this booking's card (the shared test database may hold other bookings of other tests)
+  const card = home.getByTestId('licence-card').filter({ hasText: b.booking_number });
+  await expect(card).toHaveCount(1);
   await check(page, 'field home with Licences to check');
-  await home.getByTestId('licence-review-open').click();
-  const panel = home.getByTestId('licence-review-panel');
+  await card.getByTestId('licence-review-open').click();
+  const panel = card.getByTestId('licence-review-panel');
   await expect(panel.getByTestId('licence-doc-licence_front')).toBeVisible({ timeout: 30_000 });
   await expect(panel.getByTestId('licence-doc-licence_back')).toBeVisible();
   await expect(panel.getByTestId('licence-doc-selfie')).toBeVisible();
@@ -151,8 +153,8 @@ test('field staff review the renter\'s licence from their home and from the job'
   expect([rej!.status, rej!.reject_reason, rej!.reviewed_by, rej!.ev, rej!.told]).toEqual(['rejected', 'The photo is too dark to read', field.id, 1, 1]);
 
   // closing the panel refreshes the home: the booking still has the back and the selfie waiting
-  await home.getByTestId('licence-review-open').click();
-  await expect(home.getByTestId('licence-card')).toHaveCount(1);
+  await card.getByTestId('licence-review-open').click();
+  await expect(card).toHaveCount(1);
 
   // the renter sends a new front; the job is now close (within 36 hours), so the job page has the review too
   await giveLicence(sql, b.booking_id);
@@ -170,7 +172,7 @@ test('field staff review the renter\'s licence from their home and from the job'
       (select count(*)::int from booking_events e where e.booking_id = ${b.booking_id} and e.details ->> 'reviewer_role' = 'field' and e.details ->> 'decision' = 'approved') ev`;
   expect([ok!.n, ok!.v, ok!.ev]).toEqual([3, true, 3]);
   await page.goto('/field', { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('field-licences')).toHaveCount(0);
+  await expect(page.getByTestId('licence-card').filter({ hasText: b.booking_number })).toHaveCount(0);
   await check(page, 'field home after the review');
   expect(errors.filter((e) => !/Failed to load resource|favicon|the server responded/.test(e))).toEqual([]);
   await page.context().close();

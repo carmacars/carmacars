@@ -73,7 +73,7 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
       {lic && (
         <section className="fd-card" aria-labelledby="lic-t" data-testid="job-licence">
           <h2 className="fd-section-h" id="lic-t">Check the licence</h2>
-          <p className="small">{lic.waiting} image{lic.waiting === 1 ? '' : 's'} of the renter's licence wait for a decision.</p>
+          <p className="small">{lic.waiting} image{lic.waiting === 1 ? '' : 's'} of the renter&apos;s licence wait for a decision.</p>
           <LicenceReview job={id} waiting={lic.waiting} />
         </section>
       )}

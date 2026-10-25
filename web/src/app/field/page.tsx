@@ -41,7 +41,7 @@ export default async function Field({ searchParams }: { searchParams: Promise<Re
       {toSign > 0 && <p className="alert alert--warn" role="status" data-testid="field-to-sign"><span>You have {toSign === 1 ? 'a document' : `${toSign} documents`} to sign. <Link prefetch={false} className="link" href="/field/sign">Read and sign</Link></span></p>}
       {licences.length > 0 && <section className="fd-licences" aria-labelledby="lic-t" data-testid="field-licences">
         <h2 className="fd-section-h" id="lic-t">Licences to check <span className="fd-days__n">{licences.length}</span></h2>
-        <p className="small">The renter's licence and selfie on your next jobs wait for a decision. Look at them and approve, or reject with a reason.</p>
+        <p className="small">The renter&apos;s licence and selfie on your next jobs wait for a decision. Look at them and approve, or reject with a reason.</p>
         <ul className="fd-lic-list">{licences.map((l) => <li key={l.field_job_id} className="fd-lic-card" data-testid="licence-card">
           <p className="fd-lic-card__when">{dayLabel(l.scheduled_at)}, {clock(l.scheduled_at).time} {clock(l.scheduled_at).half}<span className="small"> · {KIND[l.kind] ?? l.kind}</span></p>
           <p className="fd-lic-card__car">{l.vehicle_label}</p>
