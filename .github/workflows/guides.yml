@@ -85,6 +85,8 @@ jobs:
           fi
 
   shots:
+    permissions:
+      contents: write
     needs: check
     if: needs.check.outputs.run == 'true'
     runs-on: ubuntu-24.04
@@ -182,22 +184,22 @@ jobs:
         if: ${{ inputs.keep }}
         continue-on-error: true
         run: BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://postgres@127.0.0.1:54322/carmacars node scripts/deck-shots.mjs
-      - name: Keep the deck's screens as a run artifact (keep = true)
+      - name: Keep the screenshots on the branch guide-shots-data (keep = true; WebP, manifest.json, the deck's screens; delete the branch after use)
         if: ${{ inputs.keep }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: deck-shots
-          path: web/public/deck
-          retention-days: 3
-          compression-level: 0
-      - name: Keep the screenshots as a run artifact (keep = true)
-        if: ${{ inputs.keep }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: guide-shots
-          path: ${{ runner.temp }}/guides
-          retention-days: 3
-          compression-level: 0
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          K="$RUNNER_TEMP/keep"; rm -rf "$K"; mkdir -p "$K/guide" "$K/deck"
+          command -v cwebp > /dev/null || sudo apt-get install -y -q webp > /dev/null 2>&1
+          cd "$RUNNER_TEMP/guides"
+          for f in */*.png; do mkdir -p "$K/guide/$(dirname "$f")"; cwebp -quiet -q 92 -m 4 "$f" -o "$K/guide/${f%.png}.webp"; done
+          cp manifest.json "$K/guide/manifest.json"
+          cp "$GITHUB_WORKSPACE"/web/public/deck/*.jpg "$K/deck/"
+          cd "$K"; git init -q -b guide-shots-data; git config user.name "guides workflow"; git config user.email "noreply@github.com"
+          git add -A; git commit -q -m "guide screenshots of ${{ github.sha }}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" guide-shots-data
+          echo "::notice title=guides::screens kept on the branch guide-shots-data ($(du -sh "$K" | cut -f1))"
       - name: Upload to deploy-reports/guides/<date>
         run: |
           set -euo pipefail
