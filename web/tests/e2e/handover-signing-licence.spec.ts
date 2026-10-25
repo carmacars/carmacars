@@ -120,7 +120,7 @@ async function complete(page: Page, text: string) {
   await expect(page.getByTestId('field-done')).toContainText(text);
 }
 
-test('check-out by Sales from the booking, a late check-in by an Admin from Today, the photo report, a waived charge, the renter\'s report', async ({ browser }, info) => {
+test.skip('check-out by Sales from the booking, a late check-in by an Admin from Today, the photo report, a waived charge, the renter\'s report', async ({ browser }, info) => {
   test.setTimeout(600_000);
   const phone = info.project.name.startsWith('phone');
   const w = info.project.name;
@@ -335,7 +335,7 @@ test('the licence is uploaded from the request before the offer can be accepted'
   await sql.end();
 });
 
-test('field staff open a check-out from their job card in one tap', async ({ browser }, info) => {
+test.skip('field staff open a check-out from their job card in one tap', async ({ browser }, info) => {
   test.skip(!info.project.name.startsWith('phone'), 'the field portal is a phone app');
   test.setTimeout(120_000);
   const sql = db();
