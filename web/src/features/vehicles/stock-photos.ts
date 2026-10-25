@@ -83,10 +83,13 @@ export type ScoreContext = { make: string; model: string; yearFrom?: number | nu
   minYear?: number | null };
 
 /** The ways a file may name the model: "Bolt EV" is also "Bolt", "RAV4 Prime" also "RAV4". */
-export function modelNames(model: string): string[] {
+export function modelNames(model: string, make?: string): string[] {
   const n = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '');
   const base = model.replace(/\b(ev|hybrid|plug-in|plug in|phev|prime|electric|e-tron)\b/gi, ' ').replace(/\s+/g, ' ').trim();
-  return [...new Set([n(model), n(base)].filter((x) => x.length >= 2))];
+  // a short name ("3", "X5", "Q7") is too common alone: with the make ("mazda3", "bmwx5"), as files name them
+  const own = [n(model), n(base)].filter((x) => x.length >= 3 || (x.length >= 2 && /[a-z]/.test(x) && /\d/.test(x)));
+  const joined = make ? [n(`${make}${model}`), n(`${make}${base}`)] : [];
+  return [...new Set([...own, ...joined].filter((x) => x.length >= 2))];
 }
 
 // the view in a file's name or description, in the languages Commons photographers write in
@@ -94,6 +97,15 @@ const FRONT = /\b(front|frontal|3\/4|three[- ]quarter|vorder|frontansicht|vorne|
 const BAD = /\b(rear|back|heck|hinten|heckansicht|arri[eè]re|retro|trasera|interior|innenraum|innen|cockpit|dashboard|engine|engine bay|motorraum|badge|emblem|logo|wheel|wheels|felge|trunk|boot|kofferraum|detail|tail ?light|taillight|headlight|lamp|steering|gauge|odometer|speedometer|key|crash|crashed|wreck|wrecked|damaged|accident|unfall|burn|burnt|rust|rusty|junk|scrap|abandoned|police|polizei|polic[ei]a|sheriff|taxi|ambulance|fire ?truck|race|racing|rally|nascar|dtm|drift|toy|scale model|model car|modellauto|diecast|die-cast|lego|matchbox|hot wheels|drawing|sketch|blueprint|render|rendering|cgi|advert|brochure|poster|concept|prototype|camouflage|camo|mule|stretch|limousine|limo|tuning|tuned|modified|lowrider|hearse|wrap|wrapped|livery|graffiti|parade|underside|chassis|x-ray|cutaway|cut-away|airbag|recall|sensor|mirror|door handle|grille|exhaust|pedal|shifter|gear lever|infotainment|screen|display|instrument|cluster)\b/i;
 const SIDE = /\b(side|profile|seitenansicht|lateral|seite)\b/i;
 
+/** Whether the words name a different model that contains the model's name: "<model> Cross/Sport/Max/Trek...",
+ *  "Grand <model>" (unless the model's own name has that word). */
+export function siblingModel(words: string, model: string): boolean {
+  const esc = model.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[\s-]+/g, '[\\s_-]*');
+  const own = model.toLowerCase();
+  const after = new RegExp(`\\b${esc}[\\s_-]+(cross|sport|max|trek|plus|evolution|outdoor|l)\\b`, 'i').exec(words)?.[1]?.toLowerCase();
+  const before = new RegExp(`\\b(grand|super|mini)[\\s_-]+${esc}\\b`, 'i').exec(words)?.[1]?.toLowerCase();
+  return (!!after && !own.includes(after)) || (!!before && !own.includes(before));
+}
 /** The year of a file: its name ("2019 Toyota Camry...") or the date it was taken. */
 export function fileYear(c: Candidate): number | null {
   const m = /\b(19[5-9]\d|20[0-4]\d)\b/.exec(c.title.replace(/\(\d{4}-\d\d-\d\d\)/g, ''));
@@ -119,7 +131,9 @@ export function scoreCandidate(c: Candidate, x: ScoreContext): number | null {
   // the file must name the model (a model's category or item can hold its twin under another name, the car before it
   // or a car parked beside it): "GMC Yukon" is never a Chevrolet Tahoe, "Nissan X-Trail" never a Rogue
   const norm = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '');
-  if (!modelNames(x.model).some((m) => norm(words).includes(m))) return null;
+  if (!modelNames(x.model, x.make).some((m) => norm(words).includes(m))) return null;
+  // another model whose name contains this one ("Corolla Cross", "Grand Highlander", "Bronco Sport")
+  if (siblingModel(words, x.model)) return null;
   const y0 = fileYear(c);
   if (y0 !== null && x.yearFrom && y0 < x.yearFrom - 2) return null;
   if (y0 !== null && x.yearTo && y0 > x.yearTo + 3) return null;
@@ -271,11 +285,18 @@ const fileOf = (img: string | null) => {
  *  (FC/FK; 2015)", "XA50 (2018)"), the model years of its infobox (North America when the value lists markets), else
  *  its production years, its image and the article it points to ({{Main|...}}). Sections that are not generations
  *  (sales, safety, motorsport...) are left out. */
+const NOT_GEN_WORDS = /\b(concept|prototype|china|chinese|international|europe(an)?|japan(ese)?|asia|australia|india|brazil|russia|mexico|version|variant|derivatives?|related|grand|furuidi|military|police|commercial|chassis cab)\b/i;
 export function parseGenerations(wikitext: string): Generation[] {
   const heads = [...wikitext.matchAll(/^(={2,4})\s*(.+?)\s*\1\s*$/gm)];
+  // the generations are the headings of one level: the level of the first heading naming a generation (else of the first
+  // heading with a chassis code); deeper headings are markets, versions and derivatives ("International (E170/E180)",
+  // "Grand Highlander", "RAV4 Adventure"), never generations
+  const genLevel = (heads.find((h) => /generation/i.test(h[2]!)) ?? heads.find((h) => /\(\s*[A-Z]{1,4}\d{1,3}[A-Z]?\b|^[A-Z]{1,4}\d{1,3}[A-Z]?\b/.test(wikiPlain(h[2]!))))?.[1]?.length;
   const out: Generation[] = [];
   heads.forEach((h, i) => {
     const title = wikiPlain(h[2]!);
+    if (genLevel && h[1]!.length !== genLevel) return;
+    if (NOT_GEN_WORDS.test(title) && !/generation/i.test(title.replace(NOT_GEN_WORDS, ''))) return;
     const body = wikitext.slice(h.index! + h[0].length, heads[i + 1]?.index ?? wikitext.length).slice(0, 6000);
     const infobox = /\{\{\s*infobox automobile/i.test(body);
     if (NOT_GEN.test(title) && !/generation/i.test(title)) return;

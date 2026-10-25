@@ -14,7 +14,7 @@ name: seo-photos
 #                   photos of the place and service pages are fetched once (or on a run that asks for them).
 #   Run workflow    write = true (default): the same, with the limits given; models = toyota/camry,... only those.
 #   push            (any branch, when the pipeline changes) a dry run with no secrets and no writes: the offline check,
-#                   then the popular list chosen live, with the picks and the models missing as annotations (the picks
+#                   then the popular list chosen live (two jobs, half the list each), with the picks and the models missing as annotations (the picks
 #                   also gzip+base64 in parts, readable through the annotations API).
 #
 # Downloads stay in memory and go to storage, never to the repository. Production is written only here.
@@ -63,6 +63,11 @@ jobs:
   photos:
     runs-on: ubuntu-24.04
     timeout-minutes: 110
+    # the dry run splits the popular list over two jobs (each one request at a time, a second apart); production is one job
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.write)) && fromJSON('[0, 1]') || fromJSON('[0]') }}
     defaults:
       run:
         working-directory: web
@@ -99,7 +104,7 @@ jobs:
         if: steps.due.outputs.mode == 'dry'
         run: |
           set -euo pipefail
-          node --experimental-strip-types --no-warnings scripts/seo-photos/run.mjs --targets popular --limit "${{ inputs.limit || '160' }}" --minutes "${{ inputs.minutes || '90' }}" --first-year 2010 \
+          node --experimental-strip-types --no-warnings scripts/seo-photos/run.mjs --targets popular --limit "${{ inputs.limit || '160' }}" --minutes "${{ inputs.minutes || '90' }}" --first-year 2010 --shard "${{ matrix.shard }}/2" \
             ${{ inputs.models && format('--models {0}', inputs.models) || '' }} --samples 3 --generic --manifest "$RUNNER_TEMP/manifest.json" | tee "$RUNNER_TEMP/dry.txt"
           echo "::notice title=seo-photos dry run::$(jq -c '{models, found, photos, failed, http, errors: (.errors | length)}' "$RUNNER_TEMP/manifest.json")"
           echo "::notice title=seo-photos coverage::$(jq -c '.coverage | del(.without_generation)' "$RUNNER_TEMP/manifest.json")"

@@ -44,6 +44,8 @@ const SAMPLES = Number(opt('samples', '0'));
 const MANIFEST = opt('manifest');
 const RUN_URL = opt('run-url');
 const MODELS = (opt('models', '') || '').split(',').map((s) => s.trim()).filter(Boolean);
+// --shard i/n: only every n-th model from the i-th (the dry run splits the popular list over parallel jobs)
+const [SHARD, SHARDS] = (opt('shard', '0/1') || '0/1').split('/').map(Number);
 const SIZES = [640, 1280];
 const T0 = Date.now();
 
@@ -80,9 +82,12 @@ async function polite(url, { json = true, tries = 5 } = {}) {
     const body = await r.json();
     // the API's lag guard: wait and try again
     // Wikimedia's servers are behind: wait (Retry-After, longer each time, up to a minute) and try again, patiently
+    // the wait Wikimedia asks for (Retry-After, 5 s by default), a few times; a model that still fails is taken again at
+    // the end of the run, or at the next run
     if (body?.error?.code === 'maxlag') {
-      if (i >= tries + 8) throw new Error('maxlag');
-      stats.retries++; await sleep(Math.min(60, Math.max(5, Number(r.headers.get('retry-after')) || 5) * (i + 1)) * 1000); continue;
+      stats.maxlag = (stats.maxlag ?? 0) + 1;
+      if (i >= tries + 3) throw new Error(`maxlag (${new URL(url).host})`);
+      stats.retries++; await sleep(Math.min(30, Math.max(5, Number(r.headers.get('retry-after')) || 5)) * 1000); continue;
     }
     return body;
   }
@@ -211,7 +216,12 @@ async function wikipediaGenerations(model, t) {
   const title = model.entity?.sitelinks?.enwiki?.title ?? `${t.make_name} ${t.model_name}`;
   const wt = await wikitext(title);
   if (!wt) return [];
-  const gens = parseGenerations(wt);
+  let gens = parseGenerations(wt);
+  // a model with one generation so far has no generation sections: the article's own infobox is that generation
+  if (!gens.length) {
+    const a = articleYears(wt);
+    if (a && (a.myFrom || a.start)) gens = [{ id: model.id, label: model.label, code: null, main: null, ...a }];
+  }
   let fetched = 0;
   for (const g of gens) {
     if (!g.main || fetched >= 8 || (g.myFrom && g.image)) continue;
@@ -306,7 +316,12 @@ async function chooseFor(t, rejectedBy = new Map()) {
     // a photo of the model in general is recent: from the 12 model years before the catalog's newest
     const ctx = { make: t.make_name, model: t.model_name, yearFrom: s.from, yearTo: s.to, rejected: [...(rejectedBy.get(key) ?? [])], minYear: s.from ? null : lastY - 12 };
     const pool = [];
-    const add = async (fn) => { if (best && best.score >= STOP) return; try { pool.push(...await fn()); } catch (e) { diag.push(`${t.make}/${t.model}: ${e.message}`); } best = await bestOf(pool, ctx); };
+    const add = async (fn) => {
+      if (best && best.score >= STOP) return;
+      // one source failing leaves the others; Wikimedia being behind (maxlag) stops the model, to be taken again
+      try { pool.push(...await fn()); } catch (e) { if (/maxlag/.test(e.message)) throw e; diag.push(`${t.make}/${t.model}: ${e.message}`); }
+      best = await bestOf(pool, ctx);
+    };
     let best = null;
     if (s.g.image && info.get(s.g.image)) pool.push({ ...info.get(s.g.image), wikidata: true });
     best = await bestOf(pool, ctx);
@@ -447,12 +462,34 @@ if (WRITE && !flag('no-pending')) {
   }
 }
 
-const targets = TARGETS === 'db' ? ((await one(`select app.stock_photo_targets(${lit({ limit: LIMIT, models: MODELS })})`)) ?? []) : popularTargets().slice(0, LIMIT);
+const targets = (TARGETS === 'db' ? ((await one(`select app.stock_photo_targets(${lit({ limit: LIMIT, models: MODELS })})`)) ?? []) : popularTargets().slice(0, LIMIT))
+  .filter((_, i) => i % SHARDS === SHARD);
 out(`targets: ${targets.length} models (${TARGETS})`);
-for (const t of targets) {
-  if (Date.now() - T0 > BUDGET_MS) { out(`time budget reached after ${run.models} models`); break; }
-  run.models++;
-  try {
+// the place and service pages' generic photos (a few per kind of page)
+if (flag('generic') && SHARD === 0) {
+  const slots = JSON.parse(readFileSync(join(HERE, 'generic.json'), 'utf8')).slots;
+  for (const s of slots) {
+    const pool = [];
+    for (const q of s.queries) {
+      const b = await polite(`${API}?${qs({ action: 'query', generator: 'search', gsrsearch: q, gsrnamespace: '6', gsrlimit: '20', ...II })}`);
+      pool.push(...candidates(b.query?.pages));
+    }
+    const ranked = [...new Map(pool.map((c) => [c.title, c])).values()].map((c) => ({ c, score: scoreGeneric(c, s) })).filter((x) => x.score !== null).sort((a, b) => b.score - a.score).slice(0, s.keep ?? 4);
+    const rows = ranked.map((x) => ({ ...rowOf(x, { g: { label: null, id: null }, from: null, to: null }, null), alt: s.alt }));
+    if (WRITE) {
+      for (const row of rows) { try { await store(`generic/${seg(s.slot)}`, row); } catch (e) { row.failed = e.message; run.errors.push(`generic ${s.slot}: ${e.message}`); } }
+      const old = await one(`select app.stock_photo_save_generic(${lit({ slot: s.slot, run_id: runId, rows: rows.filter((r) => !r.failed).map(stripThumb) })})`);
+      await removeFiles((old ?? []).flatMap((o) => (o.sizes ?? []).map((w) => `${o.path}-${w}.webp`)));
+    }
+    run.generic.push({ slot: s.slot, files: rows.map((r) => `${r.file_title.replace(/^File:/, '')} (${r.licence}, ${r.author.slice(0, 30)})`) });
+    out(`generic ${s.slot}: ${rows.length}`);
+  }
+}
+
+
+/** One model: choose, (write) store and save, count its coverage. Throws on a failure (the caller records it). */
+async function processTarget(t) {
+  {
     const rejected = new Map((t.existing ?? []).map((e) => [e.year_from ?? 0, e.rejected_files ?? []]));
     const r = await chooseFor(t, rejected);
     if (r.wikidata) run.found++;
@@ -490,28 +527,22 @@ for (const t of targets) {
     for (const row of r.rows) run.picks.push({ m: `${t.make}/${t.model}`, y: row.year_from ? `${row.year_from}-${row.year_to}` : '', g: row.generation, f: row.file_title.replace(/^File:/, ''),
       w: row.width, h: row.height, l: row.licence, a: row.author.slice(0, 40), s: row.score, src: row.source_name });
     out(`${t.make}/${t.model}: ${r.note}`);
-  } catch (e) { run.errors.push(`${t.make}/${t.model}: ${e.message}`); run.failed++; out(`${t.make}/${t.model}: error ${e.message}`); }
+  }
 }
 
-// the place and service pages' generic photos (a few per kind of page)
-if (flag('generic') && Date.now() - T0 < BUDGET_MS) {
-  const slots = JSON.parse(readFileSync(join(HERE, 'generic.json'), 'utf8')).slots;
-  for (const s of slots) {
-    const pool = [];
-    for (const q of s.queries) {
-      const b = await polite(`${API}?${qs({ action: 'query', generator: 'search', gsrsearch: q, gsrnamespace: '6', gsrlimit: '20', ...II })}`);
-      pool.push(...candidates(b.query?.pages));
-    }
-    const ranked = [...new Map(pool.map((c) => [c.title, c])).values()].map((c) => ({ c, score: scoreGeneric(c, s) })).filter((x) => x.score !== null).sort((a, b) => b.score - a.score).slice(0, s.keep ?? 4);
-    const rows = ranked.map((x) => ({ ...rowOf(x, { g: { label: null, id: null }, from: null, to: null }, null), alt: s.alt }));
-    if (WRITE) {
-      for (const row of rows) { try { await store(`generic/${seg(s.slot)}`, row); } catch (e) { row.failed = e.message; run.errors.push(`generic ${s.slot}: ${e.message}`); } }
-      const old = await one(`select app.stock_photo_save_generic(${lit({ slot: s.slot, run_id: runId, rows: rows.filter((r) => !r.failed).map(stripThumb) })})`);
-      await removeFiles((old ?? []).flatMap((o) => (o.sizes ?? []).map((w) => `${o.path}-${w}.webp`)));
-    }
-    run.generic.push({ slot: s.slot, files: rows.map((r) => `${r.file_title.replace(/^File:/, '')} (${r.licence}, ${r.author.slice(0, 30)})`) });
-    out(`generic ${s.slot}: ${rows.length}`);
+const retry = [];
+for (const t of targets) {
+  if (Date.now() - T0 > BUDGET_MS) { out(`time budget reached after ${run.models} models`); break; }
+  run.models++;
+  try { await processTarget(t); } catch (e) {
+    // Wikimedia's servers were behind (maxlag): the model is taken again at the end of the run
+    if (/maxlag/.test(e.message)) retry.push(t); else { run.errors.push(`${t.make}/${t.model}: ${e.message}`); run.failed++; }
+    out(`${t.make}/${t.model}: error ${e.message}`);
   }
+}
+for (const t of retry) {
+  if (Date.now() - T0 > BUDGET_MS) { run.errors.push(`${t.make}/${t.model}: maxlag, left for the next run`); run.failed++; continue; }
+  try { await processTarget(t); } catch (e) { run.errors.push(`${t.make}/${t.model}: ${e.message}`); run.failed++; }
 }
 
 run.finished = new Date().toISOString();

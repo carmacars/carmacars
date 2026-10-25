@@ -222,3 +222,23 @@ test('Openverse: the licence in Commons words, checked again at the source page;
   assert.equal(approxNote({ ...photo, match: 'exact' }), null);
   assert.equal(approxNote({ ...photo, match: 'model' }), 'Representative photo of the Toyota Camry, not the exact year');
 });
+
+test('short model names count with the make; names too short alone do not', async () => {
+  const { modelNames } = await import('./stock-photos.ts');
+  assert.deepEqual(modelNames('3', 'Mazda'), ['mazda3']);
+  assert.ok(modelNames('X5', 'BMW').includes('x5'));
+  assert.notEqual(scoreCandidate(cand('File:2020 Mazda3 sedan front.jpg'), { make: 'Mazda', model: '3' }), null);
+  assert.equal(scoreCandidate(cand('File:2020 Toyota front 3.jpg'), { make: 'Mazda', model: '3' }), null);
+});
+
+test('Wikipedia: only the generation level; markets, versions and derivatives are not generations; sibling models refused', async () => {
+  const { parseGenerations, siblingModel } = await import('./stock-photos.ts');
+  const wt = `== Third generation (XU50; 2013) ==\n{{Infobox automobile\n| model_years = 2014–2019\n}}\n== Fourth generation (XU70; 2019) ==\n{{Infobox automobile\n| model_years = 2020–present\n}}\n=== Grand Highlander (AS10; 2023) ===\n{{Infobox automobile\n| model_years = 2024–present\n}}\n=== International (E170/E180; 2013) ===\n| production = 2013\n`;
+  assert.deepEqual(parseGenerations(wt).map((g) => g.code), ['XU50', 'XU70']);
+  assert.equal(siblingModel('2020 Toyota Corolla Cross 1.8 Hybrid', 'Corolla'), true);
+  assert.equal(siblingModel('2026 Toyota Grand Highlander Hybrid', 'Highlander'), true);
+  assert.equal(siblingModel('2022 Ford Bronco Sport Badlands', 'Bronco'), true);
+  assert.equal(siblingModel('2022 Ford Bronco Sport Badlands', 'Bronco Sport'), false);
+  assert.equal(siblingModel('2020 Toyota Corolla LE sedan', 'Corolla'), false);
+  assert.equal(scoreCandidate(cand('File:2020 Toyota Corolla Cross front.jpg'), { make: 'Toyota', model: 'Corolla' }), null);
+});
