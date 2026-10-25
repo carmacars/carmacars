@@ -326,7 +326,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
   const card = renter?.card ?? quote?.card ?? null;
   return (
     <form className="ad-form stack" noValidate data-testid="manual-rental" onSubmit={(e) => { e.preventDefault(); submit(); }}>
-      <div className="row" data-testid="mr-draft-bar" role="status" aria-live="polite">
+      <div className="row" style={{ flexWrap: 'wrap' }} data-testid="mr-draft-bar" role="status" aria-live="polite">
         <span className="small muted">{saveErr ? `Not saved: ${saveErr}. Kept on this device.` : savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}. Finish it any time from Unfinished rentals.` : 'Saved as a draft as you type: nothing is required to save.'}</span>
         <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => start(async () => { await saveDraft(); })} data-testid="mr-save-draft">Save draft</button>
         {draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => start(async () => { await draftClose(draftId, 'discarded'); try { localStorage.removeItem(localKey); } catch { /* none */ } window.location.href = base === '/field' ? '/field/rentals/new' : `${base}/bookings/new`; })} data-testid="mr-discard-draft">Discard</button>}
@@ -334,7 +334,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
       </div>
       <section className={`pt-card ad-card stack${quick ? ' pt-card--next' : ''}`} aria-labelledby="mr-quick-h" data-testid="mr-quick">
         <div className="pt-card__head"><h2 className="d4" id="mr-quick-h">Quick start at pickup</h2>
-          {!quick && <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setQuick(true); const n = new Date(); n.setSeconds(0, 0); setF((x) => ({ ...x, pickup_at: local(n), return_at: local(new Date(n.getTime() + 86_400_000)), source: 'walk_in' })); setQuote(null); }} data-testid="mr-quick-open">Start at pickup</button>}</div>
+          {!quick && <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setQuick(true); setFlags((x) => ({ ...x, new_renter: true })); const n = new Date(); n.setSeconds(0, 0); setF((x) => ({ ...x, pickup_at: local(n), return_at: local(new Date(n.getTime() + 86_400_000)), source: 'walk_in' })); setQuote(null); }} data-testid="mr-quick-open">Start at pickup</button>}</div>
         {!quick ? <p className="small muted">Standing with the renter? Take the name, phone, car, kilometres and fuel now; the car is held and you finish the rest later (you get a task).</p> : quickDone ? (
           <p className="alert alert--ok" role="status" data-testid="mr-quick-done"><span>Started and saved{f.odometer_out ? `: ${f.odometer_out} km` : ''}{f.fuel_out ? `, fuel ${FUEL.find(([v]) => v === f.fuel_out)?.[1] ?? f.fuel_out}` : ''}. The car is held for 2 hours (renewed while you work on it) and you have a task to finish it. Finish now below, or later from Unfinished rentals on any device.</span></p>
         ) : (<>
