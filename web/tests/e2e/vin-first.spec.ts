@@ -74,6 +74,7 @@ test('Admin > Add a car from the VIN alone: one summary line, the class and the 
   test.setTimeout(1_500_000);
   unlockAi = await aiAllowanceLock('shared');   // the AI copy is written right after: not while the allowance is used up
   const sql = db();
+  await sql`update program_settings set seo_ai_writer_enabled = true`;   // 0133: the site's own copy writer is off by default (the daily Claude batch writes); this test checks the writer
   const admin = await mkUser(sql, 'admin');
   const page = await signedIn(browser, admin.email, '/admin');
   await page.goto('/admin/vehicles/new', { waitUntil: 'networkidle' });

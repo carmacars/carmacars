@@ -36,6 +36,8 @@ select test.eq('background spent 900: 100 left for it, the assistant''s reserve 
   (select (b #>> '{room,assistant}') || '/' || (b #>> '{room,live}') || '/' || (b #>> '{room,background}') from (select app.ai_budget(test.noon()) b) x), '9100/2100/100');
 select test.eq('a search item (about 800 neurons) does not fit: refused before the call', (app.ai_allow('seo_car', 800, test.noon()) ->> 'ok')::boolean, false);
 select test.eq('its words: it waits for the release hour or tomorrow', app.ai_allow('seo_car', 800, test.noon()) ->> 'message' like 'Background AI writing waits%after 21:00%', true);
+-- the gates below read the clock: no evening release while they are checked, so the suite passes at any hour
+update program_settings set ai_release_hour = null;
 select test.eq('the website''s search copy writer is off by default: the daily Claude batch writes it', (select (c ->> 'ai_wait') like '%daily Claude batch%' from (select app.server_seo_claim('t85', 3) c) x), true);
 update program_settings set seo_ai_writer_enabled = true;
 select test.eq('the search job claims nothing to write and says why', (select (c ->> 'ai_wait') is not null and jsonb_array_length(coalesce(c -> 'cars', '[]')) = 0 from (select app.server_seo_claim('t85', 3) c) x), true);
@@ -46,6 +48,7 @@ select test.eq('live features used their share: chat waits', (app.ai_allow('chat
 select test.eq('the chat''s own gate says so', (app.chat_budget() ->> 'ok')::boolean, false);
 select test.eq('the phone line too', (app.phone_ai_budget() ->> 'ok')::boolean, false);
 select test.eq('the Turo matcher reads by the rules only', (app.turo_match_keys() ->> 'ai_ok')::boolean, false);
+update program_settings set ai_release_hour = 21;
 select test.eq('the toll reader waits, with the reason', (app.ai_vision_gate(test.id('ab_admin'), 'toll_read') ->> 'allowed')::boolean, false);
 select test.eq('the staff assistant still has 6,900 of the day', (app.ai_budget(test.noon()) #>> '{room,assistant}')::numeric, 6900::numeric);
 select test.eq('and its gate is open', (app.usage_gate('workers_ai') ->> 'ok')::boolean, true);
