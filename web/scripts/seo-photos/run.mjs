@@ -292,7 +292,7 @@ async function bestOf(pool, ctx) {
 // ---------------------------------------------------------------- one model
 const STOP = 80;
 async function chooseFor(t, rejectedBy = new Map()) {
-  const r = { make: t.make, model: t.model, wikidata: null, rows: [], note: '', gens: 0 };
+  const r = { make: t.make, model: t.model, wikidata: null, rows: [], note: '', gens: 0, ranges: [] };
   const hit = await resolveModel(t.make_name, t.model_name);
   if (!hit) { r.note = 'not found on Wikidata'; return r; }
   r.wikidata = hit.id;
@@ -304,6 +304,7 @@ async function chooseFor(t, rejectedBy = new Map()) {
   if (!generationRanges(gens, first, lastY).length) { gens = (await generations(hit)).gens; source = 'Wikidata'; }
   const ranges = generationRanges(gens, first, lastY);
   r.gens = ranges.length;
+  r.ranges = ranges.map((g) => [g.from, g.to]);
   const modelCat = self.category ?? `${hit.label}`;
   const subcats = ranges.length ? await subcategories(modelCat) : [];
   const names = [...new Set([hit.label, `${t.make_name} ${t.model_name}`])];
@@ -501,6 +502,9 @@ async function processTarget(t) {
       if (gensRows.length) cv.models_generation++; else cv.without_generation.push(`${t.make_name} ${t.model_name}`);
       if (r.rows.length) cv.models_any++;
       for (let y = Math.max(2015, t.first_year ?? 2015); y <= (t.last_year ?? new Date().getUTCFullYear() + 1); y++) {
+        // only the model years the model was sold in, by its generations (all years when none is known); the catalog's
+        // own years do the same in production
+        if (r.ranges.length && !r.ranges.some(([a, b]) => y >= a && y <= b)) continue;
         cv.years++;
         if (gensRows.some((x) => y >= x.year_from && y <= x.year_to)) cv.exact++;
         else if (gensRows.some((x) => y >= x.year_from - 1 && y <= x.year_to + 1)) cv.near++;
