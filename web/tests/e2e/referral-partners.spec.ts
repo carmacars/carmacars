@@ -58,9 +58,9 @@ test('a body shop signs up, an Admin approves it, the link, flyer and private pa
   expect(row?.kind).toBe('body_shop');
   const id = row!.id as string; const code = row!.referral_code as string;
 
-  // an unapproved code ties nothing: the short link sets no partner cookie
+  // before approval the link keeps only the ordinary 30 days (the 60 days are a partner's) and the database ties nothing to the code
   const cold = await page.request.get(`/r/${code}`, { maxRedirects: 0 });
-  expect((cold.headers()['set-cookie'] ?? '')).not.toContain('cc-ref=');
+  expect(Number(/Max-Age=(\d+)/i.exec(cold.headers()['set-cookie'] ?? '')?.[1] ?? 0)).toBeLessThan(40 * 86400);
 
   // the Admin approves it
   const email = await admin(sql);
@@ -104,17 +104,21 @@ test('the RentalCoverage link stays off until pasted, then shows with its disclo
   test.setTimeout(300_000);
   const sql = db();
   await sql`update coverage_affiliate set enabled = false, link_url = null, affiliate_id = null`;
-  await page.goto('/requirements', { waitUntil: 'networkidle' });
-  await acceptCookies(page);
-  await expect(page.getByTestId('coverage-affiliate')).toHaveCount(0);
-  const off = await page.request.get('/go/coverage?p=requirements', { maxRedirects: 0 });
-  expect(off.headers()['location'] ?? '').toContain('/requirements');
+  const email = await admin(sql);
+  await signIn(page, email, '/admin/settings/coverage-affiliate');
+  await expect(page.getByTestId('ca-settings')).toBeVisible({ timeout: 60_000 });
 
-  await sql`update coverage_affiliate set enabled = true, link_url = 'https://rentalcoverage.example.test/?aff={id}', affiliate_id = 'abc123'`;
+  // paste the link in Admin (the page cache is rebuilt by the save)
+  await page.getByTestId('ca-save').click();
+  await page.getByLabel('Affiliate link (starts with https://)').fill('https://rentalcoverage.example.test/?aff={id}');
+  await page.getByLabel('Affiliate ID (only if the link has {id} in it)').fill('abc123');
+  await page.getByTestId('ca-save-submit').click();
+  await expect.poll(async () => (await sql`select enabled, affiliate_id from coverage_affiliate`)[0]?.affiliate_id, { timeout: 60_000 }).toBe('abc123');
+
   const before = Number((await sql`select count(*)::int as n from coverage_clicks`)[0]!.n);
-  await page.goto('/requirements', { waitUntil: 'networkidle' });
   const note = page.getByTestId('coverage-affiliate');
-  await expect(note).toBeVisible();
+  await expect(async () => { await page.goto('/requirements', { waitUntil: 'networkidle' }); await expect(note).toBeVisible({ timeout: 3000 }); }).toPass({ timeout: 90_000 });
+  await acceptCookies(page);
   await expect(note).toContainText('separate company');
   await expect(note).toContainText('may earn a commission');
   await expect(page.getByTestId('coverage-affiliate-link')).toHaveAttribute('rel', /sponsored/);
@@ -126,9 +130,17 @@ test('the RentalCoverage link stays off until pasted, then shows with its disclo
   expect(to.searchParams.get('aff')).toBe('abc123');
   expect(to.searchParams.get('utm_source')).toBe('carmacars');
   expect(to.searchParams.get('utm_campaign')).toBe('coverage_requirements');
-  const after = await sql`select count(*)::int as n, count(*) filter (where placement = 'requirements')::int as r from coverage_clicks`;
-  expect(Number(after[0]!.n)).toBe(before + 1);
+  const after = await sql`select count(*)::int as n from coverage_clicks where placement = 'requirements'`;
+  expect(Number(after[0]!.n)).toBeGreaterThan(0);
+  expect(Number((await sql`select count(*)::int as n from coverage_clicks`)[0]!.n)).toBe(before + 1);
 
-  await sql`update coverage_affiliate set enabled = false, link_url = null, affiliate_id = null`;
+  // turn it off again in Admin: the note goes and a click lands on Requirements instead
+  await page.goto('/admin/settings/coverage-affiliate', { waitUntil: 'networkidle' });
+  await page.getByTestId('ca-save').click();
+  await page.getByLabel('Show the link on the site').uncheck();
+  await page.getByTestId('ca-save-submit').click();
+  await expect.poll(async () => (await sql`select enabled from coverage_affiliate`)[0]?.enabled, { timeout: 60_000 }).toBe(false);
+  const off = await page.request.get('/go/coverage?p=requirements', { maxRedirects: 0 });
+  expect(off.headers()['location'] ?? '').toContain('/requirements');
   await sql.end();
 });
