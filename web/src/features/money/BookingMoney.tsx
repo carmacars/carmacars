@@ -24,7 +24,12 @@ export interface Money {
   can_confirm: boolean;
 }
 const fmt = (c: number | null | undefined) => money(Number(c ?? 0), { cents: true });
-const PART: Record<string, string> = { rental: 'Rental', fees: 'Fees', later: 'Later charges', deposit: 'Deposit', card: 'Card on file' };
+const PART: Record<string, string> = { rental: 'Rental', fees: 'Fees', later: 'Later charges', deposit: 'Deposit', card: 'Card on file', balance: 'Everything open' };
+// what each payment was for and where it stands, in words (sim item 7: no raw codes)
+const PURPOSE: Record<string, string> = { booking_total: 'Rental and fees', deposit: 'Deposit', extension: 'Extension', change: 'Booking change', later_charge: 'Later charge', damage: 'Damage', addon: 'Add-on', balance: 'Balance' };
+const STATUS: Record<string, string> = { succeeded: 'Received', pending: 'Pending', failed: 'Failed', refunded: 'Refunded', partially_refunded: 'Partly refunded', cancelled: 'Cancelled', requires_action: 'Waiting for the renter', processing: 'Processing', disputed: 'Disputed' };
+const KIND: Record<string, string> = { refund: 'given back', hold: 'hold', capture: 'captured from the hold', release: 'hold released' };
+const words = (m: Record<string, string>, v: unknown) => m[String(v ?? '')] ?? String(v ?? '').replace(/_/g, ' ');
 const METHOD: Record<string, string> = { card: 'Card', e_transfer: 'e-Transfer', cash: 'Cash', cheque: 'Cheque', bank_transfer: 'Bank transfer', platform_payout: 'Platform payout', insurer: 'Insurer', other: 'Another way', none: 'None' };
 const cents = (s: string) => { const t = s.replace(/[$,\s]/g, ''); return t ? Math.round(Number(t) * 100) : null; };
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -35,13 +40,14 @@ export function BookingMoney({ m }: { m: Money }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, run] = useTransition();
   const [rec, setRec] = useState({ covers: (m.parts.some((p) => p.covers !== 'later' && p.open_cents > 0) ? 'both' : m.parts.find((p) => p.open_cents > 0)?.covers ?? (m.deposit ? 'later' : 'deposit')) as string, method: m.rental_pay_method !== 'card' ? m.rental_pay_method : 'e_transfer', amount: '', reference: '', received_on: today(), note: '' });
-  const [col, setCol] = useState({ kind: 'charge' as 'charge' | 'hold' | 'setup', covers: m.parts.find((p) => p.open_cents > 0)?.covers ?? 'later', amount: '', reason: '', channel: 'device' as 'device' | 'text' | 'email' });
+  // a card payment covers everything open by default (sim item 7: a link for the rental alone left the fees open)
+  const [col, setCol] = useState({ kind: 'charge' as 'charge' | 'hold' | 'setup', covers: (m.parts.filter((p) => p.covers !== 'later' && p.open_cents > 0).length ? 'balance' : 'later') as string, amount: '', reason: '', channel: 'device' as 'device' | 'text' | 'email' });
   const [chg, setChg] = useState({ amount: '', reason: '', covers: 'later' as 'later' | 'deposit' });
   const [cap, setCap] = useState({ amount: '', reason: '' });
   const [ret, setRet] = useState<Record<string, string>>({});
   const done = (ok: boolean, text: string) => { setMsg({ ok, text }); if (ok) { setOpen(''); router.refresh(); } };
   const offlineReturns = m.payments.filter((p) => p.purpose === 'deposit' && p.kind === 'refund' && p.status === 'pending' && ['cash', 'e_transfer'].includes(p.method));
-  const openPart = (c: string) => m.parts.find((p) => p.covers === c)?.open_cents ?? 0;
+  const openPart = (c: string) => (c === 'balance' ? m.parts.reduce((t, p) => t + Math.max(p.open_cents, 0), 0) : m.parts.find((p) => p.covers === c)?.open_cents ?? 0);
   const dep = m.deposit;
   const depWords = !dep || ['pending', 'failed'].includes(dep.status) ? (m.deposit_cents > 0 ? `${fmt(m.deposit_cents)} to take (${(METHOD[m.deposit_pay_method] ?? m.deposit_pay_method).toLowerCase()})` : 'No deposit')
     : dep.method === 'card_hold' && dep.status === 'held' ? `${fmt(dep.amount_cents)} held on the card${dep.hold_days_left !== null ? `, about ${dep.hold_days_left} day${dep.hold_days_left === 1 ? '' : 's'} left` : ''}`
@@ -85,6 +91,8 @@ export function BookingMoney({ m }: { m: Money }) {
         <form className="ad-form ad-form--narrow" aria-label="Record a payment" data-testid="bm-record" onSubmit={(e) => { e.preventDefault(); run(async () => {
           // 0132: one payment for the rental and the fees together: the rental first, the rest for the fees (two records)
           const both = rec.covers === 'both';
+          const typed = cents(rec.amount);
+          if (rec.covers !== 'deposit' && rec.covers !== 'later' && typed === null && (both ? openPart('rental') + openPart('fees') : openPart(rec.covers)) <= 0) { done(false, 'Nothing is open for that part: type the amount, or choose A later charge.'); return; }
           const amount = cents(rec.amount) ?? (both ? openPart('rental') + openPart('fees') : null);
           const first = both ? Math.min(amount ?? 0, openPart('rental')) : amount;
           const firstCovers = both ? (openPart('rental') > 0 ? 'rental' : 'fees') : rec.covers;
@@ -128,7 +136,8 @@ export function BookingMoney({ m }: { m: Money }) {
             {col.kind === 'charge' && <>
               <div className="field ad-field"><label className="label" htmlFor="bm-ccovers">For</label>
                 <select className="select" id="bm-ccovers" value={col.covers} onChange={(e) => setCol({ ...col, covers: e.target.value as typeof col.covers })}>
-                  <option value="rental">The rental ({fmt(openPart('rental'))})</option><option value="fees">Fees ({fmt(openPart('fees'))})</option><option value="later">A later charge</option></select></div>
+                  {openPart('balance') > 0 && <option value="balance">Everything open ({fmt(openPart('balance'))})</option>}
+                  {openPart('rental') > 0 && <option value="rental">The rental only ({fmt(openPart('rental'))})</option>}{openPart('fees') > 0 && <option value="fees">Fees only ({fmt(openPart('fees'))})</option>}<option value="later">A later charge</option></select></div>
               <div className="field ad-field"><label className="label" htmlFor="bm-camount">Amount ($)</label><input className="input" id="bm-camount" inputMode="decimal" value={col.amount} onChange={(e) => setCol({ ...col, amount: e.target.value })} placeholder={(openPart(col.covers) / 100).toFixed(2)} data-testid="bm-camount" /></div>
               <div className="field ad-field"><label className="label" htmlFor="bm-creason">Reason{col.covers === 'later' ? '' : ' (optional)'}</label><input className="input" id="bm-creason" value={col.reason} onChange={(e) => setCol({ ...col, reason: e.target.value })} placeholder="Fuel, extra km, late return" data-testid="bm-creason" /></div>
             </>}
@@ -181,10 +190,10 @@ export function BookingMoney({ m }: { m: Money }) {
 
       <Table testId="bm-payments" caption="Payments by part" empty="No payments yet." rows={m.payments as unknown as Array<Record<string, unknown>>} cols={[
         { key: 'when', label: 'When', render: (r) => when(String(r.processed_at ?? r.created_at)) },
-        { key: 'covers', label: 'For', render: (r) => `${PART[String(r.covers ?? '')] ?? String(r.purpose).replace(/_/g, ' ')}${r.kind !== 'charge' ? ` (${String(r.kind)})` : ''}` },
+        { key: 'covers', label: 'For', render: (r) => `${PART[String(r.covers ?? '')] ?? words(PURPOSE, r.purpose)}${r.kind !== 'charge' ? ` (${words(KIND, r.kind)})` : ''}` },
         { key: 'method', label: 'By', render: (r) => `${METHOD[String(r.method)] ?? String(r.method)}${r.card_last4 ? ` ${String(r.card_last4)}` : ''}` },
         { key: 'amount_cents', label: 'Amount', num: true, render: (r) => fmt(Number(r.amount_cents)) },
-        { key: 'status', label: 'Status', render: (r) => (r.voided ? 'voided' : String(r.status)) },
+        { key: 'status', label: 'Status', render: (r) => (r.voided ? 'Voided' : words(STATUS, r.status)) },
         { key: 'reference', label: 'Reference', render: (r) => String(r.reference ?? '') },
         { key: 'receipt', label: 'Receipt', render: (r) => (r.method !== 'card' && r.status === 'succeeded' ? <button className="btn btn--quiet btn--sm" type="button" onClick={() => print(r as unknown as Money['payments'][number])}>Print</button> : null) }]} />
       {m.requests.filter((q) => q.status === 'open').map((q) => (

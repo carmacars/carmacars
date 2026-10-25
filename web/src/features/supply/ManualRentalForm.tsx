@@ -28,6 +28,8 @@ type Quote = { role: 'admin' | 'va' | 'field'; phase?: Phase | null; phase_note?
   turnaround_minutes: number; payment_modes: string[]; may_override_price: boolean; rate_sheet_cents: number | null; billable_days: number | null;
   price_floor_daily_cents: number | null; price_max_discount_bps: number | null; choice_required: boolean; may_search_renters: boolean; may_override_clash: boolean; may_record_past: boolean; may_promo: boolean; single_limit_cents: number | null;
   card: { brand: string; last4: string } | null; vehicle: { name: string; supply_type: string; bookable: boolean; retired: boolean };
+  /** 0145: the insurers an insurance replacement can bill. */
+  insurers?: Array<{ id: string; name: string }>;
   /** 0132: fee lines this person may set by hand; the monthly periods of a long rental. */
   may_edit_fees?: boolean; periods?: Period[];
   has_rates?: boolean; listing_finished?: boolean; needs_policy_confirm?: boolean; notes?: string[]; price_typed_cents?: number | null;
@@ -262,6 +264,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
   });
 
   const submit = () => start(async () => {
+    if (paidBy === 'insurer' && !(f.insurer_id && (f.insurer_id !== 'new' || (f.insurer_name ?? '').trim()))) { setErr('Insurance replacement: choose the insurer (or Not listed, and type its name).'); return; }
     setErr(null);
     if (!blocks && !(f.blocks_reason ?? '').trim()) { setErr('Say why it does not block the calendar (for example: insurance replacement, dates not known yet).'); return; }
     if (needsReference(paidBy) && !(f.reference ?? '').trim()) { setErr('Enter the reference of the payment (the e-Transfer, cheque or transfer number).'); return; }
@@ -282,6 +285,10 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
       payment: { ...paymentOf(paidBy), reference: f.reference || undefined, received_on: f.received_on, amount_cents: cents(f.amount ?? ''), note: f.payment_note || undefined },
       ...(parts.length && offline ? { more_payments: parts.map((x) => ({ method: x.method, amount_cents: cents(x.amount), reference: x.reference.trim() || undefined, received_on: f.received_on })) } : {}),
       deposit: { method: depositBy, reference: f.deposit_reference || undefined, received_on: f.deposit_received_on || f.received_on }, agreement, ...(blocks ? {} : { blocks_calendar: false, blocks_calendar_reason: f.blocks_reason }),
+      ...(paidBy === 'insurer' ? { insurance: { insurer_id: f.insurer_id && f.insurer_id !== 'new' ? f.insurer_id : undefined, insurer_name: f.insurer_id === 'new' ? (f.insurer_name ?? '').trim() : undefined,
+        claim_number: f.claim_number || undefined, adjuster_name: f.adjuster_name || undefined, adjuster_email: f.adjuster_email || undefined, adjuster_phone: f.adjuster_phone || undefined,
+        authorized_days: f.authorized_days ? Number(f.authorized_days) : undefined, authorized_daily_rate_cents: cents(f.authorized_rate ?? ''), authorized_until: f.authorized_until || undefined,
+        dates_provisional: f.dates_provisional === 'yes', pays: f.insurer_pays === 'rental' ? 'split' : 'insurer' } } : {}),
       ...(draftId ? { draft_id: draftId } : {}), ...(f.odometer_out ? { odometer_out_km: Number(f.odometer_out.replace(/\D/g, '')) } : {}), ...(f.fuel_out ? { fuel_out_pct: Number(f.fuel_out) } : {}) };
     const r = await createManualRental(p);
     if (!r.ok) { setErr(r.message); return; }
@@ -496,6 +503,20 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
             <select className="select" id={id('paid_by')} value={paidBy} onChange={(e) => setPaidBy(e.target.value as RentalPaidBy)} data-testid="mr-paid-by">
               {paidByOptions.map(([v, l]) => <option key={v} value={v} disabled={v === 'card_on_file' && !card}>{l}{v === 'card_on_file' ? (card ? ` (${card.brand} ${card.last4})` : ' (no saved card)') : ''}</option>)}</select>
             <p className="hint">{RENTAL_PAID_BY.find(([v]) => v === paidBy)?.[2]}{phase === 'in_progress' && (paidBy === 'link' || paidBy === 'card_on_file') ? ` ${LIVE_MODE[paidBy === 'link' ? 'link' : 'card']}` : ''}</p></div>
+          {paidBy === 'insurer' && <fieldset className="ad-field ad-field--wide stack" data-testid="mr-insurance"><legend className="label">Insurance replacement</legend>
+            <div className="ad-fields">
+              <div className="field ad-field"><label className="label" htmlFor={id('insurer_id')}>Insurer</label>
+                <select className="select" id={id('insurer_id')} value={f.insurer_id ?? ''} onChange={set('insurer_id')} data-testid="mr-insurer">
+                  <option value="">Choose the insurer</option>{(quote?.insurers ?? []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}<option value="new">Not listed: type its name</option></select></div>
+              {f.insurer_id === 'new' && text('insurer_name', 'Insurer\'s name')}
+              {text('claim_number', 'Claim number')}
+              {text('adjuster_name', 'Adjuster')}{text('adjuster_email', 'Adjuster\'s email', { type: 'email', inputMode: 'email' })}{text('adjuster_phone', 'Adjuster\'s phone', { inputMode: 'tel' })}
+              {text('authorized_days', 'Days authorized', { inputMode: 'numeric' })}
+              {text('authorized_rate', 'Daily rate authorized ($)', { inputMode: 'decimal', hint: 'The insurer pays up to this a day; the rest is the renter\'s.' })}
+              {text('authorized_until', 'Authorized until (provisional end)', { type: 'date' })}
+              {select('insurer_pays', 'The insurer pays', [['all', 'The rental and the fees'], ['rental', 'The rental only (the renter pays the fees)']])}
+              <label className="check ad-field--wide" htmlFor={id('dates_provisional')}><input id={id('dates_provisional')} type="checkbox" checked={f.dates_provisional === 'yes'} onChange={(e) => setF((x) => ({ ...x, dates_provisional: e.target.checked ? 'yes' : '' }))} /> <span>The return date is provisional (the repair is not finished)</span></label>
+            </div></fieldset>}
           {['e_transfer', 'cash', 'cheque', 'bank_transfer', 'platform_payout'].includes(paidBy) && <>
             {needsReference(paidBy) || paidBy === 'platform_payout' ? text('reference', paidBy === 'platform_payout' ? 'Trip or payout reference (optional)' : 'Reference (e-Transfer, cheque or transfer number)') : null}
             {text('received_on', 'Date received', { type: 'date' })}

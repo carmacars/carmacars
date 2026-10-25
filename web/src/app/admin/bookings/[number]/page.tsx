@@ -55,6 +55,9 @@ export default async function Booking({ params, searchParams }: { params: Promis
   const credit = await read<SalesCredit>('booking_sales', { booking: b.id }).catch(() => null);
   const driverLinks = sp.tab === 'documents' ? await read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(() => []) : [];
   const base = `/admin/bookings/${encodeURIComponent(n)}`;
+  // a swap during the trip picks the car from a list, never a typed id (sim item 4)
+  const swapCars = b.status === 'on_rent' ? (await list<{ id: string; year: number; make: string; model: string; plate: string | null; status: string }>('vehicles', { order: 'make', asc: true, limit: 500 }).catch(() => ({ rows: [] as Array<{ id: string; year: number; make: string; model: string; plate: string | null; status: string }> }))).rows
+    .filter((v) => v.id !== b.vehicle_id && v.status === 'available') : [];
   // payments received another way and documents signed on paper (migration 0044)
   const [manual, paper] = await Promise.all([
     sp.tab === 'money' ? door<ManualRow[]>(user.id, 'ops_read', 'manual_payments', { booking: b.id }).catch(() => [] as ManualRow[]) : Promise.resolve([] as ManualRow[]),
@@ -96,7 +99,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           { name: 'channel', label: 'Received by', type: 'select', required: true, options: [['email', 'Email'], ['portal', 'Portal'], ['phone', 'Phone']], value: 'email' },
           { name: 'at', label: 'Received at', type: 'datetime', required: true, value: new Date().toISOString() }, { name: 'note', label: 'Note', type: 'text' }]} refresh={refresh} />}
         {['confirmed', 'pending_payment'].includes(b.status) && <Act action="cancel_booking" payload={{ ...P, reason: 'carmacars_cancelled', channel: 'email' }} label="Cancel by CarmaCars" variant="danger" fields={[{ name: 'note', label: 'Reason (no vehicle, driver not verifiable, pricing error, other)', type: 'text', required: true }]} refresh={refresh} />}
-        {b.status === 'on_rent' && <Act action="swap_vehicle" payload={P} label="Swap vehicle" fields={[{ name: 'vehicle', label: 'New vehicle id', type: 'text', required: true }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
+        {b.status === 'on_rent' && <Act action="swap_vehicle" payload={P} label="Swap vehicle" fields={[{ name: 'vehicle', label: 'The car the renter moves to', type: 'select', required: true, options: [['', swapCars.length ? 'Choose the car' : 'No car is free right now'], ...swapCars.map((v) => [v.id, `${v.year} ${v.make} ${v.model}${v.plate ? `, ${v.plate}` : ''}`] as [string, string])] }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
         {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && b.bill_to !== 'renter' && <Act action="draft_insurer_invoice" payload={P} label="Draft insurer invoice" refresh={['/admin/insurer-invoices']} />}
         {b.status === 'returned' && <Act action="issue_booking_statement" payload={P} label="Issue final statement" confirm="Issue the Check-in statement from the assessed lines and settle the deposit plan." refresh={refresh} />}
       </PageHead>
@@ -150,12 +153,13 @@ export default async function Booking({ params, searchParams }: { params: Promis
         <div className="stack">
           {moneyByPart && <BookingMoney m={moneyByPart} />}
           {fees && <BookingFees x={fees} />}
-          <Card title="Payments"><Table rows={b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'method', label: 'Method' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },
-            { key: 'act', label: '', render: (r) => r.status === 'failed' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={[base]} label="Paid another way" /> : null }]} /></Card>
-          <Card title="Paid another way" testId="booking-manual-payments">
+          {(!moneyByPart || b.payments.some((r) => r.status === 'failed')) && <Card title={moneyByPart ? 'Card payments that failed' : 'Payments'}><Table rows={moneyByPart ? b.payments.filter((r) => r.status === 'failed') : b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'method', label: 'Method' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },
+            { key: 'act', label: '', render: (r) => r.status === 'failed' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={[base]} label="Paid another way" /> : null }]} /></Card>}
+          {moneyByPart ? (manual.length > 0 && <details className="pt-card ad-card" data-testid="booking-manual-payments"><summary className="small">Correct or void a payment received another way ({manual.length})</summary>
+            <ManualPaymentList rows={manual} canVoid refresh={[base]} /></details>) : <Card title="Paid another way" testId="booking-manual-payments">
             <ManualPaymentList rows={manual} canVoid refresh={[base]} />
             <ManualPaymentForm booking={b.id} number={b.booking_number} balance={0} today={today} refresh={[base]} label="Record a payment received another way" />
-          </Card>
+          </Card>}
           <Card title="Refunds" aside={b.payments.length ? <Act action="request_refund" payload={P} label="New refund" testId="new-refund" fields={[{ name: 'reason', label: 'Reason', type: 'select', required: true, options: ['cancellation', 'carmacars_cancelled', 'driver_not_verifiable', 'pricing_error', 'breakdown_unused_days', 'goodwill', 'duplicate', 'other'].map((x) => [x, label(x)] as [string, string]) }, { name: 'refund_of', label: 'What it refunds', type: 'select', required: true, options: REFUND_OF, value: 'rental', hint: 'Only a refund of the rental charge lowers staff commissions.' }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'note', label: 'Note', type: 'text' }]} refresh={[base]} /> : null}>
             <Table rows={b.refunds} empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'due_by', label: 'Due by' }]} />
           </Card>

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Consent } from '@/features/agreement/model';
 import { SignatureInput, type SignatureValue } from '@/features/signing/SignatureInput';
-import { signInPerson, staffLicenceUpload } from '@/server/actions/sign-now';
+import { prepareAgreementNow, signInPerson, staffLicenceUpload } from '@/server/actions/sign-now';
 import type { Signer, SigningState } from './types';
 
 // "Sign now on this device" (migration 0130). The staff view lists who still signs, with their licence on file; the
@@ -21,7 +21,7 @@ export function SignNow({ s, base, agreement, consents, staffName }: { s: Signin
   const [doneMsg, setDoneMsg] = useState('');
   const open = s.agreement && (s.agreement.status === 'open' || s.agreement.status === 'signed');
   const waiting = s.signers.filter((x) => !x.signed_at);
-  if (!open) return <p className="pt-empty" data-testid="sign-now-none">No rental agreement is waiting for a signature on this booking.{s.status === 'pending_payment' ? ' It opens when the renter\'s details are saved.' : ''}</p>;
+  if (!open) return <PrepareNow s={s} />;
 
   if (mode === 'signer' && who) return (
     <SignerView s={s} who={who} agreement={agreement} consents={who.role === 'renter' ? consents : consents.filter((c) => c.n <= 3)}
@@ -124,6 +124,22 @@ function SignerView({ s, who, agreement, consents, identity, onCancel, onSigned 
         <button className="btn btn--ghost" type="button" disabled={pending} onClick={onCancel}>Give the device back without signing</button>
       </div>
       <p className="xs muted">We record the time, the device and that you signed in person with CarmaCars staff.</p>
+    </div>
+  );
+}
+
+// No agreement yet (sim item 2): make it here, so the renter signs on this device without first saving their details at home.
+function PrepareNow({ s }: { s: SigningState }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
+  const can = ['pending_payment', 'confirmed', 'on_rent'].includes(s.status) && !s.agreement;
+  return (
+    <div className="pt-empty stack" data-testid="sign-now-none">
+      <p>No rental agreement is waiting for a signature on this booking yet.</p>
+      {can && <p><button className="btn btn--primary" type="button" disabled={pending} data-testid="sign-now-prepare"
+        onClick={() => start(async () => { setErr(null); const r = await prepareAgreementNow(s.booking_id); if (r.ok) router.refresh(); else setErr(r.message); })}>{pending ? 'Preparing the agreement' : 'Prepare the agreement to sign now'}</button></p>}
+      {err && <p className="alert alert--error" role="alert"><span>{err}</span></p>}
     </div>
   );
 }

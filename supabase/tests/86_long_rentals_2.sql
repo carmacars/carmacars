@@ -134,3 +134,36 @@ select test.ok('three misses: a task for staff', exists (select 1 from tasks t w
 update bookings set return_at = pickup_at + interval '40 days', billable_days = 40, km_allowance_total = km_allowance_per_day * 40 where id = test.drlong();
 select test.eq('shortened: the period sent stays, the ones not sent go', (select string_agg(seq || ':' || status, ',' order by seq) from booking_periods where booking_id = test.drlong()), '1:issued,2:issued');
 select test.eq('a short rental has no periods', (select count(*) from booking_periods bp join bookings b on b.id = bp.booking_id where b.return_at - b.pickup_at < interval '20 days'), 0::bigint);
+
+-- ================================================================ 4. an insurance replacement added by hand (sim item 3)
+insert into test.dr select 'car3', app.vehicle_add(test.id('dr_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1XFCXDR0000000003',
+  'plate', 'DRC003', 'year', 2024, 'make', 'Kia', 'model', 'K5', 'rates', jsonb_build_object('daily', 10000, 'weekend', 10000, 'weekly', 70000, 'monthly', 300000, 'deposit', 30000)));
+create function test.drins(p jsonb) returns jsonb language sql stable as $$
+  select jsonb_build_object('vehicle_id', (test.drv('car3') ->> 'vehicle_id')::uuid, 'pickup_at', date_trunc('hour', now()) + interval '1 day', 'return_at', date_trunc('hour', now()) + interval '11 days',
+    'coverage_option', 3, 'source', 'insurer', 'sales_choice', 'for_carmacars', 'agreement', 'paper',
+    'renter', jsonb_build_object('full_name', 'Ira Insured', 'email', 'ira.insured.' || md5(p::text) || '@example.test', 'mobile', '4165550188', 'date_of_birth', '1980-01-01', 'licence_number', 'I1234-12345-12345'),
+    'payment', jsonb_build_object('mode', 'unpaid', 'method', 'insurer'), 'deposit', jsonb_build_object('method', 'cash')) || p $$;
+select test.eq('the insurers come with the check', jsonb_typeof(app.door(test.id('dr_cs'), 'aal2', 'ops_read', 'manual_rental_quote', test.drins('{}'::jsonb)) -> 'insurers'), 'array');
+select test.throws('paid by the insurer with none chosen: a sentence, not the constraint', $$ select app.door(test.id('dr_admin'), 'aal2', 'ops_do', 'manual_rental_create', test.drins('{"insurance": {"claim_number": "C-1"}}'::jsonb)) $$, '%choose the insurer%');
+insert into test.dr select 'ins', app.door(test.id('dr_admin'), 'aal2', 'ops_do', 'manual_rental_create', test.drins(jsonb_build_object('insurance', jsonb_build_object(
+  'insurer_name', 'Dr Test Mutual', 'claim_number', 'CLM-77', 'adjuster_name', 'Ada Adjuster', 'adjuster_email', 'ADA@example.test', 'adjuster_phone', '4165550199',
+  'authorized_days', 10, 'authorized_daily_rate_cents', 6000, 'authorized_until', (current_date + 11)::text, 'dates_provisional', true, 'pays', 'insurer'))));
+create function test.drinsb() returns bookings language sql stable security definer as $$ select * from bookings where id = (test.drv('ins') ->> 'booking_id')::uuid $$;
+select test.eq('billed to the insurer', (test.drinsb()).bill_to, 'insurer');
+select test.eq('the insurer typed is added to the list', (select name from insurers where id = (test.drinsb()).insurer_id), 'Dr Test Mutual');
+select test.eq('the claim', (test.drinsb()).insurer_claim_number, 'CLM-77');
+select test.eq('the adjuster''s email', (test.drinsb()).insurer_adjuster_email, 'ada@example.test');
+select test.eq('the days authorized', (test.drinsb()).insurer_authorized_days, 10);
+select test.eq('provisional', (test.drinsb()).dates_provisional, true);
+select test.ok('the insurer pays its share', (test.drinsb()).insurer_share_cents > 0);
+select test.ok('the renter owes only the rest', (test.drinsb()).renter_due_at_booking_cents < (test.drinsb()).total_due_at_booking_cents);
+
+-- ================================================================ 5. no false tasks; a price typed by hand kept for new dates (sim items 11, 13)
+select test.eq('a rental added underway with its deposit taken keeps no "Deposit not taken"',
+  (select count(*) from tasks t where t.booking_id = (test.drv('qb') ->> 'booking_id')::uuid and t.task_type = 'live_rental_deposit' and t.status = 'open'), 0::bigint);
+select test.eq('nor the long one (cash deposit)', (select count(*) from tasks t where t.booking_id = test.drlong() and t.task_type = 'live_rental_deposit' and t.status = 'open'), 0::bigint);
+select test.ok('the offer screen''s cars carry their type', (select bool_and(c ? 'body_type') from jsonb_array_elements(app.staff_offer_form(test.id('dr_admin'), '{}'::jsonb) -> 'cars') c));
+update bookings set custom_price_at = now() where id = (test.drinsb()).id;
+select test.eq('new dates keep the typed price in proportion', (app.booking_price_spec((test.drinsb()).id, jsonb_build_object('pickup_at', (test.drinsb()).pickup_at, 'return_at', (test.drinsb()).pickup_at + interval '5 days')) ->> 'rental_charge_cents')::bigint,
+  round((test.drinsb()).rental_charge_cents::numeric * 5 / (test.drinsb()).billable_days)::bigint);
+select test.ok('recompute still goes back to the rate sheet', (app.booking_price_spec((test.drinsb()).id, jsonb_build_object('pickup_at', (test.drinsb()).pickup_at, 'return_at', (test.drinsb()).pickup_at + interval '5 days', 'recompute_rental', true)) ->> 'rental_charge_cents') is null);

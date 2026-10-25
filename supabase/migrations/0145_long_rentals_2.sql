@@ -172,8 +172,14 @@ begin
     update vehicle_calendar_blocks k set removed_at = now(), removed_by = p_by, removed_reason = 'The rental was added'
       from rental_drafts d where d.id = (p ->> 'draft_id')::uuid and k.id = d.hold_block_id and k.removed_at is null;
   end if;
-  v_out := app.manual_rental_create_pre0145(p_by, p - 'draft_id' - 'odometer_out_km' - 'fuel_out_pct');
+  if p #>> '{payment,method}' = 'insurer' and (p -> 'insurance') is not null
+     and nullif(p #>> '{insurance,insurer_id}', '') is null and nullif(btrim(coalesce(p #>> '{insurance,insurer_name}', '')), '') is null then
+    raise exception 'Insurance replacement: choose the insurer (or Not listed, and type its name)' using errcode = '22023';
+  end if;
+  v_out := app.manual_rental_create_pre0145(p_by, p - 'draft_id' - 'odometer_out_km' - 'fuel_out_pct' - 'insurance');
   v_id := (v_out ->> 'booking_id')::uuid;
+  if p ? 'insurance' then perform app.manual_rental_insurance(p_by, v_id, p -> 'insurance'); end if;
+  perform app.deposit_tasks_close(v_id);
   if nullif(p ->> 'odometer_out_km', '') is not null or nullif(p ->> 'fuel_out_pct', '') is not null then
     update bookings set odometer_out_km = coalesce(nullif(p ->> 'odometer_out_km', '')::integer, odometer_out_km),
                         fuel_out_pct = coalesce(least(greatest(nullif(p ->> 'fuel_out_pct', '')::integer, 0), 100)::smallint, fuel_out_pct)
@@ -407,6 +413,153 @@ begin
   update booking_periods set send_after = now(), attempts = 0 where id = bp.id;
   perform app.log_booking_event(v_id, 'adjusted', null, null, null, format('The agreement for period %s is to be sent now', bp.seq), p_by, null, jsonb_build_object('period', bp.seq));
   return jsonb_build_object('ok', true, 'seq', bp.seq);
+end $$;
+
+
+-- ================================================================ 3. insurance replacements added by hand (sim item 3)
+-- Paid by the insurer: the insurer chosen (or typed, then added to the list), the claim, the adjuster, the days and the
+-- daily rate authorized, the provisional end; the booking is billed to the insurer (or split: the rental only), and the
+-- renter owes only what the insurer does not cover. Never the raw constraint error.
+alter function app.manual_rental_quote(uuid, jsonb) rename to manual_rental_quote_pre0145;
+create or replace function app.manual_rental_quote(p_by uuid, p jsonb) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+begin
+  return app.manual_rental_quote_pre0145(p_by, p)
+    || jsonb_build_object('insurers', coalesce((select jsonb_agg(jsonb_build_object('id', i.id, 'name', i.name) order by i.name) from insurers i where i.is_active), '[]'::jsonb));
+end $$;
+
+create or replace function app.manual_rental_insurance(p_by uuid, p_booking uuid, x jsonb) returns void
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v_ins uuid;
+  b bookings;
+  s record;
+begin
+  if x is null or jsonb_typeof(x) <> 'object' then return; end if;
+  v_ins := (select i.id from insurers i where i.id::text = x ->> 'insurer_id');
+  if v_ins is null and nullif(btrim(coalesce(x ->> 'insurer_name', '')), '') is not null then
+    select i.id into v_ins from insurers i where lower(i.name) = lower(btrim(x ->> 'insurer_name')) limit 1;
+    if v_ins is null then
+      insert into insurers (name, created_by, notes) values (btrim(x ->> 'insurer_name'), p_by, 'Added from Add a rental (an insurance replacement)') returning id into v_ins;
+    end if;
+  end if;
+  if v_ins is null then
+    raise exception 'Insurance replacement: choose the insurer (or Not listed, and type its name)' using errcode = '22023';
+  end if;
+  if nullif(x ->> 'authorized_days', '') is not null and (x ->> 'authorized_days')::integer <= 0 then raise exception 'The days authorized must be 1 or more' using errcode = '22023'; end if;
+  if nullif(x ->> 'authorized_daily_rate_cents', '') is not null and (x ->> 'authorized_daily_rate_cents')::bigint < 0 then raise exception 'The daily rate authorized cannot be negative' using errcode = '22023'; end if;
+  update bookings set bill_to = case when x ->> 'pays' = 'split' then 'split' else 'insurer' end, insurer_id = v_ins,
+         insurer_claim_number = nullif(btrim(coalesce(x ->> 'claim_number', '')), ''),
+         insurer_adjuster_name = nullif(btrim(coalesce(x ->> 'adjuster_name', '')), ''),
+         insurer_adjuster_email = nullif(lower(btrim(coalesce(x ->> 'adjuster_email', ''))), ''),
+         insurer_adjuster_phone = nullif(btrim(coalesce(x ->> 'adjuster_phone', '')), ''),
+         insurer_authorized_days = nullif(x ->> 'authorized_days', '')::integer,
+         insurer_authorized_daily_rate_cents = nullif(x ->> 'authorized_daily_rate_cents', '')::bigint,
+         insurer_authorized_until = nullif(x ->> 'authorized_until', '')::date,
+         dates_provisional = coalesce((x ->> 'dates_provisional')::boolean, false)
+   where id = p_booking returning * into b;
+  select * into s from app.booking_insurer_share(p_booking);
+  update bookings set insurer_share_cents = least(s.share_cents, greatest(b.subtotal_at_booking_cents, 0)),
+                      insurer_hst_cents = least(s.hst_cents, greatest(b.hst_at_booking_cents, 0))
+   where id = p_booking;
+end $$;
+
+
+-- ================================================================ 4. a phone deal closed on the phone (sim item 8)
+-- Sales records "Renter approved by phone" on its own offers, as customer service does.
+select pg_temp.patch_fn('app.va_do_pre0071(uuid,text,jsonb)'::regprocedure,
+  $o$    when 'sales' then array['booking_save', 'send_offer', 'withdraw_offer', 'resend_offer', 'ask_info', 'decline_request']$o$,
+  $n$    when 'sales' then array['booking_save', 'send_offer', 'withdraw_offer', 'resend_offer', 'approve_offer_by_phone', 'ask_info', 'decline_request']$n$);
+
+
+-- ================================================================ 5. find a free car by type and dates (sim item 9)
+-- The offer screen's cars carry their class and body type, so the list narrows to "a free SUV for these dates".
+alter function app.staff_offer_form(uuid, jsonb) rename to staff_offer_form_pre0145;
+create or replace function app.staff_offer_form(p_by uuid, p jsonb) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  v jsonb := app.staff_offer_form_pre0145(p_by, p);
+begin
+  if jsonb_typeof(v -> 'cars') <> 'array' then return v; end if;
+  return jsonb_set(v, '{cars}', coalesce((select jsonb_agg(c || jsonb_build_object('class', vh.class, 'body_type', vh.body_type) order by o)
+    from jsonb_array_elements(v -> 'cars') with ordinality as x(c, o) left join vehicles vh on vh.id::text = c ->> 'id'), '[]'::jsonb));
+end $$;
+
+
+-- ================================================================ 6. no false tasks (sim item 11)
+-- "Deposit not taken" closes itself once the deposit is taken (a hold, or cash or e-Transfer recorded), and a rental
+-- added with its deposit already recorded never keeps one. A staff-made offer is not a "New booking request".
+create or replace function app.deposit_tasks_close(p_booking uuid) returns integer
+language plpgsql security definer set search_path = public, app as $$
+declare v_n integer;
+begin
+  update tasks set status = 'done', completed_at = now()
+   where booking_id = p_booking and task_type in ('live_rental_deposit', 'take_deposit') and status in ('open', 'in_progress', 'waiting')
+     and exists (select 1 from deposits d where d.booking_id = p_booking and d.status in ('held', 'captured', 'settled'));
+  get diagnostics v_n = row_count;
+  return v_n;
+end $$;
+create or replace function app.deposit_tasks_trg() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if new.status in ('held', 'captured', 'settled') then perform app.deposit_tasks_close(new.booking_id); end if;
+  return null;
+end $$;
+drop trigger if exists deposit_tasks_close on deposits;
+create trigger deposit_tasks_close after insert or update of status on deposits for each row execute function app.deposit_tasks_trg();
+-- the ones already open by mistake
+do $$ declare r record; begin
+  for r in select distinct t.booking_id from tasks t where t.task_type in ('live_rental_deposit', 'take_deposit') and t.status in ('open', 'in_progress', 'waiting') and t.booking_id is not null loop
+    perform app.deposit_tasks_close(r.booking_id);
+  end loop;
+end $$;
+
+alter function app.staff_offer_create(uuid, jsonb) rename to staff_offer_create_pre0145;
+create or replace function app.staff_offer_create(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v_out jsonb := app.staff_offer_create_pre0145(p_by, p);
+begin
+  -- the request inside a staff-made offer is staff's own work: no "New booking request" for anyone to answer
+  update tasks set status = 'done', completed_at = now(), completed_by = p_by
+   where booking_id = (v_out ->> 'booking_id')::uuid and task_type = 'booking_request' and status in ('open', 'in_progress', 'waiting');
+  return v_out;
+end $$;
+
+
+-- ================================================================ 7. new dates keep a price typed by hand (sim item 13)
+-- A booking whose rental charge was typed (custom_price_at) keeps that price for new dates, in proportion to the days,
+-- instead of falling back to the rate sheet; "recompute" (or a new price typed) still decides otherwise.
+select pg_temp.patch_fn('app.booking_price_spec(uuid,jsonb)'::regprocedure,
+  $o$                                when v_pickup = b.pickup_at and v_return = b.return_at then b.rental_charge_cents end,$o$,
+  $n$                                when v_pickup = b.pickup_at and v_return = b.return_at then b.rental_charge_cents
+                                when b.custom_price_at is not null and b.billable_days > 0 and v_pickup is not null and v_return > v_pickup
+                                  then round(b.rental_charge_cents::numeric * public.calc_billable_days(v_pickup, v_return) / b.billable_days)::bigint end,$n$);
+
+
+-- ================================================================ 8. Sign now without waiting for the renter (sim item 2)
+-- Staff about to hand a device to the renter can make the agreement there and then (the site renders it as the renter,
+-- as the five-minute job does), for a booking confirmed or on its way, or an approved offer: the renter's account is
+-- the one the agreement is opened for.
+create or replace function public.server_sign_now_prepare(p_booking uuid, p_by uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  b bookings;
+  v_user uuid;
+begin
+  if not (app.user_is_admin(p_by) or app.user_is_staff(p_by) or coalesce(app.user_is_field(p_by), false)) then raise exception 'Only staff collect signatures in person' using errcode = '42501'; end if;
+  select * into b from bookings where id = p_booking;
+  if b.id is null then raise exception 'Booking not found' using errcode = 'P0002'; end if;
+  if b.status::text not in ('pending_payment', 'confirmed', 'on_rent') then
+    raise exception 'Booking % is %: an agreement is signed once the offer is approved or the rental is added', b.booking_number, replace(b.status::text, '_', ' ') using errcode = '23514';
+  end if;
+  if b.booking_type = 'owner' then raise exception 'An owner using their own car signs no rental agreement' using errcode = '23514'; end if;
+  if exists (select 1 from rental_agreements a where a.booking_id = b.id and a.status in ('open', 'signed', 'completed')) then
+    return jsonb_build_object('ready', true);
+  end if;
+  select r.user_id into v_user from renters r where r.id = b.renter_id;
+  if v_user is null then raise exception 'The renter has no account yet: add their email on the booking (Correct the renter), or record a paper signature' using errcode = '23514'; end if;
+  return jsonb_build_object('ready', false, 'renter_user_id', v_user);
 end $$;
 
 -- ================================================================ the door
@@ -685,13 +838,15 @@ begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname = 'app' and p.proname = any (array['may_draft', 'draft_missing', 'draft_save', 'draft_close', 'drafts_list', 'draft_get',
                      'manual_rental_create', 'manual_rental_create_pre0145', 'door', 'door_pre0145', 'booking_periods_sync', 'booking_periods_trg',
-                     'booking_periods_list', 'booking_period_send_now', 'server_jobs_due', 'server_jobs_due_pre0145'])
+                     'booking_periods_list', 'booking_period_send_now', 'server_jobs_due', 'server_jobs_due_pre0145',
+                     'manual_rental_quote', 'manual_rental_quote_pre0145', 'manual_rental_insurance', 'staff_offer_form', 'staff_offer_form_pre0145', 'deposit_tasks_close', 'deposit_tasks_trg', 'staff_offer_create', 'staff_offer_create_pre0145'])
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'public' and p.proname = any (array['server_periods_due', 'server_period_begin', 'server_period_done', 'server_agreement_facts', 'server_agreement_facts_pre0145'])
+            where n.nspname = 'public' and p.proname = any (array['server_periods_due', 'server_period_begin', 'server_period_done', 'server_agreement_facts', 'server_agreement_facts_pre0145',
+                     'server_sign_now_prepare'])
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

@@ -1,6 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { DbError } from '@/lib/db/repo';
+import { DbError, rpc } from '@/lib/db/repo';
 import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
@@ -156,4 +156,20 @@ export async function draftClose(id: string, status: 'done' | 'discarded' = 'dis
 /** A long rental's next period (0145): its agreement made and sent on the next job run instead of lead days ahead. */
 export async function periodSendNow(booking: string): Promise<R<{ ok: boolean; seq: number }>> {
   try { const { user, aal } = await me(); const data = await door<{ ok: boolean; seq: number }>(user.id, 'ops_do', 'period_send_now', { booking }, aal); revalidatePath(`/admin/bookings/${booking}`); revalidatePath(`/va/bookings/${booking}`); return { ok: true, data }; } catch (e) { return fail(e); }
+}
+
+/** The driving distance from our location to an address chosen from the suggestions (sim item 12): the delivery is
+ *  priced from it instead of a distance typed by hand. Null when the address was typed without a suggestion. */
+export async function deliveryDistance(placeId: string, session?: string): Promise<R<{ km: number | null }>> {
+  try {
+    await me();
+    if (!placeId) return { ok: true, data: { km: null } };
+    const origin = (await rpc('delivery_origin', {}, { role: 'service_role' })) as unknown as { lat: number; lng: number } | null;
+    if (!origin) return { ok: true, data: { km: null } };
+    const { maps } = await import('@/integrations/maps');
+    const m = await maps();
+    const p = await m.place(placeId, session && /^[A-Za-z0-9_-]{8,64}$/.test(session) ? session : crypto.randomUUID());
+    const km = p ? await m.distanceKm(origin, { lat: p.lat, lng: p.lng }) : null;
+    return { ok: true, data: { km: km === null ? null : Math.round(km * 10) / 10 } };
+  } catch (e) { return fail(e); }
 }
