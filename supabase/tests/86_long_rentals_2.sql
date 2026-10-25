@@ -1,4 +1,4 @@
--- 86: long rentals, part 2 (migration 0145): drafts of a rental or an offer saved as typed, the car held while one is
+-- 86: long rentals, part 2 (migration 0148): drafts of a rental or an offer saved as typed, the car held while one is
 -- entered, Quick start at pickup (a task to finish it, the readings kept), and the draft closed when the rental is added.
 -- Fixtures start with "dr".
 select test.suite('86 long rentals 2');

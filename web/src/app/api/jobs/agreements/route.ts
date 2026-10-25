@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   if (d !== 0) return new NextResponse('Forbidden', { status: 403 });
   try {
     const missing = await runAgreementJobs(3);
-    // and the next period of each long rental, lead days ahead (0145)
+    // and the next period of each long rental, lead days ahead (0148)
     const periods = await runPeriodJobs(2);
     return NextResponse.json({ ok: true, ...missing, periods });
   } catch (e) {

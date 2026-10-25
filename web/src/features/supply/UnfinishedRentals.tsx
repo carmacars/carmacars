@@ -3,7 +3,7 @@ import type { DraftRow } from '@/server/actions/supply';
 
 const when = (iso: string) => new Date(iso).toLocaleString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
-/** Unfinished rentals (0145): the drafts saved as they were typed, everyone's, newest first; each opens where it was left. */
+/** Unfinished rentals (0148): the drafts saved as they were typed, everyone's, newest first; each opens where it was left. */
 export function UnfinishedRentals({ rows, base, current, title = 'Unfinished rentals' }: { rows: DraftRow[]; base: '/admin' | '/va' | '/field'; current?: string | null; title?: string }) {
   const list = rows.filter((r) => r.id !== current);
   if (!list.length) return null;

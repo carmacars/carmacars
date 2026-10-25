@@ -19607,7 +19607,7 @@ export type Database = {
       server_agreement_auto_done: { Args: { p_booking: string; p_ok: boolean; p_error?: string; p_source?: string }; Returns: Json };
       server_agreement_companion: { Args: { p_booking: string }; Returns: Json };
       server_agreement_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
-      server_agreement_facts_pre0145: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_agreement_facts_pre0148: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_agreements_due: { Args: { p_limit?: number }; Returns: Json };
       server_ai_allow: { Args: { p_purpose: string; p_est?: number }; Returns: Json };
       server_ai_budget: { Args: never; Returns: Json };

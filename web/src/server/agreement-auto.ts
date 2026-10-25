@@ -37,7 +37,7 @@ export async function agreementAfterAdd(bookingId: string): Promise<void> {
 
 type PeriodDue = { booking_id: string; seq: number; booking_number: string; renter_user_id: string };
 
-/** A long rental's next period (migration 0145): lead days before it starts, a new version of the agreement (CarmaCars'
+/** A long rental's next period (migration 0148): lead days before it starts, a new version of the agreement (CarmaCars'
  *  and Blind Spot's) made as the renter and sent to sign, with what is due for that period. */
 export async function runPeriodJobs(max = 2): Promise<{ done: number; failed: number }> {
   const due = ((await rpc('server_periods_due', { p_limit: max }, SR)) as unknown as PeriodDue[]) ?? [];

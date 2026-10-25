@@ -9,7 +9,7 @@ export type PeriodRow = { seq: number; starts_at: string; ends_at: string; days:
 
 const AGREEMENT: Record<string, string> = { open: 'sent, not signed yet', signed: 'signed', completed: 'signed', superseded: 'signed (earlier period)', voided: 'replaced' };
 
-/** The periods of a long rental (0145): each with its own agreement, sent lead days before it starts, and its share. */
+/** The periods of a long rental (0148): each with its own agreement, sent lead days before it starts, and its share. */
 export function BookingPeriods({ rows, booking }: { rows: PeriodRow[]; booking: string }) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);

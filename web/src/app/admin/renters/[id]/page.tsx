@@ -30,7 +30,7 @@ export default async function Renter({ params }: { params: Promise<{ id: string 
   if (!r) notFound();
   // correct the renter's details (0132)
   const rf = await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { renter: id }).catch(() => null);
-  // the same person entered twice (0145)
+  // the same person entered twice (0148)
   const dupes = await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: id }).catch(() => [] as DuplicateRow[]);
   return (
     <>

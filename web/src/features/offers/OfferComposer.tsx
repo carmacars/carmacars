@@ -36,7 +36,7 @@ const fmt = (c: number | null | undefined) => money(Number(c ?? 0), { cents: tru
 const lineLabel = (l: Line) => l.description || l.charge_type.replace(/_/g, ' ');
 const PLAN_TYPES = ['coverage_sold', 'coverage', 'coverage_option', 'carmacars_coverage', 'coverage_daily'];
 
-/** What an offer draft keeps (0145). */
+/** What an offer draft keeps (0148). */
 export interface OcDraft { f?: Partial<OfferForm>; addons?: AddonChoice[]; customs?: Array<{ label: string; amount: string; hst: boolean }>; chosen?: Found | null; renter_id?: string | null }
 
 export function OfferComposer({ base, initialCar = null, draft = null }: { base: '/admin' | '/va'; initialCar?: string | null; draft?: { id: string; data: OcDraft } | null }) {
@@ -57,7 +57,7 @@ export function OfferComposer({ base, initialCar = null, draft = null }: { base:
   const [chosen, setChosen] = useState<Found | null>(draft?.data.chosen ?? null);
   const [adding, setAdding] = useState(false);
   const [carQ, setCarQ] = useState('');
-  // 0145 (sim item 9): narrow the cars to a type and to the ones free for the dates
+  // 0148 (sim item 9): narrow the cars to a type and to the ones free for the dates
   const [carType, setCarType] = useState('');
   const [freeOnly, setFreeOnly] = useState(false);
   const [addons, setAddons] = useState<AddonChoice[]>(draft?.data.addons ?? []);
@@ -112,7 +112,7 @@ export function OfferComposer({ base, initialCar = null, draft = null }: { base:
   const need = missing(f, role).filter((m) => m !== 'who found this client');
   // 0132: charges of its own on the offer (the renter sees what is typed)
   const [customs, setCustoms] = useState<Array<{ label: string; amount: string; hst: boolean }>>(draft?.data.customs ?? []);
-  // 0145: saved as a draft as you type; opened again from Unfinished rentals on any device
+  // 0148: saved as a draft as you type; opened again from Unfinished rentals on any device
   const [draftId, setDraftId] = useState<string | null>(draft?.id ?? null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const snapKey = JSON.stringify({ f, addons, customs, chosen });

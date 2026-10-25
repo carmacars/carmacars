@@ -1,4 +1,4 @@
-# Long rentals, part 2 (migration 0145)
+# Long rentals, part 2 (migration 0148)
 
 The owner's requests after the first long rentals checkpoint (0139): "drafts and autosave of Add a rental and the offer
 form", "Quick start at pickup: the renter's name and phone, the car, pickup now, kilometres and fuel; finish the rest

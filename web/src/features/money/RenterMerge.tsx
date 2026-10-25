@@ -5,7 +5,7 @@ import { renterMerge } from '@/server/actions/supply';
 
 export type DuplicateRow = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; bookings: number; why: string };
 
-/** Possible duplicates of this renter (0145), each with Merge into this record: bookings, licences, cards, payments,
+/** Possible duplicates of this renter (0148), each with Merge into this record: bookings, licences, cards, payments,
  *  documents and messages move here; the other record stays, blocked, in the history. */
 export function RenterMerge({ renterId, name, rows }: { renterId: string; name: string; rows: DuplicateRow[] }) {
   const router = useRouter();

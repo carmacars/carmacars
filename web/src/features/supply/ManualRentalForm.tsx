@@ -28,7 +28,7 @@ type Quote = { role: 'admin' | 'va' | 'field'; phase?: Phase | null; phase_note?
   turnaround_minutes: number; payment_modes: string[]; may_override_price: boolean; rate_sheet_cents: number | null; billable_days: number | null;
   price_floor_daily_cents: number | null; price_max_discount_bps: number | null; choice_required: boolean; may_search_renters: boolean; may_override_clash: boolean; may_record_past: boolean; may_promo: boolean; single_limit_cents: number | null;
   card: { brand: string; last4: string } | null; vehicle: { name: string; supply_type: string; bookable: boolean; retired: boolean };
-  /** 0145: the insurers an insurance replacement can bill. */
+  /** 0148: the insurers an insurance replacement can bill. */
   insurers?: Array<{ id: string; name: string }>;
   /** 0132: fee lines this person may set by hand; the monthly periods of a long rental. */
   may_edit_fees?: boolean; periods?: Period[];
@@ -64,7 +64,7 @@ const PHASE_NOTE: Record<Phase, string> = {
   past: 'This rental has already ended: it will be recorded as completed, for the history and the statements.'
 };
 
-/** What a draft keeps (0145): every field of the form as typed. */
+/** What a draft keeps (0148): every field of the form as typed. */
 export interface MrDraft { f?: Record<string, string>; flags?: { do_not_email: boolean; new_renter: boolean; policy: boolean }; paid_by?: RentalPaidBy; deposit_by?: DepositPay;
   agreement?: 'send' | 'paper'; blocks?: boolean; fees?: Record<string, string>; parts?: PayPart[]; customs?: Array<{ label: string; amount: string; hst: boolean }>;
   rent_mode?: 'trip' | 'day'; rent_day?: string; renter?: Renter | null; renter_id?: string | null; drivers?: Array<{ full_name: string; date_of_birth: string; email: string }>; addons?: AddonChoice[]; choice?: Choice }
@@ -107,7 +107,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
   const [quote, setQuote] = useState<Quote | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<ManualRentalResult | null>(null);
-  // 0145: the draft, saved as typed (server, and this device as a fallback); Hold the car; Quick start at pickup
+  // 0148: the draft, saved as typed (server, and this device as a fallback); Hold the car; Quick start at pickup
   const [draftId, setDraftId] = useState<string | null>(draft?.id ?? null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saveErr, setSaveErr] = useState<string | null>(null);

@@ -1,4 +1,4 @@
--- 0145: long rentals, second part (docs/changes/2026-10-25-long-rentals-2.md)
+-- 0148: long rentals, second part (docs/changes/2026-10-25-long-rentals-2.md)
 --
 -- 1. Drafts. The owner: "Need a way to partially input a rental and finish it later because my staff is standing in the
 --    cold and trying to fill all the fields." Add a rental and Send an offer save as they are typed (rental_drafts, one
@@ -13,7 +13,7 @@ declare
   d text := pg_get_functiondef(p_sig);
 begin
   if position(p_old in d) = 0 then
-    raise exception '0145: the text to change was not found in %: %', p_sig, left(p_old, 120);
+    raise exception '0148: the text to change was not found in %: %', p_sig, left(p_old, 120);
   end if;
   execute replace(d, p_old, p_new);
 end $$;
@@ -35,7 +35,7 @@ create table if not exists rental_drafts (
   booking_id   uuid references bookings (id),
   finished_at  timestamptz
 );
-comment on table rental_drafts is 'A rental or an offer being entered, saved as it is typed (0145): its form fields (data), who started it, the car held for it while Hold the car is ticked, and the booking it became.';
+comment on table rental_drafts is 'A rental or an offer being entered, saved as it is typed (0148): its form fields (data), who started it, the car held for it while Hold the car is ticked, and the booking it became.';
 create index if not exists rental_drafts_open on rental_drafts (status, updated_at desc) where status = 'open';
 create trigger rental_drafts_updated before update on rental_drafts for each row execute function app.set_updated_at();
 create trigger audit_rental_drafts after insert or update or delete on rental_drafts for each row execute function app.audit_row();
@@ -45,7 +45,7 @@ revoke all on rental_drafts from anon, authenticated;
 grant all on rental_drafts to service_role;
 
 insert into task_rules (task_type, queue, title, priority, due_kind, due_amount, description) values
-  ('finish_rental_draft', 'cs', 'Finish a rental started at pickup', 'high', 'minutes', 120, 'A rental was started with Quick start at pickup (0145): the car is out; finish the renter''s details, the price and the payment, then add it.')
+  ('finish_rental_draft', 'cs', 'Finish a rental started at pickup', 'high', 'minutes', 120, 'A rental was started with Quick start at pickup (0148): the car is out; finish the renter''s details, the price and the payment, then add it.')
 on conflict (task_type) do nothing;
 
 -- the people who enter rentals and offers
@@ -160,7 +160,7 @@ language sql stable security definer set search_path = public, app as $$
 $$;
 
 -- a rental added from a quick start: the readings taken at pickup go on it; the draft is finished
-alter function app.manual_rental_create(uuid, jsonb) rename to manual_rental_create_pre0145;
+alter function app.manual_rental_create(uuid, jsonb) rename to manual_rental_create_pre0148;
 create or replace function app.manual_rental_create(p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -176,7 +176,7 @@ begin
      and nullif(p #>> '{insurance,insurer_id}', '') is null and nullif(btrim(coalesce(p #>> '{insurance,insurer_name}', '')), '') is null then
     raise exception 'Insurance replacement: choose the insurer (or Not listed, and type its name)' using errcode = '22023';
   end if;
-  v_out := app.manual_rental_create_pre0145(p_by, p - 'draft_id' - 'odometer_out_km' - 'fuel_out_pct' - 'insurance');
+  v_out := app.manual_rental_create_pre0148(p_by, p - 'draft_id' - 'odometer_out_km' - 'fuel_out_pct' - 'insurance');
   v_id := (v_out ->> 'booking_id')::uuid;
   if p ? 'insurance' then perform app.manual_rental_insurance(p_by, v_id, p -> 'insurance'); end if;
   perform app.deposit_tasks_close(v_id);
@@ -216,7 +216,7 @@ create table if not exists booking_periods (
   updated_at    timestamptz not null default now(),
   unique (booking_id, seq)
 );
-comment on table booking_periods is 'The periods of a long rental (0145): each later period has its own version of the rental agreement, made long_rental_agreement_lead_days before it starts, and what is due for it.';
+comment on table booking_periods is 'The periods of a long rental (0148): each later period has its own version of the rental agreement, made long_rental_agreement_lead_days before it starts, and what is due for it.';
 create trigger booking_periods_updated before update on booking_periods for each row execute function app.set_updated_at();
 create trigger audit_booking_periods after insert or update or delete on booking_periods for each row execute function app.audit_row();
 alter table booking_periods enable row level security;
@@ -225,10 +225,10 @@ revoke all on booking_periods from anon, authenticated;
 grant all on booking_periods to service_role;
 
 alter table rental_agreements add column if not exists period_seq integer;
-comment on column rental_agreements.period_seq is 'The period of a long rental this version of the agreement covers (0145); null: the whole booking, or its first period.';
+comment on column rental_agreements.period_seq is 'The period of a long rental this version of the agreement covers (0148); null: the whole booking, or its first period.';
 alter table rental_agreements drop constraint if exists rental_agreements_status_check;
 alter table rental_agreements add constraint rental_agreements_status_check check (status in ('open', 'signed', 'completed', 'voided', 'superseded'));
-comment on column rental_agreements.status is 'open, signed, completed, voided; superseded (0145): the version of an earlier period of a long rental, replaced by the next period''s.';
+comment on column rental_agreements.status is 'open, signed, completed, voided; superseded (0148): the version of an earlier period of a long rental, replaced by the next period''s.';
 
 -- the periods of a booking, kept in step with its dates (periods already sent stay as they are)
 create or replace function app.booking_periods_sync(p_booking uuid) returns integer
@@ -363,11 +363,11 @@ begin
 end $$;
 
 -- the agreement says which period it covers
-alter function public.server_agreement_facts(uuid, uuid) rename to server_agreement_facts_pre0145;
+alter function public.server_agreement_facts(uuid, uuid) rename to server_agreement_facts_pre0148;
 create or replace function public.server_agreement_facts(p_booking uuid, p_by uuid) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
-  v jsonb := public.server_agreement_facts_pre0145(p_booking, p_by);
+  v jsonb := public.server_agreement_facts_pre0148(p_booking, p_by);
   bp booking_periods;
   v_n integer;
 begin
@@ -379,10 +379,10 @@ begin
 end $$;
 
 -- the job runs while a period is due
-alter function app.server_jobs_due() rename to server_jobs_due_pre0145;
+alter function app.server_jobs_due() rename to server_jobs_due_pre0148;
 create or replace function app.server_jobs_due() returns jsonb
 language sql stable security definer set search_path = public, app as $$
-  select app.server_jobs_due_pre0145() || jsonb_build_object('agreements', coalesce((app.server_jobs_due_pre0145() ->> 'agreements')::boolean, false)
+  select app.server_jobs_due_pre0148() || jsonb_build_object('agreements', coalesce((app.server_jobs_due_pre0148() ->> 'agreements')::boolean, false)
     or jsonb_array_length(public.server_periods_due(1)) > 0)
 $$;
 
@@ -420,11 +420,11 @@ end $$;
 -- Paid by the insurer: the insurer chosen (or typed, then added to the list), the claim, the adjuster, the days and the
 -- daily rate authorized, the provisional end; the booking is billed to the insurer (or split: the rental only), and the
 -- renter owes only what the insurer does not cover. Never the raw constraint error.
-alter function app.manual_rental_quote(uuid, jsonb) rename to manual_rental_quote_pre0145;
+alter function app.manual_rental_quote(uuid, jsonb) rename to manual_rental_quote_pre0148;
 create or replace function app.manual_rental_quote(p_by uuid, p jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 begin
-  return app.manual_rental_quote_pre0145(p_by, p)
+  return app.manual_rental_quote_pre0148(p_by, p)
     || jsonb_build_object('insurers', coalesce((select jsonb_agg(jsonb_build_object('id', i.id, 'name', i.name) order by i.name) from insurers i where i.is_active), '[]'::jsonb));
 end $$;
 
@@ -474,11 +474,11 @@ select pg_temp.patch_fn('app.va_do_pre0071(uuid,text,jsonb)'::regprocedure,
 
 -- ================================================================ 5. find a free car by type and dates (sim item 9)
 -- The offer screen's cars carry their class and body type, so the list narrows to "a free SUV for these dates".
-alter function app.staff_offer_form(uuid, jsonb) rename to staff_offer_form_pre0145;
+alter function app.staff_offer_form(uuid, jsonb) rename to staff_offer_form_pre0148;
 create or replace function app.staff_offer_form(p_by uuid, p jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
-  v jsonb := app.staff_offer_form_pre0145(p_by, p);
+  v jsonb := app.staff_offer_form_pre0148(p_by, p);
 begin
   if jsonb_typeof(v -> 'cars') <> 'array' then return v; end if;
   return jsonb_set(v, '{cars}', coalesce((select jsonb_agg(c || jsonb_build_object('class', vh.class, 'body_type', vh.body_type) order by o)
@@ -514,11 +514,11 @@ do $$ declare r record; begin
   end loop;
 end $$;
 
-alter function app.staff_offer_create(uuid, jsonb) rename to staff_offer_create_pre0145;
+alter function app.staff_offer_create(uuid, jsonb) rename to staff_offer_create_pre0148;
 create or replace function app.staff_offer_create(p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
-  v_out jsonb := app.staff_offer_create_pre0145(p_by, p);
+  v_out jsonb := app.staff_offer_create_pre0148(p_by, p);
 begin
   -- the request inside a staff-made offer is staff's own work: no "New booking request" for anyone to answer
   update tasks set status = 'done', completed_at = now(), completed_by = p_by
@@ -570,7 +570,7 @@ end $$;
 -- account (sign-in) moves when the kept record has none. The other record stays, blocked, pointing at the kept one,
 -- and the merge is in each record's change history.
 alter table renters add column if not exists merged_into uuid references renters (id);
-comment on column renters.merged_into is 'This record was merged into that one (0145): everything moved there; this one is blocked.';
+comment on column renters.merged_into is 'This record was merged into that one (0148): everything moved there; this one is blocked.';
 
 create or replace function app.renter_duplicates(p_by uuid, p jsonb) returns jsonb
 language sql stable security definer set search_path = public, app as $$
@@ -643,7 +643,7 @@ begin
 end $$;
 
 -- ================================================================ the door
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0145;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0148;
 create or replace function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -664,11 +664,11 @@ begin
     when 'renter_merge' then return app.renter_merge(p_user, p_);
     end case;
   end if;
-  return app.door_pre0145(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre0148(p_user, p_aal, p_call, p_name, p);
 end $$;
 
 -- ================================================================ the guides
--- GUIDES 0145 START (generated by supabase/seed/0145_gen_guides.mjs from docs/guides/content; do not edit by hand)
+-- GUIDES 0148 START (generated by supabase/seed/0148_gen_guides.mjs from docs/guides/content; do not edit by hand)
 select app.guide_release_section('admin', 'requests-offers-and-bookings', 'chapter', 'people-and-access', 'A booking starts as a request from the website, or as an offer you send yourself to a customer on the phone. You check it, adjust it and send the offer; an offer that is out is changed in place. After that, the booking page holds the money, documents, changes and history.
 
 ## The request queue
@@ -1591,7 +1591,7 @@ Open **Bookings** > **Add a rental**. Your home address must be in your profile 
 > Tip: The renter signs the rental agreement in their portal before pickup. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign. If they sign on paper at the counter, an Admin records it. A payment link keeps the booking waiting for payment.
 ',
   '<p class="gd-p">Every function adds rentals that come in by phone, at the counter, from Turo, a partner, an insurer or someone you know. The rental is confirmed and on the calendar at once.</p><section class="gd-task" id="add-a-rental-by-hand-add-a-rental" data-gd-task><h2 class="gd-h2">Add a rental</h2><p class="gd-p">Open <b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Add a rental</b>. Your home address must be in your profile first: until it is, the page asks for it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">At pickup with the renter? Press <b class="gd-ui">Start at pickup</b>: the renter&#39;s name and phone, the car, the kilometres and the fuel, then <b class="gd-ui">Hold the car and finish later</b>. The car is held for 2 hours and you get a task to finish it.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Nothing is required to save: the form is saved as a draft as you type (<b class="gd-ui">Save draft</b> saves at once). Unfinished rentals, on Today and on this page, opens a draft where it was left, on any device. Tick Hold the car while I finish to keep the car off the calendar while you type.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Choose the car, the dates and the places. The check shows any clash with another booking or with the cleaning time after a trip. You cannot book over a clash: ask an Admin.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">The dates decide the case, shown under them. Car already out with the renter? Enter the pickup as when it left: the rental is recorded as on trip, and anything still missing (signature, licence check, coverage proof, deposit) becomes a task. A rental that has already ended is recorded by an Admin.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Find the renter by name, email or phone, or add a new one with their name, email, phone, date of birth and licence. Add any other drivers.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">The calendar and the price are checked by themselves once the car and the dates are in. The price comes from the rate sheet. You may add the extras, how damage is covered and an allowed promo code.</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t">Quick start: <b class="gd-ui">Phone</b>, <b class="gd-ui">Walk-in</b>, <b class="gd-ui">Turo or another platform</b> or <b class="gd-ui">Insurance replacement</b> sets the usual choices.</div></li><li><span class="gd-n" aria-hidden="true">8</span><div class="gd-t">A car tagged Listing not finished can be rented too: it stays off the public site. If it has no rates yet, type the rental charge for the whole rental and the reason. An owner&#39;s car not yet on the fleet insurance policy is added by an Admin only.</div></li><li><span class="gd-n" aria-hidden="true">9</span><div class="gd-t">Every line of the price can be changed where it stands (customer service and sales, while Program settings allow it): the rental charge for the trip or a rate a day, the young driver fee, the Protection Plan, delivery, each add-on, the kilometres a day; add a fee from the list or a charge of its own. The (i) beside each line says what it is. The rate-sheet price stays on the booking; a price far under it is flagged for an Admin, never refused.</div></li><li><span class="gd-n" aria-hidden="true">10</span><div class="gd-t">Any length: past 30 days the monthly rate applies for each 30 days, and the monthly periods are listed. Each later period gets its own agreement, sent to the renter to sign a few days before it starts (Monthly periods on the booking; Send the agreement for the next period now if needed).</div></li><li><span class="gd-n" aria-hidden="true">11</span><div class="gd-t">Choose how the rent is paid (e-Transfer or cash received, card on file, payment link, platform payout, insurer billed later; the ways open to you are set by an Admin; paid in parts: Add another payment) and then how the deposit is paid (card hold, cash or e-Transfer with its reference). Before you save sums it all up. Signed on paper already? Choose it: a task asks for the scan. An insurance replacement with dates not known yet: untick Blocks the car&#39;s calendar and say why.</div></li><li><span class="gd-n" aria-hidden="true">12</span><div class="gd-t">Under Who found this client, choose <b class="gd-ui">I sourced this client</b> or <b class="gd-ui">Entered for CarmaCars</b>.</div></li><li><span class="gd-n" aria-hidden="true">13</span><div class="gd-t">Press <b class="gd-ui">Add the rental</b>. The renter gets the confirmation email unless you tick <b class="gd-ui">Do not email the renter</b>.</div></li><li><span class="gd-n" aria-hidden="true">14</span><div class="gd-t">A rental you add is credited to you and shows in My sales as a rental you added. If you sourced it, its commission shows there too.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The renter signs the rental agreement in their portal before pickup. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign. If they sign on paper at the counter, an Admin records it. A payment link keeps the booking waiting for payment.</div></aside></section>');
--- GUIDES 0145 END
+-- GUIDES 0148 END
 
 -- ================================================================ privileges
 do $$
@@ -1599,15 +1599,15 @@ declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname = 'app' and p.proname = any (array['may_draft', 'draft_missing', 'draft_save', 'draft_close', 'drafts_list', 'draft_get',
-                     'manual_rental_create', 'manual_rental_create_pre0145', 'door', 'door_pre0145', 'booking_periods_sync', 'booking_periods_trg',
-                     'booking_periods_list', 'booking_period_send_now', 'server_jobs_due', 'server_jobs_due_pre0145',
-                     'manual_rental_quote', 'manual_rental_quote_pre0145', 'manual_rental_insurance', 'staff_offer_form', 'staff_offer_form_pre0145', 'deposit_tasks_close', 'deposit_tasks_trg', 'staff_offer_create', 'staff_offer_create_pre0145', 'renter_duplicates', 'renter_merge'])
+                     'manual_rental_create', 'manual_rental_create_pre0148', 'door', 'door_pre0148', 'booking_periods_sync', 'booking_periods_trg',
+                     'booking_periods_list', 'booking_period_send_now', 'server_jobs_due', 'server_jobs_due_pre0148',
+                     'manual_rental_quote', 'manual_rental_quote_pre0148', 'manual_rental_insurance', 'staff_offer_form', 'staff_offer_form_pre0148', 'deposit_tasks_close', 'deposit_tasks_trg', 'staff_offer_create', 'staff_offer_create_pre0148', 'renter_duplicates', 'renter_merge'])
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'public' and p.proname = any (array['server_periods_due', 'server_period_begin', 'server_period_done', 'server_agreement_facts', 'server_agreement_facts_pre0145',
+            where n.nspname = 'public' and p.proname = any (array['server_periods_due', 'server_period_begin', 'server_period_done', 'server_agreement_facts', 'server_agreement_facts_pre0148',
                      'server_sign_now_prepare'])
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);

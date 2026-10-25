@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { acceptCookies, db, noOverflow } from './helpers';
 
-// Migration 0145 end to end, at both widths: Quick start at pickup (the renter's name and phone, the car, kilometres and
+// Migration 0148 end to end, at both widths: Quick start at pickup (the renter's name and phone, the car, kilometres and
 // fuel; the car held and a task to finish), the draft listed under Unfinished rentals and opened again where it was left,
 // a rental typed and saved as a draft as you go, and a long rental's monthly periods on the booking.
 const PW = 'correct horse battery';
