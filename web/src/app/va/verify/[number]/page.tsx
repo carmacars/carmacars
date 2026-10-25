@@ -26,6 +26,8 @@ export default async function Verify({ params }: { params: Promise<{ number: str
   const sales = fn === 'sales';
   const v = await read<V | null>('verification', { booking: n }).catch(() => null);
   if (!v) notFound();
+  // Sales may review a licence on a booking whose own page they cannot open (the booking read is narrower)
+  const bookingOpen = !sales || !!(await read<{ number: string } | null>('booking', { number: n }).catch(() => null));
   const s = await storage();
   const link = (u: U) => s.signedDownloadUrl(u.bucket as Bucket, u.path, 60);
   const links = new Map(await Promise.all(v.uploads.filter((u) => u.status === 'submitted').map(async (u) => [u.id, await link(u)] as const)));
@@ -35,7 +37,7 @@ export default async function Verify({ params }: { params: Promise<{ number: str
   const pageLinks = new Map(await Promise.all((cp?.pages ?? []).filter((pg) => pg.bucket && pg.path).map(async (pg) => [pg.id, await s.signedDownloadUrl(pg.bucket as Bucket, pg.path!, 60)] as const)));
   return (
     <>
-      <PageHead kicker={<><Link prefetch={false} className="link" href="/va">Queue</Link> · <Link prefetch={false} className="link" href={`/va/bookings/${encodeURIComponent(n)}`}>{n}</Link></>} title={sales ? 'Licence review' : 'Identity and coverage'} />
+      <PageHead kicker={<><Link prefetch={false} className="link" href="/va">Queue</Link> · {bookingOpen ? <Link prefetch={false} className="link" href={`/va/bookings/${encodeURIComponent(n)}`}>{n}</Link> : n}</>} title={sales ? 'Licence review' : 'Identity and coverage'} />
       <p className="small muted">Identity {v.readiness.all_drivers_verified ? 'verified' : 'not verified yet'}{sales ? '' : ` · coverage ${v.readiness.coverage_confirmed ? 'confirmed' : 'not confirmed yet'}`} · return {d(v.return_at)}</p>
       {(v.uploads.some((u) => u.status === 'submitted') || (!sales && ((cp && cp.status === 'submitted') || (cov?.option === 3 && !cov.confirmed && cov.protection_plan_line)))) && (
         <Card title="Everything waiting, in one step" testId="va-approve-all">
