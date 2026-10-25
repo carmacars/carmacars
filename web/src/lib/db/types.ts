@@ -12420,7 +12420,7 @@ export type Database = {
           promo_reminders_enabled: boolean;
           promo_reminder_3d_days: number;
           promo_reminder_1d_on: boolean;
-          field_pay_anchor: string | null;
+          field_pay_anchor: string;
           field_default_hourly_cents: number;
           field_overtime_on: boolean;
           field_overtime_weekly_hours: number;
@@ -12904,7 +12904,7 @@ export type Database = {
           promo_reminders_enabled?: boolean;
           promo_reminder_3d_days?: number;
           promo_reminder_1d_on?: boolean;
-          field_pay_anchor?: string | null;
+          field_pay_anchor?: string;
           field_default_hourly_cents?: number;
           field_overtime_on?: boolean;
           field_overtime_weekly_hours?: number;
@@ -13388,7 +13388,7 @@ export type Database = {
           promo_reminders_enabled?: boolean;
           promo_reminder_3d_days?: number;
           promo_reminder_1d_on?: boolean;
-          field_pay_anchor?: string | null;
+          field_pay_anchor?: string;
           field_default_hourly_cents?: number;
           field_overtime_on?: boolean;
           field_overtime_weekly_hours?: number;
