@@ -7,6 +7,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { DepositSettle } from '@/features/admin/DepositSettle';
+import { depositMethod, depositStatus } from '@/features/money/deposit-words';
 import { DocumentReview } from '@/features/admin/DocumentReview';
 import '@/features/admin/todo/todo.css';
 import { GeneratedFiles } from '@/features/admin/GeneratedFiles';
@@ -23,6 +24,7 @@ import { BookingEdit, type EditForm } from '@/features/money/BookingEdit';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
 import { HandoverPanel } from '@/features/handover/HandoverPanel';
 import { ReviewPanel } from '@/features/reviews/ReviewPanel';
+import { AgreementPanel } from '@/features/agreements/AgreementPanel';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -103,6 +105,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
       {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} base={base} canHandover canSign
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} refresh={[base]} />}
+      {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} base={base} b={{ id: b.id, status: b.status }} docBase="/admin/documents" finance={true} />}
       <Tabs current={`${base}?tab=${tab}`} items={[
         ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : [[`${base}?tab=overview`, 'Overview']] as Array<[string, string]>),
         [`${base}?tab=money`, 'Money'], [`${base}?tab=changes`, 'Changes', pendingChanges.length + pendingExt.length], [`${base}?tab=history`, 'History'], [`${base}?tab=documents`, 'Drivers and documents']]} />
@@ -159,8 +162,9 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <Card title="Refunds" aside={b.payments.length ? <Act action="request_refund" payload={P} label="New refund" testId="new-refund" fields={[{ name: 'reason', label: 'Reason', type: 'select', required: true, options: ['cancellation', 'carmacars_cancelled', 'driver_not_verifiable', 'pricing_error', 'breakdown_unused_days', 'goodwill', 'duplicate', 'other'].map((x) => [x, label(x)] as [string, string]) }, { name: 'refund_of', label: 'What it refunds', type: 'select', required: true, options: REFUND_OF, value: 'rental', hint: 'Only a refund of the rental charge lowers staff commissions.' }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'note', label: 'Note', type: 'text' }]} refresh={[base]} /> : null}>
             <Table rows={b.refunds} empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'due_by', label: 'Due by' }]} />
           </Card>
-          <Card title="Deposit" aside={b.deposit ? <DepositSettle bookingId={b.id} refresh={[base]} /> : ['confirmed'].includes(b.status) ? <Act action="waive_deposit" payload={P} label="Waive the deposit" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} /> : null}>
-            {b.deposit ? <Kv rows={[['Amount', $(b.deposit.amount_cents)], ['Method', label(b.deposit.method)], ['Status', label(b.deposit.status)], ['Applied', $(b.deposit.applied_cents)], ['Held back', $(b.deposit.held_back_cents)], ['Released', $(b.deposit.released_cents)], ['Release due', String(b.deposit.release_due_on ?? '')]]} /> : <p className="small muted">No deposit taken yet ({$(b.deposit_cents)} at pickup).</p>}
+          <Card title="Deposit" aside={b.deposit || ['returned', 'closed'].includes(b.status) ? <DepositSettle bookingId={b.id} bookingNumber={b.booking_number} refresh={[base]} /> : ['confirmed'].includes(b.status) ? <Act action="waive_deposit" payload={P} label="Waive the deposit" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} /> : null}>
+            {b.deposit ? <Kv rows={[['Amount', $(b.deposit.amount_cents)], ['Method', depositMethod(b.deposit.method)], ['Status', depositStatus(b.deposit.status)], ['Applied', $(b.deposit.applied_cents)], ['Held back', $(b.deposit.held_back_cents)], ['Released', $(b.deposit.released_cents)], ['Release due', String(b.deposit.release_due_on ?? '')]]} /> : <p className="small muted">No deposit taken yet ({$(b.deposit_cents)} at pickup).</p>}
+            <p className="small muted">The deposit is never released by itself: Finance or an Admin settles it after the return. A card hold is collected before it lapses, and what is not owed is refunded at the settlement.</p>
           </Card>
           <Card title="Documents"><GeneratedFiles bookingId={b.id} /></Card>
           <Card title="Statements"><Table rows={b.statements} empty="No statements." cols={[{ key: 'statement_number', label: 'Number' }, { key: 'kind', label: 'Kind' }, { key: 'issued_at', label: 'Issued', render: (r) => t(r.issued_at) }, { key: 'charges_cents', label: 'Charges', num: true, render: (r) => $(r.charges_cents) }, { key: 'charged_to_card_cents', label: 'To card', num: true, render: (r) => $(r.charged_to_card_cents) }]} /></Card>

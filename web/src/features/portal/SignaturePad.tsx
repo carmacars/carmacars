@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 // or mouse) with pressure where available, smooth strokes, Clear. Too few points is not a signature.
 export const MIN_POINTS = 12;
 
-export function SignaturePad({ id, onChange, invalid, describedBy }: { id: string; onChange: (png: string | null) => void; invalid?: boolean; describedBy?: string }) {
+export function SignaturePad({ id, onChange, invalid, describedBy, minPoints = MIN_POINTS, small = false, label, testId = 'signature-pad' }: { id: string; onChange: (png: string | null) => void; invalid?: boolean; describedBy?: string; minPoints?: number; small?: boolean; label?: string; testId?: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const pts = useRef(0);
   const last = useRef<{ x: number; y: number } | null>(null);
@@ -46,7 +46,7 @@ export function SignaturePad({ id, onChange, invalid, describedBy }: { id: strin
   const up = () => {
     if (!last.current) return;
     last.current = null;
-    const ok = pts.current >= MIN_POINTS;
+    const ok = pts.current >= minPoints;
     setSigned(ok);
     onChange(ok ? ref.current!.toDataURL('image/png') : null);
   };
@@ -56,15 +56,15 @@ export function SignaturePad({ id, onChange, invalid, describedBy }: { id: strin
     pts.current = 0; setSigned(false); onChange(null);
   };
   return (
-    <div className="sigpad">
+    <div className={`sigpad${small ? ' sigpad--small' : ''}`}>
       <div className={`sigpad__box${signed ? ' is-signed' : ''}${invalid ? ' is-invalid' : ''}`}>
-        <canvas ref={ref} id={id} role="img" aria-label={signed ? 'Your drawn signature' : 'Signature box: draw your signature with your finger or mouse'} aria-describedby={describedBy}
-          data-testid="signature-pad" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} />
+        <canvas ref={ref} id={id} role="img" aria-label={label ?? (signed ? 'Your drawn signature' : 'Signature box: draw your signature with your finger or mouse')} aria-describedby={describedBy}
+          data-testid={testId} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} />
         <span className="sigpad__line" aria-hidden="true" />
-        <span className="sigpad__hint" aria-hidden="true">{signed ? 'Signed' : 'Sign here'}</span>
+        <span className="sigpad__hint" aria-hidden="true">{signed ? (small ? 'Initialled' : 'Signed') : small ? 'Initial here' : 'Sign here'}</span>
       </div>
       <div className="sigpad__tools">
-        <span className="small muted">{signed ? 'Looks good.' : 'Use your finger, a stylus or the mouse.'}</span>
+        {!small && <span className="small muted">{signed ? 'Looks good.' : 'Use your finger, a stylus or the mouse.'}</span>}
         <button type="button" className="btn btn--quiet btn--sm" onClick={clear}>Clear</button>
       </div>
     </div>

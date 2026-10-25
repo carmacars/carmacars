@@ -508,9 +508,10 @@ update staff_profiles set single_limit_cents = 150000 where user_id = test.id('o
 select test.throws('D a hold-back needs its reason', format($$select app.settle_deposit(%L, %L, '{"hold_back_cents": 60000}')$$, test.b('opD'), test.id('op_admin')), 'needs its reason');
 select test.throws('D a hold-back runs at most 30 days after Check-in',
   format($$select app.settle_deposit(%L, %L, '{"hold_back_cents": 60000, "hold_back_reason": "pending claim", "hold_back_until": "2031-08-20"}')$$, test.b('opD'), test.id('op_admin')), 'at most 30 days');
-select test.eq('D with a hold-back even an assistant inside their limit needs an Admin',
-  (select r ->> 'status' from (select app.settle_deposit(test.b('opD'), test.id('op_fin'), '{"hold_back_cents": 60000, "hold_back_reason": "pending claim"}', test.at('2031-07-07 16:00')) as r) x), 'awaiting_approval');
-create table test.op_settleD as select app.settle_deposit(test.b('opD'), test.id('op_admin'), '{"hold_back_cents": 60000, "hold_back_reason": "pending claim"}', test.at('2031-07-07 17:00')) as r;
+-- 0155: with the damage incidents open the whole deposit stays held; only an Admin releases part of it, with the reason
+select test.throws('D with the damage still open an assistant releases none of the deposit',
+  format($$select app.settle_deposit(%L, %L, '{"hold_back_cents": 60000, "hold_back_reason": "pending claim"}', %L)$$, test.b('opD'), test.id('op_fin'), test.at('2031-07-07 16:00')), 'whole deposit stays held');
+create table test.op_settleD as select app.settle_deposit(test.b('opD'), test.id('op_admin'), '{"hold_back_cents": 60000, "hold_back_reason": "pending claim", "override_reason": "The body shop says $600 at most"}', test.at('2031-07-07 17:00')) as r;
 select test.eq('D $600 held back until 30 days after Check-in, $400 released; the hold is captured for what is held back; the booking stays open',
   (select held_back_cents || '/' || held_back_until || '/' || released_cents || '/' || captured_cents || '/' || status from deposits where booking_id = test.b('opD'))
   || ' ' || (select status::text from bookings where id = test.b('opD'))

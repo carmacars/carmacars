@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, carByHand, db, noOverflow } from './helpers';
+import { acceptCookies, carByHand, db, noOverflow, strongSign } from './helpers';
 
 // Migration 0046 end to end: Admin > Partners (add a partner), Admin > Vehicles > Add a car (a partner's car and a
 // CarmaCars-owned car), Add a rental by hand (Admin, and customer service in the VA portal within its limits), the renter
@@ -59,15 +59,6 @@ async function ctx(browser: Browser) {
   const p = await c.newPage();
   p.on('dialog', (d) => void d.accept());
   return p;
-}
-async function drawSignature(page: Page) {
-  const pad = page.getByTestId('signature-pad');
-  await pad.scrollIntoViewIfNeeded();
-  const b = (await pad.boundingBox())!;
-  await page.mouse.move(b.x + 20, b.y + b.height * 0.6);
-  await page.mouse.down();
-  for (let i = 1; i <= 30; i++) await page.mouse.move(b.x + 20 + i * ((b.width - 60) / 30), b.y + b.height * (0.6 + 0.25 * Math.sin(i / 2.5)), { steps: 2 });
-  await page.mouse.up();
 }
 async function addCar(page: Page, supply: 'company' | 'partner', o: { partnerId?: string; vin: string; plate: string; daily?: string }) {
   await page.goto('/admin/vehicles/new', { waitUntil: 'networkidle' });
@@ -181,8 +172,7 @@ test('admin: partners, add a car (partner and company), add a rental, retire, de
   }
   await check(rp, 'renter signs a rental added by hand');
   await rp.getByTestId('consents-all').check();
-  await rp.getByTestId('signature-mode').click();
-  await drawSignature(rp);
+  await strongSign(rp);
   await rp.getByRole('button', { name: 'Sign the agreement' }).click();
   await rp.waitForURL(new RegExp(`/account/bookings/${number}(\\?|$)`), { timeout: 30_000 });
   const [sig] = await sql`select string_agg(r.signer_role || ':' || r.method, ',' order by r.signer_role) recs

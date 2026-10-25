@@ -63,9 +63,9 @@ select test.throws('a template without the link is refused', $$update sms_templa
 select test.eq('every customer email (renter, owner, investor, driver, co-signer, lead) has its own text, except the sign-in and security ones',
   (select count(*) from notification_catalogue c where c.audience in ('renter', 'owner', 'investor') and not c.no_text and not exists (select 1 from sms_templates t where t.code = c.code)),
   0::bigint);
-select test.eq('...116 texts; never texted: password reset, sign-in link, security notice, the continue-your-request sign-in link',
+select test.eq('...116 texts; never texted: password reset, sign-in link, security notice, the continue-your-request sign-in link, the signing code and the agreement versions (their signers get their own text, 0154)',
   (select count(*) from sms_templates)::text || ' | ' || (select string_agg(code, ',' order by code) from notification_catalogue where no_text),
-  '116 | account_password_reset,account_security_notice,account_sign_in_link,renter_continue_request');
+  '116 | account_password_reset,account_security_notice,account_sign_in_link,renter_agreement_version,renter_continue_request,renter_signing_code');
 select test.ok('documents are always emailed; sign-in emails never become texts',
   (select bool_and(always_email) from notification_catalogue where code in ('renter_payment_receipt', 'renter_agreement_signed', 'owner_statement_ready', 'investor_statement_ready'))
   and (select bool_and(no_text) from notification_catalogue where code in ('account_password_reset', 'account_sign_in_link')));

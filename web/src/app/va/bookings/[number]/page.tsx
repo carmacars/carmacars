@@ -4,6 +4,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
 import { DepositSettle } from '@/features/admin/DepositSettle';
+import { depositMethod, depositStatus } from '@/features/money/deposit-words';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
 import { BookingAddons } from '@/features/addons/BookingAddons';
 import { DriverLinks, ProposeChange, type DriverLinkRow } from '@/features/admin/BookingChanges';
@@ -21,6 +22,7 @@ import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimel
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
 import { HandoverPanel } from '@/features/handover/HandoverPanel';
 import { ReviewPanel } from '@/features/reviews/ReviewPanel';
+import { AgreementPanel } from '@/features/agreements/AgreementPanel';
 import type { PhoneTimelineData } from '@/features/phone/client';
 
 export const dynamic = 'force-dynamic';
@@ -105,6 +107,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
       {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} aal={aal} base={base} canHandover={fn !== 'finance'} canSign={fn !== 'finance'}
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} aal={aal} refresh={[base]} />}
+      {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} aal={aal} base={base} b={{ id: b.id, status: b.status }} docBase="/va/documents" finance={fn === 'finance'} />}
       <Tabs current={`${base}?tab=${tab}`} items={tabs} />
       {tab === 'review' && arranging && (
         <>
@@ -122,7 +125,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
         <div className="ad-cols ad-cols--2">
           <Card title="Trip">
             <Kv rows={[['Car', `${b.vehicle?.name ?? ''} ${b.vehicle?.plate ?? ''}`], ['Pickup', `${t(b.pickup_at)}, ${b.pickup_place ?? 'our location'}`], ['Return', `${t(b.return_at)}, ${b.return_place ?? 'our location'}`],
-              ['Renter', b.renter?.legal_name ?? ''], ['Deposit', b.deposit ? label(b.deposit.status) : 'not taken'],
+              ['Renter', b.renter?.legal_name ?? ''], ['Deposit', b.deposit ? depositStatus(b.deposit.status) : 'not taken'],
               ['Ready for handover', b.readiness ? ((b.readiness.missing as string[] | undefined)?.length ? `missing: ${(b.readiness.missing as string[]).map(label).join(', ')}` : 'yes') : '']]} />
           </Card>
           <Card title="Open tasks"><Table rows={b.tasks} empty="No open tasks." cols={[{ key: 'title', label: 'Task', className: 'wrap' }, { key: 'queue', label: 'Queue' }, { key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }]} /></Card>
@@ -144,8 +147,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
             <Table rows={b.refunds ?? []} testId="refunds" empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason', render: (r) => label(r.reason) }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)}>{r.status === 'pending_approval' ? 'Waiting for an Admin' : undefined}</Badge> }, { key: 'due_by', label: 'Due by' },
               { key: 'act', label: '', render: (r) => fn === 'finance' && r.status === 'pending_approval' ? <Act action="refund_approve" payload={{ id: r.id }} label="Approve (within my limit)" refresh={R} /> : null }]} />
           </Card>
-          <Card title="Deposit" aside={fn === 'finance' && b.deposit ? <DepositSettle bookingId={b.id} refresh={R} /> : null}>
-            {b.deposit ? <Kv rows={[['Amount', $(b.deposit.amount_cents)], ['Method', label(b.deposit.method)], ['Status', label(b.deposit.status)], ['Release due', String(b.deposit.release_due_on ?? '')]]} /> : <p className="small muted">No deposit taken yet ({$(b.deposit_cents)} at pickup).</p>}
+          <Card title="Deposit" aside={fn === 'finance' && (b.deposit || ['returned', 'closed'].includes(b.status)) ? <DepositSettle bookingId={b.id} bookingNumber={b.booking_number} refresh={R} /> : null}>
+            {b.deposit ? <Kv rows={[['Amount', $(b.deposit.amount_cents)], ['Method', depositMethod(b.deposit.method)], ['Status', depositStatus(b.deposit.status)], ['Release due', String(b.deposit.release_due_on ?? '')]]} /> : <p className="small muted">No deposit taken yet ({$(b.deposit_cents)} at pickup).</p>}
           </Card>
           {fn === 'finance' && b.status === 'returned' && <Card title="Statement"><Act action="issue_booking_statement" payload={P} label="Issue the final statement" confirm="Issue the Check-in statement from the assessed lines. Damage lines wait for an Admin." refresh={R} /></Card>}
         </div>

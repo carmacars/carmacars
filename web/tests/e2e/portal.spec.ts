@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, watch, giveLicence, storeFixturePdf } from './helpers';
+import { acceptCookies, db, noOverflow, watch, giveLicence, storeFixturePdf, strongSign, readyEsign } from './helpers';
 
 // The renter portal end to end, at 375 and 1440: request (the wizard, signed in), the staff step seeded
 // through app.send_offer, approve, details, sign by drawing on the canvas, pay with the fake adapter
@@ -41,15 +41,6 @@ async function freeWindow(sql: ReturnType<typeof db>, slug: string, start: numbe
   throw new Error('no free window');
 }
 
-async function drawSignature(page: Page) {
-  const pad = page.getByTestId('signature-pad');
-  await pad.scrollIntoViewIfNeeded();
-  const b = (await pad.boundingBox())!;
-  await page.mouse.move(b.x + 20, b.y + b.height * 0.6);
-  await page.mouse.down();
-  for (let i = 1; i <= 30; i++) await page.mouse.move(b.x + 20 + i * ((b.width - 60) / 30), b.y + b.height * (0.6 + 0.25 * Math.sin(i / 2.5)), { steps: 2 });
-  await page.mouse.up();
-}
 
 async function signIn(page: Page, email: string, next: string) {
   await page.goto(`/sign-in?next=${encodeURIComponent(next)}`, { waitUntil: 'networkidle' });
@@ -103,7 +94,14 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   // 3. the portal shows the next step; the offer page shows the version, price, countdown and the rule
   await page.goto('/account');
   await expect(page.getByTestId('next-step')).toContainText('Approve your offer');
+  // the trip hero (redesign of October 24, 2026): the car's photo or the placeholder, the clock, pickup and return
+  const hero = page.locator('.pu-ph').first();
+  await expect(hero.locator('.pu-photo')).toBeVisible();
+  await expect(hero.getByTestId('trip-countdown')).toContainText(/^Pickup in /);
+  await expect(hero.getByTestId('trip-pickup')).toBeVisible();
+  await expect(hero.getByTestId('trip-return')).toBeVisible();
   await axe(page, '/account');
+  await page.screenshot({ path: `${SHOTS}-${info.project.name}-trips.png`, fullPage: true });
   await page.getByTestId('next-step').getByRole('link', { name: 'Review offer' }).click();
   await page.waitForURL(/\/offer$/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Your offer');
@@ -145,14 +143,13 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await expect(page.getByText('Tick the four statements (one tap on "All four").')).toBeVisible();
   await page.getByTestId('consents-all').check();
   for (const c of await page.locator('.pk-statements input[type="checkbox"]').all()) await expect(c).toBeChecked();
-  await page.getByTestId('signature-mode').click();
-  await drawSignature(page);
+  await strongSign(page);
   await page.getByRole('button', { name: 'Sign and continue to payment' }).click();
   await page.waitForURL(/\/pay$/, { timeout: 30_000 });
   const [sig] = await sql`select r.method, r.provider_signature, host(r.ip_address) ip, r.user_agent, (select count(*)::int from consents c where c.booking_id = ${bk!.id} and c.consent_code in ('tracking_disabling','identity_verification','electronic_signature','card_authorization')) consents
     from signature_records r join bookings b on b.signature_request_id = r.signature_request_id where b.id = ${bk!.id} and r.signer_role = 'renter'`;
   expect(sig?.method).toBe('drawn');
-  expect(sig?.provider_signature).toMatch(/^bookings\/.+\/signatures\/renter-.+\.png$/);
+  expect(sig?.provider_signature).toMatch(/^esign\/.+\/signature-.+\.png$/);
   expect(sig?.user_agent).toContain('Mozilla');
   expect(sig?.consents).toBe(4);
 
@@ -175,7 +172,17 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await page.waitForURL(new RegExp(`/account/bookings/${number}\\?paid=1`), { timeout: 30_000 });
   await expect(page.getByTestId('paid-panel')).toContainText('Booking confirmed');
   await expect(page.getByTestId('status-badge').first()).toHaveText('Confirmed');
+  // the booking page: money by part (paid, nothing owing), the manage tiles, the progress ring
+  await expect(page.getByTestId('money-paid')).toHaveText(dollars(due!.c));
+  await expect(page.getByTestId('money-owing')).toHaveText('Nothing');
+  await expect(page.getByTestId('money-paid-booking_total')).toContainText('card ending 4242');
+  await expect(page.getByTestId('trip-actions')).toContainText('Licence and coverage');
+  await expect(page.getByTestId('trip-actions')).toContainText('Cancel booking');
+  await expect(page.getByTestId('progress-ring')).toBeVisible();
+  await page.getByTestId('action-add-driver').click();
+  await expect(page.locator('#pt-msg-body')).toHaveValue(/add a driver/);
   await axe(page, 'booking');
+  await page.screenshot({ path: `${SHOTS}-${info.project.name}-booking.png`, fullPage: true });
 
   // 0077: the signed copy is made by a background job, within seconds of the payment
   await expect.poll(async () => (await sql`select count(*)::int n from rental_agreements a join signature_requests s on s.id = a.signature_request_id
@@ -330,7 +337,7 @@ test('race: another renter pays first, the authorization is voided and the push-
   await expect(page.locator('.agreement')).toContainText('1 Yonge Street', { timeout: 15_000 });
   // the legal name on file is the signature: one tap for the statements, one to sign
   await page.getByTestId('consents-all').check();
-  await expect(page.getByTestId('signature-adopted')).toBeVisible();
+  await strongSign(page);
   await page.getByRole('button', { name: 'Sign and continue to payment' }).click();
   await page.waitForURL(/\/pay$/, { timeout: 30_000 });
   await expect(page.getByTestId('fake-card')).toBeVisible();
@@ -340,7 +347,9 @@ test('race: another renter pays first, the authorization is voided and the push-
   await sql`select app.approve_offer(${b.booking_id}, (select current_offer_version from bookings where id = ${b.booking_id}), ${userB})`;
   storeFixturePdf('agreements', `bookings/${b.booking_id}/agreement.pdf`);
   await sql`select app.open_rental_agreement(${b.booking_id}, ${userB}, 'rental-e2e', encode(sha256(${b.booking_number}::bytea), 'hex'), ${`bookings/${b.booking_id}/agreement.pdf`})`;
-  await sql`select app.record_signature(bk.signature_request_id, g.id, g.signer_name, null, '203.0.113.10', 'e2e', 'I sign.')
+  const [gb] = await sql`select g.id from rental_agreements ra join rental_agreement_signers g on g.agreement_id = ra.id and g.signer_role = 'renter' where ra.booking_id = ${b.booking_id} and ra.status = 'open'`;
+  const drawnB = await readyEsign(sql, gb!.id);
+  await sql`select app.record_signature(bk.signature_request_id, g.id, null, ${drawnB}, '203.0.113.10', 'e2e', 'I sign.')
               from bookings bk join rental_agreements ra on ra.signature_request_id = bk.signature_request_id
               join rental_agreement_signers g on g.agreement_id = ra.id and g.signer_role = 'renter' where bk.id = ${b.booking_id}`;
   const [pb] = await sql`select app.record_booking_payment(bk.id, jsonb_build_object('processor', 'stripe', 'payment_id', 'pi_race_' || bk.id, 'method_id', 'pm_race_' || bk.id, 'customer_id', 'cus_race'),

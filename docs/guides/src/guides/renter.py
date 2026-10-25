@@ -137,7 +137,7 @@ def build():
     g.task('Open your offer')
     g.steps([
         f'We email you when the offer is ready. Sign in at {U("carmacars.ca/sign-in")} and open {B("Trips")}.',
-        f'Your next step is always at the top. Press {B("Review offer")}.',
+        f'Your next trip is at the top, with a photo of the car and its next step. Press {B("Review offer")}.',
     ], shot=S('renter/02-trips-offer-desktop', 0, 0, 1440, 760, pins=[(1, 65, 205), (2, 165, 532)]))
     g.task('Approve, ask for a change, or decline')
     g.steps([
@@ -163,16 +163,23 @@ def build():
     g.steps([
         f'Check the key values at the top: the car, the dates, the deposit and the deductible. Open {B("Read the full rental agreement")} to read it word for word, or press {B("Download PDF")} to keep a copy. Below it is the Blind Spot Car Rental agreement, filled in with the same booking: we rent under Blind Spot\'s insurance, so it is part of your rental too. Press its {B("Download PDF")} to read it.',
         f'Under Sign, tap {B("All four")}: it ticks the four statements, which stay on screen to read.',
-        f'Your full legal name is your signature. Prefer to sign with your finger or the mouse? Press {B("Draw instead")}.',
-        f'Press {B("Sign and continue to payment")}. Your one signature signs both agreements; the signed copies are in Documents and in the email that confirms your booking.',
+        f'Confirm it is you: press {B("Send the code")} and type the 6-digit code we text (or email) you. Tick that you read the agreements, initial each key term in its box, tick the three consents and draw your signature with your finger or the mouse.',
+        f'Press {B("Sign and continue to payment")}. Your one signature signs both agreements; the signed copies, with a certificate of each step, are in Documents and in the email that confirms your booking.',
     ], shot=S('renter/06-sign-ready-desktop', 0, 700, 1440, 1840,
               pins=[(3, 850, 736), (4, 1000, 848), (5, 1300, 1580), (6, 1395, 1684)]))
 
     g.task('Signing with our staff', 'At pickup or at our desk, you can sign on a CarmaCars phone or tablet.')
     g.steps([
         'Our staff member checks your name and your original licence, then hands you the device.',
-        f'Read the agreements, tick the statements and sign with your name or your finger. Then hand the device back.',
+        f'Read the agreements, confirm the code we text you, initial the key terms, tick the consents and sign with your finger. Then hand the device back.',
         'It is the same signature as signing online. Prefer your own phone? Ask for the signing link by email or text.',
+    ])
+
+    g.task('When your booking changes after you sign', 'Your agreements always match your booking.')
+    g.steps([
+        'If the dates, the price, the car, the drivers or your coverage change, you get an email and a text with a link to the new version: read what changed and sign it the same way. Until you sign, the earlier version applies.',
+        'A correction that changes nothing you agreed to (a typo in an address) comes as a corrected copy by email, with nothing to sign.',
+        'At pickup and at return you get your agreements as picked up and as returned: the time, kilometres and fuel, and at return the final charges.',
     ])
 
     g.task('Pay to confirm')
@@ -198,14 +205,15 @@ def build():
               'Your booking is confirmed. A few things are left: your licence photos, a selfie and proof of '
               'coverage, a signature from each additional driver, and the deposit.',
               blurb='Upload your licence and coverage, send driver links, and know what to bring.')
-    g.task('Your booking page')
+    g.task('Your booking page', 'Every booking opens with a large photo of your car, its name, the status and a clock: "Pickup in 2 days 4 h", or "Return by Sun 7 PM" while you have the car.')
     g.steps([
-        f'Open {B("Trips")}, then your booking. The status is at the top, for example Confirmed.',
-        'The red card tells you what is still needed before pickup.',
-        'Progress shows each stage, from Request sent to Statement.',
-        f'Need something else? holds {B("Licence and coverage")}, {B("Ask to change dates")}, {B("Cancel booking")} and {B("Extend")}.',
+        f'Open {B("Trips")}, then your booking. The status is on the photo, for example Confirmed, with your booking number.',
+        'Under the photo: when and where you pick up and return the car (tap a place to open it in Maps), the kilometres included, the fuel rule and the deposit.',
+        f'Next step tells you the one thing still needed, with its button, for example {B("Upload documents")}. When nothing is needed it says you are all set, with {B("Add to calendar")}.',
+        f'Manage your trip holds {B("Licence and coverage")}, {B("Extend")}, {B("Ask to change dates")}, {B("Message us")}, {B("Call us")}, {B("Add a driver")}, {B("Documents")} and {B("Cancel booking")}.',
     ], shot=S('renter/08-booking-confirmed-desktop', 0, 280, 1440, 1240,
-              pins=[(1, 225, 302), (2, 260, 585), (3, 116, 794), (4, 1390, 1033)]))
+              pins=[(1, 140, 760), (2, 135, 990), (3, 1100, 1010)]))
+    g.para(f'Money, on the right (below on a phone), shows what you paid and what is owing, part by part, with a {B("Pay")} button when something is open and your receipts. {B("Price details")} opens every line of the price. Progress shows how many steps are done; {B("Every step")} lists them, from Request sent to Statement.')
 
     g.task('Upload your licence, selfie and coverage', 'Do this at least 24 hours before pickup. It takes a few minutes with your phone.')
     g.steps([
@@ -303,6 +311,8 @@ def build():
         'Tolls and tickets are yours to pay, including Highway 407 ETR. If one reaches us, we pay it and charge the amount '
         'plus our fee to your Card on File, and email you a copy of the notice.',
         f'Running late? Ask to extend before your return time, or call us at 289-312-5991.',
+        f'Something wrong with the car? While you have it, press {B("Report a problem")} on your booking: it calls roadside help, or opens a message to us.',
+        f'Someone else will drive too? Press {B("Add a driver")}: write their name in the message and we add them; they sign with their own link.',
     ])
 
     # ---------------------------------------------------------------- 6
@@ -329,7 +339,7 @@ def build():
            'We never offer anything for a review, and every renter gets the same link.')
     g.task('Review your rental on our site')
     g.steps([
-        f'Open the trip under Past trips, then press {B("Review your rental")}.',
+        f'Open the trip under Past trips, then press {B("Review your rental")}. Liked the car? {B("Book again")} opens it for new dates.',
         'Tap the stars. Add a title and a few words if you like. Both are optional.',
         f'Tick {B("Show my review on the site with my first name")} only if you agree to it being shown.',
         f'Press {B("Send my review")}.',
@@ -364,7 +374,7 @@ def build():
     g.tip('You can also choose in the booking request (How should we reach you?) and when you sign up with your phone number, where Text is chosen for you.')
 
     g.reference(
-        nav_rows=[('Trips', 'Your next step first, then current, upcoming and past trips'),
+        nav_rows=[('Trips', 'Your next trip with its photo and next step, then upcoming and past trips'),
                   ('Documents', 'Agreements, receipts, statements, uploads'),
                   ('Notifications', 'Notices and your email choices'),
                   ('Profile', 'Contact details, drivers, Card on File')],
