@@ -96,6 +96,8 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
         if (!live) return;
         if (!r?.ok) {
           if (r?.reason && (r.reason === 'claimed' || (!booking && ['known', 'signed_in'].includes(r.reason)))) remember(r.reason === 'claimed' ? { never: 'claimed', claimed: true } : { never: r.reason });
+          // 0170: the saved badge's prize is gone on the server (claimed, expired, games off): no badge that does nothing
+          if (trigger === 'saved' && r?.reason !== 'limited') forgetSaved();
           onDone('failed'); return;
         }
         // a game this page does not know yet (a newer database than this website): no game rather than a broken one
@@ -104,6 +106,8 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
         setPlay(r);
         // 0100: the prize shows only as the outcome of a game played now. A play already revealed (an earlier game,
         // the same page again) is a saved prize: its claim form opens under "Your ... is saved", never as a new win.
+        // 0170: the badge asked for a saved prize the server no longer holds (it lapsed): a new game instead
+        if (trigger === 'saved' && !r.saved && !r.revealed) forgetSaved();
         if (r.saved || r.revealed) {
           rememberWon(r.prize);
           // on the site a game that fired by itself gives way to the small saved badge (the watcher shows it); the
