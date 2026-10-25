@@ -19,7 +19,7 @@ select test.eq('known by email after the win: the saved prize comes back',
   (select (r ->> 'ok') || ' ' || (r ->> 'saved') || ' ' || ((r ->> 'token') = (select v ->> 'token' from gs where n = 'k')) from (select test.gsstart('known') r) x), 'true true true');
 select test.eq('and it is claimed',
   app.server_game_claim(jsonb_build_object('token', (select v ->> 'token' from gs where n = 'k'), 'first_name', 'Gus', 'email', 'gs.known@example.test')) ->> 'ok', 'true');
-select test.eq('after the claim: never again', test.gsstart('known') ->> 'reason', 'claimed');
+select test.eq('after the claim: not again that day (0172)', test.gsstart('known') ->> 'reason', 'claimed');
 
 -- won, then started a booking request
 insert into gs values ('b', test.gsstart('busy'));

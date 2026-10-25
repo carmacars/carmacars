@@ -56,7 +56,7 @@ select test.eq('in the booking form a visitor not signed in gets the saved prize
   (select (r ->> 'saved') || ' ' || (select count(*) from game_plays where visitor_id = test.g3vid('a')) from (select test.g3start('a', '{}', 'booking') r) x), 'true 1');
 select test.eq('the saved prize is claimed with its token as any other',
   app.server_game_claim(jsonb_build_object('token', (select v ->> 'token' from g3 where n = 2), 'first_name', 'Gia', 'email', 'g3.a@example.test')) ->> 'ok', 'true');
-select test.eq('after the claim: never again', test.g3start('a') ->> 'reason', 'claimed');
+select test.eq('after the claim: not again that day (0172)', test.g3start('a') ->> 'reason', 'claimed');
 -- not revealed: the reuse of 0081 is unchanged (the same page again before the browser showed it)
 insert into g3 values (4, test.g3start('b'));
 select test.eq('not revealed and not shown yet: the same play again, still to play',

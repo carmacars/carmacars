@@ -1,4 +1,4 @@
-// Discount games (migrations 0069, 0081, 0094, 0100 and 0171): the rules that decide when a game may show (first, again after
+// Discount games (migrations 0069, 0081, 0094, 0100, 0171 and 0172): the rules that decide when a game may show (first, again after
 // a close, in the request-to-book form), the rotation, and the layouts the games draw. Pure functions (no browser, no imports) so they are
 // unit tested and shared by the trigger and the games. The prize itself is drawn by the database; nothing here can
 // change it.
@@ -13,14 +13,27 @@ export const GAMES: GameKind[] = ['wheel', 'scratch', 'blackjack', 'cups', 'plin
 export interface GameCfg { on: boolean; car_pages: number; seconds: number; exit: boolean; reshow_pages: number; reshow_seconds: number; per_visit: number; per_day?: number | null; booking: boolean }
 /** A prize this browser already won and has not claimed (0100): shown as "Your 5% off is saved", never as a new win. */
 export interface SavedPrize { label: string; short: string; at: number }
-/** What this browser remembers (localStorage, the visitor's own device only): a claim, a refusal from the server, the
- *  games shown in the current round, the code, the last game shown (0100), a prize won and not claimed yet (0100), and
- *  when a booking request was started or sent here (0100). dismissedAt is from 0069 and no longer read. */
-export interface GameMemory { claimed?: boolean; never?: string; seen?: GameKind[]; last?: GameKind; dismissedAt?: number; code?: string; codeUntil?: string; day?: string; dayShows?: number;
+/** What this browser remembers (localStorage, the visitor's own device only): a claim (0172: when, and until when the
+ *  games wait), a refusal from the server, the games shown in the current round, the code, the last game shown (0100), a
+ *  prize won and not claimed yet (0100), and when a booking request was started or sent here (0100). dismissedAt is
+ *  from 0069 and no longer read; claimed and never 'claimed' are from before 0172 and no longer stop a game. */
+export interface GameMemory { claimed?: boolean; claimedAt?: number; againAt?: number; never?: string; seen?: GameKind[]; last?: GameKind; dismissedAt?: number; code?: string; codeUntil?: string; day?: string; dayShows?: number;
   won?: SavedPrize; requested?: number }
-/** This visit (sessionStorage): when it started, pages and car pages seen, how it began, the games shown, and when the
- *  last one was closed (with the car pages seen by then). */
-export interface Visit { start: number; pages: number; cars: string[]; fromSearch: boolean; shows?: number; closedAt?: number; carsAtClose?: number; pagesAtClose?: number }
+/** This visit (sessionStorage): when it started, pages and car pages seen, how it began, the games shown, when the
+ *  last one was closed (with the car pages seen by then), and (0172) whether a code was claimed in it. */
+export interface Visit { start: number; pages: number; cars: string[]; fromSearch: boolean; shows?: number; closedAt?: number; carsAtClose?: number; pagesAtClose?: number; claimed?: boolean }
+
+/** 0172: after a claim the games wait until the server's again_after (a day after the claim by default, the Admin
+ *  setting game_replay_after_claim_days); then they come back on a later visit. A claim remembered from before 0172
+ *  (claimed: true, no time) counts as long ago, so the games may come back (the server still decides). */
+export const claimWait = (m: GameMemory, now: number): number | null => (typeof m.againAt === 'number' && m.againAt > now ? m.againAt : null);
+/** With no day to come back (the setting at 0: one code ever) the browser asks the server again after this many days. */
+export const CLAIM_RECHECK_DAYS = 30;
+/** The memory after a claim here, or after the server answered "claimed" (with again_after, or none for one code ever). */
+export function claimMemory(againAfter: string | null | undefined, now: number): Partial<GameMemory> {
+  const t = againAfter ? Date.parse(againAfter) : Number.NaN;
+  return { claimed: undefined, never: undefined, claimedAt: now, againAt: Number.isFinite(t) ? t : now + CLAIM_RECHECK_DAYS * 86_400_000 };
+}
 
 /** The browser's day (Toronto), for the most games in one day (0094). */
 export const gameDay = (now: number) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(now));
@@ -33,7 +46,7 @@ export const countShown = (m: GameMemory, now: number): Partial<GameMemory> => (
 export const SAVED_DAYS = 14;
 /** The prize won in this browser and not claimed yet, while it lasts (0100). */
 export const savedPrize = (m: GameMemory, now: number): SavedPrize | null =>
-  (m.won && !m.claimed && now - m.won.at < SAVED_DAYS * 86_400_000 ? m.won : null);
+  (m.won && !(typeof m.claimedAt === 'number' && m.claimedAt >= m.won.at) && now - m.won.at < SAVED_DAYS * 86_400_000 ? m.won : null);
 /** The words of the saved badge: "Your 5% off is saved". */
 export const savedWords = (p: { label: string }) => `Your ${p.label} is saved`;
 /** 0171: the card of a prize won and not claimed, popping up again by itself: "Your 5% off is still waiting". */
@@ -86,11 +99,12 @@ export function isSearchReferrer(ref: string | null | undefined): boolean {
 /** Why the site's game may not show to this visitor now (null: it may). Signed-in people never see it on the site.
  *  0100: never once a booking request is in progress. 0171: a prize won here and not claimed no longer stops it: the
  *  card pops up again with that prize ("Your 5% off is still waiting"; the server returns the saved play), on the same
- *  rules as a game, with the small badge between pops. */
+ *  rules as a game, with the small badge between pops. 0172: a claim stops it for the rest of the visit and until the
+ *  wait after it ends, then it comes back on a later visit. */
 export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: boolean; path: string; visit?: Visit | null; now?: number; busy?: boolean }): string | null {
   if (a.signedIn) return 'signed_in';
-  if (a.mem.claimed) return 'claimed';
-  if (a.mem.never) return a.mem.never;
+  if (a.visit?.claimed || claimWait(a.mem, a.now ?? Date.now()) !== null) return 'claimed';
+  if (a.mem.never && a.mem.never !== 'claimed') return a.mem.never;
   if (excludedPath(a.path)) return 'page';
   if (a.busy) return 'in_progress';
   if (!a.cfg) return 'no_settings';
@@ -101,9 +115,9 @@ export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: 
 
 /** Why the request-to-book form may not offer the game (null: it may). Anyone who has not claimed, signed-in renters
  *  included; never staff (the server says so). A visitor the site leaves alone because they are known or signed in
- *  is welcome here; only a claim stops it. */
-export function bookingIneligible(a: { cfg: GameCfg | null; mem: GameMemory; path: string; staff?: boolean; promoApplied?: boolean }): string | null {
-  if (a.mem.claimed || a.mem.never === 'claimed') return 'claimed';
+ *  is welcome here; only a claim stops it (0172: until the wait after it ends). */
+export function bookingIneligible(a: { cfg: GameCfg | null; mem: GameMemory; path: string; staff?: boolean; promoApplied?: boolean; now?: number }): string | null {
+  if (claimWait(a.mem, a.now ?? Date.now()) !== null) return 'claimed';
   if (a.staff) return 'staff';
   if (!bookingPath(a.path)) return 'page';
   if (!a.cfg) return 'no_settings';

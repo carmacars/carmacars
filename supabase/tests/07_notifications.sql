@@ -738,9 +738,12 @@ select app.emit_event('renter_google_review_request', 'booking', test.id('bookin
 select test.flush();
 update site_settings set google_place_id = null;
 update program_settings set uptime_alert_email = 'rent@carmacars.ca';
--- the discount game code and its reminder (0069)
+-- the discount game code and its reminder (0069); the play is claimed whatever it drew: without the replay prize (0171:
+-- never claimed; 0172: a new play draws from the whole table)
+update program_settings set game_prizes = app.game_prizes_real(game_prizes);
 select app.server_game_claim(jsonb_build_object('token', (app.game_start(jsonb_build_object('vid', test.id('nt_game_vid'))) ->> 'token'),
   'first_name', 'Nora', 'email', 'nt.game@example.test'));
+update program_settings set game_prizes = default;
 select app.emit_event('renter_game_code_reminder', 'game_claim', (select id from game_claims where email = 'nt.game@example.test'), '{}', 'renter_game_code_reminder:nt');
 select app.emit_event('renter_game_code_reminder_3d', 'game_claim', (select id from game_claims where email = 'nt.game@example.test'), '{}', 'renter_game_code_reminder_3d:nt');
 -- the promo code expiry reminders of a code made for a renter (0161); suite 99 tests when they are sent

@@ -161,7 +161,7 @@ for (const g of GAMES_PLAYED) {
     await axe(page, `${g.game} won`);
     await claim(page, sql, `game.${g.game}.${test.info().project.name}.${Date.now()}.${tag()}@example.test`, '10% off');
     await axe(page, `${g.game} code`);
-    // never again on this device
+    // not again in this visit on this device (0172: it comes back a day later)
     await page.goto('/cars/toyota-corolla', { waitUntil: 'load' });
     await page.goto('/cars/kia-forte', { waitUntil: 'load' });
     await page.waitForTimeout(1500);

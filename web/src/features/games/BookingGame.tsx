@@ -3,12 +3,12 @@ import './offer.css';
 import { useCallback, useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { visitorId } from '@/features/live/beacon';
-import { bookingIneligible, savedWords } from './rules';
-import { automated, gameSettings, loadPopup, memory, remember } from './GameGate';
+import { bookingIneligible, claimWait, savedWords } from './rules';
+import { automated, gameSettings, loadPopup, memory, rememberClaim } from './GameGate';
 import type { Claimed, GamePopupProps } from './GamePopup';
 
 // Discount games in the request-to-book form (migration 0081). The one place a signed-in renter sees a game: anyone who
-// has not claimed a prize is offered "Play for a discount on this booking" on the add-ons and review steps (never on
+// has not claimed a prize (0172: in the last day, the wait after a claim) is offered "Play for a discount on this booking" on the add-ons and review steps (never on
 // the pay or sign pages, never to staff: the server says who may). The offer is decided in idle time when the form
 // opens and drawn only with a step that starts after that, so nothing on the page moves. It never blocks the booking:
 // the card opens the game over the page, a won code goes in the promo code box (the quote then applies it with its own
@@ -48,11 +48,11 @@ export function useBookingGame(a: BookingGameArgs): { card: (step: number) => Re
       void (async () => {
         if (automated() || wasClosed()) return;
         const cfg = await gameSettings();
-        if (!live || bookingIneligible({ cfg, mem: memory(), path })) return;
+        if (!live || bookingIneligible({ cfg, mem: memory(), path, now: Date.now() })) return;
         const r = await fetch('/api/games', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin',
-          body: JSON.stringify({ action: 'start', p: { vid: visitorId(), context: 'booking', dry: true } }) }).then((x) => x.json() as Promise<{ ok: boolean; reason?: string; saved?: string | null }>).catch(() => null);
+          body: JSON.stringify({ action: 'start', p: { vid: visitorId(), context: 'booking', dry: true } }) }).then((x) => x.json() as Promise<{ ok: boolean; reason?: string; saved?: string | null; again_after?: string }>).catch(() => null);
         if (!live || !r) return;
-        if (!r.ok) { if (r.reason === 'claimed') remember({ claimed: true, never: 'claimed' }); return; }
+        if (!r.ok) { if (r.reason === 'claimed') rememberClaim(r.again_after); return; }
         setSaved(r.saved ?? null);
         setReady(true);
         // the game's code in idle time, so it opens at once
@@ -73,7 +73,7 @@ export function useBookingGame(a: BookingGameArgs): { card: (step: number) => Re
   }, []);
   const claimed = useCallback((c: Claimed) => { setCode(c.code); setState('won'); a.onCode(c.code); }, [a]);
 
-  const offerOn = (step: number) => ready && shownOn.includes(step) && (state === 'won' || (state === 'offer' && !a.promoApplied && !memory().claimed));
+  const offerOn = (step: number) => ready && shownOn.includes(step) && (state === 'won' || (state === 'offer' && !a.promoApplied && claimWait(memory(), Date.now()) === null));
   const card = (step: number): ReactNode => {
     if (!offerOn(step)) return null;
     if (state === 'won') return (

@@ -5,7 +5,7 @@ import { lazy, Suspense, useEffect, useId, useRef, useState, type ComponentType 
 import { browserRpc } from '@/lib/browser-rpc';
 import { sessionId, visitorId } from '@/features/live/beacon';
 import { claimProblems, isReplay, wonWords, type GameKind, type PrizeWord, type Trigger, type Visit } from './rules';
-import { forgetSaved, memory, remember, rememberSeen, rememberWon } from './GameGate';
+import { forgetSaved, memory, remember, rememberClaim, rememberSeen, rememberWon } from './GameGate';
 import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 
 // Discount games (migrations 0069 and 0081): the game itself. A slide-in card on a computer and a bottom sheet on a
@@ -18,12 +18,12 @@ import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 // prize won earlier and not claimed opens this card again by itself ("Your 5% off is still waiting"); the replay prize
 // ("another go") has no claim form but a "Play again" button: the server starts a second play (another game, a prize
 // without the replay), which always ends in a code.
-export type Claimed = { code: string; prize_label: string; applies_to: string; expires: string; email: string; min_days?: number | null };
+export type Claimed = { code: string; prize_label: string; applies_to: string; expires: string; email: string; min_days?: number | null; again_after?: string | null };
 export interface GamePopupProps {
   trigger: Trigger | 'booking' | 'saved'; path: string; seen: GameKind[]; onDone: (how: 'closed' | 'claimed' | 'failed') => void; slim?: boolean;
   context?: 'site' | 'booking'; prefill?: { first: string; email: string; phone: string }; onClaimed?: (c: Claimed) => void; applied?: string;
 }
-export interface Play { ok: boolean; reason?: string; token: string; game: GameKind; prize: PrizeWord & { min_days: number | null; rare?: boolean }; prizes: PrizeWord[]; terms: string; consent: string; revealed?: boolean;
+export interface Play { ok: boolean; reason?: string; /** 0172: with reason claimed, when this person may play again */ again_after?: string; token: string; game: GameKind; prize: PrizeWord & { min_days: number | null; rare?: boolean }; prizes: PrizeWord[]; terms: string; consent: string; revealed?: boolean;
   /** 0171: the second game of a replay prize */
   second?: boolean;
   /** 0100: this visitor already won this prize (an earlier game was played to the end) and has not claimed it */
@@ -102,7 +102,9 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
       .then((r) => {
         if (!live) return;
         if (!r?.ok) {
-          if (r?.reason && (r.reason === 'claimed' || (!booking && ['known', 'signed_in'].includes(r.reason)))) remember(r.reason === 'claimed' ? { never: 'claimed', claimed: true } : { never: r.reason });
+          // 0172: claimed: not until again_after (the server's wait after a claim); known or signed in: not on the site
+          if (r?.reason === 'claimed') rememberClaim(r.again_after);
+          else if (r?.reason && !booking && ['known', 'signed_in'].includes(r.reason)) remember({ never: r.reason });
           // 0170: the saved badge's prize is gone on the server (claimed, expired, games off): no badge that does nothing
           if (trigger === 'saved' && r?.reason !== 'limited') forgetSaved();
           onDone('failed'); return;
@@ -172,15 +174,15 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
       const r = await fetch('/api/games', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({
         token: play.token, first_name: form.first.trim(), email: form.email.trim(), phone: form.phone.trim(), marketing: form.marketing, sid: sessionId(),
         cars_viewed: visit?.cars.length ?? 0, pages_viewed: visit?.pages ?? 0, seconds: visit ? Math.round((Date.now() - visit.start) / 1000) : 0 }) });
-      const j = (await r.json()) as ({ ok: true } & Claimed) | { ok: false; error?: string; message?: string };
+      const j = (await r.json()) as ({ ok: true } & Claimed) | { ok: false; error?: string; message?: string; again_after?: string };
       if (!j.ok) {
         if (j.error && ['first_name', 'email', 'phone'].includes(j.error)) setErrors({ [j.error === 'first_name' ? 'first' : j.error]: j.message ?? 'Check this field.' });
         else setFailure(j.message ?? 'We could not send the code. Please try again.');
-        if (j.error === 'email_used' || j.error === 'device_used' || j.error === 'claimed') remember({ claimed: true });
+        if (j.error === 'email_used' || j.error === 'device_used' || j.error === 'claimed') rememberClaim(j.again_after);
         return;
       }
       setClaimed(j); setStage('claimed');
-      remember({ claimed: true, code: j.code, codeUntil: j.expires });
+      rememberClaim(j.again_after, { code: j.code, codeUntil: j.expires });
       forgetSaved();
       onClaimed?.(j);
       setTimeout(() => head.current?.focus(), 0);

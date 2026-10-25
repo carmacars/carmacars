@@ -8,7 +8,7 @@ import { db, noOverflow } from './helpers';
 // waiting" on the usual rules, never as "You won"; 0171 also: another go and Play again); each of the five new
 // games (coin flip, dice roll, slot machine, prize drop, mystery box) plays to the drawn prize and gives the code; the
 // owner's timings as set live (the 2nd page view; after a close the 3rd page view; 4 a visit; never the same game twice
-// in a row; none once a booking request is in progress). The chat greeting: once a visit, for the page (the car's
+// in a row; none once a booking request is in progress); 0172: a winner plays again a day later and wins a 2nd code. The chat greeting: once a visit, for the page (the car's
 // name on a car page), never over a game, and a reply opens the chat with it as the first message. axe and overflow on
 // every new surface.
 type Sql = ReturnType<typeof db>;
@@ -175,7 +175,7 @@ test('0171: a prize won in this browser and closed pops up again on the 3rd page
   await expect(page.getByTestId('game-play')).toHaveCount(0);
   expect((await sql`select count(*)::int n from game_plays where visitor_id = ${vid}`)[0]!.n).toBe(1);
   await claim(page, sql, 'Your 10% off is still waiting');
-  // claimed: never again, no badge
+  // claimed: not again in this visit (0172: a day later on a later visit), no badge
   await visit(page, '/faq');
   await page.waitForTimeout(1500);
   await expect(page.getByTestId('game-saved')).toHaveCount(0);
@@ -224,6 +224,60 @@ test('0171: another go: "You won another go!", Play again starts a different gam
   const rows = await sql`select g.replay_of is not null as second from game_claims c join game_plays g on g.id = c.play_id where c.email = ${email}`;
   expect(rows[0]!.second).toBe(true);
   await page.context().close();
+  await sql.end();
+});
+
+test('0172: a winner plays again on a later visit: no game for the rest of the visit, a day later a new game and a 2nd code for the same email', async ({ browser }) => {
+  test.setTimeout(150_000);
+  const sql = db();
+  const { page, vid } = await visitor(browser, sql, { game: 'dice', cfg: { car_pages: 1, reshow_pages: 1 } });
+  await visit(page, '/cars/toyota-corolla');
+  await answerCookies(page);
+  await expect(page.getByTestId('game')).toBeVisible({ timeout: 30_000 });
+  await page.getByTestId('game-play').click();
+  await PLAY.dice!(page);
+  await expect(page.getByRole('heading', { name: 'You won 10% off' })).toBeVisible({ timeout: 15_000 });
+  const g = page.getByTestId('game');
+  const email = `gr.${test.info().project.name}.${Date.now()}.${tag()}@example.test`;
+  await g.getByLabel('First name', { exact: true }).fill('Gia');
+  await g.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByTestId('game-get-code').click();
+  await expect(page.getByTestId('game-code')).toHaveText(/^WIN-[A-Z2-9]{4}-[A-Z2-9]{4}$/, { timeout: 30_000 });
+  const first = (await page.getByTestId('game-code').innerText()).trim();
+  await page.getByTestId('game-close').click();
+  // the rest of this visit: no game, no badge (the browser waits until the server's again_after, a day later)
+  for (const p of ['/faq', '/how-it-works', '/cars/kia-forte']) await visit(page, p);
+  await page.waitForTimeout(1500);
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  await expect(page.getByTestId('game-saved')).toHaveCount(0);
+  const mem = await page.evaluate(() => JSON.parse(localStorage.getItem('cc_game') ?? '{}') as { againAt?: number; claimed?: boolean });
+  expect(mem.againAt).toBeGreaterThan(Date.now() + 23 * 3_600_000);
+  expect(mem.claimed).toBeUndefined();
+  // a day goes by: the claim is a day old in the database and in this browser's memory; the next visit is a new tab
+  await sql`update game_claims set created_at = created_at - interval '25 hours' where email = ${email}`;
+  await page.evaluate(() => { const m = JSON.parse(localStorage.getItem('cc_game') ?? '{}'); m.againAt = Date.now() - 60_000; localStorage.setItem('cc_game', JSON.stringify(m)); });
+  // the prize of the new play set in advance (the database returns the visitor's open play instead of drawing one)
+  await sql`insert into game_plays (visitor_id, game, prize, path, trigger) values (${vid}, 'coin', ${sql.json(PRIZE10 as never)}, '/cars/toyota-corolla', 'pages')`;
+  const next = await page.context().newPage();
+  await page.close();
+  await visit(next, '/cars/toyota-corolla');
+  const card = next.getByTestId('game');
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  await expect(card).toHaveAttribute('data-game', 'coin');
+  await next.getByTestId('game-play').click();
+  await PLAY.coin!(next);
+  await expect(next.getByRole('heading', { name: 'You won 10% off' })).toBeVisible({ timeout: 15_000 });
+  await card.getByLabel('First name', { exact: true }).fill('Gia');
+  await card.getByLabel('Email', { exact: true }).fill(email);
+  await next.getByTestId('game-get-code').click();
+  await expect(next.getByTestId('game-code')).toHaveText(/^WIN-[A-Z2-9]{4}-[A-Z2-9]{4}$/, { timeout: 30_000 });
+  const second = (await next.getByTestId('game-code').innerText()).trim();
+  expect(second).not.toBe(first);
+  await axe(next, 'second code');
+  const rows = await sql`select pc.code, pc.is_active from game_claims c join promo_codes pc on pc.id = c.promo_code_id where c.email = ${email} order by c.created_at`;
+  expect(rows.map((r) => r.code)).toEqual([first, second]);
+  expect(rows.every((r) => r.is_active)).toBe(true);
+  await next.context().close();
   await sql.end();
 });
 
