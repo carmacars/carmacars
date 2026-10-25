@@ -125,7 +125,7 @@ jobs:
         run: |
           sudo apt-get update -q -o Acquire::Retries=3 && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends espeak-ng ffmpeg
           pip install -q torch --index-url https://download.pytorch.org/whl/cpu
-          pip install -q 'kokoro>=0.9.4' soundfile
+          pip install -q 'kokoro==0.9.4' 'misaki[en]==0.9.4' 'spacy==3.8.7' soundfile
           pip list 2>/dev/null | grep -i -E '^(kokoro|misaki|torch|spacy|numpy|transformers|huggingface)' | tr -s ' ' | paste -sd ';' | sed 's/^/::notice title=kokoro versions::/'
       - name: Voice (Kokoro-82M)
         timeout-minutes: 15
