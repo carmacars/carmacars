@@ -1,3 +1,5 @@
+import type { DocReview, DocUpload } from '@/features/admin/todo/types';
+
 // One field job as app.field_read('job') returns it (migration 0031).
 export interface FieldDamage { label: string; location: string; description: string; kind?: string | null; size_cm?: number | null; position?: { x: number; y: number } | null; is_new?: boolean }
 export interface FieldJob {
@@ -51,3 +53,10 @@ export interface Resolve {
   awaiting_signature: boolean; tracker_override_allowed: boolean; tracker_override: TrackerOverride | null;
   resolutions: Array<{ kind: string; at: string; reason: string | null; by: string | null }>;
 }
+
+// 0162: the licence review of field staff. A card of "Licences to check" (field_read('licences')) and one booking's licence
+// images (field_read('licence_review'), with one-minute private links in each upload's url).
+export interface LicenceCard { field_job_id: string; kind: string; status: string; scheduled_at: string; place: string | null; vehicle_id: string; vehicle_label: string; plate: string | null;
+  booking_id: string; booking_number: string; renter_first_name: string | null; waiting: number }
+export interface LicenceReviewData { job_id: string; booking_id: string; booking_number: string; status: string; pickup_at: string; return_at: string; renter_name: string | null; vehicle_name: string | null;
+  readiness: { all_drivers_verified?: boolean }; drivers: DocReview['drivers']; uploads: DocUpload[]; waiting: number }

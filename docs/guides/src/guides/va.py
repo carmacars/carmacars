@@ -209,7 +209,7 @@ def build():
         f'One is wrong? Open {B("Reject this one")} under it, type the reason the renter reads and press {B("Reject")}.',
         f'Then press {B("Approve all")}: everything still waiting is approved at once (the Protection Plan too). A document the system refuses is named with the reason; the rest are approved.',
     ])
-    g.tip('Each opening is logged. An Admin can do the same from Admin > To do.')
+    g.tip('Each opening is logged. An Admin can do the same from Admin > To do. Field staff review the licence images (not the coverage) of bookings on their own jobs in the next 7 days from their My jobs: the booking history says the role, field.')
 
     g.task('Which credit cards include rental car coverage?', f'Renters ask this often. {P("Renters", "Card coverage")} (every function has it under Rentals or Bookings) is your quick reference: what to say, what to check, and the list.')
     g.steps([

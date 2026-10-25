@@ -317,7 +317,7 @@ def build():
         f'Then press {B("Approve all")}: every image, the proof of coverage and the Protection Plan still waiting are approved in one step. Anything the system refuses is named with the reason.',
         f'The same pop-up is on the booking: the card Renter documents ({B("Review documents")}) on Overview and on Drivers and documents.',
     ])
-    g.tip('Each opening of a renter\'s documents is logged. The links to the images last one minute. Field staff can also check a licence in person at the check-out (photos and four checks): the history says "checked in person".')
+    g.tip('Each opening of a renter\'s documents is logged. The links to the images last one minute. Field staff can also check a licence in person at the check-out (photos and four checks): the history says "checked in person". Field staff also review the licence images (not the coverage) of bookings on their own jobs in the next 7 days from My jobs, with the same Approve all or a reason to reject: the history says the reviewer\'s role, field.')
 
     g.task('Payments by day', f'{P("Money", "Payments by day")}: every payment and refund of a day or a range, by method, the cash drawer and the refunds waiting. Finance has the same screen.')
     g.steps([
