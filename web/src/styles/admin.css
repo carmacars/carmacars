@@ -66,7 +66,8 @@
 
 .ad-head { display: flex; justify-content: space-between; align-items: end; gap: var(--s-3); flex-wrap: wrap; }
 .ad-head h1 { margin: 0; }
-.ad-head__actions { display: flex; gap: var(--s-2); flex-wrap: wrap; align-items: center; }
+.ad-head__actions { display: flex; gap: var(--s-2); flex-wrap: wrap; align-items: center; min-width: 0; max-width: 100%; }
+.ad-head__actions .btn { white-space: normal; max-width: 100%; text-align: center; } /* a long action wraps at 375 */
 
 /* tables */
 .ad-scroll { position: relative; background: var(--white); border: 1px solid var(--grey-200); max-width: 100%; overflow-x: auto; } /* relative: a visually hidden label inside stays clipped */
@@ -372,3 +373,24 @@ a.ad-tile:hover { border-color: var(--black); }
 .ad-morefilters > div { display: grid; gap: var(--s-2); }
 .ad-head__text { display: grid; gap: 2px; min-width: 0; }
 .ad-head__purpose { max-width: 70ch; margin: 0; }
+
+/* 0149: Admin > Settings > Vehicle pages, Stock photos */
+.stock-list { list-style: none; margin: var(--s-3) 0; padding: 0; display: grid; gap: var(--s-3); }
+.stock-row { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: var(--s-3); align-items: start; }
+.stock-row img { width: 160px; height: auto; display: block; background: var(--grey-200); }
+.stock-row__none { display: grid; place-items: center; width: 160px; aspect-ratio: 3 / 2; background: var(--grey-200); font-size: var(--fs-2xs); }
+.stock-row__text { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.stock-row__acts { gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-1); }
+@media (max-width: 30rem) { .stock-row { grid-template-columns: minmax(0, 1fr); } .stock-row img, .stock-row__none { width: 100%; } }
+
+/* 0151: the identity review on one screen */
+.ad-approve-all { border: 2px solid var(--black); padding: var(--s-3); }
+.ad-approve-all ul { margin: 0; padding-left: 1.25rem; }
+.ad-reject > summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; }
+
+/* 0151: Payments */
+.pay-filters { align-items: end; margin-bottom: var(--s-4); }
+.pay-filters .field { min-width: 9rem; }
+.pay-methods { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); }
+.pay-methods legend { width: 100%; }
+.pay-out { color: #9b0c16; }

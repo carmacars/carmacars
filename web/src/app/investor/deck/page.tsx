@@ -5,6 +5,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { currentUser } from '@/server/portal/data';
 import { door, rolesOf } from '@/server/door';
 import { Deck } from '@/features/deck/Deck';
+import { DeckVideo } from '@/features/deck/DeckVideo';
 import type { DeckFigures } from '@/features/deck/types';
 
 export const dynamic = 'force-dynamic';
@@ -29,5 +30,5 @@ export default async function InvestorDeck() {
     return <section className="pt-card" data-testid="deck-closed"><h1 className="d3">The investor deck is not available yet</h1>
       <p>We will let you know when it is ready. Your investments and statements are on <Link className="link" href="/investor">Investments</Link>.</p></section>;
   }
-  return <div className="dk-bleed"><h1 className="vh">CarmaCars investor deck</h1><Deck f={f} today={torontoToday()} /></div>;
+  return <div className="dk-bleed"><h1 className="vh">CarmaCars investor deck</h1><DeckVideo /><Deck f={f} today={torontoToday()} /></div>;
 }

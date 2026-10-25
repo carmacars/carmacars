@@ -9,19 +9,20 @@ export type Fn = 'finance' | 'fleet' | 'cs' | 'sales';
 const WORK: NavGroup = { key: 'work', label: 'My work', links: [{ href: '/va', label: 'To do', key: 't' }, { href: '/va/today', label: 'Today at a glance' }, { href: '/va/scorecard', label: 'My scorecard' }, { href: '/va/my-sales', label: 'My sales' }] };
 // customer service and Sales also watch the site and answer the live chat (0060): their own group since October 23, 2026
 const LIVE: NavGroup = { key: 'live', label: 'Live', links: [{ href: '/va/chat', label: 'Live chat' }, { href: '/va/live', label: 'Live visitors' }, { href: '/va/game-leads', label: 'Game leads' }] };
-// every function adds rentals and takes quotes (0058), and answers which credit cards include rental car coverage (0131)
+// every function adds rentals and takes quotes (0058), and answers which credit cards include rental car coverage (0131);
+// customer service keeps the review requests on hold and matches Google reviews (0146)
 const SELL: NavGroup = { key: 'sell', label: 'Rentals', links: [{ href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/quotes/new', label: 'New quote' }, { href: '/va/cars', label: 'Find a car' }, { href: '/va/card-coverage', label: 'Card coverage' }] };
 export const VA_GROUPS: Record<Fn, NavGroup[]> = {
   cs: [WORK, LIVE,
     { key: 'bookings', label: 'Bookings', links: [{ href: '/va/requests', label: 'Requests', key: 'r' }, { href: '/va/chauffeur', label: 'Chauffeur' }, { href: '/va/offers/new', label: 'Send an offer' }, { href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/quotes/new', label: 'New quote' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }, { href: '/va/cars', label: 'Find a car' }] },
-    { key: 'renters', label: 'Renters', links: [{ href: '/va/messages', label: 'Messages' }, { href: '/va/renters', label: 'Find a renter' }, { href: '/va/card-coverage', label: 'Card coverage' }] },
+    { key: 'renters', label: 'Renters', links: [{ href: '/va/messages', label: 'Messages' }, { href: '/va/renters', label: 'Find a renter' }, { href: '/va/review-requests', label: 'Review requests' }, { href: '/va/card-coverage', label: 'Card coverage' }] },
     { key: 'cars', label: 'Cars', links: [{ href: '/va/listings', label: 'Listings' }, { href: '/va/similar-cars', label: 'Similar cars' }] },
     { key: 'owners', label: 'Owners', links: [{ href: '/va/leads', label: 'Owners and enquiries' }, { href: '/va/owners/add-car', label: 'Add a car for an owner' }, { href: '/va/owner-forms', label: 'Owner forms' }] }],
   sales: [WORK, LIVE,
     { key: 'bookings', label: 'Bookings', links: [{ href: '/va/requests', label: 'Requests and offers', key: 'r' }, { href: '/va/chauffeur', label: 'Chauffeur' }, { href: '/va/offers/new', label: 'Send an offer' }, { href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/quotes/new', label: 'New quote' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }, { href: '/va/cars', label: 'Find a car' }, { href: '/va/card-coverage', label: 'Card coverage' }] },
     { key: 'owners', label: 'Owners', links: [{ href: '/va/leads', label: 'Owner leads' }] }],
   finance: [WORK,
-    { key: 'money', label: 'Money', links: [{ href: '/va/money', label: 'Payments, deposits and refunds' }, { href: '/va/tolls', label: 'Tolls and tickets' }, { href: '/va/reconciliation', label: 'Reconciliation' }, { href: '/va/turo', label: 'Turo trips' }, { href: '/va/maintenance', label: 'Maintenance bills' }] },
+    { key: 'money', label: 'Money', links: [{ href: '/va/payments', label: 'Payments by day' }, { href: '/va/money', label: 'Payments, deposits and refunds' }, { href: '/va/tolls', label: 'Tolls and tickets' }, { href: '/va/reconciliation', label: 'Reconciliation' }, { href: '/va/turo', label: 'Turo trips' }, { href: '/va/maintenance', label: 'Maintenance bills' }] },
     { key: 'renters', label: 'Renters and bookings', links: [{ href: '/va/renters', label: 'Find a renter' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] }, SELL],
   fleet: [WORK,
     { key: 'field', label: 'Field work', links: [{ href: '/va/fleet', label: 'Field jobs' }, { href: '/va/maintenance', label: 'Maintenance' }, { href: '/va/checks', label: 'Daily checks' }, { href: '/va/reviews', label: 'Photo reviews' }] },

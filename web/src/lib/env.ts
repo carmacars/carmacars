@@ -48,12 +48,21 @@ const schema = z.object({
   QUO_API_BASE: z.string().url().optional(),
   /** The signing secret of our Quo webhook (whsec_...), made by the deploy (scripts/deploy/quo.mjs) and kept in the vault. */
   QUO_WEBHOOK_SECRET: z.string().optional(),
+  /** The partner CRM link (migration 0147): gohighlevel calls GoHighLevel's API with each partner's own token (kept in the
+   *  vault, pasted in Admin); fake answers from an in-memory stand-in (local work and tests). Unset: gohighlevel in
+   *  production, fake elsewhere. */
+  CRM_PROVIDER: z.enum(['gohighlevel', 'fake']).optional(),
   /** Sign-in by phone (migration 0091): the Standard Webhooks secret ("v1,whsec_...") of Supabase Auth's Send SMS hook,
    *  made by the deploy (scripts/deploy/supabase.sh smshook) and kept in the vault. Locally the stand-in's fixed secret. */
   AUTH_SMS_HOOK_SECRET: z.string().optional(),
   /** Sign-in with a provider (src/lib/auth/oauth.ts): a comma list of google, microsoft, apple, facebook. Unset: none
    *  (no buttons). Each needs its provider switched on in Supabase Auth first; locally the stand-in fakes them. */
-  AUTH_OAUTH_PROVIDERS: z.string().default('')
+  AUTH_OAUTH_PROVIDERS: z.string().default(''),
+  /** The Google reviews sync (migration 0146): the OAuth client of the Google Cloud project that has the Business Profile
+   *  APIs (a Web application client, redirect URI <site>/api/google/reviews/callback). Unset: Admin > Settings > Reviews
+   *  says so and the rest of the review program works. The refresh token itself is in the vault, never here. */
+  GOOGLE_REVIEWS_CLIENT_ID: z.string().optional(),
+  GOOGLE_REVIEWS_CLIENT_SECRET: z.string().optional()
 });
 
 export type ServerEnv = z.infer<typeof schema>;

@@ -12,6 +12,7 @@ import { addonsPayload } from '@/features/addons/model';
 import type { ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
 import { captureDone, pendingAddBooking } from '@/server/capture';
+import { PARTNER_COOKIE } from '@/features/partner-crm/feed-key';
 
 // Request to book (docs/blueprint/02-booking-and-renter.md section 3). The server validates with the
 // same schema as the browser, checks Turnstile, measures any delivery distance itself, and calls
@@ -112,6 +113,9 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
     if (!res.ok) return { ok: false, code: String(res.error ?? 'refused'), message: String(res.message ?? 'We could not send the request. Please try again or call us.') };
     // 0096: how we reach the renter, chosen in the form (empty: the default)
     if (v.notifyChannel) await rpc('server_request_notify_channel', { p_booking_number: String(res.booking_number), p_channel: v.notifyChannel, p_user: user?.id }, { role: 'service_role' }).catch(() => undefined);
+    // 0147: a partner's booking link sent this visitor (/p/<code>/<car>): the partner gets the lead when leads are on
+    const partnerRef = (await cookies()).get(PARTNER_COOKIE)?.value ?? null;
+    if (partnerRef && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(partnerRef) && partnerRef.length <= 30) await rpc('server_partner_referral', { p: { booking_number: String(res.booking_number), code: partnerRef } }, { role: 'service_role' }).catch(() => undefined);
     if (input.draftId) await rpc('submit_form_draft', { p_draft: input.draftId, p_result: { booking_number: String(res.booking_number) } }, { role: 'service_role' }).catch(() => undefined);
     // contact capture (0090): the request is visible to this browser's unverified session (if it has one), and the
     // contact saved as it was typed is done

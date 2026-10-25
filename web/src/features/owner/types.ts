@@ -74,15 +74,26 @@ export interface OwnerHome {
   trackers_available: boolean; tracker_pending: string[];
   auto_debit: AutoDebit;
 }
+/** What the owner may see of a booking (0156): full; booked (the dates and status, no amount: shown on the statement once
+ *  approved); unavailable (a booking with no owner revenue: only that the car is unavailable, no number). */
+export type OwnerView = 'full' | 'booked' | 'unavailable';
+export interface OwnerExpense { category: 'cleaning' | 'repair' | 'fuel' | 'platform_fee' | 'other'; amount_cents: number; reason: string; receipt: boolean }
 export interface OwnerBooking {
-  booking_id: string; booking_number: string; booking_type: string; status: string; vehicle_id: string; vehicle_name: string;
-  pickup_at: string; return_at: string; rental_charge_cents: number; renter_name: string | null; renter_mobile: string | null;
+  booking_id: string; booking_number: string | null; booking_type: string; status: string; vehicle_id: string; vehicle_name: string;
+  pickup_at: string; return_at: string;
+  /** null while the owner may not see the amount (owner_view booked or unavailable) */
+  rental_charge_cents: number | null; renter_name: string | null; renter_mobile: string | null;
+  owner_view?: OwnerView;
+  /** the booking's documented owner deductions (0156), itemized once the owner sees the booking */
+  owner_expenses?: OwnerExpense[]; booking_share_bps?: number | null;
 }
 export interface StatementLine {
   id: string; line_type: string; description?: string; booking_number?: string; invoice_number?: string; from_vehicle_name?: string;
   starts_on?: string; ends_on?: string; rental_charge_cents?: number; mileage_overage_cents?: number; refunds_cents?: number; chargebacks_cents?: number;
   kickback_cents?: number; staff_commission_cents?: number; owner_revenue_cents?: number; revenue_share_cents?: number; turo_gross_cents?: number; turo_fees_cents?: number;
   fee_cents?: number; late_fee_cents?: number; amount_cents: number;
+  /** 0156: the booking's documented expenses taken off before Owner Revenue, and its own Revenue Share */
+  owner_expense_cents?: number; booking_share_bps?: number | null;
 }
 export interface OwnerStatement {
   statement: { id: string; statement_number: string; statement_month: string; payout_date: string; status: string; is_final: boolean;
@@ -140,3 +151,16 @@ export const METHOD_LABEL: Record<string, string> = {
   co_registrant: 'Co-Registrant', transfer: 'Transfer', none: 'None (Turo-Only)'
 };
 export const PAY_METHOD_LABEL: Record<string, string> = { card: 'Card', pre_authorized_debit: 'Pre-authorized debit', e_transfer: 'e-Transfer', cheque: 'Cheque', bank_transfer: 'Bank transfer', cash: 'Cash', other: 'Other' };
+
+/** The owner's month to date (0151): the statement the month would give today, provisional; or the approved one, final. */
+export interface OwnerMonthToDate {
+  month: string; final: boolean; provisional?: boolean; as_of?: string; unavailable?: boolean;
+  statement_id?: string; statement_number?: string; payout_cents?: number; payout_date?: string;
+  totals?: { owner_revenue_cents: number; revenue_share_cents: number; net_earnings_cents: number; deductions_cents: number; kickbacks_earned_cents: number;
+    hst_on_payout_cents: number; balance_brought_forward_cents: number; payout_cents: number; balance_carried_forward_cents: number } | null;
+  vehicles?: Array<{ vehicle_id: string; name: string; plate: string | null; owner_revenue_cents: number; revenue_share_cents: number; fees_cents: number; net_earnings_cents: number;
+    lines: Array<{ line_type: string; description: string; booking_number?: string; starts_on?: string; ends_on?: string; amount_cents?: number; owner_revenue_cents?: number }> }>;
+  in_progress: Array<{ booking_number: string | null; vehicle_name: string; status: string; pickup_at: string; return_at: string; days: number }>;
+  /** 0156: rentals finished this month that are on the statement but not shown yet */
+  held_back?: number;
+}

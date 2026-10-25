@@ -1,0 +1,14 @@
+/* The investor video's stage (stage.js): the deck's slides at 1920 x 1080, one layer each, moved only by the frame clock. */
+*, *::before, *::after { animation: none !important; transition: none !important; }
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+#stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+.layer { position: absolute; inset: 0; display: none; transform-origin: 50% 50%; backface-visibility: hidden; }
+.layer .dk-slide { width: 1920px; height: 1080px; border: 0; border-radius: 0; }
+.layer .dk-slide__in { height: 1080px; aspect-ratio: auto; overflow: hidden; }
+.layer .dk-slide--free .dk-slide__in { min-height: 0; }
+.layer .dk-foot__n::before { content: attr(data-n); }
+.layer .dk-chart rect { transform-box: fill-box; transform-origin: 50% 100%; }
+.layer .dk-shot img { transform-origin: 0 0; }
+.layer .dk-calc__table { max-height: 13cqi; overflow: hidden; }
+#bar { position: absolute; left: 0; bottom: 0; height: 6px; width: 1920px; background: var(--red-600); transform-origin: 0 50%; z-index: 50; }
+#black { position: absolute; inset: 0; background: #000; z-index: 60; opacity: 0; pointer-events: none; }

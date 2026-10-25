@@ -4,6 +4,7 @@ import { AddressInput } from '@/features/forms/AddressInput';
 import { AddressLookup } from '@/features/forms/AddressFields';
 import Link from 'next/link';
 import { createManualRental, deliveryDistance, draftClose, draftSave, supplyRead, type ManualRentalResult } from '@/server/actions/supply';
+import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults } from './OwnerChoice';
 import { money } from '@/lib/format';
 import { SourcedChoice, priceFlags, type Choice } from '@/features/sales/SourcedChoice';
 import { PRICE_TAX_OPTIONS, PRICE_TAX_LABEL, type PriceTaxSplit } from '@/features/sales/priceTax';
@@ -70,8 +71,10 @@ export interface MrDraft { f?: Record<string, string>; flags?: { do_not_email: b
   rent_mode?: 'trip' | 'day'; rent_day?: string; renter?: Renter | null; renter_id?: string | null; drivers?: Array<{ full_name: string; date_of_birth: string; email: string }>; addons?: AddonChoice[]; choice?: Choice }
 const FUEL: Array<[string, string]> = [['100', 'Full'], ['88', '7/8'], ['75', '3/4'], ['63', '5/8'], ['50', '1/2'], ['38', '3/8'], ['25', '1/4'], ['13', '1/8'], ['0', 'Empty']];
 
-export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: Car[]; base: '/admin' | '/va' | '/field'; isAdmin: boolean; draft?: { id: string; data: MrDraft; held: boolean; quick?: boolean } | null }) {
+export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = null }: { cars: Car[]; base: '/admin' | '/va' | '/field'; isAdmin: boolean; owner?: OwnerDefaults | null; draft?: { id: string; data: MrDraft; held: boolean; quick?: boolean } | null }) {
   const field = base === '/field';
+  // 0156: what the car's owner sees of this rental, and its documented owner deductions
+  const [ownerChoice, setOwnerChoice] = useState(() => ownerChoiceInitial(owner));
   const [choice, setChoice] = useState<Choice>(isAdmin ? 'for_carmacars' : '');
   const start0 = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
   const [f, setF] = useState<Record<string, string>>({ vehicle_id: '', pickup_at: local(start0), return_at: local(new Date(start0.getTime() + 3 * 86_400_000)),
@@ -122,6 +125,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
   const phase = phaseOf(f.pickup_at, f.return_at, now);
   const past = phase === 'past';
+  const hasOwner = ['program_owner', 'partner'].includes(cars.find((c) => c.id === f.vehicle_id)?.supply_type ?? '');
   // the price typed, as the database split it at the last check (0112); tax included: flagged on its amount before tax
   const typed = cents(f.rental_charge ?? '');
   const split = quote?.price_tax && typed !== undefined && quote.price_tax.tax === f.price_tax
@@ -217,7 +221,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
     if (k === 'turo') { setF((x) => ({ ...x, source: 'turo' })); setPaidBy('platform_payout'); setBlocks(true); }
     if (k === 'insurer') { setF((x) => ({ ...x, source: 'insurer' })); setPaidBy('insurer'); }
     if (k === 'owner') { setF((x) => ({ ...x, source: 'other', source_note: 'The owner using their own car', rental_charge: '0', price_reason: 'Owner using their own car' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); }
-    if (k === 'dummy') { setF((x) => ({ ...x, source: 'other', source_note: 'Placeholder booking (insurance or a hold)', rental_charge: '0', price_reason: 'Placeholder booking' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); }
+    if (k === 'dummy') { setOwnerChoice((x) => ({ ...x, visibility: 'never' })); setF((x) => ({ ...x, source: 'other', source_note: 'Placeholder booking (insurance or a hold)', rental_charge: '0', price_reason: 'Placeholder booking' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); }
   };
 
   // a draft opened again: every field as it was left
@@ -311,7 +315,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
         claim_number: f.claim_number || undefined, adjuster_name: f.adjuster_name || undefined, adjuster_email: f.adjuster_email || undefined, adjuster_phone: f.adjuster_phone || undefined,
         authorized_days: f.authorized_days ? Number(f.authorized_days) : undefined, authorized_daily_rate_cents: cents(f.authorized_rate ?? ''), authorized_until: f.authorized_until || undefined,
         dates_provisional: f.dates_provisional === 'yes', pays: f.insurer_pays === 'rental' ? 'split' : 'insurer' } } : {}),
-      ...(draftId ? { draft_id: draftId } : {}), ...(f.odometer_out ? { odometer_out_km: Number(f.odometer_out.replace(/\D/g, '')) } : {}), ...(f.fuel_out ? { fuel_out_pct: Number(f.fuel_out) } : {}) };
+      ...(draftId ? { draft_id: draftId } : {}), ...(f.odometer_out ? { odometer_out_km: Number(f.odometer_out.replace(/\D/g, '')) } : {}), ...(f.fuel_out ? { fuel_out_pct: Number(f.fuel_out) } : {}),
+      ...(hasOwner ? ownerChoicePayload(ownerChoice, owner, true) : {}) };
     const r = await createManualRental(p);
     if (!r.ok) { setErr(r.message); return; }
     setDone(r.data);
@@ -575,6 +580,10 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
       <fieldset className="stack"><legend className="d4">5. Who found this client</legend>
         <SourcedChoice id="mr" value={choice} onChange={setChoice} optional={isAdmin} />
       </fieldset>
+
+      {hasOwner && owner && (owner.may || owner.may_deduct) && <fieldset className="stack"><legend className="d4">6. The car&apos;s owner</legend>
+        <OwnerChoice d={owner} value={ownerChoice} onChange={setOwnerChoice} withDeductions testPrefix="mr" />
+      </fieldset>}
 
       {quote && (() => { const total = quote.quote.total_due_at_booking_cents; const first = offline ? (cents(f.amount ?? '') ?? (parts.length ? 0 : total)) : 0;
         const { paid, left } = paidSoFar(first, offline ? parts : [], total); const ps = quote.periods ?? [];

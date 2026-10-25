@@ -9,7 +9,7 @@ export function PARTNER_FIELDS(p: Record<string, unknown>): Field[] {
     { name: 'contact_title', label: 'Their title', value: p.contact_title },
     { name: 'email', label: 'Email', type: 'email', value: p.email },
     { name: 'phone', label: 'Phone', type: 'tel', value: p.phone },
-    { name: 'address_line1', label: 'Street address', value: p.address_line1 },
+    { name: 'address_line1', label: 'Street address', type: 'address', value: p.address_line1 },
     { name: 'city', label: 'City', value: p.city },
     { name: 'postal_code', label: 'Postal code', value: p.postal_code },
     { name: 'hst_number', label: 'HST number', value: p.hst_number },

@@ -1,7 +1,6 @@
 import 'server-only';
 import { env } from '@/lib/env';
 import type { Database, Json } from './types';
-import { friendlyDbMessage } from './friendly';
 
 // The one way the app reaches the database: by calling a function in the public schema, as one
 // of the three API roles, exactly as PostgREST would. Two backends:
@@ -28,11 +27,8 @@ export interface CallOptions {
 }
 
 export class DbError extends Error {
-  /** The database's own text, kept for the logs; message is what a person reads (src/lib/db/friendly.ts). */
-  public readonly raw: string;
   constructor(message: string, public readonly code: string | undefined, public readonly hint?: string) {
-    super(friendlyDbMessage(message));
-    this.raw = message;
+    super(message);
     this.name = 'DbError';
   }
 }

@@ -13,9 +13,19 @@ const LABELS: Record<string, string> = {
   ai_assistant_reserve_bps: 'Workers AI: share of the day kept for the staff assistant', ai_background_bps: 'Workers AI: share of the day for background writing',
   ai_release_hour: 'Workers AI: from this hour (Toronto) what is left goes to the others (empty: never)', ai_assistant_cushion: 'Workers AI: neurons always kept for the assistant after the release hour',
   owner_lower_share_without_signature: 'Lower management % without owner signature',
+  owner_revenue_visibility: 'Owners see a booking\'s revenue',
+  // review requests (0146)
+  review_program_enabled: 'Send review requests (check-in, request, reminder, final follow-up)', review_checkin_enabled: 'Mid-trip check-in ("How\'s the car?")',
+  review_checkin_min_days: 'Check-in only for rentals of at least (days)', review_checkin_after_hours: 'Check-in this many hours after the pickup',
+  review_ask_after_minutes: 'Review request this many minutes after the check-in', review_reminder_hours: 'Reminder this many hours after the request',
+  review_final_days: 'Final follow-up this many days after the request', review_send_from_hour: 'Send from (Toronto hour, 9 is 9 am)', review_send_until_hour: 'Send until (Toronto hour, 21 is 9 pm)',
+  review_hold_incidentals: 'Hold the request while charges are open', review_ask_max_days: 'Give up on a held request after (days from the return)',
+  review_google_match_days: 'Match a Google review to renters who returned in the last (days)', review_google_auto_match: 'Match a clear Google review at once (stops the reminders)',
+  google_review_link: 'Google review link (optional; else made from the place id)',
   e_transfer_email: 'E-Transfer email (where renters send an e-Transfer)', stripe_moto_enabled: 'Staff may type a card the renter reads out (phone orders, Stripe MOTO)',
   vpage_place_index: 'Index the place pages', vpage_colour_index: 'Index the colour pages', vpage_term_index: 'Index the search term pages', vpage_buy_index: 'Index the /buy pages',
   vpage_detailing_index: 'Index the detailing pages', vpage_bodyshop_index: 'Index the body shop pages', vpage_finance_disclaimer: 'Financing disclaimer',
+  vpage_stock_photos: 'Show stock photos (licensed, credited) on the vehicle, place and service pages',
   vpage_import_db_cap_mb: 'Database size cap for the catalog import (MB)', db_plan: 'Database plan (Supabase)', db_cap_pro_mb: 'Database size cap on Pro, for the imports (MB)',
   db_cap_free_mb: 'Database size cap on Free, for the imports (MB)', indexnow_daily_max: 'IndexNow: most addresses a day', indexnow_batch: 'IndexNow: addresses a request (at most 10,000)',
   turnaround_buffer_minutes: 'Turnaround between trips (minutes)', turnaround_block_enabled: 'Show the turnaround as a cleaning block on the calendar',
@@ -95,11 +105,17 @@ const LABELS: Record<string, string> = {
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
+  owner_revenue_visibility: 'For new bookings (0156). Right away by default. "After the return" or "when the statement is approved": the owner sees the booking as Booked with its dates, without the amounts, until then. Staff change it on each booking (Add a rental, an offer, the booking page). The statement always includes every booking at its true amounts.',
   max_rental_days: 'A booking longer than one period is cut into monthly periods: each gets its own rental agreement (and Blind Spot agreement) to sign and its own invoice. 365 by default.',
   long_rental_period_days: '30 by default: the monthly rate covers 30 days. Used when the periods are in days.',
   long_rental_autocharge: 'On: when a period\'s invoice is due, the card on file is charged and Finance gets a task only if it fails. Off: Finance collects each one.',
   staff_may_edit_fees: 'Each change is recorded on the booking with the name, the time, the amount before and after and the reason. Admins always may.',
   owner_lower_share_without_signature: 'On (default): a lower management fee (Revenue Share) on a signed car applies from its date by CarmaCars\' written notice. Off: the owner signs an updated Vehicle Schedule first, as for a higher one (Enrollment Agreement 4.8). Lower Insurance and Tracker Fees always apply by notice.',
+  review_program_enabled: 'On by default. Email and text follow each renter\'s choice; never after an unsubscribe. Off: nothing is sent.',
+  review_send_from_hour: 'A message due outside these hours waits for the next opening (9 am by default).',
+  review_hold_incidentals: 'Late return, kilometres, fuel, cleaning, smoking, damage, tolls and tickets not yet settled or waived, or an open incident or dispute. Released by itself; staff can press Send anyway.',
+  review_google_auto_match: 'A clear match is one renter whose name fits well. Anything less waits for staff in Reviews.',
+  google_review_link: 'For example the "Ask for reviews" link of the Business Profile (https://g.page/r/.../review). Must start with https://.',
   e_transfer_email: 'Shown to a renter whose offer is paid by e-Transfer. Empty: the public email of Site settings.', stripe_moto_enabled: 'Off: only the renter types a card, on their phone or on a staff device handed to them. Turn on only after Stripe enables MOTO on the account.',
   turnaround_buffer_minutes: 'One time between trips (default 120). No trip may start within it after another ends, and a trip must end this long before the next starts. After each trip it shows as the cleaning block; removing the block frees the time. It is never added twice. A car can have its own under Vehicles, the car, Calendar.',
   turnaround_block_enabled: 'Off: the same time is still held after each trip, without a block on the calendar.',
@@ -151,7 +167,7 @@ const HINTS: Record<string, string> = {
   sms_start_confirm_text: 'Texted once, right away, when someone replies START. Name CarmaCars and say how to stop (STOP).'
 };
 // numbers with a range the database also checks
-const RANGES: Record<string, [number, number]> = { sms_quiet_from_hour: [0, 23], sms_quiet_until_hour: [0, 23], signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_max_per_day: [0, 50], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
+const RANGES: Record<string, [number, number]> = { review_checkin_min_days: [1, 30], review_checkin_after_hours: [1, 240], review_ask_after_minutes: [0, 10080], review_reminder_hours: [1, 336], review_final_days: [1, 60], review_send_from_hour: [0, 23], review_send_until_hour: [1, 24], review_ask_max_days: [1, 365], review_google_match_days: [1, 365], sms_quiet_from_hour: [0, 23], sms_quiet_until_hour: [0, 23], signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_max_per_day: [0, 50], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
 export function fieldFor(k: string, v: unknown, options?: Array<[string, string]>): Field {
   const f = fieldForBase(k, v, options);
   return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };
@@ -168,4 +184,8 @@ function fieldForBase(k: string, v: unknown, options?: Array<[string, string]>):
   if (typeof v === 'string' && v.length > 80) return { name: k, label: nice(k), type: 'textarea', value: v };
   return { name: k, label: nice(k), type: 'text', value: v };
 }
-export const fieldsFrom = (row: Record<string, unknown>, keys: string[], options: Record<string, Array<[string, string]>> = {}) => keys.filter((k) => k in row).map((k) => fieldFor(k, row[k], options[k]));
+// settings that are one of a few words (a select)
+const OPTIONS: Record<string, Array<[string, string]>> = {
+  owner_revenue_visibility: [['right_away', 'Right away (default)'], ['after_return', 'After the return'], ['statement', 'When the statement is approved']]
+};
+export const fieldsFrom = (row: Record<string, unknown>, keys: string[], options: Record<string, Array<[string, string]>> = {}) => keys.filter((k) => k in row).map((k) => fieldFor(k, row[k], options[k] ?? OPTIONS[k]));

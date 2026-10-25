@@ -1,0 +1,38 @@
+{
+  "settings": { "show_to_investors": true, "deck_multiplier": 3.2, "deck_return_bps": 3000, "updated_at": "2026-10-21T00:00:00Z", "updated_by": null },
+  "brand": { "name": "CarmaCars", "tagline": null, "city": "Toronto", "service_area": "Toronto and the GTA", "phone": "(416) 555-0100", "phone_href": "+14165550100", "email": "hello@example.test", "incident_phone": "(416) 555-0100", "site_url": "https://carmacars.ca" },
+  "investment": { "min_cents": 2000000, "lockup_months": 6, "redemption_notice_months": 6, "payment_day": 15, "election_notice_days": 10 },
+  "owner_tiers": [
+    { "min_vehicles": 1, "max_vehicles": 2, "insurance_fee_cents": 45000, "tracker_fee_cents": 2500, "revenue_share_bps": 3500, "monthly_fees_cents": 47500 },
+    { "min_vehicles": 3, "max_vehicles": 9, "insurance_fee_cents": 40000, "tracker_fee_cents": 2000, "revenue_share_bps": 3000, "monthly_fees_cents": 42000 },
+    { "min_vehicles": 10, "max_vehicles": null, "insurance_fee_cents": 35000, "tracker_fee_cents": 1500, "revenue_share_bps": 2500, "monthly_fees_cents": 36500 }
+  ],
+  "install_fee_cents": 15000,
+  "partner_commission_bps": 2000,
+  "deductible_cents": 100000,
+  "deposits": { "min_cents": 25000, "max_cents": 100000 },
+  "rates": { "source": "default", "min_daily_cents": null, "max_daily_cents": null, "median_daily_cents": 7900, "delivery_cents": 5000 },
+  "addons": [
+    { "name": "Child seat", "unit": "per_day", "price_cents": 1000, "cap_cents": 7000 },
+    { "name": "Booster seat", "unit": "per_day", "price_cents": 800, "cap_cents": 5600 },
+    { "name": "Prepaid full tank", "unit": "per_trip", "price_cents": 8500, "cap_cents": null },
+    { "name": "Chauffeur", "unit": "per_hour", "price_cents": 6500, "cap_cents": null }
+  ],
+  "fees": {
+    "young_driver_21_25": { "amount_cents": 2500, "percent_bps": null },
+    "young_driver_18_20": { "amount_cents": 3500, "percent_bps": null },
+    "cleaning": { "amount_cents": 15000, "percent_bps": null },
+    "smoking": { "amount_cents": 25000, "percent_bps": null },
+    "toll_admin_fee": { "amount_cents": 1500, "percent_bps": null },
+    "ticket_admin_fee": { "amount_cents": 2500, "percent_bps": null }
+  },
+  "emails": 120,
+  "sample": { "days": 3, "daily_rate_cents": 7900, "rental_cents": 23700, "delivery_cents": 5000, "addon_name": "Child seat", "addon_cents": 3000, "young_driver_cents": 7500, "company_only_cents": 15500, "total_cents": 39200,
+    "splits": [
+      { "kind": "program_owner", "label": "Owner car, 1 to 2 cars", "share_bps": 3500, "company_rental_cents": 8295, "owner_cents": 15405, "company_cents": 23795, "monthly_fees_cents": 47500 },
+      { "kind": "program_owner", "label": "Owner car, 3 to 9 cars", "share_bps": 3000, "company_rental_cents": 7110, "owner_cents": 16590, "company_cents": 22610, "monthly_fees_cents": 42000 },
+      { "kind": "program_owner", "label": "Owner car, 10 or more cars", "share_bps": 2500, "company_rental_cents": 5925, "owner_cents": 17775, "company_cents": 21425, "monthly_fees_cents": 36500 },
+      { "kind": "company", "label": "Company car", "share_bps": 10000, "company_rental_cents": 23700, "owner_cents": 0, "company_cents": 39200, "monthly_fees_cents": 0 },
+      { "kind": "partner", "label": "Brokered partner car", "share_bps": 2000, "company_rental_cents": 4740, "owner_cents": 18960, "company_cents": 20160, "monthly_fees_cents": 0 }
+    ] }
+}

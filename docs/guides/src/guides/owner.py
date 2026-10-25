@@ -66,19 +66,19 @@ def build():
               blurb='What Home shows, each car\'s page, adding a car and new listing photos.')
     g.task('Home at a glance')
     g.steps([
-        'The menu: Home, Vehicles, Bookings, Invoices, Statements, Payouts, Documents, Banking, Notifications and Profile.',
-        'Your vehicles: each car with its status and what it needs next.',
-        'Money: what is due now, your fees each month, the next billing date and the next payout date.',
-        f'Got another car? Press {B("Add a vehicle")}.',
+        'The menu: Home, Vehicles, Bookings, Money (invoices, statements and payouts), Documents and Account (profile, banking and notifications).',
+        'At the top: each car with its photo and its status right now (On rent, Available or In service), this month\'s rental charges against last month, the next payout and the days rented this month.',
+        f'Your earnings: a column per month. Press a month, or the arrows, for its bookings, days rented, rental charges, fees billed and the payout on its statement. Choose a car to see it alone, or {B("Payouts")} for the statement amounts. Beside it, Money (what is due now, your fees each month, the next billing date and the next payout date) and Coming up, your next bookings.',
+        f'Your vehicles: each car with this month so far, its next booking and what it needs next. Got another car? Press {B("Add a vehicle")}.',
     ], shot=S('owner/01-home-desktop', 0, 0, 1440, 760,
               pins=[(1, 470, 174), (2, 615, 400), (3, 1075, 380), (4, 560, 350)]))
     g.tip('When something needs you (a signature, a payment or an upload), it is the first thing on Home.')
 
     g.task('A car\'s page', 'Open Vehicles, then a car.')
     g.steps([
-        'The top shows the car, its plate and how it is enrolled, with its status.',
+        'The top shows the car\'s photo, its plate, how it is enrolled and its status right now.',
         'Terms: the Insurance Fee, the Revenue Share, your enrolment date and a link to the listing.',
-        f'Bookings shows every trip in your car. {B("Book it for myself")} reserves it for you.',
+        f'This car by month (choose a month with the arrows or its column), Coming up, and Bookings with every trip in your car. {B("Book it for myself")} reserves it for you.',
         'Leaving explains the exit notice and has the button to give it.',
     ], shot=S('owner/03-vehicle-desktop', 0, 230, 1440, 1450,
               pins=[(1, 690, 351), (2, 1057, 476), (3, 335, 1145), (4, 1180, 992)]))
@@ -111,6 +111,7 @@ def build():
         'Bookings shows two months of your cars on a calendar. Each block is a booking number.',
         'All bookings lists every trip with its car, dates, amount and status.',
     ], shot=S('owner/04-calendar-desktop', 0, 280, 980, 1300, pins=[(1, 520, 380), (2, 120, 1240)]), fig_w=3.9)
+    g.tip('A booking can show as Booked, with its dates and no amount: its amounts show once we approve the statement that covers it, and your statement always includes every booking. Unavailable is time your car is in use by us with no revenue for you (for example an insurance hold). A booking expense or a Revenue Share set for one booking is listed on that booking with the reason, and on your statement.', label='Good to know')
     g.task('Book your own car', 'You pay no rental charge, fee or deposit. A renter\'s confirmed booking comes first.')
     g.steps([
         f'Open Bookings and use {B("Book my own car")} on the right (or {B("Book it for myself")} on the car\'s page).',
@@ -177,7 +178,8 @@ def build():
 
     g.task('Statements and payouts')
     g.steps([
-        'Statements: one a month, once approved by CarmaCars. Open one to see every booking, the revenue share, deductions and the payout.',
+        'This month so far, at the top of Statements: the rentals finished this month, your Owner Revenue, the Revenue Share, fees and deductions and the expected payout, worked out live and marked Provisional. Rentals still under way are listed below it.',
+        'Statements: one a month, once approved by CarmaCars; the approved statement is the final one. Open one to see every booking, the revenue share, deductions and the payout.',
         f'Press {B("Download PDF")} to keep a copy. We also email it to you with the PDF attached.',
         'Payouts shows what was paid to you and when. Payouts are made on the 10th for the month before.',
     ], shot=S('owner/09-statement-desktop', 0, 280, 1440, 1000, pins=[(2, 230, 450), (1, 950, 532)]))

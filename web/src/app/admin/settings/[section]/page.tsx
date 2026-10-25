@@ -21,10 +21,14 @@ import { GameReportTiles, type GameReport } from '@/features/games/GameLeads';
 import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type Listing, type PageRow } from '@/features/seo/SeoAdmin';
 import { AddonsAdmin, type AddonsData } from '@/features/addons/AddonsAdmin';
 import { VehiclePagesAdmin, type VpData } from '@/features/vehicles/VehiclePagesAdmin';
+import { StockPhotosAdmin, type StockData } from '@/features/vehicles/StockPhotosAdmin';
 import { MaintenanceSettings, type MaintSettings } from '@/features/maintenance/Settings';
 import { TextAlertsSettings, type SmsSettings } from '@/features/admin/TextAlerts';
 import { PlaceRegions, PlaceSettings, PlaceTerms, type PlacesOverview } from '@/features/places/PlacesAdmin';
 import { COVERAGE_LABEL, type CardList, type CoverageKind } from '@/features/coverage/cards';
+import { ReviewSettings, type ReviewSettingsData } from '@/features/reviews/ReviewSettings';
+import { googleKeys } from '@/server/reviews/google';
+const googleKeysSet = () => googleKeys() !== null;
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', noindex: true, description: 'Settings.' });
@@ -49,6 +53,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Delivery', (k) => k.startsWith('delivery_') || ['company_latitude', 'company_longitude'].includes(k)],
   ['Maintenance', (k) => k.startsWith('maint_')],
   ['Owners and fleet', (k) => /^(notice_period|free_retransfer|owner_|retransfer|total_loss|min_fleet|fleet_warning|safety_|fee_change|trackers_available|tracker_|plate_renewal|turo_|provisional_)/.test(k)],
+  ['Field jobs and handovers', (k) => k.startsWith('field_')],
   ['Tolls and damage', (k) => /^(toll_|damage_|incident_)/.test(k)],
   ['Listings', (k) => k.startsWith('listing_') || k.startsWith('photo_') || k.startsWith('plate_')],
   ['Vision model', (k) => k.startsWith('ai_vision')],
@@ -56,6 +61,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Partners, rentals added by hand and agreements', (k) => /^(partner_|manual_rental_|staff_agreement_)/.test(k)],
   ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|custom_price_)/.test(k)],
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
+  ['Review requests', (k) => k.startsWith('review_')],
   ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],
   ['Vehicle pages', (k) => k.startsWith('vpage_')],
   ['Forms left unfinished (contact capture)', (k) => k.startsWith('capture_')],
@@ -68,7 +74,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');
 
-export default async function Section({ params }: { params: Promise<{ section: string }> }) {
+export default async function Section({ params, searchParams }: { params: Promise<{ section: string }>; searchParams?: Promise<Record<string, string | undefined>> }) {
   const { section } = await params;
   const meta = SECTIONS.find(([k]) => k === section);
   if (!meta) notFound();
@@ -151,7 +157,10 @@ export default async function Section({ params }: { params: Promise<{ section: s
     </>);
   }
   case 'vehicle-pages':
-    return (<>{head}<VehiclePagesAdmin d={await door<VpData>(user.id, 'admin_read', 'vehicle_pages')} program={s.program} /></>);
+    return (<>{head}<VehiclePagesAdmin d={await door<VpData>(user.id, 'admin_read', 'vehicle_pages')} program={s.program} />
+      {/* 0149: the licensed stock photos (empty until the migration and the first run) */}
+      <StockPhotosAdmin d={await door<StockData>(user.id, 'admin_read', 'stock_photos').catch(() => ({ coverage: { models: 0, models_checked: 0, models_with_photo: 0, model_years: 0, model_years_with_photo: 0,
+        generations: 0, model_only: 0, hidden: 0, pending: 0, failed: 0, generic: {}, popular: 0, popular_with_photo: 0, popular_missing: [], last_run: null }, photos: [] }))} /></>);
   case 'search': {
     type Ov = { cars: R[]; pages: Array<PageRow & R>; articles: Array<ArticleRow & R>; indexnow: { waiting: number; sent_7d: number; last: { at: string | null; status: number | null } };
       neurons: { seo: number; all: number; seo_cap: number; all_cap: number }; min_real_cars: number };
@@ -199,6 +208,16 @@ export default async function Section({ params }: { params: Promise<{ section: s
         cap={s.program.game_max_discount_cents == null || s.program.game_max_discount_cents === '' ? null : Number(s.program.game_max_discount_cents)} basis={(r as GameReport & { cost_basis?: CostBasis }).cost_basis ?? null} /></Card>
       <Card title="Last 30 days"><GameReportTiles r={r} /></Card>
     </>);
+  }
+  case 'reviews': {
+    // review requests (0146): the timings and the hold, the Google review link, and the Google Business Profile connection
+    const keys = ['review_program_enabled', 'review_checkin_enabled', 'review_checkin_min_days', 'review_checkin_after_hours', 'review_ask_after_minutes', 'review_reminder_hours',
+      'review_final_days', 'review_send_from_hour', 'review_send_until_hour', 'review_hold_incidentals', 'review_ask_max_days', 'review_google_match_days', 'review_google_auto_match'];
+    const [r, sp] = await Promise.all([door<ReviewSettingsData>(user.id, 'admin_read', 'review_settings'), searchParams ?? Promise.resolve({} as Record<string, string | undefined>)]);
+    return (<>{head}
+      <ReviewSettings data={r} message={sp.google ?? null} keysSet={googleKeysSet()}
+        timings={<SaveForm table="program_settings" rowKey="current" testId="program-reviews" fields={fieldsFrom(s.program, keys)} />}
+        link={<SaveForm table="site_settings" rowKey="singleton" testId="site-reviews" fields={fieldsFrom(s.site, ['google_place_id', 'google_review_link'])} />} /></>);
   }
   case 'text-alerts': {
     // text alerts (0096): the defaults and quiet hours, and the text of each notification

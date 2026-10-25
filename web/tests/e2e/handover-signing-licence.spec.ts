@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, giveLicence, noOverflow, storeFixturePdf, watch } from './helpers';
+import { acceptCookies, db, giveLicence, noOverflow, storeFixturePdf, watch, strongSign } from './helpers';
 
 // Migration 0130 end to end, at both widths: Sales checks a car out from the booking page with the field checklist, an
 // Admin checks it in three hours late from Admin > Today's list, the photo report shows the times, Late by, kilometres,
@@ -50,8 +50,11 @@ async function freeCar(sql: Sql, start: number, days: number, past = 0) {
   return { id: rows[0].id as string, from: ymd(from), to: ymd(to) };
 }
 async function seedRequest(sql: Sql, renter: { id: string; email: string }, vehicle: string, from: string, to: string) {
+  // today's 10:00 once it is less than the two-hour notice away: the next half hour that is (any time of day)
+  let pickup = `${from}T10:00:00-04:00`;
+  if (new Date(pickup).getTime() < Date.now() + 130 * 60_000) pickup = new Date(Math.ceil((Date.now() + 150 * 60_000) / 1_800_000) * 1_800_000).toISOString();
   const req = {
-    request_key: randomUUID(), vehicle_id: vehicle, pickup_at: `${from}T10:00:00-04:00`, return_at: `${to}T10:00:00-04:00`, booking_type: 'standard',
+    request_key: randomUUID(), vehicle_id: vehicle, pickup_at: pickup, return_at: `${to}T10:00:00-04:00`, booking_type: 'standard',
     pickup_method: 'collected', return_method: 'returned', pickup_location: { kind: 'our_location' }, return_location: { kind: 'our_location' },
     coverage_option: 2, extras: { winter_tire: false, baby_seats: 0 },
     renter: { email: renter.email, full_name: 'Riley Renter', mobile: '+16475550123', date_of_birth: '1988-03-14', licence_class: 'G', licence_issuer: 'ON' }, additional_drivers: [],
@@ -78,7 +81,12 @@ async function confirmBooking(sql: Sql, booking: string, admin: string) {
             select renter_id, 'visa', '4242', 'Riley Renter', 12, 2031, true from bookings where id = ${booking}`;
   await sql`update bookings b set card_on_file_id = (select pm.id from payment_methods pm where pm.renter_id = b.renter_id order by pm.created_at desc limit 1) where b.id = ${booking}`;
   await sql`update bookings set status = 'confirmed' where id = ${booking}`;
-  await sql`update booking_drivers set identity_method = 'staff_review', identity_verified_on = current_date, licence_number = coalesce(licence_number, 'L1234-56789-01234'), licence_expiry = coalesce(licence_expiry, date '2031-01-01') where booking_id = ${booking}`;
+  await sql`update booking_drivers set identity_method = 'staff_review', identity_verified_on = current_date, licence_number = coalesce(licence_number, 'L1234-56789-01234'), licence_expiry = coalesce(licence_expiry, date '2031-01-01'), licence_issuer = coalesce(licence_issuer, 'ON') where booking_id = ${booking}`;
+  // what a claim needs on the agreement (0154: check-out stops without it): the renter's home address, the car's plate and VIN
+  await sql`update renters r set address_line1 = coalesce(r.address_line1, '1 Test Street'), city = coalesce(r.city, 'Toronto'), province = coalesce(r.province, 'ON'),
+            postal_code = coalesce(r.postal_code, 'M5H 2N2'), mobile = coalesce(r.mobile, '+16475550123') from bookings b where b.id = ${booking} and r.id = b.renter_id`;
+  await sql`update vehicles v set plate = coalesce(nullif(v.plate, ''), 'E2E' || upper(substr(md5(v.id::text), 1, 4))),
+            vin = coalesce(nullif(v.vin, ''), '1E2E' || translate(upper(substr(md5(v.id::text || 'vin'), 1, 13)), 'IOQ', '123')) from bookings b where b.id = ${booking} and v.id = b.vehicle_id`;
   await sql`insert into coverage_proofs (booking_id, coverage_option, status, card_issuer, card_last4, confirmed_at) values (${booking}, 2, 'confirmed', 'Bank', '4242', now())`;
   await sql`update bookings set coverage_option = 2, coverage_confirmed_at = now(), blocks_calendar = true where id = ${booking}`;
   const [pay] = await sql`insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status, processed_at)
@@ -281,7 +289,8 @@ test('customer service collects the renter\'s signature on their own device, and
   await page.getByTestId('sn-hand-renter').click();
   await expect(page.getByTestId('sign-now-signer')).toBeVisible();
   await page.getByTestId('sn-consents-all').check();
-  await expect(page.getByTestId('signature-adopted')).toBeVisible();
+  // 0154: in person too, the code to the renter's phone, the initials, the consents and the drawn signature
+  await strongSign(page);
   await check(page, 'sign now, signer view');
   await page.screenshot({ path: `${SHOTS}/${info.project.name}-sign-now.png`, fullPage: true });
   await page.getByTestId('sn-sign').click();
@@ -290,7 +299,7 @@ test('customer service collects the renter\'s signature on their own device, and
   await expect(page.getByTestId('sign-now-all-signed')).toBeVisible({ timeout: 15_000 });
   const [rec] = await sql`select s.method, s.collected_in_person_by = ${cs.id}::uuid by_cs, (s.identity_check ->> 'licence_seen') seen, a.status
     from rental_agreements a join signature_records s on s.signature_request_id = a.signature_request_id and s.signer_role = 'renter' where a.booking_id = ${req.booking_id}`;
-  expect(rec).toMatchObject({ method: 'typed', by_cs: true, seen: 'true', status: 'signed' });
+  expect(rec).toMatchObject({ method: 'drawn', by_cs: true, seen: 'true', status: 'signed' });
   await sql.end();
 });
 
@@ -348,11 +357,14 @@ test('field staff open a check-out from their job card in one tap', async ({ bro
   const req = await seedRequest(sql, renter, car.id, car.from, car.to);
   await confirmBooking(sql, req.booking_id, admin.id);
   // pickup moves to just ahead of now (the request itself must be 2 hours out, so a fixed 10:00 failed after 8 a.m.)
-  await sql`update bookings set pickup_at = now() + interval '10 minutes', return_at = now() + interval '2 days' where id = ${req.booking_id}`;
-  const [job] = await sql`select app.create_field_job('handover', ${car.id}::uuid, now() + interval '1 hour', ${admin.id}::uuid, ${req.booking_id}::uuid, ${field.id}::uuid, '1 Front St W, Toronto') id`;
+  // the job and the pickup a few minutes ahead, so both are today's even late in the evening (the field list is today's jobs)
+  await sql`update bookings set pickup_at = now() + interval '3 minutes', return_at = now() + interval '2 days' where id = ${req.booking_id}`;
+  const [job] = await sql`select app.create_field_job('handover', ${car.id}::uuid, now() + interval '3 minutes', ${admin.id}::uuid, ${req.booking_id}::uuid, ${field.id}::uuid, '1 Front St W, Toronto') id`;
   const page = await ctx(browser, true);
   await signIn(page, field.email, '/field');
-  await page.goto('/field', { waitUntil: 'networkidle' });
+  // the job is in an hour: on Tomorrow's list late in the evening
+  const [when] = await sql`select (scheduled_at at time zone 'America/Toronto')::date = (now() at time zone 'America/Toronto')::date today from field_jobs where id = ${job!.id}::uuid`;
+  await page.goto(when!.today ? '/field' : '/field?day=tomorrow', { waitUntil: 'networkidle' });
   await check(page, 'field jobs with the check-out button');
   await page.getByTestId('field-checkout').first().click();
   await page.waitForURL(new RegExp(`/field/jobs/${job!.id}`), { timeout: 30_000 });

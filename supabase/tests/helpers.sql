@@ -282,3 +282,22 @@ alter table program_settings alter column booking_licence_required set default f
 alter table program_settings alter column booking_return_auto_charges set default false;
 alter table program_settings alter column statement_fuel_cents_per_eighth set default null;
 update program_settings set booking_licence_required = false, booking_return_auto_charges = false, statement_fuel_cents_per_eighth = null;
+
+-- The review request program of 0146 (on by default) replaces 0023's and 0061's review emails, which the earlier suites
+-- test: it is off for them. 91_review_requests.sql switches it on and tests it.
+alter table program_settings alter column review_program_enabled set default false;
+update program_settings set review_program_enabled = false;
+-- Field jobs made from each confirmed booking and given to the least busy field staff member (0151, on by default) are
+-- off for the earlier suites: they make, assign and count field jobs themselves. 96_field_finance_owner_mtd.sql switches
+-- them on and tests them.
+alter table program_settings alter column field_jobs_auto set default false;
+update program_settings set field_jobs_auto = false;
+-- the jobs the migration made for the bookings already there, before any suite ran
+delete from field_jobs j where j.auto_created and j.auto_at is not null and j.status = 'scheduled'
+   and not exists (select 1 from condition_reports c where c.field_job_id = j.id);
+-- The signing session (identity code, initials, consents, drawn signature) and the agreement check at check-out (0154,
+-- on by default) are off for the earlier suites: they sign with typed names and check cars out with made-up drivers
+-- whose licence details are partly blank. 87_agreement_accuracy.sql switches them on and tests them.
+alter table program_settings alter column esign_strict set default false;
+alter table program_settings alter column agreement_claim_check set default false;
+update program_settings set esign_strict = false, agreement_claim_check = false;

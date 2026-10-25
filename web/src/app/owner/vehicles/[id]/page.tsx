@@ -4,11 +4,14 @@ import { pageMeta } from '@/features/seo/meta';
 import { money, pct } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { Back, Dl } from '@/features/portal/Blocks';
-import { Checklist, day, InvoiceRows } from '@/features/owner/Blocks';
+import { CarPhoto, Checklist, day, InvoiceRows, OwnerBookingRow } from '@/features/owner/Blocks';
 import { ExitNoticeForm } from '@/features/owner/OwnerForms';
 import { OwnerUpload } from '@/features/owner/OwnerUpload';
 import { MODE_LABEL, ONBOARDING_STATUS, TRACKER_LATER } from '@/features/owner/types';
-import { ownerBookings, requireOwner } from '@/server/owner/data';
+import { ownerView, requireOwner } from '@/server/owner/data';
+import { amountText, upcoming, viewOf } from '@/features/owner/insights';
+import { OwnerMonths } from '@/features/owner/OwnerMonths';
+import { Timeline, TimelineItem } from '@/components/portal-ui';
 import { door } from '@/server/door';
 import { ListingCapture, type Capture } from '@/features/listing/ListingCapture';
 import { ListingProgress, type Progress } from '@/features/listing/ListingProgress';
@@ -28,7 +31,11 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   const [{ user, home }, { id }] = await Promise.all([requireOwner('/owner/vehicles'), params]);
   const v = home.vehicles.find((x) => x.vehicle_id === id);
   if (!v) notFound();
-  const bookings = (await ownerBookings(user)).filter((b) => b.vehicle_id === id);
+  const view = await ownerView(user, home, { months: 12 });
+  const bookings = view.bookings.filter((b) => b.vehicle_id === id);
+  const live = view.live[id]!;
+  const soon = upcoming(bookings, new Date(), 5);
+  const enrolled = live.key !== 'onboarding';
   const exit = home.exits.find((x) => x.vehicle_id === id && x.status === 'notice');
   // the car's listing: photos and progress while one is open (an owner's listing is reviewed by staff)
   const listable = !['exited', 'total_loss', 'declined'].includes(v.status) && v.management_mode !== 'turo_only';
@@ -43,8 +50,13 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   return (
     <>
       <Back href="/owner/vehicles">Vehicles</Back>
-      <header className="stack"><p className="pt-kicker">{v.plate ?? 'Plate to come'} · {MODE_LABEL[v.management_mode] ?? v.management_mode}</p><h1 className="d2">{v.name}</h1>
-        <p><span className="badge badge--outline">{v.onboarding_status && v.onboarding_status !== 'enrolled' ? ONBOARDING_STATUS[v.onboarding_status] : v.status.replace(/_/g, ' ')}</span></p></header>
+      <header className="ow-car-hero" data-testid="vehicle-hero">
+        <div className="ow-car-hero__media"><CarPhoto photo={view.photo[id]} name={v.name} eager /><span className={`pu-pill pu-pill--${live.tone}`} data-testid="vehicle-live">{live.label}</span></div>
+        <div className="ow-car-hero__text">
+          <p className="pt-kicker">{v.plate ?? 'Plate to come'} · {MODE_LABEL[v.management_mode] ?? v.management_mode}</p><h1 className="d2">{v.name}</h1>
+          <p><span className="badge badge--outline">{v.onboarding_status && v.onboarding_status !== 'enrolled' ? ONBOARDING_STATUS[v.onboarding_status] : v.status.replace(/_/g, ' ')}</span></p>
+        </div>
+      </header>
       <div className="pt-split">
         <div className="stack-lg">
           {v.checklist && <section className="pt-card" aria-labelledby="ow-check"><h2 className="d4" id="ow-check">Onboarding</h2>
@@ -65,8 +77,14 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
           </section>}
           {cap && prog?.[cap.intake_id] && <ListingProgress initial={prog[cap.intake_id]!} refresh={[`/owner/vehicles/${id}`]} />}
           {cap && <ListingCapture initial={cap} refresh={[`/owner/vehicles/${id}`]} />}
+          {enrolled && <OwnerMonths months={view.months} only={id} testId="vehicle-months" />}
+          {soon.length > 0 && <section className="pu-panel" aria-labelledby="ow-soon" data-testid="vehicle-coming-up"><h2 className="pu-title" id="ow-soon">Coming up</h2>
+            <Timeline label={`Bookings coming up for the ${v.name}`}>{soon.map((b) => (
+              <TimelineItem key={b.booking_id} date={b.pickup_at} dateLabel={when(b.pickup_at, false)} state={b.status === 'on_rent' ? 'now' : 'future'} title={b.booking_type === 'owner' ? 'Your booking' : b.booking_number ?? 'Unavailable'}
+                amount={b.booking_type === 'owner' ? undefined : amountText(b, (c) => money(c))} meta={<><span>{viewOf(b) === 'unavailable' ? 'Unavailable' : b.status === 'on_rent' ? 'On rent now' : 'Confirmed'}</span><span>{when(b.pickup_at)} to {when(b.return_at)}</span></>} />))}
+            </Timeline></section>}
           <section className="pt-card" aria-labelledby="ow-bk"><h2 className="d4" id="ow-bk">Bookings</h2>
-            {bookings.length ? <ul className="ow-rows">{bookings.map((b) => <li key={b.booking_id}><span>{b.booking_number}{b.booking_type === 'owner' ? ' · Your booking' : ''}</span><span className="ow-amount">{money(b.rental_charge_cents, { cents: true })}</span><span className="ow-meta"><span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{b.status.replace(/_/g, ' ')}</span>{b.renter_name && <span>{b.renter_name}{b.renter_mobile ? `, ${b.renter_mobile}` : ''}</span>}</span></li>)}</ul>
+            {bookings.length ? <ul className="ow-rows">{bookings.map((b) => <OwnerBookingRow key={b.booking_id} b={b} withCar={false} />)}</ul>
               : <p className="muted small">No bookings yet.</p>}
             <p><Link prefetch={false} className="btn btn--ghost btn--sm" href={`/owner/bookings?vehicle=${id}#book-own`}>Book it for myself</Link></p>
           </section>

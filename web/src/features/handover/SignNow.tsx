@@ -3,7 +3,9 @@ import { useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Consent } from '@/features/agreement/model';
-import { SignatureInput, type SignatureValue } from '@/features/signing/SignatureInput';
+import type { Clause } from '@/features/agreement/extra';
+import { EsignFlow } from '@/features/signing/EsignFlow';
+import type { EsignReady } from '@/features/signing/types';
 import { prepareAgreementNow, signInPerson, staffLicenceUpload } from '@/server/actions/sign-now';
 import type { Signer, SigningState } from './types';
 
@@ -13,7 +15,7 @@ import type { Signer, SigningState } from './types';
 // device back", and the staff view again. The record says it was signed in person, collected by this staff member.
 const KINDS: Array<[string, string]> = [['licence_front', 'Licence, front'], ['licence_back', 'Licence, back'], ['selfie', 'Selfie with the licence']];
 
-export function SignNow({ s, base, agreement, consents, staffName }: { s: SigningState; base: string; agreement: ReactNode; consents: Consent[]; staffName: string }) {
+export function SignNow({ s, base, agreement, consents, staffName, terms, pickupPrinted }: { s: SigningState; base: string; agreement: ReactNode; consents: Consent[]; staffName: string; terms: Clause[]; pickupPrinted?: boolean }) {
   const router = useRouter();
   const [who, setWho] = useState<Signer | null>(null);
   const [mode, setMode] = useState<'staff' | 'signer' | 'done'>('staff');
@@ -24,7 +26,7 @@ export function SignNow({ s, base, agreement, consents, staffName }: { s: Signin
   if (!open) return <PrepareNow s={s} />;
 
   if (mode === 'signer' && who) return (
-    <SignerView s={s} who={who} agreement={agreement} consents={who.role === 'renter' ? consents : consents.filter((c) => c.n <= 3)}
+    <SignerView s={s} who={who} agreement={agreement} consents={who.role === 'renter' ? consents : consents.filter((c) => c.n <= 3)} terms={terms}
       identity={{ name_confirmed: !!checks[who.id]?.name, licence_seen: !!checks[who.id]?.licence }}
       onCancel={() => setMode('staff')}
       onSigned={(declined) => { setDoneMsg(declined ? `Signed. The card was not charged: ${declined}` : 'Signed.'); setMode('done'); }} />
@@ -38,6 +40,7 @@ export function SignNow({ s, base, agreement, consents, staffName }: { s: Signin
   );
   return (
     <div className="stack-lg" data-testid="sign-now-staff">
+      {waiting.length > 0 && <p className="small" data-testid="sign-now-pickup">{pickupPrinted ? 'The agreement shows the check-out readings (time, kilometres and fuel out): signing now makes them part of the signed copy.' : 'Signing at pickup? Record the odometer and fuel on the check-out first: the agreement then shows them and the signed copy holds them.'}</p>}
       {waiting.length === 0 && <p className="alert alert--ok" role="status" data-testid="sign-now-all-signed"><span className="alert__title">Everyone has signed</span><span><Link prefetch={false} className="link" href={base}>Back to the booking</Link></span></p>}
       {s.signers.map((g) => (
         <section key={g.id} className={`pt-card${g.signed_at ? '' : ' pt-card--next'}`} aria-labelledby={`sn-${g.id}`} data-testid={`sign-now-signer-${g.role}`}>
@@ -84,20 +87,20 @@ function Licence({ s, g }: { s: SigningState; g: Signer }) {
   );
 }
 
-function SignerView({ s, who, agreement, consents, identity, onCancel, onSigned }: { s: SigningState; who: Signer; agreement: ReactNode; consents: Consent[]; identity: { name_confirmed: boolean; licence_seen: boolean };
+function SignerView({ s, who, agreement, consents, terms, identity, onCancel, onSigned }: { s: SigningState; who: Signer; agreement: ReactNode; consents: Consent[]; terms: Clause[]; identity: { name_confirmed: boolean; licence_seen: boolean };
   onCancel: () => void; onSigned: (declined: string | null) => void }) {
   const [ticked, setTicked] = useState<Set<string>>(new Set());
-  const [sig, setSig] = useState<SignatureValue>(null);
+  const [sig, setSig] = useState<EsignReady | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const all = consents.every((c) => ticked.has(c.code));
   const submit = () => {
     if (!all) { setErr(`Tick the ${consents.length === 4 ? 'four' : 'three'} statements.`); return; }
-    if (!sig) { setErr('Sign in the box, or use your name.'); return; }
+    if (!sig) { setErr('Finish the steps: the code, the initials, the consents and the signature.'); return; }
     setErr(null);
     start(async () => {
       const r = await signInPerson({ booking: s.booking_id, signer: who.id, sha: s.agreement!.document_sha256, companionSha: who.role === 'renter' && s.companion?.status === 'open' ? s.companion.document_sha256 : null,
-        consents: [...ticked], typedName: sig.method === 'typed' ? sig.typedName : undefined, drawn: sig.method === 'drawn' ? sig.png : undefined,
+        consents: [...ticked], typedName: sig.method === 'typed' ? sig.typedName : undefined, drawnPath: sig.method === 'drawn' ? sig.drawnPath : undefined, session: sig.session,
         device: typeof navigator !== 'undefined' ? navigator.userAgent : undefined, identity });
       if (!r.ok) { setErr(r.message); return; }
       onSigned(r.data.declined);
@@ -117,7 +120,7 @@ function SignerView({ s, who, agreement, consents, identity, onCancel, onSigned 
           <label key={c.code} className="check"><input type="checkbox" checked={ticked.has(c.code)} onChange={(e) => { const n = new Set(ticked); if (e.target.checked) n.add(c.code); else n.delete(c.code); setTicked(n); }} />
             <span><b>{c.n}. {c.title}.</b> {c.text}</span></label>))}</div>
       </fieldset>
-      <SignatureInput id="sn-sig" name={who.name} onChange={setSig} />
+      <EsignFlow key={`${who.id}:${s.agreement?.document_sha256 ?? ''}`} ctx={{ kind: 'in_person', booking: s.booking_id, signer: who.id }} terms={terms} onReady={setSig} docsLabel={who.role === 'renter' && s.companion ? 'both agreements' : 'the agreement'} />
       {err && <p className="alert alert--error" role="alert"><span>{err}</span></p>}
       <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
         <button className="btn btn--primary btn--lg" type="button" disabled={pending} onClick={submit} data-testid="sn-sign">{pending ? 'Signing' : who.role === 'renter' ? 'Sign the agreement' : 'Accept and sign'}</button>

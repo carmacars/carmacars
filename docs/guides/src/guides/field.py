@@ -73,12 +73,24 @@ def build():
               blurb='The ready check, ID, card, odometer, photos, damage, signatures and the keys.')
     g.task('Before you start: the ready check', 'The first step lists what must be done before the car can go: signed, paid, ID checked, deposit.')
     g.steps([
-        'Each line should show a green tick: identity verified, coverage confirmed, additional drivers accepted, the booking holds the calendar, deposit taken.',
+        'Each line should show a green tick: agreement signed, identity verified, coverage confirmed, additional drivers accepted, the booking holds the calendar, deposit taken.',
+        f'A red line shows what you can do about it right under it (see the next part). Fix it, then press {B("Check again")}.',
         f'All green? Press {B("Next")}.',
-        f'Anything not ready? Press {B("Stop: do not release the car")} and call the office.',
+        f'Coverage or the calendar not ready? Only the office fixes those: call CarmaCars. Still not ready? Press {B("Stop: do not release the car")}.',
     ], shot=S('field/21-handover-01-ready-phone', 0, 595, 390, 1530, pins=[(1, 365, 1250), (2, 300, 1510)]))
     g.warn('Never hand over keys if the ready check fails, the renter does not match the photo on file, or they do not have their '
            'original licence or the card on file. Stop and call us.')
+
+    g.task('Fix the ready check on the spot', 'Most red lines are fixed on your phone, without calling the office. Everything you do is recorded with your name.')
+    g.steps([
+        f'Agreement not signed: press {B("Sign now on this device")} and hand the phone to the renter. Signed on paper instead? Open {B("Signed on paper instead? Scan it")}, take a photo of each page, then press {B("Record the signed paper copy")}.',
+        f'Identity not verified: for each driver, press {B("Take")} for the licence front, the back and the selfie. Hold the original licence: tick that the name matches, the photo is the person, it is valid past the return and it is class G2 or G. No expiry on file? Type the licence number and the expiry. Press {B("The licence checks out")}.',
+        f'Deposit not taken: press {B("Card hold: hand this phone to the renter")}. They type their card in Stripe\'s secure form; take the phone back and press {B("Back to the job")}.',
+        f'Paid by e-Transfer instead: open {B("Paid by e-Transfer")}, type the reference number from their confirmation and press {B("Record the e-Transfer")}.',
+        f'Paid in cash: open {B("Paid in cash")}, count the amount in front of the renter and press {B("I received")}. Keep the cash apart from your own money and hand it to CarmaCars within 1 business day, as Finance directs: Finance gets a task to collect it from you.',
+        f'Additional driver not accepted: press {B("Sign now on this device (additional driver)")}.',
+    ])
+    g.tip('An expired licence, a face that does not match or a renter who will not sign: do not fix it. Press Stop and call us.')
 
     g.task('The steps, one by one')
     g.phones([
@@ -93,7 +105,7 @@ def build():
         (H('28-handover-08-keys-phone', 1330), f'Keys: how many keys and fobs you hand over. Use {B("+")} and {B("−")}.'),
         (H('29-handover-09-photos-phone', 1500), f'Photo set: 19 photos in order. {B("Take")} each one; {B("Retake")} if needed.'),
         (H('30-handover-10-damage-phone', 1700), f'Damage: tap the car diagram where it is, choose Where and Type, then {B("Add the damage")}.'),
-        (H('31-handover-11-tracker-phone', 1390), f'Tracker: it should say in place and reporting. {B("Check again")} if not.'),
+        (H('31-handover-11-tracker-phone', 1390), f'Tracker: it should say in place and reporting. {B("Check again")} if not. The car has to go anyway? Open {B("The car has to go anyway?")}, say why and press {B("Release without the tracker")}: an Admin is told at once.'),
         (H('32-handover-12-summary-phone', 1460), 'Renter reviews: the renter reads the summary of odometer, fuel, keys, photos and damage.'),
         (H('33-handover-13-signatures-phone', 1500), f'Signatures: the renter signs, then you. {B("Use this signature")} for each.'),
     ])
@@ -108,11 +120,19 @@ def build():
         f'Press {B("Hand the device to")} and their name. They read the agreements (CarmaCars\' and Blind Spot\'s), tick the statements and sign with their name or their finger.',
         f'They hand the phone back: press {B("Back to the staff view")}. The signature record says it was signed in person, collected by you, on your phone.',
     ])
-    g.task('The deposit on your phone', 'Deposit not taken yet? Once the job is started, the job shows the card Deposit. You never take cash or type a card number.')
+    g.task('The agreements at check-out', 'Both rental agreements follow the check-out.')
     g.steps([
-        f'Press {B("Place the deposit hold on this phone")} and hand the phone to the renter. They type their credit card in Stripe\'s secure form and press the button with the amount.',
+        'Signing at pickup? Record the odometer and the fuel on the check-out first, then hand over the device: the agreement then shows the time, kilometres and fuel out, and the signed copy holds them.',
+        'The signer gets a code on their phone, initials the key terms, ticks the consents and draws their signature.',
+        'Already signed online? When you complete the check-out, the "as picked up" copy of both agreements is made with your readings and your countersignature, and emailed to the renter.',
+        'The check-out stops if the agreement is missing something a claim needs (a licence expiry, a VIN). Ask the office to fill it on the booking, or an Admin to override.',
+    ])
+    g.task('The deposit on your phone', 'Deposit not taken yet? The ready check shows how to take it under the Deposit line. You never type a card number.')
+    g.steps([
+        f'Press {B("Card hold: hand this phone to the renter")}. They type their credit card in Stripe\'s secure form and press the button with the amount.',
         f'They see "Hold placed": take the phone back and press {B("Back to the job")}. The ready check shows the deposit taken.',
-        f'A rental longer than the hold limit shows {B("Save the card (long rental)")} instead: Finance charges the deposit to that card.',
+        f'A rental longer than the hold limit shows {B("Save the card on this phone (long rental)")} instead: Finance charges the deposit to that card.',
+        'No credit card? When CarmaCars allows it, the renter pays the deposit by e-Transfer or in cash: record it under the Deposit line.',
     ])
     g.task('Add-ons to put in the car', 'A booking may come with add-ons: a baby seat, a child or booster seat, flowers, an umbrella, a phone charger or a prepaid full tank.')
     g.steps([
@@ -139,7 +159,8 @@ def build():
         f'Compare with pickup: for new damage, tap the diagram, fill in Where and What it is, press {B("Add the damage")} and take a close-up photo.',
         'Belongings: check the seats, the trunk, the glovebox and the door pockets.',
         'Renter reviews and signs. Then you sign.',
-        f'Press {B("Complete the return")}. The check-in time is the moment you press it: a late return, the kilometres over the allowance and the fuel or charge used are charged from it automatically.',
+        f'Press {B("Complete the return")}. The check-in time is the moment you press it: a late return, the kilometres over the allowance and the fuel or charge used are charged from it automatically. The deposit is not given back at the return: Finance settles it once tolls and tickets have had time to come in (about 7 days), and new damage you mark keeps it held.',
+        'The closing copy of both rental agreements follows by itself: time and date in, kilometres in, driven and charged, fuel in, the hours late, the new damage, the return charges and the totals, countersigned with your name, emailed to the renter.',
     ])
     g.warn('New damage needs a close-up photo and a clear note. Finance uses your photos and notes to bill the renter, so take your time.')
 
@@ -174,7 +195,7 @@ def build():
     g.steps([
         f'Open {B("Add a rental")}. Choose the car, the dates and the places, then type the renter\'s details. A renter already on file is found by their email. Car already out with the renter? Enter the pickup as when it left: it is recorded as on trip.',
         f'Press {B("Check the calendar and the price")}. To charge another price, type it with the reason: a price far under the rate sheet is flagged for an Admin, not refused.',
-        f'Choose {B("Send a payment link")} or {B("Charge the saved card when the renter signs")}. You never take payment yourself.',
+        f'Choose {B("Send a payment link")} or {B("Charge the saved card when the renter signs")}. The renter pays online: you take no payment for it yourself.',
         f'Under Who found this client, choose {B("I sourced this client")} or {B("Entered for CarmaCars")}, then press {B("Add the rental")}.',
     ])
     g.task('Commissions')
@@ -207,6 +228,7 @@ def build():
                   ('Profile', 'Phone, home address, two-step sign-in, password, Sign out')],
         top_tasks=[('Start a job', f'{B("Open the job")}, {B("Acknowledge")}, {B("Start")}'),
                    ('Hand over a car', f'Every step, then {B("Hand over the keys")}'),
+                   ('Fix a red line', f'The buttons under the line, then {B("Check again")}'),
                    ('Stop a handover', f'{B("Stop: do not release the car")}, call us'),
                    ('Take a car back', f'Every step, then {B("Complete the return")}'),
                    ('Shoot listing photos', f'{B("Take photo")}, then {B("Submit for listing")}'),

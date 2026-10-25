@@ -158,9 +158,9 @@ select test.eq('S an extension can now be approved between asking and paying',
 select test.eq('S the consent list keeps its seven codes and gains the two of the request form (and 0025''s necessary_cookies)',
   (select count(*) || '/' || count(*) filter (where m[1] in ('terms_of_use', 'privacy_policy', 'marketing', 'tracking_disabling'))
      from regexp_matches((select pg_get_constraintdef(oid) from pg_constraint where conname = 'consents_consent_code_check'), '''([a-z_]+)''::text', 'g') m), '10/4');
-select test.eq('S the booking history keeps its twelve kinds and gains this migration''s thirteen (and 0025''s two, 0046''s added_by_staff, 0057''s sales_credit, 0058''s custom_price, 0064''s request_expired, 0130''s five)',
+select test.eq('S the booking history keeps its twelve kinds and gains this migration''s thirteen (and 0025''s two, 0046''s added_by_staff, 0057''s sales_credit, 0058''s custom_price, 0064''s request_expired, 0130''s five, 0154''s five, 0156''s three)',
   (select count(*) || '/' || count(*) filter (where m[1] in ('requested', 'pushed_back', 'agreement_voided', 'payment_refused'))
-     from regexp_matches((select pg_get_constraintdef(oid) from pg_constraint where conname = 'booking_events_kind_check'), '''([a-z_]+)''::text', 'g') m), '36/4');
+     from regexp_matches((select pg_get_constraintdef(oid) from pg_constraint where conname = 'booking_events_kind_check'), '''([a-z_]+)''::text', 'g') m), '44/4');
 select test.eq('S nothing in the app schema that this migration added is executable from a browser session, except the quote, the search and the assurance level',
   (select string_agg(distinct p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'app' and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))
@@ -191,7 +191,7 @@ select test.eq('S a signed-in session may also call the five read-only previews 
   (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and has_function_privilege('authenticated', p.oid, 'execute') and not has_function_privilege('anon', p.oid, 'execute')
       and (p.proname like 'my\_%' or p.proname like 'renter\_%' or p.proname = 'submit_booking_request')),
-  'my_booking,my_booking_change_preview,my_booking_messages,my_booking_readiness,my_bookings,my_cancellation_preview,my_document,my_documents,my_extension_preview,my_notification_preferences,my_notifications,my_profile,my_promo_code_problem,my_unread_count');
+  'my_booking,my_booking_change_preview,my_booking_messages,my_booking_readiness,my_bookings,my_cancellation_preview,my_document,my_documents,my_extension_preview,my_notification_preferences,my_notifications,my_profile,my_promo_code_problem,my_trip_photos,my_unread_count');
 select test.eq('S the server may call every wrapper',
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and not has_function_privilege('service_role', p.oid, 'execute')

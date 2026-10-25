@@ -178,7 +178,7 @@ for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landi
     if (!ty.includes('Car')) bad(p, `JSON-LD rating on ${ty.join('/')} (self-serving)`);
     else if (!/id="h-rv"/.test(h) || Number(n.aggregateRating?.reviewCount ?? 0) < 1) bad(p, 'Car rating without the reviews shown on the page');
   }
-  if (/18122211|Canada Inc/i.test(h)) bad(p, 'numbered company name in the page');
+  if (/18122211|Canada Inc\b/i.test(h)) bad(p, 'numbered company name in the page');
   if (p === '/' && !types.includes('AutoRental')) bad(p, 'no AutoRental (business) node');
   // one name, address and phone everywhere (0095): the business node, the footer and the contact page agree
   const bizNode = nodes.find((n) => [].concat(n['@type']).includes('AutoRental'));
@@ -235,6 +235,15 @@ for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landi
     if (h1) h1s.set(h1, [...(h1s.get(h1) ?? []), p]);
     const main = (/<main\b[\s\S]*?<\/main>/.exec(h)?.[0] ?? h).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     bodies.set(main, [...(bodies.get(main) ?? []), p]);
+  }
+  // the writing kit (docs/changes/2026-10-24-writing-kit.md): every programmatic page (vehicle pages and their twins, the
+  // place and term pages) carries its written text, at least 200 words of it
+  const programmatic = vehiclePaths.has(p) || heavy(p) || /^\/(car-rental|detailing|body-shop|buy)\/[^/]+\/[^/]+$/.test(p) || placeSample.has(p);
+  if (programmatic) {
+    const kit = /<div class="kit-text"[^>]*>([\s\S]*?)<\/div>/.exec(h)?.[1];
+    const words = kit ? decode(kit.replace(/<[^>]+>/g, ' ')).split(/\s+/).filter(Boolean).length : 0;
+    rec.kitWords = words;
+    if (words < 200) bad(p, `programmatic page with ${words} words of kit text (want 200 or more)`);
   }
   rec.links = [...h.matchAll(/<a\b[^>]*\bhref="([^"#?]+)/g)].map((m) => m[1].replace(SITE, '').replace(BASE, ''));
 }

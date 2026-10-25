@@ -43,7 +43,7 @@ def build():
         ['Today', 'To do, Overview, Staff tasks, Live visitors'],
         ['Bookings', 'Trips: Requests, Bookings, Calendar, Add a rental, Chauffeur. Customers: Live chat, Renter leads, Reviews. Problems: Damage, Incidents and claims'],
         ['Cars', 'Vehicles, Listings, Maintenance, Rates for many cars, Calendar sync, Similar cars, Retire or delete'],
-        ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer invoices, Staff commissions'],
+        ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments by day, Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer invoices, Staff commissions'],
         ['People', 'Owners and partners: Applications, Owners, Add a car for an owner, Partners, Owner forms, Paid and signed. Renters, staff and investors: Renters, Staff, Investors, Portals and view as'],
         ['Settings', 'All settings. Website: Site, Vehicle pages, Sample photos, Add-ons, Discount games, Guides. Rules: Program, Forms, Maintenance, Emails. Records: Email log, Audit log'],
     ], head=['Group', 'Pages'])
@@ -221,12 +221,22 @@ def build():
     g.steps([
         f'{B("Record a payment")}: choose what it is for (the rental, fees, the deposit or a later charge) and how it was paid (e-Transfer, cash, cheque, bank transfer, platform payout, the insurer). An e-Transfer, cheque or transfer needs its reference. Press {B("Record it")}. The renter gets a receipt; {B("Print")} prints one to hand over.',
         f'{B("Collect a card")}: a payment (Everything open by default: the rental, the fees and any later charge in one), the deposit hold or saving the card. The renter types the card in Stripe\'s secure form: on this device ({B("Open the card form")}, then hand it over) or by a link texted or emailed to them ({B("Send the link")}). Staff never type a card number.',
-        f'A deposit hold lasts about 7 days and shows the days left. After the return, {B("Capture the hold")} (all or part, with the reason) or {B("Release the hold")}.',
+        f'A deposit hold lasts about 7 days and shows the days left; while the car is out it is collected by itself before it lapses. After the return, settle the deposit (below). {B("Capture the hold")} for all of it keeps the money; a part capture or {B("Release the hold")} waits for the settlement while the car is out or something is open (an Admin may do it with the reason).',
         f'{B("Charge the saved card")} (Finance or an Admin): extra kilometres, fuel, damage or a late return, with the reason the renter\'s receipt shows. For a rental over 7 days, save the card and charge the deposit this way.',
         f'An offer paid another way: once the renter approved and signed and the money is recorded, the booking is confirmed (or press {B("Confirm the booking")}).',
         f'A deposit taken in cash or by e-Transfer is given back the same way after the return: Finance gets a task; press {B("Returned")} with the reference or receipt number.',
     ])
     g.tip('Statements, reconciliation and the deposit settlement read each payment with its method: a cash deposit is never refunded to a card.', label='Good to know')
+
+    g.task('Settle the deposit', f'The deposit is never given back by itself. Finance or an Admin settles it after the return: on the booking\'s Money tab, under Deposit, press {B("Settle the deposit")}. Issue the Check-in statement first.')
+    g.steps([
+        'The form shows the deposit, what is still available, the charges owed from the statement and what is taken from the deposit for them. What the deposit does not cover is charged to the card on file; with no card (or a card declined), the renter gets a pay link by email and text, and Finance has a task until it is paid.',
+        'Tolls and tickets can take up to 7 days to come in. Inside that window the whole rest of the deposit is filled in as the hold-back, until the window ends. To give it back sooner, tick Release now anyway: a toll that comes in later is charged to the card on file.',
+        'Something still open keeps the whole deposit: an incident, a claim, new damage at the return not priced, damage found later not billed, a toll or ticket on the car during the rental not matched or not charged, a card dispute, or charges not on a statement yet. The form lists them. Only an Admin can release part of it, with the reason; it is recorded.',
+        f'Damage: {B("Keep the whole deposit (damage)")} turns what is left of the deposit into a damage charge, with what was damaged and the photos; the renter is told. {B("Bill damage")} adds a damage charge up to the $2,500 deductible (more goes through a claim): the deposit pays first, then the card on file.',
+        f'Press {B("Settle")}. The money moves at Stripe at once: the charges are collected and what is not owed is refunded or the hold released. A step Stripe refuses is tried again by itself, and Finance gets a task if it keeps failing.',
+    ])
+    g.tip('A card hold lapses after about 7 days. While the car is out, or returned and not settled, the hold is collected in full a day and a half before it lapses: that keeps the money, and the settlement refunds what is not owed. A hold that lapses anyway is charged to the saved card, and Finance is told at once.', label='Good to know')
 
     g.task('A booking', f'Open {P("Bookings", "Bookings")}, then a booking number. Or type the number in the search box.')
     g.steps([
@@ -263,6 +273,30 @@ def build():
         'The record is the same as signing online, and says it was signed in person, collected by you, on your device. It is printed on the signed copy\'s signature record page.',
     ])
 
+    g.task('Rental agreements: every version, every field', 'The booking\'s Rental agreements card: the current version of CarmaCars\' and Blind Spot\'s agreements, every earlier one, and what is still blank.')
+    g.steps([
+        'Once the agreement is signed and countersigned, any change to what it prints makes a new version of both documents by itself: the dates, the price lines, the car, a driver added or corrected, the coverage, the deposit or how it was paid, an address.',
+        'A change to the dates, the price, the car, the drivers or the coverage option is signed again: the renter (and each driver it affects) gets their link by email and text, and the card shows "Agreement v3 waiting for signature". A correction (a typo in an address, a plate written differently) is filed without signing; the renter gets the corrected copy by email.',
+        f'Check-out makes the "as picked up" copy (time out, km out, fuel out, the car\'s plate and VIN, the check-out report), countersigned by whoever checked the car out; check-in makes the closing copy (time in, km in, driven and charged, fuel in, late hours, damage, the return charges, the final totals). Both go to the renter by email.',
+        f'{B("Every version")} lists each one with what changed and both PDFs. {B("Resend the signing links")}, or press the button with their first name beside it to have them sign on your phone or tablet.',
+        f'The card lists what the agreements still print blank (a licence expiry, the insurer\'s policy number, the insured vehicle, a VIN). Type the values and press {B("Save the missing fields")}: the agreements follow.',
+        f'Check-out stops while a field a claim needs is blank. An Admin can let it go ahead: type the reason and press {B("Override")}; the reason is in the booking\'s history.',
+        f'{B("Make the agreements again")} checks both against the booking at once (they also follow every change by themselves).',
+    ])
+    g.task('Signing that holds up in a dispute', 'Every signature of a rental agreement, an amendment or a new version is made the same way, remotely or on your device.')
+    g.steps([
+        'The signer confirms it is them with a 6-digit code sent to their phone or email on file; the licence on file is shown.',
+        'They say they read the documents, initial the key terms (damage and the deductible, the deposit and later charges, fuel, kilometres and late returns, their coverage, cancellation), give three consents (to sign electronically, to receive records electronically, to card charges under the agreement) and draw their signature.',
+        f'Each step is recorded with its time, IP address and device, and the place when the device shares it. The signed PDFs end with a certificate of completion; anyone can check a signed file at {U("carmacars.ca/verify")}.',
+        f'Typed names are off. For a signer who cannot draw, an Admin can turn on the accessibility fallback: {P("Settings", "Program")}, Esign typed fallback.',
+    ])
+    g.task('Card disputes: the evidence pack', 'Everything that proves the rental, in one PDF for Stripe.')
+    g.steps([
+        'When a card payment is disputed, the evidence pack is built by itself: the signed agreements with their certificates, the check-out and check-in reports with photos, kilometres and fuel, the licence, the payments and charges, every message to the renter, and the card checks from Stripe. It is staged in Stripe as the dispute\'s evidence, and To do gets an urgent task.',
+        f'Open the booking: the Rental agreements card shows the pack. Press {B("Download")} to check it, then {B("Submit to Stripe")} before the evidence date.',
+        f'{B("Build the dispute evidence pack")} makes one at any time (an Admin or Finance).',
+    ])
+
     g.task('The licence before an offer is accepted', 'Front, back and a selfie, from the request on.')
     g.steps([
         'After sending a request the renter is asked for their licence. A licence already on file from an earlier booking is used again while it is valid after the return.',
@@ -275,10 +309,20 @@ def build():
     g.steps([
         f'A booking with documents waiting is a line on To do: "Check <renter>\'s documents for booking <number>", marked Now when the pickup is within two days. Press {B("Review documents")}.',
         'The pop-up shows each driver\'s images and the coverage: the insurer, policy number and expiry, or the card, its type and whether the name matches.',
-        f'Tick the checks, then {B("Approve")}. Or type the reason the renter reads and press {B("Reject")}: they are asked for a new one.',
+        f'What to check is written once at the top. One wrong? Open {B("Reject this one")} under it, type the reason the renter reads and press {B("Reject")}: they are asked for a new one.',
+        f'Then press {B("Approve all")}: every image, the proof of coverage and the Protection Plan still waiting are approved in one step. Anything the system refuses is named with the reason.',
         f'The same pop-up is on the booking: the card Renter documents ({B("Review documents")}) on Overview and on Drivers and documents.',
     ])
-    g.tip('Each opening of a renter\'s documents is logged. The links to the images last one minute.')
+    g.tip('Each opening of a renter\'s documents is logged. The links to the images last one minute. Field staff can also check a licence in person at the check-out (photos and four checks): the history says "checked in person".')
+
+    g.task('Payments by day', f'{P("Money", "Payments by day")}: every payment and refund of a day or a range, by method, the cash drawer and the refunds waiting. Finance has the same screen.')
+    g.steps([
+        f'Choose From and To and the methods (card, e-Transfer, cash, cheque, platform payout, insurer, bank transfer, pre-authorized debit, other), then press {B("Show")}.',
+        'Totals by method and for each day; cards read as the card and its last four digits, never a code.',
+        f'The cash drawer: expected (cash in less cash given back) against the count Finance records with {B("Record the count")}; a difference shows over or short.',
+        f'Refunds waiting: every refund asked for anywhere with the policy maths. {B("Approve")} or {B("Decline")} with the reason in the row, then {B("Issue the refund")}.',
+        f'{B("Export CSV")} for the bookkeeper.',
+    ])
 
     g.task('Propose a change to a confirmed booking', 'The renter gets an email and answers on their booking. The calendar moves only when they accept.')
     g.steps([
@@ -297,6 +341,36 @@ def build():
     ])
     g.tip('The renter has 48 hours to accept (and sign the amendment) or decline, with one reminder. Any extra is charged to '
           'their Card on File; a lower price raises a refund for your approval.')
+
+    g.task('Review requests', 'Every renter is asked for a review by email and text, as they chose, only from 9 am to 9 pm Toronto time. Nothing needs setting up.')
+    g.table([
+        ['Mid-trip check-in', 'Rentals of 2 days or more, 24 hours after the pickup: "How is the car? Reply or call if anything is off." No review ask.'],
+        ['Review request', '1 hour after the check-in. It links the review page: the renter taps what they liked, adds a sentence, and gets a short draft to copy and post on Google.'],
+        ['Reminder', '24 hours after the request.'],
+        ['Final follow-up', '7 days after the request. Nothing more after it.'],
+    ], head=['Message', 'When'])
+    g.steps([
+        'The booking page has the card Review requests: each message with when it went or when it will go, and why it stopped.',
+        f'{B("Ask for a review")} sends the request now (or at 9 am if it is later than 9 pm), on any booking on a trip, returned or closed. Not twice in 24 hours.',
+        f'On hold: a return or later charge (late return, kilometres, fuel, cleaning, smoking, damage, tolls and tickets) is not settled or waived, or an incident or dispute is open. The request goes by itself once they are. Press {B("Send anyway")} to send it now.',
+        f'{B("Mark reviewed")} stops the messages when the renter tells you they already reviewed.',
+    ])
+    g.para('The messages also stop by themselves when the renter presses "I already left a review", leaves a review on the site, unsubscribes, '
+           f'or a Google review is matched to them. {P("Bookings", "Reviews")} has the numbers (requests sent, on hold, reviews detected, the average rating), '
+           'the hold list and the Google reviews to match.')
+    g.tip('The draft is made only from what the renter picked and wrote, and from the booking (the car, how long, delivery or pickup). Everyone gets the Google link, whatever their stars; a renter who gives 3 stars or fewer also sees "Something wasn\'t right? Tell us directly".')
+
+    g.task('What the owner sees, and owner deductions', 'Each booking on an owner\'s or partner\'s car shows the card What the owner sees at the top of its page.')
+    g.steps([
+        f'{B("Hide from the owner")} keeps the booking\'s revenue from the owner until the car is returned, or until the owner statement covering it is approved. The owner sees the booking as Booked with its dates, and the calendar still shows the car busy. Add a reason if you like: it is kept in the history.',
+        f'{B("Show to the owner")} shows it now. Approving the statement shows every hidden booking on it by itself.',
+        'Not shown to the owner is for a booking with no owner revenue (an insurance placeholder, a shareholder\'s or the owner\'s own use at no charge): the owner sees only that the car is unavailable for those dates. A booking with revenue cannot be set this way.',
+        'Add a rental and Send an offer have What the owner sees. It starts from Settings > Program, Owners and fleet: Owners see a booking\'s revenue (right away by default).',
+        f'On the Money tab, Owner deductions on this booking: {B("Add a booking expense")} (cleaning, repair, fuel, platform fee or other, the amount, the reason the owner reads, a receipt number) comes off before Owner Revenue.',
+        f'{B("Set the Revenue Share for this booking")} applies within the car\'s signed terms. Above the terms only an Admin can, with Above the signed terms ticked and the reason. {B("Back to the car\'s terms")} undoes it.',
+        'Add a rental has the same under The car\'s owner.',
+    ])
+    g.tip('The owner\'s statement always includes every booking at its true amounts and lists each deduction with its reason, so the payout is always right. Customer service and sales add deductions only while Program settings let them change fees.', label='Good to know')
 
     # ---------------------------------------------------------------- 4
     g.chapter('Calendars',
@@ -540,6 +614,18 @@ def build():
         f'Real photos: open the car (its name in Cars), {B("Photos")}, and add them. Once approved they replace the eight studio stand-ins.',
     ])
     g.tip('The partner\'s monthly statement shows each rental at the sheet rate, the cut and the payout; never what the renter paid. A refund lowers the partner\'s share in proportion; a discount CarmaCars gives comes out of the markup.', label='Good to know')
+
+    g.task("A partner's CRM (01 Motors' GoHighLevel)", f'{B("Settings")}, the {B("Partners")} tile, then the partner (or {B("CRM link")} on the partner\'s page). Their CRM gets our cars, kept up to date, and their cars come to us.')
+    g.steps([
+        f'Ask the partner for a Private Integration token and their location ID (the box {B("What 01 Motors gives us")} on the page says exactly what to create and which scopes to tick). Paste both and press {B("Connect")}. The token goes to the vault; the page only ever shows its last four characters.',
+        f'Connect tests the link (their location, objects, products and pipelines) and runs the first sync. After that it runs by itself every 15 minutes, and within five minutes of a change to a car, a rate, a photo, a booking or a block. {B("Test connection")} and {B("Run sync now")} do it at once.',
+        f'{B("What 01 Motors sees")}: CarmaCars\' own cars and program owners\' cars that are on the site, with rates, the next 60 days and photos, as records of a "CarmaCars Vehicles" object in their CRM (or as products when their plan has no custom objects). Partner cars are never sent: not theirs, not another partner\'s. Press {B("Change what we share")} to leave out program owners\' cars, rates, availability or photos.',
+        f'{B("Partner price")}: the site\'s rates, or the site\'s rates less (or plus) a percentage, to the nearest dollar.',
+        f'{B("Their cars coming in")}: name the object in their CRM that holds their cars (Test connection lists them), or their feed address. Each of their cars is matched to their car here, or added as their partner car (it waits off the site unless you choose otherwise), with their rates as its sheet rates, their booked dates as calendar blocks and their photos for a car with none. A car that waits shows {B("Add as their car")}, {B("Link")} or {B("Set aside")}.',
+        f'{B("Leads both ways")} (off until you turn it on): requests for their cars, and requests that came through their booking links, become contacts and opportunities in the pipeline stage you choose; an opportunity they move to the stage you name becomes a lead in {B("Leads")}.',
+        f'{B("Feed, widget and booking links")}: a JSON or CSV feed and a widget for their GoHighLevel funnels and sites (copy the iframe), and booking links carmacars.ca/p/01-motors/&lt;car&gt; that mark the request as theirs for 30 days. {B("New key")} ends the old feed and widget addresses at once.',
+    ])
+    g.tip('A link that has failed for an hour shows on Admin > Today. Disconnect deletes the token from the vault; what is already in their CRM stays there.', label='Good to know')
 
     g.task('Add a rental by hand', f'{P("Bookings", "Add a rental")}. For phone, walk-in, Turo, partner and insurer bookings, the owner using their own car, and placeholders: a rental already agreed. To send an offer instead, use Send an offer.')
     g.steps([
@@ -1052,6 +1138,15 @@ def build():
         f'Catalog import: the last import and its counts. {B("Import now")} asks for a new one; it runs at the next daily check, at 07:17 UTC.',
     ])
     g.tip('A car joins its pages by itself once it is on the site: its make, model, year and trim are read from the car. A trim that names several (S / SE / R-Line) leaves the car on the year page only; set the car\'s trim to one Canadian name to put it on the trim page.', label='Good to know')
+    g.task('Stock photos on the vehicle pages', f'{P("Settings", "Vehicle pages")}, card Stock photos. The vehicle pages show a real photo of the make, model and generation at the top (a 2015 Camry page shows a Camry of the 2012 to 2017 generation), with the credit always under it: "Photo: author, licence, Wikimedia Commons". The place pages and the detailing and body shop pages show a photo of a road, a car being detailed or a body shop. Our own cars always show their own photos.')
+    g.steps([
+        "Nothing to set up: the photos come by themselves every day, our fleet's models and the popular models first. Only free licences are used (public domain, CC0, CC BY, CC BY-SA), from Wikimedia Commons, or Openverse when Commons has none. A year without a photo of its own generation shows the nearest photo of the model, marked \"not the exact year\"; a model with no photo keeps the studio drawing.",
+        'The card shows how many models and model years have a photo, the popular models still without one, and the last run.',
+        f'Open a make to see its photos. A wrong car, a poor photo or a photo you do not want: press {B("Hide")}. The page goes back to the studio drawing at once, and that photo is never picked again.',
+        f'{B("Pick again")} asks for the next best photo; {B("Replace")} takes a photo you found on Wikimedia Commons: paste its address (https://commons.wikimedia.org/wiki/File:...). Either is done at the next daily run, after its licence is checked. A photo whose licence is not allowed is refused, with the reason.',
+        f'{B("Show stock photos")} in the settings above turns every stock photo off at once (on by default).',
+    ])
+    g.tip("Never upload or use a photo from Google, a dealer or a manufacturer's site here: only Wikimedia Commons files, with the credit the page shows.", label='Good to know')
     g.task('A car for sale', f'{P("Cars", "Vehicles")}, then the car. On the For sale card, tick {B("For sale")}, enter the Asking price and press {B("Save")}.')
     g.steps([
         'The car then shows at the top of its /buy pages (its make, model, year and trim) with the asking price, the only time a page says a car is for sale.',
@@ -1107,7 +1202,8 @@ def build():
         'Insurers: insurance companies billed for bookings.',
     ], shot=S('admin/24-settings-desktop', 0, 0, 1440, 900, pins=[(1, 470, 297), (2, 372, 362), (3, 1115, 362), (4, 372, 659), (5, 372, 764)]))
     g.para('The other tiles: Site content (headings, FAQs, legal text), Fee defaults, Deposit tiers, Kilometre choices, Vehicle classes, '
-           'Airports and delivery, Protection Plan prices, Card coverage, Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
+           'Airports and delivery, Protection Plan prices, Card coverage, Reviews, Text alerts, Partners (each partner company\'s CRM link: see Partners, company cars and rentals added by hand), '
+           'Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
 
     g.task('Program settings')
     g.steps([
@@ -1118,6 +1214,8 @@ def build():
         f'Staff agreement defaults by function, at the bottom: pay (a month, an hour or commission only), the rate, the schedule (full time, part time or flexible), days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Sales is commission only: no rate and a flexible schedule. Press {B("Save the defaults")}.',
         'Live visitors and live chat: recording visits, the signal thresholds, follow-up tasks, the chat and its assistant, and how long visits and chats are kept.',
         'Discount games: the same values as Settings, Discount games (the prize table and the games are easier to change there).',
+        'Deposits: the toll and ticket window after the return (7 days: settling sooner suggests a hold-back), the longest hold-back (30 days after the return), how long before a card hold lapses it is collected (36 hours), and collecting what is owed after the deposit by itself (the card on file, then a pay link, then a Finance task). A deposit is never released by itself.',
+        'Field jobs and handovers: field jobs made from each confirmed booking (on) and who gets them (the least busy field staff member, or nobody so Fleet assigns), how field staff may take a deposit at the check-out besides a card (e-Transfer and cash), and whether they may release a car whose tracker is not reporting, with a reason (on; you get an urgent task).',
         'Sign-in by phone: codes by text from the CarmaCars number (on), US numbers (off until the Quo number is registered for US texting, A2P 10DLC), codes per number and per connection an hour, and whether a verified phone confirms an account like a confirmed email. Accepting an offer, signing and paying need a confirmed account; an account made by phone gives its email on the pay page before its first payment.',
         'Calendar sync, Turo by email, Booking recovery emails and Site check: how often calendar links are read, the Turo inbound address and who may forward to it, the reminder delays and sending hours, and the site check with the address its alerts go to (rent@carmacars.ca), the minutes before an email, the daily limit and the quiet hours.',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
@@ -1190,6 +1288,15 @@ def build():
         f'Add a card with the Add form; untick Shown to hide one. Changes reach the public page at once.',
     ])
     g.tip('A card not checked for 6 months shows on Today until it is checked again. The page tells renters to confirm with their card issuer and says CarmaCars decides no claims: keep the list to facts from the issuer\'s guide.')
+
+    g.task('Reviews: review requests and Google', f'{P("Settings", "Reviews")}: when review requests go, the Google review link and the Google Business Profile connection. Review requests are on from the start.')
+    g.steps([
+        'When review requests go: the check-in (on or off, the shortest rental, hours after the pickup), the request (minutes after the check-in), the reminder (hours) and the final follow-up (days), the sending hours (9 am to 9 pm), and the hold while charges are open.',
+        'The Google review link: the Google place id (Site settings) makes it, or paste the Business Profile\'s own review link.',
+        f'Google Business Profile: press {B("Connect Google")} and sign in with rent@carmacars.ca, then allow access. Reviews are read every 6 hours and matched to renters by name within 30 days after their return.',
+        f'A clear match stops that renter\'s reminders at once. A possible match waits in Reviews: press {B("Confirm")}, {B("Not this renter")} or {B("Match to a booking")}.',
+    ])
+    g.tip('Until Google approves the Business Profile API for the project, the status says so and nothing else changes: renters still get the review link, and "I already left a review", Mark reviewed and on-site reviews still stop the messages.')
 
     # ---------------------------------------------------------------- 10
     g.chapter('Add-ons',

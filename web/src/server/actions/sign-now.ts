@@ -39,6 +39,7 @@ function pngBytes(dataUrl: string): Uint8Array | null {
 export interface SignNowInput {
   booking: string; signer: string; sha: string; companionSha?: string | null; consents: string[]; typedName?: string; drawn?: string; device?: string;
   identity: { name_confirmed: boolean; licence_seen: boolean }; refresh?: string[];
+  /** 0154: the signing session and the drawn signature it stored */ session?: string; drawnPath?: string;
 }
 
 export async function signInPerson(input: SignNowInput): Promise<R<{ role: string; declined: string | null }>> {
@@ -51,13 +52,13 @@ export async function signInPerson(input: SignNowInput): Promise<R<{ role: strin
     const ticked = new Set(input.consents ?? []);
     if (!need.every((c) => ticked.has(c.code))) return { ok: false, code: 'invalid', message: `Tick the ${need.length === 4 ? 'four' : 'three'} statements to sign.`, fieldErrors: { consents: 'Tick every statement.' } };
     if (!input.identity?.name_confirmed || !input.identity?.licence_seen) return { ok: false, code: 'invalid', message: 'Confirm the name and that you saw the original licence.' };
-    let drawn: string | undefined;
-    if (input.drawn) {
+    let drawn: string | undefined = input.drawnPath && /^esign\/[0-9a-f-]{36}\/signature-[0-9a-f-]{36}\.png$/.test(input.drawnPath) ? input.drawnPath : undefined;
+    if (!drawn && input.drawn) {
       const png = pngBytes(input.drawn);
       if (!png) return { ok: false, code: 'invalid', message: 'Please sign in the box.', fieldErrors: { signature: 'Please sign in the box.' } };
       drawn = g.role === 'renter' ? `bookings/${s.booking_id}/signatures/renter-in-person-${crypto.randomUUID()}.png` : `drivers/${g.id}/signature-in-person-${crypto.randomUUID()}.png`;
       await (await storage()).put('agreements', drawn, png, 'image/png');
-    } else if (!(input.typedName ?? '').trim()) {
+    } else if (!drawn && !(input.typedName ?? '').trim()) {
       return { ok: false, code: 'invalid', message: 'Sign by drawing or by using the name on file.', fieldErrors: { signature: 'Sign by drawing or with the name.' } };
     }
     const meta = await requestMeta();

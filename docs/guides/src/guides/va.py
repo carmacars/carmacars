@@ -33,9 +33,9 @@ def build():
               blurb='The menu, To do, task actions, Today, switching functions and your scorecard.')
     g.task('The menu', 'My work comes first: To do, Today at a glance, My scorecard and My sales. Customer service and Sales then have Live: Live chat, Live visitors and Game leads. Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
     g.table([
-        ['Customer service', 'Bookings (Requests, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car), Renters (Messages, Find a renter, Card coverage), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
+        ['Customer service', 'Bookings (Requests, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car), Renters (Messages, Find a renter, Review requests, Card coverage), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
         ['Sales', 'Bookings (Requests and offers, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car, Card coverage), Owners (Owner leads)'],
-        ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
+        ['Finance', 'Money (Payments by day, Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
         ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
     ], head=['Function', 'Groups and pages'])
     g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more.')
@@ -191,12 +191,20 @@ def build():
         f'Or press {B("Email the signing link")} or {B("Text the signing link")}: they sign on their own phone.',
         'The licence comes first: the renter uploads it from the request, and the offer cannot be accepted without it.',
     ])
+    g.task('The booking\'s rental agreements', 'The Rental agreements card keeps both agreements in step with the booking.')
+    g.steps([
+        'Any change after signing makes a new version by itself. A change to the dates, the price, the car, the drivers or the coverage waits for the renter\'s signature: they get the link by email and text, and the card says "Agreement v3 waiting for signature".',
+        f'{B("Resend the signing links")}, or press the button with their first name beside it to have them sign on your device.',
+        f'Fields still blank (a licence expiry, an insurer\'s policy number) are listed: type them and press {B("Save the missing fields")}. Check-out stops on a field a claim needs until it is filled or an Admin overrides.',
+        'Every signature: a code to the signer\'s phone or email, the key terms initialled, three consents, a drawn signature.',
+    ])
 
     g.task('Check renter documents', 'The renter\'s licence photos, selfie and proof of coverage, before the handover.')
     g.steps([
         f'Open the task "identity documents or coverage proof to review", or open the booking: {B("Review")} shows the documents of any booking being arranged or under way, with no task needed.',
-        f'Tick every check under a document, then press {B("Approve")}. Or type the reason the renter reads and press {B("Reject")}.',
-        'The coverage: OPCF 27 shows the insurer, policy number and expiry; credit card coverage shows the card, its type and whether the name matches. Approve or reject it as a whole.',
+        'Every licence image, selfie and proof of coverage of the booking is on one screen, with what to check written once above them: the name and date of birth, class G2 or G and valid past the return, the selfie matches, the coverage is active to the return date.',
+        f'One is wrong? Open {B("Reject this one")} under it, type the reason the renter reads and press {B("Reject")}.',
+        f'Then press {B("Approve all")}: everything still waiting is approved at once (the Protection Plan too). A document the system refuses is named with the reason; the rest are approved.',
     ])
     g.tip('Each opening is logged. An Admin can do the same from Admin > To do.')
 
@@ -208,6 +216,15 @@ def build():
         'Over the limit, an excluded make, a debit card or a longer rental than the card allows: offer OPCF 27 on their own auto policy or the CarmaCars Protection Plan.',
     ])
     g.tip('A card marked Unverified came from a published summary, not the issuer\'s guide. Something wrong or out of date in the list? Tell an Admin: they correct it in Settings > Card coverage.')
+
+    g.task('Review requests', f'Renters are asked for a review by email and text after each trip. {P("Renters", "Review requests")} shows the ones on hold and the Google reviews to match.')
+    g.steps([
+        'On hold: the booking has a charge that is not settled or waived yet (late return, kilometres, fuel, cleaning, smoking, damage, tolls) or an open incident. It leaves the list by itself once the charges are settled or waived.',
+        f'The renter should be asked now anyway? Press {B("Send anyway")}. Should never be asked? Press {B("Do not ask")}.',
+        f'Google reviews: a possible match to a renter shows "possible match". Press {B("Confirm")} if it is them, {B("Not this renter")} if not, or {B("Match to a booking")} with the booking number.',
+        f'On a booking, the card Review requests has {B("Ask for a review")} (for example after a call that went well) and {B("Mark reviewed")} when the renter says they already left one.',
+    ])
+    g.tip('Never offer anything for a review and never ask only happy renters: everyone gets the same message and the same Google link.')
 
     g.task('A change to a confirmed booking')
     g.para('On a booking\'s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, '
@@ -255,6 +272,15 @@ def build():
     g.figure(S('va-finance/01-queue-desktop', 0, 60, 1440, 620, pins=[(1, 380, 314)]),
              note='The type filters show what Finance handles: collect upfront, debit failed, match toll, refund cancellation and review statements.')
 
+    g.task('Payments by day', f'{B("Payments by day")} is your day in one screen: every payment and refund, by method, with the cash drawer and the refunds to decide.')
+    g.steps([
+        f'Choose From and To (today by default) and tick the methods you want (card, e-Transfer, cash, cheque, platform payout, insurer and others; none ticked shows all), then press {B("Show")}.',
+        'Totals by method: received, refunded and net. Each day: the same by method, the cash expected in the drawer (cash received less cash given back) and the cash counted.',
+        f'At the end of the day count the drawer and press {B("Record the count")}. The difference shows "balanced", or "over" or "short" with the amount.',
+        f'Refunds waiting: every refund asked for anywhere (a cancellation, a booking, Finance), with the policy maths (paid, the tier, the percentage back, what is kept). Press {B("Approve")} or {B("Decline")} with the reason in the same row; above your limit it says an Admin approves. Approved: {B("Issue the refund")}.',
+        f'{B("Export CSV")} gives the same rows for the bank or the bookkeeper: refunds as negative amounts, holds marked as not money in.',
+    ])
+
     g.task('Payments, deposits, refunds')
     g.steps([
         'Failed payments: each with the purpose, amount and the bank\'s reason.',
@@ -276,9 +302,19 @@ def build():
     g.task('Cards, holds and deposits given back', 'On the booking\'s Money tab.')
     g.steps([
         f'{B("Charge the saved card")}: a later charge (extra kilometres, fuel, damage, a late return) with the reason on the renter\'s receipt, or the deposit of a rental over 7 days.',
-        f'A deposit hold: {B("Capture the hold")} for all or part of it, with the reason (the rest is released), or {B("Release the hold")}.',
+        f'A deposit hold: {B("Capture the hold")} for all of it, with the reason. A part capture (the rest is released) or {B("Release the hold")} waits for the settlement while the car is out, inside the toll window or while something is open; an Admin may do it with the reason.',
         f'A deposit taken in cash or by e-Transfer is given back the same way: the task Give the deposit back the way it came; then press {B("Returned")} with the reference or receipt number.',
     ])
+
+    g.task('Settle a deposit', f'The deposit is never given back by itself. Finance or an Admin settles it after the return: on the booking\'s Money tab, under Deposit, press {B("Settle the deposit")}. Issue the Check-in statement first.')
+    g.steps([
+        'The form shows the deposit, what is still available, the charges owed from the statement and what is taken from the deposit for them. What the deposit does not cover is charged to the card on file; with no card (or a card declined), the renter gets a pay link by email and text, and Finance has a task until it is paid.',
+        'Tolls and tickets can take up to 7 days to come in. Inside that window the whole rest of the deposit is filled in as the hold-back, until the window ends. To give it back sooner, tick Release now anyway: a toll that comes in later is charged to the card on file.',
+        'Something still open keeps the whole deposit: an incident, a claim, new damage at the return not priced, damage found later not billed, a toll or ticket on the car during the rental not matched or not charged, a card dispute, or charges not on a statement yet. The form lists them. Only an Admin can release part of it, with the reason; it is recorded.',
+        f'Damage: an Admin keeps the whole deposit ({B("Keep the whole deposit (damage)")}) or bills a damage charge up to the $2,500 deductible. Ask an Admin, with the photos.',
+        f'Press {B("Settle")}. The money moves at Stripe at once: the charges are collected and what is not owed is refunded or the hold released. A step Stripe refuses is tried again by itself, and Finance gets a task if it keeps failing.',
+    ])
+    g.tip('A card hold lapses after about 7 days. While the car is out, or returned and not settled, the hold is collected in full a day and a half before it lapses: that keeps the money, and the settlement refunds what is not owed. A hold that lapses anyway is charged to the saved card, and Finance is told at once.', label='Good to know')
 
     g.task('Read a toll notice')
     g.steps([
@@ -305,12 +341,12 @@ def build():
               blurb='Field jobs, daily checks, photo reviews, similar cars and listings.')
     g.para('Your rail: Queue, Today, Field jobs, Daily checks, Photo reviews, Calendar, Listings, Similar cars, Find a renter '
            'and Scorecard.')
-    g.task('Schedule field jobs')
+    g.task('Schedule field jobs', 'Every confirmed booking gets its handover (or delivery) and return (or pickup) jobs by itself, at the booking\'s times and place, given to the field staff member with the fewest jobs that day. You check and change them.')
     g.steps([
-        'Handovers and returns without a job are listed first. Every booking needs one.',
-        f'Press {B("Schedule")}: choose the kind, car, when, place, field staff and instructions.',
-        'Jobs, next three days: each with its field staff and whether they acknowledged it.',
-        f'Change a job with {B("Assign")}, {B("Reassign")}, {B("Move")} or {B("Cancel")}.',
+        'Jobs, next three days: each with its place, its field staff and whether they acknowledged it. "Made from the booking" marks the ones made by themselves; when the booking moves, they move too, unless you changed them.',
+        f'Change a job with {B("Assign")}, {B("Reassign")}, {B("Move")} (time and place) or {B("Cancel")}.',
+        f'Handovers and returns without a job (when the automatic jobs are off, or one was cancelled) are listed first: press {B("Schedule")}, the place filled in from the booking.',
+        'An Admin turns the automatic jobs or the assignment off in Settings > Program.',
     ], shot=S('va-fleet/02-field-jobs-desktop', 210, 60, 1440, 1240, pins=[(1, 400, 183), (2, 1180, 210), (3, 350, 870), (4, 1180, 1050)]), fig_w=4.3)
 
     g.task('Daily checks', 'Twice a day: the opening check by 9:00 and the closing check by 18:00.')

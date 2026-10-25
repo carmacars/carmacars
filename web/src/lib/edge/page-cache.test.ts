@@ -145,13 +145,18 @@ test('cron tick: asks the database once; runs everything when it cannot tell', a
   const env = { DATA_BACKEND: 'supabase', NEXT_PUBLIC_SUPABASE_URL: 'https://p.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'svc' };
   const calls: string[] = [];
   const f = (body: string, status = 200) => (async (url: string | URL | Request, init?: RequestInit) => { calls.push(String(url) + ' ' + (init?.headers as Record<string, string>).authorization); return new Response(body, { status }); }) as typeof fetch;
-  assert.deepEqual(await jobsToRun(env, f('{"listing":false,"seo":false,"pdf":false,"phone":false,"agreements":false}')), { listing: false, seo: false, pdf: false, phone: false, turo: false, agreements: false, checked: true });
+  assert.deepEqual(await jobsToRun(env, f('{"listing":false,"seo":false,"pdf":false,"phone":false,"agreements":false}')), { listing: false, seo: false, pdf: false, phone: false, turo: false, agreements: false, reviews: false, crm: false, deposits: true, checked: true });
   assert.equal(calls[0], 'https://p.supabase.co/rest/v1/rpc/server_jobs_due Bearer svc');
-  assert.deepEqual(await jobsToRun(env, f('{"listing":true,"seo":false}')), { listing: true, seo: false, pdf: true, phone: true, turo: false, agreements: true, checked: true });
-  assert.deepEqual(await jobsToRun(env, f('{"message":"function not found"}', 404)), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, checked: false });
-  assert.deepEqual(await jobsToRun(env, (async () => { throw new TypeError('fetch failed'); }) as typeof fetch), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, checked: false });
-  assert.deepEqual(await jobsToRun({ ...env, SUPABASE_SERVICE_ROLE_KEY: undefined }, f('{}')), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, checked: false });
-  assert.deepEqual(await jobsToRun({ ...env, DATA_BACKEND: 'local' }, f('{}')), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, checked: false });
+  assert.equal((await jobsToRun(env, f('{"reviews":true}'))).reviews, true, 'the Google reviews sync only when the database says it is due (0146)');
+  // 0147: a partner CRM link due
+  assert.equal((await jobsToRun(env, f('{"listing":false,"seo":false,"pdf":false,"phone":false,"crm":true}'))).crm, true);
+  // 0155: the deposit guard runs unless the database says nothing is due (money: in doubt, it runs)
+  assert.equal((await jobsToRun(env, f('{"deposits":false}'))).deposits, false);
+  assert.deepEqual(await jobsToRun(env, f('{"listing":true,"seo":false}')), { listing: true, seo: false, pdf: true, phone: true, turo: false, agreements: true, reviews: false, crm: false, deposits: true, checked: true });
+  assert.deepEqual(await jobsToRun(env, f('{"message":"function not found"}', 404)), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, reviews: false, crm: true, deposits: true, checked: false });
+  assert.deepEqual(await jobsToRun(env, (async () => { throw new TypeError('fetch failed'); }) as typeof fetch), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, reviews: false, crm: true, deposits: true, checked: false });
+  assert.deepEqual(await jobsToRun({ ...env, SUPABASE_SERVICE_ROLE_KEY: undefined }, f('{}')), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, reviews: false, crm: true, deposits: true, checked: false });
+  assert.deepEqual(await jobsToRun({ ...env, DATA_BACKEND: 'local' }, f('{}')), { listing: true, seo: true, pdf: true, phone: true, turo: true, agreements: true, reviews: false, crm: true, deposits: true, checked: false });
 });
 
 test('the fleet signature changes when a car is published, taken off, deleted or its slug or model page changes', async () => {

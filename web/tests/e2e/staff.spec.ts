@@ -98,7 +98,12 @@ async function confirmBooking(sql: Sql, booking: string, admin: string) {
             select renter_id, 'visa', '4242', 'Riley Renter', 12, 2031, true from bookings where id = ${booking}`;
   await sql`update bookings b set card_on_file_id = (select pm.id from payment_methods pm where pm.renter_id = b.renter_id order by pm.created_at desc limit 1) where b.id = ${booking}`;
   await sql`update bookings set status = 'confirmed' where id = ${booking}`;
-  await sql`update booking_drivers set identity_method = 'staff_review', identity_verified_on = current_date, licence_number = coalesce(licence_number, 'L1234-56789-01234'), licence_expiry = coalesce(licence_expiry, date '2031-01-01') where booking_id = ${booking}`;
+  await sql`update booking_drivers set identity_method = 'staff_review', identity_verified_on = current_date, licence_number = coalesce(licence_number, 'L1234-56789-01234'), licence_expiry = coalesce(licence_expiry, date '2031-01-01'), licence_issuer = coalesce(licence_issuer, 'ON') where booking_id = ${booking}`;
+  // what a claim needs on the agreement (0154: check-out stops without it): the renter's home address, the car's plate and VIN
+  await sql`update renters r set address_line1 = coalesce(r.address_line1, '1 Test Street'), city = coalesce(r.city, 'Toronto'), province = coalesce(r.province, 'ON'),
+            postal_code = coalesce(r.postal_code, 'M5H 2N2'), mobile = coalesce(r.mobile, '+16475550123') from bookings b where b.id = ${booking} and r.id = b.renter_id`;
+  await sql`update vehicles v set plate = coalesce(nullif(v.plate, ''), 'E2E' || upper(substr(md5(v.id::text), 1, 4))),
+            vin = coalesce(nullif(v.vin, ''), '1E2E' || translate(upper(substr(md5(v.id::text || 'vin'), 1, 13)), 'IOQ', '123')) from bookings b where b.id = ${booking} and v.id = b.vehicle_id`;
   await sql`insert into coverage_proofs (booking_id, coverage_option, status, card_issuer, card_last4, confirmed_at) values (${booking}, 2, 'confirmed', 'Bank', '4242', now())`;
   await sql`update bookings set coverage_option = 2, coverage_confirmed_at = now(), blocks_calendar = true where id = ${booking}`;
 }
@@ -197,7 +202,7 @@ test('va: finance asks for a refund above the limit and it becomes an Admin appr
   await sql.end();
 });
 
-test('va: fleet schedules and assigns a field job', async ({ browser }, info) => {
+test('va: fleet checks and assigns the field job made from a booking', async ({ browser }, info) => {
   test.setTimeout(150_000);
   const phone = info.project.name.startsWith('phone');
   const sql = db();
@@ -209,17 +214,19 @@ test('va: fleet schedules and assigns a field job', async ({ browser }, info) =>
   const car = await freeCar(sql, 2, 2);
   const req = await seedRequest(sql, renter, car.id, car.from, car.to);
   await confirmBooking(sql, req.booking_id, admin.id);
+  // the handover and return jobs are made from the booking at its confirmation (0144): Fleet checks and assigns
+  const [j] = await sql`select id, place, auto_created from field_jobs where booking_id = ${req.booking_id} and kind = 'handover' and status <> 'cancelled'`;
+  expect([Boolean(j?.place), j?.auto_created]).toEqual([true, true]);
   const page = await ctx(browser, phone);
   await signIn(page, fleet.email, '/va');
   await page.goto('/va/fleet');
-  await expect(page.getByTestId('unscheduled')).toContainText(req.booking_number);
+  await expect(page.getByTestId('unscheduled')).not.toContainText(req.booking_number);
+  await expect(page.getByTestId('jobs')).toContainText(req.booking_number);
   await check(page, 'va fleet');
-  await page.getByTestId(`schedule-${req.booking_number}-handover`).click();
-  const dlg = page.locator('dialog[open]');
-  await dlg.getByLabel('Assigned to').selectOption(field.id);
-  await dlg.getByTestId(`schedule-${req.booking_number}-handover-submit`).click();
-  await expect.poll(async () => (await sql`select assigned_to from field_jobs where booking_id = ${req.booking_id} and kind = 'handover'`)[0]?.assigned_to, { timeout: 15_000 }).toBe(field.id);
-  const [j] = await sql`select id, assigned_to from field_jobs where booking_id = ${req.booking_id} and kind = 'handover'`;
+  await page.getByTestId(`assign-${j!.id}`).click();
+  await page.locator('dialog[open]').getByLabel('Field staff').selectOption(field.id);
+  await page.getByTestId(`assign-${j!.id}-submit`).click();
+  await expect.poll(async () => (await sql`select assigned_to from field_jobs where id = ${j!.id}`)[0]?.assigned_to, { timeout: 15_000 }).toBe(field.id);
   // and hand it to someone else, then back: an assignment the database checks each time
   const other = await mkUser(sql, 'fj2', 'field');
   await sql`select app.assign_field_job(${j!.id}::uuid, ${other.id}::uuid, ${admin.id}::uuid)`;

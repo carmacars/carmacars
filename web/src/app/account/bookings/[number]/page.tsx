@@ -1,23 +1,27 @@
 import Link from 'next/link';
 import { seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
-import { getSettings } from '@/lib/site';
+import { getFleet, getSettings } from '@/lib/site';
 import { when } from '@/features/agreement/model';
-import { AWAITING_SIGNATURE, STATUS, awaitingSignature, bookingPath, carName, nextStep, progress } from '@/features/portal/status';
-import { Back, Dl, PriceBreakdown, StatusBadge, placeText } from '@/features/portal/Blocks';
+import { AWAITING_SIGNATURE, STATUS, awaitingSignature, bookingPath, nextStep, progress } from '@/features/portal/status';
+import { Back, PriceBreakdown } from '@/features/portal/Blocks';
 import { AddToCalendar } from '@/features/portal/AddToCalendar';
 import { InfoReply } from '@/features/portal/InfoReply';
 import { Messages, type Msg } from '@/features/portal/Messages';
 import { rpc } from '@/lib/db/repo';
 import { Withdraw } from '@/features/portal/Withdraw';
 import { ChangeRequestActions } from '@/features/portal/SelfService';
-import { myBooking } from '@/server/portal/data';
+import { myBooking, myTripPhotos } from '@/server/portal/data';
 import { LicenceNotice, licenceState, renterMissing } from '@/features/portal/LicenceNotice';
 import { door } from '@/server/door';
 import { bookingDriverLinks } from '@/server/portal/driver-links';
 import { DriverLink } from '@/features/portal/DriverLink';
 import { PortalAddons, type MyAddons } from '@/features/addons/PortalAddons';
 import { renterPayBalance } from '@/server/actions/balance';
+import type { HandoverReportData } from '@/features/handover/types';
+import { AnimatedNumber, Disclosure, DocumentList, DocumentRow, MoneyCard, PortalCard, ProgressRing, QuickAction, QuickActions, Timeline, TimelineItem, type MoneyPart } from '@/components/portal-ui';
+import { NextStepBox, TripHero, tripPhoto } from '@/features/portal/trip';
+import { moneyParts } from '@/features/portal/trip-model';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }) {
@@ -27,36 +31,73 @@ export async function generateMetadata({ params }: { params: Promise<{ number: s
 
 const CHANGE: Record<string, string> = { requested: 'asked for, waiting for our answer', proposed: 'suggested by us, waiting for your answer', approved: 'approved, waiting for your signature',
   applied: 'done', declined: 'declined', cancelled: 'withdrawn', expired: 'not accepted in time' };
-const within = (iso: string, hours: number) => new Date(iso).getTime() - Date.now() < hours * 3600e3;
 
+const BADGE: Record<string, string> = { id_front: 'ID', id_back: 'ID', face: 'IMG', condition_report: 'PDF' };
 const KIND: Record<string, string> = { rental_amendment: 'Booking amendment', rental_agreement: 'Rental agreement', receipt: 'Receipt', renter_statement: 'Statement', condition_report: 'Condition Report', coverage_proof: 'Proof of coverage', id_front: 'Licence, front', id_back: 'Licence, back', face: 'Selfie' };
+// what the renter asks for in a message, from an action tile (?ask=): the message box starts with it
+const ASK: Record<string, string> = {
+  driver: 'I would like to add a driver to this booking. Their name: ',
+  problem: 'I have a problem with the car: ',
+  extend: 'I would like to keep the car longer, until: '
+};
 
 export default async function BookingPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { b, user } = await myBooking((await params).number);
   // receipts and statements, rendered on request and kept once final (migration 0032)
-  const [files, thread] = await Promise.all([
+  const [files, thread, photos, fleet] = await Promise.all([
     door<Array<{ kind: string; key: string; title: string; at: string }>>(user.id, 'ops_read', 'files', { for: 'booking', id: b.id }).catch(() => []),
     // the booking's messages, read as the signed-in renter (migration 0033)
-    rpc('my_booking_messages', { p_number: b.booking_number }, { role: 'authenticated', userId: user.id }).then((x) => (x ?? []) as unknown as Msg[]).catch(() => [] as Msg[])]);
-  const [sp, s, addons] = await Promise.all([searchParams, getSettings(),
+    rpc('my_booking_messages', { p_number: b.booking_number }, { role: 'authenticated', userId: user.id }).then((x) => (x ?? []) as unknown as Msg[]).catch(() => [] as Msg[]),
+    myTripPhotos(user), getFleet().catch(() => [])]);
+  const [sp, s, addons, report] = await Promise.all([searchParams, getSettings(),
     // the add-ons on the booking and what may still be added (0066)
-    b.booking_type === 'owner' ? Promise.resolve(null) : rpc('server_my_booking_addons', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as MyAddons).catch(() => null)]);
+    b.booking_type === 'owner' ? Promise.resolve(null) : rpc('server_my_booking_addons', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as MyAddons).catch(() => null),
+    // the kilometres driven, once the car is back (the photo report's reading, 0130)
+    b.checked_in_at ? rpc('server_renter_handover_report', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as HandoverReportData | null).catch(() => null) : Promise.resolve(null)]);
   const laterLines = new Set((addons?.items ?? []).filter((a) => a.after_booking).map((a) => a.line_item_id).filter(Boolean));
   const step = nextStep(b);
   // what is still owing after a change by our team (0132): the balance, with Pay
   const balance = ['confirmed', 'on_rent', 'returned'].includes(b.status)
     ? ((await rpc('renter_balance', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { balance_cents: number } | null) : null;
+  const balanceDue = balance && balance.balance_cents > 0 ? balance.balance_cents : 0;
   // the licence first (0130): from the request until it is on file
   const licMissing = ['requested', 'offered', 'pending_payment'].includes(b.status) ? renterMissing(await licenceState(b.id, user.id)) : null;
-  const card = b.payments.find((p) => p.purpose === 'booking_total' && p.card_last4);
   const openQ = b.info_requests.filter((q) => q.status === 'open');
   // each additional driver's own signing link (migration 0040: versioned, expiring, renewed here)
   const links = b.agreement && b.drivers.some((d) => d.role === 'additional') ? await bookingDriverLinks(b.id, user.id) : [];
   const waiting = b.change_requests.find((c) => ['proposed', 'approved'].includes(c.status));
   const live = ['confirmed', 'on_rent'].includes(b.status);
-  const pickupSoon = live && within(b.pickup_at, 24);
   const ext = b.extensions[b.extensions.length - 1];
   const phone = s.phone_display ?? s.phone;
+  const tel = s.phone ?? phone;
+  const roadside = s.roadside_phone ?? null;
+  const card = b.payments.find((p) => p.purpose === 'booking_total' && p.card_last4);
+  const photo = tripPhoto(photos, b, fleet.find((c) => c.slug === b.slug)?.cover ?? null);
+  const signed = !!b.agreement?.renter_signed_at;
+  const actionable = !!step.href && step.href !== bookingPath(b.booking_number);
+  // the hero's next step names the action the tests and the guide know (live-sign, live-pay)
+  const stepId = b.status === 'on_rent' && b.added_live && !signed ? 'live-sign' : b.link_due && signed ? 'live-pay' : 'booking-next-step-cta';
+  const steps = progress(b);
+  const done = steps.filter((p) => p.done).length;
+  const firstTodo = steps.findIndex((p) => !p.done);
+
+  // money: what is paid and what is open, by part, as the database stored it
+  const m = moneyParts({ status: b.status, renter_due_at_booking_cents: b.renter_due_at_booking_cents, deposit_cents: b.deposit_cents, link_due: b.link_due, signed,
+    payments: b.payments, refunds: b.refunds, extensions: b.extensions, addons: addons?.items ?? [], changes: b.change_requests });
+  const parts: MoneyPart[] = m.parts.map((p) => ({ key: p.key, label: p.label, amount: money(p.cents, { cents: true }), state: p.state, note: p.note,
+    href: p.sub ? bookingPath(b.booking_number, p.sub) : undefined, cta: p.state === 'owing' || p.state === 'info' ? p.cta : undefined, testId: `money-${p.key}` }));
+  // a rental with a payment link already shows its whole amount as owing
+  if (balanceDue && !b.link_due) parts.push({ key: 'owe-balance', label: 'Balance due', amount: money(balanceDue, { cents: true }), state: 'owing', note: 'after a change or a charge added', testId: 'money-owe-balance' });
+  const owingCents = m.owingCents + (b.link_due ? 0 : balanceDue);
+  const firstOwing = m.parts.find((p) => p.state === 'owing');
+  const receipts = [...b.documents.filter((d) => !d.purged && ['receipt', 'renter_statement'].includes(d.kind)).map((d) => ({ key: d.id, kind: d.kind, title: KIND[d.kind] ?? d.title ?? 'Receipt', at: d.created_at, href: `/account/documents/${d.id}` })),
+    ...files.filter((f) => ['receipt', 'renter_statement', 'statement'].includes(f.kind)).map((f) => ({ key: `${f.kind}:${f.key}`, kind: f.kind, title: f.title, at: f.at, href: `/files/${f.kind}/${f.key}` }))];
+
+  const next = actionable
+    ? <NextStepBox step={step} testId="booking-next-step" ctaTestId={stepId} calm={!step.urgent} />
+    : <NextStepBox step={{ ...step, href: undefined }} calm kicker={live ? 'All set' : STATUS[b.status].label} testId="booking-next-step"
+        extra={live ? <div className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}><AddToCalendar number={b.booking_number} car={`${b.vehicle_year} ${b.vehicle_make} ${b.vehicle_model}`} pickup={b.pickup_at} ret={b.return_at} place={b.pickup_place ?? 'CarmaCars'} />{phone && <a className="btn btn--quiet btn--sm" href={`tel:${tel}`}>Call us {phone}</a>}</div> : null} />;
+
   return (
     <>
       <Back href="/account">Your trips</Back>
@@ -64,51 +105,60 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       {sp.declined && <div className="pt-ok" role="status" data-testid="declined-panel"><h2 className="d3">Change declined</h2><p>Your booking stays as it was. We let our team know.</p></div>}
       {sp.paid && b.status === 'on_rent' && b.added_live && !b.link_due && <div className="pt-ok" role="status" data-testid="paid-live-panel"><h2 className="d3">Paid, thank you</h2><p>Your card was charged {money(b.renter_due_at_booking_cents, { cents: true })} for your rental. Your signed agreement and receipt are below.</p></div>}
       {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
-      <header className="stack">
-        <div className="row" style={{ gap: 'var(--s-2)' }}><StatusBadge s={b.status} awaiting={awaitingSignature(b)} /><span className="small muted" data-testid="booking-number">{b.booking_number}</span></div>
-        <h1 className="d2">{carName(b)}</h1>
-        <p className="lead">{when(b.pickup_at)} to {when(b.return_at)}</p>
-        <p className="muted">{awaitingSignature(b) ? AWAITING_SIGNATURE.blurb : STATUS[b.status].blurb}</p>
-        {live && <div><AddToCalendar number={b.booking_number} car={carName(b)} pickup={b.pickup_at} ret={b.return_at} place={b.pickup_place ?? 'CarmaCars'} /></div>}
-      </header>
+
+      <TripHero b={b} photo={photo} settings={s} next={next} kmDriven={report?.km_driven ?? null} prepaidFuel={(addons?.items ?? []).some((a) => a.prepaid_fuel)}>
+        <p className="small muted" data-testid="status-blurb">{awaitingSignature(b) ? AWAITING_SIGNATURE.blurb : STATUS[b.status].blurb}
+          {b.status === 'confirmed' && <> Bring your original licence{card ? ` and the card ending ${card.card_last4}` : ' and the card you paid with'}.</>}</p>
+      </TripHero>
+
+      {balanceDue > 0 && (
+        <section className="pu-panel pu-panel--next" aria-labelledby="pt-bal" data-testid="renter-balance"><h2 className="pu-title" id="pt-bal">Balance due: {money(balanceDue, { cents: true })}</h2>
+          <p>Your booking changed, or a charge was added: this is what is still owing. Pay it by card now (the price lines are below), or pay our team by e-Transfer or cash.</p>
+          <form action={renterPayBalance}><input type="hidden" name="booking" value={b.id} /><button className="btn btn--primary" type="submit" data-testid="renter-pay-balance">Pay {money(balanceDue, { cents: true })}</button></form></section>
+      )}
+      <LicenceNotice number={b.booking_number} missing={licMissing} when={b.status === 'requested' ? 'request' : b.status === 'offered' ? 'offer' : 'pay'} />
+      {waiting && (
+        <section className="pu-panel pu-panel--next" aria-labelledby="pt-chg" data-testid="change-waiting"><h2 className="pu-title" id="pt-chg">{waiting.status === 'proposed' ? 'We suggest a change to your booking' : 'Your change is approved'}</h2>
+          <p>{waiting.note ?? 'Review the new details and answer.'}</p>
+          <p><Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'change')}>Review and answer</Link></p>
+        </section>
+      )}
+      {openQ.length > 0 && (
+        <section className="pu-panel pu-panel--next" id="questions" aria-labelledby="pt-q"><h2 className="pu-title" id="pt-q">A question from our team</h2>
+          {openQ.map((q) => <div key={q.id} className="stack"><p className="pt-note">{q.question}</p>{q.reply_by && <p className="small muted">Please answer by {when(q.reply_by)}.</p>}<InfoReply number={b.booking_number} requestId={q.id} /></div>)}
+        </section>
+      )}
+
       <div className="pt-split">
-        <div className="stack-lg">
-          {balance && balance.balance_cents > 0 && (
-            <section className="pt-card pt-card--next" aria-labelledby="pt-bal" data-testid="renter-balance"><h2 className="d4" id="pt-bal">Balance due: {money(balance.balance_cents, { cents: true })}</h2>
-              <p>Your booking changed, or a charge was added: this is what is still owing. Pay it by card now (the price lines are below), or pay our team by e-Transfer or cash.</p>
-              <form action={renterPayBalance}><input type="hidden" name="booking" value={b.id} /><button className="btn btn--primary" type="submit" data-testid="renter-pay-balance">Pay {money(balance.balance_cents, { cents: true })}</button></form></section>
-          )}
-          <LicenceNotice number={b.booking_number} missing={licMissing} when={b.status === 'requested' ? 'request' : b.status === 'offered' ? 'offer' : 'pay'} />
-          {step.href && step.href !== bookingPath(b.booking_number) && (
-            <section className="pt-card pt-card--next" aria-labelledby="pt-step"><h2 className="d4" id="pt-step">{step.title}</h2><p>{step.note}</p><p><Link prefetch={false} className="btn btn--primary" href={step.href}>{step.cta}</Link></p></section>
-          )}
-          {waiting && (
-            <section className="pt-card pt-card--next" aria-labelledby="pt-chg" data-testid="change-waiting"><h2 className="d4" id="pt-chg">{waiting.status === 'proposed' ? 'We suggest a change to your booking' : 'Your change is approved'}</h2>
-              <p>{waiting.note ?? 'Review the new details and answer.'}</p>
-              <p><Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'change')}>Review and answer</Link></p>
-            </section>
-          )}
-          {openQ.length > 0 && (
-            <section className="pt-card pt-card--next" id="questions" aria-labelledby="pt-q"><h2 className="d4" id="pt-q">A question from our team</h2>
-              {openQ.map((q) => <div key={q.id} className="stack"><p className="pt-note">{q.question}</p>{q.reply_by && <p className="small muted">Please answer by {when(q.reply_by)}.</p>}<InfoReply number={b.booking_number} requestId={q.id} /></div>)}
-            </section>
-          )}
-          <section className="pt-card" aria-labelledby="pt-prog"><h2 className="d4" id="pt-prog">Progress</h2>
-            <ol className="pt-steps">{progress(b).map((p) => <li key={p.label} className={p.done ? 'is-done' : ''}>{p.href && !p.done ? <Link prefetch={false} className="link" href={p.href}>{p.label}</Link> : p.label}<span className="vh">{p.done ? ', done' : ', to do'}</span></li>)}</ol>
-          </section>
-          <section className="pt-card" aria-labelledby="pt-trip"><h2 className="d4" id="pt-trip">{pickupSoon ? 'Pickup details' : 'Trip'}</h2>
-            <Dl rows={[
-              ['Pickup', `${when(b.pickup_at)}, ${placeText(b.pickup_place, b.pickup_method, true)}`],
-              ['Return', `${when(b.return_at)}, ${placeText(b.return_place, b.return_method, false)}`],
-              ['Length', `${b.billable_days} days`],
-              ['Kilometres', b.km_allowance_total ? `${b.km_allowance_total} km included, then ${money(b.overage_cents_per_km, { cents: true })} per km` : ''],
-              ['Deposit at pickup', money(b.deposit_cents)],
-              ['Bring', live ? `Your original licence${card ? ` and the card ending ${card.card_last4}` : ' and the card you paid with'}` : '']
-            ]} />
-            {live && phone && <p><a className="btn btn--ghost btn--sm" href={`tel:${s.phone ?? phone}`}>Call us {phone}</a></p>}
-          </section>
+        <div className="pu-stack">
+          <PortalCard id="pt-act" title="Manage your trip" testId="trip-actions">
+            <QuickActions label="Trip actions">
+              {(['requested', 'offered', 'confirmed', 'pending_payment'].includes(b.status) || (b.status === 'on_rent' && b.added_mode === 'in_progress')) && <QuickAction href={bookingPath(b.booking_number, 'verify')} icon="id" title={['requested', 'offered'].includes(b.status) ? 'Your licence' : 'Licence and coverage'} note="Photos, selfie and proof of coverage" />}
+              {(b.status === 'on_rent' || b.status === 'confirmed') && <QuickAction href={bookingPath(b.booking_number, 'extend')} icon="extend" title={ext?.status === 'approved' ? 'Pay for the extension' : 'Extend'} note={ext?.status === 'requested' ? `Asked for ${when(ext.new_return_at)}` : 'Ask for more time with the car'} tone={ext?.status === 'approved' ? 'brand' : 'neutral'} />}
+              {b.status === 'confirmed' && <QuickAction href={bookingPath(b.booking_number, 'change')} icon="calendar" title="Ask to change dates" note="See the difference first" />}
+              <QuickAction href="#messages" icon="chat" title="Message us" note={thread.length ? `${thread.length} ${thread.length === 1 ? 'message' : 'messages'} on this booking` : 'About this booking'} testId="action-message" />
+              {phone && <QuickAction href={`tel:${tel}`} icon="phone" title={`Call us ${phone}`} note={s.opening_hours_text ?? 'We answer day and night'} testId="action-call" />}
+              {['offered', 'pending_payment', 'confirmed', 'on_rent'].includes(b.status) && <QuickAction href={`${bookingPath(b.booking_number)}?ask=driver#messages`} icon="userPlus" title="Add a driver" note="Tell us who; they sign with their own link" testId="action-add-driver" />}
+              {b.status === 'on_rent' && <QuickAction href={roadside ? `tel:${roadside}` : `${bookingPath(b.booking_number)}?ask=problem#messages`} icon="alert" tone="warn" title="Report a problem" note={roadside ? `Roadside help ${s.roadside_phone_display ?? roadside}` : 'A breakdown, damage or anything wrong'} testId="action-problem" />}
+              {['on_rent', 'returned', 'closed'].includes(b.status) && <QuickAction href={bookingPath(b.booking_number, 'condition-report')} icon="camera" title="Photo report" note="Check-out and check-in, every photo" testId="renter-photo-report" />}
+              <QuickAction href="#documents" icon="doc" title="Documents" note="Agreements, receipts, statements" testId="action-documents" />
+              {b.status === 'closed' && b.booking_type !== 'owner' && <QuickAction href={bookingPath(b.booking_number, 'review')} icon="star" title="Review your rental" note="Stars and a few words" testId="review-link" />}
+              {b.status === 'confirmed' && <QuickAction href={bookingPath(b.booking_number, 'cancel')} icon="x" title="Cancel booking" note="See what you get back first" />}
+              {['closed', 'returned', 'cancelled', 'expired', 'declined'].includes(b.status) && <QuickAction href={b.slug ? `/cars/${b.slug}` : '/cars'} icon="repeat" title="Book again" note="Same car, new dates" testId="book-again" />}
+            </QuickActions>
+            {['requested', 'pending_payment'].includes(b.status) && <div><Withdraw number={b.booking_number} /></div>}
+          </PortalCard>
+
+          <PortalCard id="pt-prog" title="Progress" testId="trip-progress">
+            <div className="pu-ringrow"><ProgressRing value={done} max={steps.length} size={88} stroke={8} accent title={`${done} of ${steps.length} steps done`} label={`${done}/${steps.length}`} testId="progress-ring" />
+              <span className="pu-ringrow__label"><b>{firstTodo >= 0 ? steps[firstTodo]!.label : 'All done'}</b>{firstTodo >= 0 ? 'is next' : 'Every step is complete'}</span></div>
+            <Disclosure summary="Every step" open={false} testId="progress-steps">
+              <Timeline label="Booking progress">{steps.map((p, i) => <TimelineItem key={p.label} title={p.label} href={p.href} state={p.done ? 'done' : i === firstTodo ? 'current' : 'todo'} />)}</Timeline>
+            </Disclosure>
+          </PortalCard>
+
           {addons && (addons.items.length > 0 || addons.can_add) && <PortalAddons number={b.booking_number} data={addons} />}
-          <section className="pt-card" aria-labelledby="pt-drivers"><h2 className="d4" id="pt-drivers">Drivers</h2>
+          {b.drivers.length > 0 && <PortalCard id="pt-drivers" title="Drivers">
             <ul className="pt-list">{b.drivers.map((d) => (
               <li key={d.id} className="stack" style={{ gap: 'var(--s-2)' }}>
                 <div className="pt-card__head"><b>{d.full_name}</b><span className="small muted">{d.role === 'renter' ? 'Renter' : 'Additional driver'}</span></div>
@@ -118,44 +168,34 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
                     sentText={l.sent_at ? `Last emailed ${when(l.sent_at)}.` : null} />) : null; })()}
               </li>
             ))}</ul>
-          </section>
+          </PortalCard>}
           {(b.change_requests.length > 0 || b.extensions.length > 0) && (
-            <section className="pt-card" aria-labelledby="pt-changes"><h2 className="d4" id="pt-changes">Changes and extensions</h2>
+            <PortalCard id="pt-changes" title="Changes and extensions">
               {b.change_requests.map((c) => <div key={c.id} className="pt-msg"><p><b>Change:</b> {CHANGE[c.status] ?? c.status.replace(/_/g, ' ')}{c.decline_reason ? `. ${c.decline_reason}` : ''}</p><ChangeRequestActions number={b.booking_number} id={c.id} status={c.status} /></div>)}
               {b.extensions.map((e) => <div key={e.id} className="pt-msg"><p><b>Extension to {when(e.new_return_at)}:</b> {e.status}{e.total_cents ? `, ${money(e.total_cents, { cents: true })}` : ''}</p>{e.status === 'approved' && <Link prefetch={false} className="btn btn--primary btn--sm" href={bookingPath(b.booking_number, 'extend')}>Pay for the extension</Link>}</div>)}
-            </section>
+            </PortalCard>
           )}
-          <Messages number={b.booking_number} thread={thread} />
-          <section className="pt-card" aria-labelledby="pt-docs"><h2 className="d4" id="pt-docs">Documents</h2>
-            {b.documents.length ? <ul className="pt-list">{b.documents.filter((d) => !d.purged).map((d) => (
-              <li key={d.id} className="pt-card__head"><span>{d.kind === 'rental_amendment' && d.title ? d.title : KIND[d.kind] ?? d.title}<span className="xs muted"> · {when(d.created_at, false)}</span></span><a className="link" href={`/account/documents/${d.id}`} data-testid={`doc-${d.kind}`}>Download</a></li>
-            ))}</ul> : files.length ? null : <p className="muted small">Your agreement, receipts and statements appear here.</p>}
-            {files.length > 0 && <ul className="pt-list" data-testid="generated-files">{files.map((f) => (
-              <li key={`${f.kind}:${f.key}`} className="pt-card__head"><span>{f.title}<span className="xs muted"> · {when(f.at, false)}</span></span><a className="link" href={`/files/${f.kind}/${f.key}`} data-testid={`file-${f.kind}`}>Download PDF</a></li>
-            ))}</ul>}
-          </section>
+          <Messages key={sp.ask ?? 'none'} number={b.booking_number} thread={thread} prefill={sp.ask ? ASK[sp.ask] : undefined} />
+          <PortalCard id="documents" title="Documents" testId="booking-documents">
+            {b.documents.length ? <DocumentList plain>{b.documents.filter((d) => !d.purged).map((d) => (
+              <DocumentRow key={d.id} badge={BADGE[d.kind] ?? 'PDF'} external title={d.kind === 'rental_amendment' && d.title ? d.title : KIND[d.kind] ?? d.title} meta={when(d.created_at, false)} href={`/account/documents/${d.id}`} linkTestId={`doc-${d.kind}`} />
+            ))}</DocumentList> : files.length ? null : <p className="muted small">Your agreement, receipts and statements appear here.</p>}
+            {files.length > 0 && <DocumentList plain testId="generated-files">{files.map((f) => (
+              <DocumentRow key={`${f.kind}:${f.key}`} external title={f.title} meta={when(f.at, false)} href={`/files/${f.kind}/${f.key}`} linkTestId={`file-${f.kind}`} />
+            ))}</DocumentList>}
+          </PortalCard>
         </div>
-        <aside className="pt-split__aside stack-lg">
-          <section className="pt-card" aria-labelledby="pt-price"><h2 className="d4" id="pt-price">Price</h2>
-            <PriceBreakdown lines={b.lines.filter((l) => l.stage === 'booking' && !laterLines.has(l.id))} hst={b.hst_at_booking_cents} total={b.renter_due_at_booking_cents} totalLabel={b.link_due ? 'Due now' : b.status === 'confirmed' || b.status === 'on_rent' || b.status === 'returned' || b.status === 'closed' ? 'Paid at booking' : 'Due at booking'} insurer={b.insurer_pays_cents || undefined} deposit={b.deposit_cents} />
-            {b.payments.length > 0 && <Dl rows={b.payments.map((p) => [`${p.purpose.replace(/_/g, ' ')} (${p.status})`, `${money(p.amount_cents, { cents: true })}${p.card_last4 ? `, card ending ${p.card_last4}` : ''}`])} />}
-          </section>
-          <section className="pt-card" aria-labelledby="pt-act"><h2 className="d4" id="pt-act">Need something else?</h2>
-            <div className="pt-actions">
-              {b.status === 'offered' && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'offer')}>Review the offer</Link>}
-              {b.status === 'pending_payment' && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, b.agreement?.renter_signed_at ? 'pay' : 'sign')}>{b.agreement?.renter_signed_at ? 'Pay now' : 'Sign the agreement'}</Link>}
-              {b.status === 'on_rent' && b.added_live && !b.agreement?.renter_signed_at && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'sign')} data-testid="live-sign">Sign the agreement</Link>}
-              {b.link_due && b.agreement?.renter_signed_at && <Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number, 'pay')} data-testid="live-pay">Pay now</Link>}
-              {(['requested', 'offered', 'confirmed', 'pending_payment'].includes(b.status) || (b.status === 'on_rent' && b.added_mode === 'in_progress')) && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'verify')}>{['requested', 'offered'].includes(b.status) ? 'Your licence' : 'Licence and coverage'}</Link>}
-              {['on_rent', 'returned', 'closed'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'condition-report')} data-testid="renter-photo-report">Photo report</Link>}
-              {b.status === 'confirmed' && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'change')}>Ask to change dates</Link>}
-              {b.status === 'confirmed' && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'cancel')}>Cancel booking</Link>}
-              {(b.status === 'on_rent' || b.status === 'confirmed') && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'extend')}>{ext?.status === 'approved' ? 'Pay for the extension' : 'Extend'}</Link>}
-              {['requested', 'pending_payment'].includes(b.status) && <Withdraw number={b.booking_number} />}
-              {b.status === 'closed' && b.booking_type !== 'owner' && <Link prefetch={false} className="btn btn--ghost" href={bookingPath(b.booking_number, 'review')} data-testid="review-link">Review your rental</Link>}
-              {phone && <a className="btn btn--quiet" href={`tel:${s.phone ?? phone}`}>Call us {phone}</a>}
-            </div>
-          </section>
+        <aside className="pt-split__aside pu-stack pu-money-first">
+          <MoneyCard testId="money-summary"
+            paid={<AnimatedNumber value={m.paidCents} format="cents" />}
+            owing={owingCents > 0 ? <AnimatedNumber value={owingCents} format="cents" /> : null}
+            parts={parts}
+            pay={firstOwing?.sub ? { href: bookingPath(b.booking_number, firstOwing.sub), label: `${firstOwing.sub === 'sign' ? 'Sign, then pay' : 'Pay'} ${money(firstOwing.cents, { cents: true })}` } : null}>
+            <Disclosure summary="Price details" testId="price-details" open={['offered', 'pending_payment', 'requested'].includes(b.status)}>
+              <PriceBreakdown lines={b.lines.filter((l) => l.stage === 'booking' && !laterLines.has(l.id))} hst={b.hst_at_booking_cents} total={b.renter_due_at_booking_cents} totalLabel={b.link_due ? 'Due now' : b.status === 'confirmed' || b.status === 'on_rent' || b.status === 'returned' || b.status === 'closed' ? 'Paid at booking' : 'Due at booking'} insurer={b.insurer_pays_cents || undefined} deposit={b.deposit_cents} />
+            </Disclosure>
+            {receipts.length > 0 && <div className="stack" data-testid="money-receipts"><p className="pu-eyebrow">Receipts</p><DocumentList plain>{receipts.map((r) => <DocumentRow key={r.key} external accent title={r.title} meta={when(r.at, false)} href={r.href} />)}</DocumentList></div>}
+          </MoneyCard>
         </aside>
       </div>
     </>

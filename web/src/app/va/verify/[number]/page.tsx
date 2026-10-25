@@ -35,6 +35,11 @@ export default async function Verify({ params }: { params: Promise<{ number: str
     <>
       <PageHead kicker={<><Link prefetch={false} className="link" href="/va">Queue</Link> · <Link prefetch={false} className="link" href={`/va/bookings/${encodeURIComponent(n)}`}>{n}</Link></>} title="Identity and coverage" />
       <p className="small muted">Identity {v.readiness.all_drivers_verified ? 'verified' : 'not verified yet'} · coverage {v.readiness.coverage_confirmed ? 'confirmed' : 'not confirmed yet'} · return {d(v.return_at)}</p>
+      {(v.uploads.some((u) => u.status === 'submitted') || (cp && cp.status === 'submitted') || (cov?.option === 3 && !cov.confirmed && cov.protection_plan_line)) && (
+        <Card title="Everything waiting, in one step" testId="va-approve-all">
+          <p className="small">Look at each document below: the name and date of birth match, class G2 or G, valid past the return, no alteration, the selfie matches, the coverage is active to the return date. Reject the wrong one first, with its reason.</p>
+          <Act ops action="doc_review_approve_all" payload={{ booking: n }} label="Approve all" variant="primary" refresh={[`/va/verify/${n}`]} testId="va-approve-all-go" done="Approved." />
+        </Card>)}
       {v.drivers.map((dr) => (
         <Card key={dr.driver_id} title={<>{dr.full_name} <span className="muted small">{label(dr.role)}</span> {dr.verified_on ? <Badge s="approved">Verified</Badge> : null}</>}>
           <Kv rows={[['Date of birth', dr.date_of_birth ?? ''], ['Licence number', dr.licence_number ?? ''], ['Class', dr.licence_class ?? ''], ['Expiry', dr.licence_expiry ?? '']]} />

@@ -54,8 +54,9 @@ later", and "a monthly agreement for each period of a long rental, sent ahead".
     prices the delivery (deliveryDistance).
 15. Item 13: new dates keep a rental charge typed by hand, in proportion to the days (`app.booking_price_spec`), unless
     "recompute" is asked.
-16. Item 15: the database's own refusals (a check, a unique key, a missing value, a bad value) reach staff and renters as
-    sentences (`src/lib/db/friendly.ts`, in DbError itself; the raw text is kept on `raw`).
+16. Item 15: the database's own refusals reach staff as sentences. Merged into release 9's one module
+    (`src/lib/db/friendly.ts`, 0151, at the door with a logged reference): 0148 adds the constraints a person can act
+    on, by name (an insurer billed with none chosen, the dates, a renter's email already used).
 
 ### Renters and price lines
 

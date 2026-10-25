@@ -38,6 +38,7 @@ export default async function Partner({ params }: { params: Promise<{ id: string
       <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/partners">Partners</Link> · {p.partner_number}</>} title={<>{p.business_name} <Badge s={p.status} /></>}>
         <Act ops action="partner_save" payload={{ id }} label="Edit" testId="partner-edit" refresh={refresh} fields={PARTNER_FIELDS(p)} />
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/vehicles/new">Add a car</Link>
+        <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/settings/partners/${id}`} data-testid="partner-crm-link">CRM link</Link>
       </PageHead>
       <div className="ad-cols ad-cols--2">
         <Card title="Partner" testId="partner-facts">

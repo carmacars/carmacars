@@ -12,6 +12,9 @@ export async function GET(req: Request) {
   if (q.trim().length < 3) return NextResponse.json({ items: [], limited: false });
   const m = await maps();
   const token = /^[A-Za-z0-9_-]{8,64}$/.test(s) ? s : crypto.randomUUID();
-  const r = m.suggest ? await m.suggest(q, token) : { items: await m.autocomplete(q, token), limited: false };
-  return NextResponse.json(r, { headers: { 'cache-control': 'private, max-age=60' } });
+  const o = { anywhere: u.searchParams.get('w') === '1' };
+  const r = m.suggest ? await m.suggest(q, token, o) : { items: await m.autocomplete(q, token, o), limited: false };
+  // which adapter answered (google, or fake: no key in this deploy), so a field that "does not autofill" can be told
+  // apart from a missing key in the browser's network panel (2026-10-24)
+  return NextResponse.json({ ...r, via: m.name }, { headers: { 'cache-control': 'private, max-age=60' } });
 }

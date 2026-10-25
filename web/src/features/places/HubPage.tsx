@@ -7,10 +7,15 @@ import { JsonLd } from '@/components/JsonLd';
 import { absUrl, breadcrumbLd, faqLd, seoMeta, type Trail } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { fill, getClasses, getTokensLite as getTokens, replyText, getSettings, siteUrl } from '@/lib/site';
+import { chooseText, mergeFaq, writeKit } from '@/features/kit';
+import { KitText } from '@/features/kit/KitText';
+import { hubKit } from '@/features/kit/pages';
 import { hubCopy, isAutoService, placeLabel } from './copy';
 import { getTerms, hubPath, VERTICAL_ROOT, type Hub, type Vertical } from './data';
 import { PlaceLeadForm, type Kind } from './PlaceLeadForm';
+import { genericPhoto, photoLd, StockFigure } from '@/features/vehicles/photo';
 import '@/styles/seo.css';
+import '@/styles/vehicles.css';
 
 // One hub page (migration 0095): a place and a term, from real data only. Rentals come first on every page: the
 // detailing, body shop and buying pages lead with a rental offer for the same place.
@@ -36,7 +41,8 @@ export function hubTrail(h: Hub): Trail {
 }
 
 export async function HubPage({ h }: { h: Hub }) {
-  const [t, classes, s, allTerms] = await Promise.all([getTokens(), getClasses(), getSettings(), getTerms()]);
+  // 0149: a licensed photo of the kind of page (a road for renting, a car being detailed, a body shop, cars for sale)
+  const [t, classes, s, allTerms, photo] = await Promise.all([getTokens(), getClasses(), getSettings(), getTerms(), genericPhoto(h.term.vertical, h.path)]);
   const F = (x: string) => fill(x, t);
   const c = hubCopy(h, { fill: F });
   const labels = Object.fromEntries(classes.map((x) => [x.code, x.label]));
@@ -53,7 +59,12 @@ export async function HubPage({ h }: { h: Hub }) {
   const related = auto
     ? allTerms.filter((x) => isAutoService(x) && x.slug !== h.term.slug).slice(0, 8).map((x) => ({ slug: x.slug, title: x.title, path: hubPath('bodyshop', x.slug, h.place.slug) }))
     : h.related_terms;
-  const graph: object[] = [breadcrumbLd(trail, h.path), ...(c.faq.length ? [faqLd(c.faq)] : [])];
+  // the writing kit (docs/changes/2026-10-24-writing-kit.md): text written for this page wins, else the kit's; the
+  // template's questions first, then the kit's, none on the mechanical work we arrange (0121)
+  const text = chooseText(h.written, writeKit(hubKit(h, where, t, F(h.term.intent_note ?? ''))));
+  const faq = auto ? [] : mergeFaq(c.faq, text.faq, 8);
+  const kitLocal = text.sections.some((x) => x.id === 'local');
+  const graph: object[] = [breadcrumbLd(trail, h.path), ...(faq.length ? [faqLd(faq)] : []), ...(photo ? [photoLd(photo, photo.alt ?? undefined)] : [])];
   if (h.cars.length) graph.push({ '@type': 'ItemList', name: auto ? `Cars to rent while yours is in the shop, ${where}` : c.h1, numberOfItems: h.cars.length,
     itemListElement: h.cars.slice(0, 12).map((x, i) => ({ '@type': 'ListItem', position: i + 1, url: siteUrl() + x.path, name: `${x.year ?? ''} ${x.make} ${x.model}`.trim(), ...(x.cover ? { image: absUrl(x.cover.path) } : {}) })) });
   // 0115: a rental page for a place we deliver to describes the service we really give there (our business, delivered)
@@ -78,6 +89,7 @@ export async function HubPage({ h }: { h: Hub }) {
               : <><a className="btn btn--primary btn--lg" href={showForm ? '#request' : '#cars'}>{showForm ? 'Send a request' : 'See the cars'}</a>
                 <Link prefetch={false} className="btn btn--ghost btn--lg" href={rentLinks[0]?.path ?? '/cars'}>{auto ? 'Rent a car meanwhile' : v === 'bodyshop' ? 'Rent a replacement car' : 'Rent a car'}</Link></>}
           </p>
+          {photo && <StockFigure p={photo} alt={photo.alt ?? c.h1} className="landing__photo" sizes="(min-width: 48rem) 40rem, 100vw" note="Illustrative photo" />}
         </div>
       </section>
 
@@ -118,14 +130,15 @@ export async function HubPage({ h }: { h: Hub }) {
             <PlaceLeadForm kind={leadKind} place={where} term={h.term.slug} reply={replyText(s)} services={h.service ? [h.service.name] : auto ? [h.term.title] : []} />
           </section>
         )}
-        {(h.landmarks.length > 0 || (h.airport && !wide)) && (
+        <KitText sections={text.sections} source={text.source} look="hub" />
+        {!kitLocal && (h.landmarks.length > 0 || (h.airport && !wide)) && (
           <section className="car-sec landing__sec" aria-labelledby="h-around">
             <h2 className="d2" id="h-around">Around {h.place.name}</h2>
             {h.landmarks.length > 0 && <p className="measure">Places nearby: {h.landmarks.map((l) => `${l.name} (${l.km} km)`).join(', ')}.</p>}
             {h.airport && !wide && <p className="measure">The nearest airport is {h.airport.name}{h.airport.iata ? ` (${h.airport.iata})` : ''}, about {Math.round(h.airport.km)} km away.{h.airport.iata === 'YYZ' || h.airport.iata === 'YTZ' ? ' We meet renters there with the car at the time we confirm.' : ''}</p>}
           </section>
         )}
-        {c.faq.length > 0 && <section className="car-sec" aria-labelledby="h-faq"><h2 className="d2" id="h-faq">Questions</h2><Faq items={c.faq} /></section>}
+        {faq.length > 0 && <section className="car-sec" aria-labelledby="h-faq"><h2 className="d2" id="h-faq">Questions</h2><Faq items={faq} /></section>}
         <section className="car-sec landing__links" aria-labelledby="h-more">
           <h2 className="d2" id="h-more">More for {where}</h2>
           <div className="landing__cols">

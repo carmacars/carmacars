@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>172 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>67</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>178 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>73</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (67)</h2>
+<h2 id="renter">Renter (73)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -67,6 +67,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A rental agreement signature request is completed (every signer has signed and CarmaCars has countersigned). Sent to the renter and to each additional driver who signed.</div>
 <div class="ln"><a href="../dist/renter_agreement_signed.html">HTML</a><a href="../dist/renter_agreement_signed.txt">Text</a><a href="../shots/renter_agreement_signed.desktop.png">Desktop</a><a href="../shots/renter_agreement_signed.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_agreement_version.html"><img loading="lazy" src="../shots/renter_agreement_version.desktop.png" alt="Screenshot of renter_agreement_version"></a><div class="b">
+<div class="code">renter_agreement_version</div><div class="sub">Version 3 of your rental agreement needs your signature, booking CC-10482</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A new version of the booking's two rental agreements (CarmaCars' and Blind Spot's) is made after the agreement was signed (migration 0154): the car checked out (the &quot;as picked up&quot; copy), checked in (the closing copy), a correction, or a material change (dates, price, car, drivers, coverage option) that the renter and the affected drivers sign again with their own link. Also sent with the signed copies once every signature of a changed version is in. Both PDFs are attached.</div>
+<div class="ln"><a href="../dist/renter_agreement_version.html">HTML</a><a href="../dist/renter_agreement_version.txt">Text</a><a href="../shots/renter_agreement_version.desktop.png">Desktop</a><a href="../shots/renter_agreement_version.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_balance_overdue.html"><img loading="lazy" src="../shots/renter_balance_overdue.desktop.png" alt="Screenshot of renter_balance_overdue"></a><div class="b">
 <div class="code">renter_balance_overdue</div><div class="sub">Overdue: $80.57 on booking CC-10482</div>
@@ -410,17 +416,47 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">Hourly reminders job: booking status is on_rent and the return time is 24 hours away. Sent once per return time, so it is sent again after an extension moves the return. (Message template T6.)</div>
 <div class="ln"><a href="../dist/renter_return_reminder.html">HTML</a><a href="../dist/renter_return_reminder.txt">Text</a><a href="../shots/renter_return_reminder.desktop.png">Desktop</a><a href="../shots/renter_return_reminder.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/renter_review_ask.html"><img loading="lazy" src="../shots/renter_review_ask.desktop.png" alt="Screenshot of renter_review_ask"></a><div class="b">
+<div class="code">renter_review_ask</div><div class="sub">How was the 2024 Honda Civic Sport?</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">Review requests (migration 0138, app.job_review_requests every 10 minutes): review_ask_after_minutes (60 by default) after the car is checked in (booking status returned or closed). Only from 9 am to 9 pm Toronto time (Program settings). Never while a return or later charge (late, kilometres, fuel, cleaning, smoking, damage, tolls) is not settled or waived, nor with an open incident or dispute: the booking waits on the hold list and is released by itself, or by staff with Send anyway. Not sent when the renter already reviewed (on the site, on Google matched by name, &quot;I already left a review&quot;, or marked by staff) or unsubscribed. Staff can also send it from the booking (Ask for a review). Never depends on a rating and offers nothing for a review. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
+<div class="ln"><a href="../dist/renter_review_ask.html">HTML</a><a href="../dist/renter_review_ask.txt">Text</a><a href="../shots/renter_review_ask.desktop.png">Desktop</a><a href="../shots/renter_review_ask.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_review_final.html"><img loading="lazy" src="../shots/renter_review_final.desktop.png" alt="Screenshot of renter_review_final"></a><div class="b">
+<div class="code">renter_review_final</div><div class="sub">Our last note about your 2024 Honda Civic Sport trip</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">Review requests (migration 0138): review_final_days (7 by default) after renter_review_ask, the last message of the sequence, with the same rules: 9 am to 9 pm Toronto time, held while a charge is open, stopped once the renter reviewed (on the site, on Google, &quot;I already left a review&quot;, or marked by staff) or unsubscribed. Once per booking. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
+<div class="ln"><a href="../dist/renter_review_final.html">HTML</a><a href="../dist/renter_review_final.txt">Text</a><a href="../shots/renter_review_final.desktop.png">Desktop</a><a href="../shots/renter_review_final.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_review_reminder.html"><img loading="lazy" src="../shots/renter_review_reminder.desktop.png" alt="Screenshot of renter_review_reminder"></a><div class="b">
+<div class="code">renter_review_reminder</div><div class="sub">A minute for a review of the 2024 Honda Civic Sport?</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">Review requests (migration 0138): review_reminder_hours (24 by default) after renter_review_ask, with the same rules: 9 am to 9 pm Toronto time, held while a charge is open, stopped once the renter reviewed (on the site, on Google, &quot;I already left a review&quot;, or marked by staff) or unsubscribed. Once per booking. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
+<div class="ln"><a href="../dist/renter_review_reminder.html">HTML</a><a href="../dist/renter_review_reminder.txt">Text</a><a href="../shots/renter_review_reminder.desktop.png">Desktop</a><a href="../shots/renter_review_reminder.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/renter_review_request.html"><img loading="lazy" src="../shots/renter_review_request.desktop.png" alt="Screenshot of renter_review_request"></a><div class="b">
 <div class="code">renter_review_request</div><div class="sub">Rate your rental of the 2024 Honda Civic Sport</div>
 <div class="tags"><span class="m">Marketing</span></div>
 <div class="tr">2 days after booking status becomes closed. Only if the renter has not unsubscribed and no review exists for it. A booking that had a problem (an incident, a dispute, an unpaid balance or a damage charge) is not sent automatically: it waits for a staff member to approve it (review_request_decision task, app.decide_review_request). Only an approval sends it, at once; a refusal means it is never sent. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
 <div class="ln"><a href="../dist/renter_review_request.html">HTML</a><a href="../dist/renter_review_request.txt">Text</a><a href="../shots/renter_review_request.desktop.png">Desktop</a><a href="../shots/renter_review_request.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/renter_signing_code.html"><img loading="lazy" src="../shots/renter_signing_code.desktop.png" alt="Screenshot of renter_signing_code"></a><div class="b">
+<div class="code">renter_signing_code</div><div class="sub">Your CarmaCars signing code: 482913</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A renter or driver about to sign a rental agreement, an amendment or a new version asks for the identity code by email (migration 0154). The code proves the signer controls the email on file; it is never stored in clear.</div>
+<div class="ln"><a href="../dist/renter_signing_code.html">HTML</a><a href="../dist/renter_signing_code.txt">Text</a><a href="../shots/renter_signing_code.desktop.png">Desktop</a><a href="../shots/renter_signing_code.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/renter_staff_message.html"><img loading="lazy" src="../shots/renter_staff_message.desktop.png" alt="Screenshot of renter_staff_message"></a><div class="b">
 <div class="code">renter_staff_message</div><div class="sub">A message about your booking CC-10482</div>
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A customer service or sales assistant (or an Admin) replies to the renter in the messages of a booking. The message is kept on the booking and shown in the renter's account; this email carries it with a link to reply there. One email per message.</div>
 <div class="ln"><a href="../dist/renter_staff_message.html">HTML</a><a href="../dist/renter_staff_message.txt">Text</a><a href="../shots/renter_staff_message.desktop.png">Desktop</a><a href="../shots/renter_staff_message.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_trip_checkin.html"><img loading="lazy" src="../shots/renter_trip_checkin.desktop.png" alt="Screenshot of renter_trip_checkin"></a><div class="b">
+<div class="code">renter_trip_checkin</div><div class="sub">How is the 2024 Honda Civic Sport going?</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Review requests (migration 0138, app.job_review_requests every 10 minutes): booking status is on_rent, the rental is at least review_checkin_min_days long (2 by default) and review_checkin_after_hours (24 by default) have passed since the pickup, never in the last 6 hours before the return. Only from review_send_from_hour to review_send_until_hour Toronto time (9 am to 9 pm by default). A service message about the rental in progress: it asks for no review. Once per booking.</div>
+<div class="ln"><a href="../dist/renter_trip_checkin.html">HTML</a><a href="../dist/renter_trip_checkin.txt">Text</a><a href="../shots/renter_trip_checkin.desktop.png">Desktop</a><a href="../shots/renter_trip_checkin.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_vehicle_disabled.html"><img loading="lazy" src="../shots/renter_vehicle_disabled.desktop.png" alt="Screenshot of renter_vehicle_disabled"></a><div class="b">
 <div class="code">renter_vehicle_disabled</div><div class="sub">Your rental has ended and the 2024 Honda Civic Sport will not restart</div>
@@ -482,7 +518,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/owner_booking_changed.html"><img loading="lazy" src="../shots/owner_booking_changed.desktop.png" alt="Screenshot of owner_booking_changed"></a><div class="b">
 <div class="code">owner_booking_changed</div><div class="sub">Booking CC-10482 changed</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">A change to a confirmed booking on the owner's car is applied (new dates, another car, or a new rental charge). One email to each owner whose car or income the change touches: the owner of the car it left and, if different, the owner of the car it moved to. Not sent for Owner Bookings.</div>
+<div class="tr">A change to a confirmed booking on the owner's car is applied (new dates, another car, or a new rental charge). One email to each owner whose car or income the change touches: the owner of the car it left and, if different, the owner of the car it moved to. Not sent for Owner Bookings, nor for a booking not shown to the owner (0156). show_amounts is false while staff hide the booking's revenue from the owner: the shares are left out.</div>
 <div class="ln"><a href="../dist/owner_booking_changed.html">HTML</a><a href="../dist/owner_booking_changed.txt">Text</a><a href="../shots/owner_booking_changed.desktop.png">Desktop</a><a href="../shots/owner_booking_changed.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_booking_confirmed.html"><img loading="lazy" src="../shots/owner_booking_confirmed.desktop.png" alt="Screenshot of owner_booking_confirmed"></a><div class="b">
@@ -596,7 +632,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/owner_new_booking.html"><img loading="lazy" src="../shots/owner_new_booking.desktop.png" alt="Screenshot of owner_new_booking"></a><div class="b">
 <div class="code">owner_new_booking</div><div class="sub">New booking on your 2023 Toyota RAV4 XLE: Fri, Oct 23, 2026 to Mon, Oct 26, 2026</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">A standard or non-refundable booking on the owner's vehicle changes to confirmed. Not sent for Owner Bookings or for Turo trips. is_self_managed is true when the vehicle's management mode is Self-Managed; only then are the renter's name and mobile number included.</div>
+<div class="tr">A standard or non-refundable booking on the owner's vehicle changes to confirmed. Not sent for Owner Bookings or for Turo trips, nor for a booking not shown to the owner (0156). is_self_managed is true when the vehicle's management mode is Self-Managed; only then are the renter's name and mobile number included. show_amounts is false while staff hide the booking's revenue from the owner (until the return or the statement): the rental charge is left out.</div>
 <div class="ln"><a href="../dist/owner_new_booking.html">HTML</a><a href="../dist/owner_new_booking.txt">Text</a><a href="../shots/owner_new_booking.desktop.png">Desktop</a><a href="../shots/owner_new_booking.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_onboarding_steps.html"><img loading="lazy" src="../shots/owner_onboarding_steps.desktop.png" alt="Screenshot of owner_onboarding_steps"></a><div class="b">

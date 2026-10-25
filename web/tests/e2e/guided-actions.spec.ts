@@ -155,9 +155,10 @@ test('renter documents: the proof of coverage approved in the pop-up from Today,
   const dlg = page.getByTestId('doc-review-dialog').filter({ visible: true });
   await expect(dlg.getByTestId('doc-review-coverage')).toContainText('Maple Mutual');
   await check(page, 'document review pop-up');
-  await expect(dlg.getByTestId('coverage-approve')).toBeDisabled();
-  for (const c of await dlg.getByTestId('doc-review-coverage').locator('input[type="checkbox"]').all()) await c.check();
-  await dlg.getByTestId('coverage-approve').click();
+  // one screen (0144): what to check said once, then Approve all
+  await expect(dlg.getByTestId('doc-review-checks')).toContainText('active to the return date');
+  await dlg.getByTestId('doc-review-approve-all').click();
+  await expect(dlg.getByTestId('doc-review-msg')).toContainText('approved');
   await expect.poll(async () => (await sql`select coverage_confirmed_at is not null c from bookings where id = ${b!.id}`)[0]!.c, { timeout: 20_000 }).toBe(true);
   await page.goto('/admin', { waitUntil: 'networkidle' });
   await expect(prompt(page, `documents:${b!.id}`)).toHaveCount(0);

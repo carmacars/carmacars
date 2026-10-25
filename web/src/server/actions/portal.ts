@@ -150,7 +150,10 @@ function pngBytes(dataUrl: string): Uint8Array | null {
   return bin.length > 200 && bin.length < 400_000 && sig.every((v, i) => bin[i] === v) ? bin : null;
 }
 
-export interface SignInput { typedName?: string; drawn?: string; consents: string[]; sha: string; /** the second agreement's SHA-256 (0127), when the booking has one */ companionSha?: string }
+export interface SignInput { typedName?: string; drawn?: string; consents: string[]; sha: string; /** the second agreement's SHA-256 (0127), when the booking has one */ companionSha?: string;
+  /** 0154: the signing session and the drawn signature it stored (esign/<session>/...) */ session?: string; drawnPath?: string }
+/** The drawn signature of the session (0154): a key the signing session stored; the database checks it is the session's. */
+const sessionPath = (input: { drawnPath?: string }) => (input.drawnPath && /^esign\/[0-9a-f-]{36}\/signature-[0-9a-f-]{36}\.png$/.test(input.drawnPath) ? input.drawnPath : null);
 
 async function signatureArgs(input: SignInput, owner: string) {
   const all = consents();
@@ -167,13 +170,13 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
     const { all, need, ticked } = await signatureArgs(input, userId);
     if (!need.every((c) => ticked.has(c))) return { ok: false, code: 'invalid', message: 'Tick all four statements to sign.', fieldErrors: { consents: 'Tick all four statements.' } };
     if (!b.agreement || b.agreement.status !== 'open') return fail('There is no agreement waiting for your signature. Reload the page.');
-    let drawnPath: string | null = null;
-    if (input.drawn) {
+    let drawnPath: string | null = sessionPath(input);
+    if (!drawnPath && input.drawn) {
       const png = pngBytes(input.drawn);
       if (!png) return { ok: false, code: 'invalid', message: 'Please sign your name in the box.', fieldErrors: { signature: 'Please sign your name.' } };
       drawnPath = `bookings/${b.id}/signatures/renter-${crypto.randomUUID()}.png`;
       await (await storage()).put('agreements', drawnPath, png, 'image/png');
-    } else if (!(input.typedName ?? '').trim()) {
+    } else if (!drawnPath && !(input.typedName ?? '').trim()) {
       return { ok: false, code: 'invalid', message: 'Sign by drawing or by typing your full legal name.', fieldErrors: { signature: 'Sign by drawing or typing your name.' } };
     }
     const meta = await requestMeta();
@@ -210,8 +213,8 @@ export async function signAsDriver(token: string, input: SignInput): Promise<R> 
   const ticked = new Set(input.consents ?? []);
   if (!all.every((c) => ticked.has(c.code))) return { ok: false, code: 'invalid', message: 'Tick the three statements to accept.', fieldErrors: { consents: 'Tick the three statements.' } };
   try {
-    let drawnPath: string | null = null;
-    if (input.drawn) {
+    let drawnPath: string | null = sessionPath(input);
+    if (!drawnPath && input.drawn) {
       const png = pngBytes(input.drawn);
       if (!png) return { ok: false, code: 'invalid', message: 'Please sign your name in the box.', fieldErrors: { signature: 'Please sign your name.' } };
       drawnPath = `drivers/${t.s}/signature-${crypto.randomUUID()}.png`;
@@ -361,7 +364,7 @@ export async function withdrawChange(number: string, requestId: string): Promise
 }
 
 // ---------------------------------------------------------------- a change staff proposed (or approved): accept or decline (migration 0040)
-export interface AcceptInput { typedName?: string; drawn?: string; agree: boolean; stamp: string }
+export interface AcceptInput { typedName?: string; drawn?: string; agree: boolean; stamp: string; /** 0154 */ session?: string; drawnPath?: string }
 
 /** Accept a change: the amendment is opened (rendered and stored), signed, any extra amount is charged to the card on
  *  file, the change is applied, and the signed copy is attached. A card refused leaves the amendment signed and the
@@ -375,13 +378,13 @@ export async function acceptChange(number: string, requestId: string, input: Acc
     const f = await changeFacts(requestId, userId);
     if (!f.open) return fail('This change is no longer waiting for your answer.', 'stale');
     if (`${f.change.total_difference_cents ?? 0}:${f.change.accept_by ?? ''}:${(f.change.after?.total_cents as number | undefined) ?? ''}` !== input.stamp) return fail('This change was updated. Review it again before you sign.', 'stale');
-    let drawnPath: string | null = null;
-    if (input.drawn) {
+    let drawnPath: string | null = sessionPath(input);
+    if (!drawnPath && input.drawn) {
       const png = pngBytes(input.drawn);
       if (!png) return { ok: false, code: 'invalid', message: 'Please sign your name in the box.', fieldErrors: { signature: 'Please sign your name.' } };
       drawnPath = `bookings/${b.id}/signatures/amendment-${crypto.randomUUID()}.png`;
       await (await storage()).put('agreements', drawnPath, png, 'image/png');
-    } else if (!(input.typedName ?? '').trim()) {
+    } else if (!drawnPath && !(input.typedName ?? '').trim()) {
       return { ok: false, code: 'invalid', message: 'Sign by drawing or by typing your full legal name.', fieldErrors: { signature: 'Sign by drawing or typing your name.' } };
     }
     const a = await openAmendment(f, userId);

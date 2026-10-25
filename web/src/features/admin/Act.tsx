@@ -5,6 +5,7 @@ import { adminSaveRow } from '@/server/actions/admin-portal';
 import { opsAct } from '@/server/actions/ops';
 import { useDoor } from './door';
 import { AddressInput } from '@/features/forms/AddressInput';
+import { siblingFill } from '@/features/forms/address-parts';
 
 // The admin portal's action controls. One button or one form per database action: fields are typed
 // (money in dollars becomes cents, a percentage becomes basis points, a local date and time becomes an
@@ -13,7 +14,11 @@ import { AddressInput } from '@/features/forms/AddressInput';
 export type FieldType = 'text' | 'textarea' | 'money' | 'number' | 'percent' | 'date' | 'datetime' | 'select' | 'bool' | 'json' | 'email' | 'tel' | 'list' | 'address';
 export interface Field { name: string; label: string; type?: FieldType; options?: Array<[string, string]>; required?: boolean; hint?: string; value?: unknown; placeholder?: string; wide?: boolean;
   /** For a number: the smallest and largest value allowed (the database checks the same). */
-  min?: number; max?: number }
+  min?: number; max?: number;
+  /** set by the form: the names of the other fields, for an address field's fill (2026-10-24) */
+  siblings?: string[];
+  /** an address field: suggestions from every country, not only Canada (a staff member's home address) */
+  anywhere?: boolean }
 type Result = { ok: true; data: unknown } | { ok: false; message: string; fieldErrors?: Record<string, string> };
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -56,7 +61,9 @@ export function convert(f: Field, raw: string | boolean): { v?: unknown; err?: s
   }
 }
 
-export function FieldInput({ f, value, set, err, idp }: { f: Field; value: string | boolean; set: (v: string | boolean) => void; err?: string; idp: string }) {
+export function FieldInput({ f, value, set, err, idp, fill }: { f: Field; value: string | boolean; set: (v: string | boolean) => void; err?: string; idp: string;
+  /** an address field: the chosen suggestion's values for this field and its siblings (city, province, postal code...) */
+  fill?: (patch: Record<string, string>) => void }) {
   const id = `${idp}-${f.name}`;
   const desc = [err ? `${id}-err` : '', f.hint ? `${id}-hint` : ''].filter(Boolean).join(' ') || undefined;
   if (f.type === 'bool') {
@@ -72,7 +79,8 @@ export function FieldInput({ f, value, set, err, idp }: { f: Field; value: strin
     <div className={`field ad-field${err ? ' has-error' : ''}${f.wide || f.type === 'textarea' || f.type === 'json' ? ' ad-field--wide' : ''}`}>
       <label className="label" htmlFor={id}>{f.label}{f.type === 'money' ? ' ($)' : f.type === 'percent' ? ' (%)' : ''}</label>
       {f.type === 'address' ? (
-        <AddressInput id={id} name={f.name} value={{ label: String(value), placeId: '' }} onChange={(x) => set(x.label)} invalid={!!err} describedBy={desc} required={f.required} placeholder={f.placeholder} />
+        <AddressInput id={id} name={f.name} value={{ label: String(value), placeId: '' }} onChange={(x) => set(x.label)} invalid={!!err} describedBy={desc} required={f.required} placeholder={f.placeholder} testId={`${f.name}-lookup`} anywhere={f.anywhere}
+          onParts={fill ? (p, label, geo) => fill(siblingFill(f.name, f.siblings ?? [f.name], p, label, geo)) : undefined} />
       ) : f.type === 'select' ? (
         <select className="select" {...common} onChange={(e) => set(e.target.value)}>
           {!f.required && <option value="">None</option>}
@@ -120,6 +128,7 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
   const [res, setRes] = useState<Result | null>(null);
   const dlg = useRef<HTMLDialogElement>(null);
   const f = useForm(fields);
+  const names = fields.map((x) => x.name);
   const needsDialog = !inline && (fields.length > 0 || !!confirm);
   const run = () => {
     const vals = f.collect();
@@ -139,7 +148,8 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
   const form = (
     <form className="ad-form" noValidate onSubmit={(e) => { e.preventDefault(); run(); }} data-testid={testId ? `${testId}-form` : undefined}>
       {confirm && <p className="small">{confirm}</p>}
-      {fields.length > 0 && <div className="ad-fields">{fields.map((x) => <FieldInput key={x.name} f={x} idp={idp} value={f.vals[x.name] ?? ''} set={(v) => f.setVals((s) => ({ ...s, [x.name]: v }))} err={f.errs[x.name]} />)}</div>}
+      {fields.length > 0 && <div className="ad-fields">{fields.map((x) => <FieldInput key={x.name} f={{ ...x, siblings: names }} idp={idp} value={f.vals[x.name] ?? ''} set={(v) => f.setVals((s) => ({ ...s, [x.name]: v }))} err={f.errs[x.name]}
+        fill={(patch) => f.setVals((s) => ({ ...s, ...patch }))} />)}</div>}
       {res && !res.ok && <p className="alert alert--error" role="alert"><span>{res.message}</span></p>}
       <div className="row">
         <button className={`btn btn--sm ${variant === 'danger' ? 'btn--primary ad-btn--danger' : 'btn--primary'}`} type="submit" disabled={pending || disabled} data-testid={testId ? `${testId}-submit` : undefined}>{pending ? 'Working' : submitLabel ?? label}</button>
@@ -183,7 +193,8 @@ export function SaveForm({ table, rowKey, fields, label = 'Save', extra, testId,
       if (rowKey && !Object.keys(send).length) { setRes({ ok: false, message: 'Nothing changed.' }); return; }
       start(async () => { const r = (await adminSaveRow(table, send, rowKey ?? null, extra)) as Result; setRes(r); if (r.ok) { setDirty(false); router.refresh(); } });
     }}>
-      <div className="ad-fields">{fields.map((x) => <FieldInput key={x.name} f={x} idp={idp} value={f.vals[x.name] ?? ''} set={(v) => { setDirty(true); f.setVals((s) => ({ ...s, [x.name]: v })); }} err={f.errs[x.name]} />)}</div>
+      <div className="ad-fields">{fields.map((x) => <FieldInput key={x.name} f={{ ...x, siblings: fields.map((y) => y.name) }} idp={idp} value={f.vals[x.name] ?? ''} set={(v) => { setDirty(true); f.setVals((s) => ({ ...s, [x.name]: v })); }} err={f.errs[x.name]}
+        fill={(patch) => { setDirty(true); f.setVals((s) => ({ ...s, ...patch })); }} />)}</div>
       {res && !res.ok && <p className="alert alert--error" role="alert"><span>{res.message}</span></p>}
       <div className="row">
         <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid={testId ? `${testId}-save` : undefined}>{pending ? 'Saving' : label}</button>

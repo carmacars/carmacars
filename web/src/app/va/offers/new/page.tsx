@@ -6,6 +6,7 @@ import { OfferComposer, type OcDraft } from '@/features/offers/OfferComposer';
 import { UnfinishedRentals } from '@/features/supply/UnfinishedRentals';
 import type { DraftRow } from '@/server/actions/supply';
 import { door } from '@/server/door';
+import type { OwnerDefaults } from '@/features/supply/OwnerChoice';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Send an offer', path: '/va/offers/new', noindex: true, description: 'Send an offer to a customer without waiting for a request.' });
@@ -14,6 +15,7 @@ export const metadata = pageMeta({ title: 'Send an offer', path: '/va/offers/new
 // reason, "I sourced this client" or "Entered for CarmaCars", open for 48 hours at most.
 export default async function VaNewOffer({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const { user, aal } = await vaPage('/va/offers/new', ['cs', 'sales']);
+  const owner = await door<OwnerDefaults>(user.id, 'ops_read', 'owner_visibility_defaults', {}, aal).catch(() => null);
   const sp = await searchParams;
   const uuid = sp.draft && /^[0-9a-f-]{36}$/i.test(sp.draft) ? sp.draft : null;
   const [drafts, draft] = await Promise.all([door<DraftRow[]>(user.id, 'ops_read', 'drafts', { kind: 'offer' }, aal).catch(() => [] as DraftRow[]),
@@ -23,6 +25,6 @@ export default async function VaNewOffer({ searchParams }: { searchParams: Promi
     <PageHead title="Send an offer" />
     <p className="small muted" style={{ maxWidth: '52rem' }}>For a customer on the phone, by text or in person: no request needed. Already agreed and paid? Use <Link prefetch={false} className="link" href="/va/bookings/new">Add a rental</Link>.</p>
     <UnfinishedRentals rows={drafts} base="/va" current={open?.id} title="Unfinished offers" />
-    <OfferComposer key={open?.id ?? 'new'} base="/va" initialCar={sp.car ?? null} draft={open} />
+    <OfferComposer key={open?.id ?? 'new'} base="/va" initialCar={sp.car ?? null} draft={open} owner={owner} />
   </>);
 }

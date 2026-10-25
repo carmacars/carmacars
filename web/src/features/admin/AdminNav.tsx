@@ -23,14 +23,14 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/portals', label: 'Portals and view as' }] },
   { key: 'money', label: 'Money', links: [
     { href: '/admin/invoices', label: 'Owner invoices', section: 'Owners' }, { href: '/admin/debits', label: 'Owner debits' }, { href: '/admin/statements', label: 'Owner statements' }, { href: '/admin/payouts', label: 'Payouts' },
-    { href: '/admin/money', label: 'Payments and refunds', key: 'm', section: 'Renters' }, { href: '/admin/tolls', label: 'Tolls and tickets' },
+    { href: '/admin/payments', label: 'Payments by day', section: 'Renters' }, { href: '/admin/money', label: 'Payments and refunds', key: 'm' }, { href: '/admin/tolls', label: 'Tolls and tickets' },
     { href: '/admin/reports', label: 'Company statements', section: 'Company' }, { href: '/admin/reconciliation', label: 'Reconciliation' }, { href: '/admin/expenses', label: 'Expenses' },
     { href: '/admin/insurer-invoices', label: 'Insurer invoices' }, { href: '/admin/money/commissions', label: 'Staff commissions' }] },
   { key: 'settings', label: 'Settings', links: [
     { href: '/admin/settings', label: 'All settings', key: 's' },
     { href: '/admin/settings/site', label: 'Site', section: 'Website' }, { href: '/admin/settings/vehicle-pages', label: 'Vehicle pages' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' },
     { href: '/admin/settings/addons', label: 'Add-ons' }, { href: '/admin/settings/discount-games', label: 'Discount games' }, { href: '/admin/settings/guides', label: 'Guides' },
-    { href: '/admin/settings/program', label: 'Program', section: 'Rules' }, { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/card-coverage', label: 'Card coverage' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/settings/email', label: 'Emails' },
+    { href: '/admin/settings/program', label: 'Program', section: 'Rules' }, { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/card-coverage', label: 'Card coverage' }, { href: '/admin/settings/reviews', label: 'Reviews' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/settings/email', label: 'Emails' },
     { href: '/admin/messages', label: 'Email log', section: 'Records' }, { href: '/admin/audit', label: 'Audit log' }] }
 ];
 

@@ -3,7 +3,10 @@ import { notFound, redirect } from 'next/navigation';
 import type { SessionUser } from '@/lib/auth';
 import { DbError, rpc } from '@/lib/db/repo';
 import { currentUser } from '@/server/portal/data';
-import type { OwnerBooking, OwnerDoc, OwnerForm, OwnerHome, OwnerInvoice, OwnerStatement } from '@/features/owner/types';
+import type { OwnerBooking, OwnerDoc, OwnerForm, OwnerHome, OwnerInvoice, OwnerMonthToDate, OwnerStatement } from '@/features/owner/types';
+import type { Photo } from '@/lib/types';
+import { getFleet } from '@/lib/site';
+import { liveStatus, monthStats, type Live, type MonthStat } from '@/features/owner/insights';
 
 // Reads for the owner portal (migration 0029). The portal functions take the signed-in user's id and
 // answer only for an active owner account (app.portal_owner_id); the service role calls them because
@@ -63,4 +66,32 @@ export async function ownerDocuments(u: SessionUser): Promise<OwnerDoc[]> {
 }
 export async function ownerForms(u: SessionUser): Promise<OwnerForm[]> {
   return ((await rpc('owner_portal_forms', { p_by: u.id }, SR)) ?? []) as unknown as OwnerForm[];
+}
+
+export interface OwnerView { bookings: OwnerBooking[]; months: MonthStat[]; live: Record<string, Live>; photo: Record<string, Photo | null> }
+/**
+ * What the owner portal's design shows beside the home read (October 24, 2026): the owner's bookings, six months of their
+ * own figures, each car's status right now and its cover photo from the public website (getFleet: listed cars only, the
+ * same data any visitor sees). Read only.
+ */
+export async function ownerView(u: SessionUser, home: OwnerHome, opts: { months?: number } = {}): Promise<OwnerView> {
+  const [bookings, fleet] = await Promise.all([ownerBookings(u).catch(() => [] as OwnerBooking[]), getFleet().catch(() => [])]);
+  const now = new Date();
+  const ids = new Set(home.vehicles.map((v) => v.vehicle_id));
+  const photo: Record<string, Photo | null> = {};
+  for (const c of fleet) if (ids.has(c.vehicle_id)) photo[c.vehicle_id] = c.cover;
+  const live: Record<string, Live> = {};
+  for (const v of home.vehicles) live[v.vehicle_id] = liveStatus(v, bookings, now);
+  return { bookings, months: monthStats(home, bookings, undefined, opts.months ?? 6), live, photo };
+}
+
+/** The month to date (0151): what this month's statement would say today, built and rolled back in the database
+ *  (provisional), or the approved statement when there is one (final). Null when it cannot be worked out now. */
+export async function ownerMonthToDate(u: SessionUser, month?: string): Promise<OwnerMonthToDate | null> {
+  try {
+    return (await rpc('owner_portal_month_to_date', { p_by: u.id, ...(month && /^\d{4}-\d{2}-01$/.test(month) ? { p_month: month } : {}) }, SR)) as unknown as OwnerMonthToDate;
+  } catch (e) {
+    console.error('owner month to date', e instanceof Error ? e.message : e);
+    return null;
+  }
 }

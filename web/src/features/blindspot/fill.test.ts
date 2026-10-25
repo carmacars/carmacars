@@ -6,36 +6,15 @@
 //   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PDFArray, PDFDict, PDFDocument, PDFName, PDFString, StandardFonts, rgb } from 'pdf-lib';
+import { PDFArray, PDFDict, PDFDocument, PDFName } from 'pdf-lib';
 import { COVERS, PAGE_H, SIG, ageOn, dollars, layout, mailingLine, mailingStreet, type BlindSpotFacts } from './layout.ts';
 import { fillBlindSpot, scriptWidth, winAnsi } from './fill.ts';
 import { sampleFacts } from './sample.ts';
+import { standIn } from './stand-in.ts';
 import { SCRIPT_GLYPHS } from './script-glyphs.generated.ts';
 
 const MAILING = { line: '2967 Dundas St W, Unit 208B, Toronto, ON M6P 1Z2', street: '2967 Dundas St W', unit: '208B', city: 'Toronto', province: 'ON', postal_code: 'M6P 1Z2' };
 const PNG = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAACgAAAAKCAYAAADGmhxQAAAALklEQVR4nGMQUEj4D8MMdARk2TvqWFrZO5COJUvTQDiWLDDqWFqBUcfSCpDjWAA6KT5ZaYCppQAAAABJRU5ErkJggg==', 'base64'));
-
-/** A stand-in for Blind Spot's form: A4, two pages, the old address, HST number and "Sam" printed where the form has
- *  them, and FreeText annotations at the form's own rectangles (PDF coordinates). */
-async function standIn(): Promise<Uint8Array> {
-  const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const p1 = doc.addPage([595.276, 841.89]);
-  const p2 = doc.addPage([595.276, 841.89]);
-  p1.drawRectangle({ x: 18.8, y: PAGE_H - 531.5, width: 270, height: 20, color: rgb(1, 186 / 255, 204 / 255) });
-  p1.drawText('75756 2079 RT0001', { x: 64, y: PAGE_H - 120.5, size: 11, font });
-  p1.drawText('Sam', { x: 145, y: PAGE_H - 821, size: 18, font });
-  p1.drawText('15 RENTED FROM', { x: 22, y: PAGE_H - 521, size: 6, font });
-  p2.drawText('TERMS AND CONDITIONS', { x: 50, y: 800, size: 12, font });
-  const annots = doc.context.obj([]) as PDFArray;
-  for (const [rect, text] of [[[49, 745, 286, 757], '104 CROCKFORD BLVD, TORONTO, ON, M1R 3C3'], [[23, 307, 91, 319], '104 Crockford Blvd'], [[209, 307, 277, 319], '104 Crockford Blvd'],
-    [[70, 254, 105, 266], 'Full Value'], [[373, 372, 436, 384], 'UNDERAGE FEE']] as Array<[number[], string]>) {
-    const a = doc.context.obj({ Type: 'Annot', Subtype: 'FreeText', Rect: rect, Contents: PDFString.of(text), DA: PDFString.of('/Helv 8 Tf 0 g'), F: 4 });
-    annots.push(doc.context.register(a));
-  }
-  p1.node.set(PDFName.of('Annots'), annots);
-  return doc.save();
-}
 
 type Item = { str: string; x: number; y: number };
 async function read(bytes: Uint8Array) {
@@ -74,8 +53,8 @@ test('the booking in its boxes: the mailing address, the HST number, the renter,
   assert.ok(at(p1.items, '25') && at(p1.items, '2029') && at(p1.items, '03') && at(p1.items, '14'));
   // due back June 19, 2027 at 10:00 AM (Toronto): under M, DD and YYYY
   assert.ok(at(p1.items, '06') && at(p1.items, '19') && at(p1.items, '2027') && at(p1.items, '10:00'));
-  // the delivery has no box of its own: it is in box 14
-  assert.ok(p1.text.includes('Other charges: Delivery $15.00.'));
+  // the delivery has no box of its own: its amount is in box 48 (pre adjustment), so the subtotal adds up, and box 14 names it
+  assert.ok(p1.text.includes('Box 48: Delivery $15.00.'));
   // page 2 (the terms) is left alone
   assert.equal(p2.text, 'TERMS AND CONDITIONS');
   // not billed to an insurer: the insurer boxes are blank

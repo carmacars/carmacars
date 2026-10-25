@@ -14,6 +14,7 @@ import { AddressInput } from '@/features/forms/AddressInput';
 import { lineHelp } from './help';
 import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/addons/model';
 import { COVERAGE, DEPOSIT_PAY, PLACES, RENTAL_LINE, RENTAL_PAY, daysBetween, lineKey, missing, offerPayload, periodShares, typedRental, type OfferForm, type PlaceKind, type Role } from './model';
+import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults } from '@/features/supply/OwnerChoice';
 
 // Send an offer without a request (migration 0129): one screen for an Admin, customer service and sales. The customer
 // found by name, phone or email (or added; one person, one record), the car with whether it is free, the dates, the
@@ -39,7 +40,9 @@ const PLAN_TYPES = ['coverage_sold', 'coverage', 'coverage_option', 'carmacars_c
 /** What an offer draft keeps (0148). */
 export interface OcDraft { f?: Partial<OfferForm>; addons?: AddonChoice[]; customs?: Array<{ label: string; amount: string; hst: boolean }>; chosen?: Found | null; renter_id?: string | null }
 
-export function OfferComposer({ base, initialCar = null, draft = null }: { base: '/admin' | '/va'; initialCar?: string | null; draft?: { id: string; data: OcDraft } | null }) {
+export function OfferComposer({ base, initialCar = null, draft = null, owner = null }: { base: '/admin' | '/va'; initialCar?: string | null; draft?: { id: string; data: OcDraft } | null; owner?: OwnerDefaults | null }) {
+  // 0156: what the car's owner sees of the booking
+  const [ownerChoice, setOwnerChoice] = useState(() => ownerChoiceInitial(owner));
   const start = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
   const [form, setForm] = useState<Form | null>(null);
   const [f, setF] = useState<OfferForm>(() => ({
@@ -152,7 +155,8 @@ export function OfferComposer({ base, initialCar = null, draft = null }: { base:
     setErr(null);
     const m = missing(f, role);
     if (m.length) { setErr(`Still needed: ${m.join(', ')}.`); return; }
-    const r = await offersDo<Sent & { booking_id: string }>('offer_create', draft ? { ...payload, draft: true } : payload, [`${base}/bookings`]);
+    const o = ownerChoicePayload(ownerChoice, owner);
+    const r = await offersDo<Sent & { booking_id: string }>('offer_create', draft ? { ...payload, ...o, draft: true } : { ...payload, ...o }, [`${base}/bookings`]);
     if (!r.ok) { setErr(r.message); return; }
     if (draftId) void draftClose(draftId, 'done');
     if (draft) { router.push(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`); return; }
@@ -306,6 +310,10 @@ export function OfferComposer({ base, initialCar = null, draft = null }: { base:
         <fieldset className="stack"><legend className="d4">5. Who found this client</legend>
           <SourcedChoice id="oc" value={f.choice} onChange={(v) => set('choice')(v)} optional={admin} />
         </fieldset>
+
+        {owner?.may && <fieldset className="stack"><legend className="d4">The car&apos;s owner</legend>
+          <OwnerChoice d={owner} value={ownerChoice} onChange={setOwnerChoice} testPrefix="oc" />
+        </fieldset>}
 
         <fieldset className="stack"><legend className="d4">6. Send it</legend>
           <div className="field"><label className="label" htmlFor="oc-message">Message to the renter</label>

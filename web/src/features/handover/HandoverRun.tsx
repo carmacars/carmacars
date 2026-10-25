@@ -32,7 +32,7 @@ export async function HandoverRun({ userId, aal, job, number, base }: { userId: 
               : 'Checked in. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos.'}</h2>
             <p className="fd-line is-ok" data-testid="job-done"><span aria-hidden="true">✓</span> Done {j.job.completed_at ? when(j.job.completed_at) : ''}</p>
             <Link prefetch={false} className="btn btn--primary fd-wide" href={`${base}/report`} data-testid="checklist-back">See the photo report</Link></div>
-        : <Checklist j={j} back={`${base}/report`} backLabel="See the photo report" />}
+        : <Checklist j={j} back={`${base}/report`} backLabel="See the photo report" here={{ signNow: `${base}/sign-now`, self: `${base}/handover/${job}` }} />}
     </div>
   );
 }
