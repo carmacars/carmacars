@@ -3,7 +3,8 @@
 // a short line in plain words says what happened ("Refund sent."), bottom centre, for about four seconds. It is a polite
 // live region without the status role, so a page's own status lines stay the only ones a test or reader finds by role.
 export function adminToast(msg: string, tone: 'ok' | 'error' = 'ok', ms = 4200) {
-  if (typeof document === 'undefined' || !msg) return;
+  // only inside the admin frame: the assistant portal shares the action button (Act) but not these styles
+  if (typeof document === 'undefined' || !msg || !document.querySelector('[data-testid="admin-nav"]')) return;
   let box = document.querySelector<HTMLDivElement>('.ad-toasts');
   if (!box) {
     box = document.createElement('div');

@@ -7,7 +7,8 @@
      grey-600 on white 6.5:1, red-700 on white 7.2:1); colour is never the only signal (a word goes with it);
    - only transform and opacity move, and only under prefers-reduced-motion: no-preference;
    - phone first: one column at 375, tables become cards, nothing wider than the screen.
-   Scoped under .ad so the assistant (VA) portal, which shares some class names, is not changed. */
+   Imported by the admin layout only (the assistant portal shares the .ad frame and class names but not this file);
+   the menu rules are under .ad__rail. */
 
 .ad {
   --ad-canvas: var(--grey-50);
