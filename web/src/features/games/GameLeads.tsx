@@ -2,11 +2,11 @@ import Link from 'next/link';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, Card, Filters, Search, Table, Tiles, t } from '@/features/admin/ui';
 
-// Discount games (migration 0069; 0171: plays by prize, the Play again prize as its own row), staff side: who claimed a prize, whether the code was used, their consent and what
+// Discount games (migration 0069; 0171: plays by prize, the Play again prize as its own row; 0172: a repeat claim shows as the same person, "2nd code"), staff side: who claimed a prize, whether the code was used, their consent and what
 // they looked at, with call, email and "contacted" one tap away; and the report (plays, claims, codes used, bookings
 // and revenue). Admin > Bookings > Leads and the assistants' Game leads (customer service and Sales).
 type R = Record<string, unknown>;
-export interface GameReport { days: number; plays: number; revealed: number; claims: number; claim_rate_bps: number; with_consent: number; on_requests: number; bookings: number;
+export interface GameReport { days: number; plays: number; revealed: number; claims: number; people?: number; claim_rate_bps: number; with_consent: number; on_requests: number; bookings: number;
   redemption_rate_bps: number; revenue_cents: number; discount_cents: number; by_game: Array<{ game: string; plays: number; claims: number; bookings: number }>;
   by_prize: Array<{ prize: string; plays?: number; claims: number; bookings: number; replay?: boolean }>; replays?: number }
 export interface GameLeadsData { rows: R[]; report: GameReport }
@@ -14,12 +14,14 @@ const GAME: Record<string, string> = { wheel: 'Spin the wheel', scratch: 'Scratc
   coin: 'Coin flip', dice: 'Dice roll', slots: 'Slot machine', drop: 'Prize drop', mystery: 'Mystery box' };
 const STATUS: Record<string, string> = { unused: 'Not used yet', on_request: 'On a request', used: 'Used (booked)', expired: 'Expired' };
 const pct = (bps: number) => `${(bps / 100).toFixed(bps % 100 ? 1 : 0)}%`;
+/** "2nd code", "3rd code" (0172: one person, several codes over time) */
+const nth = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th')} code`;
 
 export function GameReportTiles({ r, settingsHref }: { r: GameReport; settingsHref?: string }) {
   return (<>
     <Tiles items={[
       { k: `Plays, ${r.days} days`, v: r.plays, sub: `${r.revealed} played to the prize${r.replays ? `, ${r.replays} second games from Play again` : ''}` },
-      { k: 'Claims', v: r.claims, sub: `${pct(r.claim_rate_bps)} of plays, ${r.with_consent} with marketing consent` },
+      { k: 'Claims', v: r.claims, sub: `${pct(r.claim_rate_bps)} of plays, ${r.with_consent} with marketing consent${r.people !== undefined && r.people < r.claims ? `, ${r.people} people` : ''}` },
       { k: 'Codes on requests', v: r.on_requests },
       { k: 'Bookings', v: r.bookings, sub: `${pct(r.redemption_rate_bps)} of claims` },
       { k: 'Revenue from game codes', v: $(r.revenue_cents), sub: 'rental charge after discounts, confirmed bookings' },
@@ -44,7 +46,8 @@ export function GameLeads({ d, base, sp, bookingBase }: { d: GameLeadsData; base
       </div>
       <Table rows={d.rows} rowKey={(r) => String(r.claim_id)} empty="No claims yet. The game shows to visitors who browse a few cars." cols={[
         { key: 'created_at', label: 'Claimed', render: (r) => t(r.created_at) },
-        { key: 'first_name', label: 'Name', render: (r) => <>{String(r.first_name)}{r.on_site_now ? <> <Badge s="live">on the site now</Badge></> : null}</> },
+        { key: 'first_name', label: 'Name', render: (r) => <>{String(r.first_name)}{r.on_site_now ? <> <Badge s="live">on the site now</Badge></> : null}
+          {Number(r.claims_total) > 1 ? <><br /><span className="small muted" data-testid="game-lead-nth">{nth(Number(r.claim_no))} of {Number(r.claims_total)}</span></> : null}</> },
         { key: 'contact', label: 'Contact', className: 'wrap', render: (r) => <>
           <a className="link" href={`mailto:${String(r.email)}`}>{String(r.email)}</a>
           {r.phone ? <><br /><a className="link" href={`tel:${String(r.phone)}`}>{String(r.phone)}</a></> : null}</> },
@@ -61,7 +64,7 @@ export function GameLeads({ d, base, sp, bookingBase }: { d: GameLeadsData; base
           {r.lead_id && r.lead_status !== 'closed' && r.lead_status !== 'converted' ? <Act ops action="game_lead_update" payload={{ id: r.lead_id }} label="Close" refresh={refresh}
             fields={[{ name: 'status', label: 'Status', type: 'select', required: true, value: 'closed', options: [['closed', 'Closed'], ['qualified', 'Qualified'], ['spam', 'Spam']] }, { name: 'closed_reason', label: 'Reason', type: 'text' }]} /> : null}
         </span> }]} />
-      <p className="small muted">The code email went to every address above (transactional). Offers go only to people with marketing consent. A visitor who viewed several cars also gets a Sales task.</p>
+      <p className="small muted">The code email went to every address above (transactional). Offers go only to people with marketing consent. A visitor who viewed several cars also gets a Sales task. A person can win another code a day after their last one (a setting): each code is its own line, marked &quot;2nd code&quot;, and shares the person&apos;s open Sales task.</p>
     </Card>
   </>);
 }

@@ -77,7 +77,7 @@ update program_settings set game_weights = '{"wheel": 1, "scratch": 1, "blackjac
 select test.eq('the reveal and the claim of a re-shown play work as before',
   (public.game_reveal((select v ->> 'token' from g2 where n = 6)))::text || ' ' || (app.server_game_claim(jsonb_build_object('token', (select v ->> 'token' from g2 where n = 6),
     'first_name', 'Gina', 'email', 'g2.a@example.test')) ->> 'ok'), 'true true');
-select test.eq('after the claim: never again on this browser', test.g2start('a', array['wheel']) ->> 'reason', 'claimed');
+select test.eq('after the claim: not again on this browser that day (0172)', test.g2start('a', array['wheel']) ->> 'reason', 'claimed');
 
 -- ================================================================ 3. the request-to-book form
 select test.eq('the site never shows a game to someone signed in', test.g2start('r1', '{}', 'site', test.id('g2_rita')) ->> 'reason', 'signed_in');
@@ -110,7 +110,7 @@ select test.eq('the code keeps the rules: single use, the cap, 7 days, the minim
   (select pc.max_uses || ' ' || pc.once_per_renter || ' ' || (pc.valid_until::date - pc.valid_from::date) || ' ' || coalesce(pc.max_discount_cents::text, '-') || ' ' || coalesce(pc.min_rental_days::text, '-')
      from promo_codes pc where pc.code = (select v ->> 'code' from g2 where n = 11)),
   (select '1 true 7 ' || case when p.prize ? 'percent_bps' then '7500' else '-' end || ' ' || coalesce(p.prize ->> 'min_days', '-') from game_plays p where p.token = (select v ->> 'token' from g2 where n = 10)));
-select test.eq('one per person: the account cannot play again on any browser, nor claim again',
+select test.eq('one per person a day (0172): the account cannot play again on any browser, nor claim again, that day',
   (test.g2start('r4', '{}', 'booking', test.id('g2_rita')) ->> 'reason') || ' ' || (app.server_game_claim(jsonb_build_object('token', (select v ->> 'token' from g2 where n = 10), 'first_name', 'R'), test.id('g2_rita')) ->> 'error'),
   'claimed claimed');
 select test.eq('staff cannot claim', app.server_game_claim(jsonb_build_object('token', (select v ->> 'token' from g2 where n = 10), 'first_name', 'S'), test.id('g2_cs')) ->> 'error', 'staff');

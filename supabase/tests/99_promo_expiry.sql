@@ -232,9 +232,12 @@ select test.eq('...on day 7, and the second never goes while it is off', test.pe
 update program_settings set promo_reminder_3d_days = 3, promo_reminder_1d_on = true;
 
 -- ================================================================ 5. discount game codes
+-- claimed whatever they drew: without the replay prize (0171: never claimed; 0172: a new play draws from the whole table)
+update program_settings set game_prizes = app.game_prizes_real(game_prizes);
 select test.pe_gclaim('pe1', 'pe.game1@example.test');
 select test.pe_gclaim('pe2', 'pe.game2@example.test');
 select test.pe_gclaim('pe3', 'pe.game3@example.test');
+update program_settings set game_prizes = default;
 update app_events set processed_at = now() where processed_at is null;
 create or replace function test.pe_claim(p_email text) returns game_claims language sql stable as $$ select * from game_claims where email = p_email $$;
 select test.mk_booking('PE-3', 'pe_car', 'pe_dee', to_char((now() + interval '30 days') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'),

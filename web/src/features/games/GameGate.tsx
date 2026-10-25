@@ -3,15 +3,16 @@ import './games.css';
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { usePathname } from 'next/navigation';
 import { browserRpc } from '@/lib/browser-rpc';
-import { addPage, addSeen, closed, countShown, excludedPath, shownToday, ineligible, isReplay, isSearchReferrer, nextCheck, requestInProgress, savedPrize, savedWords, shown, trigger, type Fire, type GameCfg, type GameKind, type GameMemory, type PrizeWord, type Visit } from './rules';
+import { addPage, addSeen, claimMemory, claimWait, closed, countShown, excludedPath, shownToday, ineligible, isReplay, isSearchReferrer, nextCheck, requestInProgress, savedPrize, savedWords, shown, trigger, type Fire, type GameCfg, type GameKind, type GameMemory, type PrizeWord, type Visit } from './rules';
 import type { GamePopupProps } from './GamePopup';
 
-// Discount games (migrations 0069, 0081, 0094, 0100 and 0171): the watcher. Loaded after the page is idle (with the beacon and
+// Discount games (migrations 0069, 0081, 0094, 0100, 0171 and 0172): the watcher. Loaded after the page is idle (with the beacon and
 // the chat), it counts this visit's pages and time in the browser only (sessionStorage: nothing leaves the device for
 // this). 0100 (the owner's defaults, all Admin settings): the first game on the 2nd page view (any page) or after 30
 // seconds, whichever first; after a close another game, never the one just shown, on the 3rd page view after the close
 // or 2 minutes later, whichever first; at most 4 a visit, no daily cap unless one is set; and again on later visits.
-// Never after a claim, never once a booking request is in progress in this browser, and never as a new win once a
+// After a claim (0172) not again in that visit, and back on a later visit once the wait after it ends (a day by default,
+// the server's again_after); never once a booking request is in progress in this browser, and never as a new win once a
 // prize was won here: a small badge "Your 5% off is saved" opens its claim form, and (0171) the card itself pops up again
 // with that prize ("Your 5% off is still waiting") on the same rules as a game. Never for a signed-in visitor (they get it in the request-to-book
 // form only), never on booking, pay, sign, sign-in or portal pages, never over the cookie banner. On the first page of
@@ -31,6 +32,12 @@ export const rememberWon = (p: PrizeWord) => {
   const m = memory(); if (!m.won || m.won.label !== p.label) remember({ won: { label: p.label, short: p.short, at: Date.now() } });
 };
 export const forgetSaved = () => remember({ won: undefined });
+/** 0172: a code claimed here (or the server said this person claimed one): no more games this visit, and none until the
+ *  server's again_after; an old memory without a time never stops a game. */
+export const rememberClaim = (againAfter?: string | null, extra: Partial<GameMemory> = {}) => {
+  remember({ ...claimMemory(againAfter, Date.now()), ...extra });
+  const v = visitNow(); if (v) saveVisit({ ...v, claimed: true });
+};
 
 /** A game card is on screen (0100): the chat's greeting waits for it to close. */
 export const GAME_EVENT = 'cc:game';
@@ -142,7 +149,7 @@ export function GameGate() {
     let live = true;
     const onLeave = (e: MouseEvent) => { if (!e.relatedTarget && e.clientY <= 0) check(true); };
     (async () => {
-      if (automated() || signedIn() || memory().claimed) return;
+      if (automated() || signedIn() || claimWait(memory(), Date.now()) !== null) return;
       cfg.current = await gameSettings();
       if (live) showBadge();
       if (!live || !cfg.current || !may()) return;

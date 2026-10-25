@@ -1,10 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { coinFlip, dieFace, isReplay, nextGame, requestInProgress, reshowDue, savedPrize, savedWords, shortScale, slotStops, slotStrip, SAVED_DAYS, waitingWords, wonWords } from './rules.ts';
+import { claimMemory, claimWait, CLAIM_RECHECK_DAYS, coinFlip, dieFace, isReplay, nextGame, requestInProgress, reshowDue, savedPrize, savedWords, shortScale, slotStops, slotStrip, SAVED_DAYS, waitingWords, wonWords } from './rules.ts';
 import { addPage, addSeen, countShown, gameDay, shownToday, expectedCost, packCards, prizeCost, tearProgress, TORN, type PrizeRow, bookingIneligible, bookingPath, carSlug, claimProblems, closed, cupSwaps, deck, excludedPath, GAMES, handValue, ineligible, isSearchReferrer, nextCheck, plinkoPath, plinkoSlots,
   SEARCH_LANDING_DELAY, settle, shown, trigger, unseen, wheelSlices, wheelStop, type GameCfg, type GameKind, type PrizeWord, type Visit } from './rules.ts';
 
-// Discount games (migrations 0069, 0081, 0094 and 0100): when a game may show (first, again after a close, in the
+// Discount games (migrations 0069, 0081, 0094, 0100 and 0172): when a game may show (first, again after a close, in the
 // request-to-book form), the rotation, and that every game lands on the prize the database drew. CFG: the owner's
 // defaults of 0100 (2nd page view or 30 seconds; after a close the 3rd page view or 2 minutes; 4 a visit; no daily cap).
 const CFG: GameCfg = { on: true, car_pages: 2, seconds: 30, exit: false, reshow_pages: 3, reshow_seconds: 120, per_visit: 4, per_day: 0, booking: true };
@@ -19,7 +19,24 @@ describe('who may see a game on the site', () => {
   const base = { cfg: CFG, mem: {}, signedIn: false, path: '/cars/tesla-model-3' };
   it('a new visitor on a car page may', () => assert.equal(ineligible(base), null));
   it('never a signed-in visitor on the site', () => assert.equal(ineligible({ ...base, signedIn: true }), 'signed_in'));
-  it('never again after a claim', () => assert.equal(ineligible({ ...base, mem: { claimed: true } }), 'claimed'));
+  it('0172: after a claim, not for the rest of the visit nor until the wait ends; then again on a later visit', () => {
+    const mem = claimMemory('2026-10-22T15:00:00Z', NOW);
+    assert.equal(ineligible({ ...base, mem, now: NOW }), 'claimed');
+    assert.equal(ineligible({ ...base, mem, now: Date.parse('2026-10-22T14:59:00Z') }), 'claimed');
+    assert.equal(ineligible({ ...base, mem, now: Date.parse('2026-10-22T15:01:00Z') }), null);
+    // the visit it was claimed in stays without games even once the wait is over
+    assert.equal(ineligible({ ...base, mem, now: Date.parse('2026-10-22T15:01:00Z'), visit: visit({ claimed: true }) }), 'claimed');
+  });
+  it('0172: a claim remembered before 0172 (no time) counts as long ago', () => {
+    assert.equal(ineligible({ ...base, mem: { claimed: true }, now: NOW }), null);
+    assert.equal(ineligible({ ...base, mem: { claimed: true, never: 'claimed' }, now: NOW }), null);
+    assert.equal(claimWait({ claimed: true }, NOW), null);
+  });
+  it('0172: the memory after a claim: the server\'s again_after, or a recheck in 30 days when there is none (one code ever)', () => {
+    assert.deepEqual(claimMemory('2026-10-22T15:00:00Z', NOW), { claimed: undefined, never: undefined, claimedAt: NOW, againAt: Date.parse('2026-10-22T15:00:00Z') });
+    assert.equal(claimMemory(null, NOW).againAt, NOW + CLAIM_RECHECK_DAYS * 86_400_000);
+    assert.equal(claimMemory('not a date', NOW).againAt, NOW + CLAIM_RECHECK_DAYS * 86_400_000);
+  });
   it('never a visitor the database knows (by email) or refused', () => assert.equal(ineligible({ ...base, mem: { never: 'known' } }), 'known'));
   it('not when the games are off', () => assert.equal(ineligible({ ...base, cfg: { ...CFG, on: false } }), 'off'));
   it('no more 14-day wait after closing (0081): a close long ago or just now does not stop it', () => {
@@ -155,13 +172,15 @@ describe('a booking request in progress, and a prize already won (0100)', () => 
     // 0171: the saved prize no longer keeps the card away (the server returns the saved play, the card says "still waiting")
     assert.equal(ineligible({ ...base, mem: { won } }), null);
     assert.equal(ineligible({ ...base, mem: { won }, busy: true }), 'in_progress');
-    assert.equal(ineligible({ ...base, mem: { won, claimed: true } }), 'claimed');
+    assert.equal(ineligible({ ...base, mem: { won, ...claimMemory('2026-10-22T15:00:00Z', NOW) }, now: NOW }), 'claimed');
     assert.equal(ineligible({ ...base, mem: { won }, signedIn: true }), 'signed_in');
     assert.equal(ineligible({ ...base, mem: { won }, path: '/checkout' }), 'page');
     assert.deepEqual(savedPrize({ won }, NOW), won);
     assert.equal(savedWords(won), 'Your 5% off is saved');
     // claimed, or older than the days a prize is kept: no badge
-    assert.equal(savedPrize({ won, claimed: true }, NOW), null);
+    assert.equal(savedPrize({ won, claimedAt: NOW }, NOW), null);
+    // 0172: a prize won after an earlier claim (the wait over) is saved again
+    assert.deepEqual(savedPrize({ won, claimedAt: NOW - 2 * 86_400_000, claimed: true }, NOW), won);
     assert.equal(savedPrize({ won }, NOW + SAVED_DAYS * 86_400_000), null);
     assert.equal(ineligible({ ...base, mem: { won: { ...won, at: NOW - SAVED_DAYS * 86_400_000 - 1 } }, now: NOW }), null);
   });
@@ -261,9 +280,11 @@ describe('the request-to-book form', () => {
     assert.equal(bookingIneligible({ ...base, mem: { never: 'signed_in' } }), null);
     assert.equal(bookingIneligible({ ...base, mem: { never: 'known' } }), null);
   });
-  it('never after a claim', () => {
-    assert.equal(bookingIneligible({ ...base, mem: { claimed: true } }), 'claimed');
-    assert.equal(bookingIneligible({ ...base, mem: { never: 'claimed' } }), 'claimed');
+  it('0172: not within the wait after a claim; again after it, and an old memory without a time does not stop it', () => {
+    const mem = claimMemory('2026-10-22T15:00:00Z', NOW);
+    assert.equal(bookingIneligible({ ...base, mem, now: NOW }), 'claimed');
+    assert.equal(bookingIneligible({ ...base, mem, now: Date.parse('2026-10-22T15:01:00Z') }), null);
+    assert.equal(bookingIneligible({ ...base, mem: { claimed: true, never: 'claimed' }, now: NOW }), null);
   });
   it('never for staff', () => assert.equal(bookingIneligible({ ...base, staff: true }), 'staff'));
   it('not when the offer is off, or a code is already on the booking', () => {

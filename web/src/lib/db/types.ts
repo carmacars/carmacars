@@ -12816,6 +12816,7 @@ export type Database = {
           ads_rate_change_bps: number;
           ads_social_drafts_enabled: boolean;
           recruit_outreach_enabled: boolean;
+          game_replay_after_claim_days: number;
         };
         Insert: {
           id?: string;
@@ -13305,6 +13306,7 @@ export type Database = {
           ads_rate_change_bps?: number;
           ads_social_drafts_enabled?: boolean;
           recruit_outreach_enabled?: boolean;
+          game_replay_after_claim_days?: number;
         };
         Update: {
           id?: string;
@@ -13794,6 +13796,7 @@ export type Database = {
           ads_rate_change_bps?: number;
           ads_social_drafts_enabled?: boolean;
           recruit_outreach_enabled?: boolean;
+          game_replay_after_claim_days?: number;
         };
         Relationships: [];
       };

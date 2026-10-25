@@ -572,6 +572,9 @@ def build():
     ])
     g.para('A visitor who viewed 3 cars or more also raises a Sales task, for example "Claimed 10% off, viewed 6 cars: Maya". It closes when the code goes on a request.'
            ' A visitor who wins another go plays a second game first; only the code they end with shows here.')
+    g.para('People can win again: a day after their last code the game comes back on their next visit, and a new code is a new line with "2nd code of 2" under the name. '
+           'It is the same person: one call covers both codes, and while their Sales task is open the new code is added to it instead of a second task. '
+           'Each code is for one booking and never combined with another; an earlier code they have not used stays good until it ends.')
     g.tip('Without marketing consent, talk only about their request and the code they asked for: no other offers. The code takes up to $75 '
           'off the rental charge (a percentage), or $50 off a rental of 3 days or more, on one booking within 7 days.')
     g.task('Contact details typed into forms')

@@ -1,5 +1,5 @@
 -- 48: discount games (migration 0069). Settings and the prize table, the draw, who may play (signed in, known, claimed,
--- the same play again), the claim (one per email, phone and device, the code as a promo code: single use, expiry, the
+-- the same play again), the claim (one per email, phone and device, 0172: a day, the code as a promo code: single use, expiry, the
 -- cap, the minimum rental length, not with another code, owner sharing in the split), the lead on Live visitors, the
 -- Sales task, consent (an existing account, an account opened later, never over an unsubscribe), the emails and the
 -- reminder, the leads and the report for staff, the privacy and terms text, privileges. Fixtures start with "dg".
@@ -56,7 +56,7 @@ select test.eq('10,000 draws stay near the table (5% between 51 and 57 in 100, $
      from (select app.game_draw((app.settings()).game_prizes) ->> 'key' as k from generate_series(1, 10000)) x), true);
 select test.eq('the short terms list the prizes and say the chances differ',
   app.game_terms_text(),
-  'Prizes: 5%, 10%, 15% or 25% off, or $50 off 3+ day rentals, or $100 off 4+ day rentals, or 1 free day on 3+ day rentals, or another go (a second game, which always ends in a discount). The chances differ: most players win 5% off. Off the rental charge only, up to $75 per code (25% off: up to $150, 1 free day: up to $150). One use, on one booking, within 7 days. One per person, email, phone and device. Not combinable with other promo codes.');
+  'Prizes: 5%, 10%, 15% or 25% off, or $50 off 3+ day rentals, or $100 off 4+ day rentals, or 1 free day on 3+ day rentals, or another go (a second game, which always ends in a discount). The chances differ: most players win 5% off. Off the rental charge only, up to $75 per code (25% off: up to $150, 1 free day: up to $150). One use, on one booking, within 7 days. One code a day per person, email, phone and device. Not combinable with other promo codes.');
 select test.eq('the consent wording with the tokens filled from Site settings',
   (app.game_marketing_text() ->> 'text') = 'Yes, send me CarmaCars offers and news by email and text message. I can unsubscribe at any time. Sent by CarmaCars'
     || coalesce(', ' || nullif((select mailing_address from site_settings), ''), '') || ', ' || coalesce((select public_email from site_settings), '') || '.', true);
@@ -107,9 +107,9 @@ select test.eq('the play is claimed and revealed', (select (claimed_at is not nu
 select test.eq('high intent (6 cars): a Sales task "Claimed 10% off, viewed 6 cars"',
   (select t.queue || ' | ' || t.title from tasks t join game_claims c on c.task_id = t.id where c.email = 'dana.a@example.test'), 'sales | Claimed 10% off, viewed 6 cars: Dana a');
 select test.eq('the code email is decided at once', (select count(*) from app_events where code = 'renter_game_code' and entity_id = (select id from game_claims where email = 'dana.a@example.test')), 1::bigint);
-select test.eq('after a claim the visitor never plays again', test.gstart('a') ->> 'reason', 'claimed');
+select test.eq('after a claim the visitor does not play again that day (0172: again after game_replay_after_claim_days)', test.gstart('a') ->> 'reason', 'claimed');
 
--- one per email, phone and device
+-- one per email, phone and device (0172: a day)
 insert into s43 values ('b', test.gclaim('b', 'dana.a@example.test'));
 select test.eq('the same email again: refused, and the code goes to that inbox again (never shown)',
   (select (v ->> 'error') || ' ' || (v ? 'code')::text from s43 where k = 'b') || ' ' || (select count(*) from app_events where code = 'renter_game_code' and entity_id = (select id from game_claims where email = 'dana.a@example.test')), 'email_used false 2');
@@ -122,8 +122,9 @@ select test.eq('a bad email, an empty name and a bad phone are refused with a me
   || ' ' || (select app.server_game_claim(jsonb_build_object('token', test.gstart('d') ->> 'token', 'first_name', 'D', 'email', 'd@example.test', 'phone', '12')) ->> 'error'), 'email first_name phone');
 select test.eq('a signed-in person cannot claim', app.server_game_claim(jsonb_build_object('token', test.gstart('e') ->> 'token', 'first_name', 'E', 'email', 'e@example.test'), test.id('dg_rita')) ->> 'error', 'signed_in');
 select test.eq('an unknown play is refused', app.server_game_claim('{"token": "x", "first_name": "E", "email": "e@example.test"}') ->> 'error', 'not_found');
-select test.throws('the database keeps one claim per device', $$insert into game_claims (play_id, visitor_id, first_name, email, promo_code_id, expires_at)
-  select (select id from game_plays where visitor_id = test.vid('d') limit 1), test.vid('a'), 'X', 'x@example.test', (select id from promo_codes limit 1), now()$$, 'game_claims_visitor_key');
+-- 0172: one claim per device a day is the claim's rule (99_games_repeat_after_claim.sql); the database keeps one claim per code
+select test.throws('the database keeps one claim per code', $$insert into game_claims (play_id, visitor_id, first_name, email, promo_code_id, expires_at)
+  select (select id from game_plays where visitor_id = test.vid('d') limit 1), test.vid('d'), 'X', 'x@example.test', (select promo_code_id from game_claims limit 1), now()$$, 'game_claims_promo_code_id_key');
 
 -- a low-intent claim: no task; a $50 prize; consent
 update game_plays set prize = '{"key": "amt50", "amount_cents": 5000, "min_days": 3, "weight": 1}' where visitor_id = test.vid('f');

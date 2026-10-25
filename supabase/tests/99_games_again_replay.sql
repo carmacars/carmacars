@@ -47,7 +47,7 @@ select test.eq('words: "another go", "REPLAY" on a wheel slice, "Play again" now
   app.game_prize_label('{"key": "replay", "replay": true, "weight": 15}') || ' | ' || app.game_prize_short('{"key": "replay", "replay": true, "weight": 15}'), 'another go | REPLAY');
 select test.eq('the terms name the replay prize for what it is',
   app.game_terms_text(),
-  'Prizes: 5%, 10%, 15% or 25% off, or $50 off 3+ day rentals, or $100 off 4+ day rentals, or 1 free day on 3+ day rentals, or another go (a second game, which always ends in a discount). The chances differ: most players win 5% off. Off the rental charge only, up to $75 per code (25% off: up to $150, 1 free day: up to $150). One use, on one booking, within 7 days. One per person, email, phone and device. Not combinable with other promo codes.');
+  'Prizes: 5%, 10%, 15% or 25% off, or $50 off 3+ day rentals, or $100 off 4+ day rentals, or 1 free day on 3+ day rentals, or another go (a second game, which always ends in a discount). The chances differ: most players win 5% off. Off the rental charge only, up to $75 per code (25% off: up to $150, 1 free day: up to $150). One use, on one booking, within 7 days. One code a day per person, email, phone and device. Not combinable with other promo codes.');
 select test.eq('the draw without the replay keeps the others'' order and odds',
   (select string_agg(x ->> 'key', ' ' order by o) from jsonb_array_elements(app.game_prizes_real((app.settings()).game_prizes)) with ordinality t(x, o)),
   'pct5 pct10 pct15 amt50 pct25 amt100 day1');
@@ -137,7 +137,7 @@ select test.eq('the dry check names that discount',
   public.server_game_start(jsonb_build_object('vid', test.gavid('claim'), 'context', 'site', 'dry', true), null) ->> 'saved', (select v -> 'prize' ->> 'label' from ga where n = 'c2'));
 select test.eq('and it is claimed',
   app.server_game_claim(jsonb_build_object('token', (select token from game_plays where visitor_id = test.gavid('claim') order by created_at desc limit 1), 'first_name', 'Gil', 'email', 'ga.claim@example.test')) ->> 'ok', 'true');
-select test.eq('after the claim: never again, not even Play again', test.gastart('claim', jsonb_build_object('replay_of', test.gareplay('claim'))) ->> 'reason', 'claimed');
+select test.eq('after the claim: not again that day (0172), not even Play again', test.gastart('claim', jsonb_build_object('replay_of', test.gareplay('claim'))) ->> 'reason', 'claimed');
 -- a replay used whose second play has gone (a visitor's latest play is the replay again): no second replay from it
 insert into ga values ('u1', to_jsonb(test.gareplay('used')));
 select test.gastart('used', jsonb_build_object('replay_of', (select v #>> '{}' from ga where n = 'u1')));
