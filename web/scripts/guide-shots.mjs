@@ -361,6 +361,9 @@ async function publicPages(browser) {
       await page.locator('label', { hasText: 'Ontario G2' }).click();
       if (await page.locator('label.option', { hasText: 'Option 2' }).count()) await page.locator('label.option', { hasText: 'Option 2' }).click();
       await shoot(page, 'public', 'book-3-licence', 'Step 3: the licence and how the car is covered.');
+      await page.getByRole('button', { name: 'Continue to add-ons' }).click();
+      await page.getByRole('heading', { name: 'Add-ons', exact: true }).waitFor();
+      await shoot(page, 'public', 'book-4-addons', 'Step 4: optional add-ons; the estimate shows the price as you choose.', { step: 14 });
       await page.getByRole('button', { name: 'Review request' }).click();
       await page.locator('input[name="agree"]').waitFor();
       await shoot(page, 'public', 'book-4-review', 'Step 4: review everything, agree to the terms, Send request. Nothing is charged yet.');
@@ -386,6 +389,7 @@ async function renterStory(browser, ids) {
   await d.getByRole('button', { name: 'Continue to licence' }).click();
   await d.locator('label', { hasText: 'Ontario G2' }).click();
   if (await d.locator('label.option', { hasText: 'Option 2' }).count()) await d.locator('label.option', { hasText: 'Option 2' }).click();
+  await d.getByRole('button', { name: 'Continue to add-ons' }).click();
   await d.getByRole('button', { name: 'Review request' }).click();
   await d.locator('input[name="agree"]').check();
   await d.getByRole('button', { name: 'Send request' }).click();
@@ -635,7 +639,7 @@ async function fieldPortal(browser, ids) {
   const email = (await one(sql`select email from users where id = ${ids.field}`)).email;
   // a confirmed booking with its handover job for today, as procedures 1 and 2 leave it
   const renter = await newRenter('Elena Moreau');
-  const car = await freeCar(0.25, 2, 4);
+  const car = await freeCar(1, 2, 4);
   const rq = await request(renter, car, 'Elena Moreau');
   await confirm(rq.booking_id, ids.admin, 'Elena Moreau');
   const [pay] = await sql`insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status, processed_at)
@@ -644,6 +648,8 @@ async function fieldPortal(browser, ids) {
   const trk = randomUUID();
   await sql`insert into tracker_devices (id, serial_number, vehicle_id, status, installed_at, tested_at) values (${trk}, ${`TRK-${trk.slice(0, 6)}`}, ${car.id}, 'installed', now(), now())`;
   await sql`insert into tracker_status (tracker_device_id, reported_at, speed_kmh, ignition_on) values (${trk}, now() + interval '30 minutes', 0, false)`;
+  // the request needs a pickup two hours ahead or more, and the field list shows today: the pickup moves to a few hours from now
+  await sql`update bookings set pickup_at = now() + interval '3 hours' where id = ${rq.booking_id}`;
   const bk = await one(sql`select pickup_at from bookings where id = ${rq.booking_id}`);
   const [job] = await sql`select app.create_field_job('handover', ${car.id}::uuid, ${bk.pickup_at}::timestamptz, ${ids.admin}::uuid, ${rq.booking_id}::uuid, ${ids.field}::uuid, '100 Front St W, Toronto') id`;
   const odo = await one(sql`select coalesce(odometer_km, 0)::int o from vehicles where id = ${car.id}`);
