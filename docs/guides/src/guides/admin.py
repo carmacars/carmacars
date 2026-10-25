@@ -26,8 +26,8 @@ def build():
 
     # ---------------------------------------------------------------- 1
     g.chapter('Getting around Admin',
-              'Admin opens on To do: what needs you now, most urgent first. The menu groups every screen into six groups: '
-              'Today, Bookings, Cars, People, Money and Settings. The long groups come in labelled parts (for example People: Owners and partners, then Renters, staff and investors). Search finds any booking, car or person.',
+              'Admin opens on To do: the day\'s counts at the top, then what needs you now, most urgent first. The menu groups every screen into six groups: '
+              'Today, Bookings, Cars, People, Money and Settings. The long groups come in labelled parts (for example People: Owners and partners, then Renters, staff and investors). Search finds any booking, car or person, and Ctrl+K jumps to any page.',
               blurb='To do, the menu, search, keyboard shortcuts and your other portals.')
     g.task('To do', 'Start every shift here. Each line says what to do and why, and its button opens a small pop-up that does it, already filled in. Nothing to remember and no menu to search.')
     g.steps([
@@ -35,8 +35,9 @@ def build():
         'Press the line\'s button: Mark insured, Set rates and publish, Review documents, Record payment, Record what they paid, Enter the terms, Record paper signature, Checked: use for owners, Open the chat, and so on. A line you do not need has Not needed or These are correct. The pop-up is filled in; check it and confirm. The line disappears once the work is done.',
         'Under the lines, the counts with one button each (failed payments, agreements to countersign, tolls, listings, insurance, staff commissions, prices typed by hand, sales claims, Turo emails). A count with nothing waiting moves to the bottom, under "more with nothing waiting".',
         'While no assistant holds customer service, sales, finance or fleet (the live verification\'s test accounts do not count), their tasks come to To do too, and so do their emails, to rent@carmacars.ca.',
-        'Below the list: today\'s pickups (ready or not ready) and today\'s returns (due or late).',
+        'Beside the list (under it on a phone): today\'s pickups (ready or not ready), today\'s returns (due or late) and today\'s chauffeur bookings, by time.',
         f'Press {B("Overview")} for the money, fleet and queue figures, the alerts and the team\'s sales for the month.',
+        'The dark band at the top counts the day, each count one tap from its page: requests waiting (with how long the oldest has waited, red past the reply target), pickups and returns today, payments to chase, deposits to settle, staff tasks open and alerts. A count that needs you now is red and says so.',
     ], shot=S('admin/01-today-desktop', 0, 0, 1440, 900, pins=[(1, 325, 284), (2, 1300, 285), (3, 265, 812), (4, 1360, 200)]))
     g.task('The menu', 'The current group is open, with its pages; press another group to open it. On a phone the whole menu sits behind one Menu button that says where you are.')
     g.table([
@@ -52,8 +53,9 @@ def build():
     g.steps([
         'Type a booking number (CC-1042), a car code (CC-7F3A, on every car page and fleet card), a plate, a VIN, or a name or email address.',
         f'Press {B("Search")} (or Enter). Results come in groups: bookings, cars, owners, partners and renters. Open one to go to its page.',
+        f'To go to a page instead, press Ctrl+K (Cmd+K on a Mac) or {B("Jump to a page")} under the search box, type a few letters (Payouts, Program settings) and press Enter. The first line searches the records for what you typed.',
     ], shot=S('admin/32-search-desktop', 0, 0, 1440, 420, pins=[(1, 107, 190), (2, 1368, 197)]))
-    g.task('Keyboard shortcuts', 'Press g, then a letter. Press / to jump to the search box.')
+    g.task('Keyboard shortcuts', 'Press g, then a letter. Press / to jump to the search box, and Ctrl+K to jump to any page.')
     g.table([
         ['g t', 'To do', 'g v', 'Vehicles'],
         ['g r', 'Requests', 'g l', 'Listings'],
@@ -61,6 +63,7 @@ def build():
         ['g c', 'Calendar', 'g o', 'Owners'],
         ['g k', 'Staff tasks', 'g m', 'Payments and refunds'],
         ['g s', 'All settings', '/', 'Search'],
+        ['Ctrl K', 'Jump to a page', 'Esc', 'Close it'],
     ], head=['Keys', 'Opens', 'Keys', 'Opens'], cls='keys')
 
     # ---------------------------------------------------------------- 2
@@ -244,6 +247,7 @@ def build():
         'Overview shows the trip, the renter, what is still missing for the handover, and the price.',
         'Open tasks for this booking, with the queue and the due time.',
         f'Top right: {B("Stop blocking the calendar")}, {B("Cancel for the renter")} and {B("Cancel by CarmaCars")}.',
+        'Under the booking number: where the booking is on its way, from Request to Closed, with the dates, the days, the total and who pays.',
     ], shot=S('admin/04-booking-desktop', 0, 0, 1440, 960, pins=[(1, 290, 230), (2, 500, 560), (3, 290, 700), (4, 1300, 176)]))
 
     g.task('Check a car out or in', 'From the booking, with your phone or a tablet: the same checklist field staff use.')
@@ -466,7 +470,7 @@ def build():
               blurb='Vehicles, the listing pipeline, similar cars and covering licence plates.')
     g.task('Vehicles', f'{P("Cars", "Vehicles")}')
     g.steps([
-        'Filter by status and mode. Each row shows the plate, class, owner, mode, status, listing and daily rate.',
+        'Filter by status; More filters has who supplies the car, retired cars and the mode. Each row shows the plate, class, owner, mode, status, listing and daily rate.',
         f'Search by plate, model or owner. {P("Cars", "Rates for many cars")} changes the rates of many cars at once.',
         'Open a car for its tabs: Overview, Rates, Fees and coverage, Calendar, Listing, and Owner, documents, tracker.',
     ], shot=S('admin/08-vehicles-desktop', 0, 0, 1440, 900, pins=[(1, 267, 174), (2, 1203, 116), (3, 1060, 350)]))

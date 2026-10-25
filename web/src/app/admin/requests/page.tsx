@@ -4,6 +4,7 @@ import { page } from '@/server/admin/api';
 import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
 import { $, ago, Badge, BookingLink, Filters, PageHead, Table, t } from '@/features/admin/ui';
+import { LiveWait } from '@/features/admin/shell/LiveWait';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Requests', path: '/admin/requests', noindex: true, description: 'Booking requests, oldest first.' });
@@ -21,11 +22,12 @@ export default async function Requests({ searchParams }: { searchParams: Promise
   const rows = all.filter((r) => !state || r.state === state);
   return (
     <>
-      <PageHead title="Requests" kicker={`${all.filter((r) => r.status === 'requested').length} waiting · first reply target ${target.words}`}>
+      <PageHead title="Requests" kicker={`${all.filter((r) => r.status === 'requested').length} waiting · first reply target ${target.words}`} purpose="Oldest first. Open a booking number to price it and send the offer; the clock turns red past the reply target.">
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/offers/new" data-testid="send-offer-link">Send an offer without a request</Link></PageHead>
       <Filters base="/admin/requests" name="state" value={state} options={STATES.map(([k, l]) => [k, `${l}${k ? ` (${all.filter((r) => r.state === k).length})` : ''}`])} sp={sp} />
       <Table<Req> testId="requests" caption="Booking requests" rows={rows} empty="No requests waiting. New booking requests from the website show up here to price and offer." cols={[
-        { key: 'waiting', label: 'Waiting', render: (r) => <span className={r.status === 'requested' && r.waiting_minutes > target.minutes ? 'ad-late' : undefined}>{ago(r.waiting_minutes)}</span> },
+        // a request still waiting for its first answer keeps counting while the page is open, red past the reply target
+        { key: 'waiting', label: 'Waiting', render: (r) => r.status === 'requested' ? <LiveWait key={`${r.id}-${r.waiting_minutes}`} minutes={r.waiting_minutes} target={target.minutes} /> : <span className="muted">{ago(r.waiting_minutes)}</span> },
         { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
         { key: 'state', label: 'State', render: (r) => <Badge s={r.status}>{r.state.replace(/_/g, ' ')}</Badge> },
         { key: 'vehicle', label: 'Car' },

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, BookingLink, Card, Filters, PageHead, Search, Table, t } from '@/features/admin/ui';
+import { $, Badge, BookingLink, Card, Filters, MoreFilters, PageHead, Search, Table, t } from '@/features/admin/ui';
 import { SampleCarsToggle } from '@/features/supply/SampleCarsToggle';
 import { door } from '@/server/door';
 import '@/features/live/live.css';
@@ -30,7 +30,7 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
   const statuses = [...new Set(all.map((v) => v.status))];
   return (
     <>
-      <PageHead title="Vehicles" kicker={`${rows.length} of ${all.length}`}>
+      <PageHead title="Vehicles" kicker={`${rows.length} of ${all.length}`} purpose="The fleet. Open a car for its rates, calendar, photos, documents and money.">
         <Search action="/admin/vehicles" value={sp.q} placeholder="Plate, model, owner" />
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/vehicles/new" data-testid="add-car-link">Add a car</Link>
         <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/vehicles/bulk-rates">Bulk rate change</Link>
@@ -40,9 +40,12 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
       </PageHead>
       <Filters base="/admin/vehicles" name="status" value={sp.status ?? ''} options={[['', 'All'], ...statuses.map((x) => [x, x.replace(/_/g, ' ')] as [string, string])]} sp={sp} />
       {sp.deleted && <p className="alert alert--ok" role="status"><span>The car was deleted.</span></p>}
-      <Filters base="/admin/vehicles" name="supply" value={sp.supply ?? ''} options={[['', 'Every supplier'], ['program_owner', 'Program owners'], ['company', 'CarmaCars-owned'], ['partner', 'Partners']]} sp={sp} />
-      <Filters base="/admin/vehicles" name="retired" value={sp.retired ?? ''} options={[['', 'In the fleet'], ['only', 'Retired'], ['show', 'All, retired too']]} sp={sp} />
-      <Filters base="/admin/vehicles" name="mode" value={sp.mode ?? ''} options={[['', 'Any mode'], ['managed', 'Managed'], ['self_managed', 'Self-Managed'], ['turo_only', 'Turo-Only']]} sp={sp} />
+      {/* who supplies it, retired cars and the mode fold behind More filters (open by itself while one is in use) */}
+      <MoreFilters active={!!(sp.supply || sp.retired || sp.mode)}>
+        <Filters base="/admin/vehicles" name="supply" value={sp.supply ?? ''} options={[['', 'Every supplier'], ['program_owner', 'Program owners'], ['company', 'CarmaCars-owned'], ['partner', 'Partners']]} sp={sp} />
+        <Filters base="/admin/vehicles" name="retired" value={sp.retired ?? ''} options={[['', 'In the fleet'], ['only', 'Retired'], ['show', 'All, retired too']]} sp={sp} />
+        <Filters base="/admin/vehicles" name="mode" value={sp.mode ?? ''} options={[['', 'Any mode'], ['managed', 'Managed'], ['self_managed', 'Self-Managed'], ['turo_only', 'Turo-Only']]} sp={sp} />
+      </MoreFilters>
       {notPublic.length > 0 && (
         <Card title={`Not on the site yet (${notPublic.length})`} testId="cars-not-public">
           <p className="small muted">Each real car with what is left before it is on the site, the next step first. A car without photos shows sample photos once it is listed.</p>

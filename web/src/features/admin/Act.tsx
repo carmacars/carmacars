@@ -6,6 +6,7 @@ import { opsAct } from '@/server/actions/ops';
 import { useDoor } from './door';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { siblingFill } from '@/features/forms/address-parts';
+import { adminToast } from './shell/toast';
 
 // The admin portal's action controls. One button or one form per database action: fields are typed
 // (money in dollars becomes cents, a percentage becomes basis points, a local date and time becomes an
@@ -140,6 +141,8 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
       if (!r.ok && r.fieldErrors) f.setErrs(r.fieldErrors);
       if (r.ok) {
         dlg.current?.close();
+        // a dialog or a one-press button says what happened in a toast (the inline form shows its own line)
+        if (!inline && !go && done) adminToast(done);
         if (go) router.push(fill(go, r.data)); else router.refresh();
       }
     });
