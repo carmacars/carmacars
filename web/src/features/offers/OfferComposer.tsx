@@ -206,7 +206,7 @@ export function OfferComposer({ base, initialCar = null, draft = null }: { base:
     <div className="ad-review" data-testid="offer-composer">
       <form className="pt-card ad-card ad-form ad-form--narrow" aria-label="The offer" noValidate onSubmit={(e) => { e.preventDefault(); send(); }}>
         <p className="small muted" role="status" aria-live="polite" data-testid="oc-draft-status">{savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}: finish it later from Unfinished rentals.` : 'Saved as a draft as you type.'}
-          {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); window.location.href = `${base}/offers/new`; })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
+          {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); router.push(`${base}/offers/new`); })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
         <fieldset className="stack"><legend className="d4">1. The customer</legend>
           {chosen ? (
             <p data-testid="oc-customer"><b>{chosen.legal_name}</b> <span className="small">{chosen.email} · {chosen.mobile} · {chosen.bookings ? `${chosen.bookings} past rental${chosen.bookings === 1 ? '' : 's'}` : 'no rental yet'}{chosen.card ? ` · card ${chosen.card.brand} ${chosen.card.last4}` : ''}</span>{' '}

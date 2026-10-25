@@ -233,7 +233,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
     if (d.drivers) setDrivers(d.drivers);
     if (d.addons) setAddons(d.addons);
     if (d.choice) setChoice(d.choice);
-  }, [draft]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [draft]);
   const snapshot: MrDraft = { f, flags, paid_by: paidBy, deposit_by: depositBy, agreement, blocks, fees, parts, customs, rent_mode: rentMode, rent_day: rentDay, renter, renter_id: renter?.id ?? null, drivers, addons, choice };
   const snapKey = JSON.stringify(snapshot);
   const localKey = `cc-draft-rental${base}`;

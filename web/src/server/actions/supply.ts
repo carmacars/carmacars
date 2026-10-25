@@ -173,3 +173,13 @@ export async function deliveryDistance(placeId: string, session?: string): Promi
     return { ok: true, data: { km: km === null ? null : Math.round(km * 10) / 10 } };
   } catch (e) { return fail(e); }
 }
+
+/** Two records of one renter (0145): everything of `merge` moves onto `keep`; the other record stays blocked. */
+export async function renterMerge(keep: string, merge: string, reason?: string): Promise<R<{ ok: boolean; moved: Record<string, number>; account_moved: boolean }>> {
+  try {
+    const { user, aal } = await me();
+    const data = await door<{ ok: boolean; moved: Record<string, number>; account_moved: boolean }>(user.id, 'ops_do', 'renter_merge', { keep, merge, reason }, aal);
+    revalidatePath('/admin/renters'); revalidatePath('/admin/bookings'); revalidatePath('/va/bookings');
+    return { ok: true, data };
+  } catch (e) { return fail(e); }
+}

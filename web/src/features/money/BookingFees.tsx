@@ -1,4 +1,6 @@
 'use client';
+import { Info } from '@/features/forms/Info';
+import { lineHelp } from '@/features/offers/help';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
@@ -62,7 +64,7 @@ export function BookingFees({ x }: { x: Fees }) {
           <thead><tr><th scope="col">Fee</th><th scope="col" className="num">Amount</th>{edit && <th scope="col">New amount ($)</th>}</tr></thead>
           <tbody>{rows.map((l) => (
             <tr key={l.key} data-testid={`bf-line-${l.key}`}>
-              <td>{l.label}{l.set_by_hand ? <span className="small muted"> (set by hand{l.reason ? `: ${l.reason}` : ''})</span> : null}{l.paid ? <span className="small muted"> · paid</span> : null}
+              <td>{l.label} <Info text={lineHelp(l.key.startsWith('addon:') ? 'addon' : l.key)} label={`What is ${l.label}?`} />{l.set_by_hand ? <span className="small muted"> (set by hand{l.reason ? `: ${l.reason}` : ''})</span> : null}{l.paid ? <span className="small muted"> · paid</span> : null}
                 {edit && l.set_by_hand && <> <button className="btn btn--quiet btn--sm" type="button" disabled={pending} onClick={() => reset(l.key)}>Back to computed</button></>}</td>
               <td className="num">{fmt(l.amount_cents)}</td>
               {edit && <td><input className="input input--sm" inputMode="decimal" aria-label={`${l.label}: new amount ($)`} placeholder={(l.amount_cents / 100).toFixed(2)} value={typed[l.key] ?? ''}

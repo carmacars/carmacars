@@ -562,6 +562,86 @@ begin
   return jsonb_build_object('ready', false, 'renter_user_id', v_user);
 end $$;
 
+
+-- ================================================================ 9. two records of one renter, merged
+-- The same person entered twice (a phone booking, then the website): an Admin (or customer service and sales, who may
+-- correct renters) keeps one record and moves everything of the other onto it: bookings, drivers and licences, cards,
+-- payments, documents, messages, tasks, signatures. The details the kept record lacks are filled from the other; the
+-- account (sign-in) moves when the kept record has none. The other record stays, blocked, pointing at the kept one,
+-- and the merge is in each record's change history.
+alter table renters add column if not exists merged_into uuid references renters (id);
+comment on column renters.merged_into is 'This record was merged into that one (0145): everything moved there; this one is blocked.';
+
+create or replace function app.renter_duplicates(p_by uuid, p jsonb) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', o.id, 'legal_name', o.legal_name, 'email', coalesce(o.email, u.email), 'mobile', o.mobile,
+           'date_of_birth', o.date_of_birth, 'bookings', (select count(*) from bookings b where b.renter_id = o.id),
+           'why', concat_ws(', ', case when lower(coalesce(o.email, u.email, '')) <> '' and lower(coalesce(o.email, u.email)) = lower(coalesce(r.email, ru.email, '')) then 'same email' end,
+                              case when regexp_replace(coalesce(o.mobile, ''), '\D', '', 'g') <> '' and right(regexp_replace(o.mobile, '\D', '', 'g'), 10) = right(regexp_replace(coalesce(r.mobile, ''), '\D', '', 'g'), 10) then 'same phone' end,
+                              case when lower(btrim(o.legal_name)) = lower(btrim(r.legal_name)) and o.date_of_birth is not distinct from r.date_of_birth then 'same name and date of birth' end))
+           order by o.created_at), '[]'::jsonb)
+    from renters r left join users ru on ru.id = r.user_id
+    join renters o on o.id <> r.id and o.merged_into is null
+    left join users u on u.id = o.user_id
+   where app.may_edit_renter(p_by) and r.id = (p ->> 'renter')::uuid
+     and ((lower(coalesce(o.email, u.email, '')) <> '' and lower(coalesce(o.email, u.email)) = lower(coalesce(r.email, ru.email, '')))
+       or (length(regexp_replace(coalesce(o.mobile, ''), '\D', '', 'g')) >= 10 and right(regexp_replace(o.mobile, '\D', '', 'g'), 10) = right(regexp_replace(coalesce(r.mobile, ''), '\D', '', 'g'), 10))
+       or (lower(btrim(o.legal_name)) = lower(btrim(r.legal_name)) and o.date_of_birth is not distinct from r.date_of_birth and o.date_of_birth is not null))
+$$;
+
+-- p: {keep, merge, reason}
+create or replace function app.renter_merge(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  k renters;
+  m renters;
+  v_before_k jsonb;
+  v_before_m jsonb;
+  t record;
+  v_moved jsonb := '{}'::jsonb;
+  v_n integer;
+  v_user uuid;
+begin
+  if not app.may_edit_renter(p_by) then raise exception 'Customer service, sales and Admins merge renters' using errcode = '42501'; end if;
+  select * into k from renters where id = (p ->> 'keep')::uuid for update;
+  select * into m from renters where id = (p ->> 'merge')::uuid for update;
+  if k.id is null or m.id is null then raise exception 'Choose the two records of the renter' using errcode = '22023'; end if;
+  if k.id = m.id then raise exception 'That is the same record' using errcode = '22023'; end if;
+  if m.merged_into is not null then raise exception 'That record was already merged' using errcode = '23514'; end if;
+  if k.merged_into is not null then raise exception 'Keep the record it was merged into instead' using errcode = '23514'; end if;
+  v_before_k := app.renter_snapshot(k.id);
+  v_before_m := app.renter_snapshot(m.id);
+  -- the account holder's driver of the merged record becomes an ordinary driver when the kept one has its own
+  if exists (select 1 from drivers d where d.renter_id = k.id and d.is_account_holder) then
+    update drivers set is_account_holder = false where renter_id = m.id and is_account_holder;
+  end if;
+  for t in select c.conrelid::regclass::text as tbl, a.attname as col
+             from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any (c.conkey)
+            where c.confrelid = 'renters'::regclass and c.contype = 'f' and c.conrelid <> 'renters'::regclass
+              and c.conrelid::regclass::text not in ('renter_edits', 'data_access_log')
+  loop
+    execute format('update %s set %I = $1 where %I = $2', t.tbl, t.col, t.col) using k.id, m.id;
+    get diagnostics v_n = row_count;
+    if v_n > 0 then v_moved := v_moved || jsonb_build_object(t.tbl, v_n); end if;
+  end loop;
+  -- the details the kept record lacks; the sign-in account when it has none
+  v_user := case when k.user_id is null then m.user_id end;
+  if v_user is not null then update renters set user_id = null where id = m.id; end if;
+  update renters set legal_name = coalesce(nullif(btrim(legal_name), ''), m.legal_name), date_of_birth = coalesce(date_of_birth, m.date_of_birth),
+         address_line1 = coalesce(address_line1, m.address_line1), address_line2 = coalesce(address_line2, m.address_line2), city = coalesce(city, m.city),
+         province = coalesce(province, m.province), postal_code = coalesce(postal_code, m.postal_code), mobile = coalesce(nullif(mobile, ''), m.mobile),
+         email = coalesce(nullif(email, ''), m.email), user_id = coalesce(user_id, v_user),
+         staff_note = nullif(concat_ws(E'\n', staff_note, case when m.staff_note is not null then 'From the merged record: ' || m.staff_note end), ''),
+         is_blocked = is_blocked or m.is_blocked, blocked_reason = coalesce(blocked_reason, m.blocked_reason)
+   where id = k.id;
+  update renters set merged_into = k.id, is_blocked = true, blocked_reason = format('Merged into %s', k.legal_name) where id = m.id;
+  insert into renter_edits (renter_id, edited_by, reason, before, after)
+  values (k.id, p_by, coalesce(nullif(btrim(coalesce(p ->> 'reason', '')), ''), 'Two records of one renter merged'), v_before_k,
+          app.renter_snapshot(k.id) || jsonb_build_object('merged_from', m.id, 'merged_name', m.legal_name, 'moved', v_moved)),
+         (m.id, p_by, format('Merged into %s', k.legal_name), v_before_m, jsonb_build_object('merged_into', k.id));
+  return jsonb_build_object('ok', true, 'keep', k.id, 'moved', v_moved, 'account_moved', v_user is not null);
+end $$;
+
 -- ================================================================ the door
 alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0145;
 create or replace function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
@@ -569,7 +649,7 @@ language plpgsql security definer set search_path = public, app as $$
 declare
   p_ jsonb := coalesce(p, '{}'::jsonb);
 begin
-  if (p_call = 'ops_read' and p_name in ('drafts', 'draft_get', 'booking_periods')) or (p_call = 'ops_do' and p_name in ('draft_save', 'draft_close', 'period_send_now')) then
+  if (p_call = 'ops_read' and p_name in ('drafts', 'draft_get', 'booking_periods', 'renter_duplicates')) or (p_call = 'ops_do' and p_name in ('draft_save', 'draft_close', 'period_send_now', 'renter_merge')) then
     if p_ ? '_va' then perform set_config('app.va_active', coalesce(p_ ->> '_va', ''), true); end if;
     p_ := p_ - '_va';
     perform app.door_begin(p_user, p_aal);
@@ -580,6 +660,8 @@ begin
     when 'draft_close' then return app.draft_close(p_user, p_);
     when 'booking_periods' then return app.booking_periods_list(p_user, p_);
     when 'period_send_now' then return app.booking_period_send_now(p_user, p_);
+    when 'renter_duplicates' then return app.renter_duplicates(p_user, p_);
+    when 'renter_merge' then return app.renter_merge(p_user, p_);
     end case;
   end if;
   return app.door_pre0145(p_user, p_aal, p_call, p_name, p);
@@ -839,7 +921,7 @@ begin
             where n.nspname = 'app' and p.proname = any (array['may_draft', 'draft_missing', 'draft_save', 'draft_close', 'drafts_list', 'draft_get',
                      'manual_rental_create', 'manual_rental_create_pre0145', 'door', 'door_pre0145', 'booking_periods_sync', 'booking_periods_trg',
                      'booking_periods_list', 'booking_period_send_now', 'server_jobs_due', 'server_jobs_due_pre0145',
-                     'manual_rental_quote', 'manual_rental_quote_pre0145', 'manual_rental_insurance', 'staff_offer_form', 'staff_offer_form_pre0145', 'deposit_tasks_close', 'deposit_tasks_trg', 'staff_offer_create', 'staff_offer_create_pre0145'])
+                     'manual_rental_quote', 'manual_rental_quote_pre0145', 'manual_rental_insurance', 'staff_offer_form', 'staff_offer_form_pre0145', 'deposit_tasks_close', 'deposit_tasks_trg', 'staff_offer_create', 'staff_offer_create_pre0145', 'renter_duplicates', 'renter_merge'])
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

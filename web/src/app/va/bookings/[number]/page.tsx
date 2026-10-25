@@ -14,6 +14,7 @@ import { BookingFees, type Fees } from '@/features/money/BookingFees';
 import { BookingEdit, type EditForm } from '@/features/money/BookingEdit';
 import { BookingPeriods, type PeriodRow } from '@/features/money/BookingPeriods';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
+import { RenterMerge, type DuplicateRow } from '@/features/money/RenterMerge';
 import { door } from '@/server/door';
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatureList, type ManualRow, type PaperDoc, type PaperRow } from '@/features/manual/ManualRecords';
 import { QuickReply } from '@/features/va/QuickReply';
@@ -119,6 +120,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
       {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
       {(tab === 'overview' || tab === 'money') && b.billable_days > 27 && <BookingPeriods booking={b.booking_number} rows={await door<PeriodRow[]>(user.id, 'ops_read', 'booking_periods', { booking: b.booking_number }, aal).catch(() => [] as PeriodRow[])} />}
       {(tab === 'overview' || tab === 'review') && renterForm && <RenterEdit x={renterForm} />}
+      {(tab === 'overview' || tab === 'review') && renterForm?.may_edit && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: renterForm.renter_id }, aal).catch(() => [] as DuplicateRow[])} />}
       {tab === 'overview' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Trip">

@@ -129,3 +129,28 @@ test('a long rental: its monthly periods on the booking', async ({ browser }: { 
   await expect(page.getByTestId('booking-periods')).toContainText('within five minutes');
   await c.close();
 });
+
+test('an insurance replacement takes the insurer, the claim and what is authorized', async ({ browser }: { browser: Browser }) => {
+  test.setTimeout(120_000);
+  const sql = db();
+  const admin = await mkAdmin(sql);
+  await mkCar(sql, admin.id);
+  const c = await browser.newContext({ viewport: isPhone() ? { width: 375, height: 812 } : { width: 1440, height: 900 }, hasTouch: isPhone(), baseURL: test.info().project.use.baseURL });
+  const page = await c.newPage();
+  await page.goto('/sign-in', { waitUntil: 'networkidle' });
+  await acceptCookies(page);
+  await page.locator('input[type="email"]').fill(admin.email);
+  await page.locator('input[type="password"]').fill(PW);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.waitForURL((u) => u.pathname.startsWith('/admin'), { timeout: 20_000 });
+  await page.goto('/admin/bookings/new', { waitUntil: 'networkidle' });
+  await page.getByTestId('mr-preset-insurer').click();
+  await expect(page.getByTestId('mr-insurance')).toBeVisible();
+  await expect(page.getByTestId('mr-insurer').locator('option', { hasText: 'Not listed' })).toHaveCount(1);
+  await page.getByTestId('mr-insurer').selectOption('new');
+  await expect(page.getByTestId('mr-insurer_name')).toBeVisible();
+  await page.getByTestId('mr-claim_number').fill('CLM-1');
+  await page.getByTestId('mr-authorized_days').fill('10');
+  await check(page, 'insurance replacement');
+  await c.close();
+});

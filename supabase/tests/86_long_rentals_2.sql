@@ -167,3 +167,17 @@ update bookings set custom_price_at = now() where id = (test.drinsb()).id;
 select test.eq('new dates keep the typed price in proportion', (app.booking_price_spec((test.drinsb()).id, jsonb_build_object('pickup_at', (test.drinsb()).pickup_at, 'return_at', (test.drinsb()).pickup_at + interval '5 days')) ->> 'rental_charge_cents')::bigint,
   round((test.drinsb()).rental_charge_cents::numeric * 5 / (test.drinsb()).billable_days)::bigint);
 select test.ok('recompute still goes back to the rate sheet', (app.booking_price_spec((test.drinsb()).id, jsonb_build_object('pickup_at', (test.drinsb()).pickup_at, 'return_at', (test.drinsb()).pickup_at + interval '5 days', 'recompute_rental', true)) ->> 'rental_charge_cents') is null);
+
+-- ================================================================ 6. two records of one renter, merged
+insert into renters (legal_name, email, mobile, date_of_birth) values ('Mia Merge', 'mia.merge@example.test', '416-555-0190', '1991-02-03');
+insert into renters (legal_name, email, mobile) values ('Mia Merge', null, '(416) 555 0190');
+create function test.mia(p_n integer) returns uuid language sql stable security definer as $$ select id from renters where legal_name = 'Mia Merge' order by email nulls last, created_at limit 1 offset p_n - 1 $$;
+update bookings set renter_id = test.mia(2) where id = (test.drinsb()).id;
+select test.eq('the duplicate is found by the phone', (select x ->> 'why' from jsonb_array_elements(app.door(test.id('dr_cs'), 'aal2', 'ops_read', 'renter_duplicates', jsonb_build_object('renter', test.mia(1)))) x where (x ->> 'id')::uuid = test.mia(2)), 'same phone');
+select test.throws('a renter cannot merge', format($$ select app.renter_merge(test.id('dr_renter'), '{"keep":"%s","merge":"%s"}'::jsonb) $$, test.mia(1), test.mia(2)), '%merge renters%');
+insert into test.dr select 'merge', app.door(test.id('dr_cs'), 'aal2', 'ops_do', 'renter_merge', jsonb_build_object('keep', test.mia(1), 'merge', test.mia(2), 'reason', 'Phone booking, then the website'));
+select test.eq('the booking moved to the kept record', (test.drinsb()).renter_id, test.mia(1));
+select test.eq('the other record points at the kept one', (select merged_into from renters where id = test.mia(2)), test.mia(1));
+select test.eq('and is blocked', (select is_blocked from renters where id = test.mia(2)), true);
+select test.eq('the merge is in the change history', (select count(*) from renter_edits where renter_id = test.mia(1) and after ? 'merged_from'), 1::bigint);
+select test.throws('merged twice: refused', format($$ select app.renter_merge(test.id('dr_cs'), '{"keep":"%s","merge":"%s"}'::jsonb) $$, test.mia(1), test.mia(2)), '%already merged%');
