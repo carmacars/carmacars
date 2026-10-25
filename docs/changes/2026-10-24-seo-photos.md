@@ -141,6 +141,14 @@ on unless noted), and the rules were tightened after each run:
 | 3 | 152 of 154 | 132 | 23 | | stricter rules; generations from Wikidata only |
 | 4 | 70 of 71 done | 69 | 62 (87%) | 79%, 3%, 15%, 3% | Wikipedia generations, per-year categories, Openverse; the 90-minute budget ran out on Wikimedia lag |
 | 5 (two jobs) | 140 done, 14 left by Wikidata lag | 138 (99% of done) | 126 (90% of done) | 75%, 4%, 19%, 1% | every year from 2015 counted, even before a model existed (an EV6 in 2015) |
+| 6 (two jobs) | 151 done, 3 left by Wikidata lag | 148 (98%) | 134 (89%) | 85%, 1%, 12%, 2% | only the years each model was sold in (1,723 model years from 2015) |
+
+Run 6: 1,462 of the 1,723 model years from 2015 that the 151 models were sold in show a photo of their own
+generation (85%), 11 the next generation's, 211 a photo of the model marked "not the exact year" (12%), 39 the
+drawing (2%): a real photo on 98% of the year pages. The target of 95% generation-correct is not reached: the gap is
+the 17 models whose files never name the model with a year inside a dated generation (listed below, plus Volvo XC40,
+Land Rover Defender, Mercedes-Benz CLA) and Wikidata's lag (Jeep Compass, GMC Terrain, Chevrolet Cruze). An Admin can
+name a Commons file for any generation (Replace).
 
 Run 5 in detail: 1,371 of the 1,416 model years inside the span of each model's photographed generations (97%) have a
 photo of their own generation; the 14 models Wikidata's lag stopped (Mercedes-Benz CLA, Audi A4, Q5, Lexus RX, ES,
