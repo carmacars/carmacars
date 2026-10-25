@@ -372,3 +372,15 @@ a.ad-tile:hover { border-color: var(--black); }
 .ad-morefilters > div { display: grid; gap: var(--s-2); }
 .ad-head__text { display: grid; gap: 2px; min-width: 0; }
 .ad-head__purpose { max-width: 70ch; margin: 0; }
+
+/* 0144: the identity review on one screen */
+.ad-approve-all { border: 2px solid var(--black); padding: var(--s-3); }
+.ad-approve-all ul { margin: 0; padding-left: 1.25rem; }
+.ad-reject > summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; }
+
+/* 0144: Payments */
+.pay-filters { align-items: end; margin-bottom: var(--s-4); }
+.pay-filters .field { min-width: 9rem; }
+.pay-methods { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); }
+.pay-methods legend { width: 100%; }
+.pay-out { color: #9b0c16; }

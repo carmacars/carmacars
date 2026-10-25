@@ -282,3 +282,12 @@ alter table program_settings alter column booking_licence_required set default f
 alter table program_settings alter column booking_return_auto_charges set default false;
 alter table program_settings alter column statement_fuel_cents_per_eighth set default null;
 update program_settings set booking_licence_required = false, booking_return_auto_charges = false, statement_fuel_cents_per_eighth = null;
+
+-- Field jobs made from each confirmed booking and given to the least busy field staff member (0144, on by default) are
+-- off for the earlier suites: they make, assign and count field jobs themselves. 96_field_finance_owner_mtd.sql switches
+-- them on and tests them.
+alter table program_settings alter column field_jobs_auto set default false;
+update program_settings set field_jobs_auto = false;
+-- the jobs the migration made for the bookings already there, before any suite ran
+delete from field_jobs j where j.auto_created and j.auto_at is not null and j.status = 'scheduled'
+   and not exists (select 1 from condition_reports c where c.field_job_id = j.id);

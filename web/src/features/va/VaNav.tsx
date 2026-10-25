@@ -21,7 +21,7 @@ export const VA_GROUPS: Record<Fn, NavGroup[]> = {
     { key: 'bookings', label: 'Bookings', links: [{ href: '/va/requests', label: 'Requests and offers', key: 'r' }, { href: '/va/chauffeur', label: 'Chauffeur' }, { href: '/va/offers/new', label: 'Send an offer' }, { href: '/va/bookings/new', label: 'Add a rental' }, { href: '/va/quotes/new', label: 'New quote' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }, { href: '/va/cars', label: 'Find a car' }, { href: '/va/card-coverage', label: 'Card coverage' }] },
     { key: 'owners', label: 'Owners', links: [{ href: '/va/leads', label: 'Owner leads' }] }],
   finance: [WORK,
-    { key: 'money', label: 'Money', links: [{ href: '/va/money', label: 'Payments, deposits and refunds' }, { href: '/va/tolls', label: 'Tolls and tickets' }, { href: '/va/reconciliation', label: 'Reconciliation' }, { href: '/va/turo', label: 'Turo trips' }, { href: '/va/maintenance', label: 'Maintenance bills' }] },
+    { key: 'money', label: 'Money', links: [{ href: '/va/payments', label: 'Payments by day' }, { href: '/va/money', label: 'Payments, deposits and refunds' }, { href: '/va/tolls', label: 'Tolls and tickets' }, { href: '/va/reconciliation', label: 'Reconciliation' }, { href: '/va/turo', label: 'Turo trips' }, { href: '/va/maintenance', label: 'Maintenance bills' }] },
     { key: 'renters', label: 'Renters and bookings', links: [{ href: '/va/renters', label: 'Find a renter' }, { href: '/va/calendar', label: 'Calendar', key: 'c' }] }, SELL],
   fleet: [WORK,
     { key: 'field', label: 'Field work', links: [{ href: '/va/fleet', label: 'Field jobs' }, { href: '/va/maintenance', label: 'Maintenance' }, { href: '/va/checks', label: 'Daily checks' }, { href: '/va/reviews', label: 'Photo reviews' }] },

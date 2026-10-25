@@ -19209,6 +19209,7 @@ export type Database = {
       owner_portal_forms: { Args: { p_by: string }; Returns: Json };
       owner_portal_home: { Args: { p_by: string }; Returns: Json };
       owner_portal_invoice: { Args: { p_by: string; p_number: string }; Returns: Json };
+      owner_portal_month_to_date: { Args: { p_by: string; p_month?: string }; Returns: Json };
       owner_portal_statement: { Args: { p_by: string; p_statement: string }; Returns: Json };
       owner_register_document: { Args: { p_by: string; p_vehicle: string; p_kind: string; p_path: string; p_sha256: string; p_mime: string }; Returns: string };
       owner_save_profile: { Args: { p_by: string; p: Json }; Returns: Json };

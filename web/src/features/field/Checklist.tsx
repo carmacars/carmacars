@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { SignaturePad } from '@/features/portal/SignaturePad';
 import { fieldAct } from '@/server/actions/field';
 import { CarDiagram, type Mark } from './CarDiagram';
+import { ResolveDeposit, ResolveIdentity, ResolveSignature, TrackerOverride } from './ReadyResolve';
 import { preparePhoto, uploads, useUploads } from './queue';
 import type { FieldJob } from './types';
 
@@ -29,7 +30,9 @@ const dataUrlBlob = async (u: string) => {
   return new Blob([out], { type: /data:([^;]+)/.exec(head ?? '')?.[1] ?? 'image/png' });
 };
 
-export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs' }: { j: FieldJob; back?: string; backLabel?: string }) {
+export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', here }: { j: FieldJob; back?: string; backLabel?: string;
+  /** 0144: where this checklist runs (the field job, or the booking's check-out for staff): its sign-now page and the page the card form returns to */
+  here?: { signNow: string; self: string } }) {
   const router = useRouter();
   // where each photo is taken, when the phone allows it (0130): asked once, never in the way
   const where = useRef<{ latitude: number; longitude: number } | null>(null);
@@ -58,6 +61,8 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs' }:
   const set = (p: Partial<Report>) => setR((s) => { const n = { ...s, ...p }; try { localStorage.setItem(key, JSON.stringify(n)); } catch { /* private mode */ } return n; });
   const unattended = Boolean(j.booking?.unattended);
   const ready = j.ready;
+  const res = j.resolve ?? null;
+  const at = here ?? { signNow: `/field/jobs/${jobId}/sign-now`, self: `/field/jobs/${jobId}` };
 
   const save = (extra: Record<string, unknown> = {}) => fieldAct('save_report', { job: jobId, report: { ...strip(r), ...extra } });
   const next = () => { setMsg(null); start(async () => { const s = await save(); if (!s.ok) { setMsg(s.message); return; } setStep((n) => n + 1); window.scrollTo(0, 0); }); };
@@ -90,12 +95,20 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs' }:
   const screens: Array<{ title: string; body: React.ReactNode; can?: boolean; primary?: string; onPrimary?: () => void }> = pickup ? [
     { title: 'Ready check', can: readyOk, body: (
       <ul className="fd-checks" data-testid="ready-check">
-        <Line ok={ready ? ready.signed !== false : false}>{ready?.signed === false ? 'Awaiting signature: the renter has not signed the rental agreement' : 'Rental agreement signed'}</Line>
-        <Line ok={ready?.identity}>Identity verified for every driver</Line>
-        <Line ok={ready?.coverage}>Coverage confirmed</Line>
-        <Line ok={ready?.drivers_accepted}>Additional drivers accepted</Line>
-        <Line ok={ready?.calendar}>The booking holds the calendar</Line>
-        <Line ok={ready ? ['taken', 'waived', 'none'].includes(ready.deposit) : false}>Deposit: {ready?.deposit === 'taken' ? 'taken' : ready?.deposit === 'waived' ? 'waived by an Admin' : ready?.deposit === 'declined' ? 'declined' : ready?.deposit === 'none' ? 'none on this booking' : 'not taken yet'}</Line>
+        {/* 0144: what is not ready is fixed here, under its line; Stop stays for what cannot be */}
+        <Row ok={ready ? ready.signed !== false : false} text={ready?.signed === false ? 'Awaiting signature: the renter has not signed the rental agreement' : 'Rental agreement signed'}>
+          {ready?.signed === false && res && <ResolveSignature j={j} signNow={at.signNow} />}</Row>
+        <Row ok={ready?.identity} text="Identity verified for every driver">
+          {ready && !ready.identity && res && <ResolveIdentity j={j} r={res} />}</Row>
+        <Row ok={ready?.coverage} text="Coverage confirmed">
+          {ready && !ready.coverage && <p className="fd-office small">Coverage is confirmed by the office. Call CarmaCars; it shows here as soon as it is done.</p>}</Row>
+        <Row ok={ready?.drivers_accepted} text="Additional drivers accepted">
+          {ready && !ready.drivers_accepted && <Link prefetch={false} className="btn btn--ghost fd-wide" href={at.signNow} data-testid="fix-driver-sign">Sign now on this device (additional driver)</Link>}</Row>
+        <Row ok={ready?.calendar} text="The booking holds the calendar">
+          {ready && !ready.calendar && <p className="fd-office small">The office turns the calendar on for this booking. Call CarmaCars.</p>}</Row>
+        <Row ok={ready ? ['taken', 'waived', 'none'].includes(ready.deposit) : false} text={`Deposit: ${ready?.deposit === 'taken' ? 'taken' : ready?.deposit === 'waived' ? 'waived by an Admin' : ready?.deposit === 'declined' ? 'declined' : ready?.deposit === 'none' ? 'none on this booking' : 'not taken yet'}`}>
+          {ready && !['taken', 'waived', 'none'].includes(ready.deposit) && res && j.job.status === 'in_progress' && <ResolveDeposit j={j} r={res} back={at.self} />}</Row>
+        <li><button className="btn btn--ghost fd-wide" type="button" onClick={() => router.refresh()} data-testid="ready-refresh">Check again</button></li>
         {ready && !readyOk &&
           <li><button className="btn btn--primary fd-stop" type="button" onClick={() => block('The ready check failed')}>Stop: do not release the car</button></li>}
       </ul>) },
@@ -129,12 +142,13 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs' }:
     { title: 'Keys', can: (r.keys_count ?? 0) >= 1, body: <Stepper label="Keys and fobs handed over" value={r.keys_count ?? 0} set={(v) => set({ keys_count: v })} /> },
     { title: 'Photo set', can: shotsDone === required.length, body: <Shots j={j} has={has} q={q} photo={photo} /> },
     { title: 'Damage', can: closeupsMissing.length === 0, body: <Damages j={j} marks={marks} damages={damages} setDamages={setDamages} save={save} has={has} photo={photo} oldLabel="Recorded before" /> },
-    { title: 'Tracker', can: Boolean(j.tracker.reporting), body: (
+    { title: 'Tracker', can: Boolean(j.tracker.reporting || j.tracker.override), body: (
       <div className="stack" data-testid="tracker">
-        <Line ok={j.tracker.reporting}>{j.tracker.reporting ? 'Tracker in place and reporting' : j.tracker.installed ? 'Tracker not reporting' : 'No tracker installed'}</Line>
+        <ul className="fd-checks"><Line ok={j.tracker.reporting}>{j.tracker.reporting ? 'Tracker in place and reporting' : j.tracker.installed ? 'Tracker not reporting' : 'No tracker installed'}</Line></ul>
         <p className="small">Last reading: {j.tracker.reported_at ? new Date(j.tracker.reported_at).toLocaleTimeString('en-CA') : 'none'}</p>
         <button className="btn btn--ghost" type="button" onClick={() => router.refresh()}>Check again</button>
-        {!j.tracker.reporting && <button className="btn btn--primary fd-stop" type="button" onClick={() => block('The Tracker is not reporting')}>Stop: do not release the car</button>}
+        {!j.tracker.reporting && res && <TrackerOverride j={j} r={res} />}
+        {!j.tracker.reporting && !j.tracker.override && <button className="btn btn--primary fd-stop" type="button" onClick={() => block('The Tracker is not reporting')}>Stop: do not release the car</button>}
       </div>) },
     { title: 'Renter reviews', body: <Summary r={r} damages={damages} old={oldMarks.length} shots={shotsDone} /> },
     { title: 'Signatures', can: Boolean((unattended || r.renter_signature_ref) && r.staff_signature_ref), body: (
@@ -224,6 +238,15 @@ function damageSeqs(ds: Damage[]): Array<[string, number]> { return ds.filter((d
 
 function Line({ ok, children }: { ok: boolean | undefined; children: React.ReactNode }) {
   return <li className={`fd-line ${ok ? 'is-ok' : 'is-bad'}`}><span aria-hidden="true">{ok ? '✓' : '✕'}</span><span>{children}</span><span className="vh">{ok ? 'yes' : 'no'}</span></li>;
+}
+// a ready check line with what fixes it under it (0144)
+function Row({ ok, text, children }: { ok: boolean | undefined; text: string; children?: React.ReactNode }) {
+  return (
+    <li className="fd-fixrow">
+      <span className={`fd-line ${ok ? 'is-ok' : 'is-bad'}`}><span aria-hidden="true">{ok ? '✓' : '✕'}</span><span>{text}</span><span className="vh">{ok ? 'yes' : 'no'}</span></span>
+      {children}
+    </li>
+  );
 }
 function YesNo({ label, value, set }: { label: string; value: boolean | undefined; set: (v: boolean) => void }) {
   return (

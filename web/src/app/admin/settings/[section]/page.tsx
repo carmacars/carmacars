@@ -49,6 +49,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Delivery', (k) => k.startsWith('delivery_') || ['company_latitude', 'company_longitude'].includes(k)],
   ['Maintenance', (k) => k.startsWith('maint_')],
   ['Owners and fleet', (k) => /^(notice_period|free_retransfer|owner_|retransfer|total_loss|min_fleet|fleet_warning|safety_|fee_change|trackers_available|tracker_|plate_renewal|turo_|provisional_)/.test(k)],
+  ['Field jobs and handovers', (k) => k.startsWith('field_')],
   ['Tolls and damage', (k) => /^(toll_|damage_|incident_)/.test(k)],
   ['Listings', (k) => k.startsWith('listing_') || k.startsWith('photo_') || k.startsWith('plate_')],
   ['Vision model', (k) => k.startsWith('ai_vision')],

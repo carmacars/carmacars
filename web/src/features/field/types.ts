@@ -14,8 +14,12 @@ export interface FieldJob {
   };
   ready: null | { identity: boolean; coverage: boolean; drivers_accepted: boolean; calendar: boolean; agreement: boolean; deposit: 'taken' | 'waived' | 'declined' | 'not_taken' | 'none';
     /** False while a rental staff added by hand waits for the renter's signature (0051): the car is not released. */
-    signed?: boolean };
-  tracker: { installed: boolean; reported_at: string | null; reporting: boolean };
+    signed?: boolean;
+    /** 0071: the coverage in words */
+    coverage_label?: string | null };
+  tracker: { installed: boolean; reported_at: string | null; reporting: boolean; override?: TrackerOverride | null };
+  /** What the check-out screens need to resolve the ready check on the spot (0144). */
+  resolve?: Resolve;
   shots: Array<{ seq: number; shot: string; guide: string | null }>;
   report: null | { id: string; odometer_km: number | null; fuel_pct: number | null; keys_count: number | null; cleanliness: string | null; completed_at: string | null;
     photos: Array<{ seq: number; shot: string; storage_path: string }>; damages: FieldDamage[]; problems: string[] };
@@ -37,3 +41,13 @@ export interface FieldList {
   vehicles: Array<{ id: string; name: string }>;
 }
 export interface FieldCard { field_job_id: string; kind: string; status: string; scheduled_at: string; place: string | null; vehicle_id: string; vehicle_label: string; plate: string | null; booking_id: string | null; booking_number: string | null; renter_first_name: string | null; acknowledged_at: string | null; started_at: string | null; completed_at: string | null }
+
+// 0144: the ready check resolved on the spot
+export interface TrackerOverride { reason: string; at: string; by: string | null }
+export interface LicenceState { licence_front?: string | null; licence_back?: string | null; selfie?: string | null; expiry: string | null; expiry_ok: boolean; missing: string[]; complete: boolean; verified: boolean }
+export interface Resolve {
+  drivers: Array<{ driver_id: string; name: string; role: string; verified: boolean; licence: LicenceState }>;
+  deposit_cents: number; deposit_methods: Array<'e_transfer' | 'cash'>; e_transfer_email: string | null; selfie_required: boolean;
+  awaiting_signature: boolean; tracker_override_allowed: boolean; tracker_override: TrackerOverride | null;
+  resolutions: Array<{ kind: string; at: string; reason: string | null; by: string | null }>;
+}

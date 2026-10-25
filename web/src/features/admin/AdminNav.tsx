@@ -23,7 +23,7 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/portals', label: 'Portals and view as' }] },
   { key: 'money', label: 'Money', links: [
     { href: '/admin/invoices', label: 'Owner invoices', section: 'Owners' }, { href: '/admin/debits', label: 'Owner debits' }, { href: '/admin/statements', label: 'Owner statements' }, { href: '/admin/payouts', label: 'Payouts' },
-    { href: '/admin/money', label: 'Payments and refunds', key: 'm', section: 'Renters' }, { href: '/admin/tolls', label: 'Tolls and tickets' },
+    { href: '/admin/payments', label: 'Payments by day', section: 'Renters' }, { href: '/admin/money', label: 'Payments and refunds', key: 'm' }, { href: '/admin/tolls', label: 'Tolls and tickets' },
     { href: '/admin/reports', label: 'Company statements', section: 'Company' }, { href: '/admin/reconciliation', label: 'Reconciliation' }, { href: '/admin/expenses', label: 'Expenses' },
     { href: '/admin/insurer-invoices', label: 'Insurer invoices' }, { href: '/admin/money/commissions', label: 'Staff commissions' }] },
   { key: 'settings', label: 'Settings', links: [
