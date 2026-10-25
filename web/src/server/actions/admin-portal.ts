@@ -31,7 +31,9 @@ const PUBLIC: Record<string, string[]> = {
   vehicle_sample: ['/cars/[slug]', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]', '/sitemap.xml'],
   review_publish: ['/cars/[slug]', '/'], review_hide: ['/cars/[slug]', '/'],
   block_create: ['/cars/[slug]'], block_remove: ['/cars/[slug]'], block_end: ['/cars/[slug]'], block_update: ['/cars/[slug]'],
-  vehicle_status: ['/cars/[slug]', '/cars', '/']
+  vehicle_status: ['/cars/[slug]', '/cars', '/'],
+  // the RentalCoverage link (0164) shows on the coverage pages and the booking request
+  coverage_affiliate_save: ['/']
 };
 
 function rebuild(paths: string[]) {

@@ -71,9 +71,9 @@ def build():
               pins=[(6, 300, 476), (7, 300, 927), (8, 545, 1166)]), fig_w=3.9)
     g.steps([
         'Step 3: choose your Licence class, for example Ontario G2.',
-        'Choose how the car is covered: Option 1 (OPCF 27 on your own auto policy), Option 2 (rental coverage on your credit card) or Option 3 (the CarmaCars Protection Plan). You can change this any time before pickup.',
+        'Choose how the car is covered: Option 1 (OPCF 27 on your own auto policy), Option 2 (rental coverage on your credit card) or Option 3 (the CarmaCars Protection Plan). You can change this any time before pickup. You may also see a link to RentalCoverage, a separate company\'s optional product. It is not issued or handled by CarmaCars and does not replace the option you choose here, and we may earn a commission if you buy it, at no extra cost to you.',
         'Choose the Booking type: Standard, or Non-refundable for 10% off with no refund.',
-        'Add anything we should know in the notes, for example a flight number.',
+        'Add anything we should know in the notes, for example a flight number. If a body shop, a tow company or a friend sent you, type their name or the referral code from their card in Did someone refer you?.',
         f'Press {B("Continue to add-ons")}. Step 4, Add-ons: tick what you want (see Add-ons below), then press {B("Review request")}.',
     ], shot=S('public/06-book-3-licence-desktop', 0, 380, 760, 1760,
               pins=[(9, 470, 470), (10, 700, 776), (11, 700, 1040), (12, 700, 1279), (13, 545, 1716)]), fig_w=3.0)

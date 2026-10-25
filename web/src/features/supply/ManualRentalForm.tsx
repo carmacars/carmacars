@@ -318,7 +318,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
       const bad = parts.findIndex((x) => !cents(x.amount) || (needsReference(x.method) && x.reference.trim().length < 3));
       if (bad >= 0) { setErr(`Payment ${bad + 2}: enter the amount${needsReference(parts[bad]!.method) ? ' and the reference' : ''}.`); return; }
     }
-    const p = { ...spec(), sales_choice: choice, pickup_place: f.pickup_place || undefined, return_place: f.return_place || undefined, source: f.source, source_note: f.source_note || undefined, note: f.note || undefined,
+    const p = { ...spec(), sales_choice: choice, pickup_place: f.pickup_place || undefined, return_place: f.return_place || undefined, source: f.source, source_note: f.source_note || undefined, referral_code: (f.referral_code ?? '').trim().toUpperCase() || undefined, note: f.note || undefined,
       do_not_email: flags.do_not_email, additional_drivers: drivers.filter((d) => d.full_name.trim()),
       renter: renter ? undefined : { full_name: f.full_name, email: f.email, mobile: f.mobile, date_of_birth: f.date_of_birth, licence_number: f.licence_number, licence_class: f.licence_class || 'G',
         licence_issuer: f.licence_issuer || 'ON', licence_expiry: f.licence_expiry || undefined, address_line1: f.address_line1 || undefined, city: f.city || undefined, postal_code: f.postal_code || undefined },
@@ -468,6 +468,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
           {select('coverage_option', 'How damage to the car is covered', [['1', 'Option 1: the renter\'s own insurance'], ['2', 'Option 2: credit card coverage'], ['3', 'Option 3: the Protection Plan']])}
           {select('source', 'Where it came from', SOURCES)}
           {f.source === 'other' && text('source_note', 'Say where')}
+          {text('referral_code', 'Referred by (partner code)', { hint: 'A body shop or tow truck partner\'s code, if one sent this renter. Leave empty if none.' })}
           {text('note', 'Note (on the booking)', { wide: true })}
         </div>
         <details data-testid="mr-more"><summary className="link small">Non-refundable booking or a promo code</summary>

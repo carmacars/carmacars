@@ -11,7 +11,7 @@ const SR = { role: 'service_role' as const };
 // The sitemaps (docs/blueprint/14-seo.md section 9, migration 0061): an index, then the fixed pages with the model
 // pages, the cars with their photos, the landing pages and the guides. lastmod only where the date is the content's
 // own (Google uses it only when it is reliably accurate); no priority or changefreq (Google ignores them).
-export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/credit-card-rental-coverage', '/delivery', '/chauffeur', '/faq', '/contact', '/about', '/list-your-car', '/detailing', '/body-shop', '/place-data', '/places', '/makes', '/terms', '/privacy', '/cancellation-policy'];
+export const FIXED = ['/', '/cars', '/car-rental', '/guides', '/how-it-works', '/requirements', '/credit-card-rental-coverage', '/delivery', '/chauffeur', '/faq', '/contact', '/about', '/list-your-car', '/detailing', '/body-shop', '/partners/body-shops', '/partners/tow-trucks', '/place-data', '/places', '/makes', '/terms', '/privacy', '/cancellation-policy'];
 type Row = { path: string; kind: string; lastmod: string | null; images: Array<{ loc: string; title: string | null }> | null };
 // 0102: 'hubs', the model pages of the cars on the site (/cars/<make>/<model>, sitemap_all's model_hub rows). They were left
 // to the vehicle sitemaps of 0097, which list nothing while the vehicle catalog is not loaded (live, Oct 22: none), so the

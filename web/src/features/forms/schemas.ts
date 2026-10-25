@@ -80,3 +80,17 @@ export const placeLeadSchema = z.object({
   term: z.string().trim().max(80).optional().default(''),
   message: z.string().trim().max(2000, 'Keep it under 2,000 characters.').optional().default('')
 });
+
+// A body shop, tow truck company (or other business) joining the referral program (migration 0164): /partners/body-shops and
+// /partners/tow-trucks. A pending partner for an Admin to approve, never an active one.
+export const partnerSignupSchema = z.object({
+  kind: z.enum(['body_shop', 'tow_truck', 'dealership', 'insurance_broker']),
+  business_name: z.string().trim().min(2, 'Enter the business name.').max(120),
+  contact_name: z.string().trim().min(2, 'Enter the name of the person we talk to.').max(120),
+  phone,
+  email,
+  address_line1: z.string().trim().max(200).optional().default(''),
+  city: z.string().trim().max(80).optional().default(''),
+  postal_code: z.string().trim().max(12).optional().default(''),
+  note: z.string().trim().max(1000, 'Keep it under 1,000 characters.').optional().default('')
+});

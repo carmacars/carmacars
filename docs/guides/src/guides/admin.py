@@ -1140,6 +1140,60 @@ def build():
         f'Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game\'s weight (0 turns it off). Press {B("Save prizes and games")}. Codes already sent keep their value.',
     ])
 
+    # ---------------------------------------------------------------- referral partners (0164)
+    g.chapter('Referral partners and RentalCoverage',
+              'Body shops and tow truck companies (and, if you want, dealerships and insurance brokers) can send you renters and earn a kickback when the rental is finished and paid in full. A separate switch adds an optional affiliate link to RentalCoverage on the pages that talk about coverage. Nothing in either program is shown to renters until you set it up.',
+              blurb='Body shops and tow trucks that send renters: sign-ups, links and flyers, earnings and payments; and the optional RentalCoverage link.')
+    g.task('Add a partner', f'{P("People", "Referral partners")}, then {B("Add a partner")}.')
+    g.steps([
+        'Choose the kind (body shop, tow truck company, dealership or insurance broker) and type the business name, the contact, phone and email. Start typing the address: the city and postal code fill in.',
+        'Choose how you pay them (e-Transfer, cheque, bank transfer, cash or another way) and, for e-Transfer, the email to pay.',
+        f'Choose the kickback: a flat amount for each completed rental ($50 unless you change it) or a percentage of the rental charge (10% unless you change it). The percentage applies to the rental charge after discounts only, never to add-ons, fees or taxes. The two defaults are under {P("Settings", "Program")}, Referral partners.',
+        f'Press {B("Save")}. A partner you add is active at once, with a code, a short link and a flyer.',
+    ])
+    g.task('Approve a sign-up', 'The public pages carmacars.ca/partners/body-shops and carmacars.ca/partners/tow-trucks have a sign-up form. A sign-up is a pending partner and a task for you; it earns nothing and its code ties no rental until you approve it.')
+    g.steps([
+        f'Open {P("People", "Referral partners")}. A sign-up shows as Waiting for approval, and the Partners tab shows how many are waiting.',
+        f'Open the partner and check the business. Press {B("Approve")} (or {B("Decline")}: they are not told by email).',
+        f'Press {B("Write them their link")}. It opens an email to them with their link and code; attach the flyer from the next section before you send it.',
+    ])
+    g.task('The link, the QR code and the flyer', 'Open the partner. The card "Link, QR code and flyer" shows everything they hand out.')
+    g.bullets([
+        'The short link is carmacars.ca/r/ and their code, for example carmacars.ca/r/BODY1234. A renter who opens it keeps the partner for 60 days on that device, even if they book later.',
+        f'Press {B("Flyer for the counter (PDF)")} for a one-page flyer with their name, their code and a QR code of the link. Print it or send it.',
+        'A renter can also type the code in "Did someone refer you?" on the request to book. A code typed there wins over the link. A code nobody holds is ignored.',
+        'Changing the code ends the old link, QR code and flyer. Pausing or ending a partner stops new rentals from being tied to them; what they already earned stays.',
+    ])
+    g.task('Rentals you add by hand', f'{P("Bookings", "Add a rental")}, field "Referred by (partner code)".')
+    g.steps([
+        'Type the partner\'s code if a body shop or tow truck sent the renter. A code that does not exist or is not active is refused, so a typing mistake shows at once.',
+        f'Forgot it? Open the partner and press {B("Tie a booking")}: enter the booking number and why. This is not possible once a kickback on that booking is approved or paid, nor on a booking that already has an owner or field staff member as its referrer (one referrer per booking: owner, then field staff, then the partner).',
+    ])
+    g.task('Earnings and payments', f'{P("People", "Referral partners")}, the tabs Partners, Kickbacks and Payments made.')
+    g.steps([
+        'A kickback starts as "Rental not finished yet". It is earned when the booking is completed and paid in full and no payment is in dispute; it then waits as "Pending approval".',
+        f'Check it on the Kickbacks tab and press {B("Approve")} (or {B("Approve all")} for one partner).',
+        f'Pay the partner the way you agreed, then press {B("Record a payment")} on their line: it settles every approved kickback and keeps the reference.',
+        f'A refund or a lost dispute after the kickback was earned takes it back (a reversal line). If it was already paid, the reversal stays on the ledger as a negative line for you to settle with the partner. Use {B("Reverse")} to take one back yourself, with a reason.',
+    ])
+    g.tip('The kickback is a booking expense, taken before the owner\'s share is worked out, in the same line as staff commissions on the owner statement. Check the owner agreement wording on kickbacks before you start paying partners.', label='Good to know')
+    g.task('The partner\'s own page', 'The card "Link, QR code and flyer" shows a private page address for the partner. Send it only to them.')
+    g.bullets([
+        'It shows their link and code, their referrals by the customer\'s first name and the month only, what is waiting and what was paid. No sign-in: the long address is the key.',
+        f'Press {B("New private page link")} if it was shared by mistake: the old address stops working at once.',
+    ])
+    g.task('RentalCoverage affiliate', f'{P("Settings", "RentalCoverage affiliate")}. It is off until you join the affiliate program and paste your link.')
+    g.steps([
+        'Join RentalCoverage\'s affiliate program (their affiliate dashboard gives you a tracking link, and sometimes an ID).',
+        f'Press {B("Paste the affiliate link")}. Paste the link exactly as the dashboard gives it. If it has {{id}} in it, type your ID in the next field and it is filled in. Leave "Show the link on the site" ticked and press {B("Save")}.',
+        'The link now shows on Requirements and coverage, the credit card coverage guide and the coverage step of the request to book. Each says it is a separate company\'s optional product, that it does not replace the coverage option the renter chooses, that CarmaCars may earn a commission and that it costs the renter nothing extra. It says nothing about what the product covers.',
+        'Untick "Show the link on the site" any time to turn it off everywhere.',
+    ])
+    g.bullets([
+        'Every click goes through a CarmaCars address that counts it by place and month (and by booking when the renter has one) and adds utm_source=carmacars, utm_medium=referral and utm_campaign=coverage_ and the place.',
+        f'The page shows clicks by place and month and the latest clicks. RentalCoverage reports the sales, not the site: when they pay you, press {B("Add a payment received")} with the date, amount and reference.',
+    ])
+
     # ---------------------------------------------------------------- 9
     g.chapter('Search: car pages, landing pages and guides',
               'The text of every car page, the landing pages for each area and way of renting, and the guides are written '
