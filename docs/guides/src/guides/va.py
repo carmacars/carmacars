@@ -570,7 +570,8 @@ def build():
         f'Press {B("Call")} or {B("Email")}. Help them pick a car and send a request; the code goes in the promo code box (on their own device it is filled in). Then press {B("Contacted")}.',
         f'{B("Close")} with a reason when there is nothing more to do. A booking with the code marks the lead converted by itself.',
     ])
-    g.para('A visitor who viewed 3 cars or more also raises a Sales task, for example "Claimed 10% off, viewed 6 cars: Maya". It closes when the code goes on a request.')
+    g.para('A visitor who viewed 3 cars or more also raises a Sales task, for example "Claimed 10% off, viewed 6 cars: Maya". It closes when the code goes on a request.'
+           ' A visitor who wins another go plays a second game first; only the code they end with shows here.')
     g.tip('Without marketing consent, talk only about their request and the code they asked for: no other offers. The code takes up to $75 '
           'off the rental charge (a percentage), or $50 off a rental of 3 days or more, on one booking within 7 days.')
     g.task('Contact details typed into forms')

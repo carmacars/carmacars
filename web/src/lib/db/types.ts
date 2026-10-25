@@ -6205,6 +6205,8 @@ export type Database = {
           claimed_at: string | null;
           context: string;
           user_id: string | null;
+          replayed_at: string | null;
+          replay_of: string | null;
         };
         Insert: {
           id?: string;
@@ -6221,6 +6223,8 @@ export type Database = {
           claimed_at?: string | null;
           context?: string;
           user_id?: string | null;
+          replayed_at?: string | null;
+          replay_of?: string | null;
         };
         Update: {
           id?: string;
@@ -6237,6 +6241,8 @@ export type Database = {
           claimed_at?: string | null;
           context?: string;
           user_id?: string | null;
+          replayed_at?: string | null;
+          replay_of?: string | null;
         };
         Relationships: [];
       };

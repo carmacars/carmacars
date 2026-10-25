@@ -34,6 +34,8 @@ select test.eq('the greeting''s words: 0060''s replaced, the car and service gre
   'Hi! Looking for a car? Ask me anything: prices, delivery, or what you need to rent. | Hi! Questions about {topic}? Ask me anything: prices, availability, or how to book.');
 
 -- ================================================================ 2. the prize only as a game's outcome
+-- the play below is claimed whatever it drew: without the replay prize (0171: never claimed; 99_games_again_replay.sql)
+update program_settings set game_prizes = app.game_prizes_real(game_prizes);
 create temp table g3 (n int primary key, v jsonb);
 grant all on g3 to public;
 insert into g3 values (1, test.g3start('a'));
@@ -62,6 +64,8 @@ select test.eq('not revealed and not shown yet: the same play again, still to pl
 select test.eq('closed before the reveal: the next show is another game with the same prize, still to play',
   (select ((v ->> 'game') <> (select x.v ->> 'game' from g3 x where x.n = 4)) || ' ' || ((v -> 'prize' ->> 'key') = (select x.v -> 'prize' ->> 'key' from g3 x where x.n = 4)) || ' ' || coalesce(v ->> 'saved', 'none')
      from (select test.g3start('b', array[(select v ->> 'game' from g3 where n = 4)]) v) y), 'true true none');
+
+update program_settings set game_prizes = default;
 
 -- ================================================================ 3. a booking request in progress
 insert into contact_captures (visitor_id, form, ref, email, page) values (test.g3vid('busy'), 'booking_request', 'g3-draft', 'g3.busy@example.test', '/book/g3-car');

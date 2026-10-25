@@ -1136,21 +1136,24 @@ def build():
 
     # ---------------------------------------------------------------- discount games (0066)
     g.chapter('Discount games and leads',
-              'Visitors who are not signed in and browse a few cars get one quick game: spin the wheel, scratch to reveal, quick blackjack, '
-              'cup shuffle or Plinko. Every play wins a promo code. To see the code they give a first name and an email (a mobile number '
-              'is optional), so you get a lead. It is on by default; nothing needs setting up.',
+              'Visitors who are not signed in get one quick game: spin the wheel, scratch to reveal, quick blackjack, cup shuffle, Plinko, '
+              'the card pack, coin flip, dice roll, slot machine, prize drop or mystery box. Every play wins a promo code or another go. '
+              'To see the code they give a first name and an email (a mobile number is optional), so you get a lead. It is on by default; '
+              'nothing needs setting up.',
               blurb='The giveaway game, the code it sends, game leads to call, and the report.')
     g.task('What the visitor sees')
     g.bullets([
-        'After 2 car pages, or 60 seconds on the site, or (on a computer) when the mouse heads for the tabs. A card slides in at the bottom; on a phone it is a sheet at the bottom, never a full-screen block, and it always closes.',
-        'Never for someone signed in or already known by email, never on booking, pay, sign or sign-in pages, never on the first page of a visit from a search engine on a phone, never over the cookie banner. After closing it, not again for 14 days; after claiming, never again.',
-        'Every play wins: 5% off (70 in 100), 10% off (25), 15% off (4) or $50 off a rental of 3 days or more (1). The prize is decided before the game starts; the game only shows it. The short terms with the game list the prizes and say the chances differ.',
+        'On the 2nd page view (any page) or after 30 seconds on the site, whichever first, or (on a computer) when the mouse heads for the tabs. A card slides in at the bottom; on a phone it is a sheet at the bottom, never a full-screen block, and it always closes.',
+        'Never for someone signed in, never on booking, pay, sign or sign-in pages, never on the first page of a visit from a search engine on a phone, never over the cookie banner; no new game for someone already known by email or with a booking request in progress. Closed, another game comes back on the 3rd page view after the close or 2 minutes later, at most 4 in a visit, and again on their next visit. After claiming, never again.',
+        'Won and not claimed: a small badge "Your 5% off is saved" stays on the pages, and the card itself pops up again with the prize ("Your 5% off is still waiting", with the form to get the code) at the moments a game would, until they claim it or the prize ends after 14 days.',
+        'Every play wins: 5% off (54 in 100), 10% off (25), another go (15), 15% off (4), $50 off a rental of 3 days or more (1), 25% off up to $150 (0.6), $100 off a rental of 4 days or more (0.3) or one free day on a rental of 3 days or more (0.1). The prize is decided before the game starts; the game only shows it. The short terms with the game list the prizes and say the chances differ.',
+        f'Another go: the card says "You won another go!" and {B("Play again")} starts a second, different game whose prize is drawn from the discounts only, so it always ends in a code. One replay at a time; it is never a code itself. Closed before pressing it, the card offers it again next time.',
         'The code (for example WIN-7KQ4-XM2P) comes off the rental charge only, up to $75 for a percentage, on one booking, within 7 days, one per person, email, phone and device, never with another code. The email with the code goes either way; a reminder goes 3 days before its last day and another the day before (Promo codes). Offers only with the marketing box ticked.',
         'On this device the code fills itself into the promo code box of the request form. Like every promo code, the discount is shared with the owner in the split.',
     ])
     g.task('Leads', f'{P("Bookings", "Renter leads")}.')
     g.steps([
-        'The tiles: plays, claims, codes on booking requests, bookings, revenue and discounts from game codes in the last 30 days, then the same by game and by prize.',
+        'The tiles: plays, claims, codes on booking requests, bookings, revenue and discounts from game codes in the last 30 days, then the same by game and by prize (Play again shows its plays; it has no claims).',
         'Each claim: when, the name (and "on the site now"), email and phone, the prize and game, the code and whether it is used (with the booking), marketing consent, and the visit: cars and pages viewed, minutes, city and device.',
         f'Press {B("Call")} or {B("Email")}, then {B("Contacted")} (it is yours). {B("Close")} with a reason when there is nothing more to do. A booking with the code marks the lead converted by itself.',
         'A visitor who viewed 3 cars or more also gets a Sales task, for example "Claimed 10% off, viewed 6 cars: Maya". It closes when the code goes on a request.',
@@ -1167,9 +1170,9 @@ def build():
           f'It is on by default; the times and the To do are in {P("Settings", "Program")}, the card "Forms left unfinished".', label='Good to know')
     g.task('Settings', f'{P("Settings", "Discount games")}.')
     g.bullets([
-        'On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (1 car page, 15 seconds, exit intent), the days a visitor keeps their prize (14), and the cars viewed for a Sales task (3). The reminders before a code ends are under Promo codes.',
-        'After a visitor closes a game, a different one shows on their 2nd page view after the close (any page) or 60 seconds later, whichever first; at most 3 in one visit and 6 a day in one browser. All four are settings. Never on booking, payment or signing pages; the request-to-book form has its own game.',
-        f'Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game\'s weight (0 turns it off). Press {B("Save prizes and games")}. Codes already sent keep their value.',
+        'On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2nd page view, 30 seconds, exit intent), the days a visitor keeps their prize (14: closing never draws a new one, and a prize not claimed pops up again until then), and the cars viewed for a Sales task (3). The reminders before a code ends are under Promo codes.',
+        'After a visitor closes a game (or the card of a prize waiting for them), the next card shows on their 3rd page view after the close (any page) or 2 minutes later, whichever first; at most 4 in one visit, no daily cap unless you set one. All are settings. Never on booking, payment or signing pages; the request-to-book form has its own game.',
+        f'Prizes and games: each prize with its percent, dollars or free days, a minimum rental length, its cap and its chance, or Play again (another go, at most one); each game\'s weight (0 turns it off). Press {B("Save prizes and games")}. Codes already sent keep their value.',
     ])
 
     # ---------------------------------------------------------------- referral partners (0164)

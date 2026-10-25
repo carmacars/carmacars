@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { lazy, Suspense, useEffect, useId, useRef, useState, type ComponentType } from 'react';
 import { browserRpc } from '@/lib/browser-rpc';
 import { sessionId, visitorId } from '@/features/live/beacon';
-import { claimProblems, savedWords, type GameKind, type PrizeWord, type Trigger, type Visit } from './rules';
-import { forgetSaved, remember, rememberSeen, rememberWon } from './GameGate';
+import { claimProblems, isReplay, wonWords, type GameKind, type PrizeWord, type Trigger, type Visit } from './rules';
+import { forgetSaved, memory, remember, rememberSeen, rememberWon } from './GameGate';
 import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 
 // Discount games (migrations 0069 and 0081): the game itself. A slide-in card on a computer and a bottom sheet on a
@@ -14,13 +14,18 @@ import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 // drawn the prize; the game only shows it. Then the visitor enters a first name, an email and (optional) a mobile
 // number to get the code, which is also emailed. In the request-to-book form (context "booking") the same card opens
 // from the inline offer, the fields come filled from the form (a signed-in renter's code goes to their account's
-// email), and the code goes on that booking request. Each game is its own small file, fetched in idle time.
+// email), and the code goes on that booking request. Each game is its own small file, fetched in idle time. 0171: a
+// prize won earlier and not claimed opens this card again by itself ("Your 5% off is still waiting"); the replay prize
+// ("another go") has no claim form but a "Play again" button: the server starts a second play (another game, a prize
+// without the replay), which always ends in a code.
 export type Claimed = { code: string; prize_label: string; applies_to: string; expires: string; email: string; min_days?: number | null };
 export interface GamePopupProps {
   trigger: Trigger | 'booking' | 'saved'; path: string; seen: GameKind[]; onDone: (how: 'closed' | 'claimed' | 'failed') => void; slim?: boolean;
   context?: 'site' | 'booking'; prefill?: { first: string; email: string; phone: string }; onClaimed?: (c: Claimed) => void; applied?: string;
 }
 export interface Play { ok: boolean; reason?: string; token: string; game: GameKind; prize: PrizeWord & { min_days: number | null; rare?: boolean }; prizes: PrizeWord[]; terms: string; consent: string; revealed?: boolean;
+  /** 0171: the second game of a replay prize */
+  second?: boolean;
   /** 0100: this visitor already won this prize (an earlier game was played to the end) and has not claimed it */
   saved?: boolean; context?: 'site' | 'booking'; account?: { first: string | null; email: string } }
 export interface GameProps { prize: Play['prize']; prizes: PrizeWord[]; reduced: boolean; onReveal: () => void }
@@ -78,6 +83,8 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
   const cap = useCapture('game');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [failure, setFailure] = useState('');
+  // 0171: what this card was opened as: by the saved badge or the booking form ("is saved"), or by itself ("is still waiting")
+  const how: 'saved' | 'waiting' = trigger === 'saved' || booking ? 'saved' : 'waiting';
   const [busy, setBusy] = useState(false);
   const [claimed, setClaimed] = useState<Claimed | null>(null);
   const [copied, setCopied] = useState(false);
@@ -110,9 +117,8 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
         if (trigger === 'saved' && !r.saved && !r.revealed) forgetSaved();
         if (r.saved || r.revealed) {
           rememberWon(r.prize);
-          // on the site a game that fired by itself gives way to the small saved badge (the watcher shows it); the
-          // badge, and the request-to-book form's card, open the claim form under "Your ... is saved"
-          if (trigger !== 'saved' && !booking) { onDone('failed'); return; }
+          // 0171: the claim form under "Your ... is saved" (the badge, the request-to-book form's card) or, when the card
+          // popped up again by itself, "Your ... is still waiting"; a replay prize not used yet offers Play again
           setSaved(true); setStage('won'); return;
         }
         rememberSeen(r.game);
@@ -138,6 +144,20 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
     setStage('won');
     if (play) rememberWon(play.prize);
     if (play) void browserRpc('game_reveal', { p_token: play.token }).catch(() => undefined);
+  }
+  // 0171: the replay prize: the server starts the second game (another game, a prize that is a discount)
+  async function again() {
+    if (!play || busy) return;
+    setBusy(true); setFailure('');
+    const p = { vid: visitorId(), sid: sessionId(), device: device(), path, trigger: booking ? 'booking' : trigger, seen: memory().seen ?? [], replay_of: play.token, ...(booking ? { context: 'booking' } : {}) };
+    try {
+      const r = await startPlay(p, booking);
+      if (!r?.ok || !GAMES[r.game]) { setFailure('We could not start your next game. Please try again.'); return; }
+      setPlay(r); setSaved(false); setStage('playing');
+      rememberSeen(r.game);
+      setTimeout(() => head.current?.focus(), 0);
+    } catch { setFailure('We could not start your next game. Check your connection and try again.'); }
+    finally { setBusy(false); }
   }
   async function claim(e: React.FormEvent) {
     e.preventDefault();
@@ -176,6 +196,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
   const g = GAMES[play.game];
   const err = (k: string) => errors[k];
   const account = booking && play.account;
+  const replay = isReplay(play.prize);
   if (slim) return (
     <section className="ccg ccg--slim" role="region" aria-label="CarmaCars giveaway" data-testid="game" data-game={play.game} data-slim="true">
       <p className="ccg-slim__text"><strong>Play for a discount</strong> <span>on your rental</span></p>
@@ -189,7 +210,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
         <div>
           <p className="ccg-kicker">{booking ? 'A discount on this booking' : 'CarmaCars giveaway'}</p>
           <h2 className="ccg-title" id={`${id}-h`} ref={head} tabIndex={-1}>
-            {stage === 'claimed' ? (booking ? 'Your discount is on' : 'Your code is ready') : stage === 'won' ? (saved ? savedWords(play.prize) : `You won ${play.prize.label}`) : g.title}
+            {stage === 'claimed' ? (booking ? 'Your discount is on' : 'Your code is ready') : stage === 'won' ? wonWords(play.prize, saved ? how : 'new') : play.second ? `Your second go: ${g.title}` : g.title}
           </h2>
         </div>
         <button type="button" className="ccg-x" onClick={close} aria-label={booking ? 'Close the game and go on with the booking' : 'Close the game'} data-testid="game-close">×</button>
@@ -205,7 +226,13 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
           <p className="vh" id={`${id}-d`}>{g.pitch}</p>
           <Suspense fallback={<div className="ccg-stage" aria-busy="true" />}><g.C prize={play.prize} prizes={play.prizes} reduced={reduced} onReveal={revealed} /></Suspense>
         </>}
-        {stage === 'won' && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim" onBlur={() => cap.capture({ name: form.first, email: form.email, phone: form.phone })}>
+        {stage === 'won' && replay && <div className="ccg-done" data-testid="game-replay-offer">
+          <p className="ccg-pitch" id={`${id}-d`} role="status">{saved ? 'Your free replay is still here.' : 'One more game, on us.'} Your next game always ends in a discount on {booking ? 'this booking' : 'your rental'}.</p>
+          <button type="button" className="btn btn--primary ccg-play" onClick={again} disabled={busy} data-testid="game-replay">{busy ? 'Starting...' : 'Play again'}</button>
+          {failure && <p className="ccg-err" role="alert">{failure}</p>}
+          <p className="ccg-fine">{play.terms} <Link className="link" href="/terms#s14" target={booking ? '_blank' : undefined}>Terms</Link></p>
+        </div>}
+        {stage === 'won' && !replay && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim" onBlur={() => cap.capture({ name: form.first, email: form.email, phone: form.phone })}>
           {play.prize.rare && !saved && <p className="ccg-rare" data-testid="game-rare">A rare prize</p>}
           <p className={`ccg-prize${play.prize.rare ? ' ccg-holo' : ''}`} id={`${id}-d`} role="status"><strong>{play.prize.label}</strong> {/free day/.test(play.prize.label) ? 'on ' : ''}{booking ? 'this booking' : 'your rental'}{play.prize.min_days ? ` of ${play.prize.min_days} days or more` : ''}. {booking ? (account ? `We put the code on this booking and send it to ${account.email}.` : 'Where should we send your code? It goes on this booking at once.') : 'Tell us where to send your code.'}</p>
           <label className="ccg-field" htmlFor={`${id}-first`}><span>First name</span>

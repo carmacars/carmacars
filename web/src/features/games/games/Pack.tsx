@@ -68,7 +68,7 @@ export default function Pack({ prize, reduced, onReveal }: GameProps) {
                   <span className="ccg-pcard__back" aria-hidden="true">CC</span>
                   <span className="ccg-pcard__front">
                     {c.kind === 'art' ? <><span className="ccg-pcard__art" aria-hidden="true" /><span className="ccg-pcard__title">{c.title}</span></>
-                      : <><span className="ccg-pcard__win">{prize.short}</span><span className="ccg-pcard__title">{prize.label}</span></>}
+                      : <><span className="ccg-pcard__win" data-long={prize.short.length > 4 || undefined}>{prize.short}</span><span className="ccg-pcard__title">{prize.label}</span></>}
                   </span>
                 </li>
               );

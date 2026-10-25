@@ -10,7 +10,8 @@ import { env } from '@/lib/env';
 // visitor at most, so the server can say who is signed in and rate-limit by a salted key of the network address (the
 // address is never stored). The database checks everything again, creates the code, the lead and the task, and
 // queues the email. 0081: { action: 'start', p } starts (or with p.dry only checks) a play of the request-to-book
-// form, where signed-in renters may play too: the server passes who is signed in, the database refuses staff.
+// form, where signed-in renters may play too: the server passes who is signed in, the database refuses staff. 0171:
+// p.replay_of (a replay prize's play) starts the second game.
 export const dynamic = 'force-dynamic';
 const SR = { role: 'service_role' as const };
 const H = { 'cache-control': 'no-store' };
@@ -45,7 +46,9 @@ async function start(raw: unknown) {
   const q = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   if (typeof q.vid !== 'string' || !UUID.test(q.vid)) return NextResponse.json({ ok: false, reason: 'bad ids' }, { status: 400, headers: H });
   const seen = Array.isArray(q.seen) ? q.seen.filter((x): x is string => typeof x === 'string' && /^[a-z]{3,12}$/.test(x)).slice(0, 10) : [];
-  const p = { vid: q.vid, sid: typeof q.sid === 'string' && UUID.test(q.sid) ? q.sid : undefined, device: str(q.device, 10), path: str(q.path, 300), context: 'booking', seen, dry: q.dry === true };
+  // 0171: Play again on a replay prize (the database checks the play is this visitor's or this account's)
+  const replay = typeof q.replay_of === 'string' && /^[0-9a-f]{64}$/.test(q.replay_of) ? { replay_of: q.replay_of } : {};
+  const p = { vid: q.vid, sid: typeof q.sid === 'string' && UUID.test(q.sid) ? q.sid : undefined, device: str(q.device, 10), path: str(q.path, 300), context: 'booking', seen, dry: q.dry === true, ...replay };
   const user = await currentUser().catch(() => null);
   try {
     const r = await rpc('server_game_start', { p: p as unknown as Json, p_user: user?.id }, SR);
