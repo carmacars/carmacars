@@ -33,7 +33,7 @@ def build():
               blurb='The menu, To do, task actions, Today, switching functions and your scorecard.')
     g.task('The menu', 'My work comes first: To do, Today at a glance, My scorecard and My sales. Customer service and Sales then have Live: Live chat, Live visitors and Game leads. Then the groups of your function. The current group is open; press another to open it. On a phone the whole menu sits behind one Menu button.')
     g.table([
-        ['Customer service', 'Bookings (Requests, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car), Renters (Messages, Find a renter, Card coverage), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
+        ['Customer service', 'Bookings (Requests, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car), Renters (Messages, Find a renter, Review requests, Card coverage), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
         ['Sales', 'Bookings (Requests and offers, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car, Card coverage), Owners (Owner leads)'],
         ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
         ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
@@ -207,6 +207,15 @@ def build():
         'Over the limit, an excluded make, a debit card or a longer rental than the card allows: offer OPCF 27 on their own auto policy or the CarmaCars Protection Plan.',
     ])
     g.tip('A card marked Unverified came from a published summary, not the issuer\'s guide. Something wrong or out of date in the list? Tell an Admin: they correct it in Settings > Card coverage.')
+
+    g.task('Review requests', f'Renters are asked for a review by email and text after each trip. {P("Renters", "Review requests")} shows the ones on hold and the Google reviews to match.')
+    g.steps([
+        'On hold: the booking has a charge that is not settled or waived yet (late return, kilometres, fuel, cleaning, smoking, damage, tolls) or an open incident. It leaves the list by itself once the charges are settled or waived.',
+        f'The renter should be asked now anyway? Press {B("Send anyway")}. Should never be asked? Press {B("Do not ask")}.',
+        f'Google reviews: a possible match to a renter shows "possible match". Press {B("Confirm")} if it is them, {B("Not this renter")} if not, or {B("Match to a booking")} with the booking number.',
+        f'On a booking, the card Review requests has {B("Ask for a review")} (for example after a call that went well) and {B("Mark reviewed")} when the renter says they already left one.',
+    ])
+    g.tip('Never offer anything for a review and never ask only happy renters: everyone gets the same message and the same Google link.')
 
     g.task('A change to a confirmed booking')
     g.para('On a booking\'s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, '

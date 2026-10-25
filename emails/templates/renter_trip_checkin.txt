@@ -1,0 +1,29 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Checking in]
+How is the car, {{first_name}}?
+
+You have had the {{vehicle_name}} for a day now. We want the rest of your trip to go smoothly.
+
+If anything is off, big or small (a warning light, a noise, something missing, something not clean), reply to this email or call us at {{support_phone}}. A person answers and we sort it out.
+
+Open my booking:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+Nothing to report? No need to reply. Enjoy the rest of your trip.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

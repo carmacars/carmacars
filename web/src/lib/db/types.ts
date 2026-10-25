@@ -5088,6 +5088,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      google_reviews: {
+        Row: {
+          id: string;
+          reviewer_name: string | null;
+          star_rating: number | null;
+          comment: string | null;
+          reply: string | null;
+          reviewed_at: string;
+          updated_at_google: string | null;
+          booking_id: string | null;
+          match_status: string;
+          match_score: number | null;
+          match_by: string | null;
+          match_at: string | null;
+          first_seen_at: string;
+          synced_at: string;
+        };
+        Insert: {
+          id: string;
+          reviewer_name?: string | null;
+          star_rating?: number | null;
+          comment?: string | null;
+          reply?: string | null;
+          reviewed_at: string;
+          updated_at_google?: string | null;
+          booking_id?: string | null;
+          match_status?: string;
+          match_score?: number | null;
+          match_by?: string | null;
+          match_at?: string | null;
+          first_seen_at?: string;
+          synced_at?: string;
+        };
+        Update: {
+          id?: string;
+          reviewer_name?: string | null;
+          star_rating?: number | null;
+          comment?: string | null;
+          reply?: string | null;
+          reviewed_at?: string;
+          updated_at_google?: string | null;
+          booking_id?: string | null;
+          match_status?: string;
+          match_score?: number | null;
+          match_by?: string | null;
+          match_at?: string | null;
+          first_seen_at?: string;
+          synced_at?: string;
+        };
+        Relationships: [];
+      };
       government_form_fields: {
         Row: {
           id: string;
@@ -10947,6 +10998,19 @@ export type Database = {
           ai_release_hour: number | null;
           ai_assistant_cushion: number;
           seo_ai_writer_enabled: boolean;
+          review_program_enabled: boolean;
+          review_checkin_enabled: boolean;
+          review_checkin_min_days: number;
+          review_checkin_after_hours: number;
+          review_ask_after_minutes: number;
+          review_reminder_hours: number;
+          review_final_days: number;
+          review_send_from_hour: number;
+          review_send_until_hour: number;
+          review_hold_incidentals: boolean;
+          review_ask_max_days: number;
+          review_google_match_days: number;
+          review_google_auto_match: boolean;
         };
         Insert: {
           id?: string;
@@ -11391,6 +11455,19 @@ export type Database = {
           ai_release_hour?: number | null;
           ai_assistant_cushion?: number;
           seo_ai_writer_enabled?: boolean;
+          review_program_enabled?: boolean;
+          review_checkin_enabled?: boolean;
+          review_checkin_min_days?: number;
+          review_checkin_after_hours?: number;
+          review_ask_after_minutes?: number;
+          review_reminder_hours?: number;
+          review_final_days?: number;
+          review_send_from_hour?: number;
+          review_send_until_hour?: number;
+          review_hold_incidentals?: boolean;
+          review_ask_max_days?: number;
+          review_google_match_days?: number;
+          review_google_auto_match?: boolean;
         };
         Update: {
           id?: string;
@@ -11835,6 +11912,19 @@ export type Database = {
           ai_release_hour?: number | null;
           ai_assistant_cushion?: number;
           seo_ai_writer_enabled?: boolean;
+          review_program_enabled?: boolean;
+          review_checkin_enabled?: boolean;
+          review_checkin_min_days?: number;
+          review_checkin_after_hours?: number;
+          review_ask_after_minutes?: number;
+          review_reminder_hours?: number;
+          review_final_days?: number;
+          review_send_from_hour?: number;
+          review_send_until_hour?: number;
+          review_hold_incidentals?: boolean;
+          review_ask_max_days?: number;
+          review_google_match_days?: number;
+          review_google_auto_match?: boolean;
         };
         Relationships: [];
       };
@@ -12666,6 +12756,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      review_google_link: {
+        Row: {
+          id: boolean;
+          status: string;
+          account_email: string | null;
+          account_name: string | null;
+          location_name: string | null;
+          location_title: string | null;
+          connected_at: string | null;
+          connected_by: string | null;
+          last_sync_at: string | null;
+          last_ok_at: string | null;
+          last_error: string | null;
+          reviews_seen: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          status?: string;
+          account_email?: string | null;
+          account_name?: string | null;
+          location_name?: string | null;
+          location_title?: string | null;
+          connected_at?: string | null;
+          connected_by?: string | null;
+          last_sync_at?: string | null;
+          last_ok_at?: string | null;
+          last_error?: string | null;
+          reviews_seen?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          status?: string;
+          account_email?: string | null;
+          account_name?: string | null;
+          location_name?: string | null;
+          location_title?: string | null;
+          connected_at?: string | null;
+          connected_by?: string | null;
+          last_sync_at?: string | null;
+          last_ok_at?: string | null;
+          last_error?: string | null;
+          reviews_seen?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       review_request_decisions: {
         Row: {
           booking_id: string;
@@ -12700,6 +12838,90 @@ export type Database = {
           decided_at?: string | null;
           note?: string | null;
           sent_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      review_requests: {
+        Row: {
+          booking_id: string;
+          token: string;
+          status: string;
+          checkin_sent_at: string | null;
+          ask_sent_at: string | null;
+          reminder_sent_at: string | null;
+          final_sent_at: string | null;
+          manual_asks: number;
+          last_manual_at: string | null;
+          manual_pending: boolean;
+          manual_by: string | null;
+          hold_reasons: string[];
+          held_since: string | null;
+          released_at: string | null;
+          send_anyway_at: string | null;
+          send_anyway_by: string | null;
+          stop_reason: string | null;
+          stopped_at: string | null;
+          stopped_by: string | null;
+          helper_opened_at: string | null;
+          copied_at: string | null;
+          google_opened_at: string | null;
+          unhappy_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          booking_id: string;
+          token?: string;
+          status?: string;
+          checkin_sent_at?: string | null;
+          ask_sent_at?: string | null;
+          reminder_sent_at?: string | null;
+          final_sent_at?: string | null;
+          manual_asks?: number;
+          last_manual_at?: string | null;
+          manual_pending?: boolean;
+          manual_by?: string | null;
+          hold_reasons?: string[];
+          held_since?: string | null;
+          released_at?: string | null;
+          send_anyway_at?: string | null;
+          send_anyway_by?: string | null;
+          stop_reason?: string | null;
+          stopped_at?: string | null;
+          stopped_by?: string | null;
+          helper_opened_at?: string | null;
+          copied_at?: string | null;
+          google_opened_at?: string | null;
+          unhappy_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          booking_id?: string;
+          token?: string;
+          status?: string;
+          checkin_sent_at?: string | null;
+          ask_sent_at?: string | null;
+          reminder_sent_at?: string | null;
+          final_sent_at?: string | null;
+          manual_asks?: number;
+          last_manual_at?: string | null;
+          manual_pending?: boolean;
+          manual_by?: string | null;
+          hold_reasons?: string[];
+          held_since?: string | null;
+          released_at?: string | null;
+          send_anyway_at?: string | null;
+          send_anyway_by?: string | null;
+          stop_reason?: string | null;
+          stopped_at?: string | null;
+          stopped_by?: string | null;
+          helper_opened_at?: string | null;
+          copied_at?: string | null;
+          google_opened_at?: string | null;
+          unhappy_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -13511,6 +13733,7 @@ export type Database = {
           business_categories: string[];
           business_description: string | null;
           business_listings: Json;
+          google_review_link: string | null;
         };
         Insert: {
           id?: string;
@@ -13576,6 +13799,7 @@ export type Database = {
           business_categories?: string[];
           business_description?: string | null;
           business_listings?: Json;
+          google_review_link?: string | null;
         };
         Update: {
           id?: string;
@@ -13641,6 +13865,7 @@ export type Database = {
           business_categories?: string[];
           business_description?: string | null;
           business_listings?: Json;
+          google_review_link?: string | null;
         };
         Relationships: [];
       };
@@ -19469,6 +19694,7 @@ export type Database = {
       renter_request_offer_change: { Args: { p_booking: string; p_by: string; p_note: string }; Returns: undefined };
       renter_request_protection_plan: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: Json };
       renter_review_state: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      renter_review_token: { Args: { p_booking: string; p_by: string }; Returns: string };
       renter_save_details: { Args: { p_by: string; p_details: Json; p_booking?: string }; Returns: Json };
       renter_send_message: { Args: { p_booking: string; p_by: string; p_body: string }; Returns: Json };
       renter_set_coverage_option: { Args: { p_booking: string; p_by: string; p_option: number }; Returns: Json };
@@ -19633,6 +19859,10 @@ export type Database = {
       server_renter_handover_report: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_request_notify_channel: { Args: { p_booking_number: string; p_channel: string; p_user?: string }; Returns: Json };
       server_resume_form_draft: { Args: { p_link_token: string; p_user?: string; p_device_label?: string }; Returns: Json };
+      server_review_google_sync_begin: { Args: never; Returns: Json };
+      server_review_google_sync_finish: { Args: { p: Json }; Returns: Json };
+      server_review_helper: { Args: { p_token: string }; Returns: Json };
+      server_review_helper_act: { Args: { p_token: string; p_act: string }; Returns: Json };
       server_schedule_change_sign: { Args: { p_by: string; p: Json }; Returns: Json };
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };

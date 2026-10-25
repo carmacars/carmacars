@@ -2,6 +2,8 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { Badge, BookingLink, Card, Filters, PageHead, Table, t, label } from '@/features/admin/ui';
+import { door } from '@/server/door';
+import { ReviewsDashboard, type Overview } from '@/features/reviews/ReviewsDashboard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Reviews', path: '/admin/reviews', noindex: true, description: 'Review moderation.' });
@@ -10,12 +12,18 @@ type R = Record<string, unknown>;
 // Reviews (03-admin.md section 14): publish, hide only for cause (never because it is negative), reply;
 // and the yes or no for asking a review after a booking with problems.
 export default async function Reviews({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ list }, sp] = await Promise.all([page('/admin/reviews'), searchParams]);
+  const [{ list, user }, sp] = await Promise.all([page('/admin/reviews'), searchParams]);
+  // the review request program (0146): sent, on hold, detected, the rating, the hold list and the Google matches
+  const days = [7, 30, 90, 365].includes(Number(sp.days)) ? Number(sp.days) : 30;
+  const overview = await door<Overview>(user.id, 'ops_read', 'review_overview', { days }).catch(() => null);
   const status = sp.status ?? 'pending';
   const [{ rows }, held] = await Promise.all([list('reviews', { eq: status ? { status } : {}, limit: 200 }), list('review_request_decisions', { eq: { status: 'held' }, limit: 100 })]);
   const R = ['/admin/reviews'];
   return (<>
-    <PageHead title="Reviews" />
+    <PageHead title="Reviews" purpose="Review requests, the hold list, Google reviews and their matches, and the reviews left on the site." />
+    <Filters base="/admin/reviews" name="days" value={String(days)} sp={sp} options={[['7', '7 days'], ['30', '30 days'], ['90', '90 days'], ['365', '12 months']]} />
+    {overview && <ReviewsDashboard o={overview} base="/admin/reviews" bookingBase="/admin/bookings" admin canMatch />}
+    <h2 className="d4">Reviews left on the site</h2>
     {held.rows.length > 0 && <Card title="Ask for a review after a booking with problems?" testId="review-decisions">
       <Table<R> rows={held.rows} rowKey={(r) => String(r.booking_id)} cols={[{ key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> }, { key: 'problems', label: 'Problems', className: 'wrap', render: (r) => (r.problems as string[] | null)?.map(label).join(', ') },
         { key: 'act', label: 'Decide', render: (r) => <span className="ad-actions"><Act action="review_request_decide" payload={{ booking: r.booking_id, send: true }} label="Yes, ask" refresh={R} /><Act action="review_request_decide" payload={{ booking: r.booking_id, send: false }} label="No" fields={[{ name: 'note', label: 'Why not' }]} refresh={R} /></span> }]} /></Card>}

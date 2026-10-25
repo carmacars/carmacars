@@ -296,6 +296,24 @@ def build():
     g.tip('The renter has 48 hours to accept (and sign the amendment) or decline, with one reminder. Any extra is charged to '
           'their Card on File; a lower price raises a refund for your approval.')
 
+    g.task('Review requests', 'Every renter is asked for a review by email and text, as they chose, only from 9 am to 9 pm Toronto time. Nothing needs setting up.')
+    g.table([
+        ['Mid-trip check-in', 'Rentals of 2 days or more, 24 hours after the pickup: "How is the car? Reply or call if anything is off." No review ask.'],
+        ['Review request', '1 hour after the check-in. It links the review page: the renter taps what they liked, adds a sentence, and gets a short draft to copy and post on Google.'],
+        ['Reminder', '24 hours after the request.'],
+        ['Final follow-up', '7 days after the request. Nothing more after it.'],
+    ], head=['Message', 'When'])
+    g.steps([
+        'The booking page has the card Review requests: each message with when it went or when it will go, and why it stopped.',
+        f'{B("Ask for a review")} sends the request now (or at 9 am if it is later than 9 pm), on any booking on a trip, returned or closed. Not twice in 24 hours.',
+        f'On hold: a return or later charge (late return, kilometres, fuel, cleaning, smoking, damage, tolls and tickets) is not settled or waived, or an incident or dispute is open. The request goes by itself once they are. Press {B("Send anyway")} to send it now.',
+        f'{B("Mark reviewed")} stops the messages when the renter tells you they already reviewed.',
+    ])
+    g.para('The messages also stop by themselves when the renter presses "I already left a review", leaves a review on the site, unsubscribes, '
+           f'or a Google review is matched to them. {P("Bookings", "Reviews")} has the numbers (requests sent, on hold, reviews detected, the average rating), '
+           'the hold list and the Google reviews to match.')
+    g.tip('The draft is made only from what the renter picked and wrote, and from the booking (the car, how long, delivery or pickup). Everyone gets the Google link, whatever their stars; a renter who gives 3 stars or fewer also sees "Something wasn\'t right? Tell us directly".')
+
     # ---------------------------------------------------------------- 4
     g.chapter('Calendars',
               'The master calendar shows every car, booking, request and block. Each car also has its own '
@@ -1101,7 +1119,7 @@ def build():
         'Insurers: insurance companies billed for bookings.',
     ], shot=S('admin/24-settings-desktop', 0, 0, 1440, 900, pins=[(1, 470, 297), (2, 372, 362), (3, 1115, 362), (4, 372, 659), (5, 372, 764)]))
     g.para('The other tiles: Site content (headings, FAQs, legal text), Fee defaults, Deposit tiers, Kilometre choices, Vehicle classes, '
-           'Airports and delivery, Protection Plan prices, Card coverage, Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
+           'Airports and delivery, Protection Plan prices, Card coverage, Reviews, Text alerts, Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
 
     g.task('Program settings')
     g.steps([
@@ -1184,6 +1202,15 @@ def build():
         f'Add a card with the Add form; untick Shown to hide one. Changes reach the public page at once.',
     ])
     g.tip('A card not checked for 6 months shows on Today until it is checked again. The page tells renters to confirm with their card issuer and says CarmaCars decides no claims: keep the list to facts from the issuer\'s guide.')
+
+    g.task('Reviews: review requests and Google', f'{P("Settings", "Reviews")}: when review requests go, the Google review link and the Google Business Profile connection. Review requests are on from the start.')
+    g.steps([
+        'When review requests go: the check-in (on or off, the shortest rental, hours after the pickup), the request (minutes after the check-in), the reminder (hours) and the final follow-up (days), the sending hours (9 am to 9 pm), and the hold while charges are open.',
+        'The Google review link: the Google place id (Site settings) makes it, or paste the Business Profile\'s own review link.',
+        f'Google Business Profile: press {B("Connect Google")} and sign in with rent@carmacars.ca, then allow access. Reviews are read every 6 hours and matched to renters by name within 30 days after their return.',
+        f'A clear match stops that renter\'s reminders at once. A possible match waits in Reviews: press {B("Confirm")}, {B("Not this renter")} or {B("Match to a booking")}.',
+    ])
+    g.tip('Until Google approves the Business Profile API for the project, the status says so and nothing else changes: renters still get the review link, and "I already left a review", Mark reviewed and on-site reviews still stop the messages.')
 
     # ---------------------------------------------------------------- 10
     g.chapter('Add-ons',

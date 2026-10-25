@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '172/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '176/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -32,7 +32,7 @@ select test.eq('A priority classes: customer, owner and investor, staff, digests
   '1:renter,2:owner,3:staff,4:staff,5:mkt');
 select test.eq('A each come-back email needs express consent, the review request implied consent',
   (select string_agg(code || '=' || consent_rule, ',' order by code) from notification_catalogue where category = 'marketing'),
-  'renter_comeback_1m=express,renter_comeback_1w=express,renter_google_review_request=implied,renter_recovery_request=express,renter_review_request=implied');
+  'renter_comeback_1m=express,renter_comeback_1w=express,renter_google_review_request=implied,renter_recovery_request=express,renter_review_ask=implied,renter_review_final=implied,renter_review_reminder=implied,renter_review_request=implied');
 select test.ok('A every program setting the layer reads has a value',
   (select notify_daily_cap = 100 and notify_class_limits = array[97, 95, 90, 80, 60] and notify_comeback_1w_bps = 1000
           and notify_comeback_1m_bps = 1500 and notify_comeback_valid_days = 30 and notify_digest_morning = time '07:30'
@@ -744,6 +744,10 @@ delete from usage_alerts where id = test.id('nt_usage');
 -- the "Continue your request" email of contact capture (0090)
 select app.capture_contact(jsonb_build_object('visitor_id', test.id('nt_cap_vid'), 'form', 'contact', 'name', 'Nina Capture', 'email', 'nt.capture@example.test'));
 select app.capture_send_continue((select id from users where email = 'nt.capture@example.test'), (select id from contact_captures where email = 'nt.capture@example.test'));
+-- the review request program's four emails (0146), built once here (suite 91 tests when they are sent)
+select app.review_request_row(test.id('booking:NT-9'));
+select app.ntf_emit(c, 'booking', test.id('booking:NT-9'), 'nt07', jsonb_build_object('booking_id', test.id('booking:NT-9')))
+  from unnest(array['renter_trip_checkin', 'renter_review_ask', 'renter_review_reminder', 'renter_review_final']) c;
 select test.flush();
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');

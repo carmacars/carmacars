@@ -21,7 +21,7 @@ export const ANSWER_CRAWLERS = [
 
 // Never for crawlers: the portals, sign-in, the API, private files and links, and the query-string views of public pages.
 export const PRIVATE_PATHS = [
-  '/book', '/account', '/owner', '/investor', '/admin', '/va', '/field', '/go/', '/r/', '/unsubscribe', '/email/', '/files/', '/d/', '/sign/',
+  '/book', '/account', '/owner', '/investor', '/admin', '/va', '/field', '/go/', '/r/', '/unsubscribe', '/review/', '/email/', '/files/', '/d/', '/sign/',
   '/sign-document/', '/guide-pdf/', '/sitemap-files/', '/sign-in', '/create-account', '/reset-password', '/update-password', '/two-step', '/choose-portal', '/read-only',
   '/link-expired', '/api/', '/auth/', '/cars?', '/cars/*?', '/car-rental/*?', '/guides/*?', '/rent/*?', '/buy/*?', '/detailing/*?', '/body-shop/*?'
 ] as const;

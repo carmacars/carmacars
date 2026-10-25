@@ -141,6 +141,7 @@ Create two GitHub environments, `staging` and `production`, and add these secret
 | `RESEND_API_KEY` | Resend, API Keys | The Worker; Edge Functions |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile widget | The Worker |
 | `QUO_API_KEY` | Quo (the CarmaCars workspace, never the Almash one), Settings, API. `gh secret set QUO_API_KEY` | The deploy (kept in the vault as `deploy_quo_api_key`, given to the Worker); `quo-check.yml`. The deploy creates the webhook and keeps its signing secret in the vault (`deploy_quo_webhook_secret`, the Worker's `QUO_WEBHOOK_SECRET`) |
+| `GOOGLE_REVIEWS_CLIENT_ID`, `GOOGLE_REVIEWS_CLIENT_SECRET` | Google Cloud, the project with the Business Profile APIs (approved by Google), APIs and Services, Credentials: an OAuth client of type Web application with the redirect URI `https://carmacars.ca/api/google/reviews/callback` (0138) | The deploy (optional; kept in the vault as `deploy_google_reviews_client_id` and `deploy_google_reviews_client_secret`, given to the Worker). Then Admin > Settings > Reviews, Connect Google as rent@carmacars.ca: the refresh token is kept in the vault as `google_reviews_refresh_token` |
 | `TRACKER_API_KEY` | The tracker provider | The Worker; Edge Functions |
 | `TRACKER_WEBHOOK_SECRET` | The tracker provider | The `tracker-webhook` function |
 | `PHOTO_PIPELINE_KEY` | The photo pipeline | The Worker |

@@ -188,6 +188,8 @@ const worker = {
     if (due.seo) run('/api/jobs/seo');
     // the phone line (migration 0085): booking texts that are due and the AI one-liners of calls
     if (due.phone) run('/api/jobs/phone');
+    // the Google reviews sync of the review request program (migration 0138), every 6 hours while connected
+    if (due.reviews) run('/api/jobs/reviews');
     // a car put on or taken off the site in the database alone (0070's automatic publishing, a slug changed, a car
     // deleted): the fleet page, home, the model pages and the sitemaps are rebuilt (src/lib/edge/fleet-sig.ts)
     // (only with a tag store: pages served as built from the assets are never rebuilt)
