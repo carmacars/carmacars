@@ -35,6 +35,10 @@ on:
         description: Also rewrite the text of the sections that changed or name missing buttons (Workers AI, published when it passes the checks)
         type: boolean
         default: false
+      records:
+        description: Fill the stack with the end-to-end suite's sample records first (off for a quick retake of one portal's own story)
+        type: boolean
+        default: true
       keep:
         description: Also keep the screenshots (PNG, manifest.json) as a run artifact, to retake the guides' crops and the investor deck's screens in the repository
         type: boolean
@@ -131,6 +135,7 @@ jobs:
           for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000/robots.txt && break; sleep 1; done
       - name: Sample records (the end-to-end suite, desktop; a failed test only means fewer records)
         continue-on-error: true
+        if: ${{ inputs.records }}
         run: BASE_URL=http://localhost:3000 npx playwright test --project desktop-1440 --reporter=dot > /tmp/e2e.log 2>&1 || tail -n 15 /tmp/e2e.log
       - name: A second server with Stripe test keys, for the payment screen
         run: |

@@ -409,11 +409,16 @@ async function renterStory(browser, ids) {
   await d.getByRole('button', { name: 'Save details' }).click();
   await d.locator('.agreement').getByText('100 Queen Street West').first().waitFor({ state: 'attached', timeout: 20_000 });
   await both(P, 'renter', 'sign-agreement', `/account/bookings/${number}/sign`, 'Sign, part 2: the key values at the top, the full agreement one tap away (also as a PDF), one tap ticks the four statements, your name is your signature (or draw it).');
+  try { await d.getByLabel(/All four/).check({ timeout: 10_000 }); } catch (e) { problems.push(`renter/sign: All four: ${String(e.message).split('\n')[0]}`); }
   try { await strongSign(d); } catch (e) { problems.push(`renter/sign: ${String(e.message).split('\n')[0]}`); }
   await d.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await shoot(d, 'renter', 'sign-ready', 'Sign, ready: consents ticked and the signature in place; Sign and continue to payment.');
   await d.getByRole('button', { name: 'Sign and continue to payment' }).click();
-  await d.waitForURL(/\/pay$/, { timeout: 30_000 });
+  await d.waitForURL(/\/pay$/, { timeout: 30_000 }).catch(async (e) => {
+    // keep what the page said, as a screen of its own, to see why the signature did not go through
+    await shoot(d, 'renter', 'sign-failed', `Debug: ${String(await d.locator('[role="alert"], .error').allInnerTexts().catch(() => '')).slice(0, 300)}`, { step: 98 });
+    throw e;
+  });
   // 4. pay (the Stripe form when a server with test keys is given; the local card form otherwise)
   for (const page of P) {
     try {
