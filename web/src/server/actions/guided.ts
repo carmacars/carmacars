@@ -29,7 +29,9 @@ export async function guidedAct<T = Record<string, unknown>>(action: GuidedActio
   try {
     const { user, aal } = await me();
     const data = await door<T>(user.id, 'ops_do', action, p, aal);
-    for (const x of ['/admin', ...refresh]) revalidatePath(x);
+    // the document review keeps its pop-up (and its message) on screen: a revalidation re-renders Today or the booking and, with nothing
+    // left to review, removes the pop-up before the message shows; the page is refreshed when the pop-up closes (the pages read the database on each visit)
+    if (!action.startsWith('doc_review_')) for (const x of ['/admin', ...refresh]) revalidatePath(x);
     if (PUBLIC.has(action)) { revalidatePath('/', 'layout'); revalidatePath('/cars/[slug]', 'page'); }
     return { ok: true, data };
   } catch (e) { return fail(e); }

@@ -332,3 +332,17 @@
 .fd-ckstep.is-done { border-color: var(--fd-ok); }
 .fd-ckstep__n { display: flex; align-items: center; gap: var(--s-2); margin: 0; font-weight: 700; font-size: var(--fs-sm); color: var(--fd-ink-2); }
 .fd-ckstep__h { font-family: var(--font-display); font-size: 1.375rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
+
+/* ---------- the licence review of field staff (0162): the home's "Licences to check" and the job page's check ---------- */
+.fd-lic { gap: var(--s-3); }
+.fd-lic__driver { border-top: 2px solid var(--fd-hair); padding-top: var(--s-3); }
+.fd-lic__doc { display: grid; gap: var(--s-2); }
+.fd-lic__kind { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); margin: 0; }
+.fd-lic__img { display: block; width: 100%; max-height: 26rem; object-fit: contain; border: 2px solid var(--fd-rule); border-radius: var(--r-2); background: var(--fd-surface); }
+.fd-lic-list { list-style: none; margin: 0 0 var(--s-4); padding: 0; display: grid; gap: var(--s-3); }
+.fd-lic-card { border: 2px solid var(--fd-rule); border-radius: var(--r-3); padding: var(--s-4); display: grid; gap: var(--s-2); }
+.fd-lic-card__when { margin: 0; font-weight: 700; font-size: 1.0625rem; }
+.fd-lic-card__car { margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; letter-spacing: -0.015em; }
+.fd-lic-card__id { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
+.fd-lic .fd-chip.is-done { color: var(--fd-ok); }
+.fd-lic .fd-chip.is-blocked, .fd-lic .fd-chip.is-scheduled { color: var(--fd-bad); }

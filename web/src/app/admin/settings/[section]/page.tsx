@@ -22,6 +22,7 @@ import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type List
 import { AddonsAdmin, type AddonsData } from '@/features/addons/AddonsAdmin';
 import { VehiclePagesAdmin, type VpData } from '@/features/vehicles/VehiclePagesAdmin';
 import { StockPhotosAdmin, type StockData } from '@/features/vehicles/StockPhotosAdmin';
+import { ClassRules, type ClassRulesData } from '@/features/vehicles/ClassRules';
 import { MaintenanceSettings, type MaintSettings } from '@/features/maintenance/Settings';
 import { TextAlertsSettings, type SmsSettings } from '@/features/admin/TextAlerts';
 import { PlaceRegions, PlaceSettings, PlaceTerms, type PlacesOverview } from '@/features/places/PlacesAdmin';
@@ -60,6 +61,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Email and notifications', (k) => k.startsWith('notify_')],
   ['Partners, rentals added by hand and agreements', (k) => /^(partner_|manual_rental_|staff_agreement_)/.test(k)],
   ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|custom_price_)/.test(k)],
+  ['Referral partners (body shops, tow trucks)', (k) => k.startsWith('referral_partner_')],
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
   ['Review requests', (k) => k.startsWith('review_')],
   ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],
@@ -254,6 +256,7 @@ export default async function Section({ params, searchParams }: { params: Promis
     return (<>{head}<TextAlertsSettings data={await door<SmsSettings>(user.id, 'admin_read', 'sms_settings')}
       form={<SaveForm table="program_settings" rowKey="current" testId="program-sms" fields={fieldsFrom(s.program, keys, { sms_default_with_phone: ch, sms_default_phone_only: ch.slice(0, 2) })} />} /></>);
   }
+  case 'class-rules': return (<>{head}<ClassRules data={await door<ClassRulesData>(user.id, 'ops_read', 'class_rules')} /></>);
   case 'forms': {
     // the registry forms, then the forms filled for every booking (0127: Blind Spot's rental agreement)
     const d = await door<FormsData & { rental_forms?: RentalForm[] }>(user.id, 'ops_read', 'form_templates');

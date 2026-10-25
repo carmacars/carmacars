@@ -1,4 +1,5 @@
 'use client';
+import { AffiliateNote } from '@/features/coverage/AffiliateNote';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -37,6 +38,8 @@ export interface WizardProps {
   options: CarOption[]; initialCar: WizardCar | null; initialSlug: string | null; rules: RequestRules; airports: { code: string; name: string; surcharge_cents: number | null }[];
   tokens: LabelTokens & Record<'notice' | 'turnaround' | 'offerHours' | 'hst' | 'minAge' | 'licence' | 'addDrvPct' | 'cEarly' | 'c2' | 'nonRef' | 'winter' | 'winterCap' | 'baby' | 'babyCap' | 'maxDays' | 'brand', string>;
   marketingText: string; agreeLine: string; ourAddress: string | null;
+  /** the RentalCoverage suggestion's name when an Admin has turned it on, else null */
+  affiliate?: string | null;
 }
 
 const KEY = 'cc.request.v2';
@@ -381,7 +384,7 @@ export function RequestWizard(p: WizardProps) {
                 </fieldset>
               );
             })}
-            <div className="field"><label className="label" htmlFor="rq-ref">Did someone refer you? <span className="opt">optional</span></label><input className="input" id="rq-ref" value={d.referrer} onChange={(e) => set('referrer', e.target.value)} aria-describedby="rq-ref-hint" /><p className="hint" id="rq-ref-hint">Their name, if so.</p></div>
+            <div className="field"><label className="label" htmlFor="rq-ref">Did someone refer you? <span className="opt">optional</span></label><input className="input" id="rq-ref" value={d.referrer} onChange={(e) => set('referrer', e.target.value)} aria-describedby="rq-ref-hint" /><p className="hint" id="rq-ref-hint">Their name, or the referral code from their flyer or card.</p></div>
             <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(1)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(2)) show(3); }}>Continue to licence</button></div>
           </section>
 
@@ -410,6 +413,7 @@ export function RequestWizard(p: WizardProps) {
                     <span className="option__body">{v === '1' ? 'You will send the policy page or an insurer letter showing OPCF 27.' : v === '2' ? <>You will pay with that card and send its benefits certificate. Most cards stop at a car priced $65,000 or $85,000. <a className="link" href="/credit-card-rental-coverage" target="_blank" rel="noopener" data-testid="coverage-cards-link">Which cards include it<span className="vh"> (opens in a new tab)</span></a></> : 'Priced in your offer, for your car and the driver’s age. We send the Protection Plan’s terms before you buy.'}</span></label>
                 ))}
               </div><p className="error" role="alert">{err('coverage') ?? ''}</p>
+              {p.affiliate && <AffiliateNote name={p.affiliate} placement="booking_step" />}
             </fieldset>
             )}
             <fieldset className="field"><legend className="label">Booking type</legend>

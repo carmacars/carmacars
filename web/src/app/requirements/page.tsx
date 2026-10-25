@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Affiliate } from '@/features/coverage/Affiliate';
 import { CtaBand, PageHead } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbLd, type Trail, seoMeta } from '@/features/seo/meta';
@@ -74,6 +75,7 @@ export default async function Requirements() {
             </div>
             <p className="small measure">Most credit cards stop at a car priced $65,000 or $85,000 (MSRP), and some of our cars are priced higher. <Link className="link" href="/credit-card-rental-coverage">Check your card’s limit</Link> before you choose option 2.</p>
             <p className="small muted measure">For options 1 and 2 it is your job to check that the coverage really applies to the car, the rental and every driver. No confirmed option at pickup counts as cancelling at that moment. {s.brand_name} is not an insurer.</p>
+            <Affiliate placement="requirements" />
           </div>
         </div>
       </section>

@@ -44,7 +44,7 @@ def build():
         ['Today', 'To do, Overview, Staff tasks, Live visitors'],
         ['Bookings', 'Trips: Requests, Bookings, Calendar, Add a rental, Chauffeur. Customers: Live chat, Renter leads, Reviews. Problems: Damage, Incidents and claims'],
         ['Cars', 'Vehicles, Listings, Maintenance, Rates for many cars, Calendar sync, Similar cars, Retire or delete'],
-        ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments by day, Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer invoices, Staff commissions'],
+        ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments by day, Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer rates, Insurer invoices, Staff commissions, Field pay'],
         ['People', 'Owners and partners: Applications, Owners, Add a car for an owner, Partners, Owner forms, Paid and signed. Renters, staff and investors: Renters, Staff, Investors, Portals and view as'],
         ['Settings', 'All settings. Website: Site, Vehicle pages, Sample photos, Add-ons, Discount games, Guides. Rules: Program, Forms, Maintenance, Emails. Records: Email log, Audit log'],
     ], head=['Group', 'Pages'])
@@ -317,7 +317,7 @@ def build():
         f'Then press {B("Approve all")}: every image, the proof of coverage and the Protection Plan still waiting are approved in one step. Anything the system refuses is named with the reason.',
         f'The same pop-up is on the booking: the card Renter documents ({B("Review documents")}) on Overview and on Drivers and documents.',
     ])
-    g.tip('Each opening of a renter\'s documents is logged. The links to the images last one minute. Field staff can also check a licence in person at the check-out (photos and four checks): the history says "checked in person".')
+    g.tip('Each opening of a renter\'s documents is logged. The links to the images last one minute. Field staff can also check a licence in person at the check-out (photos and four checks): the history says "checked in person". Field staff also review the licence images (not the coverage) of bookings on their own jobs in the next 7 days from My jobs, with the same Approve all or a reason to reject: the history says the reviewer\'s role, field.')
 
     g.task('Payments by day', f'{P("Money", "Payments by day")}: every payment and refund of a day or a range, by method, the cash drawer and the refunds waiting. Finance has the same screen.')
     g.steps([
@@ -644,7 +644,7 @@ def build():
         'Any length: the dates may run past 30 days (up to the staff limit in Program settings, 730 days by default). From 30 days the rental charge is the monthly rate for each 30 days, and the monthly periods are listed. On the booking, Monthly periods shows each period: its share, and its own version of the agreement (CarmaCars\' and Blind Spot\'s), sent to the renter to sign a few days before it starts (Program settings: long_rental_agreement_lead_days, 3 by default), with what is due for it on the renter\'s Balance due. With Program settings, Charge the saved card for each period, on, that share is charged to the saved card when the agreement goes out (the renter gets the receipt; a declined or missing card gives Finance a task).',
         'A car whose listing is not finished (a draft listing, onboarding, no photos or no rates yet) can be rented at once: it shows Listing not finished in the car list and stays off the public site. With no rates yet, type the rental charge for the whole rental and the reason.',
         f'An owner\'s car that is not on the fleet insurance policy yet: only an Admin adds its rentals, and ticks I checked that this car is insured for this rental. An owner\'s car needs its terms (Revenue Share) first. The handover still needs the car on the fleet policy: press {B("Insurer confirmed")} once the insurer confirms it.',
-        'Insurer billed later (or the Insurance replacement quick start): choose the insurer (Not listed: type its name, and it is added to the list), the claim number, the adjuster, the days and the daily rate authorized, the provisional end, and whether the insurer pays everything or the rental only. The booking is billed to the insurer; the renter owes only what it does not cover.',
+        'Insurer billed later (or the Insurance replacement quick start): choose the insurer (Not listed: type its name, and it is added to the list), the claim number, the adjuster, the days and the daily rate authorized, the provisional end, and whether the insurer pays everything or the rental only. The booking is billed to the insurer; the renter owes only what it does not cover. The daily rate authorized is filled from the insurer\'s rate sheet for the car (Insurance replacements: rates and billing); a different rate needs the reason.',
         f'The rent is paid by: e-Transfer or cash (received), card on file (charged when the renter signs), payment link, platform payout (Turo), insurer billed later, cheque, bank transfer, or unpaid. Paid in parts (some cash, some e-Transfer): press {B("Add another payment (paid in parts)")} and type each amount. Then the deposit, its own way: card hold, cash, e-Transfer (with its reference and date) or no deposit.',
         'Before you save checks it all in one box: the renter, the car, the days, the total, what was received and what is still to collect, the deposit and the agreement.',
         'The rental agreement: Send it to sign online, or Already signed on paper (a task asks for the scan). The calendar: untick Blocks the car\'s calendar for an insurance replacement with dates not known yet, with the reason.',
@@ -681,6 +681,42 @@ def build():
     g.task('Tolls when two rentals overlap')
     g.para('Bookings held for an insurer and other placeholders are never matched to a toll. When two real rentals overlap the toll time, nobody is charged automatically: '
            'the toll waits in the work queue under Two rentals, with both bookings, and you choose who pays.')
+
+    # ---------------------------------------------------------------- insurance replacements: rates and billing (0163)
+    g.chapter('Insurance replacements: rates and billing',
+              'Each insurance company pays an agreed rate a day for a replacement car, by car class. The rate sheet keeps those rates with their history; '
+              'a rental billed to an insurer takes its rate from it, the insurer\'s invoice follows it, and each insurer\'s page shows what it was billed, paid and still owes.',
+              blurb='The rate sheet by insurer and car class, the rate on a rental, the invoices and the billing history.')
+    g.task('The rate sheet', f'Open {P("Money", "Insurer rates")}.')
+    g.steps([
+        'One row for each insurer, one column for each car class (the list in Settings > Vehicle classes). Each cell shows the rate today and, under it, a rate already saved for a later date. On a phone each insurer is a card with its classes.',
+        f'Press {B("Set")} (or {B("Change")}) in a cell. Type the Daily rate and, when the insurer has them, a weekly cap, a cap for 30 days, a delivery and pickup allowance, the kilometres a day and a taxes note (printed on its invoices). Choose From, say why it changed, and press {B("Save the rate")}.',
+        f'A change never overwrites the rate before it: it is a new rate from its date, and the earlier one stays in the history. {B("End")} stops a rate from a date.',
+        'Add an insurer, or change its billing contact and email, in Settings > Insurers.',
+    ])
+    g.tip('A car takes the rate of its pricing class; when the insurer has no rate for that class, the rate of the car\'s other classes, in the order of the list. A 2024 Jetta (standard, also a sedan) replaced for an insurer that pays $65 a day for sedans is billed $65 a day.', label='Good to know')
+    g.task('The rate on a rental')
+    g.bullets([
+        'Add a rental, Insurance replacement (or Insurer billed later): once the price is checked and the insurer chosen, the daily rate authorized is filled from its rate sheet for the car, with the caps and the taxes note under it.',
+        'A different rate: type it, and Differs from the rate sheet asks for the reason. The rental is not added without it. Empty the field to take the sheet\'s rate again.',
+        'The review screen of a request or an offer does the same when you choose Bill to and the insurer: the rate follows the insurer chosen, and a rate typed that differs needs the reason.',
+        'An insurer with no rate for the car: type the rate the adjuster authorized, as before.',
+        'The booking\'s Insurance replacement card (Overview and Money tabs) shows the insurer and the claim, the daily rate and where it comes from, Differs with the reason when it is not the sheet\'s, the caps, the days covered, what the insurer pays and its invoices.',
+    ])
+    g.task('Invoices to the insurer')
+    g.bullets([
+        f'{B("Draft insurer invoice")} on the booking bills the insurer at the booking\'s daily rate (the sheet\'s, or the one typed with its reason) for the days authorized.',
+        'The weekly cap and the cap for 30 days lower the amount of a long rental. Billed for the rental only, the insurer also pays delivery and pickup up to its allowance; billed for everything, delivery and pickup above the allowance are the renter\'s.',
+        'The invoice line says the rate and where it comes from (for example at $65.00 a day, Example Mutual rate sheet, Sedan), and the PDF prints the taxes note. Send it and record its payments in Money > Insurer invoices, as before.',
+    ])
+    g.task('Billing history', f'{P("Money", "Insurer rates")}, then the insurer\'s name.')
+    g.steps([
+        'The tiles: bookings, days used and authorized, billed, paid, outstanding, the average daily rate and the days the insurer takes to pay (from sent to paid).',
+        'Rates by class (Set, Change and End work here too), then the History of the rates: each rate with its dates, its status, why it changed and who saved it.',
+        'Billing by class: for each class the bookings, days authorized and used, billed, paid, outstanding, the average rate and the days to pay.',
+        'Bookings: each booking with its class, claim, dates, days, rate (Sheet and the reason when it differs), what was billed, paid and outstanding, and its invoices (each opens its PDF).',
+        f'Choose Picked up from and to and press {B("Show")} for a period. {B("Download CSV")} saves the bookings of the period for a spreadsheet.',
+    ])
 
     g.chapter('Chauffeur service',
               'Visitors book a driver and a luxury car or van by the hour on carmacars.ca/chauffeur. The vehicles come from a partner\'s chauffeur price guide, each with a rate for 2 hours and a rate for 3 hours or more.',
@@ -796,6 +832,16 @@ def build():
     g.para('History, under each car, lists every period of terms (from, to, the amounts, and why: the Vehicle Schedule, a written notice, lowered) and every change with its notice. A change that has not started yet has Cancel (give the reason): the terms before it run on. An updated schedule waiting for the owner has Record signed on paper (with the date) and Withdraw it. One change at a time: cancel or finish the one waiting before making the next.')
     g.para('The same editor is on the car\'s page (Records tab, Owner terms). The owner\'s default terms (for cars whose terms are set later) and the first and last month invoice stay on the Terms tab.')
     g.tip('Invoices follow the dates: a month whose Insurance Fee or Tracker Fee changes part way is billed per day at each rate. The Revenue Share of a rental is the one in force on the day it is booked.', label='Good to know')
+    g.task('Change a signed car\'s Management Mode', 'Managed, Self-Managed or Turo-Only, from a date, for a car whose Vehicle Schedule is signed. An Admin only.')
+    g.steps([
+        f'Open the owner\'s Cars and terms table (or the car\'s page) and press {B("Change mode")} on the car\'s row.',
+        f'Choose the {B("New Management Mode")} and its Onboarding Method (the options that fit how the car is held), the date under {B("From")}, and write the Reason: the owner reads it. Tick {B("The owner asked for this")} only when it is their own request.',
+        f'Press {B("Review")}: it lists each value before and after (a Self-Managed car has no management fee; a Turo-Only car has no Fees and leaves the fleet insurance policy) and says whether the owner has to sign. Nothing is saved yet.',
+        'The owner asked and no amount goes up: no signature and no notice period. From today (or the date you chose) the car has the new mode, an updated Vehicle Schedule is issued with CarmaCars\' signature and the owner is emailed the notice.',
+        f'Anything else (CarmaCars\' own decision, or a higher fee): the owner is emailed the notice and an updated Vehicle Schedule to sign, the date is at least 30 days away and the car stays as it is until it is signed. In History, {B("Record signed on paper")} or {B("Withdraw it")}.',
+        f'A change dated ahead applies by itself on its date: the schedule is issued and the car moves. {B("Cancel")} in History (give the reason) stops it and emails the owner that their terms stay as they are. The same email goes when a notice of a higher fee is cancelled.',
+    ])
+    g.tip('A shareholder-owned car has fixed terms. A car whose schedule is not signed yet changes its mode in the terms editor, where it applies at once.', label='Good to know')
     g.task('Paid and signed', f'{P("People", "Paid and signed")}. What each owner still has to pay or sign, and how each item was done.')
     g.steps([
         'Each owner shows how many items are open and how many are done. Owners with nothing left are hidden; press Show every owner to see them.',
@@ -893,6 +939,27 @@ def build():
         ['On the owner statement', 'An owner\'s car: deducted with the kickbacks before Owner Revenue, its own line on the statement. A partner\'s car: from CarmaCars\' commission. A CarmaCars-owned car: a CarmaCars expense'],
     ], head=['', 'Commission'])
     g.tip('A commission that changes after an owner statement was built (a refund, or the month\'s Sales tier) goes on the owner\'s next statement as an adjustment line.')
+
+    g.task('Field pay', f'{P("Money", "Field pay")}. Field staff clock in and out on their phones (My hours); you run the pay every two weeks. Nothing is paid automatically.')
+    g.flow([('Clocked in and out', 'Field staff press Clock in and Clock out; Fleet or you fix a forgotten clock-out'),
+            ('Pay run started', 'Hours times the hourly rate, plus the approved commissions'),
+            ('Approved', 'The figures are frozen, the period\'s hours are locked, the statements are numbered'),
+            ('Paid', 'You recorded how each person was paid; they get their statement by email')])
+    g.steps([
+        f'The tab {B("Pay run")} shows the current two-week period (Sunday to Saturday: the first day is Settings > Program, Field pay). {B("Earlier period")} and {B("Later period")} move between periods.',
+        f'After the period ends, press {B("Start the pay run")}: one line for each person with hours times their hourly rate, plus the staff commissions and referral fees approved by the end of the period (see Staff commissions). {B("Refresh the figures")} takes in a change made since.',
+        f'Press {B("Approve")}. The period\'s hours are locked, each line gets a statement number and the figures are frozen. Someone still clocked in blocks it: fix their shift under {B("Hours")} first. {B("Withdraw")} takes an approved run back while no payment is recorded.',
+        f'Press {B("Record payment")} on a line: choose e-Transfer, bank transfer or cash, the reference (not needed for cash) and the date. The commissions in the line are marked paid and the person gets their pay statement by email ({B("Send again")} repeats it). The statement\'s number opens its PDF; {B("CSV")} gives the run for your accountant.',
+        f'{B("Hours")} lists everyone\'s shifts of the period. {B("Add hours")} enters a shift for someone who forgot to clock in, {B("Change")} fixes one and {B("Remove")} takes one out. Each needs a reason and is kept in a log. Fleet does the same under Field hours but sees no pay.',
+        f'{B("Hourly rates")} shows each person\'s rate: CA$18.00 an hour unless you give them their own with {B("Set the rate")} (a reason is needed). A pay run keeps the rate it was started with.',
+    ])
+    g.table([
+        ['Overtime', 'Off. Settings > Program, Field pay: pay overtime, after 44 hours in a week, at 150% of the rate'],
+        ['Vacation pay', 'Off. Settings > Program, Field pay: vacation pay (Ontario: 4%) adds that share of wages, overtime and commissions to each statement'],
+        ['Deductions', 'None are worked out: income tax, CPP, EI and the employer\'s contributions are for your accountant. Each statement says so'],
+        ['Commissions that net to nothing', 'A person whose approved commissions add up to nothing or less (a clawback) is not paid them this period: they carry to the next'],
+    ], head=['', 'Field pay'])
+    g.tip('A shift of more than 16 hours (a setting) is refused, and so are hours that overlap another shift of the same person. The field staff member sees their hours and statements under My hours on their phone.')
 
     g.task('Company statements', 'CarmaCars\' own monthly statement, in twelve sections.')
     g.steps([
@@ -1104,6 +1171,60 @@ def build():
         f'Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game\'s weight (0 turns it off). Press {B("Save prizes and games")}. Codes already sent keep their value.',
     ])
 
+    # ---------------------------------------------------------------- referral partners (0164)
+    g.chapter('Referral partners and RentalCoverage',
+              'Body shops and tow truck companies (and, if you want, dealerships and insurance brokers) can send you renters and earn a kickback when the rental is finished and paid in full. A separate switch adds an optional affiliate link to RentalCoverage on the pages that talk about coverage. Nothing in either program is shown to renters until you set it up.',
+              blurb='Body shops and tow trucks that send renters: sign-ups, links and flyers, earnings and payments; and the optional RentalCoverage link.')
+    g.task('Add a partner', f'{P("People", "Referral partners")}, then {B("Add a partner")}.')
+    g.steps([
+        'Choose the kind (body shop, tow truck company, dealership or insurance broker) and type the business name, the contact, phone and email. Start typing the address: the city and postal code fill in.',
+        'Choose how you pay them (e-Transfer, cheque, bank transfer, cash or another way) and, for e-Transfer, the email to pay.',
+        f'Choose the kickback: a flat amount for each completed rental ($50 unless you change it) or a percentage of the rental charge (10% unless you change it). The percentage applies to the rental charge after discounts only, never to add-ons, fees or taxes. The two defaults are under {P("Settings", "Program")}, Referral partners.',
+        f'Press {B("Save")}. A partner you add is active at once, with a code, a short link and a flyer.',
+    ])
+    g.task('Approve a sign-up', 'The public pages carmacars.ca/partners/body-shops and carmacars.ca/partners/tow-trucks have a sign-up form. A sign-up is a pending partner and a task for you; it earns nothing and its code ties no rental until you approve it.')
+    g.steps([
+        f'Open {P("People", "Referral partners")}. A sign-up shows as Waiting for approval, and the Partners tab shows how many are waiting.',
+        f'Open the partner and check the business. Press {B("Approve")} (or {B("Decline")}: they are not told by email).',
+        f'Press {B("Write them their link")}. It opens an email to them with their link and code; attach the flyer from the next section before you send it.',
+    ])
+    g.task('The link, the QR code and the flyer', 'Open the partner. The card "Link, QR code and flyer" shows everything they hand out.')
+    g.bullets([
+        'The short link is carmacars.ca/r/ and their code, for example carmacars.ca/r/BODY1234. A renter who opens it keeps the partner for 60 days on that device, even if they book later.',
+        f'Press {B("Flyer for the counter (PDF)")} for a one-page flyer with their name, their code and a QR code of the link. Print it or send it.',
+        'A renter can also type the code in "Did someone refer you?" on the request to book. A code typed there wins over the link. A code nobody holds is ignored.',
+        'Changing the code ends the old link, QR code and flyer. Pausing or ending a partner stops new rentals from being tied to them; what they already earned stays.',
+    ])
+    g.task('Rentals you add by hand', f'{P("Bookings", "Add a rental")}, field "Referred by (partner code)".')
+    g.steps([
+        'Type the partner\'s code if a body shop or tow truck sent the renter. A code that does not exist or is not active is refused, so a typing mistake shows at once.',
+        f'Forgot it? Open the partner and press {B("Tie a booking")}: enter the booking number and why. This is not possible once a kickback on that booking is approved or paid, nor on a booking that already has an owner or field staff member as its referrer (one referrer per booking: owner, then field staff, then the partner).',
+    ])
+    g.task('Earnings and payments', f'{P("People", "Referral partners")}, the tabs Partners, Kickbacks and Payments made.')
+    g.steps([
+        'A kickback starts as "Rental not finished yet". It is earned when the booking is completed and paid in full and no payment is in dispute; it then waits as "Pending approval".',
+        f'Check it on the Kickbacks tab and press {B("Approve")} (or {B("Approve all")} for one partner).',
+        f'Pay the partner the way you agreed, then press {B("Record a payment")} on their line: it settles every approved kickback and keeps the reference.',
+        f'A refund or a lost dispute after the kickback was earned takes it back (a reversal line). If it was already paid, the reversal stays on the ledger as a negative line for you to settle with the partner. Use {B("Reverse")} to take one back yourself, with a reason.',
+    ])
+    g.tip('The kickback is a booking expense, taken before the owner\'s share is worked out, in the same line as staff commissions on the owner statement. Check the owner agreement wording on kickbacks before you start paying partners.', label='Good to know')
+    g.task('The partner\'s own page', 'The card "Link, QR code and flyer" shows a private page address for the partner. Send it only to them.')
+    g.bullets([
+        'It shows their link and code, their referrals by the customer\'s first name and the month only, what is waiting and what was paid. No sign-in: the long address is the key.',
+        f'Press {B("New private page link")} if it was shared by mistake: the old address stops working at once.',
+    ])
+    g.task('RentalCoverage affiliate', f'{P("Settings", "RentalCoverage affiliate")}. It is off until you join the affiliate program and paste your link.')
+    g.steps([
+        'Join RentalCoverage\'s affiliate program (their affiliate dashboard gives you a tracking link, and sometimes an ID).',
+        f'Press {B("Paste the affiliate link")}. Paste the link exactly as the dashboard gives it. If it has {{id}} in it, type your ID in the next field and it is filled in. Leave "Show the link on the site" ticked and press {B("Save")}.',
+        'The link now shows on Requirements and coverage, the credit card coverage guide and the coverage step of the request to book. Each says it is a separate company\'s optional product, that it does not replace the coverage option the renter chooses, that CarmaCars may earn a commission and that it costs the renter nothing extra. It says nothing about what the product covers.',
+        'Untick "Show the link on the site" any time to turn it off everywhere.',
+    ])
+    g.bullets([
+        'Every click goes through a CarmaCars address that counts it by place and month (and by booking when the renter has one) and adds utm_source=carmacars, utm_medium=referral and utm_campaign=coverage_ and the place.',
+        f'The page shows clicks by place and month and the latest clicks. RentalCoverage reports the sales, not the site: when they pay you, press {B("Add a payment received")} with the date, amount and reference.',
+    ])
+
     # ---------------------------------------------------------------- 9
     g.chapter('Search: car pages, landing pages and guides',
               'The text of every car page, the landing pages for each area and way of renting, and the guides are written '
@@ -1205,7 +1326,7 @@ def build():
         'Forms: Blind Spot\'s rental agreement for every booking, and the official ServiceOntario PDFs and what goes in each field.',
         'Insurers: insurance companies billed for bookings.',
     ], shot=S('admin/24-settings-desktop', 0, 0, 1440, 900, pins=[(1, 470, 297), (2, 372, 362), (3, 1115, 362), (4, 372, 659), (5, 372, 764)]))
-    g.para('The other tiles: Site content (headings, FAQs, legal text), Fee defaults, Deposit tiers, Kilometre choices, Vehicle classes, '
+    g.para('The other tiles: Site content (headings, FAQs, legal text), Fee defaults, Deposit tiers, Kilometre choices, Vehicle classes, Vehicle class rules, '
            'Airports and delivery, Protection Plan prices, Card coverage, Reviews, Text alerts, Partners (each partner company\'s CRM link: see Partners, company cars and rentals added by hand), '
            'Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
 
@@ -1219,11 +1340,20 @@ def build():
         'Live visitors and live chat: recording visits, the signal thresholds, follow-up tasks, the chat and its assistant, and how long visits and chats are kept.',
         'Discount games: the same values as Settings, Discount games (the prize table and the games are easier to change there).',
         'Deposits: the toll and ticket window after the return (7 days: settling sooner suggests a hold-back), the longest hold-back (30 days after the return), how long before a card hold lapses it is collected (36 hours), and collecting what is owed after the deposit by itself (the card on file, then a pay link, then a Finance task). A deposit is never released by itself.',
-        'Field jobs and handovers: field jobs made from each confirmed booking (on) and who gets them (the least busy field staff member, or nobody so Fleet assigns), how field staff may take a deposit at the check-out besides a card (e-Transfer and cash), and whether they may release a car whose tracker is not reporting, with a reason (on; you get an urgent task).',
+        'Field jobs and handovers: field jobs made from each confirmed booking (on) and who gets them (the least busy field staff member, or nobody so Fleet assigns), how field staff may take a deposit at the check-out besides a card (e-Transfer and cash), and whether they may release a car whose tracker is not reporting, with a reason (on; you get an urgent task). Field pay: the first day of a pay period (every period is two weeks), the default hourly rate (CA$18.00), whether overtime is paid (off), after how many hours in a week (44) and at what share of the rate (150%), vacation pay added to each statement (off; Ontario 4%) and the longest shift (16 hours).',
         'Sign-in by phone: codes by text from the CarmaCars number (on), US numbers (off until the Quo number is registered for US texting, A2P 10DLC), codes per number and per connection an hour, and whether a verified phone confirms an account like a confirmed email. Accepting an offer, signing and paying need a confirmed account; an account made by phone gives its email on the pay page before its first payment.',
         'Calendar sync, Turo by email, Booking recovery emails and Site check: how often calendar links are read, the Turo inbound address and who may forward to it, the reminder delays and sending hours, and the site check with the address its alerts go to (rent@carmacars.ca), the minutes before an email, the daily limit and the quiet hours.',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',
     ], shot=S('admin/25-program-settings-desktop', 0, 0, 1440, 1000, pins=[(1, 372, 220), (2, 400, 490)]))
+
+    g.task('Vehicle class rules', f'Open {B("Settings")}, then {B("Vehicle class rules")}. How a new car\'s class is decided from its VIN: the first rule that matches wins.')
+    g.steps([
+        'The table lists each rule: its rank, what the car must be (a make, and patterns for the model, the trim and the body), the class it gets, the class once the car is old enough, a note and whether it is on. The lowest rank that matches is used; a car that matches no rule is Standard.',
+        f'Press {B("Add a rule")} or {B("Change")}: a rank, at least one condition, the class, optionally the years old after which an older class applies, and a note (it is shown as the reason for the class). A pattern is not case sensitive: ^911 matches models that start with 911. A rule with no condition, a pattern that does not compile and an older class equal to the class are refused.',
+        f'{B("Try a car")} gives the class the rules decide for a year, make, model, trim and body, and why.',
+        f'{B("Delete")} removes a rule; switch it off instead to keep it. Every add, change and delete is in the audit log, with before and after.',
+    ])
+    g.tip('A rule changes the cars entered from then on. A car already listed keeps its class until you change it on the car.')
 
     g.task('Official ServiceOntario forms', 'The five official forms are loaded with a mapping to the owner, car, company and lender details. Each is the form exactly as ServiceOntario publishes it: only its empty text boxes are filled. Its checkboxes, drop-downs and signatures are done by hand at the counter, in ink. Until you check a form, owners get a data sheet with the values.')
     g.steps([
@@ -1279,7 +1409,7 @@ def build():
 
     g.task('Insurers and the other lists')
     g.steps([
-        'Open Insurers. Each insurer on file opens to edit its billing contact, email, phone, address and notes.',
+        f'Open Insurers. Each insurer on file opens to edit its billing contact, email, phone, address and notes. Its rates by car class are in {P("Money", "Insurer rates")}.',
         f'To add one, fill in the Add form (Name, Billing contact, Billing email and the rest) and press {B("Add")}.',
         'Deposit tiers, Kilometre choices, Vehicle classes, Airports, Promo codes and Quick replies work the same way.',
     ])

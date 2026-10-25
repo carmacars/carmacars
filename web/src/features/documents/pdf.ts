@@ -1,6 +1,7 @@
 import 'server-only';
 import { agreementPdf } from '@/features/agreement/pdf';
 import type { Block } from '@/features/agreement/model';
+import { hoursText } from '@/features/field-pay/model';
 
 // The generated documents (docs/blueprint/11-statements-and-reports.md sections 2, 4 and 7): owner
 // statements, renter statements and receipts, insurer invoices, investor statements and the yearly
@@ -8,9 +9,9 @@ import type { Block } from '@/features/agreement/model';
 // same pdf-lib renderer as the agreements, with the CarmaCars wordmark on every page. Deterministic: the
 // same facts give the same bytes, so a stored copy is identified by its SHA-256.
 export type DocKind = 'owner_statement' | 'renter_statement' | 'receipt' | 'insurer_invoice' | 'investor_statement' | 'investor_year'
-  | 'company_statement' | 'company_owners' | 'company_vehicles' | 'owner_invoice' | 'terms_notice';
+  | 'company_statement' | 'company_owners' | 'company_vehicles' | 'owner_invoice' | 'terms_notice' | 'pay_statement';
 export const DOC_KINDS: readonly DocKind[] = ['owner_statement', 'renter_statement', 'receipt', 'insurer_invoice', 'investor_statement', 'investor_year',
-  'company_statement', 'company_owners', 'company_vehicles', 'owner_invoice', 'terms_notice'];
+  'company_statement', 'company_owners', 'company_vehicles', 'owner_invoice', 'terms_notice', 'pay_statement'];
 
 type F = Record<string, unknown> & { title: string; file_name: string; final: boolean; company: Company };
 interface Company { brand: string; legal_name: string; address: string; hst_number: string | null; phone: string; email: string; site: string; logo_key?: string | null }
@@ -117,6 +118,8 @@ function insurerInvoice(f: F): Block[] {
   blocks.push({ t: 'table', head: ['Description', 'Amount'], kv: true, rows: lines.length ? lines.map((l) => [s(l.label ?? l.description) || 'Rental', dollars(l.amount_cents)]) : [['Replacement rental', dollars(f.amount_cents)]] });
   blocks.push({ t: 'table', head: ['Total', ''], kv: true, rows: [['Amount before HST', dollars(f.amount_cents)], ['HST', dollars(f.hst_cents)], ['**Total due**', `**${dollars(f.total_cents)}**`],
     ...(n(f.paid_cents) > 0 ? [['Paid', dollars(f.paid_cents)] as [string, string], ['**Balance**', `**${dollars(f.balance_cents)}**`] as [string, string]] : [])] });
+  // the insurer's taxes note from its rate sheet (0163)
+  if (s(f.note)) blocks.push({ t: 'p', text: s(f.note) });
   blocks.push({ t: 'p', text: `Please pay by bank transfer and quote invoice ${s(f.invoice_number)}. Questions: ${f.company.email}.` });
   return blocks;
 }
@@ -158,6 +161,35 @@ function termsNotice(f: F): Block[] {
   blocks.push({ t: 'p', text: s(f.signature) });
   if (f.owner_signed) blocks.push({ t: 'p', text: s(f.owner_signed) });
   blocks.push({ t: 'p', text: `HST is extra on the Fees. Questions: ${f.company.email}.` });
+  return blocks;
+}
+
+const clock = (v: unknown) => (v ? new Date(String(v)).toLocaleTimeString('en-CA', { timeZone: TZ, hour: 'numeric', minute: '2-digit', hour12: false }) : '');
+
+// A field staff member's pay statement (0165): the hours worked in the two-week period, the amounts, the commissions paid with
+// them and how it was paid. Vacation pay and statutory deductions are not computed here (docs/changes/2026-10-25-field-pay-class-rules-mode.md).
+function payStatement(f: F): Block[] {
+  const p = (f.person ?? {}) as Row;
+  const blocks = header(f, [['Staff member', s(p.name)], ...(s(p.address) ? [['Address', s(p.address)] as [string, string]] : [])],
+    [['Statement', s(f.statement_number)], ['Pay period', `${day(f.period_start)} to ${day(f.period_end)}`], ['Status', f.status === 'paid' ? `Paid ${day(f.paid_on)}` : 'Approved, payment to follow'],
+     ...(f.status === 'paid' ? [['How it was paid', `${s(f.method) === 'e_transfer' ? 'e-Transfer' : s(f.method) === 'bank_transfer' ? 'Bank transfer' : label(f.method)}${f.reference ? `, reference ${s(f.reference)}` : ''}`] as [string, string]] : [])]);
+  const reg = n(f.minutes_regular);
+  const ot = n(f.minutes_overtime);
+  const rows: string[][] = [[`Hours: ${hoursText(reg)} at ${dollars(f.rate_cents)} an hour`, dollars(f.wage_cents)]];
+  if (ot > 0) rows.push([`Overtime: ${hoursText(ot)} at ${pct(f.overtime_bps)} of the hourly rate`, dollars(f.overtime_cents)]);
+  if (n(f.commission_cents) !== 0) rows.push(['Commissions and referral fees (listed below)', dollars(f.commission_cents)]);
+  if (n(f.vacation_cents) > 0) rows.push([`Vacation pay, ${pct(f.vacation_pay_bps)}`, dollars(f.vacation_cents)]);
+  rows.push(['**Total paid**', `**${dollars(f.gross_cents)}**`]);
+  blocks.push({ t: 'table', head: ['This pay', 'Amount'], rows });
+  const shifts = (f.shifts ?? []) as Row[];
+  blocks.push({ t: 'h2', text: `Hours worked: ${hoursText(f.minutes_total)}` });
+  blocks.push({ t: 'table', head: ['Day', 'From', 'To', 'Hours', 'Note'], rows: shifts.length ? shifts.map((x) => [day(x.day), clock(x.from), clock(x.to), hoursText(x.minutes), s(x.note)]) : [['No hours in this period', '', '', '', '']] });
+  const cs = (f.commissions ?? []) as Row[];
+  if (cs.length) {
+    blocks.push({ t: 'h2', text: 'Commissions and referral fees' });
+    blocks.push({ t: 'table', head: ['Booking', 'Month', 'Kind', 'Amount'], rows: cs.map((c) => [s(c.booking), month(c.month), c.kind === 'commission' ? 'Commission' : label(c.kind), dollars(c.amount_cents)]) });
+  }
+  blocks.push({ t: 'p', text: 'Amounts are before any deduction: this statement does not show income tax, CPP or EI, which are not worked out here. Questions: ' + f.company.email + '.' });
   return blocks;
 }
 
@@ -279,6 +311,7 @@ export function documentBlocks(kind: DocKind, f: F): Block[] {
     case 'company_vehicles': return companyVehicles(f);
     case 'owner_invoice': return ownerInvoice(f);
     case 'terms_notice': return termsNotice(f);
+    case 'pay_statement': return payStatement(f);
   }
 }
 

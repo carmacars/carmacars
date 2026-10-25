@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { rpc } from '@/lib/db/repo';
 import { fill, getFacts, getSettings, getTokens } from '@/lib/site';
+import { affiliateName } from '@/features/coverage/Affiliate';
 import { consentTexts, rules } from '@/server/booking-data';
 import type { CarOption, WizardCar, WizardProps } from './RequestWizard';
 import { toWizardCar, type BookingCarRow } from './wizard-car';
@@ -19,10 +20,10 @@ export const bookingCar = cache(async (slug: string): Promise<WizardCar | null> 
 });
 
 export async function wizardProps(initialSlug: string | null): Promise<WizardProps> {
-  const [options, initialCar, f, t, s, r, c] = await Promise.all([bookingCars(), initialSlug ? bookingCar(initialSlug) : Promise.resolve(null), getFacts(), getTokens(), getSettings(), rules(), consentTexts()]);
+  const [options, initialCar, f, t, s, r, c, affiliate] = await Promise.all([bookingCars(), initialSlug ? bookingCar(initialSlug) : Promise.resolve(null), getFacts(), getTokens(), getSettings(), rules(), consentTexts(), affiliateName()]);
   const pick = (k: string) => t[k] ?? '';
   return {
-    options, initialCar, initialSlug, rules: r, airports: f.airports,
+    affiliate, options, initialCar, initialSlug, rules: r, airports: f.airports,
     tokens: Object.fromEntries(['notice', 'turnaround', 'offerHours', 'hst', 'minAge', 'licence', 'addDrvPct', 'cEarly', 'c2', 'nonRef', 'winter', 'winterCap', 'baby', 'babyCap', 'maxDays', 'brand'].map((k) => [k, pick(k)])) as unknown as WizardProps['tokens'],
     marketingText: c.marketing.text, agreeLine: c.agreeLine(r.minAge), ourAddress: s.street_address ? fill(s.street_address, t) : null
   };

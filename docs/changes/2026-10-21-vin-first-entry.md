@@ -124,7 +124,7 @@ Admin: Add a car, Add a car for an owner. Assistants: Add a car for an owner. Ow
 
 ## Not done
 
-- The class rules have no Admin screen yet (they are rows in `vehicle_class_rules`; an Admin can change them in the
-  database). The Vehicle classes settings page is unchanged.
+- The class rules had no Admin screen at release. Done in migration 0165 (October 25, 2026): Settings > Vehicle class rules
+  (`2026-10-25-field-pay-class-rules-mode.md`). The Vehicle classes settings page is unchanged.
 - With few real cars, "similar cars of the same class" can be one or two cars (0070's rule): the first BMW 3 Series
   starts from the median of the Premium cars on file. Staff see the source under the class and can change the rate.

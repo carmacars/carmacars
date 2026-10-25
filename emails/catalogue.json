@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 181,
+  "count": 184,
   "emails": [
     {
       "code": "account_password_reset",
@@ -10009,6 +10009,109 @@
       "template_text": "templates/owner_exit_notice_received.txt"
     },
     {
+      "code": "owner_fee_change_cancelled",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "An Admin cancels a change to a car's terms that had not started yet (migration 0165; History on the car page or the owner's terms): a higher or lower Insurance Fee, Tracker Fee or management fee noticed in writing, a Management Mode change, or an updated Vehicle Schedule that was waiting for the owner's signature. One email per cancelled change, saying what was going to change and that the terms stay as they are.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "The change to your terms for the {{vehicle_name}} is cancelled",
+      "preheader": "Your terms stay as they are: {{fee_change_summary}}.",
+      "sample_subject": "The change to your terms for the 2023 Toyota RAV4 XLE is cancelled",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "effective_date",
+          "type": "string",
+          "sample": "Fri, Jan 15, 2027"
+        },
+        {
+          "name": "fee_change_summary",
+          "type": "string",
+          "sample": "Insurance Fee $450.00 to $475.00"
+        },
+        {
+          "name": "fee_changes",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Insurance Fee, monthly, before HST",
+              "before": "$475.00",
+              "after": "$450.00"
+            }
+          ],
+          "fields": [
+            "label",
+            "before",
+            "after"
+          ]
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_id",
+          "type": "string",
+          "sample": "v-3f81c2",
+          "note": "Vehicle id as used in portal URLs."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_fee_change_cancelled.html",
+      "template_text": "templates/owner_fee_change_cancelled.txt"
+    },
+    {
       "code": "owner_fee_change_notice",
       "audience": "owner",
       "category": "transactional",
@@ -10980,6 +11083,140 @@
       ],
       "template_html": "templates/owner_invoice_voided.html",
       "template_text": "templates/owner_invoice_voided.txt"
+    },
+    {
+      "code": "owner_mode_change_notice",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "An Admin changes the Management Mode of a car whose Vehicle Schedule is signed (migration 0165; the car page, Management Mode). When the change is against the owner (a higher fee or management fee, or a change CarmaCars starts) the owner signs an updated Vehicle Schedule and the date is at least the Notice Period ahead (needs_signature is true); when the owner asked for it and no amount is higher, the change is dated and applied by CarmaCars on that date. One email per change.",
+      "timing": "Immediate: at least the Notice Period (30 days by default) before the date of a change against the owner; on the day it is made for a change the owner asked for",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Notice of a change to the Management Mode of your {{vehicle_name}}, from {{effective_date}}",
+      "preheader": "{{fee_change_summary}}",
+      "sample_subject": "Notice of a change to the Management Mode of your 2023 Toyota RAV4 XLE, from Fri, Jan 15, 2027",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "effective_date",
+          "type": "string",
+          "sample": "Fri, Jan 15, 2027"
+        },
+        {
+          "name": "fee_change_reason",
+          "type": "string",
+          "sample": "You asked us to take over the rentals of this car."
+        },
+        {
+          "name": "fee_change_summary",
+          "type": "string",
+          "sample": "Management Mode Self-Managed to Managed, from Fri, Jan 15, 2027"
+        },
+        {
+          "name": "fee_changes",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Management Mode",
+              "before": "Self-Managed",
+              "after": "Managed"
+            },
+            {
+              "label": "Management fee (Revenue Share)",
+              "before": "0%",
+              "after": "25%"
+            }
+          ],
+          "fields": [
+            "label",
+            "before",
+            "after"
+          ]
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "mode_after",
+          "type": "string",
+          "sample": "Managed"
+        },
+        {
+          "name": "mode_before",
+          "type": "string",
+          "sample": "Self-Managed"
+        },
+        {
+          "name": "needs_signature",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "notice_period_days",
+          "type": "string",
+          "sample": "30",
+          "note": "The Notice Period of the Enrollment Agreement in days (notice_period_days)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_id",
+          "type": "string",
+          "sample": "v-3f81c2",
+          "note": "Vehicle id as used in portal URLs."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2023 Toyota RAV4 XLE",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/owner_mode_change_notice.html",
+      "template_text": "templates/owner_mode_change_notice.txt"
     },
     {
       "code": "owner_new_booking",
@@ -17890,6 +18127,93 @@
       ],
       "template_html": "templates/staff_field_jobs_tomorrow.html",
       "template_text": "templates/staff_field_jobs_tomorrow.txt"
+    },
+    {
+      "code": "staff_pay_statement",
+      "audience": "staff_field",
+      "category": "transactional",
+      "trigger": "An Admin records the payment of a field staff member's pay for a two-week pay period (Admin > Money > Field pay > Pay run > Record the payment; migration 0165), or sends the statement again. One email to that staff member, at their own address, with the figures of their pay statement (the PDF is in My hours).",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your pay statement: {{period_label}}",
+      "preheader": "{{gross_total}}, {{payout_method}}, {{payout_date}}.",
+      "sample_subject": "Your pay statement: Oct 18 to Oct 31, 2026",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "gross_total",
+          "type": "string",
+          "sample": "$612.00"
+        },
+        {
+          "name": "hours_total",
+          "type": "string",
+          "sample": "32 h 00 min"
+        },
+        {
+          "name": "hours_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/field/hours"
+        },
+        {
+          "name": "pay_lines",
+          "type": "list",
+          "sample": [
+            {
+              "what": "Hours: 32 h 00 min at $18.00",
+              "amount": "$576.00"
+            },
+            {
+              "what": "Commissions",
+              "amount": "$36.00"
+            }
+          ],
+          "fields": [
+            "what",
+            "amount"
+          ]
+        },
+        {
+          "name": "payout_date",
+          "type": "string",
+          "sample": "November 6, 2026"
+        },
+        {
+          "name": "payout_method",
+          "type": "string",
+          "sample": "e-Transfer"
+        },
+        {
+          "name": "payout_reference",
+          "type": "string",
+          "sample": "CA7xQ2"
+        },
+        {
+          "name": "period_label",
+          "type": "string",
+          "sample": "Oct 18 to Oct 31, 2026"
+        },
+        {
+          "name": "statement_number",
+          "type": "string",
+          "sample": "PS-1001"
+        }
+      ],
+      "template_html": "templates/staff_pay_statement.html",
+      "template_text": "templates/staff_pay_statement.txt"
     },
     {
       "code": "insurer_invoice",

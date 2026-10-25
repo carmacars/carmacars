@@ -36,7 +36,7 @@ def build():
         ['Customer service', 'Bookings (Requests, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car), Renters (Messages, Find a renter, Review requests, Card coverage), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
         ['Sales', 'Bookings (Requests and offers, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car, Card coverage), Owners (Owner leads)'],
         ['Finance', 'Money (Payments by day, Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
-        ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
+        ['Fleet', 'Field work (Field jobs, Field hours, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
     ], head=['Function', 'Groups and pages'])
     g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more. To do puts the most urgent first.')
     g.steps([
@@ -209,7 +209,7 @@ def build():
         f'One is wrong? Open {B("Reject this one")} under it, type the reason the renter reads and press {B("Reject")}.',
         f'Then press {B("Approve all")}: everything still waiting is approved at once (the Protection Plan too). A document the system refuses is named with the reason; the rest are approved.',
     ])
-    g.tip('Each opening is logged. An Admin can do the same from Admin > To do.')
+    g.tip('Each opening is logged. An Admin can do the same from Admin > To do. Field staff review the licence images (not the coverage) of bookings on their own jobs in the next 7 days from their My jobs: the booking history says the role, field.')
 
     g.task('Which credit cards include rental car coverage?', f'Renters ask this often. {P("Renters", "Card coverage")} (every function has it under Rentals or Bookings) is your quick reference: what to say, what to check, and the list.')
     g.steps([
@@ -342,7 +342,7 @@ def build():
               'You keep the cars moving: field jobs, daily checks, photo reviews after returns, and the listing '
               'pipeline with its duplicate check and plate covering.',
               blurb='Field jobs, daily checks, photo reviews, similar cars and listings.')
-    g.para('Your rail: Queue, Today, Field jobs, Daily checks, Photo reviews, Calendar, Listings, Similar cars, Find a renter '
+    g.para('Your rail: Queue, Today, Field jobs, Field hours, Daily checks, Photo reviews, Calendar, Listings, Similar cars, Find a renter '
            'and Scorecard.')
     g.task('Schedule field jobs', 'Every confirmed booking gets its handover (or delivery) and return (or pickup) jobs by itself, at the booking\'s times and place, given to the field staff member with the fewest jobs that day. You check and change them.')
     g.steps([
@@ -351,6 +351,14 @@ def build():
         f'Handovers and returns without a job (when the automatic jobs are off, or one was cancelled) are listed first: press {B("Schedule")}, the place filled in from the booking.',
         'An Admin turns the automatic jobs or the assignment off in Settings > Program.',
     ], shot=S('va-fleet/02-field-jobs-desktop', 210, 60, 1440, 625, pins=[(1, 430, 350)]), fig_w=4.3)
+
+    g.task('Field hours', 'Field staff clock in and out on their phones. You see who is clocked in and every shift of the two-week pay period, and you fix what they cannot.')
+    g.steps([
+        f'Open {B("Field hours")}. {B("Clocked in now")} lists who is on, since when. {B("Earlier period")} and {B("Later period")} move between pay periods.',
+        f'Someone forgot to clock out: press {B("Clock out for them")}, set the time they finished and write the reason.',
+        f'Someone forgot to clock in, or a time is wrong: {B("Add hours")} enters a shift, {B("Change")} fixes one and {B("Remove")} takes one out. Each needs a reason; the change is kept in a log with what it was before.',
+        'Once an Admin approves the pay run of a period, its shifts are locked: ask the Admin. You see hours only, not rates or pay.',
+    ])
 
     g.task('Daily checks', 'Twice a day: the opening check by 9:00 and the closing check by 18:00.')
     g.steps([
@@ -673,7 +681,7 @@ def build():
                   ('Working as', 'Switch function (above the menu)'),
                   ('Customer service', 'Requests, New quote, Renter messages, Owner forms'),
                   ('Finance', 'Payments, Tolls and tickets, Reconciliation, Turo trips'),
-                  ('Fleet', 'Field jobs, Daily checks, Photo reviews, Listings, Similar cars'),
+                  ('Fleet', 'Field jobs, Field hours, Daily checks, Photo reviews, Listings, Similar cars'),
                   ('Sales', 'Requests and offers, New quote, Add a rental, Owner leads'),
                   ('Add a rental, New quote', 'Every function'),
                   ('My sales', 'Your commissions, quotes, offers, bookings and booked revenue'),

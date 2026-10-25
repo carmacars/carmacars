@@ -55,6 +55,15 @@ export async function carTermsChange(t: CarTermsInput, paths: string[] = []) {
   if (Object.keys(fe).length) return invalid(fe);
   return act<CarTermsPlan>('car_terms_change', t as unknown as J, t.preview ? [] : ['/admin/owners', ...paths]);
 }
+// A signed car's Management Mode (0165): managed, self-managed or Turo-only, from a date, with a reason; against the owner it needs their signature and the notice period.
+export interface ModeChangeInput { vehicle_id: string; management_mode: string; onboarding_method?: string; effective_from?: string; reason?: string; owner_requested?: boolean; revenue_share_bps?: number;
+  insurance_fee_cents?: number; tracker_fee_cents?: number; preview?: boolean }
+export interface ModeChangePlan { lines: Array<{ label: string; before: string; after: string }>; steps: string[]; needs_signature: boolean; earliest?: string; effective_from: string; done: boolean; change_id?: string }
+export async function carModeChange(t: ModeChangeInput, paths: string[] = []) {
+  if (!t.management_mode) return invalid({ management_mode: 'Choose the new Management Mode.' });
+  if (!t.preview && !(t.reason ?? '').trim()) return invalid({ reason: 'Give the reason.' });
+  return act<ModeChangePlan>('car_mode_change', t as unknown as J, t.preview ? [] : ['/admin/owners', ...paths]);
+}
 export async function carTermsCancel(p: { change_id: string; reason: string }, paths: string[] = []) {
   if (!p.reason.trim()) return invalid({ reason: 'Give the reason.' });
   return act('car_terms_cancel', p, paths);

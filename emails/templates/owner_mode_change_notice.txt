@@ -1,0 +1,48 @@
+CarmaCars  |  Notice of change
+
+========================================
+
+[Notice of change]
+The Management Mode of your {{vehicle_name}} is changing
+
+This is your written notice, {{first_name}}. The change is for {{effective_date}}.
+
+From: {{effective_date}}
+The {{vehicle_name}} changes from {{mode_before}} to {{mode_after}}.
+
+{{#each fee_changes}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+Why
+{{fee_change_reason}}
+
+{{#if needs_signature}}
+A change to your Vehicle Schedule is in writing, signed by both of us. It applies only once you sign the updated Vehicle Schedule, from the date above or the day you sign, whichever is later. Until you do, your current terms stay in place.
+
+Read and sign the new schedule:
+https://carmacars.ca/owner/agreements
+
+This affects only the {{vehicle_name}}. If you would rather not continue on the new terms, you can give {{notice_period_days}} days' written notice to take the vehicle out of the program. Reply to this email with any questions.
+{{else}}
+You asked for this change and no amount is higher, so you do not need to sign anything. We issue the updated Vehicle Schedule on the date above and it appears in your owner portal.
+
+View my vehicle:
+https://carmacars.ca/owner/vehicles/{{vehicle_id}}
+
+This affects only the {{vehicle_name}}. Reply to this email with any questions.
+{{/if}}
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

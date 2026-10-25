@@ -6,9 +6,11 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['deposits', 'Deposit tiers', 'The deposit amounts a car can take'],
   ['km', 'Kilometre choices', 'Kilometres a day offered on rate cards'],
   ['classes', 'Vehicle classes', 'Classes shown on the site'],
+  ['class-rules', 'Vehicle class rules', 'How a new car\'s class is decided from its make, model, trim and body, and when an older car changes class'],
   ['airports', 'Airports and delivery', 'Airports, surcharges, per-km delivery rate and origin'],
   ['coverage', 'Protection Plan prices', 'Price table for the Protection Plan sold to renters'],
   ['card-coverage', 'Card coverage', 'Which credit cards include rental car coverage: limits, exclusions, guides and the day each was checked'],
+  ['coverage-affiliate', 'RentalCoverage affiliate', 'The affiliate link (off until you paste it), its clicks by place and what RentalCoverage paid us'],
   ['addons', 'Add-ons', 'Things renters buy with a rental: prices, which cars, notice, stock, confirmation'],
   ['maintenance', 'Maintenance', 'Service items and intervals by class and car, reminders, the winter tire dates, blocks, expense categories'],
   ['partners', 'Partners', 'Partner companies\' CRMs (01 Motors\' GoHighLevel): what we share, partner prices, their cars coming in, leads, the feed and the widget'],
@@ -23,7 +25,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['text-alerts', 'Text alerts', 'Email, text or both: the defaults, quiet hours, opt-outs and the text of each notification'],
   ['email', 'Email aliases and reply-to', 'Sending addresses and where replies go'],
   ['staff', 'Staff and roles', 'Invite, set limits, end access'],
-  ['insurers', 'Insurers', 'Insurance companies billed for bookings'],
+  ['insurers', 'Insurers', 'Insurance companies billed for bookings (their rates: Money > Insurer rates)'],
   ['promo-codes', 'Promo codes', 'Codes, values, dates and uses'],
   ['quick-replies', 'Quick replies', 'Snippets for staff messages']
 ];

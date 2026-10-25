@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CtaBand, PageHead } from '@/components/Blocks';
 import { Faq } from '@/components/Faq';
 import { JsonLd } from '@/components/JsonLd';
+import { Affiliate } from '@/features/coverage/Affiliate';
 import { CardTable } from '@/features/coverage/CardTable';
 import { cardFaq, checkedOn, reaching, type CardList } from '@/features/coverage/cards';
 import { breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
@@ -71,6 +72,7 @@ export default async function CardCoverage() {
               <li><b>Bring proof of coverage.</b> Ask your issuer for a letter or the benefits certificate that shows rental car damage coverage, and add it to your booking before pickup.</li>
               <li><b>Keep the paperwork.</b> If the car is damaged, you pay what your rental agreement says, then claim it from your card’s coverage with the rental agreement, the receipt and the damage report.</li>
             </ol>
+            <Affiliate placement="card_guide" />
             <p className="small muted measure">Cards usually exclude rentals from peer-to-peer marketplaces where you rent a private person’s car. You rent from CarmaCars, under CarmaCars’ rental agreement; still ask your issuer to confirm that a CarmaCars rental qualifies. See every coverage option on <Link className="link" href="/requirements#coverage">Requirements and coverage</Link>.</p>
           </div>
         </div>

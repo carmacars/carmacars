@@ -8,6 +8,7 @@ import { consentTexts, rules } from '@/server/booking-data';
 import { maps } from '@/integrations/maps';
 import { verifyTurnstile } from '@/integrations/turnstile';
 import { dobIso, migrateExtras, requestSchema, type RequestData } from '@/features/booking/schema';
+import { typedReferralCode } from '@/features/referral/model';
 import { addonsPayload } from '@/features/addons/model';
 import type { ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
@@ -96,7 +97,14 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
     },
     // a referral link (/r/<code>: a field staff member's or an owner's) kept for 30 days
     promo_code: v.promo ? v.promo.toUpperCase() : null,
-    referred_by_code: (() => { const c = cookieRef; return c && /^[A-Z0-9]{4,12}$/.test(c) ? c : null; })(),
+    // a code typed in the form (a partner's code from a flyer) wins over the link's cookie when it is written like a code
+    // (capitals or digits); a plain word such as a first name is only a code when there is no cookie. The database ignores a code nobody holds.
+    referred_by_code: (() => {
+      const c = cookieRef && /^[A-Z0-9]{4,12}$/.test(cookieRef) ? cookieRef : null;
+      const typed = typedReferralCode(v.referrer);
+      const codeLike = typed !== null && (/\d/.test(typed) || v.referrer.trim() === typed);
+      return codeLike ? typed : (c ?? typed);
+    })(),
     details: { referrer_name: v.referrer || null, pickup_place_id: v.pickupAddress.placeId || null, return_place_id: returnAddress.placeId || null, source: 'web' }
   };
 

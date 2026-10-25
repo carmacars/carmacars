@@ -7,7 +7,8 @@ import { FieldButton } from '@/features/field/FieldButton';
 import { JobChecklist } from '@/features/field/JobChecklist';
 import { ListingCapture, type Capture } from '@/features/listing/ListingCapture';
 import { StartListing } from '@/features/listing/StartListing';
-import type { FieldJob } from '@/features/field/types';
+import { LicenceReview } from '@/features/field/LicenceReview';
+import type { FieldJob, LicenceCard } from '@/features/field/types';
 import { when } from '@/features/agreement/model';
 import { Plate } from '@/features/field/Plate';
 import { FdIcon } from '@/features/field/icons';
@@ -26,6 +27,9 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
   const j = await door<FieldJob | null>(user.id, 'field_read', 'job', { id }).catch(() => null);
   if (!j) notFound();
   const b = j.booking;
+  // 0162: the renter's licence waits for a decision on this job's booking: field staff review it here too
+  const lic = b && j.job.status !== 'done'
+    ? (await door<LicenceCard[]>(user.id, 'field_read', 'licences').catch(() => [] as LicenceCard[])).find((l) => l.booking_id === b.id) ?? null : null;
   const checklist = !j.checklist && (j.report_kind === 'pickup' || j.report_kind === 'return');
   const done = j.job.status === 'done';
   // a photo shoot (procedure 17): the listing capture of the car, as owners and Fleet use it (migration 0032)
@@ -64,6 +68,13 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
           <h2 className="fd-bring__h" id="addons-t"><FdIcon name="bag" />{j.report_kind === 'return' ? 'Add-ons on this rental' : 'Put in the car'}</h2>
           <ul className="small">{b.addons.map((a) => <li key={a.name}><b>{a.quantity > 1 ? `${a.quantity} x ` : ''}{a.name}</b>{a.hours ? `, ${+a.hours} hours` : ''}{a.handover_note ? `: ${a.handover_note}` : ''}</li>)}</ul>
           {b.prepaid_fuel && <p className="pt-note small" data-testid="job-prepaid-fuel"><b>Prepaid fuel.</b> The renter may return the car at any fuel level. Do not charge for fuel.</p>}
+        </section>
+      )}
+      {lic && (
+        <section className="fd-card" aria-labelledby="lic-t" data-testid="job-licence">
+          <h2 className="fd-section-h" id="lic-t">Check the licence</h2>
+          <p className="small">{lic.waiting} image{lic.waiting === 1 ? '' : 's'} of the renter&apos;s licence wait for a decision.</p>
+          <LicenceReview job={id} waiting={lic.waiting} />
         </section>
       )}
       {j.job.status === 'scheduled' && <div className="fd-nextstep"><p className="small">Press Acknowledge so the office knows you have this job. Start comes next, when you are with the car.</p><FieldButton action="acknowledge" payload={{ job: id }} label="Acknowledge" primary testId="acknowledge" /></div>}

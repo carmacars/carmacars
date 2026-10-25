@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>181 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>76</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>184 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>76</span></a><a href="#owner">Owner <span>44</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (76)</h2>
 <div class="grid">
@@ -483,7 +483,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/renter_vehicle_disabled.html">HTML</a><a href="../dist/renter_vehicle_disabled.txt">Text</a><a href="../shots/renter_vehicle_disabled.desktop.png">Desktop</a><a href="../shots/renter_vehicle_disabled.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="owner">Owner (42)</h2>
+<h2 id="owner">Owner (44)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/owner_account_created.html"><img loading="lazy" src="../shots/owner_account_created.desktop.png" alt="Screenshot of owner_account_created"></a><div class="b">
 <div class="code">owner_account_created</div><div class="sub">Your CarmaCars owner account is ready</div>
@@ -593,6 +593,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">Vehicle status changes to exit_notice (the owner's written notice naming the vehicle is logged, or an admin decides to remove it) and the Exit Date is set. This email confirms the Exit Date in writing.</div>
 <div class="ln"><a href="../dist/owner_exit_notice_received.html">HTML</a><a href="../dist/owner_exit_notice_received.txt">Text</a><a href="../shots/owner_exit_notice_received.desktop.png">Desktop</a><a href="../shots/owner_exit_notice_received.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/owner_fee_change_cancelled.html"><img loading="lazy" src="../shots/owner_fee_change_cancelled.desktop.png" alt="Screenshot of owner_fee_change_cancelled"></a><div class="b">
+<div class="code">owner_fee_change_cancelled</div><div class="sub">The change to your terms for the 2023 Toyota RAV4 XLE is cancelled</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An Admin cancels a change to a car's terms that had not started yet (migration 0165; History on the car page or the owner's terms): a higher or lower Insurance Fee, Tracker Fee or management fee noticed in writing, a Management Mode change, or an updated Vehicle Schedule that was waiting for the owner's signature. One email per cancelled change, saying what was going to change and that the terms stay as they are.</div>
+<div class="ln"><a href="../dist/owner_fee_change_cancelled.html">HTML</a><a href="../dist/owner_fee_change_cancelled.txt">Text</a><a href="../shots/owner_fee_change_cancelled.desktop.png">Desktop</a><a href="../shots/owner_fee_change_cancelled.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/owner_fee_change_notice.html"><img loading="lazy" src="../shots/owner_fee_change_notice.desktop.png" alt="Screenshot of owner_fee_change_notice"></a><div class="b">
 <div class="code">owner_fee_change_notice</div><div class="sub">Notice of a change to your terms for the 2023 Toyota RAV4 XLE, from Fri, Jan 15, 2027</div>
 <div class="tags"><span>Transactional</span></div>
@@ -646,6 +652,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">An Admin voids an issued owner invoice with a reason (nothing was paid on it). Its scheduled debit is cancelled. When a corrected invoice replaces it, that invoice has its own email once it is issued.</div>
 <div class="ln"><a href="../dist/owner_invoice_voided.html">HTML</a><a href="../dist/owner_invoice_voided.txt">Text</a><a href="../shots/owner_invoice_voided.desktop.png">Desktop</a><a href="../shots/owner_invoice_voided.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/owner_mode_change_notice.html"><img loading="lazy" src="../shots/owner_mode_change_notice.desktop.png" alt="Screenshot of owner_mode_change_notice"></a><div class="b">
+<div class="code">owner_mode_change_notice</div><div class="sub">Notice of a change to the Management Mode of your 2023 Toyota RAV4 XLE, from Fri, Jan 15, 2027</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An Admin changes the Management Mode of a car whose Vehicle Schedule is signed (migration 0165; the car page, Management Mode). When the change is against the owner (a higher fee or management fee, or a change CarmaCars starts) the owner signs an updated Vehicle Schedule and the date is at least the Notice Period ahead (needs_signature is true); when the owner asked for it and no amount is higher, the change is dated and applied by CarmaCars on that date. One email per change.</div>
+<div class="ln"><a href="../dist/owner_mode_change_notice.html">HTML</a><a href="../dist/owner_mode_change_notice.txt">Text</a><a href="../shots/owner_mode_change_notice.desktop.png">Desktop</a><a href="../shots/owner_mode_change_notice.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/owner_new_booking.html"><img loading="lazy" src="../shots/owner_new_booking.desktop.png" alt="Screenshot of owner_new_booking"></a><div class="b">
 <div class="code">owner_new_booking</div><div class="sub">New booking on your 2023 Toyota RAV4 XLE: Fri, Oct 23, 2026 to Mon, Oct 26, 2026</div>
@@ -1104,7 +1116,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/staff_owner_application_received.html">HTML</a><a href="../dist/staff_owner_application_received.txt">Text</a><a href="../shots/staff_owner_application_received.desktop.png">Desktop</a><a href="../shots/staff_owner_application_received.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="staff_field">Staff: field (4)</h2>
+<h2 id="staff_field">Staff: field (5)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/staff_field_job_assigned.html"><img loading="lazy" src="../shots/staff_field_job_assigned.desktop.png" alt="Screenshot of staff_field_job_assigned"></a><div class="b">
 <div class="code">staff_field_job_assigned</div><div class="sub">New job: Pickup handover, Fri, Oct 23 at 10:00 am</div>
@@ -1129,6 +1141,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Scheduled digest for field staff: every day at 18:00 Toronto time, one email to each field staff member who has at least one job assigned for the next day (pickup handovers, returns, tracker installs, details, photo shoots). Skipped for a person with no jobs. Jobs assigned or changed after it is sent go out at once with staff_field_job_assigned or staff_field_job_changed.</div>
 <div class="ln"><a href="../dist/staff_field_jobs_tomorrow.html">HTML</a><a href="../dist/staff_field_jobs_tomorrow.txt">Text</a><a href="../shots/staff_field_jobs_tomorrow.desktop.png">Desktop</a><a href="../shots/staff_field_jobs_tomorrow.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/staff_pay_statement.html"><img loading="lazy" src="../shots/staff_pay_statement.desktop.png" alt="Screenshot of staff_pay_statement"></a><div class="b">
+<div class="code">staff_pay_statement</div><div class="sub">Your pay statement: Oct 18 to Oct 31, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An Admin records the payment of a field staff member's pay for a two-week pay period (Admin &gt; Money &gt; Field pay &gt; Pay run &gt; Record the payment; migration 0165), or sends the statement again. One email to that staff member, at their own address, with the figures of their pay statement (the PDF is in My hours).</div>
+<div class="ln"><a href="../dist/staff_pay_statement.html">HTML</a><a href="../dist/staff_pay_statement.txt">Text</a><a href="../shots/staff_pay_statement.desktop.png">Desktop</a><a href="../shots/staff_pay_statement.phone.png">Phone</a></div>
 </div></div>
 </div>
 <h2 id="insurer">Insurer (billing contact) (1)</h2>
