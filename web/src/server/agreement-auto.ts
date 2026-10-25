@@ -71,6 +71,6 @@ export async function chargePeriod(bookingId: string, seq: number): Promise<bool
       metadata: { booking_id: bookingId, purpose: 'period_charge', payment_id: b.payment_id, covers: 'balance' }, idempotencyKey: b.idempotency_key! });
     ok = i.status === 'succeeded'; intent = i.id; charge = i.chargeId; error = ok ? undefined : i.lastError ?? 'The card was declined.';
   } catch (e) { error = e instanceof Error ? e.message : 'The card could not be charged.'; }
-  await rpc('server_period_charge_finish', { p_booking: bookingId, p_seq: seq, p_ok: ok, p_error: error ?? null, p_intent: intent ?? null, p_charge: charge }, SR);
+  await rpc('server_period_charge_finish', { p_booking: bookingId, p_seq: seq, p_ok: ok, p_error: error, p_intent: intent, p_charge: charge ?? undefined }, SR);
   return ok;
 }
