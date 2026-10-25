@@ -29,9 +29,9 @@ def build():
     g.task('Read an investment')
     g.steps([
         f'The tabs: {B("Investments")}, {B("Statements")}, {B("Documents to sign")}, {B("Investor deck")} (while CarmaCars shares it) and {B("Profile and notices")}. {B("Guide")} and {B("Sign out")} are at the top.',
-        'Your agreement number and name.',
-        'Invested Amount, Principal, what was reinvested and redeemed to date, and the Yearly Percentage.',
-        'Investment Date, Lockup End Date, how Returns are handled (Paid monthly or Reinvested) and the Next Payment Date.',
+        'Your agreement number and name, your Invested Amount, the Returns paid to date (or reinvested) and the next payment, with a chart of your account month by month.',
+        'Each investment: its Invested Amount, how far the lockup period has run, the Yearly Percentage, how Returns are handled (Paid monthly or Reinvested) and the Next Payment Date. Principal, what was reinvested and redeemed to date, the Investment Date and the Lockup End Date are under "Principal, dates and amounts to date".',
+        'Payment schedule: the last Returns on your statements and the next ones. An amount that is not on a statement yet is marked Estimated.',
         f'Latest statement, with {B("Open")}.',
     ], shot=S('investor/01-investments-phone', 0, 595, 390, 1330, pins=[(1, 380, 650), (2, 300, 760), (3, 360, 830), (4, 360, 1105), (5, 360, 1300)]))
     g.tip('This area shows your records under your Investment Agreement. It is not an offer or a solicitation.')

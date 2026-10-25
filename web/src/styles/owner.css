@@ -120,3 +120,47 @@
 .ob-choice__total { align-self: end; margin: 0 0 0.6rem; }
 .ob-fee .input { flex: 1 1 10rem; }
 .ob-fee .input--sm { flex: 0 1 7rem; }
+
+/* owner portal design (October 24, 2026): the hero's cars, the months, the car page's photo */
+.ow-photo-none { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: var(--s-2); background: linear-gradient(135deg, var(--grey-900), var(--black)); color: var(--grey-400); font-size: var(--fs-xs); font-weight: 600; text-align: center; padding: var(--s-3); }
+.ow-photo-none svg { width: 2.5rem; height: 2.5rem; color: var(--grey-600); }
+.ow-hero-cars { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); grid-template-columns: minmax(0, 1fr); height: 100%; }
+.ow-hero-cars[data-count="2"], .ow-hero-cars[data-count="3"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ow-hero-cars[data-count="3"] > li:first-child { grid-column: 1 / -1; }
+.ow-hero-car { min-width: 0; }
+.ow-hero-car__link { position: relative; display: block; height: 100%; min-height: 9rem; border-radius: var(--pu-radius-sm); overflow: hidden; background: var(--grey-900); color: var(--white); text-decoration: none; isolation: isolate; }
+.ow-hero-cars[data-count="3"] > li:first-child .ow-hero-car__link, .ow-hero-cars[data-count="1"] .ow-hero-car__link { min-height: 13rem; }
+.ow-hero-car__link img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
+.ow-hero-car__link .ow-photo-none { z-index: -2; }
+.ow-hero-car__shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgb(0 0 0 / 0.05) 30%, rgb(0 0 0 / 0.82)); }
+.ow-hero-car__link .pu-pill { position: absolute; left: var(--s-3); top: var(--s-3); }
+.ow-hero-car__name { position: absolute; left: var(--s-3); right: var(--s-3); bottom: var(--s-3); font-family: var(--font-display); font-weight: 700; line-height: 1.15; display: grid; gap: 0.1rem; overflow-wrap: anywhere; }
+.ow-hero-cars[data-count="2"] .ow-hero-car__name, .ow-hero-cars[data-count="3"] > li:not(:first-child) .ow-hero-car__name { font-size: var(--fs-sm); }
+.ow-hero-cars[data-count="2"] .ow-hero-car__link, .ow-hero-cars[data-count="3"] > li:not(:first-child) .ow-hero-car__link { min-height: 10.5rem; }
+.ow-hero-car__name small { font-family: var(--font-text); font-weight: 500; font-size: var(--fs-2xs); color: var(--grey-300); letter-spacing: 0.04em; }
+.ow-hero-car__link:focus-visible { outline: 3px solid var(--white); outline-offset: 2px; }
+.ow-hero-more a { display: grid; place-items: center; height: 100%; min-height: 44px; border: 1px dashed rgb(255 255 255 / 0.35); border-radius: var(--pu-radius-sm); color: var(--white); font-weight: 600; text-decoration: none; }
+.ow-hero-spark { display: block; color: var(--red-400); width: 7rem; height: 1.6rem; margin-top: 0.3rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .ow-hero-car__link img { transition: transform 700ms var(--ease); }
+  .ow-hero-car__link:hover img { transform: scale(1.04); }
+}
+.ow-months__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); flex-wrap: wrap; }
+.pu-seg.ow-months__cars { background: none; padding: 0; gap: var(--s-2); border-radius: 0; }
+.pu-seg.ow-months__cars button { border: 1px solid var(--grey-300); background: var(--white); }
+.pu-seg.ow-months__cars button[aria-pressed="true"] { background: var(--black); color: var(--white); border-color: var(--black); box-shadow: none; }
+.ow-months__car { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: inherit; text-align: left; cursor: pointer; text-decoration: underline; text-decoration-color: var(--grey-300); text-underline-offset: 3px; min-height: 32px; }
+.ow-months__car:hover { text-decoration-color: currentColor; }
+.ow-months__car:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.ow-money-tiles .pu-stat__value { font-size: var(--fs-d4); }
+.pu-stats.ow-money-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ow-st-stats, .ow-pay-stats { align-content: start; }
+@media (min-width: 64rem) { .pu-stats.ow-st-stats { grid-template-columns: minmax(0, 1fr); } .pu-stats.ow-pay-stats { grid-template-columns: repeat(2, minmax(0, 18rem)); } }
+.ow-car-hero { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); align-items: end; }
+.ow-car-hero__media { position: relative; aspect-ratio: 16 / 9; border-radius: var(--pu-radius); overflow: hidden; background: var(--grey-100); box-shadow: var(--pu-shadow); }
+.ow-car-hero__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ow-car-hero__media .pu-pill { position: absolute; left: var(--s-3); top: var(--s-3); }
+.ow-car-hero__text { display: grid; gap: var(--s-2); min-width: 0; }
+.ow-car-hero__text h1 { margin: 0; overflow-wrap: anywhere; }
+@media (min-width: 64rem) { .ow-car-hero { grid-template-columns: minmax(0, 28rem) minmax(0, 1fr); gap: var(--s-6); } }
+.pu-next { border-radius: var(--pu-radius); }

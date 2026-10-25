@@ -1,7 +1,11 @@
 import Link from 'next/link';
 import { money, pct } from '@/lib/format';
 import { when } from '@/features/agreement/model';
-import { debitLine, invoiceStatus, invoiceTitle, MODE_LABEL, ONBOARDING_STATUS, type ChecklistItem, type OwnerInvoiceRow, type OwnerVehicle } from './types';
+import { CarImage } from '@/components/Picture';
+import { DocumentList, DocumentRow, PuIcon } from '@/components/portal-ui';
+import type { Photo } from '@/lib/types';
+import type { Live, MonthCar } from './insights';
+import { debitLine, invoiceStatus, invoiceTitle, MODE_LABEL, ONBOARDING_STATUS, type ChecklistItem, type OwnerBooking, type OwnerInvoiceRow, type OwnerVehicle } from './types';
 
 // Server-rendered pieces of the owner portal. Money is shown exactly as the database stored it.
 export const day = (iso: string | null | undefined) => (iso ? when(`${iso.slice(0, 10)}T12:00:00Z`, false) : '');
@@ -24,24 +28,47 @@ export function Checklist({ items: all, trackers = true }: { items: ChecklistIte
   );
 }
 
-export function VehicleCard({ v, compact = false, trackers = true }: { v: OwnerVehicle; compact?: boolean; trackers?: boolean }) {
+/** The car's photo, or a quiet dark panel with its name when it has none yet. */
+export function CarPhoto({ photo, name, eager = false }: { photo: Photo | null | undefined; name: string; eager?: boolean }) {
+  return photo ? <CarImage p={photo} alt="" sizes="(min-width: 64rem) 30vw, 100vw" width={900} height={600} eager={eager} />
+    : <span className="ow-photo-none" aria-hidden="true"><PuIcon name="car" /><span>{name}</span></span>;
+}
+
+export interface CarExtras { photo?: Photo | null; live?: Live; month?: MonthCar | null; next?: OwnerBooking | null }
+
+export function VehicleCard({ v, compact = false, trackers = true, photo, live, month, next }: { v: OwnerVehicle; compact?: boolean; trackers?: boolean } & CarExtras) {
   const status = v.onboarding_status && v.onboarding_status !== 'enrolled' ? ONBOARDING_STATUS[v.onboarding_status] ?? v.onboarding_status : v.status.replace(/_/g, ' ');
+  const enrolled = live && live.key !== 'onboarding';
   return (
-    <li className="ow-car" data-testid="owner-vehicle">
-      <div className="ow-car__head">
-        <h3 className="ow-car__name"><Link href={`/owner/vehicles/${v.vehicle_id}`}>{v.name}</Link></h3>
-        <span className="badge badge--outline">{status}</span>
+    <li className="pu-car ow-car" data-testid="owner-vehicle" data-live={live?.key}>
+      <div className="pu-car__media">
+        <CarPhoto photo={photo} name={v.name} />
+        <span className={`pu-pill pu-pill--${live?.tone ?? 'muted'} pu-car__pill`} data-testid="vehicle-live">{live?.label ?? status}</span>
       </div>
-      <p className="small muted">{[v.plate, MODE_LABEL[v.management_mode] ?? v.management_mode, v.insurance_fee_cents !== null ? (trackers ? `${money(v.insurance_fee_cents)} insurance, ${money(v.tracker_fee_cents)} tracker a month` : `${money(v.insurance_fee_cents)} insurance a month`) : null, v.revenue_share_bps !== null && v.management_mode !== 'self_managed' ? `${pct(v.revenue_share_bps)} Revenue Share` : null].filter(Boolean).join(' · ')}</p>
-      {v.next && (
-        <div className={`ow-car__next${v.next.waits_on === 'owner' ? '' : ' is-ours'}`}>
-          <b>{v.next.waits_on === 'owner' ? 'Your next step' : 'Next step'}: {v.next.item}</b>
-          {v.next.action && <span>{v.next.action}</span>}
-          <span className="xs muted">{WAITS[v.next.waits_on] ?? v.next.waits_on}</span>
+      <div className="pu-car__body">
+        <div className="ow-car__head">
+          <h3 className="ow-car__name"><Link href={`/owner/vehicles/${v.vehicle_id}`} className="pu-car__link">{v.name}</Link></h3>
+          {live?.key === 'onboarding' && <span className="badge badge--outline">{status}</span>}
         </div>
-      )}
-      {!compact && v.checklist && <Checklist items={v.checklist} trackers={trackers} />}
-      {compact && v.checklist && <p className="small"><Link href={`/owner/vehicles/${v.vehicle_id}`}>Every step for this vehicle</Link></p>}
+        <p className="small muted">{[v.plate, MODE_LABEL[v.management_mode] ?? v.management_mode, v.insurance_fee_cents !== null ? (trackers ? `${money(v.insurance_fee_cents)} insurance, ${money(v.tracker_fee_cents)} tracker a month` : `${money(v.insurance_fee_cents)} insurance a month`) : null, v.revenue_share_bps !== null && v.management_mode !== 'self_managed' ? `${pct(v.revenue_share_bps)} Revenue Share` : null].filter(Boolean).join(' · ')}</p>
+        {enrolled && month && (
+          <dl className="pu-car__stats" aria-label="This month">
+            <div><dt>Days rented</dt><dd>{month.days}</dd></div>
+            <div><dt>Bookings</dt><dd>{month.bookings}</dd></div>
+            <div><dt>Rental charges</dt><dd>{money(month.rental_cents)}</dd></div>
+          </dl>
+        )}
+        {enrolled && next !== undefined && <p className="pu-car__next small">{next ? <><PuIcon name="clock" /><span>{next.status === 'on_rent' ? 'On rent until' : 'Next booking'} <b>{when(next.status === 'on_rent' ? next.return_at : next.pickup_at)}</b></span></> : <span className="muted">No booking coming up</span>}</p>}
+        {v.next && (
+          <div className={`ow-car__next${v.next.waits_on === 'owner' ? '' : ' is-ours'}`}>
+            <b>{v.next.waits_on === 'owner' ? 'Your next step' : 'Next step'}: {v.next.item}</b>
+            {v.next.action && <span>{v.next.action}</span>}
+            <span className="xs muted">{WAITS[v.next.waits_on] ?? v.next.waits_on}</span>
+          </div>
+        )}
+        {!compact && v.checklist && <Checklist items={v.checklist} trackers={trackers} />}
+        {compact && v.checklist && <p className="small pu-car__more"><Link href={`/owner/vehicles/${v.vehicle_id}`}>Every step for this vehicle</Link></p>}
+      </div>
     </li>
   );
 }
@@ -49,20 +76,19 @@ export function VehicleCard({ v, compact = false, trackers = true }: { v: OwnerV
 export function InvoiceRows({ items, empty = 'No invoices yet.' }: { items: OwnerInvoiceRow[]; empty?: string }) {
   if (!items.length) return <p className="pt-empty muted">{empty}</p>;
   return (
-    <ul className="ow-rows" data-testid="invoice-rows">
+    <DocumentList testId="invoice-rows" label="Invoices">
       {items.map((i) => {
         const s = invoiceStatus(i);
+        const debit = debitLine(i.debit, day, (c) => money(c, { cents: true }));
         return (
-          <li key={i.id} data-testid="invoice-row" data-invoice={i.invoice_number}>
-            <Link className="ow-row-link" href={invoicePath(i.invoice_number)}>{i.invoice_number} · {invoiceTitle(i, monthOf)}</Link>
-            <span className="ow-amount">{money(i.total_cents, { cents: true })}</span>
-            <span className="ow-meta"><span>{i.vehicle_name}</span><span>Issued {day(i.billing_date)}</span><span className={`badge ${s.badge}`} data-testid="invoice-status">{s.label}</span>
-              {i.payable && <Link className="btn btn--primary btn--sm" href={invoicePath(i.invoice_number)}>Pay now</Link>}</span>
-            {debitLine(i.debit, day, (c) => money(c, { cents: true })) && <span className="ow-meta small" data-testid="invoice-debit">{debitLine(i.debit, day, (c) => money(c, { cents: true }))}</span>}
-          </li>
+          <DocumentRow key={i.id} testId="invoice-row" dataAttrs={{ 'data-invoice': i.invoice_number }} href={invoicePath(i.invoice_number)} badge="INV" accent={i.payable}
+            title={`${i.invoice_number} · ${invoiceTitle(i, monthOf)}`}
+            meta={<><span>{i.vehicle_name}</span><span>Issued {day(i.billing_date)}</span>{debit && <span data-testid="invoice-debit">{debit}</span>}</>}
+            amount={money(i.total_cents, { cents: true })}
+            status={<span className={`badge ${s.badge}`} data-testid="invoice-status">{s.label}</span>}
+            action={i.payable ? <Link className="btn btn--primary btn--sm" href={invoicePath(i.invoice_number)}>Pay now</Link> : undefined} />
         );
       })}
-    </ul>
+    </DocumentList>
   );
 }
-

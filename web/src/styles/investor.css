@@ -1,0 +1,28 @@
+/* The investor portal's design (October 24, 2026): the hero's growth chart, the investment cards, the deck tile. */
+.iv-frame { max-width: 45rem; }
+@media (min-width: 64rem) { .pt .iv-frame:has(.iv-home) { max-width: 80rem; } }
+.iv-hero-chart { display: grid; gap: var(--s-3); min-width: 0; padding: var(--s-4); border-radius: var(--pu-radius-sm); background: rgb(255 255 255 / 0.04); border: 1px solid var(--pu-line-ink); }
+.iv-hero-chart .pu-area__grid { stroke: rgb(255 255 255 / 0.12); }
+.iv-hero-chart .pu-area__tick { fill: var(--grey-400); }
+.iv-hero-chart .pu-area__line { stroke: var(--white); }
+.iv-hero-chart .pu-area__line--accent { stroke: var(--red-400); }
+.iv-hero-chart .pu-area__line--dash { stroke: var(--grey-400); }
+.iv-hero-chart .pu-area__dot { fill: var(--black); stroke: var(--white); }
+.iv-hero-chart .pu-legend { color: var(--grey-400); }
+.iv-hero-chart .pu-legend i { background: var(--white); }
+.iv-hero-chart .pu-legend i.is-accent { background: var(--red-400); }
+.iv-hero-chart .pu-legend i.is-dash { background: repeating-linear-gradient(90deg, var(--grey-400) 0 4px, transparent 4px 7px); }
+.iv-hero-chart .pu-eyebrow { color: var(--grey-400); }
+.iv-inv__head { display: flex; justify-content: space-between; align-items: center; gap: var(--s-4); }
+.iv-inv__head > div { min-width: 0; }
+.iv-inv__head h2 { display: grid; gap: 0.2rem; margin: 0; font-weight: 600; font-size: var(--fs-sm); color: var(--text-2); }
+.iv-inv__amount { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-d3); color: var(--text); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.iv-inv .pu-ring__label svg { width: 1.2rem; height: 1.2rem; }
+.iv-deck { position: relative; overflow: hidden; isolation: isolate; }
+.iv-deck::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(90% 80% at 100% 0%, rgb(208 17 27 / 0.35), transparent 60%); }
+.iv-deck h2 { margin: 0; }
+.iv-deck__figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); }
+.iv-deck .pu-stat__label { color: var(--grey-400); }
+.iv-deck__cta { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--white); color: var(--black); border-color: var(--white); }
+.iv-deck__cta:hover { background: var(--grey-100); border-color: var(--grey-100); color: var(--black); }
+.iv-deck__cta svg { width: 1rem; height: 1rem; }
