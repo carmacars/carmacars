@@ -75,7 +75,7 @@ export function AgreementActions({ booking, refresh, waiting, finance, disputes,
         {finance && <button className="btn btn--quiet btn--sm" type="button" disabled={pending} onClick={() => act(() => disputePackBuild(booking, refresh), 'The evidence pack is being built; it shows here in a minute.')} data-testid="dispute-pack-build">Build the dispute evidence pack</button>}
       </div>
       {disputes.map((d) => <p key={d.id} className="small" data-testid="dispute-pack">Dispute evidence pack: {d.status}{d.built_at ? `, built ${d.built_at.slice(0, 16).replace('T', ' ')}` : ''}{d.submitted_at ? `, submitted ${d.submitted_at.slice(0, 10)}` : ''}.
-        {d.document_id && <> <a className="link" href={`${docBase}/${d.document_id}`} target="_blank" rel="noreferrer">Download</a></>}
+        {docBase && d.document_id && <> <a className="link" href={`${docBase}/${d.document_id}`} target="_blank" rel="noreferrer">Download</a></>}
         {finance && d.status === 'staged' && <> <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={() => act(() => disputePackSubmit(booking, d.id, refresh), 'Submitted to Stripe.')} data-testid="dispute-pack-submit">Submit to Stripe</button></>}
         {d.error && <span className="error"> {d.error}</span>}</p>)}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}

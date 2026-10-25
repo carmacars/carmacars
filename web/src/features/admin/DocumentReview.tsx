@@ -50,6 +50,7 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
   const [d, setD] = useState<DocReview | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  const changed = useRef(false);
   const reload = async () => { const again = await docReviewLoad(booking); if (again.ok) setD(again.data); };
   const load = () => start(async () => { const r = await docReviewLoad(booking); if (r.ok) { setD(r.data); setMsg(null); } else setMsg({ ok: false, text: r.message }); });
   const act = (action: 'doc_review_upload' | 'doc_review_coverage' | 'doc_review_plan', p: Record<string, unknown>, done: string) => start(async () => {
@@ -57,7 +58,7 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
     if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
     await reload();
     setMsg({ ok: true, text: done });
-    router.refresh();
+    changed.current = true;
   });
   const approveAll = () => start(async () => {
     const r = await guidedAct<{ approved: number; refused: Array<{ item: string; message: string }> }>('doc_review_approve_all', { booking }, refresh);
@@ -67,7 +68,7 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
     setMsg(r.data.refused.length
       ? { ok: false, text: `${n} approved. Not approved: ${r.data.refused.map((x) => `${x.item} (${x.message.replace(/^.*?ERROR:\s*/, '')})`).join('; ')}.` }
       : { ok: true, text: `${n} approved.` });
-    router.refresh();
+    changed.current = true;
   });
   const cov = d?.coverage ?? null;
   const cp = cov?.proof ?? null;
@@ -79,7 +80,7 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
     <>
       <button className={`btn btn--sm ${variant === 'primary' ? 'btn--primary' : 'btn--ghost'}`} type="button" aria-haspopup="dialog" data-testid="doc-review-open"
         onClick={() => { setD(null); setMsg(null); dlg.current?.showModal(); load(); }}>{label}</button>
-      <dialog ref={dlg} className="ad-dialog gd-dialog--wide" aria-labelledby={`${idp}-t`} data-testid="doc-review-dialog">
+      <dialog ref={dlg} className="ad-dialog gd-dialog--wide" aria-labelledby={`${idp}-t`} data-testid="doc-review-dialog" onClose={() => { if (changed.current) { changed.current = false; router.refresh(); } }}>
         <div className="gd-dialog__head">
           <h2 className="d4" id={`${idp}-t`}>Renter documents, booking {booking}</h2>
           <button className="btn btn--quiet btn--sm" type="button" onClick={() => dlg.current?.close()}>Close</button>

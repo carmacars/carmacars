@@ -115,6 +115,8 @@ test('field pay: clock in and out on the phone, Fleet sees the hours, an Admin r
   await expect(ap.getByTestId('pay-lines')).toContainText('$153.00');
   await ap.getByTestId('run-approve').click();
   await ap.getByTestId('run-approve-submit').click();
+  // the approval re-makes the lines (new ids): read them only once the run shows as approved
+  await expect(ap.getByTestId('pay-run')).toContainText('Pay run: approved', { timeout: 30_000 });
   const [line] = await sql`select l.id from field_pay_lines l join field_pay_runs r on r.id = l.run_id where l.staff_id = ${bob.id} and r.period_start = ${prev}::date and r.status <> 'void'`;
   await expect(ap.getByTestId(`pay-${line!.id}`)).toBeVisible({ timeout: 30_000 });
   await expect(ap.getByTestId(`statement-${line!.id}`)).toContainText('PS-');

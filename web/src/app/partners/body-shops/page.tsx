@@ -7,7 +7,7 @@ export const revalidate = 3600;
 const V = VARIANTS['body-shops'];
 export async function generateMetadata() {
   return seoMeta({ title: 'Referral program for body shops | CarmaCars', path: V.path,
-    description: 'Send customers who need a rental car to CarmaCars and earn a fee on every rental that is completed and paid. Free to join, approved by a person, paid by e-Transfer or cheque.' });
+    description: 'Body shops: send customers who need a rental car to CarmaCars and earn a fee on every rental that is completed and paid. Free to join, paid by e-Transfer or cheque.' });
 }
 export default async function Page() {
   const p = ((await rpc('referral_program_public', {}, { role: 'anon' }).catch(() => null)) as unknown as { flat_cents: number } | null) ?? { flat_cents: 5000 };
