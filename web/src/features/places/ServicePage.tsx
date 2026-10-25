@@ -8,7 +8,9 @@ import { getSettings, replyText, siteUrl } from '@/lib/site';
 import { isAutoService } from './copy';
 import { getPlaceRoots, getShopServices, getTerms, hubPath, placesKnown } from './data';
 import { PlaceLeadForm } from './PlaceLeadForm';
+import { genericPhoto, photoLd, StockFigure } from '@/features/vehicles/photo';
 import '@/styles/seo.css';
+import '@/styles/vehicles.css';
 
 // /detailing and /body-shop (migration 0095): the services CarmaCars offers, a starting price only when an Admin set
 // one, the area we work in, a request, and rentals first: a car to drive while yours is with us.
@@ -33,7 +35,8 @@ export async function serviceMeta(v: 'detailing' | 'bodyshop') {
 }
 
 export async function ServicePage({ v }: { v: 'detailing' | 'bodyshop' }) {
-  const [d, roots, s, known, terms] = await Promise.all([getShopServices(v), getPlaceRoots(), getSettings(), placesKnown(['toronto']).catch(() => [] as string[]), getTerms()]);
+  const [d, roots, s, known, terms, photo] = await Promise.all([getShopServices(v), getPlaceRoots(), getSettings(), placesKnown(['toronto']).catch(() => [] as string[]), getTerms(),
+    genericPhoto(v, COPY[v].path)]);
   // 0121: the mechanical work we arrange with a trusted shop (never ours), linked from the body shop page
   const arranged = v === 'bodyshop' ? terms.filter(isAutoService) : [];
   // the place pages for Toronto only once the places are loaded (an empty places table has none)
@@ -43,7 +46,8 @@ export async function ServicePage({ v }: { v: 'detailing' | 'bodyshop' }) {
   const vert = v === 'bodyshop' ? 'bodyshop' : 'detailing';
   const graph = [breadcrumbLd(trail, c.path), { '@type': 'ItemList', name: c.h1, itemListElement: d.services.map((x, i) => ({ '@type': 'ListItem', position: i + 1,
     item: { '@type': 'Service', name: x.name, description: x.description, provider: { '@id': `${siteUrl()}/#business` }, areaServed: { '@type': 'City', name: 'Toronto' },
-      ...(x.from_price_cents ? { offers: { '@type': 'Offer', priceCurrency: 'CAD', price: (x.from_price_cents / 100).toFixed(2) } } : {}) } })) }];
+      ...(x.from_price_cents ? { offers: { '@type': 'Offer', priceCurrency: 'CAD', price: (x.from_price_cents / 100).toFixed(2) } } : {}) } })) },
+    ...(photo ? [photoLd(photo, photo.alt ?? undefined)] : [])];
   return (
     <div className="p-landing p-service" data-page={`service-${v}`}>
       <JsonLd graph={graph} />
@@ -52,6 +56,8 @@ export async function ServicePage({ v }: { v: 'detailing' | 'bodyshop' }) {
         <h1 className="d1 landing__h1">{c.h1}</h1>
         <p className="lead muted">{c.lead} We work in the Toronto area, within about {d.reach_km} km of {d.origin.label === 'our location' ? 'our location' : 'central Toronto'}.</p>
         <p className="row landing__cta"><a className="btn btn--primary btn--lg" href="#request">Send a request</a><Link prefetch={false} className="btn btn--ghost btn--lg" href={c.rent[2]}>Rent a car meanwhile</Link></p>
+        {/* 0149: a licensed photo of the kind of work, with its credit */}
+        {photo && <StockFigure p={photo} alt={photo.alt ?? c.label} className="landing__photo" sizes="(min-width: 48rem) 40rem, 100vw" note="Illustrative photo" />}
       </div></section>
       {(() => {
         const priced = d.services.map((x) => x.from_price_cents).filter((x): x is number => !!x);
