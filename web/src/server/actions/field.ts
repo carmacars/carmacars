@@ -27,10 +27,11 @@ export async function fieldAct<T = Record<string, unknown>>(action: typeof ACTIO
     const aal = await sessionAal();
     if (roles.two_step_required && aal !== 'aal2') throw new Error('Two-step sign-in is required.');
     const data = await door<T>(user.id, 'field_do', action, p, aal);
-    // the licence review keeps its own panel (and its message) on screen: its lists are refreshed when it closes
+    // the licence review keeps its own panel (and its message) on screen: any revalidation re-renders this page and, with nothing left
+    // to review, removes the panel; the lists are refreshed when it closes (the office's pages read the database on each visit)
     const quiet = action === 'licence_approve_all' || action === 'licence_reject';
     if (!quiet) revalidatePath('/field');
-    if (['complete_handover', 'complete_return', 'identity_in_person', 'deposit_offline', 'tracker_override', 'licence_approve_all', 'licence_reject'].includes(action)) { revalidatePath('/admin/bookings', 'layout'); revalidatePath('/va/bookings', 'layout'); }
+    if (['complete_handover', 'complete_return', 'identity_in_person', 'deposit_offline', 'tracker_override'].includes(action)) { revalidatePath('/admin/bookings', 'layout'); revalidatePath('/va/bookings', 'layout'); }
     // 0154: the "as picked up" (or closing) copies of both agreements are rendered right after this response
     if (action === 'complete_handover' || action === 'complete_return') kickPdfJobs();
     if (typeof p.job === 'string' && !quiet) revalidatePath(`/field/jobs/${p.job}`);
