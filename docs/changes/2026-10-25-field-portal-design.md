@@ -45,6 +45,17 @@ depended on whether the refresh landed before the suggestions (and on whether th
 intermittent. Now `move-end` opens the panel and only **End the move now** ends the move; the row waits for the field and the
 `fixme` is gone.
 
+Two more field tests that failed on release 9 in CI:
+
+- `web/tests/e2e/field-finance-owner-mtd.spec.ts` (the check-out with the ready check fixed on the phone): after **Hand
+  over the keys** it waited for the finished checklist only, but the server action's refresh reloads the job page as done
+  and can replace it before it is seen; the job shown as done (`job-done`) now counts too, as in `staff.spec.ts`. The
+  booking's pickup and the job also move to a few minutes ahead (they were 10:00 the next day and now + 1 hour), so the
+  job is on today's list at any hour of the run.
+- `web/tests/e2e/handover-signing-licence.spec.ts` (Check out from the job card): the booking's automatic handover job
+  (0151) goes to the least busy field staff member, often the test's new one, and sorted first, so the test opened that
+  job; it now presses **Check out (pickup)** on its own job's card.
+
 ## Guides
 
 `docs/guides/src/guides/field.py`, `docs/guides/content/field.json` and `docs/guides/src/field.html` changed by hand
