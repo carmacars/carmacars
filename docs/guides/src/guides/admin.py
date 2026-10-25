@@ -26,8 +26,8 @@ def build():
 
     # ---------------------------------------------------------------- 1
     g.chapter('Getting around Admin',
-              'Admin opens on To do: the day\'s counts at the top, then what needs you now, most urgent first. The menu groups every screen into six groups: '
-              'Today, Bookings, Cars, People, Money and Settings. The long groups come in labelled parts (for example People: Owners and partners, then Renters, staff and investors). Search finds any booking, car or person, and Ctrl+K jumps to any page.',
+              'Admin opens on To do: the day\'s counts at the top, then what needs you now, most urgent first. The menu groups every screen into seven groups: '
+              'Today, Bookings, Cars, People, Marketing, Money and Settings. The long groups come in labelled parts (for example People: Owners and partners, then Renters, staff and investors). Search finds any booking, car or person, and Ctrl+K jumps to any page.',
               blurb='To do, the menu, search, keyboard shortcuts and your other portals.')
     g.task('To do', 'Start every shift here. Each line says what to do and why, and its button opens a small pop-up that does it, already filled in. Nothing to remember and no menu to search.')
     g.steps([
@@ -46,6 +46,7 @@ def build():
         ['Cars', 'Vehicles, Listings, Maintenance, Rates for many cars, Calendar sync, Similar cars, Retire or delete'],
         ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments by day, Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer rates, Insurer invoices, Staff commissions, Field pay'],
         ['People', 'Owners and partners: Applications, Owners, Add a car for an owner, Partners, Owner forms, Paid and signed. Renters, staff and investors: Renters, Staff, Investors, Portals and view as'],
+        ['Marketing', 'Ads: Listings, Posted ads, Social drafts. Results: Bookings by channel. Owners: Owner recruitment'],
         ['Settings', 'All settings. Website: Site, Vehicle pages, Sample photos, Add-ons, Discount games, Guides. Rules: Program, Forms, Maintenance, Emails. Records: Email log, Audit log'],
     ], head=['Group', 'Pages'])
     g.figure(S('admin/31-menu-phone', 0, 595, 390, 1250, pins=[(1, 40, 740), (2, 300, 838), (3, 300, 880)]), note='On a phone: press Menu (1), then a group (2), then the page (3).')
@@ -1225,6 +1226,69 @@ def build():
         f'The page shows clicks by place and month and the latest clicks. RentalCoverage reports the sales, not the site: when they pay you, press {B("Add a payment received")} with the date, amount and reference.',
     ])
 
+    # ---------------------------------------------------------------- advertising and owner recruitment (0167)
+    g.chapter('Advertising and owner recruitment',
+              'Marketing writes the text of every ad from the car\'s own record, keeps track of where each ad is posted, tells the sales assistants when an ad needs updating, shows which channels bring bookings, drafts the week\'s Facebook Page and Instagram posts and keeps the consent log for owner recruitment. Nothing is posted by the server: you post by hand, and Facebook Marketplace from the owner\'s own profile.',
+              blurb='Ad text for each car and channel, posted ads and their update tasks, bookings by channel, social drafts, Meta publishing, owner recruitment and its consent log.')
+    g.task('Write an ad', f'{P("Marketing", "Listings")}.')
+    g.steps([
+        f'Choose the car and the channel (Facebook Marketplace, Kijiji, Craigslist, Instagram, Facebook Page or Google Business Profile) and press {B("Write it")}.',
+        'Copy each part with its button: the title, the price line, the description (or caption), the hashtags and the tracked link. Each shows its length against the channel\'s limit (a Kijiji title takes 64 characters, Craigslist 70, an Instagram caption 2,200, a Google post 1,500).',
+        'Add the photos in the order shown: the first is the cover. Open a photo to save it.',
+        f'Post the ad on the site, then press {B("Mark as posted")} and paste its address and the date.',
+    ])
+    g.bullets([
+        'The text comes from the car\'s record only: the rates, kilometres, deposit, delivery fee, who may rent it and the car code. A fact the record does not have is left out. No review, rating or claim is added.',
+        'The tracked link opens the car\'s page with utm_source (the channel), utm_medium and utm_campaign (the car code), so the request counts under that channel.',
+        'A warning shows when the car does not take requests, has no daily rate, or shows sample photos (take real photos first: an ad shows the car itself).',
+        'Facebook Marketplace is posted from the owner\'s own Facebook profile in their browser: Meta does not take vehicle listings from business Pages. Kijiji takes one ad per car, in one category and one region. An Instagram caption cannot hold a working link: put it in the bio or a story link sticker.',
+    ])
+    g.task('When an ad needs updating', f'{P("Marketing", "Posted ads")}, or the task in {P("Today", "Staff tasks")}.')
+    g.steps([
+        'A change of 3% or more in a car\'s daily, weekend, weekly or 30-day rate, any change of its deposit, kilometres, extra-km price or delivery fee, or the car leaving the site marks each of its live ads Needs updating and opens a task for the sales assistants (for example Update the Kijiji ad and the car). The task says what changed, the new price line and the ad\'s address.',
+        f'Press {B("New text")}, copy the new text and update the ad on the site.',
+        f'Press {B("Mark the ad updated")}. The task closes. Closing the task in Staff tasks counts too.',
+        f'Car off the site: take the ad down and press {B("Taken down")}. If the car comes back at the same rates first, the task is cancelled by itself.',
+    ])
+    g.tip(f'The 3% is under {P("Settings", "Program")}, Advertising and owner recruitment. The rates are checked again every 6 hours, so a rate dated ahead is caught on its day.', label='Good to know')
+    g.task('Bookings by channel', f'{P("Marketing", "Bookings by channel")}.')
+    g.bullets([
+        'Every request of the dates chosen counts once: under the source staff set on the booking, else the renter\'s visit (the campaign source of a tracked link, or the site they came from), else a referral code, else how it reached us (phone, email, WhatsApp).',
+        'Choose the last visit before the request or the first visit. A booking is a request that was confirmed, paid or completed; revenue is its rental charge after discounts. The months add up to the Bookings list.',
+        'The visit is kept with the request when it is sent, so the source outlives the 90 days of visit history. A visitor who refused analytics cookies has no source.',
+        f'On a booking, the line Came from shows the source. Press {B("Set")} to give it by hand when the renter told you (a Kijiji reply, a walk-in, word of mouth).',
+    ])
+    g.task('Facebook Page and Instagram drafts', f'{P("Marketing", "Social drafts")}.')
+    g.steps([
+        f'The week\'s drafts are written from the fleet every 6 hours, for this week and the next: Monday a new car (published in the last 14 days) or a featured one; Tuesday the owner program; Thursday the cars free this weekend; Friday the requirements (Instagram); Sunday a price highlight or a seasonal trip (Facebook Page). Press {B("Write drafts for this week")} to write them now.',
+        f'Read each draft. Press {B("Edit")} to change the caption, the channels or the day, then {B("Approve")}; or press {B("Skip")}.',
+        f'Copy the caption for each channel (on the Facebook Page the tracked link is in the text; for Instagram copy the link for the bio), post it with the photos shown, then press {B("Posted on Instagram")} or {B("Posted on Facebook Page")} and paste the post\'s address.',
+    ])
+    g.bullets([
+        'Wednesday\'s walkaround video and Saturday\'s handover story are filmed by field staff. No renter is shown without written consent.',
+        f'Press {B("Add a post of your own")} at the bottom of the week for anything else.',
+    ])
+    g.task('Meta publishing (off until set up)', f'{P("Settings", "Meta publishing")}. Until it is on, every post is copied and posted by hand.')
+    g.steps([
+        'Make the Instagram account a professional account and link it to the CarmaCars Facebook Page.',
+        'At developers.facebook.com, create a Business app owned by the CarmaCars business portfolio. Give it the permissions pages_show_list, pages_read_engagement, pages_manage_posts, instagram_basic and instagram_content_publish, and make a long-lived Page access token. Meta may ask for App Review before posts are public.',
+        f'Press {B("Enter the details")}: the Page id, the Instagram account id and the token. The token goes to the vault; the page shows only its last four characters.',
+        f'Press {B("Switch on")}. Approved drafts then go out on their day and their post links are recorded; a refusal shows on the draft. Press {B("Switch off")} or {B("Remove the token")} at any time.',
+    ])
+    g.task('Owner recruitment', f'{P("Marketing", "Owner recruitment")}.')
+    g.para('Owners and co-hosts are found in classified ads. The anti-spam law (CASL) does not cover a live phone call, but an email or a text needs consent, names the sender and offers an unsubscribe. The lawyer confirms the approach before outreach starts.')
+    g.steps([
+        f'Press {B("Add a lead")}: paste the ad\'s address, choose who is selling (a private seller, a dealer or a rental business) and type the name, the phone and the car from the ad. Nothing is collected from the classified site.',
+        f'Call them with the script on the lead\'s page and press {B("Log the call")}. A yes needs their words ("Yes, text me the details"): they become express consent in the log. A no means do not contact, ever.',
+        f'When the lead\'s page says email or text is allowed, choose a template, check the words and press {B("Send")}. The email adds CarmaCars\' name, mailing address and the unsubscribe link; the text ends with "Reply STOP to opt out." Texts wait for 8 am during quiet hours.',
+    ])
+    g.bullets([
+        f'Press {B("Record consent")} for consent given another way: express (with its proof), implied by their inquiry (6 months), implied by a business relationship (2 years), a business address published with no "no solicitation" note (never a private seller), or one message after a referral (naming the referrer).',
+        'The consent log is never edited: a change is a new line. An unsubscribe or a STOP reply adds a withdrawal by itself, and nothing more goes on that channel.',
+        f'A message without consent is refused with the reason. {P("Settings", "Program")} has a switch that stops all recruitment messages.',
+    ])
+    g.tip('Keep the proof of an oral yes: a recording, or a note written during the call with the time. Consent you cannot show does not count.', label='Watch out')
+
     # ---------------------------------------------------------------- 9
     g.chapter('Search: car pages, landing pages and guides',
               'The text of every car page, the landing pages for each area and way of renting, and the guides are written '
@@ -1666,6 +1730,7 @@ def build():
                   ('Cars', 'Vehicles, listings, calendar sync, sample photos'),
                   ('Money', 'Owner invoices and debits, payments, statements, tolls'),
                   ('People', 'Applications, owners, partners, owner forms; renters, staff, investors, View as'),
+                  ('Marketing', 'Ad text for each channel, posted ads, social drafts, bookings by channel, owner recruitment'),
                   ('Settings', 'Site, program, forms, guides, emails, audit log')],
         top_tasks=[('Answer an application', f'{P("People", "Applications")}, then {B("Approve")}, {B("Ask for something")} or {B("Decline")}'),
                    ('Send an offer', f'{P("Bookings", "Requests")}, the booking, then {B("Send the offer")}'),

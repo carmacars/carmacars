@@ -16,8 +16,9 @@ import { acceptCookies, db, noOverflow, pdfText, strongSign } from './helpers';
 const SHOTS = 'test-results/legal-admin-redesign';
 const PW = 'correct horse battery';
 const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
-// six groups since October 23, 2026 (People holds owners and partners, then renters, staff and investors)
-const GROUPS = ['Today', 'Bookings', 'Cars', 'People', 'Money', 'Settings'];
+// six groups since October 23, 2026 (People holds owners and partners, then renters, staff and investors); Marketing since
+// October 25, 2026 (0167)
+const GROUPS = ['Today', 'Bookings', 'Cars', 'People', 'Marketing', 'Money', 'Settings'];
 type Sql = ReturnType<typeof db>;
 mkdirSync(SHOTS, { recursive: true });
 
@@ -101,7 +102,7 @@ test('admin: To do, the six groups, search, the keyboard, Admin access only for 
   await expect(page.getByTestId('todo-returns')).toBeVisible();
   await check(page, 'To do');
   await shot(page, 'todo');
-  // the menu: six groups with plain names, the current one open
+  // the menu: seven groups with plain names, the current one open
   await openMenu(page);
   const nav = page.getByTestId('admin-nav');
   for (const g of GROUPS) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();

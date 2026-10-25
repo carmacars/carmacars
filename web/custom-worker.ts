@@ -190,6 +190,8 @@ const worker = {
     if (due.phone) run('/api/jobs/phone');
     // the Google reviews sync of the review request program (migration 0138), every 6 hours while connected
     if (due.reviews) run('/api/jobs/reviews');
+    // the ads job (migration 0167): posted ads checked against the rates, the week's social drafts, Meta publishing when on
+    if (due.ads) run('/api/jobs/ads');
     // a car put on or taken off the site in the database alone (0070's automatic publishing, a slug changed, a car
     // deleted): the fleet page, home, the model pages and the sitemaps are rebuilt (src/lib/edge/fleet-sig.ts)
     // (only with a tag store: pages served as built from the assets are never rebuilt)
