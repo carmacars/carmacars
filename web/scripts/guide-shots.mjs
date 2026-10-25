@@ -420,6 +420,7 @@ async function renterStory(browser, ids) {
     await shoot(d, 'renter', 'sign-failed', `Debug: ${String(await d.locator('[role="alert"], .error').allInnerTexts().catch(() => '')).slice(0, 300)}`, { step: 98 });
     throw e;
   });
+  await giveLicence(b.id);   // paying needs the licence photos
   // 4. pay (the Stripe form when a server with test keys is given; the local card form otherwise)
   for (const page of P) {
     try {
@@ -440,6 +441,8 @@ async function renterStory(browser, ids) {
     await d.getByRole('button', { name: /^Pay \$/ }).click();
     await d.waitForURL((u) => !u.pathname.endsWith('/pay'), { timeout: 45_000 }).catch(() => problems.push('pay: the fake payment did not finish'));
   }
+  // the screens that follow show the licence photos still to upload
+  await sql`delete from verification_uploads where booking_id = ${b.id}`;
   // 5. confirmed: the booking, documents, verification
   await both(P, 'renter', 'booking-confirmed', `/account/bookings/${number}`, 'A booking: status, progress, pickup details, drivers, documents, price and payments, and what you can do.');
   await both(P, 'renter', 'verify', `/account/bookings/${number}/verify`, 'Before pickup: upload the licence (front and back), a selfie and the proof of coverage.');

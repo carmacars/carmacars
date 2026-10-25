@@ -3,14 +3,14 @@ from lib import Guide, S, B, P, U
 
 def H(key, y1, pins=()):
     """A handover step, cropped to the step itself."""
-    return S(f'field/{key}', 0, 1095, 390, y1, hdr=False, pins=pins)
+    return S(f'field/{key}', 0, 1760, 390, 2110, hdr=False, pins=pins)   # the step starts below the job card; the screen is cut at 2110
 
 
 def build():
     g = Guide(
         key='field', title='Field Portal Guide', short='Field',
         promise='Every handover, return and photo shoot, right on your phone.',
-        cover_shot=S('field/29-handover-09-photos-phone', 0, 595, 390, 1350),
+        cover_shot=S('field/29-handover-09-photos-phone', 0, 1760, 390, 2110),
         audience='field staff', signin_url='carmacars.ca/sign-in?next=/field', lands_on='My jobs, today\'s jobs in order')
 
     g.start_page(
@@ -26,7 +26,7 @@ def build():
             f'Open {B("Profile")}, add your mobile number and press {B("Save my phone")}.',
             f'At the top of the page, fill in your Home address and Postal code and press {B("Save my home address")}. You need it before you add a rental or earn a commission.',
         ],
-        shot=S('field/04-profile-phone', 0, 595, 390, 1165, pins=[(4, 365, 1113)]),
+        shot=S('field/04-profile-phone', 0, 640, 390, 1500, pins=[(4, 360, 1300)]),
         note=f'Recommended: on Profile, press {B("Set up two-step sign-in")} and follow the steps with an authenticator app.')
 
     # ---------------------------------------------------------------- 1
@@ -41,7 +41,7 @@ def build():
         f'The next job is the big card at the top: its time and how long until it, the car and its plate, the place with {B("Open in maps")} and a button to call the renter, and what to put in the car. The rest of the day follows in time order.',
         f'A handover or a return has its own button: {B("Check out (pickup)")} or {B("Check in (return)")}. One tap acknowledges and starts the job and opens its photo checklist. Other jobs: press {B("Open the job")}.',
         'Moving a car that has no job? Use Vehicle moves (see below).',
-    ], shot=S('field/01-today-phone', 0, 595, 390, 2110, pins=[(1, 40, 790), (2, 330, 972), (3, 340, 1120), (4, 340, 1535)]))
+    ], shot=S('field/01-today-phone', 0, 640, 390, 2110, pins=[(1, 355, 810), (2, 350, 1395), (3, 350, 1520), (4, 350, 1930)]))
     g.tip('Need help on a job? Call CarmaCars at 289-312-5991. The link is at the bottom of My jobs.')
 
     g.task('Open a job')
@@ -50,7 +50,7 @@ def build():
         f'The address, with {B("Open in maps")} for directions, and a button to call the renter.',
         'For a handover: the booking, the renter\'s name and phone, the Card on File and the licence on file.',
         f'Press {B("Acknowledge")} so the office knows you have it. Then press {B("Start")} when you are with the car.',
-    ], shot=S('field/02-job-phone', 0, 595, 390, 1170, pins=[(1, 370, 860), (2, 370, 943), (3, 370, 1040), (4, 370, 1131)]))
+    ], shot=S('field/02-job-phone', 0, 640, 390, 2110, pins=[(1, 370, 1100), (2, 370, 1255), (3, 370, 1385), (4, 370, 2045)]))
 
     g.task('Check the renter\'s licence', 'The renter\'s licence photos and selfie are checked before the handover. You can check them yourself, for a booking on one of your own jobs today or in the next 7 days. Everything you do is recorded with your name and "field staff".')
     g.steps([
@@ -87,7 +87,7 @@ def build():
         f'A red line shows what you can do about it right under it (see the next part). Fix it, then press {B("Check again")}.',
         f'All green? Press {B("Next")}.',
         f'Coverage or the calendar not ready? Only the office fixes those: call CarmaCars. Still not ready? Press {B("Stop: do not release the car")}.',
-    ], shot=S('field/21-handover-01-ready-phone', 0, 595, 390, 1530, pins=[(1, 365, 1250), (2, 300, 1510)]))
+    ], shot=S('field/21-handover-01-ready-phone', 0, 1760, 390, 2110, pins=[(1, 355, 1960)]))
     g.warn('Never hand over keys if the ready check fails, the renter does not match the photo on file, or they do not have their '
            'original licence or the card on file. Stop and call us.')
 
@@ -185,7 +185,7 @@ def build():
         'The shot list: each photo with a short description. The bar shows how many required photos you have.',
         f'Press {B("Take photo")} for each shot (or {B("From photos")} to pick one you took). {B("Retake")} to redo one.',
         f'An upload failed? Press {B("Send again")}. Then press {B("Submit for listing")}.',
-    ], shot=S('field/06-photo-shoot-capture-phone', 0, 1000, 390, 1730, hdr=False, pins=[(1, 180, 1210), (2, 330, 1545), (3, 113, 1718)]))
+    ], shot=S('field/06-photo-shoot-capture-phone', 0, 1000, 390, 1730, hdr=False, pins=[(1, 350, 1250), (2, 350, 1495), (3, 113, 1710)]))
     g.tip('Keep other cars\' plates out of the frame. The reviewer covers this car\'s plate before the listing goes live.')
 
     # ---------------------------------------------------------------- 4b
@@ -220,7 +220,7 @@ def build():
         f'Choose What happened: {B("New damage found")}, {B("Warning light")}, {B("Collision while I was driving")}, {B("Ticket or toll while I was driving")}, {B("Lost property found")} or {B("Something else")}.',
         'Write the Details: where, when and what you see.',
         f'Press {B("Take a photo")} for each photo, then {B("Send the report")}.',
-    ], shot=S('field/03-report-phone', 0, 595, 390, 1500, pins=[(1, 360, 820), (2, 360, 895), (3, 360, 1340), (4, 360, 1480)]))
+    ], shot=S('field/03-report-phone', 0, 640, 390, 1620, pins=[(1, 365, 1065), (2, 365, 1255), (3, 365, 1515)]))
     g.warn('In a collision, make sure everyone is safe and call 911 if anyone is hurt. Then call CarmaCars at 289-312-5991 before you send the report.')
 
     g.task('Add a rental for a renter you found', 'Your home address must be in your profile first: until it is, the page asks for it.')
@@ -240,7 +240,7 @@ def build():
     g.steps([
         f'{B("Referrals")}: your own referral link. Press {B("Copy the link")}, or let someone scan its QR code. A booking made with it counts as a rental you sourced.',
         f'{B("Profile")}: {B("Save my phone")}, your home address ({B("Change my home address")}), {B("Set up two-step sign-in")}, {B("Change my password")} and {B("Sign out")}.',
-    ], shot=S('field/04-profile-phone', 0, 595, 390, 1440, pins=[(2, 365, 1113)]))
+    ], shot=S('field/04-profile-phone', 0, 640, 390, 1500, pins=[(2, 360, 1300)]))
     g.task('Sign in with your phone number', 'Quicker on a phone than a password: a 6-digit code by text.')
     g.steps([
         f'On {B("Profile")}, under Sign-in, press {B("Add and verify my phone number")}, enter your mobile number and press {B("Text me a code")}.',
