@@ -9,7 +9,19 @@ writes). Runs in a job of its own with no secrets.
 import argparse
 import json
 import subprocess
+import sys
+import traceback
 from pathlib import Path
+
+
+def _annotate(kind, value, tb):
+    # a failure shows up in the run summary, since run logs are not always readable
+    last = ''.join(traceback.format_exception(kind, value, tb)).strip().splitlines()[-6:]
+    print('::error title=kokoro::' + ' | '.join(x.strip() for x in last)[:900], flush=True)
+    sys.__excepthook__(kind, value, tb)
+
+
+sys.excepthook = _annotate
 
 import numpy as np
 import soundfile as sf
