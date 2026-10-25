@@ -95,7 +95,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         why: 'Charges that arrive days after the trip are still covered by the renter\'s deposit, not lost.' },
       { id: 'sales', title: 'Sales: a scorecard and commission tiers', what: 'Staff mark the rentals they sourced. Each person sees their week against the targets and their progress to the next commission tier.',
         why: 'Sales is paid on results, so growth pays for itself.', shots: [d('sales-scorecard.jpg', 'The sales scorecard')] },
-      { id: 'field', title: 'The field app: a handover step by step', what: 'Built for one hand outside: the next job as one card with the time, the plate, a map link and a call button, then the handover in order: the renter, licence check, card, odometer, fuel, keys, photos of every side, damage and signatures. Answers are kept on the phone when the signal drops. The report is stored with the booking.',
+      { id: 'field', title: 'The field app: a handover step by step', what: 'Built for one hand outside: the next job as one card with the time, the plate, a map link and a call button, then the handover in order: the renter, licence check, card, odometer, fuel, keys, photos of every side, damage and signatures. The renter\'s licence can be reviewed on the spot. Answers are kept on the phone when the signal drops. The report is stored with the booking.',
         why: 'A complete record at every handover settles damage questions with evidence.', shots: [p('field-job.jpg', 'Field app: the next job'), p('field-renter.jpg', 'Field handover: the renter'), p('field-photos.jpg', 'Field handover: photos of the car'), p('field-signatures.jpg', 'Field handover: signatures')] }
     ]
   },
@@ -153,7 +153,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
         why: 'Bookings that would have been lost come back on their own.', shots: [p('recovery-email.jpg', 'A reminder that an offer is still open, on a phone')] },
       { id: 'partners', title: 'Partner fleets and chauffeur service', what: 'Partner rental companies list their whole fleets on CarmaCars. A partner rental fleet\'s exotic and luxury cars are on the site with their own pages, and a chauffeur service books a driver and a luxury car or van by the hour.',
         why: 'More cars and a new hourly service to sell without buying a single car, and every booking earns a markup plus a cut of the partner\'s rates.',
-        points: ['Partner rental companies list their fleets on CarmaCars, and we earn a markup plus a cut of their rates', 'Exotic and luxury cars from partners, each with its own page and request to book', 'An hourly chauffeur service: a professional driver and a luxury car or van, two hours minimum', 'A partner can connect its own CRM, which sees our cars and availability'],
+        points: ['Partner rental companies list their fleets on CarmaCars, and we earn a markup plus a cut of their rates', 'Exotic and luxury cars from partners, each with its own page and request to book', 'An hourly chauffeur service: a professional driver and a luxury car or van, two hours minimum', 'A partner can connect its own CRM, which sees our cars and availability', 'Referral partners such as body shops and tow companies send renters through a private link, a QR code and a flyer, and are paid per rental that follows'],
         shots: [d('partner-car.jpg', 'A partner rental fleet\'s car page with its badges and rates'), d('chauffeur.jpg', 'The chauffeur service page with its vehicles and hourly rates')] }
     ]
   }
