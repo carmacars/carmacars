@@ -18,8 +18,6 @@ chapters whose wording changed.
 - **Toasts** (`features/admin/shell/toast.ts`): an action whose dialog closes (or a one-press button) now says what
   happened ("Refund sent.", "Question sent.") at the bottom of the screen for about four seconds. A polite live region
   without the status role, so the pages' own status lines stay the only ones found by role.
-- **Loading** (`app/admin/loading.tsx`): a grey outline of a page header, chips and a list while a page loads; the menu
-  stays put.
 - **To do (home)** (`app/admin/page.tsx`, `features/admin/today/`): a dark band with the day, a greeting, "N things
   need you" and a board of seven counts, each one link: requests waiting (the oldest one's wait kept current, red past
   the reply target), pickups today (not ready), returns today (late), payments to chase, deposits to settle, staff tasks
@@ -50,6 +48,10 @@ red-700 on red-50, grey-600 on white) and colour is never the only signal.
 Published by migration 0157 (`supabase/seed/0157_gen_guides.mjs`); the screenshots follow with the guides workflow.
 
 ## Tests
+
+No loading outline (`loading.tsx`) for the admin pages: a loading boundary streams the page, and a page's sign-in or
+no-access redirect then happens after the first bytes instead of as an HTTP redirect, which the portal checks rely on.
+
 
 Unit: `features/admin/shell/jump.test.ts` (the finder's ranking), `features/admin/today/board.test.ts` (the board's
 counts). The end-to-end tests are unchanged: the To do heading, the menu's groups, `#gn-q`, the g-shortcuts and every

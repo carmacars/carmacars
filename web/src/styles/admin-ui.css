@@ -276,19 +276,6 @@
 .ad-toast button:hover { color: var(--white); background: rgb(255 255 255 / 0.1); }
 .ad-toast.is-out { opacity: 0; }
 
-/* ---------------------------------------------------------------- loading */
-.ad-skel { display: grid; gap: var(--s-4); }
-.ad-skel__head { display: grid; gap: var(--s-2); }
-.ad-skel__kicker { display: block; width: 8rem; height: 0.8rem; border-radius: 4px; }
-.ad-skel__title { display: block; width: min(18rem, 70%); height: 2rem; border-radius: 8px; }
-.ad-skel__chips { display: flex; gap: var(--s-2); }
-.ad-skel__chip { display: block; width: 5.5rem; height: 2.25rem; border-radius: 999px; }
-.ad-skel__card { display: grid; gap: var(--s-3); padding: var(--s-4); background: var(--white); border: 1px solid var(--grey-200); border-radius: 14px; }
-.ad-skel__row { display: block; height: 1.1rem; border-radius: 6px; }
-.ad-skel__row:nth-child(3n) { width: 72%; }
-.ad-skel__row:nth-child(3n + 2) { width: 88%; }
-@media (prefers-reduced-motion: reduce) { .ad-skel .skeleton::after { animation: none; display: none; } }
-
 /* ---------------------------------------------------------------- Add a rental, the intro */
 .ad-intro { max-width: 60rem; margin: 0; color: var(--text-2); font-size: var(--fs-sm); line-height: 1.55; }
 .ad-narrow { max-width: 60rem; min-width: 0; }
