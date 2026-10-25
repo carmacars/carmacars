@@ -19,7 +19,7 @@ export default async function RenterReport({ params }: { params: Promise<{ numbe
   if (!r?.booking_id) notFound();
   return (<>
     <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
-    <StepHeader b={b} photo={photos[b.vehicle_id] ?? null} kicker="The check-out and the check-in, with every photo we took together" title="Photo report" />
+    <StepHeader b={b} photo={photos[b.vehicle_id] ?? null} kicker="Check-out and check-in" title="Photo report" />
     <HandoverReport r={r} staff={false} />
   </>);
 }

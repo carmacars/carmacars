@@ -98,7 +98,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
 
       <TripHero b={b} photo={photo} settings={s} next={next} kmDriven={report?.km_driven ?? null} prepaidFuel={(addons?.items ?? []).some((a) => a.prepaid_fuel)}>
-        <p className="small muted" data-testid="status-blurb">{awaitingSignature(b) ? AWAITING_SIGNATURE.blurb : STATUS[b.status].blurb}</p>
+        <p className="small muted" data-testid="status-blurb">{awaitingSignature(b) ? AWAITING_SIGNATURE.blurb : STATUS[b.status].blurb}
+          {b.status === 'confirmed' && <> Bring your original licence{card ? ` and the card ending ${card.card_last4}` : ' and the card you paid with'}.</>}</p>
       </TripHero>
 
       <LicenceNotice number={b.booking_number} missing={licMissing} when={b.status === 'requested' ? 'request' : b.status === 'offered' ? 'offer' : 'pay'} />
@@ -159,7 +160,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
               {b.extensions.map((e) => <div key={e.id} className="pt-msg"><p><b>Extension to {when(e.new_return_at)}:</b> {e.status}{e.total_cents ? `, ${money(e.total_cents, { cents: true })}` : ''}</p>{e.status === 'approved' && <Link prefetch={false} className="btn btn--primary btn--sm" href={bookingPath(b.booking_number, 'extend')}>Pay for the extension</Link>}</div>)}
             </PortalCard>
           )}
-          <Messages number={b.booking_number} thread={thread} prefill={sp.ask ? ASK[sp.ask] : undefined} />
+          <Messages key={sp.ask ?? 'none'} number={b.booking_number} thread={thread} prefill={sp.ask ? ASK[sp.ask] : undefined} />
           <PortalCard id="documents" title="Documents" testId="booking-documents">
             {b.documents.length ? <DocumentList>{b.documents.filter((d) => !d.purged).map((d) => (
               <DocumentRow key={d.id} kind={d.kind} title={d.kind === 'rental_amendment' && d.title ? d.title : KIND[d.kind] ?? d.title} meta={when(d.created_at, false)} href={`/account/documents/${d.id}`} testId={`doc-${d.kind}`} />
