@@ -2,22 +2,22 @@
 -- the toll window and what blocks a release; the charges after the return taken from the deposit without releasing the
 -- rest; a card hold captured before it lapses, a lapsed hold charged to the saved card; the money steps marked for the
 -- server and recorded; the balance after the deposit (card on file, pay link, Finance task); Keep the whole deposit
--- (damage) and the damage charge; the hold actions guarded. Fixtures start with "dg".
+-- (damage) and the damage charge; the hold actions guarded. Fixtures start with "dgx" and "DG-".
 select test.suite('97 deposit guard');
 grant usage on schema test to service_role;
 grant execute on all functions in schema test to authenticated, anon, service_role;
 
-select test.mk_user('dg_admin', 'admin');
-select test.mk_user('dg_fin', 'va', 'finance');
-select test.mk_user('dg_cs', 'va', 'cs');
-update staff_profiles set single_limit_cents = 500000 where user_id = test.id('dg_fin');
-select test.mk_owner('dg_o');
-select test.mk_vehicle('DGA', 'dg_o'); select test.mk_vehicle('DGB', 'dg_o'); select test.mk_vehicle('DGC', 'dg_o'); select test.mk_vehicle('DGD', 'dg_o');
-select test.mk_vehicle('DGE', 'dg_o'); select test.mk_vehicle('DGF', 'dg_o'); select test.mk_vehicle('DGG', 'dg_o'); select test.mk_vehicle('DGH', 'dg_o');
-select test.mk_vehicle('DGI', 'dg_o'); select test.mk_vehicle('DGJ', 'dg_o'); select test.mk_vehicle('DGK', 'dg_o'); select test.mk_vehicle('DGL', 'dg_o');
-select test.mk_renter('dg_r');      -- a saved card at Stripe (below)
-select test.mk_renter('dg_nocard'); -- no card the server can charge
-insert into payment_method_secrets (payment_method_id, processor, processor_customer_id, processor_method_id) values (test.id('card:dg_r'), 'stripe', 'cus_dg', 'pm_dg');
+select test.mk_user('dgx_admin', 'admin');
+select test.mk_user('dgx_fin', 'va', 'finance');
+select test.mk_user('dgx_cs', 'va', 'cs');
+update staff_profiles set single_limit_cents = 500000 where user_id = test.id('dgx_fin');
+select test.mk_owner('dgx_o');
+select test.mk_vehicle('DGA', 'dgx_o'); select test.mk_vehicle('DGB', 'dgx_o'); select test.mk_vehicle('DGC', 'dgx_o'); select test.mk_vehicle('DGD', 'dgx_o');
+select test.mk_vehicle('DGE', 'dgx_o'); select test.mk_vehicle('DGF', 'dgx_o'); select test.mk_vehicle('DGG', 'dgx_o'); select test.mk_vehicle('DGH', 'dgx_o');
+select test.mk_vehicle('DGI', 'dgx_o'); select test.mk_vehicle('DGJ', 'dgx_o'); select test.mk_vehicle('DGK', 'dgx_o'); select test.mk_vehicle('DGL', 'dgx_o');
+select test.mk_renter('dgx_r');      -- a saved card at Stripe (below)
+select test.mk_renter('dgx_nocard'); -- no card the server can charge
+insert into payment_method_secrets (payment_method_id, processor, processor_customer_id, processor_method_id) values (test.id('card:dgx_r'), 'stripe', 'cus_dg', 'pm_dg');
 
 -- a Toronto wall-clock time p_days from today (negative: in the past)
 create function test.dgl(p_days numeric, p_hour text default '10:00') returns text language sql stable as $$
@@ -60,14 +60,14 @@ select test.eq('the cron gate asks about deposits', (public.server_jobs_due() ? 
 
 -- ================================================================ 2. inside the toll window
 -- DG-1: returned yesterday on a card hold, fuel on the Check-in statement
-select test.mk_booking('DG-1', 'DGA', 'dg_r', test.dgl(-4), test.dgl(-1), 'returned', null, 'standard', null, null, test.dgl(-1));
+select test.mk_booking('DG-1', 'DGA', 'dgx_r', test.dgl(-4), test.dgl(-1), 'returned', null, 'standard', null, null, test.dgl(-1));
 select test.dg_hold('DG-1', now() + interval '2 days');
 select test.dg_statement('DG-1', 'fuel', 5000);
 select test.eq('the Settle screen: inside the window, the whole rest of the deposit is the suggested hold-back',
   (select (g ->> 'within_window') || '/' || (g ->> 'remaining_cents') || '/' || (g ->> 'suggested_hold_back_cents') || '/' || (g ->> 'blocked')
-     from (select app.deposit_preview(test.id('dg_fin'), test.dgb('DG-1')) -> 'guard' as g) x), 'true/94350/94350/false');
-select test.throws('inside the window a release needs a hold-back or "Release now anyway"', $$select test.dg_settle('dg_fin', 'DG-1', '{"hold_back_cents": 0}')$$, 'Tolls and tickets can take up to 7 days');
-insert into test.dg select 's1', test.dg_settle('dg_fin', 'DG-1', jsonb_build_object('hold_back_cents', 94350, 'hold_back_reason', 'Tolls and tickets may still come in', 'hold_back_until', (now() at time zone 'America/Toronto')::date + 6));
+     from (select app.deposit_preview(test.id('dgx_fin'), test.dgb('DG-1')) -> 'guard' as g) x), 'true/94350/94350/false');
+select test.throws('inside the window a release needs a hold-back or "Release now anyway"', $$select test.dg_settle('dgx_fin', 'DG-1', '{"hold_back_cents": 0}')$$, 'Tolls and tickets can take up to 7 days');
+insert into test.dg select 's1', test.dg_settle('dgx_fin', 'DG-1', jsonb_build_object('hold_back_cents', 94350, 'hold_back_reason', 'Tolls and tickets may still come in', 'hold_back_until', (now() at time zone 'America/Toronto')::date + 6));
 select test.eq('held back: the fuel taken from the deposit, the rest held, nothing released, the booking stays open',
   (select applied_cents || '/' || held_back_cents || '/' || released_cents || '/' || status from test.dgd('DG-1')) || ' ' || (select status::text from bookings where id = test.dgb('DG-1')),
   '5650/94350/0/captured returned');
@@ -80,10 +80,10 @@ select test.eq('captured: the capture and the hold succeed', (select string_agg(
 select test.eq('recorded twice: the same answer', public.server_money_action_finish((test.dgv('m1') ->> 'payment_id')::uuid, '{"ok": true}') ->> 'repeat', 'true');
 
 -- DG-2: "Release now anyway" inside the window is the person's choice, recorded
-select test.mk_booking('DG-2', 'DGB', 'dg_r', test.dgl(-4), test.dgl(-2), 'returned', null, 'standard', null, null, test.dgl(-2));
+select test.mk_booking('DG-2', 'DGB', 'dgx_r', test.dgl(-4), test.dgl(-2), 'returned', null, 'standard', null, null, test.dgl(-2));
 select test.dg_hold('DG-2', now() + interval '2 days');
 select test.dg_statement('DG-2');
-insert into test.dg select 's2', test.dg_settle('dg_admin', 'DG-2', '{"hold_back_cents": 0, "release_now": true}');
+insert into test.dg select 's2', test.dg_settle('dgx_admin', 'DG-2', '{"hold_back_cents": 0, "release_now": true}');
 select test.eq('released now: recorded as a release inside the window; the hold release is marked for the server',
   (select kind || '/' || amount_cents from deposit_overrides where booking_id = test.dgb('DG-2')) || ' ' ||
   (select string_agg(kind || ':' || server_action, ',') from payments where booking_id = test.dgb('DG-2') and server_action is not null), 'release_in_window/100000 release:release_hold');
@@ -91,13 +91,13 @@ select test.eq('a release with no capture before it is sent to Stripe (not skipp
 
 -- ================================================================ 3. charges after the return never release the rest
 -- DG-3: returned 2 days ago, not settled, the hold untouched; a toll charged now (0021's charge_after_rental)
-select test.mk_booking('DG-3', 'DGC', 'dg_r', test.dgl(-5), test.dgl(-2), 'returned', null, 'standard', null, null, test.dgl(-2));
+select test.mk_booking('DG-3', 'DGC', 'dgx_r', test.dgl(-5), test.dgl(-2), 'returned', null, 'standard', null, null, test.dgl(-2));
 select test.dg_hold('DG-3', now() + interval '1 day');
 select test.dg_statement('DG-3');
 select test.eq('charge_after_rental settles in "apply only" (0155)', position('apply_only' in pg_get_functiondef('app.charge_after_rental(uuid,uuid,timestamptz)'::regprocedure)) > 0, true);
 insert into booking_line_items (booking_id, charge_type, description, quantity, unit_amount_cents, amount_cents, hst_applies, hst_cents, revenue_class, stage, supporting_refs)
 select test.dgb('DG-3'), 'toll_amount', '407 ETR trip', 1, 1250, 1250, false, 0, 'pass_through', 'after_return', '{"toll": "test"}';
-insert into test.dg select 'c3', app.charge_after_rental(test.dgb('DG-3'), test.id('dg_fin'));
+insert into test.dg select 'c3', app.charge_after_rental(test.dgb('DG-3'), test.id('dgx_fin'));
 select test.eq('the toll comes from the deposit; the rest stays held (it was released before 0155); nothing released',
   (select applied_cents || '/' || held_back_cents || '/' || released_cents || '/' || held_back_reason from test.dgd('DG-3')),
   '1250/98750/0/Kept until the deposit is settled: tolls, tickets and damage can still come in');
@@ -106,7 +106,7 @@ select test.eq('the booking is not closed', (select status::text from bookings w
 
 -- ================================================================ 4. what blocks a release
 -- DG-4: returned 10 days ago (outside the window), the deposit collected; an incident open, a toll not matched, a dispute
-select test.mk_booking('DG-4', 'DGD', 'dg_r', test.dgl(-14), test.dgl(-10), 'returned', null, 'standard', null, null, test.dgl(-10));
+select test.mk_booking('DG-4', 'DGD', 'dgx_r', test.dgl(-14), test.dgl(-10), 'returned', null, 'standard', null, null, test.dgl(-10));
 select test.dg_hold('DG-4', now() - interval '1 day');
 update deposits set status = 'captured', captured_cents = 100000 where booking_id = test.dgb('DG-4');
 update payments set status = 'succeeded' where id = test.id('hold:DG-4');
@@ -121,12 +121,12 @@ select test.dgb('DG-4'), 'cleaning', 'Cleaning', 1, 7500, 7500, true, public.cal
 select test.eq('blockers in plain words: the incident, the toll, the dispute, the charges not on a statement',
   (select string_agg(x ->> 'kind', ',' order by x ->> 'kind') from jsonb_array_elements(app.deposit_blockers(test.dgb('DG-4'))) x), 'charges,dispute,incident,toll');
 select test.ok('no raw codes in the words', not exists (select 1 from jsonb_array_elements(app.deposit_blockers(test.dgb('DG-4'))) x where x ->> 'label' ~ '_'));
-select test.throws('Finance cannot release any of it while something is open', $$select test.dg_settle('dg_fin', 'DG-4', '{"hold_back_cents": 0}')$$, 'whole deposit stays held');
-select test.throws('an Admin needs the reason', $$select test.dg_settle('dg_admin', 'DG-4', '{"hold_back_cents": 0}')$$, 'whole deposit stays held');
-select test.lives('keeping all of it back is allowed (nothing released)', $$select test.dg_settle('dg_fin', 'DG-4', '{"hold_back_cents": 100000, "hold_back_reason": "Bumper damage, toll to match"}')$$);
+select test.throws('Finance cannot release any of it while something is open', $$select test.dg_settle('dgx_fin', 'DG-4', '{"hold_back_cents": 0}')$$, 'whole deposit stays held');
+select test.throws('an Admin needs the reason', $$select test.dg_settle('dgx_admin', 'DG-4', '{"hold_back_cents": 0}')$$, 'whole deposit stays held');
+select test.lives('keeping all of it back is allowed (nothing released)', $$select test.dg_settle('dgx_fin', 'DG-4', '{"hold_back_cents": 100000, "hold_back_reason": "Bumper damage, toll to match"}')$$);
 select test.eq('kept: all held back, nothing released', (select held_back_cents || '/' || released_cents from test.dgd('DG-4')), '100000/0');
 delete from booking_line_items where booking_id = test.dgb('DG-4') and charge_type = 'cleaning';
-insert into test.dg select 's4', test.dg_settle('dg_admin', 'DG-4', '{"hold_back_cents": 0, "override_reason": "Renter paid the bumper directly to the shop"}');
+insert into test.dg select 's4', test.dg_settle('dgx_admin', 'DG-4', '{"hold_back_cents": 0, "override_reason": "Renter paid the bumper directly to the shop"}');
 select test.eq('an Admin with the reason releases it: recorded with the blockers; the refund is marked for the server',
   (select kind || '/' || amount_cents || '/' || jsonb_array_length(blockers) from deposit_overrides where booking_id = test.dgb('DG-4')) || ' ' ||
   (select string_agg(kind || ':' || server_action || ':' || amount_cents, ',') from payments where booking_id = test.dgb('DG-4') and server_action is not null),
@@ -141,13 +141,13 @@ select test.eq('the webhook settles the runner''s refund, no "outside" task', (s
 
 -- ================================================================ 5. the balance after the deposit
 -- DG-5: a cash deposit of $300, no card the server can charge, $500 cleaning: the settlement no longer fails
-select test.mk_booking('DG-5', 'DGE', 'dg_nocard', test.dgl(-14), test.dgl(-10), 'returned', null, 'standard', null, null, test.dgl(-10));
+select test.mk_booking('DG-5', 'DGE', 'dgx_nocard', test.dgl(-14), test.dgl(-10), 'returned', null, 'standard', null, null, test.dgl(-10));
 update bookings set card_on_file_id = null, deposit_pay_method = 'cash' where id = test.dgb('DG-5');
 insert into payments (id, booking_id, renter_id, purpose, kind, method, amount_cents, status, processed_at)
 select test.id('dep:DG-5'), id, renter_id, 'deposit', 'charge', 'cash', 30000, 'succeeded', now() from bookings where id = test.dgb('DG-5');
 insert into deposits (booking_id, amount_cents, method, paid_method, status, hold_payment_id, taken_at, captured_cents) values (test.dgb('DG-5'), 30000, 'offline', 'cash', 'captured', test.id('dep:DG-5'), now(), 30000);
 select test.dg_statement('DG-5', 'cleaning', 50000);
-insert into test.dg select 's5', test.dg_settle('dg_fin', 'DG-5');
+insert into test.dg select 's5', test.dg_settle('dgx_fin', 'DG-5');
 select test.eq('no card: the deposit pays $300, the rest ($265) stays owed (it failed before 0155)',
   (test.dgv('s5') ->> 'applied_cents') || '/' || (test.dgv('s5') ->> 'charged_to_card_cents') || '/' || app.booking_balance_open(test.dgb('DG-5')), '30000/0/26500');
 insert into test.dg select 'n5', public.server_balance_next(test.dgb('DG-5'));
@@ -171,10 +171,10 @@ select test.eq('paid: the next step is none', public.server_balance_next(test.dg
 select test.eq('paid: the Finance task is done', (select status from tasks where booking_id = test.dgb('DG-5') and task_type = 'collect_balance'), 'done');
 
 -- DG-6: a saved card; $1,800 damage-level charges on a $1,000 deposit: the card is charged the rest; declined: a pay link
-select test.mk_booking('DG-6', 'DGF', 'dg_r', test.dgl(-14), test.dgl(-10), 'returned', null, 'standard', null, null, test.dgl(-10));
+select test.mk_booking('DG-6', 'DGF', 'dgx_r', test.dgl(-14), test.dgl(-10), 'returned', null, 'standard', null, null, test.dgl(-10));
 select test.dg_hold('DG-6', now() + interval '1 day');
 select test.dg_statement('DG-6', 'damage_at_cost', 180000);
-insert into test.dg select 's6', test.dg_settle('dg_admin', 'DG-6');
+insert into test.dg select 's6', test.dg_settle('dgx_admin', 'DG-6');
 select test.eq('the deposit pays $1,000, the card is charged $800, both marked for the server',
   (select string_agg(kind || ':' || amount_cents || ':' || server_action, ',' order by kind) from payments where booking_id = test.dgb('DG-6') and server_action is not null), 'capture:100000:capture_deposit,charge:80000:charge_card');
 insert into test.dg select 'm6', public.server_money_action((select id from payments where booking_id = test.dgb('DG-6') and server_action = 'charge_card'));
@@ -189,10 +189,10 @@ select test.eq('the capture refused: the deposit is not taken, an urgent task, t
 select test.eq('the next step: the card was declined in the last 3 days, so a pay link for all of it', (select (x ->> 'action') || '/' || (x ->> 'open_cents') from (select public.server_balance_next(test.dgb('DG-6')) x) y), 'pay_link/180000');
 
 -- DG-7: the balance charged to the saved card by the follow-up, accepted
-select test.mk_booking('DG-7', 'DGG', 'dg_r', test.dgl(-14), test.dgl(-10), 'returned', null, 'standard', null, null, test.dgl(-10));
+select test.mk_booking('DG-7', 'DGG', 'dgx_r', test.dgl(-14), test.dgl(-10), 'returned', null, 'standard', null, null, test.dgl(-10));
 update bookings set card_on_file_id = null where id = test.dgb('DG-7');
 select test.dg_statement('DG-7', 'smoking', 25000);
-select test.dg_settle('dg_fin', 'DG-7');
+select test.dg_settle('dgx_fin', 'DG-7');
 insert into test.dg select 'n7', public.server_balance_next(test.dgb('DG-7'));
 select test.eq('no deposit, a saved card at Stripe: the follow-up charges it', (test.dgv('n7') ->> 'action') || '/' || (test.dgv('n7') #>> '{payment,action}') || '/' || (test.dgv('n7') #>> '{payment,amount_cents}'), 'charge_card/balance_charge/28250');
 select test.eq('while it runs, nothing else is started', public.server_balance_next(test.dgb('DG-7')) ->> 'action', 'wait');
@@ -202,9 +202,9 @@ select test.eq('charged: the smoking line is paid, nothing owed, the statement p
 
 -- ================================================================ 6. card holds before they lapse
 -- DG-8 on the road, the hold lapsing in 10 hours; DG-9 confirmed, its hold lapsing before the pickup
-select test.mk_booking('DG-8', 'DGH', 'dg_r', test.dgl(-4), test.dgl(2), 'on_rent');
+select test.mk_booking('DG-8', 'DGH', 'dgx_r', test.dgl(-4), test.dgl(2), 'on_rent');
 select test.dg_hold('DG-8', now() + interval '10 hours');
-select test.mk_booking('DG-9', 'DGI', 'dg_r', test.dgl(3), test.dgl(5), 'confirmed');
+select test.mk_booking('DG-9', 'DGI', 'dgx_r', test.dgl(3), test.dgl(5), 'confirmed');
 select test.dg_hold('DG-9', now() + interval '20 hours');
 create table test.dg_before as select (select count(*) from payments where kind in ('release', 'refund')) as n, (select coalesce(sum(released_cents), 0) from deposits) as rel;
 select test.eq('the job is due (a hold to capture)', app.deposit_guard_due(), true);
@@ -225,11 +225,11 @@ set session_replication_role = replica;  -- the check-in itself is not this test
 update bookings set status = 'returned', checked_in_at = now() - interval '9 days' where id = test.dgb('DG-8');
 reset session_replication_role;
 select test.dg_statement('DG-8', 'fuel', 4000);
-insert into test.dg select 's8', test.dg_settle('dg_admin', 'DG-8');
+insert into test.dg select 's8', test.dg_settle('dgx_admin', 'DG-8');
 select test.eq('settled: the fuel kept, the rest refunded (the hold was captured)', (select string_agg(kind || ':' || amount_cents || ':' || server_action, ',') from payments where booking_id = test.dgb('DG-8') and kind = 'refund'), 'refund:95480:refund_deposit');
 
 -- DG-10: the capture refused because the hold already lapsed: the deposit is charged to the saved card
-select test.mk_booking('DG-10', 'DGJ', 'dg_r', test.dgl(-4), test.dgl(2), 'on_rent');
+select test.mk_booking('DG-10', 'DGJ', 'dgx_r', test.dgl(-4), test.dgl(2), 'on_rent');
 select test.dg_hold('DG-10', now() + interval '5 hours');
 insert into test.dg select 'b10', public.server_deposit_capture_begin((test.dgd('DG-10')).id);
 insert into test.dg select 'f10', public.server_money_action_finish((test.dgv('b10') ->> 'payment_id')::uuid, '{"ok": false, "intent_status": "canceled", "error": "status of canceled"}');
@@ -241,7 +241,7 @@ select test.eq('charged: the deposit is a charged deposit, collected; the task i
   (select method || '/' || status || '/' || captured_cents from test.dgd('DG-10')) || '/' || (select status from tasks where booking_id = test.dgb('DG-10') and task_type = 'deposit_hold_lapsed'), 'charged/captured/100000/done');
 
 -- DG-11: Stripe's webhook says a hold lapsed (no saved card: a task only)
-select test.mk_booking('DG-11', 'DGK', 'dg_nocard', test.dgl(-8), test.dgl(-1), 'returned', null, 'standard', null, null, test.dgl(-1));
+select test.mk_booking('DG-11', 'DGK', 'dgx_nocard', test.dgl(-8), test.dgl(-1), 'returned', null, 'standard', null, null, test.dgl(-1));
 select test.dg_hold('DG-11', now() - interval '1 hour');
 insert into test.dg select 'w11', public.server_deposit_hold_lapsed('pi_DG-11');
 select test.eq('the webhook: lapsed, no card, Finance told', (select status from test.dgd('DG-11')) || '/' || coalesce(test.dgv('w11') #>> '{next,payment_id}', 'none') || '/' ||
@@ -249,26 +249,26 @@ select test.eq('the webhook: lapsed, no card, Finance told', (select status from
 select test.eq('an intent that is not a held deposit of ours is ignored', public.server_deposit_hold_lapsed('pi_nothing') ? 'ignored', true);
 
 -- ================================================================ 7. the hold actions
-select test.lives('before the pickup a hold may be released as before', format($$select app.door(%L, 'aal2', 'ops_do', 'hold_action_begin', jsonb_build_object('booking', 'DG-9', 'action', 'release'))$$, test.id('dg_fin')));
-select test.mk_booking('DG-13', 'DGB', 'dg_r', test.dgl(-1), test.dgl(3), 'on_rent');
+select test.lives('before the pickup a hold may be released as before', format($$select app.door(%L, 'aal2', 'ops_do', 'hold_action_begin', jsonb_build_object('booking', 'DG-9', 'action', 'release'))$$, test.id('dgx_fin')));
+select test.mk_booking('DG-13', 'DGB', 'dgx_r', test.dgl(-1), test.dgl(3), 'on_rent');
 select test.dg_hold('DG-13', now() + interval '4 days');
-select test.throws('on the road: Finance cannot release the hold', format($$select app.door(%L, 'aal2', 'ops_do', 'hold_action_begin', jsonb_build_object('booking', 'DG-13', 'action', 'release'))$$, test.id('dg_fin')), 'stays held');
-select test.throws('on the road: a part capture (it releases the rest) is refused too', format($$select app.door(%L, 'aal2', 'ops_do', 'hold_action_begin', jsonb_build_object('booking', 'DG-13', 'action', 'capture', 'amount_cents', 5000, 'reason', 'Fuel'))$$, test.id('dg_fin')), 'stays held');
-select test.lives('a capture of the whole hold is protection: allowed', format($$select app.door(%L, 'aal2', 'ops_do', 'hold_action_begin', jsonb_build_object('booking', 'DG-13', 'action', 'capture', 'reason', 'Keep it safe'))$$, test.id('dg_fin')));
-select test.lives('an Admin releases with the reason', format($$select app.door(%L, 'aal2', 'ops_do', 'hold_action_begin', jsonb_build_object('booking', 'DG-13', 'action', 'release', 'reason', 'Renter swapped to another car'))$$, test.id('dg_admin')));
+select test.throws('on the road: Finance cannot release the hold', format($$select app.door(%L, 'aal2', 'ops_do', 'hold_action_begin', jsonb_build_object('booking', 'DG-13', 'action', 'release'))$$, test.id('dgx_fin')), 'stays held');
+select test.throws('on the road: a part capture (it releases the rest) is refused too', format($$select app.door(%L, 'aal2', 'ops_do', 'hold_action_begin', jsonb_build_object('booking', 'DG-13', 'action', 'capture', 'amount_cents', 5000, 'reason', 'Fuel'))$$, test.id('dgx_fin')), 'stays held');
+select test.lives('a capture of the whole hold is protection: allowed', format($$select app.door(%L, 'aal2', 'ops_do', 'hold_action_begin', jsonb_build_object('booking', 'DG-13', 'action', 'capture', 'reason', 'Keep it safe'))$$, test.id('dgx_fin')));
+select test.lives('an Admin releases with the reason', format($$select app.door(%L, 'aal2', 'ops_do', 'hold_action_begin', jsonb_build_object('booking', 'DG-13', 'action', 'release', 'reason', 'Renter swapped to another car'))$$, test.id('dgx_admin')));
 select test.eq('the Admin''s release is recorded', (select kind || '/' || reason from deposit_overrides where booking_id = test.dgb('DG-13')), 'hold_action/Renter swapped to another car');
 
 -- ================================================================ 8. damage
 -- DG-12: returned, the deposit collected, fuel on the statement, damage found: an Admin keeps the whole deposit
-select test.mk_booking('DG-12', 'DGL', 'dg_r', test.dgl(-6), test.dgl(-3), 'returned', null, 'standard', null, null, test.dgl(-3));
+select test.mk_booking('DG-12', 'DGL', 'dgx_r', test.dgl(-6), test.dgl(-3), 'returned', null, 'standard', null, null, test.dgl(-3));
 select test.dg_hold('DG-12', now() + interval '1 day');
 update deposits set status = 'captured', captured_cents = 100000 where booking_id = test.dgb('DG-12');
 update payments set status = 'succeeded' where id = test.id('hold:DG-12');
 select test.dg_statement('DG-12', 'fuel', 6000);
 insert into incidents (kind, vehicle_id, booking_id, description, status) values ('damage_at_return', test.id('vehicle:DGL'), test.dgb('DG-12'), 'Door dent', 'open');
-select test.throws('Finance does not keep a deposit for damage', format($$select app.door(%L, 'aal2', 'ops_do', 'deposit_keep_whole', jsonb_build_object('booking', 'DG-12', 'reason', 'Dent in the rear door', 'photos', '["R12"]'::jsonb))$$, test.id('dg_fin')), 'An Admin');
-select test.throws('the damage needs its photos or estimate', format($$select app.door(%L, 'aal2', 'ops_do', 'deposit_keep_whole', jsonb_build_object('booking', 'DG-12', 'reason', 'Dent in the rear door'))$$, test.id('dg_admin')), 'photos');
-insert into test.dg select 'k12', app.door(test.id('dg_admin'), 'aal2', 'ops_do', 'deposit_keep_whole', jsonb_build_object('booking', 'DG-12', 'reason', 'Dent in the rear door, left side', 'photos', '["Return report photo 7", "Close-up 21"]'::jsonb));
+select test.throws('Finance does not keep a deposit for damage', format($$select app.door(%L, 'aal2', 'ops_do', 'deposit_keep_whole', jsonb_build_object('booking', 'DG-12', 'reason', 'Dent in the rear door', 'photos', '["R12"]'::jsonb))$$, test.id('dgx_fin')), 'An Admin');
+select test.throws('the damage needs its photos or estimate', format($$select app.door(%L, 'aal2', 'ops_do', 'deposit_keep_whole', jsonb_build_object('booking', 'DG-12', 'reason', 'Dent in the rear door'))$$, test.id('dgx_admin')), 'photos');
+insert into test.dg select 'k12', app.door(test.id('dgx_admin'), 'aal2', 'ops_do', 'deposit_keep_whole', jsonb_build_object('booking', 'DG-12', 'reason', 'Dent in the rear door, left side', 'photos', '["Return report photo 7", "Close-up 21"]'::jsonb));
 select test.eq('kept: what is left after the fuel ($932.20) is a damage line with the reason and photos, on a statement',
   (select amount_cents || '/' || description || '/' || jsonb_array_length(supporting_refs -> 'photos') || '/' || (statement_id is not null) from booking_line_items where booking_id = test.dgb('DG-12') and charge_type = 'damage_at_cost'),
   '93220/Damage: Dent in the rear door, left side/2/true');
@@ -277,16 +277,16 @@ select test.eq('the whole deposit is applied, nothing released or refunded; the 
   || ' ' || (select count(*) from payments where booking_id = test.dgb('DG-12') and kind in ('release', 'refund')), '100000/0/0 closed 0');
 select test.eq('the renter is told about the damage charge', (select count(*) from app_events where code = 'renter_extra_charge' and payload ->> 'charge_kind' = 'damage' and payload ->> 'booking_id' = test.dgb('DG-12')::text), 1::bigint);
 -- a damage charge above what is left: the card on file pays the rest; above the deductible it goes through a claim
-select test.throws('above the deductible a damage charge goes through a claim', format($$select app.door(%L, 'aal2', 'ops_do', 'damage_charge_add', jsonb_build_object('booking', 'DG-12', 'amount_cents', 300000, 'reason', 'Rear bumper replaced', 'photos', '["P1"]'::jsonb))$$, test.id('dg_admin')), 'goes through a claim');
-insert into test.dg select 'd12', app.door(test.id('dg_admin'), 'aal2', 'ops_do', 'damage_charge_add', jsonb_build_object('booking', 'DG-12', 'amount_cents', 150000, 'reason', 'Rear bumper replaced', 'photos', '["P1"]'::jsonb));
+select test.throws('above the deductible a damage charge goes through a claim', format($$select app.door(%L, 'aal2', 'ops_do', 'damage_charge_add', jsonb_build_object('booking', 'DG-12', 'amount_cents', 300000, 'reason', 'Rear bumper replaced', 'photos', '["P1"]'::jsonb))$$, test.id('dgx_admin')), 'goes through a claim');
+insert into test.dg select 'd12', app.door(test.id('dgx_admin'), 'aal2', 'ops_do', 'damage_charge_add', jsonb_build_object('booking', 'DG-12', 'amount_cents', 150000, 'reason', 'Rear bumper replaced', 'photos', '["P1"]'::jsonb));
 select test.eq('the damage after the deposit is used: charged to the card on file (marked for the server), on a later statement',
   (select amount_cents || '/' || server_action from payments where booking_id = test.dgb('DG-12') and server_action = 'charge_card') || '/' ||
   (select count(*) from booking_statements where booking_id = test.dgb('DG-12') and kind = 'later_charge'), '150000/charge_card/2');
 
 -- ================================================================ 9. pay links and privileges
 select test.lives('a pay link for a later charge on a closed booking (tickets arrive weeks later)',
-  format($$select app.door(%L, 'aal2', 'ops_do', 'payreq_create', jsonb_build_object('booking', 'DG-12', 'kind', 'charge', 'covers', 'later', 'amount_cents', 4000, 'reason', 'Parking ticket', 'channel', 'email', 'token_sha256', repeat('c', 64)))$$, test.id('dg_admin')));
-select test.throws('still no deposit hold on a closed booking', format($$select app.door(%L, 'aal2', 'ops_do', 'payreq_create', jsonb_build_object('booking', 'DG-12', 'kind', 'hold', 'token_sha256', repeat('d', 64)))$$, test.id('dg_cs')), 'closed');
+  format($$select app.door(%L, 'aal2', 'ops_do', 'payreq_create', jsonb_build_object('booking', 'DG-12', 'kind', 'charge', 'covers', 'later', 'amount_cents', 4000, 'reason', 'Parking ticket', 'channel', 'email', 'token_sha256', repeat('c', 64)))$$, test.id('dgx_admin')));
+select test.throws('still no deposit hold on a closed booking', format($$select app.door(%L, 'aal2', 'ops_do', 'payreq_create', jsonb_build_object('booking', 'DG-12', 'kind', 'hold', 'token_sha256', repeat('d', 64)))$$, test.id('dgx_cs')), 'closed');
 select test.eq('the server functions are the service role''s only',
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.proname in ('server_money_action', 'server_money_action_finish', 'server_deposit_capture_begin', 'server_deposit_hold_lapsed', 'server_balance_next',
