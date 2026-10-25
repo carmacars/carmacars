@@ -22,7 +22,8 @@ export default async function Renters({ searchParams }: { searchParams: Promise<
     q.length >= 3 ? read<Found[]>('find_renter', { q }).catch(() => [] as Found[]) : Promise.resolve([] as Found[]),
     sp.id && /^[0-9a-f-]{36}$/.test(sp.id) ? read<View | null>('renter', { id: sp.id }).catch(() => null) : Promise.resolve(null)]);
   return (<>
-    <PageHead title="Find a renter"><Search action="/va/renters" value={q} placeholder="Name, email or booking number" /></PageHead>
+    <PageHead title="Find a renter" purpose="Search by name, email or booking number. Every search is logged, and a record outside its window opens for 24 hours with a reason."><Search action="/va/renters" value={q} placeholder="Name, email or booking number" /></PageHead>
+    {!q && !view && <p className="ad-empty" data-testid="renter-hint">Type at least 3 characters of a name, email or booking number, then press Enter. Press / to jump to the search box.</p>}
     {q && q.length < 3 && <p className="small muted">Type at least 3 characters.</p>}
     {q.length >= 3 && <Card title="Matches" testId="renter-matches"><Table rows={found as unknown as Array<Record<string, unknown>>} empty="Nobody matches." cols={[
       { key: 'legal_name', label: 'Name' }, { key: 'last_booking_number', label: 'Last booking' },

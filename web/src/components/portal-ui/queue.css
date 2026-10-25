@@ -1,0 +1,20 @@
+/* portal-ui: the wait timer (WaitTimer.tsx, October 25, 2026), for the staff queues. Calm under the target, amber in
+   its last minute, red with the word "late" past it. Figures in Inter Display with tabular numbers so they do not jump.
+   Every pair passes AA: black and #7A4B00 and red-700 on white, white and amber and red-400 on black. */
+.pu-timer { display: inline-grid; grid-template-columns: auto auto; align-items: center; justify-content: start; gap: 0.15rem 0.4rem; font-variant-numeric: tabular-nums; min-width: 0; }
+.pu-timer__clock { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-sm); line-height: 1.1; letter-spacing: -0.01em; color: var(--text); }
+.pu-timer__tag { font-size: var(--fs-2xs); font-weight: 700; color: var(--red-700); background: var(--red-50); border-radius: 999px; padding: 0.05rem 0.45rem; }
+.pu-timer__bar { grid-column: 1 / -1; display: block; width: 100%; min-width: 3.5rem; height: 3px; border-radius: 3px; background: var(--grey-200); overflow: hidden; }
+.pu-timer__bar > span { display: block; height: 100%; width: 100%; background: var(--black); transform-origin: left; transition: transform 1s linear; }
+.pu-timer--soon .pu-timer__clock { color: #7A4B00; }
+.pu-timer--soon .pu-timer__bar > span { background: #B87400; }
+.pu-timer--late .pu-timer__clock { color: var(--red-700); }
+.pu-timer--late .pu-timer__bar > span { background: var(--red-600); }
+.pu-hero .pu-timer__clock, .pu-on-ink .pu-timer__clock { color: var(--white); }
+.pu-hero .pu-timer--soon .pu-timer__clock, .pu-on-ink .pu-timer--soon .pu-timer__clock { color: var(--pu-warn-on-ink, #F5B94A); }
+.pu-hero .pu-timer--late .pu-timer__clock, .pu-on-ink .pu-timer--late .pu-timer__clock { color: var(--red-400); }
+.pu-hero .pu-timer__bar, .pu-on-ink .pu-timer__bar { background: rgb(255 255 255 / 0.18); }
+.pu-hero .pu-timer__bar > span, .pu-on-ink .pu-timer__bar > span { background: var(--white); }
+.pu-hero .pu-timer--late .pu-timer__bar > span, .pu-on-ink .pu-timer--late .pu-timer__bar > span { background: var(--red-400); }
+.pu-hero .pu-timer__tag, .pu-on-ink .pu-timer__tag { background: var(--red-600); color: var(--white); }
+@media (prefers-reduced-motion: reduce) { .pu-timer__bar > span { transition: none; } }

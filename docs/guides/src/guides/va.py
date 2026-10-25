@@ -38,13 +38,16 @@ def build():
         ['Finance', 'Money (Payments by day, Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
         ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
     ], head=['Function', 'Groups and pages'])
-    g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more.')
+    g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more. To do puts the most urgent first.')
     g.steps([
-        'The top line shows your function and how many tasks are open.',
-        'Filter: All, Mine, Unassigned or Waiting. Under More filters: Any time, Overdue, Due today or Escalated, and by type.',
-        'Each row has a priority, the task, its record, when it is due and how long it has waited. The oldest due is first.',
+        'The top shows your function, today\'s date, how many things need you, your open, overdue and done-today figures, and your quickest actions.',
+        f'{B("Next up")} is the one task to do now. Press its button to do it, or {B("Take it")} to make it yours.',
+        'Your lanes group the work, for example Booking requests, Renter messages, Texts and calls, Live chat and Offers out. Each shows how many are waiting and how long the oldest has waited. Replies are timed against the 5-minute first reply target: past it the time turns red and says late. The most urgent lane comes first; press a lane to open it.',
+        f'Customer service and Sales: {B("Waiting for a reply")} lists every request, renter message, missed call and chat, the longest wait first, each with its reply button. Sales also sees the commission ring and Follow-ups due, Fleet today\'s handovers, returns and moves and the cars right now, Finance Money today.',
+        f'{B("Every open task")}: filter All, Mine, Unassigned or Waiting. Under More filters: Any time, Overdue, Due today or Escalated, and by type. Each row has a priority, the task, its record, when it is due and a live timer of how long it has waited.',
         f'Press {B("Take it")} to make it yours. Pressing the task opens the screen where it is done: a chat waiting for a person opens that chat, documents to check open the review, a request opens the booking. {B("Sheet")} opens the step-by-step procedure.',
         'Tasks close by themselves when their work is done elsewhere (an invoice paid or voided, a chat answered or closed); a day\'s opening and closing checks close at the end of that day.',
+        f'On a computer, press {B("/")} to search (Find a renter; Sales: Find a car).',
     ], shot=S('va-cs/01-queue-desktop', 0, 60, 1440, 700, pins=[(1, 200, 92), (2, 520, 172), (3, 460, 340), (4, 1320, 395)]))
 
     g.task('Work a task', 'Open the task. The buttons along the top move it on.')
@@ -662,7 +665,7 @@ def build():
     ], shot=S('va-cs/07-renters-desktop', 210, 60, 1440, 300, pins=[(1, 1050, 143)]))
 
     g.reference(
-        nav_rows=[('To do', 'Your function\'s tasks, oldest due first'),
+        nav_rows=[('To do', 'Next up, your lanes with their timers, then every open task'),
                   ('Today at a glance', 'Pickups, returns, what is due'),
                   ('Working as', 'Switch function (above the menu)'),
                   ('Customer service', 'Requests, New quote, Renter messages, Owner forms'),
