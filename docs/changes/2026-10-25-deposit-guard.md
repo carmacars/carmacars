@@ -72,6 +72,15 @@ sweep not done) asks `public.server_deposit_guard_sweep()`, captures each hold (
 settlement later refunds only what is not owed (`refund_deposit`). A refused capture whose intent is canceled is a lapse
 (`app.deposit_hold_lapsed`): the deposit is charged to the saved card (`deposit_charge`) and Finance gets an urgent task.
 
+### Nothing old is run by itself
+
+`program_settings.deposit_auto_max_age_days` (14). The job never runs a money step older than that (a marked payment left
+pending, `public.server_money_action` gives the server nothing for it), never charges or chases a balance whose newest statement
+with an open line is older than that and that the guard did not start in time (`balance_followups.manual`), never captures a
+hold already past its expiry, and never charges the saved card for a lapse found more than 14 days after the hold expired. Each
+gets a Finance task to review (`deposit_money_review`) instead. Payments left "pending" by settlements before 0155 carry no
+`server_action`, so the job never runs them at all.
+
 ## 4. The Settle screen
 
 `program_settings.deposit_toll_window_days` (7; the hold-back limit stays `deposit_holdback_days`, 30). `app.deposit_guard_facts`
