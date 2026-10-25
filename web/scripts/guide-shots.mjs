@@ -436,7 +436,7 @@ async function renterStory(browser, ids) {
   await d.goto(`/account/bookings/${number}/pay`, { waitUntil: 'domcontentloaded' });
   try { await d.locator('#pt-card-name').waitFor({ timeout: 40_000 }); } catch (e) { await shoot(d, 'renter', 'pay-failed', `Debug: ${d.url()}`, { step: 97 }); throw e; }
   await d.locator('#pt-card-name').fill('Jordan Lee');
-  if (await d.getByTestId('fake-card').isVisible().catch(() => false)) {
+  if (await d.getByTestId('fake-card').waitFor({ timeout: 20_000 }).then(() => true, () => false)) {
     await d.locator('#pt-card-number').fill('4242 4242 4242 4242'); await d.locator('#pt-card-exp').fill('12 / 31'); await d.locator('#pt-card-cvc').fill('123');
     await d.getByRole('button', { name: /^Pay \$/ }).click();
     await d.waitForURL((u) => !u.pathname.endsWith('/pay'), { timeout: 45_000 }).catch(() => problems.push('pay: the fake payment did not finish'));
