@@ -293,7 +293,13 @@ async function bestOf(pool, ctx) {
 const STOP = 80;
 async function chooseFor(t, rejectedBy = new Map()) {
   const r = { make: t.make, model: t.model, wikidata: null, rows: [], note: '', gens: 0, ranges: [] };
-  const hit = await resolveModel(t.make_name, t.model_name);
+  let hit;
+  try { hit = await resolveModel(t.make_name, t.model_name); } catch (e) {
+    // Wikidata behind (maxlag): carry on with the English Wikipedia article of that name (it follows redirects)
+    if (!/maxlag/.test(e.message)) throw e;
+    hit = { id: null, label: `${t.make_name} ${t.model_name}`, entity: null };
+    diag.push(`${t.make}/${t.model}: Wikidata behind, Wikipedia by name`);
+  }
   if (!hit) { r.note = 'not found on Wikidata'; return r; }
   r.wikidata = hit.id;
   const first = t.first_year ?? 1980, lastY = t.last_year ?? new Date().getUTCFullYear() + 1;
@@ -301,7 +307,7 @@ async function chooseFor(t, rejectedBy = new Map()) {
   // generations: Wikipedia's article first (model years), Wikidata's items when the article gives none
   let gens = await wikipediaGenerations(hit, t);
   let source = 'Wikipedia';
-  if (!generationRanges(gens, first, lastY).length) { gens = (await generations(hit)).gens; source = 'Wikidata'; }
+  if (!generationRanges(gens, first, lastY).length && hit.id) { gens = (await generations(hit)).gens; source = 'Wikidata'; }
   const ranges = generationRanges(gens, first, lastY);
   r.gens = ranges.length;
   r.ranges = ranges.map((g) => [g.from, g.to]);
