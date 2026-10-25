@@ -5,6 +5,7 @@ import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { PageHead } from '@/features/admin/ui';
 import { Deck } from '@/features/deck/Deck';
+import { DeckVideo } from '@/features/deck/DeckVideo';
 import type { DeckFigures } from '@/features/deck/types';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +33,6 @@ export default async function AdminDeck() {
       ]} />
     </section>
     <p className="dk-preview-note small">Preview: this is the deck exactly as investors see it, with today&apos;s figures from the database.</p>
-    <div className="dk-admin-preview"><Deck f={f} today={torontoToday()} /></div>
+    <div className="dk-admin-preview"><DeckVideo /><Deck f={f} today={torontoToday()} /></div>
   </>);
 }
