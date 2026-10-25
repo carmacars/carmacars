@@ -252,7 +252,27 @@ jobs:
               || die "Could not create the private bucket $BUCKET"
             notice "Storage: private bucket $BUCKET created"
           elif [ "$(jq -r .public /tmp/b.json)" != false ]; then die "The bucket $BUCKET is public; the deck has no public version"; fi
+          # files over 6 MB go up in 6 MB pieces (Storage's resumable upload, TUS): one long request held the
+          # server's transaction open until Postgres ended it, which Storage reports as "DatabaseReadOnly"
+          b64() { printf '%s' "$1" | base64 -w0; }
+          tus() { # file, key, type
+            local size=$(stat -c %s "$1") chunk=6291456 off=0 i=0 loc c
+            loc=$(curl -sS -D - -o /tmp/tus.json -X POST "${H[@]}" -H 'Tus-Resumable: 1.0.0' -H "Upload-Length: $size" -H 'x-upsert: true' \
+              -H "Upload-Metadata: bucketName $(b64 "$BUCKET"),objectName $(b64 "$FOLDER/$2"),contentType $(b64 "$3"),cacheControl $(b64 3600)" \
+              "$ST/upload/resumable" | tr -d '\r' | awk 'tolower($1)=="location:"{print $2}')
+            [ -n "$loc" ] || die "Upload of $2 could not start: $(head -c 300 /tmp/tus.json)"
+            loc="$ST/upload/resumable/${loc##*/upload/resumable/}"   # the tunnel's address, not the public one
+            while [ "$off" -lt "$size" ]; do
+              dd if="$1" of=/tmp/tus.part bs="$chunk" skip="$i" count=1 status=none
+              c=$(curl -sS -o /tmp/tus.json -w '%{http_code}' -X PATCH "${H[@]}" -H 'Tus-Resumable: 1.0.0' -H "Upload-Offset: $off" \
+                -H 'content-type: application/offset+octet-stream' --data-binary @/tmp/tus.part "$loc")
+              [ "${c:0:1}" = 2 ] || die "Upload of $2 failed at byte $off ($c): $(head -c 300 /tmp/tus.json)"
+              off=$((off + $(stat -c %s /tmp/tus.part))); i=$((i + 1))
+            done
+            log "uploaded $FOLDER/$2 ($size bytes in $i pieces)"
+          }
           up() { # file, key, type
+            if [ "$(stat -c %s "$1")" -gt 6291456 ]; then tus "$@"; return; fi
             local c; c=$(curl -sS -o /tmp/up.json -w '%{http_code}' -X POST "${H[@]}" -H "content-type: $3" -H 'x-upsert: true' -H 'cache-control: max-age=3600' \
               --data-binary "@$1" "$ST/object/$BUCKET/$FOLDER/$2")
             [ "${c:0:1}" = 2 ] || die "Upload of $2 failed ($c): $(head -c 300 /tmp/up.json)"
