@@ -714,6 +714,8 @@ const roles = ['owner', 'investor', 'admin', 'va_cs', 'va_finance', 'va_fleet', 
 const ids = {};
 for (const r of roles) ids[r] = await pick(r);
 ids.renter = (await newRenter('Jordan Lee')).id;
+// the assistants and the field person have saved a home address (otherwise their home shows the form that asks for it)
+for (const r of roles.filter((x) => x.startsWith('va_') || x === 'field')) await sql`update staff_profiles set home_address = coalesce(nullif(home_address, ''), '100 King Street West, Toronto, Ontario, Canada'), home_postal_code = coalesce(nullif(home_postal_code, ''), 'M5X 1A9'), home_address_set_at = coalesce(home_address_set_at, now()) where user_id = ${ids[r]}`;
 // a few requests waiting, so the request queues are not empty
 for (const [i, name] of ['Hannah Kim', 'Marcus Reid'].entries()) { try { const rr = await newRenter(name); await request(rr, await freeCar(60 + i * 9, 3 + i), name); } catch (e) { problems.push(`sample request: ${e.message}`); } }
 await polish(ids);

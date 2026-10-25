@@ -38,7 +38,7 @@ def build():
         'Beside the list (under it on a phone): today\'s pickups (ready or not ready), today\'s returns (due or late) and today\'s chauffeur bookings, by time.',
         f'Press {B("Overview")} for the money, fleet and queue figures, the alerts and the team\'s sales for the month.',
         'The dark band at the top counts the day, each count one tap from its page: requests waiting (with how long the oldest has waited, red past the reply target), pickups and returns today, payments to chase, deposits to settle, staff tasks open and alerts. A count that needs you now is red and says so.',
-    ], shot=S('admin/01-today-desktop', 0, 0, 1440, 900, pins=[(1, 325, 284), (2, 1300, 285), (3, 265, 812), (4, 1360, 200)]))
+    ], shot=S('admin/01-today-desktop', 0, 0, 1440, 900, pins=[(1, 300, 640), (2, 910, 630), (5, 1100, 580), (6, 1215, 255), (7, 840, 345)]))
     g.task('The menu', 'The current group is open, with its pages; press another group to open it. On a phone the whole menu sits behind one Menu button that says where you are.')
     g.table([
         ['Today', 'To do, Overview, Staff tasks, Live visitors'],
