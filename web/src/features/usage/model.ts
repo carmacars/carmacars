@@ -14,7 +14,7 @@ export interface ServiceState {
 /** What a visitor or a staff member reads while a feature waits for its allowance. One sentence each, no error words. */
 export const PAUSE = {
   chat: 'Our assistant is resting until tomorrow. A person will answer you here.',
-  assistant: 'The assistant is unavailable until tomorrow (daily included usage reached). Everything still works from the screens and pop-ups.',
+  assistant: 'Today\'s free AI allowance is used up. The assistant is back at midnight, Toronto time. Everything still works from the screens and pop-ups.',
   assistantClaude: 'The assistant is paused: its Claude budget for today is used (or not allowed yet). An Admin can allow it in Settings > Usage. Everything still works from the screens and pop-ups.',
   copy: 'AI copy waits for tomorrow (daily included usage reached). The template text stays on the page until then.',
   turoEmail: 'Turo emails are read by the rules only until tomorrow (daily included AI usage reached). Emails the rules cannot read wait in the review list.',
@@ -23,9 +23,11 @@ export const PAUSE = {
 } as const;
 
 /** The pause message of a feature for a gate's state, or null when it may run. */
-export function pauseMessage(feature: keyof typeof PAUSE, gate: { ok?: boolean; paused?: boolean; service?: string } | null | undefined): string | null {
+export function pauseMessage(feature: keyof typeof PAUSE, gate: { ok?: boolean; paused?: boolean; service?: string; message?: unknown } | null | undefined): string | null {
   if (!gate || gate.ok !== false) return null;
   if (feature === 'assistant' && gate.service === 'claude') return PAUSE.assistantClaude;
+  // the budget's own words (0133): how much of the day is used and when it is back
+  if (feature === 'assistant' && typeof gate.message === 'string' && gate.message) return gate.message;
   return PAUSE[feature];
 }
 
@@ -42,7 +44,8 @@ export function paidCost(s: Pick<ServiceState, 'service' | 'unit' | 'usd_per_uni
   if (!s.usd_per_unit) return { rate: 'Not billed by use.', example: s.upgrade_text ?? 'Nothing to pay.', canPay: false };
   const per = (n: number, label: string) => `${usd(s.usd_per_unit! * n)} per ${n.toLocaleString('en-US')} ${label}`;
   switch (s.service) {
-    case 'workers_ai': return { rate: `About ${per(1000, 'neurons')}.`, example: `Another full day's worth (${s.included.toLocaleString('en-US')} neurons) costs about ${usd(s.usd_per_unit * s.included)}.`, canPay: true };
+    // a hard stop at the free allowance (0133): never paid
+    case 'workers_ai': return { rate: 'Free allowance only: never paid.', example: 'It stops at the included neurons each day and starts again at midnight, Toronto time. The staff assistant keeps its reserved share all day.', canPay: false };
     case 'images': return { rate: `${per(1000, 'transformations')}.`, example: `100 more photos (about 5 transformations each) cost about ${usd(s.usd_per_unit * 500)}.`, canPay: true };
     case 'workers_requests': return { rate: `${per(1_000_000, 'requests')}.`, example: `So far above the allowance: about ${usd(s.overage_usd)}.`, canPay: false };
     case 'workers_cpu': return { rate: `${per(1_000_000, 'CPU milliseconds')}.`, example: `So far above the allowance: about ${usd(s.overage_usd)}.`, canPay: false };

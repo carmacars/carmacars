@@ -360,6 +360,7 @@ export type Database = {
           error: string | null;
           created_at: string;
           decided_at: string | null;
+          details: Json | null;
         };
         Insert: {
           id?: string;
@@ -375,6 +376,7 @@ export type Database = {
           error?: string | null;
           created_at?: string;
           decided_at?: string | null;
+          details?: Json | null;
         };
         Update: {
           id?: string;
@@ -390,6 +392,7 @@ export type Database = {
           error?: string | null;
           created_at?: string;
           decided_at?: string | null;
+          details?: Json | null;
         };
         Relationships: [];
       };
@@ -10939,6 +10942,11 @@ export type Database = {
           long_rental_autocharge: boolean;
           staff_may_edit_fees: boolean;
           staff_may_edit_bookings: boolean;
+          ai_assistant_reserve_bps: number;
+          ai_background_bps: number;
+          ai_release_hour: number | null;
+          ai_assistant_cushion: number;
+          seo_ai_writer_enabled: boolean;
         };
         Insert: {
           id?: string;
@@ -11378,6 +11386,11 @@ export type Database = {
           long_rental_autocharge?: boolean;
           staff_may_edit_fees?: boolean;
           staff_may_edit_bookings?: boolean;
+          ai_assistant_reserve_bps?: number;
+          ai_background_bps?: number;
+          ai_release_hour?: number | null;
+          ai_assistant_cushion?: number;
+          seo_ai_writer_enabled?: boolean;
         };
         Update: {
           id?: string;
@@ -11817,6 +11830,11 @@ export type Database = {
           long_rental_autocharge?: boolean;
           staff_may_edit_fees?: boolean;
           staff_may_edit_bookings?: boolean;
+          ai_assistant_reserve_bps?: number;
+          ai_background_bps?: number;
+          ai_release_hour?: number | null;
+          ai_assistant_cushion?: number;
+          seo_ai_writer_enabled?: boolean;
         };
         Relationships: [];
       };
@@ -19476,6 +19494,8 @@ export type Database = {
       server_agreement_companion: { Args: { p_booking: string }; Returns: Json };
       server_agreement_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_agreements_due: { Args: { p_limit?: number }; Returns: Json };
+      server_ai_allow: { Args: { p_purpose: string; p_est?: number }; Returns: Json };
+      server_ai_budget: { Args: never; Returns: Json };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };

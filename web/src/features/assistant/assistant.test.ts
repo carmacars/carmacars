@@ -190,13 +190,15 @@ describe('paused states (the usage guard)', () => {
   });
   it('the words of every paused feature', () => {
     assert.equal(PAUSE.chat, 'Our assistant is resting until tomorrow. A person will answer you here.');
-    assert.equal(PAUSE.assistant, 'The assistant is unavailable until tomorrow (daily included usage reached). Everything still works from the screens and pop-ups.');
+    assert.equal(PAUSE.assistant, 'Today\'s free AI allowance is used up. The assistant is back at midnight, Toronto time. Everything still works from the screens and pop-ups.');
     for (const v of Object.values(PAUSE)) { assert.doesNotMatch(v, /error|failed|—|–/i); assert.doesNotMatch(v, /Carmacars|Carma Cars/); }
     assert.equal(pauseMessage('chat', { ok: true }), null);
   });
   it('what continuing costs, and what cannot be paid', () => {
     const ai = paidCost({ service: 'workers_ai', unit: 'neurons', usd_per_unit: 0.000011, included: 10000, period: 'day', pause_mode: 'pause', upgrade_text: null, overage_usd: 0 });
-    assert.equal(ai.rate, 'About US$0.011 per 1,000 neurons.'); assert.match(ai.example, /US\$0\.11/); assert.equal(ai.canPay, true);
+    // Workers AI is a hard stop at the free allowance (0133): never paid
+    assert.equal(ai.rate, 'Free allowance only: never paid.'); assert.match(ai.example, /midnight, Toronto time/); assert.equal(ai.canPay, false);
+    assert.equal(paidCost({ service: 'images', unit: 'transformations', usd_per_unit: 0.0005, included: 5000, period: 'month', pause_mode: 'pause', upgrade_text: null, overage_usd: 0 }).canPay, true);
     const mail = paidCost({ service: 'resend_day', unit: 'emails', usd_per_unit: null, included: 100, period: 'day', pause_mode: 'hold', upgrade_text: 'Resend Pro', overage_usd: 0 });
     assert.equal(mail.canPay, false);
     assert.equal(usedUpTitle({ label: 'Workers AI (assistant, live chat)', period: 'day' }), 'Included Workers AI used up for today');
@@ -226,5 +228,139 @@ describe('the models', () => {
     const m = claudeModel({ key: 'k', model: 'm', inUsdPerM: 1, outUsdPerM: 5, fetch: async () => ({ ok: false, status: 429, json: async () => ({ error: { message: 'rate limited' } }) }) });
     const r = await m.step('s', [{ role: 'user', text: 'x' }], []);
     assert.equal(r.ok ? 'ok' : r.reason, 'quota');
+  });
+});
+
+// ---------------------------------------------------------------- 0133: the budget's words, offers, rentals, balances
+const PREVIEW = { ok: true, available: true, booking: { billable_days: 2, deposit_cents: 50000, hst_at_booking_cents: 2600, total_due_at_booking_cents: 22600, renter_due_at_booking_cents: 22600,
+  lines: [{ charge_type: 'rental_charge', description: 'Rental, 2 days', amount_cents: 18000, stage: 'booking', charged_to_renter: true },
+          { charge_type: 'cleaning', description: null, amount_cents: 2000, stage: 'booking', charged_to_renter: true },
+          { charge_type: 'damage', description: 'Later charge', amount_cents: 9900, stage: 'post_rental', charged_to_renter: true }] } };
+function staffDeps(m: AssistantModel, over: Partial<Record<'offer_preview' | 'offer_form' | 'find_customers' | 'booking_money', unknown>> = {}, who: Deps['who'] = { portal: 'admin' }) {
+  const calls: Array<{ what: string; p: Record<string, unknown> }> = [];
+  const base = deps(m, { who, find: async (k, q) => (k === 'car' ? ROWS.car!.filter((r) => String(r.plate).toLowerCase() === q.toLowerCase().replace(/\s/g, '') || q.toLowerCase() === 'corolla le' && r.id === 'v1') : k === 'booking' ? ROWS.booking! : []) });
+  base.d.staff = async (what, p) => {
+    calls.push({ what, p });
+    const v = over[what] ?? (what === 'offer_preview' ? PREVIEW : what === 'find_customers' ? [] : what === 'offer_form' ? { cars: [] } : {});
+    if (v instanceof Error) throw v;
+    return v as Record<string, unknown>;
+  };
+  return { ...base, calls };
+}
+
+describe('the budget\'s words (0133)', () => {
+  it('a closed gate shows the database\'s message: how much is used and when the assistant is back', async () => {
+    const msg = 'Today\'s free AI allowance is used up (10,412 of 10,000 neurons). The assistant is back at midnight, Toronto time. Everything still works from the screens and pop-ups.';
+    const m = stub({ action: 'reply', reply: 'x' });
+    const r = await ask(deps(m, { gate: async () => ({ ok: false, message: msg }) }).d, { text: 'hello' });
+    assert.deepEqual(r.out, [{ type: 'paused', text: msg }]);
+    assert.equal(m.calls, 0);
+  });
+  it('Claude\'s closed gate keeps its own words (no new spend without an Admin)', () => {
+    assert.equal(pauseMessage('assistant', { ok: false, service: 'claude', message: 'other' }), PAUSE.assistantClaude);
+  });
+});
+
+describe('offers and rentals through the assistant (0133)', () => {
+  it('who sees the offer tools: Admin, customer service and sales; never Fleet or field staff', () => {
+    assert.ok(toolsFor({ portal: 'admin' }).includes('create_offer'));
+    assert.ok(toolsFor({ portal: 'va', fn: 'cs' }).includes('create_offer') && toolsFor({ portal: 'va', fn: 'sales' }).includes('create_offer'));
+    assert.ok(!toolsFor({ portal: 'va', fn: 'fleet' }).includes('create_offer') && !toolsFor({ portal: 'field' }).includes('create_offer'));
+    assert.ok(toolsFor({ portal: 'va', fn: 'finance' }).includes('booking_balance'));
+  });
+  it('the customer is needed: one on file, or a new one\'s name, email and mobile', () => {
+    const c = checkArgs('create_offer', { car: 'Corolla', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00' });
+    assert.equal(c.ok, false); assert.match(!c.ok ? c.problem : '', /the customer/);
+    assert.equal(checkArgs('create_offer', { car: 'Corolla', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'maya@example.com' }).ok, true);
+    const typed = checkArgs('create_offer', { car: 'Corolla', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'Maya', rental_total: 150 });
+    assert.match(!typed.ok ? typed.problem : '', /why the rental price differs/);
+  });
+  it('create an offer: the card has the customer on file, the car, the dates, the price lines, the deposit and how it is paid and sent; nothing runs', async () => {
+    const m = stub({ action: 'tool', tool: 'create_offer', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'maya@example.com', deposit_pay: 'cash', notify: 'both' } });
+    const { d, proposed, calls } = staffDeps(m, { find_customers: [{ id: 'r1', legal_name: 'Maya Chen', email: 'maya@example.com', mobile: '4165550100', date_of_birth: '1990-01-01', is_blocked: false }] });
+    const r = await ask(d, { text: 'send an offer' });
+    const card = r.out[0] as { type: string; summary: string; details: Array<{ title: string; rows: Array<{ label: string; value: string }> }> };
+    assert.equal(card.type, 'proposal');
+    assert.equal(card.summary, 'Send an offer for the 2023 Toyota Corolla LE to Maya Chen, Nov 2, 10:00 am to Nov 4, 10:00 am: $226.00 due at booking, by email and text?');
+    const rows = Object.fromEntries(card.details.flatMap((x) => x.rows.map((y) => [y.label, y.value])));
+    assert.equal(rows.Customer, 'Maya Chen · maya@example.com · 4165550100 (on file)');
+    assert.equal(rows['Rental, 2 days'], '$180.00'); assert.equal(rows.Cleaning, '$20.00'); assert.equal(rows.HST, '$26.00');
+    assert.equal(rows['Due at booking'], '$226.00'); assert.equal(rows['Deposit (refundable)'], '$500.00');
+    assert.equal(rows.Deposit, '$500.00 by cash at pickup'); assert.equal(rows['Later charge'], undefined);
+    assert.equal(proposed.length, 1);
+    assert.equal(proposed[0]!.name, 'offer_create');
+    const a = proposed[0]!.args as Record<string, unknown>;
+    assert.deepEqual([a.renter_id, a.vehicle_id, a.deposit_pay_method, a.notify, a.channels], ['r1', 'v1', 'cash', true, { email: true, text: true }]);
+    assert.ok((proposed[0]!.details as unknown[]).length >= 3);
+    // the same payload was previewed (rolled back) before the card
+    assert.deepEqual(calls.map((c) => c.what), ['find_customers', 'offer_preview']);
+    assert.deepEqual(calls[1]!.p, a);
+  });
+  it('a refused preview (the car not bookable, a blocked customer) is said, and no card is made', async () => {
+    const m = stub({ action: 'tool', tool: 'create_offer', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', renter_name: 'New Person', renter_email: 'np@example.com', renter_mobile: '4165550199', renter_date_of_birth: '1995-05-05' } });
+    const { d, proposed } = staffDeps(m, { offer_preview: { ok: false, error: 'ERROR:  The car is not available for those dates' } });
+    const r = await ask(d, { text: 'offer' });
+    assert.deepEqual(r.out, [{ type: 'text', text: 'The offer cannot be made: The car is not available for those dates. Nothing was sent.' }]);
+    assert.equal(proposed.length, 0);
+  });
+  it('a new customer without a date of birth is asked for it before an offer', async () => {
+    const m = stub({ action: 'tool', tool: 'create_offer', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', renter_name: 'New Person', renter_email: 'np@example.com', renter_mobile: '4165550199' } });
+    const { d, proposed } = staffDeps(m);
+    const r = await ask(d, { text: 'offer' });
+    assert.equal(r.out[0]!.type, 'question'); assert.match((r.out[0] as { text: string }).text, /date of birth/);
+    assert.equal(proposed.length, 0);
+  });
+  it('two customers match: it asks which one', async () => {
+    const m = stub({ action: 'tool', tool: 'create_offer', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'Chen' } });
+    const { d, proposed } = staffDeps(m, { find_customers: [{ id: 'r1', legal_name: 'Maya Chen', email: 'm@example.com' }, { id: 'r2', legal_name: 'Leo Chen', email: 'l@example.com' }] });
+    const r = await ask(d, { text: 'offer' });
+    assert.deepEqual(r.out[0], { type: 'question', text: 'More than one customer matches "Chen". Which one?', options: ['Maya Chen, m@example.com', 'Leo Chen, l@example.com'] });
+    assert.equal(proposed.length, 0);
+  });
+  it('add a rental: the same card with price lines and the payments (paid by e-Transfer, deposit in cash, signed on paper)', async () => {
+    const m = stub({ action: 'tool', tool: 'add_rental', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'maya@example.com', payment: 'other_way', method: 'e_transfer', reference: 'CA99', amount: 226, deposit_method: 'cash', agreement: 'paper' } });
+    const { d, proposed } = staffDeps(m, { find_customers: [{ id: 'r1', legal_name: 'Maya Chen', email: 'maya@example.com', mobile: '4165550100', date_of_birth: '1990-01-01' }] });
+    const r = await ask(d, { text: 'add a rental' });
+    const card = r.out[0] as { summary: string; details: Array<{ rows: Array<{ label: string; value: string }> }> };
+    const rows = Object.fromEntries(card.details.flatMap((x) => x.rows.map((y) => [y.label, y.value])));
+    assert.match(card.summary, /^Add a rental of the 2023 Toyota Corolla LE for Maya Chen, Nov 2, 10:00 am to Nov 4, 10:00 am, paid by e-Transfer \(\$226\)/);
+    assert.equal(rows.Rental, 'Paid by e-Transfer ($226), reference CA99');
+    assert.equal(rows.Deposit, 'By cash ($500.00)'); assert.match(rows.Agreement!, /paper/);
+    assert.equal(proposed[0]!.name, 'manual_rental_create');
+    const a = proposed[0]!.args as Record<string, unknown>;
+    assert.deepEqual([a.renter_id, a.deposit, a.agreement, (a.payment as Record<string, unknown>).amount_cents], ['r1', { method: 'cash' }, 'paper', 22600]);
+  });
+  it('field staff (no offer screen): the rental card says the price is worked out when added', async () => {
+    const m = stub({ action: 'tool', tool: 'add_rental', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', renter_name: 'New Person', renter_email: 'np@example.com', renter_mobile: '4165550199' } });
+    const { d, proposed } = staffDeps(m, { offer_preview: new Error('ERROR:  An Admin, customer service or sales sends an offer') }, { portal: 'field' });
+    const r = await ask(d, { text: 'add' });
+    const card = r.out[0] as { details: Array<{ title: string; rows: Array<{ value: string }> }> };
+    assert.match(card.details.find((x) => x.title === 'Price')!.rows[0]!.value, /when it is added/);
+    assert.equal(proposed.length, 1);
+  });
+  it('a payment on a booking is recorded by part, through the screen\'s function', async () => {
+    const m = stub({ action: 'tool', tool: 'record_payment', args: { booking: 'R-000123', covers: 'fees', amount: 20, method: 'cash', received_on: '2026-10-21' } });
+    const { d, proposed } = staffDeps(m);
+    const r = await ask(d, { text: 'record' });
+    assert.equal((r.out[0] as { summary: string }).summary, 'Record a $20 cash on booking R-000123 for Maya Chen (fees), dated Oct 21?');
+    assert.deepEqual([proposed[0]!.name, (proposed[0]!.args as Record<string, unknown>).covers, (proposed[0]!.args as Record<string, unknown>).amount_cents], ['record_booking_payment', 'fees', 2000]);
+  });
+  it('what does a renter owe: each open booking\'s parts and the deposit', async () => {
+    const m = stub({ action: 'tool', tool: 'booking_balance', args: { customer: 'Maya' } });
+    const { d } = staffDeps(m, { booking_money: { booking_number: 'R-000123', status: 'offered', parts: [{ covers: 'rental', open_cents: 20600 }, { covers: 'fees', open_cents: 2000 }, { covers: 'later', open_cents: 0 }], deposit_cents: 50000, deposit_pay_method: 'card', deposit: null } });
+    const r = await ask(d, { text: 'what does Maya owe' });
+    const res = r.out[0] as { title: string; rows: Array<{ title: string; sub: string; href: string }> };
+    assert.equal(res.title, 'What "Maya" owes');
+    assert.deepEqual(res.rows[0], { title: 'R-000123: $226.00 owing', sub: 'offered · rental $206.00 · fees $20.00 · later $0.00 · deposit $500.00 not taken yet (card)', href: '/admin/bookings/R-000123?tab=money' });
+  });
+  it('which car is free: every bookable car from the offer screen, with its rates; the public search when that is not allowed', async () => {
+    const m = stub({ action: 'tool', tool: 'availability', args: { pickup_date: '2026-11-02', return_date: '2026-11-04' } });
+    const { d, calls } = staffDeps(m, { offer_form: { cars: [{ id: 'v1', name: '2023 Toyota Corolla LE', plate: 'CBXT123', free: true, daily_rate_cents: 9000 }, { id: 'v2', name: '2022 Toyota Corolla SE', plate: 'CDEF456', free: false }] } });
+    const r = await ask(d, { text: 'free?' });
+    assert.deepEqual(r.out[0], { type: 'results', title: 'Free from 2026-11-02 to 2026-11-04', empty: 'No car is free on those dates.', rows: [{ title: '2023 Toyota Corolla LE (CBXT123)', sub: '$90.00 a day', href: '/admin/vehicles/v1' }] });
+    assert.equal(calls[0]!.what, 'offer_form');
+    const f = staffDeps(stub({ action: 'tool', tool: 'availability', args: { pickup_date: '2026-11-02', return_date: '2026-11-04', car: 'Corolla' } }), { offer_form: new Error('ERROR:  An Admin, customer service or sales sends an offer') }, { portal: 'field' });
+    const r2 = await ask(f.d, { text: 'free?' });
+    assert.match((r2.out[0] as { text: string }).text, /^Yes: the 2023 Toyota Corolla is free/);
   });
 });

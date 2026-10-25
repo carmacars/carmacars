@@ -43,8 +43,12 @@ export async function POST(req: Request) {
     const r = await gen.generate<{ body_md?: string; summary?: string }>({ task: 'guide_rewrite', system: REWRITE_SYSTEM,
       prompt: rewritePrompt(s.title, s.body_md, p.facts, reason, attempt, last.problems), schema: REWRITE_SCHEMA, maxOutputTokens: 4000, temperature: attempt === 1 ? 0.1 : 0 });
     // Workers AI paused for the day (the usage guard, 0104): stop here, the section keeps its text and the next run tries again
-    if (!r.ok && r.reason === 'quota') return NextResponse.json({ ok: false, paused: true, result: 'paused', attempts: attempt, summary: 'Workers AI is paused for today; the next run tries again', problems: [r.message] });
-    if (!r.ok) { tries.push({ attempt, problems: [`the model did not answer (${r.reason})`] }); last = { ...last, problems: [] }; continue; }
+    if (!r.ok && r.reason === 'quota') {
+      // the attempts before the pause spent neurons too: recorded, so the day's budget by feature counts them (0133)
+      if (neurons > 0) await rpc('server_usage_call', { p: { provider: last.model, purpose: 'guide_rewrite', ok: false, error: 'paused after earlier attempts', duration_ms: Date.now() - t0, units: neurons, unit: 'neurons' } }, SR).catch(() => undefined);
+      return NextResponse.json({ ok: false, paused: true, result: 'paused', attempts: attempt, summary: 'Workers AI is paused for today; the next run tries again', problems: [r.message] });
+    }
+    if (!r.ok) { neurons += r.usage?.neurons ?? 0; tries.push({ attempt, problems: [`the model did not answer (${r.reason})`] }); last = { ...last, problems: [] }; continue; }
     neurons += r.usage.neurons ?? 0;
     const body = (r.data.body_md ?? '').replace(/ ?[—–] ?/g, ', ').replace(/\r\n/g, '\n').trim() + '\n';
     const problems = rewriteProblems(s.body_md, body, p.labels);

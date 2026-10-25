@@ -1,0 +1,97 @@
+name: seo-import
+
+# The import of the search copy batch (migration 0133, docs/seo-batches.md): every item of the batch files pushed to
+# main (seo/batches/*.json) is checked against the live facts with the website's own checks (web/src/features/seo/
+# batch.ts: lengths, the house style, the brand, no numbered company, the Protection Plan wording, claims, numbers and
+# prices only from the facts, no service promises, every page unlike the others) and published when it passes through
+# app.seo_batch_publish (source claude-batch; IndexNow queued by the database), then the public pages are rebuilt
+# (/api/jobs/public-rebuild, as after a fleet change). Notices: published, and each rejected item with its reasons.
+# Works on the hosted project and on the company's own server (scripts/deploy/sb.sh).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'seo/batches/**.json'
+  workflow_dispatch:
+    inputs:
+      files:
+        description: Batch files (space separated; empty for every file under seo/batches)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seo-import
+  cancel-in-progress: false
+
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+jobs:
+  import:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: The batch files
+        id: f
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          if [ "${{ github.event_name }}" = push ]; then
+            B="${{ github.event.before }}"
+            if [ -z "$B" ] || ! git cat-file -e "$B^{commit}" 2>/dev/null || [ "$B" = 0000000000000000000000000000000000000000 ]; then B="${{ github.sha }}^"; fi
+            F=$(git diff --name-only --diff-filter=AM "$B" "${{ github.sha }}" -- 'seo/batches/' | grep '\.json$' || true)
+          elif [ -n "${{ inputs.files }}" ]; then
+            F="${{ inputs.files }}"
+          else
+            F=$(git ls-files 'seo/batches/*.json' 'seo/batches/**/*.json' | sort -u)
+          fi
+          F=$(echo $F)
+          if [ -z "$F" ]; then echo "::notice title=seo import::no batch file to import"; echo "files=" >> "$GITHUB_OUTPUT"; exit 0; fi
+          echo "files=$F" >> "$GITHUB_OUTPUT"
+          echo "::notice title=seo import::$F"
+      - name: The live facts of each item
+        if: steps.f.outputs.files != ''
+        run: |
+          D="$RUNNER_TEMP/seo-import"
+          F=""; for x in ${{ steps.f.outputs.files }}; do F="$F $GITHUB_WORKSPACE/$x"; done
+          node --experimental-strip-types --no-warnings scripts/seo-import.mjs refs $F --dir "$D"
+          for s in "$D"/ctx-*.sql; do [ -e "$s" ] || continue; "$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql-file "$s" > "${s%.sql}.json"; done
+      - name: The checks (the website's own)
+        if: steps.f.outputs.files != ''
+        run: |
+          D="$RUNNER_TEMP/seo-import"
+          F=""; for x in ${{ steps.f.outputs.files }}; do F="$F $GITHUB_WORKSPACE/$x"; done
+          node --experimental-strip-types --no-warnings scripts/seo-import.mjs check $F --dir "$D"
+      - name: Publish what passed
+        if: steps.f.outputs.files != ''
+        run: |
+          D="$RUNNER_TEMP/seo-import"
+          for s in "$D"/publish-*.sql; do [ -e "$s" ] || continue; n=$(basename "$s" .sql); n=${n#publish-}; "$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql-file "$s" > "$D/published-$n.json"; done
+      - name: Rebuild the public pages
+        if: steps.f.outputs.files != ''
+        run: |
+          D="$RUNNER_TEMP/seo-import"
+          if ! ls "$D"/published-*.json >/dev/null 2>&1; then echo "::notice title=seo import::nothing published, nothing to rebuild"; exit 0; fi
+          L=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" vault deploy_link_signing_key)
+          echo "::add-mask::$L"
+          T=$(printf '%s' 'carmacars-listing-worker-v1' | openssl dgst -sha256 -hmac "$L" | sed 's/^.* //')
+          echo "::add-mask::$T"
+          S=$(curl -sS -o /dev/null -w '%{http_code}' -X POST https://carmacars.ca/api/jobs/public-rebuild -H "Authorization: Bearer $T" -H 'content-type: application/json' -d '{}' || echo 000)
+          echo "::notice title=seo import::public pages rebuilt (HTTP $S); IndexNow sends the changed addresses on the next search job tick"
+      - name: Published and rejected
+        if: always() && steps.f.outputs.files != ''
+        run: node --experimental-strip-types --no-warnings scripts/seo-import.mjs report --dir "$RUNNER_TEMP/seo-import"

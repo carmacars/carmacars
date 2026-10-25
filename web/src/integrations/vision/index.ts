@@ -14,8 +14,8 @@ export async function visionModel(): Promise<VisionModel> {
       if (ai) {
         const { workersAiVision } = await import('./workers-ai');
         // the toll notices and plates go through the usage guard too (0080, 0104)
-        const [{ guardVision }, { workersAiPaused }] = await Promise.all([import('../ai/guard'), import('../ai/paused')]);
-        return guardVision(workersAiVision(ai), workersAiPaused);
+        const [{ guardVision }, { aiRoom }] = await Promise.all([import('../ai/guard'), import('../ai/paused')]);
+        return guardVision(workersAiVision(ai), aiRoom.paused, aiRoom.spent);
       }
     } catch { /* not running in the Worker */ }
   }

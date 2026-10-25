@@ -45,6 +45,8 @@ function UsageCard({ c }: { c: CardRow }) {
         <p className="small" data-testid={`usage-never-paused-${c.service}`}><b>Never paused:</b> {c.when_used_up} Estimated cost above the allowance so far: <b>{usd(c.overage_usd)}</b>. {c.upgrade_text ?? ''}</p>
       ) : c.pause_mode === 'hold' ? (
         <p className="small"><b>Held:</b> {c.when_used_up} {c.upgrade_text}</p>
+      ) : !cost.canPay ? (
+        <p className="small" data-testid={`usage-hard-stop-${c.service}`}><b>Stopped for today, never paid.</b> {c.when_used_up}</p>
       ) : paid ? (
         <p className="small" data-testid={`usage-paid-${c.service}`}>Paid usage allowed until the end of {c.decision!.until === 'day' ? 'today' : 'this month'}, up to {usd(c.decision!.cap_usd)} ({usd(c.decision!.spent_usd)} used so far){c.decision!.by ? `, by ${c.decision!.by}` : ''}.</p>
       ) : (
@@ -53,7 +55,7 @@ function UsageCard({ c }: { c: CardRow }) {
           <p className="small muted">{cost.rate} {cost.example}</p>
         </>
       )}
-      {c.pause_mode === 'pause' && !paid && <UsageAllow s={c} testId={`usage-allow-${c.service}`} />}
+      {c.pause_mode === 'pause' && !paid && cost.canPay && <UsageAllow s={c} testId={`usage-allow-${c.service}`} />}
       <p className="small"><Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link></p>
     </section>
   );

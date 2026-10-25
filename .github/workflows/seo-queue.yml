@@ -1,0 +1,65 @@
+name: seo-queue
+
+# The daily queue of the search copy batch (migration 0133, docs/seo-batches.md): the next pages that need text, most
+# valuable first (landing pages, then car pages, then guides), each with the facts and the instructions the website's
+# writer had, read from the database (app.seo_batch_queue through scripts/deploy/sb.sh, so it works on the hosted
+# project and on the company's own server) and committed as seo/queue/latest.json to the branch seo-queue (force-pushed;
+# main is never touched). The scheduled Claude session reads it, writes the text and commits seo/batches/*.json to main,
+# which runs seo-import.yml.
+on:
+  schedule:
+    - cron: '10 9 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: How many pages (most valuable first)
+        type: string
+        default: '500'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: seo-queue
+  cancel-in-progress: false
+
+env:
+  DB_BACKEND: ${{ vars.DB_BACKEND }}
+  VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+jobs:
+  queue:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: The pages that need text, from the database
+        run: |
+          N="${{ inputs.limit || '500' }}"
+          case "$N" in ''|*[!0-9]*) echo "::error title=seo queue::the limit is a number"; exit 1 ;; esac
+          printf 'select app.seo_batch_queue(%s) as q' "$N" > "$RUNNER_TEMP/queue.sql"
+          "$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql-file "$RUNNER_TEMP/queue.sql" > "$RUNNER_TEMP/queue.json"
+          node --experimental-strip-types --no-warnings scripts/seo-queue.mjs --in "$RUNNER_TEMP/queue.json" --out "$RUNNER_TEMP/latest.json" --limit "$N" | sed 's/^/::notice title=seo queue::/'
+      - name: Commit to the branch seo-queue (force-pushed; main untouched)
+        run: |
+          D="$RUNNER_TEMP/seo-queue"
+          rm -rf "$D"; mkdir -p "$D/seo/queue"
+          cp "$RUNNER_TEMP/latest.json" "$D/seo/queue/latest.json"
+          cp "$GITHUB_WORKSPACE/docs/seo-batches.md" "$D/README.md"
+          cd "$D"
+          git init -q -b seo-queue
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "SEO queue $(date -u +%Y-%m-%d): $(jq '.count' seo/queue/latest.json) pages (from ${GITHUB_SHA::7})"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push -q -f origin seo-queue
+          echo "::notice title=seo queue::seo/queue/latest.json on the branch seo-queue"

@@ -103,6 +103,8 @@ export function fakeStep(text: string, tools: ToolName[]): Step {
     const car = /\bis (?:the )?(.+?) (?:free|available)/i.exec(t)?.[1];
     return { action: 'tool', tool: 'availability', args: { pickup_date: dates[0], return_date: dates[1], ...(car ? { car } : {}) } };
   }
+  // what a renter owes on a booking (0133): a booking number with "owe"
+  if (/\b(owe|owes|owing)\b/.test(l) && /\b[A-Z]-?\d{3,}\b/.test(t) && has('booking_balance')) return { action: 'tool', tool: 'booking_balance', args: { booking: /\b([A-Z]-?\d{3,})\b/.exec(t)![1] } };
   if (/\b(balance|owe|owes|owing)\b/.test(l) && has('owner_balance')) return { action: 'tool', tool: 'owner_balance', args: { owner: /(?:of|does|for)\s+([A-Z][\w'-]+(?: [A-Z][\w'-]+)*)/.exec(t)?.[1] ?? '' } };
   if (/^(find|look up|search)\b/.test(l) && has('find')) {
     const kind = /invoice|inv-/.test(l) ? 'invoice' : /\bowner\b/.test(l) ? 'owner' : /\brenter\b/.test(l) ? 'renter' : /\btoll|notice|ticket\b/.test(l) ? 'toll' : /\bcar\b/.test(l) ? 'car' : 'booking';
@@ -118,6 +120,7 @@ export function fakeStep(text: string, tools: ToolName[]): Step {
     const about = /\babout (.+)$/i.exec(t)?.[1] ?? 'your booking';
     return { action: 'tool', tool: 'draft_message', args: { to: /\bowner\b/.test(l) ? 'owner' : 'renter', name, text: `Hi ${name.split(' ')[0]}, this is CarmaCars about ${about.replace(/[.?!]+$/, '')}. Let us know if you have any questions. Thank you!` } };
   }
+  if (/\b(send|make|create)\b.*\boffer\b/.test(l) && has('create_offer')) return { action: 'ask', question: 'Which car, the pickup and return (date and time), and the customer (a name, email or phone on file, or a new customer\'s name, email, mobile and date of birth)?', options: [] };
   if (/\b(add|new)\b.*\brental\b/.test(l) && has('add_rental')) return { action: 'ask', question: 'Which car, the pickup and return (date and time), and the renter\'s name, email and mobile?', options: [] };
   if (/\binsur/.test(l)) return { action: 'reply', reply: 'Marking a car insured is done on the car\'s page, not in the assistant yet.' };
   return { action: 'reply', reply: 'I can tell you what needs doing today, find bookings, renters, owners, cars and invoices, check which cars are free, and prepare changes for you to confirm. What do you need?' };

@@ -6,12 +6,13 @@ import { Act } from '@/features/admin/Act';
 import { UsageAllow } from '@/features/usage/UsageAllow';
 import { paidCost, share, shortLabel, usd, type ServiceState } from '@/features/usage/model';
 import { UsageChart } from '@/features/usage/UsageChart';
+import { AiByFeature, type AiUsage } from '@/features/usage/AiByFeature';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Usage', path: '/admin/settings/usage', noindex: true, description: 'Included allowances of every metered service, what is used, and paid usage.' });
 
 type Row = ServiceState & { history: Array<{ day: string; used: number }>; decisions: Array<{ decision: string; until: string; starts_on: string; ends_on: string; cap_usd: number | null; at: string; by: string | null }> };
-interface Data { services: Row[]; alerts: Array<{ service: string; level: number; period_start: string; at: string; emailed_at: string | null; email_note: string | null }>; alert_email: string; cloudflare_at: string | null }
+interface Data { ai?: AiUsage; services: Row[]; alerts: Array<{ service: string; level: number; period_start: string; at: string; emailed_at: string | null; email_note: string | null }>; alert_email: string; cloudflare_at: string | null }
 
 const STATE: Record<string, string> = { ok: 'Within the allowance', warn: 'Near the allowance', paused: 'Used up: paused', paid: 'Used up: paid usage allowed', held: 'Used up: held', over: 'Used up: never paused, small cost', free: 'Free', used_up: 'Used up' };
 
@@ -26,6 +27,7 @@ export default async function UsagePage() {
       <PageHead title="Usage" kicker={<Link prefetch={false} className="link" href="/admin/settings">Settings</Link>} />
       <p className="small muted" style={{ maxWidth: '52rem' }} data-testid="usage-intro">What the plans include and what is used. When an allowance runs out, AI and photo features pause with a short message until it resets, unless you allow paid usage up to an amount. The website, the portals, the database and storage are never paused: they alert at 80% and when used up, with the estimated cost.
         Alerts go to {u.alert_email} (once per service and period, never at night). Cloudflare figures: {u.cloudflare_at ? `last reported ${t(u.cloudflare_at)}` : 'not reported yet (the usage workflow sends them every hour)'}.</p>
+      {u.ai && <AiByFeature ai={u.ai} />}
       {u.services.map((s) => {
         const cost = paidCost(s);
         return (
@@ -38,7 +40,7 @@ export default async function UsagePage() {
             <dl className="pt-dl ad-kv">
               <div><dt>Used</dt><dd data-testid={`usage-${s.service}-used`}>{s.used_text} of {s.included_text}{s.unlimited ? '' : ` (${share(s.share_bps)})`}</dd></div>
               <div><dt>Period</dt><dd>{s.period === 'day' ? 'Each day, Toronto time' : s.period === 'month' ? 'Each month' : 'A size (no reset)'}{s.resets_at ? `. Resets ${t(s.resets_at)}` : ''}</dd></div>
-              <div><dt>Paid usage</dt><dd data-testid={`usage-${s.service}-paid`}>{s.pause_mode === 'pause'
+              <div><dt>Paid usage</dt><dd data-testid={`usage-${s.service}-paid`}>{s.service === 'workers_ai' ? 'Never: a hard stop at the free allowance each day' : s.pause_mode === 'pause'
                 ? (s.decision?.decision === 'allow' ? `Allowed until ${d(s.decision.ends_on)}, up to ${usd(s.decision.cap_usd)} (${usd(s.decision.spent_usd)} used)` : s.decision?.decision === 'keep_paused' ? 'Kept paused' : 'Not allowed: paused when used up (you are asked first)')
                 : s.pause_mode === 'hold' ? 'Not possible on the free plan' : 'Never paused (would stop bookings): billed at the rate below'}</dd></div>
               <div><dt>Rate</dt><dd>{s.upgrade_text && s.pause_mode !== 'pause' ? `${s.price_text} ${s.upgrade_text}` : s.price_text}{s.overage_usd > 0 ? ` Above the allowance so far: ${usd(s.overage_usd)}.` : ''}</dd></div>
