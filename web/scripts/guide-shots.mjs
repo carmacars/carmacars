@@ -153,6 +153,7 @@ async function freeCar(start, days, past = 0) {
       and not exists (select 1 from field_jobs j where j.vehicle_id = v.id and j.status not in ('cancelled', 'done') and j.scheduled_at between ${from.toISOString()}::timestamptz - interval '3 days' and ${to.toISOString()}::timestamptz)
     order by l.slug limit 1`;
   if (!rows[0]) throw new Error('no free car');
+  await sql`update vehicles set year_approximate = false where id = ${rows[0].id} and year_approximate`;   // the offer names the car with its year
   return { id: rows[0].id, slug: rows[0].slug, from: ymd(from), to: ymd(to) };
 }
 async function request(renter, car, name) {
