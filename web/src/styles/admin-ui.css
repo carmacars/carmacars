@@ -118,7 +118,6 @@
 .ad .ad-filters a { min-height: 36px; border-color: var(--grey-300); font-size: var(--fs-xs); font-weight: 600; color: var(--text); transition: background var(--t-1), border-color var(--t-1), color var(--t-1); }
 .ad .ad-filters a:hover { border-color: var(--black); background: var(--white); }
 .ad .ad-filters a[aria-current="page"] { background: var(--black); border-color: var(--black); color: var(--white); }
-}
 /* chips and tabs wrap on a phone (nothing reaches past the screen edge, not even inside a scroller) */
 .ad .ad-tabs { gap: 0 var(--s-1); flex-wrap: wrap; min-width: 0; max-width: 100%; border-bottom: 1px solid var(--ad-line); }
 .ad .ad-tabs a { min-height: 44px; padding: 0 var(--s-3); border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; background: none; color: var(--text-2); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
