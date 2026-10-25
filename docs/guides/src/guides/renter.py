@@ -290,6 +290,7 @@ def build():
 
     g.task('Messages, tolls and tickets')
     g.bullets([
+        'On a rental of 2 days or more we check in after the first day: "How is the car?" If anything is off, reply to the email or text, or call us.',
         'Write to us about a booking at the bottom of its page: type in Your message and press Send.',
         'Tolls and tickets are yours to pay, including Highway 407 ETR. If one reaches us, we pay it and charge the amount '
         'plus our fee to your Card on File, and email you a copy of the notice.',
@@ -309,7 +310,16 @@ def build():
         'Your statement appears under Documents.',
     ])
 
-    g.task('Review your rental')
+    g.task('Review your trip', 'After the return we send you a link by email or text. It takes about a minute, and we help you write it.')
+    g.steps([
+        'Open the link. Tap what you liked: the car, the pickup or delivery, communication, the price, cleanliness, how easy booking was, or the name of the person who helped you.',
+        'If you like, tap the stars for how it felt, and write one sentence in your own words.',
+        'Your review appears, made only from what you picked and wrote and the facts of your booking. Change anything you like.',
+        f'Press {B("Post on Google")}: it copies your review and opens Google. Choose your stars and paste it. {B("Copy")} only copies it.',
+    ])
+    g.para('Already left a review? Press "I already left a review" and we stop asking. Something wasn\'t right? The page offers to tell us directly. '
+           'We never offer anything for a review, and every renter gets the same link.')
+    g.task('Review your rental on our site')
     g.steps([
         f'Open the trip under Past trips, then press {B("Review your rental")}.',
         'Tap the stars. Add a title and a few words if you like. Both are optional.',

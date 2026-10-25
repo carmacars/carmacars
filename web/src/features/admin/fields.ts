@@ -5,6 +5,14 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  // review requests (0138)
+  review_program_enabled: 'Send review requests (check-in, request, reminder, final follow-up)', review_checkin_enabled: 'Mid-trip check-in ("How\'s the car?")',
+  review_checkin_min_days: 'Check-in only for rentals of at least (days)', review_checkin_after_hours: 'Check-in this many hours after the pickup',
+  review_ask_after_minutes: 'Review request this many minutes after the check-in', review_reminder_hours: 'Reminder this many hours after the request',
+  review_final_days: 'Final follow-up this many days after the request', review_send_from_hour: 'Send from (Toronto hour, 9 is 9 am)', review_send_until_hour: 'Send until (Toronto hour, 21 is 9 pm)',
+  review_hold_incidentals: 'Hold the request while charges are open', review_ask_max_days: 'Give up on a held request after (days from the return)',
+  review_google_match_days: 'Match a Google review to renters who returned in the last (days)', review_google_auto_match: 'Match a clear Google review at once (stops the reminders)',
+  google_review_link: 'Google review link (optional; else made from the place id)',
   e_transfer_email: 'E-Transfer email (where renters send an e-Transfer)', stripe_moto_enabled: 'Staff may type a card the renter reads out (phone orders, Stripe MOTO)',
   vpage_place_index: 'Index the place pages', vpage_colour_index: 'Index the colour pages', vpage_term_index: 'Index the search term pages', vpage_buy_index: 'Index the /buy pages',
   vpage_detailing_index: 'Index the detailing pages', vpage_bodyshop_index: 'Index the body shop pages', vpage_finance_disclaimer: 'Financing disclaimer',
@@ -87,6 +95,11 @@ const LABELS: Record<string, string> = {
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
+  review_program_enabled: 'On by default. Email and text follow each renter\'s choice; never after an unsubscribe. Off: nothing is sent.',
+  review_send_from_hour: 'A message due outside these hours waits for the next opening (9 am by default).',
+  review_hold_incidentals: 'Late return, kilometres, fuel, cleaning, smoking, damage, tolls and tickets not yet settled or waived, or an open incident or dispute. Released by itself; staff can press Send anyway.',
+  review_google_auto_match: 'A clear match is one renter whose name fits well. Anything less waits for staff in Reviews.',
+  google_review_link: 'For example the "Ask for reviews" link of the Business Profile (https://g.page/r/.../review). Must start with https://.',
   e_transfer_email: 'Shown to a renter whose offer is paid by e-Transfer. Empty: the public email of Site settings.', stripe_moto_enabled: 'Off: only the renter types a card, on their phone or on a staff device handed to them. Turn on only after Stripe enables MOTO on the account.',
   turnaround_buffer_minutes: 'One time between trips (default 120). No trip may start within it after another ends, and a trip must end this long before the next starts. After each trip it shows as the cleaning block; removing the block frees the time. It is never added twice. A car can have its own under Vehicles, the car, Calendar.',
   turnaround_block_enabled: 'Off: the same time is still held after each trip, without a block on the calendar.',
@@ -138,7 +151,7 @@ const HINTS: Record<string, string> = {
   sms_start_confirm_text: 'Texted once, right away, when someone replies START. Name CarmaCars and say how to stop (STOP).'
 };
 // numbers with a range the database also checks
-const RANGES: Record<string, [number, number]> = { sms_quiet_from_hour: [0, 23], sms_quiet_until_hour: [0, 23], signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_max_per_day: [0, 50], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
+const RANGES: Record<string, [number, number]> = { review_checkin_min_days: [1, 30], review_checkin_after_hours: [1, 240], review_ask_after_minutes: [0, 10080], review_reminder_hours: [1, 336], review_final_days: [1, 60], review_send_from_hour: [0, 23], review_send_until_hour: [1, 24], review_ask_max_days: [1, 365], review_google_match_days: [1, 365], sms_quiet_from_hour: [0, 23], sms_quiet_until_hour: [0, 23], signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_max_per_day: [0, 50], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440] };
 export function fieldFor(k: string, v: unknown, options?: Array<[string, string]>): Field {
   const f = fieldForBase(k, v, options);
   return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };

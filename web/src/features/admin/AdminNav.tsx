@@ -30,7 +30,7 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/settings', label: 'All settings', key: 's' },
     { href: '/admin/settings/site', label: 'Site', section: 'Website' }, { href: '/admin/settings/vehicle-pages', label: 'Vehicle pages' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' },
     { href: '/admin/settings/addons', label: 'Add-ons' }, { href: '/admin/settings/discount-games', label: 'Discount games' }, { href: '/admin/settings/guides', label: 'Guides' },
-    { href: '/admin/settings/program', label: 'Program', section: 'Rules' }, { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/card-coverage', label: 'Card coverage' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/settings/email', label: 'Emails' },
+    { href: '/admin/settings/program', label: 'Program', section: 'Rules' }, { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/card-coverage', label: 'Card coverage' }, { href: '/admin/settings/reviews', label: 'Reviews' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/settings/email', label: 'Emails' },
     { href: '/admin/messages', label: 'Email log', section: 'Records' }, { href: '/admin/audit', label: 'Audit log' }] }
 ];
 

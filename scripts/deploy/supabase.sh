@@ -85,6 +85,16 @@ secrets() {
     export_env MAPS_PROVIDER fake
     notice "Maps: the fake adapter (add deploy_google_maps_api_key to the vault for Google Places and Routes)"
   fi
+  # optional: the Google reviews sync's OAuth client (0138); without it Admin > Settings > Reviews says the keys are not set
+  local gid gsec
+  gid=$(jq -r '[.[] | select(.name == "deploy_google_reviews_client_id")][0].v // empty' <<<"$rows")
+  gsec=$(jq -r '[.[] | select(.name == "deploy_google_reviews_client_secret")][0].v // empty' <<<"$rows")
+  if [ -n "$gid" ] && [ -n "$gsec" ]; then
+    mask "$gsec"; export_env GOOGLE_REVIEWS_CLIENT_ID "$gid"; export_env GOOGLE_REVIEWS_CLIENT_SECRET "$gsec"
+    notice "Google reviews sync: OAuth client set (deploy_google_reviews_client_id and _secret are in the vault)"
+  else
+    notice "Google reviews sync: no OAuth client (add deploy_google_reviews_client_id and deploy_google_reviews_client_secret to the vault)"
+  fi
   # session pooler (IPv4) for the seed script; on the server, Postgres through this job's SSH tunnel
   local dburl
   dburl=$(sb_db_url)

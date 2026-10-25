@@ -17,6 +17,7 @@ import { LatePanel, type Late } from '@/features/va/LatePanel';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
 import { HandoverPanel } from '@/features/handover/HandoverPanel';
+import { ReviewPanel } from '@/features/reviews/ReviewPanel';
 import type { PhoneTimelineData } from '@/features/phone/client';
 
 export const dynamic = 'force-dynamic';
@@ -94,6 +95,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
       {fn === 'fleet' && ['on_rent', 'returned', 'closed'].includes(b.status) && <p className="small"><Link prefetch={false} className="link" href={`/va/review/${encodeURIComponent(n)}`} data-testid="photo-review-link">Photo review: pickup and return side by side</Link></p>}
       {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} aal={aal} base={base} canHandover={fn !== 'finance'} canSign={fn !== 'finance'}
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
+      {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} aal={aal} refresh={[base]} />}
       <Tabs current={`${base}?tab=${tab}`} items={tabs} />
       {tab === 'review' && arranging && (
         <>

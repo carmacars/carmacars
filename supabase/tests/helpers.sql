@@ -282,3 +282,8 @@ alter table program_settings alter column booking_licence_required set default f
 alter table program_settings alter column booking_return_auto_charges set default false;
 alter table program_settings alter column statement_fuel_cents_per_eighth set default null;
 update program_settings set booking_licence_required = false, booking_return_auto_charges = false, statement_fuel_cents_per_eighth = null;
+
+-- The review request program of 0138 (on by default) replaces 0023's and 0061's review emails, which the earlier suites
+-- test: it is off for them. 91_review_requests.sql switches it on and tests it.
+alter table program_settings alter column review_program_enabled set default false;
+update program_settings set review_program_enabled = false;

@@ -322,6 +322,7 @@ jobs:
                  + (if env.SUPABASE_JWT_SECRET then {SUPABASE_JWT_SECRET: env.SUPABASE_JWT_SECRET} else {} end)
                  + (if env.TURNSTILE_SECRET_KEY then {TURNSTILE_SECRET_KEY: env.TURNSTILE_SECRET_KEY} else {} end)
                  + (if env.GOOGLE_MAPS_API_KEY then {GOOGLE_MAPS_API_KEY: env.GOOGLE_MAPS_API_KEY} else {} end)
+                 + (if env.GOOGLE_REVIEWS_CLIENT_SECRET then {GOOGLE_REVIEWS_CLIENT_ID: env.GOOGLE_REVIEWS_CLIENT_ID, GOOGLE_REVIEWS_CLIENT_SECRET: env.GOOGLE_REVIEWS_CLIENT_SECRET} else {} end)
                  + (if env.QUO_API_KEY then {QUO_API_KEY: env.QUO_API_KEY} else {} end)
                  + (if env.QUO_WEBHOOK_SECRET then {QUO_WEBHOOK_SECRET: env.QUO_WEBHOOK_SECRET} else {} end)
                  + (if env.AUTH_SMS_HOOK_SECRET then {AUTH_SMS_HOOK_SECRET: env.AUTH_SMS_HOOK_SECRET} else {} end)' > "$f"

@@ -53,7 +53,12 @@ const schema = z.object({
   AUTH_SMS_HOOK_SECRET: z.string().optional(),
   /** Sign-in with a provider (src/lib/auth/oauth.ts): a comma list of google, microsoft, apple, facebook. Unset: none
    *  (no buttons). Each needs its provider switched on in Supabase Auth first; locally the stand-in fakes them. */
-  AUTH_OAUTH_PROVIDERS: z.string().default('')
+  AUTH_OAUTH_PROVIDERS: z.string().default(''),
+  /** The Google reviews sync (migration 0138): the OAuth client of the Google Cloud project that has the Business Profile
+   *  APIs (a Web application client, redirect URI <site>/api/google/reviews/callback). Unset: Admin > Settings > Reviews
+   *  says so and the rest of the review program works. The refresh token itself is in the vault, never here. */
+  GOOGLE_REVIEWS_CLIENT_ID: z.string().optional(),
+  GOOGLE_REVIEWS_CLIENT_SECRET: z.string().optional()
 });
 
 export type ServerEnv = z.infer<typeof schema>;

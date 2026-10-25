@@ -1,0 +1,33 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Quick reminder]
+Your review helps the next renter, {{first_name}}
+
+People nearby choose a rental company by what renters like you say.
+
+Tap what you liked about the {{vehicle_name}}, add a sentence, and post it on Google. Good or bad, we read every review and reply to it.
+
+Write a quick review:
+{{review_url}}
+
+I already left a review: {{review_done_url}}
+
+Something not right? Reply to this email and a person will help.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you rented from CarmaCars recently.
+Unsubscribe at any time: {{unsubscribe_url}}
+We act on it within 10 business days.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

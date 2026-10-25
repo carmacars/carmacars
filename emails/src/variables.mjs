@@ -56,6 +56,8 @@ export const SAMPLES = {
   supporting_document_url: v('https://carmacars.ca/files/sample-supporting-record', 'Signed link to the supporting record: notice, photos, receipt or estimate.'),
 
   // Account
+  review_url: v('https://carmacars.ca/review/3f8a2c9e-5b1d-4c7a-9e2f-6a1b0c4d8e7f', 'The renter\'s review page without sign-in (review_requests.token, 0138): what they liked, a sentence, the draft, Copy and Post on Google.'),
+  review_done_url: v('https://carmacars.ca/review/3f8a2c9e-5b1d-4c7a-9e2f-6a1b0c4d8e7f?done=1', 'The same page asking to confirm "I already left a review" (stops the review requests).'),
   google_review_url: v('https://search.google.com/local/writereview?placeid=ChIJsample', 'The Google review form of the Business Profile (site_settings.google_place_id).'),
   reset_url: v('https://carmacars.ca/account/reset-password?token=sample', 'One-time link from the sign-in service.'),
   sign_in_url: v('https://carmacars.ca/account/sign-in?token=sample', 'One-time link from the sign-in service.'),
