@@ -267,7 +267,7 @@ function strip(r: Report): Record<string, unknown> {
   for (const k of Object.keys(out)) if (out[k] === undefined || out[k] === '') delete out[k];
   return out;
 }
-const OFFLINE = 'No connection. Your answers are kept on this phone: press again when you have signal.';
+const OFFLINE = 'Not sent: no connection, or the server did not answer. Your answers are kept on this phone: press again.';
 function damageSeqs(ds: Damage[]): Array<[string, number]> { return ds.filter((d) => d.is_new).map((d, i) => [d.label, 20 + i]); }
 
 function Line({ ok, children }: { ok: boolean | undefined; children: React.ReactNode }) {
