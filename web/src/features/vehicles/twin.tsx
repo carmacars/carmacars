@@ -15,6 +15,9 @@ import { buyDescriptionOptions, buyTitleOptions, dimRows, dimsFor, dollars, fit,
 import { makePage, type MakePage, type ModelPage, tierPage, tiers as getTiers, trimPage, type TrimPage, yearPage, type YearPage, vehicleMeta } from './data';
 import { CityBlock, cityFaq, colourFirst, StatsBlock, type Term, type TierPage, type Tiers, vehicleProps } from './deep';
 import { CostBlock, InventoryBlock, productLd, Questions, requestHref, SpecsTable, standIn, VehicleHead, YearsTable } from './parts';
+import { chooseText, writeKit } from '@/features/kit';
+import { KitText } from '@/features/kit/KitText';
+import { vehicleInput, vehicleKit } from '@/features/kit/pages';
 import '@/styles/vehicles.css';
 
 // The twins of the vehicle pages (migration 0097): every page of the /cars tree again under /buy (for sale) and under
@@ -268,6 +271,10 @@ export async function TwinView(tw: Twin) {
   const shop = tiers.terms.find((x2) => x2.kind === 'rental' && x2.slug === 'rental-car-while-car-is-in-the-shop');
   const rentShop = shop ? `/t/${shop.slug}${p.path.slice(5)}` : p.path;
   const drows = dimRows(dims);
+  // the writing kit (docs/changes/2026-10-24-writing-kit.md), seeded by this twin's own address: written text first
+  const text = chooseText(p.written, writeKit(vehicleKit(vehicleInput(p, { sp, dims, path, mode: tree.term ? mode : 'sale',
+    term: tree.term ? { slug: tree.term.slug, name: tree.term.name, phrase: tree.term.phrase ?? null, kind: tree.term.kind, lead: tree.term.lead ?? null } : null,
+    x: { recalls: x.recalls ? x.recalls.length : null, complaints: x.complaints, forSale: x.for_sale.length } }), t)));
   return (
     <div className="p-vehicle" data-page={`${tree.term ? `term-${mode}` : 'buy'}-${p.level.replace('_', '-')}`}>
       <JsonLd graph={[breadcrumbLd(trail, path), ...(ld ? [ld] : []), ...(faq.length ? [faqLd(faq)] : [])]} />
@@ -300,6 +307,7 @@ export async function TwinView(tw: Twin) {
         {'variants' in p && <StatsBlock sp={sp} dims={'dims' in p ? p.dims : undefined} model={o.model ?? ''} trim={o.trim} name={full} s={p.settings} />}
         {mode === 'rental' && <CostBlock sp={sp} s={p.settings} name={name} />}
         {(mode === 'sale' || mode === 'bodyshop') && <Safety x={x} name={name} />}
+        <KitText sections={text.sections} source={text.source} look="vehicle" />
         {p.level === 'year' && (p as YearPage).trims.length > 0 && <section className="vp-sec" aria-labelledby="h-trims"><h2 className="d3" id="h-trims">The {name} trims in Canada</h2>
           <ul className="chips">{(p as YearPage).trims.map((tr) => <li key={tr.slug}><Link prefetch={false} className="chip" href={at(tree, tr.path)}>{tr.name}</Link></li>)}</ul></section>}
         {(p.level === 'trim' || isTier(p)) && <TwinLinks tree={tree} base={at(tree, trimPath)} tiers={tiers} city={isTier(p) ? p.city?.slug : null} colour={isTier(p) ? p.colour?.slug : null} siblings={(p as TrimPage).siblings} trim={(p as TrimPage).trim.slug} trimPath={trimPath} />}

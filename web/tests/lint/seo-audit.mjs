@@ -236,6 +236,15 @@ for (const p of [...new Set([...auditPaths, ...extra, ...cars, ...hubs, ...landi
     const main = (/<main\b[\s\S]*?<\/main>/.exec(h)?.[0] ?? h).replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     bodies.set(main, [...(bodies.get(main) ?? []), p]);
   }
+  // the writing kit (docs/changes/2026-10-24-writing-kit.md): every programmatic page (vehicle pages and their twins, the
+  // place and term pages) carries its written text, at least 200 words of it
+  const programmatic = vehiclePaths.has(p) || heavy(p) || /^\/(car-rental|detailing|body-shop|buy)\/[^/]+\/[^/]+$/.test(p) || placeSample.has(p);
+  if (programmatic) {
+    const kit = /<div class="kit-text"[^>]*>([\s\S]*?)<\/div>/.exec(h)?.[1];
+    const words = kit ? decode(kit.replace(/<[^>]+>/g, ' ')).split(/\s+/).filter(Boolean).length : 0;
+    rec.kitWords = words;
+    if (words < 200) bad(p, `programmatic page with ${words} words of kit text (want 200 or more)`);
+  }
   rec.links = [...h.matchAll(/<a\b[^>]*\bhref="([^"#?]+)/g)].map((m) => m[1].replace(SITE, '').replace(BASE, ''));
 }
 for (const [t, ps] of titles) if (ps.length > 1) bad('titles', `"${t}" on ${ps.join(', ')}`);

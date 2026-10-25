@@ -7,6 +7,10 @@ import { descriptionOptions, dimsFor, fit, fuelWord, list, ptName, rentalFaq, sp
 import { type MakePage, type ModelPage, type TrimPage, type YearPage, tiers as getTiers, vehicleMeta } from './data';
 import { StatsBlock, TierLinks, vehicleProps } from './deep';
 import { CostBlock, InventoryBlock, productLd, Questions, SimilarModels, SpecsTable, standIn, VehicleHead, YearsTable, fromPrice } from './parts';
+import { chooseText, writeKit } from '@/features/kit';
+import { KitText } from '@/features/kit/KitText';
+import { vehicleInput, vehicleKit, type VehicleRead } from '@/features/kit/pages';
+import type { Spec } from './content';
 import '@/styles/vehicles.css';
 
 // The four vehicle pages (migration 0097; docs/changes/2026-10-21-vehicle-pages.md). Every sentence comes from the
@@ -14,6 +18,11 @@ import '@/styles/vehicles.css';
 
 const labelsOf = async () => Object.fromEntries((await getClasses()).map((c) => [c.code, c.label]));
 const lower = (s: string | null) => (s ?? '').toLowerCase();
+/** The writing kit's text for a vehicle page (docs/changes/2026-10-24-writing-kit.md): written text first, else the kit's. */
+function Kit({ p, sp, dims, t }: { p: VehicleRead & { written?: Parameters<typeof chooseText>[0] }; sp: Spec[]; dims?: ReturnType<typeof dimsFor>; t: Record<string, string> }) {
+  const x = chooseText(p.written, writeKit(vehicleKit(vehicleInput(p, { sp, dims }), t)));
+  return <KitText sections={x.sections} source={x.source} look="vehicle" />;
+}
 const EPA_NOTE = 'Fuel use is the US EPA rating (fueleconomy.gov) converted to litres per 100 km; Canadian ratings can differ slightly. Trim names are the Canadian lineup.';
 
 // ---------------------------------------------------------------- make
@@ -55,6 +64,7 @@ export async function MakeView({ p }: { p: MakePage }) {
             : <p className="small muted">The catalog has no {name} models yet; our cars are below.</p>}
           <p className="xs muted">{EPA_NOTE}</p>
         </section>
+        <Kit p={p} sp={[]} t={t} />
       </div>
       <div className="wrap vp-body"><p className="small" data-testid="vp-buy-link"><Link prefetch={false} className="link" href={`/buy${p.path.slice(5)}`}>Buying a {name}? Specs, recalls and what to check</Link></p></div>
       <InventoryBlock inv={p.inventory} labels={labels} name={name} exactLabel={`Our ${name} cars`} sameLabel="" />
@@ -105,6 +115,7 @@ export async function ModelView({ p }: { p: ModelPage }) {
           <YearsTable years={p.years} caption={`${name} model years`} />
           <p className="xs muted">{EPA_NOTE}</p>
         </section>}
+        <Kit p={p} sp={[]} t={t} />
         <SimilarModels items={p.similar_models} title={`Similar to the ${name}`} />
       </div>
       <div className="wrap vp-body"><p className="small" data-testid="vp-buy-link"><Link prefetch={false} className="link" href={`/buy${p.path.slice(5)}`}>Buying a {name}? Specs, recalls and what to check</Link></p></div>
@@ -150,6 +161,7 @@ export async function YearView({ p }: { p: YearPage }) {
           <SpecsTable sp={sp} seats={seats} caption={`${name} powertrains`} />
         </section>
         <CostBlock sp={sp} s={p.settings} name={name} />
+        <Kit p={p} sp={sp} t={t} />
         {p.trims.length > 0 && <section className="vp-sec" aria-labelledby="h-trims">
           <h2 className="d3" id="h-trims">{p.year} {p.model.name} trims in Canada</h2>
           <ul className="hub-grid" data-testid="vp-trims">{p.trims.map((x) => { const s1 = specs(p.variants, p.settings, x.variant_ids); return (
@@ -213,6 +225,7 @@ export async function TrimView({ p }: { p: TrimPage }) {
         </section>
         <StatsBlock sp={sp} dims={p.dims} model={p.model.name} trim={p.trim.name} name={name} s={p.settings} seats={seats} />
         <CostBlock sp={sp} s={p.settings} name={name} />
+        <Kit p={p} sp={sp} dims={dimsFor(p.dims, p.model.name, p.trim.name)} t={t} />
         <section className="vp-sec" aria-labelledby="h-diff" data-testid="vp-diffs">
           <h2 className="d3" id="h-diff">How the {p.trim.name} compares with the other {p.year} trims</h2>
           <ul className="featlist">{diffs.map((d) => <li key={d}>{d}</li>)}</ul>

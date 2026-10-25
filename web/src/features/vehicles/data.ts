@@ -12,7 +12,9 @@ import type { TierPage, Tiers } from './deep';
 // The vehicle pages' reads (migration 0097): one database call per page (public.vehicle_*_page), shared by the
 // metadata and the page through React's cache. Unknown slugs are a 404; another spelling of a model answers 301.
 type Named = { slug: string; name: string };
-type Base = { path: string; inventory: Inventory; settings: Settings; indexable: boolean; canonical: string; lastmod: string | null; make: Named };
+// written: text written for this page (seo-import, the daily batch), shown instead of the writing kit's when present
+type Base = { path: string; inventory: Inventory; settings: Settings; indexable: boolean; canonical: string; lastmod: string | null; make: Named;
+  written?: { intro?: string | null; sections?: Array<{ heading: string; body: string }> | null; faq?: Array<{ question: string; answer: string }> | null } | null };
 export type MakePage = Base & { level: 'make'; models: Array<{ slug: string; name: string; vclass: string | null; path: string; first_year: number; last_year: number; years: number;
   l100_min: number | null; kwh100_min: number | null; ev_range_max: number | null; fuels: string[]; trims: number }> };
 export type ModelPage = Base & { level: 'model'; model: Named & { vclass: string | null }; in_catalog: boolean; years: YearRow[]; years_with_data: number; popular: boolean; body_group: string; similar_models: SimilarModel[] };
