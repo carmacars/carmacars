@@ -104,6 +104,14 @@ def build():
     ])
     g.para('With a full tank of gas (prepaid) you can return the car at any fuel level, with no fuel charge.')
 
+    g.task('A discount code', 'A code from a game on the site, an offer we sent you, or from our team.')
+    g.bullets([
+        f'On the last step of your request, type it in the promo code box. The price shows the discount at once.',
+        f'Every code has a last day. You find it in the email or text that brought the code, and under Your discount codes on Your trips.',
+        'If you have not used a code, we remind you 3 days before its last day and the day before, by email and text as you chose in Profile. A code you won in a game is always reminded; a reminder of an offer comes only if you agreed to get offers, and every email has an Unsubscribe link.',
+        'A code that ended is refused with "This code has expired". You can still send the request without it.',
+    ])
+
     g.task('Ask in the chat', 'The chat button sits in the corner of every page.')
     g.steps([
         'Press it and write your question: a car, your dates, the price, how booking works. The CarmaCars assistant answers right away with prices from our booking system.',

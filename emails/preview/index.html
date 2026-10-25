@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>176 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>71</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>179 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>74</span></a><a href="#owner">Owner <span>42</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>4</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
 <main>
-<h2 id="renter">Renter (71)</h2>
+<h2 id="renter">Renter (74)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -245,8 +245,14 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_game_code_reminder.html"><img loading="lazy" src="../shots/renter_game_code_reminder.desktop.png" alt="Screenshot of renter_game_code_reminder"></a><div class="b">
 <div class="code">renter_game_code_reminder</div><div class="sub">Your 10% off code ends tomorrow</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">A code won in a discount game on the site has not been used and runs out in game_reminder_hours (24 by default). Sent once per code, to the address that claimed it. Transactional: a reminder of the code they asked for. Not sent once the code is on a booking request.</div>
+<div class="tr">A code won in a discount game on the site has not been used and its last day is tomorrow (promo_reminder_1d_on; since migration 0161 the game reminder is one of the promo code expiry reminders, with the same day rule). Sent once per code, to the address that claimed it. Transactional: a reminder of the code they asked for. Not sent once the code is on a booking request.</div>
 <div class="ln"><a href="../dist/renter_game_code_reminder.html">HTML</a><a href="../dist/renter_game_code_reminder.txt">Text</a><a href="../shots/renter_game_code_reminder.desktop.png">Desktop</a><a href="../shots/renter_game_code_reminder.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_game_code_reminder_3d.html"><img loading="lazy" src="../shots/renter_game_code_reminder_3d.desktop.png" alt="Screenshot of renter_game_code_reminder_3d"></a><div class="b">
+<div class="code">renter_game_code_reminder_3d</div><div class="sub">Your 10% off code ends in 3 days</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Promo code expiry (migration 0161): a code won in a discount game on the site has not been used and its last day is promo_reminder_3d_days days away (3 by default). Sent once per code, to the address that claimed it. Transactional: a reminder of the code they asked for, like the day-before reminder (renter_game_code_reminder). Not sent once the code is on a booking request.</div>
+<div class="ln"><a href="../dist/renter_game_code_reminder_3d.html">HTML</a><a href="../dist/renter_game_code_reminder_3d.txt">Text</a><a href="../shots/renter_game_code_reminder_3d.desktop.png">Desktop</a><a href="../shots/renter_game_code_reminder_3d.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_google_review_request.html"><img loading="lazy" src="../shots/renter_google_review_request.desktop.png" alt="Screenshot of renter_google_review_request"></a><div class="b">
 <div class="code">renter_google_review_request</div><div class="sub">Would you review CarmaCars on Google?</div>
@@ -331,6 +337,18 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">The pickup field job for a confirmed booking has an assigned staff member and the pickup is 3 hours away. Sent earlier, at once, if the job is assigned inside that window, and sent again if the place, time or staff member changes after sending.</div>
 <div class="ln"><a href="../dist/renter_pickup_details.html">HTML</a><a href="../dist/renter_pickup_details.txt">Text</a><a href="../shots/renter_pickup_details.desktop.png">Desktop</a><a href="../shots/renter_pickup_details.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_promo_expiry_1d.html"><img loading="lazy" src="../shots/renter_promo_expiry_1d.desktop.png" alt="Screenshot of renter_promo_expiry_1d"></a><div class="b">
+<div class="code">renter_promo_expiry_1d</div><div class="sub">Your 15% off code ends tomorrow</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">Promo code expiry (migration 0161): a discount code issued to a person (a come-back offer, a Live visitors code, a code made for one renter) has not been used and its last day is tomorrow (promo_reminder_1d_on). Sent once per code, to the renter it was issued to, only while they have agreed to get offers and have not unsubscribed, never once the code is on a booking request, and only inside the sending hours. Discount game codes have their own transactional reminder (renter_game_code_reminder).</div>
+<div class="ln"><a href="../dist/renter_promo_expiry_1d.html">HTML</a><a href="../dist/renter_promo_expiry_1d.txt">Text</a><a href="../shots/renter_promo_expiry_1d.desktop.png">Desktop</a><a href="../shots/renter_promo_expiry_1d.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_promo_expiry_3d.html"><img loading="lazy" src="../shots/renter_promo_expiry_3d.desktop.png" alt="Screenshot of renter_promo_expiry_3d"></a><div class="b">
+<div class="code">renter_promo_expiry_3d</div><div class="sub">Your 15% off code ends in 3 days</div>
+<div class="tags"><span class="m">Marketing</span></div>
+<div class="tr">Promo code expiry (migration 0161): a discount code issued to a person (a come-back offer, a Live visitors code, a code made for one renter) has not been used and its last day is promo_reminder_3d_days days away (3 by default). Sent once per code, to the renter it was issued to, only while they have agreed to get offers and have not unsubscribed, never once the code is on a booking request, and only inside the sending hours. Discount game codes have their own transactional reminder (renter_game_code_reminder_3d).</div>
+<div class="ln"><a href="../dist/renter_promo_expiry_3d.html">HTML</a><a href="../dist/renter_promo_expiry_3d.txt">Text</a><a href="../shots/renter_promo_expiry_3d.desktop.png">Desktop</a><a href="../shots/renter_promo_expiry_3d.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_recovery_change.html"><img loading="lazy" src="../shots/renter_recovery_change.desktop.png" alt="Screenshot of renter_recovery_change"></a><div class="b">
 <div class="code">renter_recovery_change</div><div class="sub">Your answer to the change to booking CC-10482</div>

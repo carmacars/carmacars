@@ -1009,7 +1009,7 @@ def build():
         'After 2 car pages, or 60 seconds on the site, or (on a computer) when the mouse heads for the tabs. A card slides in at the bottom; on a phone it is a sheet at the bottom, never a full-screen block, and it always closes.',
         'Never for someone signed in or already known by email, never on booking, pay, sign or sign-in pages, never on the first page of a visit from a search engine on a phone, never over the cookie banner. After closing it, not again for 14 days; after claiming, never again.',
         'Every play wins: 5% off (70 in 100), 10% off (25), 15% off (4) or $50 off a rental of 3 days or more (1). The prize is decided before the game starts; the game only shows it. The short terms with the game list the prizes and say the chances differ.',
-        'The code (for example WIN-7KQ4-XM2P) comes off the rental charge only, up to $75 for a percentage, on one booking, within 7 days, one per person, email, phone and device, never with another code. The email with the code goes either way; one reminder goes 24 hours before it expires. Offers only with the marketing box ticked.',
+        'The code (for example WIN-7KQ4-XM2P) comes off the rental charge only, up to $75 for a percentage, on one booking, within 7 days, one per person, email, phone and device, never with another code. The email with the code goes either way; a reminder goes 3 days before its last day and another the day before (Promo codes). Offers only with the marketing box ticked.',
         'On this device the code fills itself into the promo code box of the request form. Like every promo code, the discount is shared with the owner in the split.',
     ])
     g.task('Leads', f'{P("Bookings", "Renter leads")}.')
@@ -1031,7 +1031,7 @@ def build():
           f'It is on by default; the times and the To do are in {P("Settings", "Program")}, the card "Forms left unfinished".', label='Good to know')
     g.task('Settings', f'{P("Settings", "Discount games")}.')
     g.bullets([
-        'On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (1 car page, 15 seconds, exit intent), the days a visitor keeps their prize (14), the cars viewed for a Sales task (3) and the reminder (24 hours).',
+        'On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (1 car page, 15 seconds, exit intent), the days a visitor keeps their prize (14), and the cars viewed for a Sales task (3). The reminders before a code ends are under Promo codes.',
         'After a visitor closes a game, a different one shows on their 2nd page view after the close (any page) or 60 seconds later, whichever first; at most 3 in one visit and 6 a day in one browser. All four are settings. Never on booking, payment or signing pages; the request-to-book form has its own game.',
         f'Prizes and games: each prize with its percent or dollars, a minimum rental length and its chance; each game\'s weight (0 turns it off). Press {B("Save prizes and games")}. Codes already sent keep their value.',
     ])
@@ -1213,6 +1213,15 @@ def build():
         'Open Insurers. Each insurer on file opens to edit its billing contact, email, phone, address and notes.',
         f'To add one, fill in the Add form (Name, Billing contact, Billing email and the rest) and press {B("Add")}.',
         'Deposit tiers, Kilometre choices, Vehicle classes, Airports, Promo codes and Quick replies work the same way.',
+    ])
+
+    g.task('Promo codes: end dates and reminders', f'{P("Settings", "All settings")}, {B("Promo codes")}.')
+    g.bullets([
+        'Every code made for a person has an end date: a game prize 7 days, a come-back offer 30, a Live visitors code 3 and a code made for one renter 30 unless you set another. The first card of Promo codes holds the 30 days and the two reminders.',
+        'A code for everyone may have no end date: empty Valid until. The Add form starts with an end date 30 days ahead.',
+        'A code that ended is refused wherever it is typed (the request form, an offer, Add a rental, a booking edit) with "This code has expired".',
+        'A person who has not used a code is reminded 3 days before its last day and the day before, by email and by text as they chose, never once they used it, unsubscribed or the code ended, and never twice. A game code reminder always goes; a reminder of any other code needs their consent to offers.',
+        'The list shows each code\'s end date and the reminders sent. The card Codes sent to people lists game prizes, come-back offers and Live visitors codes the same way.',
     ])
 
     g.task('Card coverage: which credit cards include rental car coverage', f'{P("Settings", "Card coverage")} is the list renters see at {U("carmacars.ca/credit-card-rental-coverage")} and staff see under Card coverage in their portal. It starts filled in with 48 Canadian and US cards, each checked on October 23, 2026.')

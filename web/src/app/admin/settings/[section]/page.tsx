@@ -35,7 +35,7 @@ export const metadata = pageMeta({ title: 'Settings', path: '/admin/settings', n
 
 type R = Record<string, unknown>;
 type S = { site: R; program: R; program_rows: R[]; content: R[]; fee_types: R[]; fee_defaults: R[]; deposit_tiers: R[]; km_choices: R[]; classes: R[]; airports: R[]; coverage: R[];
-  email_aliases: R[]; reply_to: R[]; insurers: R[]; promo_codes: R[]; quick_replies: R[]; staff: R[]; problems: Array<{ field: string; message: string }> };
+  email_aliases: R[]; reply_to: R[]; insurers: R[]; promo_codes: R[]; promo_personal: R[]; promo_personal_count: number; quick_replies: R[]; staff: R[]; problems: Array<{ field: string; message: string }> };
 
 const SITE_GROUPS: Array<[string, string[]]> = [
   ['Brand and tagline', ['brand_name', 'tagline', 'wordmark_text', 'logo_alt', 'logo_width', 'logo_height', 'site_url']],
@@ -65,6 +65,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],
   ['Vehicle pages', (k) => k.startsWith('vpage_')],
   ['Forms left unfinished (contact capture)', (k) => k.startsWith('capture_')],
+  ['Promo codes', (k) => k.startsWith('promo_')],
   ['Discount games', (k) => k.startsWith('game_')],
   ['Text alerts', (k) => k.startsWith('sms_')],
   ['Phone and texts (Quo)', (k) => k.startsWith('phone_')],
@@ -73,6 +74,33 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');
+// the reminders sent for a promo code ({"3d": time, "1d": time}), in words
+const remindersText = (m: unknown) => {
+  const x = (m ?? {}) as Record<string, string>;
+  const sent = [x['3d'] ? `first ${d(x['3d'])}` : '', x['1d'] ? `day before ${d(x['1d'])}` : ''].filter(Boolean);
+  return sent.length ? sent.join(', ') : 'none sent';
+};
+// a new promo code starts with an end date this many days ahead (Program settings, Promo codes)
+const promoEnd = (program: R) => new Date(Date.now() + Number(program.promo_default_valid_days ?? 30) * 86400000).toISOString();
+const PROMO_STATUS: Record<string, string> = { open: 'Open', on_request: 'On a booking request', used: 'Used', expired: 'Expired', off: 'Off' };
+const PROMO_SOURCE: Record<string, string> = { discount_game: 'Discount game', followup_7d: 'Come-back, 1 week', followup_30d: 'Come-back, 1 month', live_visitors: 'Live visitors' };
+// Settings > Promo codes: the rules, then the codes sent to people with their end dates and reminders
+function PromoExtra({ s }: { s: S }) {
+  return (<>
+    <Card title="End dates and reminders" testId="promo-rules">
+      <p className="small">A code for a person (a game prize, a come-back offer, a Live visitors code, or a code made for one renter) always has an end date and the person is reminded before it ends: once 3 days before its last day and once the day before, by email and by text as they chose, only while it is unused. Game codes keep their transactional reminder; every other code is an offer, so it needs the person&apos;s consent to offers. A code made for the public may have no end date.</p>
+      <SaveForm table="program_settings" rowKey="current" testId="promo-rules-form" fields={fieldsFrom(s.program, ['promo_default_valid_days', 'promo_reminders_enabled', 'promo_reminder_3d_days', 'promo_reminder_1d_on', 'game_code_valid_days', 'notify_comeback_valid_days'])} />
+    </Card>
+    <Card title={`Codes sent to people (${s.promo_personal_count}${s.promo_personal_count > s.promo_personal.length ? `, the latest ${s.promo_personal.length}` : ''})`} testId="promo-personal">
+      <Table rows={s.promo_personal} empty="None yet." cols={[
+        { key: 'code', label: 'Code', render: (r) => String(r.code) },
+        { key: 'source', label: 'From', render: (r) => PROMO_SOURCE[String(r.source)] ?? label(r.source) },
+        { key: 'valid_until', label: 'Ends', render: (r) => d(r.valid_until) },
+        { key: 'status', label: 'State', render: (r) => PROMO_STATUS[String(r.status)] ?? label(r.status) },
+        { key: 'reminders', label: 'Reminders sent', render: (r) => remindersText(r.reminders) }]} />
+    </Card>
+  </>);
+}
 
 export default async function Section({ params, searchParams }: { params: Promise<{ section: string }>; searchParams?: Promise<Record<string, string | undefined>> }) {
   const { section } = await params;
@@ -200,7 +228,7 @@ export default async function Section({ params, searchParams }: { params: Promis
     // the giveaway game (0069): on by default with the owner's settings; everything here is optional to change
     const r = await door<GameReport>(user.id, 'admin_read', 'game_report', { days: 30 });
     const keys = ['game_enabled', 'game_max_discount_cents', 'game_code_valid_days', 'game_trigger_car_pages', 'game_trigger_seconds', 'game_exit_intent', 'game_reshow_car_pages', 'game_reshow_seconds',
-      'game_max_per_visit', 'game_max_per_day', 'game_booking_offer', 'game_dismiss_days', 'game_task_min_cars', 'game_reminder_hours'];
+      'game_max_per_visit', 'game_max_per_day', 'game_booking_offer', 'game_dismiss_days', 'game_task_min_cars'];
     return (<>{head}
       <p className="small muted">Visitors who are not signed in get one quick game on their 2nd page view or after 30 seconds, whichever first: spin the wheel, scratch to reveal, quick blackjack, cup shuffle, Plinko, the card pack, coin flip, dice roll, slot machine, prize drop or mystery box. Closed, another game (never the same one twice in a row) comes back on the 3rd page view after the close or 2 minutes later, at most 4 a visit, and on later visits. No games once a booking request is in progress, and never on booking, checkout or payment pages: the request-to-book form offers its own game to anyone who has not claimed, signed-in renters too. Every play wins a promo code for the rental charge; the prize shows only as the game&apos;s outcome, and a prize already won shows as a small &quot;Your 5% off is saved&quot; badge. To see the code they give a first name and an email (a mobile number is optional), and the code is emailed. It is on now; nothing needs setting up. Leads are under <Link prefetch={false} className="link" href="/admin/leads">Bookings &gt; Renter leads</Link>.</p>
       <Card title="On or off and the rules" testId="game-rules"><SaveForm table="program_settings" rowKey="current" testId="program-games" fields={fieldsFrom(s.program, keys)} /></Card>
@@ -266,14 +294,14 @@ export default async function Section({ params, searchParams }: { params: Promis
       airports: { table: 'airports', key: 'id', rows: s.airports, fields: (r) => [{ name: 'code', label: 'Code', required: true, value: r.code }, { name: 'name', label: 'Name', required: true, value: r.name }, { name: 'latitude', label: 'Latitude', type: 'number', required: true, value: r.latitude }, { name: 'longitude', label: 'Longitude', type: 'number', required: true, value: r.longitude }, { name: 'distance_km', label: 'Distance (km)', type: 'number', value: r.distance_km }, { name: 'surcharge_cents', label: 'Surcharge', type: 'money', value: r.surcharge_cents }, { name: 'is_active', label: 'Offered', type: 'bool', value: r.is_active ?? true }],
         extra: <Card title="Delivery rate and origin"><SaveForm table="program_settings" rowKey="current" testId="delivery" fields={fieldsFrom(s.program, ['delivery_per_km_cents', 'delivery_min_cents', 'delivery_max_cents', 'delivery_round_cents', 'company_latitude', 'company_longitude', 'company_address'])} /></Card> },
       insurers: { table: 'insurers', key: 'id', rows: s.insurers, fields: (r) => [{ name: 'name', label: 'Name', required: true, value: r.name }, { name: 'billing_contact_name', label: 'Billing contact', value: r.billing_contact_name }, { name: 'billing_email', label: 'Billing email', type: 'email', value: r.billing_email }, { name: 'billing_phone', label: 'Billing phone', type: 'tel', value: r.billing_phone }, { name: 'billing_address', label: 'Billing address', type: 'address', value: r.billing_address }, { name: 'notes', label: 'Notes', type: 'textarea', value: r.notes }, { name: 'is_active', label: 'Active', type: 'bool', value: r.is_active ?? true }] },
-      'promo-codes': { table: 'promo_codes', key: 'id', rows: s.promo_codes.filter((r) => r.source !== 'discount_game'), fields: (r) => [{ name: 'code', label: 'Code', required: true, value: r.code }, { name: 'description', label: 'Description', value: r.description }, { name: 'percent_bps', label: 'Percent off the rental', type: 'percent', value: r.percent_bps }, { name: 'amount_cents', label: 'or amount off', type: 'money', value: r.amount_cents }, { name: 'valid_from', label: 'Valid from', type: 'datetime', value: r.valid_from }, { name: 'valid_until', label: 'Valid until', type: 'datetime', value: r.valid_until }, { name: 'max_uses', label: 'Maximum uses', type: 'number', value: r.max_uses }, { name: 'once_per_renter', label: 'Once per renter', type: 'bool', value: r.once_per_renter ?? true }, { name: 'is_active', label: 'Active', type: 'bool', value: r.is_active ?? true }] },
+      'promo-codes': { table: 'promo_codes', key: 'id', rows: s.promo_codes, extra: <PromoExtra s={s} />, fields: (r) => [{ name: 'code', label: 'Code', required: true, value: r.code }, { name: 'description', label: 'Description', value: r.description }, { name: 'percent_bps', label: 'Percent off the rental', type: 'percent', value: r.percent_bps }, { name: 'amount_cents', label: 'or amount off', type: 'money', value: r.amount_cents }, { name: 'valid_from', label: 'Valid from', type: 'datetime', value: r.valid_from }, { name: 'valid_until', label: 'Valid until', type: 'datetime', value: 'id' in r ? r.valid_until : promoEnd(s.program), hint: 'Starts 30 days ahead. Empty means no end date: only for a public code. A code for one person always has an end date.' }, { name: 'max_uses', label: 'Maximum uses', type: 'number', value: r.max_uses }, { name: 'once_per_renter', label: 'Once per renter', type: 'bool', value: r.once_per_renter ?? true }, { name: 'is_active', label: 'Active', type: 'bool', value: r.is_active ?? true }] },
       'quick-replies': { table: 'quick_replies', key: 'id', rows: s.quick_replies, fields: (r) => [{ name: 'title', label: 'Title', required: true, value: r.title }, { name: 'body', label: 'Text', type: 'textarea', required: true, value: r.body }, { name: 'category', label: 'Category', value: r.category }, { name: 'is_active', label: 'Active', type: 'bool', value: r.is_active ?? true }] }
     };
     const c = cfg[section]!;
     return (<>{head}
       {c.extra}
       <Card title={`${c.rows.length} on file`}>{c.rows.length ? c.rows.map((r) => (
-        <details key={String(r[c.key])}><summary className="link">{String(r.label ?? r.name ?? r.code ?? r.title ?? (section === 'deposits' ? $(r.amount_cents) : `${String(r.km_per_day)} km`))}{r.is_active === false ? ' (off)' : ''}{r.uses !== undefined ? ` · ${String(r.uses)} uses` : ''}{r.unpaid_cents !== undefined ? ` · ${String(r.open_bookings)} open bookings, ${$(r.unpaid_cents)} unpaid` : ''}</summary>
+        <details key={String(r[c.key])}><summary className="link">{String(r.label ?? r.name ?? r.code ?? r.title ?? (section === 'deposits' ? $(r.amount_cents) : `${String(r.km_per_day)} km`))}{r.is_active === false ? ' (off)' : ''}{r.uses !== undefined ? ` · ${String(r.uses)} uses` : ''}{r.reminders !== undefined ? ` · ${r.valid_until ? `ends ${d(r.valid_until)}` : 'no end date'}${r.personal ? ` · reminders: ${remindersText(r.reminders)}` : ''}` : ''}{r.unpaid_cents !== undefined ? ` · ${String(r.open_bookings)} open bookings, ${$(r.unpaid_cents)} unpaid` : ''}</summary>
           <SaveForm table={c.table} rowKey={String(r[c.key])} compact fields={c.fields(r)} /></details>)) : <p className="small muted">None yet.</p>}</Card>
       <Card title="Add"><SaveForm table={c.table} label="Add" testId={`add-${section}`} fields={c.fields({})} /></Card>
     </>);

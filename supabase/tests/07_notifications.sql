@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '176/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '179/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -32,7 +32,7 @@ select test.eq('A priority classes: customer, owner and investor, staff, digests
   '1:renter,2:owner,3:staff,4:staff,5:mkt');
 select test.eq('A each come-back email needs express consent, the review request implied consent',
   (select string_agg(code || '=' || consent_rule, ',' order by code) from notification_catalogue where category = 'marketing'),
-  'renter_comeback_1m=express,renter_comeback_1w=express,renter_google_review_request=implied,renter_recovery_request=express,renter_review_ask=implied,renter_review_final=implied,renter_review_reminder=implied,renter_review_request=implied');
+  'renter_comeback_1m=express,renter_comeback_1w=express,renter_google_review_request=implied,renter_promo_expiry_1d=express,renter_promo_expiry_3d=express,renter_recovery_request=express,renter_review_ask=implied,renter_review_final=implied,renter_review_reminder=implied,renter_review_request=implied');
 select test.ok('A every program setting the layer reads has a value',
   (select notify_daily_cap = 100 and notify_class_limits = array[97, 95, 90, 80, 60] and notify_comeback_1w_bps = 1000
           and notify_comeback_1m_bps = 1500 and notify_comeback_valid_days = 30 and notify_digest_morning = time '07:30'
@@ -732,7 +732,13 @@ update program_settings set uptime_alert_email = 'rent@carmacars.ca';
 select app.server_game_claim(jsonb_build_object('token', (app.game_start(jsonb_build_object('vid', test.id('nt_game_vid'))) ->> 'token'),
   'first_name', 'Nora', 'email', 'nt.game@example.test'));
 select app.emit_event('renter_game_code_reminder', 'game_claim', (select id from game_claims where email = 'nt.game@example.test'), '{}', 'renter_game_code_reminder:nt');
+select app.emit_event('renter_game_code_reminder_3d', 'game_claim', (select id from game_claims where email = 'nt.game@example.test'), '{}', 'renter_game_code_reminder_3d:nt');
+-- the promo code expiry reminders of a code made for a renter (0161); suite 99 tests when they are sent
+insert into promo_codes (id, code, percent_bps, valid_from, valid_until, max_uses, renter_id, source)
+values (test.id('nt_promo'), 'NTPROMO1', 1500, now() - interval '20 days', now() + interval '3 days', 1, test.id('renter:nt_rita'), 'followup_30d');
+select app.ntf_emit(c, 'promo_code', test.id('nt_promo'), 'nt07', jsonb_build_object('renter_id', test.id('renter:nt_rita'))) from unnest(array['renter_promo_expiry_3d', 'renter_promo_expiry_1d']) c;
 select test.flush();
+delete from promo_codes where id = test.id('nt_promo');
 -- the proof of coverage reminder (0070)
 select app.emit_event('renter_coverage_needed', 'booking', test.id('booking:NT-9'), '{"hours": 24}', 'renter_coverage_needed:nt');
 select test.flush();

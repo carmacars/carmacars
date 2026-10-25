@@ -11461,6 +11461,10 @@ export type Database = {
           field_jobs_auto_assign: string;
           field_offline_deposit_methods: string[];
           field_tracker_override: boolean;
+          promo_default_valid_days: number;
+          promo_reminders_enabled: boolean;
+          promo_reminder_3d_days: number;
+          promo_reminder_1d_on: boolean;
         };
         Insert: {
           id?: string;
@@ -11924,6 +11928,10 @@ export type Database = {
           field_jobs_auto_assign?: string;
           field_offline_deposit_methods?: string[];
           field_tracker_override?: boolean;
+          promo_default_valid_days?: number;
+          promo_reminders_enabled?: boolean;
+          promo_reminder_3d_days?: number;
+          promo_reminder_1d_on?: boolean;
         };
         Update: {
           id?: string;
@@ -12387,6 +12395,10 @@ export type Database = {
           field_jobs_auto_assign?: string;
           field_offline_deposit_methods?: string[];
           field_tracker_override?: boolean;
+          promo_default_valid_days?: number;
+          promo_reminders_enabled?: boolean;
+          promo_reminder_3d_days?: number;
+          promo_reminder_1d_on?: boolean;
         };
         Relationships: [];
       };
@@ -12486,6 +12498,33 @@ export type Database = {
           applied_at?: string;
           redeemed_at?: string | null;
           released_at?: string | null;
+        };
+        Relationships: [];
+      };
+      promo_reminders: {
+        Row: {
+          id: string;
+          promo_code_id: string;
+          kind: string;
+          code: string;
+          event_id: number | null;
+          sent_at: string;
+        };
+        Insert: {
+          id?: string;
+          promo_code_id: string;
+          kind: string;
+          code: string;
+          event_id?: number | null;
+          sent_at?: string;
+        };
+        Update: {
+          id?: string;
+          promo_code_id?: string;
+          kind?: string;
+          code?: string;
+          event_id?: number | null;
+          sent_at?: string;
         };
         Relationships: [];
       };
@@ -20434,6 +20473,7 @@ export type Database = {
       server_my_account_links: { Args: { p_user: string }; Returns: Json };
       server_my_booking_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_my_notify_channel: { Args: { p_user: string }; Returns: Json };
+      server_my_promo_codes: { Args: { p_user: string }; Returns: Json };
       server_my_sign_in: { Args: { p_user: string }; Returns: Json };
       server_my_signing_checklist: { Args: { p_by: string }; Returns: Json };
       server_my_unpaid_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };

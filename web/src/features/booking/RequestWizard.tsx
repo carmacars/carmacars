@@ -170,7 +170,7 @@ export function RequestWizard(p: WizardProps) {
   // discount games (0081): the offer on the add-ons and review steps; a won code goes in the promo code box
   const promoText = !d.promo ? '' : !q ? 'The price beside the form is being updated.' : q.promo?.applied
     ? `Code ${q.promo.code} applied: ${money(-(q.lines.find((l) => l.charge_type === 'promo_discount')?.amount_cents ?? 0), { cents: true })} off the rental charge.`
-    : q.promo?.problem ? `${q.promo.problem}. The code stays yours until it expires.` : '';
+    : q.promo?.problem ? (/expired|no longer active|used up|already been used/.test(q.promo.problem) ? `${q.promo.problem}. You can still send your request without it.` : `${q.promo.problem}. The code stays yours until it expires.`) : '';
   const game = useBookingGame({ step, steps: [4, 5], first: d.first, email: d.email, phone: d.phone, promoApplied: !!(d.promo && q?.promo?.applied), applied: promoText,
     onCode: (code) => set('promo', code) });
   const problem = haveDates ? timeProblem({ name: car!.name, from: d.from, tf: d.tf, to: d.to, tt: d.tt, blocks, todayIso: today, nowMinutes: torontoMinutesNow(), noticeMinutes: p.rules.noticeMinutes, noticeText: p.tokens.notice, turnaroundText: p.tokens.turnaround }) : '';

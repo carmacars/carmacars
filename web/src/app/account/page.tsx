@@ -10,6 +10,7 @@ import { rpc } from '@/lib/db/repo';
 import { when } from '@/features/agreement/model';
 import { LinkedNotice } from '@/features/portal/LinkedNotice';
 import { More, PageHeader } from '@/features/portal/Chrome';
+import { MyCodes, type MyCode } from '@/features/portal/MyCodes';
 
 type Links = { verified: boolean; new: Array<{ kind: string; detail: string | null; booking_number: string | null }>; driver_trips: Array<{ booking_number: string; status: string; pickup_at: string; return_at: string; vehicle_name: string; accepted: boolean }> };
 
@@ -21,9 +22,11 @@ export default async function Account({ searchParams }: { searchParams: Promise<
   // a browser that started a request without a sign-in (0090) sees what it made there; everything else needs the sign-in
   if (!(await currentUser()) && (await pendingToken())) redirect('/my-request');
   const user = await requireUser('/account');
-  const [list, fleet, sp, links] = await Promise.all([myBookings(user), getFleet(), searchParams,
+  const [list, fleet, sp, links, codes] = await Promise.all([myBookings(user), getFleet(), searchParams,
     // earlier requests attached when the address was confirmed, and trips as an additional driver (migration 0040)
-    rpc('server_my_account_links', { p_user: user.id }, { role: 'service_role' }).then((x) => x as unknown as Links).catch(() => null)]);
+    rpc('server_my_account_links', { p_user: user.id }, { role: 'service_role' }).then((x) => x as unknown as Links).catch(() => null),
+    // the codes issued to this renter, with their end dates (migration 0161)
+    rpc('server_my_promo_codes', { p_user: user.id }, { role: 'service_role' }).then((x) => x as unknown as MyCode[]).catch(() => [] as MyCode[])]);
   const photo = (slug: string | null) => fleet.find((c) => c.slug === slug)?.cover ?? null;
   const { current, upcoming, past, nearest } = group(list);
   const full = nearest ? await findBooking(user, nearest.booking_number) : null;
@@ -64,6 +67,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
           ))}
         </div>
       )}
+      <MyCodes codes={codes} />
       {links && links.driver_trips.length > 0 && (
         <section className="stack" aria-labelledby="pt-driver-trips" data-testid="driver-trips">
           <h2 className="pt-section-title" id="pt-driver-trips">Trips where you are a driver</h2>
