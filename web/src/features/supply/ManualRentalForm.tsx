@@ -246,12 +246,26 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
   const snapKey = JSON.stringify(snapshot);
   const localKey = `cc-draft-rental${base}`;
   const firstSnap = useRef(snapKey);
-  const saveDraft = async (opts: { hold?: boolean; quick?: boolean } = {}) => {
+  // one save at a time, in order, each with the latest id, hold and quick (an earlier save landing late never undoes a later one)
+  const idRef = useRef<string | null>(draft?.id ?? null);
+  const holdRef = useRef(hold);
+  const quickRef = useRef<boolean>(draft?.quick ?? false);
+  useEffect(() => { holdRef.current = hold; }, [hold]);
+  useEffect(() => { if (quickDone) quickRef.current = true; }, [quickDone]);
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const saveDraft = (opts: { hold?: boolean; quick?: boolean } = {}) => {
+    if (opts.hold !== undefined) holdRef.current = opts.hold;
+    if (opts.quick !== undefined) quickRef.current = opts.quick;
     const title = [renter?.legal_name ?? f.full_name, cars.find((c) => c.id === f.vehicle_id)?.name].filter(Boolean).join(', ');
-    try { localStorage.setItem(localKey, JSON.stringify({ id: draftId, data: snapshot, at: Date.now() })); } catch { /* private window */ }
-    const r = await draftSave({ id: draftId, kind: 'rental', data: snapshot as Record<string, unknown>, title, hold: opts.hold ?? hold, quick: opts.quick ?? quick });
-    if (r.ok) { setDraftId(r.data.id); setSavedAt(r.data.updated_at); setSaveErr(null); } else setSaveErr(r.message);
-    return r;
+    const data = snapshot as Record<string, unknown>;
+    const run = queue.current.then(async () => {
+      try { localStorage.setItem(localKey, JSON.stringify({ id: idRef.current, data, at: Date.now() })); } catch { /* private window */ }
+      const r = await draftSave({ id: idRef.current, kind: 'rental', data, title, hold: holdRef.current, quick: quickRef.current });
+      if (r.ok) { idRef.current = r.data.id; setDraftId(r.data.id); setSavedAt(r.data.updated_at); setSaveErr(null); } else setSaveErr(r.message);
+      return r;
+    });
+    queue.current = run.catch(() => undefined);
+    return run;
   };
   useEffect(() => {
     if (done || snapKey === firstSnap.current) return;
@@ -338,7 +352,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null }: { cars: 
         <span className="small muted">{saveErr ? `Not saved: ${saveErr}. Kept on this device.` : savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}. Finish it any time from Unfinished rentals.` : 'Saved as a draft as you type: nothing is required to save.'}</span>
         <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => start(async () => { await saveDraft(); })} data-testid="mr-save-draft">Save draft</button>
         {draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => start(async () => { await draftClose(draftId, 'discarded'); try { localStorage.removeItem(localKey); } catch { /* none */ } window.location.href = base === '/field' ? '/field/rentals/new' : `${base}/bookings/new`; })} data-testid="mr-discard-draft">Discard</button>}
-        {localDraft && !draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => { const d = localDraft.data; if (d.f) setF((x) => ({ ...x, ...d.f })); if (d.renter) setRenter(d.renter); if (d.fees) setFees(d.fees); if (d.parts) setParts(d.parts); if (d.paid_by) setPaidBy(d.paid_by); if (d.deposit_by) setDepositBy(d.deposit_by); setDraftId(localDraft.id); setLocalDraft(null); }} data-testid="mr-restore-local">Restore what you were typing on this device</button>}
+        {localDraft && !draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => { const d = localDraft.data; if (d.f) setF((x) => ({ ...x, ...d.f })); if (d.renter) setRenter(d.renter); if (d.fees) setFees(d.fees); if (d.parts) setParts(d.parts); if (d.paid_by) setPaidBy(d.paid_by); if (d.deposit_by) setDepositBy(d.deposit_by); setDraftId(localDraft.id); idRef.current = localDraft.id; setLocalDraft(null); }} data-testid="mr-restore-local">Restore what you were typing on this device</button>}
       </div>
       <section className={`pt-card ad-card stack${quick ? ' pt-card--next' : ''}`} aria-labelledby="mr-quick-h" data-testid="mr-quick">
         <div className="pt-card__head"><h2 className="d4" id="mr-quick-h">Quick start at pickup</h2>
