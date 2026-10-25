@@ -35,6 +35,10 @@ on:
         description: Also rewrite the text of the sections that changed or name missing buttons (Workers AI, published when it passes the checks)
         type: boolean
         default: false
+      keep:
+        description: Also keep the screenshots (PNG, manifest.json) as a run artifact, to retake the guides' crops and the investor deck's screens in the repository
+        type: boolean
+        default: false
       auto:
         description: After a deploy (ci.yml starts it) - skip when nothing changed, rewrite the text, print the PDFs, record the run
         type: boolean
@@ -174,6 +178,26 @@ jobs:
       - name: Record the failed run
         if: ${{ failure() && inputs.auto && env.LINK_SIGNING_KEY != '' }}
         run: node scripts/guide-upkeep.mjs --finish --status failed --out "$RUNNER_TEMP/upkeep" --run "${{ github.run_id }}" --sha "${{ github.sha }}" --base https://carmacars.ca || true
+      - name: The investor deck's own screens (keep = true; web/scripts/deck-shots.mjs on the same local stack)
+        if: ${{ inputs.keep }}
+        continue-on-error: true
+        run: BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://postgres@127.0.0.1:54322/carmacars node scripts/deck-shots.mjs
+      - name: Keep the deck's screens as a run artifact (keep = true)
+        if: ${{ inputs.keep }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: deck-shots
+          path: web/public/deck
+          retention-days: 3
+          compression-level: 0
+      - name: Keep the screenshots as a run artifact (keep = true)
+        if: ${{ inputs.keep }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: guide-shots
+          path: ${{ runner.temp }}/guides
+          retention-days: 3
+          compression-level: 0
       - name: Upload to deploy-reports/guides/<date>
         run: |
           set -euo pipefail
