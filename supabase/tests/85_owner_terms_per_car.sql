@@ -187,6 +187,33 @@ select test.eq('billing: the month after, one rate: the whole month at $300',
 select test.eq('billing: the Revenue Share of a rental is the one in force the day it is booked (stored on the booking)',
   (select company_share_bps from app.vehicle_split_terms(test.id('vehicle:CTA'), app.today() + 30)), 4000);
 
--- ================================================================ 10. privileges
+-- ================================================================ 10. the old "Fee change notice" action (admin_do) goes through the same rules
+-- 0030's admin_act put the jsonb of give_fee_change_notice into a uuid ("invalid input syntax for type uuid")
+select test.mk_vehicle('CTF', 'ct_ben', 'managed', 45000, 2500, 3500, date '2026-09-01');
+select test.throws('fee change notice: still 30 days'' notice',
+  format($$select public.door(%L, null, 'admin_do', 'fee_change_notice', %L)$$, test.id('ct_admin'), jsonb_build_object('vehicle', test.id('vehicle:CTF'),
+    'insurance_fee_cents', 47000, 'tracker_fee_cents', 2500, 'effective_from', app.today() + 5, 'reason', 'Renewal')), 'days'' written notice');
+insert into test.ct select 'fcn', public.door(test.id('ct_admin'), null, 'admin_do', 'fee_change_notice', jsonb_build_object('vehicle', test.id('vehicle:CTF'),
+  'insurance_fee_cents', 47000, 'tracker_fee_cents', 2500, 'effective_from', app.today() + 30, 'reason', 'Renewal'));
+select test.eq('fee change notice: no error; a written notice, the new Insurance Fee from its date, the owner emailed',
+  (test.ctv('fcn') ->> 'done') || ' ' || test.ct_terms('CTF', app.today() + 29) || ' ' || test.ct_terms('CTF', app.today() + 30) || ' '
+  || (select string_agg(kind || ':' || status, ',') from vehicle_term_changes where vehicle_id = test.id('vehicle:CTF')) || ' '
+  || (select count(*) from app_events where code = 'owner_fee_change_notice' and payload ->> 'vehicle_id' = test.id('vehicle:CTF')::text),
+  'true 45000/2500/3500 47000/2500/3500 fee_notice:noticed 1');
+
+-- ================================================================ 11. the setting "Lower management % without owner signature"
+select test.eq('setting: on by default', (app.settings()).owner_lower_share_without_signature, true);
+update program_settings set owner_lower_share_without_signature = false where id = (app.settings()).id;
+select test.mk_vehicle('CTL', 'ct_ben', 'managed', 45000, 2500, 3500, date '2026-09-01');
+insert into test.ct select 'lsig', test.ct_do('ct_admin', jsonb_build_object('vehicle_id', test.id('vehicle:CTL'), 'revenue_share_bps', 3000, 'insurance_fee_cents', 44000));
+select test.eq('setting off: the lower Insurance Fee applies at once; the lower share waits for the owner''s signature (the sign email, no notice for it)',
+  test.ct_terms('CTL', app.today()) || ' ' || (select string_agg(kind || ':' || status, ',' order by kind) from vehicle_term_changes where vehicle_id = test.id('vehicle:CTL'))
+  || ' ' || (select count(*) from app_events where code = 'owner_schedule_resign' and entity_id = any (select id from vehicle_term_changes where vehicle_id = test.id('vehicle:CTL'))),
+  '44000/2500/3500 decrease:applied,new_schedule:awaiting_signature 1');
+select public.door(test.id('ct_admin'), null, 'ops_do', 'schedule_change_admin', jsonb_build_object('change_id', (select id from vehicle_term_changes where vehicle_id = test.id('vehicle:CTL') and status = 'awaiting_signature'), 'do', 'paper'));
+select test.eq('setting off: signed: the lower share from that day', test.ct_terms('CTL', app.today()), '44000/2500/3000');
+update program_settings set owner_lower_share_without_signature = true where id = (app.settings()).id;
+
+-- ================================================================ 12. privileges
 select test.throws('privileges: a browser session cannot read an owner''s terms', $$set local role authenticated; select public.server_owner_car_terms(gen_random_uuid())$$, 'permission denied');
 select test.throws('privileges: nor change them directly', $$set local role authenticated; select app.car_terms_change(gen_random_uuid(), '{}')$$, 'permission denied');

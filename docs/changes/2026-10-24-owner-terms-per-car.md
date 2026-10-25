@@ -1,7 +1,7 @@
 # Owner terms per car (October 24, 2026)
 
 Migration `supabase/migrations/0135_owner_terms_per_car.sql`, tests `supabase/tests/85_owner_terms_per_car.sql` (39
-assertions), end to end `web/tests/e2e/owner-terms-per-car.spec.ts` (2 tests, 375 and 1440) and the changed
+assertions after the follow-up, see section 9), end to end `web/tests/e2e/owner-terms-per-car.spec.ts` (2 tests, 375 and 1440) and the changed
 `owner-terms.spec.ts`, unit `web/src/features/owner-billing/terms-shared.test.ts`, the email `owner_fee_change_notice`
 (lower amounts and the management fee). No earlier migration was edited; the functions it changes are wrapped (renamed
 with the suffix `_pre0135`).
@@ -35,7 +35,7 @@ owner's lien and special terms); the amounts are then edited in the table. The T
 | Not approved yet | any | Kept as the car's negotiated row; the Approve step starts from it |
 | Approved, Vehicle Schedule not signed | any fee, the Install Fee | Written into the unsigned schedule at once (0067's `owner_terms_save`); the owner's open signature requests are withdrawn so the documents are made again with these numbers. No notice, no new version |
 | Approved, not signed, terms open (intake, terms set) | Management Mode, Onboarding Method | Through 0022's `set_vehicle_terms` (schedule, car and onboarding plan); a Self-Managed car has no management fee, a Turo-Only car no fees |
-| Signed and enrolled | lower Insurance Fee, Tracker Fee or management fee | In force from today or the date chosen (never earlier); a `decrease` change, fee history source `owner_benefit`; the owner is emailed the written notice. No notice period: it only lowers what the owner pays or what CarmaCars keeps |
+| Signed and enrolled | lower Insurance Fee, Tracker Fee or management fee | In force from today or the date chosen (never earlier); a `decrease` change, fee history source `owner_benefit`; the owner is emailed the written notice. No notice period: it only lowers what the owner pays or what CarmaCars keeps. A lower management fee does this only while Program settings "Lower management % without owner signature" (`owner_lower_share_without_signature`, default on) is on; off, it is an updated Vehicle Schedule the owner signs, in force from the date once signed |
 | Signed and enrolled | higher Insurance Fee or Tracker Fee | Written notice of `fee_change_notice_days` (30), Enrollment Agreement 4.8: a `fee_notice` change and its dated fee history row; the reason is required (the owner reads it) |
 | Signed and enrolled | higher management fee | The same notice, extended to the management fee, and an updated Vehicle Schedule for the owner to sign (4.8: "a Revenue Share changes only in writing signed by both parties"), through 0067's signing in the portal or on paper and CarmaCars' countersignature. It applies from the notice date once signed, or from the day signed when that is later (never back-dated). Higher fees in the same change apply from the date by the notice either way; the signed schedule then takes their place |
 | Signed, not enrolled yet | lower | An updated Vehicle Schedule issued at once by CarmaCars (enrollment opens the fee terms from the current schedule) |
@@ -46,6 +46,15 @@ One change at a time per car: a change that has not started yet, or an updated s
 cancelled (or signed) first. `app.car_terms_cancel` cancels a lower or higher amount whose date is still ahead (its dated
 terms are removed and the terms before it run on) and withdraws a waiting schedule (0067's `schedule_change_admin`).
 A shareholder-owned, company or partner car has fixed terms and is refused.
+
+## 3b. The car page's old "Fee change notice" (a crash on main)
+
+On main, Admin > a car > Records > Fee change notice failed with `invalid input syntax for type uuid`: 0030's
+`admin_act` (`0030_admin_portal.sql` lines 878 to 881) stored the jsonb that `app.give_fee_change_notice` (0022) returns
+in a uuid variable, so no Admin could give a fee notice. In this branch the button is replaced by the terms editor, and
+the action itself (`admin_do` `fee_change_notice`, for any caller left) is routed to `app.car_terms_change` with the same
+rules: a higher fee by written notice from the date given (30 days at the earliest), a lower one from that date or today.
+Tested in `85_owner_terms_per_car.sql` section 10.
 
 ## 4. The written notice
 
@@ -78,8 +87,11 @@ A shareholder-owned, company or partner car has fixed terms and is refused.
 ## 7. Decisions
 
 - A lower management fee applies without the owner's signature: CarmaCars gives up part of what it keeps, by written
-  notice it signs. A higher one always waits for the owner's signature. Worth confirming with the lawyer when the
-  agreement is next reviewed (clause 4.8 speaks of any Revenue Share change).
+  notice it signs. A higher one always waits for the owner's signature. This is the Program setting "Lower management %
+  without owner signature" (Admin > Settings > Program, Owners and fleet), on by default. **For the lawyer:** clause 4.8
+  of the Enrollment Agreement says "A Revenue Share changes only in writing signed by both parties", which on its words
+  covers a lower share too. If the lawyer reads it that way, turn the setting off: a lower share then waits for the
+  owner's signature like a higher one (lower Insurance and Tracker Fees still apply by notice, which 4.8 allows).
 - Lower amounts and Fee notices change the dated terms, not the signed schedule (as 0022's fee notice always did); the
   notice is the written record. Only a higher management fee (or any change before enrollment) makes a new schedule
   version.
@@ -105,7 +117,7 @@ Exported to `docs/guides/content`; the migration publishes the 2 changed chapter
 
 | Check | Result |
 | --- | --- |
-| Database (`scripts/test.sh`) | ALL TESTS PASSED (`85_owner_terms_per_car.sql` 39) |
+| Database (`scripts/test.sh`) | ALL TESTS PASSED (`85_owner_terms_per_car.sql` 44: the fee change notice action and the setting added) |
 | Unit (`npm run test:unit`) | 543 passed |
 | Types, lint, text check, guide labels, `check-change-guides`, `0135_gen.mjs --check` | passed |
 | End to end, local, 375 and 1440 | `owner-terms-per-car.spec.ts` 2 of 2 at both widths; `owner-terms.spec.ts` 4 of 4 at both widths (one run each; under a machine load of 20 to 30 some reruns timed out at different steps); `owner.spec.ts`: the owner billing test needs "Set terms (standard grid)" on the owner Overview, kept after the first run removed it; `admin.spec.ts` and the owner sign-in refusal timed out under load (sign-in page), not rerun after the last build (the disk was full) |
