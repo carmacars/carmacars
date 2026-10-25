@@ -261,6 +261,30 @@ def build():
         'The record is the same as signing online, and says it was signed in person, collected by you, on your device. It is printed on the signed copy\'s signature record page.',
     ])
 
+    g.task('Rental agreements: every version, every field', 'The booking\'s Rental agreements card: the current version of CarmaCars\' and Blind Spot\'s agreements, every earlier one, and what is still blank.')
+    g.steps([
+        'Once the agreement is signed and countersigned, any change to what it prints makes a new version of both documents by itself: the dates, the price lines, the car, a driver added or corrected, the coverage, the deposit or how it was paid, an address.',
+        'A change to the dates, the price, the car, the drivers or the coverage option is signed again: the renter (and each driver it affects) gets their link by email and text, and the card shows "Agreement v3 waiting for signature". A correction (a typo in an address, a plate written differently) is filed without signing; the renter gets the corrected copy by email.',
+        f'Check-out makes the "as picked up" copy (time out, km out, fuel out, the car\'s plate and VIN, the check-out report), countersigned by whoever checked the car out; check-in makes the closing copy (time in, km in, driven and charged, fuel in, late hours, damage, the return charges, the final totals). Both go to the renter by email.',
+        f'{B("Every version")} lists each one with what changed and both PDFs. {B("Resend the signing links")}, or press the button with their first name beside it to have them sign on your phone or tablet.',
+        f'The card lists what the agreements still print blank (a licence expiry, the insurer\'s policy number, the insured vehicle, a VIN). Type the values and press {B("Save the missing fields")}: the agreements follow.',
+        f'Check-out stops while a field a claim needs is blank. An Admin can let it go ahead: type the reason and press {B("Override")}; the reason is in the booking\'s history.',
+        f'{B("Make the agreements again")} checks both against the booking at once (they also follow every change by themselves).',
+    ])
+    g.task('Signing that holds up in a dispute', 'Every signature of a rental agreement, an amendment or a new version is made the same way, remotely or on your device.')
+    g.steps([
+        'The signer confirms it is them with a 6-digit code sent to their phone or email on file; the licence on file is shown.',
+        'They say they read the documents, initial the key terms (damage and the deductible, the deposit and later charges, fuel, kilometres and late returns, their coverage, cancellation), give three consents (to sign electronically, to receive records electronically, to card charges under the agreement) and draw their signature.',
+        f'Each step is recorded with its time, IP address and device, and the place when the device shares it. The signed PDFs end with a certificate of completion; anyone can check a signed file at {U("carmacars.ca/verify")}.',
+        f'Typed names are off. For a signer who cannot draw, an Admin can turn on the accessibility fallback: {P("Settings", "Program")}, Esign typed fallback.',
+    ])
+    g.task('Card disputes: the evidence pack', 'Everything that proves the rental, in one PDF for Stripe.')
+    g.steps([
+        'When a card payment is disputed, the evidence pack is built by itself: the signed agreements with their certificates, the check-out and check-in reports with photos, kilometres and fuel, the licence, the payments and charges, every message to the renter, and the card checks from Stripe. It is staged in Stripe as the dispute\'s evidence, and To do gets an urgent task.',
+        f'Open the booking: the Rental agreements card shows the pack. Press {B("Download")} to check it, then {B("Submit to Stripe")} before the evidence date.',
+        f'{B("Build the dispute evidence pack")} makes one at any time (an Admin or Finance).',
+    ])
+
     g.task('The licence before an offer is accepted', 'Front, back and a selfie, from the request on.')
     g.steps([
         'After sending a request the renter is asked for their licence. A licence already on file from an earlier booking is used again while it is valid after the return.',
@@ -566,6 +590,18 @@ def build():
         f'Real photos: open the car (its name in Cars), {B("Photos")}, and add them. Once approved they replace the eight studio stand-ins.',
     ])
     g.tip('The partner\'s monthly statement shows each rental at the sheet rate, the cut and the payout; never what the renter paid. A refund lowers the partner\'s share in proportion; a discount CarmaCars gives comes out of the markup.', label='Good to know')
+
+    g.task("A partner's CRM (01 Motors' GoHighLevel)", f'{B("Settings")}, the {B("Partners")} tile, then the partner (or {B("CRM link")} on the partner\'s page). Their CRM gets our cars, kept up to date, and their cars come to us.')
+    g.steps([
+        f'Ask the partner for a Private Integration token and their location ID (the box {B("What 01 Motors gives us")} on the page says exactly what to create and which scopes to tick). Paste both and press {B("Connect")}. The token goes to the vault; the page only ever shows its last four characters.',
+        f'Connect tests the link (their location, objects, products and pipelines) and runs the first sync. After that it runs by itself every 15 minutes, and within five minutes of a change to a car, a rate, a photo, a booking or a block. {B("Test connection")} and {B("Run sync now")} do it at once.',
+        f'{B("What 01 Motors sees")}: CarmaCars\' own cars and program owners\' cars that are on the site, with rates, the next 60 days and photos, as records of a "CarmaCars Vehicles" object in their CRM (or as products when their plan has no custom objects). Partner cars are never sent: not theirs, not another partner\'s. Press {B("Change what we share")} to leave out program owners\' cars, rates, availability or photos.',
+        f'{B("Partner price")}: the site\'s rates, or the site\'s rates less (or plus) a percentage, to the nearest dollar.',
+        f'{B("Their cars coming in")}: name the object in their CRM that holds their cars (Test connection lists them), or their feed address. Each of their cars is matched to their car here, or added as their partner car (it waits off the site unless you choose otherwise), with their rates as its sheet rates, their booked dates as calendar blocks and their photos for a car with none. A car that waits shows {B("Add as their car")}, {B("Link")} or {B("Set aside")}.',
+        f'{B("Leads both ways")} (off until you turn it on): requests for their cars, and requests that came through their booking links, become contacts and opportunities in the pipeline stage you choose; an opportunity they move to the stage you name becomes a lead in {B("Leads")}.',
+        f'{B("Feed, widget and booking links")}: a JSON or CSV feed and a widget for their GoHighLevel funnels and sites (copy the iframe), and booking links carmacars.ca/p/01-motors/&lt;car&gt; that mark the request as theirs for 30 days. {B("New key")} ends the old feed and widget addresses at once.',
+    ])
+    g.tip('A link that has failed for an hour shows on Admin > Today. Disconnect deletes the token from the vault; what is already in their CRM stays there.', label='Good to know')
 
     g.task('Add a rental by hand', f'{P("Bookings", "Add a rental")}. For phone, walk-in, Turo, partner and insurer bookings, the owner using their own car, and placeholders: a rental already agreed. To send an offer instead, use Send an offer.')
     g.steps([

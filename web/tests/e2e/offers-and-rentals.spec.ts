@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow, storeFixtureJpeg, storeFixturePdf } from './helpers';
+import { acceptCookies, db, noOverflow, readyEsign, storeFixtureJpeg, storeFixturePdf } from './helpers';
 
 // Migration 0129 end to end, at both widths: an Admin sends an offer without a request (a new customer, a price typed,
 // the rental by e-Transfer and the deposit in cash), edits it in place (version 2, no "withdraw to edit"), the renter
@@ -136,8 +136,10 @@ test('admin: an offer without a request, edited in place, paid by part, confirme
   await sql`select public.renter_save_details(${b!.user_id}, ${sql.json({ licence_number: 'N1234-12345-12345', licence_issuer: 'ON', licence_class: 'G', licence_expiry: '2030-01-01' })}, ${b!.id})`;
   await sql`select public.renter_approve_offer(${b!.id}, 2, ${b!.user_id})`;
   await sql`select public.renter_open_agreement(${b!.id}, ${b!.user_id}, 'rental-test', ${'f'.repeat(64)}, ${'bookings/of/x.pdf'})`;
+  const [gs] = await sql`select g.id from rental_agreements ra join rental_agreement_signers g on g.agreement_id = ra.id and g.signer_role = 'renter' where ra.booking_id = ${b!.id} and ra.status = 'open'`;
+  const drawn = await readyEsign(sql, gs!.id);
   await sql`select public.renter_sign_agreement(${b!.id}, ${b!.user_id}, 'I agree', ${'f'.repeat(64)},
-    ${sql.json([{ code: 'tracking_disabling', version: 'v', text: 't' }, { code: 'identity_verification', version: 'v', text: 't' }, { code: 'electronic_signature', version: 'v', text: 't' }, { code: 'card_authorization', version: 'v', text: 't' }])}, 'Nora Offer')`;
+    ${sql.json([{ code: 'tracking_disabling', version: 'v', text: 't' }, { code: 'identity_verification', version: 'v', text: 't' }, { code: 'electronic_signature', version: 'v', text: 't' }, { code: 'card_authorization', version: 'v', text: 't' }])}, null, ${drawn})`;
 
   // payments by part: the rental by e-Transfer confirms it; the deposit in cash
   await page.goto(`/admin/bookings/${b!.booking_number}?tab=money`, { waitUntil: 'networkidle' });

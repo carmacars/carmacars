@@ -98,7 +98,12 @@ async function confirmBooking(sql: Sql, booking: string, admin: string) {
             select renter_id, 'visa', '4242', 'Riley Renter', 12, 2031, true from bookings where id = ${booking}`;
   await sql`update bookings b set card_on_file_id = (select pm.id from payment_methods pm where pm.renter_id = b.renter_id order by pm.created_at desc limit 1) where b.id = ${booking}`;
   await sql`update bookings set status = 'confirmed' where id = ${booking}`;
-  await sql`update booking_drivers set identity_method = 'staff_review', identity_verified_on = current_date, licence_number = coalesce(licence_number, 'L1234-56789-01234'), licence_expiry = coalesce(licence_expiry, date '2031-01-01') where booking_id = ${booking}`;
+  await sql`update booking_drivers set identity_method = 'staff_review', identity_verified_on = current_date, licence_number = coalesce(licence_number, 'L1234-56789-01234'), licence_expiry = coalesce(licence_expiry, date '2031-01-01'), licence_issuer = coalesce(licence_issuer, 'ON') where booking_id = ${booking}`;
+  // what a claim needs on the agreement (0154: check-out stops without it): the renter's home address, the car's plate and VIN
+  await sql`update renters r set address_line1 = coalesce(r.address_line1, '1 Test Street'), city = coalesce(r.city, 'Toronto'), province = coalesce(r.province, 'ON'),
+            postal_code = coalesce(r.postal_code, 'M5H 2N2'), mobile = coalesce(r.mobile, '+16475550123') from bookings b where b.id = ${booking} and r.id = b.renter_id`;
+  await sql`update vehicles v set plate = coalesce(nullif(v.plate, ''), 'E2E' || upper(substr(md5(v.id::text), 1, 4))),
+            vin = coalesce(nullif(v.vin, ''), '1E2E' || translate(upper(substr(md5(v.id::text || 'vin'), 1, 13)), 'IOQ', '123')) from bookings b where b.id = ${booking} and v.id = b.vehicle_id`;
   await sql`insert into coverage_proofs (booking_id, coverage_option, status, card_issuer, card_last4, confirmed_at) values (${booking}, 2, 'confirmed', 'Bank', '4242', now())`;
   await sql`update bookings set coverage_option = 2, coverage_confirmed_at = now(), blocks_calendar = true where id = ${booking}`;
 }

@@ -11,7 +11,8 @@ import { DetailsForm } from '@/features/portal/DetailsForm';
 import { SignForm } from '@/features/portal/SignForm';
 import { PrepareAgreement } from '@/features/portal/PrepareAgreement';
 import { myBooking } from '@/server/portal/data';
-import { agreementFacts, blocksFor, openAgreement, unsignedFacts } from '@/server/portal/agreement';
+import { blocksFor, openAgreement, unsignedBundle } from '@/server/portal/agreement';
+import { keyTerms, loadBundle } from '@/server/agreements/bundle';
 import { viewAs } from '@/server/view-as';
 import { companionOf, openCompanionQuietly } from '@/server/portal/blindspot';
 import { rpc } from '@/lib/db/repo';
@@ -35,11 +36,13 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
   // the second agreement (Blind Spot's, 0127): made here when the rental agreement was opened before it was in use
   let companion = b.agreement?.status === 'open' ? await companionOf(b.id) : null;
   if (b.agreement?.status === 'open' && !companion && !(await viewAs())) { await openCompanionQuietly(b.id, user.id); companion = await companionOf(b.id); }
-  const facts = await agreementFacts(b.id, user.id);
+  const bundle = await loadBundle(b.id, user.id);
+  const facts = bundle.f;
   const r = facts.renter;
   const me = facts.drivers.find((d) => d.role === 'renter');
   const needDetails = !r?.address_line1 || !me?.licence_number || !me?.licence_expiry;
-  const blocks = blocksFor(unsignedFacts(facts));
+  const ub = unsignedBundle(bundle);
+  const blocks = blocksFor(ub.f, undefined, ub);
   const legal = r?.legal_name ?? me?.full_name ?? '';
   // a rental staff added with the saved card (0053): charged on "Accept and sign", never before
   const charge = added ? ((await rpc('server_manual_rental_sign_charge', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { amount_cents: number; brand: string | null; last4: string | null } | null) : null;
@@ -85,7 +88,7 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
               <h2 className="d4" id="pt-sign">Sign</h2>
               {needDetails && <p className="alert alert--warn" role="note"><span>Add your details above first, so the agreement shows them.</span></p>}
               {charge && <p className="small" data-testid="sign-charge-note">Read and sign your rental agreement; your card is charged when you sign. We charge {money(charge.amount_cents, { cents: true })} to the card ending {charge.last4 ?? 'on file'} when you press Accept and sign.</p>}
-              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} companionSha={companion?.status === 'open' ? companion.document_sha256 : null} consents={consents()} legalName={legal} fixNameHref="#pt-details" button={charge ? 'Accept and sign' : added ? 'Sign the agreement' : 'Sign and continue to payment'} />
+              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} companionSha={companion?.status === 'open' ? companion.document_sha256 : null} consents={consents()} legalName={legal} fixNameHref="#pt-details" terms={keyTerms(bundle)} button={charge ? 'Accept and sign' : added ? 'Sign the agreement' : 'Sign and continue to payment'} />
               <p className="xs muted">We record the time, your IP address and device with your signature. The agreement is then countersigned by CarmaCars {added ? 'as soon as you sign' : 'when you pay'}. <Link prefetch={false} className="link" href="/privacy">Privacy</Link></p>
             </section>
           </aside>

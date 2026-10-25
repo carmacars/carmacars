@@ -35,6 +35,7 @@ export const PATHS = {
   booking_pay: '/account/bookings/{{booking_number}}/pay',
   booking_incident: '/account/bookings/{{booking_number}}/incident',
   booking_review: '/account/bookings/{{booking_number}}/review',
+  agreement_version_sign: '/sign/agreement/{{sign_token}}',
 
   // Owner portal
   owner: '/owner',

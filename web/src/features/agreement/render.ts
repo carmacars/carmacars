@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts, rgb, type PDFImage, type PDFPage } from 'pdf-lib';
-import type { Block, SignatureRow } from './model.ts';
+import type { Block, InitialRow, SignatureRow } from './model.ts';
 
 // The agreement as a PDF (pdf-lib: pure JavaScript, runs in the Worker; pdf.ts is the server's door to it, and the unit
 // tests render with this file directly). Deterministic: the same
@@ -28,6 +28,8 @@ export interface PdfExtras {
   brand?: boolean;
   /** The logo from Admin > Settings > Site (PNG or JPEG) in place of the wordmark, on branded documents. */
   logo?: Uint8Array | null;
+  /** 0154: the drawn initials (PNG) of the key terms, by the term's code. */
+  initials?: Map<string, Uint8Array>;
 }
 
 export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8Array> {
@@ -45,6 +47,8 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
   }
   const images = new Map<number, PDFImage>();
   for (const [i, bytes] of x.images ?? []) images.set(i, await doc.embedPng(bytes));
+  const initialImgs = new Map<string, PDFImage>();
+  for (const [k, bytes] of x.initials ?? []) { try { initialImgs.set(k, await doc.embedPng(bytes)); } catch { /* not a PNG: the time stays */ } }
 
   const TOP = x.brand ? H - M - 14 : H - M;
   let page: PDFPage = doc.addPage([W, H]);
@@ -168,8 +172,32 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
     y -= 6;
   };
 
+  // 0154: the key terms initialled: the term, its text, the initials, the time
+  const initialsBlock = (rows: InitialRow[]) => {
+    const size = 8, full = W - 2 * M, widths = [full * 0.2, full * 0.5, full * 0.12, full * 0.18];
+    need(18 + 40);
+    table(['Key term', 'What the signer agreed to', 'Initials', 'Initialled'], [], false, widths);
+    y += 6;
+    for (const r of rows) {
+      const img = initialImgs.get(r.code);
+      const cells = [r.title, r.text, img ? '' : (r.typed ?? (r.when ? '' : 'Not yet')), r.when].map((c, k) => wrap(c, size, widths[k]! - 8));
+      const h = Math.max(img ? 30 : 20, 10 + Math.max(...cells.map((c) => c.length)) * 10);
+      need(h);
+      let xx = M;
+      cells.forEach((ls, k) => { ls.forEach((l, j) => drawLine(l, xx + 4, y - 11 - j * 10, size)); xx += widths[k]!; });
+      if (img) {
+        const sc = Math.min((widths[2]! - 8) / img.width, 22 / img.height);
+        page.drawImage(img, { x: M + widths[0]! + widths[1]! + 4, y: y - 26, width: img.width * sc, height: img.height * sc });
+      }
+      page.drawLine({ start: { x: M, y: y - h }, end: { x: M + full, y: y - h }, thickness: 0.5, color: LINE });
+      y -= h;
+    }
+    y -= 6;
+  };
+
   for (const b of blocks) {
     switch (b.t) {
+      case 'initials': initialsBlock(b.rows); break;
       case 'title':
         need(40); y -= 22; page.drawText(pdfSafe(b.text), { x: M, y, size: 18, font: bold, color: INK });
         page.drawRectangle({ x: M, y: y - 8, width: 36, height: 3, color: RED }); y -= 14; break;

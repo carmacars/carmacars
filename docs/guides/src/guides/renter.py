@@ -155,16 +155,23 @@ def build():
     g.steps([
         f'Check the key values at the top: the car, the dates, the deposit and the deductible. Open {B("Read the full rental agreement")} to read it word for word, or press {B("Download PDF")} to keep a copy. Below it is the Blind Spot Car Rental agreement, filled in with the same booking: we rent under Blind Spot\'s insurance, so it is part of your rental too. Press its {B("Download PDF")} to read it.',
         f'Under Sign, tap {B("All four")}: it ticks the four statements, which stay on screen to read.',
-        f'Your full legal name is your signature. Prefer to sign with your finger or the mouse? Press {B("Draw instead")}.',
-        f'Press {B("Sign and continue to payment")}. Your one signature signs both agreements; the signed copies are in Documents and in the email that confirms your booking.',
+        f'Confirm it is you: press {B("Send the code")} and type the 6-digit code we text (or email) you. Tick that you read the agreements, initial each key term in its box, tick the three consents and draw your signature with your finger or the mouse.',
+        f'Press {B("Sign and continue to payment")}. Your one signature signs both agreements; the signed copies, with a certificate of each step, are in Documents and in the email that confirms your booking.',
     ], shot=S('renter/06-sign-ready-desktop', 0, 700, 1440, 1840,
               pins=[(3, 850, 736), (4, 1000, 848), (5, 1300, 1580), (6, 1395, 1684)]))
 
     g.task('Signing with our staff', 'At pickup or at our desk, you can sign on a CarmaCars phone or tablet.')
     g.steps([
         'Our staff member checks your name and your original licence, then hands you the device.',
-        f'Read the agreements, tick the statements and sign with your name or your finger. Then hand the device back.',
+        f'Read the agreements, confirm the code we text you, initial the key terms, tick the consents and sign with your finger. Then hand the device back.',
         'It is the same signature as signing online. Prefer your own phone? Ask for the signing link by email or text.',
+    ])
+
+    g.task('When your booking changes after you sign', 'Your agreements always match your booking.')
+    g.steps([
+        'If the dates, the price, the car, the drivers or your coverage change, you get an email and a text with a link to the new version: read what changed and sign it the same way. Until you sign, the earlier version applies.',
+        'A correction that changes nothing you agreed to (a typo in an address) comes as a corrected copy by email, with nothing to sign.',
+        'At pickup and at return you get your agreements as picked up and as returned: the time, kilometres and fuel, and at return the final charges.',
     ])
 
     g.task('Pay to confirm')
