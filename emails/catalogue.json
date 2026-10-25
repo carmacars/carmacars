@@ -9151,8 +9151,8 @@
       "code": "owner_fee_change_notice",
       "audience": "owner",
       "category": "transactional",
-      "trigger": "An admin schedules a change to a vehicle's Insurance Fee or Tracker Fee (a fee history row with a future effective date), or proposes a new Revenue Share (a new Vehicle Schedule opened for signature). One email per vehicle. A fee change must be sent at least 30 days before its effective date. is_share_change is true when the Revenue Share changes, which needs the owner's signature.",
-      "timing": "Immediate, at least 30 days before the effective date",
+      "trigger": "An admin changes a vehicle's terms after its Vehicle Schedule is signed: a higher Insurance Fee or Tracker Fee (a fee history row at least 30 days ahead), a higher Revenue Share (the same notice, and a new Vehicle Schedule opened for signature), or lower amounts (in force from today or a chosen date, no notice period). One email per change. is_share_change is true when a higher Revenue Share needs the owner's signature; is_decrease is true for lower amounts.",
+      "timing": "Immediate: at least 30 days before the effective date of a higher amount; on the day a lower amount is set",
       "digest": false,
       "from": "CarmaCars <owners@carmacars.ca>",
       "reply_to": "owners@carmacars.ca",
@@ -9220,6 +9220,11 @@
           "type": "url",
           "sample": "https://instagram.com/carmacars.ca",
           "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "is_decrease",
+          "type": "boolean",
+          "sample": false
         },
         {
           "name": "is_share_change",

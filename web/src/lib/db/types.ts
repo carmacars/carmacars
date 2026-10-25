@@ -17393,6 +17393,7 @@ export type Database = {
           signed_text_sha256: string | null;
           countersignature: string | null;
           cancelled_reason: string | null;
+          edit_id: string | null;
         };
         Insert: {
           id?: string;
@@ -17422,6 +17423,7 @@ export type Database = {
           signed_text_sha256?: string | null;
           countersignature?: string | null;
           cancelled_reason?: string | null;
+          edit_id?: string | null;
         };
         Update: {
           id?: string;
@@ -17451,6 +17453,7 @@ export type Database = {
           signed_text_sha256?: string | null;
           countersignature?: string | null;
           cancelled_reason?: string | null;
+          edit_id?: string | null;
         };
         Relationships: [];
       };
@@ -19583,6 +19586,7 @@ export type Database = {
       server_owner_agreement_extras: { Args: { p_owner: string }; Returns: Json };
       server_owner_agreement_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
       server_owner_application_task: { Args: { p_by: string }; Returns: Json };
+      server_owner_car_terms: { Args: { p_by: string }; Returns: Json };
       server_owner_cosigner_facts: { Args: { p_token: string }; Returns: Json };
       server_owner_cosigner_sign: { Args: { p_token: string; p: Json }; Returns: Json };
       server_owner_debit_result: { Args: { p_intent: string; p: Json }; Returns: Json };

@@ -20,6 +20,7 @@ import { InsurerConfirm } from '@/features/admin/InsurerConfirm';
 import { autoCardFields, autoSource } from '@/features/supply/auto-defaults';
 import '@/features/admin/todo/todo.css';
 import { CarMaintenancePanel } from '@/features/maintenance/Views';
+import { CarTermsTable, type CarTermsData } from '@/features/owner-billing/CarTerms';
 import type { CarMaintenance } from '@/features/maintenance/model';
 
 export const dynamic = 'force-dynamic';
@@ -56,6 +57,9 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
   const classes = tab === 'overview' ? (await list<{ code: string; label: string }>('vehicle_classes', { eq: { is_active: true }, order: 'sort_order', asc: true })).rows : [];
   const cal = tab === 'calendar' ? await (async () => { const { from } = rangeFrom(sp.start, 'month'); return read<CalData>('calendar', { from: from.toISOString(), to: new Date(from.getTime() + 31 * 86_400_000).toISOString(), vehicle: id }); })() : null;
   const slug = v.listing?.slug ? String(v.listing.slug) : null;
+  // the owner terms of a program owner's car (0135), on the Records tab
+  const carTerms = tab === 'records' && v.supply_type === 'program_owner' && !v.is_shareholder_owned
+    ? await door<CarTermsData>(user.id, 'ops_read', 'car_terms', { vehicle_id: id }).catch(() => null) : null;
   // the listing's state (0070): what is missing, the checklist, Publish now, the fleet policy
   const ls = await door<ListingState>(user.id, 'ops_read', 'listing_state', { vehicle_id: id }).catch(() => null);
   const [partners, owners] = tab === 'overview' ? await Promise.all([door<Array<{ id: string; business_name: string }>>(user.id, 'ops_read', 'partners').catch(() => []), adminOwners(user)]) : [[], []];
@@ -179,8 +183,10 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
       )}
       {tab === 'records' && (
         <div className="ad-cols ad-cols--2">
-          <Card title={v.supply_type === 'program_owner' ? 'Owner terms' : 'Terms'}><Kv rows={[[v.supply_type === 'program_owner' ? 'Owner' : 'Supplied by', v.supply_type === 'program_owner' ? v.owner?.legal_name ?? '' : v.supply_type === 'partner' ? v.partner?.business_name ?? '' : 'CarmaCars'], ['Schedule', v.schedule ? String(v.schedule.schedule_number ?? '') : 'none'], ['Insurance Fee', $(v.terms?.insurance_fee_cents)], ['Tracker Fee', $(v.terms?.tracker_fee_cents)], ['Management fee (Revenue Share)', v.terms?.revenue_share_bps !== undefined ? `${Number(v.terms?.revenue_share_bps) / 100}%` : '']]} />
-            {v.terms && <Act action="fee_change_notice" payload={P} label="Fee change notice" fields={[{ name: 'insurance_fee_cents', label: 'New Insurance Fee', type: 'money', required: true, value: v.terms.insurance_fee_cents }, { name: 'tracker_fee_cents', label: 'New Tracker Fee', type: 'money', required: true, value: v.terms.tracker_fee_cents }, { name: 'effective_from', label: 'Effective (30 days or more ahead)', type: 'date', required: true }, { name: 'reason', label: 'Reason', type: 'text' }]} refresh={refresh} />}</Card>
+          {/* a program owner's car: the owner terms editor (0135), the same as the owner page's; others: their fixed terms */}
+          {carTerms ? <div className="ad-span-2"><CarTermsTable data={carTerms} paths={refresh} title={`Owner terms${v.owner ? `: ${v.owner.legal_name}` : ''}`} testId="vehicle-terms" />
+            {v.owner && <p className="small"><Link prefetch={false} className="link" href={`/admin/owners/${v.owner.id}`}>Every car of this owner</Link></p>}</div>
+            : <Card title="Terms"><Kv rows={[['Supplied by', v.supply_type === 'partner' ? v.partner?.business_name ?? '' : v.supply_type === 'program_owner' ? v.owner?.legal_name ?? '' : 'CarmaCars'], ['Schedule', v.schedule ? String(v.schedule.schedule_number ?? '') : 'none'], ['Insurance Fee', $(v.terms?.insurance_fee_cents)], ['Tracker Fee', $(v.terms?.tracker_fee_cents)], ['Management fee (Revenue Share)', v.terms?.revenue_share_bps !== undefined ? `${Number(v.terms?.revenue_share_bps) / 100}%` : '']]} /></Card>}
           <Card title="Tracker">{v.tracker ? <Kv rows={[['Device', String(v.tracker.device.serial_number ?? '')], ['Last seen', t(v.tracker.device.last_seen_at)], ['Speed', v.tracker.status ? `${String(v.tracker.status.speed_kmh)} km/h` : ''], ['Ignition', v.tracker.status ? (v.tracker.status.ignition_on ? 'on' : 'off') : ''], ['Locked', v.tracker.status ? String(v.tracker.status.locked) : '']]} /> : <p className="small muted">No tracker installed.</p>}
             <p className="small" data-testid="tracker-coming-soon"><b>Coming soon:</b> {TRACKER_SOON}</p></Card>
           <Card title="Documents"><Table rows={v.documents} empty="No documents." cols={[{ key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>

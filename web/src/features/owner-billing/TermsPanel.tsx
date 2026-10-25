@@ -3,9 +3,9 @@ import { useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
 import { money } from '@/lib/format';
-import { chooseFirstLast, saveTerms, scheduleChange, type FirstLastAction, type TermsInput } from '@/server/actions/owner-billing';
+import { chooseFirstLast, saveTerms, type FirstLastAction, type TermsInput } from '@/server/actions/owner-billing';
 import { METHODS } from './ApproveStep';
-import { SOURCE_LABEL, dollars, pctOf, toCents } from './shared';
+import { dollars, pctOf, toCents } from './shared';
 
 // Negotiated terms (migration 0067): the owner's default for their cars, and each car's own exact amounts, each with
 // the date they apply from. A car whose Vehicle Schedule is signed gets an updated schedule for the owner to sign
@@ -129,26 +129,6 @@ function TermsForm({ base, scope, ownerId, vehicleId, today, paths, signed, test
   );
 }
 
-function Awaiting({ c, paths, today }: { c: NonNullable<CarTerms['awaiting']>; paths: string[]; today: string }) {
-  const router = useRouter();
-  const a = useAct<Record<string, unknown>>();
-  const uid = `aw-${useId().replace(/[^\w-]/g, '')}`;
-  const [on, setOn] = useState(today);
-  const [reason, setReason] = useState('');
-  return (
-    <div className="ow-warn stack" data-testid="terms-awaiting"><b>Updated Vehicle Schedule waiting for the owner&apos;s signature (from {day(c.effective_from)})</b>
-      <pre className="small ob-text">{c.text}</pre>
-      <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'end' }}>
-        <div className="field"><label className="label" htmlFor={`${uid}-on`}>Signed on paper on</label><input className="input" type="date" id={`${uid}-on`} value={on} max={today} onChange={(e) => setOn(e.target.value)} /></div>
-        <button type="button" className="btn btn--ghost btn--sm" disabled={a.pending} onClick={() => a.run(() => scheduleChange({ change_id: c.change_id, do: 'paper', signed_on: on }, paths), (r) => { if (r.ok) router.refresh(); })}>Record signed on paper</button>
-        <div className="field"><label className="label" htmlFor={`${uid}-r`}>Reason to withdraw</label><input className="input" id={`${uid}-r`} value={reason} onChange={(e) => setReason(e.target.value)} /></div>
-        <button type="button" className="btn btn--quiet btn--sm" disabled={a.pending} onClick={() => a.run(() => scheduleChange({ change_id: c.change_id, do: 'cancel', reason }, paths), (r) => { if (r.ok) router.refresh(); })}>Withdraw it</button>
-      </div>
-      {a.res && !a.res.ok && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
-    </div>
-  );
-}
-
 export function TermsPanel({ data, ownerId, today }: { data: TermsData; ownerId: string; today: string }) {
   const paths = [`/admin/owners/${ownerId}`];
   const cur = data.owner.current;
@@ -161,22 +141,14 @@ export function TermsPanel({ data, ownerId, today }: { data: TermsData; ownerId:
           <span>{[r.insurance_fee_cents !== null && `${money(r.insurance_fee_cents)} insurance`, r.tracker_fee_cents !== null && `${money(r.tracker_fee_cents)} tracker`, r.revenue_share_bps !== null && `${pctOf(r.revenue_share_bps)}% share`,
             r.install_fee_cents !== null && `${money(r.install_fee_cents)} install`, r.first_last_cents !== null && `${money(r.first_last_cents, { cents: true })} first and last`].filter(Boolean).join(', ') || 'grid'}{r.note ? ` · ${r.note}` : ''}</span></li>)}</ul>}
       </section>
-      {data.cars.filter((c) => !['turo_only', 'shareholder'].includes(c.billing_case)).map((c) => {
-        const r = c.resolved;
-        const base: T = c.schedule ? { ...c.schedule, first_last_cents: c.schedule.first_last_set ? c.schedule.first_last_cents : null } : { ...r, first_last_cents: r.sources.first_last_cents === 'two_months' ? null : r.first_last_cents };
-        return (
-          <section key={c.vehicle_id} className="pt-card stack" aria-label={`Terms of ${c.name}`} data-testid="terms-car">
-            <div className="pt-card__head"><h2 className="d4">{c.name}</h2><span className="badge badge--outline">{c.schedule ? (c.schedule.signed_at ? `${c.schedule.schedule_number} signed ${day(c.schedule.signed_at)}` : `${c.schedule.schedule_number}, not signed`) : 'Terms not set'}</span></div>
-            <p className="small">{c.schedule ? 'On the Vehicle Schedule' : 'Would apply'}: {money(base.insurance_fee_cents)} insurance, {money(base.tracker_fee_cents)} tracker, {pctOf(base.revenue_share_bps)}% management fee (Revenue Share), {money(base.install_fee_cents)} install, {money(base.first_last_cents ?? (base.insurance_fee_cents ?? 0) * 2, { cents: true })} first and last.
-              {!c.schedule && <> From: {Object.entries(r.sources).map(([k, s]) => `${k.replace(/_cents|_bps/g, '').replace(/_/g, ' ')} ${SOURCE_LABEL[s] ?? s}`).join('; ')}.</>}</p>
-            {c.awaiting && <Awaiting c={c.awaiting} paths={paths} today={today} />}
-            {c.first_last?.needed && <FirstLastChoice c={c} paths={paths} today={today} />}
-            <details><summary className="link">Change this car&apos;s terms</summary>
-              <TermsForm base={base} scope="car" ownerId={ownerId} vehicleId={c.vehicle_id} today={today} paths={paths} signed={!!c.schedule?.signed_at} testId="terms-car-form" /></details>
-            {c.versions.length > 1 && <p className="small muted">Versions: {c.versions.map((x) => `${x.schedule_number} (${money(x.insurance_fee_cents)}, ${pctOf(x.revenue_share_bps)}%${x.signed_at ? `, signed ${day(x.signed_at)}` : ''})`).join(' · ')}</p>}
-          </section>
-        );
-      })}
+      {data.cars.filter((c) => !['turo_only', 'shareholder'].includes(c.billing_case) && (c.first_last?.needed || c.versions.length > 1)).map((c) => (
+        // each car's own terms are edited in the table Cars and terms (0135); here: its first and last month invoice and its versions
+        <section key={c.vehicle_id} className="pt-card stack" aria-label={`First and last month of ${c.name}`} data-testid="terms-car">
+          <div className="pt-card__head"><h2 className="d4">{c.name}</h2><span className="badge badge--outline">{c.schedule ? (c.schedule.signed_at ? `${c.schedule.schedule_number} signed ${day(c.schedule.signed_at)}` : `${c.schedule.schedule_number}, not signed`) : 'Terms not set'}</span></div>
+          {c.first_last?.needed && <FirstLastChoice c={c} paths={paths} today={today} />}
+          {c.versions.length > 1 && <p className="small muted">Vehicle Schedule versions: {c.versions.map((x) => `${x.schedule_number} (${money(x.insurance_fee_cents)}, ${pctOf(x.revenue_share_bps)}%${x.signed_at ? `, signed ${day(x.signed_at)}` : ''})`).join(' · ')}</p>}
+        </section>
+      ))}
     </div>
   );
 }

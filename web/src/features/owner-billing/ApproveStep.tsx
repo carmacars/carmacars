@@ -122,6 +122,13 @@ export function ApproveStep({ plan, owner, isTest, hstBps }: { plan: Plan; owner
   return (
     <form className="stack" noValidate aria-label="Terms and first invoice" data-testid="approve-step" onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <p className="small muted">Check each car&apos;s terms and choose the invoices. Nothing is set or sent until you press Approve{isTest ? ' (a test owner: staff emails stay with the test accounts)' : ''}.</p>
+      {cars.filter((c) => !c.shareholder).length > 1 && (
+        // 0135: one negotiation for several cars: the first car's numbers to every car, then change any car
+        <div className="row"><button type="button" className="btn btn--ghost btn--sm" data-testid="approve-same-terms" onClick={() => {
+          const first = cars.find((c) => !c.shareholder)!; const f = st[first.vehicle_id]!;
+          setSt(Object.fromEntries(cars.map((c) => { const s = st[c.vehicle_id]!; return [c.vehicle_id, c.shareholder || c.vehicle_id === first.vehicle_id ? s
+            : { ...s, mode: f.mode, ins: f.ins, trk: f.trk, share: f.share, inst: f.inst, fl: f.fl, first_last: { ...s.first_last, amount: f.fl } }]; })));
+        }}>Use these terms for every car</button><span className="small muted">Copies {cars.find((c) => !c.shareholder)!.name}&apos;s numbers to the other cars.</span></div>)}
       {cars.map((c) => {
         const s = st[c.vehicle_id]!;
         const id = `${uid}-${c.vehicle_id.slice(0, 8)}`;
