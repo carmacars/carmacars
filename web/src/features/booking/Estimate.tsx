@@ -91,7 +91,7 @@ function Tween({ cents }: { cents: number }) {
   return <b>{money(shown, { cents: true })}</b>;
 }
 
-export function Estimate({ q, error, loading, from, to, tf, tt, rates, hst, maxDays, labels, problem, coverageChosen }: {
+export function Estimate({ q, error, loading, from, to, tf, tt, rates, hst, labels, problem, coverageChosen }: {
   q: Quote | null; error: string; loading: boolean; from: string; to: string; tf: string; tt: string; hst: string; maxDays: number;
   rates: { daily: number; weekend: number; weekly: number; monthly: number; multi?: number | null }; labels: LabelTokens; problem?: string; coverageChosen?: boolean;
 }) {
