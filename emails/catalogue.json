@@ -8976,13 +8976,13 @@
       "code": "owner_booking_changed",
       "audience": "owner",
       "category": "transactional",
-      "trigger": "A change to a confirmed booking on the owner's car is applied (new dates, another car, or a new rental charge). One email to each owner whose car or income the change touches: the owner of the car it left and, if different, the owner of the car it moved to. Not sent for Owner Bookings.",
+      "trigger": "A change to a confirmed booking on the owner's car is applied (new dates, another car, or a new rental charge). One email to each owner whose car or income the change touches: the owner of the car it left and, if different, the owner of the car it moved to. Not sent for Owner Bookings, nor for a booking not shown to the owner (0156). show_amounts is false while staff hide the booking's revenue from the owner: the shares are left out.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <owners@carmacars.ca>",
       "reply_to": "owners@carmacars.ca",
       "subject": "Booking {{booking_number}} changed",
-      "preheader": "Your estimated share: {{income_before}} before, {{income_after}} now.",
+      "preheader": "The new details of booking {{booking_number}}.",
       "sample_subject": "Booking CC-10482 changed",
       "variables": [
         {
@@ -9056,6 +9056,11 @@
           "type": "string",
           "sample": "within 2 hours",
           "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "show_amounts",
+          "type": "boolean",
+          "sample": true
         },
         {
           "name": "support_phone",
@@ -10980,13 +10985,13 @@
       "code": "owner_new_booking",
       "audience": "owner",
       "category": "transactional",
-      "trigger": "A standard or non-refundable booking on the owner's vehicle changes to confirmed. Not sent for Owner Bookings or for Turo trips. is_self_managed is true when the vehicle's management mode is Self-Managed; only then are the renter's name and mobile number included.",
+      "trigger": "A standard or non-refundable booking on the owner's vehicle changes to confirmed. Not sent for Owner Bookings or for Turo trips, nor for a booking not shown to the owner (0156). is_self_managed is true when the vehicle's management mode is Self-Managed; only then are the renter's name and mobile number included. show_amounts is false while staff hide the booking's revenue from the owner (until the return or the statement): the rental charge is left out.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <owners@carmacars.ca>",
       "reply_to": "owners@carmacars.ca",
       "subject": "New booking on your {{vehicle_name}}: {{pickup_date}} to {{return_date}}",
-      "preheader": "Rental charge {{rental_charge}}. Booking {{booking_number}}.",
+      "preheader": "Booking {{booking_number}}: {{pickup_date}} to {{return_date}}.",
       "sample_subject": "New booking on your 2023 Toyota RAV4 XLE: Fri, Oct 23, 2026 to Mon, Oct 26, 2026",
       "variables": [
         {
@@ -11076,6 +11081,11 @@
           "name": "return_time",
           "type": "string",
           "sample": "10:00 am"
+        },
+        {
+          "name": "show_amounts",
+          "type": "boolean",
+          "sample": true
         },
         {
           "name": "support_phone",

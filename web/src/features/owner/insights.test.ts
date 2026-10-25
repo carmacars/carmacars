@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { liveStatus, monthStats, nextPayout, upcoming } from './insights.ts';
+import { amountText, liveStatus, monthStats, nextPayout, upcoming, viewOf } from './insights.ts';
 import type { OwnerBooking, OwnerVehicle } from './types.ts';
 
 // The owner portal's figures (2026-10-24-owner-investor-portal-design.md): the owner's own bookings, invoices and
@@ -39,4 +39,27 @@ test('live status, next payout and what is coming up', () => {
   assert.deepEqual(upcoming(list, now).map((b) => b.booking_id), ['x', 'y']);
   assert.deepEqual(nextPayout({ statements: [{ id: 's', statement_number: 'ST-1', statement_month: '2026-09-01', payout_date: '2026-10-30', status: 'approved', payout_cents: 7 }], next_payout_date: '2026-11-15' }, '2026-10-24'), { date: '2026-10-30', cents: 7, statement_id: 's' });
   assert.deepEqual(nextPayout({ statements: [], next_payout_date: '2026-11-15' }, '2026-10-24'), { date: '2026-11-15', cents: null, statement_id: null });
+});
+
+// 0156 (2026-10-25-hide-revenue-from-owner.md): a booking hidden from the owner arrives without its amount; it never counts
+// in the figures (not even its days) until the database shows it, and one not shown at all is only "Unavailable".
+test('hidden bookings: never in the figures, said as Booked or Unavailable', () => {
+  const home = { vehicles: [car('a'), car('b')], invoices: [], statements: [] };
+  const hidden: OwnerBooking = { ...bk('h', 'a', '2026-10-10T18:00:00Z', '2026-10-12T18:00:00Z', 0), rental_charge_cents: null, owner_view: 'booked' };
+  const blocked: OwnerBooking = { ...bk('u', 'b', '2026-10-20T15:00:00Z', '2026-10-26T15:00:00Z', 0, 'confirmed'), booking_number: null, rental_charge_cents: null, owner_view: 'unavailable' };
+  const shown = bk('s', 'a', '2026-10-14T18:00:00Z', '2026-10-15T18:00:00Z', 15000);
+  const m = monthStats(home, [hidden, blocked, shown], '2026-10-24', 1)[0]!;
+  assert.equal(m.rental_cents, 15000); assert.equal(m.days, 1); assert.equal(m.bookings, 1); assert.equal(m.held, 1);
+  assert.deepEqual(m.cars.map((c) => [c.vehicle_id, c.days, c.rental_cents]), [['a', 1, 15000], ['b', 0, 0]]);
+  const fmt = (c: number) => `$${c / 100}`;
+  assert.equal(amountText(hidden, fmt), 'Booked');
+  assert.equal(amountText(blocked, fmt), 'Unavailable');
+  assert.equal(amountText(shown, fmt), '$150');
+  assert.equal(amountText(bk('o', 'a', '2026-10-01T00:00:00Z', '2026-10-02T00:00:00Z', 0, 'confirmed', 'owner'), fmt), 'Your booking');
+  assert.equal(viewOf({ rental_charge_cents: null }), 'booked');
+  assert.equal(viewOf({ rental_charge_cents: 1 }), 'full');
+  // the calendar stays true: the car is busy (unavailable), and a hidden rental under way is on rent
+  const now = new Date('2026-10-24T15:00:00Z');
+  assert.equal(liveStatus(car('b'), [blocked], now).label, 'Unavailable');
+  assert.equal(liveStatus(car('a'), [{ ...hidden, pickup_at: '2026-10-23T15:00:00Z', return_at: '2026-10-25T15:00:00Z', status: 'confirmed' }], now).label, 'On rent');
 });

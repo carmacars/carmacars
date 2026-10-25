@@ -48,10 +48,12 @@ alter table program_settings
   add column if not exists deposit_toll_window_days integer not null default 7 check (deposit_toll_window_days between 0 and 30),
   add column if not exists deposit_hold_capture_hours integer not null default 36 check (deposit_hold_capture_hours between 6 and 120),
   add column if not exists deposit_auto_capture boolean not null default true,
-  add column if not exists balance_auto_collect boolean not null default true;
+  add column if not exists balance_auto_collect boolean not null default true,
+  add column if not exists deposit_auto_max_age_days integer not null default 14 check (deposit_auto_max_age_days between 1 and 90);
 comment on column program_settings.deposit_toll_window_days is 'Tolls and tickets can take this many days after the return to come in (0155): settling a deposit sooner warns and suggests a hold-back. The limit of a hold-back stays deposit_holdback_days.';
 comment on column program_settings.deposit_hold_capture_hours is 'A card hold on a rental on the road, returned and not settled, or with an open claim or toll is captured in full this many hours before it lapses (0155). Captured is not released: the settlement refunds the rest.';
 comment on column program_settings.deposit_auto_capture is 'Capture card holds before they lapse, and charge the deposit to the saved card when a hold lapsed anyway (0155).';
+comment on column program_settings.deposit_auto_max_age_days is 'Money steps older than this many days are never run by themselves (0155): a step left pending, a balance on statements older than this, a hold that lapsed longer ago. Finance gets a task to review them instead.';
 comment on column program_settings.balance_auto_collect is 'What is owed after the deposit goes to the card on file, else a pay link to the renter, else an open balance with a Finance task (0155).';
 
 alter table payments
@@ -101,7 +103,8 @@ create table if not exists balance_followups (
   last_at      timestamptz not null default now(),
   open_cents   bigint not null default 0,
   attempts     integer not null default 0,
-  note         text
+  note         text,
+  manual       boolean not null default false   -- older than the automatic limit when first seen: Finance collects it by hand
 );
 create trigger audit_balance_followups after insert or update or delete on balance_followups for each row execute function app.audit_row();
 comment on table balance_followups is 'The balance owed after the deposit, per booking (0155): the card on file charged, a pay link sent, or a Finance task. The deposit job follows up once a day until it is paid.';
@@ -126,6 +129,7 @@ insert into task_rules (task_type, queue, title, priority, due_kind, due_amount,
   ('deposit_hold_lapsed',    'finance', 'A deposit hold lapsed',                            'urgent', 'minutes',       0,    5, null, 'Charge the deposit to the saved card, or ask the renter to pay it (0155)'),
   ('deposit_capture_failed', 'finance', 'A deposit could not be captured',                  'urgent', 'minutes',       0,    5, null, 'Stripe refused the capture: charge the saved card or send a pay link (0155)'),
   ('renew_deposit_hold',     'finance', 'A deposit hold lapses before the pickup',          'high',   'none',          null, 3, null, 'Release it and place a new hold at the pickup (0155)'),
+  ('deposit_money_review',   'finance', 'Old money step to review',                         'high',   'business_days', 1,    5, null, 'A deposit step or balance older than the automatic limit (14 days): it is not run by itself. Check it in Stripe and do it by hand, or leave it (0155)'),
   ('deposit_money_stuck',    'finance', 'A deposit step did not go through at Stripe',      'high',   'business_days', 1,    5, null, 'A capture, release, refund or charge failed several times: do it by hand and record it (0155)')
 on conflict (task_type) do nothing;
 
@@ -557,6 +561,8 @@ declare
 begin
   select * into p from payments where id = p_payment;
   if p.id is null or p.server_action is null then return null; end if;
+  -- older than the automatic limit: never run by itself (the sweep gives Finance a task to review it)
+  if p.created_at < now() - make_interval(days => (app.settings()).deposit_auto_max_age_days) then return null; end if;
   select * into b from bookings where id = p.booking_id;
   select * into par from payments where id = p.parent_payment_id;
   if p.server_action in ('capture_deposit', 'protect_capture', 'release_hold', 'refund_deposit') then
@@ -604,7 +610,8 @@ begin
     return jsonb_build_object('ok', true, 'lapsed', true, 'next', null);
   end if;
   v_card := app.booking_saved_card(b.id);
-  if (app.settings()).deposit_auto_capture and v_card is not null and v_amount > 0 and b.status in ('on_rent', 'returned', 'closed') then
+  if (app.settings()).deposit_auto_capture and v_card is not null and v_amount > 0 and b.status in ('on_rent', 'returned', 'closed')
+     and coalesce(d.hold_expires_at, now()) > now() - make_interval(days => (app.settings()).deposit_auto_max_age_days) then
     insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status, payment_method_id, card_brand, card_last4, server_action)
     values (b.id, b.renter_id, 'deposit', 'charge', 'card', d.amount_cents, 'pending', (v_card ->> 'payment_method_id')::uuid, v_card ->> 'brand', v_card ->> 'last4', 'deposit_charge')
     returning id into v_pay;
@@ -793,12 +800,28 @@ begin
   if b.id is null then return null; end if;
   v_open := app.booking_balance_open(b.id);
   if v_open <= 0 then
-    perform app.resolve_tasks(array['collect_balance'], b.id, null, 'Paid');
+    perform app.resolve_tasks(array['collect_balance', 'deposit_money_review'], b.id, null, 'Paid');
     update balance_followups set last_step = 'paid', last_at = now(), open_cents = 0 where booking_id = b.id and last_step <> 'paid';
     return jsonb_build_object('action', 'none', 'open_cents', 0);
   end if;
-  if exists (select 1 from payments p where p.booking_id = b.id and p.purpose in ('post_rental', 'deposit') and p.status = 'pending' and p.server_action is not null) then
+  if exists (select 1 from payments p where p.booking_id = b.id and p.purpose in ('post_rental', 'deposit') and p.status = 'pending' and p.server_action is not null
+              and p.created_at >= now() - make_interval(days => s.deposit_auto_max_age_days)) then
     return jsonb_build_object('action', 'wait', 'open_cents', v_open);
+  end if;
+  -- a balance older than the automatic limit when first seen (no statement with an open line issued since): never charged
+  -- or chased by itself; Finance reviews it. One the guard started in time is followed up to the end.
+  if exists (select 1 from balance_followups f where f.booking_id = b.id and f.manual)
+     or (not exists (select 1 from balance_followups f where f.booking_id = b.id)
+         and not exists (select 1 from booking_line_items l join booking_statements st on st.id = l.statement_id
+                          where l.booking_id = b.id and l.voided_at is null and l.charged_to_renter and l.stage <> 'booking' and l.amount_cents > 0
+                            and app.line_open_cents(l.id) > 0 and st.issued_at >= now() - make_interval(days => s.deposit_auto_max_age_days))) then
+    perform app.raise_task(p_type => 'deposit_money_review',
+      p_title => format('Booking %s: %s still owed on statements older than %s days: not collected by itself, review it', b.booking_number, app.fmt_money(v_open), s.deposit_auto_max_age_days),
+      p_detail => 'Money tab: Charge the saved card, Collect a card (pay link), Record a payment received another way, or leave it.',
+      p_booking => b.id, p_renter => b.renter_id, p_dedupe => 'deposit_money_review:balance:' || b.id);
+    insert into balance_followups as f (booking_id, last_step, open_cents, attempts, manual) values (b.id, 'task', v_open, 1, true)
+    on conflict (booking_id) do update set last_step = 'task', last_at = now(), open_cents = v_open, manual = true;
+    return jsonb_build_object('action', 'review', 'open_cents', v_open);
   end if;
   v_card := app.booking_saved_card(b.id);
   if s.balance_auto_collect and v_card is not null
@@ -924,12 +947,30 @@ begin
     select coalesce(jsonb_agg(jsonb_build_object('deposit_id', d.id, 'booking_number', b.booking_number) order by d.hold_expires_at), '[]'::jsonb) into v_captures
       from deposits d join bookings b on b.id = d.booking_id
      where d.method = 'card_hold' and d.status = 'held' and b.status in ('on_rent', 'returned', 'closed')
-       and d.hold_expires_at <= now() + make_interval(hours => s.deposit_hold_capture_hours);
+       and d.hold_expires_at > now() and d.hold_expires_at <= now() + make_interval(hours => s.deposit_hold_capture_hours);
   end if;
+  -- a hold the records still call held after it lapsed: never captured or charged by itself; Finance reviews it
+  for r in select d.id, b.id as booking_id, b.booking_number, b.renter_id, d.hold_expires_at from deposits d join bookings b on b.id = d.booking_id
+            where d.method = 'card_hold' and d.status = 'held' and b.status in ('on_rent', 'returned', 'closed') and d.hold_expires_at <= now() loop
+    perform app.raise_task(p_type => 'deposit_money_review',
+      p_title => format('Booking %s: the deposit hold lapsed on %s but is still recorded as held: check Stripe, then settle or charge by hand', r.booking_number,
+                        to_char(r.hold_expires_at at time zone 'America/Toronto', 'Mon FMDD')),
+      p_booking => r.booking_id, p_renter => r.renter_id, p_dedupe => 'deposit_money_review:hold:' || r.id);
+  end loop;
+  -- a money step left pending longer than the automatic limit: never run by itself; Finance reviews it
+  for r in select p.id, p.booking_id, b.booking_number, b.renter_id, p.server_action, p.amount_cents, p.created_at from payments p join bookings b on b.id = p.booking_id
+            where p.status = 'pending' and p.server_action is not null and p.created_at < now() - make_interval(days => s.deposit_auto_max_age_days) loop
+    perform app.raise_task(p_type => 'deposit_money_review',
+      p_title => format('Booking %s: %s of %s from %s was never done: check Stripe and do it by hand, or cancel it', r.booking_number,
+                        case r.server_action when 'release_hold' then 'a hold release' when 'refund_deposit' then 'a deposit refund' when 'capture_deposit' then 'a deposit capture'
+                                             when 'protect_capture' then 'a deposit capture' else 'a card charge' end,
+                        app.fmt_money(r.amount_cents), to_char(r.created_at at time zone 'America/Toronto', 'Mon FMDD, YYYY')),
+      p_booking => r.booking_id, p_renter => r.renter_id, p_related_table => 'payments', p_related_id => r.id, p_dedupe => 'deposit_money_review:payment:' || r.id);
+  end loop;
   -- a balance paid since: its task closes
   for r in select f.booking_id from balance_followups f where f.last_step <> 'paid' loop
     if app.booking_balance_open(r.booking_id) <= 0 then
-      perform app.resolve_tasks(array['collect_balance'], r.booking_id, null, 'Paid');
+      perform app.resolve_tasks(array['collect_balance', 'deposit_money_review'], r.booking_id, null, 'Paid');
       update balance_followups set last_step = 'paid', last_at = now(), open_cents = 0 where booking_id = r.booking_id;
     end if;
   end loop;
@@ -938,6 +979,7 @@ begin
     'captures', v_captures,
     'payments', coalesce((select jsonb_agg(p.id order by case p.server_action when 'capture_deposit' then 0 when 'protect_capture' then 0 else 1 end, p.created_at)
                             from payments p where p.status = 'pending' and p.server_action is not null and p.server_attempts < 5
+                             and p.created_at >= now() - make_interval(days => s.deposit_auto_max_age_days)
                              and coalesce(p.server_attempted_at, p.created_at) < now() - interval '5 minutes'), '[]'::jsonb),
     'balances', coalesce((select jsonb_agg(b.id) from bookings b
                            where b.status in ('returned', 'closed') and b.booking_type <> 'owner'
@@ -955,8 +997,9 @@ create or replace function app.deposit_guard_due() returns boolean
 language sql stable security definer set search_path = public, app as $$
   select exists (select 1 from deposits d join bookings b on b.id = d.booking_id
                   where d.method = 'card_hold' and d.status = 'held' and b.status in ('on_rent', 'returned', 'closed')
-                    and d.hold_expires_at <= now() + make_interval(hours => (app.settings()).deposit_hold_capture_hours))
+                    and d.hold_expires_at > now() and d.hold_expires_at <= now() + make_interval(hours => (app.settings()).deposit_hold_capture_hours))
       or exists (select 1 from payments p where p.status = 'pending' and p.server_action is not null and p.server_attempts < 5
+                   and p.created_at >= now() - make_interval(days => (app.settings()).deposit_auto_max_age_days)
                    and coalesce(p.server_attempted_at, p.created_at) < now() - interval '5 minutes')
       or coalesce((select last_sweep_at from deposit_guard_state where id), '-infinity'::timestamptz) < now() - interval '20 hours'
 $$;

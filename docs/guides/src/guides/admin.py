@@ -358,6 +358,18 @@ def build():
            'the hold list and the Google reviews to match.')
     g.tip('The draft is made only from what the renter picked and wrote, and from the booking (the car, how long, delivery or pickup). Everyone gets the Google link, whatever their stars; a renter who gives 3 stars or fewer also sees "Something wasn\'t right? Tell us directly".')
 
+    g.task('What the owner sees, and owner deductions', 'Each booking on an owner\'s or partner\'s car shows the card What the owner sees at the top of its page.')
+    g.steps([
+        f'{B("Hide from the owner")} keeps the booking\'s revenue from the owner until the car is returned, or until the owner statement covering it is approved. The owner sees the booking as Booked with its dates, and the calendar still shows the car busy. Add a reason if you like: it is kept in the history.',
+        f'{B("Show to the owner")} shows it now. Approving the statement shows every hidden booking on it by itself.',
+        'Not shown to the owner is for a booking with no owner revenue (an insurance placeholder, a shareholder\'s or the owner\'s own use at no charge): the owner sees only that the car is unavailable for those dates. A booking with revenue cannot be set this way.',
+        'Add a rental and Send an offer have What the owner sees. It starts from Settings > Program, Owners and fleet: Owners see a booking\'s revenue (right away by default).',
+        f'On the Money tab, Owner deductions on this booking: {B("Add a booking expense")} (cleaning, repair, fuel, platform fee or other, the amount, the reason the owner reads, a receipt number) comes off before Owner Revenue.',
+        f'{B("Set the Revenue Share for this booking")} applies within the car\'s signed terms. Above the terms only an Admin can, with Above the signed terms ticked and the reason. {B("Back to the car\'s terms")} undoes it.',
+        'Add a rental has the same under The car\'s owner.',
+    ])
+    g.tip('The owner\'s statement always includes every booking at its true amounts and lists each deduction with its reason, so the payout is always right. Customer service and sales add deductions only while Program settings let them change fees.', label='Good to know')
+
     # ---------------------------------------------------------------- 4
     g.chapter('Calendars',
               'The master calendar shows every car, booking, request and block. Each car also has its own '

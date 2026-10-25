@@ -72,7 +72,7 @@ export async function runSettlement(bookingId: string, actions: Array<{ action: 
   return { results, balance };
 }
 
-interface BalanceNext { action: 'none' | 'wait' | 'charge_card' | 'pay_link' | 'task'; open_cents: number; payment?: MoneyFacts; booking_id?: string; booking_number?: string;
+interface BalanceNext { action: 'none' | 'wait' | 'charge_card' | 'pay_link' | 'task' | 'review'; open_cents: number; payment?: MoneyFacts; booking_id?: string; booking_number?: string;
   renter?: { id: string; legal_name: string; email: string | null; customer_id: string | null } }
 
 /** What is still owed after the deposit: the card on file, else a pay link by email and text, else a Finance task. */

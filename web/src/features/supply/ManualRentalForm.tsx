@@ -4,6 +4,7 @@ import { AddressInput } from '@/features/forms/AddressInput';
 import { AddressLookup } from '@/features/forms/AddressFields';
 import Link from 'next/link';
 import { createManualRental, supplyRead, type ManualRentalResult } from '@/server/actions/supply';
+import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults } from './OwnerChoice';
 import { money } from '@/lib/format';
 import { SourcedChoice, priceFlags, type Choice } from '@/features/sales/SourcedChoice';
 import { PRICE_TAX_OPTIONS, PRICE_TAX_LABEL, type PriceTaxSplit } from '@/features/sales/priceTax';
@@ -62,8 +63,10 @@ const PHASE_NOTE: Record<Phase, string> = {
   past: 'This rental has already ended: it will be recorded as completed, for the history and the statements.'
 };
 
-export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '/admin' | '/va' | '/field'; isAdmin: boolean }) {
+export function ManualRentalForm({ cars, base, isAdmin, owner = null }: { cars: Car[]; base: '/admin' | '/va' | '/field'; isAdmin: boolean; owner?: OwnerDefaults | null }) {
   const field = base === '/field';
+  // 0156: what the car's owner sees of this rental, and its documented owner deductions
+  const [ownerChoice, setOwnerChoice] = useState(() => ownerChoiceInitial(owner));
   const [choice, setChoice] = useState<Choice>(isAdmin ? 'for_carmacars' : '');
   const start0 = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
   const [f, setF] = useState<Record<string, string>>({ vehicle_id: '', pickup_at: local(start0), return_at: local(new Date(start0.getTime() + 3 * 86_400_000)),
@@ -107,6 +110,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
   const phase = phaseOf(f.pickup_at, f.return_at, now);
   const past = phase === 'past';
+  const hasOwner = ['program_owner', 'partner'].includes(cars.find((c) => c.id === f.vehicle_id)?.supply_type ?? '');
   // the price typed, as the database split it at the last check (0112); tax included: flagged on its amount before tax
   const typed = cents(f.rental_charge ?? '');
   const split = quote?.price_tax && typed !== undefined && quote.price_tax.tax === f.price_tax
@@ -190,7 +194,7 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
     if (k === 'turo') { setF((x) => ({ ...x, source: 'turo' })); setPaidBy('platform_payout'); setBlocks(true); }
     if (k === 'insurer') { setF((x) => ({ ...x, source: 'insurer' })); setPaidBy('insurer'); }
     if (k === 'owner') { setF((x) => ({ ...x, source: 'other', source_note: 'The owner using their own car', rental_charge: '0', price_reason: 'Owner using their own car' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); }
-    if (k === 'dummy') { setF((x) => ({ ...x, source: 'other', source_note: 'Placeholder booking (insurance or a hold)', rental_charge: '0', price_reason: 'Placeholder booking' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); }
+    if (k === 'dummy') { setOwnerChoice((x) => ({ ...x, visibility: 'never' })); setF((x) => ({ ...x, source: 'other', source_note: 'Placeholder booking (insurance or a hold)', rental_charge: '0', price_reason: 'Placeholder booking' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); }
   };
 
   const submit = () => start(async () => {
@@ -213,7 +217,8 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
       deposit_cents: isAdmin ? cents(f.deposit ?? '') : undefined, clash_reason: isAdmin ? f.clash_reason || undefined : undefined,
       payment: { ...paymentOf(paidBy), reference: f.reference || undefined, received_on: f.received_on, amount_cents: cents(f.amount ?? ''), note: f.payment_note || undefined },
       ...(parts.length && offline ? { more_payments: parts.map((x) => ({ method: x.method, amount_cents: cents(x.amount), reference: x.reference.trim() || undefined, received_on: f.received_on })) } : {}),
-      deposit: { method: depositBy, reference: f.deposit_reference || undefined, received_on: f.deposit_received_on || f.received_on }, agreement, ...(blocks ? {} : { blocks_calendar: false, blocks_calendar_reason: f.blocks_reason }) };
+      deposit: { method: depositBy, reference: f.deposit_reference || undefined, received_on: f.deposit_received_on || f.received_on }, agreement, ...(blocks ? {} : { blocks_calendar: false, blocks_calendar_reason: f.blocks_reason }),
+      ...(hasOwner ? ownerChoicePayload(ownerChoice, owner, true) : {}) };
     const r = await createManualRental(p);
     if (!r.ok) { setErr(r.message); return; }
     setDone(r.data);
@@ -436,6 +441,10 @@ export function ManualRentalForm({ cars, base, isAdmin }: { cars: Car[]; base: '
       <fieldset className="stack"><legend className="d4">5. Who found this client</legend>
         <SourcedChoice id="mr" value={choice} onChange={setChoice} optional={isAdmin} />
       </fieldset>
+
+      {hasOwner && owner && (owner.may || owner.may_deduct) && <fieldset className="stack"><legend className="d4">6. The car&apos;s owner</legend>
+        <OwnerChoice d={owner} value={ownerChoice} onChange={setOwnerChoice} withDeductions testPrefix="mr" />
+      </fieldset>}
 
       {quote && (() => { const total = quote.quote.total_due_at_booking_cents; const first = offline ? (cents(f.amount ?? '') ?? (parts.length ? 0 : total)) : 0;
         const { paid, left } = paidSoFar(first, offline ? parts : [], total); const ps = quote.periods ?? [];

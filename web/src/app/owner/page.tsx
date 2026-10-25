@@ -7,7 +7,7 @@ import { ownerView, requireOwner } from '@/server/owner/data';
 import { rpc } from '@/lib/db/repo';
 import { TRACKER_LATER } from '@/features/owner/types';
 import { ApplicationTask, type AppTask } from '@/features/owner/ApplicationTask';
-import { carThisMonth, nextPayout, upcoming } from '@/features/owner/insights';
+import { amountText, carThisMonth, nextPayout, upcoming, viewOf } from '@/features/owner/insights';
 import { OwnerMonths } from '@/features/owner/OwnerMonths';
 import { PageHeader } from '@/features/portal/Chrome';
 import { ActionTiles, Delta, PortalHero, Sparkline, StatCard, Timeline, TimelineItem, type ActionTileItem } from '@/components/portal-ui';
@@ -134,8 +134,8 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
               <Timeline label="Bookings coming up">
                 {coming.map((b) => (
                   <TimelineItem key={b.booking_id} date={b.pickup_at} dateLabel={when(b.pickup_at, false)} state={b.status === 'on_rent' ? 'now' : 'future'}
-                    title={b.vehicle_name} amount={b.booking_type === 'owner' ? 'Your booking' : money(b.rental_charge_cents)}
-                    meta={<><span>{b.status === 'on_rent' ? 'On rent now' : 'Confirmed'}</span><span>{when(b.pickup_at)} to {when(b.return_at)}</span></>} />
+                    title={b.vehicle_name} amount={amountText(b, (c) => money(c))}
+                    meta={<><span>{viewOf(b) === 'unavailable' ? 'Unavailable' : b.status === 'on_rent' ? 'On rent now' : 'Confirmed'}</span><span>{when(b.pickup_at)} to {when(b.return_at)}</span></>} />
                 ))}
               </Timeline>
             ) : <p className="small muted">No bookings coming up yet.</p>}

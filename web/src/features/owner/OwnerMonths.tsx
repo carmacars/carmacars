@@ -58,6 +58,7 @@ export function OwnerMonths({ months, only, testId = 'owner-months' }: { months:
         { label: 'Rental charges, before tax', value: money(s.rental_cents, { cents: true }), testId: 'months-rental' },
         { label: 'Fees billed, before HST', value: money(s.fees_cents, { cents: true }), testId: 'months-fees' }
       ]} total={car === 'all' ? { label: 'Payout on the statement', testId: 'months-payout', value: m.statement_id ? <Link prefetch={false} className="link" href={`/owner/statements/${m.statement_id}`}>{money(m.payout_cents, { cents: true })}</Link> : m.current ? 'After the month ends' : 'No statement' } : undefined} />
+      {m.held > 0 && <p className="small muted" data-testid="months-held">{m.held === 1 ? 'One more booking' : `${m.held} more bookings`} this month will show {m.held === 1 ? 'its' : 'their'} figures once CarmaCars approves the statement that covers {m.held === 1 ? 'it' : 'them'}. Your statement always includes every booking.</p>}
       {!only && car === 'all' && cars.length > 1 && (
         <div className="ow-months__table" role="region" aria-label={`Each car in ${m.label}`}>
           <table className="pu-table">

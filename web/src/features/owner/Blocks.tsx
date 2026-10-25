@@ -4,7 +4,7 @@ import { when } from '@/features/agreement/model';
 import { CarImage } from '@/components/Picture';
 import { DocumentList, DocumentRow, PuIcon } from '@/components/portal-ui';
 import type { Photo } from '@/lib/types';
-import type { Live, MonthCar } from './insights';
+import { amountText, viewOf, type Live, type MonthCar } from './insights';
 import { debitLine, invoiceStatus, invoiceTitle, MODE_LABEL, ONBOARDING_STATUS, type ChecklistItem, type OwnerBooking, type OwnerInvoiceRow, type OwnerVehicle } from './types';
 
 // Server-rendered pieces of the owner portal. Money is shown exactly as the database stored it.
@@ -90,5 +90,31 @@ export function InvoiceRows({ items, empty = 'No invoices yet.' }: { items: Owne
         );
       })}
     </DocumentList>
+  );
+}
+
+const EXPENSE: Record<string, string> = { cleaning: 'Cleaning', repair: 'Repair', fuel: 'Fuel', platform_fee: 'Platform fee', other: 'Other' };
+const bookingStatus = (b: OwnerBooking) => (viewOf(b) === 'unavailable' ? 'Unavailable' : b.status === 'on_rent' ? 'On rent now' : b.status.replace(/_/g, ' '));
+/** A booking's title for the owner: its number (none for a booking not shown to the owner). */
+export const bookingTitle = (b: OwnerBooking, withCar = true) => (viewOf(b) === 'unavailable' ? `${withCar ? `${b.vehicle_name} · ` : ''}Unavailable`
+  : [b.booking_number, withCar ? b.vehicle_name : null].filter(Boolean).join(' · ') + (b.booking_type === 'owner' && !withCar ? ' · Your booking' : ''));
+
+/**
+ * One booking in the owner's lists (0156): the amount only when the database gives it ("Booked" while it is hidden,
+ * "Unavailable" for a booking not shown to the owner), and each documented deduction on it with its reason.
+ */
+export function OwnerBookingRow({ b, withCar = true }: { b: OwnerBooking; withCar?: boolean }) {
+  const v = viewOf(b);
+  return (
+    <li data-testid="owner-booking-row" data-view={v}>
+      <span>{bookingTitle(b, withCar)}</span>
+      <span className="ow-amount">{amountText(b, (c) => money(c, { cents: true }))}</span>
+      <span className="ow-meta"><span>{when(b.pickup_at)} to {when(b.return_at)}</span><span>{bookingStatus(b)}</span>
+        {v !== 'unavailable' && b.renter_name && <span>{b.renter_name}{b.renter_mobile ? `, ${b.renter_mobile}` : ''}</span>}
+        {v === 'booked' && <span>Amounts on your statement once approved</span>}
+        {(b.owner_expenses ?? []).map((e, i) => <span key={i} data-testid="owner-booking-expense">Booking expense: {EXPENSE[e.category] ?? e.category} {money(-e.amount_cents, { cents: true })}, {e.reason}{e.receipt ? ' (receipt on file)' : ''}</span>)}
+        {b.booking_share_bps !== null && b.booking_share_bps !== undefined && <span data-testid="owner-booking-share">Revenue Share for this booking: {pct(b.booking_share_bps)}</span>}
+      </span>
+    </li>
   );
 }

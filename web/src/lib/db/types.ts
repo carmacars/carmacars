@@ -665,6 +665,7 @@ export type Database = {
           open_cents: number;
           attempts: number;
           note: string | null;
+          manual: boolean;
         };
         Insert: {
           booking_id: string;
@@ -673,6 +674,7 @@ export type Database = {
           open_cents?: number;
           attempts?: number;
           note?: string | null;
+          manual?: boolean;
         };
         Update: {
           booking_id?: string;
@@ -681,6 +683,7 @@ export type Database = {
           open_cents?: number;
           attempts?: number;
           note?: string | null;
+          manual?: boolean;
         };
         Relationships: [];
       };
@@ -1539,6 +1542,111 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_owner_expenses: {
+        Row: {
+          id: string;
+          booking_id: string;
+          category: string;
+          amount_cents: number;
+          reason: string;
+          receipt_ref: string | null;
+          created_by: string | null;
+          created_at: string;
+          voided_at: string | null;
+          voided_by: string | null;
+          void_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          category: string;
+          amount_cents: number;
+          reason: string;
+          receipt_ref?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          category?: string;
+          amount_cents?: number;
+          reason?: string;
+          receipt_ref?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+        };
+        Relationships: [];
+      };
+      booking_owner_shares: {
+        Row: {
+          booking_id: string;
+          company_share_bps: number;
+          terms_bps: number;
+          above_terms: boolean;
+          reason: string;
+          set_by: string | null;
+          set_at: string;
+        };
+        Insert: {
+          booking_id: string;
+          company_share_bps: number;
+          terms_bps: number;
+          above_terms?: boolean;
+          reason: string;
+          set_by?: string | null;
+          set_at?: string;
+        };
+        Update: {
+          booking_id?: string;
+          company_share_bps?: number;
+          terms_bps?: number;
+          above_terms?: boolean;
+          reason?: string;
+          set_by?: string | null;
+          set_at?: string;
+        };
+        Relationships: [];
+      };
+      booking_owner_visibility_log: {
+        Row: {
+          id: number;
+          booking_id: string;
+          visibility_from: string | null;
+          visibility_to: string;
+          reason: string | null;
+          how: string;
+          changed_by: string | null;
+          changed_at: string;
+        };
+        Insert: {
+          id?: number;
+          booking_id: string;
+          visibility_from?: string | null;
+          visibility_to: string;
+          reason?: string | null;
+          how?: string;
+          changed_by?: string | null;
+          changed_at?: string;
+        };
+        Update: {
+          id?: number;
+          booking_id?: string;
+          visibility_from?: string | null;
+          visibility_to?: string;
+          reason?: string | null;
+          how?: string;
+          changed_by?: string | null;
+          changed_at?: string;
+        };
+        Relationships: [];
+      };
       booking_renewals: {
         Row: {
           id: string;
@@ -1602,6 +1710,8 @@ export type Database = {
           partner_rate_basis: boolean;
           partner_sheet_cents: number | null;
           partner_markup_cents: number;
+          owner_expense_cents: number;
+          booking_share_override: boolean;
         };
         Insert: {
           booking_id: string;
@@ -1641,6 +1751,8 @@ export type Database = {
           partner_rate_basis?: boolean;
           partner_sheet_cents?: number | null;
           partner_markup_cents?: number;
+          owner_expense_cents?: number;
+          booking_share_override?: boolean;
         };
         Update: {
           booking_id?: string;
@@ -1680,6 +1792,8 @@ export type Database = {
           partner_rate_basis?: boolean;
           partner_sheet_cents?: number | null;
           partner_markup_cents?: number;
+          owner_expense_cents?: number;
+          booking_share_override?: boolean;
         };
         Relationships: [];
       };
@@ -1975,6 +2089,10 @@ export type Database = {
           insurer_policy_number: string | null;
           insurer_policy_province: string | null;
           insurer_policy_expiry: string | null;
+          owner_visibility: string;
+          owner_visibility_reason: string | null;
+          owner_visibility_by: string | null;
+          owner_visibility_at: string | null;
         };
         Insert: {
           id?: string;
@@ -2123,6 +2241,10 @@ export type Database = {
           insurer_policy_number?: string | null;
           insurer_policy_province?: string | null;
           insurer_policy_expiry?: string | null;
+          owner_visibility: string;
+          owner_visibility_reason?: string | null;
+          owner_visibility_by?: string | null;
+          owner_visibility_at?: string | null;
         };
         Update: {
           id?: string;
@@ -2271,6 +2393,10 @@ export type Database = {
           insurer_policy_number?: string | null;
           insurer_policy_province?: string | null;
           insurer_policy_expiry?: string | null;
+          owner_visibility?: string;
+          owner_visibility_reason?: string | null;
+          owner_visibility_by?: string | null;
+          owner_visibility_at?: string | null;
         };
         Relationships: [];
       };
@@ -9307,6 +9433,8 @@ export type Database = {
           staff_commission_cents: number;
           partner_sheet_cents: number | null;
           partner_cut_bps: number | null;
+          owner_expense_cents: number;
+          booking_share_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -9338,6 +9466,8 @@ export type Database = {
           staff_commission_cents?: number;
           partner_sheet_cents?: number | null;
           partner_cut_bps?: number | null;
+          owner_expense_cents?: number;
+          booking_share_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -9369,6 +9499,8 @@ export type Database = {
           staff_commission_cents?: number;
           partner_sheet_cents?: number | null;
           partner_cut_bps?: number | null;
+          owner_expense_cents?: number;
+          booking_share_bps?: number | null;
         };
         Relationships: [];
       };
@@ -12009,6 +12141,8 @@ export type Database = {
           deposit_hold_capture_hours: number;
           deposit_auto_capture: boolean;
           balance_auto_collect: boolean;
+          deposit_auto_max_age_days: number;
+          owner_revenue_visibility: string;
           promo_default_valid_days: number;
           promo_reminders_enabled: boolean;
           promo_reminder_3d_days: number;
@@ -12484,6 +12618,8 @@ export type Database = {
           deposit_hold_capture_hours?: number;
           deposit_auto_capture?: boolean;
           balance_auto_collect?: boolean;
+          deposit_auto_max_age_days?: number;
+          owner_revenue_visibility?: string;
           promo_default_valid_days?: number;
           promo_reminders_enabled?: boolean;
           promo_reminder_3d_days?: number;
@@ -12959,6 +13095,8 @@ export type Database = {
           deposit_hold_capture_hours?: number;
           deposit_auto_capture?: boolean;
           balance_auto_collect?: boolean;
+          deposit_auto_max_age_days?: number;
+          owner_revenue_visibility?: string;
           promo_default_valid_days?: number;
           promo_reminders_enabled?: boolean;
           promo_reminder_3d_days?: number;
@@ -20397,6 +20535,7 @@ export type Database = {
           payout_month: string | null;
           blocks_calendar: boolean | null;
           dates_provisional: boolean | null;
+          owner_view: string | null;
         };
         Relationships: [];
       };
