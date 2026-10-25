@@ -2153,6 +2153,7 @@ export type Database = {
           owner_visibility_reason: string | null;
           owner_visibility_by: string | null;
           owner_visibility_at: string | null;
+          referral_partner_id: string | null;
         };
         Insert: {
           id?: string;
@@ -2305,6 +2306,7 @@ export type Database = {
           owner_visibility_reason?: string | null;
           owner_visibility_by?: string | null;
           owner_visibility_at?: string | null;
+          referral_partner_id?: string | null;
         };
         Update: {
           id?: string;
@@ -2457,6 +2459,7 @@ export type Database = {
           owner_visibility_reason?: string | null;
           owner_visibility_by?: string | null;
           owner_visibility_at?: string | null;
+          referral_partner_id?: string | null;
         };
         Relationships: [];
       };
@@ -4152,6 +4155,93 @@ export type Database = {
           recorded_at?: string;
           user_agent?: string | null;
           region?: string | null;
+        };
+        Relationships: [];
+      };
+      coverage_affiliate: {
+        Row: {
+          singleton: boolean;
+          display_name: string;
+          link_url: string | null;
+          affiliate_id: string | null;
+          enabled: boolean;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          singleton?: boolean;
+          display_name?: string;
+          link_url?: string | null;
+          affiliate_id?: string | null;
+          enabled?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          singleton?: boolean;
+          display_name?: string;
+          link_url?: string | null;
+          affiliate_id?: string | null;
+          enabled?: boolean;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      coverage_affiliate_payments: {
+        Row: {
+          id: string;
+          received_on: string;
+          amount_cents: number;
+          period_note: string | null;
+          reference: string | null;
+          note: string | null;
+          recorded_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          received_on: string;
+          amount_cents: number;
+          period_note?: string | null;
+          reference?: string | null;
+          note?: string | null;
+          recorded_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          received_on?: string;
+          amount_cents?: number;
+          period_note?: string | null;
+          reference?: string | null;
+          note?: string | null;
+          recorded_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      coverage_clicks: {
+        Row: {
+          id: string;
+          clicked_at: string;
+          placement: string;
+          visitor_id: string | null;
+          booking_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          clicked_at?: string;
+          placement: string;
+          visitor_id?: string | null;
+          booking_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          clicked_at?: string;
+          placement?: string;
+          visitor_id?: string | null;
+          booking_id?: string | null;
         };
         Relationships: [];
       };
@@ -12207,6 +12297,8 @@ export type Database = {
           promo_reminders_enabled: boolean;
           promo_reminder_3d_days: number;
           promo_reminder_1d_on: boolean;
+          referral_partner_flat_cents: number;
+          referral_partner_percent_bps: number;
         };
         Insert: {
           id?: string;
@@ -12684,6 +12776,8 @@ export type Database = {
           promo_reminders_enabled?: boolean;
           promo_reminder_3d_days?: number;
           promo_reminder_1d_on?: boolean;
+          referral_partner_flat_cents?: number;
+          referral_partner_percent_bps?: number;
         };
         Update: {
           id?: string;
@@ -13161,6 +13255,8 @@ export type Database = {
           promo_reminders_enabled?: boolean;
           promo_reminder_3d_days?: number;
           promo_reminder_1d_on?: boolean;
+          referral_partner_flat_cents?: number;
+          referral_partner_percent_bps?: number;
         };
         Relationships: [];
       };
@@ -13578,6 +13674,207 @@ export type Database = {
           reversed_at?: string | null;
           reversal_reason?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      referral_partner_earnings: {
+        Row: {
+          id: string;
+          booking_id: string;
+          partner_id: string;
+          kind: string;
+          clawback_of: string | null;
+          rate_kind: string;
+          flat_cents: number | null;
+          rate_bps: number | null;
+          base_cents: number;
+          amount_cents: number;
+          status: string;
+          reason: string | null;
+          note: string | null;
+          earned_at: string | null;
+          approved_at: string | null;
+          approved_by: string | null;
+          payout_id: string | null;
+          paid_at: string | null;
+          reversed_at: string | null;
+          reversed_by: string | null;
+          admin_reversed: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          partner_id: string;
+          kind?: string;
+          clawback_of?: string | null;
+          rate_kind: string;
+          flat_cents?: number | null;
+          rate_bps?: number | null;
+          base_cents?: number;
+          amount_cents?: number;
+          status: string;
+          reason?: string | null;
+          note?: string | null;
+          earned_at?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          payout_id?: string | null;
+          paid_at?: string | null;
+          reversed_at?: string | null;
+          reversed_by?: string | null;
+          admin_reversed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          partner_id?: string;
+          kind?: string;
+          clawback_of?: string | null;
+          rate_kind?: string;
+          flat_cents?: number | null;
+          rate_bps?: number | null;
+          base_cents?: number;
+          amount_cents?: number;
+          status?: string;
+          reason?: string | null;
+          note?: string | null;
+          earned_at?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          payout_id?: string | null;
+          paid_at?: string | null;
+          reversed_at?: string | null;
+          reversed_by?: string | null;
+          admin_reversed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      referral_partner_payouts: {
+        Row: {
+          id: string;
+          partner_id: string;
+          method: string;
+          reference: string | null;
+          paid_on: string;
+          amount_cents: number;
+          note: string | null;
+          recorded_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          partner_id: string;
+          method: string;
+          reference?: string | null;
+          paid_on: string;
+          amount_cents: number;
+          note?: string | null;
+          recorded_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          partner_id?: string;
+          method?: string;
+          reference?: string | null;
+          paid_on?: string;
+          amount_cents?: number;
+          note?: string | null;
+          recorded_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      referral_partners: {
+        Row: {
+          id: string;
+          kind: string;
+          status: string;
+          business_name: string;
+          contact_name: string | null;
+          phone: string | null;
+          email: string | null;
+          address_line1: string | null;
+          city: string | null;
+          province: string | null;
+          postal_code: string | null;
+          payout_method: string;
+          payout_email: string | null;
+          rate_kind: string;
+          flat_cents: number;
+          rate_bps: number;
+          referral_code: string;
+          portal_version: number;
+          source: string;
+          signup_note: string | null;
+          notes: string | null;
+          decided_at: string | null;
+          decided_by: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind: string;
+          status?: string;
+          business_name: string;
+          contact_name?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          address_line1?: string | null;
+          city?: string | null;
+          province?: string | null;
+          postal_code?: string | null;
+          payout_method?: string;
+          payout_email?: string | null;
+          rate_kind?: string;
+          flat_cents?: number;
+          rate_bps?: number;
+          referral_code: string;
+          portal_version?: number;
+          source?: string;
+          signup_note?: string | null;
+          notes?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          status?: string;
+          business_name?: string;
+          contact_name?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          address_line1?: string | null;
+          city?: string | null;
+          province?: string | null;
+          postal_code?: string | null;
+          payout_method?: string;
+          payout_email?: string | null;
+          rate_kind?: string;
+          flat_cents?: number;
+          rate_bps?: number;
+          referral_code?: string;
+          portal_version?: number;
+          source?: string;
+          signup_note?: string | null;
+          notes?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -21097,6 +21394,7 @@ export type Database = {
       chat_typing: { Args: { p_token: string }; Returns: boolean };
       chauffeur_services: { Args: never; Returns: Json };
       cookie_choice: { Args: { p_visitor_id: string }; Returns: Json };
+      coverage_affiliate_public: { Args: never; Returns: Json };
       delivery_origin: { Args: never; Returns: Json };
       door: { Args: { p_user: string; p_aal: string; p_call: string; p_name: string; p?: Json }; Returns: Json };
       driver_sign_agreement: { Args: { p_signer: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: string };
@@ -21179,6 +21477,8 @@ export type Database = {
       quote_booking: { Args: { p_vehicle: string; p_pickup: string; p_return: string; p_options?: Json }; Returns: Json };
       record_cookie_choice: { Args: { p_visitor_id: string; p_choice: string; p_wording_version: string; p_analytics?: boolean; p_user_agent?: string }; Returns: Json };
       record_cookie_notice: { Args: { p_visitor_id: string; p_wording_version: string; p_region?: string; p_user_agent?: string }; Returns: Json };
+      referral_partner_code_ok: { Args: { p_code: string }; Returns: boolean };
+      referral_program_public: { Args: never; Returns: Json };
       register_account: { Args: { p_user: string; p_email: string; p_full_name: string; p_phone?: string }; Returns: Json };
       renter_agree_booking_change: { Args: { p_request: string; p_by: string; p_ip?: string; p_user_agent?: string }; Returns: undefined };
       renter_approve_offer: { Args: { p_booking: string; p_version: number; p_by: string }; Returns: undefined };
@@ -21277,6 +21577,7 @@ export type Database = {
       server_colour_read_record: { Args: { p: Json }; Returns: Json };
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
+      server_coverage_click: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_db_busy: { Args: never; Returns: Json };
       server_deposit_capture_begin: { Args: { p_deposit: string }; Returns: Json };
       server_deposit_guard_sweep: { Args: never; Returns: Json };
@@ -21404,6 +21705,8 @@ export type Database = {
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
       server_record_vin_decode: { Args: { p_vin: string; p_provider: string; p_output: Json }; Returns: Json };
+      server_referral_partner_portal: { Args: { p_partner: string }; Returns: Json };
+      server_referral_partner_signup: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_renter_coverage: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_renter_handover_report: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_request_notify_channel: { Args: { p_booking_number: string; p_channel: string; p_user?: string }; Returns: Json };

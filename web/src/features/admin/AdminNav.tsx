@@ -18,7 +18,7 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/vehicles/samples', label: 'Retire or delete' }] },
   { key: 'people', label: 'People', links: [
     { href: '/admin/applications', label: 'Applications', key: 'a', section: 'Owners and partners' }, { href: '/admin/owners', label: 'Owners', key: 'o' }, { href: '/admin/owners/add-car', label: 'Add a car for an owner' },
-    { href: '/admin/partners', label: 'Partners' }, { href: '/admin/owner-forms', label: 'Owner forms' }, { href: '/admin/owners?view=checklist', label: 'Paid and signed' },
+    { href: '/admin/partners', label: 'Partners' }, { href: '/admin/referral-partners', label: 'Referral partners' }, { href: '/admin/owner-forms', label: 'Owner forms' }, { href: '/admin/owners?view=checklist', label: 'Paid and signed' },
     { href: '/admin/renters', label: 'Renters', section: 'Renters, staff and investors' }, { href: '/admin/settings/staff', label: 'Staff' }, { href: '/admin/investors', label: 'Investors' },
     { href: '/admin/portals', label: 'Portals and view as' }] },
   { key: 'money', label: 'Money', links: [
