@@ -129,7 +129,8 @@ test('Sales review the renter\'s licence from the queue, the booking and the ver
   await expect(page.getByTestId('upload-licence_front')).toBeVisible();
   await check(page, 'verify page for Sales');
   await page.getByTestId('va-approve-all-go').click();
-  await expect(page.getByText('Approved.')).toBeVisible({ timeout: 30_000 });
+  // nothing is left to approve: the page refreshes and the card (with its message) goes
+  await expect(page.getByTestId('va-approve-all')).toHaveCount(0, { timeout: 30_000 });
   const [ok] = await sql`select (select count(*)::int from verification_uploads where booking_id = ${b.booking_id} and status = 'approved' and reviewed_by = ${sales.id}) n,
       (select identity_verified_on is not null from booking_drivers where booking_id = ${b.booking_id} and role = 'renter') v,
       (select count(*)::int from booking_events e where e.booking_id = ${b.booking_id} and e.details ->> 'reviewer_role' = 'sales' and e.details ->> 'decision' = 'approved') ev`;
