@@ -33,7 +33,7 @@ def build():
         'Each investment: its Invested Amount, how far the lockup period has run, the Yearly Percentage, how Returns are handled (Paid monthly or Reinvested) and the Next Payment Date. Principal, what was reinvested and redeemed to date, the Investment Date and the Lockup End Date are under "Principal, dates and amounts to date".',
         'Payment schedule: the last Returns on your statements and the next ones. An amount that is not on a statement yet is marked Estimated.',
         f'Latest statement, with {B("Open")}.',
-    ], shot=S('investor/01-investments-phone', 0, 595, 390, 1330, pins=[(1, 380, 650), (2, 300, 760), (3, 360, 830), (4, 360, 1105), (5, 360, 1300)]))
+    ], shot=S('investor/01-investments-phone', 0, 595, 390, 2090, pins=[(1, 100, 780), (2, 150, 1190), (3, 200, 1810)]))
     g.tip('This area shows your records under your Investment Agreement. It is not an offer or a solicitation.')
 
     g.task('Sign your investment agreement', 'When CarmaCars sends your agreement, it is under Documents to sign.')
