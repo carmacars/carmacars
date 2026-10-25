@@ -283,6 +283,31 @@ select test.eq('the damage after the deposit is used: charged to the card on fil
   (select amount_cents || '/' || server_action from payments where booking_id = test.dgb('DG-12') and server_action = 'charge_card') || '/' ||
   (select count(*) from booking_statements where booking_id = test.dgb('DG-12') and kind = 'later_charge'), '150000/charge_card/2');
 
+-- ================================================================ 8b. nothing old is run by itself (the first run in production)
+select test.eq('the automatic limit: 14 days', (select deposit_auto_max_age_days from program_settings limit 1), 14);
+-- DG-14: a card charge a settlement left pending 20 days ago
+select test.mk_booking('DG-14', 'DGC', 'dgx_r', test.dgl(-30), test.dgl(-27), 'closed', null, 'standard', null, null, test.dgl(-27));
+insert into payments (id, booking_id, renter_id, purpose, kind, method, amount_cents, status, payment_method_id, server_action, created_at)
+select test.id('old:DG-14'), id, renter_id, 'post_rental', 'charge', 'card', 7700, 'pending', test.id('card:dgx_r'), 'charge_card', now() - interval '20 days' from bookings where id = test.dgb('DG-14');
+-- DG-15: a balance on a statement issued 20 days ago, never followed up
+select test.mk_booking('DG-15', 'DGD', 'dgx_r', test.dgl(-40), test.dgl(-37), 'closed', null, 'standard', null, null, test.dgl(-37));
+select test.dg_statement('DG-15', 'cleaning', 10000);
+update booking_statements set issued_at = now() - interval '20 days' where booking_id = test.dgb('DG-15');
+-- DG-16: a hold still recorded as held two days after it lapsed
+select test.mk_booking('DG-16', 'DGE', 'dgx_r', test.dgl(-9), test.dgl(-4), 'returned', null, 'standard', null, null, test.dgl(-4));
+select test.dg_hold('DG-16', now() - interval '2 days');
+insert into test.dg select 'sw2', public.server_deposit_guard_sweep();
+select test.eq('the old step is not on the list to run, and the server gets nothing to run for it',
+  (test.dgv('sw2') -> 'payments') ? test.id('old:DG-14')::text || '/' || coalesce(public.server_money_action(test.id('old:DG-14'))::text, 'none'), 'false/none');
+select test.eq('the lapsed hold is not captured', (select count(*) from jsonb_array_elements(test.dgv('sw2') -> 'captures') x where x ->> 'booking_number' = 'DG-16'), 0::bigint);
+select test.eq('Finance reviews the old step and the lapsed hold', (select string_agg(b.booking_number, ',' order by b.booking_number) from tasks t join bookings b on b.id = t.booking_id
+  where t.task_type = 'deposit_money_review' and t.status = 'open' and b.booking_number in ('DG-14', 'DG-16')), 'DG-14,DG-16');
+select test.eq('the old balance: reviewed, never charged or chased by itself', (public.server_balance_next(test.dgb('DG-15')) ->> 'action') || '/' ||
+  (select count(*) from payments where booking_id = test.dgb('DG-15') and server_action is not null) || '/' ||
+  (select count(*) from payment_requests where booking_id = test.dgb('DG-15')), 'review/0/0');
+select test.eq('and it stays by hand', public.server_balance_next(test.dgb('DG-15')) ->> 'action', 'review');
+select test.eq('a lapse found long after is never charged by itself', (select count(*) from payments where booking_id = test.dgb('DG-16') and server_action = 'deposit_charge'), 0::bigint);
+
 -- ================================================================ 9. pay links and privileges
 select test.lives('a pay link for a later charge on a closed booking (tickets arrive weeks later)',
   format($$select app.door(%L, 'aal2', 'ops_do', 'payreq_create', jsonb_build_object('booking', 'DG-12', 'kind', 'charge', 'covers', 'later', 'amount_cents', 4000, 'reason', 'Parking ticket', 'channel', 'email', 'token_sha256', repeat('c', 64)))$$, test.id('dgx_admin')));
