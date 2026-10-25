@@ -12,7 +12,7 @@ const FIELDS: Field[] = [
   { name: 'kind', label: 'Kind', type: 'select', required: true, value: 'ticket', options: [['toll_invoice', 'Toll'], ['ticket', 'Ticket'], ['camera_offence', 'Camera offence'], ['parking', 'Parking'], ['fine', 'Fine'], ['tow', 'Tow'], ['impound', 'Impound']] },
   { name: 'authority', label: 'Issued by', required: true }, { name: 'notice_number', label: 'Notice number' }, { name: 'plate', label: 'Plate' }, { name: 'transponder', label: 'or transponder' },
   { name: 'occurred_at', label: 'When it happened', type: 'datetime', required: true }, { name: 'time_unknown', label: 'Time not stated (date only)', type: 'bool' },
-  { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'place', label: 'Place' }, { name: 'due_on', label: 'Due date', type: 'date' }, { name: 'received_on', label: 'Received', type: 'date' }, { name: 'note', label: 'Note', type: 'textarea' }
+  { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'place', label: 'Place', type: 'address' }, { name: 'due_on', label: 'Due date', type: 'date' }, { name: 'received_on', label: 'Received', type: 'date' }, { name: 'note', label: 'Note', type: 'textarea' }
 ];
 
 export function TollEntry() {
@@ -45,7 +45,7 @@ export function TollEntry() {
   return (
     <form className="ad-form" noValidate onSubmit={(e) => { e.preventDefault(); submit(); }} data-testid="toll-log-form">
       <div className="ad-fields">
-        {FIELDS.map((f) => <FieldInput key={f.name} f={f} idp={idp} value={vals[f.name] ?? ''} set={(v) => setVals((s) => ({ ...s, [f.name]: v }))} err={errs[f.name]} />)}
+        {FIELDS.map((f) => <FieldInput key={f.name} f={f} idp={idp} value={vals[f.name] ?? ''} set={(v) => setVals((s) => ({ ...s, [f.name]: v }))} fill={(patch) => setVals((s) => ({ ...s, ...patch }))} err={errs[f.name]} />)}
         <div className="field ad-field ad-field--wide">
           <label className="label" htmlFor={`${idp}-file`}>The notice (PDF, JPEG or PNG, under 15 MB)</label>
           <input className="input" id={`${idp}-file`} type="file" accept="application/pdf,image/jpeg,image/png" data-testid="toll-log-file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} aria-describedby={`${idp}-file-hint`} />

@@ -15,8 +15,10 @@ type Item = { id: string; label: string };
 
 // onParts (0130): the chosen place in its parts (street, unit, city, province, postal code, country), for forms that keep
 // them field by field; one Place Details call, in the same session. Over the daily cap the field says to type it.
-export function AddressInput({ id, name, value, onChange, invalid, describedBy, required, onParts, placeholder, testId }: { id: string; name: string; value: AddressValue; onChange: (v: AddressValue) => void; invalid?: boolean; describedBy?: string; required?: boolean;
-  onParts?: (p: AddressParts, label: string) => void; placeholder?: string; testId?: string }) {
+// geo (2026-10-24): the place's coordinates, for forms that keep them (the business address, the delivery origin).
+// anywhere (2026-10-24): suggestions from every country, not only Canada (a staff member's home address abroad).
+export function AddressInput({ id, name, value, onChange, invalid, describedBy, required, onParts, placeholder, testId, anywhere }: { id: string; name: string; value: AddressValue; onChange: (v: AddressValue) => void; invalid?: boolean; describedBy?: string; required?: boolean;
+  onParts?: (p: AddressParts, label: string, geo?: { lat: number; lng: number }) => void; placeholder?: string; testId?: string; anywhere?: boolean }) {
   const [items, setItems] = useState<Item[]>([]);
   const [limited, setLimited] = useState(false);
   const [idx, setIdx] = useState(-1);
@@ -37,7 +39,7 @@ export function AddressInput({ id, name, value, onChange, invalid, describedBy, 
       const ac = new AbortController();
       inflight.current = ac;
       try {
-        const r = await fetch(`/api/address?q=${encodeURIComponent(q)}&s=${session.current}`, { signal: ac.signal });
+        const r = await fetch(`/api/address?q=${encodeURIComponent(q)}&s=${session.current}${anywhere ? '&w=1' : ''}`, { signal: ac.signal });
         const j = (await r.json()) as { items?: Item[]; limited?: boolean };
         const got = j.items ?? [];
         setLimited(!!j.limited);
@@ -53,7 +55,9 @@ export function AddressInput({ id, name, value, onChange, invalid, describedBy, 
     setItems([]); setIdx(-1); session.current = ''; seen.current.clear();
     if (onParts) {
       void fetch(`/api/address/place?id=${encodeURIComponent(it.id)}&s=${encodeURIComponent(sess ?? '')}`).then((r) => r.json())
-        .then((j: { place?: { label: string; parts: AddressParts | null } | null }) => { if (j.place?.parts) onParts(j.place.parts, j.place.label); })
+        .then((j: { place?: { label: string; parts: AddressParts | null; lat?: number; lng?: number } | null }) => {
+          if (j.place?.parts) onParts(j.place.parts, j.place.label, typeof j.place.lat === 'number' && typeof j.place.lng === 'number' ? { lat: j.place.lat, lng: j.place.lng } : undefined);
+        })
         .catch(() => undefined);
     }
   };

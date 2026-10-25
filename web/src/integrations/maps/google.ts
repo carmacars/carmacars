@@ -19,23 +19,32 @@ export function googleMaps(apiKey: string, o: GoogleMapsOptions = {}): MapsAdapt
   const f = o.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const timeout = o.timeoutMs ?? TIMEOUT_MS;
   const headers = (fields: string) => ({ 'content-type': 'application/json', 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': fields });
+  // A failed call still answers "not found", but says why in the Worker's log (Workers Observability), without the key:
+  // a key without Places API (New) allowed, a referrer or IP restriction, billing off or a timeout (2026-10-24).
   async function call<T>(url: string, init: RequestInit): Promise<T | null> {
+    const what = url.replace(/\?.*$/, '').replace(/^https:\/\/[^/]+/, '');
     try {
       const r = await f(url, { ...init, signal: AbortSignal.timeout(timeout) });
-      if (!r.ok) return null;
+      if (!r.ok) {
+        let why = '';
+        try { const j = (await r.json()) as { error?: { status?: string; message?: string } }; why = [j.error?.status, j.error?.message].filter(Boolean).join(': '); } catch { /* not JSON */ }
+        console.warn(`maps: Google ${what} answered ${r.status}${why ? ` (${why.slice(0, 300)})` : ''}`);
+        return null;
+      }
       return (await r.json()) as T;
-    } catch {
+    } catch (e) {
+      console.warn(`maps: Google ${what} failed: ${e instanceof Error ? `${e.name} ${e.message}` : String(e)}`);
       return null;
     }
   }
   return {
     name: 'google',
-    async autocomplete(query, sessionToken): Promise<PlaceSuggestion[]> {
+    async autocomplete(query, sessionToken, o = {}): Promise<PlaceSuggestion[]> {
       const input = query.trim().slice(0, 120);
       if (input.length < 3) return [];
       const j = await call<{ suggestions?: { placePrediction?: { placeId: string; text?: { text?: string } } }[] }>(`${PLACES}/places:autocomplete`, {
         method: 'POST', headers: headers('suggestions.placePrediction.placeId,suggestions.placePrediction.text.text'),
-        body: JSON.stringify({ input, sessionToken, includedRegionCodes: ['ca'], languageCode: 'en', regionCode: 'ca', locationBias: BIAS })
+        body: JSON.stringify({ input, sessionToken, ...(o.anywhere ? {} : { includedRegionCodes: ['ca'] }), languageCode: 'en', regionCode: 'ca', locationBias: BIAS })
       });
       return (j?.suggestions ?? [])
         .flatMap((s) => (s.placePrediction?.placeId && s.placePrediction.text?.text ? [{ id: s.placePrediction.placeId, label: s.placePrediction.text.text }] : []))

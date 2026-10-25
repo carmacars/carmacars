@@ -55,3 +55,27 @@ export function toLine(p: Partial<AddressParts>): string {
   const region = [p.province, p.postal_code].filter(Boolean).join(' ');
   return [p.street, p.unit ? `Unit ${p.unit}` : '', p.city, region, p.country && !/^canada$/i.test(p.country) ? p.country : ''].filter(Boolean).join(', ');
 }
+
+const ADDRESS_NAME = /^(.*?)(address_line1|street_address|street|address)$/;
+/**
+ * The fields a chosen suggestion fills in a form of named fields (the admin forms, 2026-10-24): beside an address field
+ * named <prefix>street, <prefix>address, <prefix>street_address or <prefix>address_line1, the same form's
+ * <prefix>city, <prefix>province or <prefix>region, <prefix>postal_code, <prefix>address_line2 or <prefix>unit,
+ * <prefix>country, <prefix>latitude and <prefix>longitude. With a city field beside it, the address field takes the
+ * street alone; without one, the whole address on one line.
+ */
+export function siblingFill(name: string, names: readonly string[], p: AddressParts, label: string, geo?: { lat: number; lng: number }): Record<string, string> {
+  const pre = ADDRESS_NAME.exec(name)?.[1] ?? `${name}_`;
+  const has = (k: string) => (k !== name && names.includes(k) ? k : undefined);
+  const city = has(`${pre}city`), prov = has(`${pre}province`) ?? has(`${pre}region`), postal = has(`${pre}postal_code`);
+  const unit = has(`${pre}address_line2`) ?? has(`${pre}unit`), country = has(`${pre}country`), lat = has(`${pre}latitude`), lng = has(`${pre}longitude`);
+  const out: Record<string, string> = {};
+  out[name] = city && p.street ? (unit || !p.unit ? p.street : `${p.street}, Unit ${p.unit}`) : label;
+  if (city && p.city) out[city] = p.city;
+  if (prov && p.province) out[prov] = p.province;
+  if (postal && p.postal_code) out[postal] = p.postal_code;
+  if (unit && p.unit) out[unit] = p.unit;
+  if (country && p.country) out[country] = p.country;
+  if (geo && lat && lng) { out[lat] = String(geo.lat); out[lng] = String(geo.lng); }
+  return out;
+}

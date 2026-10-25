@@ -16,7 +16,11 @@ export async function maps(): Promise<MapsAdapter> {
   if (e.MAPS_PROVIDER === 'google' && e.GOOGLE_MAPS_API_KEY) {
     const { googleMaps } = await import('./google');
     cached = budgetedMaps(googleMaps(e.GOOGLE_MAPS_API_KEY), fakeMaps(), takeBudget);
-  } else cached = fakeMaps();
+  } else {
+    // production without a key: the address fields only know the sample Toronto landmarks; said once in the log
+    if (e.APP_ENV === 'production') console.warn(`maps: the fake adapter is in use (MAPS_PROVIDER=${e.MAPS_PROVIDER}, key ${e.GOOGLE_MAPS_API_KEY ? 'set' : 'missing'}): address suggestions are the sample landmarks only`);
+    cached = fakeMaps();
+  }
   return cached;
 }
 

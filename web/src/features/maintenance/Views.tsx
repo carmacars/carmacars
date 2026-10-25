@@ -119,7 +119,7 @@ export function CarMaintenancePanel({ m, base, autoRecord = false }: { m: CarMai
             { key: 'act', label: '', render: (r) => <span className="ad-actions">
               <Act ops action="maint_tire_save" payload={{ id: r.id }} label="Edit" title="Edit the tire set" refresh={refresh} fields={tireFields(r)} done="Saved." testId={`tire-edit-${r.season}`} />
               {!r.on_car && <Act ops action="maint_tire_swap" payload={{ to_set_id: r.id }} label="Put on the car" title={`Swap to the ${SEASON_LABEL[r.season].toLowerCase()} set`} refresh={refresh} testId={`tire-swap-${r.season}`}
-                fields={[{ name: 'swapped_on', label: 'Swapped on', type: 'date', value: m.today, required: true }, { name: 'odometer_km', label: 'Odometer (km)', type: 'number', value: m.current_km }, { name: 'storage_location', label: 'Where the removed set goes' }]} done="Swapped." />}
+                fields={[{ name: 'swapped_on', label: 'Swapped on', type: 'date', value: m.today, required: true }, { name: 'odometer_km', label: 'Odometer (km)', type: 'number', value: m.current_km }, { name: 'storage_location', label: 'Where the removed set goes', type: 'address' }]} done="Swapped." />}
               <Act ops action="maint_tire_retire" payload={{ id: r.id }} label="Retire" title="Retire the tire set" refresh={refresh} fields={[{ name: 'reason', label: 'Why (worn out, sold, damaged)', required: true }]} />
             </span> }]} />
         )}
@@ -182,7 +182,7 @@ function tireFields(s: TireSet | null) {
     { name: 'size', label: 'Size', value: s?.size, placeholder: '225/45R17' }, { name: 'brand', label: 'Brand', value: s?.brand }, { name: 'model', label: 'Model', value: s?.model },
     { name: 'tread_mm', label: 'Tread depth (mm)', type: 'number' as const, value: s?.tread_mm, min: 0, max: 20 },
     { name: 'made_on', label: 'Made (DOT date)', type: 'date' as const, value: s?.made_on }, { name: 'purchased_on', label: 'Bought on', type: 'date' as const, value: s?.purchased_on },
-    { name: 'storage_location', label: 'Stored at (when off the car)', value: s?.storage_location }, { name: 'on_car', label: 'On the car now', type: 'bool' as const, value: s ? s.on_car : true },
+    { name: 'storage_location', label: 'Stored at (when off the car)', type: 'address' as const, value: s?.storage_location }, { name: 'on_car', label: 'On the car now', type: 'bool' as const, value: s ? s.on_car : true },
     { name: 'notes', label: 'Notes', type: 'textarea' as const, value: s?.notes }
   ];
 }

@@ -11,5 +11,5 @@ export async function GET(req: Request) {
   const s = u.searchParams.get('s') ?? '';
   if (!/^[A-Za-z0-9_-]{2,300}$/.test(id)) return NextResponse.json({ place: null });
   const p = await (await maps()).place(id, /^[A-Za-z0-9_-]{8,64}$/.test(s) ? s : crypto.randomUUID());
-  return NextResponse.json({ place: p ? { id: p.id, label: p.label, parts: p.parts ?? null } : null }, { headers: { 'cache-control': 'private, max-age=300' } });
+  return NextResponse.json({ place: p ? { id: p.id, label: p.label, parts: p.parts ?? null, lat: p.lat, lng: p.lng } : null }, { headers: { 'cache-control': 'private, max-age=300' } });
 }

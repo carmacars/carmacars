@@ -28,7 +28,7 @@ export function HomeAddressForm({ portal, address, postal, button = 'Save my hom
     <form className="stack" noValidate onSubmit={submit} data-testid={testId}>
       <div className="field"><label className="label" htmlFor={`${id}-a`}>Home address</label>
         {/* the address lookup (0130): a Canadian suggestion fills the address and the postal code; any other address is typed */}
-        <AddressInput id={`${id}-a`} name="home_address" value={{ label: a, placeId: '' }} onChange={(v) => setA(v.label)} describedBy={`${id}-ah`} testId="home-address" required
+        <AddressInput id={`${id}-a`} name="home_address" value={{ label: a, placeId: '' }} onChange={(v) => setA(v.label)} describedBy={`${id}-ah`} testId="home-address" required anywhere
           onParts={(x, label) => { setA(label.replace(/,\s*Canada$/i, '')); if (x.postal_code) setP(x.postal_code); }} />
         <p className="hint" id={`${id}-ah`}>Number, street, city and country, for example 12 Rizal Street, Quezon City, Philippines</p></div>
       <div className="field"><label className="label" htmlFor={`${id}-p`}>Postal code</label>
