@@ -30,7 +30,7 @@ export default async function FieldLayout({ children }: { children: React.ReactN
   return (
     <div className="fd">
       <div className="fd__frame">
-        <header className="fd__top"><Link prefetch={false} className="link" href="/field"><b>CarmaCars field</b></Link>
+        <header className="fd__top"><Link prefetch={false} className="link fd-brand" href="/field" aria-label="CarmaCars field, my jobs">Carma<span className="fd-brand__cars">Cars</span><span className="fd-brand__tag">field</span></Link>
           {user && <span className="gd-frame-links">{field && !viewing && <AssistantPanel portal="field" />}{field && <GuideLink portal="field" />}<SignOutOrExit /></span>}</header>
         {user && <PortalSwitch current="field" />}
         {user && <FieldNav />}

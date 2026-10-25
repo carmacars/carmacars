@@ -13,7 +13,9 @@ import { REFUND_OF } from '@/features/admin/refunds';
 import { BookingMoney, type Money } from '@/features/money/BookingMoney';
 import { BookingFees, type Fees } from '@/features/money/BookingFees';
 import { BookingEdit, type EditForm } from '@/features/money/BookingEdit';
+import { BookingPeriods, type PeriodRow } from '@/features/money/BookingPeriods';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
+import { RenterMerge, type DuplicateRow } from '@/features/money/RenterMerge';
 import { door } from '@/server/door';
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatureList, type ManualRow, type PaperDoc, type PaperRow } from '@/features/manual/ManualRecords';
 import { QuickReply } from '@/features/va/QuickReply';
@@ -93,6 +95,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
         {(fn === 'cs' || fn === 'sales') && b.status === 'requested' && <Act action="decline_request" payload={P} label="Decline" variant="danger" fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={R} />}
         {(fn === 'cs' || (fn === 'sales' && b.status === 'offered')) && ['offered', 'pending_payment'].includes(b.status) && <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}?tab=review`} data-testid="edit-offer">Edit the offer</Link>}
         {fn === 'cs' && ['confirmed', 'on_rent'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=changes`} data-testid="edit-booking">Change the booking</Link>}
+        {(fn === 'cs' || fn === 'sales') && b.status === 'offered' && <Act action="approve_offer_by_phone" payload={P} label="Renter approved by phone" confirm="Record that the renter approved this offer on the phone. The history shows it was staff." refresh={R} />}
         {(fn === 'cs' || fn === 'sales') && ['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={P} label="Withdraw the offer" fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={R} />}
         {fn === 'cs' && ['confirmed', 'pending_payment'].includes(b.status) && <Act action="cancel_booking" payload={{ ...P, reason: 'renter_request' }} label="Cancel for the renter" variant="danger" fields={[
           { name: 'channel', label: 'Received by', type: 'select', required: true, options: [['email', 'Email'], ['portal', 'Portal'], ['phone', 'Phone']], value: 'email' },
@@ -123,7 +126,9 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
         </>
       )}
       {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
+      {(tab === 'overview' || tab === 'money') && b.billable_days > 27 && <BookingPeriods booking={b.booking_number} rows={await door<PeriodRow[]>(user.id, 'ops_read', 'booking_periods', { booking: b.booking_number }, aal).catch(() => [] as PeriodRow[])} />}
       {(tab === 'overview' || tab === 'review') && renterForm && <RenterEdit x={renterForm} />}
+      {(tab === 'overview' || tab === 'review') && renterForm?.may_edit && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: renterForm.renter_id }, aal).catch(() => [] as DuplicateRow[])} />}
       {tab === 'overview' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Trip">
@@ -144,8 +149,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
         <div className="stack">
           {moneyByPart && <BookingMoney m={moneyByPart} />}
           {fees && <BookingFees x={fees} />}
-          <Card title="Payments"><Table rows={b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },
-            { key: 'act', label: '', render: (r) => fn === 'finance' && r.status === 'failed' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={R} label="Paid another way" /> : null }]} /></Card>
+          {(!moneyByPart || b.payments.some((r) => r.status === 'failed')) && <Card title={moneyByPart ? 'Card payments that failed' : 'Payments'}><Table rows={moneyByPart ? b.payments.filter((r) => r.status === 'failed') : b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },
+            { key: 'act', label: '', render: (r) => fn === 'finance' && r.status === 'failed' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={R} label="Paid another way" /> : null }]} /></Card>}
           {fn === 'finance' && <Card title="Paid another way" testId="booking-manual-payments"><ManualPaymentList rows={manual} canVoid={false} docBase="/va/documents" /><ManualPaymentForm booking={b.id} number={b.booking_number} balance={0} today={today} refresh={R} label="Record a payment received another way" /></Card>}
           <Card title="Refunds" aside={fn === 'finance' ? <Act action="request_refund" payload={P} label="Request a refund" testId="request-refund" fields={[{ name: 'reason', label: 'Reason', type: 'select', required: true, options: REFUND_REASONS.map((x) => [x, label(x)] as [string, string]) }, { name: 'refund_of', label: 'What it refunds', type: 'select', required: true, options: REFUND_OF, value: 'rental', hint: 'Only a refund of the rental charge lowers staff commissions.' }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'note', label: 'Note', type: 'text' }]} refresh={R} done="Refund requested." /> : null}>
             <Table rows={b.refunds ?? []} testId="refunds" empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason', render: (r) => label(r.reason) }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)}>{r.status === 'pending_approval' ? 'Waiting for an Admin' : undefined}</Badge> }, { key: 'due_by', label: 'Due by' },

@@ -38,7 +38,7 @@ def build():
     g.steps([
         f'The menu: {B("My jobs")}, {B("Report a problem")}, {B("Add a rental")}, {B("My sales")}, {B("Referrals")} and {B("Profile")}. {B("Sign out")} is top right.',
         f'Switch between {B("Today")} and {B("Tomorrow")}. Jobs are in time order.',
-        'Each card: the kind, the time, the status, the car and plate.',
+        f'The next job is the big card at the top: its time and how long until it, the car and its plate, the place with {B("Open in maps")} and a button to call the renter, and what to put in the car. The rest of the day follows in time order.',
         f'A handover or a return has its own button: {B("Check out (pickup)")} or {B("Check in (return)")}. One tap acknowledges and starts the job and opens its photo checklist. Other jobs: press {B("Open the job")}.',
         'Moving a car that has no job? Use Vehicle moves (see below).',
     ], shot=S('field/01-today-phone', 0, 595, 390, 1480, pins=[(1, 30, 720), (2, 300, 795), (3, 350, 885), (4, 345, 975), (5, 300, 1067)]))
@@ -47,16 +47,16 @@ def build():
     g.task('Open a job')
     g.steps([
         'The card shows the kind, the time, the car, the plate and colour.',
-        f'The address, with {B("Open in maps")} for directions.',
+        f'The address, with {B("Open in maps")} for directions, and a button to call the renter.',
         'For a handover: the booking, the renter\'s name and phone, the Card on File and the licence on file.',
         f'Press {B("Acknowledge")} so the office knows you have it. Then press {B("Start")} when you are with the car.',
     ], shot=S('field/02-job-phone', 0, 595, 390, 1170, pins=[(1, 370, 860), (2, 370, 943), (3, 370, 1040), (4, 370, 1131)]))
 
     g.task('Move a car')
     g.steps([
-        'Under Vehicle moves, choose the Car and Why (for example Reposition).',
-        'Fill in From and the Odometer (km).',
-        f'Press {B("Start a move")}. When you arrive, press {B("End the move")} and enter the odometer again.',
+        f'Under Vehicle moves, press {B("Start a move")}. Choose the Car and Why (for example Reposition).',
+        f'Fill in From and the Odometer (km), then press {B("Start the move now")}.',
+        f'When you arrive, press {B("End the move")}, fill in Now at and the odometer, then press {B("End the move now")}.',
     ], shot=S('field/01-today-phone', 0, 1040, 390, 1490, hdr=False, pins=[(1, 340, 1140), (2, 340, 1312), (3, 340, 1460)]))
 
     g.task('Documents to sign', 'Your staff agreement, when CarmaCars sends it.')
@@ -99,11 +99,11 @@ def build():
         (H('24-handover-04-licence-phone', 1500), 'Original licence: name, photo and expiry match. A photo of a licence is not enough.'),
         (H('25-handover-05-card-phone', 1360), 'Card on File: you have seen the physical card with the same last four digits, in the renter\'s name.'),
         (H('26-handover-06-odometer-phone', 1360), 'Odometer: type the reading in km.'),
-        (H('27-handover-07-fuel-phone', 1370), 'Fuel or charge: slide to the level on the gauge.'),
+        (H('27-handover-07-fuel-phone', 1370), 'Fuel or charge: tap the level on the gauge, in eighths from E to F.'),
     ])
     g.phones([
         (H('28-handover-08-keys-phone', 1330), f'Keys: how many keys and fobs you hand over. Use {B("+")} and {B("−")}.'),
-        (H('29-handover-09-photos-phone', 1500), f'Photo set: 19 photos in order. {B("Take")} each one; {B("Retake")} if needed.'),
+        (H('29-handover-09-photos-phone', 1500), f'Photo set: 19 photos in order. Press {B("Take this photo")} for the next one; every photo is also in the list below, with {B("Retake")} if needed.'),
         (H('30-handover-10-damage-phone', 1700), f'Damage: tap the car diagram where it is, choose Where and Type, then {B("Add the damage")}.'),
         (H('31-handover-11-tracker-phone', 1390), f'Tracker: it should say in place and reporting. {B("Check again")} if not. The car has to go anyway? Open {B("The car has to go anyway?")}, say why and press {B("Release without the tracker")}: an Admin is told at once.'),
         (H('32-handover-12-summary-phone', 1460), 'Renter reviews: the renter reads the summary of odometer, fuel, keys, photos and damage.'),
@@ -111,7 +111,8 @@ def build():
     ])
     g.steps([f'Press {B("Hand over the keys")}. You see "Checked out. The rental has started." The renter gets the photo report by email and in their Documents.'])
     g.tip('Photos wait on the phone without a connection and upload by themselves when it returns; the count shows what is still uploading. '
-          'Each photo keeps its time, and the place when your phone allows location.')
+          'Each photo keeps its time, and the place when your phone allows location. No signal on a step? It says "Answers kept on this phone" and you can go on: '
+          'press Try again, or they are sent when the signal returns.')
 
     g.task('Sign now on this device', 'The renter (or an additional driver) has not signed the rental agreement yet? They sign on your phone.')
     g.steps([
@@ -232,7 +233,7 @@ def build():
                    ('Stop a handover', f'{B("Stop: do not release the car")}, call us'),
                    ('Take a car back', f'Every step, then {B("Complete the return")}'),
                    ('Shoot listing photos', f'{B("Take photo")}, then {B("Submit for listing")}'),
-                   ('Move a car', f'{B("Start a move")}, then {B("End the move")}'),
+                   ('Move a car', f'{B("Start a move")}, then {B("End the move")} and {B("End the move now")}'),
                    ('Report an incident', f'{P("Report a problem", "Send the report")}'),
                    ('Add a rental', f'{B("Add a rental")}, {B("I sourced this client")}, {B("Add the rental")}')],
         extra_problems=[('A photo did not upload', f'Check your signal, then press {B("Send again")}.'),

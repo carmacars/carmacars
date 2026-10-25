@@ -74,12 +74,14 @@ const ROWS: Row[] = [
   // staff
   { name: 'VA profile: home address and postal code', who: 'va', path: '/va/profile', field: (p) => p.getByTestId('home-address'),
     filled: (p) => [[p.getByTestId('home-address'), UNION], [p.getByTestId('home-postal'), 'M5J 1E6']] },
-  // a car out on a move: End the move asks where it is now (the same field as Start a move's From)
+  // a car out on a move: End the move opens a panel that asks where it is now (the same field as Start a move's From).
+  // Until 2026-10-25 the button itself ended the move, so the field vanished on the refresh while it was typed in (the
+  // intermittent failure of the sharded run); now only the panel's own button ends it.
   { name: 'field portal: vehicle move, now at', who: 'field', path: '/field',
     setup: async (sql, userId) => { await sql`insert into vehicle_moves (vehicle_id, staff_user_id, purpose, started_at, from_place) select v.id, ${userId}, 'repositioning', now() - interval '1 minute', 'Our location' from vehicles v
       where not exists (select 1 from vehicle_moves m where m.vehicle_id = v.id and m.ended_at is null) order by random() limit 1`; },
     cleanup: async (sql, userId) => { await sql`update vehicle_moves set ended_at = now(), to_place = 'Our location' where staff_user_id = ${userId} and ended_at is null`; },
-    open: async (p) => { await p.getByTestId('move-end').first().click(); },
+    open: async (p) => { await p.getByTestId('move-end').first().click(); await expect(p.locator('#fb-to_place')).toBeVisible(); },
     field: (p) => p.locator('#fb-to_place'), filled: (p) => [[p.locator('#fb-to_place'), UNION]] },
   // Admin
   { name: 'Site settings: business address, city, province, postal code and coordinates', who: 'admin', path: '/admin/settings/site', field: (p) => p.getByTestId('site-business').getByTestId('business_street-lookup'),
@@ -109,8 +111,6 @@ async function newPage(browser: Browser) {
 for (const r of ROWS) {
   test(`address autofill: ${r.name}`, async ({ browser }) => {
     test.setTimeout(90_000);
-    // passes alone, fails intermittently in the sharded run (no suggestion list in the field move sheet); followed up separately
-    test.fixme(r.name === 'field portal: vehicle move, now at', 'intermittent in the sharded CI run: under investigation');
     const sql = db();
     // the daily lookup cap (0113) counts every address test in this job's database: not what is tested here
     await sql`update program_settings set maps_daily_cap_autocomplete = 10000, maps_daily_cap_place_details = 10000`;

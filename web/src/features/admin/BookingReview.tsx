@@ -1,4 +1,6 @@
 'use client';
+import { Info } from '@/features/forms/Info';
+import { lineHelp } from '@/features/offers/help';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { useRouter } from 'next/navigation';
@@ -325,7 +327,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
           <div className="pt-card__head"><h2 className="d4">Price {preview ? <span className="ad-b ad-b--amber">Re-priced, not saved</span> : null}</h2><span className="small muted">{shown.billable_days} days · {shown.rate_applied?.replace(/_/g, ' ')}</span></div>
           <dl className="pt-dl pt-dl--money">
             {shown.lines.filter((l) => l.stage === 'booking').map((l) => <div key={l.id}><dt>{lineLabel(l)}</dt><dd>{money(l.amount_cents, { cents: true })}</dd></div>)}
-            <div><dt>HST</dt><dd>{money(shown.hst_at_booking_cents, { cents: true })}</dd></div>
+            <div><dt>HST <Info text={lineHelp('hst')} label="What is HST?" /></dt><dd>{money(shown.hst_at_booking_cents, { cents: true })}</dd></div>
             {shown.bill_to !== 'renter' && shown.insurer_share_cents ? <div><dt>Insurer pays</dt><dd>{money(shown.insurer_share_cents, { cents: true })}</dd></div> : null}
             <div><dt><b>Due at booking</b></dt><dd className="pt-total" data-testid="review-total">{money(total, { cents: true })}</dd></div>
           </dl>
@@ -362,7 +364,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
           {shown.km_allowance_total ? <div><dt>Kilometres</dt><dd>{shown.km_allowance_total} km included, then {money(shown.overage_cents_per_km, { cents: true })} per km</dd></div> : null}
         </dl>
         <dl className="pt-dl pt-dl--money small">
-          {lines.map((l) => <div key={l.id}><dt>{lineLabel(l)}</dt><dd>{money(l.amount_cents, { cents: true })}</dd></div>)}
+          {lines.map((l) => <div key={l.id}><dt>{lineLabel(l)} <Info text={lineHelp(l.charge_type)} label={`What is ${lineLabel(l)}?`} /></dt><dd>{money(l.amount_cents, { cents: true })}</dd></div>)}
           <div><dt>HST</dt><dd>{money(shown.hst_at_booking_cents, { cents: true })}</dd></div>
           <div><dt><b>Total due at booking</b></dt><dd><b>{money(total, { cents: true })}</b></dd></div>
         </dl>

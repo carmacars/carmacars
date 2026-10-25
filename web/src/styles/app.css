@@ -45,3 +45,8 @@
   :is([data-testid="mr-price"], [data-testid="bf-lines"]) tr > :nth-child(3), :is([data-testid="mr-price"], [data-testid="bf-lines"]) tr > [colspan] { grid-column: 1 / -1; padding-block-start: 0; }
   :is([data-testid="mr-price"], [data-testid="bf-lines"]) .select--sm { max-inline-size: 100%; }
 }
+
+/* 0148: tables that scroll inside their card on a phone (Monthly periods), and the draft bar and Quick start that wrap */
+.ad-table-wrap { overflow-x: auto; max-inline-size: 100%; }
+[data-testid="mr-quick"] .pt-card__head, [data-testid="unfinished-rentals"] li { flex-wrap: wrap; gap: var(--s-2); }
+[data-testid="mr-draft-bar"] > span { min-inline-size: 0; overflow-wrap: anywhere; }

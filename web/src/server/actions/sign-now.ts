@@ -100,3 +100,19 @@ export async function staffLicenceUpload(form: FormData): Promise<R> {
     return { ok: true, data: null };
   } catch (e) { return fail(e); }
 }
+
+/** No agreement waiting yet (sim item 2: "Sign now" said nothing was waiting until the renter saved their details at
+ *  home): make it now, as the five-minute job would, so the renter signs on this device. */
+export async function prepareAgreementNow(bookingId: string): Promise<R<{ ready: boolean }>> {
+  try {
+    const { user } = await staff();
+    const { rpc } = await import('@/lib/db/repo');
+    const r = (await rpc('server_sign_now_prepare', { p_booking: bookingId, p_by: user.id }, { role: 'service_role' })) as unknown as { ready: boolean; renter_user_id?: string };
+    if (!r.ready && r.renter_user_id) {
+      const { ensureAgreement } = await import('@/server/agreement-auto');
+      if (!(await ensureAgreement(bookingId, r.renter_user_id, 'sign_now'))) throw new Error('The agreement could not be made just now: try again, or record a paper signature.');
+    }
+    revalidatePath('/admin/bookings'); revalidatePath('/va/bookings'); revalidatePath('/field');
+    return { ok: true, data: { ready: true } };
+  } catch (e) { return fail(e); }
+}

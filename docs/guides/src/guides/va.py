@@ -38,13 +38,16 @@ def build():
         ['Finance', 'Money (Payments by day, Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
         ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
     ], head=['Function', 'Groups and pages'])
-    g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more.')
+    g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more. To do puts the most urgent first.')
     g.steps([
-        'The top line shows your function and how many tasks are open.',
-        'Filter: All, Mine, Unassigned or Waiting. Under More filters: Any time, Overdue, Due today or Escalated, and by type.',
-        'Each row has a priority, the task, its record, when it is due and how long it has waited. The oldest due is first.',
+        'The top shows your function, today\'s date, how many things need you, your open, overdue and done-today figures, and your quickest actions.',
+        f'{B("Next up")} is the one task to do now. Press its button to do it, or {B("Take it")} to make it yours.',
+        'Your lanes group the work, for example Booking requests, Renter messages, Texts and calls, Live chat and Offers out. Each shows how many are waiting and how long the oldest has waited. Replies are timed against the 5-minute first reply target: past it the time turns red and says late. The most urgent lane comes first; press a lane to open it.',
+        f'Customer service and Sales: {B("Waiting for a reply")} lists every request, renter message, missed call and chat, the longest wait first, each with its reply button. Sales also sees the commission ring and Follow-ups due, Fleet today\'s handovers, returns and moves and the cars right now, Finance Money today.',
+        f'{B("Every open task")}: filter All, Mine, Unassigned or Waiting. Under More filters: Any time, Overdue, Due today or Escalated, and by type. Each row has a priority, the task, its record, when it is due and a live timer of how long it has waited.',
         f'Press {B("Take it")} to make it yours. Pressing the task opens the screen where it is done: a chat waiting for a person opens that chat, documents to check open the review, a request opens the booking. {B("Sheet")} opens the step-by-step procedure.',
         'Tasks close by themselves when their work is done elsewhere (an invoice paid or voided, a chat answered or closed); a day\'s opening and closing checks close at the end of that day.',
+        f'On a computer, press {B("/")} to search (Find a renter; Sales: Find a car).',
     ], shot=S('va-cs/01-queue-desktop', 0, 60, 1440, 700, pins=[(1, 200, 92), (2, 520, 172), (3, 460, 340), (4, 1320, 395)]))
 
     g.task('Work a task', 'Open the task. The buttons along the top move it on.')
@@ -151,6 +154,7 @@ def build():
         f'Money tab, Fees, {B("Change or add a fee")}: a fee forgotten (the young driver fee shows its price for the dates) or a charge of its own.',
         f'What is open shows at once: {B("Email a pay link")} or {B("Text a pay link")} for exactly that amount, or record cash or an e-Transfer ({B("Record a payment")}, For: the rental and fees).',
         f'{B("Edit renter")}: a wrong email, phone, name, licence or address. A new email is their sign-in at once.',
+        f'The same renter twice? Under the renter, Possible duplicates: {B("Merge into this record")} moves everything of the other record here.',
     ])
     g.tip('Each edit is recorded with your name, the time, the reason and the before and after.', label='Good to know')
 
@@ -455,6 +459,8 @@ def build():
               blurb='Choose the car and dates, find the renter, price it, record how it is paid.')
     g.task('Add a rental', f'Open {P("Bookings", "Add a rental")}. Your home address must be in your profile first: until it is, the page asks for it.')
     g.steps([
+        f'At pickup with the renter? Press {B("Start at pickup")}: the renter\'s name and phone, the car, the kilometres and the fuel, then {B("Hold the car and finish later")}. The car is held for 2 hours and you get a task to finish it.',
+        f'Nothing is required to save: the form is saved as a draft as you type ({B("Save draft")} saves at once). Unfinished rentals, on Today and on this page, opens a draft where it was left, on any device. Tick Hold the car while I finish to keep the car off the calendar while you type.',
         'Choose the car, the dates and the places. The check shows any clash with another booking or with the cleaning time after a trip. You cannot book over a clash: ask an Admin.',
         'The dates decide the case, shown under them. Car already out with the renter? Enter the pickup as when it left: the rental is recorded as on trip, and anything still missing (signature, licence check, coverage proof, deposit) becomes a task. A rental that has already ended is recorded by an Admin.',
         'Find the renter by name, email or phone, or add a new one with their name, email, phone, date of birth and licence. Add any other drivers.',
@@ -462,7 +468,7 @@ def build():
         f'Quick start: {B("Phone")}, {B("Walk-in")}, {B("Turo or another platform")} or {B("Insurance replacement")} sets the usual choices.',
         'A car tagged Listing not finished can be rented too: it stays off the public site. If it has no rates yet, type the rental charge for the whole rental and the reason. An owner\'s car not yet on the fleet insurance policy is added by an Admin only.',
         'Every line of the price can be changed where it stands (customer service and sales, while Program settings allow it): the rental charge for the trip or a rate a day, the young driver fee, the Protection Plan, delivery, each add-on, the kilometres a day; add a fee from the list or a charge of its own. The (i) beside each line says what it is. The rate-sheet price stays on the booking; a price far under it is flagged for an Admin, never refused.',
-        'Any length: past 30 days the monthly rate applies for each 30 days, and the monthly periods are listed.',
+        'Any length: past 30 days the monthly rate applies for each 30 days, and the monthly periods are listed. Each later period gets its own agreement, sent to the renter to sign a few days before it starts (Monthly periods on the booking; Send the agreement for the next period now if needed).',
         'Choose how the rent is paid (e-Transfer or cash received, card on file, payment link, platform payout, insurer billed later; the ways open to you are set by an Admin; paid in parts: Add another payment) and then how the deposit is paid (card hold, cash or e-Transfer with its reference). Before you save sums it all up. Signed on paper already? Choose it: a task asks for the scan. An insurance replacement with dates not known yet: untick Blocks the car\'s calendar and say why.',
         f'Under Who found this client, choose {B("I sourced this client")} or {B("Entered for CarmaCars")}.',
         f'Press {B("Add the rental")}. The renter gets the confirmation email unless you tick {B("Do not email the renter")}.',
@@ -662,7 +668,7 @@ def build():
     ], shot=S('va-cs/07-renters-desktop', 210, 60, 1440, 300, pins=[(1, 1050, 143)]))
 
     g.reference(
-        nav_rows=[('To do', 'Your function\'s tasks, oldest due first'),
+        nav_rows=[('To do', 'Next up, your lanes with their timers, then every open task'),
                   ('Today at a glance', 'Pickups, returns, what is due'),
                   ('Working as', 'Switch function (above the menu)'),
                   ('Customer service', 'Requests, New quote, Renter messages, Owner forms'),
