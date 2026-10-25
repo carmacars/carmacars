@@ -52,6 +52,16 @@ def build():
         f'Press {B("Acknowledge")} so the office knows you have it. Then press {B("Start")} when you are with the car.',
     ], shot=S('field/02-job-phone', 0, 595, 390, 1170, pins=[(1, 370, 860), (2, 370, 943), (3, 370, 1040), (4, 370, 1131)]))
 
+    g.task('Check the renter\'s licence', 'The renter\'s licence photos and selfie are checked before the handover. You can check them yourself, for a booking on one of your own jobs today or in the next 7 days. Everything you do is recorded with your name and "field staff".')
+    g.steps([
+        f'My jobs shows {B("Licences to check")} when the licence front, back or selfie of a renter on one of your jobs waits for a decision. The same check is on the job itself, under {B("Check the licence")}.',
+        f'Press {B("Review the licence")}. The images open with the name, date of birth and licence details on the booking.',
+        'Look at each image: the name and date of birth match the booking, class G2 or G and valid past the return date with no sign of alteration, and the selfie matches the licence photo.',
+        f'One is wrong? Open {B("Reject this one")} under it, type the reason the renter reads and press {B("Reject")}. The renter is told why and sends a new one.',
+        f'Then press {B("Approve all")}: everything still waiting is approved at once.',
+    ])
+    g.tip('The renter\'s proof of coverage stays with the office. Meeting the renter at the handover? You can still check the original licence in person from the ready check (see A handover).')
+
     g.task('Move a car')
     g.steps([
         f'Under Vehicle moves, press {B("Start a move")}. Choose the Car and Why (for example Reposition).',

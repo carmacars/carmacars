@@ -26,6 +26,7 @@ Sources: operating procedures 3, 4, 10, 12 (tracker), 16 (exit), 17 (photos), 18
 | Empty | "No jobs today." |
 | Notices | A banner for a new or changed job since the last visit (in-app notice plus email `staff_field_job_assigned` or `staff_field_job_changed`) |
 | Late | A job not acknowledged 2 hours before its time shows red for Fleet; the field staff member sees "Please acknowledge" |
+| Licences to check (0162) | A section above the day switch, only when the licence front, back or selfie of a renter on one of the member's own jobs (today and the next 7 days) waits for a decision: one card per booking with **Review the licence**. The review is the office's (`review_verification_upload`: approve all, or reject an image with a reason the renter reads), recorded with the reviewer's role `field`; coverage proofs and the Protection Plan stay with the office. The same check is on the job page. See docs/changes/2026-10-25-field-licence-review.md |
 
 ## 3. `/field/jobs/[id]` Job detail
 

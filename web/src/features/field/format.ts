@@ -25,3 +25,12 @@ export function fromNow(iso: string, now: Date | string = new Date()): { text: s
   if (Math.abs(min) <= 2) return { text: 'now', late: false };
   return min > 0 ? { text: `in ${span(min)}`, late: false } : { text: `${span(-min)} ago`, late: true };
 }
+
+/** "Today", "Tomorrow" or "Thu, Oct 29": the Toronto day of a job, for jobs that are not all on one day's list. */
+export function dayLabel(iso: string, now: Date | string = new Date()): string {
+  const ymd = (d: Date | string) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(d));
+  const days = Math.round((Date.parse(`${ymd(iso)}T12:00:00Z`) - Date.parse(`${ymd(now)}T12:00:00Z`)) / 86_400_000);
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Tomorrow';
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(iso));
+}

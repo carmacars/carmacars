@@ -5,8 +5,9 @@ import { FieldButton } from '@/features/field/FieldButton';
 import { StartChecklist } from '@/features/field/StartChecklist';
 import { Plate } from '@/features/field/Plate';
 import { FdIcon } from '@/features/field/icons';
-import { CHECK, KIND, STATUS, clock, fromNow, maps, tel } from '@/features/field/format';
-import type { FieldCard, FieldJob, FieldList } from '@/features/field/types';
+import { LicenceReview } from '@/features/field/LicenceReview';
+import { CHECK, KIND, STATUS, clock, dayLabel, fromNow, maps, tel } from '@/features/field/format';
+import type { FieldCard, FieldJob, FieldList, LicenceCard } from '@/features/field/types';
 import { when } from '@/features/agreement/model';
 import { getTokens } from '@/lib/site';
 import { signCount } from '@/features/manual/SignPages';
@@ -21,7 +22,9 @@ const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toront
 // one button that starts it); the rest follow as a timeline. Vehicle moves below. (2026-10-25 design pass.)
 export default async function Field({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ user }, sp] = await Promise.all([requireStaff('field', '/field'), searchParams]);
-  const [d, tk, toSign] = await Promise.all([door<FieldList>(user.id, 'field_read', 'jobs'), getTokens(), signCount(user.id)]);
+  // 0162: the licences of the renters on their upcoming jobs (today and the next 7 days) that wait for a decision
+  const [d, tk, toSign, licences] = await Promise.all([door<FieldList>(user.id, 'field_read', 'jobs'), getTokens(), signCount(user.id),
+    door<LicenceCard[]>(user.id, 'field_read', 'licences').catch(() => [] as LicenceCard[])]);
   const day = sp.day === 'tomorrow' ? 'tomorrow' : 'today';
   const jobs = d[day];
   const next = jobs.find((j) => !['done'].includes(j.status));
@@ -36,6 +39,16 @@ export default async function Field({ searchParams }: { searchParams: Promise<Re
         <p className="fd-home__sub">{today()}{d.today.length ? <>. {done && day === 'today' ? `${done} of ${d.today.length} done` : `${d.today.length} today`}</> : null}</p>
       </header>
       {toSign > 0 && <p className="alert alert--warn" role="status" data-testid="field-to-sign"><span>You have {toSign === 1 ? 'a document' : `${toSign} documents`} to sign. <Link prefetch={false} className="link" href="/field/sign">Read and sign</Link></span></p>}
+      {licences.length > 0 && <section className="fd-licences" aria-labelledby="lic-t" data-testid="field-licences">
+        <h2 className="fd-section-h" id="lic-t">Licences to check <span className="fd-days__n">{licences.length}</span></h2>
+        <p className="small">The renter's licence and selfie on your next jobs wait for a decision. Look at them and approve, or reject with a reason.</p>
+        <ul className="fd-lic-list">{licences.map((l) => <li key={l.field_job_id} className="fd-lic-card" data-testid="licence-card">
+          <p className="fd-lic-card__when">{dayLabel(l.scheduled_at)}, {clock(l.scheduled_at).time} {clock(l.scheduled_at).half}<span className="small"> · {KIND[l.kind] ?? l.kind}</span></p>
+          <p className="fd-lic-card__car">{l.vehicle_label}</p>
+          <div className="fd-lic-card__id">{l.plate && <Plate plate={l.plate} small />}<span className="small">{[l.renter_first_name, l.booking_number].filter(Boolean).join(', ')}, {l.waiting} image{l.waiting === 1 ? '' : 's'} waiting</span></div>
+          <LicenceReview job={l.field_job_id} waiting={l.waiting} />
+        </li>)}</ul>
+      </section>}
       <nav className="fd-days" aria-label="Day">
         <Link prefetch={false} href="/field" aria-current={day === 'today' ? 'page' : undefined}>Today <span className="fd-days__n">{d.today.length}</span></Link>
         <Link prefetch={false} href="/field?day=tomorrow" aria-current={day === 'tomorrow' ? 'page' : undefined}>Tomorrow <span className="fd-days__n">{d.tomorrow.length}</span></Link>
