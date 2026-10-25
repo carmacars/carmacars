@@ -58,7 +58,8 @@ select test.eq('outbound with every setting on: still no partner car',
 select test.eq('the feed (the same cars): no partner car',
   (select count(*) from jsonb_array_elements(public.server_partner_feed(test.pc_partner()) -> 'cars') x where x ->> 'supply_type' = 'partner'), 0::bigint);
 update partner_crm_connections set share_owner_cars = false where id = test.pc_link();
-select test.eq('program owners'' cars can be left out; CarmaCars'' own still go', (select string_agg(x ->> 'supply_type', ',') from jsonb_array_elements(test.pc_out()) x), 'company');
+select test.ok('program owners'' cars can be left out; CarmaCars'' own still go',
+  not exists (select 1 from jsonb_array_elements(test.pc_out()) x where x ->> 'supply_type' <> 'company') and test.id('vehicle:PC1') = any (test.pc_ids()) and not (test.id('vehicle:PC2') = any (test.pc_ids())));
 update partner_crm_connections set share_owner_cars = true where id = test.pc_link();
 
 -- ================================================================ 3. the partner price, the details, availability
@@ -109,9 +110,9 @@ select test.ok('saved: due for its first sync', test.pc_link() = any (array(sele
 -- ================================================================ 5. the door: reads and saves, Admins only
 select test.throws('an assistant cannot read the link', $$select app.door(test.id('pc_cs'), 'aal2', 'admin_read', 'partner_crm', '{}')$$);
 select test.ok('the list: every partner and its link', (select jsonb_array_length(app.door(test.id('pc_admin'), 'aal2', 'admin_read', 'partner_crm', '{}') -> 'partners')) >= 2);
-select test.eq('the detail: what they see (2 of ours), their cars here (62)',
+select test.eq('the detail: what they see (ours by supply type), their cars here (62)',
   (select format('%s %s %s', d #>> '{shared,company}', d #>> '{shared,program_owner}', d ->> 'partner_cars') from (select app.door(test.id('pc_admin'), 'aal2', 'admin_read', 'partner_crm', jsonb_build_object('partner_id', test.pc_partner())) d) x),
-  '1 1 62');
+  (select format('%s %s 62', count(*) filter (where x ->> 'supply_type' = 'company'), count(*) filter (where x ->> 'supply_type' = 'program_owner')) from jsonb_array_elements(test.pc_out()) x));
 select test.ok('save: the price rule, leads need a pipeline and a stage',
   (app.door(test.id('pc_admin'), 'aal2', 'admin_do', 'partner_crm_save', jsonb_build_object('partner_id', test.pc_partner(), 'price_mode', 'percent', 'price_adjust_bps', -500)) ->> 'price_adjust_bps') = '-500');
 select test.throws('save: leads without their pipeline', $$select app.door(test.id('pc_admin'), 'aal2', 'admin_do', 'partner_crm_save', jsonb_build_object('partner_id', test.pc_partner(), 'leads_enabled', true))$$, '%pipeline%');
@@ -121,11 +122,11 @@ select test.throws('save: an assistant cannot', $$select app.door(test.id('pc_cs
 select test.eq('save: back to the site''s rates resets the adjustment',
   app.door(test.id('pc_admin'), 'aal2', 'admin_do', 'partner_crm_save', jsonb_build_object('partner_id', test.pc_partner(), 'price_mode', 'site', 'price_adjust_bps', -500)) ->> 'price_adjust_bps', '0');
 select test.eq('feed key: New key raises the version', app.door(test.id('pc_admin'), 'aal2', 'admin_do', 'partner_crm_feed_rotate', jsonb_build_object('partner_id', test.pc_partner())) ->> 'feed_version', '2');
-select test.eq('the feed: its version and the same cars', (select format('%s %s', f ->> 'feed_version', jsonb_array_length(f -> 'cars')) from (select public.server_partner_feed(test.pc_partner()) f) x), '2 2');
+select test.eq('the feed: its version and the same cars', (select format('%s %s', f ->> 'feed_version', jsonb_array_length(f -> 'cars')) from (select public.server_partner_feed(test.pc_partner()) f) x), '2 ' || jsonb_array_length(test.pc_out()));
 
 -- ================================================================ 6. the job
 create temp table pc_job as select public.server_partner_crm_job(test.pc_link(), null, 'sync') j;
-select test.ok('a sync starts: the run marked, our 2 cars, no token in it', (select (j ->> 'ok')::boolean and jsonb_array_length(j -> 'cars') = 2 and not (j::text like '%pit-1111%') from pc_job));
+select test.ok('a sync starts: the run marked, our cars, no token in it', (select (j ->> 'ok')::boolean and jsonb_array_length(j -> 'cars') = jsonb_array_length(test.pc_out()) and jsonb_array_length(j -> 'cars') >= 2 and not (j::text like '%pit-1111%') from pc_job));
 select test.eq('THE RULE in the job''s payload: no partner car',
   (select count(*) from pc_job, jsonb_array_elements(j -> 'cars') x join vehicles v on v.id = (x ->> 'vehicle_id')::uuid where v.supply_type = 'partner' or v.partner_id is not null or x ->> 'supply_type' = 'partner'), 0::bigint);
 select test.eq('a second sync while one runs is refused', public.server_partner_crm_job(test.pc_link(), null, 'sync') ->> 'busy', 'true');

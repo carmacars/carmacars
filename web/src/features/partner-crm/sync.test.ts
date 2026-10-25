@@ -268,3 +268,12 @@ test('the client refuses to start without a token or a location', () => {
   assert.throws(() => createGhl({ token: '', locationId: LOC }), GhlError);
   assert.throws(() => createGhl({ token: TOKEN, locationId: 'x' }), GhlError);
 });
+
+test('only the widget may be framed, and only by https sites', async () => {
+  const { embeddable, cspHeader } = await import('../../lib/security/csp.ts');
+  assert.equal(embeddable('/partner-widget/0b0e8f5e-1111-4222-8333-123456789abc'), true);
+  for (const p of ['/', '/cars', '/admin/settings/partners', '/partner-feed/0b0e8f5e-1111-4222-8333-123456789abc', '/partner-widget/x', '/partner-widget/0b0e8f5e-1111-4222-8333-123456789abc/more'])
+    assert.equal(embeddable(p), false, p);
+  assert.match(cspHeader('n'), /frame-ancestors 'none'/);
+  assert.match(cspHeader('n', { frameAncestors: 'https:' }), /frame-ancestors https:;/);
+});
