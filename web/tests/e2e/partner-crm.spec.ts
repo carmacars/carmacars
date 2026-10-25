@@ -42,7 +42,11 @@ test('Settings > Partners > 01 Motors: connect, test, sync, what they see (no pa
   const [car] = await sql`select v.id, v.car_code from vehicles v join vehicle_listings l on l.vehicle_id = v.id where v.supply_type = 'program_owner' and v.is_sample and l.status = 'published' order by v.make limit 1` as unknown as [{ id: string; car_code: string }];
   const [{ partner_id: partnerId }] = await sql`select id partner_id from partners where business_name = '01 Motors'` as unknown as [{ partner_id: string }];
   const partnerCodes = (await sql`select car_code from vehicles where supply_type = 'partner' and car_code is not null` as unknown as Array<{ car_code: string }>).map((r) => r.car_code);
+  // other tests in this job may have published real cars of their own: they are made samples for this test (put back
+  // after), so our one car is the only one shared
+  const others = (await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id where l.status = 'published' and not v.is_sample and v.supply_type <> 'partner' and v.id <> ${car.id}` as unknown as Array<{ id: string }>).map((r) => r.id);
   try {
+    if (others.length) await sql`update vehicles set is_sample = true where id = any(${others}::uuid[])`;
     await sql`update vehicles set is_sample = false where id = ${car.id}`;
     await sql`update partner_crm_connections set token_ref = null, token_store = null, token_hint = null, location_id = null, last_sync_at = null, last_sync_ok = null, last_error = null, failing_since = null,
               last_test_at = null, last_test = '{}', price_mode = 'site', price_adjust_bps = 0, enabled = true, running_since = null, detected_target = null where partner_id = ${partnerId}`;
@@ -55,8 +59,7 @@ test('Settings > Partners > 01 Motors: connect, test, sync, what they see (no pa
     await page.waitForURL(`**/admin/settings/partners/${partnerId}`);
     await expect(page.getByTestId('crm-status')).toContainText('Not connected');
     await expect(page.getByTestId('crm-sample')).toContainText(car.car_code);
-    // the count is every real car on the site except partners' (other tests in this job publish cars too): at least this one
-    await expect(page.getByTestId('crm-shared-count')).toContainText(/^\d+ \(\d+ CarmaCars, [1-9]\d* program owners\)/);
+    await expect(page.getByTestId('crm-shared-count')).toContainText('1 (0 CarmaCars, 1 program owners)');
     await expect(page.getByTestId('crm-test')).toBeDisabled();
 
     // connect: the token is a password field, cleared after sending, never on the page again
@@ -78,9 +81,7 @@ test('Settings > Partners > 01 Motors: connect, test, sync, what they see (no pa
     expect([row.token_hint, row.leaked]).toEqual([token.slice(-4), false]);
     // the first sync put our one car in their CRM, never a partner car
     const recs = await sql`select v.supply_type from partner_crm_records r join partner_crm_connections c on c.id = r.connection_id join vehicles v on v.id = r.vehicle_id where c.partner_id = ${partnerId}` as unknown as Array<{ supply_type: string }>;
-    // (other tests in this job publish cars of their own: every record is a non-partner car, ours among them)
-    expect(recs.length).toBeGreaterThan(0);
-    expect(recs.filter((r) => r.supply_type === 'partner')).toEqual([]);
+    expect(recs.map((r) => r.supply_type)).toEqual(['program_owner']);
 
     // the partner price
     await page.getByTestId('crm-price').click();
@@ -133,6 +134,7 @@ test('Settings > Partners > 01 Motors: connect, test, sync, what they see (no pa
     expect(errors.filter((e) => !/favicon|Failed to load resource.*404/.test(e))).toEqual([]);
   } finally {
     await sql`update vehicles set is_sample = true where id = ${car.id}`;
+    if (others.length) await sql`update vehicles set is_sample = false where id = any(${others}::uuid[])`;
     await sql`update partner_crm_connections set price_mode = 'site', price_adjust_bps = 0, enabled = true where partner_id = ${partnerId}`;
     await sql.end();
   }
