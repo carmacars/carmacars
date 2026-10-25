@@ -8,6 +8,8 @@ including the Admin chapters 0167 changed).
 
 ## Guides
 
+Chapters whose text, screenshots or pins changed: `renter/find-a-car-and-send-a-request`, `renter/your-offer`, `renter/sign-and-pay`, `renter/before-pickup`, `renter/during-your-trip`, `renter/after-your-trip`, `owner/home-and-your-vehicles`, `owner/fees-payments-and-payouts`, `owner/documents-and-forms`, `admin/getting-around-admin`, `admin/requests-offers-and-bookings`, `admin/calendars`, `admin/fleet-and-listings`, `admin/the-investor-deck`, `admin/quick-reference`, `va/your-workday`, `va/customer-service`, `va/finance`, `va/fleet`, `va/sales`, `field/start-here`, `field/my-jobs`, `field/a-handover`, `field/photo-shoots`, `field/report-rentals-referrals-and-profile`, `investor/your-investments`, `investor/the-investor-deck`, `investor/statements`, `investor/profile-and-notices`.
+
 - Text audited against the code, chapter by chapter, in `docs/guides/src/guides/*.py`; `docs/guides/content/*.json`,
   `images.json` and `docs/guides/src/img` regenerated from retaken screens (`export.py`).
 - Redesigned screens (Admin To do, Owner home and vehicle, assistant queue and Finance, the field job list) re-cropped
