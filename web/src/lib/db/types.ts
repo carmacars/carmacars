@@ -665,6 +665,7 @@ export type Database = {
           open_cents: number;
           attempts: number;
           note: string | null;
+          manual: boolean;
         };
         Insert: {
           booking_id: string;
@@ -673,6 +674,7 @@ export type Database = {
           open_cents?: number;
           attempts?: number;
           note?: string | null;
+          manual?: boolean;
         };
         Update: {
           booking_id?: string;
@@ -681,6 +683,7 @@ export type Database = {
           open_cents?: number;
           attempts?: number;
           note?: string | null;
+          manual?: boolean;
         };
         Relationships: [];
       };
@@ -12138,6 +12141,7 @@ export type Database = {
           deposit_hold_capture_hours: number;
           deposit_auto_capture: boolean;
           balance_auto_collect: boolean;
+          deposit_auto_max_age_days: number;
           owner_revenue_visibility: string;
         };
         Insert: {
@@ -12610,6 +12614,7 @@ export type Database = {
           deposit_hold_capture_hours?: number;
           deposit_auto_capture?: boolean;
           balance_auto_collect?: boolean;
+          deposit_auto_max_age_days?: number;
           owner_revenue_visibility?: string;
         };
         Update: {
@@ -13082,6 +13087,7 @@ export type Database = {
           deposit_hold_capture_hours?: number;
           deposit_auto_capture?: boolean;
           balance_auto_collect?: boolean;
+          deposit_auto_max_age_days?: number;
           owner_revenue_visibility?: string;
         };
         Relationships: [];
