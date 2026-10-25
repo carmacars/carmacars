@@ -130,9 +130,9 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
             <FigureLinks label="Money to handle" items={[
               { k: 'Failed payments', v: board.payments_failed.length, sub: 'last 30 days', href: '/va/money#failed', warn: board.payments_failed.length > 0 },
               { k: 'Deposits to take', v: board.deposits_to_take.length, sub: 'pickups in two days', href: '/va/money#deposits' },
-              { k: 'Deposits due back', v: board.deposits_due.length, sub: 'this week', href: '/va/money#deposits', warn: board.deposits_due.length > 0 },
+              { k: 'Deposits due back', v: board.deposits_due.length, sub: 'this week', href: '/va/money#deposits-back', warn: board.deposits_due.length > 0 },
               { k: 'Refunds to request', v: board.cancellations.length, sub: 'after a cancellation', href: '/va/money#refunds', warn: board.cancellations.length > 0 },
-              { k: 'Refunds waiting', v: board.refunds.length, sub: 'in progress or to decide', href: '/va/money#refunds' },
+              { k: 'Refunds waiting', v: board.refunds.length, sub: 'in progress or to decide', href: '/va/money#refunds-progress' },
               { k: 'Owner statements', v: board.statements.length, sub: 'drafts to prepare', href: '/va/money#statements' }]} />
           </section>)}
         {fn === 'fleet' && <DayTimeline jobs={jobs} now={now} />}

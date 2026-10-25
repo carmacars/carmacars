@@ -3,6 +3,9 @@ import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
 import { Badge, Card, PageHead, Table, t, label } from '@/features/admin/ui';
+import { CarBoard, DayTimeline } from '@/features/va/FleetDay';
+import { carBoard, type CalVehicle } from '@/features/va/carboard';
+import { requestNow } from '@/features/va/lanes';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Field jobs', path: '/va/fleet', noindex: true, description: 'Field job scheduling and assignment.' });
@@ -17,14 +20,20 @@ const KIND: Record<string, string> = { handover: 'Handover', return_check_in: 'R
 // days with who has it and whether they acknowledged, the expiry watch and the vehicle documents.
 export default async function Fleet() {
   const { read } = await vaPage('/va/fleet', ['fleet']);
-  const b = await read<Board>('fleet_board');
+  const now = requestNow();
+  const [b, cal] = await Promise.all([read<Board>('fleet_board'),
+    read<{ vehicles: CalVehicle[] }>('calendar', { from: new Date(now - 86_400_000).toISOString(), to: new Date(now + 2 * 86_400_000).toISOString() }).then((c) => c.vehicles).catch(() => [] as CalVehicle[])]);
   const staff = b.staff.map((s) => [s.id, s.name] as [string, string]);
   const R = ['/va/fleet'];
-  const late = (j: R) => !j.acknowledged_at && j.status === 'scheduled' && new Date(String(j.scheduled_at)).getTime() - Date.now() < 2 * 3600_000;
+  const late = (j: R) => !j.acknowledged_at && j.status === 'scheduled' && new Date(String(j.scheduled_at)).getTime() - now < 2 * 3600_000;
   return (
     <>
-      <PageHead title="Field jobs" kicker={`${b.unscheduled.length} without a job · ${b.jobs.filter((j) => !j.assigned_to).length} unassigned`} />
+      <PageHead title="Field jobs" kicker={`${b.unscheduled.length} without a job · ${b.jobs.filter((j) => !j.assigned_to).length} unassigned`} purpose="Today's handovers, returns and moves by the clock, every car's state now, then every job of the next three days." />
       <p className="small muted" data-testid="fleet-auto-note">Handover and return jobs are made from each confirmed booking, at its times and place, and given to the least busy field staff member. Change the time, the place or the person below.</p>
+      <div className="va-cols">
+        <DayTimeline jobs={b.jobs} now={now} />
+        <CarBoard rows={carBoard(cal, now)} now={now} carHref={(id) => `/va/vehicles/${id}`} />
+      </div>
       <div className="stack">
         <Card title="Handovers and returns without a job" testId="unscheduled">
           <Table rows={b.unscheduled} rowKey={(r) => `${r.booking_id}-${r.leg}`} empty="Every handover and return has a job." cols={[

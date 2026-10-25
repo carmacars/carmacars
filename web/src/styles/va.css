@@ -164,7 +164,7 @@
 .va-carstate--on_rent b { color: var(--white); }
 .va-carstate--on_rent span { color: var(--grey-400); }
 .va-cars { list-style: none; margin: 0; padding: 0; display: grid; }
-.va-car { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr) auto; gap: var(--s-2) var(--s-3); align-items: center; padding: var(--s-2) 0; border-bottom: 1px solid var(--grey-100); font-size: var(--fs-sm); }
+.va-car { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) auto; gap: var(--s-2) var(--s-3); align-items: center; padding: var(--s-2) 0; border-bottom: 1px solid var(--grey-100); font-size: var(--fs-sm); }
 .va-car:last-child { border-bottom: 0; }
 .va-car .pu-pill { justify-self: start; }
 .va-car__name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; gap: 0 var(--s-2); align-items: baseline; }
@@ -217,3 +217,23 @@
 }
 @keyframes va-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes va-shimmer { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+/* ---------------------------------------------------------------- My sales: the ring and the tier ladder (in the dark hero) */
+.va-tierbox { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-5); padding: var(--s-4); border: 1px solid var(--pu-line-ink); border-radius: var(--pu-radius-sm); background: rgb(255 255 255 / 0.04); height: 100%; }
+.va-tierbox .pu-ring__label { font-size: var(--fs-d4); }
+.va-tiers { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); flex: 1 1 10rem; min-width: 0; }
+.va-tiers li { display: grid; grid-template-columns: 3.5rem minmax(0, 1fr); align-items: baseline; gap: var(--s-2); padding: var(--s-2) var(--s-3); border-radius: var(--pu-radius-sm); border: 1px solid transparent; color: var(--pu-on-ink-2); }
+.va-tiers b { font-family: var(--font-display); font-size: var(--fs-d4); color: var(--white); font-variant-numeric: tabular-nums; }
+.va-tiers span { font-size: var(--fs-sm); }
+.va-tiers li.is-past b { color: var(--pu-on-ink-2); }
+.va-tiers li.is-on { border-color: var(--red-400); background: rgb(208 17 27 / 0.18); color: var(--white); }
+.va-tiers li.is-on b { color: var(--white); }
+.va .ad__main [id] { scroll-margin-top: var(--s-5); }
+.va .ad-search .input { min-height: 44px; max-width: 26rem; width: 100%; }
+.va .ad-search .btn { min-height: 44px; }
+.va .ad-head__actions:has(.ad-search) { flex: 1 1 22rem; justify-content: flex-end; }
+.va .ad-search { flex: 1 1 auto; justify-content: flex-end; }
+@media (max-width: 47.99rem) {
+  .va-lane--h0 .va-lane__verb, .va-lane--h0 .va-lane__foot { display: none; }
+  .va-lane--h0 .va-lane__link { padding-bottom: var(--s-4); }
+}

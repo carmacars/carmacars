@@ -97,7 +97,7 @@ export function ReplyBoard({ items, now, target, more }: { items: WaitingItem[];
           <li key={i.key} className="va-reply" data-testid={i.testId}>
             <WaitTimer since={i.since} targetMin={target} now={now} bar />
             <span className="va-reply__text"><span className="va-reply__what">{i.what}</span><span className="va-reply__who">{i.who}{i.detail ? <span className="va-reply__detail">{i.detail}</span> : null}</span></span>
-            <Link prefetch={false} className="btn btn--sm btn--primary va-reply__cta" href={i.href}>{i.cta}</Link>
+            <Link prefetch={false} className={`btn btn--sm ${now - Date.parse(i.since) > target * 60_000 ? 'btn--primary' : 'btn--ghost'} va-reply__cta`} href={i.href}>{i.cta}</Link>
           </li>))}
         </ul>
       ) : <p className="va-empty-line"><PuIcon name="check" /> Inbox clear.</p>}

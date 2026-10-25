@@ -1,25 +1,44 @@
 import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
-import { PageHead, Table, t } from '@/features/admin/ui';
+import { Filters, PageHead, t } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Renter messages', path: '/va/messages', noindex: true, description: 'Messages with renters.' });
 
 type M = { id: string; direction: string; channel: string; body: string | null; subject: string | null; occurred_at: string; booking_number: string; renter_first_name: string | null; sent_by: string | null };
+const CHANNEL: Record<string, string> = { sms: 'text', email: 'email', portal: 'portal', whatsapp: 'WhatsApp', phone: 'call', chat: 'chat' };
 
-// Renter messages (05-va.md section 4): newest first; each opens its booking's messages, where a quick reply is sent.
-export default async function Messages() {
-  const { read } = await vaPage('/va/messages', ['cs']);
-  const rows = await read<M[]>('messages');
+// Renter messages (05-va.md section 4; a conversation list since October 25, 2026): newest first, the renter's own
+// messages marked; each opens its booking's messages, where a quick reply is sent.
+export default async function Messages({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const [{ read }, sp] = await Promise.all([vaPage('/va/messages', ['cs']), searchParams]);
+  const all = await read<M[]>('messages');
+  const dir = sp.dir === 'inbound' ? 'inbound' : '';
+  const rows = all.filter((r) => !dir || r.direction === 'inbound');
+  const inbound = all.filter((r) => r.direction === 'inbound').length;
   return (
     <>
-      <PageHead title="Renter messages" />
-      <Table<M & Record<string, unknown>> testId="messages-inbox" rows={rows as Array<M & Record<string, unknown>>} empty="No messages." cols={[
-        { key: 'occurred_at', label: 'When', render: (r) => t(r.occurred_at) },
-        { key: 'booking_number', label: 'Booking', render: (r) => <Link prefetch={false} className="link" href={`/va/bookings/${encodeURIComponent(r.booking_number)}?tab=messages`}>{r.booking_number}</Link> },
-        { key: 'who', label: 'From', render: (r) => (r.direction === 'inbound' ? r.renter_first_name ?? 'Renter' : r.sent_by ?? 'CarmaCars') },
-        { key: 'body', label: 'Message', className: 'wrap', render: (r) => r.body ?? r.subject ?? '' }]} />
+      <PageHead title="Renter messages" purpose="Every message with a renter, newest first. Open one to read the whole conversation and reply." />
+      <Filters base="/va/messages" name="dir" value={dir} sp={sp} options={[['', `All (${all.length})`], ['inbound', `From renters (${inbound})`]]} />
+      {rows.length ? (
+        <ul className="va-msgs" data-testid="messages-inbox" aria-label="Messages">
+          {rows.map((r) => {
+            const inb = r.direction === 'inbound';
+            const who = inb ? r.renter_first_name ?? 'Renter' : r.sent_by ?? 'CarmaCars';
+            return (
+              <li key={r.id} className={`va-msg${inb ? ' va-msg--in' : ''}`}>
+                <span className="va-msg__avatar" aria-hidden="true">{who.trim().charAt(0).toUpperCase() || 'C'}</span>
+                <span className="va-msg__text">
+                  <span className="va-msg__who"><Link prefetch={false} className="link" href={`/va/bookings/${encodeURIComponent(r.booking_number)}?tab=messages`}>{who}</Link>
+                    <span className="va-msg__dir">{inb ? 'to CarmaCars' : 'to the renter'}{CHANNEL[r.channel] ? ` by ${CHANNEL[r.channel]}` : ''} · {r.booking_number}</span></span>
+                  <span className="va-msg__body">{r.body ?? r.subject ?? ''}</span>
+                </span>
+                <span className="va-msg__when">{t(r.occurred_at)}</span>
+              </li>);
+          })}
+        </ul>
+      ) : <p className="ad-empty" data-testid="messages-inbox-empty">{all.length ? 'No message from a renter yet. Choose All to see every message.' : 'No messages yet. Messages with renters appear here as they come in.'}</p>}
     </>
   );
 }
