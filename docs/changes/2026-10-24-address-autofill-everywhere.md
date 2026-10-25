@@ -51,7 +51,7 @@ Not addresses: Visitor history's city filter, damage location on the car, a car'
 
 ## Tests
 
-- `tests/e2e/address-autofill.spec.ts`: one row per address field (17), typed a key at a time in the production build
+- `tests/e2e/address-autofill.spec.ts`: one test per address field (17, table driven), typed a key at a time in the production build
   with the local maps stand-in; each row checks the suggestion appears, the choice fills the field and its parts, at most
   3 suggestion requests for the whole word, no overflow; both widths. A second test checks the API (`via`, `lat`, `lng`).
 - `src/features/forms/address-parts.test.ts`: `siblingFill` for the business address, a partner, a staff home address,

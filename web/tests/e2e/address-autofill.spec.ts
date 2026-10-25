@@ -24,7 +24,8 @@ async function mkUser(sql: Sql, who: Exclude<Who, 'public'>) {
   }
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${'Addr ' + who})`;
   await sql`insert into user_roles (user_id, role) values (${id}, ${who})`;
-  if (who === 'va') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', 'fleet')`;
+  // a sales assistant: Admin > Staff > Sales has their household address
+  if (who === 'va') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', 'sales')`;
   if (who === 'field') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, field_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'field', 'driver')`;
   if (who === 'owner') await sql`insert into owners (user_id, owner_type, legal_name, status, email) values (${id}, 'individual', 'Olive Owner', 'active', ${email})`;
   return { id, email };
@@ -56,7 +57,7 @@ const ROWS: Row[] = [
   // the public site and the renter
   { name: 'booking request: delivery address', who: 'public', path: '/book/mercedes-benz-c300',
     open: async (p) => { await p.locator('label.option', { hasText: 'Deliver it to an address' }).click(); },
-    field: (p) => p.getByRole('combobox').first(), filled: (p) => [[p.getByRole('combobox').first(), UNION]] },
+    field: (p) => p.locator('#rq-addr1'), filled: (p) => [[p.locator('#rq-addr1'), UNION]] },
   { name: 'chauffeur request: pickup', who: 'public', path: '/chauffeur/request', field: (p) => p.locator('#ch-pickup'), filled: (p) => [[p.locator('#ch-pickup'), UNION]] },
   { name: 'chauffeur request: drop-off', who: 'public', path: '/chauffeur/request', field: (p) => p.locator('#ch-dropoff'), query: 'cn tower', option: /CN Tower/, filled: (p) => [[p.locator('#ch-dropoff'), /CN Tower/]] },
   { name: 'list your car: where the car is', who: 'public', path: '/list-your-car', field: (p) => p.locator('#ow-addr'), filled: (p) => [[p.locator('#ow-addr'), UNION]] },
@@ -96,58 +97,37 @@ async function newPage(browser: Browser) {
   return c.newPage();
 }
 
-test('every address field: suggestions appear and the choice fills the fields', async ({ browser }) => {
-  test.setTimeout(300_000);
-  const sql = db();
-  const users: Partial<Record<Who, { id: string; email: string }>> = {};
-  const ids: Record<string, string> = {};
-  const pages: Partial<Record<Who, Page>> = {};
-  const failed: string[] = [];
-  for (const r of ROWS) {
-    await test.step(r.name, async () => {
-      let page = pages[r.who];
-      if (!page) {
-        page = await newPage(browser);
-        if (r.who !== 'public') {
-          users[r.who] ??= await mkUser(sql, r.who);
-          await signIn(page, users[r.who]!.email);
-        } else { await page.goto('/', { waitUntil: 'networkidle' }); await acceptCookies(page); }
-        pages[r.who] = page;
-      }
-      if (r.who === 'admin' && !users.va) users.va = await mkUser(sql, 'va');
-      if (users.va) ids.va = users.va.id;
-      const asked: string[] = [];
-      const onReq = (q: { url(): string }) => { if (q.url().includes('/api/address')) asked.push(q.url()); };
-      page.on('request', onReq);
-      try {
-        await page.goto(typeof r.path === 'string' ? r.path : r.path(ids), { waitUntil: 'networkidle' });
-        if (r.open) await r.open(page);
-        const f = r.field(page);
-        await f.scrollIntoViewIfNeeded();
-        // typed as a person types: a key at a time
-        await f.click();
-        await f.fill('');
-        await f.pressSequentially(r.query ?? 'union station', { delay: 20 });
-        const opt = page.getByRole('option', { name: r.option ?? UNION }).first();
-        await expect(opt, `${r.name}: a suggestion appears`).toBeVisible({ timeout: 10_000 });
-        await opt.click();
-        for (const [loc, v] of r.filled(page)) {
-          if (typeof v === 'string') await expect(loc, `${r.name}: filled`).toHaveValue(v, { timeout: 10_000 });
-          else await expect(loc, `${r.name}: filled`).toHaveValue(v, { timeout: 10_000 });
-        }
-        // the field asked sparingly: one suggestion request for the whole word (the pause), never one a key
-        expect(asked.filter((u) => u.includes('/api/address?')).length, `${r.name}: suggestion requests`).toBeLessThanOrEqual(3);
-        await noOverflow(page);
-      } catch (e) {
-        failed.push(`${r.name}: ${(e as Error).message.split('\n')[0]}`);
-        await page.screenshot({ path: `test-results/address-autofill-${r.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${test.info().project.name}.png`, fullPage: true }).catch(() => undefined);
-      } finally { page.off('request', onReq); }
-    });
-  }
-  for (const p of Object.values(pages)) await p?.context().close();
-  await sql.end();
-  expect(failed).toEqual([]);
-});
+// one test a field (table driven), so a field that does not fill is named in the run's summary
+for (const r of ROWS) {
+  test(`address autofill: ${r.name}`, async ({ browser }) => {
+    test.setTimeout(90_000);
+    const sql = db();
+    const page = await newPage(browser);
+    const ids: Record<string, string> = {};
+    if (r.who !== 'public') await signIn(page, (await mkUser(sql, r.who)).email);
+    else { await page.goto('/', { waitUntil: 'networkidle' }); await acceptCookies(page); }
+    if (typeof r.path !== 'string') ids.va = (await mkUser(sql, 'va')).id;
+    const asked: string[] = [];
+    page.on('request', (q) => { if (q.url().includes('/api/address?')) asked.push(q.url()); });
+    await page.goto(typeof r.path === 'string' ? r.path : r.path(ids), { waitUntil: 'networkidle' });
+    if (r.open) await r.open(page);
+    const f = r.field(page);
+    await f.scrollIntoViewIfNeeded();
+    // typed as a person types: a key at a time
+    await f.click();
+    await f.fill('');
+    await f.pressSequentially(r.query ?? 'union station', { delay: 20 });
+    const opt = page.getByRole('option', { name: r.option ?? UNION }).first();
+    await expect(opt, 'a suggestion appears').toBeVisible({ timeout: 10_000 });
+    await opt.click();
+    for (const [loc, v] of r.filled(page)) await expect(loc, 'filled from the suggestion').toHaveValue(v, { timeout: 10_000 });
+    // the field asked sparingly: one suggestion request for the whole word (the pause), never one a key
+    expect(asked.length, 'suggestion requests').toBeLessThanOrEqual(3);
+    await noOverflow(page);
+    await page.context().close();
+    await sql.end();
+  });
+}
 
 test('the address API: suggestions, the place in parts with coordinates, and who answered', async ({ request }) => {
   const s = await (await request.get('/api/address?q=union%20station&s=e2e-session-0001')).json();
