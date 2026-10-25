@@ -355,7 +355,9 @@ test('field staff open a check-out from their job card in one tap', async ({ bro
   await signIn(page, field.email, '/field');
   await page.goto('/field', { waitUntil: 'networkidle' });
   await check(page, 'field jobs with the check-out button');
-  await page.getByTestId('field-checkout').first().click();
+  // this job's own card: the booking's automatic handover job (0151) may be on the same list, given to the least busy
+  // field staff member, who can be this new one
+  await page.getByTestId('job-card').filter({ has: page.locator(`a[href="/field/jobs/${job!.id}"]`) }).getByTestId('field-checkout').click();
   await page.waitForURL(new RegExp(`/field/jobs/${job!.id}`), { timeout: 30_000 });
   await expect(page.getByTestId('ready-check')).toBeVisible({ timeout: 15_000 });
   await sql.end();

@@ -203,7 +203,9 @@ test('field staff fix the ready check on the phone and release a car whose track
   await next(page, 'Hand over the keys');
   await expect(page.getByTestId('upload-count')).toContainText('all uploaded', { timeout: 60_000 });
   await page.getByTestId('complete').click();
-  await expect(page.getByTestId('field-done').or(page.locator('.fd-screen .alert--error'))).toBeVisible({ timeout: 30_000 });
+  // the finished checklist, or (once the server action's refresh reloads the job page) the job as done: the refresh
+  // can replace the finished checklist before it is seen, so both count (as in staff.spec.ts)
+  await expect(page.getByTestId('field-done').or(page.getByTestId('job-done')).or(page.locator('.fd-screen .alert--error'))).toBeVisible({ timeout: 30_000 });
   expect(await page.locator('.fd-screen .alert--error').innerText({ timeout: 500 }).catch(() => ''), 'the database refused the completion').toBe('');
   const [done] = await sql`select (select status::text from bookings where id = ${b.booking_id}) s,
                                   (select tracker_reporting from condition_reports where booking_id = ${b.booking_id} and kind = 'pickup') t,
