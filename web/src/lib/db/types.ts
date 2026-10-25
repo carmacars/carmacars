@@ -12690,6 +12690,7 @@ export type Database = {
           sms_opt_out_at: string | null;
           notify_channel: string | null;
           staff_note: string | null;
+          merged_into: string | null;
         };
         Insert: {
           id?: string;
@@ -12714,6 +12715,7 @@ export type Database = {
           sms_opt_out_at?: string | null;
           notify_channel?: string | null;
           staff_note?: string | null;
+          merged_into?: string | null;
         };
         Update: {
           id?: string;
@@ -12738,6 +12740,7 @@ export type Database = {
           sms_opt_out_at?: string | null;
           notify_channel?: string | null;
           staff_note?: string | null;
+          merged_into?: string | null;
         };
         Relationships: [];
       };
