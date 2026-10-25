@@ -5,7 +5,8 @@ import { bookingPath } from '@/features/portal/status';
 import { Back } from '@/features/portal/Blocks';
 import { UploadCard } from '@/features/portal/UploadCard';
 import { CoverageSection } from '@/features/portal/CoverageSection';
-import { myBooking, myCoverage } from '@/server/portal/data';
+import { myBooking, myCoverage, myTripPhotos } from '@/server/portal/data';
+import { StepHeader } from '@/features/portal/trip';
 import { licenceState } from '@/features/portal/LicenceNotice';
 import { LicenceForm } from '@/features/portal/LicenceForm';
 
@@ -22,7 +23,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ number:
   // the licence from the request on (0130): requested and offered show the licence alone, the coverage comes after approval
   const early = ['requested', 'offered'].includes(b.status);
   if (!early && !['pending_payment', 'confirmed'].includes(b.status) && !(b.status === 'on_rent' && b.added_mode === 'in_progress')) redirect(bookingPath(b.booking_number));
-  const lic = await licenceState(b.id, user.id);
+  const [lic, photos] = await Promise.all([licenceState(b.id, user.id), myTripPhotos(user)]);
   const me = lic?.drivers.find((d) => d.role === 'renter');
   const up = (kind: string, driver: string | null) => b.uploads.filter((u) => u.kind === kind && u.driver_id === driver).pop();
   const missing = b.readiness?.missing ?? [];
@@ -30,8 +31,8 @@ export default async function VerifyPage({ params }: { params: Promise<{ number:
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
+      <StepHeader b={b} photo={photos[b.vehicle_id] ?? null} title={early ? 'Your driver\'s licence' : 'Licence, selfie and coverage'} />
       <header className="stack">
-        <h1 className="d2">{early ? 'Your driver\'s licence' : 'Licence, selfie and coverage'}</h1>
         <p className="lead">{early ? 'Needed before you accept the offer: the front and back of your licence and a selfie holding it. A licence already on file from an earlier rental is used again while it is valid.'
           : `Needed by ${when(new Date(new Date(b.pickup_at).getTime() - 24 * 3600e3).toISOString())}, 24 hours before pickup.`}</p>
       </header>

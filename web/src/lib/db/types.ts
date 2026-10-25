@@ -20268,6 +20268,7 @@ export type Database = {
       my_roles: { Args: { p_user: string }; Returns: Json };
       my_sign_document: { Args: { p_by: string; p_document: string }; Returns: Json };
       my_sign_requests: { Args: { p_by: string }; Returns: Json };
+      my_trip_photos: { Args: never; Returns: Json };
       my_unread_count: { Args: never; Returns: number };
       owner_book_own_vehicle: { Args: { p_by: string; p_vehicle: string; p_pickup: string; p_return: string; p_note?: string }; Returns: string };
       owner_form_ab_open: { Args: { p_by: string; p_code: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
