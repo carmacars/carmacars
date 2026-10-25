@@ -22,7 +22,7 @@ async function me() {
 const PUBLIC = new Set(['todo_publish']);
 
 export type GuidedAction = 'insurer_confirm' | 'insurer_confirm_bulk' | 'todo_publish' | 'doc_review_upload' | 'doc_review_coverage' | 'doc_review_plan' | 'form_verify'
-  | 'first_last_paid_record' | 'terms_agreed_save' | 'todo_dismiss';
+  | 'first_last_paid_record' | 'terms_agreed_save' | 'todo_dismiss' | 'doc_review_approve_all';
 
 /** Runs one guided action through the door; refreshes the Admin's To do and the given pages. */
 export async function guidedAct<T = Record<string, unknown>>(action: GuidedAction, p: Record<string, unknown> = {}, refresh: string[] = []): Promise<R<T>> {

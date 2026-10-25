@@ -177,7 +177,8 @@ def build():
 
     g.task('Statements and payouts')
     g.steps([
-        'Statements: one a month, once approved by CarmaCars. Open one to see every booking, the revenue share, deductions and the payout.',
+        'This month so far, at the top of Statements: the rentals finished this month, your Owner Revenue, the Revenue Share, fees and deductions and the expected payout, worked out live and marked Provisional. Rentals still under way are listed below it.',
+        'Statements: one a month, once approved by CarmaCars; the approved statement is the final one. Open one to see every booking, the revenue share, deductions and the payout.',
         f'Press {B("Download PDF")} to keep a copy. We also email it to you with the PDF attached.',
         'Payouts shows what was paid to you and when. Payouts are made on the 10th for the month before.',
     ], shot=S('owner/09-statement-desktop', 0, 280, 1440, 1000, pins=[(2, 230, 450), (1, 950, 532)]))

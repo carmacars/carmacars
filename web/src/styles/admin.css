@@ -381,3 +381,15 @@ a.ad-tile:hover { border-color: var(--black); }
 .stock-row__text { display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .stock-row__acts { gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-1); }
 @media (max-width: 30rem) { .stock-row { grid-template-columns: minmax(0, 1fr); } .stock-row img, .stock-row__none { width: 100%; } }
+
+/* 0151: the identity review on one screen */
+.ad-approve-all { border: 2px solid var(--black); padding: var(--s-3); }
+.ad-approve-all ul { margin: 0; padding-left: 1.25rem; }
+.ad-reject > summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; }
+
+/* 0151: Payments */
+.pay-filters { align-items: end; margin-bottom: var(--s-4); }
+.pay-filters .field { min-width: 9rem; }
+.pay-methods { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); }
+.pay-methods legend { width: 100%; }
+.pay-out { color: #9b0c16; }

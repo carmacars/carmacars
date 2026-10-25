@@ -3,7 +3,8 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth, type SessionUser } from '@/lib/auth';
-import { rpc } from '@/lib/db/repo';
+import { DbError, rpc } from '@/lib/db/repo';
+import { friendlyDbError } from '@/lib/db/friendly';
 import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
 import { viewAs, ViewAsReadOnly } from '@/server/view-as';
@@ -45,8 +46,18 @@ export async function door<T = Record<string, unknown>>(userId: string, call: Ca
   let args = p;
   if (call.startsWith('va_') && !('_va' in p)) { const fn = await chosenFunction(); if (fn) args = { ...p, _va: fn }; }
   const a = { p_user: userId, p_aal: level ?? '', p_call: call, p_name: name ?? '', p: args as unknown as Json };
-  if (READS.has(call)) return (await cachedRead(JSON.stringify(a))) as T;
-  return (await rpc('door', a, SR)) as unknown as T;
+  try {
+    if (READS.has(call)) return (await cachedRead(JSON.stringify(a))) as T;
+    return (await rpc('door', a, SR)) as unknown as T;
+  } catch (e) { throw friendly(e, call, name); }
+}
+
+// A raw database error (a constraint, a cast, a timeout) becomes a plain sentence with a reference; the original is
+// logged with it (src/lib/db/friendly.ts, 0151). The database's own refusals pass through as written.
+function friendly(e: unknown, call: Call, name: string | null): unknown {
+  if (!(e instanceof Error)) return e;
+  const f = friendlyDbError(e as Error & { code?: unknown }, { call, name });
+  return f === e ? e : new DbError(f.message, 'friendly');
 }
 
 const myRoles = cache(async (userId: string) => (await rpc('my_roles', { p_user: userId }, SR)) as unknown as Roles);

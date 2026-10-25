@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import type { SessionUser } from '@/lib/auth';
 import { DbError, rpc } from '@/lib/db/repo';
 import { currentUser } from '@/server/portal/data';
-import type { OwnerBooking, OwnerDoc, OwnerForm, OwnerHome, OwnerInvoice, OwnerStatement } from '@/features/owner/types';
+import type { OwnerBooking, OwnerDoc, OwnerForm, OwnerHome, OwnerInvoice, OwnerMonthToDate, OwnerStatement } from '@/features/owner/types';
 import type { Photo } from '@/lib/types';
 import { getFleet } from '@/lib/site';
 import { liveStatus, monthStats, type Live, type MonthStat } from '@/features/owner/insights';
@@ -83,4 +83,15 @@ export async function ownerView(u: SessionUser, home: OwnerHome, opts: { months?
   const live: Record<string, Live> = {};
   for (const v of home.vehicles) live[v.vehicle_id] = liveStatus(v, bookings, now);
   return { bookings, months: monthStats(home, bookings, undefined, opts.months ?? 6), live, photo };
+}
+
+/** The month to date (0151): what this month's statement would say today, built and rolled back in the database
+ *  (provisional), or the approved statement when there is one (final). Null when it cannot be worked out now. */
+export async function ownerMonthToDate(u: SessionUser, month?: string): Promise<OwnerMonthToDate | null> {
+  try {
+    return (await rpc('owner_portal_month_to_date', { p_by: u.id, ...(month && /^\d{4}-\d{2}-01$/.test(month) ? { p_month: month } : {}) }, SR)) as unknown as OwnerMonthToDate;
+  } catch (e) {
+    console.error('owner month to date', e instanceof Error ? e.message : e);
+    return null;
+  }
 }

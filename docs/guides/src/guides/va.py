@@ -35,7 +35,7 @@ def build():
     g.table([
         ['Customer service', 'Bookings (Requests, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car), Renters (Messages, Find a renter, Review requests, Card coverage), Cars (Listings, Similar cars), Owners (Owners and enquiries, Add a car for an owner, Owner forms)'],
         ['Sales', 'Bookings (Requests and offers, Chauffeur, Send an offer, Add a rental, New quote, Calendar, Find a car, Card coverage), Owners (Owner leads)'],
-        ['Finance', 'Money (Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
+        ['Finance', 'Money (Payments by day, Payments, deposits and refunds, Tolls and tickets, Reconciliation, Turo trips), Renters and bookings (Find a renter, Calendar), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
         ['Fleet', 'Field work (Field jobs, Daily checks, Photo reviews), Cars (Listings, Similar cars, Calendar, Calendar sync, Add a car for an owner), Renters (Find a renter), Rentals (Add a rental, New quote, Find a car, Card coverage)'],
     ], head=['Function', 'Groups and pages'])
     g.task('To do', 'Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more.')
@@ -194,8 +194,9 @@ def build():
     g.task('Check renter documents', 'The renter\'s licence photos, selfie and proof of coverage, before the handover.')
     g.steps([
         f'Open the task "identity documents or coverage proof to review", or open the booking: {B("Review")} shows the documents of any booking being arranged or under way, with no task needed.',
-        f'Tick every check under a document, then press {B("Approve")}. Or type the reason the renter reads and press {B("Reject")}.',
-        'The coverage: OPCF 27 shows the insurer, policy number and expiry; credit card coverage shows the card, its type and whether the name matches. Approve or reject it as a whole.',
+        'Every licence image, selfie and proof of coverage of the booking is on one screen, with what to check written once above them: the name and date of birth, class G2 or G and valid past the return, the selfie matches, the coverage is active to the return date.',
+        f'One is wrong? Open {B("Reject this one")} under it, type the reason the renter reads and press {B("Reject")}.',
+        f'Then press {B("Approve all")}: everything still waiting is approved at once (the Protection Plan too). A document the system refuses is named with the reason; the rest are approved.',
     ])
     g.tip('Each opening is logged. An Admin can do the same from Admin > To do.')
 
@@ -263,6 +264,15 @@ def build():
     g.figure(S('va-finance/01-queue-desktop', 0, 60, 1440, 620, pins=[(1, 380, 314)]),
              note='The type filters show what Finance handles: collect upfront, debit failed, match toll, refund cancellation and review statements.')
 
+    g.task('Payments by day', f'{B("Payments by day")} is your day in one screen: every payment and refund, by method, with the cash drawer and the refunds to decide.')
+    g.steps([
+        f'Choose From and To (today by default) and tick the methods you want (card, e-Transfer, cash, cheque, platform payout, insurer and others; none ticked shows all), then press {B("Show")}.',
+        'Totals by method: received, refunded and net. Each day: the same by method, the cash expected in the drawer (cash received less cash given back) and the cash counted.',
+        f'At the end of the day count the drawer and press {B("Record the count")}. The difference shows "balanced", or "over" or "short" with the amount.',
+        f'Refunds waiting: every refund asked for anywhere (a cancellation, a booking, Finance), with the policy maths (paid, the tier, the percentage back, what is kept). Press {B("Approve")} or {B("Decline")} with the reason in the same row; above your limit it says an Admin approves. Approved: {B("Issue the refund")}.',
+        f'{B("Export CSV")} gives the same rows for the bank or the bookkeeper: refunds as negative amounts, holds marked as not money in.',
+    ])
+
     g.task('Payments, deposits, refunds')
     g.steps([
         'Failed payments: each with the purpose, amount and the bank\'s reason.',
@@ -313,12 +323,12 @@ def build():
               blurb='Field jobs, daily checks, photo reviews, similar cars and listings.')
     g.para('Your rail: Queue, Today, Field jobs, Daily checks, Photo reviews, Calendar, Listings, Similar cars, Find a renter '
            'and Scorecard.')
-    g.task('Schedule field jobs')
+    g.task('Schedule field jobs', 'Every confirmed booking gets its handover (or delivery) and return (or pickup) jobs by itself, at the booking\'s times and place, given to the field staff member with the fewest jobs that day. You check and change them.')
     g.steps([
-        'Handovers and returns without a job are listed first. Every booking needs one.',
-        f'Press {B("Schedule")}: choose the kind, car, when, place, field staff and instructions.',
-        'Jobs, next three days: each with its field staff and whether they acknowledged it.',
-        f'Change a job with {B("Assign")}, {B("Reassign")}, {B("Move")} or {B("Cancel")}.',
+        'Jobs, next three days: each with its place, its field staff and whether they acknowledged it. "Made from the booking" marks the ones made by themselves; when the booking moves, they move too, unless you changed them.',
+        f'Change a job with {B("Assign")}, {B("Reassign")}, {B("Move")} (time and place) or {B("Cancel")}.',
+        f'Handovers and returns without a job (when the automatic jobs are off, or one was cancelled) are listed first: press {B("Schedule")}, the place filled in from the booking.',
+        'An Admin turns the automatic jobs or the assignment off in Settings > Program.',
     ], shot=S('va-fleet/02-field-jobs-desktop', 210, 60, 1440, 1240, pins=[(1, 400, 183), (2, 1180, 210), (3, 350, 870), (4, 1180, 1050)]), fig_w=4.3)
 
     g.task('Daily checks', 'Twice a day: the opening check by 9:00 and the closing check by 18:00.')

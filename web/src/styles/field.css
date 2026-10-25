@@ -54,3 +54,11 @@
 .fd-qr { width: 12rem; height: 12rem; background: var(--white); padding: var(--s-2); border: 1px solid var(--grey-200); }
 .fd__top > .link { min-width: 0; }
 .fd .gd-banner { margin-bottom: var(--s-4); }
+
+/* 0151: the ready check resolved on the spot, each fix under the line it fixes */
+.fd-checks > li.fd-fixrow { display: grid; gap: var(--s-2); }
+.fd-fix { border-left: 4px solid #9b0c16; padding: var(--s-2) 0 var(--s-2) var(--s-3); }
+.fd-fix__more { border: 2px solid var(--black); padding: var(--s-2) var(--s-3); }
+.fd-fix__more > summary { min-height: 3rem; display: flex; align-items: center; font-weight: 600; cursor: pointer; }
+.fd-fix__more[open] > summary { margin-bottom: var(--s-2); }
+.fd-office { font-size: var(--fs-sm); }

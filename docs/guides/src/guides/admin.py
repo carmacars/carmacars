@@ -43,7 +43,7 @@ def build():
         ['Today', 'To do, Overview, Staff tasks, Live visitors'],
         ['Bookings', 'Trips: Requests, Bookings, Calendar, Add a rental, Chauffeur. Customers: Live chat, Renter leads, Reviews. Problems: Damage, Incidents and claims'],
         ['Cars', 'Vehicles, Listings, Maintenance, Rates for many cars, Calendar sync, Similar cars, Retire or delete'],
-        ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer invoices, Staff commissions'],
+        ['Money', 'Owners: Owner invoices, Owner debits, Owner statements, Payouts. Renters: Payments by day, Payments and refunds, Tolls and tickets. Company: Company statements, Reconciliation, Expenses, Insurer invoices, Staff commissions'],
         ['People', 'Owners and partners: Applications, Owners, Add a car for an owner, Partners, Owner forms, Paid and signed. Renters, staff and investors: Renters, Staff, Investors, Portals and view as'],
         ['Settings', 'All settings. Website: Site, Vehicle pages, Sample photos, Add-ons, Discount games, Guides. Rules: Program, Forms, Maintenance, Emails. Records: Email log, Audit log'],
     ], head=['Group', 'Pages'])
@@ -273,10 +273,20 @@ def build():
     g.steps([
         f'A booking with documents waiting is a line on To do: "Check <renter>\'s documents for booking <number>", marked Now when the pickup is within two days. Press {B("Review documents")}.',
         'The pop-up shows each driver\'s images and the coverage: the insurer, policy number and expiry, or the card, its type and whether the name matches.',
-        f'Tick the checks, then {B("Approve")}. Or type the reason the renter reads and press {B("Reject")}: they are asked for a new one.',
+        f'What to check is written once at the top. One wrong? Open {B("Reject this one")} under it, type the reason the renter reads and press {B("Reject")}: they are asked for a new one.',
+        f'Then press {B("Approve all")}: every image, the proof of coverage and the Protection Plan still waiting are approved in one step. Anything the system refuses is named with the reason.',
         f'The same pop-up is on the booking: the card Renter documents ({B("Review documents")}) on Overview and on Drivers and documents.',
     ])
-    g.tip('Each opening of a renter\'s documents is logged. The links to the images last one minute.')
+    g.tip('Each opening of a renter\'s documents is logged. The links to the images last one minute. Field staff can also check a licence in person at the check-out (photos and four checks): the history says "checked in person".')
+
+    g.task('Payments by day', f'{P("Money", "Payments by day")}: every payment and refund of a day or a range, by method, the cash drawer and the refunds waiting. Finance has the same screen.')
+    g.steps([
+        f'Choose From and To and the methods (card, e-Transfer, cash, cheque, platform payout, insurer, bank transfer, pre-authorized debit, other), then press {B("Show")}.',
+        'Totals by method and for each day; cards read as the card and its last four digits, never a code.',
+        f'The cash drawer: expected (cash in less cash given back) against the count Finance records with {B("Record the count")}; a difference shows over or short.',
+        f'Refunds waiting: every refund asked for anywhere with the policy maths. {B("Approve")} or {B("Decline")} with the reason in the row, then {B("Issue the refund")}.',
+        f'{B("Export CSV")} for the bookkeeper.',
+    ])
 
     g.task('Propose a change to a confirmed booking', 'The renter gets an email and answers on their booking. The calendar moves only when they accept.')
     g.steps([
@@ -1140,6 +1150,7 @@ def build():
         f'Staff agreement defaults by function, at the bottom: pay (a month, an hour or commission only), the rate, the schedule (full time, part time or flexible), days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Sales is commission only: no rate and a flexible schedule. Press {B("Save the defaults")}.',
         'Live visitors and live chat: recording visits, the signal thresholds, follow-up tasks, the chat and its assistant, and how long visits and chats are kept.',
         'Discount games: the same values as Settings, Discount games (the prize table and the games are easier to change there).',
+        'Field jobs and handovers: field jobs made from each confirmed booking (on) and who gets them (the least busy field staff member, or nobody so Fleet assigns), how field staff may take a deposit at the check-out besides a card (e-Transfer and cash), and whether they may release a car whose tracker is not reporting, with a reason (on; you get an urgent task).',
         'Sign-in by phone: codes by text from the CarmaCars number (on), US numbers (off until the Quo number is registered for US texting, A2P 10DLC), codes per number and per connection an hour, and whether a verified phone confirms an account like a confirmed email. Accepting an offer, signing and paying need a confirmed account; an account made by phone gives its email on the pay page before its first payment.',
         'Calendar sync, Turo by email, Booking recovery emails and Site check: how often calendar links are read, the Turo inbound address and who may forward to it, the reminder delays and sending hours, and the site check with the address its alerts go to (rent@carmacars.ca), the minutes before an email, the daily limit and the quiet hours.',
         f'Change a value and press {B("Save")}. It is saved as a new row from today; the rows before stay as they were.',

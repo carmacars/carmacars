@@ -197,7 +197,7 @@ test('va: finance asks for a refund above the limit and it becomes an Admin appr
   await sql.end();
 });
 
-test('va: fleet schedules and assigns a field job', async ({ browser }, info) => {
+test('va: fleet checks and assigns the field job made from a booking', async ({ browser }, info) => {
   test.setTimeout(150_000);
   const phone = info.project.name.startsWith('phone');
   const sql = db();
@@ -209,17 +209,19 @@ test('va: fleet schedules and assigns a field job', async ({ browser }, info) =>
   const car = await freeCar(sql, 2, 2);
   const req = await seedRequest(sql, renter, car.id, car.from, car.to);
   await confirmBooking(sql, req.booking_id, admin.id);
+  // the handover and return jobs are made from the booking at its confirmation (0144): Fleet checks and assigns
+  const [j] = await sql`select id, place, auto_created from field_jobs where booking_id = ${req.booking_id} and kind = 'handover' and status <> 'cancelled'`;
+  expect([Boolean(j?.place), j?.auto_created]).toEqual([true, true]);
   const page = await ctx(browser, phone);
   await signIn(page, fleet.email, '/va');
   await page.goto('/va/fleet');
-  await expect(page.getByTestId('unscheduled')).toContainText(req.booking_number);
+  await expect(page.getByTestId('unscheduled')).not.toContainText(req.booking_number);
+  await expect(page.getByTestId('jobs')).toContainText(req.booking_number);
   await check(page, 'va fleet');
-  await page.getByTestId(`schedule-${req.booking_number}-handover`).click();
-  const dlg = page.locator('dialog[open]');
-  await dlg.getByLabel('Assigned to').selectOption(field.id);
-  await dlg.getByTestId(`schedule-${req.booking_number}-handover-submit`).click();
-  await expect.poll(async () => (await sql`select assigned_to from field_jobs where booking_id = ${req.booking_id} and kind = 'handover'`)[0]?.assigned_to, { timeout: 15_000 }).toBe(field.id);
-  const [j] = await sql`select id, assigned_to from field_jobs where booking_id = ${req.booking_id} and kind = 'handover'`;
+  await page.getByTestId(`assign-${j!.id}`).click();
+  await page.locator('dialog[open]').getByLabel('Field staff').selectOption(field.id);
+  await page.getByTestId(`assign-${j!.id}-submit`).click();
+  await expect.poll(async () => (await sql`select assigned_to from field_jobs where id = ${j!.id}`)[0]?.assigned_to, { timeout: 15_000 }).toBe(field.id);
   // and hand it to someone else, then back: an assignment the database checks each time
   const other = await mkUser(sql, 'fj2', 'field');
   await sql`select app.assign_field_job(${j!.id}::uuid, ${other.id}::uuid, ${admin.id}::uuid)`;

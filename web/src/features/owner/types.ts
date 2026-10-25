@@ -140,3 +140,14 @@ export const METHOD_LABEL: Record<string, string> = {
   co_registrant: 'Co-Registrant', transfer: 'Transfer', none: 'None (Turo-Only)'
 };
 export const PAY_METHOD_LABEL: Record<string, string> = { card: 'Card', pre_authorized_debit: 'Pre-authorized debit', e_transfer: 'e-Transfer', cheque: 'Cheque', bank_transfer: 'Bank transfer', cash: 'Cash', other: 'Other' };
+
+/** The owner's month to date (0151): the statement the month would give today, provisional; or the approved one, final. */
+export interface OwnerMonthToDate {
+  month: string; final: boolean; provisional?: boolean; as_of?: string; unavailable?: boolean;
+  statement_id?: string; statement_number?: string; payout_cents?: number; payout_date?: string;
+  totals?: { owner_revenue_cents: number; revenue_share_cents: number; net_earnings_cents: number; deductions_cents: number; kickbacks_earned_cents: number;
+    hst_on_payout_cents: number; balance_brought_forward_cents: number; payout_cents: number; balance_carried_forward_cents: number } | null;
+  vehicles?: Array<{ vehicle_id: string; name: string; plate: string | null; owner_revenue_cents: number; revenue_share_cents: number; fees_cents: number; net_earnings_cents: number;
+    lines: Array<{ line_type: string; description: string; booking_number?: string; starts_on?: string; ends_on?: string; amount_cents?: number; owner_revenue_cents?: number }> }>;
+  in_progress: Array<{ booking_number: string; vehicle_name: string; status: string; pickup_at: string; return_at: string; days: number }>;
+}

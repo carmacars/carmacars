@@ -2,19 +2,22 @@ import { pageMeta } from '@/features/seo/meta';
 import { PageHeader } from '@/features/portal/Chrome';
 import { money } from '@/lib/format';
 import { day, monthOf } from '@/features/owner/Blocks';
-import { requireOwner } from '@/server/owner/data';
+import { ownerMonthToDate, requireOwner } from '@/server/owner/data';
 import { BarChart, DocumentList, DocumentRow, StatCard } from '@/components/portal-ui';
+import { MonthToDate } from '@/features/owner/MonthToDate';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Statements', path: '/owner/statements', noindex: true, description: 'Your monthly statements.' });
 
 export default async function OwnerStatements() {
-  const { home } = await requireOwner('/owner/statements');
+  const { user, home } = await requireOwner('/owner/statements');
   const chart = home.statements.slice(0, 12).reverse();
   const year = new Date().toISOString().slice(0, 4);
+  const mtd = await ownerMonthToDate(user);
   return (
     <>
       <PageHeader title="Statements" purpose={`One statement a month with the booking behind every number. Paid out on the ${home.auto_debit.terms.payout_day_text} for the month before.`} />
+      <MonthToDate m={mtd} />
       {home.statements.length ? (
         <>
           <div className="pu-grid-2 pu-grid-2--wide">
@@ -33,7 +36,7 @@ export default async function OwnerStatements() {
               status={<span className={`badge ${s.status === 'paid' ? '' : 'badge--outline'}`}>{s.status === 'paid' ? 'Paid' : 'Approved'}</span>} />))}
           </DocumentList>
         </>
-      ) : <p className="pt-empty muted">Your first statement appears here once a month with rentals is approved. Payouts are made on the {home.auto_debit.terms.payout_day_text}.</p>}
+      ) : <p className="pt-empty muted">Your first approved statement appears here after the month ends; the month so far is above. Payouts are made on the {home.auto_debit.terms.payout_day_text}.</p>}
     </>
   );
 }
