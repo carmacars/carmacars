@@ -193,6 +193,29 @@ def build():
     g.tip(f'No need to withdraw first. {B("Withdraw the offer")} is only for taking it back for good; {B("Send again, later expiry")} gives the renter more time, '
           f'and {B("Renter approved by phone")} records a yes given on a call.')
 
+    g.task('Edit a booking that has started', f'On a confirmed, on-trip or returned booking (an Admin: a closed one too), Overview, {B("Edit the booking")}, {B("Edit")}.')
+    g.steps([
+        'Change the pickup or the return (extend or shorten: the rental charge is worked out again at this booking\'s rates), the car (on trip: the car it leaves goes to Out of service for Fleet to check), the rental charge for the trip, each fee, the kilometres a day, the deposit (an Admin) and the note.',
+        f'Type why, if you like, and tick {B("Email the renter what changed")}, or leave it off for a silent correction. Press {B("Save the changes")}.',
+        f'What is open now shows at once: {B("Email a pay link")} or {B("Text a pay link")} for exactly that amount, {B("Charge")} the saved card (the renter agreed), or record cash or an e-Transfer on the Money tab.',
+    ])
+    g.tip('Each edit is kept with who, when, why, before and after (Edits, under the form) and in the booking\'s history. A closed booking\'s owner split and the staff commission follow. To have the renter accept and sign first, use Propose a change instead.', label='Good to know')
+
+    g.task('Fees, a forgotten fee and the balance', f'On the booking\'s Money tab, Fees lists each fee. Press {B("Change or add a fee")}.')
+    g.steps([
+        'Type a new amount (for the whole trip, before HST) beside any fee, or choose one not on the booking (the young driver fee shows its price for these dates), or add a charge of its own with or without HST.',
+        f'Press {B("Save the fees")}. The balance shows by part (rental, fees) with the pay link, the saved card and Record a payment beside it.',
+        'The renter sees the balance on their booking with a Pay button, and pays by card on Stripe\'s form.',
+    ])
+    g.tip('Every change is recorded (Changes to the fees): the amount before and after, who and why. Customer service and sales may change fees while Program settings, Staff may change fees, is on.', label='Good to know')
+
+    g.task('Correct a renter\'s details', f'On the renter\'s page (People, Renters) or on any of their bookings, {B("Edit renter")}.')
+    g.steps([
+        'Correct the name, email, phone, date of birth, licence, home address (start typing to find it) or the staff note.',
+        f'A new email also becomes their sign-in at once (no confirmation needed for a typo you correct); tick {B("Email the renter a link to set a password")} to send one there. Unsigned agreements and offers go to the new address.',
+        f'Press {B("Save the renter")}. An email that another renter has is refused with their name; the same phone is a warning.',
+    ])
+
     g.task('Payments by part: the rental, the deposit and later charges', 'On the booking\'s Money tab, Money by part shows what is still open for the rental, the fees and later charges, the deposit and the card on file. Each part is paid its own way, in any mix: for example the deposit in cash and the rental by card.')
     g.steps([
         f'{B("Record a payment")}: choose what it is for (the rental, fees, the deposit or a later charge) and how it was paid (e-Transfer, cash, cheque, bank transfer, platform payout, the insurer). An e-Transfer, cheque or transfer needs its reference. Press {B("Record it")}. The renter gets a receipt; {B("Print")} prints one to hand over.',
@@ -522,10 +545,12 @@ def build():
         'Choose the car and the dates. The calendar and the price are checked by themselves: clashes with other bookings and the cleaning time after each trip. An Admin may book over a clash with a reason.',
         'The dates decide the case, shown under them (nothing to tick): a pickup ahead is an upcoming rental, handed over at pickup as usual. A pickup already passed with the return ahead is a rental already underway: it is recorded as on trip from the pickup you enter, on any active car (even one closed to public bookings), and anything a handover checks that is still missing (signature, licence check, coverage proof, deposit, condition report, insurance) becomes a task. A return already passed is a rental that has ended: kept as completed, paid another way or unpaid.',
         'Find the renter by name, email or phone, or add a new one: name, email, phone, date of birth and licence. Add any other drivers.',
-        'Check the price: the car\'s rates, extras, coverage and deposit. An Admin may set the price by hand; assistants use the rate sheet and the discounts allowed.',
+        'Check the price: every line of the price can be changed where it stands. Type a new amount in the line (the rental charge for the trip or a rate a day, the young driver fee, the Protection Plan, delivery, each add-on, the deposit, the kilometres a day); HST and the total follow. Add a line from the list or a charge of its own; Remove takes a fee off. The (i) beside each line says what it is and how it is worked out. One optional reason covers all the changes.',
+        'Any length: the dates may run past 30 days (up to the staff limit in Program settings, 730 days by default). From 30 days the rental charge is the monthly rate for each 30 days, and the monthly periods are listed.',
         'A car whose listing is not finished (a draft listing, onboarding, no photos or no rates yet) can be rented at once: it shows Listing not finished in the car list and stays off the public site. With no rates yet, type the rental charge for the whole rental and the reason.',
         f'An owner\'s car that is not on the fleet insurance policy yet: only an Admin adds its rentals, and ticks I checked that this car is insured for this rental. An owner\'s car needs its terms (Revenue Share) first. The handover still needs the car on the fleet policy: press {B("Insurer confirmed")} once the insurer confirms it.',
-        'The rental is paid by: e-Transfer or cash (received), card on file (charged when the renter signs), payment link, platform payout (Turo), insurer billed later, cheque, bank transfer, or unpaid. The deposit is taken by card hold, cash, e-Transfer or no deposit.',
+        f'The rent is paid by: e-Transfer or cash (received), card on file (charged when the renter signs), payment link, platform payout (Turo), insurer billed later, cheque, bank transfer, or unpaid. Paid in parts (some cash, some e-Transfer): press {B("Add another payment (paid in parts)")} and type each amount. Then the deposit, its own way: card hold, cash, e-Transfer (with its reference and date) or no deposit.',
+        'Before you save checks it all in one box: the renter, the car, the days, the total, what was received and what is still to collect, the deposit and the agreement.',
         'The rental agreement: Send it to sign online, or Already signed on paper (a task asks for the scan). The calendar: untick Blocks the car\'s calendar for an insurance replacement with dates not known yet, with the reason.',
         f'Tick {B("Do not email the renter")} if they should not get the confirmation. Press {B("Add the rental")}.',
     ])

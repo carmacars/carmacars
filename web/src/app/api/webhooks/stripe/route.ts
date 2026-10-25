@@ -5,6 +5,7 @@ import { settleIntent } from '@/server/portal/payment';
 import { settleAddonIntent } from '@/server/portal/addon-payment';
 import { settleDebitIntent, settleInvoiceIntent, verifyDebitSetup } from '@/server/owner/payment';
 import { settlePayreq } from '@/server/paylink';
+import { stripeEventCalls } from '@/server/stripe-events';
 
 // Stripe webhook (docs/blueprint/13-security.md section 8). A route on the Worker rather than a
 // Supabase Edge Function: the settlement code, the payments module and the signed-copy renderer live
@@ -62,6 +63,13 @@ export async function POST(req: Request): Promise<Response> {
       if (['payment_intent.succeeded', 'payment_intent.processing', 'payment_intent.payment_failed', 'payment_intent.canceled'].includes(event.type)) {
         result = await settleInvoiceIntent(obj.id, null, { failedEvent: event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.canceled' });
       }
+    }
+    // 0132: refunds, disputes and a charge the bank wants confirmed (each recorded once by the database)
+    const calls = stripeEventCalls(event.type, obj as Record<string, unknown>);
+    if (calls.length) {
+      const out: unknown[] = [];
+      for (const c of calls) out.push(await rpc(c.fn, { p: c.p as never }, SR));
+      result = out.length === 1 ? out[0] : out;
     }
     await rpc('server_webhook_event_finish', { p_provider: 'stripe', p_event_id: event.id, p_result: result as never }, SR);
     return Response.json({ received: true, result });

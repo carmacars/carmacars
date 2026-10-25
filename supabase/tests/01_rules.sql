@@ -31,8 +31,11 @@ select test.eq('R2.4 45 days wanted: $3,000 over two transactions',
   (select rental_charge_cents from public.calc_rental_charge(timestamp '2026-11-09 09:00' at time zone 'America/Toronto', 30, 10000, 12000, 56000, 180000))
   + (select rental_charge_cents from public.calc_rental_charge(timestamp '2026-12-09 09:00' at time zone 'America/Toronto', 15, 10000, 12000, 56000, 180000)),
   test.money('3,000.00'));
-select test.throws('R2 over 30 days is not allowed in one transaction',
-  $$select * from public.calc_rental_charge(now(), 45, 10000, 12000, 56000, 180000)$$, '1 to 30 days');
+-- 0132: a booking longer than 30 days is one booking cut into monthly periods, each 30 days at the monthly rate
+select test.eq('R2 45 days in one booking: the monthly rate for each 30 days ($1,800 x 45 / 30 = $2,700)',
+  (select rental_charge_cents from public.calc_rental_charge(now(), 45, 10000, 12000, 56000, 180000)), test.money('2,700.00'));
+select test.throws('R2 past 3,660 days is refused',
+  $$select * from public.calc_rental_charge(now(), 4000, 10000, 12000, 56000, 180000)$$, '1 to 3,660 days');
 select test.eq('R2 7 to 29 days is capped at the monthly rate (29 days: $2,320 -> $1,800)',
   (select rental_charge_cents from public.calc_rental_charge(now(), 29, 10000, 12000, 56000, 180000)), test.money('1,800.00'));
 select test.eq('R2 7 days is the weekly rate',
@@ -226,8 +229,8 @@ select test.eq('RND a credit mirrors the charge: HST on -$12.50 is -$1.63', publ
 select test.eq('R6 extension: Thu-Sun (3 days, $340) extended to 10 days is repriced to $800; the renter pays the $460 difference',
   (select previous_rental_charge_cents || '/' || new_rental_charge_cents || '/' || rental_difference_cents
      from public.calc_extension(timestamp '2026-11-05 10:00' at time zone 'America/Toronto', 3, 10, 10000, 12000, 56000, 180000)), '34000/80000/46000');
-select test.throws('R6 an extension cannot take the total past 30 days',
-  $$select * from public.calc_extension(now(), 25, 31, 10000, 12000, 56000, 180000)$$, '1 to 30 days');
+select test.eq('R6 an extension past 30 days is priced at the monthly rate for each 30 days (0132)',
+  (select new_rental_charge_cents from public.calc_extension(now(), 25, 31, 10000, 12000, 56000, 180000)), test.money('1,860.00'));
 select test.eq('R7 declined card: retries after 1, 3 and 7 days, then none',
   (select string_agg(coalesce((public.calc_payment_retry_at(timestamptz '2026-11-01 12:00+00', n) - timestamptz '2026-11-01 12:00+00')::text, 'none'), ', ' order by n)
      from generate_series(0, 3) n), '1 day, 3 days, 7 days, none');

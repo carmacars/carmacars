@@ -337,9 +337,12 @@ stripe() {
   mask "$STRIPE_SECRET_KEY"
   local url="$APP_URL/api/webhooks/stripe" list id secret
   # the PaymentIntent events of bookings and owner invoices, the debit settling days later (processing, canceled),
-  # a pre-authorized debit agreement set up from Banking (setup_intent) and one cancelled at the bank (mandate.updated)
+  # a pre-authorized debit agreement set up from Banking (setup_intent) and one cancelled at the bank (mandate.updated);
+  # 0132: a charge the bank wants confirmed (requires_action), refunds settling or failing and one made in Stripe's
+  # dashboard (refund.*, charge.refunded), disputes (charge.dispute.*). web/src/server/stripe-events.ts keeps the same list.
   local events=(payment_intent.amount_capturable_updated payment_intent.succeeded payment_intent.payment_failed
-                payment_intent.processing payment_intent.canceled setup_intent.succeeded setup_intent.setup_failed mandate.updated)
+                payment_intent.processing payment_intent.canceled payment_intent.requires_action setup_intent.succeeded setup_intent.setup_failed mandate.updated
+                charge.refunded refund.created refund.updated charge.dispute.created charge.dispute.updated charge.dispute.closed)
   list=$(curl -sS -G https://api.stripe.com/v1/webhook_endpoints -u "$STRIPE_SECRET_KEY:" -d limit=100)
   id=$(jq -r --arg u "$url" '[.data[]? | select(.url == $u)][0].id // empty' <<<"$list")
   secret=$(vault_get deploy_stripe_webhook_secret)

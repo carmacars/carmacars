@@ -145,6 +145,15 @@ def build():
         f'Press {B("Create the request")}. It opens like any request; send the offer from there.',
     ], shot=S('va-cs/05-new-quote-desktop', 220, 60, 1440, 1320, pins=[(1, 1100, 256), (2, 1100, 586), (3, 1100, 976), (4, 1000, 1137)]), fig_w=3.4)
 
+    g.task('Edit a booking, a fee or the renter', 'A booking that is confirmed, on trip or returned is edited directly; the renter\'s details are corrected from the booking.')
+    g.steps([
+        f'Overview, {B("Edit the booking")}: the return (extend or shorten), the car, the rental charge, each fee, the kilometres and the note. Tick {B("Email the renter what changed")}, or leave it off for a silent correction.',
+        f'Money tab, Fees, {B("Change or add a fee")}: a fee forgotten (the young driver fee shows its price for the dates) or a charge of its own.',
+        f'What is open shows at once: {B("Email a pay link")} or {B("Text a pay link")} for exactly that amount, or record cash or an e-Transfer ({B("Record a payment")}, For: the rental and fees).',
+        f'{B("Edit renter")}: a wrong email, phone, name, licence or address. A new email is their sign-in at once.',
+    ])
+    g.tip('Each edit is recorded with your name, the time, the reason and the before and after.', label='Good to know')
+
     g.task('Renter messages and Find a renter')
     g.steps([
         f'{B("Renter messages")} lists the latest messages with their booking. Open the booking to reply, then press {B("Send")}.',
@@ -416,8 +425,9 @@ def build():
         'The calendar and the price are checked by themselves once the car and the dates are in. The price comes from the rate sheet. You may add the extras, how damage is covered and an allowed promo code.',
         f'Quick start: {B("Phone")}, {B("Walk-in")}, {B("Turo or another platform")} or {B("Insurance replacement")} sets the usual choices.',
         'A car tagged Listing not finished can be rented too: it stays off the public site. If it has no rates yet, type the rental charge for the whole rental and the reason. An owner\'s car not yet on the fleet insurance policy is added by an Admin only.',
-        'To charge another price, type the rental charge and the reason. The rate-sheet price stays on the booking. A price far under the rate sheet is flagged for an Admin to review, but the rental is still added.',
-        'Choose how the rental is paid (e-Transfer or cash received, card on file, payment link, platform payout, insurer billed later; the ways open to you are set by an Admin) and how the deposit is taken (card hold, cash or e-Transfer). Signed on paper already? Choose it: a task asks for the scan. An insurance replacement with dates not known yet: untick Blocks the car\'s calendar and say why.',
+        'Every line of the price can be changed where it stands (customer service and sales, while Program settings allow it): the rental charge for the trip or a rate a day, the young driver fee, the Protection Plan, delivery, each add-on, the kilometres a day; add a fee from the list or a charge of its own. The (i) beside each line says what it is. The rate-sheet price stays on the booking; a price far under it is flagged for an Admin, never refused.',
+        'Any length: past 30 days the monthly rate applies for each 30 days, and the monthly periods are listed.',
+        'Choose how the rent is paid (e-Transfer or cash received, card on file, payment link, platform payout, insurer billed later; the ways open to you are set by an Admin; paid in parts: Add another payment) and then how the deposit is paid (card hold, cash or e-Transfer with its reference). Before you save sums it all up. Signed on paper already? Choose it: a task asks for the scan. An insurance replacement with dates not known yet: untick Blocks the car\'s calendar and say why.',
         f'Under Who found this client, choose {B("I sourced this client")} or {B("Entered for CarmaCars")}.',
         f'Press {B("Add the rental")}. The renter gets the confirmation email unless you tick {B("Do not email the renter")}.',
         'A rental you add is credited to you and shows in My sales as a rental you added. If you sourced it, its commission shows there too.',

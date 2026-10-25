@@ -16,7 +16,7 @@ export default async function PayLink({ params, searchParams }: { params: Promis
   const token = (await params).token;
   // the staff page to go back to on a device handed to the renter (only a staff address)
   const back = (await searchParams).back;
-  const backTo = back && /^\/(field|admin|va)\/[\w/-]*$/.test(back) ? back : null;
+  const backTo = back && /^\/(field|admin|va|account)\/[\w/-]*$/.test(back) ? back : null;
   const f = await payLinkFacts(token);
   if (!f || f.status !== 'open') return (
     <div className="pt"><div className="wrap pt__body stack" style={{ maxWidth: '36rem' }} data-testid="paylink-closed">

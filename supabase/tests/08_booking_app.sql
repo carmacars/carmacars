@@ -151,7 +151,7 @@ select test.eq('S the numbers an Admin may change are program settings, with the
           || '/' || array_to_string(accepted_licence_classes, ',') || '/' || other_licence_for_review || '/' || max_additional_drivers || '/' || max_baby_seats
           || '/' || request_note_max_chars || '/' || info_request_reply_hours || '/' || verification_due_hours_before_pickup || '/' || verification_review_hours
           || '/' || require_staff_two_step || '/' || max_rental_days || '/' || min_renter_age || '/' || standard_min_age
-     from app.settings()), '120/5/3/0/G,G2/true/4/3/500/24/24/2/false/30/18/21');
+     from app.settings()), '120/5/3/0/G,G2/true/4/3/500/24/24/2/false/365/18/21');
 select test.eq('S an extension can now be approved between asking and paying',
   (select pg_get_constraintdef(oid) ~ 'requested.*approved.*confirmed.*declined.*lapsed' from pg_constraint
     where conrelid = 'public.booking_extensions'::regclass and conname = 'booking_extensions_status_check'), true);
@@ -236,8 +236,8 @@ select test.keep('q3', app.quote_booking(test.id('vehicle:BA1'), test.at('2029-0
 select test.eq('Q example 3: 10 days is $560 / 7 x 10 = $800, by the weekly rate; over 7 days the Deposit is charged, not held',
   (select (v ->> 'billable_days') || '/' || (v ->> 'rate_applied') || '/' || (v ->> 'rental_charge_cents') || '/' || (v ->> 'rate_rule') || '/' || (v ->> 'deposit_method')
      from test.out('q3') v), '10/weekly/' || test.money('800') || '/weekly rate divided by 7, times 10 days/charged');
-select test.throws('Q example 4: 45 days cannot be one transaction',
-  $$select app.quote_booking(test.id('vehicle:BA1'), test.at('2029-05-07 09:00'), test.at('2029-06-21 09:00'))$$, '1 to 30 days');
+select test.eq('Q example 4 (0132): 45 days is one booking at the monthly rate for each 30 days ($1,800 x 45 / 30 = $2,700)',
+  (select (app.quote_booking(test.id('vehicle:BA1'), test.at('2029-05-07 09:00'), test.at('2029-06-21 09:00')) ->> 'rental_charge_cents')::bigint), test.money('2,700'));
 select test.eq('Q example 4: 30 days at the monthly rate ($1,800), then a renewal of 15 days at $560 / 7 x 15 = $1,200: $3,000 over two transactions',
   (select (a ->> 'rate_applied') || ':' || (a ->> 'rental_charge_cents') || ' ' || (b ->> 'rate_applied') || ':' || (b ->> 'rental_charge_cents') || ' '
           || ((a ->> 'rental_charge_cents')::bigint + (b ->> 'rental_charge_cents')::bigint)
@@ -359,7 +359,7 @@ select test.eq('SR filters: class; cars offered to drivers of 18 to 20 (0025: ev
   'ba-ba9 ba-ba9=38985,ba-ba1=45765,ba-ba2=45765,ba-ba3=45765,ba-ba4=45765,ba-ba5=45765,ba-ba6=45765,ba-ba8=45765,ba-bap=45765,ba-bay=45765 ba-ba9');
 select test.eq('SR it returns the car and the price only: no owner, plate, VIN or person',
   (select pg_get_function_result('app.search_available(timestamptz, timestamptz, jsonb)'::regprocedure) ~ '(owner|plate|vin|renter|fleet_number)'), false);
-select test.throws('SR over 30 days is refused', $$select * from app.search_available(test.at('2029-05-07 09:00'), test.at('2029-06-21 09:00'))$$, '1 to 30 days');
+select test.throws('SR past the longest booking is refused', $$select * from app.search_available(test.at('2029-05-07 09:00'), test.at('2030-06-21 09:00'))$$, 'Shorten the dates');
 
 -- ------------------------------------------------------------------ rate limits
 select test.eq('RL a key is allowed its maximum in a window and no more; another key is not affected',
@@ -488,8 +488,8 @@ select test.throws('R the notice is a setting: at 48 hours a pickup tomorrow is 
 update program_settings set booking_min_notice_minutes = 120 where effective_from = (select effective_from from app.settings());
 select test.throws('R the return must be after the pickup',
   $$select app.submit_booking_request(test.ba_req('x6', 'x.six@example.test', 'BA1', test.soon('10 days'), test.soon('10 days')))$$, 'after the pickup');
-select test.throws('R the maximum length is a setting (30 days): 31 days is refused',
-  $$select app.submit_booking_request(test.ba_req('x7', 'x.seven@example.test', 'BA1', test.soon('10 days'), test.soon('41 days')))$$, '1 to 30 days');
+select test.throws('R the maximum length is a setting (365 days): 400 days is refused',
+  $$select app.submit_booking_request(test.ba_req('x7', 'x.seven@example.test', 'BA1', test.soon('10 days'), test.soon('410 days')))$$, '1 to 365 days');
 update program_settings set max_rental_days = 14 where effective_from = (select effective_from from app.settings());
 select test.throws('R with the maximum set to 14 days, 15 days is refused',
   $$select app.submit_booking_request(test.ba_req('x8', 'x.eight@example.test', 'BA1', test.soon('10 days'), test.soon('25 days')))$$, '1 to 14 days');

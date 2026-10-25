@@ -65,7 +65,7 @@ async function makeTokens(fleet: CarRow[]): Promise<Tokens> {
     brand: s.brand_name, tagline: s.tagline ?? '', carma, city: s.city, region: s.region, serviceArea: s.service_area,
     email: s.public_email ?? '', reply: replyText(s), replyShort: s.reply_wording ?? '',
     hours: s.opening_hours_text ?? '', phone: s.phone_display ?? '', roadside: s.roadside_phone_display ?? '',
-    hst: pct(f.hst_bps), maxDays: String(f.max_rental_days), maxDaysLess1: String(f.max_rental_days - 1),
+    hst: pct(f.hst_bps), maxDays: String(f.max_rental_days), maxDaysLess1: '29', monthDays: '30',
     weekFrom: String(f.weekly_from_days), weekFromLess1: String(f.weekly_from_days - 1),
     minAge: String(f.min_renter_age), fullAge: String(fullAge),
     youngA: bandA ? `${bandA.from_age} to ${bandA.to_age}` : '', youngB: bandB ? `${bandB.from_age} to ${bandB.to_age}` : '',

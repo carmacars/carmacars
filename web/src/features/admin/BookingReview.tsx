@@ -86,7 +86,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
   const va = kind === 'va';
   const router = useRouter();
   const coverageLine = b.lines.find((l) => COVERAGE_TYPES.includes(l.charge_type));
-  const feeLines = b.lines.filter((l) => l.stage === 'booking' && !['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type) && !COVERAGE_TYPES.includes(l.charge_type) && !['addon', 'baby_seat', 'winter_tire'].includes(l.charge_type));
+  const feeLines = b.lines.filter((l) => l.stage === 'booking' && !['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type) && !COVERAGE_TYPES.includes(l.charge_type));
   const start = useMemo(() => ({
     vehicle_id: b.vehicle_id, pickup_at: toLocalInput(b.pickup_at), return_at: toLocalInput(b.return_at), booking_type: b.booking_type,
     ...Object.fromEntries(MONEY_KEYS.map((k) => [k, dollars(b[k] as number | null)])),
@@ -138,10 +138,12 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
     if (placeChanged) p.places = {
       pickup_location: { kind: v.pickup_kind, address: String(v.pickup_address).trim() || null, distance_km: v.pickup_km ? Number(v.pickup_km) : null, airport_code: v.pickup_kind === 'airport' ? String(v.pickup_address).trim() : null },
       return_location: { kind: v.return_kind, address: String(v.return_address).trim() || null, distance_km: v.return_km ? Number(v.return_km) : null, airport_code: v.return_kind === 'airport' ? String(v.return_address).trim() : null } };
-    if (changed('coverage') && String(v.coverage).trim()) { p.coverage_cents = cents(String(v.coverage)); p.coverage_reason = String(v.fee_reason).trim() || 'Set on the review screen'; }
+    // 0132: each fee as its amount for the trip (it was a rate a day before: typing $50 for 3 days gave $150), the Protection Plan too
+    const lines: Record<string, number> = {};
+    if (changed('coverage') && String(v.coverage).trim()) lines.coverage_sold = cents(String(v.coverage)) ?? 0;
     if (changed('promo_code')) p.promo_code = String(v.promo_code).trim();
-    const fees = feeLines.filter((l) => changed(`fee:${l.charge_type}`)).map((l) => ({ fee: l.charge_type, amount_cents: cents(String(v[`fee:${l.charge_type}`])) ?? 0, reason: String(v.fee_reason).trim() || null }));
-    if (fees.length) p.fee_terms = fees;
+    for (const l of feeLines.filter((x) => changed(`fee:${x.charge_type}`))) lines[l.charge_type] = cents(String(v[`fee:${l.charge_type}`])) ?? 0;
+    if (Object.keys(lines).length) { p.line_overrides = lines; p.fee_reason = String(v.fee_reason).trim() || 'Changed on the review screen'; }
     if (changed('blocks_calendar')) { p.blocks_calendar = v.blocks_calendar; p.blocks_calendar_reason = String(v.blocks_reason).trim() || null; }
     if (addonsChanged) p.addons = addonsPayload(addons);
     return p;
@@ -271,8 +273,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable }: 
           <F k="staff_discount_reason" l="Discount reason" /></>}
           <F k="coverage" l="Protection Plan price" money hint={coverageLine ? 'What the renter pays for the Protection Plan' : 'Only when the renter chose the Protection Plan (option 3)'} />
           <F k="promo_code" l="Promo code" />
-          {!va && feeLines.map((l) => <F key={l.id} k={`fee:${l.charge_type}`} l={lineLabel(l)} money />)}
-          {(feeLines.some((l) => changed(`fee:${l.charge_type}`)) || changed('coverage')) && <F k="fee_reason" l="Reason for the fee change" />}
+          {feeLines.map((l) => <F key={l.id} k={`fee:${l.charge_type}`} l={`${lineLabel(l)} (for the trip)`} money />)}
+          {(feeLines.some((l) => changed(`fee:${l.charge_type}`)) || changed('coverage')) && <F k="fee_reason" l="Reason for the fee change (optional)" />}
         </fieldset>
         <fieldset className="ad-fields" disabled={!editable}>
           <legend className="pt-kicker">Billing and calendar</legend>

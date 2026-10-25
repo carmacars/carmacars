@@ -34,7 +34,7 @@ export function BookingMoney({ m }: { m: Money }) {
   const [open, setOpen] = useState<'' | 'record' | 'collect' | 'charge' | 'capture'>('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, run] = useTransition();
-  const [rec, setRec] = useState({ covers: m.parts.find((p) => p.open_cents > 0)?.covers ?? (m.deposit ? 'later' : 'deposit'), method: m.rental_pay_method !== 'card' ? m.rental_pay_method : 'e_transfer', amount: '', reference: '', received_on: today(), note: '' });
+  const [rec, setRec] = useState({ covers: (m.parts.some((p) => p.covers !== 'later' && p.open_cents > 0) ? 'both' : m.parts.find((p) => p.open_cents > 0)?.covers ?? (m.deposit ? 'later' : 'deposit')) as string, method: m.rental_pay_method !== 'card' ? m.rental_pay_method : 'e_transfer', amount: '', reference: '', received_on: today(), note: '' });
   const [col, setCol] = useState({ kind: 'charge' as 'charge' | 'hold' | 'setup', covers: m.parts.find((p) => p.open_cents > 0)?.covers ?? 'later', amount: '', reason: '', channel: 'device' as 'device' | 'text' | 'email' });
   const [chg, setChg] = useState({ amount: '', reason: '', covers: 'later' as 'later' | 'deposit' });
   const [cap, setCap] = useState({ amount: '', reason: '' });
@@ -83,19 +83,28 @@ export function BookingMoney({ m }: { m: Money }) {
 
       {open === 'record' && (
         <form className="ad-form ad-form--narrow" aria-label="Record a payment" data-testid="bm-record" onSubmit={(e) => { e.preventDefault(); run(async () => {
-          const r = await offersDo<{ confirmed?: boolean; confirm?: { reason?: string } }>('record_booking_payment', { booking: m.booking_number, covers: rec.covers, method: rec.method, amount_cents: cents(rec.amount), reference: rec.reference, received_on: rec.received_on, note: rec.note });
+          // 0132: one payment for the rental and the fees together: the rental first, the rest for the fees (two records)
+          const both = rec.covers === 'both';
+          const amount = cents(rec.amount) ?? (both ? openPart('rental') + openPart('fees') : null);
+          const first = both ? Math.min(amount ?? 0, openPart('rental')) : amount;
+          const firstCovers = both ? (openPart('rental') > 0 ? 'rental' : 'fees') : rec.covers;
+          let r = await offersDo<{ confirmed?: boolean; confirm?: { reason?: string } }>('record_booking_payment', { booking: m.booking_number, covers: firstCovers, method: rec.method, amount_cents: both && firstCovers === 'fees' ? amount : first, reference: rec.reference, received_on: rec.received_on, note: rec.note });
+          if (r.ok && both && firstCovers === 'rental' && amount !== null && first !== null && amount > first) {
+            r = await offersDo('record_booking_payment', { booking: m.booking_number, covers: 'fees', method: rec.method, amount_cents: amount - first, reference: rec.reference ? `${rec.reference} (part 2)` : '', received_on: rec.received_on, note: rec.note || 'The rest of the same payment, for the fees' });
+          }
           done(r.ok, r.ok ? `Recorded.${r.data.confirmed ? ' The booking is confirmed.' : r.data.confirm?.reason ? ` Not confirmed yet: ${r.data.confirm.reason}.` : ''}` : r.message);
         }); }}>
           <div className="ad-fields">
             <div className="field ad-field"><label className="label" htmlFor="bm-covers">For</label>
               <select className="select" id="bm-covers" value={rec.covers} onChange={(e) => setRec({ ...rec, covers: e.target.value as typeof rec.covers, method: e.target.value === 'deposit' && !['cash', 'e_transfer'].includes(rec.method) ? 'cash' : rec.method })} data-testid="bm-covers">
-                <option value="rental">The rental ({fmt(openPart('rental'))} open)</option><option value="fees">Fees ({fmt(openPart('fees'))} open)</option>
+                <option value="both">The rental and fees ({fmt(openPart('rental') + openPart('fees'))} open)</option>
+                <option value="rental">The rental only ({fmt(openPart('rental'))} open)</option><option value="fees">Fees only ({fmt(openPart('fees'))} open)</option>
                 <option value="deposit">The deposit ({fmt(m.deposit_cents)})</option><option value="later">A later charge ({fmt(openPart('later'))} open)</option></select></div>
             <div className="field ad-field"><label className="label" htmlFor="bm-method">Paid by</label>
               <select className="select" id="bm-method" value={rec.method} onChange={(e) => setRec({ ...rec, method: e.target.value })} data-testid="bm-method">
                 {(rec.covers === 'deposit' ? ['cash', 'e_transfer'] : ['e_transfer', 'cash', 'cheque', 'bank_transfer', 'platform_payout', 'insurer', 'other']).map((x) => <option key={x} value={x}>{METHOD[x]}</option>)}</select></div>
             <div className="field ad-field"><label className="label" htmlFor="bm-amount">Amount ($)</label>
-              <input className="input" id="bm-amount" inputMode="decimal" value={rec.amount} onChange={(e) => setRec({ ...rec, amount: e.target.value })} placeholder={(((rec.covers === 'deposit' ? m.deposit_cents : openPart(rec.covers)) ?? 0) / 100).toFixed(2)} aria-describedby="bm-amount-h" data-testid="bm-amount" />
+              <input className="input" id="bm-amount" inputMode="decimal" value={rec.amount} onChange={(e) => setRec({ ...rec, amount: e.target.value })} placeholder={(((rec.covers === 'deposit' ? m.deposit_cents : rec.covers === 'both' ? openPart('rental') + openPart('fees') : openPart(rec.covers)) ?? 0) / 100).toFixed(2)} aria-describedby="bm-amount-h" data-testid="bm-amount" />
               <p className="hint" id="bm-amount-h">Empty: what is open for it</p></div>
             <div className="field ad-field"><label className="label" htmlFor="bm-ref">Reference{['e_transfer', 'cheque', 'bank_transfer'].includes(rec.method) ? '' : ' (optional)'}</label>
               <input className="input" id="bm-ref" value={rec.reference} onChange={(e) => setRec({ ...rec, reference: e.target.value })} data-testid="bm-ref" /></div>

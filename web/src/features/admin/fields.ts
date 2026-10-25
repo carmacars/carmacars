@@ -5,6 +5,10 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  max_rental_days: 'Longest booking a renter may request online (days)', staff_max_rental_days: 'Longest rental staff may enter or offer (days)',
+  long_rental_period_days: 'Long rentals: days in each period (one agreement and one invoice each)', long_rental_cycle: 'Long rentals: periods of days, or calendar months (days or calendar_month)',
+  long_rental_agreement_lead_days: 'Long rentals: make the next period\'s agreement and invoice this many days before it starts', long_rental_autocharge: 'Long rentals: charge the card on file for each next period',
+  staff_may_edit_fees: 'Customer service and sales may change a fee on one booking (young driver, Protection Plan, delivery, add-ons)',
   e_transfer_email: 'E-Transfer email (where renters send an e-Transfer)', stripe_moto_enabled: 'Staff may type a card the renter reads out (phone orders, Stripe MOTO)',
   vpage_place_index: 'Index the place pages', vpage_colour_index: 'Index the colour pages', vpage_term_index: 'Index the search term pages', vpage_buy_index: 'Index the /buy pages',
   vpage_detailing_index: 'Index the detailing pages', vpage_bodyshop_index: 'Index the body shop pages', vpage_finance_disclaimer: 'Financing disclaimer',
@@ -87,6 +91,10 @@ const LABELS: Record<string, string> = {
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
+  max_rental_days: 'A booking longer than one period is cut into monthly periods: each gets its own rental agreement (and Blind Spot agreement) to sign and its own invoice. 365 by default.',
+  long_rental_period_days: '30 by default: the monthly rate covers 30 days. Used when the periods are in days.',
+  long_rental_autocharge: 'On: when a period\'s invoice is due, the card on file is charged and Finance gets a task only if it fails. Off: Finance collects each one.',
+  staff_may_edit_fees: 'Each change is recorded on the booking with the name, the time, the amount before and after and the reason. Admins always may.',
   e_transfer_email: 'Shown to a renter whose offer is paid by e-Transfer. Empty: the public email of Site settings.', stripe_moto_enabled: 'Off: only the renter types a card, on their phone or on a staff device handed to them. Turn on only after Stripe enables MOTO on the account.',
   turnaround_buffer_minutes: 'One time between trips (default 120). No trip may start within it after another ends, and a trip must end this long before the next starts. After each trip it shows as the cleaning block; removing the block frees the time. It is never added twice. A car can have its own under Vehicles, the car, Calendar.',
   turnaround_block_enabled: 'Off: the same time is still held after each trip, without a block on the calendar.',

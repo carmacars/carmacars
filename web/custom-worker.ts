@@ -223,6 +223,8 @@ const worker = {
     if (due.pdf) ctx.waitUntil((self ? self.fetch(pdfJobs) : handler.fetch(pdfJobs, env, ctx)).then((r: Response) => r.text()).catch(() => undefined));
     // Turo emails waiting for their car, matched again after the fleet or what was learned changed (0088)
     if (due.turo) run('/api/jobs/turo-rematch');
+    // confirmed bookings still without their rental agreement (0132): made and sent to sign
+    if (due.agreements) run('/api/jobs/agreements');
     // the retention purge of private files (0071), once an hour on the second tick
     if (new Date().getUTCMinutes() >= 5 && new Date().getUTCMinutes() < 10) run('/api/jobs/purge');
     // the usage guard (0080): Cloudflare's figures when the Worker has an analytics token, the alerts, once an hour on the third tick

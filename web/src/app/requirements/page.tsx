@@ -138,7 +138,7 @@ export default async function Requirements() {
             <tr><th scope="row">Tracking</th><td>Every car has a GPS tracker that records location for the whole rental. The car’s owner can see its location too.</td></tr>
             <tr><th scope="row">Tolls and tickets</th><td>Yours to pay, including Highway 407 ETR</td></tr>
             <tr><th scope="row">Pickup and return</th><td>{F('Any time, day or night, with at least {{notice}}’ notice. A car needs {{turnaround}} between bookings.')}</td></tr>
-            <tr><th scope="row">Longest booking</th><td>{F('{{maxDays}} days. To keep the car longer, you renew with a new booking before the current one ends.')}</td></tr>
+            <tr><th scope="row">Longest booking</th><td>{F('{{maxDays}} days. A booking longer than {{monthDays}} days has a new rental agreement to sign and a new invoice for each {{monthDays}} days.')}</td></tr>
           </tbody></table></div>
         </div>
       </section>

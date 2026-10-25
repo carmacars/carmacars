@@ -150,8 +150,8 @@ select test.lives('Q several requests for the same car and dates may coexist',
     select test.rq_new('c3', 'rq_cat', 'RQ1', '2029-03-06 10:00', '2029-03-09 10:00')$$);
 select test.eq('Q a request never blocks the calendar',
   app.vehicle_is_available(test.id('vehicle:RQ1'), test.at('2029-03-05 10:00'), test.at('2029-03-08 10:00')), true);
-select test.throws('Q a request over 30 days is refused',
-  $$select test.rq_new('c31', 'rq_amy', 'RQ1', '2029-03-05 10:00', '2029-04-06 10:00')$$, '1 to 30 days');
+select test.throws('Q a request past the longest booking (365 days) is refused',
+  $$select test.rq_new('c31', 'rq_amy', 'RQ1', '2029-03-05 10:00', '2030-04-06 10:00')$$, 'Shorten the dates');
 select test.throws('Q the return must be after the pickup',
   $$select test.rq_new('c00', 'rq_amy', 'RQ1', '2029-03-05 10:00', '2029-03-05 10:00')$$, 'after the pickup');
 

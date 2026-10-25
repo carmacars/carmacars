@@ -23,3 +23,25 @@
 .pt-empty p { max-width: 100%; overflow-wrap: anywhere; }
 /* the footer with the Locations column (0061): six columns on a wide screen */
 @media (min-width: 72rem) { .footer-grid:has(> nav[aria-label="Locations"]) { grid-template-columns: 1.5fr repeat(6, 1fr); } }
+/* 0132: a fee typed by hand in a price table, and the payments in parts: small boxes that wrap on a phone */
+.ad-table .input--sm { width: 100%; max-width: 8rem; min-width: 4.5rem; }
+[data-testid^="mr-part-"] .row { flex-wrap: wrap; }
+[data-testid^="mr-part-"] .row > .input, [data-testid^="mr-part-"] .row > .select { flex: 1 1 8rem; min-width: 0; }
+/* 0132: the (i) beside a field or a price line */
+.info { position: relative; display: inline-block; vertical-align: middle; margin-inline-start: .3rem; }
+.info__btn { inline-size: 1.5rem; block-size: 1.5rem; min-inline-size: 1.5rem; border-radius: 50%; border: 1px solid currentColor; background: transparent; color: inherit;
+  font: italic 600 .8rem/1 Georgia, serif; cursor: pointer; padding: 0; display: inline-grid; place-items: center; }
+.info__btn:focus-visible { outline: 2px solid var(--c-red, #c8102e); outline-offset: 2px; }
+.info__tip { position: absolute; z-index: 30; inset-block-start: calc(100% + .35rem); inset-inline-start: -.5rem; inline-size: min(18rem, 80vw); padding: .6rem .7rem;
+  background: var(--c-ink, #111); color: #fff; font: 400 .85rem/1.4 inherit; border-radius: .35rem; box-shadow: 0 6px 18px rgb(0 0 0 / .2); white-space: normal; font-style: normal; }
+.ad-table td .info__tip, .ad-table th .info__tip { inset-inline-start: auto; inset-inline-end: -.5rem; }
+.ad-table .select--sm, .select.select--sm { inline-size: auto; min-inline-size: 7rem; }
+.ad-table td .row { flex-wrap: wrap; gap: .35rem; align-items: center; }
+/* 0132: the editable price tables on a phone: each line on two rows (name and amount, then the box to change it) */
+@media (max-width: 40rem) {
+  :is([data-testid="mr-price"], [data-testid="bf-lines"]) { inline-size: 100%; }
+  :is([data-testid="mr-price"], [data-testid="bf-lines"]) thead { display: none; }
+  :is([data-testid="mr-price"], [data-testid="bf-lines"]) tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  :is([data-testid="mr-price"], [data-testid="bf-lines"]) tr > :nth-child(3), :is([data-testid="mr-price"], [data-testid="bf-lines"]) tr > [colspan] { grid-column: 1 / -1; padding-block-start: 0; }
+  :is([data-testid="mr-price"], [data-testid="bf-lines"]) .select--sm { max-inline-size: 100%; }
+}

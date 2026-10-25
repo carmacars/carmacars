@@ -18,6 +18,9 @@ import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatur
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { REFUND_OF } from '@/features/admin/refunds';
 import { BookingMoney, type Money } from '@/features/money/BookingMoney';
+import { BookingFees, type Fees } from '@/features/money/BookingFees';
+import { BookingEdit, type EditForm } from '@/features/money/BookingEdit';
+import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
 import { HandoverPanel } from '@/features/handover/HandoverPanel';
 
 export const dynamic = 'force-dynamic';
@@ -64,6 +67,12 @@ export default async function Booking({ params, searchParams }: { params: Promis
   // the renter's visits on the site (0060), on the history tab
   // the money by part (0129), on the Money tab
   const moneyByPart = tab === 'money' ? await door<Money>(user.id, 'ops_read', 'booking_money', { booking: b.booking_number }).catch(() => null) : null;
+  // the fees, each changeable on its own (0132), on the Money tab
+  const fees = (tab === 'money' || tab === 'overview') ? await door<Fees>(user.id, 'ops_read', 'booking_fees', { booking: b.booking_number }).catch(() => null) : null;
+  // edit the booking directly, even on trip (0132), on the Overview tab
+  const editForm = tab === 'overview' && !['requested', 'offered', 'pending_payment', 'tentative'].includes(String(b.status)) ? await door<EditForm>(user.id, 'ops_read', 'booking_edit_form', { booking: b.booking_number }).catch(() => null) : null;
+  // correct the renter's details from the booking (0132)
+  const renterForm = tab === 'overview' || tab === 'review' ? await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { booking: b.booking_number }).catch(() => null) : null;
   const visits = tab === 'history' ? await door<TimelineData>(user.id, 'admin_read', 'visitor_timeline', { booking_id: b.id }).catch(() => null) : null;
   // calls and texts with the renter about this booking (0085)
   const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { booking_id: b.id }).catch(() => null) : null;
@@ -114,6 +123,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <BookingReview b={b} insurers={ins.rows} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={['requested', 'offered', 'pending_payment'].includes(b.status)} />
         </>
       )}
+      {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
+      {(tab === 'overview' || tab === 'review') && renterForm && <RenterEdit x={renterForm} />}
       {tab === 'overview' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Trip">
@@ -136,6 +147,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
       {tab === 'money' && (
         <div className="stack">
           {moneyByPart && <BookingMoney m={moneyByPart} />}
+          {fees && <BookingFees x={fees} />}
           <Card title="Payments"><Table rows={b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'method', label: 'Method' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },
             { key: 'act', label: '', render: (r) => r.status === 'failed' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={[base]} label="Paid another way" /> : null }]} /></Card>
           <Card title="Paid another way" testId="booking-manual-payments">

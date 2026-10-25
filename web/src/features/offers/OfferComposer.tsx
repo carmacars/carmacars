@@ -9,8 +9,11 @@ import { supplyRead } from '@/server/actions/supply';
 import { SourcedChoice } from '@/features/sales/SourcedChoice';
 import { PRICE_TAX_OPTIONS } from '@/features/sales/priceTax';
 import { AddonPicker } from '@/features/addons/AddonPicker';
+import { Info } from '@/features/forms/Info';
+import { AddressInput } from '@/features/forms/AddressInput';
+import { lineHelp } from './help';
 import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/addons/model';
-import { COVERAGE, DEPOSIT_PAY, PLACES, RENTAL_PAY, daysBetween, missing, offerPayload, typedRental, type OfferForm, type PlaceKind, type Role } from './model';
+import { COVERAGE, DEPOSIT_PAY, PLACES, RENTAL_LINE, RENTAL_PAY, daysBetween, lineKey, missing, offerPayload, periodShares, typedRental, type OfferForm, type PlaceKind, type Role } from './model';
 
 // Send an offer without a request (migration 0129): one screen for an Admin, customer service and sales. The customer
 // found by name, phone or email (or added; one person, one record), the car with whether it is free, the dates, the
@@ -19,9 +22,9 @@ import { COVERAGE, DEPOSIT_PAY, PLACES, RENTAL_PAY, daysBetween, missing, offerP
 // offer as the renter will see it, priced by the database (and rolled back) as you type. Send makes the same records a
 // website request and its offer make; the renter gets the link by email, by text, both or neither.
 type Car = { id: string; name: string; plate: string | null; car_code: string | null; daily_rate_cents: number | null; weekly_rate_cents: number | null; deposit_cents: number | null; free: boolean | null };
-type Form = { role: Role; offer_hours: number; min_notice_minutes: number; km_choices: number[]; text_enabled: boolean; cars: Car[] };
+type Form = { role: Role; offer_hours: number; min_notice_minutes: number; km_choices: number[]; text_enabled: boolean; cars: Car[]; may_edit_fees?: boolean; period_days?: number; cycle?: string };
 type Found = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; is_blocked: boolean; bookings: number; card: { brand: string; last4: string } | null };
-type Line = { id: string; charge_type: string; description: string | null; amount_cents: number; hst_cents: number; stage: string; charged_to_renter: boolean };
+type Line = { id: string; charge_type: string; description: string | null; amount_cents: number; hst_cents: number; stage: string; charged_to_renter: boolean; booking_addon_id?: string | null; addon_code?: string | null };
 type Priced = { booking_number: string; billable_days: number; rate_applied: string | null; rental_charge_cents: number; deposit_cents: number; hst_at_booking_cents: number;
   total_due_at_booking_cents: number; renter_due_at_booking_cents: number | null; km_allowance_total: number | null; overage_cents_per_km: number; pickup_place: string | null; return_place: string | null;
   rate_sheet_rental_cents: number | null; price_flags: string[]; lines: Line[]; vehicle: { name: string } | null; pickup_at: string; return_at: string };
@@ -31,7 +34,6 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const local = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const fmt = (c: number | null | undefined) => money(Number(c ?? 0), { cents: true });
 const lineLabel = (l: Line) => l.description || l.charge_type.replace(/_/g, ' ');
-const RENTAL_TYPES = ['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'];
 const PLAN_TYPES = ['coverage_sold', 'coverage', 'coverage_option', 'carmacars_coverage', 'coverage_daily'];
 
 export function OfferComposer({ base, initialCar = null }: { base: '/admin' | '/va'; initialCar?: string | null }) {
@@ -61,6 +63,8 @@ export function OfferComposer({ base, initialCar = null }: { base: '/admin' | '/
   const router = useRouter();
   const role: Role = form?.role ?? 'sales';
   const admin = role === 'admin';
+  // 0132: fee lines set by hand by an Admin, and by customer service and sales while Program settings allow it
+  const editFees = form?.may_edit_fees ?? admin;
   const days = priced?.booking.billable_days ?? daysBetween(f.pickup_at, f.return_at);
 
   // the cars, with whether each is free for the dates (again when the dates change)
@@ -99,7 +103,13 @@ export function OfferComposer({ base, initialCar = null }: { base: '/admin' | '/
   }, [f.vehicle_id, f.pickup_at, f.return_at]);
 
   const need = missing(f, role).filter((m) => m !== 'who found this client');
-  const payload = useMemo(() => offerPayload(f, role, days, addonsPayload(addons)), [f, role, days, addons]);
+  // 0132: charges of its own on the offer (the renter sees what is typed)
+  const [customs, setCustoms] = useState<Array<{ label: string; amount: string; hst: boolean }>>([]);
+  const payload = useMemo(() => {
+    const p = offerPayload(f, role, days, addonsPayload(addons), editFees);
+    const c = customs.filter((x) => x.label.trim() && Number(x.amount) > 0).map((x) => ({ label: x.label.trim(), amount_cents: Math.round(Number(x.amount) * 100), hst: x.hst }));
+    return editFees && c.length ? { ...p, custom_fees: c, fee_reason: p.fee_reason ?? (f.fee_reason.trim() || 'Agreed with the renter') } : p;
+  }, [f, role, days, addons, editFees, customs]);
   // the price and the renter's view, from the database, as you type
   const seq = useRef(0);
   useEffect(() => {
@@ -139,7 +149,9 @@ export function OfferComposer({ base, initialCar = null }: { base: '/admin' | '/
 
   const b = priced?.booking;
   const renterLines = (b?.lines ?? []).filter((l) => l.stage === 'booking' && l.charged_to_renter !== false && (l.amount_cents !== 0 || l.charge_type === 'rental_charge'));
-  const feeLines = (b?.lines ?? []).filter((l) => l.stage === 'booking' && !RENTAL_TYPES.includes(l.charge_type) && !PLAN_TYPES.includes(l.charge_type) && !['addon', 'baby_seat', 'winter_tire'].includes(l.charge_type));
+  // every fee line of the offer (0132): young driver, delivery, add-ons, winter tires; the Protection Plan has its own box
+  const feeLines = (b?.lines ?? []).filter((l) => l.stage === 'booking' && !RENTAL_LINE.has(l.charge_type) && !PLAN_TYPES.includes(l.charge_type));
+  const keyOf = (l: Line) => (l.booking_addon_id && l.addon_code ? `addon:${l.addon_code}` : lineKey({ charge_type: l.charge_type }));
   const total = b ? (b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents) : 0;
   const cars = (form?.cars ?? []).filter((c) => { const k = carQ.trim().toLowerCase(); return !k || `${c.name} ${c.plate ?? ''} ${c.car_code ?? ''}`.toLowerCase().includes(k); });
   const car = form?.cars.find((c) => c.id === f.vehicle_id);
@@ -154,7 +166,8 @@ export function OfferComposer({ base, initialCar = null }: { base: '/admin' | '/
       <select className="select" id={id(k)} value={String(f[k])} onChange={(e) => set(k)(e.target.value as never)} data-testid={`oc-${k}`}>{options.map(([v, x]) => <option key={v} value={v}>{x}</option>)}</select></div>);
   const placeFields = (leg: 'pickup' | 'return') => (<>
     {select(`${leg}_kind`, leg === 'pickup' ? 'Pickup' : 'Return', PLACES.map(([v, x]) => [v, leg === 'return' && v === 'delivery' ? 'We collect' : leg === 'pickup' && v === 'delivery' ? 'We deliver' : x]))}
-    {(f[`${leg}_kind`] as PlaceKind) === 'delivery' && <>{text(`${leg}_address`, leg === 'pickup' ? 'Delivery address' : 'Collection address', { auto: 'street-address' })}{text(`${leg}_km`, 'Distance (km)', { inputMode: 'decimal', hint: 'Prices the delivery fee' })}</>}
+    {(f[`${leg}_kind`] as PlaceKind) === 'delivery' && <><div className="field ad-field"><label className="label" htmlFor={id(`${leg}_address`)}>{leg === 'pickup' ? 'Delivery address' : 'Collection address'}</label>
+      <AddressInput id={id(`${leg}_address`)} name={`${leg}_address`} value={{ label: String(f[`${leg}_address`] ?? ''), placeId: '' }} onChange={(x) => set(`${leg}_address`)(x.label as never)} testId={`oc-${leg}_address`} /></div>{text(`${leg}_km`, 'Distance (km)', { inputMode: 'decimal', hint: 'Prices the delivery fee' })}</>}
     {(f[`${leg}_kind`] as PlaceKind) === 'airport' && text(`${leg}_address`, 'Airport code', { placeholder: 'YYZ' })}
   </>);
 
@@ -207,27 +220,37 @@ export function OfferComposer({ base, initialCar = null }: { base: '/admin' | '/
         </fieldset>
 
         <fieldset className="stack"><legend className="d4">3. The price</legend>
+          <p className="small"><b>Rental charge</b> (the car&apos;s rate, before fees and tax)<Info text={lineHelp('rental_charge')} /></p>
           <div className="ad-choices row" role="radiogroup" aria-label="Rental charge">
-            {([['sheet', 'Rate sheet'], ['total', 'A total'], ['day', 'A rate per day']] as const).map(([v, x]) => (
+            {([['sheet', 'Rate sheet'], ['total', 'A total for the trip'], ['day', 'A rate a day']] as const).map(([v, x]) => (
               <label key={v} className="check" htmlFor={`oc-pm-${v}`}><input type="radio" id={`oc-pm-${v}`} name="oc-pm" checked={f.price_mode === v} onChange={() => set('price_mode')(v)} data-testid={`oc-pm-${v}`} /> <span>{x}</span></label>))}
           </div>
           <div className="ad-fields">
-            {f.price_mode === 'total' && text('price_total', 'Rental charge for the whole rental ($)', { inputMode: 'decimal', hint: b?.rate_sheet_rental_cents ? `Rate sheet: ${fmt(b.rate_sheet_rental_cents)}` : car?.daily_rate_cents ? `Rate sheet: ${fmt(car.daily_rate_cents)} a day` : undefined })}
-            {f.price_mode === 'day' && text('price_day', 'Rate per day ($)', { inputMode: 'decimal', hint: days ? `× ${days} day${days === 1 ? '' : 's'} = ${fmt(typedRental(f, days) ?? 0)}` : undefined })}
+            {f.price_mode === 'total' && text('price_total', 'Rental charge for the whole trip, before fees and tax ($)', { inputMode: 'decimal', hint: b?.rate_sheet_rental_cents ? `Rate sheet: ${fmt(b.rate_sheet_rental_cents)}` : car?.daily_rate_cents ? `Rate sheet: ${fmt(car.daily_rate_cents)} a day` : undefined })}
+            {f.price_mode === 'day' && text('price_day', 'Rental rate a day, before fees and tax ($)', { inputMode: 'decimal', hint: days ? `× ${days} day${days === 1 ? '' : 's'} = ${fmt(typedRental(f, days) ?? 0)}` : undefined })}
             {f.price_mode !== 'sheet' && <>{select('price_tax', 'Tax', PRICE_TAX_OPTIONS)}{text('price_reason', 'Reason for the price', { wide: true, placeholder: 'For example: weekly deal agreed on the phone' })}</>}
             {select('km', 'Kilometres a day', [['', 'The car\'s allowance'], ...(form?.km_choices ?? []).map((k) => [String(k), k === 0 ? 'Unlimited' : `${k} km`] as [string, string])])}
             {text('promo_code', 'Promo code')}
             {admin && <>{text('deposit', 'Deposit ($)', { inputMode: 'decimal', hint: car?.deposit_cents ? `The car's deposit: ${fmt(car.deposit_cents)}` : 'Empty: the car\'s deposit' })}
               {text('discount', 'Discount ($)', { inputMode: 'decimal' })}{cents0(f.discount) && text('discount_reason', 'Discount reason')}</>}
             {select('coverage_option', 'How damage to the car is covered', COVERAGE)}
-            {f.coverage_option === '3' && role !== 'sales' && text('plan_price', 'Protection Plan price ($, the renter pays)', { inputMode: 'decimal', hint: 'Empty: the Protection Plan price table' })}
-            {admin && feeLines.map((l) => (
-              <div key={l.id} className="field ad-field"><label className="label" htmlFor={`oc-fee-${l.charge_type}`}>{lineLabel(l)} ($)</label>
-                <input className="input" id={`oc-fee-${l.charge_type}`} inputMode="decimal" placeholder={(l.amount_cents / 100).toFixed(2)} value={f.fees[l.charge_type] ?? ''}
-                  onChange={(e) => setF((s) => ({ ...s, fees: { ...s.fees, [l.charge_type]: e.target.value } }))} /></div>))}
-            {(Object.values(f.fees).some((v) => v.trim()) || f.plan_price.trim()) && text('fee_reason', 'Reason for the fee change', { wide: true })}
+            {f.coverage_option === '3' && editFees && text('plan_price', 'Protection Plan price ($, for the trip, the renter pays)', { inputMode: 'decimal', hint: b?.lines.find((l) => l.charge_type === 'coverage_sold') ? `Now ${fmt(b.lines.find((l) => l.charge_type === 'coverage_sold')!.amount_cents)}. Empty: the Protection Plan price table` : 'Empty: the Protection Plan price table' })}
+            {editFees && feeLines.map((l) => { const k = keyOf(l); return (
+              <div key={l.id} className="field ad-field"><label className="label" htmlFor={`oc-fee-${k}`}>{lineLabel(l)} ($, for the trip)<Info text={lineHelp(l.charge_type)} /></label>
+                <input className="input" id={`oc-fee-${k}`} inputMode="decimal" placeholder={(l.amount_cents / 100).toFixed(2)} value={f.fees[k] ?? ''} data-testid={`oc-fee-${k}`}
+                  onChange={(e) => setF((s) => ({ ...s, fees: { ...s.fees, [k]: e.target.value } }))} /></div>); })}
+            {editFees && customs.map((c, i) => (
+              <div key={i} className="field ad-field ad-field--wide" data-testid={`oc-custom-${i}`}><span className="label">A charge of its own<Info text={lineHelp('custom_fee')} /></span>
+                <div className="row"><input className="input" aria-label="What the charge is for" placeholder="What it is for" value={c.label} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, label: e.target.value } : y)))} />
+                  <input className="input" inputMode="decimal" aria-label="Amount before HST ($)" placeholder="Amount ($)" value={c.amount} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, amount: e.target.value } : y)))} />
+                  <label className="check small"><input type="checkbox" checked={c.hst} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, hst: e.target.checked } : y)))} /> <span>+ HST</span></label>
+                  <button className="btn btn--quiet btn--sm" type="button" onClick={() => setCustoms((a) => a.filter((_, j) => j !== i))}>Remove</button></div></div>))}
+            {editFees && <p className="ad-field--wide"><button className="btn btn--ghost btn--sm" type="button" onClick={() => setCustoms((a) => [...a, { label: '', amount: '', hst: true }])} data-testid="oc-add-custom">Add a charge of its own</button></p>}
+            {(Object.values(f.fees).some((v) => v.trim()) || f.plan_price.trim() || customs.length > 0) && text('fee_reason', 'Reason for the changes (optional)', { wide: true })}
           </div>
-          {!admin && <p className="hint">The deposit, discounts and fees are set by an Admin. You may type the rental charge with its reason; a price far under the rate sheet is flagged for an Admin, not refused.</p>}
+          {!admin && <p className="hint">{editFees ? 'The deposit and discounts are set by an Admin. You may type the rental charge with its reason and change a fee (each change is recorded with your name); a price far under the rate sheet is flagged for an Admin, not refused.' : 'The deposit, discounts and fees are set by an Admin. You may type the rental charge with its reason; a price far under the rate sheet is flagged for an Admin, not refused.'}</p>}
+          {b && form?.period_days && b.billable_days > form.period_days && (() => { const n = Math.ceil(b.billable_days / form.period_days!); const sh = periodShares(total, Array.from({ length: n }, (_, i) => (i < n - 1 ? form.period_days! : b.billable_days - form.period_days! * (n - 1))));
+            return <p className="alert alert--ok small" role="status" data-testid="oc-periods"><span>{b.billable_days} days: {n} monthly periods of 30 days at the monthly rate (about {sh.map((x) => fmt(x)).join(', ')}).</span></p>; })()}
           {addonOptions.length > 0 && <details className="stack" data-testid="oc-addons"><summary className="link small">Add-ons ({addons.length ? `${addons.length} chosen` : 'optional'})</summary>
             <AddonPicker idPrefix="oc" staff compact options={addonOptions} value={addons} onChange={setAddons} /></details>}
         </fieldset>

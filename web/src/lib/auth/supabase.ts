@@ -130,6 +130,13 @@ export function supabaseAuth(): AuthAdapter {
       if (!r.ok) return failure(r.err, 'We could not create the sign-in.');
       return { ok: true, user: { id: userId, email }, needsConfirmation: true };
     },
+    async adminSetEmail(userId, email) {
+      const got = await gotrue(`/admin/users/${encodeURIComponent(userId)}`, undefined, { service: true, method: 'GET' });
+      if (!got.ok) return { ok: true, none: true };
+      const r = await gotrue(`/admin/users/${encodeURIComponent(userId)}`, { email: email.trim().toLowerCase(), email_confirm: true }, { service: true, method: 'PUT' });
+      if (!r.ok) { const f = failure(r.err, 'The sign-in could not take the new email.'); return { ok: false, code: f.code, message: f.message }; }
+      return { ok: true };
+    },
     async claimForCapture(userId, email, password) {
       const e = email.trim().toLowerCase();
       const got = await gotrue(`/admin/users/${encodeURIComponent(userId)}`, undefined, { service: true, method: 'GET' });

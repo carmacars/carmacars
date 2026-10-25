@@ -141,6 +141,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      agreement_auto_runs: {
+        Row: {
+          id: string;
+          booking_id: string;
+          ran_at: string;
+          ok: boolean;
+          error: string | null;
+          source: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          ran_at?: string;
+          ok: boolean;
+          error?: string | null;
+          source?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          ran_at?: string;
+          ok?: boolean;
+          error?: string | null;
+          source?: string;
+        };
+        Relationships: [];
+      };
       airports: {
         Row: {
           id: string;
@@ -927,6 +954,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_fee_changes: {
+        Row: {
+          id: string;
+          booking_id: string;
+          line_key: string;
+          label: string;
+          before_cents: number | null;
+          after_cents: number | null;
+          reason: string | null;
+          booking_status: string | null;
+          changed_by: string | null;
+          changed_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          line_key: string;
+          label: string;
+          before_cents?: number | null;
+          after_cents?: number | null;
+          reason?: string | null;
+          booking_status?: string | null;
+          changed_by?: string | null;
+          changed_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          line_key?: string;
+          label?: string;
+          before_cents?: number | null;
+          after_cents?: number | null;
+          reason?: string | null;
+          booking_status?: string | null;
+          changed_by?: string | null;
+          changed_at?: string;
+        };
+        Relationships: [];
+      };
       booking_fee_terms: {
         Row: {
           id: string;
@@ -1104,6 +1170,36 @@ export type Database = {
           supporting_refs?: Json | null;
           arose_vehicle_id?: string | null;
           booking_addon_id?: string | null;
+        };
+        Relationships: [];
+      };
+      booking_line_overrides: {
+        Row: {
+          id: string;
+          booking_id: string;
+          line_key: string;
+          total_cents: number;
+          reason: string | null;
+          set_by: string | null;
+          set_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          line_key: string;
+          total_cents: number;
+          reason?: string | null;
+          set_by?: string | null;
+          set_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          line_key?: string;
+          total_cents?: number;
+          reason?: string | null;
+          set_by?: string | null;
+          set_at?: string;
         };
         Relationships: [];
       };
@@ -1335,6 +1431,51 @@ export type Database = {
           partner_rate_basis?: boolean;
           partner_sheet_cents?: number | null;
           partner_markup_cents?: number;
+        };
+        Relationships: [];
+      };
+      booking_staff_edits: {
+        Row: {
+          id: string;
+          booking_id: string;
+          edited_by: string | null;
+          edited_at: string;
+          booking_status: string;
+          reason: string | null;
+          told_renter: boolean;
+          changes: Json;
+          before: Json;
+          after: Json;
+          total_before_cents: number | null;
+          total_after_cents: number | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          edited_by?: string | null;
+          edited_at?: string;
+          booking_status: string;
+          reason?: string | null;
+          told_renter?: boolean;
+          changes?: Json;
+          before: Json;
+          after: Json;
+          total_before_cents?: number | null;
+          total_after_cents?: number | null;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          edited_by?: string | null;
+          edited_at?: string;
+          booking_status?: string;
+          reason?: string | null;
+          told_renter?: boolean;
+          changes?: Json;
+          before?: Json;
+          after?: Json;
+          total_before_cents?: number | null;
+          total_after_cents?: number | null;
         };
         Relationships: [];
       };
@@ -10791,6 +10932,13 @@ export type Database = {
           booking_licence_selfie_required: boolean;
           booking_return_auto_charges: boolean;
           statement_fuel_cents_per_eighth: number | null;
+          staff_max_rental_days: number;
+          long_rental_period_days: number;
+          long_rental_cycle: string;
+          long_rental_agreement_lead_days: number;
+          long_rental_autocharge: boolean;
+          staff_may_edit_fees: boolean;
+          staff_may_edit_bookings: boolean;
         };
         Insert: {
           id?: string;
@@ -11223,6 +11371,13 @@ export type Database = {
           booking_licence_selfie_required?: boolean;
           booking_return_auto_charges?: boolean;
           statement_fuel_cents_per_eighth?: number | null;
+          staff_max_rental_days?: number;
+          long_rental_period_days?: number;
+          long_rental_cycle?: string;
+          long_rental_agreement_lead_days?: number;
+          long_rental_autocharge?: boolean;
+          staff_may_edit_fees?: boolean;
+          staff_may_edit_bookings?: boolean;
         };
         Update: {
           id?: string;
@@ -11655,6 +11810,13 @@ export type Database = {
           booking_licence_selfie_required?: boolean;
           booking_return_auto_charges?: boolean;
           statement_fuel_cents_per_eighth?: number | null;
+          staff_max_rental_days?: number;
+          long_rental_period_days?: number;
+          long_rental_cycle?: string;
+          long_rental_agreement_lead_days?: number;
+          long_rental_autocharge?: boolean;
+          staff_may_edit_fees?: boolean;
+          staff_may_edit_bookings?: boolean;
         };
         Relationships: [];
       };
@@ -12345,6 +12507,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      renter_edits: {
+        Row: {
+          id: string;
+          renter_id: string;
+          edited_by: string | null;
+          edited_at: string;
+          reason: string | null;
+          before: Json;
+          after: Json;
+          email_changed: boolean;
+        };
+        Insert: {
+          id?: string;
+          renter_id: string;
+          edited_by?: string | null;
+          edited_at?: string;
+          reason?: string | null;
+          before: Json;
+          after: Json;
+          email_changed?: boolean;
+        };
+        Update: {
+          id?: string;
+          renter_id?: string;
+          edited_by?: string | null;
+          edited_at?: string;
+          reason?: string | null;
+          before?: Json;
+          after?: Json;
+          email_changed?: boolean;
+        };
+        Relationships: [];
+      };
       renters: {
         Row: {
           id: string;
@@ -12368,6 +12563,7 @@ export type Database = {
           updated_at: string;
           sms_opt_out_at: string | null;
           notify_channel: string | null;
+          staff_note: string | null;
         };
         Insert: {
           id?: string;
@@ -12391,6 +12587,7 @@ export type Database = {
           updated_at?: string;
           sms_opt_out_at?: string | null;
           notify_channel?: string | null;
+          staff_note?: string | null;
         };
         Update: {
           id?: string;
@@ -12414,6 +12611,7 @@ export type Database = {
           updated_at?: string;
           sms_opt_out_at?: string | null;
           notify_channel?: string | null;
+          staff_note?: string | null;
         };
         Relationships: [];
       };
@@ -19237,6 +19435,8 @@ export type Database = {
       register_account: { Args: { p_user: string; p_email: string; p_full_name: string; p_phone?: string }; Returns: Json };
       renter_agree_booking_change: { Args: { p_request: string; p_by: string; p_ip?: string; p_user_agent?: string }; Returns: undefined };
       renter_approve_offer: { Args: { p_booking: string; p_version: number; p_by: string }; Returns: undefined };
+      renter_balance: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      renter_balance_payreq: { Args: { p_booking: string; p_by: string; p_token_sha256: string }; Returns: Json };
       renter_cancel_booking: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: Json };
       renter_decline_booking_change: { Args: { p_request: string; p_by: string; p_reason?: string }; Returns: undefined };
       renter_offline_pay_facts: { Args: { p_booking: string }; Returns: Json };
@@ -19272,8 +19472,10 @@ export type Database = {
       server_account_set_name: { Args: { p_user: string; p_name: string }; Returns: Json };
       server_account_set_sign_in: { Args: { p_user: string; p_method: string }; Returns: Json };
       server_addons_paid_online: { Args: { p_booking: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
+      server_agreement_auto_done: { Args: { p_booking: string; p_ok: boolean; p_error?: string; p_source?: string }; Returns: Json };
       server_agreement_companion: { Args: { p_booking: string }; Returns: Json };
       server_agreement_facts: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_agreements_due: { Args: { p_limit?: number }; Returns: Json };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };
@@ -19422,6 +19624,9 @@ export type Database = {
       server_signing_record: { Args: { p_booking: string }; Returns: Json };
       server_statement_mail_due: { Args: never; Returns: Json };
       server_statement_mail_release: { Args: { p_kind: string; p_key: string }; Returns: Json };
+      server_stripe_dispute_event: { Args: { p: Json }; Returns: Json };
+      server_stripe_refund_event: { Args: { p: Json }; Returns: Json };
+      server_stripe_requires_action: { Args: { p: Json }; Returns: Json };
       server_submit_owner_application: { Args: { p: Json; p_by?: string }; Returns: Json };
       server_unsubscribe: { Args: { p_token: string }; Returns: boolean };
       server_unsubscribe_info: { Args: { p_token: string }; Returns: Json };

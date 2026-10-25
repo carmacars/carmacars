@@ -136,7 +136,7 @@ export default async function CarPage({ params }: Params) {
     } : {}),
     offers: {
       '@type': 'Offer', url, businessFunction: 'http://purl.org/goodrelations/v1#LeaseOut', priceCurrency: 'CAD', price: (c.daily_rate_cents / 100).toFixed(2),
-      priceSpecification: [['DAY', c.daily_rate_cents, 'per day'], ['WEE', c.weekly_rate_cents, 'per week'], ['MON', c.monthly_rate_cents, `per ${f.max_rental_days} days`]].map(([u, p, txt]) => ({ '@type': 'UnitPriceSpecification', price: ((p as number) / 100).toFixed(2), priceCurrency: 'CAD', unitCode: u, unitText: txt, valueAddedTaxIncluded: false })),
+      priceSpecification: [['DAY', c.daily_rate_cents, 'per day'], ['WEE', c.weekly_rate_cents, 'per week'], ['MON', c.monthly_rate_cents, 'per 30 days']].map(([u, p, txt]) => ({ '@type': 'UnitPriceSpecification', price: ((p as number) / 100).toFixed(2), priceCurrency: 'CAD', unitCode: u, unitText: txt, valueAddedTaxIncluded: false })),
       availability: c.taking_requests ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       eligibleDuration: { '@type': 'QuantitativeValue', minValue: 1, maxValue: f.max_rental_days, unitCode: 'DAY' },
       areaServed: { '@type': 'City', name: s.city }, seller: { '@id': `${siteUrl()}/#business` }
@@ -197,14 +197,14 @@ export default async function CarPage({ params }: Params) {
                 <div><dt>1 to 2 days</dt><dd className="num">{money(c.daily_rate_cents)}</dd><dd className="rates__n">a day, any day of the week</dd></div>
                 <div><dt>3 to 6 days</dt><dd className="num">{money(c.multi_day_rate_cents)}</dd><dd className="rates__n">a day</dd></div>
                 <div><dt>7 days or more</dt><dd className="num">{money(c.long_term_rate_cents ?? Math.round(c.weekly_rate_cents / 7))}</dd><dd className="rates__n">{F(`a day; ${money(c.weekly_rate_cents)} a week`)}</dd></div>
-                <div><dt>Monthly</dt><dd className="num">{money(c.monthly_rate_cents)}</dd><dd className="rates__n">{F('{{maxDays}} days, the longest single booking')}</dd></div>
+                <div><dt>Monthly</dt><dd className="num">{money(c.monthly_rate_cents)}</dd><dd className="rates__n">{F('{{monthDays}} days; a longer rental pays it for each {{monthDays}} days')}</dd></div>
               </dl>
             ) : (
             <dl className="rates">
               <div><dt>Daily</dt><dd className="num">{money(c.daily_rate_cents)}</dd><dd className="rates__n">Monday to Thursday, and Sunday</dd></div>
               <div><dt>Weekend day</dt><dd className="num">{money(c.weekend_rate_cents)}</dd><dd className="rates__n">Days starting Friday or Saturday</dd></div>
               <div><dt>Weekly</dt><dd className="num">{money(c.weekly_rate_cents)}</dd><dd className="rates__n">{F(`${money(Math.round(c.weekly_rate_cents / 7))} a day for {{weekFrom}} to {{maxDaysLess1}} days`)}</dd></div>
-              <div><dt>Monthly</dt><dd className="num">{money(c.monthly_rate_cents)}</dd><dd className="rates__n">{F('{{maxDays}} days, the longest single booking')}</dd></div>
+              <div><dt>Monthly</dt><dd className="num">{money(c.monthly_rate_cents)}</dd><dd className="rates__n">{F('{{monthDays}} days; a longer rental pays it for each {{monthDays}} days')}</dd></div>
             </dl>
             )}
             <p className="small muted measure">{c.multi_day_rate_cents

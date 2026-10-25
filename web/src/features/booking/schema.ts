@@ -63,7 +63,7 @@ export function checkRequest(v: RequestData, r: RequestRules, ctx: { todayIso: s
     const mins = (iso: string, t: string) => Date.parse(iso + 'T00:00:00Z') / 6e4 + Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
     const a = mins(v.from, v.tf); const z = mins(v.to, v.tt);
     if (z <= a) set('dates', 'The return time is before the pickup time.');
-    else if (Math.ceil((z - a) / 1440) > r.maxDays) set('dates', `One booking covers up to ${r.maxDays} days. Shorten the dates; you can renew later.`);
+    else if (Math.ceil((z - a) / 1440) > r.maxDays) set('dates', `One booking covers up to ${r.maxDays} days. Shorten the dates.`);
     else if (a < mins(ctx.todayIso, '00:00') + ctx.nowMinutes + r.noticeMinutes) set('dates', `Pickup needs at least ${r.noticeMinutes / 60} hours’ notice. Choose a later time.`);
   }
   if (v.pickupAt === 'delivery' && v.pickupAddress.label.trim().length < 5) set('pickupAddress', 'Add the delivery address so we can price the trip.');

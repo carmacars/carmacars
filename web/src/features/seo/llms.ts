@@ -80,7 +80,7 @@ export function llmsFullTxt(f: EntityFacts): string {
     out.push(`- Cars listed: ${f.fleet.realCars}`);
     if (f.fleet.fromDailyCents) out.push(`- From ${money(f.fleet.fromDailyCents)} a day`);
     if (f.fleet.fromWeeklyCents) out.push(`- From ${money(f.fleet.fromWeeklyCents)} a week`);
-    if (f.fleet.fromMonthlyCents) out.push(`- From ${money(f.fleet.fromMonthlyCents)} for ${f.policy.maxDays} days (the longest single booking; it renews)`);
+    if (f.fleet.fromMonthlyCents) out.push(`- From ${money(f.fleet.fromMonthlyCents)} for 30 days (a longer rental pays it for each 30 days)`);
     for (const c of f.fleet.classes) out.push(`- ${c.label}: ${c.count} ${c.count === 1 ? 'car' : 'cars'}, from ${money(c.fromDailyCents)} a day`);
   } else out.push('- The first cars are being listed; each car shows its own rates and deposit on its page.');
   if (f.fleet.deliveryFromCents !== null) out.push(`- Delivery from ${f.fleet.deliveryFromCents ? money(f.fleet.deliveryFromCents) : 'no charge'}${f.airports.length ? `, airports too (${f.airports.join(', ')})` : ''}`);

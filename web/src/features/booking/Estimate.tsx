@@ -109,7 +109,7 @@ export function Estimate({ q, error, loading, from, to, tf, tt, rates, hst, maxD
           <tr><th scope="row">Weekend day (Fri, Sat)</th><td>{money(rates.weekend)}</td></tr>
           <tr><th scope="row">Weekly</th><td>{money(rates.weekly)}</td></tr>
           </>}
-          <tr><th scope="row">Monthly ({maxDays} days)</th><td>{money(rates.monthly)}</td></tr>
+          <tr><th scope="row">Monthly (30 days)</th><td>{money(rates.monthly)}</td></tr>
         </tbody></table>
       </div>
     );

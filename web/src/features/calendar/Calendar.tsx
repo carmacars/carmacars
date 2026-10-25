@@ -70,7 +70,7 @@ export function Calendar({ months = 1, min, today, blocks = [], from = '', to = 
       say(`Pickup ${shortDate(iso)}${pp ? ', ' + partText(pp) : ''}. Now pick a return date.`);
     } else {
       if (crosses(sel.from, iso)) return say('Those dates cross another booking. Pick an earlier return date, or start after it.', true);
-      if (diffDays(sel.from, iso) > maxDays) return say(`One booking covers up to ${maxDays} days. For longer, you renew with a new booking.`, true);
+      if (diffDays(sel.from, iso) > maxDays) return say(`One booking covers up to ${maxDays} days.`, true);
       next = { from: sel.from, to: iso };
       const n = Math.max(1, diffDays(sel.from, iso)); const zp = partOf(iso);
       say(`${shortDate(sel.from)} to ${shortDate(iso)}, ${n} ${n === 1 ? 'day' : 'days'}.${zp ? ` On ${shortDate(iso)} the car is ${partText(zp)}.` : ''}`);

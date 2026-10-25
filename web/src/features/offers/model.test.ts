@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cents, daysBetween, describeRevision, missing, offerPayload, paymentOf, typedRental, needsReference, type OfferForm } from './model.ts';
+import { cents, daysBetween, describeRevision, feeOverrides, lineKey, missing, offerPayload, paidSoFar, paymentOf, periodShares, typedRental, needsReference, type OfferForm } from './model.ts';
 
 const base = (o: Partial<OfferForm> = {}): OfferForm => ({
   renter_id: null, full_name: 'Nora Offer', email: 'nora@example.test', mobile: '416 555 0177', date_of_birth: '1991-02-03',
@@ -52,19 +52,30 @@ test('the payload: a new customer, the places, the price typed, the payment plan
   assert.equal(p.sales_choice, 'sourced');
 });
 
-test('an assistant never sends the deposit, a discount or fees; an Admin does', () => {
-  const f = base({ deposit: '500', discount: '20', fees: { delivery_fee: '0' }, coverage_option: '3', plan_price: '15' });
+test('an assistant never sends the deposit or a discount; fees only when allowed (0132); an Admin does', () => {
+  const f = base({ deposit: '500', discount: '20', fees: { delivery: '0', young_driver_21_25: '150' }, coverage_option: '3', plan_price: '15' });
   const va = offerPayload(f, 'sales', 3);
   assert.equal(va.deposit_cents, undefined);
-  assert.equal(va.fee_terms, undefined);
+  assert.equal(va.line_overrides, undefined, 'fees not allowed: none sent');
   assert.equal(va.changes, undefined);
-  assert.equal(va.coverage_cents, undefined, 'sales does not price the Protection Plan');
-  const cs = offerPayload(f, 'cs', 3);
-  assert.equal(cs.coverage_cents, 1500);
+  const cs = offerPayload(f, 'cs', 3, [], true);
+  assert.deepEqual(cs.line_overrides, { delivery: 0, young_driver_21_25: 15000, coverage_sold: 1500 });
+  assert.equal(cs.deposit_cents, undefined);
   const admin = offerPayload(f, 'admin', 3);
   assert.equal(admin.deposit_cents, 50000);
-  assert.deepEqual(admin.fee_terms, [{ fee: 'delivery_fee', amount_cents: 0, reason: null }]);
+  assert.deepEqual(admin.line_overrides, { delivery: 0, young_driver_21_25: 15000, coverage_sold: 1500 });
+  assert.equal(admin.fee_reason, 'Agreed with the renter');
   assert.deepEqual(admin.changes, { staff_discount_cents: 2000, staff_discount_reason: 'Discount given on the phone' });
+});
+
+test('fee lines, payments in parts and period shares (0132)', () => {
+  assert.equal(lineKey({ charge_type: 'young_driver_21_25' }), 'young_driver_21_25');
+  assert.equal(lineKey({ charge_type: 'winter_tire', detail: { code: 'winter-tires', addon_id: 'x' } }), 'addon:winter-tires');
+  assert.deepEqual(feeOverrides({ rental_charge: '10', coverage_sold: '40.5', delivery: '' }), { coverage_sold: 4050 });
+  assert.deepEqual(paidSoFar(300000, [{ method: 'e_transfer', amount: '2,000', reference: 'X1' }], 548050), { paid: 500000, left: 48050 });
+  assert.deepEqual(paidSoFar(600000, [], 548050), { paid: 600000, left: 0 });
+  assert.deepEqual(periodShares(100, [30, 12]), [71, 29]);
+  assert.deepEqual(periodShares(0, []), []);
 });
 
 test('not notified when neither email nor text is ticked', () => {

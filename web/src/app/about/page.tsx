@@ -51,7 +51,7 @@ export default async function About() {
             <tr><th scope="row">Cars listed</th><td className="num">{f.fleet.realCars}</td></tr>
             {f.fleet.classes.map((c) => <tr key={c.label}><th scope="row">{c.label}</th><td>{c.count} {c.count === 1 ? 'car' : 'cars'}, from <span className="num">{money(c.fromDailyCents)}</span> a day</td></tr>)}
             {f.fleet.fromWeeklyCents && <tr><th scope="row">By the week</th><td>From <span className="num">{money(f.fleet.fromWeeklyCents)}</span></td></tr>}
-            {f.fleet.fromMonthlyCents && <tr><th scope="row">{f.policy.maxDays} days</th><td>From <span className="num">{money(f.fleet.fromMonthlyCents)}</span></td></tr>}
+            {f.fleet.fromMonthlyCents && <tr><th scope="row">30 days</th><td>From <span className="num">{money(f.fleet.fromMonthlyCents)}</span></td></tr>}
             {f.chauffeurFromCents && <tr><th scope="row">Chauffeur</th><td>From <span className="num">{money(f.chauffeurFromCents)}</span> an hour{f.chauffeurMinHours ? `, ${f.chauffeurMinHours} hours minimum` : ''}</td></tr>}
           </tbody></table>
         ) : <p className="measure">Our first cars are being listed. Each car shows its own rates and deposit on its page.</p>}

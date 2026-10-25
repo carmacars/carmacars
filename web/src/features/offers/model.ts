@@ -86,8 +86,9 @@ export function missing(f: OfferForm, role: Role): string[] {
 }
 
 /** The payload of app.staff_offer_create (and of its preview). Only what the person may change is sent: an assistant
- *  never sends the deposit, a discount or fees (the database refuses them anyway). */
-export function offerPayload(f: OfferForm, role: Role, days: number, addons: Array<{ code: string; quantity: number; hours?: number | null }> = []): Record<string, unknown> {
+ *  never sends the deposit or a discount, and fees only when Program settings let staff change fees (the database refuses
+ *  them otherwise). */
+export function offerPayload(f: OfferForm, role: Role, days: number, addons: Array<{ code: string; quantity: number; hours?: number | null }> = [], editFees: boolean = role === 'admin'): Record<string, unknown> {
   const rental = typedRental(f, days);
   const changes: Record<string, unknown> = {};
   if (f.km) changes.km_allowance_per_day = Number(f.km);
@@ -106,11 +107,11 @@ export function offerPayload(f: OfferForm, role: Role, days: number, addons: Arr
   if (rental !== null) { p.rental_charge_cents = rental; p.price_tax = f.price_tax; p.price_reason = f.price_reason.trim(); }
   if (Object.keys(changes).length) p.changes = changes;
   if (role === 'admin' && cents(f.deposit) !== null) p.deposit_cents = cents(f.deposit);
-  if (f.coverage_option === '3' && role !== 'sales' && cents(f.plan_price) !== null) { p.coverage_cents = cents(f.plan_price); p.coverage_reason = f.fee_reason.trim() || 'Protection Plan price agreed with the renter'; }
   if (f.promo_code.trim()) p.promo_code = f.promo_code.trim().toUpperCase();
-  if (role === 'admin') {
-    const fees = Object.entries(f.fees).filter(([, v]) => cents(v) !== null).map(([fee, v]) => ({ fee, amount_cents: cents(v), reason: f.fee_reason.trim() || null }));
-    if (fees.length) p.fee_terms = fees;
+  // 0132: each fee line set by hand (its amount for the booking, before HST), by an Admin or by staff the settings allow
+  if (editFees) {
+    const lines = feeOverrides({ ...f.fees, ...(f.coverage_option === '3' && f.plan_price.trim() ? { coverage_sold: f.plan_price } : {}) });
+    if (Object.keys(lines).length) { p.line_overrides = lines; p.fee_reason = f.fee_reason.trim() || 'Agreed with the renter'; }
   }
   if (addons.length) p.addons = addons;
   return p;
@@ -152,3 +153,32 @@ export function paymentOf(by: RentalPaidBy): { mode: 'other_way' | 'link' | 'car
 }
 /** A reference is needed for these (the database says the same). */
 export const needsReference = (by: RentalPaidBy | DepositPay) => by === 'e_transfer' || by === 'cheque' || by === 'bank_transfer';
+
+// ---------------------------------------------------------------- 0132: fee lines set by hand, split payments, periods
+/** The key of a price line, as the database keys a fee set by hand: an add-on by its code, anything else by its charge. */
+export function lineKey(l: { charge_type: string; booking_addon_id?: string | null; detail?: { code?: string; addon_id?: string } | null }): string {
+  const code = l.detail?.code;
+  return code && (l.detail?.addon_id || l.booking_addon_id || l.charge_type === 'addon') ? `addon:${code}` : l.charge_type;
+}
+/** Lines that are the rental itself (their own fields), never edited as a fee. */
+export const RENTAL_LINE = new Set(['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount']);
+/** The fees typed (dollars) as the database takes them: {key: cents}; an empty box is left out (the computed amount). */
+export function feeOverrides(typed: Record<string, string>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(typed)) { const c = cents(v); if (c !== null && !RENTAL_LINE.has(k)) out[k] = c; }
+  return out;
+}
+export interface PayPart { method: 'e_transfer' | 'cash' | 'cheque' | 'bank_transfer'; amount: string; reference: string }
+export const PART_METHODS: Array<[PayPart['method'], string]> = [['cash', 'Cash'], ['e_transfer', 'e-Transfer'], ['cheque', 'Cheque'], ['bank_transfer', 'Bank transfer']];
+/** What the payments typed add up to, and what is left to collect (never below zero). */
+export function paidSoFar(first: number | null, parts: PayPart[], total: number): { paid: number; left: number } {
+  const paid = (first ?? 0) + parts.reduce((s, p) => s + (cents(p.amount) ?? 0), 0);
+  return { paid, left: Math.max(total - paid, 0) };
+}
+/** A period's share of a total, by its days (the last period takes what rounding leaves). */
+export function periodShares(total: number, days: number[]): number[] {
+  const all = days.reduce((s, d) => s + d, 0);
+  if (!all) return days.map(() => 0);
+  let used = 0;
+  return days.map((d, i) => { if (i === days.length - 1) return total - used; const v = Math.round((total * d) / all); used += v; return v; });
+}

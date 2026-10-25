@@ -27,12 +27,12 @@ async function me() {
 const withFn = (p: Record<string, unknown>, va: string | null) => (va ? { ...p, _va: va } : p);
 function refreshAll(paths: string[]) { for (const x of paths) revalidatePath(x); }
 
-export type OffersRead = 'offer_form' | 'offer_preview' | 'find_customers' | 'booking_money';
+export type OffersRead = 'offer_form' | 'offer_preview' | 'find_customers' | 'booking_money' | 'booking_fees' | 'booking_periods' | 'booking_edit_form' | 'renter_edit_form';
 export async function offersRead<T = Record<string, unknown>>(what: OffersRead, p: Record<string, unknown> = {}): Promise<R<T>> {
   try { const { user, aal, va } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, withFn(p, va), aal) }; } catch (e) { return fail(e); }
 }
 
-export type OffersDo = 'offer_create' | 'offer_revise' | 'record_booking_payment' | 'confirm_offline_booking' | 'deposit_return_offline' | 'payreq_cancel';
+export type OffersDo = 'offer_create' | 'offer_revise' | 'record_booking_payment' | 'confirm_offline_booking' | 'deposit_return_offline' | 'payreq_cancel' | 'booking_fees_change' | 'period_record_payment' | 'period_prepare' | 'booking_staff_edit' | 'booking_custom_fee';
 export async function offersDo<T = Record<string, unknown>>(action: OffersDo, p: Record<string, unknown> = {}, refresh: string[] = []): Promise<R<T>> {
   try {
     const { user, aal, va } = await me();
@@ -108,5 +108,26 @@ export async function holdAction(p: { booking: string; action: 'capture' | 'rele
     await door(user.id, 'ops_do', 'hold_action_finish', withFn({ deposit: b.deposit_id, action: p.action, amount_cents: b.amount_cents, ok, error: message, reason: p.reason }, va), aal);
     refreshAll(['/admin/bookings', '/va/bookings']);
     return { ok: true, data: { ok, message } };
+  } catch (e) { return fail(e); }
+}
+
+export interface RenterEditResult { changed: boolean; email_changed?: boolean; email?: string; warnings: Array<{ renter_id: string; name: string }>; signin?: string; link_sent?: boolean }
+/** Correct a renter's details (0132). The database checks and records it; a new email also goes to the sign-in at once
+ *  (staff correct a typo: no confirmation email), and on request the renter gets a link to set a password there. */
+export async function editRenter(p: Record<string, unknown> & { send_link?: boolean }): Promise<R<RenterEditResult>> {
+  try {
+    const { user, aal, va } = await me();
+    const { send_link: sendLink, ...rest } = p;
+    const r = await door<RenterEditResult & { user_id?: string | null }>(user.id, 'ops_do', 'renter_edit', withFn(rest, va), aal);
+    let signin: string | undefined; let linkSent = false;
+    if (r.email_changed && r.user_id && r.email) {
+      const { auth } = await import('@/lib/auth');
+      const a = await auth();
+      const s = a.adminSetEmail ? await a.adminSetEmail(r.user_id, r.email) : { ok: true as const, none: true };
+      signin = s.ok ? (s.none ? 'none' : 'updated') : `not updated: ${s.message}`;
+      if (sendLink && s.ok && !s.none) { await a.requestPasswordReset(r.email, `${baseUrl()}/update-password`); linkSent = true; }
+    }
+    refreshAll(['/admin/renters', '/admin/bookings', '/va/bookings']);
+    return { ok: true, data: { ...r, signin, link_sent: linkSent } };
   } catch (e) { return fail(e); }
 }

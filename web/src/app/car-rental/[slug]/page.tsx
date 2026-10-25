@@ -83,7 +83,7 @@ export default async function LandingPage({ params }: Params) {
           <div><dt>Cars</dt><dd className="num" data-count>{p.car_count}</dd></div>
           {p.min_daily_cents !== null && <div><dt>From</dt><dd><span className="num">{money(p.min_daily_cents)}</span> a day</dd></div>}
           {p.min_weekly_cents !== null && <div><dt>Weekly from</dt><dd className="num">{money(p.min_weekly_cents)}</dd></div>}
-          {p.min_monthly_cents !== null && <div><dt>{F('{{maxDays}} days from')}</dt><dd className="num">{money(p.min_monthly_cents)}</dd></div>}
+          {p.min_monthly_cents !== null && <div><dt>{F('{{monthDays}} days from')}</dt><dd className="num">{money(p.min_monthly_cents)}</dd></div>}
           {p.min_delivery_cents !== null && <div><dt>{p.airport ? 'Airport delivery from' : 'Delivery from'}</dt><dd><span className="num">{money(p.min_delivery_cents)}</span>{p.delivery_per_km_cents > 0 ? ' plus distance' : ''}{p.airport?.surcharge_cents ? ` plus ${money(p.airport.surcharge_cents)}` : ''}</dd></div>}
         </dl></div>
       </section>

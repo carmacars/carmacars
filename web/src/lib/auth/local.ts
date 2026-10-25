@@ -318,6 +318,13 @@ export function localAuth(): AuthAdapter {
       const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
       return { ok: true, user: { id, email: e }, link: `${base}/update-password?token=${token}&next=${encodeURIComponent(next)}` };
     },
+    async adminSetEmail(userId, email) {
+      const e = email.trim().toLowerCase();
+      const other = await sql`select 1 from local_auth.users where email = ${e} and id <> ${userId}`;
+      if (other.length) return { ok: false, code: 'exists', message: 'Another sign-in already uses this email.' };
+      const done = await sql`update local_auth.users set email = ${e} where id = ${userId} returning id`;
+      return done.length ? { ok: true } : { ok: true, none: true };
+    },
     async deleteAccount(userId) {
       await sql`delete from local_auth.users where id = ${userId}`;
     },

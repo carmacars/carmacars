@@ -17,6 +17,7 @@ import { door } from '@/server/door';
 import { bookingDriverLinks } from '@/server/portal/driver-links';
 import { DriverLink } from '@/features/portal/DriverLink';
 import { PortalAddons, type MyAddons } from '@/features/addons/PortalAddons';
+import { renterPayBalance } from '@/server/actions/balance';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }) {
@@ -42,6 +43,9 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
     b.booking_type === 'owner' ? Promise.resolve(null) : rpc('server_my_booking_addons', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as MyAddons).catch(() => null)]);
   const laterLines = new Set((addons?.items ?? []).filter((a) => a.after_booking).map((a) => a.line_item_id).filter(Boolean));
   const step = nextStep(b);
+  // what is still owing after a change by our team (0132): the balance, with Pay
+  const balance = ['confirmed', 'on_rent', 'returned'].includes(b.status)
+    ? ((await rpc('renter_balance', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { balance_cents: number } | null) : null;
   // the licence first (0130): from the request until it is on file
   const licMissing = ['requested', 'offered', 'pending_payment'].includes(b.status) ? renterMissing(await licenceState(b.id, user.id)) : null;
   const card = b.payments.find((p) => p.purpose === 'booking_total' && p.card_last4);
@@ -69,6 +73,11 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       </header>
       <div className="pt-split">
         <div className="stack-lg">
+          {balance && balance.balance_cents > 0 && (
+            <section className="pt-card pt-card--next" aria-labelledby="pt-bal" data-testid="renter-balance"><h2 className="d4" id="pt-bal">Balance due: {money(balance.balance_cents, { cents: true })}</h2>
+              <p>Your booking changed, or a charge was added: this is what is still owing. Pay it by card now (the price lines are below), or pay our team by e-Transfer or cash.</p>
+              <form action={renterPayBalance}><input type="hidden" name="booking" value={b.id} /><button className="btn btn--primary" type="submit" data-testid="renter-pay-balance">Pay {money(balance.balance_cents, { cents: true })}</button></form></section>
+          )}
           <LicenceNotice number={b.booking_number} missing={licMissing} when={b.status === 'requested' ? 'request' : b.status === 'offered' ? 'offer' : 'pay'} />
           {step.href && step.href !== bookingPath(b.booking_number) && (
             <section className="pt-card pt-card--next" aria-labelledby="pt-step"><h2 className="d4" id="pt-step">{step.title}</h2><p>{step.note}</p><p><Link prefetch={false} className="btn btn--primary" href={step.href}>{step.cta}</Link></p></section>

@@ -1,4 +1,4 @@
--- 03: status flows and the guards around them: booking lifecycle, 30-day maximum, renewals,
+-- 03: status flows and the guards around them: booking lifecycle, the longest booking, renewals,
 -- deposits, vehicle and onboarding flow, owner invoice flow, claims and their ledger,
 -- tracker commands, tolls, investors, the fleet minimum and the audit log.
 select test.suite('03 flows');
@@ -8,13 +8,13 @@ select test.mk_vehicle('F1', 'fiona');
 select test.mk_renter('lia', false);
 
 -- ------------------------------------------------------------------ booking lifecycle
-select test.throws('B a booking over 30 days is refused',
-  $$select test.mk_booking('L31', 'F1', 'lia', '2027-02-01 10:00', '2027-03-04 10:00', 'tentative')$$, '1 to 30 days');
+select test.throws('B a booking over 3,660 days is refused (0132: longer than 30 days is one booking with monthly periods)',
+  $$select test.mk_booking('L31', 'F1', 'lia', '2027-02-01 10:00', '2037-03-04 10:00', 'tentative')$$, '1 to 3,660 days');
 select test.mk_booking('L1', 'F1', 'lia', '2027-02-01 10:00', '2027-02-04 10:00', 'tentative');
 select test.eq('B the booking snapshots the vehicle''s owner, mode and Revenue Share',
   (select (owner_id = test.id('owner:fiona')) || '/' || management_mode || '/' || company_share_bps from bookings where id = test.id('booking:L1')), 'true/managed/3500');
-select test.throws('B extending a booking past 30 days in one transaction is refused by the table itself',
-  format($$update bookings set return_at = pickup_at + interval '31 days', billable_days = 31, km_allowance_total = 6200 where id = %L$$, test.id('booking:L1')), 'billable_days');
+select test.throws('B a booking past 3,660 days is refused by the table itself',
+  format($$update bookings set return_at = pickup_at + interval '3661 days', billable_days = 3661, km_allowance_total = 732200 where id = %L$$, test.id('booking:L1')), 'billable_days');
 select test.throws('B tentative cannot jump to on rent',
   format('update bookings set status = ''on_rent'' where id = %L', test.id('booking:L1')), 'cannot go from tentative to on_rent');
 update bookings set status = 'pending_payment' where id = test.id('booking:L1');

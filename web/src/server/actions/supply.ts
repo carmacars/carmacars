@@ -84,13 +84,17 @@ export interface ManualRentalResult { booking_id: string; booking_number: string
   /** The choice and a price typed by hand (0058). */
   sales_choice?: 'sourced' | 'for_carmacars' | null; sales_sourced?: boolean; price_flags?: string[]; rate_sheet_cents?: number | null;
   /** The case the dates made (0074): upcoming, in progress (on trip) or past (completed); and how it is paid. */
-  phase?: 'upcoming' | 'in_progress' | 'past' | null; payment_mode?: string }
+  phase?: 'upcoming' | 'in_progress' | 'past' | null; payment_mode?: string;
+  /** 0132: what is still to collect after the payments recorded; the monthly periods of a long rental. */
+  open_cents?: number; periods?: number; lead_days?: number }
 
 /** Add a rental. With the saved card, nothing is charged here: the renter's "Accept and sign" charges it (0053). */
 export async function createManualRental(p: Record<string, unknown>): Promise<R<ManualRentalResult>> {
   try {
     const { user, aal } = await me();
     const r = await door<ManualRentalResult>(user.id, 'ops_do', 'manual_rental_create', p, aal);
+    // its rental agreement now (0132: CC-10013 had none), unless signed on paper; the five-minute job catches a miss
+    if (!r.status || ['confirmed', 'on_rent'].includes(r.status)) { const { agreementAfterAdd } = await import('@/server/agreement-auto'); await agreementAfterAdd(r.booking_id).catch(() => undefined); }
     if (r.charge?.method_id && r.charge.customer_id && r.charge.amount_cents > 0) {
       const { payments } = await import('@/integrations/payments');
       let ok = false; let message: string | undefined;

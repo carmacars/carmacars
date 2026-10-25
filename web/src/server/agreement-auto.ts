@@ -1,0 +1,36 @@
+import 'server-only';
+import { rpc } from '@/lib/db/repo';
+import { openAgreement } from '@/server/portal/agreement';
+
+// Every confirmed or on-trip booking gets its rental agreement by itself (migration 0132): booking CC-10013, added by
+// hand, had none because the agreement was made only when the renter first opened the signing page. The site makes it
+// (and Blind Spot's, and each additional driver's link) as the renter, then the database sends the renter's "sign your
+// agreement". Right after a rental is added, and on the five-minute job for anything missed. Each try is recorded.
+const SR = { role: 'service_role' as const };
+type Due = { booking_id: string; booking_number: string; renter_user_id: string };
+
+export async function ensureAgreement(bookingId: string, renterUserId: string, source = 'job'): Promise<boolean> {
+  try {
+    await openAgreement(bookingId, renterUserId);
+    await rpc('server_agreement_auto_done', { p_booking: bookingId, p_ok: true, p_source: source }, SR);
+    return true;
+  } catch (e) {
+    await rpc('server_agreement_auto_done', { p_booking: bookingId, p_ok: false, p_error: e instanceof Error ? e.message : String(e), p_source: source }, SR).catch(() => undefined);
+    return false;
+  }
+}
+
+/** The bookings that still have no agreement, a few at a time (each render is a PDF). */
+export async function runAgreementJobs(max = 3): Promise<{ done: number; failed: number; more: boolean }> {
+  const due = ((await rpc('server_agreements_due', { p_limit: max + 1 }, SR)) as unknown as Due[]) ?? [];
+  let done = 0; let failed = 0;
+  for (const d of due.slice(0, max)) { if (await ensureAgreement(d.booking_id, d.renter_user_id)) done++; else failed++; }
+  return { done, failed, more: due.length > max };
+}
+
+/** Right after a rental is added: its agreement now, unless it was signed on paper (the job catches a miss). */
+export async function agreementAfterAdd(bookingId: string): Promise<void> {
+  const due = ((await rpc('server_agreements_due', { p_limit: 50 }, SR).catch(() => [])) as unknown as Due[]) ?? [];
+  const d = due.find((x) => x.booking_id === bookingId);
+  if (d) await ensureAgreement(d.booking_id, d.renter_user_id, 'added');
+}

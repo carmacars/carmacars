@@ -45,6 +45,9 @@ export interface AuthAdapter {
   confirmEmail?(tokenHash: string): Promise<AuthResult>;
   /** Server only: removes a sign-in account (one this request created and could not finish). */
   deleteAccount?(userId: string): Promise<void>;
+  /** Server only (staff correct a renter's email, 0132): the sign-in of that record takes the new address at once, with
+   *  no confirmation email. ok with none: the record had no sign-in. code 'exists' when another sign-in has the address. */
+  adminSetEmail?(userId: string, email: string): Promise<{ ok: true; none?: boolean } | { ok: false; code?: AuthFailure; message: string }>;
   /** Sign-in by phone (0091): the sign-in service texts a 6-digit code (through our SMS hook). The account of that
    *  number is made at its first verified code, so the answer is the same whether or not it exists. */
   sendPhoneCode(phone: string): Promise<PhoneCodeResult>;
