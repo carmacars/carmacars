@@ -168,9 +168,58 @@ async function request(renter, car, name) {
   if (!r.v.ok) throw new Error(`request refused: ${r.v.message}`);
   return r.v;
 }
+/** The licence photos and its expiry, which an offer may not be accepted without (migration 0130). */
+async function giveLicence(booking) {
+  await sql`update booking_drivers set licence_expiry = coalesce(licence_expiry, date '2031-01-01') where booking_id = ${booking}::uuid and role = 'renter'`;
+  for (const k of ['licence_front', 'licence_back', 'selfie']) {
+    await sql`select app.register_verification_upload(${booking}::uuid, null, ${k}, d.driver_id, ${`guide/${booking}/${k}.jpg`}, null, 'image/jpeg', null, 'identity')
+                from booking_drivers d where d.booking_id = ${booking}::uuid and d.role = 'renter'
+                 and not exists (select 1 from verification_uploads u where u.booking_id = d.booking_id and u.driver_id = d.driver_id and u.kind = ${k} and u.status in ('submitted', 'approved'))`;
+  }
+}
+/** The signature that holds up (migration 0154), as the renter does it: the code, the reading, the initials, the consents, the drawn signature. */
+async function strongSign(page) {
+  const flow = page.getByTestId('esign-flow');
+  await flow.waitFor({ timeout: 20_000 });
+  const ch = flow.getByTestId('esign-channel-sms');
+  if (await ch.count()) await ch.check();
+  await flow.getByTestId('esign-send').click();
+  const dev = flow.getByTestId('esign-dev-code');
+  await dev.waitFor({ timeout: 15_000 });
+  const code = ((await dev.textContent()) ?? '').replace(/\D/g, '').slice(-6);
+  await page.addStyleTag({ content: '[data-testid="esign-dev-code"] { display: none !important; }' }).catch(() => {});
+  await flow.getByTestId('esign-code').fill(code);
+  await flow.getByTestId('esign-confirm').click();
+  await flow.getByTestId('esign-verified').waitFor({ timeout: 15_000 });
+  await flow.getByTestId('esign-viewed').click();
+  await page.waitForTimeout(800);
+  const stroke = async (pad, points) => {
+    await pad.scrollIntoViewIfNeeded(); await page.waitForTimeout(700);
+    const b = await pad.boundingBox();
+    await page.mouse.move(b.x + 12, b.y + b.height * 0.6); await page.mouse.down();
+    for (let i = 1; i <= points; i++) await page.mouse.move(b.x + 12 + i * ((b.width - 30) / points), b.y + b.height * (0.55 + 0.25 * Math.sin(i / 2)), { steps: 2 });
+    await page.mouse.up();
+  };
+  for (let n = 0; n < 6; n++) {
+    const pad = flow.locator('canvas[data-testid^="initials-"]').first();
+    if (!(await pad.count())) break;
+    const id = await pad.getAttribute('data-testid');
+    await stroke(pad, 10);
+    await flow.locator(`canvas[data-testid="${id}"]`).waitFor({ state: 'detached', timeout: 15_000 }).catch(() => {});
+  }
+  for (let n = 0; n < 4; n++) {
+    const c = flow.locator('input[data-testid^="esign-consent-"]:not(:checked)').first();
+    if (!(await c.count())) break;
+    await c.click(); await page.waitForTimeout(600);
+  }
+  await stroke(flow.getByTestId('signature-pad'), 30);
+  await flow.waitFor({ state: 'visible' }); await page.waitForFunction(() => document.querySelector('[data-testid="esign-flow"]')?.getAttribute('data-complete') === 'true', null, { timeout: 15_000 }).catch(() => {});
+}
+
 /** Offered, approved, signed, paid, verified, covered, confirmed (as procedures 1 and 2 leave a booking). */
 async function confirm(booking, admin, holder) {
   await sql`select app.send_offer(${booking}::uuid, ${admin}::uuid)`;
+  await giveLicence(booking);
   await sql`select app.approve_offer(b.id, b.current_offer_version, (select user_id from renters where id = b.renter_id)) from bookings b where b.id = ${booking}`;
   const doc = randomUUID(); const sig = randomUUID();
   await sql`insert into documents (id, kind, storage_bucket, storage_path, booking_id) values (${doc}, 'rental_agreement', 'agreements', ${`bookings/${booking}/agreement.pdf`}, ${booking})`;
@@ -310,7 +359,7 @@ async function publicPages(browser) {
       await page.getByRole('button', { name: 'Continue to licence' }).click();
       await page.locator('label', { hasText: 'Ontario G2' }).waitFor();
       await page.locator('label', { hasText: 'Ontario G2' }).click();
-      await page.locator('label.option', { hasText: 'Option 2' }).click();
+      if (await page.locator('label.option', { hasText: 'Option 2' }).count()) await page.locator('label.option', { hasText: 'Option 2' }).click();
       await shoot(page, 'public', 'book-3-licence', 'Step 3: the licence and how the car is covered.');
       await page.getByRole('button', { name: 'Review request' }).click();
       await page.locator('input[name="agree"]').waitFor();
@@ -336,7 +385,7 @@ async function renterStory(browser, ids) {
   await d.locator('#rq-phone').fill('647-555-0142'); await d.locator('#rq-dobm').selectOption('4'); await d.locator('#rq-dobd').fill('9'); await d.locator('#rq-doby').fill('1990');
   await d.getByRole('button', { name: 'Continue to licence' }).click();
   await d.locator('label', { hasText: 'Ontario G2' }).click();
-  await d.locator('label.option', { hasText: 'Option 2' }).click();
+  if (await d.locator('label.option', { hasText: 'Option 2' }).count()) await d.locator('label.option', { hasText: 'Option 2' }).click();
   await d.getByRole('button', { name: 'Review request' }).click();
   await d.locator('input[name="agree"]').check();
   await d.getByRole('button', { name: 'Send request' }).click();
@@ -351,7 +400,11 @@ async function renterStory(browser, ids) {
   await sql`select app.send_offer(${b.id}, ${ids.admin}, ${STAFF_NOTE}, null)`;
   await both(P, 'renter', 'trips-offer', '/account', 'Trips: the next step is shown first (here: Review offer).');
   await both(P, 'renter', 'offer', `/account/bookings/${number}/offer`, 'The offer: price, what changed, the time left. Approve and continue, Ask for a change, or Decline.');
+  await giveLicence(b.id);
   await d.goto(`/account/bookings/${number}/offer`); await d.getByRole('button', { name: 'Approve and continue' }).click(); await d.waitForURL(/\/sign$/, { timeout: 30_000 });
+  // the screens that follow show the licence still to upload
+  await sql`delete from verification_uploads where booking_id = ${b.id}`;
+  await sql`update booking_drivers set licence_expiry = null where booking_id = ${b.id} and role = 'renter'`;
   // 3. sign
   await both(P, 'renter', 'sign-details', `/account/bookings/${number}/sign`, 'Sign, part 1: address and licence details for the agreement (Save details).');
   await d.locator('#pt-d-address_line1').fill('100 Queen Street West'); await d.locator('#pt-d-city').fill('Toronto'); await d.locator('#pt-d-postal_code').fill('M5H 2N2');
@@ -359,9 +412,7 @@ async function renterStory(browser, ids) {
   await d.getByRole('button', { name: 'Save details' }).click();
   await d.locator('.agreement').getByText('100 Queen Street West').first().waitFor({ state: 'attached', timeout: 20_000 });
   await both(P, 'renter', 'sign-agreement', `/account/bookings/${number}/sign`, 'Sign, part 2: the key values at the top, the full agreement one tap away (also as a PDF), one tap ticks the four statements, your name is your signature (or draw it).');
-  for (const c of await d.locator('input[type="checkbox"]').all()) if (!(await c.isChecked())) await c.check().catch(() => {});
-  const typed = d.getByRole('button', { name: 'Type my name instead' });
-  if (await typed.isVisible().catch(() => false)) { await typed.click(); await d.locator('input[name="typed"], #pt-typed, input[autocomplete="name"]').last().fill('Jordan Lee').catch(() => {}); }
+  try { await strongSign(d); } catch (e) { problems.push(`renter/sign: ${String(e.message).split('\n')[0]}`); }
   await d.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await shoot(d, 'renter', 'sign-ready', 'Sign, ready: consents ticked and the signature in place; Sign and continue to payment.');
   await d.getByRole('button', { name: 'Sign and continue to payment' }).click();
