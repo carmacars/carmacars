@@ -95,7 +95,16 @@ export interface FillResult { bytes: Uint8Array; drawn: string[]; shrunk: string
 
 /** The template filled for a booking. `company` is the representative's signature (image or name); `renter`, on the
  *  signed copy only, the renter's; `record`, the signature record page of the signed copy. */
-export async function fillBlindSpot(template: Uint8Array, l: Layout, o: { company?: Signature | null; renter?: Signature | null; record?: { title: string; lines: Array<[string, string]> } | null; title?: string } = {}): Promise<FillResult> {
+export interface FillOptions {
+  company?: Signature | null; renter?: Signature | null; record?: { title: string; lines: Array<[string, string]> } | null; title?: string;
+  /** 0154: each additional driver's drawn signature, side by side in box 10 */
+  drivers?: Signature[] | null;
+  /** 0154: the renter's initials (PNG): the clean-up charge line and box 40's X */
+  initials?: Uint8Array | null;
+  /** 0154: a version copy: written small in the renter's signature boxes ("Signed on the original, ...") */
+  note?: string | null;
+}
+export async function fillBlindSpot(template: Uint8Array, l: Layout, o: FillOptions = {}): Promise<FillResult> {
   let doc: PDFDocument;
   try { doc = await PDFDocument.load(template, { updateMetadata: false }); } catch (e) { throw new BlindSpotTemplateError(`The template could not be opened: ${(e as Error).message}`); }
   if (doc.getPageCount() < 1) throw new BlindSpotTemplateError('The template has no page');
@@ -125,6 +134,19 @@ export async function fillBlindSpot(template: Uint8Array, l: Layout, o: { compan
   for (const d of l.dots) page.drawCircle({ x: d.x, y: PAGE_H - d.y, size: d.r, color: rgb(0.05, 0.05, 0.1) });
   if (o.company && (o.company.png || o.company.name)) await drawSignature(doc, page, SIG.company, o.company);
   if (o.renter && (o.renter.png || o.renter.name)) for (const b of [SIG.ldw, SIG.tickets, SIG.terms]) await drawSignature(doc, page, b, o.renter);
+  const drivers = (o.drivers ?? []).filter((d) => d.png || d.name);
+  if (drivers.length) {
+    const w = SIG.drivers.w / drivers.length;
+    for (const [i, d] of drivers.entries()) await drawSignature(doc, page, { ...SIG.drivers, x: SIG.drivers.x + i * w, w }, d);
+  }
+  if (o.initials) for (const b of [SIG.initialsCleanup, SIG.initialsDue]) await drawSignature(doc, page, b, { png: o.initials });
+  if (o.note) for (const b of [SIG.ldw, SIG.tickets, SIG.terms]) {
+    // the short form where the box is short (17): the note never runs past its box
+    let size = 5.5; let text = winAnsi(b === SIG.tickets ? 'Signed on the original' : o.note);
+    while (size > 4 && regular.widthOfTextAtSize(text, size) > b.w - 4) size -= 0.25;
+    while (text.length > 4 && regular.widthOfTextAtSize(text, size) > b.w - 4) text = text.slice(0, -1);
+    page.drawText(text, { x: b.x + 2, y: PAGE_H - (b.top + b.h) + 2, size, font: regular, color: rgb(0.1, 0.1, 0.35) });
+  }
   if (o.record) {
     const p = doc.addPage([595.28, PAGE_H]);
     let y = PAGE_H - 60;

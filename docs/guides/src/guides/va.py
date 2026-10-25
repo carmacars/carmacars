@@ -190,6 +190,13 @@ def build():
         f'Or press {B("Email the signing link")} or {B("Text the signing link")}: they sign on their own phone.',
         'The licence comes first: the renter uploads it from the request, and the offer cannot be accepted without it.',
     ])
+    g.task('The booking\'s rental agreements', 'The Rental agreements card keeps both agreements in step with the booking.')
+    g.steps([
+        'Any change after signing makes a new version by itself. A change to the dates, the price, the car, the drivers or the coverage waits for the renter\'s signature: they get the link by email and text, and the card says "Agreement v3 waiting for signature".',
+        f'{B("Resend the signing links")}, or press the button with their first name beside it to have them sign on your device.',
+        f'Fields still blank (a licence expiry, an insurer\'s policy number) are listed: type them and press {B("Save the missing fields")}. Check-out stops on a field a claim needs until it is filled or an Admin overrides.',
+        'Every signature: a code to the signer\'s phone or email, the key terms initialled, three consents, a drawn signature.',
+    ])
 
     g.task('Check renter documents', 'The renter\'s licence photos, selfie and proof of coverage, before the handover.')
     g.steps([

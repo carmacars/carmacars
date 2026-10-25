@@ -39,6 +39,10 @@ export function AgreementView({ blocks, id = 'agreement', label = 'Rental agreem
                 </table>
               </div>
             );
+          case 'initials':
+            return (
+              <ul key={i} className="stack-sm">{b.rows.map((r) => <li key={r.code}><strong>{r.title}.</strong> {r.text}{r.when ? ` Initialled ${r.when}.` : ''}</li>)}</ul>
+            );
         }
       })}
     </article>

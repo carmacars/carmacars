@@ -54,7 +54,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 176,
+  "count": 178,
   "emails": [
     {
       "code": "account_password_reset",
@@ -689,6 +689,117 @@
       ],
       "template_html": "templates/renter_agreement_signed.html",
       "template_text": "templates/renter_agreement_signed.txt"
+    },
+    {
+      "code": "renter_agreement_version",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "A new version of the booking's two rental agreements (CarmaCars' and Blind Spot's) is made after the agreement was signed (migration 0154): the car checked out (the \"as picked up\" copy), checked in (the closing copy), a correction, or a material change (dates, price, car, drivers, coverage option) that the renter and the affected drivers sign again with their own link. Also sent with the signed copies once every signature of a changed version is in. Both PDFs are attached.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "{{version_title}}, booking {{booking_number}}",
+      "preheader": "{{kind_line}}",
+      "sample_subject": "Version 3 of your rental agreement needs your signature, booking CC-10482",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "changes",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Due back",
+              "before": "Thu, Mar 11, 10:00 am",
+              "after": "Sat, Mar 13, 10:00 am"
+            },
+            {
+              "label": "Total",
+              "before": "$468.95",
+              "after": "$650.95"
+            }
+          ],
+          "fields": [
+            "label",
+            "before",
+            "after"
+          ]
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "has_changes",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "kind_line",
+          "type": "string",
+          "sample": "Your booking changed in a way you sign again. Read what changed, then sign with the button below. Until you sign, the earlier version applies."
+        },
+        {
+          "name": "needs_signature",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "sign_token",
+          "type": "string",
+          "sample": "6f1c2b3a-0000-4000-8000-000000000000"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "version_title",
+          "type": "string",
+          "sample": "Version 3 of your rental agreement needs your signature"
+        }
+      ],
+      "template_html": "templates/renter_agreement_version.html",
+      "template_text": "templates/renter_agreement_version.txt"
     },
     {
       "code": "renter_balance_overdue",
@@ -7501,6 +7612,81 @@
       ],
       "template_html": "templates/renter_review_request.html",
       "template_text": "templates/renter_review_request.txt"
+    },
+    {
+      "code": "renter_signing_code",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "A renter or driver about to sign a rental agreement, an amendment or a new version asks for the identity code by email (migration 0154). The code proves the signer controls the email on file; it is never stored in clear.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "Your CarmaCars signing code: {{code}}",
+      "preheader": "Enter it on the signing page within {{minutes}} minutes.",
+      "sample_subject": "Your CarmaCars signing code: 482913",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "code",
+          "type": "string",
+          "sample": "482913"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "minutes",
+          "type": "string",
+          "sample": "10"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_signing_code.html",
+      "template_text": "templates/renter_signing_code.txt"
     },
     {
       "code": "renter_staff_message",

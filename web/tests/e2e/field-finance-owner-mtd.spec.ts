@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, giveLicence, noOverflow, storeFixturePdf, watch } from './helpers';
+import { acceptCookies, claimReady, db, giveLicence, noOverflow, storeFixturePdf, watch } from './helpers';
 
 // Migration 0144 end to end, at both widths: field staff fix the ready check on their phone (the licence checked in
 // person with three photos and four checks, the deposit by e-Transfer) and release a car whose tracker is not reporting
@@ -93,6 +93,7 @@ async function confirmedButNotReady(sql: Sql, admin: string, renter: { id: strin
   });
   await sql`insert into coverage_proofs (booking_id, coverage_option, status, card_issuer, card_last4, confirmed_at) values (${booking}, 2, 'confirmed', 'Bank', '4242', now())`;
   await sql`update bookings set coverage_option = 2, coverage_confirmed_at = now(), blocks_calendar = true where id = ${booking}`;
+  await claimReady(sql, booking);
   return v;
 }
 async function draw(page: Page, testId: string) {

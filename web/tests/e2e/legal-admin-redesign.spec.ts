@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { acceptCookies, db, noOverflow, pdfText } from './helpers';
+import { acceptCookies, db, noOverflow, pdfText, strongSign } from './helpers';
 
 // The legal review and the admin redesign of October 16, 2026 (migrations 0052 to 0055), end to end at 375 and 1440:
 //   the admin portal's To do home, its seven menu groups (one Menu button on a phone), search and the keyboard; Admin access
@@ -331,6 +331,7 @@ test('legal: a rental added with the saved card is charged only when the renter 
   await expect(rp.getByTestId('sign-charge-note')).toContainText('Read and sign your rental agreement; your card is charged when you sign.');
   await check(rp, 'sign and be charged');
   await rp.getByTestId('consents-all').check();
+  await strongSign(rp);
   await rp.getByRole('button', { name: 'Accept and sign' }).click();
   await rp.waitForURL(new RegExp(`/account/bookings/${number}(\\?|$)`), { timeout: 30_000 });
   await expect.poll(paid, { timeout: 20_000 }).toBe(1);

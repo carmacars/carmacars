@@ -16,11 +16,11 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '176/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '178/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
-select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 76::bigint);
+select test.eq('A every path of emails/src/links.mjs is loaded', (select count(*) from notification_link_paths), 77::bigint);
 select test.eq('A every email code says what emits it; only the two sign-in service emails are emitted by nobody (the sign-in link is the owner invitation''s, 0029)',
   (select string_agg(code, ',' order by code) from notification_catalogue where has_email and (emitted_by is null or emitted_by like 'not emitted%')),
   'account_password_reset,account_security_notice');
@@ -736,6 +736,14 @@ select test.flush();
 -- the proof of coverage reminder (0070)
 select app.emit_event('renter_coverage_needed', 'booking', test.id('booking:NT-9'), '{"hours": 24}', 'renter_coverage_needed:nt');
 select test.flush();
+-- a new version of the rental agreements and the signing code (0154)
+insert into agreement_versions (id, booking_id, version_no, kind, material, status, changes, snapshot, snapshot_sha)
+values (test.id('nt_agv'), test.id('booking:NT-1'), 2, 'correction', false, 'filed',
+        '[{"key": "renter.address", "label": "Renter: address", "before": "1 Old Street", "after": "1 New Street", "material": false}]', '{}', 'nt');
+select app.emit_event('renter_agreement_version', 'agreement_version', test.id('nt_agv'), jsonb_build_object('booking_id', test.id('booking:NT-1'), 'version_id', test.id('nt_agv'), 'needs_signature', false), 'renter_agreement_version:nt');
+select app.emit_event('renter_signing_code', 'esign_session', test.id('nt_esign'), jsonb_build_object('booking_id', test.id('booking:NT-1'), 'signer_email', 'nt.signer@example.test', 'signer_name', 'Nia Signer', 'code', '482913'), 'renter_signing_code:nt');
+select test.flush();
+delete from agreement_versions where id = test.id('nt_agv');
 -- the usage guard's alert (0080)
 insert into usage_alerts (id, service, period_start, level, used, included) values (test.id('nt_usage'), 'workers_ai', app.today(), 80, 8200, 10000) on conflict do nothing;
 select app.emit_event('staff_usage_alert', 'usage_alert', test.id('nt_usage'), '{}', 'staff_usage_alert:nt');
