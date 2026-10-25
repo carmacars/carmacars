@@ -1,6 +1,9 @@
 import '@/styles/portal.css';
 import '@/styles/owner.css';
 import '@/styles/admin.css';
+import '@/components/portal-ui/portal-ui.css';
+import '@/components/portal-ui/queue.css';
+import '@/styles/va.css';
 import Link from 'next/link';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
@@ -35,7 +38,7 @@ export default async function VaLayout({ children }: { children: React.ReactNode
     needsAddress = !viewing && (await homeAddressOf(user.id, 'va')).missing;
   }
   return (
-    <div className="ad">
+    <div className="ad va">
       <div className="ad__frame">
         {roles?.va ? (
           <aside className="ad__rail">
