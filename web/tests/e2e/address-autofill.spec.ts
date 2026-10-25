@@ -41,6 +41,9 @@ async function signIn(page: Page, email: string) {
 
 type Row = {
   name: string; who: Who; path: string | ((ids: Record<string, string>) => string);
+  /** records the page needs (the signed-in person's id) */
+  setup?: (sql: Sql, userId: string) => Promise<void>;
+  cleanup?: (sql: Sql, userId: string) => Promise<void>;
   /** what to press first (a dialog, a choice) */
   open?: (page: Page) => Promise<void>;
   /** the lookup field */
@@ -71,8 +74,13 @@ const ROWS: Row[] = [
   // staff
   { name: 'VA profile: home address and postal code', who: 'va', path: '/va/profile', field: (p) => p.getByTestId('home-address'),
     filled: (p) => [[p.getByTestId('home-address'), UNION], [p.getByTestId('home-postal'), 'M5J 1E6']] },
-  { name: 'field portal: vehicle move from', who: 'field', path: '/field', open: async (p) => { await p.getByTestId('move-start').click(); },
-    field: (p) => p.locator('#fb-from_place'), filled: (p) => [[p.locator('#fb-from_place'), UNION]] },
+  // a car out on a move: End the move asks where it is now (the same field as Start a move's From)
+  { name: 'field portal: vehicle move, now at', who: 'field', path: '/field',
+    setup: async (sql, userId) => { await sql`insert into vehicle_moves (vehicle_id, staff_user_id, purpose, started_at, from_place) select v.id, ${userId}, 'repositioning', now() - interval '1 hour', 'Our location' from vehicles v
+      where not exists (select 1 from vehicle_moves m where m.vehicle_id = v.id and m.ended_at is null) order by random() limit 1`; },
+    cleanup: async (sql, userId) => { await sql`update vehicle_moves set ended_at = now(), to_place = 'Our location' where staff_user_id = ${userId} and ended_at is null`; },
+    open: async (p) => { await p.getByTestId('move-end').first().click(); },
+    field: (p) => p.locator('#fb-to_place'), filled: (p) => [[p.locator('#fb-to_place'), UNION]] },
   // Admin
   { name: 'Site settings: business address, city, province, postal code and coordinates', who: 'admin', path: '/admin/settings/site', field: (p) => p.getByTestId('site-business').getByTestId('business_street-lookup'),
     filled: (p) => [[id('business_street', 'site-business')(p), '65 Front Street West'], [id('business_city', 'site-business')(p), 'Toronto'], [id('business_region', 'site-business')(p), 'ON'],
@@ -104,7 +112,8 @@ for (const r of ROWS) {
     const sql = db();
     const page = await newPage(browser);
     const ids: Record<string, string> = {};
-    if (r.who !== 'public') await signIn(page, (await mkUser(sql, r.who)).email);
+    let uid = '';
+    if (r.who !== 'public') { const u = await mkUser(sql, r.who); uid = u.id; await r.setup?.(sql, u.id); await signIn(page, u.email); }
     else { await page.goto('/', { waitUntil: 'networkidle' }); await acceptCookies(page); }
     if (typeof r.path !== 'string') ids.va = (await mkUser(sql, 'va')).id;
     const asked: string[] = [];
@@ -125,6 +134,7 @@ for (const r of ROWS) {
     expect(asked.length, 'suggestion requests').toBeLessThanOrEqual(3);
     await noOverflow(page);
     await page.context().close();
+    if (uid) await r.cleanup?.(sql, uid);
     await sql.end();
   });
 }

@@ -36,7 +36,7 @@ Uses the lookup and fills the parts already (0130): booking request delivery and
 renter profile and booking details (`ProfileForm`, `DetailsForm`, `AddressFields`), owner profile (`OwnerForms`), owner
 application (`ApplyWizard`), list your car (`OwnerForm`), Add an owner's car (`AddOwnerCar`), owner review
 (`OwnerReview`), chauffeur pickup and drop-off (`ChauffeurForm`), staff home address and postal code (`HomeAddressForm`),
-field vehicle moves (`FieldButton`), VA fleet and booking places (`Act` type address), Site settings mailing address and
+field vehicle moves (`FieldButton`: Start a move and End the move), VA fleet and booking places (`Act` type address), Site settings mailing address and
 street address, insurers' billing address, the delivery origin address.
 
 Fixed here: Site settings business address (parts and coordinates were not filled), delivery origin coordinates, Admin >
