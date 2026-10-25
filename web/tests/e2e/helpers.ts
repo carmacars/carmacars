@@ -14,8 +14,15 @@ export function watch(page: Page) {
 }
 
 export async function noOverflow(page: Page) {
-  const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  expect(over, 'horizontal overflow in px').toBeLessThanOrEqual(0);
+  const { over, wide } = await page.evaluate(() => {
+    const w = window.innerWidth;
+    // the elements whose right edge passes the window (the deepest first), so a failure names its cause
+    const wide = [...document.querySelectorAll('body *')].filter((e) => e.getBoundingClientRect().right > w + 0.5 && !e.closest('[aria-hidden="true"]'))
+      .filter((e, _i, all) => !all.some((o) => o !== e && e.contains(o)))
+      .slice(0, 5).map((e) => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${e.getAttribute('class') ? '.' + String(e.getAttribute('class')).trim().split(/\s+/).join('.') : ''}${e.getAttribute('data-testid') ? `[data-testid=${e.getAttribute('data-testid')}]` : ''} right=${Math.round(e.getBoundingClientRect().right)} "${(e.textContent ?? '').trim().slice(0, 40)}"`);
+    return { over: document.documentElement.scrollWidth - w, wide };
+  });
+  expect(over, `horizontal overflow in px; past the edge: ${wide.join(' | ') || 'none found'}`).toBeLessThanOrEqual(0);
 }
 
 /** Accepts the cookie banner so it does not cover what a test clicks. */
