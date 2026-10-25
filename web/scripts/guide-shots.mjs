@@ -382,19 +382,10 @@ async function renterStory(browser, ids) {
   const car = await freeCar(45, 3);
   // 1. the request through the form, signed in
   const d = await session(browser, 'desktop', r.email); const m = await session(browser, 'phone', r.email);
-  await d.goto(`/book/${car.slug}?from=${car.from}&to=${car.to}&tf=10:00&tt=10:00`, { waitUntil: 'networkidle' });
-  await d.getByRole('button', { name: 'Continue to driver details' }).click();
-  await d.locator('#rq-first').fill('Jordan'); await d.locator('#rq-last').fill('Lee'); await d.locator('#rq-email').fill(r.email);
-  await d.locator('#rq-phone').fill('647-555-0142'); await d.locator('#rq-dobm').selectOption('4'); await d.locator('#rq-dobd').fill('9'); await d.locator('#rq-doby').fill('1990');
-  await d.getByRole('button', { name: 'Continue to licence' }).click();
-  await d.locator('label', { hasText: 'Ontario G2' }).click();
-  if (await d.locator('label.option', { hasText: 'Option 2' }).count()) await d.locator('label.option', { hasText: 'Option 2' }).click();
-  await d.getByRole('button', { name: 'Continue to add-ons' }).click();
-  await d.getByRole('button', { name: 'Review request' }).click();
-  await d.locator('input[name="agree"]').check();
-  await d.getByRole('button', { name: 'Send request' }).click();
-  await d.waitForURL(/\/book\/sent\//, { timeout: 30_000 });
-  const number = decodeURIComponent(d.url().split('/').pop());
+  // the form's steps are the public pages' screens above; the request itself is made as the form's server action makes it
+  const made = await request(r, car, 'Jordan Lee');
+  const number = (await one(sql`select booking_number from bookings where id = ${made.booking_id}`)).booking_number;
+  await d.goto(`/book/sent/${encodeURIComponent(number)}`, { waitUntil: 'networkidle' });
   await shoot(d, 'public', 'book-5-sent', 'After Send request: the request number and what happens next (CarmaCars replies with an offer).');
   await m.goto(d.url().replace(BASE, ''), { waitUntil: 'domcontentloaded' }); await shoot(m, 'public', 'book-5-sent', 'After Send request: the request number and what happens next (CarmaCars replies with an offer).');
   const b = await one(sql`select id from bookings where booking_number = ${number}`);
@@ -649,7 +640,7 @@ async function fieldPortal(browser, ids) {
   await sql`insert into tracker_devices (id, serial_number, vehicle_id, status, installed_at, tested_at) values (${trk}, ${`TRK-${trk.slice(0, 6)}`}, ${car.id}, 'installed', now(), now())`;
   await sql`insert into tracker_status (tracker_device_id, reported_at, speed_kmh, ignition_on) values (${trk}, now() + interval '30 minutes', 0, false)`;
   // the request needs a pickup two hours ahead or more, and the field list shows today: the pickup moves to a few hours from now
-  await sql`update bookings set pickup_at = now() + interval '3 hours' where id = ${rq.booking_id}`;
+  await sql`update bookings set return_at = return_at + (now() + interval '3 hours' - pickup_at), pickup_at = now() + interval '3 hours' where id = ${rq.booking_id}`;
   const bk = await one(sql`select pickup_at from bookings where id = ${rq.booking_id}`);
   const [job] = await sql`select app.create_field_job('handover', ${car.id}::uuid, ${bk.pickup_at}::timestamptz, ${ids.admin}::uuid, ${rq.booking_id}::uuid, ${ids.field}::uuid, '100 Front St W, Toronto') id`;
   const odo = await one(sql`select coalesce(odometer_km, 0)::int o from vehicles where id = ${car.id}`);
