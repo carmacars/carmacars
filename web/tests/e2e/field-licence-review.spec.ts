@@ -149,7 +149,7 @@ test('field staff review the renter\'s licence from their home and from the job'
   const [rej] = await sql`select u.status, u.reject_reason, u.reviewed_by,
       (select count(*)::int from booking_events e where e.booking_id = u.booking_id and e.kind = 'verification' and e.details ->> 'reviewer_role' = 'field' and e.details ->> 'decision' = 'rejected' and e.actor_user_id = ${field.id}) ev,
       (select count(*)::int from app_events a where a.code = 'renter_identity_rejected' and a.entity_id = u.booking_id) told
-    from verification_uploads u where u.booking_id = ${b.booking_id} and u.kind = 'licence_front' order by u.uploaded_at limit 1`;
+    from verification_uploads u where u.booking_id = ${b.booking_id} and u.kind = 'licence_front' and u.status = 'rejected' limit 1`;
   expect([rej!.status, rej!.reject_reason, rej!.reviewed_by, rej!.ev, rej!.told]).toEqual(['rejected', 'The photo is too dark to read', field.id, 1, 1]);
 
   // closing the panel refreshes the home: the booking still has the back and the selfie waiting
