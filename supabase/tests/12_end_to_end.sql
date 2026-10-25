@@ -13,9 +13,12 @@ select test.suite('12 end to end');
 
 -- ------------------------------------------------------------------ helpers and fixture
 create or replace function test.at(p_local text) returns timestamptz
-language sql immutable as $$ select p_local::timestamp at time zone 'America/Toronto' $$;
+language sql immutable as $$
+  select case when p_local ~ '[+-][0-9][0-9]$' then p_local::timestamptz else p_local::timestamp at time zone 'America/Toronto' end $$;
+-- an exact instant as text (UTC offset included, which test.at above takes as it is): a Toronto wall-clock text is
+-- ambiguous for the hour that happens twice when daylight saving ends, and the booking times here follow the clock
 create function test.e2_local(p_at timestamptz) returns text
-language sql immutable as $$ select to_char(p_at at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI') $$;
+language sql immutable as $$ select to_char(p_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS') || '+00' $$;
 create table test.e2_ids (k text primary key, id uuid);
 create function test.e2(p_key text) returns uuid language sql stable as $$ select id from test.e2_ids where k = p_key $$;
 create function test.e2_put(p_key text, p_id uuid) returns uuid language sql as $$
