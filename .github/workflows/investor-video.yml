@@ -125,8 +125,9 @@ jobs:
         run: |
           sudo apt-get update -q -o Acquire::Retries=3 && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends espeak-ng ffmpeg
           pip install -q torch --index-url https://download.pytorch.org/whl/cpu
-          pip install -q 'kokoro==0.9.4' 'misaki[en]==0.9.4' 'spacy==3.8.7' soundfile
-          pip list 2>/dev/null | grep -i -E '^(kokoro|misaki|torch|spacy|numpy|transformers|huggingface)' | tr -s ' ' | paste -sd ';' | sed 's/^/::notice title=kokoro versions::/'
+          pip install -q 'kokoro==0.9.4' 'misaki[en]==0.9.4' soundfile 'spacy==3.8.7' 'thinc==8.3.6' 'preshed==3.0.10' 'cymem==2.0.11' 'murmurhash==1.0.13' 'srsly==2.5.1' 'blis==1.3.0' 'numpy==2.2.6'
+          pip install -q https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+          pip list 2>/dev/null | grep -i -E '^(kokoro|misaki|torch|spacy|numpy|thinc|preshed|cymem|murmurhash|srsly|blis|en.core)' | tr -s ' ' | paste -sd ';' | sed 's/^/::notice title=kokoro versions::/'
       - name: Voice (Kokoro-82M)
         timeout-minutes: 15
         run: python scripts/investor-video/tts_local.py --dir .video --voice "${TTS_VOICE:-af_heart}"
