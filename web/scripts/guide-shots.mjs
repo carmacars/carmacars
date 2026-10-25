@@ -281,6 +281,8 @@ async function cookies(page, wait = 0) {
 async function settle(page) {
   await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
   await cookies(page);
+  // the first-visit strip ("New here? Read the guide") is not part of the screen a guide shows
+  await page.addStyleTag({ content: '[data-testid="guide-banner"] { display: none !important; }' }).catch(() => {});
   await page.evaluate(() => document.fonts.ready).catch(() => {});
   await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); window.scrollTo(0, 0); }).catch(() => {});
   await page.waitForTimeout(250);
