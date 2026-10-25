@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, watch } from './helpers';
+import { acceptCookies, db, noOverflow, watch, storeFixturePdf } from './helpers';
 
 // Migration 0032 end to end, with the fake providers of the local stack (fake VIN decoder, fake copy
 // model, fake photo editor, fake payments):
@@ -379,6 +379,7 @@ test('statements: an owner and an investor download their PDFs on a phone; the y
     const inv = await mkUser(sql, 'renter');
     const [i] = await sql`insert into investors (user_id, legal_name, investor_type, status, email) values (${inv.id}, 'Ines Investor', 'individual', 'active', ${inv.email}) returning id`;
     const [doc] = await sql`insert into documents (kind, storage_bucket, storage_path) values ('other', 'documents', 'x/e2e.pdf') returning id`;
+    storeFixturePdf('documents', 'x/e2e.pdf');
     const [a] = await sql`insert into investment_agreements (investor_id, agreement_number, status, schedule_c_document_id, schedule_d_document_id, exemption_category, legal_advice_choice)
                           values (${i!.id}, ${`IA-${tag()}`}, 'signed', ${doc!.id}, ${doc!.id}, 'accredited_investor', 'declined') returning id`;
     const [x] = await sql`insert into investments (investor_id, agreement_id, is_initial, principal_cents, yearly_bps, investment_date, lockup_end_date) values (${i!.id}, ${a!.id}, true, 1000000, 1200, date '2025-01-05', date '2025-07-05') returning id`;

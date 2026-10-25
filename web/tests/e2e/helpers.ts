@@ -48,6 +48,15 @@ export function storeFixturePdf(bucket: string, key: string) {
   writeFileSync(file, '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
 }
 
+/** The same for a photo (an 8x8 JPEG): an identity upload a test registers shows like a real one (the crawl renders the
+ *  staff pages that display it, and a missing file is a failed request there). */
+export function storeFixtureJpeg(bucket: string, key: string) {
+  const dir = process.env.LOCAL_STORAGE_DIR ?? path.join(process.cwd(), '.local-storage');
+  const file = path.join(dir, bucket, key);
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVGC8aGi9jQjhCY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2NjY2P/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDpKKKKAP/Z', 'base64'));
+}
+
 // ---------------------------------------------------------------- VIN-first entry (migration 0082)
 /** Year, make and model from the lists (a VIN the decoder could not read, or a car added by its plate). */
 export async function fillYmm(page: Page, prefix: string, c: { year: string; make: string; model: string }) {
@@ -103,6 +112,7 @@ export async function aiAllowanceLock(mode: 'alone' | 'shared'): Promise<() => P
 export async function giveLicence(sql: ReturnType<typeof db>, booking: string) {
   await sql`update booking_drivers set licence_expiry = coalesce(licence_expiry, date '2031-01-01') where booking_id = ${booking}::uuid and role = 'renter'`;
   for (const k of ['licence_front', 'licence_back', 'selfie']) {
+    storeFixtureJpeg('identity', `e2e/${booking}/${k}.jpg`);
     await sql`select app.register_verification_upload(${booking}::uuid, null, ${k}, d.driver_id, ${`e2e/${booking}/${k}.jpg`}, null, 'image/jpeg', null, 'identity')
                 from booking_drivers d where d.booking_id = ${booking}::uuid and d.role = 'renter'
                  and not exists (select 1 from verification_uploads u where u.booking_id = d.booking_id and u.driver_id = d.driver_id and u.kind = ${k} and u.status in ('submitted', 'approved'))`;
