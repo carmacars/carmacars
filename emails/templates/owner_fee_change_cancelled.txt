@@ -1,0 +1,34 @@
+CarmaCars  |  Change cancelled
+
+========================================
+
+[Change cancelled]
+We cancelled the change to your terms for the {{vehicle_name}}
+
+Hi {{first_name}}. The change we told you about, planned for {{effective_date}}, will not happen.
+
+{{#each fee_changes}}
+  {{label}}: was {{before}}, now {{after}}
+{{/each}}
+
+What this means
+Your terms for the {{vehicle_name}} stay as they are. You do not need to do anything, and there is nothing to sign.
+
+View my vehicle:
+https://carmacars.ca/owner/vehicles/{{vehicle_id}}
+
+This affects only the {{vehicle_name}}. Reply to this email if you have a question.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

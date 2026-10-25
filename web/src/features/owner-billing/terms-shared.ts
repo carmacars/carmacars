@@ -7,11 +7,15 @@ import { pctOf } from './shared.ts';
 export type Money = { insurance_fee_cents: number | null; tracker_fee_cents: number | null; revenue_share_bps: number | null; install_fee_cents?: number | null };
 export interface Period extends Money { from: string | null; to: string | null; source: string; label: string; current: boolean; future: boolean }
 export interface Change { id: string; kind: string; status: string; created_at: string; notice_on: string; effective_from: string; before: Money; after: Money; reason: string | null;
-  cancelled_reason: string | null; signed_method: string | null; owner_signed_at: string | null; notice: boolean; label: string; can_cancel?: boolean }
+  cancelled_reason: string | null; signed_method: string | null; owner_signed_at: string | null; notice: boolean; label: string; can_cancel?: boolean;
+  /** a Management Mode change (0165) */ mode_before?: string | null; mode_after?: string | null; method_after?: string | null }
 export interface CarTermsRow { vehicle_id: string; name: string; plate: string | null; status: string; onboarding_status: string | null; supply_type: string; shareholder: boolean;
   state: 'not_set' | 'pending' | 'signed' | 'fixed'; enrolled: boolean; schedule_number: string | null; signed_at: string | null; mode: string; method: string | null;
   current: Required<Money>; since: string | null; sources?: Record<string, string> | null; scheduled: Period[]; periods: Period[]; changes: Change[];
   awaiting: { change_id: string; effective_from: string; created_at: string } | null;
+  /** 0165: a signed car's pending Management Mode change, and what an Admin may do */
+  mode_next?: { mode: string; from: string; status: string } | null;
+  mode_change?: { may: boolean; options: Record<string, Array<{ method: string; label: string; recommended: boolean }>> | null; notice_days: number } | null;
   editable?: { fees: boolean; install: boolean; mode: boolean } | null; options?: Record<string, Array<{ method: string; label: string; recommended: boolean }>> | null }
 export interface CarTermsData { today: string; notice_days: number; earliest_raise: string; owner_id?: string | null; cars: CarTermsRow[] }
 

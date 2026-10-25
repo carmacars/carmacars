@@ -36,7 +36,7 @@ def build():
               blurb='Your job list, a job card, maps and car moves.')
     g.task('Your job list')
     g.steps([
-        f'The menu: {B("My jobs")}, {B("Report a problem")}, {B("Add a rental")}, {B("My sales")}, {B("Referrals")} and {B("Profile")}. {B("Sign out")} is top right.',
+        f'The menu: {B("My jobs")}, {B("Report a problem")}, {B("My hours")}, {B("Add a rental")}, {B("My sales")}, {B("Referrals")} and {B("Profile")}. {B("Sign out")} is top right.',
         f'Switch between {B("Today")} and {B("Tomorrow")}. Jobs are in time order.',
         f'The next job is the big card at the top: its time and how long until it, the car and its plate, the place with {B("Open in maps")} and a button to call the renter, and what to put in the car. The rest of the day follows in time order.',
         f'A handover or a return has its own button: {B("Check out (pickup)")} or {B("Check in (return)")}. One tap acknowledges and starts the job and opens its photo checklist. Other jobs: press {B("Open the job")}.',
@@ -178,6 +178,27 @@ def build():
     ], shot=S('field/06-photo-shoot-capture-phone', 0, 1000, 390, 1730, hdr=False, pins=[(1, 180, 1210), (2, 330, 1545), (3, 113, 1718)]))
     g.tip('Keep other cars\' plates out of the frame. The reviewer covers this car\'s plate before the listing goes live.')
 
+    # ---------------------------------------------------------------- 4b
+    g.chapter('My hours and pay',
+              'Clock in when you start and out when you finish. Your hours are paid every two weeks at your hourly rate (CA$18.00 an hour unless '
+              'your agreement says another rate), with the commissions an Admin has approved, and you get a pay statement for each pay.',
+              blurb='Clock in and out, your hours, and your pay statements.')
+    g.task('Clock in and out')
+    g.steps([
+        f'Open {B("My hours")}. When you start work, add a note if you like (for example where you start) and press {B("Clock in")}.',
+        'The big clock shows how long you have been on. The jobs you finish while clocked in are listed under it.',
+        f'When you finish, press {B("Clock out")}. Add a note if you like. Your shift is saved with the time of each press.',
+        f'Under {B("Recent shifts")} you see the last three weeks, each with its jobs. {B("This pay period so far")} shows your hours and what they come to at your rate.',
+    ])
+    g.warn('Forgot to clock out, or a time is wrong? You cannot change it yourself. Tell Fleet: they fix it, say why, and the change is written in a log. A shift left running more than 16 hours has to be fixed by Fleet or an Admin.')
+    g.task('Your pay and your pay statements', 'A pay period is two weeks, Sunday to Saturday. An Admin runs the pay after it ends.')
+    g.steps([
+        'The pay is your hours times your hourly rate, plus the commissions and referral fees an Admin approved by the end of the period (see Commissions). Overtime and vacation pay are added only if CarmaCars has switched them on.',
+        'An Admin approves the pay run, pays you (by e-Transfer, bank transfer or cash) and records it. You get an email with the amount and how you were paid.',
+        f'Under {B("Pay statements")} on {B("My hours")}, press {B("PDF")} for the statement of a period: your hours day by day, the amounts, the commissions in it and how it was paid.',
+    ])
+    g.tip('A pay statement shows no income tax, CPP or EI. They are not worked out in the portal: for your tax slips, ask CarmaCars or your accountant.')
+
     # ---------------------------------------------------------------- 5
     g.chapter('Report, rentals, referrals and profile',
               'Report anything that happens on the road, add a rental for a renter you found, share your referral link, '
@@ -223,6 +244,7 @@ def build():
         nav_rows=[('My jobs', 'Today and Tomorrow, in order; Vehicle moves'),
                   ('A job', 'Open in maps, Acknowledge, Start'),
                   ('Report a problem', 'Damage, warning light, collision, ticket, lost property'),
+                  ('My hours', 'Clock in and out, your shifts, your pay statements'),
                   ('Add a rental', 'A renter you found: a payment link or the saved card'),
                   ('My sales', 'Your rentals and commissions'),
                   ('Referrals', 'Your link and QR code'),
@@ -235,6 +257,7 @@ def build():
                    ('Shoot listing photos', f'{B("Take photo")}, then {B("Submit for listing")}'),
                    ('Move a car', f'{B("Start a move")}, then {B("End the move")} and {B("End the move now")}'),
                    ('Report an incident', f'{P("Report a problem", "Send the report")}'),
+                   ('Start and end work', f'{P("My hours", "Clock in")}, then {B("Clock out")}'),
                    ('Add a rental', f'{B("Add a rental")}, {B("I sourced this client")}, {B("Add the rental")}')],
         extra_problems=[('A photo did not upload', f'Check your signal, then press {B("Send again")}.'),
                         ('The renter does not match', 'Do not hand over. Press Stop and call us.')])

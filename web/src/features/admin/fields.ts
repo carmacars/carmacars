@@ -107,9 +107,19 @@ const LABELS: Record<string, string> = {
   sms_quiet_from_hour: 'Text alerts: quiet hours start (hour, 21 is 9 pm)', sms_quiet_until_hour: 'Text alerts: quiet hours end (hour, 8 is 8 am)',
   sms_stop_line: 'Text alerts: add "Reply STOP to opt out." to the first text to a number', sms_generic_text: 'Text alerts: the text of a notification without its own',
   sms_stop_confirm_text: 'Text alerts: the confirmation texted after STOP', sms_start_confirm_text: 'Text alerts: the confirmation texted after START',
+  // field pay (0165)
+  field_pay_anchor: 'Field pay: the first day of a pay period (every period is two weeks from it)', field_default_hourly_cents: 'Field pay: the hourly rate of a field staff member with no rate of their own',
+  field_overtime_on: 'Field pay: pay overtime', field_overtime_weekly_hours: 'Field pay: overtime starts after this many hours in a week', field_overtime_bps: 'Field pay: overtime is paid at this share of the hourly rate',
+  field_vacation_pay_bps: 'Field pay: vacation pay added to each pay statement (0 is off)', field_shift_max_hours: 'Field pay: the longest shift (hours)',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
 };
 const HINTS: Record<string, string> = {
+  field_pay_anchor: 'A Sunday works best. Pay runs already made keep their own dates; change this only between pay periods.',
+  field_default_hourly_cents: '$18.00 by default. A person\'s own rate is set in Money, Field pay, Hourly rates; a pay run uses the rate when it was started.',
+  field_overtime_on: 'Off by default: every hour is paid at the hourly rate. On: hours past the weekly line are paid at the share below. A week is seven days of the pay period, from its first day.',
+  field_overtime_weekly_hours: '44 in Ontario. Only used when overtime is on.', field_overtime_bps: '150% is one and a half times (Ontario). Only used when overtime is on.',
+  field_vacation_pay_bps: 'Off (0) by default. Ontario\'s 4% vacation pay is added to wages, overtime and commissions when set to 4. Income tax, CPP and EI are never worked out here: ask your accountant.',
+  field_shift_max_hours: '16 by default. A shift left running longer must be fixed by Fleet or an Admin; one that long cannot be entered either.',
   owner_revenue_visibility: 'For new bookings (0156). Right away by default. "After the return" or "when the statement is approved": the owner sees the booking as Booked with its dates, without the amounts, until then. Staff change it on each booking (Add a rental, an offer, the booking page). The statement always includes every booking at its true amounts.',
   max_rental_days: 'A booking longer than one period is cut into monthly periods: each gets its own rental agreement (and Blind Spot agreement) to sign and its own invoice. 365 by default.',
   long_rental_period_days: '30 by default: the monthly rate covers 30 days. Used when the periods are in days.',
@@ -180,6 +190,7 @@ export function fieldFor(k: string, v: unknown, options?: Array<[string, string]
 function fieldForBase(k: string, v: unknown, options?: Array<[string, string]>): Field {
   if (options) return { name: k, label: nice(k), type: 'select', options, value: v, required: true };
   if (typeof v === 'boolean') return { name: k, label: nice(k), type: 'bool', value: v };
+  if (k === 'field_pay_anchor' && (typeof v === 'string' || v === null)) return { name: k, label: nice(k), type: 'date', value: v, required: true };
   // an address column: the field with the address lookup (0130)
   if ((typeof v === 'string' || v === null) && /^(mailing_address|billing_address|street_address|business_street|home_address|company_address|address_line1)$/.test(k)) return { name: k, label: nice(k), type: 'address', value: v };
   if (k.endsWith('_cents') && (typeof v === 'number' || v === null)) return { name: k, label: nice(k), type: 'money', value: v };
