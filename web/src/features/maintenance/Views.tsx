@@ -182,7 +182,7 @@ function tireFields(s: TireSet | null) {
     { name: 'size', label: 'Size', value: s?.size, placeholder: '225/45R17' }, { name: 'brand', label: 'Brand', value: s?.brand }, { name: 'model', label: 'Model', value: s?.model },
     { name: 'tread_mm', label: 'Tread depth (mm)', type: 'number' as const, value: s?.tread_mm, min: 0, max: 20 },
     { name: 'made_on', label: 'Made (DOT date)', type: 'date' as const, value: s?.made_on }, { name: 'purchased_on', label: 'Bought on', type: 'date' as const, value: s?.purchased_on },
-    { name: 'storage_location', label: 'Stored at (when off the car)', type: 'address', value: s?.storage_location }, { name: 'on_car', label: 'On the car now', type: 'bool' as const, value: s ? s.on_car : true },
+    { name: 'storage_location', label: 'Stored at (when off the car)', type: 'address' as const, value: s?.storage_location }, { name: 'on_car', label: 'On the car now', type: 'bool' as const, value: s ? s.on_car : true },
     { name: 'notes', label: 'Notes', type: 'textarea' as const, value: s?.notes }
   ];
 }
