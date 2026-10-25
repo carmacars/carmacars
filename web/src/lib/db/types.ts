@@ -2433,6 +2433,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      cash_drawer_counts: {
+        Row: {
+          day: string;
+          counted_cents: number;
+          note: string | null;
+          counted_by: string;
+          counted_at: string;
+        };
+        Insert: {
+          day: string;
+          counted_cents: number;
+          note?: string | null;
+          counted_by: string;
+          counted_at?: string;
+        };
+        Update: {
+          day?: string;
+          counted_cents?: number;
+          note?: string | null;
+          counted_by?: string;
+          counted_at?: string;
+        };
+        Relationships: [];
+      };
       chat_conversations: {
         Row: {
           id: string;
@@ -4645,6 +4669,8 @@ export type Database = {
           checklist: Json;
           reshoot_report_id: string | null;
           reshoot_shots: string[] | null;
+          auto_at: string | null;
+          auto_place: string | null;
         };
         Insert: {
           id?: string;
@@ -4673,6 +4699,8 @@ export type Database = {
           checklist?: Json;
           reshoot_report_id?: string | null;
           reshoot_shots?: string[] | null;
+          auto_at?: string | null;
+          auto_place?: string | null;
         };
         Update: {
           id?: string;
@@ -4701,6 +4729,8 @@ export type Database = {
           checklist?: Json;
           reshoot_report_id?: string | null;
           reshoot_shots?: string[] | null;
+          auto_at?: string | null;
+          auto_place?: string | null;
         };
         Relationships: [];
       };
@@ -5613,6 +5643,48 @@ export type Database = {
           published_by?: string | null;
           updated_at?: string;
           updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      handover_resolutions: {
+        Row: {
+          id: string;
+          booking_id: string;
+          field_job_id: string | null;
+          kind: string;
+          driver_id: string | null;
+          reason: string | null;
+          details: Json;
+          payment_id: string | null;
+          task_id: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          field_job_id?: string | null;
+          kind: string;
+          driver_id?: string | null;
+          reason?: string | null;
+          details?: Json;
+          payment_id?: string | null;
+          task_id?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          field_job_id?: string | null;
+          kind?: string;
+          driver_id?: string | null;
+          reason?: string | null;
+          details?: Json;
+          payment_id?: string | null;
+          task_id?: string | null;
+          created_by?: string;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -11385,6 +11457,10 @@ export type Database = {
           review_google_match_days: number;
           review_google_auto_match: boolean;
           vpage_stock_photos: boolean;
+          field_jobs_auto: boolean;
+          field_jobs_auto_assign: string;
+          field_offline_deposit_methods: string[];
+          field_tracker_override: boolean;
         };
         Insert: {
           id?: string;
@@ -11844,6 +11920,10 @@ export type Database = {
           review_google_match_days?: number;
           review_google_auto_match?: boolean;
           vpage_stock_photos?: boolean;
+          field_jobs_auto?: boolean;
+          field_jobs_auto_assign?: string;
+          field_offline_deposit_methods?: string[];
+          field_tracker_override?: boolean;
         };
         Update: {
           id?: string;
@@ -12303,6 +12383,10 @@ export type Database = {
           review_google_match_days?: number;
           review_google_auto_match?: boolean;
           vpage_stock_photos?: boolean;
+          field_jobs_auto?: boolean;
+          field_jobs_auto_assign?: string;
+          field_offline_deposit_methods?: string[];
+          field_tracker_override?: boolean;
         };
         Relationships: [];
       };
