@@ -102,7 +102,7 @@ export const EXTRA: Record<string, Bank> = {
   'ts.h.money': ['What it costs to run', 'Running costs', 'The cost of driving it', 'Money matters'],
   'ts.money': [
     ['fuelyear', 'The EPA estimates {fuelYearUsd} a year in fuel for 15,000 miles at US prices.'],
-    ['cost', 'At our price setting, 100 km costs about {cost100} in fuel or charge.'],
+    ['cost', 'At our price setting, 100 km costs about {cost100} in {energy}.'],
     ['cost', 'A 1,000 km month costs roughly {cost1000} at our price setting.'],
     ['premium', 'Premium gas adds to the running cost compared with a car on regular.'],
     ['ev', 'Charging at home usually costs less than public fast charging.'],
@@ -139,12 +139,12 @@ export const EXTRA: Record<string, Bank> = {
     ['drivable', 'Visiting Toronto from {place}? We can have a car ready when you arrive.']
   ],
   'c.far.border': [
-    ['canada|us|mx', 'A trip from Ontario to {place} needs our written consent before you leave.'],
-    ['canada|us|mx', 'Because {place} is outside Ontario, the trip needs our written consent first.'],
-    ['canada|us|mx', 'Tell us in your request that you plan to drive outside Ontario; it needs our written consent.'],
-    ['canada|us|mx', 'Our cars can leave Ontario only with written consent from us, arranged before the trip.'],
-    ['us|mx', 'Crossing the border with a rental from us needs our written consent before the trip.'],
-    ['us|mx', 'A border crossing needs our written consent in advance; ask in your request.']
+    ['canada|us|mx', '#ont A trip from Ontario to {place} needs our written consent before you leave.'],
+    ['canada|us|mx', '#ont Because {place} is outside Ontario, the trip needs our written consent first.'],
+    ['canada|us|mx', '#ont Tell us in your request that you plan to drive outside Ontario; it needs our written consent.'],
+    ['canada|us|mx', '#ont Our cars can leave Ontario only with written consent from us, arranged before the trip.'],
+    ['us|mx', '#ont Crossing the border with a rental from us needs our written consent before the trip.'],
+    ['us|mx', '#ont A border crossing needs our written consent in advance; ask in your request.']
   ],
   'c.far.usd': [
     ['usd', 'Rates on this site are in Canadian dollars, before tax.'],

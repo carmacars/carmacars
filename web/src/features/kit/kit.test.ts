@@ -48,7 +48,7 @@ test('library: every bank a plan names exists, every variant is well formed and 
     'make', 'model', 'makeModel', 'year', 'trim', 'car', 'aCar', 'colour', 'colourCar', 'aColourCar', 'body', 'aBody', 'vclass', 'similar', 'seats', 'models', 'modelList', 'evModels', 'hybridModels',
     'firstYear', 'lastYear', 'yearsCount', 'bestYear', 'trimList', 'trimCount', 'trimRank', 'trimOf', 'powertrains', 'engine', 'drive', 'trans', 'aTrans', 'l100', 'litres300', 'l100City', 'l100Hwy',
     'kwh100', 'kwh300', 'range', 'rangeTrip', 'rangeTripKm', 'mpg', 'cost100', 'cost300', 'cost1000', 'cargoL', 'cargoPlain', 'battery', 'charge240', 'co2', 'fuelYearUsd', 'premiumPrice', 'lengthM',
-    'lengthSize', 'lengthTip', 'widthM', 'weightKg', 'recalls', 'complaints', 'complaintTop', 'forSale']);
+    'lengthSize', 'lengthTip', 'energy', 'level', 'widthM', 'weightKg', 'recalls', 'complaints', 'complaintTop', 'forSale']);
   for (const [kind, plan] of Object.entries(PLANS)) {
     for (const s of plan.sections) for (const k of [s.h, ...s.paras.flat()]) assert.ok(LIBRARY[k], `${kind}: bank ${k}`);
     for (const k of plan.faq) assert.ok(LIBRARY[k], `${kind}: faq bank ${k}`);

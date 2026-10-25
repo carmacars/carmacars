@@ -215,7 +215,7 @@ export const COMMON: Record<string, Bank> = {
   ],
   'c.del.airport': [
     'We also meet renters at {{airports}} with the car at the time we confirm.',
-    'Flying in? We meet you at {{airports}} with the car, at the time we confirm.',
+    'Flying in? We meet renters at {{airports}} with the car, at the time we confirm.',
     'Airport handovers are possible at {{airports}}; an airport surcharge may apply.',
     'Delivery to {{airports}} works the same way, priced by distance in your offer.',
     'We hand cars over at {{airports}} as well, with no counter to queue at.'
@@ -272,10 +272,10 @@ export const COMMON: Record<string, Bank> = {
     'Write to us with the dates and the place, and we will give you a straight answer.'
   ],
   'c.far.border': [
-    ['canada|us|mx', 'Taking a car out of Ontario needs our written consent before the trip, so ask in your request.'],
-    ['canada|us|mx', 'Trips outside Ontario need our written consent. Mention the route in your request.'],
-    ['canada|us|mx', 'A rental can leave Ontario only with our written consent, agreed before you go.'],
-    ['canada|us|mx', 'Driving out of Ontario is possible only with our written consent, given before the trip.']
+    ['canada|us|mx', '#ont Taking a car out of Ontario needs our written consent before the trip, so ask in your request.'],
+    ['canada|us|mx', '#ont Trips outside Ontario need our written consent. Mention the route in your request.'],
+    ['canada|us|mx', '#ont A rental can leave Ontario only with our written consent, agreed before you go.'],
+    ['canada|us|mx', '#ont Driving out of Ontario is possible only with our written consent, given before the trip.']
   ],
   'c.far.usd': [
     'Prices on this site are in Canadian dollars.',
@@ -311,9 +311,9 @@ export const COMMON: Record<string, Bank> = {
     'Check the daily kilometres on the car\'s page; extra kilometres are charged at the rate shown there.'
   ],
   'c.trip.border': [
-    'Crossing into the United States needs our written consent first.',
-    'A trip outside Ontario, the United States included, needs our written consent.',
-    'If the plan includes a border crossing, ask in your request: it needs our written consent.'
+    '#ont Crossing into the United States needs our written consent first.',
+    '#ont A trip outside Ontario, the United States included, needs our written consent.',
+    '#ont If the plan includes a border crossing, ask in your request: it needs our written consent.'
   ],
 
   // ---------------------------------------------------------------- local context

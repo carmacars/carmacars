@@ -112,12 +112,12 @@ export const EXTRA3: Record<string, Bank> = {
   'c.del.airport': [
     'Arriving by plane? Ask for a handover at {{airports}}.',
     'We can bring the car to {{airports}}, priced in your offer.',
-    'An airport handover at {{airports}} is arranged for the time we confirm.',
+    'Airport handovers at {{airports}} are arranged for the time we confirm.',
     'Toronto Pearson and Billy Bishop handovers are priced by distance, with any surcharge in the offer.',
-    'For a flight into {{airports}}, send the time and we meet you with the car.',
+    'For an airport handover at {{airports}}, send the flight time and we meet you with the car.',
     'We meet travellers at {{airports}} with the car, no queue involved.',
     'Airport handovers at {{airports}} are possible; tell us the flight time.',
-    'If you land at {{airports}}, the car can be waiting for you.'
+    'Airport handovers are possible at {{airports}}, so the car can be waiting when you land.'
   ],
 
   // ================================================================ local context
@@ -408,7 +408,7 @@ export const EXTRA3: Record<string, Bank> = {
     '#use It is rated {l100} L/100 km combined: about {litres300} litres every 300 km.'
   ],
   'v.spec.cost': [
-    '#cost Fuel or charge for 100 km comes to about {cost100} at our price setting.',
+    '#cost The {energy} for 100 km comes to about {cost100} at our price setting.',
     '#cost A 300 km round trip costs roughly {cost300} at our price setting.',
     '#cost At our price setting, 1,000 km costs about {cost1000}.',
     '#cost Expect about {cost100} per 100 km at our price setting.',

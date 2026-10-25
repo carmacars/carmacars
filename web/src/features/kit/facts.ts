@@ -264,6 +264,7 @@ export function vehicleFacts(x: VehicleIn, v: KitValues, tags: Set<string>) {
     const fuel = s.fuel;
     tags.add(fuel === 'electric' ? 'ev' : fuel === 'plug_in_hybrid' ? 'phev' : fuel === 'hybrid' ? 'hybrid' : fuel === 'diesel' ? 'diesel' : fuel === 'premium' ? 'premium' : 'gas');
     if (fuel !== 'electric') tags.add('burns');
+    v.energy = fuel === 'electric' ? 'electricity' : 'fuel'; v.level = fuel === 'electric' ? 'charge' : 'fuel';
     if ([...fuels].some((f) => f === 'electric')) tags.add('has-ev');
     if ([...fuels].some((f) => f === 'hybrid' || f === 'plug_in_hybrid')) tags.add('has-hybrid');
     const d = (s.drive ?? '').toLowerCase();

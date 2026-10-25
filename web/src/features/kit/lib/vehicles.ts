@@ -256,8 +256,8 @@ export const VEHICLES: Record<string, Bank> = {
     ['cost', '#cost A weekend of about 300 km costs roughly {cost300} in energy at our price setting.'],
     ['burns l100', '#use A 300 km weekend uses around {litres300} litres.'],
     'Each car shows the kilometres included each day and the rate for extra ones.',
-    'Trips outside Ontario need our written consent, agreed before you go.',
-    'Return the car with the same fuel or charge it had at pickup.'
+    '#ont Trips outside Ontario need our written consent, agreed before you go.',
+    '#return Return the car with the same {level} it had at pickup.'
   ],
 
   // ================================================================ renting it from CarmaCars

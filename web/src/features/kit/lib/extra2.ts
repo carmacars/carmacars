@@ -210,12 +210,12 @@ export const EXTRA2: Record<string, Bank> = {
   ],
   'c.del.airport': [
     'Toronto Pearson and Billy Bishop handovers are possible, priced in your offer.',
-    'We can meet you at {{airports}}; the offer shows any airport fee.',
-    'Flights into {{airports}} are easy: we meet you with the car.',
+    'Handovers are possible at {{airports}}; the offer shows any airport fee.',
+    'Flying in? We meet renters at {{airports}} with the car.',
     'For {{airports}}, the handover is at the time we confirm, with no counter.',
     'Airport delivery to {{airports}} is priced by distance, and a surcharge may apply.',
-    'Landing at {{airports}}? We can be there with the car.',
-    'An airport handover at {{airports}} saves a shuttle and a queue.'
+    'Airport handovers cover {{airports}}, at the time we confirm.',
+    'Airport handovers at {{airports}} save a shuttle and a queue.'
   ],
   'c.del.oneway': [
     'Drop-off and collection can be at two different addresses within our delivery area.',
@@ -255,9 +255,9 @@ export const EXTRA2: Record<string, Bank> = {
     'Need more distance? Choose a longer booking or ask about the kilometres in your request.'
   ],
   'c.trip.border': [
-    'Trips into the United States need our written consent before you go.',
-    'Ask before any border crossing: it needs our written consent.',
-    'Any drive out of Ontario needs our written consent, arranged in advance.'
+    '#ont Trips into the United States need our written consent before you go.',
+    '#ont Ask before any border crossing: it needs our written consent.',
+    '#ont Any drive out of Ontario needs our written consent, arranged in advance.'
   ],
 
   // ================================================================ local context
@@ -531,7 +531,7 @@ export const EXTRA2: Record<string, Bank> = {
     '#cost At our price setting, it costs about {cost100} to drive 100 km.',
     '#cost Driving 300 km costs roughly {cost300} at our price setting.',
     '#cost For 1,000 km, budget about {cost1000} at our price setting.',
-    '#cost Every 100 km costs about {cost100} in fuel or charge at our price setting.'
+    '#cost Every 100 km costs about {cost100} in {energy} at our price setting.'
   ],
   'v.spec.trans': [
     ['cvt', 'A continuously variable automatic keeps the engine in its most efficient range.'],
@@ -547,8 +547,8 @@ export const EXTRA2: Record<string, Bank> = {
     'A long weekend away is easy to price with the figures on this page.',
     ['rangetrip', 'A trip like Toronto to {rangeTrip}, about {rangeTripKm} km, fits within its rated range.'],
     ['burns l100', '#use For a 300 km round trip, plan on about {litres300} litres.'],
-    'For a trip out of Ontario, ask first: it needs our written consent.',
-    'Return the car with the fuel or charge it had at pickup, or a fee applies.'
+    '#ont For a trip out of Ontario, ask first: it needs our written consent.',
+    '#return Return the car with the {level} it had at pickup, or a fee applies.'
   ],
   'v.del': [
     ['!far', '#del Delivery is priced by distance in your offer, and pickup from us is free.'],
