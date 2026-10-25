@@ -8,10 +8,11 @@ import type { DocReview, DocUpload } from '@/features/admin/todo/types';
 // and the Protection Plan side by side, what to check said once, then one "Approve all" (each item through the function
 // that decides it; one the database refuses is reported and the rest approved) or a reason to reject one item, which the
 // renter sees. An Admin or customer service, with no review task. The images come through one-minute private links,
-// loaded when the pop-up opens (each opening is logged).
+// loaded when the pop-up opens (each opening is logged). Sales (0169) see the licence front, back and selfie only: no coverage.
 const KIND: Record<string, string> = { licence_front: 'Licence, front', licence_back: 'Licence, back', selfie: 'Selfie' };
 const CHECKS = ['The name and date of birth match the booking', 'Class G2 or G (escalate a licence from outside Ontario), valid past the return date, no sign of alteration',
-  'The selfie’s face matches the licence photo', 'The coverage is active to the return date and covers this car and every driver'];
+  'The selfie’s face matches the licence photo'];
+const COVERAGE_CHECK = 'The coverage is active to the return date and covers this car and every driver';
 const day = (iso: string | null | undefined) => (iso ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(iso.length === 10 ? `${iso}T12:00:00Z` : iso)) : '');
 
 function Reject({ testId, pending, onReject }: { testId: string; pending: boolean; onReject: (reason: string) => void }) {
@@ -76,6 +77,7 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
   const planWaiting = Boolean(cov && cov.option === 3 && !cov.confirmed && cov.protection_plan_line);
   const waiting = (d?.uploads.filter((u) => u.status === 'submitted').length ?? 0) + (covWaiting ? 1 : 0) + (planWaiting ? 1 : 0);
   const done = d && waiting <= 0;
+  const licenceOnly = Boolean(d?.licence_only);
   return (
     <>
       <button className={`btn btn--sm ${variant === 'primary' ? 'btn--primary' : 'btn--ghost'}`} type="button" aria-haspopup="dialog" data-testid="doc-review-open"
@@ -89,12 +91,12 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
         {d && (
           <div className="stack">
             <p className="small">{d.renter_name}, {d.vehicle_name}. Pickup {day(d.pickup_at)}, return {day(d.return_at)}.
-              Identity {d.readiness.all_drivers_verified ? 'verified' : 'not verified yet'}; coverage {d.readiness.coverage_confirmed ? 'confirmed' : 'not confirmed yet'}.</p>
+              Identity {d.readiness.all_drivers_verified ? 'verified' : 'not verified yet'}{licenceOnly ? '.' : `; coverage ${d.readiness.coverage_confirmed ? 'confirmed' : 'not confirmed yet'}.`}</p>
             {done && <p className="alert alert--ok" role="status" data-testid="doc-review-done"><span>Nothing waiting for review.</span></p>}
             {!done && (
               <div className="ad-approve-all stack" data-testid="doc-review-checks">
                 <p className="pt-kicker">Look at each item below, then approve them together</p>
-                <ul className="small">{CHECKS.map((c) => <li key={c}>{c}</li>)}</ul>
+                <ul className="small">{(licenceOnly ? CHECKS : [...CHECKS, COVERAGE_CHECK]).map((c) => <li key={c}>{c}</li>)}</ul>
                 <div className="row"><button className="btn btn--primary" type="button" disabled={pending} onClick={approveAll} data-testid="doc-review-approve-all">{pending ? 'Working' : `Approve all (${waiting})`}</button>
                   <span className="small muted">One wrong? Reject that one first, with the reason.</span></div>
               </div>)}

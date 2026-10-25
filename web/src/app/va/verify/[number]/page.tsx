@@ -12,16 +12,18 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Identity review', path: '/va', noindex: true, description: 'Identity and coverage documents of one booking.' });
 
 type U = { id: string; kind: string; driver_id: string | null; status: string; uploaded_at: string; bucket: string; path: string; mime_type: string | null };
-type V = { coverage?: ReviewCoverage | null; booking_id: string; booking_number: string; return_at: string; coverage_option: number | null; readiness: { all_drivers_verified: boolean; coverage_confirmed: boolean };
+type V = { coverage?: ReviewCoverage | null; booking_id: string; booking_number: string; return_at: string; coverage_option: number | null; readiness: { all_drivers_verified: boolean; coverage_confirmed?: boolean };
   drivers: Array<{ driver_id: string; full_name: string; role: string; date_of_birth: string | null; licence_number: string | null; licence_class: string | null; licence_expiry: string | null; verified_on: string | null }>; uploads: U[] };
 
 // Identity document review (05-va.md section 4.2). The database opens it only while customer service has
 // the review task for this booking, and logs every opening; images come through one-minute signed links and
-// are never cached.
+// are never cached. Sales (0169) review the licence front, back and selfie here too: the screen has no coverage
+// for them, and the database refuses the proof of coverage and the Protection Plan.
 export default async function Verify({ params }: { params: Promise<{ number: string }> }) {
   const { number } = await params;
   const n = decodeURIComponent(number);
-  const { read } = await vaPage(`/va/verify/${n}`, ['cs']);
+  const { read, fn } = await vaPage(`/va/verify/${n}`, ['cs', 'sales']);
+  const sales = fn === 'sales';
   const v = await read<V | null>('verification', { booking: n }).catch(() => null);
   if (!v) notFound();
   const s = await storage();
@@ -33,11 +35,11 @@ export default async function Verify({ params }: { params: Promise<{ number: str
   const pageLinks = new Map(await Promise.all((cp?.pages ?? []).filter((pg) => pg.bucket && pg.path).map(async (pg) => [pg.id, await s.signedDownloadUrl(pg.bucket as Bucket, pg.path!, 60)] as const)));
   return (
     <>
-      <PageHead kicker={<><Link prefetch={false} className="link" href="/va">Queue</Link> · <Link prefetch={false} className="link" href={`/va/bookings/${encodeURIComponent(n)}`}>{n}</Link></>} title="Identity and coverage" />
-      <p className="small muted">Identity {v.readiness.all_drivers_verified ? 'verified' : 'not verified yet'} · coverage {v.readiness.coverage_confirmed ? 'confirmed' : 'not confirmed yet'} · return {d(v.return_at)}</p>
-      {(v.uploads.some((u) => u.status === 'submitted') || (cp && cp.status === 'submitted') || (cov?.option === 3 && !cov.confirmed && cov.protection_plan_line)) && (
+      <PageHead kicker={<><Link prefetch={false} className="link" href="/va">Queue</Link> · <Link prefetch={false} className="link" href={`/va/bookings/${encodeURIComponent(n)}`}>{n}</Link></>} title={sales ? 'Licence review' : 'Identity and coverage'} />
+      <p className="small muted">Identity {v.readiness.all_drivers_verified ? 'verified' : 'not verified yet'}{sales ? '' : ` · coverage ${v.readiness.coverage_confirmed ? 'confirmed' : 'not confirmed yet'}`} · return {d(v.return_at)}</p>
+      {(v.uploads.some((u) => u.status === 'submitted') || (!sales && ((cp && cp.status === 'submitted') || (cov?.option === 3 && !cov.confirmed && cov.protection_plan_line)))) && (
         <Card title="Everything waiting, in one step" testId="va-approve-all">
-          <p className="small">Look at each document below: the name and date of birth match, class G2 or G, valid past the return, no alteration, the selfie matches, the coverage is active to the return date. Reject the wrong one first, with its reason.</p>
+          <p className="small">Look at each document below: the name and date of birth match, class G2 or G, valid past the return, no alteration, the selfie matches{sales ? '' : ', the coverage is active to the return date'}. Reject the wrong one first, with its reason.</p>
           <Act ops action="doc_review_approve_all" payload={{ booking: n }} label="Approve all" variant="primary" refresh={[`/va/verify/${n}`]} testId="va-approve-all-go" done="Approved." />
         </Card>)}
       {v.drivers.map((dr) => (
@@ -50,7 +52,7 @@ export default async function Verify({ params }: { params: Promise<{ number: str
           {!forDriver(dr.driver_id).length && <p className="small muted">Nothing uploaded for this driver yet.</p>}
         </Card>
       ))}
-      <Card title={`Coverage${v.coverage_option ? `, option ${v.coverage_option}` : ''}`} testId="va-coverage">
+      {!sales && <Card title={`Coverage${v.coverage_option ? `, option ${v.coverage_option}` : ''}`} testId="va-coverage">
         {cov && <Kv rows={[
           ['Option', cov.option_label], ['Confirmed', cov.confirmed ? 'Yes' : 'Not yet: the car is not handed over until it is'], ['Return', cov.return_date],
           ...(cov.option === 1 && cp ? [['Insurer', cp.insurer_name ?? ''], ['Policy number', cp.policy_number ?? ''],
@@ -74,7 +76,8 @@ export default async function Verify({ params }: { params: Promise<{ number: str
           <Act action="protection_plan_confirm" payload={{ booking: n }} label="Confirm the Protection Plan is active" variant="primary" refresh={[`/va/verify/${n}`]} testId="plan-confirm"
             fields={[{ name: 'ref', label: 'Activation reference', type: 'text' }]} />)}
         {!cp && cov?.option !== 3 && <p className="small muted">No proof of coverage yet.</p>}
-      </Card>
+      </Card>}
+      {sales && <p className="small muted" data-testid="va-licence-only">The proof of coverage and the Protection Plan are reviewed by customer service or an Admin.</p>}
     </>
   );
 }

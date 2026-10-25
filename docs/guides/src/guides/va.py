@@ -435,6 +435,15 @@ def build():
         f'An offer that is out: {B("Edit the offer")}, then {B("Save and send the update")}.',
     ], shot=S('va-sales/02-requests-desktop', 210, 60, 1440, 640, pins=[(1, 700, 405)]))
     g.tip('Your first reply target is 5 minutes, the "Quote sent" measure on your scorecard. Follow every offer out before it expires.')
+    g.task('Check the renter\'s licence', 'Sales approve the renter\'s licence like customer service: the licence front, the licence back and the selfie. The proof of coverage and the Protection Plan stay with customer service and Admins.')
+    g.steps([
+        f'On {P("My work", "To do")}, {B("Licences to check")} lists each booking with an image waiting, the longest wait first. Press {B("Review the licence")}.',
+        f'On a booking, the card {B("Renter licence")} has the same: press {B("Review the licence")}.',
+        'Look at each image: the name and date of birth match the booking, class G2 or G, valid past the return, no alteration, the selfie matches the licence photo.',
+        f'One is wrong? Open {B("Reject this one")} under it, type the reason the renter reads and press {B("Reject")}. The renter is told and asked for a new image.',
+        f'Then press {B("Approve all")}: every image still waiting is approved at once. An image the system refuses is named with the reason.',
+    ])
+    g.tip('The booking history says who decided and the role, sales. Each opening of the images is logged and the links last one minute.')
     g.task('My sales', f'Open {P("My work", "My sales")}. It shows your own sales and commissions only.')
     g.steps([
         'Commissions comes first. In Sales your rate depends on the rental days of the month: under 50 days 10%, from 50 days 15%, from 100 days 20%. The bar shows your days against the target of 100, and says when your rate rises.',

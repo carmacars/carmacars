@@ -39,6 +39,8 @@ type ReviewProof = NonNullable<ReviewCoverage['proof']>;
 export interface DocReview {
   booking_id: string; booking_number: string; status: string; pickup_at: string; return_at: string; coverage_option: number | null; renter_name: string | null; vehicle_name: string | null;
   readiness: { all_drivers_verified?: boolean; coverage_confirmed?: boolean; identity_and_coverage_confirmed?: boolean };
+  /** 0169: Sales see the licence front, back and selfie only (no coverage) */
+  licence_only?: boolean;
   drivers: Array<{ driver_id: string; full_name: string; role: string; date_of_birth: string | null; licence_number: string | null; licence_class: string | null; licence_expiry: string | null; verified_on: string | null }>;
   uploads: DocUpload[];
   coverage: (Omit<ReviewCoverage, 'proof'> & { proof: (Omit<ReviewProof, 'pages'> & { pages: Array<ReviewProof['pages'][number] & { url?: string | null }> }) | null }) | null;

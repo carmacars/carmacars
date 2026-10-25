@@ -25,6 +25,7 @@ import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
 import { HandoverPanel } from '@/features/handover/HandoverPanel';
 import { OwnerDeductionsPanel, OwnerVisibilityPanel } from '@/features/admin/OwnerControls';
 import { ReviewPanel } from '@/features/reviews/ReviewPanel';
+import { DocumentReview } from '@/features/admin/DocumentReview';
 import { AgreementPanel } from '@/features/agreements/AgreementPanel';
 import type { PhoneTimelineData } from '@/features/phone/client';
 
@@ -112,6 +113,11 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} aal={aal} refresh={[base]} />}
       {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} aal={aal} base={base} b={{ id: b.id, status: b.status }} docBase="/va/documents" finance={fn === 'finance'} openDocs={false} />}
+      {/* the renter's licence front, back and selfie, reviewed by Sales (0169); the coverage stays with customer service and Admin */}
+      {fn === 'sales' && ['requested', 'offered', 'tentative', 'pending_payment', 'confirmed', 'on_rent'].includes(b.status) && (
+        <Card title="Renter licence" testId="booking-doc-review" aside={<DocumentReview booking={b.booking_number} refresh={R} label="Review the licence" />}>
+          <p className="small">Approve or reject the licence front, back and selfie the renter sent; a rejection tells them why. The proof of coverage and the Protection Plan are reviewed by customer service or an Admin.</p>
+        </Card>)}
       {/* what the owner sees of this booking (0156) */}
       <OwnerVisibilityPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />
       <Tabs current={`${base}?tab=${tab}`} items={tabs} />

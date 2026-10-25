@@ -24,6 +24,8 @@ export const metadata = pageMeta({ title: 'To do', path: '/va', noindex: true, d
 type Digest = { open: number; overdue: number; due_today: number; escalated: number; done_today: number; mine: number };
 type Req = { id: string; booking_number: string; status: string; state: string; vehicle: string; renter: string; returning: boolean; waiting_minutes: number };
 type R = Record<string, unknown>;
+// 0169: the bookings with a licence image or selfie waiting, for Sales
+type LicenceWaiting = { booking_number: string; status: string; vehicle_label: string; renter_first_name: string | null; waiting: number; waiting_since: string };
 type Board = { payments_failed: R[]; deposits_due: R[]; deposits_to_take: R[]; refunds: R[]; cancellations: R[]; owner_invoices: R[]; statements: R[] };
 const REPLY: Record<string, { what: string; cta: string }> = {
   renter_message: { what: 'Renter message', cta: 'Reply' }, phone_missed_call: { what: 'Missed call', cta: 'Call back' }, account_phone_review: { what: 'Text to check', cta: 'Open' },
@@ -44,7 +46,7 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
   const [{ read, fn, user, aal }, sp] = await Promise.all([vaPage('/va'), searchParams]);
   const talk = fn === 'cs' || fn === 'sales';
   const now = requestNow();
-  const [all, toSign, dg, target, reqs, chat, sales, board, jobs, cal] = await Promise.all([
+  const [all, toSign, dg, target, reqs, chat, sales, board, jobs, cal, licences] = await Promise.all([
     read<Task[]>('queue'), signCount(user.id),
     read<Digest>('digest').catch(() => null),
     door<{ minutes: number; words: string }>(user.id, 'ops_read', 'reply_target', {}, aal).catch(() => ({ minutes: 5, words: '5 minutes' })),
@@ -53,7 +55,8 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
     fn === 'sales' ? read<{ commissions: StaffCommissions; follow_ups: SalesFollowUp[] }>('my_sales', { period: 'month' }).catch(() => null) : Promise.resolve(null),
     fn === 'finance' ? read<Board>('finance_board').catch(() => null) : Promise.resolve(null),
     fn === 'fleet' ? read<{ jobs: R[] }>('fleet_board').then((b) => b.jobs).catch(() => [] as R[]) : Promise.resolve([] as R[]),
-    fn === 'fleet' ? read<{ vehicles: CalVehicle[] }>('calendar', { from: new Date(now - 86_400_000).toISOString(), to: new Date(now + 2 * 86_400_000).toISOString() }).then((c) => c.vehicles).catch(() => [] as CalVehicle[]) : Promise.resolve([] as CalVehicle[])
+    fn === 'fleet' ? read<{ vehicles: CalVehicle[] }>('calendar', { from: new Date(now - 86_400_000).toISOString(), to: new Date(now + 2 * 86_400_000).toISOString() }).then((c) => c.vehicles).catch(() => [] as CalVehicle[]) : Promise.resolve([] as CalVehicle[]),
+    fn === 'sales' ? read<LicenceWaiting[]>('licences_waiting').catch(() => [] as LicenceWaiting[]) : Promise.resolve([] as LicenceWaiting[])
   ]);
   const tm = target.minutes;
   const waiting = reqs.filter((r) => r.status === 'requested');
@@ -114,6 +117,16 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
 
       <div className="va-cols">
         {talk && <ReplyBoard items={replies.slice(0, 8)} now={now} target={tm} more={replies.length > 8 ? <p className="small"><Link prefetch={false} className="link" href="/va/requests">See all {replies.length}</Link></p> : null} />}
+        {fn === 'sales' && (
+          <section className="va-section pu-panel" aria-labelledby="va-lic-h" data-testid="va-licences">
+            <div className="va-section__head"><h2 className="va-section__title" id="va-lic-h">Licences to check</h2><p className="va-section__note">{licences.length ? `${licences.length} ${licences.length === 1 ? 'booking' : 'bookings'} with a licence or selfie waiting` : 'Nothing waiting'}</p></div>
+            {licences.length ? <ul className="va-replies">{licences.slice(0, 8).map((l) => (
+              <li key={l.booking_number} className="va-reply" data-testid={`va-licence-${l.booking_number}`}>
+                <WaitTimer since={l.waiting_since} now={now} label="Waiting" />
+                <span className="va-reply__text"><span className="va-reply__what">{l.waiting} {l.waiting === 1 ? 'image' : 'images'} to check</span><span className="va-reply__who">{l.renter_first_name ?? 'Renter'}<span className="va-reply__detail">{l.vehicle_label} · {l.booking_number}</span></span></span>
+                <Link prefetch={false} className="btn btn--sm btn--primary va-reply__cta" href={`/va/verify/${encodeURIComponent(l.booking_number)}`}>Review the licence</Link>
+              </li>))}</ul> : <p className="va-empty-line">Every licence sent is decided.</p>}
+          </section>)}
         {fn === 'sales' && sales && (
           <section className="va-section pu-panel" aria-labelledby="va-fu-h" data-testid="va-followups">
             <div className="va-section__head"><h2 className="va-section__title" id="va-fu-h">Follow-ups due</h2><p className="va-section__note">{sales.follow_ups.length ? `${sales.follow_ups.length} deals to move on` : 'Nothing to follow up'}</p></div>
