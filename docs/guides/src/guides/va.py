@@ -151,6 +151,7 @@ def build():
         f'Money tab, Fees, {B("Change or add a fee")}: a fee forgotten (the young driver fee shows its price for the dates) or a charge of its own.',
         f'What is open shows at once: {B("Email a pay link")} or {B("Text a pay link")} for exactly that amount, or record cash or an e-Transfer ({B("Record a payment")}, For: the rental and fees).',
         f'{B("Edit renter")}: a wrong email, phone, name, licence or address. A new email is their sign-in at once.',
+        f'The same renter twice? Under the renter, Possible duplicates: {B("Merge into this record")} moves everything of the other record here.',
     ])
     g.tip('Each edit is recorded with your name, the time, the reason and the before and after.', label='Good to know')
 
