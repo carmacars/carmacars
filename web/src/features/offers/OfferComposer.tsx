@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { offersDo, offersRead } from '@/server/actions/offers';
-import { supplyRead } from '@/server/actions/supply';
+import { draftClose, draftSave, supplyRead } from '@/server/actions/supply';
 import { SourcedChoice } from '@/features/sales/SourcedChoice';
 import { PRICE_TAX_OPTIONS } from '@/features/sales/priceTax';
 import { AddonPicker } from '@/features/addons/AddonPicker';
@@ -36,7 +36,10 @@ const fmt = (c: number | null | undefined) => money(Number(c ?? 0), { cents: tru
 const lineLabel = (l: Line) => l.description || l.charge_type.replace(/_/g, ' ');
 const PLAN_TYPES = ['coverage_sold', 'coverage', 'coverage_option', 'carmacars_coverage', 'coverage_daily'];
 
-export function OfferComposer({ base, initialCar = null }: { base: '/admin' | '/va'; initialCar?: string | null }) {
+/** What an offer draft keeps (0145). */
+export interface OcDraft { f?: Partial<OfferForm>; addons?: AddonChoice[]; customs?: Array<{ label: string; amount: string; hst: boolean }>; chosen?: Found | null; renter_id?: string | null }
+
+export function OfferComposer({ base, initialCar = null, draft = null }: { base: '/admin' | '/va'; initialCar?: string | null; draft?: { id: string; data: OcDraft } | null }) {
   const start = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
   const [form, setForm] = useState<Form | null>(null);
   const [f, setF] = useState<OfferForm>(() => ({
@@ -45,15 +48,16 @@ export function OfferComposer({ base, initialCar = null }: { base: '/admin' | '/
     pickup_kind: 'our_location', pickup_address: '', pickup_km: '', return_kind: 'our_location', return_address: '', return_km: '',
     price_mode: 'sheet', price_total: '', price_day: '', price_tax: 'plus', price_reason: '',
     deposit: '', discount: '', discount_reason: '', promo_code: '', km: '', coverage_option: '1', plan_price: '', fees: {}, fee_reason: '',
-    rental_pay: 'card', deposit_pay: 'card', choice: '', message: '', note: '', hours: '24', by_email: true, by_text: false, notify: true
+    rental_pay: 'card', deposit_pay: 'card', choice: '', message: '', note: '', hours: '24', by_email: true, by_text: false, notify: true,
+    ...(draft?.data.f ?? {})
   }));
   const set = <K extends keyof OfferForm>(k: K) => (v: OfferForm[K]) => setF((s) => ({ ...s, [k]: v }));
   const [q, setQ] = useState('');
   const [found, setFound] = useState<Found[]>([]);
-  const [chosen, setChosen] = useState<Found | null>(null);
+  const [chosen, setChosen] = useState<Found | null>(draft?.data.chosen ?? null);
   const [adding, setAdding] = useState(false);
   const [carQ, setCarQ] = useState('');
-  const [addons, setAddons] = useState<AddonChoice[]>([]);
+  const [addons, setAddons] = useState<AddonChoice[]>(draft?.data.addons ?? []);
   const [addonOptions, setAddonOptions] = useState<AddonOption[]>([]);
   const [priced, setPriced] = useState<{ booking: Priced; available: boolean } | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -104,7 +108,23 @@ export function OfferComposer({ base, initialCar = null }: { base: '/admin' | '/
 
   const need = missing(f, role).filter((m) => m !== 'who found this client');
   // 0132: charges of its own on the offer (the renter sees what is typed)
-  const [customs, setCustoms] = useState<Array<{ label: string; amount: string; hst: boolean }>>([]);
+  const [customs, setCustoms] = useState<Array<{ label: string; amount: string; hst: boolean }>>(draft?.data.customs ?? []);
+  // 0145: saved as a draft as you type; opened again from Unfinished rentals on any device
+  const [draftId, setDraftId] = useState<string | null>(draft?.id ?? null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const snapKey = JSON.stringify({ f, addons, customs, chosen });
+  const firstSnap = useRef(snapKey);
+  const saveDraft = async () => {
+    const data: OcDraft = { f, addons, customs, chosen, renter_id: f.renter_id };
+    const r = await draftSave({ id: draftId, kind: 'offer', data: data as Record<string, unknown>, title: [chosen?.legal_name ?? f.full_name, form?.cars.find((c) => c.id === f.vehicle_id)?.name].filter(Boolean).join(', ') });
+    if (r.ok) { setDraftId(r.data.id); setSavedAt(r.data.updated_at); }
+  };
+  useEffect(() => {
+    if (sent || snapKey === firstSnap.current) return;
+    if (!f.renter_id && !f.full_name.trim() && !f.email.trim()) return;
+    const t = setTimeout(() => { void saveDraft(); }, 1500);
+    return () => clearTimeout(t);
+  }, [snapKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const payload = useMemo(() => {
     const p = offerPayload(f, role, days, addonsPayload(addons), editFees);
     const c = customs.filter((x) => x.label.trim() && Number(x.amount) > 0).map((x) => ({ label: x.label.trim(), amount_cents: Math.round(Number(x.amount) * 100), hst: x.hst }));
@@ -131,6 +151,7 @@ export function OfferComposer({ base, initialCar = null }: { base: '/admin' | '/
     if (m.length) { setErr(`Still needed: ${m.join(', ')}.`); return; }
     const r = await offersDo<Sent & { booking_id: string }>('offer_create', draft ? { ...payload, draft: true } : payload, [`${base}/bookings`]);
     if (!r.ok) { setErr(r.message); return; }
+    if (draftId) void draftClose(draftId, 'done');
     if (draft) { router.push(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`); return; }
     setSent(r.data);
   });
@@ -174,6 +195,8 @@ export function OfferComposer({ base, initialCar = null }: { base: '/admin' | '/
   return (
     <div className="ad-review" data-testid="offer-composer">
       <form className="pt-card ad-card ad-form ad-form--narrow" aria-label="The offer" noValidate onSubmit={(e) => { e.preventDefault(); send(); }}>
+        <p className="small muted" role="status" aria-live="polite" data-testid="oc-draft-status">{savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}: finish it later from Unfinished rentals.` : 'Saved as a draft as you type.'}
+          {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); window.location.href = `${base}/offers/new`; })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
         <fieldset className="stack"><legend className="d4">1. The customer</legend>
           {chosen ? (
             <p data-testid="oc-customer"><b>{chosen.legal_name}</b> <span className="small">{chosen.email} · {chosen.mobile} · {chosen.bookings ? `${chosen.bookings} past rental${chosen.bookings === 1 ? '' : 's'}` : 'no rental yet'}{chosen.card ? ` · card ${chosen.card.brand} ${chosen.card.last4}` : ''}</span>{' '}

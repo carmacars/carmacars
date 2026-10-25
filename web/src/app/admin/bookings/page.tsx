@@ -3,6 +3,8 @@ import { page } from '@/server/admin/api';
 import Link from 'next/link';
 import { $, Badge, BookingLink, Filters, MoreFilters, PageHead, Search, Table, t } from '@/features/admin/ui';
 import { door } from '@/server/door';
+import { UnfinishedRentals } from '@/features/supply/UnfinishedRentals';
+import type { DraftRow } from '@/server/actions/supply';
 import { lateLabel } from '@/features/handover/late';
 
 export const dynamic = 'force-dynamic';
@@ -18,12 +20,14 @@ export default async function Bookings({ searchParams }: { searchParams: Promise
   // by who supplies the car, or only the rentals added by hand (0046)
   const keep = sp.supply || sp.added ? new Set((await door<Array<{ id: string }>>(user.id, 'ops_read', 'bookings_by_supply', { supply: sp.supply ?? '', added: !!sp.added, status, limit: 2000 })).map((b) => b.id)) : null;
   const rows = keep ? res.rows.filter((r) => keep.has(r.id)) : res.rows;
+  const drafts = await door<DraftRow[]>(user.id, 'ops_read', 'drafts', { kind: 'rental' }).catch(() => [] as DraftRow[]);
   const count = keep ? rows.length : res.count;
   return (
     <>
       <PageHead title="Bookings" kicker={`${count} found`} purpose="Every booking, newest pickup first. Open one to see its trip, payments and documents."><Search action="/admin/bookings" value={sp.q} placeholder="Booking number, renter, plate" />
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/offers/new" data-testid="send-offer-link">Send an offer</Link>
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new" data-testid="add-rental-link">Add a rental</Link></PageHead>
+      <UnfinishedRentals rows={drafts} base="/admin" />
       <Filters base="/admin/bookings" name="status" value={status} options={STATUSES} sp={sp} />
       <MoreFilters active={!!(sp.supply || sp.added)}>
         <Filters base="/admin/bookings" name="supply" value={sp.supply ?? ''} options={[['', 'Every car'], ['program_owner', 'Program owners\' cars'], ['company', 'CarmaCars-owned'], ['partner', 'Partners\' cars']]} sp={sp} />

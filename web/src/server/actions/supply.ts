@@ -142,3 +142,18 @@ export async function sampleCars(action: 'sample_cars_show' | 'sample_cars_hide'
     return { ok: true, data: r };
   } catch (e) { return fail(e); }
 }
+
+// ---------------------------------------------------------------- drafts (0145): Add a rental and Send an offer saved as typed
+export interface DraftRow { id: string; kind: 'rental' | 'offer'; title: string | null; quick: boolean; updated_at: string; created_at: string; by: string | null; mine: boolean;
+  vehicle: string | null; held_until: string | null; missing: string[] }
+export async function draftSave(p: { id?: string | null; kind: 'rental' | 'offer'; data: Record<string, unknown>; title?: string; hold?: boolean; quick?: boolean }): Promise<R<{ id: string; updated_at: string; held: boolean; hold_until: string | null; missing: string[] }>> {
+  try { const { user, aal } = await me(); return { ok: true, data: await door(user.id, 'ops_do', 'draft_save', p, aal) }; } catch (e) { return fail(e); }
+}
+export async function draftClose(id: string, status: 'done' | 'discarded' = 'discarded'): Promise<R<{ ok: boolean }>> {
+  try { const { user, aal } = await me(); const data = await door<{ ok: boolean }>(user.id, 'ops_do', 'draft_close', { id, status }, aal); revalidatePath('/admin/bookings/new'); revalidatePath('/va/bookings/new'); return { ok: true, data }; } catch (e) { return fail(e); }
+}
+
+/** A long rental's next period (0145): its agreement made and sent on the next job run instead of lead days ahead. */
+export async function periodSendNow(booking: string): Promise<R<{ ok: boolean; seq: number }>> {
+  try { const { user, aal } = await me(); const data = await door<{ ok: boolean; seq: number }>(user.id, 'ops_do', 'period_send_now', { booking }, aal); revalidatePath(`/admin/bookings/${booking}`); revalidatePath(`/va/bookings/${booking}`); return { ok: true, data }; } catch (e) { return fail(e); }
+}

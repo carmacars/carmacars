@@ -34,3 +34,24 @@ export async function agreementAfterAdd(bookingId: string): Promise<void> {
   const d = due.find((x) => x.booking_id === bookingId);
   if (d) await ensureAgreement(d.booking_id, d.renter_user_id, 'added');
 }
+
+type PeriodDue = { booking_id: string; seq: number; booking_number: string; renter_user_id: string };
+
+/** A long rental's next period (migration 0145): lead days before it starts, a new version of the agreement (CarmaCars'
+ *  and Blind Spot's) made as the renter and sent to sign, with what is due for that period. */
+export async function runPeriodJobs(max = 2): Promise<{ done: number; failed: number }> {
+  const due = ((await rpc('server_periods_due', { p_limit: max }, SR)) as unknown as PeriodDue[]) ?? [];
+  let done = 0; let failed = 0;
+  for (const d of due) {
+    try {
+      await rpc('server_period_begin', { p_booking: d.booking_id, p_seq: d.seq }, SR);
+      await openAgreement(d.booking_id, d.renter_user_id);
+      await rpc('server_period_done', { p_booking: d.booking_id, p_seq: d.seq, p_ok: true }, SR);
+      done++;
+    } catch (e) {
+      await rpc('server_period_done', { p_booking: d.booking_id, p_seq: d.seq, p_ok: false, p_error: e instanceof Error ? e.message : String(e) }, SR).catch(() => undefined);
+      failed++;
+    }
+  }
+  return { done, failed };
+}

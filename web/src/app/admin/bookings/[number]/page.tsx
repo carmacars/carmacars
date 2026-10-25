@@ -20,6 +20,7 @@ import { REFUND_OF } from '@/features/admin/refunds';
 import { BookingMoney, type Money } from '@/features/money/BookingMoney';
 import { BookingFees, type Fees } from '@/features/money/BookingFees';
 import { BookingEdit, type EditForm } from '@/features/money/BookingEdit';
+import { BookingPeriods, type PeriodRow } from '@/features/money/BookingPeriods';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
 import { HandoverPanel } from '@/features/handover/HandoverPanel';
 
@@ -124,6 +125,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
         </>
       )}
       {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
+      {(tab === 'overview' || tab === 'money') && b.billable_days > 27 && <BookingPeriods booking={b.booking_number} rows={await door<PeriodRow[]>(user.id, 'ops_read', 'booking_periods', { booking: b.booking_number }).catch(() => [] as PeriodRow[])} />}
       {(tab === 'overview' || tab === 'review') && renterForm && <RenterEdit x={renterForm} />}
       {tab === 'overview' && (
         <div className="ad-cols ad-cols--2">

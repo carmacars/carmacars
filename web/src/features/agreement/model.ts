@@ -36,6 +36,8 @@ export interface AgreementFacts {
   card: { brand: string; last4: string; cardholder_name: string | null } | null;
   coverage: { coverage_option: number; insurer_name: string | null; policy_number: string | null; policy_expiry: string | null; card_issuer: string | null; card_last4: string | null; status: string } | null;
   company: { legal_name: string | null; trade_name: string | null; email: string | null; phone: string | null; address: string | null; incident_line: string | null; deductible_cents: number | null };
+  /** A long rental's period this version covers (0145); null when the rental fits in one period. */
+  period?: { seq: number; of: number; starts_at: string; ends_at: string; days: number; amount_cents: number } | null;
 }
 
 const TZ = 'America/Toronto';
@@ -119,7 +121,8 @@ export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
     ['Vehicle', v ? `${v.year} ${v.make} ${v.model}${v.trim ? ` ${v.trim}` : ''}${v.colour ? `, ${v.colour}` : ''}${v.fuel ? `, ${v.fuel.replace(/_/g, ' ')}` : ''}  Plate: ${or(v.plate, 'given at pickup')}  VIN: ${or(v.vin, 'given at pickup')}` : ''],
     ['Pickup', `${when(b.pickup_at)}, ${b.pickup_place ?? 'our location'}. ${b.pickup_method === 'delivered' ? 'Delivered by us' : 'Collected by you'}`],
     ['Return', `${when(b.return_at)}, ${b.return_place ?? 'our location'}. ${b.return_method === 'picked_up' ? 'Picked up by us' : 'Returned by you'}`],
-    ['Length', `${b.billable_days} days (30 days maximum)`],
+    ['Length', f.period ? `${b.billable_days} days in all, in ${f.period.of} periods, each with its own agreement` : `${b.billable_days} days`],
+    ...(f.period ? [['This agreement covers', `Period ${f.period.seq} of ${f.period.of}: ${when(f.period.starts_at)} to ${when(f.period.ends_at)} (${f.period.days} days). Rent and fees for this period, with HST: ${money(f.period.amount_cents)}. The terms of the earlier periods' agreements continue unchanged.`]] : []),
     ['Rate', rate],
     ['Mileage', `Allowance: ${b.km_allowance_per_day ?? 0} km per day × ${b.billable_days} days = ${b.km_allowance_total ?? 0} km  Overage: ${money(b.overage_cents_per_km, { cents: true })} per km`],
     ['Deposit', `${money(b.deposit_cents)}, taken at pickup: a card hold for rentals of 7 days or less, otherwise charged and refunded`],
