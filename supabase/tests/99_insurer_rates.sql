@@ -38,7 +38,7 @@ select test.throws('a weekly cap under the daily rate is refused', $$ select app
   'class_code', 'sedan', 'daily_rate_cents', 6500, 'weekly_cap_cents', 5000)) $$, '%weekly cap%');
 insert into test.ir select 'r1', app.door(test.id('ir_admin'), 'aal2', 'admin_do', 'insurer_rate_set', jsonb_build_object('insurer_id', test.irins('Ir Allstate Test'),
   'class_code', 'sedan', 'daily_rate_cents', 6500, 'weekly_cap_cents', 39000, 'delivery_allowance_cents', 5000, 'km_per_day', 250,
-  'taxes_note', 'HST is billed on top; Allstate HST number on file.', 'effective_from', (current_date - 30)::text, 'note', 'Agreed with the adjuster'));
+  'taxes_note', 'HST is billed on top; Allstate HST number on file.', 'effective_from', (app.today() - 30)::text, 'note', 'Agreed with the adjuster'));
 select test.ok('the Allstate sedan rate is saved', (test.irv('r1') ->> 'id') is not null);
 select test.throws('the same rate again: nothing changed', $$ select app.insurer_rate_set(test.id('ir_admin'), jsonb_build_object('insurer_id', test.irins('Ir Allstate Test'),
   'class_code', 'sedan', 'daily_rate_cents', 6500, 'weekly_cap_cents', 39000, 'delivery_allowance_cents', 5000, 'km_per_day', 250,
@@ -47,27 +47,27 @@ select test.throws('a rate is never changed', $$ update insurer_rates set daily_
 select test.throws('nor deleted', $$ delete from insurer_rates where id = (test.irv('r1') ->> 'id')::uuid $$, '%kept as it was saved%');
 -- a raise from a later date: a new row, the old one stays
 insert into test.ir select 'r2', to_jsonb(app.insurer_rate_set(test.id('ir_admin'), jsonb_build_object('insurer_id', test.irins('Ir Allstate Test'),
-  'class_code', 'sedan', 'daily_rate_cents', 6800, 'weekly_cap_cents', 40000, 'effective_from', (current_date + 10)::text)));
+  'class_code', 'sedan', 'daily_rate_cents', 6800, 'weekly_cap_cents', 40000, 'effective_from', (app.today() + 10)::text)));
 select test.eq('two rows for Allstate sedans', (select count(*) from insurer_rates where insurer_id = test.irins('Ir Allstate Test') and class_code = 'sedan'), 2::bigint);
-select test.eq('today: $65', (app.insurer_rate_at(test.irins('Ir Allstate Test'), 'sedan', current_date)).daily_rate_cents, 6500::bigint);
-select test.eq('in 10 days: $68', (app.insurer_rate_at(test.irins('Ir Allstate Test'), 'sedan', current_date + 10)).daily_rate_cents, 6800::bigint);
+select test.eq('today: $65', (app.insurer_rate_at(test.irins('Ir Allstate Test'), 'sedan', app.today())).daily_rate_cents, 6500::bigint);
+select test.eq('in 10 days: $68', (app.insurer_rate_at(test.irins('Ir Allstate Test'), 'sedan', app.today() + 10)).daily_rate_cents, 6800::bigint);
 insert into test.ir select 'sheet', app.door(test.id('ir_admin'), 'aal2', 'admin_read', 'insurer_rate_sheet', '{}'::jsonb);
 select test.eq('the grid: today''s rate', (select (i -> 'rates' -> 'sedan' -> 'now' ->> 'daily_rate_cents')::bigint from jsonb_array_elements(test.irv('sheet') -> 'insurers') i where i ->> 'name' = 'Ir Allstate Test'), 6500::bigint);
 select test.eq('the grid: the next rate saved', (select (i -> 'rates' -> 'sedan' -> 'next' ->> 'daily_rate_cents')::bigint from jsonb_array_elements(test.irv('sheet') -> 'insurers') i where i ->> 'name' = 'Ir Allstate Test'), 6800::bigint);
 select test.ok('the grid: the classes are the existing list', (select bool_or(c ->> 'code' = 'sedan') and bool_or(c ->> 'code' = 'suv') from jsonb_array_elements(test.irv('sheet') -> 'classes') c));
 select test.throws('customer service cannot read the grid', $$ select app.door(test.id('ir_cs'), 'aal2', 'admin_read', 'insurer_rate_sheet', '{}'::jsonb) $$, '%Admin%');
 -- a rate ended, then the history shows it
-select app.insurer_rate_set(test.id('ir_admin'), jsonb_build_object('insurer_id', test.irins('Ir Second Mutual'), 'class_code', 'suv', 'daily_rate_cents', 9000, 'effective_from', (current_date - 5)::text));
+select app.insurer_rate_set(test.id('ir_admin'), jsonb_build_object('insurer_id', test.irins('Ir Second Mutual'), 'class_code', 'suv', 'daily_rate_cents', 9000, 'effective_from', (app.today() - 5)::text));
 select app.insurer_rate_set(test.id('ir_admin'), jsonb_build_object('insurer_id', test.irins('Ir Second Mutual'), 'class_code', 'suv', 'remove', true));
-select test.eq('a rate ended: none today', (app.insurer_rate_at(test.irins('Ir Second Mutual'), 'suv', current_date)).daily_rate_cents, null::bigint);
-select test.eq('it was there before', (app.insurer_rate_at(test.irins('Ir Second Mutual'), 'suv', current_date - 1)).daily_rate_cents, 9000::bigint);
+select test.eq('a rate ended: none today', (app.insurer_rate_at(test.irins('Ir Second Mutual'), 'suv', app.today())).daily_rate_cents, null::bigint);
+select test.eq('it was there before', (app.insurer_rate_at(test.irins('Ir Second Mutual'), 'suv', app.today() - 1)).daily_rate_cents, 9000::bigint);
 
 -- ================================================================ 3. a car's rate: the pricing class first, then its other classes
-select test.eq('the Jetta (standard, also a sedan): Allstate''s sedan rate', (app.insurer_rate_for(test.irins('Ir Allstate Test'), test.ircar(), current_date)).daily_rate_cents, 6500::bigint);
-select app.insurer_rate_set(test.id('ir_admin'), jsonb_build_object('insurer_id', test.irins('Ir Second Mutual'), 'class_code', 'sedan', 'daily_rate_cents', 6000, 'effective_from', (current_date - 30)::text));
-select app.insurer_rate_set(test.id('ir_admin'), jsonb_build_object('insurer_id', test.irins('Ir Second Mutual'), 'class_code', 'standard', 'daily_rate_cents', 5500, 'effective_from', (current_date - 30)::text));
-select test.eq('its pricing class wins when it has a rate', (app.insurer_rate_for(test.irins('Ir Second Mutual'), test.ircar(), current_date)).daily_rate_cents, 5500::bigint);
-select test.eq('no rate for the car: none', (app.insurer_rate_for(test.irins('Ir No Sheet Mutual'), test.ircar(), current_date)).id, null::uuid);
+select test.eq('the Jetta (standard, also a sedan): Allstate''s sedan rate', (app.insurer_rate_for(test.irins('Ir Allstate Test'), test.ircar(), app.today())).daily_rate_cents, 6500::bigint);
+select app.insurer_rate_set(test.id('ir_admin'), jsonb_build_object('insurer_id', test.irins('Ir Second Mutual'), 'class_code', 'sedan', 'daily_rate_cents', 6000, 'effective_from', (app.today() - 30)::text));
+select app.insurer_rate_set(test.id('ir_admin'), jsonb_build_object('insurer_id', test.irins('Ir Second Mutual'), 'class_code', 'standard', 'daily_rate_cents', 5500, 'effective_from', (app.today() - 30)::text));
+select test.eq('its pricing class wins when it has a rate', (app.insurer_rate_for(test.irins('Ir Second Mutual'), test.ircar(), app.today())).daily_rate_cents, 5500::bigint);
+select test.eq('no rate for the car: none', (app.insurer_rate_for(test.irins('Ir No Sheet Mutual'), test.ircar(), app.today())).id, null::uuid);
 
 -- ================================================================ 4. Add a rental takes the sheet's rate
 create function test.irmr(p jsonb, p_days integer default 10) returns jsonb language sql stable as $$
@@ -152,7 +152,7 @@ select app.record_insurer_payment((test.irinv()).id, (test.irinv()).total_cents,
 -- ================================================================ 8. the billing history, by class and by booking
 insert into test.ir select 'bill', app.door(test.id('ir_admin'), 'aal2', 'admin_read', 'insurer_billing', jsonb_build_object('insurer', test.irins('Ir Allstate Test')));
 select test.ok('the rates with their history', jsonb_array_length(test.irv('bill') -> 'rates') = 2);
-select test.eq('the old rate ends the day before the new one', (select r ->> 'effective_to' from jsonb_array_elements(test.irv('bill') -> 'rates') r where (r ->> 'daily_rate_cents')::bigint = 6500), (current_date + 9)::text);
+select test.eq('the old rate ends the day before the new one', (select r ->> 'effective_to' from jsonb_array_elements(test.irv('bill') -> 'rates') r where (r ->> 'daily_rate_cents')::bigint = 6500), (app.today() + 9)::text);
 select test.ok('the bookings billed to it', (select count(*) from jsonb_array_elements(test.irv('bill') -> 'bookings')) >= 2);
 select test.eq('the paid booking: billed, paid, nothing outstanding, 12 days to pay',
   (select format('%s %s %s %s', b ->> 'billed_cents' = b ->> 'paid_cents', (b ->> 'paid_cents')::bigint > 0, b ->> 'outstanding_cents', b ->> 'days_to_pay')

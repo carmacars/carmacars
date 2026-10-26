@@ -112,7 +112,7 @@ test('a long rental: its monthly periods on the booking', async ({ browser }: { 
     vehicle_id: car.id, pickup_at: new Date(now.getTime() - 2 * 86_400_000).toISOString(), return_at: new Date(now.getTime() + 68 * 86_400_000).toISOString(),
     coverage_option: 3, source: 'walk_in', sales_choice: 'for_carmacars', agreement: 'paper',
     renter: { full_name: 'Lee Period', email: `lee.period.${tag()}@example.test`, mobile: '4165550187', date_of_birth: '1985-01-01', licence_number: 'P1234-12345-12345' },
-    payment: { mode: 'other_way', method: 'cash', received_on: now.toISOString().slice(0, 10) }, deposit: { method: 'cash' } })}) as v`;
+    payment: { mode: 'other_way', method: 'cash', received_on: now.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) }, deposit: { method: 'cash' } })}) as v`;
   const number = (r!.v as { booking_number: string }).booking_number;
   const c = await browser.newContext({ viewport: isPhone() ? { width: 375, height: 812 } : { width: 1440, height: 900 }, hasTouch: isPhone(), baseURL: test.info().project.use.baseURL });
   const page = await c.newPage();
