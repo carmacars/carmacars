@@ -1,0 +1,213 @@
+{
+  "batch": "2026-10-26-guides",
+  "items": [
+    {
+      "kind": "article",
+      "id": "407-etr-tolls-in-a-rental-car",
+      "title": "407 ETR tolls in a rental car: how the bill works and what CarmaCars charges",
+      "description": "Why the 407 ETR has no booths, how its camera tolls reach a rental car weeks later, what CarmaCars adds per notice, and how to stay on free roads.",
+      "body_md": "Plenty of people drive onto the 407 ETR in a rental without realising it is a toll road. There are no booths to stop at and no gate to pass, so nothing on the day tells you a charge is coming. The bill turns up later. This guide walks through how that bill is built, how it travels from the highway to you, and how to keep it off your rental altogether.\n\n## Where the 407 ETR runs\n\nThe 407 ETR crosses the northern part of the Greater Toronto Area, from Burlington in the west across to the Durham Region in the east. It usually moves faster than the roads below it, which is why drivers use it at rush hour. Every entrance ramp has a sign saying it is a toll road, normally in blue and carrying the highway's own logo. If you spot one and want to keep your trip free, carry on to the next ordinary road.\n\n## Cameras instead of booths\n\nGantries above the highway hold cameras that photograph the licence plate of each vehicle as it gets on and again as it gets off. The operator works out the trip from the entry and exit pictures and mails the bill to whoever the vehicle is registered to. Drivers with their own transponder pay a little differently, but a rental car does not carry one, so the plate is what gets billed.\n\n## What a single trip is made of\n\nA toll on the 407 ETR is not one flat number. A trip normally adds up from:\n\n- a charge for every kilometre driven, which changes with the section of highway, the hour and the day of the week,\n- a charge for the trip itself,\n- a camera charge, which applies because there is no transponder in the car.\n\nThe operator sets these rates and changes them from time to time, and it lists the current ones on its own website. A quick hop between nearby exits stays small. A long run across the region at the busiest time of day can come to a noticeable share of what you paid for that day's rental.\n\n## How the toll gets to your statement\n\nThe car is registered to CarmaCars, so the operator's notice is addressed to us. It often arrives several weeks after you have given the car back. When it does, we look up which booking had the car on that date and at that time, and we charge that renter the toll at cost. On top of the toll we add {{tollFee}} for each notice we handle. The amount shows on a statement after your rental and is paid by the card on file.\n\nSo if a toll appears long after your trip ended, nothing has gone wrong. The highway simply takes a while to send its bills.\n\n## Keeping off the toll road\n\nNobody has to use the 407 ETR. The 401 runs alongside it a little to the south and costs nothing to drive. Before you leave, open your map app and turn on the option to avoid toll roads, and the route it plans will stay off the 407 ETR. It is worth checking that setting again if you switch apps or start a new trip, since some apps reset it.\n\n## When paying the toll makes sense\n\nThere are days when the time saved is worth more than the toll. Crossing the region at rush hour, say from Pearson to Markham or from Oakville to Vaughan, can be a lot quicker on the 407 ETR. Renters heading to the airport with a flight to catch often take it for that reason. If you decide to use it, just expect the charge to follow later with the {{tollFee}} fee added for each notice.\n\n## Checking a charge you do not recognise\n\nEvery toll we pass on lists the date and time of the trip and the amount the operator billed, so you can compare it with where you were. If one does not fit, for example a trip on a day after you returned the car, let us know. We check the booking and the times against the notice, and if the charge belongs to someone else we take it off.\n\n## Other bills that come after the rental\n\nTolls are not the only thing that can reach us once the car is back. Parking tickets, and camera tickets for speeding or running a red light, are also sent to the registered owner. We match each one to the booking that had the car and charge it to that renter, adding {{ticketFee}} for every ticket we process. If you believe a ticket is wrong, tell us and we can give you what you need to dispute it.\n",
+      "faq": [
+        {
+          "question": "Does a CarmaCars rental have a 407 ETR transponder?",
+          "answer": "No. Cameras read the plate when you get on and off, and the operator bills us by mail after the trip."
+        },
+        {
+          "question": "What do I pay if I use the 407 ETR?",
+          "answer": "The toll at cost, plus {{tollFee}} for each notice we handle. It shows on a statement after the rental and the card on file pays it."
+        },
+        {
+          "question": "Why did a toll show up weeks after I returned the car?",
+          "answer": "The operator mails its notices slowly, often several weeks after the trip. We charge the toll once the notice reaches us."
+        },
+        {
+          "question": "How can I avoid the 407 ETR?",
+          "answer": "Take the 401, which is free, and turn on the avoid toll roads option in your map app before you set off."
+        }
+      ],
+      "prompt_version": "article-v1"
+    },
+    {
+      "kind": "article",
+      "id": "car-rental-at-pearson-airport",
+      "title": "Renting a car at Toronto Pearson: delivery, delays and returns with CarmaCars",
+      "description": "How CarmaCars meets you at Toronto Pearson with your rental, what to put in your request, what happens if your flight runs late and how to return the car.",
+      "body_md": "Toronto Pearson is the busiest airport in Canada, and collecting a rental there often means a walk to a counter, a queue and a shuttle out to a lot. CarmaCars works another way. We have no counter at the airport. We bring the car to a meeting point that we confirm with you before you land, so you go from the bag belt to the driver's seat. Here is how a Pearson rental goes, from the request to the drop off.\n\n## What to put in your request\n\nPick the car, enter the date and time you want it, and choose delivery to the airport. Then use the notes to tell us:\n\n- your airline and flight number,\n- your terminal, if you already know it,\n- a phone number that will work as soon as you land.\n\n## The offer and the airport fee\n\nWe reply with an offer that shows the full price. Airport delivery is priced inside that offer, and an airport surcharge may apply. Nothing is booked until you approve the offer, sign and pay. Once you have, finish the identity check before you travel, so that there is nothing left to do at the airport except take the keys.\n\n## Meeting you after you land\n\nBefore the pickup we confirm the meeting point and the number to call. When you have collected your bags, call or message us. A member of our team brings the car, checks your original licence and the card you paid with, and walks around the car with you while we photograph its condition. After that the car is yours for the rental.\n\n## When the flight is late\n\nDelays happen constantly at a big airport. As soon as you know your new arrival time, send it to us and we move the handover to suit. If the delay turns out to be a long one, we may agree a fresh time with you.\n\n## Getting out of the airport\n\nPearson sits where the 427, the 401 and the 409 meet. The 427 heads south toward Etobicoke, and from there the Gardiner Expressway takes you downtown. The 401 carries you east or west across the city. Just to the north is the 407 ETR, a toll road with no booths. Its tolls are billed to us and passed on at cost, with {{tollFee}} added for each notice. To stay off it, turn on the avoid tolls setting in your map app before you pull away.\n\n## Picking a car for the trip\n\nThink about your bags first. Each car's page lists its seats and, where we have measured it, how many large bags fit in the trunk. A family travelling with several big suitcases will usually be happier in an SUV or a minivan than in a compact car. If you need a baby seat, ask for it in your request. Each one is {{baby}} a day, with a cap of {{babyCap}} for the rental.\n\n## Kilometres and fuel on a longer visit\n\nIf you are flying in for a week and plan to drive around Ontario, look at the kilometres included on the car's page. The daily allowance is added up across the whole rental, so a long first day does not cause a problem. Bring the car back with the same fuel or charge it had at pickup. Filling up close to the airport before the return is easier than trying to do it on your way out of the city.\n\n## Handing the car back before your flight\n\nYour rental can end at Pearson as well. Agree a time and a meeting point with us in advance, and leave yourself plenty of time before the flight. Check the seats and the trunk for anything of yours, meet us with the car, and we look it over together. Then you head into the terminal.\n\n## If you would rather not drive from the airport\n\nSome visitors prefer not to start driving straight off a flight. You can take the UP Express train to Union Station and have us meet you near the station, or settle into your hotel first and have the car delivered there. Each option is priced in your offer, so you can compare them before you decide.\n",
+      "faq": [
+        {
+          "question": "Is there a CarmaCars counter at Pearson?",
+          "answer": "No. We bring the car to a meeting point we confirm with you before your flight lands."
+        },
+        {
+          "question": "Does airport delivery cost extra?",
+          "answer": "Airport delivery is priced in your offer, and an airport surcharge may apply."
+        },
+        {
+          "question": "What happens if my flight is delayed?",
+          "answer": "Send us your new arrival time as soon as you know it and we move the handover. After a long delay we may agree a new time with you."
+        },
+        {
+          "question": "Can I return the car at Pearson before my flight?",
+          "answer": "Yes. Agree a time and a meeting point with us in advance and leave plenty of time before your flight."
+        }
+      ],
+      "prompt_version": "article-v1"
+    },
+    {
+      "kind": "article",
+      "id": "driving-from-toronto-to-niagara-falls-or-montreal",
+      "title": "Road trips from Toronto in a rental car: Niagara Falls, Ottawa and Montreal",
+      "description": "Routes, distances and driving times from Toronto to Niagara Falls, Ottawa and Montreal, plus the rental rules on kilometres, tolls, fuel and leaving Ontario.",
+      "body_md": "Toronto makes a good base for a road trip. With a rental car you can reach Niagara Falls in a morning, spend a weekend in Ottawa, or drive all the way to Montreal. Each trip is a different length and comes with its own rental details, so this guide takes them one at a time and then covers the rules that apply to all of them.\n\n## Niagara Falls: a day trip\n\nFrom downtown Toronto the falls are about 130 km away. Head west on the Gardiner Expressway to the QEW, then follow the QEW around the western end of Lake Ontario, past Hamilton and St. Catharines. With clear roads the drive is about 90 minutes. A summer Friday or a holiday weekend can stretch that a long way, so an early start pays off.\n\nParking close to the falls fills up in summer. Niagara-on-the-Lake and its wineries are nearby and make an easy stop on the drive home.\n\nThe falls are right on the border with the United States. The rental car may only cross into the United States if we have agreed to it in writing beforehand.\n\n## Ottawa: a long day or a weekend\n\nOttawa is about 450 km from Toronto. Most of the drive is the 401 heading east, and near Prescott you turn north onto the 416. Allow 4.5 to 5 hours, including a stop. The stretch of the 401 from Toronto to Kingston carries a lot of truck traffic, and Kingston or the Thousand Islands are pleasant places to break up the drive.\n\nThere and back comes to about 900 km. Before you book, take the kilometres included on the car's page, multiply by the number of days, and check that the total is enough for the drive plus your time in the city.\n\n## Montreal: a proper road trip\n\nMontreal is about 540 km away. You follow the 401 the whole way to the Quebec border, where it becomes Autoroute 20. With a stop, plan on 5.5 to 6 hours.\n\nMontreal is in Quebec, outside Ontario, so the trip needs our written agreement before you go. Mention it in your request and we confirm it in your offer. Once you are there, remember that road signs in Quebec are in French and that turning right on a red light is not allowed anywhere on the island of Montreal.\n\n## Leaving Ontario\n\nThe car can go anywhere in Ontario. Quebec and the United States are different: both need our agreement in writing before the trip. The simplest way to get it is to say where you are going when you send the request, so the offer you receive already includes it.\n\n## Kilometres on a long drive\n\nEvery car comes with a daily kilometre allowance, and the allowance is added up across the whole rental. That means one long day behind the wheel is fine as long as the trip stays inside the total. Beyond it, each extra kilometre is charged between {{overMin}} and {{overMax}}, depending on the car. For a big trip, choosing a car with a higher daily allowance, or adding a day to the booking, can come out cheaper than paying for extra kilometres.\n\n## Tolls and fuel\n\nBoth the QEW and the 401 are free. The 407 ETR is a toll road with no booths: cameras read the plate, the toll is billed to us, and we charge it to you at cost plus {{tollFee}} for each notice. If you would rather skip it, turn on the avoid tolls setting in your map app.\n\nBring the car back with the fuel or charge it had when you picked it up. If the level is lower, refuelling costs the pump price plus {{fuelPct}}, and a {{fuelFee}} service fee is added. A short stop at a station near the end of the trip usually costs less.\n\n## Taking turns at the wheel\n\nLong drives are easier with someone to swap with. Add every driver to your request. Each one has to meet the same rules and sign the agreement, and each adds {{addDrvPct}} of the daily rate for every day of the rental. Only the drivers named on the agreement are allowed to drive the car.\n",
+      "faq": [
+        {
+          "question": "How long is the drive from Toronto to Niagara Falls?",
+          "answer": "About 130 km by the QEW, or about 90 minutes when the roads are clear. Summer Fridays and holiday weekends take longer."
+        },
+        {
+          "question": "Can I take a CarmaCars rental to Montreal?",
+          "answer": "Yes, with our written agreement before the trip, because Montreal is outside Ontario. Mention it in your request and we confirm it in your offer."
+        },
+        {
+          "question": "Can the car cross into the United States at Niagara Falls?",
+          "answer": "Only if we have agreed to it in writing before the trip."
+        },
+        {
+          "question": "What if a road trip goes over the kilometres included?",
+          "answer": "Each extra kilometre is charged at the car's rate, between {{overMin}} and {{overMax}}. A car with a higher allowance or an extra day can cost less."
+        }
+      ],
+      "prompt_version": "article-v1"
+    },
+    {
+      "kind": "article",
+      "id": "insurance-replacement-rental-while-your-car-is-repaired",
+      "title": "An insurance replacement rental while your car is in the shop",
+      "description": "How a replacement rental usually works in Ontario after a claim: what your adjuster may approve, what to send CarmaCars and what you may still pay yourself.",
+      "body_md": "A repair after a collision or a theft can leave you without a car for days, sometimes weeks. Depending on the claim, your auto policy may pay for a rental while the work is done, and CarmaCars can send the bill for the approved part straight to your insurer. This guide sets out how that usually works in Ontario. Every policy is different, so treat it as a starting point: your own policy and your adjuster decide what is paid.\n\n## When a rental is usually paid for\n\nWhether the insurer pays depends mostly on who caused the loss and what your policy includes.\n\n- **Another driver was at fault.** Your own insurer normally handles the claim for the damage to your car, and that often includes a replacement car while it is being repaired.\n- **You were at fault, or there was no other driver.** In that case a rental is usually paid for only if your policy has loss of use coverage. It is an optional endorsement, and many drivers have added it.\n\nIf you are not sure which applies, your adjuster can tell you.\n\n## Questions to ask your adjuster\n\nCall your adjuster early, before you book anything, and ask:\n\n- Is a rental car approved on this claim?\n- For how many days?\n- Up to what amount a day?\n\nThose answers set how much the insurer will pay. Write them down, together with the adjuster's name, because we will need them. If the answer is no, you can still rent from us in the usual way and pay for it yourself.\n\n## What to send CarmaCars\n\nWhen you send your request, use the notes to give us:\n\n- the name of your insurance company and your claim number,\n- your adjuster's name and how to reach them,\n- the number of days approved and the daily amount, if you already have them.\n\nWe confirm the car and the dates with you, contact the adjuster when we need to, and invoice the insurer for the part it has approved.\n\n## What you still need to rent\n\nA replacement rental follows the same rules as any other rental. You need an Ontario {{licence}} licence, a credit card in your own name for the deposit, and your signature on the rental agreement. You also need one of the options on our requirements page in place for damage to our car before pickup. Your adjuster can tell you whether your own policy extends to a rental car.\n\n## What may be left for you to pay\n\nThe insurer pays what it approves, and the rest is yours. That usually means:\n\n- extra days, if the repair runs past the approval and the approval is not extended,\n- the difference, if you choose a car that costs more than the insurer's daily amount,\n- fuel, tolls, tickets and other charges during the rental.\n\nIf the shop tells you the repair is taking longer, let your adjuster and us know before the approved days run out. Days past the approval are charged to you unless the insurer extends it.\n\n## Picking a car within the approval\n\nAdjusters often approve a car of about the same size as yours, up to a set amount a day. Give us that amount and we suggest cars that fit inside it. If you would like something larger, you can pay the difference yourself. The offer spells out what the insurer pays and what you pay, so there are no surprises later.\n\n## Getting the car where you need it\n\nWe can bring the car to your home, your workplace or the body shop, so you are not stuck without a car between dropping yours off and getting it back. When the repair is done, we collect our car from wherever suits you, or you can bring it back to our location at no charge.\n\n## Handing it back\n\nReturn the car with the fuel it had at pickup and take your belongings out. We look it over with you and photograph it, just as we did at the start. Anything that arrives after the rental, such as a toll or a parking ticket, is your charge and not the insurer's. It goes on the card on file with its administration fee.\n",
+      "faq": [
+        {
+          "question": "Will my insurer pay for a rental while my car is repaired?",
+          "answer": "Often, if another driver was at fault or your policy has loss of use coverage. Your policy and your adjuster decide, so ask them first."
+        },
+        {
+          "question": "Can CarmaCars bill my insurer directly?",
+          "answer": "Yes, for the days and the daily amount your adjuster approves. Anything beyond that is billed to you."
+        },
+        {
+          "question": "Do I need a credit card for a replacement rental?",
+          "answer": "Yes, in your own name. It holds the deposit and pays for anything the insurer does not."
+        },
+        {
+          "question": "What if the repair takes longer than the approved days?",
+          "answer": "Ask your adjuster to extend the approval before it ends. Days past the approval are yours to pay unless it is extended."
+        }
+      ],
+      "prompt_version": "article-v1"
+    },
+    {
+      "kind": "article",
+      "id": "monthly-vs-weekly-car-rental",
+      "title": "Weekly or monthly car rental in Toronto: how CarmaCars prices longer trips",
+      "description": "How the daily, weekend day, weekly and monthly rates fit together at CarmaCars, where the caps kick in, and how kilometres, deposits and renewals work.",
+      "body_md": "When you need a car for longer than a few days, the length you choose can matter as much as the car. CarmaCars prices every car with a set of rates and caps that keep a longer booking from costing more than it should. Once you see how they work together, picking the cheapest way to book is simple.\n\n## The rates on every car\n\nEach car's page lists its rates:\n\n- **Daily rate:** for rental days that start on a Monday, Tuesday, Wednesday, Thursday or Sunday.\n- **Weekend day rate:** for rental days that start on a Friday or a Saturday.\n- **Weekly rate:** the price of a full week.\n- **Monthly rate:** the price of {{maxDays}} days, which is the longest single booking.\n\nA rental day runs for 24 hours from the time you pick up, and a part of a day counts as a whole day.\n\n## How the weekly cap works\n\nAdd up enough daily rates and a short trip can end up costing more than a week would. The weekly cap stops that. A booking of 1 to {{weekFromLess1}} days is never charged more than the car's weekly rate. So before you book a trip of most of a week, compare it with the weekly rate. The total is often the same, and the remaining days of the week come at no extra cost. That can be handy if a trip runs a little longer than planned, because the extra days are already inside the price.\n\n## How the monthly cap works\n\nThe same idea carries on past a week. A booking of {{weekFrom}} to {{maxDaysLess1}} days is never charged more than the car's monthly rate. If you need a car for a good part of a month, the monthly rate may be the better buy, and with it you can keep the car for the full {{maxDays}} days.\n\nYou never have to work this out yourself. Your offer shows which rate applies to each day, and you see the final total before you pay anything.\n\n## Kilometres over weeks and months\n\nEvery car has a daily kilometre allowance. On your booking it is multiplied by the number of days and treated as one pool for the whole rental. On a monthly booking that pool is large, so a long road trip early on is fine as long as the total for the rental stays within it. Kilometres past the pool are charged at the rate on the car's page, between {{overMin}} and {{overMax}} each depending on the car.\n\n## Deposits on longer bookings\n\nEvery car lists its deposit on its page, and the offer repeats it, so you know the amount before you commit.\n\nThe deposit works differently depending on length. For a rental of {{holdDays}} days or less, it is a hold on your card. For anything longer, the deposit is charged, then refunded after you return the car, within {{releaseDays}}. If you renew a monthly rental, the deposit simply carries over to the next period.\n\n## Keeping the car past one booking\n\nA single booking can last up to {{maxDays}} days. If you need the car for longer, tell us before the current rental ends. We prepare a new agreement for the next period at the rate in force at that time. You sign it online, the next payment is taken, and you carry on with the same car unless you ask for a different one. Telling us early gives us time to set up the new agreement without any gap in your rental.\n\n## If you are not sure how long you need it\n\nStart with the shorter booking and extend it if your plans grow. An extension is priced before you pay for it, and it has to be paid before your current return time. Once a trip starts to approach a month, put the weekly and monthly totals side by side in the offer: the caps already do most of the comparing for you.\n\n## Ways to pay a little less\n\nIf your dates will not move, pick the non-refundable option when you send the request. It takes {{nonRef}} off the rental charge, but you get nothing back if you cancel. And if you are able to collect the car from our location, you avoid the delivery fee.\n",
+      "faq": [
+        {
+          "question": "Is a monthly rental cheaper than booking week by week?",
+          "answer": "Usually. A booking of {{weekFrom}} to {{maxDaysLess1}} days never costs more than the car's monthly rate, and a monthly booking runs for {{maxDays}} days."
+        },
+        {
+          "question": "How long can a single booking last?",
+          "answer": "Up to {{maxDays}} days. To keep the car longer, we prepare a new agreement for the next period before the current one ends."
+        },
+        {
+          "question": "Are kilometres unlimited on a monthly rental?",
+          "answer": "No. Each car has a daily allowance, added up across the rental. Kilometres past that total are charged at the car's rate."
+        },
+        {
+          "question": "What happens to my deposit when I renew?",
+          "answer": "It carries over to the next period, so no new deposit is taken."
+        }
+      ],
+      "prompt_version": "article-v1"
+    },
+    {
+      "kind": "article",
+      "id": "renting-a-car-in-toronto-as-a-young-driver",
+      "title": "Young drivers renting a car in Toronto: ages, fees and what to bring",
+      "description": "How CarmaCars rents to drivers from {{minAge}}: the young driver fee, the licence and card you need, the identity check and how to avoid extra charges.",
+      "body_md": "Young drivers often hear that renting a car in Toronto is difficult or expensive. Plenty of rental companies set a high minimum age or limit younger renters to a handful of small cars. CarmaCars rents to drivers aged {{minAge}} and older, and almost every car in the fleet is open to them. Here is what to expect, from the request to the return.\n\n## Can you rent?\n\nYou can rent if you are {{minAge}} or older on the day of pickup and hold an Ontario {{licence}} licence that stays valid for the whole rental. A G2 is enough, so you do not need to wait for your full G. Bring the original licence card, not a photo of it, and make sure the name on it matches the name on the booking and on the credit card.\n\nEvery car's page says whether it accepts drivers aged {{youngA}}. Nearly all of them do. If the car you picked does not, the request form tells you before you send anything.\n\n## The young driver fee\n\nDrivers under {{fullAge}} pay a young driver fee for each day of the rental, in two age bands:\n\n- Ages {{youngA}}: usually {{ydA}} a day\n- Ages {{youngB}}: usually {{ydB}} a day\n\nA few cars set their own fee, and when they do it is shown on the car's page. The fee has no cap, so it adds up on a long rental. It appears as its own line in your offer, and you see the full total before you pay. If a second driver is also under {{fullAge}}, the fee applies to them too.\n\n## The card and the identity check\n\nYou need a credit card in your own name. It pays for the rental and holds the deposit, which is taken about {{depLead}} before pickup and never at the moment you book. Debit cards and prepaid cards are not accepted, and you cannot use a parent's card for your own rental.\n\nBefore pickup we confirm who you are. You upload photos of the front and back of your licence plus a selfie, and someone on our team compares them. It takes you a few minutes, and it keeps the handover short.\n\nThird-party liability is already part of the rate. For damage to the car itself, you need one of the options on our requirements page in place before pickup, and that page explains each one.\n\n## Pickup day\n\nWe bring the car to our location or to your address. We check your original licence and the card you paid with, then walk around the car together. Point out every mark, however small. We photograph each one, and those photos are your record when you bring the car back. If you are unsure how something works, such as the fuel door or connecting your phone, ask before you drive off.\n\n## Charges that catch first time renters\n\nMost extra charges on a first rental come from the same short list:\n\n- **Fuel.** Bring the car back with the fuel it had at pickup. If it is lower, we refuel it at the pump price plus {{fuelPct}}, with a {{fuelFee}} service fee on top.\n- **Tolls.** The 407 ETR has no booths. Cameras read the plate, the toll reaches us weeks later, and we charge it at cost plus {{tollFee}} for each notice. Most map apps can route you around tolls.\n- **Kilometres.** Each car has a daily allowance, added up over the rental. Past it, each kilometre costs between {{overMin}} and {{overMax}}, depending on the car.\n- **Running late.** If you will miss your return time, tell us as early as you can. The agreement sets out how a late return is charged.\n- **Tickets.** Parking and speeding tickets are yours, plus {{ticketFee}} for each one we process.\n\n## Sharing the driving\n\nIf a friend or partner will drive too, add them to your request. They meet the same rules as you: the minimum age, an Ontario {{licence}} licence and the identity check. Each extra driver costs {{addDrvPct}} of the daily rate per day, and a driver under {{fullAge}} also pays the young driver fee. Only drivers named on the agreement may drive, so add everyone before pickup.\n\n## If something goes wrong\n\nRoadside assistance is included around the clock. If the car breaks down, move somewhere safe and call the number on your agreement. After a collision, check that everyone is safe, call the police if anyone is hurt, take photos and tell us as soon as you can. Your age does not change anything here: the same rules and the same {{deductible}} deductible apply to every renter.\n\n## Paying less\n\nBook a week rather than several separate days, since a booking of 1 to {{weekFromLess1}} days is capped at the weekly rate. If your plans are fixed, the non-refundable option takes {{nonRef}} off the rental charge. And collecting the car from our location saves the delivery fee.\n",
+      "faq": [
+        {
+          "question": "Can I rent a car in Toronto at {{minAge}}?",
+          "answer": "Yes, with an Ontario {{licence}} licence and a credit card in your name, on any car whose page accepts drivers aged {{youngA}}."
+        },
+        {
+          "question": "Is a G2 licence enough to rent with CarmaCars?",
+          "answer": "Yes. A G2 is accepted, as long as it stays valid for the whole rental."
+        },
+        {
+          "question": "Is there a cap on the young driver fee?",
+          "answer": "No. It is charged for every day of the rental, so it adds up on a long booking."
+        },
+        {
+          "question": "Can I use my parent's credit card?",
+          "answer": "No. The card must be in the renter's own name, because it pays for the rental and holds the deposit."
+        }
+      ],
+      "prompt_version": "article-v1"
+    },
+    {
+      "kind": "article",
+      "id": "what-you-need-to-rent-a-car-in-toronto",
+      "title": "What you need to rent a car in Toronto with CarmaCars, step by step",
+      "description": "The age, licence, credit card, identity check, deposit and damage options you need to rent a car in Toronto, and how a rental runs from request to return.",
+      "body_md": "A rental should not hold any surprises on the day you collect the keys. CarmaCars has no counter, but there are still a handful of things to have ready before we hand over a car. This checklist goes through them in the order they come up, from the first request to the moment you bring the car back.\n\n## The basics before you start\n\nThree things decide whether you can rent:\n\n- **Your age.** You must be {{minAge}} or older. Drivers under {{fullAge}} pay a young driver fee for each day.\n- **Your licence.** An Ontario {{licence}} licence that is valid for the whole rental. You bring the original card on pickup day.\n- **A credit card in your own name.** It pays for the rental and holds the deposit. Debit cards and prepaid cards are not accepted.\n\n## Sending a request\n\nA request costs nothing. It does not reserve the car and no payment is taken. Choose a car, enter your dates, say whether you would like delivery, and send it. If someone else will share the driving, add them now so the offer includes them.\n\n## Reading the offer\n\nWe check the dates and reply with an offer that lists the full price: the rental charge, any fees, HST at {{hst}}, the deposit and the kilometres included. The offer stays open for {{offerHours}} hours. To accept, you approve it, sign the rental agreement online and pay, and the car is then booked for you. Until you do, someone else can still book that car.\n\n## Confirming who you are\n\nBefore pickup, you upload photos of the front and back of your licence along with a selfie. Someone on our team compares them and confirms your identity. Every additional driver goes through the same check. It is best to do it straight after booking, so there is time to send a new photo if one comes out blurry.\n\n## Damage to the car: your options\n\nThird-party liability is part of every rental. For damage to the car itself, one of these must be in place before pickup:\n\n1. Your own auto policy, if it extends to a rental car.\n2. The rental car benefit of your credit card, if your card offers one.\n3. The CarmaCars Protection Plan.\n\nOur requirements page explains each option and what to show us. If the car is damaged, repairs below {{deductible}} are billed at cost. From {{deductible}} upward we claim on our fleet policy, and you pay the {{deductible}} deductible.\n\n## The deposit\n\nEach car has its own deposit, listed on its page. It is taken about {{depLead}} before pickup, never when you book. On a rental of {{holdDays}} days or less it is a hold on your card. On a longer rental it is charged and then refunded. We release the balance within {{releaseDays}} after the car comes back.\n\n## Pickup\n\nWe meet you with the car, either at our location or at your address. Bring your original licence and the card you paid with. Together we walk around the car and photograph its condition, write down the fuel and the kilometres, and go through the controls so you know where everything is.\n\n## Other drivers\n\nAnyone else who will drive has to be on the booking. Each driver meets the same rules, completes the identity check and signs the agreement. Every additional driver adds {{addDrvPct}} of the daily rate for each day.\n\n## Changing your plans\n\nYou can cancel from your account. If you cancel within {{cGrace}} hours of booking and pickup is {{cEarly}} hours or more away, you get {{c1}} back. Outside that window, cancelling {{cEarly}} hours or more before pickup returns {{c2}}, and cancelling {{cLate}} to {{cEarly}} hours before pickup returns {{c3}}. With less than {{cLate}} hours to go, or if you do not show up, nothing is refunded. A non-refundable booking is never refunded, which is the trade for its {{nonRef}} discount.\n\n## Bringing the car back\n\nReturn the car at the agreed time with the same fuel or charge it had at pickup, and clear out your belongings. We check it with you and photograph it again. Tolls and tickets that reach us later are charged to the card on file, each with its administration fee.\n",
+      "faq": [
+        {
+          "question": "Can I rent a car in Toronto without a credit card?",
+          "answer": "No. CarmaCars needs a credit card in the renter's own name for the payment and the deposit. Debit and prepaid cards are not accepted."
+        },
+        {
+          "question": "Do I need my own auto policy to rent?",
+          "answer": "No. Third-party liability is part of every rental, and the CarmaCars Protection Plan is one of the options for damage to the car."
+        },
+        {
+          "question": "How long does an offer stay open?",
+          "answer": "{{offerHours}} hours. The car is booked once you approve the offer, sign the agreement and pay."
+        },
+        {
+          "question": "When is the deposit released?",
+          "answer": "Within {{releaseDays}} after you return the car."
+        }
+      ],
+      "prompt_version": "article-v1"
+    },
+    {
+      "kind": "article",
+      "id": "winter-driving-in-ontario-in-a-rental-car",
+      "title": "Driving a rental car through an Ontario winter: tires, snow and cold weather",
+      "description": "How to drive a CarmaCars rental safely in an Ontario winter: asking for winter tires, clearing the car, snow and ice, Ontario 511 and electric cars in the cold.",
+      "body_md": "Winter in Ontario can make a short drive slow and a long one tiring. Snow, ice and dark afternoons change how a car handles and how long a trip takes. The good news is that most winter rentals go smoothly, and a few habits make a real difference. This guide gathers the points we bring up most often when we hand over a car between late fall and spring.\n\n## Asking for winter tires\n\nAll-season tires harden as the temperature falls and lose grip. Winter tires stay soft in the cold and hold far better on snow and ice. If your plans take you out of the city, into the snow belts north of Toronto, or onto untreated roads early in the morning, ask for winter tires in your request. They cost {{winter}} a day, capped at {{winterCap}} for the rental.\n\n## Getting the car ready\n\nA few minutes before you leave saves trouble on the road:\n\n- Brush the snow and ice off every window, both mirrors, the lights and the roof. Snow left on the roof can slide over the windshield the first time you brake.\n- Make sure the washer fluid sprays. On the highway, salt spray can cover the glass within minutes.\n- Look for a snow brush in the car, and ask at the handover if there is none.\n- Switch on the full headlights rather than relying on the daytime running lights, so drivers behind you can see you.\n\n## Driving on snow and ice\n\nLeave far more room than usual to the car ahead. Brake gently, steer gently, and slow down early before corners and ramps. Bridges and overpasses ice up before the road on either side. If the car begins to slide, keep your eyes and your steering on where you want to go, and avoid stamping on the brake pedal.\n\n## Checking the roads before a longer trip\n\nOntario 511 lists closures and conditions on provincial highways, so look before you set out. Snow squalls coming off the Great Lakes can turn into sudden whiteouts, most often north of Barrie and on the 401 west of the city. If the forecast looks bad, an hour's delay can be the safer choice.\n\n## Electric and hybrid cars in the cold\n\nCold weather cuts an electric car's range, sometimes sharply. On a longer winter trip, plan a charging stop and keep some range in reserve. Warming the car up while it is still plugged in saves battery for the drive. Bring it back with the charge it had at pickup: recharging costs {{evPer}} for each 10% of battery, plus a {{fuelFee}} service fee. A hybrid feels the cold much less and never needs to be plugged in.\n\n## Picking a car for a winter trip\n\nFor trips beyond the city, all-wheel drive and a bit more ground clearance help on side roads that have not been ploughed and on cottage driveways. Each car's page shows its drive. Keep in mind that all-wheel drive helps a car pull away and stay straight but does nothing to help it stop. Winter tires matter more than the drive.\n\n## Parking when a storm is declared\n\nWhen the City of Toronto declares a major snowstorm, parking is banned on streets signed as snow routes, and cars left there can be ticketed and towed. Read the signs wherever you park, and move the car if a storm is on the way. Tickets and towing during a rental are the renter's, plus {{ticketFee}} for each ticket we process.\n\n## If you get stuck or have a collision\n\nRoadside assistance comes with every rental and is available around the clock. If the car breaks down or gets stuck, get yourself somewhere safe, then call the number on your agreement. After a collision, make sure everyone is safe, call the police if someone is hurt or the road is blocked, and let us know as soon as you can. Photograph the scene and the other car's plate.\n\n## Where the car can go\n\nThe car may be driven anywhere in Ontario. A trip into Quebec or the United States needs our written agreement first, so if a ski weekend or a visit across the border is part of the plan, mention it in your request.\n",
+      "faq": [
+        {
+          "question": "Can I get winter tires on a CarmaCars rental?",
+          "answer": "Yes. Ask for them in your request. They cost {{winter}} a day, capped at {{winterCap}} for the rental."
+        },
+        {
+          "question": "Is an electric car a good idea in winter?",
+          "answer": "It works, but the range drops in the cold. Plan a charging stop on longer trips and keep some range in reserve."
+        },
+        {
+          "question": "What should I do if the car gets stuck in snow?",
+          "answer": "Get somewhere safe and call roadside assistance on the number on your agreement. It is included around the clock."
+        },
+        {
+          "question": "Can I drive the rental to a ski hill in Quebec?",
+          "answer": "Only with our written agreement first. Mention the trip in your request."
+        }
+      ],
+      "prompt_version": "article-v1"
+    }
+  ]
+}
