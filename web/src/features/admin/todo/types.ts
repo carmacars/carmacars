@@ -20,6 +20,8 @@ export interface Prompt {
   /** 0094: the trims to choose from (trim); the gearbox and seats on the listing, and whether the seats are a body default (specs) */
   candidates?: string[]; transmission?: string | null; seats?: number | null; seats_default?: boolean;
   task_id?: string; task_type?: string; queue?: string; due_at?: string | null; related_table?: string | null; related_id?: string | null; from_queue?: boolean;
+  /** 0177: who is answering the request now (requests) */
+  claim?: { name: string; mine: boolean; text: string } | null;
 }
 
 export interface Todo {

@@ -5,12 +5,15 @@ import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
 import { $, ago, Badge, BookingLink, Filters, PageHead, Table, t } from '@/features/admin/ui';
 import { LiveWait } from '@/features/admin/shell/LiveWait';
+import type { ClaimInfo } from '@/features/offers/claim';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Requests', path: '/admin/requests', noindex: true, description: 'Booking requests, oldest first.' });
 
 type Req = { id: string; booking_number: string; status: string; state: string; vehicle: string; renter: string; returning: boolean; pickup_at: string; return_at: string; days: number;
-  total_cents: number; waiting_minutes: number; offer_expires_at: string | null; drivers: string[]; flags: string[]; assigned: string | null };
+  total_cents: number; waiting_minutes: number; offer_expires_at: string | null; drivers: string[]; flags: string[]; assigned: string | null;
+  /** 0177: who is answering it now, and when it opens to Sales */
+  claim?: ClaimInfo | null; sales_opens_at?: string | null };
 const STATES: Array<[string, string]> = [['', 'All'], ['new', 'New'], ['waiting_on_renter', 'Waiting on the renter'], ['pushed_back', 'Pushed back'], ['offer_out', 'Offer out'], ['awaiting_payment', 'Signing and payment'], ['expired', 'Offer expired']];
 
 // The request inbox (03-admin.md section 3): oldest first until each is offered or declined.
@@ -29,7 +32,7 @@ export default async function Requests({ searchParams }: { searchParams: Promise
         // a request still waiting for its first answer keeps counting while the page is open, red past the reply target
         { key: 'waiting', label: 'Waiting', render: (r) => r.status === 'requested' ? <LiveWait key={`${r.id}-${r.waiting_minutes}`} minutes={r.waiting_minutes} target={target.minutes} /> : <span className="muted">{ago(r.waiting_minutes)}</span> },
         { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
-        { key: 'state', label: 'State', render: (r) => <Badge s={r.status}>{r.state.replace(/_/g, ' ')}</Badge> },
+        { key: 'state', label: 'State', className: 'wrap', render: (r) => <><Badge s={r.status}>{r.state.replace(/_/g, ' ')}</Badge>{r.claim && <span className="small" data-testid={`claim-${r.booking_number}`}> {r.claim.mine ? 'You are answering it' : r.claim.text}</span>}</> },
         { key: 'vehicle', label: 'Car' },
         { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) },
         { key: 'return_at', label: 'Return', render: (r) => t(r.return_at) },
@@ -39,7 +42,8 @@ export default async function Requests({ searchParams }: { searchParams: Promise
         { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) },
         { key: 'flags', label: 'Flags', className: 'wrap', render: (r) => r.flags.map((f) => <span key={f} className={`ad-flag${['Conflict', 'Blocked renter', 'Under 21'].includes(f) ? ' ad-flag--red' : ''}`}>{f}</span>) },
         { key: 'assigned', label: 'Assigned' },
-        { key: 'act', label: 'Actions', render: (r) => r.status === 'requested' ? <Act action="decline_request" payload={{ booking: r.id }} label="Decline" title={`Decline ${r.booking_number}`}
+        { key: 'act', label: 'Actions', render: (r) => r.status === 'requested' && r.claim && !r.claim.mine ? <BookingLink n={r.booking_number} />
+          : r.status === 'requested' ? <Act action="decline_request" payload={{ booking: r.id }} label="Decline" title={`Decline ${r.booking_number}`}
             fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={['/admin/requests']} />
           : r.status === 'expired' ? <Act action="reopen_expired" payload={{ booking: r.id }} label="Reopen" fields={[{ name: 'note', label: 'Note', type: 'text' }]} refresh={['/admin/requests']} /> : null }
       ]} />

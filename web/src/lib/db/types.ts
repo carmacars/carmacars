@@ -12817,6 +12817,8 @@ export type Database = {
           ads_social_drafts_enabled: boolean;
           recruit_outreach_enabled: boolean;
           game_replay_after_claim_days: number;
+          request_claim_minutes: number;
+          request_sales_after_minutes: number;
         };
         Insert: {
           id?: string;
@@ -13307,6 +13309,8 @@ export type Database = {
           ads_social_drafts_enabled?: boolean;
           recruit_outreach_enabled?: boolean;
           game_replay_after_claim_days?: number;
+          request_claim_minutes?: number;
+          request_sales_after_minutes?: number;
         };
         Update: {
           id?: string;
@@ -13797,6 +13801,8 @@ export type Database = {
           ads_social_drafts_enabled?: boolean;
           recruit_outreach_enabled?: boolean;
           game_replay_after_claim_days?: number;
+          request_claim_minutes?: number;
+          request_sales_after_minutes?: number;
         };
         Relationships: [];
       };
@@ -15006,6 +15012,30 @@ export type Database = {
           notify_channel?: string | null;
           staff_note?: string | null;
           merged_into?: string | null;
+        };
+        Relationships: [];
+      };
+      request_claims: {
+        Row: {
+          booking_id: string;
+          claimed_by: string;
+          claimed_at: string;
+          renewed_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          booking_id: string;
+          claimed_by: string;
+          claimed_at?: string;
+          renewed_at?: string;
+          expires_at: string;
+        };
+        Update: {
+          booking_id?: string;
+          claimed_by?: string;
+          claimed_at?: string;
+          renewed_at?: string;
+          expires_at?: string;
         };
         Relationships: [];
       };

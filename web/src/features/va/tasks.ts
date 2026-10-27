@@ -3,7 +3,7 @@ export interface Task { id: string; task_type: string; title: string; detail?: s
   booking_number?: string | null; booking_id?: string | null; vehicle_id?: string | null; vehicle_name?: string | null; plate?: string | null; assigned_to?: string | null; assignee_name?: string | null;
   procedure_no?: number | null; escalated?: boolean; bucket?: string; overdue?: boolean; renter_first_name?: string | null; related_table?: string | null; related_id?: string | null; waiting_reason?: string | null }
 
-const BOOKING_REVIEW = ['booking_request', 'offer_change_requested', 'offer_change', 'offer_expired', 'reoffer_booking', 'chase_offer', 'offer_approved_paid'];
+const BOOKING_REVIEW = ['booking_request', 'request_open_to_sales', 'offer_change_requested', 'offer_change', 'offer_expired', 'reoffer_booking', 'chase_offer', 'offer_approved_paid'];
 const VERIFY = ['verify_renter', 'chase_verification', 'protection_plan_request', 'coverage_review'];
 const CHANGES = ['review_extension', 'booking_change_approval'];
 const MONEY = ['refund_cancellation', 'take_deposit', 'release_deposit', 'settle_holdback', 'price_findings', 'charge_question'];

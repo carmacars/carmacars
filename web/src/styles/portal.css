@@ -70,6 +70,8 @@
 .pt-changes del { color: var(--text-2); }
 .pt-changes ins { text-decoration: none; font-weight: 700; }
 .pt-note { padding: var(--s-3) var(--s-4); background: var(--grey-100); border-left: 3px solid var(--black); font-size: var(--fs-sm); }
+/* 0177: the answer buttons while someone else answers the request (RequestClaim.tsx) */
+.rc-gate { display: contents; }
 .pt-actions { display: grid; gap: var(--s-3); }
 .pt-actions .btn { width: 100%; }
 @media (min-width: 40rem) { .pt-actions--row { display: flex; flex-wrap: wrap; } .pt-actions--row .btn { width: auto; } }

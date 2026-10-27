@@ -49,7 +49,8 @@ function Control({ p }: { p: Prompt }) {
     case 'chat':
       return go(`/admin/chat?id=${p.chat_id}`, 'Open the chat', tid);
     case 'requests':
-      return go(`/admin/bookings/${encodeURIComponent(p.booking_number!)}?tab=review`, 'Answer it', tid);
+      // 0177: someone else is answering it (the line says who): open it to look or take it over
+      return p.claim && !p.claim.mine ? go(`/admin/bookings/${encodeURIComponent(p.booking_number!)}?tab=review`, 'Open', tid, 'ghost') : go(`/admin/bookings/${encodeURIComponent(p.booking_number!)}?tab=review`, 'Answer it', tid);
     case 'changes':
       return (
         <span className="ad-actions">
