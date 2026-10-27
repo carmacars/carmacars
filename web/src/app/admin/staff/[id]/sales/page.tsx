@@ -5,6 +5,8 @@ import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { PageHead, bookingHref, label } from '@/features/admin/ui';
 import { SalesBoard, type StaffSales } from '@/features/va/SalesBoard';
+import { ModeRate, RemoteDuties, type SalesDuties } from '@/features/sales/RemoteDuties';
+import { SalesModeAct } from '@/features/sales/SalesModesAdmin';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Sales', path: '/admin/staff', noindex: true, description: 'A staff member\'s commissions, quotes, offers, bookings and booked revenue.' });
@@ -17,9 +19,10 @@ export default async function StaffSalesPage({ params, searchParams }: { params:
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const base = `/admin/staff/${id}/sales`;
   const { read } = await page(base);
-  const [s, options] = await Promise.all([
+  const [s, options, duties] = await Promise.all([
     read<StaffSales | null>('staff_sales', { staff: id, period: sp.period === 'month' ? 'month' : 'week' }).catch(() => null),
-    read<Array<{ id: string; name: string; function: string }>>('sales_options').catch(() => [])]);
+    read<Array<{ id: string; name: string; function: string }>>('sales_options').catch(() => []),
+    read<SalesDuties | null>('sales_duties', { staff: id }).catch(() => null)]);
   if (!s) notFound();
   const opts: Array<[string, string]> = [['', 'Choose who'], ...options.map((o) => [o.id, `${o.name} (${label(o.function)})`] as [string, string]), ['none', 'Nobody']];
   return (
@@ -28,9 +31,13 @@ export default async function StaffSalesPage({ params, searchParams }: { params:
         {s.staff.function && s.staff.function !== 'field' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/staff/${id}/scorecard`}>Scorecard</Link>}
         <Act action="commission_rate_set" payload={{ staff: id }} label="Commission rate" testId="commission-rate-set" refresh={[base]} done="Saved."
           fields={[{ name: 'bps', label: 'Flat rate for this person (empty: the Program settings)', type: 'percent', value: s.staff.commission_bps ?? null }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} />
+        {duties?.mode && <SalesModeAct staff={id} mode={duties.mode} refresh={[base]} testId="sales-mode-set" />}
         <Act action="staff_household_set" payload={{ staff: id }} label="Home address" testId="staff-household-set" refresh={[base]} done="Saved."
           fields={[{ name: 'home_address', label: 'Home address (the staff member enters it; change it only if it is wrong. Used only to spot a household rental)', type: 'address', anywhere: true }, { name: 'home_postal_code', label: 'Postal code', type: 'text' }]} />
       </PageHead>
+      {duties?.mode === 'in_person' && duties.progress && <section className="pt-card ad-card" data-testid="in-person-mode"><ModeRate p={duties.progress} own={false} /></section>}
+      {duties?.mode === 'remote' && <RemoteDuties d={duties} own={false} touchAction={(t) => <Act action="sales_touch_void" payload={{ id: t.id }} label="Void" testId={`void-touch-${t.id}`} refresh={[base]} done="Voided."
+        fields={[{ name: 'reason', label: 'Reason (for example logged twice)', type: 'text', required: true }]} />} />}
       <SalesBoard s={s} base={base} sp={sp} own={false} bookingHref={(x) => bookingHref(x.booking_number)}
         dealAction={(x) => (x.credited ? <Act action="sales_reassign" payload={{ booking: x.booking_number }} label="Reassign" testId={`reassign-${x.booking_number}`} refresh={[base]} done="Reassigned."
           fields={[{ name: 'staff', label: 'Credit it to', type: 'select', options: opts, required: true },

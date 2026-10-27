@@ -28,9 +28,9 @@ export default async function MySales({ searchParams }: { searchParams: Promise<
   const at = tier ? m.tiers.reduce((i, x, k) => (m.days >= x.from_days ? k : i), 0) : -1;
   return (
     <>
-      <PortalHero testId="my-sales-hero" titleId="ms-title" kicker={<>{FN_LABEL[fn]} <span aria-hidden="true">/</span> {m.label}</>} title="My sales"
-        lead={tier ? `${m.days} of ${m.target_days} rental days this month. You earn ${pctBps(m.rate_bps)} now${m.next ? `: ${m.next.to_go} more days and every rental this month earns ${pctBps(m.next.bps)}.` : ', the top tier.'}`
-          : `You earn ${pctBps(m.rate_bps)} of the rental charge of each rental you source.`}
+      <PortalHero testId="my-sales-hero" titleId="ms-title" kicker={<>{FN_LABEL[fn]}{m.mode ? `, ${m.mode === 'remote' ? 'remote' : 'in person'}` : ''} <span aria-hidden="true">/</span> {m.label}</>} title="My sales"
+        lead={(tier ? `${m.days} of ${m.target_days} rental days this month. You earn ${pctBps(m.rate_bps)} now${m.next ? `: ${m.next.to_go} more days and every rental this month earns ${pctBps(m.next.bps)}.` : ', the top tier.'}`
+          : `You earn ${pctBps(m.rate_bps)} of the rental charge of each rental you source.`) + (m.mode === 'remote' && m.min_touches ? ` Remote: ${m.touches ?? 0} of ${m.min_touches} touches this month.` : '')}
         stats={<>
           <StatCard label="Earned" value={tot.earned} format="cents" testId="ms-earned" sub="pending, approved and paid" />
           <StatCard label="Approved, to be paid" value={tot.approved} format="cents" testId="ms-approved" />

@@ -394,3 +394,23 @@ a.ad-tile:hover { border-color: var(--black); }
 .pay-methods { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); }
 .pay-methods legend { width: 100%; }
 .pay-out { color: #9b0c16; }
+
+/* ---------------------------------------------------------------- Sales work modes (0174): remote duties, on /va and on Admin > Staff > Sales (admin.css is loaded by both) */
+.va-duty-h { margin: var(--s-2) 0 0; font-size: var(--fs-sm); font-weight: 700; }
+.va-duty-bar { position: relative; height: 0.75rem; max-width: 40rem; background: var(--grey-100); border: 1px solid var(--grey-300); border-radius: 999px; overflow: hidden; }
+.va-duty-bar > span { display: block; height: 100%; background: var(--red-600); }
+.va-checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.va-checklist li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-3); align-items: start; padding: var(--s-3); border: 1px solid var(--grey-200); border-radius: var(--pu-radius-sm, 12px); background: var(--white); }
+.va-checklist__mark { width: 1.5rem; height: 1.5rem; border-radius: 999px; border: 2px solid var(--grey-300); display: grid; place-items: center; font-weight: 700; color: var(--white); }
+.va-checklist li.is-done .va-checklist__mark { background: var(--pu-ok, #1e7a3c); border-color: var(--pu-ok, #1e7a3c); }
+.va-checklist__text { display: grid; gap: 0.15rem; min-width: 0; }
+.va-blocks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.va-block { display: grid; gap: var(--s-2); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; }
+.va-block .field:first-child { grid-column: 1 / -1; }
+@media (min-width: 48rem) { .va-block { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto; } .va-block .field:first-child { grid-column: auto; } }
+ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.sd-rows li { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--s-1) var(--s-3); padding: var(--s-2) 0; border-bottom: 1px solid var(--grey-200); min-width: 0; overflow-wrap: anywhere; }
+.sd-card { display: grid; gap: var(--s-3); padding: var(--s-4); border: 1px solid var(--grey-200); border-radius: var(--pu-radius-sm, 12px); background: var(--white); min-width: 0; }
+.sd-card .va-section__head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-2) var(--s-4); flex-wrap: wrap; }
+.sd-card .va-section__title { margin: 0; font-size: var(--fs-d4); }
+.sd-card .va-section__note { margin: 0; font-size: var(--fs-xs); color: var(--text-2); }

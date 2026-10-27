@@ -6,17 +6,23 @@ import { $, Card, Table, Tiles, d } from '@/features/admin/ui';
 export interface MonthProgress {
   month: string; label: string; scheme: 'flat' | 'sales_tier' | 'override'; days: number; rate_bps: number; target_days: number; mid_days: number;
   tiers: Array<{ from_days: number; bps: number }>; progress_pct: number; next: { days: number; bps: number; to_go: number } | null; rises: string | null;
+  /** 0174, Sales only: the mode and, for remote, the touches against the minimum and the rate the month would end at */
+  mode?: 'in_person' | 'remote'; tier_bps?: number; projected_bps?: number; touches?: number; min_touches?: number; below_minimum?: boolean; drop_tiers?: number; dropped?: boolean;
 }
+/** 0174: one Sales month on the statement (the mode, days, tier, touches and the drop), as a line. */
+export interface MonthLine { month: string; label: string; work_mode: 'in_person' | 'remote'; tier_days: number; tier_bps: number; rate_bps: number; touches: number; min_touches: number;
+  below_minimum: boolean; dropped: boolean; locked: boolean; line: string }
 export interface CommissionRow {
   id: string; booking_number: string; kind: 'commission' | 'clawback' | 'adjustment'; month: string; month_label: string; rental_days: number; tier_days: number | null;
   base_cents: number; rate_bps: number; amount_cents: number; status: 'accruing' | 'pending_approval' | 'approved' | 'paid' | 'reversed' | 'void'; reason: string | null; note: string | null;
-  scheme: string | null; earned_at: string | null; approved_at: string | null; paid_at: string | null; month_open: boolean;
+  scheme: string | null; earned_at: string | null; approved_at: string | null; paid_at: string | null; month_open: boolean; work_mode?: 'in_person' | 'remote' | null;
   paid: { method: string; reference: string | null; paid_on: string; pay_period: string | null } | null;
 }
 export interface StaffCommissions {
   scheme: 'flat' | 'sales_tier' | 'override'; month: MonthProgress;
   totals: { not_earned: number; pending: number; approved: number; paid: number; reversed: number; earned: number };
   rows: CommissionRow[];
+  mode?: 'in_person' | 'remote' | null; months?: MonthLine[];
 }
 
 export const pctBps = (bps: number) => `${bps % 100 === 0 ? bps / 100 : (bps / 100).toFixed(2)}%`;
@@ -49,6 +55,9 @@ export function MonthTarget({ m, own }: { m: MonthProgress; own: boolean }) {
         <span style={{ display: 'block', height: '100%', width: `${m.progress_pct}%`, background: 'var(--red-600, #c00)' }} />
         <span aria-hidden="true" style={{ position: 'absolute', top: 0, bottom: 0, left: `${Math.round(100 * m.mid_days / Math.max(m.target_days, 1))}%`, borderLeft: '2px solid var(--text, #000)' }} />
       </div>
+      {m.mode && <p className="small" data-testid="sales-mode-line"><b>{m.mode === 'remote' ? 'Remote' : 'In person'}.</b>{m.mode === 'remote' && m.min_touches ? (m.dropped
+        ? ` Under ${m.min_touches} touches: the month's rate is ${pctBps(m.rate_bps)} instead of ${pctBps(m.tier_bps ?? m.rate_bps)}.`
+        : m.below_minimum ? ` ${m.touches} of ${m.min_touches} touches: if the month ended now the rate would be ${pctBps(m.projected_bps ?? m.rate_bps)}.` : ` ${m.touches} of ${m.min_touches} touches: minimum met.`) : ''}</p>}
       <p className="small muted">Tiers: {m.tiers.map((x, i) => (i === 0 ? `under ${m.tiers[1]?.from_days ?? m.mid_days} days ${pctBps(x.bps)}` : `from ${x.from_days} days ${pctBps(x.bps)}`)).join(', ')}. The month&apos;s tier applies to all of that month&apos;s rentals; days count when a rental is completed and paid.</p>
     </div>
   );
@@ -91,10 +100,13 @@ export function Commissions({ c, own, compact, rowAction }: { c: StaffCommission
           { key: 'month_label', label: 'Month' },
           { key: 'rental_days', label: 'Days', num: true, render: (r) => (r.kind === 'commission' ? r.rental_days : '') },
           { key: 'base_cents', label: 'Rental charge', num: true, render: (r) => $(r.base_cents) },
-          { key: 'rate_bps', label: 'Rate', num: true, render: (r) => pctBps(r.rate_bps) },
+          { key: 'rate_bps', label: 'Rate', num: true, render: (r) => <>{pctBps(r.rate_bps)}{r.work_mode ? <span className="ad-sub">{r.work_mode === 'remote' ? 'remote' : 'in person'}</span> : null}</> },
           { key: 'amount_cents', label: 'Commission', num: true, render: (r) => $(r.amount_cents) },
           { key: 'status', label: 'Status', className: 'wrap', render: (r) => <span data-testid={`commission-status-${r.booking_number}-${r.kind}`}>{statusWords(r)}{r.reason ? <span className="ad-sub">{r.reason}</span> : null}{r.note ? <span className="ad-sub">{r.note}</span> : null}</span> },
           ...(rowAction ? [{ key: 'act', label: 'Actions', render: (r: CommissionRow & Record<string, unknown>) => rowAction(r) }] : [])]} />
+      {c.months && c.months.length > 0 && (
+        <div data-testid="commission-months"><h3 className="va-duty-h">By month</h3>
+          <ul className="small">{c.months.map((x) => <li key={x.month} data-testid={`commission-month-${x.month}`}>{x.line}{x.locked ? ' Approved: the month is locked.' : ''}</li>)}</ul></div>)}
       <ul className="small">
         <li>A commission counts on a rental {own ? 'you' : 'they'} marked &quot;I sourced this client&quot;, or that an Admin credited. It is the rate on the rental charge before tax, after discounts, less refunds.</li>
         <li>It is earned when the rental is completed and paid in full. None is earned on a cancelled, refunded, unpaid or charged-back rental, or on {own ? 'your' : 'their'} own or household rental. {own ? 'Your' : 'Their'} home address must be in {own ? 'your' : 'their'} profile: until it is, a commission waits as not earned yet.</li>

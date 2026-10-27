@@ -12817,6 +12817,16 @@ export type Database = {
           ads_social_drafts_enabled: boolean;
           recruit_outreach_enabled: boolean;
           game_replay_after_claim_days: number;
+          sales_remote_tier_low_bps: number;
+          sales_remote_tier_mid_bps: number;
+          sales_remote_tier_high_bps: number;
+          sales_remote_min_touches: number;
+          sales_remote_drop_tiers: number;
+          sales_remote_floor_bps: number;
+          sales_remote_cover_hours: number;
+          sales_remote_reply_minutes: number;
+          sales_remote_peak_from_hour: number;
+          sales_remote_peak_until_hour: number;
         };
         Insert: {
           id?: string;
@@ -13307,6 +13317,16 @@ export type Database = {
           ads_social_drafts_enabled?: boolean;
           recruit_outreach_enabled?: boolean;
           game_replay_after_claim_days?: number;
+          sales_remote_tier_low_bps?: number;
+          sales_remote_tier_mid_bps?: number;
+          sales_remote_tier_high_bps?: number;
+          sales_remote_min_touches?: number;
+          sales_remote_drop_tiers?: number;
+          sales_remote_floor_bps?: number;
+          sales_remote_cover_hours?: number;
+          sales_remote_reply_minutes?: number;
+          sales_remote_peak_from_hour?: number;
+          sales_remote_peak_until_hour?: number;
         };
         Update: {
           id?: string;
@@ -13797,6 +13817,16 @@ export type Database = {
           ads_social_drafts_enabled?: boolean;
           recruit_outreach_enabled?: boolean;
           game_replay_after_claim_days?: number;
+          sales_remote_tier_low_bps?: number;
+          sales_remote_tier_mid_bps?: number;
+          sales_remote_tier_high_bps?: number;
+          sales_remote_min_touches?: number;
+          sales_remote_drop_tiers?: number;
+          sales_remote_floor_bps?: number;
+          sales_remote_cover_hours?: number;
+          sales_remote_reply_minutes?: number;
+          sales_remote_peak_from_hour?: number;
+          sales_remote_peak_until_hour?: number;
         };
         Relationships: [];
       };
@@ -15273,6 +15303,150 @@ export type Database = {
         };
         Relationships: [];
       };
+      sales_availability: {
+        Row: {
+          id: string;
+          staff_id: string;
+          day: string;
+          from_minute: number;
+          until_minute: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_id: string;
+          day: string;
+          from_minute: number;
+          until_minute: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          staff_id?: string;
+          day?: string;
+          from_minute?: number;
+          until_minute?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      sales_month_rates: {
+        Row: {
+          staff_id: string;
+          month: string;
+          work_mode: string;
+          tier_low_bps: number;
+          tier_mid_bps: number;
+          tier_high_bps: number;
+          tier_mid_days: number;
+          tier_high_days: number;
+          min_touches: number;
+          drop_tiers: number;
+          floor_bps: number;
+          touches: number;
+          tier_days: number;
+          tier_bps: number;
+          rate_bps: number;
+          below_minimum: boolean;
+          dropped: boolean;
+          locked_at: string | null;
+          locked_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          staff_id: string;
+          month: string;
+          work_mode: string;
+          tier_low_bps: number;
+          tier_mid_bps: number;
+          tier_high_bps: number;
+          tier_mid_days: number;
+          tier_high_days: number;
+          min_touches?: number;
+          drop_tiers?: number;
+          floor_bps?: number;
+          touches?: number;
+          tier_days?: number;
+          tier_bps?: number;
+          rate_bps?: number;
+          below_minimum?: boolean;
+          dropped?: boolean;
+          locked_at?: string | null;
+          locked_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          staff_id?: string;
+          month?: string;
+          work_mode?: string;
+          tier_low_bps?: number;
+          tier_mid_bps?: number;
+          tier_high_bps?: number;
+          tier_mid_days?: number;
+          tier_high_days?: number;
+          min_touches?: number;
+          drop_tiers?: number;
+          floor_bps?: number;
+          touches?: number;
+          tier_days?: number;
+          tier_bps?: number;
+          rate_bps?: number;
+          below_minimum?: boolean;
+          dropped?: boolean;
+          locked_at?: string | null;
+          locked_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      sales_touches: {
+        Row: {
+          id: string;
+          staff_id: string;
+          at: string;
+          kind: string;
+          source: string;
+          source_key: string | null;
+          booking_id: string | null;
+          link: string | null;
+          note: string | null;
+          voided_at: string | null;
+          voided_by: string | null;
+          void_reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          staff_id: string;
+          at?: string;
+          kind: string;
+          source: string;
+          source_key?: string | null;
+          booking_id?: string | null;
+          link?: string | null;
+          note?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          staff_id?: string;
+          at?: string;
+          kind?: string;
+          source?: string;
+          source_key?: string | null;
+          booking_id?: string | null;
+          link?: string | null;
+          note?: string | null;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       sample_car_catalogue: {
         Row: {
           slug: string;
@@ -16347,6 +16521,7 @@ export type Database = {
           admin_reversed: boolean;
           created_at: string;
           updated_at: string;
+          work_mode: string | null;
         };
         Insert: {
           id?: string;
@@ -16374,6 +16549,7 @@ export type Database = {
           admin_reversed?: boolean;
           created_at?: string;
           updated_at?: string;
+          work_mode?: string | null;
         };
         Update: {
           id?: string;
@@ -16401,6 +16577,7 @@ export type Database = {
           admin_reversed?: boolean;
           created_at?: string;
           updated_at?: string;
+          work_mode?: string | null;
         };
         Relationships: [];
       };
@@ -16483,6 +16660,7 @@ export type Database = {
           home_address_set_at: string | null;
           home_address_set_by: string | null;
           hourly_rate_cents: number | null;
+          sales_work_mode: string | null;
         };
         Insert: {
           user_id: string;
@@ -16505,6 +16683,7 @@ export type Database = {
           home_address_set_at?: string | null;
           home_address_set_by?: string | null;
           hourly_rate_cents?: number | null;
+          sales_work_mode?: string | null;
         };
         Update: {
           user_id?: string;
@@ -16527,6 +16706,7 @@ export type Database = {
           home_address_set_at?: string | null;
           home_address_set_by?: string | null;
           hourly_rate_cents?: number | null;
+          sales_work_mode?: string | null;
         };
         Relationships: [];
       };
