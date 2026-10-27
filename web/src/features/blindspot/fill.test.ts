@@ -73,6 +73,7 @@ test('no HST number: box 1 is covered and left blank; nothing is invented for a 
   const f = sampleFacts({ mailing: MAILING, hst_number: null });
   f.renter = { ...f.renter!, mobile: null, date_of_birth: null };
   f.drivers = f.drivers.filter((d) => d.role === 'renter').map((d) => ({ ...d, date_of_birth: null, licence_expiry: null }));
+  f.extra.coverage = null; // card coverage with no proof recorded and no card: boxes 12 and 13 stay blank
   f.card = null; f.extra.fleet_number = null; f.booking.km_allowance_total = null; f.booking.km_allowance_per_day = null; f.booking.deposit_cents = 0;
   const l = layout(f);
   const boxes = new Set(l.texts.map((t) => t.box));
@@ -81,6 +82,29 @@ test('no HST number: box 1 is covered and left blank; nothing is invented for a 
   // (a cover hides what is printed under it; the old text stays in the page's content, as on paper under correction tape)
   const [p1] = await read((await fillBlindSpot(await standIn(), l, {})).bytes);
   assert.ok(!p1!.items.some((x) => x.str === '79878 1234 RT0001'));
+});
+
+test('0178: boxes 12 and 13 carry the coverage of every booking: card coverage, the protection plan, OPCF 27', async () => {
+  const card = sampleFacts({ mailing: MAILING, hst_number: '79878 1234 RT0001' });
+  const [c1] = await read((await fillBlindSpot(await standIn(), layout(card), {})).bytes);
+  for (const s of ['79878 1234 RT0001', 'Assurant (credit card rental coverage)', 'Visa card ending 4242']) assert.ok(c1!.text.includes(s), s);
+  const plan = sampleFacts({ mailing: MAILING, hst_number: null });
+  plan.booking.coverage_option = 3; plan.extra.coverage = { ...plan.extra.coverage!, coverage_option: 3, card_issuer: null, card_last4: null, coverage_provider: null, activation_ref: 'ACT-5521' };
+  const [p1] = await read((await fillBlindSpot(await standIn(), layout(plan), {})).bytes);
+  for (const s of ['CarmaCars Protection Plan (rental coverage)', 'ACT-5521']) assert.ok(p1!.text.includes(s), s);
+  const opcf = sampleFacts({ mailing: MAILING, hst_number: null });
+  opcf.booking.coverage_option = 1; opcf.extra.coverage = { coverage_option: 1, insurer_name: 'Example Auto Insurance', policy_number: 'POL-778', policy_expiry: '2027-09-01', card_issuer: null, card_last4: null };
+  const [o1] = await read((await fillBlindSpot(await standIn(), layout(opcf), {})).bytes);
+  for (const s of ["Example Auto Insurance (renter's OPCF 27)", 'POL-778']) assert.ok(o1!.text.includes(s), s);
+});
+
+test('0178: a box that does not apply says N/A; the insurer boxes are not N/A on an insurance replacement', () => {
+  const l = layout(sampleFacts({ mailing: MAILING, hst_number: null }));
+  const na = new Set(l.texts.filter((t) => t.text === 'N/A').map((t) => t.box));
+  for (const b of ['2-na', '3-home-na', '7-na', '7-office-na', '8-na', '15-dest-na', 'r-22-na', 'insured-na', 'claim-na', 'adjuster-na', '43-na', '47-na', 'waiver-na']) assert.ok(na.has(b), b);
+  assert.ok(!na.has('10-na') && !na.has('42-amount-na') && !na.has('cdw-amount-na'), 'a driver and the charges on the rental are not N/A');
+  const ins = new Set(layout(sampleFacts({ mailing: MAILING, hst_number: null }, { insurer: true })).texts.filter((t) => t.text === 'N/A').map((t) => t.box));
+  assert.ok(!ins.has('claim-na') && !ins.has('13-expiry-na'));
 });
 
 test('an insurance replacement rental fills the insurer, the claim and the adjuster', async () => {

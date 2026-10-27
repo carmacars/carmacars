@@ -97,7 +97,7 @@ export async function ensureWebhook(o: QuoOptions, p: { url: string; events: str
   return { id: w.id, action, key: null };
 }
 
-// ---------------------------------------------------------------- contacts (migration 0182)
+// ---------------------------------------------------------------- contacts (migration 0179)
 //   GET   /v1/contacts?maxResults=50&pageToken=...      the workspace's contacts: data[], nextPageToken (no phone filter)
 //   GET   /v1/contacts?externalIds=cc-...&maxResults=1  ours, by the external id we gave it
 //   GET   /v1/contacts/{id}                             one contact (404: deleted in Quo)

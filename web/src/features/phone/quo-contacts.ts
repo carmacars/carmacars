@@ -1,4 +1,4 @@
-// Quo contacts that match the site (migration 0182): one run of the sync, with the database and Quo passed in, so the
+// Quo contacts that match the site (migration 0179): one run of the sync, with the database and Quo passed in, so the
 // unit tests drive it with a mocked fetch and a fake database. The database decides who goes to Quo and with which
 // name (public.server_quo_contacts_due); this file reads Quo's list once (to take over contacts Quo already has), then
 // creates or updates each person, politely: calls spaced out, a stop at Quo's "slow down" (429) or a refused key, and a

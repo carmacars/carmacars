@@ -4491,6 +4491,7 @@ export type Database = {
           submitted_by: string | null;
           submitted_at: string | null;
           reviewed_checks: Json | null;
+          coverage_provider: string | null;
         };
         Insert: {
           id?: string;
@@ -4524,6 +4525,7 @@ export type Database = {
           submitted_by?: string | null;
           submitted_at?: string | null;
           reviewed_checks?: Json | null;
+          coverage_provider?: string | null;
         };
         Update: {
           id?: string;
@@ -4557,6 +4559,7 @@ export type Database = {
           submitted_by?: string | null;
           submitted_at?: string | null;
           reviewed_checks?: Json | null;
+          coverage_provider?: string | null;
         };
         Relationships: [];
       };
@@ -23030,6 +23033,7 @@ export type Database = {
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
       server_coverage_click: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      server_coverage_detail: { Args: { p_booking: string }; Returns: Json };
       server_db_busy: { Args: never; Returns: Json };
       server_deposit_capture_begin: { Args: { p_deposit: string }; Returns: Json };
       server_deposit_guard_sweep: { Args: never; Returns: Json };

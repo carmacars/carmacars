@@ -1,4 +1,4 @@
--- 0182_quo_contacts_visitor_names.sql
+-- 0179_quo_contacts_visitor_names.sql
 -- Quo contacts that match the site, and names for live visitors (docs/changes/2026-10-27-quo-contacts-visitor-names.md).
 -- The owner: "The contacts on Quo should be saved to match the contacts saved on the website." And: "We should be able to
 -- name the live visitors if we learn their name."
@@ -35,7 +35,7 @@
 
 -- ================================================================ 1. the setting and the tables
 alter table program_settings add column if not exists phone_quo_contacts boolean not null default true;
-comment on column program_settings.phone_quo_contacts is 'Phone and texts (0182): keep a Quo contact for every person on the site with a phone number (same name, email and company), created and updated by the five-minute job. Settings > Quo contacts shows the sync.';
+comment on column program_settings.phone_quo_contacts is 'Phone and texts (0179): keep a Quo contact for every person on the site with a phone number (same name, email and company), created and updated by the five-minute job. Settings > Quo contacts shows the sync.';
 
 create table if not exists quo_contacts (
   number        text primary key check (number ~ '^\+[1-9][0-9]{7,14}$'),
@@ -63,7 +63,7 @@ create table if not exists quo_contacts (
 create index if not exists quo_contacts_due_idx on quo_contacts (next_try_at) where dirty_at is not null;
 create index if not exists quo_contacts_quo_idx on quo_contacts (quo_id) where quo_id is not null;
 create trigger quo_contacts_updated before update on quo_contacts for each row execute function app.set_updated_at();
-comment on table quo_contacts is 'Quo contacts (0182): one row per phone number of a person on the site, with the Quo contact id and what was last sent. Written by triggers (marked) and the five-minute job.';
+comment on table quo_contacts is 'Quo contacts (0179): one row per phone number of a person on the site, with the Quo contact id and what was last sent. Written by triggers (marked) and the five-minute job.';
 
 create table if not exists quo_contacts_state (
   singleton      boolean primary key default true check (singleton),
@@ -81,7 +81,7 @@ create table if not exists quo_contacts_state (
   pause_reason   text
 );
 insert into quo_contacts_state (singleton) values (true) on conflict do nothing;
-comment on table quo_contacts_state is 'Quo contacts (0182): the job''s state: the one-time read of Quo''s contact list (to take over contacts that already have a number), the last run and its error, a pause (no API key).';
+comment on table quo_contacts_state is 'Quo contacts (0179): the job''s state: the one-time read of Quo''s contact list (to take over contacts that already have a number), the last run and its error, a pause (no API key).';
 
 create table if not exists visitor_names (
   visitor_id  uuid primary key,                         -- the browser (cookie cc_vid), as visitor_sessions.visitor_id
@@ -99,7 +99,7 @@ create index if not exists visitor_names_email_idx on visitor_names (lower(email
 create index if not exists visitor_names_phone_idx on visitor_names (phone) where phone is not null;
 create trigger visitor_names_updated before update on visitor_names for each row execute function app.set_updated_at();
 create trigger audit_visitor_names after insert or update or delete on visitor_names for each row execute function app.audit_row();
-comment on table visitor_names is 'Live visitors (0182): the name staff gave a visitor (with an optional phone, email and note), for every visit of that browser. Shown to staff only.';
+comment on table visitor_names is 'Live visitors (0179): the name staff gave a visitor (with an optional phone, email and note), for every visit of that browser. Shown to staff only.';
 
 alter table quo_contacts enable row level security;
 alter table quo_contacts_state enable row level security;
@@ -163,7 +163,7 @@ create or replace view app.quo_people_v as
   union all
   select app.phone_e164(u.phone), 15, 'account', u.id, u.full_name, u.email::text, null, 'Customer account', u.updated_at
     from users u where u.phone is not null and u.status = 'active';
-comment on view app.quo_people_v is 'Quo contacts (0182): every person on the site with a phone number, as Quo should know them; rank 1 (staff) is the strongest.';
+comment on view app.quo_people_v is 'Quo contacts (0179): every person on the site with a phone number, as Quo should know them; rank 1 (staff) is the strongest.';
 
 create or replace function app.quo_clean(p text, p_max integer) returns text
 language sql immutable as $$ select nullif(left(btrim(regexp_replace(coalesce(p, ''), '\s+', ' ', 'g')), p_max), '') $$;
@@ -487,33 +487,33 @@ begin
 end $$;
 
 -- the name staff gave comes first wherever a visitor is shown to staff
-alter function app.visitor_who(visitor_sessions) rename to visitor_who_pre0182;
+alter function app.visitor_who(visitor_sessions) rename to visitor_who_pre0179;
 create or replace function app.visitor_who(s visitor_sessions) returns text
 language sql stable security definer set search_path = public, app as $$
-  select coalesce((select v.name from visitor_names v where v.visitor_id = s.visitor_id), app.visitor_who_pre0182(s))
+  select coalesce((select v.name from visitor_names v where v.visitor_id = s.visitor_id), app.visitor_who_pre0179(s))
 $$;
 
-alter function app.visitor_chat_name(chat_conversations) rename to visitor_chat_name_pre0182;
+alter function app.visitor_chat_name(chat_conversations) rename to visitor_chat_name_pre0179;
 create or replace function app.visitor_chat_name(c chat_conversations) returns text
 language sql stable security definer set search_path = public, app as $$
-  select coalesce((select v.name from visitor_names v where v.visitor_id = c.visitor_id), app.visitor_chat_name_pre0182(c))
+  select coalesce((select v.name from visitor_names v where v.visitor_id = c.visitor_id), app.visitor_chat_name_pre0179(c))
 $$;
 
-alter function app.visitor_session_row(visitor_sessions) rename to visitor_session_row_pre0182;
+alter function app.visitor_session_row(visitor_sessions) rename to visitor_session_row_pre0179;
 create or replace function app.visitor_session_row(s visitor_sessions) returns jsonb
 language sql stable security definer set search_path = public, app as $$
   select r || jsonb_build_object('label', l, 'known', coalesce((r ->> 'known')::boolean, false) or l is not null)
-    from (select app.visitor_session_row_pre0182(s) as r, app.visitor_label(s.visitor_id) as l) x
+    from (select app.visitor_session_row_pre0179(s) as r, app.visitor_label(s.visitor_id) as l) x
 $$;
 
 -- a caller or texter with a named visitor's phone shows by that name in Texts and calls. The thread is linked to the
 -- visit only when a record of the site names the number: app.phone_thread_for gives a linked visit the thread's name as
 -- the visit's own name (which the chat greeting uses), and the name staff gave is never shown to the visitor.
-alter function app.phone_match(text) rename to phone_match_pre0182;
+alter function app.phone_match(text) rename to phone_match_pre0179;
 create or replace function app.phone_match(p_number text) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
-  m jsonb := app.phone_match_pre0182(p_number);
+  m jsonb := app.phone_match_pre0179(p_number);
   v visitor_names;
 begin
   select * into v from visitor_names where phone = app.phone_e164(p_number) order by updated_at desc limit 1;
@@ -583,17 +583,17 @@ end $$;
 create trigger visitor_names_on_chat after insert or update of email, phone, visitor_id on chat_conversations for each row execute function app.visitor_names_on_chat();
 
 -- ================================================================ 7. the cron gate and the door
-alter function app.server_jobs_due() rename to server_jobs_due_pre0182;
+alter function app.server_jobs_due() rename to server_jobs_due_pre0179;
 create or replace function app.server_jobs_due() returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
-  j jsonb := app.server_jobs_due_pre0182();
+  j jsonb := app.server_jobs_due_pre0179();
 begin
   if coalesce((j ->> 'phone')::boolean, false) then return j; end if;
   return j || jsonb_build_object('phone', app.quo_contacts_due_any());
 end $$;
 
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0182;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0179;
 create or replace function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -610,7 +610,7 @@ begin
     perform app.door_begin(p_user, p_aal);
     return app.visitor_name_set(p_user, p_ - '_va');
   end if;
-  return app.door_pre0182(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre0179(p_user, p_aal, p_call, p_name, p);
 end $$;
 
 create or replace function public.server_quo_contacts_due(p_limit integer default 40) returns jsonb
@@ -644,9 +644,9 @@ begin
      where (n.nspname = 'app' and p.proname = any (array['quo_clean', 'quo_email', 'quo_person', 'quo_hash', 'quo_contact_mark', 'quo_contact_touch',
               'quo_contact_role_touch', 'quo_contacts_due_any', 'server_quo_contacts_due', 'server_quo_contact_done', 'server_quo_contacts_found',
               'server_quo_contacts_run', 'quo_contacts_status', 'quo_contacts_resync', 'visitor_label', 'visitor_name_set', 'visitor_who',
-              'visitor_who_pre0182', 'visitor_chat_name', 'visitor_chat_name_pre0182', 'visitor_session_row', 'visitor_session_row_pre0182',
-              'phone_match', 'phone_match_pre0182', 'visitor_names_on_session', 'visitor_names_on_renter', 'visitor_names_on_chat',
-              'server_jobs_due', 'server_jobs_due_pre0182', 'door', 'door_pre0182']))
+              'visitor_who_pre0179', 'visitor_chat_name', 'visitor_chat_name_pre0179', 'visitor_session_row', 'visitor_session_row_pre0179',
+              'phone_match', 'phone_match_pre0179', 'visitor_names_on_session', 'visitor_names_on_renter', 'visitor_names_on_chat',
+              'server_jobs_due', 'server_jobs_due_pre0179', 'door', 'door_pre0179']))
         or (n.nspname = 'public' and p.proname = any (array['server_quo_contacts_due', 'server_quo_contact_done', 'server_quo_contacts_found', 'server_quo_contacts_run']))
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
@@ -657,7 +657,7 @@ revoke all on app.quo_people_v from public, anon, authenticated;
 grant select on app.quo_people_v to service_role;
 
 -- ================================================================ the guides
--- GUIDES 0182 START (generated by supabase/seed/0182_gen_guides.mjs from docs/guides/content; do not edit by hand)
+-- GUIDES 0179 START (generated by supabase/seed/0179_gen_guides.mjs from docs/guides/content; do not edit by hand)
 select app.guide_release_section('admin', 'live-visitors-and-live-chat', 'chapter', 'tolls-and-tickets', 'See who is on the site right now and what they look at, with buying signals, and answer the live chat. The CarmaCars assistant answers the chat first; you take over whenever you want, and it hands over by itself for complaints, damage, payments and anything it should not answer.
 
 ## Live visitors
@@ -1305,4 +1305,4 @@ A missed call gives you the task "Missed call from ..." when you have Live chat 
 Each renter and owner chooses how we reach them. Their page in Admin shows it under How we reach them; ask an Admin, or change it there if you can open the page. Texts need a phone they verified with a code. Your own choice is on your Profile, under Messages.
 ',
   '<p class="gd-p">Customer service and Sales answer texts to the CarmaCars number in the same place as live chat. Every call and text is kept with the renter, owner or lead it belongs to.</p><section class="gd-task" id="texts-and-calls-answer-a-text" data-gd-task><h2 class="gd-h2">Answer a text</h2><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Live</b> &gt; <b class="gd-ui">Live chat</b> and press <b class="gd-ui">Texts and calls</b>. Unread texts and missed calls are counted on each number.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose a number: calls and texts in order, and beside them who it is, with their bookings.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Write the text and press <b class="gd-ui">Send text</b>. It goes from the CarmaCars number.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t"><b class="gd-ui">Suggest a reply</b> writes a draft into the box. Read it and change it: it is never sent until you press Send text.</div></li></ol></div></section><section class="gd-task" id="texts-and-calls-unknown-callers" data-gd-task><h2 class="gd-h2">Unknown callers</h2><p class="gd-p">Press <b class="gd-ui">Unknown callers</b>. Type the name if they told you and press <b class="gd-ui">Create lead</b>, or find the renter and press <b class="gd-ui">Link to</b> their name.</p><p class="gd-p">Quo&#39;s contacts follow the site: everyone on the site with a phone number is a contact in Quo under the same name, added or updated within about five minutes. Change a name or number on the site, not in Quo: the site&#39;s version is sent again.</p></section><section class="gd-task" id="texts-and-calls-missed-calls" data-gd-task><h2 class="gd-h2">Missed calls</h2><p class="gd-p">A missed call gives you the task &quot;Missed call from ...&quot; when you have Live chat or Texts and calls open; otherwise it waits in the customer service queue. Call back with the Call button, or text, then mark the task done. Quo itself texts the caller back, so do not send the same message again.</p><aside class="gd-box"><span class="gd-lbl">Tip</span><div>A number that texted STOP gets no texts from us, booking texts included, until they text START. Prices go in a quote, never in a text from memory.</div></aside></section><section class="gd-task" id="texts-and-calls-email-text-or-both" data-gd-task><h2 class="gd-h2">Email, text or both</h2><p class="gd-p">Each renter and owner chooses how we reach them. Their page in Admin shows it under How we reach them; ask an Admin, or change it there if you can open the page. Texts need a phone they verified with a code. Your own choice is on your Profile, under Messages.</p></section>');
--- GUIDES 0182 END
+-- GUIDES 0179 END

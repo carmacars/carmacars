@@ -9,7 +9,7 @@ export function sampleFacts(extra: Pick<BlindSpotFacts['extra'], 'mailing' | 'hs
       booking_number: 'CC-10001', agreement_number: 'RA-20001', pickup_at: '2027-06-16T14:00:00Z', return_at: '2027-06-19T14:00:00Z', billable_days: 3,
       rate_applied: 'daily', daily_rate_cents: 9900, weekend_rate_cents: 13500, weekly_rate_cents: 62000, monthly_rate_cents: 205000, multi_day_rate_cents: null,
       rental_charge_cents: 29700, km_allowance_per_day: 200, km_allowance_total: 600, overage_cents_per_km: 40, deposit_cents: 100000,
-      subtotal_at_booking_cents: 41700, hst_at_booking_cents: 5421, total_due_at_booking_cents: 47121
+      subtotal_at_booking_cents: 41700, hst_at_booking_cents: 5421, total_due_at_booking_cents: 47121, coverage_option: o.insurer ? null : 2
     },
     renter: { legal_name: 'Jordan Sample Renter', date_of_birth: '2002-03-14', mobile: '+14165550142', address_line1: '100 Example Street', address_line2: 'Apt 1204',
       city: 'Toronto', province: 'ON', postal_code: 'M5H2N2' },
@@ -27,6 +27,8 @@ export function sampleFacts(extra: Pick<BlindSpotFacts['extra'], 'mailing' | 'hs
     card: { brand: 'visa', last4: '4242' },
     extra: {
       ...extra, fleet_number: 'F-07', odometer_out_km: null,
+      // 0178: card coverage, as most renters have it (boxes 12 and 13)
+      coverage: o.insurer ? null : { coverage_option: 2, insurer_name: null, policy_number: null, policy_expiry: null, card_issuer: 'Visa', card_last4: '4242', coverage_provider: 'Assurant' },
       insurer: o.insurer ? { name: 'Example Mutual Insurance', claim_number: 'CLM-0000-1234', adjuster_name: 'Pat Adjuster', adjuster_phone: '4165550199', authorized_days: 3, authorized_daily_rate_cents: 9900 } : null
     }
   };

@@ -255,7 +255,7 @@ export default async function Section({ params, searchParams }: { params: Promis
         link={<SaveForm table="site_settings" rowKey="singleton" testId="site-reviews" fields={fieldsFrom(s.site, ['google_place_id', 'google_review_link'])} />} /></>);
   }
   case 'quo-contacts': {
-    // Quo contacts (0182): every person on the site with a phone number is a contact in Quo, kept in step by the job
+    // Quo contacts (0179): every person on the site with a phone number is a contact in Quo, kept in step by the job
     const q = await door<QuoStatus>(user.id, 'admin_read', 'quo_contacts_status');
     const res = (q.last_result ?? {}) as Record<string, unknown>;
     const lastRun = q.last_run_at ? `${t(q.last_run_at)}: ${Number(res.created ?? 0)} created, ${Number(res.updated ?? 0)} updated, ${Number(res.failed ?? 0)} failed` : 'Not run yet';

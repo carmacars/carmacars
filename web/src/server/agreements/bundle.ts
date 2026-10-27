@@ -29,11 +29,14 @@ export const privacyUrl = () => `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}
 export const verifyUrl = () => `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/verify`;
 
 export async function loadBundle(bookingId: string, by: string): Promise<Bundle> {
-  const [f, x, bs] = await Promise.all([
+  const [f, x, bs, cov] = await Promise.all([
     rpc('server_agreement_facts', { p_booking: bookingId, p_by: by }, SR) as unknown as Promise<AgreementFacts>,
     rpc('server_agreement_extra', { p_booking: bookingId, p_by: by }, SR) as unknown as Promise<AgreementExtra>,
-    rpc('server_blindspot_facts', { p_booking: bookingId, p_by: by }, SR) as unknown as Promise<BlindSpotExtra>
+    rpc('server_blindspot_facts', { p_booking: bookingId, p_by: by }, SR) as unknown as Promise<BlindSpotExtra>,
+    // 0178: the card coverage provider and the protection plan's activation reference (boxes 12 and 13)
+    rpc('server_coverage_detail', { p_booking: bookingId }, SR) as unknown as Promise<{ coverage_provider: string | null; activation_ref: string | null } | null>
   ]);
+  if (f.coverage && cov) f.coverage = { ...f.coverage, coverage_provider: cov.coverage_provider, activation_ref: cov.activation_ref };
   return { f, x, bs };
 }
 
@@ -41,7 +44,7 @@ export async function loadBundle(bookingId: string, by: string): Promise<Bundle>
 export function keyTerms(b: Bundle) {
   const f = b.f; const x = b.x;
   const COV: Record<number, string> = { 1: `OPCF 27 on my own auto policy${f.coverage?.insurer_name ? ` (${f.coverage.insurer_name}${f.coverage.policy_number ? `, policy ${f.coverage.policy_number}` : ''})` : ''}`,
-    2: `the rental coverage of my credit card${f.coverage?.card_issuer ? ` (${f.coverage.card_issuer}${f.coverage.card_last4 ? ` ending ${f.coverage.card_last4}` : ''})` : ''}`,
+    2: `the rental coverage of my credit card${f.coverage?.card_issuer ? ` (${f.coverage.card_issuer}${f.coverage.card_last4 ? ` ending ${f.coverage.card_last4}` : ''}${f.coverage.coverage_provider ? `, provided by ${f.coverage.coverage_provider}` : ''})` : ''}`,
     3: 'the CarmaCars Protection Plan', 4: 'insurance included with the car' };
   return clauses({
     deductible_cents: f.booking.deductible_cents ?? f.company.deductible_cents, deposit: depositText(x),

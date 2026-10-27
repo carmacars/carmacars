@@ -5,7 +5,7 @@ export type SignalAction = 'chat' | 'discount' | 'assign' | 'similar' | 'none';
 export interface Signal { kind: string; label: string; at: string; booking_number?: string | null; task_id?: string | null; who?: string; session_id?: string | null; renter_id?: string | null;
   why?: string; strength?: number; grp?: string; action?: SignalAction; message?: string; weight?: number; source?: string }
 export interface Reason { kind: string; label: string; why: string; weight: number }
-/** A name staff gave a visitor (0182). source: staff (typed), match (from a chat with the same email or phone), renter (they booked). */
+/** A name staff gave a visitor (0179). source: staff (typed), match (from a chat with the same email or phone), renter (they booked). */
 export interface VisitorLabel { name: string; phone: string | null; email: string | null; note: string | null; source: 'staff' | 'match' | 'renter'; by: string | null; at: string }
 export interface Visitor {
   id: string; visitor_id: string; who: string; known: boolean; renter_id: string | null; email: string | null; identified_by: string | null; consent: string;
@@ -18,7 +18,7 @@ export interface Visitor {
   from_ad?: boolean; landing?: string | null; utm_medium?: string | null;
   /** What the visitor typed into a form (contact capture, 0090), sent or not. */
   captured?: { name: string | null; email: string | null; phone: string | null; form: string; at: string; done: boolean; renter_id: string | null; email_confirmed: boolean | null } | null;
-  /** 0182: the name staff gave this browser (shown to staff only), with the phone, email and note they added */
+  /** 0179: the name staff gave this browser (shown to staff only), with the phone, email and note they added */
   label?: VisitorLabel | null;
 }
 export interface VisitEvent { at: string; kind: string; path: string | null; page: string | null; car: string | null; booking_number: string | null; ms: number | null; pickup?: string | null; return?: string | null; detail?: string | null }
