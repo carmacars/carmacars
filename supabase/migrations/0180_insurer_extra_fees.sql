@@ -1,4 +1,4 @@
--- 0179_insurer_extra_fees.sql
+-- 0180_insurer_extra_fees.sql
 -- The charges CarmaCars bills an insurer on an insurance replacement rental (docs/changes/2026-10-27-insurer-extra-fees.md).
 -- The owner, October 27, 2026: VLF, LDW, T&LDW, PAP/PEC and Waiver Saver are charged to the insurer and printed on Blind
 -- Spot's rental agreement (boxes 43, 45, 46, 47 and Waiver Saver); "only add those fields for insurer bookings".
@@ -24,7 +24,7 @@ declare
   d text := pg_get_functiondef(p_sig);
 begin
   if position(p_old in d) = 0 then
-    raise exception '0179: the text to change was not found in %: %', p_sig, left(p_old, 120);
+    raise exception '0180: the text to change was not found in %: %', p_sig, left(p_old, 120);
   end if;
   execute replace(d, p_old, p_new);
 end $$;
@@ -103,7 +103,7 @@ create table if not exists booking_insurer_fees (
   set_at        timestamptz not null default now(),
   unique (booking_id, fee_type_code)
 );
-comment on table booking_insurer_fees is 'The rate a day of each charge CarmaCars bills an insurer on one booking (0179): VLF, LDW, T&LDW, PAP/PEC, Waiver Saver. The price line is the rate times the rental days. Insurer-billed bookings only.';
+comment on table booking_insurer_fees is 'The rate a day of each charge CarmaCars bills an insurer on one booking (0180): VLF, LDW, T&LDW, PAP/PEC, Waiver Saver. The price line is the rate times the rental days. Insurer-billed bookings only.';
 alter table booking_insurer_fees enable row level security;
 drop policy if exists admin_all on booking_insurer_fees;
 create policy admin_all on booking_insurer_fees for all to authenticated using (app.is_admin()) with check (app.is_admin());
@@ -249,11 +249,11 @@ $$;
 
 -- ================================================================ 4. the price
 -- price_lines: the booking's charges to the insurer (insurer_fees, with insurer_billed), one line each, rate x days
-alter function app.price_lines(jsonb) rename to price_lines_pre0179;
+alter function app.price_lines(jsonb) rename to price_lines_pre0180;
 create or replace function app.price_lines(p jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
-  v jsonb := app.price_lines_pre0179(p);
+  v jsonb := app.price_lines_pre0180(p);
   v_fees jsonb := case when jsonb_typeof(p -> 'insurer_fees') = 'object' then p -> 'insurer_fees' else '{}'::jsonb end;
   v_extra jsonb;
   v_lines jsonb;
@@ -278,10 +278,10 @@ begin
 end $$;
 
 -- the booking's spec carries whether it bills an insurer, and its rates
-alter function app.booking_price_spec(uuid, jsonb) rename to booking_price_spec_pre0179;
+alter function app.booking_price_spec(uuid, jsonb) rename to booking_price_spec_pre0180;
 create or replace function app.booking_price_spec(p_booking uuid, p_changes jsonb default '{}'::jsonb) returns jsonb
 language sql stable security definer set search_path = public, app as $$
-  select app.booking_price_spec_pre0179(p_booking, p_changes) || jsonb_build_object(
+  select app.booking_price_spec_pre0180(p_booking, p_changes) || jsonb_build_object(
            'insurer_billed', app.booking_bills_insurer(b),
            'insurer_fees', coalesce((select jsonb_object_agg(f.fee_type_code, f.rate_cents) from booking_insurer_fees f where f.booking_id = p_booking), '{}'::jsonb))
     from bookings b where b.id = p_booking
@@ -290,7 +290,7 @@ $$;
 -- the booking's price: a charge removed is voided like the other lines the price owns
 select pg_temp.patch_fn('app.sync_booking_price(uuid)'::regprocedure,
   $o$'addon', 'baby_seat', 'winter_tire'];$o$,
-  $n$'addon', 'baby_seat', 'winter_tire'] || app.insurer_fee_codes();   -- 0179: the charges to the insurer$n$);
+  $n$'addon', 'baby_seat', 'winter_tire'] || app.insurer_fee_codes();   -- 0180: the charges to the insurer$n$);
 -- a charge's line keeps its words up to date (its days and rate are in them)
 select pg_temp.patch_fn('app.put_price_line(uuid, jsonb)'::regprocedure,
   $o$     or (v_ba is not null and v_line.description is distinct from p_line ->> 'description')$o$,
@@ -300,7 +300,7 @@ select pg_temp.patch_fn('app.put_price_line(uuid, jsonb)'::regprocedure,
   $n$           description = case when v_ba is not null or charge_type = any (app.insurer_fee_codes()) then p_line ->> 'description'$n$);
 
 -- a fee set by hand (0132) is never one of these: they are a rate a day
-alter function app.booking_line_overrides_store(uuid, uuid, jsonb, text) rename to booking_line_overrides_store_pre0179;
+alter function app.booking_line_overrides_store(uuid, uuid, jsonb, text) rename to booking_line_overrides_store_pre0180;
 create or replace function app.booking_line_overrides_store(p_booking uuid, p_by uuid, p jsonb, p_reason text default null) returns integer
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -313,13 +313,13 @@ begin
       end if;
     end loop;
   end if;
-  return app.booking_line_overrides_store_pre0179(p_booking, p_by, p, p_reason);
+  return app.booking_line_overrides_store_pre0180(p_booking, p_by, p, p_reason);
 end $$;
 
 -- ================================================================ 5. the insurer pays them, its invoice lists them
 -- Billed to the insurer wholly, they were already among the fees it pays; billed for the rental only (split), the insurer
 -- pays these too (they are its charges, never the renter's).
-alter function app.booking_insurer_share(uuid) rename to booking_insurer_share_pre0179;
+alter function app.booking_insurer_share(uuid) rename to booking_insurer_share_pre0180;
 create or replace function app.booking_insurer_share(p_booking uuid)
 returns table (covered_days integer, rental_share_cents bigint, fees_share_cents bigint, share_cents bigint, hst_cents bigint)
 language plpgsql stable security definer set search_path = public, app as $$
@@ -329,7 +329,7 @@ declare
   v_x bigint := 0;
   v_xh bigint := 0;
 begin
-  select * into s from app.booking_insurer_share_pre0179(p_booking);
+  select * into s from app.booking_insurer_share_pre0180(p_booking);
   select * into b from bookings where id = p_booking;
   if b.bill_to = 'split' and b.booking_type <> 'owner' then
     select coalesce(sum(li.amount_cents), 0), coalesce(sum(li.hst_cents), 0) into v_x, v_xh
@@ -342,11 +342,11 @@ end $$;
 
 -- The invoice: each charge on its own line ("VLF (vehicle licence fee): 3 days at $5.00 a day"), taken out of the line
 -- of the other fees (the total is the same).
-alter function app.draft_insurer_invoice(uuid, uuid) rename to draft_insurer_invoice_pre0179;
+alter function app.draft_insurer_invoice(uuid, uuid) rename to draft_insurer_invoice_pre0180;
 create or replace function app.draft_insurer_invoice(p_booking uuid, p_by uuid default null) returns uuid
 language plpgsql security definer set search_path = public, app as $$
 declare
-  v_id uuid := app.draft_insurer_invoice_pre0179(p_booking, p_by);
+  v_id uuid := app.draft_insurer_invoice_pre0180(p_booking, p_by);
   v_x jsonb;
   v_sum bigint;
   v_n bigint;
@@ -381,7 +381,7 @@ end $$;
 -- The review screen (Save, Send offer, an offer edited in place, its preview): insurer_fees {code: dollars a day in
 -- cents, or 0 / null}. A removal first (so a booking can go back to the renter in the same save), the rest after the
 -- booking's other changes (so it may become an insurer's in the same save).
-alter function app.admin_apply_booking_edit(uuid, uuid, jsonb) rename to admin_apply_booking_edit_pre0179;
+alter function app.admin_apply_booking_edit(uuid, uuid, jsonb) rename to admin_apply_booking_edit_pre0180;
 create or replace function app.admin_apply_booking_edit(p_admin uuid, p_booking uuid, p jsonb) returns void
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -391,32 +391,32 @@ declare
   v_reason text := coalesce(nullif(btrim(coalesce(p ->> 'fee_reason', '')), ''), 'Set on the review screen');
 begin
   if v_fees is null or v_fees = '{}'::jsonb then
-    perform app.admin_apply_booking_edit_pre0179(p_admin, p_booking, p - 'insurer_fees');
+    perform app.admin_apply_booking_edit_pre0180(p_admin, p_booking, p - 'insurer_fees');
     return;
   end if;
   select coalesce(jsonb_object_agg(e.key, e.value) filter (where not (jsonb_typeof(e.value) = 'number' and (e.value #>> '{}')::numeric > 0)), '{}'::jsonb),
          coalesce(jsonb_object_agg(e.key, e.value) filter (where jsonb_typeof(e.value) = 'number' and (e.value #>> '{}')::numeric > 0), '{}'::jsonb)
     into v_off, v_on from jsonb_each(v_fees) e;
   if v_off <> '{}'::jsonb then perform app.booking_insurer_fees_set(p_admin, p_booking, v_off, v_reason); end if;
-  perform app.admin_apply_booking_edit_pre0179(p_admin, p_booking, p - 'insurer_fees');
+  perform app.admin_apply_booking_edit_pre0180(p_admin, p_booking, p - 'insurer_fees');
   if v_on <> '{}'::jsonb then perform app.booking_insurer_fees_set(p_admin, p_booking, v_on, v_reason); end if;
 end $$;
 
 -- the booking as the review screen reads it: its rates a day
-alter function app.admin_booking_json(uuid) rename to admin_booking_json_pre0179;
+alter function app.admin_booking_json(uuid) rename to admin_booking_json_pre0180;
 create or replace function app.admin_booking_json(p_booking uuid) returns jsonb
 language sql stable security definer set search_path = public, app as $$
-  select app.admin_booking_json_pre0179(p_booking) || jsonb_build_object('insurer_fees',
+  select app.admin_booking_json_pre0180(p_booking) || jsonb_build_object('insurer_fees',
     coalesce((select jsonb_object_agg(f.fee_type_code, f.rate_cents) from booking_insurer_fees f where f.booking_id = p_booking), '{}'::jsonb))
 $$;
 
 -- Add a rental: its check prices the charges of an insurance replacement (insurer_fees, with bill_to_insurer) ...
-alter function app.manual_rental_quote(uuid, jsonb) rename to manual_rental_quote_pre0179;
+alter function app.manual_rental_quote(uuid, jsonb) rename to manual_rental_quote_pre0180;
 create or replace function app.manual_rental_quote(p_by uuid, p jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
   v_fees jsonb := case when jsonb_typeof(p -> 'insurer_fees') = 'object' then p -> 'insurer_fees' else '{}'::jsonb end;
-  v_out jsonb := app.manual_rental_quote_pre0179(p_by, p - 'insurer_fees' - 'bill_to_insurer');
+  v_out jsonb := app.manual_rental_quote_pre0180(p_by, p - 'insurer_fees' - 'bill_to_insurer');
   v_extra jsonb;
   v_sub bigint;
   v_tax bigint;
@@ -441,7 +441,7 @@ begin
 end $$;
 
 -- ... and the rental keeps them once its insurer is set (an insurance replacement only: Insurer billed later)
-alter function app.manual_rental_create(uuid, jsonb) rename to manual_rental_create_pre0179;
+alter function app.manual_rental_create(uuid, jsonb) rename to manual_rental_create_pre0180;
 create or replace function app.manual_rental_create(p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -456,7 +456,7 @@ begin
   if v_any and not (p #>> '{payment,method}' = 'insurer' and jsonb_typeof(p -> 'insurance') = 'object') then
     raise exception '%', app.insurer_fee_refusal(null) using errcode = '23514';
   end if;
-  v_out := app.manual_rental_create_pre0179(p_by, p - 'insurer_fees' - 'bill_to_insurer');
+  v_out := app.manual_rental_create_pre0180(p_by, p - 'insurer_fees' - 'bill_to_insurer');
   if not v_any or (v_out ->> 'booking_id') !~ '^[0-9a-f-]{36}$' then return v_out; end if;
   v_id := (v_out ->> 'booking_id')::uuid;
   perform set_config('app.insurer_fees_new', 'on', true);
@@ -469,11 +469,11 @@ begin
 end $$;
 
 -- the booking's Insurance replacement card: the charges, each with its rate a day, and whether they can change now
-alter function app.booking_insurer_read(uuid, jsonb) rename to booking_insurer_read_pre0179;
+alter function app.booking_insurer_read(uuid, jsonb) rename to booking_insurer_read_pre0180;
 create or replace function app.booking_insurer_read(p_by uuid, p jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
-  v jsonb := app.booking_insurer_read_pre0179(p_by, p);
+  v jsonb := app.booking_insurer_read_pre0180(p_by, p);
   b bookings;
 begin
   if v is null or not coalesce((v ->> 'billed_to_insurer')::boolean, false) then return v; end if;
@@ -483,7 +483,7 @@ begin
 end $$;
 
 -- ================================================================ 7. the door
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0179;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0180;
 create or replace function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -498,7 +498,7 @@ begin
     if v_booking is null then raise exception 'Booking not found' using errcode = 'P0002'; end if;
     return app.booking_insurer_fees_set(p_user, v_booking, p_ -> 'fees', p_ ->> 'reason');
   end if;
-  return app.door_pre0179(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre0180(p_user, p_aal, p_call, p_name, p);
 end $$;
 
 -- ================================================================ 8. privileges
@@ -518,17 +518,17 @@ begin
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
   for f in
-    select * from (values ('app.price_lines(jsonb)', 'app.price_lines_pre0179(jsonb)'),
-                          ('app.booking_price_spec(uuid, jsonb)', 'app.booking_price_spec_pre0179(uuid, jsonb)'),
-                          ('app.booking_line_overrides_store(uuid, uuid, jsonb, text)', 'app.booking_line_overrides_store_pre0179(uuid, uuid, jsonb, text)'),
-                          ('app.booking_insurer_share(uuid)', 'app.booking_insurer_share_pre0179(uuid)'),
-                          ('app.draft_insurer_invoice(uuid, uuid)', 'app.draft_insurer_invoice_pre0179(uuid, uuid)'),
-                          ('app.admin_apply_booking_edit(uuid, uuid, jsonb)', 'app.admin_apply_booking_edit_pre0179(uuid, uuid, jsonb)'),
-                          ('app.admin_booking_json(uuid)', 'app.admin_booking_json_pre0179(uuid)'),
-                          ('app.manual_rental_quote(uuid, jsonb)', 'app.manual_rental_quote_pre0179(uuid, jsonb)'),
-                          ('app.manual_rental_create(uuid, jsonb)', 'app.manual_rental_create_pre0179(uuid, jsonb)'),
-                          ('app.booking_insurer_read(uuid, jsonb)', 'app.booking_insurer_read_pre0179(uuid, jsonb)'),
-                          ('app.door(uuid, text, text, text, jsonb)', 'app.door_pre0179(uuid, text, text, text, jsonb)')) x(fn, pre)
+    select * from (values ('app.price_lines(jsonb)', 'app.price_lines_pre0180(jsonb)'),
+                          ('app.booking_price_spec(uuid, jsonb)', 'app.booking_price_spec_pre0180(uuid, jsonb)'),
+                          ('app.booking_line_overrides_store(uuid, uuid, jsonb, text)', 'app.booking_line_overrides_store_pre0180(uuid, uuid, jsonb, text)'),
+                          ('app.booking_insurer_share(uuid)', 'app.booking_insurer_share_pre0180(uuid)'),
+                          ('app.draft_insurer_invoice(uuid, uuid)', 'app.draft_insurer_invoice_pre0180(uuid, uuid)'),
+                          ('app.admin_apply_booking_edit(uuid, uuid, jsonb)', 'app.admin_apply_booking_edit_pre0180(uuid, uuid, jsonb)'),
+                          ('app.admin_booking_json(uuid)', 'app.admin_booking_json_pre0180(uuid)'),
+                          ('app.manual_rental_quote(uuid, jsonb)', 'app.manual_rental_quote_pre0180(uuid, jsonb)'),
+                          ('app.manual_rental_create(uuid, jsonb)', 'app.manual_rental_create_pre0180(uuid, jsonb)'),
+                          ('app.booking_insurer_read(uuid, jsonb)', 'app.booking_insurer_read_pre0180(uuid, jsonb)'),
+                          ('app.door(uuid, text, text, text, jsonb)', 'app.door_pre0180(uuid, text, text, text, jsonb)')) x(fn, pre)
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.fn);
     foreach g in array array['anon', 'authenticated', 'service_role'] loop
@@ -538,7 +538,7 @@ begin
 end $$;
 
 -- ================================================================ the guides
--- GUIDES 0179 START (generated by supabase/seed/0179_gen_guides.mjs from docs/guides/content; do not edit by hand)
+-- GUIDES 0180 START (generated by supabase/seed/0180_gen_guides.mjs from docs/guides/content; do not edit by hand)
 select app.guide_release_section('admin', 'partners-company-cars-and-rentals-added-by-hand', 'chapter', 'fleet-and-listings', 'A car comes from one of three places: a program owner, CarmaCars itself, or a partner rental company. You add cars and rentals by hand, retire cars, and delete cars that were added by mistake.
 
 ## Add a car
@@ -904,4 +904,4 @@ Open **Bookings** > **Add a rental**. Your home address must be in your profile 
 > Tip: The renter signs the rental agreement in their portal before pickup. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign. If they sign on paper at the counter, an Admin records it. A payment link keeps the booking waiting for payment.
 ',
   '<p class="gd-p">Every function adds rentals that come in by phone, at the counter, from Turo, a partner, an insurer or someone you know. The rental is confirmed and on the calendar at once.</p><section class="gd-task" id="add-a-rental-by-hand-add-a-rental" data-gd-task><h2 class="gd-h2">Add a rental</h2><p class="gd-p">Open <b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Add a rental</b>. Your home address must be in your profile first: until it is, the page asks for it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">At pickup with the renter? Press <b class="gd-ui">Start at pickup</b>: the renter&#39;s name and phone, the car, the kilometres and the fuel, then <b class="gd-ui">Hold the car and finish later</b>. The car is held for 2 hours and you get a task to finish it.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Nothing is required to save: the form is saved as a draft as you type (<b class="gd-ui">Save draft</b> saves at once). Unfinished rentals, on Today and on this page, opens a draft where it was left, on any device. Tick Hold the car while I finish to keep the car off the calendar while you type.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Choose the car, the dates and the places. The check shows any clash with another booking or with the cleaning time after a trip. You cannot book over a clash: ask an Admin.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">The dates decide the case, shown under them. Car already out with the renter? Enter the pickup as when it left: the rental is recorded as on trip, and anything still missing (signature, licence check, coverage proof, deposit) becomes a task. A rental that has already ended is recorded by an Admin.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Find the renter by name, email or phone, or add a new one with their name, email, phone, date of birth and licence. Add any other drivers.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">The calendar and the price are checked by themselves once the car and the dates are in. The price comes from the rate sheet. You may add the extras, how damage is covered and an allowed promo code.</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t">Quick start: <b class="gd-ui">Phone</b>, <b class="gd-ui">Walk-in</b>, <b class="gd-ui">Turo or another platform</b> or <b class="gd-ui">Insurance replacement</b> sets the usual choices.</div></li><li><span class="gd-n" aria-hidden="true">8</span><div class="gd-t">A car tagged Listing not finished can be rented too: it stays off the public site. If it has no rates yet, type the rental charge for the whole rental and the reason. An owner&#39;s car not yet on the fleet insurance policy is added by an Admin only.</div></li><li><span class="gd-n" aria-hidden="true">9</span><div class="gd-t">Every line of the price can be changed where it stands (customer service and sales, while Program settings allow it): the rental charge for the trip or a rate a day, the young driver fee, the Protection Plan, delivery, each add-on, the kilometres a day; add a fee from the list or a charge of its own. The (i) beside each line says what it is. The rate-sheet price stays on the booking; a price far under it is flagged for an Admin, never refused. Know what the renter paid with tax? Choose After tax (HST included) under Amounts I type and type those amounts (&quot;$270 after tax for the rental, $50 for the Protection Plan&quot;), or type the Total the renter pays (after tax): the rental charge is worked out so the total is exactly that. The total shown is the total saved.</div></li><li><span class="gd-n" aria-hidden="true">10</span><div class="gd-t">Any length: past 30 days the monthly rate applies for each 30 days, and the monthly periods are listed. Each later period gets its own agreement, sent to the renter to sign a few days before it starts (Monthly periods on the booking; Send the agreement for the next period now if needed).</div></li><li><span class="gd-n" aria-hidden="true">11</span><div class="gd-t">Choose how the rent is paid (e-Transfer or cash received, card on file, payment link, platform payout, insurer billed later; the ways open to you are set by an Admin; paid in parts: Add another payment) and then how the deposit is paid (card hold, cash or e-Transfer with its reference). Before you save sums it all up. Signed on paper already? Choose it: a task asks for the scan. An insurance replacement with dates not known yet: untick Blocks the car&#39;s calendar and say why. Insurer billed later shows Charges to the insurer: type the rate a day of VLF, LDW, T&amp;LDW, PAP/PEC or Waiver Saver that the insurer authorized (empty: none); each is the rate times the days, plus HST, billed to the insurer.</div></li><li><span class="gd-n" aria-hidden="true">12</span><div class="gd-t">Under Who found this client, choose <b class="gd-ui">I sourced this client</b> or <b class="gd-ui">Entered for CarmaCars</b>.</div></li><li><span class="gd-n" aria-hidden="true">13</span><div class="gd-t">Press <b class="gd-ui">Add the rental</b>. The renter gets the confirmation email unless you tick <b class="gd-ui">Do not email the renter</b>.</div></li><li><span class="gd-n" aria-hidden="true">14</span><div class="gd-t">A rental you add is credited to you and shows in My sales as a rental you added. If you sourced it, its commission shows there too.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The renter signs the rental agreement in their portal before pickup. With the saved card, nothing is charged when you add the rental: the card is charged when the renter presses Accept and sign. If they sign on paper at the counter, an Admin records it. A payment link keeps the booking waiting for payment.</div></aside></section>');
--- GUIDES 0179 END
+-- GUIDES 0180 END

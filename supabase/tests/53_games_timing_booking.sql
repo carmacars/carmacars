@@ -172,9 +172,9 @@ select test.eq('minimum days: $100 off from 4 days, the free day from 3; never m
 select test.eq('a free day without the booking''s length takes nothing; the two-argument form still works for the others',
   app.promo_discount_cents((select id from promo_codes where code = 'G2-DAY1'), 40000) || ' ' || app.promo_discount_cents((select id from promo_codes where code = 'G2-PCT25'), 40000), '0 10000');
 select test.throws('a code is one kind only', $$insert into promo_codes (code, percent_bps, free_days, source) values ('G2-BAD', 500, 1, 'test')$$, 'promo_codes_one_kind');
--- (0179 wraps app.price_lines: the body that prices the rental is app.price_lines_pre0179)
+-- (0180 wraps app.price_lines: the body that prices the rental is app.price_lines_pre0180)
 select test.eq('the prices of a booking pass its length', (select bool_and(pg_get_functiondef(f) like '%promo_discount_cents(%, v_%days)%') from unnest(array[
-  'app.price_lines_pre0179(jsonb)'::regprocedure, 'app.preview_extension(uuid, timestamptz, timestamptz)'::regprocedure, 'app.calendar_preview_change(uuid, jsonb, timestamptz)'::regprocedure]) f), true);
+  'app.price_lines_pre0180(jsonb)'::regprocedure, 'app.preview_extension(uuid, timestamptz, timestamptz)'::regprocedure, 'app.calendar_preview_change(uuid, jsonb, timestamptz)'::regprocedure]) f), true);
 
 -- a rare prize won and claimed: the code carries the free day, its minimum and its cap; the browser hears it is rare
 delete from app.rate_limit_hits where key like 'game-%';

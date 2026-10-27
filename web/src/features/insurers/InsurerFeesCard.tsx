@@ -6,7 +6,7 @@ import { offersDo } from '@/server/actions/offers';
 import { InsurerFeesFields } from './InsurerFeesFields';
 import { INSURER_FEES, insurerFeesPayload, rateProblem, typedFrom } from './fees';
 
-// The booking's charges to the insurer (migration 0179), on its Insurance replacement card: each with its rate a day, the
+// The booking's charges to the insurer (migration 0180), on its Insurance replacement card: each with its rate a day, the
 // days and the amount; staff change them here (before or after confirmation, until the booking is closed). The database
 // records each change and reprices the booking and the insurer's share.
 export interface InsurerFeeRow { code: string; label: string; rate_cents: number | null; days: number; amount_cents: number | null; hst_cents: number | null }

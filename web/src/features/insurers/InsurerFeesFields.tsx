@@ -2,7 +2,7 @@
 import { money } from '@/lib/format';
 import { INSURER_FEES, feeForDays, rateCents, rateProblem } from './fees';
 
-// The charges to the insurer (migration 0179), a rate a day each: on Add a rental (insurance replacement), the review
+// The charges to the insurer (migration 0180), a rate a day each: on Add a rental (insurance replacement), the review
 // screen of a booking billed to an insurer and the booking's Insurance replacement card. Shown only for a booking billed to
 // an insurer; the database refuses them on any other.
 export function InsurerFeesFields({ idPrefix, value, onChange, days, disabled = false }: {

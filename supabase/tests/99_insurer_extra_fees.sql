@@ -1,4 +1,4 @@
--- 99: the charges CarmaCars bills an insurer (migration 0179, docs/changes/2026-10-27-insurer-extra-fees.md): VLF, LDW,
+-- 99: the charges CarmaCars bills an insurer (migration 0180, docs/changes/2026-10-27-insurer-extra-fees.md): VLF, LDW,
 -- T&LDW, PAP/PEC and Waiver Saver. A rate a day typed on each insurer booking (no default price), the line rate x days
 -- with HST; insurer bookings only (refused for a renter's, in words, wherever it comes from); Add a rental's check and
 -- the rental itself; changed from the booking (the door) and the review screen; the insurer pays them (billed wholly or
@@ -13,14 +13,14 @@ grant select on test.xf to authenticated, service_role;
 create function test.xfv(p text) returns jsonb language sql stable as $$ select v from test.xf where k = p $$;
 insert into insurers (name, billing_email) values ('Xf Example Mutual', 'claims.xf@example.test');
 create function test.xfins() returns uuid language sql stable as $$ select id from insurers where name = 'Xf Example Mutual' $$;
-insert into test.xf select 'car', app.vehicle_add(test.id('xf_admin'), jsonb_build_object('supply_type', 'company', 'vin', '3VWCX7BU0RM000179',
+insert into test.xf select 'car', app.vehicle_add(test.id('xf_admin'), jsonb_build_object('supply_type', 'company', 'vin', '3VWCX7BU0RM000180',
   'plate', 'XFJ179', 'year', 2024, 'make', 'Volkswagen', 'model', 'Jetta', 'rates', jsonb_build_object('daily', 10000, 'weekend', 10000, 'weekly', 70000, 'monthly', 300000, 'deposit', 30000)));
 create function test.xfcar() returns uuid language sql stable as $$ select (test.xfv('car') ->> 'vehicle_id')::uuid $$;
 -- Add a rental, 3 days, an insurance replacement unless p says otherwise
 create function test.xfmr(p jsonb, p_start integer default 2) returns jsonb language sql stable as $$
   select jsonb_build_object('vehicle_id', test.xfcar(), 'pickup_at', date_trunc('hour', now()) + make_interval(days => p_start), 'return_at', date_trunc('hour', now()) + make_interval(days => p_start + 3),
     'coverage_option', 1, 'source', 'insurer', 'sales_choice', 'for_carmacars', 'agreement', 'paper', 'blocks_calendar', false, 'blocks_calendar_reason', 'Insurance replacement test',
-    'renter', jsonb_build_object('full_name', 'Xavi Feeson', 'email', 'xavi.feeson.' || md5(p::text) || '@example.test', 'mobile', '4165550179', 'date_of_birth', '1980-01-01', 'licence_number', 'X1234-12345-12345'),
+    'renter', jsonb_build_object('full_name', 'Xavi Feeson', 'email', 'xavi.feeson.' || md5(p::text) || '@example.test', 'mobile', '4165550180', 'date_of_birth', '1980-01-01', 'licence_number', 'X1234-12345-12345'),
     'payment', jsonb_build_object('mode', 'unpaid', 'method', 'insurer'), 'deposit', jsonb_build_object('method', 'cash')) || p $$;
 create function test.xfb(p text) returns bookings language sql stable security definer as $$ select * from bookings where id = (test.xfv(p) ->> 'booking_id')::uuid $$;
 create function test.xfline(p text, p_code text) returns booking_line_items language sql stable security definer as $$

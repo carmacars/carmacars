@@ -48,7 +48,7 @@ export interface B {
   rental_pay_method?: string; deposit_pay_method?: string;
   /** the booking's HST rate (the settings' when it was priced) */
   hst_bps?: number;
-  /** 0179: the charges to the insurer, a rate a day each ({code: cents}) */
+  /** 0180: the charges to the insurer, a rate a day each ({code: cents}) */
   insurer_fees?: Record<string, number>;
 }
 type Opt = { id: string; name: string; plate: string | null; free: boolean; daily_rate_cents: number | null };
@@ -101,7 +101,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   const router = useRouter();
   const coverageLine = b.lines.find((l) => COVERAGE_TYPES.includes(l.charge_type));
   const feeLines = b.lines.filter((l) => l.stage === 'booking' && !['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type) && !COVERAGE_TYPES.includes(l.charge_type)
-    && !isInsurerFee(l.charge_type));   // 0179: the charges to the insurer are a rate a day, below
+    && !isInsurerFee(l.charge_type));   // 0180: the charges to the insurer are a rate a day, below
   const start = useMemo(() => ({
     vehicle_id: b.vehicle_id, pickup_at: toLocalInput(b.pickup_at), return_at: toLocalInput(b.return_at), booking_type: b.booking_type,
     ...Object.fromEntries(MONEY_KEYS.map((k) => [k, dollars(b[k] as number | null)])),
@@ -194,7 +194,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     if (Object.keys(lines).length) { p.line_overrides = lines; p.fee_reason = String(v.fee_reason).trim() || 'Changed on the review screen'; }
     if (changed('blocks_calendar')) { p.blocks_calendar = v.blocks_calendar; p.blocks_calendar_reason = String(v.blocks_reason).trim() || null; }
     if (addonsChanged) p.addons = addonsPayload(addons);
-    // 0179: the charges to the insurer, a rate a day each (removed with the rest when the booking goes back to the renter)
+    // 0180: the charges to the insurer, a rate a day each (removed with the rest when the booking goes back to the renter)
     const insBefore = b.insurer_fees ?? {};
     const ins = v.bill_to === 'renter' ? insurerFeesRemoval(insBefore)
       : insurerFeesPayload(Object.fromEntries(INSURER_FEES.map((x) => [x.code, String(v[`ifee:${x.code}`] ?? '')])), insBefore);

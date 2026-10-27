@@ -1,4 +1,4 @@
-// The charges CarmaCars bills an insurer on an insurance replacement rental (migration 0179): VLF, LDW, T&LDW, PAP/PEC
+// The charges CarmaCars bills an insurer on an insurance replacement rental (migration 0180): VLF, LDW, T&LDW, PAP/PEC
 // and Waiver Saver. Staff type a rate a day on each insurer booking (no default price); the line is the rate times the
 // rental days, plus HST. The database refuses them on a booking the renter pays. Pure: Add a rental, the review screen,
 // the booking's Insurance replacement card and the unit tests share it.
