@@ -250,7 +250,7 @@ select test.eq('3 days before the last day: the game reminder, one event for the
   (select count(*) from app_events where code = 'renter_game_code_reminder_3d' and entity_id = (test.pe_claim('pe.game1@example.test')).id), 1::bigint);
 select app.process_events(100000);
 select test.eq('...transactional, to the address that claimed it, with the dates',
-  (select format('%s %s %s %s', o.category, o.to_address, o.payload ->> 'discount_expires' = app.fmt_day(app.today() + 7), o.payload ? 'days_left')
+  (select format('%s %s %s %s', o.category, o.to_address, o.payload ->> 'discount_expires' = (select app.fmt_day(app.promo_last_day(pc)) from promo_codes pc where pc.id = (test.pe_claim('pe.game1@example.test')).promo_code_id), o.payload ? 'days_left')
      from notification_outbox o where o.code = 'renter_game_code_reminder_3d' and o.entity_id = (test.pe_claim('pe.game1@example.test')).id), 'transactional pe.game1@example.test t t');
 -- the old reminder (0069) already sent: no second one
 update game_claims set reminder_sent_at = now() where email = 'pe.game2@example.test';
