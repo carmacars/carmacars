@@ -1,10 +1,16 @@
-// The signing session of a rental agreement signature as the page sees it (migration 0154, app.esign_view).
+// The signing session as the page sees it (migration 0154, app.esign_view): a rental agreement signature, and since 0182
+// every other signature (documents in a portal, another Owner's link).
+/** A document signed in a portal (0182): the owner's agreement or schedule ("packet", ref its key), a document sent to
+ *  sign ("request", ref the sign_requests id), an updated Vehicle Schedule ("schedule_change", ref the change id). */
+export interface EsignDoc { kind: 'packet' | 'request' | 'schedule_change'; ref: string; sha: string; title: string }
 export type EsignContext =
   | { kind: 'renter'; number: string }
   | { kind: 'driver'; token: string }
   | { kind: 'in_person'; booking: string; signer: string }
   | { kind: 'amendment'; number: string; requestId: string }
-  | { kind: 'version'; token: string; inPerson?: boolean };
+  | { kind: 'version'; token: string; inPerson?: boolean }
+  | { kind: 'documents'; docs: EsignDoc[]; role: 'owner' | 'partner' | 'investor' | 'staff' }
+  | { kind: 'cosigner'; token: string };
 
 export interface EsignView {
   id: string; context: string; signer_name: string; signer_role: string; method: 'remote' | 'in_person';

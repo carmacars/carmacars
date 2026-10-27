@@ -73,7 +73,8 @@ def build():
     g.steps([
         f'My jobs shows "You have a document to sign". Press {B("Read and sign")}.',
         f'Check the key values at the top (your role, wage and start date), then press {B("Read the PDF")} and read it.',
-        f'Press {B("Sign")}. Your full legal name is your signature (or press {B("Draw instead")}).',
+        f'Sign in a few steps: press {B("Send the code")} and type the 6-digit code from your phone or email, tick that you read it, draw your initials beside the key terms (confidentiality, the rules on money, keys and cars, ending the agreement), tick the two consents and draw your signature.',
+        f'Press {B("Sign")}. The signed copy, with its certificate of completion, stays on the same page.',
     ])
 
     # ---------------------------------------------------------------- 2

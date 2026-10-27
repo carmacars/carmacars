@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { acceptCookies, db, fillYmm, noOverflow, tapColour, watch } from './helpers';
+import { acceptCookies, db, fillYmm, noOverflow, strongSign, tapColour, watch } from './helpers';
 
 // The owner billing path end to end, at 375 and 1440: an owner applies with three vehicles (the
 // wizard, a VIN decoded, autosave), an Admin sets the terms on the standard grid and issues the three
@@ -37,16 +37,6 @@ async function signIn(page: Page, email: string, next: string) {
   await page.locator('input[type="password"]').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL((u) => u.pathname.startsWith(next.split('?')[0]!));
-}
-
-async function drawSignature(page: Page) {
-  const pad = page.getByTestId('signature-pad');
-  await pad.scrollIntoViewIfNeeded();
-  const b = (await pad.boundingBox())!;
-  await page.mouse.move(b.x + 20, b.y + b.height * 0.6);
-  await page.mouse.down();
-  for (let i = 1; i <= 30; i++) await page.mouse.move(b.x + 20 + i * ((b.width - 60) / 30), b.y + b.height * (0.6 + 0.25 * Math.sin(i / 2.5)), { steps: 2 });
-  await page.mouse.up();
 }
 
 async function adminPage(browser: Browser, viewport: { width: number; height: number }, email: string) {
@@ -190,16 +180,18 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await expect(page.getByTestId('sign-fix').first()).toHaveAttribute('href', '/owner/profile');
   await check(page, 'owner sign');
   const total = await page.getByTestId('package-docs').innerText().then((t) => Number(/these (\d+) documents/.exec(t)?.[1] ?? '1'));
-  // the three statements in one tap, the initials filled in from the name, the name adopted as the signature (phone) or drawn (desktop)
-  await page.getByTestId('package-tick-all').check();
-  await expect(page.getByTestId('package-initials')).not.toHaveValue('');
-  if (info.project.name.includes('desktop')) { await page.getByTestId('signature-mode').click(); await drawSignature(page); }
+  // 0182: the signing steps of every signature: the code, the reading, the three confirmations initialled, the consents,
+  // the drawn signature
+  await strongSign(page, page.getByTestId('owner-package'));
   await page.getByTestId('package-sign').click();
   await page.waitForURL(/\/owner\?signed=1/, { timeout: 60_000 });
   const pkg = await sql`select k.method, k.seconds_to_sign, (select count(*)::int from signing_package_documents d where d.package_id = k.id) n
     from signing_packages k join owners o on o.user_id = k.signer_user_id where o.id = ${owner!.id} order by k.signed_at desc limit 1`;
-  expect(`${pkg[0]!.method}/${pkg[0]!.n}`).toBe(`${info.project.name.includes('desktop') ? 'drawn' : 'typed'}/${total}`);
-  console.log(`owner package (${info.project.name}): ${total} documents, ${info.project.name.includes('desktop') ? 3 : 2} taps after opening, ${Math.round((Date.now() - opened) / 1000)} s in the test, ${pkg[0]!.seconds_to_sign} s recorded`);
+  expect(`${pkg[0]!.method}/${pkg[0]!.n}`).toBe(`drawn/${total}`);
+  console.log(`owner package (${info.project.name}): ${total} documents, ${Math.round((Date.now() - opened) / 1000)} s in the test, ${pkg[0]!.seconds_to_sign} s recorded`);
+  const sess = await sql`select count(*)::int n from signature_records r join owner_agreements a on a.signature_request_id = r.signature_request_id
+    where a.owner_id = ${owner!.id} and r.signer_role like 'owner_%' and r.esign_session_id is not null`;
+  expect(sess[0]!.n).toBe(2);
   const signed = await sql`select string_agg(status, ',' order by kind) s from owner_agreements where owner_id = ${owner!.id}`;
   expect(signed[0]!.s).toBe('signed,signed');
   // 0077: the signed copies are made by background jobs, within seconds

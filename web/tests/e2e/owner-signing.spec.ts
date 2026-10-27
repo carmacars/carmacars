@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow, watch } from './helpers';
+import { acceptCookies, db, noOverflow, strongSign, watch } from './helpers';
 
 // Owner signing that never crashes (migration 0077), end to end at 375 and 1440:
 //   an individual owner, a corporation owner whose car staff added for them (0067, "No invoice" chosen), and an owner
@@ -86,9 +86,9 @@ async function signFromHome(op: Page, name: string, where: string) {
   const ready = Date.now() - t0;
   await check(op, `${where} sign page`);
   await shot(op, `${where}-sign`);
-  if (await op.getByTestId('package-tick-all').isVisible()) await op.getByTestId('package-tick-all').check();
-  if (await op.getByTestId('package-initials').isVisible()) await op.getByTestId('package-initials').fill(name.split(' ').map((w) => w[0]).join('').slice(0, 3));
-  await expect(op.getByTestId('signature-adopted')).toContainText(name);
+  // 0182: the signing steps of every signature (the code, the reading, the confirmations initialled, the consents, the drawn signature)
+  await expect(op.getByTestId('esign-flow')).toContainText(`${name.split(' ')[0]}'s phone or email`, { timeout: 20_000 });
+  await strongSign(op, op.getByTestId('owner-package'));
   const t1 = Date.now();
   await op.getByTestId('package-sign').click();
   await op.waitForURL(/\/owner\?signed=1/, { timeout: 30_000 });

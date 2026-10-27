@@ -18,7 +18,9 @@ interface Facts {
 }
 
 // Every Owner named in the Title Schedule signs with their own link (the legal review, migration 0053). No account is
-// needed: the link names the Owner. They read the same documents the portal owner reads and sign once for all of them.
+// needed: the link names the Owner. They read the same documents the portal owner reads and sign once for all of them,
+// with the signing steps of every signature (0182): a code to their email, the reading, the confirmations initialled, the
+// consents, the drawn signature.
 export default async function CosignerSign({ params }: { params: Promise<{ token: string }> }) {
   const token = (await params).token;
   const f = /^[0-9a-f]{64}$/.test(token) ? ((await rpc('server_owner_cosigner_facts', { p_token: token }, { role: 'service_role' })) as unknown as Facts | null) : null;
@@ -38,7 +40,7 @@ export default async function CosignerSign({ params }: { params: Promise<{ token
         <div className="pt-split">
           <div className="stack-lg">{docs.map((d) => <details key={d.key} open={docs.length === 1}><summary>{d.title}</summary><AgreementView blocks={d.blocks} id={`co-doc-${d.key}`} label={d.title} /></details>)}</div>
           <aside className="pt-split__aside"><section className="pt-card" aria-labelledby="co-sign"><h2 className="d4" id="co-sign">Sign</h2>
-            <PackageSignForm docs={docs.map((d) => ({ key: d.key, title: d.title }))} signerName={f.cosigner.name} initials={enrollment}
+            <PackageSignForm docs={docs.map((d) => ({ key: d.key, title: d.title }))} signerName={f.cosigner.name} esign={{ kind: 'cosigner', token }}
               statements={[{ code: 'statement', text: OWNER_SIGN_STATEMENT }, ...(enrollment ? CONFIRMATIONS.map((c) => ({ code: c.code, text: c.text })) : [])]}
               consent={`By pressing Sign you sign ${docs.length > 1 ? `these ${docs.length} documents` : 'this document'} electronically, with the same effect as signing on paper. We record the time, your IP address and device.${f.waiting_for.length || !f.owner_signed ? ' The agreements take effect when every Owner has signed.' : ' You are the last Owner to sign: CarmaCars countersigns at the same moment.'}`}
               button={docs.length > 1 ? `Sign all ${docs.length}` : 'Sign'} action={signAsCosigner.bind(null, token)} testId="cosign-form" />

@@ -17,7 +17,8 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Sign Form C on screen', path: '/owner/documents', noindex: true, description: 'Form C of your Title Agreement, signed on screen with your witness beside you.' });
 
 // Form C on screen (the legal review, migration 0053): filled from the owner's records for one financed or leased car,
-// signed and initialled by the owner, with the witness typing their name and the statement on the same device.
+// signed and initialled by the owner with the signing steps of every signature (0182), with the witness typing their name
+// and the statement on the same device.
 export default async function FormCScreen({ params }: { params: Promise<{ vehicle: string }> }) {
   const vehicle = (await params).vehicle;
   if (!/^[0-9a-f-]{36}$/.test(vehicle)) notFound();
@@ -46,7 +47,8 @@ export default async function FormCScreen({ params }: { params: Promise<{ vehicl
       <div className="stack-lg" style={{ maxWidth: '48rem' }}>
         <AgreementView blocks={blocks} id="form-c" label={FORM_TITLE.C} />
         {open ? <section className="pt-card stack" aria-labelledby="fc-sign"><h2 className="d4" id="fc-sign">Sign Form C</h2>
-          <FormCSignForm ownerName={facts.owner.legal_name} acknowledgments={acks} statement={witnessStatement(facts.owner.legal_name)} action={signFormC.bind(null, open.id, open.sha)} /></section>
+          <FormCSignForm ownerName={facts.owner.legal_name} acknowledgments={acks} statement={witnessStatement(facts.owner.legal_name)}
+            esign={{ kind: 'documents', role: 'owner', docs: [{ kind: 'request', ref: open.id, sha: open.sha, title: FORM_TITLE.C }] }} action={signFormC.bind(null, open.id, open.sha)} /></section>
           : viewing ? <p className="small muted">Read only.</p> : <PrepareDocs targets={[spec.target]} titles={[spec.title]} />}
       </div>
     </>

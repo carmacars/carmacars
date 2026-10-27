@@ -6,6 +6,7 @@
 // stored: anyone can check a copy on /verify (tamper-evident: a changed byte gives another SHA-256).
 // pdf-lib only (works in the Worker and in Node). Relative imports with their extension: the unit tests run it directly.
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
+import { DOC_TERM_LABELS } from './terms.ts';
 
 export interface CertEvent { at: string; kind: string; detail?: Record<string, unknown> | null; ip_address?: string | null; user_agent?: string | null }
 export interface CertSigner {
@@ -42,7 +43,8 @@ export function stamp(iso: string | null | undefined): string {
 }
 const STEP: Record<string, string> = { started: 'Signing opened', code_sent: 'Identity code sent', code_failed: 'Wrong code entered', code_verified: 'Identity code confirmed',
   viewed: 'Documents viewed', document_opened: 'PDF opened', initial: 'Initialled', consent: 'Consented', geolocation: 'Location shared', signature: 'Signature drawn', signed: 'Signed' };
-const CLAUSE: Record<string, string> = { damage: 'damage and the deductible', charges: 'the deposit and later charges', fees: 'fuel, kilometres and late returns', coverage: 'the coverage choice', cancellation: 'cancellation' };
+const CLAUSE: Record<string, string> = { damage: 'damage and the deductible', charges: 'the deposit and later charges', fees: 'fuel, kilometres and late returns', coverage: 'the coverage choice', cancellation: 'cancellation',
+  ...DOC_TERM_LABELS };
 const CONSENT: Record<string, string> = { esign: 'to sign electronically', erecords: 'to receive records electronically', card: 'to card charges under the agreement' };
 
 const safe = (s: string) => s.replace(/[^\x20-\x7E\xA0-\xFF]/g, (c) => ({ '’': "'", '‘': "'", '“': '"', '”': '"', '–': '-', '—': '-' } as Record<string, string>)[c] ?? '');

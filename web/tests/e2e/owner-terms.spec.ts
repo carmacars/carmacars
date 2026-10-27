@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, carByHand, db, noOverflow, pdfText } from './helpers';
+import { acceptCookies, carByHand, db, noOverflow, pdfText, strongSign } from './helpers';
 
 // Owner terms and invoices (migration 0067), end to end at 375 and 1440:
 //   Approve with custom terms and the first and last month recorded as paid by e-Transfer, a registration fee sent to the
@@ -253,10 +253,14 @@ test('terms of a signed car: a higher amount is an updated Vehicle Schedule the 
   await expect(op.getByTestId('schedule-compare')).toContainText('$460.00');
   await check(op, 'schedule sign');
   await shot(op, 'schedule-sign');
-  await op.getByTestId('schedule-agree').check();
-  await op.getByTestId('schedule-name').fill(owner.name);
+  // 0182: signed with the signing steps of every signature (the code, the reading, the updated terms initialled, the
+  // consents, the drawn signature); the signed copy, with its certificate, is filed and found on /verify
+  await strongSign(op, op.getByTestId('schedule-sign'));
   await op.getByTestId('schedule-sign-submit').click();
   await expect(op.getByTestId('schedule-signed')).toBeVisible({ timeout: 20_000 });
+  const [doc] = await sql`select d.sha256, c.owner_signed_name, c.esign_session_id is not null sess from vehicle_term_changes c join documents d on d.id = c.document_id where c.id = ${c!.id}`;
+  expect(`${!!doc!.owner_signed_name}/${doc!.sess}`).toBe('true/true');
+  expect((await sql`select public.server_verify_sha(${doc!.sha256}) ->> 'found' f`)[0]!.f).toBe('true');
   const [s] = await sql`select s.insurance_fee_cents::int ins, s.signed_at is not null signed from vehicle_schedules s join vehicles v on v.id = s.vehicle_id where v.owner_id = ${app.ownerId} and s.superseded_by is null`;
   expect(`${s!.ins}/${s!.signed}`).toBe('46000/true');
   await op.context().close();

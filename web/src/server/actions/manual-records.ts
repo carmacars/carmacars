@@ -173,19 +173,6 @@ export async function openOwnerFormAB(code: 'A' | 'B'): Promise<R<{ id: string; 
   } catch (e) { return fail(e); }
 }
 
-export interface SignInput { id: string; sha: string; typedName?: string; drawn?: string; legalAdvice?: 'obtained' | 'declined'; adviser?: string; initials?: string; consent: string }
-/** The person signs a document sent to them (Forms A and B, investment and staff agreements) in their portal. */
-export async function signRequest(input: SignInput): Promise<R<{ status: string }>> {
-  try {
-    const user = await currentUser();
-    if (!user) throw new Error('Sign in first.');
-    const { signDocument } = await import('@/server/sign-requests');
-    const r = await signDocument(user.id, input);
-    for (const p of ['/owner/documents', '/owner', '/investor/sign', '/investor', '/va/sign', '/field/sign']) revalidatePath(p);
-    return { ok: true, data: r };
-  } catch (e) { return fail(e); }
-}
-
 /** An agreement generated from the record (migration 0049): the values it starts with, for the Admin to confirm. */
 export async function prepareGeneratedAgreement(kind: 'investment_agreement' | 'staff_agreement', who: string): Promise<R<import('@/server/person-agreements').Prepared>> {
   try {

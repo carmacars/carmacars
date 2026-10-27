@@ -301,10 +301,11 @@ def build():
         f'Check-out stops while a field a claim needs is blank. An Admin can let it go ahead: type the reason and press {B("Override")}; the reason is in the booking\'s history.',
         f'{B("Make the agreements again")} checks both against the booking at once (they also follow every change by themselves).',
     ])
-    g.task('Signing that holds up in a dispute', 'Every signature of a rental agreement, an amendment or a new version is made the same way, remotely or on your device.')
+    g.task('Signing that holds up in a dispute', 'Every signature on the site is made the same way: rental agreements, amendments and new versions (remotely or on your device), and the owner agreements, schedules and forms, a co-owner\'s link, the partner, investment and staff agreements.')
     g.steps([
         'The signer confirms it is them with a 6-digit code sent to their phone or email on file; the licence on file is shown.',
         'They say they read the documents, initial the key terms (damage and the deductible, the deposit and later charges, fuel, kilometres and late returns, their coverage, cancellation), give three consents (to sign electronically, to receive records electronically, to card charges under the agreement) and draw their signature.',
+        'Owners, partners, investors and staff do the same for their documents: the code, the reading, the key terms of their documents initialled (for example the Enrollment Agreement\'s three confirmations, Form C\'s acknowledgments, Schedule C, the staff agreement\'s confidentiality), two consents and the drawn signature. Form C\'s witness still types their name beside the owner.',
         f'Each step is recorded with its time, IP address and device, and the place when the device shares it. The signed PDFs end with a certificate of completion; anyone can check a signed file at {U("carmacars.ca/verify")}.',
         f'Typed names are off. For a signer who cannot draw, an Admin can turn on the accessibility fallback: {P("Settings", "Program")}, Esign typed fallback.',
     ])

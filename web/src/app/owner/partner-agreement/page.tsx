@@ -48,7 +48,8 @@ export default async function PartnerAgreementPage() {
       <div className="stack-lg" style={{ maxWidth: '48rem' }}>
         <AgreementView blocks={partnerAgreementBlocks(facts)} id="partner-agreement" label={PARTNER_AGREEMENT_TITLE} />
         {open ? <section className="pt-card stack" aria-labelledby="pa-sign"><h2 className="d4" id="pa-sign">Sign the partner agreement</h2>
-          <PackageSignForm docs={[{ key: 'partner', title: PARTNER_AGREEMENT_TITLE }]} signerName={facts.partner.signer_name} fixNameHref="/owner/profile"
+          <PackageSignForm docs={[{ key: 'partner', title: PARTNER_AGREEMENT_TITLE }]} signerName={facts.partner.signer_name}
+            esign={{ kind: 'documents', role: 'partner', docs: [{ kind: 'request', ref: open.id, sha: open.sha, title: PARTNER_AGREEMENT_TITLE }] }}
             consent="By pressing Sign you sign the partner agreement electronically, with the same effect as signing on paper. We record the time, your IP address and device. CarmaCars countersigns at the same moment."
             button="Sign" action={signOwnerPackage.bind(null, { packet: [], requests: [{ id: open.id, sha: open.sha, title: PARTNER_AGREEMENT_TITLE }], next: '/owner/partner-agreement' })} testId="portal-sign-form" /></section>
           : viewing ? <p className="small muted">Read only.</p> : <PrepareDocs targets={[spec.target]} titles={[spec.title]} />}

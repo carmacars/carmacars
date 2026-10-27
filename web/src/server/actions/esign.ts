@@ -10,19 +10,48 @@ import { readToken, sha256Hex } from '@/server/links';
 import { currentUser, findBooking } from '@/server/portal/data';
 import { rolesOf } from '@/server/door';
 import { CONSENTS, type ConsentCode } from '@/features/agreement/extra';
+import { DOC_CONSENTS } from '@/features/signing/terms';
+import { TITLES, type PacketKey } from '@/features/owner-agreement/model';
 import type { EsignContext, EsignView } from '@/features/signing/types';
 
-// The signing session of every rental agreement signature (migration 0154): the renter's own (remote), an additional
-// driver's (their link), one collected in person on a staff member's device, an amendment, a new version. Each action
+// The signing session of every signature (migration 0154): the renter's own (remote), an additional driver's (their
+// link), one collected in person on a staff member's device, an amendment, a new version; since 0182 every other
+// document signed on the site (the owner's agreements, schedules and forms, the partner, investment and staff
+// agreements, an updated Vehicle Schedule) and another Owner's link. Each action
 // finds the signer from the records (never from the page), then the database checks and records the step. The one-time
 // code is made here, sent by text (the CarmaCars number) or by email, and only its hash is kept.
 const SR = { role: 'service_role' as const };
 type R<T = null> = ActionResult<T>;
 const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
 
-interface Resolved { context: 'rental_agreement' | 'amendment' | 'agreement_version'; signer_ref: string; booking_id: string | null; method: 'remote' | 'in_person'; collected_by: string | null; documents: Array<{ title: string; sha256: string }> }
+interface Resolved {
+  context: 'rental_agreement' | 'amendment' | 'agreement_version' | 'documents' | 'owner_cosigner'; signer_ref: string; booking_id: string | null; method: 'remote' | 'in_person';
+  collected_by: string | null; documents: Array<{ title: string; sha256: string; kind?: string; ref?: string }>; owner_id?: string | null; role?: string;
+}
+interface CosignFacts { cosigner: { id: string; status: string }; owner: { id: string }; documents: Array<{ key: PacketKey; sha256: string }> }
+const cosignFacts = async (token: string) => (/^[0-9a-f]{64}$/.test(token) ? ((await rpc('server_owner_cosigner_facts', { p_token: token }, SR)) as unknown as CosignFacts | null) : null);
 
 async function resolve(ctx: EsignContext): Promise<Resolved> {
+  if (ctx.kind === 'documents') {
+    // the database checks each document: open, this signer's, the SHA-256 shown (app.esign_start_documents)
+    const user = await currentUser();
+    if (!user) throw new Error('Sign in first.');
+    if (!ctx.docs.length) throw new Error('Nothing to sign here.');
+    let owner: string | null = null;
+    if (ctx.docs.some((d) => d.kind === 'packet')) {
+      const { ownerHome } = await import('@/server/owner/data');
+      owner = (await ownerHome(user))?.owner.id ?? null;
+      if (!owner) throw new Error('This account is not an owner account.');
+    }
+    return { context: 'documents', signer_ref: user.id, booking_id: null, method: 'remote', collected_by: null, owner_id: owner, role: ctx.role,
+      documents: ctx.docs.map((d) => ({ title: d.title.slice(0, 160), sha256: d.sha.toLowerCase(), kind: d.kind, ref: d.ref })) };
+  }
+  if (ctx.kind === 'cosigner') {
+    const f = await cosignFacts(ctx.token);
+    if (!f || f.cosigner.status !== 'pending') throw new Error('Nothing is waiting for your signature.');
+    return { context: 'owner_cosigner', signer_ref: f.cosigner.id, booking_id: null, method: 'remote', collected_by: null, owner_id: f.owner.id,
+      documents: f.documents.map((d) => ({ title: TITLES[d.key] ?? d.key, sha256: d.sha256, kind: 'packet', ref: d.key })) };
+  }
   if (ctx.kind === 'renter') {
     const user = await currentUser();
     if (!user) throw new Error('Sign in first.');
@@ -80,7 +109,7 @@ export async function esignStart(ctx: EsignContext): Promise<R<EsignView>> {
     const r = await resolve(ctx);
     const meta = await requestMeta();
     const v = (await rpc('server_esign_start', { p: { context: r.context, signer_ref: r.signer_ref, booking_id: r.booking_id, method: r.method, collected_by: r.collected_by,
-      documents: r.documents, ip: meta.ip ?? null, user_agent: meta.userAgent } as unknown as Json }, SR)) as unknown as EsignView;
+      documents: r.documents, owner_id: r.owner_id ?? null, role: r.role ?? null, ip: meta.ip ?? null, user_agent: meta.userAgent } as unknown as Json }, SR)) as unknown as EsignView;
     return { ok: true, data: v };
   } catch (e) { return fail(e); }
 }
@@ -94,6 +123,12 @@ async function own(ctx: EsignContext, session: string): Promise<EsignView> {
   if (ctx.kind === 'driver') {
     const t = await readToken<{ s: string }>('driver-sign', ctx.token);
     ok = !!t && t.s === o.signer_ref && o.context === 'rental_agreement';
+  } else if (ctx.kind === 'cosigner') {
+    const f = await cosignFacts(ctx.token);
+    ok = !!f && f.cosigner.id === o.signer_ref && o.context === 'owner_cosigner';
+  } else if (ctx.kind === 'documents') {
+    const user = await currentUser();
+    ok = !!user && user.id === o.signer_ref && o.context === 'documents';
   } else if (ctx.kind === 'version') {
     const link = (await rpc('server_agreement_version_link', { p_token: ctx.token }, SR)) as unknown as { signer_id: string } | null;
     ok = !!link && link.signer_id === o.signer_ref && o.context === 'agreement_version';
@@ -173,7 +208,11 @@ export async function esignStep(ctx: EsignContext, session: string, step: EsignS
     if (step.kind === 'initial') {
       if (step.png) { const b = pngBytes(step.png, 80); if (!b) throw new Error('Initial in the box.'); path = await store(b, `initials-${step.code}`); detail = { code: step.code, path }; }
       else detail = { code: step.code, typed: true, text: (step.typed ?? '').slice(0, 10) };
-    } else if (step.kind === 'consent') detail = { code: step.code, text: CONSENTS[step.code] };
+    } else if (step.kind === 'consent') {
+      const texts: Record<string, string> = ctx.kind === 'documents' || ctx.kind === 'cosigner' ? DOC_CONSENTS : CONSENTS;
+      if (!texts[step.code]) throw new Error('Unknown consent.');
+      detail = { code: step.code, text: texts[step.code] };
+    }
     else if (step.kind === 'geolocation') detail = { lat: step.lat, lng: step.lng, accuracy: step.accuracy };
     else if (step.kind === 'document_opened') detail = { title: step.title.slice(0, 120) };
     else if (step.kind === 'signature') {

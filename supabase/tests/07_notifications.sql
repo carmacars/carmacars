@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '192/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '193/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -761,6 +761,8 @@ values (test.id('nt_agv'), test.id('booking:NT-1'), 2, 'correction', false, 'fil
         '[{"key": "renter.address", "label": "Renter: address", "before": "1 Old Street", "after": "1 New Street", "material": false}]', '{}', 'nt');
 select app.emit_event('renter_agreement_version', 'agreement_version', test.id('nt_agv'), jsonb_build_object('booking_id', test.id('booking:NT-1'), 'version_id', test.id('nt_agv'), 'needs_signature', false), 'renter_agreement_version:nt');
 select app.emit_event('renter_signing_code', 'esign_session', test.id('nt_esign'), jsonb_build_object('booking_id', test.id('booking:NT-1'), 'signer_email', 'nt.signer@example.test', 'signer_name', 'Nia Signer', 'code', '482913'), 'renter_signing_code:nt');
+-- the signing code of the other documents (0182): to the signer's own email
+select app.emit_event('document_signing_code', 'esign_session', test.id('nt_esign_doc'), jsonb_build_object('signer_email', 'nt.docsigner@example.test', 'signer_name', 'Nia Docsigner', 'code', '482913', 'document_label', 'your 2 documents'), 'document_signing_code:nt');
 select test.flush();
 delete from agreement_versions where id = test.id('nt_agv');
 -- the usage guard's alert (0080)

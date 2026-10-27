@@ -5458,6 +5458,9 @@ export type Database = {
           signature_record_id: string | null;
           created_at: string;
           updated_at: string;
+          signer_user_id: string | null;
+          owner_id: string | null;
+          signed_refs: string[];
         };
         Insert: {
           id?: string;
@@ -5495,6 +5498,9 @@ export type Database = {
           signature_record_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          signer_user_id?: string | null;
+          owner_id?: string | null;
+          signed_refs?: string[];
         };
         Update: {
           id?: string;
@@ -5532,6 +5538,9 @@ export type Database = {
           signature_record_id?: string | null;
           created_at?: string;
           updated_at?: string;
+          signer_user_id?: string | null;
+          owner_id?: string | null;
+          signed_refs?: string[];
         };
         Relationships: [];
       };
@@ -16394,6 +16403,7 @@ export type Database = {
           collected_in_person_by: string | null;
           collected_device: string | null;
           identity_check: Json | null;
+          esign_session_id: string | null;
         };
         Insert: {
           id?: string;
@@ -16420,6 +16430,7 @@ export type Database = {
           collected_in_person_by?: string | null;
           collected_device?: string | null;
           identity_check?: Json | null;
+          esign_session_id?: string | null;
         };
         Update: {
           id?: string;
@@ -16446,6 +16457,7 @@ export type Database = {
           collected_in_person_by?: string | null;
           collected_device?: string | null;
           identity_check?: Json | null;
+          esign_session_id?: string | null;
         };
         Relationships: [];
       };
@@ -20849,6 +20861,7 @@ export type Database = {
           edit_id: string | null;
           new_management_mode: Database["public"]["Enums"]["management_mode"] | null;
           new_onboarding_method: Database["public"]["Enums"]["onboarding_method"] | null;
+          esign_session_id: string | null;
         };
         Insert: {
           id?: string;
@@ -20881,6 +20894,7 @@ export type Database = {
           edit_id?: string | null;
           new_management_mode?: Database["public"]["Enums"]["management_mode"] | null;
           new_onboarding_method?: Database["public"]["Enums"]["onboarding_method"] | null;
+          esign_session_id?: string | null;
         };
         Update: {
           id?: string;
@@ -20913,6 +20927,7 @@ export type Database = {
           edit_id?: string | null;
           new_management_mode?: Database["public"]["Enums"]["management_mode"] | null;
           new_onboarding_method?: Database["public"]["Enums"]["onboarding_method"] | null;
+          esign_session_id?: string | null;
         };
         Relationships: [];
       };
@@ -23081,6 +23096,8 @@ export type Database = {
       server_driver_save_licence: { Args: { p_signer: string; p: Json }; Returns: Json };
       server_esign_certificate: { Args: { p_context: string; p_refs: string[] }; Returns: Json };
       server_esign_certificate_for_booking: { Args: { p_booking: string }; Returns: Json };
+      server_esign_certificate_for_request: { Args: { p_request: string }; Returns: Json };
+      server_esign_certificate_sessions: { Args: { p_sessions: string[] }; Returns: Json };
       server_esign_code_check: { Args: { p_session: string; p_hash: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
       server_esign_code_email: { Args: { p_session: string; p_code: string }; Returns: undefined };
       server_esign_code_set: { Args: { p_session: string; p_channel: string; p_hash: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
@@ -23208,7 +23225,9 @@ export type Database = {
       server_review_google_sync_finish: { Args: { p: Json }; Returns: Json };
       server_review_helper: { Args: { p_token: string }; Returns: Json };
       server_review_helper_act: { Args: { p_token: string; p_act: string }; Returns: Json };
+      server_schedule_change_attach: { Args: { p_change: string; p_path: string; p_sha256: string }; Returns: string };
       server_schedule_change_sign: { Args: { p_by: string; p: Json }; Returns: Json };
+      server_schedule_change_signed_facts: { Args: { p_change: string }; Returns: Json };
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };
       server_seo_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };

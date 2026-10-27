@@ -14,6 +14,7 @@ import { SIGN_STATEMENT } from '@/features/manual/constants';
 import { partnerAgreementBlocks, type PartnerFacts } from '@/features/partner/agreement';
 import { formABFacts, formCFacts, formCSpec, formSpec, partnerFacts, partnerSpec, prepareSpec } from '@/server/signing/prepare';
 import { enqueuePdfJobs } from '@/server/pdf-jobs';
+import { withRequestCertificate } from '@/server/signing/certified';
 
 // Documents one person signs in their portal (migration 0044): Forms A and B (rendered here from the owner's records),
 // investment agreements and staff agreements (a PDF an Admin sent). The person signs by typing their name or drawing;
@@ -138,6 +139,9 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
   ];
   let pdf = await agreementPdf(blocks, { title: `${r.title}, signed`, createdAt: new Date(rec.signed_at), images, record: { heading: 'Signature record', lines }, footer: `CarmaCars ${r.title}, signed.` });
   if (whole) pdf = await withDocument(s, r.id, pdf, r.document_sha256);
+  // the certificate of completion (0182): the signer's signing session and the SHA-256 of the document signed
+  pdf = await withRequestCertificate(pdf, r.signature_request_id, r.title, company.officer && r.doc_type !== 'investment_agreement'
+    ? { name: companyName ?? company.officer, at: rec.signed_at, text: company.text ?? 'Countersigned automatically when the document was signed.' } : null);
   const sha = await sha256Hex(pdf);
   const base = r.doc_type === 'partner_agreement' ? `owners/${r.owner_id}/partner` : r.doc_type === 'form_c' ? `owners/${r.owner_id}/forms` : r.owner_id ? `owners/${r.owner_id}/forms` : r.investor_id ? `investors/${r.investor_id}/signed` : `staff/${r.staff_user_id}/signed`;
   const path = `${base}/${r.doc_type}-${r.id.slice(0, 8)}-signed.pdf`;

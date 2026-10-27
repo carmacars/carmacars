@@ -8,6 +8,7 @@ import { documentBlocks, OWNER_TEMPLATE_VERSION, TITLES, type OwnerAgreementFact
 import { sha256Hex } from '@/server/links';
 import { ownerAgreementFacts, packetFooter, packetSpecs, prepareSpec } from '@/server/signing/prepare';
 import { enqueuePdfJobs } from '@/server/pdf-jobs';
+import { withRequestCertificate } from '@/server/signing/certified';
 
 // Built-in signing of the owner agreements, the same way as the rental agreement (0019, 0028): each document is
 // rendered from the owner's records, stored in the private agreements bucket and opened with its SHA-256
@@ -70,7 +71,10 @@ export async function attachOwnerSignedCopy(ownerId: string, by: string, doc: Si
       ...doc.records.map((r) => [`${r.signer_role.replace(/_/g, ' ')}: ${r.signer_name}`, `${r.signed_at ? when(r.signed_at) : 'signed on paper'}; method ${r.method}${r.ip_address ? `; IP address ${r.ip_address}` : ''}${r.user_agent ? `; device ${r.user_agent}` : ''}${r.initials ? `; initials ${Object.values(r.initials).join(', ')}` : ''}`]),
       ...company.lines
     ];
-    const pdf = await agreementPdf(blocks, { title: `${TITLES[doc.key]}, signed`, createdAt: new Date(cc?.signed_at ?? Date.now()), images, record: { heading: 'Signature record', lines }, footer: packetFooter(facts, doc.key) });
+    const signedPdf = await agreementPdf(blocks, { title: `${TITLES[doc.key]}, signed`, createdAt: new Date(cc?.signed_at ?? Date.now()), images, record: { heading: 'Signature record', lines }, footer: packetFooter(facts, doc.key) });
+    // the certificate of completion (0182): each Owner's signing session and the SHA-256 of the document signed
+    const pdf = await withRequestCertificate(signedPdf, doc.signature_request_id, `${TITLES[doc.key]}${doc.agreement_number ? ` ${doc.agreement_number}` : ''}`,
+      cc ? { name: cc.signer_name, at: cc.signed_at, text: company.text ?? 'Countersigned automatically when the Owners signed.' } : null);
     const sha = await sha256Hex(pdf);
     const path = `owners/${ownerId}/agreements/${doc.key}-${doc.signature_request_id.slice(0, 8)}-signed.pdf`;
     await s.put('agreements', path, pdf, 'application/pdf');

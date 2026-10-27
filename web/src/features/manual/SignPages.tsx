@@ -9,7 +9,9 @@ import { homeAddressOf } from '@/features/staff/HomeAddress';
 
 // The signing pages of the investor, VA and Field portals (migrations 0044 and 0049): every document waiting for the
 // person's signature in one package (a generated agreement shows the key values it was filled with, each with a Fix
-// note), one signature for all of them, and what is already signed. A single document has its own page too.
+// note), one signature for all of them, given with the signing steps of every signature (0182: a code to the phone or
+// email, the reading, the key terms initialled, the consents, the drawn signature), and what is already signed. A single
+// document has its own page too.
 type Open = { id: string; doc_type: string; title: string; document_id: string; sent_at: string; extra?: { summary?: SummaryRow[]; generated?: boolean } };
 type Signed = { id: string; doc_type: string; title: string; document_id: string | null; signed_document_id?: string | null; method: string; signed_on: string; awaiting_countersignature?: boolean };
 type Facts = { id: string; doc_type: string; title: string; status: string; signer_name: string; document_id: string; document_sha256: string; signed_at: string | null; method: string | null;
@@ -50,7 +52,7 @@ export async function SignList({ userId, base }: { userId: string; base: string 
             <section className="pt-card" aria-labelledby="sg-sign"><h2 className="d4" id="sg-sign">Sign</h2>
               {viewing ? <p className="small muted">Read only.</p> : (
                 <PackageSignForm docs={open.map((x) => ({ key: x.id, title: x.title }))} signerName={open[0]!.signer_name} investment={open.some((x) => x.doc_type === 'investment_agreement')}
-                  initials={open.some((x) => x.doc_type === 'investment_agreement')} statementsLegend="Risk acknowledgment (Schedule C)"
+                  esign={{ kind: 'documents', role: portalOf(base) === 'investor' ? 'investor' : 'staff', docs: open.map((x) => ({ kind: 'request' as const, ref: x.id, sha: x.document_sha256, title: x.title })) }}
                   statements={open.some((x) => x.doc_type === 'investment_agreement') ? [{ code: 'schedule_c', text: 'I have read the risk acknowledgment in Schedule C and I initial each statement in it.' }] : []}
                   consent={consent(open.length)} button={open.length > 1 ? `Sign all ${open.length}` : 'Sign'} testId="portal-sign-form"
                   action={signPortalPackage.bind(null, { requests: open.map((x) => ({ id: x.id, sha: x.document_sha256, title: x.title, doc_type: x.doc_type })), portal: portalOf(base), next: base })} />
@@ -97,7 +99,8 @@ export async function SignOne({ userId, base, id }: { userId: string; base: stri
           <section className="pt-card stack" aria-labelledby="sg-sign"><h2 className="d4" id="sg-sign">Sign</h2>
             {viewing ? <p className="small muted">Read only.</p>
               : needsAddress ? <p className="small" data-testid="sign-needs-address">First add your home address at the top of the page. Then you can sign.</p>
-              : <PackageSignForm docs={[{ key: f.id, title: f.title }]} signerName={f.signer_name} investment={inv} initials={inv} statementsLegend="Risk acknowledgment (Schedule C)"
+              : <PackageSignForm docs={[{ key: f.id, title: f.title }]} signerName={f.signer_name} investment={inv}
+                  esign={{ kind: 'documents', role: portalOf(base) === 'investor' ? 'investor' : 'staff', docs: [{ kind: 'request', ref: f.id, sha: f.document_sha256, title: f.title }] }}
                   statements={inv ? [{ code: 'schedule_c', text: 'I have read the risk acknowledgment in Schedule C and I initial each statement in it.' }] : []}
                   consent={consent(1)} button="Sign" testId="portal-sign-form"
                   action={signPortalPackage.bind(null, { requests: [{ id: f.id, sha: f.document_sha256, title: f.title, doc_type: f.doc_type }], portal: portalOf(base), next: base })} />}</section>

@@ -52,7 +52,8 @@ export default async function ScreenForm({ params }: { params: Promise<{ code: s
       <div className="stack-lg" style={{ maxWidth: '48rem' }}>
         <AgreementView blocks={screenFormBlocks(facts)} id={`form-${code.toLowerCase()}`} label={title} />
         {open ? <section className="pt-card stack" aria-labelledby="sf-sign"><h2 className="d4" id="sf-sign">Sign {title}</h2>
-          <PackageSignForm docs={[{ key: `form-${code}`, title }]} signerName={facts.owner.signer_name} fixNameHref="/owner/profile"
+          <PackageSignForm docs={[{ key: `form-${code}`, title }]} signerName={facts.owner.signer_name}
+            esign={{ kind: 'documents', role: 'owner', docs: [{ kind: 'request', ref: open.id, sha: open.sha, title }] }}
             consent={`By pressing Sign you sign ${title} electronically, with the same effect as signing on paper. We record the time, your IP address and device. CarmaCars countersigns at the same moment.`}
             button="Sign" action={signOwnerPackage.bind(null, { packet: [], requests: [{ id: open.id, sha: open.sha, title }], next: `/owner/documents/screen/${code.toLowerCase()}` })} testId="portal-sign-form" /></section>
           : viewing ? <p className="small muted">Read only.</p> : <PrepareDocs targets={[spec.target]} titles={[spec.title]} />}

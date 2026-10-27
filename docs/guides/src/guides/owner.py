@@ -47,7 +47,7 @@ def build():
             ('Photos and listing', 'Live within 1 business day')])
     g.steps([
         f'When your terms are ready, Home shows {B("Check and sign")}. Everything is filled in from your application: check the short list of key values (each has a {B("Fix")} link) and open any document to read it in full.',
-        f'Tap {B("All of these")} for the three confirmations (your initials are filled in), then press {B("Sign all")}. Your name on file is your signature; prefer to draw it? Press {B("Draw instead")}. One signature covers every document, in about a minute.',
+        f'Sign in a few steps: confirm it is you with the 6-digit code we send to your phone or email, say you read the documents, initial the three confirmations, tick the two consents and draw your signature. Then press {B("Sign all")}. One signature covers every document, in about two minutes.',
         'Pay the upfront invoice: the first and last month\'s insurance fee for each car (see chapter 4).',
         'Upload what each car\'s checklist asks for: the ownership permit, the lender\'s permission if it is financed or leased, and insurance.',
         'Sign Forms C and D (filled in for you) with witnesses: Form C on screen with your witness beside you, or on paper; Form D on paper, with a photo of each page from your phone (see chapter 5).',
@@ -195,11 +195,15 @@ def build():
         f'Press {B("Check and sign")} on Home (or open {U("carmacars.ca/owner/sign")}). The list at the top shows each document: signed, in this package, or done elsewhere (Forms C and D, the bank debit).',
         f'Check the key values: your name, address, each car with its VIN and plate, your fees and Revenue Share. Something wrong? Press {B("Fix")} next to it, change it, and come back.',
         'Open any document to read it word for word: the agreements, the schedules and Forms A and B. The official registry forms are not in it: they are printed and signed in ink.',
-        f'Tap {B("All of these")} for the statements the agreement asks you to initial (your initials are filled in), then press {B("Sign all")}.',
-        'Your name on file is your signature. One signature is applied to each document; CarmaCars countersigns at the same moment and every signed copy is in Documents.',
+        f'Press {B("Send the code")}: a 6-digit code goes to your phone (or your email, if you choose it). Type it and press {B("Confirm")}.',
+        'Tick that you read the documents, draw your initials in the box beside each confirmation the Enrollment Agreement asks for, and tick the two consents (to sign electronically, to get your records electronically).',
+        f'Draw your signature in the box with your finger, a pen or the mouse, then press {B("Sign all")}. One signature is applied to each document; CarmaCars countersigns at the same moment and every signed copy is in Documents.',
+        'Each signed copy ends with a certificate of completion: when and where each step was done, and the code that confirmed it was you. Anyone holding a copy can check it at carmacars.ca/verify.',
     ])
-    g.tip('A car with a second owner on its ownership? Each owner named in the Title Schedule signs. The other owner gets their own link by email and signs the same documents on their phone or computer. '
+    g.tip('A car with a second owner on its ownership? Each owner named in the Title Schedule signs. The other owner gets their own link by email and signs the same documents on their phone or computer, '
+          'the same way: the code (sent to their email), the confirmations initialled, the consents and their drawn signature. '
           'The agreements take effect when the last owner signs; CarmaCars countersigns then.', label='Two owners')
+    g.tip('Cannot draw a signature (for example with a disability)? Call us: an Admin can let you type your name instead.', label='Good to know')
     g.tip('Form A (the trust declaration) is for cars under the Co-Registrant or Transfer method; Form B (the lease summary) for cars under a Lease method. No witness is needed: they are in the same package. You can also sign one on its own page from Documents.', label='Good to know')
     g.tip('Signed one of your documents on paper instead? Send us the scan. Once we record it, Documents shows it as Signed on paper and we do not ask again.')
 
@@ -213,16 +217,16 @@ def build():
     g.task('Sign an updated Vehicle Schedule', 'When we agree new terms for a car you already signed for, you sign an updated Vehicle Schedule. Home shows it first.')
     g.steps([
         'Open it from Home or the email. It shows what changes (now and updated) and the date it applies from.',
-        f'Read the text, tick that you agree, type your full legal name and press {B("Sign")}.',
-        'Your current terms stay until you sign. After that, your invoices and statements use the new ones from the date.',
+        f'Read the text, then sign the same way as your agreements: the code to your phone or email, tick that you read it, initial the updated terms, tick the two consents, draw your signature and press {B("Sign")}.',
+        'Your current terms stay until you sign. After that, your invoices and statements use the new ones from the date. The signed copy, with its certificate of completion, is in Documents.',
     ])
 
     g.task('Form C on screen, with your witness beside you',
            'Form C is the lender or lessor permission for a financed or leased car. It needs one witness, and you can sign it on screen when your witness is with you.')
     g.steps([
         'Open Documents. Under Forms to sign with witnesses, press Sign Form C on screen instead.',
-        'Initial each of the three acknowledgments, and type Your initials.',
-        'Sign: draw your signature in the box, or use your name.',
+        'Confirm it is you with the code sent to your phone or email, and tick that you read the form.',
+        'Draw your initials beside each of the three acknowledgments, tick the two consents and draw your signature.',
         f'Hand the device to your witness, another adult. They type their full name and tick the statement "I witnessed (your name) sign in my presence." Press {B("Sign Form C")}.',
     ], shot=S('owner/16-form-c-screen-desktop', 40, 1180, 830, 2160, hdr=False, pins=[(2, 85, 1313), (3, 300, 1720), (4, 90, 1986)]), fig_w=3.6)
     g.task('Forms C and D on paper, signed with witnesses',

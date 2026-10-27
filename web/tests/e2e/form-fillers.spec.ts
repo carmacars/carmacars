@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { PDFDocument } from 'pdf-lib';
 import { filledValues } from '../../src/features/official-forms/pdf-update';
-import { acceptCookies, db, noOverflow, pdfText, watch } from './helpers';
+import { acceptCookies, db, noOverflow, pdfText, strongSign, watch } from './helpers';
 
 // The form fillers from the portals (docs/changes/2026-10-23-form-fillers.md), with the official ServiceOntario PDFs
 // (tests/fixtures/official-forms) as the stored templates:
@@ -54,13 +54,6 @@ async function check(page: Page, where: string) {
   expect(r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${where} ${v.id}`)).toEqual([]);
   await page.screenshot({ path: `${SHOTS}/${where.replace(/\s+/g, '-')}.png`, fullPage: true });
 }
-const draw = async (page: Page, canvas: ReturnType<Page['locator']>) => {
-  await canvas.scrollIntoViewIfNeeded();
-  const b = (await canvas.boundingBox())!;
-  await page.mouse.move(b.x + 20, b.y + b.height * 0.6); await page.mouse.down();
-  for (let i = 1; i <= 30; i++) await page.mouse.move(b.x + 20 + i * ((b.width - 60) / 30), b.y + b.height * (0.6 + 0.25 * Math.sin(i / 2.5)), { steps: 2 });
-  await page.mouse.up();
-};
 const values = async (b: Uint8Array) => filledValues(b);
 const prefix = (b: Uint8Array, o: Buffer) => Buffer.from(b.subarray(0, o.length)).equals(o);
 
@@ -184,9 +177,8 @@ test('a generated investment agreement: sent from Admin, signed in the investor 
     const unsignedPages = (await PDFDocument.load(await unsigned.body())).getPageCount();
     const f = ip.getByTestId('portal-sign-form');
     await f.getByRole('radio', { name: /chose not to/ }).check();
-    await f.locator('input[name="statement"]').check();
-    await f.getByTestId('signature-mode').click();
-    await draw(ip, ip.locator('[data-testid="portal-sign-form"] canvas'));
+    // 0182: the code, the reading, Schedule C initialled, the consents, the drawn signature
+    await strongSign(ip, f);
     await f.getByTestId('package-sign').click();
     await expect(ip.getByTestId('package-signed').or(ip.getByTestId('sign-done'))).toBeVisible({ timeout: 30_000 });
     // the signed copy is made by a background job within seconds
@@ -204,6 +196,9 @@ test('a generated investment agreement: sent from Admin, signed in the investor 
     expect(words).toContain('$25,000.00');
     expect(words).toContain('Signature record');
     expect(words).toContain(iu.name);
+    // 0182: the certificate of completion closes the signed copy
+    expect(words).toContain('Certificate of completion');
+    expect(words).toMatch(/Initialled: the risk acknowledgment \(Schedule C\)/);
     await ip.context().close();
   } finally { await sql.end(); }
 });
