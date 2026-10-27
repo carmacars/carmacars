@@ -30,7 +30,7 @@ values ('legal.marketing_opt_in', 'legal', 'text', 'Yes, send me CarmaCars offer
 on conflict (block_key) do nothing;
 create temp table grp (n text primary key, v jsonb);
 grant all on grp to public;
-create temp table grp_prizes as select game_prizes from program_settings;
+create temp table grp_prizes as select id, game_prizes from program_settings;
 grant all on grp_prizes to public;
 
 -- ================================================================ 1. the setting and the values
@@ -107,7 +107,7 @@ insert into grp values ('c_second', test.grpstart('c', jsonb_build_object('repla
 select test.eq('its second game (25% off, drawn without the replay) against the saved 10% off: the new prize kept, the saved play closed',
   (select (v -> 'prize' ->> 'label') || ' ' || (v -> 'keep' ->> 'from') || ' ' || (v -> 'keep' ->> 'other') from grp where n = 'c_second') || ' '
   || (select (dropped_at is not null)::text from game_plays where token = (select v #>> '{}' from grp where n = 'c_saved')), '25% off new 10% off true');
-update program_settings set game_prizes = (select game_prizes from grp_prizes);
+update program_settings ps set game_prizes = g.game_prizes from grp_prizes g where g.id = ps.id;
 
 -- ================================================================ 7. only the visitor's own open saved discount
 insert into grp values ('d_saved', to_jsonb(test.grpsaved('d', '{"key": "pct10", "percent_bps": 1000, "weight": 25}')));
