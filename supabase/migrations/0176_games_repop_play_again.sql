@@ -2382,6 +2382,7 @@ drop trigger if exists job_applications_after_hire on job_applications;
 create trigger job_applications_after_hire after update of status on job_applications
   for each row when (new.status = 'hired' and old.status is distinct from 'hired') execute function app.hiring_after_hire();
 revoke all on function app.hiring_after_hire() from public, anon, authenticated;
+grant execute on function app.hiring_after_hire() to service_role;
 
 -- 3. Remote sales calls by video on Thursday evening Toronto time (morning in Manila), beside the phone day.
 insert into interview_days (day, start_time, end_time, slot_minutes, buffer_minutes, mode, role_ids, note)
