@@ -448,7 +448,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'booking_attribution', 'ads_job_state',
                             -- hiring (0173): applications, their rubric and the slots carry personal data that is removed after 12 months;
                             -- a row audit would keep a copy, so their changes are logged without it (hiring_invite, _decline, _hire, ...)
-                            'job_applications', 'interview_scores', 'interview_slots')
+                            'job_applications', 'interview_scores', 'interview_slots',
+                            -- Sales work modes (0174): the touch log (one row per offer, message, chat or call, written by the system or
+                            -- by hand; no money or status: a void is written to audit_log; the month rates and the blocks are audited)
+                            'sales_touches')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

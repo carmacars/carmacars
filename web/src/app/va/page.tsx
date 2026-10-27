@@ -17,6 +17,7 @@ import { carBoard, type CalVehicle } from '@/features/va/carboard';
 import { pctBps, type StaffCommissions } from '@/features/sales/Commissions';
 import type { SalesFollowUp } from '@/features/va/SalesBoard';
 import { signCount } from '@/features/manual/SignPages';
+import { RemoteDuties, type SalesDuties } from '@/features/sales/RemoteDuties';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/va', noindex: true, description: 'The assistant\'s work queue.' });
@@ -46,7 +47,7 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
   const [{ read, fn, user, aal }, sp] = await Promise.all([vaPage('/va'), searchParams]);
   const talk = fn === 'cs' || fn === 'sales';
   const now = requestNow();
-  const [all, toSign, dg, target, reqs, chat, sales, board, jobs, cal, licences] = await Promise.all([
+  const [all, toSign, dg, target, reqs, chat, sales, board, jobs, cal, licences, duties] = await Promise.all([
     read<Task[]>('queue'), signCount(user.id),
     read<Digest>('digest').catch(() => null),
     door<{ minutes: number; words: string }>(user.id, 'ops_read', 'reply_target', {}, aal).catch(() => ({ minutes: 5, words: '5 minutes' })),
@@ -56,7 +57,9 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
     fn === 'finance' ? read<Board>('finance_board').catch(() => null) : Promise.resolve(null),
     fn === 'fleet' ? read<{ jobs: R[] }>('fleet_board').then((b) => b.jobs).catch(() => [] as R[]) : Promise.resolve([] as R[]),
     fn === 'fleet' ? read<{ vehicles: CalVehicle[] }>('calendar', { from: new Date(now - 86_400_000).toISOString(), to: new Date(now + 2 * 86_400_000).toISOString() }).then((c) => c.vehicles).catch(() => [] as CalVehicle[]) : Promise.resolve([] as CalVehicle[]),
-    fn === 'sales' ? read<LicenceWaiting[]>('licences_waiting').catch(() => [] as LicenceWaiting[]) : Promise.resolve([] as LicenceWaiting[])
+    fn === 'sales' ? read<LicenceWaiting[]>('licences_waiting').catch(() => [] as LicenceWaiting[]) : Promise.resolve([] as LicenceWaiting[]),
+    // 0174: in person or remote; a remote rep's checklist, touches, cover and reply time
+    fn === 'sales' ? read<SalesDuties>('sales_duties').catch(() => null) : Promise.resolve(null)
   ]);
   const tm = target.minutes;
   const waiting = reqs.filter((r) => r.status === 'requested');
@@ -107,13 +110,15 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
         media={m && m.scheme === 'sales_tier' ? (
           <Link prefetch={false} href="/va/my-sales" className="va-hero-ring" data-testid="va-commission-ring">
             <ProgressRing value={m.days} max={m.target_days} size={132} stroke={11} accent label={`${m.days}`} sub={`of ${m.target_days} days`} title={`Rental days this month: ${m.days} of ${m.target_days}. Your rate now ${pctBps(m.rate_bps)}.`} />
-            <span className="va-hero-ring__text"><b>{pctBps(m.rate_bps)} commission now</b><span>{m.next ? `${m.next.to_go} more rental days to ${pctBps(m.next.bps)}` : 'Top tier this month'}</span><span className="va-hero-ring__more">Open My sales</span></span>
+            <span className="va-hero-ring__text"><b>{pctBps(m.rate_bps)} commission now</b>{duties?.mode ? <span data-testid="va-sales-mode">{duties.mode === 'remote' ? 'Remote' : 'In person'}</span> : null}<span>{m.next ? `${m.next.to_go} more rental days to ${pctBps(m.next.bps)}` : 'Top tier this month'}</span><span className="va-hero-ring__more">Open My sales</span></span>
           </Link>) : undefined} />
 
       {toSign > 0 && <p className="alert alert--warn" role="status" data-testid="va-to-sign"><span>You have {toSign === 1 ? 'a document' : `${toSign} documents`} to sign. <Link prefetch={false} className="link" href="/va/sign">Read and sign</Link></span></p>}
 
       <NextUp task={top?.first ?? null} lane={top} now={now} target={tm} userId={user.id} />
       <LaneBoard lanes={lanes} now={now} target={tm} />
+
+      {duties?.mode === 'remote' && <RemoteDuties d={duties} own />}
 
       <div className="va-cols">
         {talk && <ReplyBoard items={replies.slice(0, 8)} now={now} target={tm} more={replies.length > 8 ? <p className="small"><Link prefetch={false} className="link" href="/va/requests">See all {replies.length}</Link></p> : null} />}

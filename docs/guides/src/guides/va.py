@@ -444,9 +444,26 @@ def build():
         f'Then press {B("Approve all")}: every image still waiting is approved at once. An image the system refuses is named with the reason.',
     ])
     g.tip('The booking history says who decided and the role, sales. Each opening of the images is logged and the links last one minute.')
+    g.task('In person or remote', 'Every Sales person works in one of two modes, on the same Sales screens. An Admin sets yours; it shows at the top of To do and on My sales.')
+    g.table([
+        ['Commission', 'Under 50 rental days in the month 10%, from 50 days 15%, from 100 days 20%', 'Under 50 rental days 5%, from 50 days 10%, from 100 days 15%'],
+        ['Credit', 'Walk-ins, handovers you close, partner visits and the rentals you source', 'Only the rentals you source. A website request you answer with the first offer during one of your blocks counts as yours. Walk-ins and partner deals earn nothing'],
+        ['Hours', 'You choose', 'At least 20 hours a week of Thursday to Sunday afternoons (noon to 6 pm, Toronto time), replying within 15 minutes to the chats, texts and calls assigned to you'],
+        ['Every day', 'Nothing set', 'Marketplace and classified reposts, social media DM replies, three follow-ups on every quote, long-term and business outreach'],
+        ['Every month', 'Nothing set', '400 touches. Under 400 when the month ends, the month\'s rate is one tier lower: 15% becomes 10%, 10% becomes 5%, 5% becomes 2.5%'],
+    ], head=['', 'In person (Toronto)', 'Remote (anywhere)'])
+    g.task('Remote: your duties', f'On {P("My work", "To do")}, {B("Remote duties")} shows this month\'s touches against 400, today\'s checklist, the peak hours you scheduled this week and your reply time.')
+    g.steps([
+        'Most touches count by themselves: an offer you send, a message or text you send from the portal, a live chat you answer (once a day for each chat), a call or text from the phone line, an ad you post, a call or message to a car owner.',
+        f'For anything else press {B("Log a touch")}: choose the type and add the link of the post, profile or listing if there is one.',
+        f'The checklist ticks itself as the day\'s touches come in. Three follow-ups on every quote stays open while a deal of yours has fewer than three.',
+        f'Under My availability choose this week or next, press {B("Add a block")} for each time you will be on, then {B("Save the week")}. Days already past stay as they were.',
+        'A website request you answer with the first offer during a block is credited to you as sourced, even if you chose Entered for CarmaCars. Off your blocks it stays a claim for an Admin.',
+    ])
+    g.tip('An Admin can void a touch logged by mistake. Once an Admin approves a month, its mode, its rates and its touches no longer change; a refund can still lower the tier, as for everyone.')
     g.task('My sales', f'Open {P("My work", "My sales")}. It shows your own sales and commissions only.')
     g.steps([
-        'Commissions comes first. In Sales your rate depends on the rental days of the month: under 50 days 10%, from 50 days 15%, from 100 days 20%. The bar shows your days against the target of 100, and says when your rate rises.',
+        'Commissions comes first. Your rate depends on your mode and the rental days of the month: in person 10%, 15% from 50 days, 20% from 100; remote 5%, 10% and 15%. The bar shows your days against the target of 100, and says when your rate rises. By month gives each month in one line: the mode, the days, the rate and, for remote, the touches and any drop.',
         f'The tiles show this week: quotes created, offers sent, rentals added, bookings confirmed, conversion, booked revenue and follow-ups due. Press {B("By month")} for months, {B("By week")} for weeks.',
         'By week (or By month) lists each period with the same figures, newest first.',
         'Follow-ups due lists your open deals with what to do next: send the offer, follow up before the offer expires, or follow up while the renter signs and pays. Red means it is past due.',
@@ -505,7 +522,7 @@ def build():
         'A website request earns nothing by itself. If you sourced it anyway, choose I sourced this client on its offer: an Admin decides.',
     ])
     g.table([
-        ['Sales', 'Commission only, with no base pay and no set hours. By the rental days of the month: under 50 days 10%, from 50 days 15%, from 100 days 20%, on all of that month\'s rentals'],
+        ['Sales', 'Commission only, with no base pay. By the rental days of the month, on all of that month\'s rentals: in person under 50 days 10%, from 50 days 15%, from 100 days 20%; remote 5%, 10% and 15%, one tier lower in a month under 400 touches (chapter Sales)'],
         ['Customer service, finance, fleet', '10%'],
         ['How much', 'The rate on the rental charge before tax, after discounts, with late extra days; never on delivery, kilometres, add-ons or anything else bought. Only a refund of the rental charge comes off'],
         ['When earned', 'When the rental is completed and paid in full. Never on a cancelled, refunded, unpaid or charged-back rental, or on your own or a household rental'],

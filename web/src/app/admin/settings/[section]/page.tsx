@@ -29,6 +29,7 @@ import { PlaceRegions, PlaceSettings, PlaceTerms, type PlacesOverview } from '@/
 import { COVERAGE_LABEL, type CardList, type CoverageKind } from '@/features/coverage/cards';
 import { ReviewSettings, type ReviewSettingsData } from '@/features/reviews/ReviewSettings';
 import { googleKeys } from '@/server/reviews/google';
+import { SalesModesCard, type SalesModes } from '@/features/sales/SalesModesAdmin';
 const googleKeysSet = () => googleKeys() !== null;
 
 export const dynamic = 'force-dynamic';
@@ -60,7 +61,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Vision model', (k) => k.startsWith('ai_vision')],
   ['Email and notifications', (k) => k.startsWith('notify_')],
   ['Partners, rentals added by hand and agreements', (k) => /^(partner_|manual_rental_|staff_agreement_)/.test(k)],
-  ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|custom_price_)/.test(k)],
+  ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|sales_remote_|custom_price_)/.test(k)],
   ['Referral partners (body shops, tow trucks)', (k) => k.startsWith('referral_partner_')],
   ['Advertising and owner recruitment', (k) => /^(ads_|recruit_)/.test(k)],
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
@@ -370,7 +371,7 @@ export default async function Section({ params, searchParams }: { params: Promis
           </Card>);
       })()}
       <Card title="Staff"><Table rows={s.staff} testId="staff" cols={[{ key: 'full_name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'roles', label: 'Roles', render: (r) => (r.roles as string[] | null)?.join(', ') },
-        { key: 'fn', label: 'Function', render: (r) => { const p = r.profile as R | null; if (!p) return ''; const cover = (p.cover_functions as string[] | null) ?? []; return `${label(p.va_function ?? p.field_function)}${cover.length ? ` (also ${cover.map(label).join(', ')})` : ''}`; } }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'last_sign_in_at', label: 'Last sign-in', render: (r) => t(r.last_sign_in_at) },
+        { key: 'fn', label: 'Function', render: (r) => { const p = r.profile as R | null; if (!p) return ''; const cover = (p.cover_functions as string[] | null) ?? []; return `${label(p.va_function ?? p.field_function)}${p.sales_work_mode ? `, ${p.sales_work_mode === 'remote' ? 'remote' : 'in person'}` : ''}${cover.length ? ` (also ${cover.map(label).join(', ')})` : ''}`; } }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'last_sign_in_at', label: 'Last sign-in', render: (r) => t(r.last_sign_in_at) },
         { key: 'limits', label: 'Limits', render: (r) => { const p = r.profile as R | null; return p ? `${$(p.single_limit_cents)} / ${$(p.dual_approval_threshold_cents)}` : ''; } },
         { key: 'act', label: 'Actions', render: (r) => r.id === user.id ? <span className="muted small">you</span> : <span className="ad-actions">
           {r.status === 'active' && <PasswordLinkButton userId={String(r.id)} testId={`pw-${String(r.email)}`} />}
@@ -385,6 +386,10 @@ export default async function Section({ params, searchParams }: { params: Promis
               value: ((r.profile as R).cover_functions as string[] | null) ?? [] }]} /></> : null}
           {r.status === 'active' ? <Act action="staff_end" payload={{ user: r.id }} label="End access" variant="danger" confirm={`End ${String(r.full_name)}'s access now? The staff portal closes to them at once.`} refresh={['/admin/settings/staff']} />
             : <Act action="staff_restore" payload={{ user: r.id }} label="Restore" refresh={['/admin/settings/staff']} />}</span> }]} /></Card>
+      {await (async () => {
+        const sm = await read<SalesModes>('sales_modes').catch(() => null);
+        return sm ? <SalesModesCard data={sm} /> : null;
+      })()}
       <Card title="Staff agreements" testId="staff-agreements"><StaffAgreements rows={await door<StaffAgreementRow[]>(user.id, 'ops_read', 'staff_agreements', {}).catch(() => [])} today={new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())} /></Card>
     </>);
   }

@@ -147,6 +147,18 @@ def build():
         ['Conversion', 'Of the deals credited in the period, the share confirmed so far.'],
         ['Booked revenue', 'The rental charge before tax, after discounts, for bookings confirmed in the period. A cancelled booking counts only what was kept; refunds come off.'],
     ], head=['Figure', 'How it is counted'])
+    g.task('Sales staff: in person or remote', 'Each Sales person works in person (Toronto) or remote (anywhere, a contractor). Staff and roles lists them under Sales staff: in person or remote.')
+    g.steps([
+        f'Press {B("Work mode")} on a person (or on their Sales page), choose In person or Remote and give the reason. A new Sales person starts in person.',
+        'The list shows the mode, the rate now, the rate the month would end at, and for remote this month\'s touches against 400, the peak hours scheduled this week (20 needed, Thursday to Sunday afternoons) and the replies on time.',
+        f'On a remote person\'s Sales page, Remote duties shows their checklist, touches, blocks and reply time. {B("Void")} beside a touch logged by mistake takes it off, with a reason.',
+        'When you approve a Sales month, its mode, rates, touches and any drop are locked: a later change of mode or settings does not change it. Their My sales shows each month in one line.',
+    ])
+    g.table([
+        ['Rates', 'In person 10%, 15% from 50 rental days, 20% from 100. Remote 5 points lower on every tier: 5%, 10%, 15%'],
+        ['Credit', 'In person: walk-ins, handovers, partner visits and the rentals they source. Remote: only the rentals they source; a website request they answer with the first offer during their blocks is credited to them; a walk-in or a partner deal earns them nothing'],
+        ['Remote minimum', '400 touches a month. Under it, when the month ends, the month\'s rate is one tier lower (5% becomes 2.5%). Settings > Program settings, Staff commissions, changes the minimum, the drop and the floor'],
+    ], head=['', 'Rule'])
 
     # ---------------------------------------------------------------- 3
     g.chapter('Requests, offers and bookings',
@@ -1450,7 +1462,7 @@ def build():
         'Turnaround between trips: the time held between two trips. The cleaning block after a trip is this time.',
         'Settings come in groups such as Company, Booking requests and offers, Owner debits and statement emails, Deposits, Delivery, Owners and fleet, and Tolls and damage. Open one to see its fields.',
         'First reply target for customer service and sales (minutes), under Booking requests and offers: 5 by default. New booking requests, enquiries, changes renters ask for and renter messages are due that many minutes after they come in; the scorecard and the staff screens use it. What renters are told (Reply wording, in Site settings) is separate.',
-        'Staff commissions and prices typed by hand: the commission outside Sales (10%), the three Sales tiers and their days (10%, 15% from 50 days, 20% from 100 days, the month\'s target), the price floor a day (empty: none) and the discount from the rate sheet that flags a price (20%). The owner confirmed these values in October 2026.',
+        'Staff commissions and prices typed by hand: the commission outside Sales (10%), the three Sales tiers and their days (10%, 15% from 50 days, 20% from 100 days, the month\'s target), the price floor a day (empty: none) and the discount from the rate sheet that flags a price (20%). The owner confirmed these values in October 2026. The remote Sales values follow: the three remote tiers (5%, 10%, 15%), the touches a month (400), the drop under it (one tier) and its floor (2.5%), the peak hours a week (20), the reply target (15 minutes) and the peak hours (noon to 6 pm, Thursday to Sunday).',
         f'Staff agreement defaults by function, at the bottom: pay (a month, an hour or commission only), the rate, the schedule (full time, part time or flexible), days a week and hours a day for Customer service, Fleet, Finance and Sales, the values every assistant shares, and the field staff wage. Sales is commission only: no rate and a flexible schedule. Press {B("Save the defaults")}.',
         'Live visitors and live chat: recording visits, the signal thresholds, follow-up tasks, the chat and its assistant, and how long visits and chats are kept.',
         'Discount games: the same values as Settings, Discount games (the prize table and the games are easier to change there).',
