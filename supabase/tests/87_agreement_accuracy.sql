@@ -192,7 +192,7 @@ select test.eq('sign: the driver signs: version 3 is signed, its signed copies q
 select test.eq('plan: current again', app.agreement_plan(test.agb('a')) ->> 'state', 'current');
 
 -- ---------------------------------------------------------------- 4. check-out: the completeness check, the "as picked up" copy
-insert into coverage_proofs (booking_id, coverage_option, status, card_issuer, card_last4, confirmed_at) values (test.agb('a'), 2, 'confirmed', 'Example Bank', '4242', now());
+insert into coverage_proofs (booking_id, coverage_option, status, card_issuer, card_last4, coverage_provider, confirmed_at) values (test.agb('a'), 2, 'confirmed', 'Example Bank', '4242', 'Example Assurance', now());
 update bookings set coverage_confirmed_at = now() where id = test.agb('a');
 select test.eq('missing: what a claim needs and what is only recommended',
   (select string_agg(x ->> 'key', ',' order by x ->> 'key') from jsonb_array_elements(app.agreement_missing(test.agb('a'))) x where (x ->> 'required')::boolean),

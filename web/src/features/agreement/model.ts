@@ -39,7 +39,9 @@ export interface AgreementFacts {
   vehicle: { year: number; make: string; model: string; trim: string | null; colour: string | null; fuel: string | null; plate: string | null; vin: string | null } | null;
   lines: Array<{ charge_type: string; description: string; amount_cents: number; hst_cents: number; stage: string }>;
   card: { brand: string; last4: string; cardholder_name: string | null } | null;
-  coverage: { coverage_option: number; insurer_name: string | null; policy_number: string | null; policy_expiry: string | null; card_issuer: string | null; card_last4: string | null; status: string } | null;
+  coverage: { coverage_option: number; insurer_name: string | null; policy_number: string | null; policy_expiry: string | null; card_issuer: string | null; card_last4: string | null; status: string;
+    /** 0178: the card coverage's provider (usually Assurant) and the protection plan's activation reference */
+    coverage_provider?: string | null; activation_ref?: string | null } | null;
   company: { legal_name: string | null; trade_name: string | null; email: string | null; phone: string | null; address: string | null; incident_line: string | null; deductible_cents: number | null };
   /** A long rental's period this version covers (long rentals, 0148); null or absent when the rental fits in one period. */
   period?: { seq: number; of: number; starts_at: string; ends_at: string; days: number; amount_cents: number } | null;

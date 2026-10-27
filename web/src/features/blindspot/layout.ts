@@ -40,7 +40,8 @@ export interface BlindSpotFacts {
     /** 0154: the facts beyond the booking's own (pickup and return records, swaps, payments, every line...) */
     more?: AgreementExtra | null;
     /** 0154: the coverage proof (OPCF 27 insurer and policy, the card of card coverage) */
-    coverage?: { coverage_option: number; insurer_name: string | null; policy_number: string | null; policy_expiry: string | null; card_issuer: string | null; card_last4: string | null } | null;
+    coverage?: { coverage_option: number; insurer_name: string | null; policy_number: string | null; policy_expiry: string | null; card_issuer: string | null; card_last4: string | null;
+      coverage_provider?: string | null; activation_ref?: string | null } | null;
     /** 0154: the card on file's expiry */
     card_expiry?: string | null;
   };
@@ -266,6 +267,18 @@ export function layout(f: BlindSpotFacts): Layout {
     t.push(T('12', x.coverage.insurer_name ? `${x.coverage.insurer_name} (renter's OPCF 27)` : null, 22, 447.5, 264));
     t.push(T('13', x.coverage.policy_number, 22, 468, 145));
     t.push(T('13-expiry', x.coverage.policy_expiry?.slice(0, 10), 236, 468, 50, { size: 7 }));
+  } else if (b.coverage_option === 2) {
+    // 0178: card coverage: the insurer behind the card (usually Assurant) and the card that carries the coverage
+    const cv = x.coverage ?? null;
+    const card = cv?.card_issuer ? `${cv.card_issuer} card${cv.card_last4 ? ` ending ${cv.card_last4}` : ''}` : f.card ? `${f.card.brand.toUpperCase()} card ending ${f.card.last4}` : null;
+    t.push(T('12', cv?.coverage_provider ? `${cv.coverage_provider} (credit card rental coverage)` : card ? 'Credit card rental coverage' : null, 22, 447.5, 264));
+    t.push(T('13', card, 22, 468, 145));
+  } else if (b.coverage_option === 3) {
+    // 0178: the CarmaCars Protection Plan bought with the rental: the plan and its activation reference (else the agreement)
+    t.push(T('12', 'CarmaCars Protection Plan (rental coverage)', 22, 447.5, 264));
+    t.push(T('13', x.coverage?.activation_ref ?? (b.agreement_number ? `With agreement ${b.agreement_number}` : null), 22, 468, 145));
+  } else if (b.coverage_option === 4) {
+    t.push(T('12', 'Insurance included with the car', 22, 447.5, 264));
   }
 
   // 14, additional information: what has no box of its own
