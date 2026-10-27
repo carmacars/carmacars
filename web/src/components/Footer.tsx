@@ -10,7 +10,7 @@ const SOCIAL: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok
 export const waLink = (e164: string) => `https://wa.me/${e164.replace(/\D/g, '')}`;
 
 type Link_ = { slug: string; kind: string; name: string; path: string };
-export function Footer({ s, reply, links = [], hubs }: { s: SiteSettings; reply: string; links?: Link_[]; hubs?: HubLinks }) {
+export function Footer({ s, reply, links = [], hubs, careers = false }: { s: SiteSettings; reply: string; links?: Link_[]; hubs?: HubLinks; careers?: boolean }) {
   const places = links.filter((l) => l.kind === 'location');
   const uses = links.filter((l) => l.kind === 'use');
   const socials = Object.entries(s.social_links ?? {}).filter(([k, v]) => SOCIAL[k] && /^https:\/\//.test(v));
@@ -58,7 +58,7 @@ export function Footer({ s, reply, links = [], hubs }: { s: SiteSettings; reply:
           </ul></div>
           <nav aria-label="Company"><h2>{s.brand_name}</h2><ul>
             <li><Link prefetch={false} href="/list-your-car">List your car</Link></li><li><Link prefetch={false} href="/faq">FAQ</Link></li>
-            <li><Link prefetch={false} href="/about">About</Link></li><li><Link prefetch={false} href="/contact">Contact</Link></li><li><Link prefetch={false} href="/sign-in">Sign in</Link></li>
+            <li><Link prefetch={false} href="/about">About</Link></li>{careers && <li><Link prefetch={false} href="/careers" data-testid="footer-careers">Careers</Link></li>}<li><Link prefetch={false} href="/contact">Contact</Link></li><li><Link prefetch={false} href="/sign-in">Sign in</Link></li>
             {socials.map(([k, v]) => <li key={k}><a href={v} rel="noopener">{SOCIAL[k]}</a></li>)}
           </ul></nav>
           <nav aria-label="Legal"><h2>Legal</h2><ul>

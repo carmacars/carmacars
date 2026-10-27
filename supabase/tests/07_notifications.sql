@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '185/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '192/4');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -782,6 +782,35 @@ select app.recruit_consent_add(test.id('nt_admin'), jsonb_build_object('lead', (
   from (select app.recruit_lead_save(test.id('nt_admin'), jsonb_build_object('business_name', 'NT Auto Sales', 'name', 'Nina Dealer', 'contact_kind', 'dealer', 'email', 'nt.dealer@example.test')) r) x;
 select app.recruit_send(test.id('nt_admin'), jsonb_build_object('lead', (select id from leads where email = 'nt.dealer@example.test'), 'channel', 'email', 'subject', 'Cars between sales',
   'body', 'Hello Nina, CarmaCars rents cars in Toronto for their owners.'));
+-- the emails to job applicants (0173): invited, booked, cancelled, reminder; referred (Field staff); declined (a knock-out with no
+-- role to offer); received (below the bar)
+do $$
+declare
+  v_day jsonb := app.hiring_day_save(test.id('nt_admin'), jsonb_build_object('day', app.today() + 5, 'start_time', '13:00', 'end_time', '14:00', 'note', 'nt hiring'));
+  f jsonb := '{"licence":"Yes, a full G","years":"5 years or more","record":"None","days":["Saturday","Sunday","Monday"],"hours":"Full time (35 or more)","transport":"My own car",
+    "late":"Message the office at once, keep the renter updated and follow the office''s instructions","dent":"Stay polite, photograph everything, note it in the app and let the office decide",
+    "cash":"Count it in front of them, record it in the app right away and give them the receipt","start":"2026-11-02","pay":"20"}';
+  r jsonb;
+  v_slot uuid;
+begin
+  r := public.server_hiring_apply(jsonb_build_object('role', 'field-staff', 'full_name', 'Nt Applicant', 'email', 'nt.applicant@example.test', 'phone', '4165550111', 'answers', f), null);
+  select id into v_slot from interview_slots where day_id = (v_day ->> 'id')::uuid order by starts_at limit 1;
+  perform public.server_hiring_book(r ->> 'token', v_slot);
+  perform app.job_hiring((select starts_at from interview_slots where id = v_slot) - interval '30 minutes');
+  perform public.server_hiring_cancel(r ->> 'token');
+  perform public.server_hiring_apply(jsonb_build_object('role', 'field-staff', 'full_name', 'Nt Referred', 'email', 'nt.referred@example.test', 'phone', '4165550112',
+    'answers', f || '{"licence":"G2"}'), null);
+  update hiring_roles set active = true where slug = 'va-finance-billing';
+  perform public.server_hiring_apply(jsonb_build_object('role', 'va-finance-billing', 'full_name', 'Nt Declined', 'email', 'nt.declined@example.test', 'phone', '4165550113',
+    'answers', '{"shift":"Yes, every shift, weekends included","hours_now":"nights","backup":"Neither","years":"5 years or more","tools_detail":"Excel","mistake":"none",
+      "clients":"No other clients","scenario":"Update the details and pay on time","tip":"Refuse it and report it to the office","post_check":"none","rate":"7","start":"2026-11-09","references":"Two"}'::jsonb), null);
+  update hiring_roles set active = false where slug = 'va-finance-billing';
+  perform public.server_hiring_apply(jsonb_build_object('role', 'sales-remote', 'full_name', 'Nt Received', 'email', 'nt.received@example.test', 'phone', '4165550114',
+    'answers', '{"shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
+      "scenario":"Give the 15% to close the sale","tip":"Accept it if the fee is small","post_check":"5","activity":"No","based":"Nairobi, Kenya","start":"2026-11-09","references":"Two"}'::jsonb), null);
+  perform app.hiring_day_delete(test.id('nt_admin'), jsonb_build_object('id', v_day ->> 'id'));
+end $$;
+select test.flush();
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');
 select test.eq('G no wired code is missing a variable (built here or supplied by the sender)',

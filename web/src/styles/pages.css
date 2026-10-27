@@ -540,3 +540,35 @@ code { font: 500 var(--fs-xs)/1.4 var(--font-text); color: var(--grey-600); font
 @media (min-width: 48rem) { .cc-limits { grid-template-columns: repeat(3, 1fr); } }
 .cc-limits > div { border: var(--bw) solid var(--line-strong); border-radius: var(--r-2); padding: var(--s-4); }
 .cc-limits__n { font-size: var(--fs-d2); font-weight: 700; line-height: 1.1; margin: 0; font-variant-numeric: tabular-nums; }
+
+/* ---------- careers (migration 0173): the roles, a role, the application form, the booking page ---------- */
+.cr-roles { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s-5); }
+.cr-role { border-top: var(--bw) solid var(--line); padding-top: var(--s-4); display: grid; gap: var(--s-2); }
+.cr-facts { display: grid; gap: var(--s-3); margin: 0; }
+.cr-facts dt { font-size: var(--fs-xs); color: var(--text-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.cr-facts dd { margin: 0; }
+.cr-narrow { max-width: 44rem; }
+.cr-group { display: grid; gap: var(--s-5); padding: 0; margin: 0; }
+.cr-group > legend { margin-bottom: var(--s-4); padding: 0; }
+.cr-q { padding: 0; margin: 0; }
+.cr-q > legend { padding: 0; margin-bottom: var(--s-2); line-height: 1.4; }
+.cr-choices { display: grid; gap: var(--s-3); }
+.cr-choices .radio, .cr-choices .check { min-height: 44px; align-items: center; padding: 0.55rem 0.75rem; border: var(--bw) solid var(--line); border-radius: var(--r-1); }
+.cr-choices .radio:has(input:checked), .cr-choices .check:has(input:checked) { border-color: var(--red-600); }
+@media (min-width: 640px) { .cr-choices--short { grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); } }
+.cr-hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.cr-done:focus { outline: none; }
+.cr-booked { border: 2px solid var(--black); border-radius: var(--r-2); padding: var(--s-4); display: grid; gap: var(--s-2); }
+.cr-day { padding: 0; margin: 0; }
+.cr-day > legend { padding: 0; margin-bottom: var(--s-3); }
+.cr-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: var(--s-2); }
+.cr-slot { position: relative; display: block; cursor: pointer; }
+.cr-slot input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.cr-slot > span { display: grid; gap: 2px; min-height: 48px; place-content: center; text-align: center; padding: 0.5rem; border: var(--bw) solid var(--line-strong); border-radius: var(--r-1); font-weight: 600; }
+.cr-slot input:focus-visible + span { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.cr-slot.is-picked > span { background: var(--black); color: var(--white); border-color: var(--black); }
+.cr-slot.is-mine > span { border-style: dashed; color: var(--text-2); }
+.cr-alt { display: block; font-size: var(--fs-xs); font-weight: 400; color: inherit; opacity: 0.8; }
+.cr-confirm { position: sticky; bottom: 0; padding: var(--s-3) 0; background: var(--bg); }
+.cr-confirm .btn { width: 100%; }
+@media (min-width: 640px) { .cr-confirm .btn { width: auto; } }

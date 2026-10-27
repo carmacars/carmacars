@@ -33,7 +33,9 @@ const PUBLIC: Record<string, string[]> = {
   block_create: ['/cars/[slug]'], block_remove: ['/cars/[slug]'], block_end: ['/cars/[slug]'], block_update: ['/cars/[slug]'],
   vehicle_status: ['/cars/[slug]', '/cars', '/'],
   // the RentalCoverage link (0164) shows on the coverage pages and the booking request
-  coverage_affiliate_save: ['/']
+  coverage_affiliate_save: ['/'],
+  // the careers pages (0173): opening or closing a role changes the careers page, the role's page, the footer and the sitemap
+  hiring_role_save: ['/careers', '/careers/[slug]', '/', '/sitemap.xml']
 };
 
 function rebuild(paths: string[]) {
@@ -82,6 +84,8 @@ export async function adminPreview<T = Record<string, unknown>>(what: 'booking_p
 export interface InviteInput {
   email: string; full_name?: string; role: string; va_function?: string; cover_functions?: string[]; field_function?: string;
   owner_id?: string; investor_id?: string;
+  /** a sales hire (0173): where the work is done, in_person or remote, passed with the invitation (kept on the staff profile once 0174 adds it) */
+  work_mode?: 'in_person' | 'remote' | null;
 }
 
 /** Invite a person into a role: admin, assistant (with the functions they cover), field, an owner on file or an
@@ -120,7 +124,8 @@ export async function inviteAccount(i: InviteInput): Promise<R<{ user_id: string
       userId = invited.user.id;
     }
     await rpc('admin_invite_account', { p_admin: admin.id, p: { user_id: userId, email, full_name: name || null, role: i.role, va_function: i.va_function || null,
-      cover_functions: (i.cover_functions ?? []).filter(Boolean), field_function: i.field_function || null, owner_id: i.owner_id || null, investor_id: i.investor_id || null } }, { role: 'service_role' });
+      cover_functions: (i.cover_functions ?? []).filter(Boolean), field_function: i.field_function || null, owner_id: i.owner_id || null, investor_id: i.investor_id || null,
+      ...(i.work_mode ? { work_mode: i.work_mode } : {}) } }, { role: 'service_role' });
     revalidatePath('/admin/settings/staff'); revalidatePath('/admin/portals'); revalidatePath('/admin/owners'); revalidatePath('/admin/investors');
     return { ok: true, data: { user_id: userId, existed, email } };
   } catch (e) { return fail(e); }

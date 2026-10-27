@@ -96,4 +96,5 @@ export const AUDIENCE_SAMPLES = {
   staff_va_cs: { first_name: 'Jessa' },
   staff_va_sales: { first_name: 'Marco' },
   staff_field: { first_name: 'Sam' },
+  applicant: { first_name: 'Jordan' },
 };
