@@ -22,8 +22,13 @@ using rental coverage, that goes there as well."
 - The Admin's sample (Settings > Forms) is now a card-coverage booking, so it shows boxes 1, 12 and 13 filled.
 - Unchanged and already automatic (0154): the pickup copy fills time out, K/M out and fuel out from the check-out; the
   closing copy fills time and date in, K/M in, driven, charged, fuel in, late hours, damages and the return charges from
-  the check-in. The renter's cell phone is in box 3. Home phone, office phone, employer, P.O. number and destination are
-  not collected and stay blank.
+  the check-in. The renter's cell phone is in box 3.
+- **N/A in every box that does not apply** (the owner chose N/A over collecting more): P.O. number, home and office
+  phone, employer, box 8 (new or temporary address), destination; boxes 10 and 11 without an additional driver; the
+  replacement vehicle column without a swap; the insured vehicle, claim and adjuster when not an insurance replacement;
+  box 13's province and expiry for card coverage, the plan and included insurance; and the charges not on the rental
+  (underage, CDW, VLF, winter tires, LDW, T&LDW, PAP/PEC, Waiver Saver). A value the rental should have and lacks still
+  stays blank, so the Agreement card asks for it; the pickup and return boxes fill on the pickup and closing copies.
 
 ## Guides
 No guide change: the Agreement card already lists each missing field by its label; the coverage provider appears there

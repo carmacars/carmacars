@@ -419,5 +419,23 @@ export function layout(f: BlindSpotFacts): Layout {
   gauge(ret?.fuel_pct, 'in');
 
   // the old address, Blind Spot's HST number and the old signature are always covered (blank until replaced)
+  // 0178, the owner: "Every box needs to be filled out": a box that does not apply to this rental says N/A (a box left
+  // blank reads as unknown). Only boxes that do not apply: a value the rental should have and lacks stays blank (the
+  // Agreement card asks for it). Each N/A is its own box name ("-na"), so a missing value is never mistaken for one.
+  const has = new Set(t.filter((v2): v2 is Text => !!v2).map((v2) => v2.box));
+  const NA = (box: string, x0: number, y: number, w: number, o: Partial<Text> = {}) => { if (!has.has(box)) t.push(T(`${box}-na`, 'N/A', x0, y, w, { size: 7, ...o })); };
+  // not collected: P.O. number, home and office phone, employer, a new or temporary address, the destination
+  NA('2', 258, 119, 60); NA('3-home', 246, 204.5, 75); NA('7', 22, 245.5, 200); NA('7-office', 246, 245.5, 75); NA('8', 22, 264.5, 200); NA('15-dest', 118, 529.6, 80, { size: 6 });
+  // no additional driver; no car swapped (the replacement vehicle column)
+  if (!others.length) { NA('10', 22, 325.5, 174); NA('11', 22, 346.5, 136); }
+  if (!swap) NA('r-22', COL.replacement.x, ROW['22'], COL.replacement.w);
+  // not an insurance replacement rental: the insured vehicle, the claim and the adjuster
+  if (!ins) { NA('insured', 22, 384, 296); NA('claim', 22, 407.5, 296); NA('adjuster', 22, 427, 264); }
+  // box 13's province and expiry belong to a policy (insurer, OPCF 27): not to card coverage, the plan or included insurance
+  if (!ins && b.coverage_option !== 1) { NA('13-prov', 172, 468, 60); NA('13-expiry', 236, 468, 50); }
+  // the optional charges not on this rental: underage, CDW, VLF, winter tires, LDW, T&LDW, PAP/PEC, Waiver Saver
+  NA('42-amount', 577, 467, 72, { align: 'right' }); NA('cdw-amount', 577, 487.5, 72, { align: 'right' }); NA('43', 577, 508, 72, { align: 'right' });
+  NA('44-amount', 577, 529, 72, { align: 'right' }); NA('45', 577, 549, 72, { align: 'right' }); NA('46', 577, 569.5, 72, { align: 'right' });
+  NA('47', 577, 590, 72, { align: 'right' }); NA('waiver', 409, 607, 28);
   return { texts: t.filter((v2): v2 is Text => !!v2), dots, covers: COVERS };
 }
