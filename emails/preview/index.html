@@ -21,8 +21,8 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>185 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>76</span></a><a href="#owner">Owner <span>45</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>192 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>76</span></a><a href="#owner">Owner <span>45</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>7</span></a></nav>
 <main>
 <h2 id="renter">Renter (76)</h2>
 <div class="grid">
@@ -1162,6 +1162,51 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">An insurer invoice is sent from the admin portal (Send by email): the invoice for a replacement rental billed to an insurer, with a 7-day link to the PDF. Sending again sends a new email.</div>
 <div class="ln"><a href="../dist/insurer_invoice.html">HTML</a><a href="../dist/insurer_invoice.txt">Text</a><a href="../shots/insurer_invoice.desktop.png">Desktop</a><a href="../shots/insurer_invoice.phone.png">Phone</a></div>
+</div></div>
+</div>
+<h2 id="applicant">Job applicant (7)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/applicant_booked.html"><img loading="lazy" src="../shots/applicant_booked.desktop.png" alt="Screenshot of applicant_booked"></a><div class="b">
+<div class="code">applicant_booked</div><div class="sub">your CarmaCars interview call, Thursday, October 29 at 10:20 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A candidate books, or moves, their interview call from their booking link on carmacars.ca/careers/book (migration 0173). By phone, CarmaCars calls the number on the application; by video, the email has the Jitsi Meet link made for this booking. One email per booking or move.</div>
+<div class="ln"><a href="../dist/applicant_booked.html">HTML</a><a href="../dist/applicant_booked.txt">Text</a><a href="../shots/applicant_booked.desktop.png">Desktop</a><a href="../shots/applicant_booked.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/applicant_cancelled.html"><img loading="lazy" src="../shots/applicant_cancelled.desktop.png" alt="Screenshot of applicant_cancelled"></a><div class="b">
+<div class="code">applicant_cancelled</div><div class="sub">Your CarmaCars interview call is cancelled</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A candidate cancels their interview call from their booking link on carmacars.ca/careers/book (migration 0173). The invitation stays open: the same link books another time. One email per cancellation.</div>
+<div class="ln"><a href="../dist/applicant_cancelled.html">HTML</a><a href="../dist/applicant_cancelled.txt">Text</a><a href="../shots/applicant_cancelled.desktop.png">Desktop</a><a href="../shots/applicant_cancelled.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/applicant_declined.html"><img loading="lazy" src="../shots/applicant_declined.desktop.png" alt="Screenshot of applicant_declined"></a><div class="b">
+<div class="code">applicant_declined</div><div class="sub">Your CarmaCars application</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A candidate's answers on carmacars.ca/careers include a knock-out (a requirement of the role they do not meet) and the role offers no other role instead, or an Admin presses Decline in Admin &gt; People &gt; Hiring with the email left on (migration 0173). One email per decision.</div>
+<div class="ln"><a href="../dist/applicant_declined.html">HTML</a><a href="../dist/applicant_declined.txt">Text</a><a href="../shots/applicant_declined.desktop.png">Desktop</a><a href="../shots/applicant_declined.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/applicant_invited.html"><img loading="lazy" src="../shots/applicant_invited.desktop.png" alt="Screenshot of applicant_invited"></a><div class="b">
+<div class="code">applicant_invited</div><div class="sub">CarmaCars: book your 15-minute interview call</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A candidate's screening score on carmacars.ca/careers reaches the role's pass mark with no knock-out, or an Admin presses Invite anyway in Admin &gt; People &gt; Hiring (migration 0173). The email has the candidate's personal booking link for a short interview call; for a remote assistant role it also describes the paid test task. One email per invitation.</div>
+<div class="ln"><a href="../dist/applicant_invited.html">HTML</a><a href="../dist/applicant_invited.txt">Text</a><a href="../shots/applicant_invited.desktop.png">Desktop</a><a href="../shots/applicant_invited.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/applicant_received.html"><img loading="lazy" src="../shots/applicant_received.desktop.png" alt="Screenshot of applicant_received"></a><div class="b">
+<div class="code">applicant_received</div><div class="sub">We have your application: Field Staff: Driver and Detailer</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A candidate sends an application on carmacars.ca/careers and the screening score is below the role's pass mark, with no knock-out and no other open role to offer (migration 0173). The application waits for the owner's review. One email per application; invited, declined and referred candidates get their own email instead.</div>
+<div class="ln"><a href="../dist/applicant_received.html">HTML</a><a href="../dist/applicant_received.txt">Text</a><a href="../shots/applicant_received.desktop.png">Desktop</a><a href="../shots/applicant_received.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/applicant_referred.html"><img loading="lazy" src="../shots/applicant_referred.desktop.png" alt="Screenshot of applicant_referred"></a><div class="b">
+<div class="code">applicant_referred</div><div class="sub">Your CarmaCars application, and a role that may suit you better</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A candidate does not qualify for the role they applied for on carmacars.ca/careers (a knock-out or a score below the pass mark for Field staff; a score below the pass mark for a remote assistant role) and another open role suits them: Field staff to Sales and Customer Relations (In person, Toronto), with Remote Sales named as the other choice; Sales in person to Remote Sales; or the best matching other open role (migration 0173). Not sent when they already applied for that role. The link opens that role's application with their name, email and phone filled in. One email per application.</div>
+<div class="ln"><a href="../dist/applicant_referred.html">HTML</a><a href="../dist/applicant_referred.txt">Text</a><a href="../shots/applicant_referred.desktop.png">Desktop</a><a href="../shots/applicant_referred.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/applicant_reminder.html"><img loading="lazy" src="../shots/applicant_reminder.desktop.png" alt="Screenshot of applicant_reminder"></a><div class="b">
+<div class="code">applicant_reminder</div><div class="sub">Reminder: your CarmaCars interview call is tomorrow</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A booked interview call is the next day (sent at 6 pm Toronto time the evening before) or about an hour away (migration 0173, app.job_hiring every 15 minutes). Not sent when the call was booked after that moment. When phone and texts are on, a text goes with the reminder an hour before. One email per reminder.</div>
+<div class="ln"><a href="../dist/applicant_reminder.html">HTML</a><a href="../dist/applicant_reminder.txt">Text</a><a href="../shots/applicant_reminder.desktop.png">Desktop</a><a href="../shots/applicant_reminder.phone.png">Phone</a></div>
 </div></div>
 </div>
 </main></body></html>

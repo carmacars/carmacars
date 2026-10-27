@@ -1,0 +1,37 @@
+CarmaCars  |  Careers
+
+========================================
+
+[Careers]
+See you {{when_text}}, {{first_name}}
+
+Your interview call for {{role_title}}.
+
+When (Toronto time): {{call_when}}
+{{#if call_when_manila}}
+In Manila: {{call_when_manila}}
+{{/if}}
+Length: About {{call_minutes}} minutes
+
+{{#if is_video}}
+Video call: {{meet_url}}
+{{else}}
+We will call you at {{phone_display}}.
+{{/if}}
+
+Move or cancel the call:
+{{manage_url}}
+
+----------------------------------------
+
+Questions about your application? Reply to this email.
+
+You are receiving this because you applied for a job at CarmaCars. We keep the application of a candidate we do not hire for 12 months, then delete it.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

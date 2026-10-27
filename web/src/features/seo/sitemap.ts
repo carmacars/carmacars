@@ -33,7 +33,11 @@ const iso = (d: string | null) => (d ? new Date(d).toISOString() : null);
 // lists follow a switch at once too (0119).
 const memo = (key: string, load: () => Promise<unknown>) => (env().DATA_BACKEND === 'local' ? load() : sharedRead(key, load));
 async function rows(): Promise<Row[]> {
-  return ((await memo('sitemap_all', () => rpc('sitemap_all', {}, SR))) ?? []) as unknown as Row[];
+  const all = ((await memo('sitemap_all', () => rpc('sitemap_all', {}, SR))) ?? []) as unknown as Row[];
+  // 0173: the careers page and each open role, only while a role is open (in the pages file)
+  const roles = ((await memo('hiring_roles_public', () => rpc('hiring_roles_public', {}, SR)).catch(() => [])) ?? []) as unknown as Array<{ slug: string; posted_on: string | null }>;
+  const careers: Row[] = roles.length ? [{ path: '/careers', kind: 'careers', lastmod: null, images: null }, ...roles.map((r) => ({ path: `/careers/${r.slug}`, kind: 'careers', lastmod: r.posted_on, images: null }))] : [];
+  return [...all, ...careers];
 }
 
 type Prio = Array<{ path: string; lastmod: string | null }>;
@@ -52,7 +56,7 @@ function entries(name: SitemapName, all: Row[], prio: Prio = [], hubs: Prio = []
   const url = (p: string) => base + (p === '/' ? '' : p);
   switch (name) {
     // the model pages are in the vehicle sitemaps (0097: /cars/<make>/<model> replaced the model hubs)
-    case 'pages': return FIXED.map((p) => ({ loc: url(p), lastmod: null }));
+    case 'pages': return [...FIXED.map((p) => ({ loc: url(p), lastmod: null })), ...all.filter((r) => r.kind === 'careers').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }))];
     // 0128: each address in one sitemap file. The priority list leaves out the addresses of the site's own files (the
     // fleet's cars, the landing pages, the fixed pages, the guides and the hubs: listed right after it, at the top of
     // the index); it keeps its own selection (the makes, the popular models, the place pages nearest us).

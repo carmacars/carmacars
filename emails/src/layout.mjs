@@ -198,6 +198,7 @@ const STAFF = (a) => a.startsWith('staff_');
 function helpLine(email) {
   if (email.help) return email.help;
   if (STAFF(email.audience)) return 'If this notice looks wrong, tell an admin.';
+  if (email.audience === 'applicant') return '**Questions about your application?** Reply to this email.';
   if (email.audience === 'investor') return '**Help:** reply to this email or call {{support_phone}}. We reply {{reply_time}}.';
   return '**Help:** reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.';
 }
@@ -213,6 +214,7 @@ function reason(email) {
   if (email.audience === 'investor') return 'This is a servicing notice for an existing investor. It is not an offer or a solicitation.';
   if (email.audience === 'owner') return 'You are receiving this because you have an owner account with CarmaCars. Notices about your vehicles, fees and payouts are always sent.';
   if (email.audience === 'insurer') return 'You are receiving this because you are the billing contact for a claim with a replacement rental from CarmaCars.';
+  if (email.audience === 'applicant') return 'You are receiving this because you applied for a job at CarmaCars. We keep the application of a candidate we do not hire for 12 months, then delete it.';
   return 'You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.';
 }
 

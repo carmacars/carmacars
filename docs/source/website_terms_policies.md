@@ -81,6 +81,7 @@ Our Privacy Officer is responsible for this policy: [●], [●] (email), [●] 
 | Trips booked through another platform (such as Turo): the name, and the phone or email if the platform gives them to us, of the guest who booked one of our cars there | To manage that trip with the guest, never for marketing |
 | Discount games: your first name, email, mobile number if given, the code and the pages and cars you viewed in that visit | To send the code and a reminder, and to help you book; offers only with your consent |
 | Forms you start: the name, email and mobile number you type into our forms (a booking request, the contact form, listing your car, the owner application, creating an account, a discount game or the live chat), saved as you type, even if you do not send the form | To open an account in your name that you can continue on the same device, to send you one email with a link that confirms your email and lets you continue on any device, and so our team can follow up on your request; never for offers without your consent. Until you confirm your email, the account cannot be used to upload identification, see payment cards, accept an offer, sign or pay |
+| Job applications: your name, email, phone number, the profile name you give, where you saw the job, your answers to the screening questions, the interview time you book, and the interviewer's scores and notes | To assess your application, arrange the interview and decide whom to hire. Your answers are scored automatically against the role's requirements; a person reviews the results before anyone is hired. Only our Admins see applications |
 
 We also receive information from our identity verification provider, insurers, toll and ticket authorities, the police, and the renter who names you as an additional driver.
 
@@ -121,6 +122,7 @@ Some service providers and our remote staff are outside Canada, including in the
 | Discount game claims | 24 months after the code expires, unless you become a customer |
 | Contact details typed into a form you did not send | 24 months after you last typed them, unless you become a customer. An account opened for you that you do not confirm stops working after 30 days |
 | Details of guests who booked through another platform | 24 months after their last trip |
+| Job applications from people we do not hire (name, contact details, answers, interview notes) | 12 months after our decision; then deleted. If we hire you, your application stays with your staff records |
 | Marketing contact details | Until you unsubscribe |
 
 We keep information longer only while a claim, dispute, unpaid amount or legal duty requires it. We then delete or anonymise it.

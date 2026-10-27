@@ -394,3 +394,19 @@ a.ad-tile:hover { border-color: var(--black); }
 .pay-methods { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); }
 .pay-methods legend { width: 100%; }
 .pay-out { color: #9b0c16; }
+
+/* ---------- hiring (migration 0173): the rubric beside the call guide ---------- */
+.cr-sub { display: block; font-size: var(--fs-2xs); color: var(--text-2); }
+.cr-rubric { gap: var(--s-4); }
+.cr-crit { padding: 0; margin: 0; border: 0; display: grid; gap: var(--s-1); }
+.cr-crit > legend { padding: 0; }
+.cr-scale { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.cr-pt { position: relative; cursor: pointer; }
+.cr-pt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.cr-pt > span { display: grid; place-content: center; min-width: 44px; min-height: 44px; padding: 0 0.6rem; border: var(--bw) solid var(--line-strong); border-radius: var(--r-1); font-weight: 600; }
+.cr-pt input:focus-visible + span { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.cr-pt.is-on > span { background: var(--black); color: var(--white); border-color: var(--black); }
+.cr-pt--wide > span { min-width: 5rem; }
+.cr-totals { font-size: var(--fs-sm); }
+.cr-guide { display: grid; gap: var(--s-2); padding-left: 1.2rem; margin: 0 0 var(--s-3); }
+.cr-guide .muted { display: block; }

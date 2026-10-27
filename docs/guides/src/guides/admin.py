@@ -1230,6 +1230,53 @@ def build():
         f'The page shows clicks by place and month and the latest clicks. RentalCoverage reports the sales, not the site: when they pay you, press {B("Add a payment received")} with the date, amount and reference.',
     ])
 
+    # ---------------------------------------------------------------- hiring (0173)
+    g.chapter('Hiring',
+              'Candidates apply on carmacars.ca/careers. Every application is scored on the server against the role\'s rubric: a candidate who passes gets a link to book a 15-minute call, one who does not qualify for Field staff is offered Sales instead, and the rest wait for you. During each call you fill in a rubric; the final score ranks everyone in the role.',
+              blurb='Open roles and apply links for Indeed and OnlineJobs.ph, the applications and their scores, interview days, the rubric during each call, the ranked shortlist and Hire.')
+    g.task('Open a role and send the apply link', f'{P("People", "Hiring")}, tab Roles and links.')
+    g.steps([
+        f'Press {B("Open the role")} to put it on carmacars.ca/careers (and in the sitemap and the footer); {B("Close the role")} takes it off. Field staff, Sales in person and Remote sales start open; the three remote assistant roles start closed.',
+        'Copy the apply link: it ends with ?src=indeed (or ?src=onlinejobs for the remote roles), so each application records where it came from.',
+        'Copy the message under it and paste it into Indeed (or OnlineJobs.ph) messages to each applicant. It asks them to answer the role\'s questions, about five minutes.',
+        f'{B("Pass mark and pay")} changes the pass mark (60 of 100 unless you change it) and the pay shown on the page.',
+    ])
+    g.task('What happens to each application', 'The database scores the answers the moment they arrive. The candidate never sees the points.')
+    g.bullets([
+        'Score at or above the pass mark, no knock-out: an email with a personal link to book a call (Invited).',
+        'Field staff who do not qualify (no full G licence, under two years of driving, or a low score) are not declined: they get a friendly email offering Sales in person, with a one-click link that fills in their details, and Remote sales named as the other choice (Referred). If they already applied for Sales, nothing is sent and a note says so.',
+        'Sales in person below the pass mark, or remote only, is offered Remote sales. A remote assistant role below the pass mark is offered the closest other open role.',
+        'A knock-out with no other role to offer (for example the finance code word missing) gets a polite decline.',
+        'Anyone else waits for you as Below the bar, with only a confirmation email.',
+    ])
+    g.task('Review the applications', f'{P("People", "Hiring")}, tab Applications.')
+    g.steps([
+        'Filter by role, status, source (Indeed, OnlineJobs.ph, website, referral) or score. Open a candidate for every answer with the points it earned and any knock-out.',
+        f'{B("Invite anyway")} sends the booking link to a candidate below the bar, declined or referred. {B("Decline")} sends the polite decline email (untick it to decline without an email).',
+        'A candidate referred to another role shows the link both ways under Linked applications.',
+    ])
+    g.task('Interview days', f'{P("People", "Hiring")}, tab Interview days.')
+    g.steps([
+        f'Press {B("Add an interview day")}: the day, from and to (Toronto time), the call length (15 minutes) and the break between calls (5 minutes), phone or video, and the roles it is for (empty: every role).',
+        'Phone: you call the candidate on the number they gave. Video: every booking gets its own Jitsi Meet link, in the candidate\'s email and on their page.',
+        'Candidates book, move or cancel from their link. They get a confirmation, a reminder the evening before and one an hour before (and a text, when phone and texts are on). Remote roles show Manila time too.',
+        f'{B("Turn off")} stops new bookings on a day; a day with bookings cannot be deleted.',
+    ])
+    g.task('Run the calls with the rubric', f'{P("People", "Hiring")}, tab Calls.')
+    g.steps([
+        f'Pick the day. Each call shows the time, the candidate, Call (or the video link). Press {B("Start")}.',
+        'The rubric sits beside the call guide (what to ask each minute, and what a good answer sounds like). Score each line 1 to 5: Communication, Reliability and availability, Role skills, Customer or sales instinct, Judgement on the scenarios, Attitude.',
+        f'Choose the decision (Hire, Maybe, No, No show), add notes and press {B("Save the rubric")}. The interview score (of 100) and the final score (40% screening, 60% interview) fill in, with the rank in the role.',
+    ])
+    g.task('Shortlist and Hire', f'{P("People", "Hiring")}, tab Shortlist.')
+    g.steps([
+        'Each role lists its interviewed candidates by final score, rank 1 first.',
+        f'Open the candidate and press {B("Hire")}. It invites them into the right portal: field staff, or the assistant portal (both sales roles are the Sales function, with in person or remote recorded).',
+        f'Then press {B("Send the agreement to sign")}: check the values and send the staff agreement to sign in their portal.',
+        f'{B("Not hired")} closes a candidate after the call without an email; {B("Withdrawn")} is for one who no longer wants the role.',
+    ])
+    g.tip('Applications are for Admins only. The name, contact details and answers of a candidate who is not hired are deleted 12 months after the decision, as the privacy policy says.', label='Good to know')
+
     # ---------------------------------------------------------------- advertising and owner recruitment (0167)
     g.chapter('Advertising and owner recruitment',
               'Marketing writes the text of every ad from the car\'s own record, keeps track of where each ad is posted, tells the sales assistants when an ad needs updating, shows which channels bring bookings, drafts the week\'s Facebook Page and Instagram posts and keeps the consent log for owner recruitment. Nothing is posted by the server: you post by hand, and Facebook Marketplace from the owner\'s own profile.',

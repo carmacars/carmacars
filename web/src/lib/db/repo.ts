@@ -103,7 +103,7 @@ async function buildRetry(load: () => Promise<unknown>): Promise<unknown> {
 
 const SHARED_READS = new Set<string>([
   'site_settings_public', 'site_facts', 'site_content', 'vehicle_classes', 'seo_links', 'seo_pages_public', 'articles_public',
-  'place_roots', 'place_terms_public', 'shop_services_public',
+  'place_roots', 'place_terms_public', 'shop_services_public', 'hiring_roles_public',
   'sitemap_all', 'place_sitemap_files', 'vehicle_tiers', 'vehicle_tier_files_count', 'vehicle_sitemap_index'
 ]);
 const SHARED_TTL_MS = 5 * 60_000;

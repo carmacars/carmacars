@@ -1,0 +1,36 @@
+CarmaCars  |  Careers
+
+========================================
+
+[Careers]
+Thank you, {{first_name}}
+
+Thank you for applying for {{role_title}}. {{reason_text}}, so we cannot offer you that role.
+
+We would love to have you on our team in another way. Your answers suggest you could do well as our {{other_role_title}}.
+
+{{other_role_title}}
+{{other_role_summary}}
+
+Apply in one click:
+{{apply_url}}
+
+{{#if alt_apply_url}}
+Would you rather work remotely? You can also apply for our {{alt_role_title}}: {{alt_apply_url}}
+{{/if}}
+
+Your name, email and phone are already filled in; it takes about five minutes. If it is not for you, there is nothing to do.
+
+----------------------------------------
+
+Questions about your application? Reply to this email.
+
+You are receiving this because you applied for a job at CarmaCars. We keep the application of a candidate we do not hire for 12 months, then delete it.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}
