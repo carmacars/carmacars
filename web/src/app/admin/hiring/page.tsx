@@ -103,7 +103,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
                 refresh={[base, '/careers', `/careers/${r.slug}`, '/sitemap.xml', '/']} done={r.active ? 'Closed: off the careers page.' : 'Open: on the careers page.'} />
               <Act action="hiring_role_save" payload={{ slug: r.slug }} label="Pass mark and pay" refresh={[base, '/careers', `/careers/${r.slug}`]} done="Saved."
                 fields={[{ name: 'pass_mark', label: 'Pass mark (0 to 100)', type: 'number', min: 0, max: 100, value: r.pass_mark }, { name: 'pay_text', label: 'Pay, as shown on the page', type: 'text', value: r.pay_text }]} />
-              <Link prefetch={false} className="link" href={`/careers/${r.slug}`}>Public page</Link>
+              {r.active && <Link prefetch={false} className="link" href={`/careers/${r.slug}`}>Public page</Link>}
             </p>
             <CopyText label={src === 'indeed' ? 'Indeed apply link' : 'OnlineJobs.ph apply link'} value={link} testId={`link-${r.slug}`} />
             <CopyText label={src === 'indeed' ? 'Indeed message' : 'OnlineJobs.ph message'} value={inviteMessage(r.title, link)} rows={4} testId={`msg-${r.slug}`} />

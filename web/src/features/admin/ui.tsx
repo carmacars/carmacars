@@ -105,10 +105,13 @@ export function BookingLink({ n }: { n: unknown }) {
 /** Filter links that keep the rest of the query string. */
 export function Filters({ base, name, value, options, sp }: { base: string; name: string; value: string; options: Array<[string, string]>; sp?: Record<string, string | undefined> }) {
   const href = (v: string) => {
+    // a base may carry its own query (?tab=...): merged, never appended as a second "?" (the hiring filters, 0173)
+    const [path = base, own = ''] = base.split('?');
     const q = new URLSearchParams(Object.entries(sp ?? {}).filter(([k, x]) => k !== name && x) as Array<[string, string]>);
+    for (const [k, x] of new URLSearchParams(own)) q.set(k, x);
     if (v) q.set(name, v);
     const s = q.toString();
-    return s ? `${base}?${s}` : base;
+    return s ? `${path}?${s}` : path;
   };
   return (
     <nav className="ad-filters" aria-label={`Filter by ${name.replace(/_/g, ' ')}`}>

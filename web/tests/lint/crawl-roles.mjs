@@ -300,6 +300,8 @@ async function crawlRole(browser, role) {
       const t = new URL(h, page.url());
       if (t.origin !== BASE) continue;
       const p = t.pathname + t.search;
+      // a query appended to a query ("?tab=a?status=b") nests on every click, and each nesting is a new page to the crawl
+      if (t.search.indexOf('?', 1) !== -1) { bad(role, href, `link with a second "?": ${p.slice(0, 120)}`); continue; }
       // the vehicle and place pages (0095, 0097) link to hundreds of their variants: of each family (one shape) only
       // the first LINK_PER_FAMILY links are requested; the link check and the SEO audit cover the rest by sampling
       const fam = family(shape(t));
