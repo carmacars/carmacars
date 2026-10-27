@@ -13,6 +13,8 @@ name: vps-ops
 #                        encrypted, deleted or replaced files kept 30 days under storage/trash/<day>/) and run once now
 #   copy-backups-bucket  the hosted project's Storage bucket `backups` (skipped by the copy: its rows are on the server
 #                        without their files) copied file by file through the Storage API, then every row checked
+#   db-errors            read only: the database's and the API's error lines of the last 12 hours, digits, emails
+#                        and quoted values masked (public logs), counted by message
 #   reboot               a clean reboot of the server (confirm: REBOOT), refused while a ci deploy or a backup runs:
 #                        docker-compose.yml and bin/ installed from this commit, the stack back by itself, the db
 #                        container recreated (log_min_messages=error), the public API and health-local checked, the
@@ -24,7 +26,7 @@ on:
       action:
         description: Which action
         type: choice
-        options: [backup-report, apply-retention, apply-storage-backup, copy-backups-bucket, reboot]
+        options: [backup-report, apply-retention, apply-storage-backup, copy-backups-bucket, reboot, db-errors]
         default: backup-report
       confirm:
         description: reboot only - type REBOOT
@@ -341,3 +343,16 @@ jobs:
           source scripts/deploy/vps.sh
           rm -f "$RUNNER_TEMP"/vps-ssh/cm-* || true
           timeout 60 bash -c 'source scripts/deploy/vps.sh; vps_ssh "sudo /opt/carmacars/bin/dc ps --format \"{{.Name}} {{.Status}}\"; sudo docker logs --tail 30 supabase-db 2>&1 | cut -c1-240"' || true
+
+  db-errors:
+    if: inputs.action == 'db-errors'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Error lines, masked and counted
+        run: |
+          source scripts/deploy/vps.sh
+          vps_ssh 'for c in supabase-db supabase-rest; do sudo docker logs --since 12h "$c" 2>&1 | grep -E "ERROR|FATAL|error" | grep -v "STATEMENT" | sed -E "s/^[0-9-]+ [0-9:.]+ [A-Z]+ \[[0-9]+\] //; s/[[:alnum:]._%+-]+@[[:alnum:].-]+/<email>/g; s/\x27[^\x27]*\x27/<v>/g; s/\"[^\"]{40,}\"/<long>/g; s/[0-9]/#/g" | cut -c1-300 | sed "s/^/$c: /"; done | sort | uniq -c | sort -rn | head -40' < /dev/null > "$RUNNER_TEMP/err.txt" || true
+          while IFS= read -r l; do echo "::notice title=db-errors::$l"; done < "$RUNNER_TEMP/err.txt"
+          echo "::notice title=db-errors::$(wc -l < "$RUNNER_TEMP/err.txt") distinct lines"
