@@ -3,11 +3,19 @@ import { env } from '@/lib/env';
 import type { PhoneLine } from './types';
 import { fakeLine } from './fake';
 import { quoLine } from './quo';
+import { fakeBook, quoBook } from './contacts';
+import type { ContactsBook } from '@/features/phone/quo-contacts';
 
 // QUO_PROVIDER=quo in production (the deploy); fake elsewhere.
 export function phoneLine(): PhoneLine {
   const e = env();
   return e.QUO_PROVIDER === 'quo' ? quoLine(e.QUO_API_KEY, e.QUO_API_BASE) : fakeLine();
+}
+
+/** Quo contacts (0182): the same provider and key as the line; no key: the sync records why and waits. */
+export function contactsBook(): ContactsBook {
+  const e = env();
+  return e.QUO_PROVIDER === 'quo' ? quoBook(e.QUO_API_KEY, e.QUO_API_BASE) : fakeBook();
 }
 
 /** The local fake's webhook secret: the end-to-end tests sign their deliveries with it. Never used in production. */

@@ -1036,6 +1036,14 @@ def build():
         f'Press {B("Pages")} for every page and event of the visit with each signal\'s points, or {B("Start a chat")} to write your own message. They see it in a bubble and reply from it.',
         'Below: hot visitors today (and whether someone acted), the signals of the last 24 hours, and the most viewed cars of the week with prices shown and the car most compared with each. The page refreshes by itself every 15 seconds.',
     ])
+    g.task('Name a visitor', 'When you learn who a visitor is (they called, or told you in the chat), give them a name. Only staff see it.')
+    g.steps([
+        f'On their line, press {B("Name")}. Type the name and, if you have them, their phone, email and a note. Press {B("Save the name")}.',
+        'The name shows on Live visitors, the visit\'s pages, Visitor history and Live chat, and on every later visit from the same browser. The line says who named them, with the phone, email and note.',
+        'A phone you add also saves them as a contact in Quo, and a call or text from that number shows the name in Texts and calls.',
+        'Kept consistent: if they later book or sign in, the name the booking has replaces yours ("Booked"). A chat from another browser with the same email or phone gets the same name, and a chat\'s email or phone fills in the ones you left empty.',
+        f'{B("Edit name")} changes it; {B("Remove the name")} takes it off.',
+    ])
     g.task('The signals', 'Each signal adds points to the booking likelihood. They come from what the visitor does on the site, never from what they type.')
     g.bullets([
         'Intent: dates searched again and again, saw the full price, reached the booking form (and which step), came back for the same car on another day, comparing two or three cars, read the cancellation policy, read about the deposit, insurance or requirements, tapped to call, text or WhatsApp us or copied our number, checked delivery, looked through many photos or stayed long on one car.',
@@ -1115,6 +1123,14 @@ def build():
     g.task('Missed calls', 'A missed call raises the task "Missed call from ..." for the person on duty in customer service (whoever has Live chat or Texts and calls open), otherwise the customer service queue, and the Admins when nobody holds that function. In the quiet hours (11 pm to 7 am) the task is due at 7 am. One open task per number.')
     g.tip('Quo itself texts back missed callers (its own auto-reply). The platform can do it instead (Program settings, "Missed call: text the caller back"), once per number in 12 hours: turn off Quo\'s own auto-reply first, or callers get two texts.')
     g.task('Calls and texts on records', 'A booking\'s History tab, a renter\'s page and an owner\'s page have "Calls and texts": the texts, calls, missed calls, voicemails and summaries with that person. Calls are not recorded on the line for now, so there is no transcript or recording to show.')
+    g.task('Quo contacts', 'Everyone on the site with a phone number is a contact in Quo under the same name, with their email and company: staff, renters and their drivers, owners, partners, investors, referral partners, job applicants, named visitors, leads, chauffeur clients, live chats, game players and forms left unfinished.')
+    g.bullets([
+        'A new person is added within about five minutes; a changed name, phone or email is updated the same way. Change people on the site, not in Quo: the site\'s version is sent again.',
+        'One contact per number. When two records share a number, the strongest names the contact: staff, then a renter, a driver, an owner, a partner. A number without any name is not sent.',
+        'A contact someone already made in Quo for the number is updated rather than made twice, and its other numbers and emails are kept.',
+        'If Quo is down or slow, bookings and everything else go on; the contacts follow when it answers again.',
+        f'{P("Settings", "All settings")}, {B("Quo contacts")}: how many are in Quo, waiting and in error, the last run and the last error, and {B("Sync everyone again")}. Program settings, "Phone and texts (Quo)", turn it off.',
+    ])
     g.task('Booking texts', f'Since October 22, 2026 these are text alerts: each person chooses Email, Text or Both (the chapter Text alerts, below, and {P("Settings", "All settings")}, {B("Text alerts")}).')
     g.task('The settings')
     g.para('Program settings, "Phone and texts (Quo)": the line on or off, calls and texts kept, the missed-call text and its task, who calls back, AI suggestions and summaries with their daily neurons, '
@@ -1456,7 +1472,7 @@ def build():
         'Insurers: insurance companies billed for bookings.',
     ], shot=S('admin/24-settings-desktop', 0, 0, 1440, 900, pins=[(1, 470, 297), (2, 372, 362), (3, 1115, 362), (4, 372, 659), (5, 372, 764)]))
     g.para('The other tiles: Site content (headings, FAQs, legal text), Fee defaults, Deposit tiers, Kilometre choices, Vehicle classes, Vehicle class rules, '
-           'Airports and delivery, Protection Plan prices, Card coverage, Reviews, Text alerts, Partners (each partner company\'s CRM link: see Partners, company cars and rentals added by hand), '
+           'Airports and delivery, Protection Plan prices, Card coverage, Reviews, Quo contacts (everyone with a phone number as a contact in Quo: see Texts and calls), Text alerts, Partners (each partner company\'s CRM link: see Partners, company cars and rentals added by hand), '
            'Email aliases and reply-to, Staff and roles, Promo codes and Quick replies.')
 
     g.task('Program settings')

@@ -546,6 +546,9 @@ def build():
         f'Press {B("Pages")} for the whole visit. Press {B("Start a chat")} to write your own short friendly message and press {B("Send")}: the visitor sees it in a bubble.',
         'A hot visitor raises an alert at the top of the page. Each action shows on the visitor ("Invited by Lena, 2 min ago"), so check it before writing.',
     ])
+    g.task('Name a visitor', f'When you learn who a visitor is (they called, or told you in the chat), press {B("Name")} on their line, type the name and, if you have them, their phone, email and a note, then press {B("Save the name")}. '
+           'The name shows on Live visitors, Visitor history and Live chat, and on every later visit from the same browser. Only staff see it. A phone you add also saves them as a contact in Quo. '
+           f'If they later book or sign in, the name the booking has replaces yours. {B("Edit name")} changes it; {B("Remove the name")} takes it off.')
     g.task('Follow-ups', 'Signals of known visitors raise tasks on To do with what to do, for example "Call or message Maya Chen: opened offer CC-1042 twice, no answer for 6 hours". Call or message, then mark the task done. A task closes by itself when the renter answers or pays. Follow-ups done count in My sales.')
     g.para('Renters also get one polite reminder email (and at most one more) when they leave an offer, the pay page or a change unanswered. '
            'Taking the follow-up task, a chat with you or a message from you stops these reminders: you are handling it.')
@@ -572,6 +575,8 @@ def build():
         f'{B("Suggest a reply")} writes a draft into the box. Read it and change it: it is never sent until you press Send text.',
     ])
     g.task('Unknown callers', f'Press {B("Unknown callers")}. Type the name if they told you and press {B("Create lead")}, or find the renter and press {B("Link to")} their name.')
+    g.para('Quo\'s contacts follow the site: everyone on the site with a phone number is a contact in Quo under the same name, added or updated within about five minutes. '
+           'Change a name or number on the site, not in Quo: the site\'s version is sent again.')
     g.task('Missed calls', 'A missed call gives you the task "Missed call from ..." when you have Live chat or Texts and calls open; otherwise it waits in the customer service queue. Call back with the Call button, or text, then mark the task done. Quo itself texts the caller back, so do not send the same message again.')
     g.tip('A number that texted STOP gets no texts from us, booking texts included, until they text START. Prices go in a quote, never in a text from memory.')
     g.task('Email, text or both', 'Each renter and owner chooses how we reach them. Their page in Admin shows it under How we reach them; ask an Admin, or change it there if you can open the page. '

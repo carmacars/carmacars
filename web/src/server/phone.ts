@@ -2,7 +2,8 @@ import 'server-only';
 import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { door } from '@/server/door';
-import { phoneLine, webhookSecrets } from '@/integrations/phone';
+import { contactsBook, phoneLine, webhookSecrets } from '@/integrations/phone';
+import { syncContacts, type Due, type SyncDb } from '@/features/phone/quo-contacts';
 import { textGenerator } from '@/integrations/llm';
 import { parseQuoEvent, transcriptText, verifyQuoSignature, type PhoneEvent } from '@/features/phone/webhook';
 
@@ -64,8 +65,27 @@ async function workersAiPaused(): Promise<boolean> {
   } catch { return false; }
 }
 
-/** The five-minute job: booking texts that are due, and the AI one-liners of calls Quo did not summarise. */
+/** The five-minute job: booking texts that are due, the AI one-liners of calls Quo did not summarise, and (0182) the
+ *  Quo contacts of people who changed. A failure of one part never stops the other. */
 export async function runPhoneJob(): Promise<Record<string, unknown>> {
+  let texts: Record<string, unknown> = {};
+  let failed: unknown = null;
+  try { texts = await runTextsJob(); } catch (e) { failed = e; }
+  let contacts: Record<string, unknown>;
+  try { contacts = { ...(await syncContacts(contactsDb, contactsBook())) }; } catch (e) { contacts = { ok: false, error: e instanceof Error ? e.message.slice(0, 200) : 'failed' }; }
+  if (failed) throw failed;
+  return { ...texts, contacts };
+}
+
+/** Quo contacts (0182): the database's side of the sync (src/features/phone/quo-contacts.ts). */
+const contactsDb: SyncDb = {
+  due: async (limit) => (await rpc('server_quo_contacts_due', { p_limit: limit }, SR)) as unknown as Due,
+  found: (p) => rpc('server_quo_contacts_found', { p: p as unknown as Json }, SR),
+  done: (p) => rpc('server_quo_contact_done', { p: p as unknown as Json }, SR),
+  run: (p) => rpc('server_quo_contacts_run', { p: p as unknown as Json }, SR)
+};
+
+async function runTextsJob(): Promise<Record<string, unknown>> {
   if (!phoneLine().ready) return { ok: true, skipped: 'QUO_API_KEY is not set' };
   const due = (await rpc('server_phone_due', { p_limit: 20 }, SR)) as unknown as { texts: Send[]; summaries: Array<{ id: string; transcript: PhoneEvent['transcript'] | null }>; ai: Budget; from: string | null };
   const sent = await sendTexts(due.texts, due.from);

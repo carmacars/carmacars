@@ -129,6 +129,44 @@ export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: '
   );
 }
 
+// 0182: staff name a visitor once they learn who it is. The name is kept for the browser (every later visit), shows on
+// Live visitors, Visitor history and Live chat, and is never shown to the visitor. A phone makes a Quo contact.
+function NameForm({ v, onDone }: { v: Visitor; onDone: (msg: string) => void }) {
+  const l = v.label ?? null;
+  const [name, setName] = useState(l?.name ?? '');
+  const [phone, setPhone] = useState(l?.phone ?? '');
+  const [email, setEmail] = useState(l?.email ?? '');
+  const [note, setNote] = useState(l?.note ?? '');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const idp = `lvn-${v.id}`;
+  const send = async (remove: boolean) => {
+    setBusy(true); setErr('');
+    try {
+      await liveDo('live_name', remove ? { session_id: v.id, remove: true } : { session_id: v.id, name, phone, email, note });
+      onDone(remove ? 'Name removed.' : `Named ${name.trim()}. Every visit from this browser shows the name.`);
+    } catch (e) { setErr(e instanceof Error ? e.message : 'That did not work'); } finally { setBusy(false); }
+  };
+  return (
+    <form className="lv-compose" data-testid="name-form" onSubmit={(e) => { e.preventDefault(); void send(false); }}>
+      <p className="small muted">Only staff see this name. A phone number also saves them as a contact in Quo.</p>
+      <label className="small" htmlFor={`${idp}-n`}>Name</label>
+      <input id={`${idp}-n`} className="input" required maxLength={120} autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} />
+      <label className="small" htmlFor={`${idp}-p`}>Phone (optional)</label>
+      <input id={`${idp}-p`} className="input" type="tel" maxLength={30} autoComplete="off" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      <label className="small" htmlFor={`${idp}-e`}>Email (optional)</label>
+      <input id={`${idp}-e`} className="input" type="email" maxLength={254} autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <label className="small" htmlFor={`${idp}-x`}>Note (optional)</label>
+      <input id={`${idp}-x`} className="input" maxLength={500} autoComplete="off" value={note} placeholder="For example: asked about the van by phone" onChange={(e) => setNote(e.target.value)} />
+      {err && <p className="small" role="alert">{err}</p>}
+      <p className="lv-sug__acts">
+        <button type="submit" className="btn btn--primary btn--sm" disabled={busy || !name.trim()} data-testid="name-save">Save the name</button>
+        {l && <button type="button" className="btn btn--ghost btn--sm" disabled={busy} onClick={() => void send(true)} data-testid="name-remove">Remove the name</button>}
+      </p>
+    </form>
+  );
+}
+
 function SignalBadge({ s }: { s: Signal }) {
   const st = s.strength ?? 0;
   return (
@@ -142,6 +180,7 @@ function SignalBadge({ s }: { s: Signal }) {
 function VisitorRow({ v, cfg, portal, open, onToggle, onChat }: { v: Visitor; cfg: LiveCfg; portal: 'admin' | 'va'; open: boolean; onToggle: () => void; onChat: () => void }) {
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [composing, setComposing] = useState(false);
+  const [naming, setNaming] = useState(false);
   const [text, setText] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
@@ -174,7 +213,8 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat }: { v: Visitor; cf
           {typeof v.score === 'number' && band && (
             <span className={`lv-score lv-score--${band}`} data-testid="score" aria-label={`Booking likelihood ${v.score} of 100, ${BAND_WORDS[band].toLowerCase()}`}
               title={`Booking likelihood: ${v.score} of 100`}>{v.score}<span className="lv-score__w" aria-hidden="true">{BAND_WORDS[band]}</span></span>)}
-          <b>{v.who}</b>{v.known && <span className="ad-b ad-b--dark">Known</span>}
+          <b data-testid="live-who">{v.who}</b>{v.known && <span className="ad-b ad-b--dark">Known</span>}
+          {v.label && <span className="ad-b" title={v.label.by ? `Named by ${v.label.by}` : undefined}>{v.label.source === 'renter' ? 'Booked' : 'Named'}</span>}
           {v.audience === 'owner' && <span className="ad-b">Owner</span>}
           {v.renter_id && portal === 'admin' && <Link prefetch={false} className="link small" href={`/admin/renters/${v.renter_id}`}>Renter page</Link>}
           {v.assigned && <span className="ad-b" data-testid="assigned">With {v.assigned.name.split(' ')[0]}</span>}
@@ -189,13 +229,18 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat }: { v: Visitor; cf
           {[v.captured.name, v.captured.email, v.captured.phone].filter(Boolean).join(', ')}
           {v.captured.email && v.captured.email_confirmed === false && <> <span className="ad-b ad-b--amber">Email not confirmed</span></>}
           {v.captured.renter_id && portal === 'admin' && !v.renter_id && <> <Link prefetch={false} className="link small" href={`/admin/renters/${v.captured.renter_id}`}>Renter page</Link></>}</p>}
+        {v.label && (v.label.phone || v.label.email || v.label.note) && (
+          <p className="small" data-testid="live-label"><span className="muted">{v.label.by ? `Named by ${v.label.by}` : 'Named'}: </span>
+            {[v.label.phone, v.label.email, v.label.note].filter(Boolean).join(' · ')}</p>)}
         {v.signals.length > 0 && <p className="lv-badges">{v.signals.map((s, i) => <SignalBadge key={i} s={s} />)}</p>}
       </div>
       <div className="lv-row__acts">
         {v.chat ? <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${chatHref}?id=${v.chat.id}`}>Open chat {v.chat.number}</Link>
           : <button type="button" className="btn btn--primary btn--sm" onClick={() => setComposing(!composing)} aria-expanded={composing}>Start a chat</button>}
         <button type="button" className="btn btn--quiet btn--sm" onClick={onToggle} aria-expanded={open}>{open ? 'Hide pages' : 'Pages'}</button>
+        <button type="button" className="btn btn--quiet btn--sm" onClick={() => setNaming(!naming)} aria-expanded={naming} data-testid="act-name">{v.label ? 'Edit name' : 'Name'}</button>
       </div>
+      {naming && <NameForm v={v} onDone={(m) => { setNaming(false); setMsg(m); onChat(); }} />}
       {sug && v.audience !== 'owner' && (
         <div className="lv-sug" data-testid="suggested">
           <p className="small"><b>Suggested:</b> {ACTION_WORDS[sug.action ?? 'chat']} <span className="muted">({sug.label}{sug.why && sug.why !== sug.label ? `: ${sug.why}` : ''})</span></p>

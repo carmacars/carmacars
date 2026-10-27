@@ -446,6 +446,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- advertising (0167): the first and last visit kept with a booking (written by the system from the visit) and the
                             -- ads job's last run (the posted ads, drafts, Meta switch and consent log are audited)
                             'booking_attribution', 'ads_job_state',
+                            -- Quo contacts (0182): the sync's work list and state, written by triggers and the five-minute job
+                            -- (Sync everyone again is audited; the names given to visitors are audited)
+                            'quo_contacts', 'quo_contacts_state',
                             -- hiring (0173): applications, their rubric and the slots carry personal data that is removed after 12 months;
                             -- a row audit would keep a copy, so their changes are logged without it (hiring_invite, _decline, _hire, ...)
                             'job_applications', 'interview_scores', 'interview_slots',

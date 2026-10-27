@@ -78,6 +78,9 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');
+type QuoStatus = { enabled: boolean; synced: number; waiting: number; errors: number; no_name: number; total: number; last_run_at: string | null; last_ok_at: string | null;
+  last_result: Record<string, unknown> | null; last_error: string | null; last_error_at: string | null; paused_until: string | null; pause_reason: string | null;
+  scan: { status: 'pending' | 'done'; seen: number; matched: number; done_at: string | null }; recent_errors: Array<Record<string, unknown>> };
 // the reminders sent for a promo code ({"3d": time, "1d": time}), in words
 const remindersText = (m: unknown) => {
   const x = (m ?? {}) as Record<string, string>;
@@ -250,6 +253,41 @@ export default async function Section({ params, searchParams }: { params: Promis
       <ReviewSettings data={r} message={sp.google ?? null} keysSet={googleKeysSet()}
         timings={<SaveForm table="program_settings" rowKey="current" testId="program-reviews" fields={fieldsFrom(s.program, keys)} />}
         link={<SaveForm table="site_settings" rowKey="singleton" testId="site-reviews" fields={fieldsFrom(s.site, ['google_place_id', 'google_review_link'])} />} /></>);
+  }
+  case 'quo-contacts': {
+    // Quo contacts (0182): every person on the site with a phone number is a contact in Quo, kept in step by the job
+    const q = await door<QuoStatus>(user.id, 'admin_read', 'quo_contacts_status');
+    const res = (q.last_result ?? {}) as Record<string, unknown>;
+    const lastRun = q.last_run_at ? `${t(q.last_run_at)}: ${Number(res.created ?? 0)} created, ${Number(res.updated ?? 0)} updated, ${Number(res.failed ?? 0)} failed` : 'Not run yet';
+    return (<>{head}
+      <Card title="Contacts in Quo" testId="quo-contacts">
+        <p className="small">Everyone on the site with a phone number (staff, renters and their drivers, owners, partners, investors, referral partners, job applicants, named visitors, leads, chauffeur clients, live chats, game players and forms left unfinished) is a contact in the CarmaCars Quo workspace under the same name, with their email and company. A new person is added within about five minutes, and a changed name, phone or email is updated the same way. When two records share a number, the strongest one names the contact: staff, then a renter, a driver, an owner. A contact someone already made in Quo for the number is updated rather than made twice, and the other numbers and emails on it are kept. If Quo is down, bookings go on and the contacts follow when it is back.</p>
+        <div className="ad-tiles">
+          <div className="ad-tile"><span className="ad-tile__k">In Quo</span><b className="ad-tile__v" data-testid="quo-synced">{q.synced}</b><span className="ad-tile__s">up to date</span></div>
+          <div className="ad-tile"><span className="ad-tile__k">Waiting</span><b className="ad-tile__v" data-testid="quo-waiting">{q.waiting}</b><span className="ad-tile__s">go with the next run</span></div>
+          <div className="ad-tile"><span className="ad-tile__k">Errors</span><b className="ad-tile__v" data-testid="quo-errors">{q.errors}</b><span className="ad-tile__s">tried again later</span></div>
+          <div className="ad-tile"><span className="ad-tile__k">No name</span><b className="ad-tile__v">{q.no_name}</b><span className="ad-tile__s">numbers without a name are not sent</span></div>
+        </div>
+        <Kv rows={[
+          ['Sync', q.enabled ? 'On' : 'Off (Program settings, Phone and texts)'],
+          ['Last run', lastRun],
+          ['Last good run', q.last_ok_at ? t(q.last_ok_at) : 'None yet'],
+          ['Paused', q.paused_until ? `${q.pause_reason ?? 'Paused'}, until ${t(q.paused_until)}` : null],
+          ['Last error', q.last_error ? `${q.last_error}${q.last_error_at ? ` (${t(q.last_error_at)})` : ''}` : 'None'],
+          ['Quo\'s own contacts', q.scan.status === 'done' ? `Read ${q.scan.done_at ? t(q.scan.done_at) : ''}: ${q.scan.seen} contacts, ${q.scan.matched} already had a number of ours` : `Being read: ${q.scan.seen} so far`]
+        ]} />
+        <Act action="quo_contacts_resync" label="Sync everyone again" variant="ghost" testId="quo-resync" done="Everyone is sent again, starting with the next run."
+          confirm="Every person with a phone number is sent to Quo again, after Quo's contact list is read again. Nobody is added twice." />
+      </Card>
+      <Card title="Recent errors">
+        <Table rows={q.recent_errors as unknown as R[]} empty="No errors." cols={[
+          { key: 'number', label: 'Number', render: (r) => String(r.number) },
+          { key: 'name', label: 'Name', render: (r) => String(r.name ?? '') },
+          { key: 'error', label: 'Error', render: (r) => String(r.error ?? '') },
+          { key: 'at', label: 'When', render: (r) => t(r.at) },
+          { key: 'retry_at', label: 'Next try', render: (r) => (r.retry_at ? t(r.retry_at) : 'After the next change') }]} />
+      </Card>
+    </>);
   }
   case 'text-alerts': {
     // text alerts (0096): the defaults and quiet hours, and the text of each notification

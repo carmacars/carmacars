@@ -96,3 +96,117 @@ export async function ensureWebhook(o: QuoOptions, p: { url: string; events: str
   if (!p.haveKey) return { id: w.id, action: 'rotated', key: await rotateWebhook(o, w.id) };
   return { id: w.id, action, key: null };
 }
+
+// ---------------------------------------------------------------- contacts (migration 0182)
+//   GET   /v1/contacts?maxResults=50&pageToken=...      the workspace's contacts: data[], nextPageToken (no phone filter)
+//   GET   /v1/contacts?externalIds=cc-...&maxResults=1  ours, by the external id we gave it
+//   GET   /v1/contacts/{id}                             one contact (404: deleted in Quo)
+//   POST  /v1/contacts                                  {defaultFields: {firstName, lastName, company, role, emails, phoneNumbers}, externalId, source}
+//   PATCH /v1/contacts/{id}                             the same fields
+// Quo allows 10 requests a second per key; the sync spaces its calls (throttle below) and stops at a 429.
+
+export const CONTACT_SOURCE = 'carmacars';
+/** What Quo should hold for one person (from public.server_quo_contacts_due). */
+export interface ContactPerson { number: string; first_name: string; last_name: string | null; email: string | null; company: string | null; role: string | null }
+export interface QuoContact { id: string; externalId: string | null; firstName: string | null; lastName: string | null; company: string | null; role: string | null;
+  phones: Array<{ name: string; value: string }>; emails: Array<{ name: string; value: string }> }
+type RawItem = { name?: string; value?: string | null };
+type RawContact = { id: string; externalId?: string | null; defaultFields?: { firstName?: string | null; lastName?: string | null; company?: string | null; role?: string | null;
+  phoneNumbers?: RawItem[] | null; emails?: RawItem[] | null } };
+
+/** "+16475550100" from what Quo or a person wrote; null when it is not a phone number (as app.phone_e164). */
+export function e164(p: string | null | undefined): string | null {
+  const raw = String(p ?? '').trim();
+  const d = raw.replace(/[^0-9]/g, '');
+  if (/^[2-9][0-9]{9}$/.test(d)) return `+1${d}`;
+  if (/^1[2-9][0-9]{9}$/.test(d)) return `+${d}`;
+  if (raw.startsWith('+') && d.length >= 8 && d.length <= 15) return `+${d}`;
+  return null;
+}
+
+export function readContact(c: RawContact): QuoContact {
+  const f = c.defaultFields ?? {};
+  const list = (xs: RawItem[] | null | undefined) =>
+    (xs ?? []).filter((x) => typeof x?.value === 'string' && x.value.trim()).map((x) => ({ name: x.name || 'other', value: String(x.value) }));
+  return { id: c.id, externalId: c.externalId ?? null, firstName: f.firstName ?? null, lastName: f.lastName ?? null, company: f.company ?? null, role: f.role ?? null,
+    phones: list(f.phoneNumbers), emails: list(f.emails) };
+}
+
+/** The fields we send: our name, company and role; our number and email added to the ones the contact already has
+ *  (a number or email someone added in Quo is kept). */
+export function contactFields(p: ContactPerson, existing?: QuoContact | null) {
+  const phones = [...(existing?.phones ?? [])];
+  if (!phones.some((x) => e164(x.value) === p.number)) phones.unshift({ name: 'mobile', value: p.number });
+  const emails = [...(existing?.emails ?? [])];
+  const email = p.email?.trim() || null;
+  if (email && !emails.some((x) => x.value.trim().toLowerCase() === email.toLowerCase())) emails.unshift({ name: 'email', value: email });
+  return {
+    firstName: p.first_name, lastName: p.last_name ?? null,
+    company: p.company ?? existing?.company ?? null, role: p.role ?? existing?.role ?? null,
+    phoneNumbers: phones, emails
+  };
+}
+
+export async function getContact(o: QuoOptions, id: string): Promise<QuoContact | null> {
+  try {
+    const j = await call<{ data?: RawContact }>(o, 'GET', `/v1/contacts/${encodeURIComponent(id)}`);
+    return j?.data?.id ? readContact(j.data) : null;
+  } catch (e) {
+    if (e instanceof QuoError && e.status === 404) return null;
+    throw e;
+  }
+}
+
+export async function findContactByExternalId(o: QuoOptions, externalId: string): Promise<QuoContact | null> {
+  const q = new URLSearchParams({ externalIds: externalId, sources: CONTACT_SOURCE, maxResults: '1' });
+  const j = await call<{ data?: RawContact[] }>(o, 'GET', `/v1/contacts?${q}`);
+  const c = (j?.data ?? []).find((x) => x?.externalId === externalId);
+  return c ? readContact(c) : null;
+}
+
+export async function listContactsPage(o: QuoOptions, pageToken?: string | null): Promise<{ contacts: QuoContact[]; next: string | null }> {
+  const q = new URLSearchParams({ maxResults: '50' });
+  if (pageToken) q.set('pageToken', pageToken);
+  const j = await call<{ data?: RawContact[]; nextPageToken?: string | null }>(o, 'GET', `/v1/contacts?${q}`);
+  return { contacts: (j?.data ?? []).filter((c) => c?.id).map(readContact), next: j?.nextPageToken || null };
+}
+
+export async function createContact(o: QuoOptions, p: ContactPerson, externalId: string): Promise<QuoContact> {
+  const j = await call<{ data: RawContact }>(o, 'POST', '/v1/contacts', { defaultFields: contactFields(p), externalId, source: CONTACT_SOURCE });
+  if (!j?.data?.id) throw new QuoError('Quo answered without a contact id', 502, null, false);
+  return readContact(j.data);
+}
+
+export async function updateContact(o: QuoOptions, id: string, p: ContactPerson, existing: QuoContact | null): Promise<QuoContact> {
+  const j = await call<{ data?: RawContact }>(o, 'PATCH', `/v1/contacts/${encodeURIComponent(id)}`, { defaultFields: contactFields(p, existing) });
+  return j?.data?.id ? readContact(j.data) : { ...(existing ?? readContact({ id })), id };
+}
+
+/** One person into Quo: the contact we hold (read first, so its other numbers and emails are kept), else ours by its
+ *  external id (a create whose answer was lost), else a new one. A contact deleted in Quo is made again. */
+export async function upsertContact(o: QuoOptions, p: ContactPerson, quoId: string | null, externalId: string):
+  Promise<{ id: string; action: 'created' | 'updated' }> {
+  let existing = quoId ? await getContact(o, quoId) : null;
+  if (!existing) existing = await findContactByExternalId(o, externalId);
+  if (existing) return { id: (await updateContact(o, existing.id, p, existing)).id, action: 'updated' };
+  try {
+    return { id: (await createContact(o, p, externalId)).id, action: 'created' };
+  } catch (e) {
+    // 409: a contact with this source and external id exists (made by a run whose answer was lost): update it
+    if (!(e instanceof QuoError && e.status === 409)) throw e;
+    const again = await findContactByExternalId(o, externalId);
+    if (!again) throw e;
+    return { id: (await updateContact(o, again.id, p, again)).id, action: 'updated' };
+  }
+}
+
+/** A fetch that waits so calls are at least gapMs apart (Quo: 10 a second per key). */
+export function throttle(f: typeof fetch, gapMs: number, sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms))): typeof fetch {
+  let last = 0;
+  return (async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+    const wait = last + gapMs - Date.now();
+    if (wait > 0) await sleep(wait);
+    last = Date.now();
+    return f(input, init);
+  }) as typeof fetch;
+}

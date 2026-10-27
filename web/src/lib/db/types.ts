@@ -13163,6 +13163,7 @@ export type Database = {
           game_saved_again_days: number;
           request_claim_minutes: number;
           request_sales_after_minutes: number;
+          phone_quo_contacts: boolean;
         };
         Insert: {
           id?: string;
@@ -13669,6 +13670,7 @@ export type Database = {
           game_saved_again_days?: number;
           request_claim_minutes?: number;
           request_sales_after_minutes?: number;
+          phone_quo_contacts?: boolean;
         };
         Update: {
           id?: string;
@@ -14175,6 +14177,7 @@ export type Database = {
           game_saved_again_days?: number;
           request_claim_minutes?: number;
           request_sales_after_minutes?: number;
+          phone_quo_contacts?: boolean;
         };
         Relationships: [];
       };
@@ -14412,6 +14415,126 @@ export type Database = {
           webhook_id?: string | null;
           checked_at?: string | null;
           note?: string | null;
+        };
+        Relationships: [];
+      };
+      quo_contacts: {
+        Row: {
+          number: string;
+          quo_id: string | null;
+          state: string;
+          first_name: string | null;
+          last_name: string | null;
+          email: string | null;
+          company: string | null;
+          role: string | null;
+          source_kind: string | null;
+          source_id: string | null;
+          synced_hash: string | null;
+          synced_at: string | null;
+          dirty_at: string | null;
+          next_try_at: string;
+          leased_until: string | null;
+          attempts: number;
+          last_error: string | null;
+          last_error_at: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          number: string;
+          quo_id?: string | null;
+          state?: string;
+          first_name?: string | null;
+          last_name?: string | null;
+          email?: string | null;
+          company?: string | null;
+          role?: string | null;
+          source_kind?: string | null;
+          source_id?: string | null;
+          synced_hash?: string | null;
+          synced_at?: string | null;
+          dirty_at?: string | null;
+          next_try_at?: string;
+          leased_until?: string | null;
+          attempts?: number;
+          last_error?: string | null;
+          last_error_at?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          number?: string;
+          quo_id?: string | null;
+          state?: string;
+          first_name?: string | null;
+          last_name?: string | null;
+          email?: string | null;
+          company?: string | null;
+          role?: string | null;
+          source_kind?: string | null;
+          source_id?: string | null;
+          synced_hash?: string | null;
+          synced_at?: string | null;
+          dirty_at?: string | null;
+          next_try_at?: string;
+          leased_until?: string | null;
+          attempts?: number;
+          last_error?: string | null;
+          last_error_at?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      quo_contacts_state: {
+        Row: {
+          singleton: boolean;
+          scan_status: string;
+          scan_cursor: string | null;
+          scan_seen: number;
+          scan_matched: number;
+          scan_done_at: string | null;
+          last_run_at: string | null;
+          last_ok_at: string | null;
+          last_result: Json | null;
+          last_error: string | null;
+          last_error_at: string | null;
+          paused_until: string | null;
+          pause_reason: string | null;
+        };
+        Insert: {
+          singleton?: boolean;
+          scan_status?: string;
+          scan_cursor?: string | null;
+          scan_seen?: number;
+          scan_matched?: number;
+          scan_done_at?: string | null;
+          last_run_at?: string | null;
+          last_ok_at?: string | null;
+          last_result?: Json | null;
+          last_error?: string | null;
+          last_error_at?: string | null;
+          paused_until?: string | null;
+          pause_reason?: string | null;
+        };
+        Update: {
+          singleton?: boolean;
+          scan_status?: string;
+          scan_cursor?: string | null;
+          scan_seen?: number;
+          scan_matched?: number;
+          scan_done_at?: string | null;
+          last_run_at?: string | null;
+          last_ok_at?: string | null;
+          last_result?: Json | null;
+          last_error?: string | null;
+          last_error_at?: string | null;
+          paused_until?: string | null;
+          pause_reason?: string | null;
         };
         Relationships: [];
       };
@@ -21399,6 +21522,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      visitor_names: {
+        Row: {
+          visitor_id: string;
+          name: string;
+          phone: string | null;
+          email: string | null;
+          note: string | null;
+          source: string;
+          renter_id: string | null;
+          set_by: string | null;
+          set_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          visitor_id: string;
+          name: string;
+          phone?: string | null;
+          email?: string | null;
+          note?: string | null;
+          source?: string;
+          renter_id?: string | null;
+          set_by?: string | null;
+          set_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          visitor_id?: string;
+          name?: string;
+          phone?: string | null;
+          email?: string | null;
+          note?: string | null;
+          source?: string;
+          renter_id?: string | null;
+          set_by?: string | null;
+          set_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       visitor_sessions: {
         Row: {
           id: string;
@@ -22997,6 +23159,10 @@ export type Database = {
       server_places_import_finish: { Args: { p_import: number; p_skipped?: Json }; Returns: Json };
       server_places_import_region_done: { Args: { p_import: number; p_region: string; p_counts: Json }; Returns: Json };
       server_places_stage_clear: { Args: never; Returns: undefined };
+      server_quo_contact_done: { Args: { p: Json }; Returns: Json };
+      server_quo_contacts_due: { Args: { p_limit?: number }; Returns: Json };
+      server_quo_contacts_found: { Args: { p: Json }; Returns: Json };
+      server_quo_contacts_run: { Args: { p: Json }; Returns: Json };
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
       server_record_vin_decode: { Args: { p_vin: string; p_provider: string; p_output: Json }; Returns: Json };
