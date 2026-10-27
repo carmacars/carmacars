@@ -449,6 +449,8 @@ on conflict (code) do update set
 select app.notification_catalogue_refresh();
 -- CATALOGUE 0181 END
 
+-- the catalogue refresh above recomputes each marketing email's consent rule: keep express consent where 0161 and 0167 set it (as 0173 does)
+update notification_catalogue set consent_rule = 'express' where code in ('renter_promo_expiry_3d', 'renter_promo_expiry_1d', 'owner_recruit_outreach');
 update notification_catalogue set emitted_by = 'the signing pages'' identity step for documents (0181)', no_text = true, always_email = true where code = 'document_signing_code';
 
 -- the signer's own email on file (an owner, a co-owner, an investor, a staff member), never a booking's renter
