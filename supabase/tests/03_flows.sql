@@ -445,7 +445,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'field_shift_edits',
                             -- advertising (0167): the first and last visit kept with a booking (written by the system from the visit) and the
                             -- ads job's last run (the posted ads, drafts, Meta switch and consent log are audited)
-                            'booking_attribution', 'ads_job_state')
+                            'booking_attribution', 'ads_job_state',
+                            -- Sales work modes (0174): the touch log (one row per offer, message, chat or call, written by the system or
+                            -- by hand; no money or status: a void is written to audit_log; the month rates and the blocks are audited)
+                            'sales_touches')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);
