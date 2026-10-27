@@ -12,14 +12,14 @@ import { ENROLLMENT_ARTICLES, ENROLLMENT_SCHEDULE_B, OWNER_TEMPLATE_VERSION, TIT
 export type PacketKey = 'enrollment' | 'title_holding' | 'additional';
 
 export interface OwnerSchedule {
-  /** null on a car still in intake (the preview of 0180): no schedule entry yet. */
+  /** null on a car still in intake (the preview of 0181): no schedule entry yet. */
   id: string | null; vehicle_id: string; schedule_number: string | null; vehicle_number: number; is_additional: boolean; year: number; make: string; model: string;
   trim: string | null; colour: string | null; vin: string; plate: string | null; odometer_km: number | null; held_by: string; title_status: string | null;
   finance_party_name: string | null; finance_permission: string | null; management_mode: string; onboarding_method: string | null;
-  /** The fees and the Revenue Share are null until CarmaCars approves the terms (the preview of 0180). */
+  /** The fees and the Revenue Share are null until CarmaCars approves the terms (the preview of 0181). */
   insurance_fee_cents: number | null; tracker_fee_cents: number | null; install_fee_cents: number | null; revenue_share_bps: number | null; enrollment_date: string | null; special_terms: string | null;
   owners_lien: string; signed_at: string | null; signature_request_id: string | null; title_agreement_id: string | null; onboarding_status: string;
-  /** A car still in intake: shown from the application, its terms pending approval (0180). */
+  /** A car still in intake: shown from the application, its terms pending approval (0181). */
   pending?: boolean;
 }
 export interface OwnerAgreementFacts {
@@ -27,14 +27,14 @@ export interface OwnerAgreementFacts {
     email: string | null; phone: string | null; hst_number: string | null; address: string | null; signing_officer_name: string | null;
     signing_officer_title: string | null; signer_name: string; signer_role: string; payout: string | null };
   company: { trade_name: string; legal_name?: string | null; address: string | null; email: string | null; phone: string | null; signing_officer_name: string; signing_officer_title: string | null; install_fee_cents: number; hst_bps: number };
-  /** status 'preview' with no number: an agreement CarmaCars makes when it approves the terms (0180). */
+  /** status 'preview' with no number: an agreement CarmaCars makes when it approves the terms (0181). */
   agreements: Array<{ id: string | null; kind: 'enrollment' | 'title_holding'; agreement_number: string | null; status: string; agreement_date: string | null; signature_request_id: string | null; document_sha256: string | null }>;
   schedules: OwnerSchedule[];
   /** The other Owners named in the Title Schedule (0053): each signs with their own link. */
   cosigners?: Array<{ id: string; name: string; email: string; status: 'pending' | 'signed'; signed_at: string | null }>;
   /** The portal owner has signed; the documents wait for the other Owners. */
   waiting_for_owners?: boolean;
-  /** Read only, before approval (public.server_owner_agreement_preview_facts, 0180): the cars still in intake, no fee yet. */
+  /** Read only, before approval (public.server_owner_agreement_preview_facts, 0181): the cars still in intake, no fee yet. */
   preview?: boolean;
   pending_vehicles?: number;
 }
@@ -44,7 +44,7 @@ export const TITLES: Record<PacketKey, string> = {
   title_holding: 'Title-Holding and Lease Agreement',
   additional: 'Additional Vehicle Schedule'
 };
-/** What a preview shows where CarmaCars has not set a value yet (0180). Never a number it made up. */
+/** What a preview shows where CarmaCars has not set a value yet (0181). Never a number it made up. */
 export const PENDING = 'Pending approval';
 export const PREVIEW_NOTICE = 'Terms pending approval: you can sign once CarmaCars approves your terms.';
 export const OWNER_SIGN_STATEMENT = 'I have read these documents and I sign them electronically.';
@@ -59,7 +59,7 @@ const agreement = (f: OwnerAgreementFacts, k: 'enrollment' | 'title_holding') =>
 const unsigned = (f: OwnerAgreementFacts) => f.schedules.filter((s) => !s.signed_at);
 
 const sp = (n: string | null | undefined) => (n ? ` ${n}` : '');
-/** The notice at the top of a document shown before approval (0180). */
+/** The notice at the top of a document shown before approval (0181). */
 const previewNotice = (f: OwnerAgreementFacts): Block[] => (f.preview ? [{ t: 'p', text: `PREVIEW, NOT FOR SIGNATURE. ${PREVIEW_NOTICE} The fees and the Revenue Share show as ${PENDING.toLowerCase()} until then.` }] : []);
 
 /** What the owner still has to sign, in order. */

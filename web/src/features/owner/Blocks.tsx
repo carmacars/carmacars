@@ -14,7 +14,7 @@ export const invoicePath = (n: string) => `/owner/invoices/${encodeURIComponent(
 
 const WAITS: Record<string, string> = { owner: 'Waiting on you', carmacars: 'With our team', field: 'With our field team', fleet: 'With our fleet team' };
 
-/** intake: the car's terms are not approved yet; its agreements can be read, filled in, on /owner/sign (0180). */
+/** intake: the car's terms are not approved yet; its agreements can be read, filled in, on /owner/sign (0181). */
 export function Checklist({ items: all, trackers = true, intake = false }: { items: ChecklistItem[]; trackers?: boolean; intake?: boolean }) {
   const items = trackers ? all : all.filter((c) => c.code !== 'tracker_install');
   const firstOpen = items.findIndex((c) => c.status === 'open');
