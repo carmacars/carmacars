@@ -1,0 +1,28 @@
+{
+  "batch": "2026-10-27",
+  "items": [
+    {
+      "kind": "car",
+      "id": "603dd4c1-047e-4f0d-bd33-b1eda3431eb3",
+      "prompt_version": "car-copy-v2",
+      "copy": {
+        "seo_title": "",
+        "meta_description": "",
+        "h1": "",
+        "intro": "Five seats, a real trunk and adaptive cruise control that takes the strain out of a long highway day. The Honda sedan that suits most trips.",
+        "highlights": ["Adaptive cruise control", "Blind spot assist", "Lane keeping assist", "Automatic emergency braking", "Backup camera", "Bluetooth"],
+        "good_for": ["Long highway drives", "Commuting to work", "Small families with bags"],
+        "included": [],
+        "pickup_delivery": "",
+        "requirements": [],
+        "faq": [
+          {"question": "How many people fit in the Civic?", "answer": "It seats five people, two in front and three in the back, and the trunk takes their bags."},
+          {"question": "Does the Civic have all-wheel drive?", "answer": "No. It is a 4x2 sedan, so two wheels drive it. Automatic emergency braking and lane keeping assist help on busy winter roads."},
+          {"question": "What fuel does it use?", "answer": "The Civic runs on gas."},
+          {"question": "Can I connect my phone?", "answer": "Yes, it has Bluetooth, so you can pair your phone for calls."}
+        ],
+        "alt_texts": {}
+      }
+    }
+  ]
+}
