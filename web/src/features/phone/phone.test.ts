@@ -49,6 +49,9 @@ test('payloads: calls (ringing, answered and completed, missed, recording, summa
   assert.deepEqual([ring.quo_id, ring.direction, ring.their_number, ring.missed], ['AC-call', 'in', THEM, false]);
   const done = parseQuoEvent(SAMPLES.callCompleted, null, OUR)!;
   assert.deepEqual([done.status, done.duration, done.answered_at, done.missed], ['answered', 55, '2026-04-13T12:00:00.000Z', false]);
+  // Quo sends some durations with decimals: whole seconds for the database (an integer column)
+  const frac = parseQuoEvent(JSON.parse(JSON.stringify(SAMPLES.callCompleted).replace('"duration":55', '"duration":54.678912')), null, OUR)!;
+  assert.equal(frac.duration, 55);
   const miss = parseQuoEvent(SAMPLES.callMissed, null, OUR)!;
   assert.deepEqual([miss.quo_id, miss.direction, miss.missed, miss.status], ['AC-call-missed', 'in', true, 'missed']);
   const rec = parseQuoEvent(SAMPLES.callRecording, null, OUR)!;
