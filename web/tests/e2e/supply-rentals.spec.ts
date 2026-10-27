@@ -326,3 +326,77 @@ test('partner portal: the partner agreement, signed on screen and countersigned'
   await page.context().close();
   await sql.end();
 });
+
+// 2026-10-27 (migration 0175): amounts typed after tax. "$270 after tax for the rental and $50 after tax for the
+// Protection Plan, $320 total cash": the toggle at the top of the price, each line worked back to before tax, the total on
+// screen is the total saved; the total the renter pays typed back-solves the rental charge; "No deposit" in the summary.
+test('manual rental: amounts typed after tax, the total the renter pays, no deposit', async ({ browser }) => {
+  test.setTimeout(180_000);
+  const sql = db();
+  const admin = await mkUser(sql, 'admin', `Tia Admin ${tag()}`);
+  const renter = await mkUser(sql, 'renter', `Theo Cash ${tag()}`);
+  const page = await ctx(browser);
+  await signIn(page, admin.email, '/admin');
+  const car = await addCar(page, 'company', { vin: vin(), plate: plate(), daily: '100' });
+  const day = (n: number) => new Date(Date.now() + n * 86_400_000).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
+  const start = async (from: number, to: number) => {
+    await page.goto('/admin/bookings/new', { waitUntil: 'networkidle' });
+    await page.getByTestId('mr-vehicle_id').selectOption(car);
+    await page.getByTestId('mr-pickup_at').fill(`${day(from)}T10:00`);
+    await page.getByTestId('mr-return_at').fill(`${day(to)}T10:00`);
+    await page.getByTestId('mr-renter-q').fill(renter.name);
+    await page.getByTestId('mr-renter-search').click();
+    await page.getByTestId('mr-renter-results').getByRole('button', { name: renter.name }).click();
+    await page.getByTestId('mr-coverage_option').selectOption('3');
+    await expect(page.getByTestId('mr-free')).toBeVisible({ timeout: 20_000 });
+    // the Protection Plan: its line when the price table prices it, else added from the list
+    await expect(page.getByTestId('mr-price')).toBeVisible();
+    if (await page.getByTestId('mr-fee-coverage_sold').count() === 0) await page.getByTestId('mr-add-line').selectOption('coverage_sold');
+    await expect(page.getByTestId('mr-fee-coverage_sold')).toBeVisible();
+  };
+  const save = async () => {
+    await page.getByTestId('mr-paid-by').selectOption('cash');
+    await page.getByTestId('mr-do-not-email').check();
+    await page.getByTestId('mr-submit').click();
+    await expect(page.getByTestId('mr-done')).toContainText('Rental', { timeout: 30_000 });
+    const number = (await page.getByTestId('mr-done').locator('h2').innerText()).match(/Rental (\S+) added/)![1]!;
+    const [bk] = await sql`select total_due_at_booking_cents::int t, price_tax, price_with_tax_cents::int w, rental_charge_cents::int r from bookings where booking_number = ${number}`;
+    return bk!;
+  };
+
+  // 1. After tax: $270 for the rental, $50 for the Protection Plan; the table, the summary and the booking say $320.00
+  await start(30, 33);
+  await expect(page.getByTestId('mr-tax-mode')).toHaveAttribute('data-mode', 'before');
+  await page.getByTestId('mr-tax-mode-after').click();
+  await expect(page.getByTestId('mr-tax-mode')).toHaveAttribute('data-mode', 'after');
+  await page.getByTestId('mr-rental_charge').fill('270');
+  await page.getByTestId('mr-fee-coverage_sold').fill('50');
+  await expect(page.getByTestId('mr-total')).toHaveText('$320.00', { timeout: 20_000 });
+  await expect(page.getByTestId('mr-line-rental_charge')).toContainText('$238.94');
+  await expect(page.getByTestId('mr-line-coverage_sold')).toContainText('$44.25');
+  await expect(page.getByTestId('mr-price')).toContainText('$36.81');
+  await expect(page.getByTestId('mr-sum-total')).toHaveText('$320.00');
+  await expect(page.getByTestId('mr-total-diff')).toHaveCount(0);
+  await page.getByTestId('mr-deposit-by').selectOption('none');
+  await expect(page.getByTestId('mr-sum-deposit')).toHaveText('No deposit');
+  await check(page, 'add a rental, amounts after tax');
+  const a = await save();
+  expect(`${a.t}/${a.price_tax}/${a.w}/${a.r}`).toBe('32000/included/27000/23894');
+  await expect(page.getByTestId('mr-done-total')).toContainText('Total $320.00.');
+
+  // 2. The choice is remembered on this device; the total the renter pays typed: the rental charge is worked out
+  await start(40, 43);
+  await expect(page.getByTestId('mr-tax-mode')).toHaveAttribute('data-mode', 'after');
+  await page.getByTestId('mr-fee-coverage_sold').fill('50');
+  await page.getByTestId('mr-total-typed').fill('400');
+  await expect(page.getByTestId('mr-total')).toHaveText('$400.00', { timeout: 30_000 });
+  await expect(page.getByTestId('mr-rent-from-total')).toContainText('From the total: $350.00 with HST ($309.73 before tax)');
+  await expect(page.getByTestId('mr-total-breakdown')).toContainText('Before tax:');
+  await expect(page.getByTestId('mr-total-breakdown')).toContainText('total $400.00.');
+  await expect(page.getByTestId('mr-total-diff')).toHaveCount(0);
+  await check(page, 'add a rental, total typed');
+  const b = await save();
+  expect(`${b.t}/${b.price_tax}/${b.w}`).toBe('40000/included/35000');
+  await page.context().close();
+  await sql.end();
+});

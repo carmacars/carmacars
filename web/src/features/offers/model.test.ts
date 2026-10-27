@@ -104,3 +104,29 @@ test('the quick rental\'s "paid by" maps to the way and the method', () => {
   assert.equal(needsReference('e_transfer'), true);
   assert.equal(needsReference('cash'), false);
 });
+
+test('amounts typed after tax (2026-10-27): the rental charge goes tax included, each HST line before tax, lines without HST as typed', () => {
+  const hst = (k: string) => k !== 'collection_cost';
+  const f = base({ price_mode: 'total', price_total: '270', price_reason: 'Paid $320 cash', coverage_option: '3', plan_price: '50', fees: { collection_cost: '25' } });
+  const p = offerPayload(f, 'admin', 3, [], true, { after: true, bps: 1300, hstFor: hst });
+  assert.equal(p.rental_charge_cents, 27000);
+  assert.equal(p.price_tax, 'included');
+  assert.deepEqual(p.line_overrides, { coverage_sold: 4425, collection_cost: 2500 });
+  // before tax: as typed, plus tax
+  const b = offerPayload(f, 'admin', 3, [], true, { after: false, bps: 1300, hstFor: hst });
+  assert.equal(b.price_tax, 'plus');
+  assert.deepEqual(b.line_overrides, { coverage_sold: 5000, collection_cost: 2500 });
+  // a fee typed $1.00 after tax lands a cent short (0.88 + 0.11): the rental charge takes the cent
+  const odd = offerPayload(base({ price_mode: 'total', price_total: '270', price_reason: 'x', fees: { delivery: '1' } }), 'admin', 3, [], true, { after: true, bps: 1300, hstFor: hst });
+  assert.equal(odd.rental_charge_cents, 27001);
+  assert.deepEqual(odd.line_overrides, { delivery: 88 });
+  // the total the renter pays: the rental charge worked out, tax included, with a reason when none was typed
+  const t = offerPayload(base(), 'cs', 3, [], false, { after: false, bps: 1300, hstFor: hst, rentalWithTax: 27000 });
+  assert.equal(t.rental_charge_cents, 27000);
+  assert.equal(t.price_tax, 'included');
+  assert.equal(t.price_reason, 'Total agreed with the renter');
+  // no price yet (no rate known): typed as they are, the rental still tax included
+  const n = offerPayload(f, 'admin', 3, [], true, { after: true, bps: null, hstFor: hst });
+  assert.equal(n.price_tax, 'included');
+  assert.deepEqual(n.line_overrides, { coverage_sold: 5000, collection_cost: 2500 });
+});

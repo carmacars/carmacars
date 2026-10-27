@@ -306,3 +306,16 @@
 .hr-photos img { width: 100%; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border-radius: var(--r-2, 6px); background: var(--surface-2, #eee); display: block; }
 .hr-sign { max-width: 46rem; }
 .hr-sign__handoff { text-align: center; padding: var(--s-6) var(--s-4); }
+
+/* 2026-10-27: amounts typed before or after tax, and the total the renter pays */
+.ad-taxmode { border: 2px solid var(--black); padding: var(--s-3); display: grid; gap: var(--s-2); min-width: 0; }
+.ad-taxmode__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+.ad-taxmode__opts { display: flex; flex-wrap: wrap; }
+.ad-taxmode__opt { position: relative; display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 var(--s-3); border: 1px solid var(--black); cursor: pointer; font-weight: 600; }
+.ad-taxmode__opt + .ad-taxmode__opt { border-left: 0; }
+.ad-taxmode__opt input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.ad-taxmode__opt:has(input:checked) { background: var(--black); color: var(--white); }
+.ad-taxmode__opt:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.ad-taxmode .hint { margin: 0; }
+.ad-taxtotal { display: flex; flex-wrap: wrap; align-items: end; gap: var(--s-2) var(--s-3); }
+.ad-taxtotal .field { margin: 0; min-width: 0; }

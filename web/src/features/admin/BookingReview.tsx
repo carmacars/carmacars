@@ -11,7 +11,8 @@ import { toLocalInput } from './Act';
 import { SourcedChoice, type Choice } from '@/features/sales/SourcedChoice';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { addonsPayload, type AddonChoice, type AddonOption, type BookingAddon } from '@/features/addons/model';
-import { PRICE_TAX_OPTIONS } from '@/features/sales/priceTax';
+import { TaxModeToggle, useTaxMode } from '@/features/sales/TaxModeToggle';
+import { beforeTax, convertTyped, solveRental, toBeforeTax, totalDifference, withTax, type TaxMode } from '@/features/sales/taxIncluded';
 import { offersDo } from '@/server/actions/offers';
 import { DEPOSIT_PAY, RENTAL_PAY, describeRevision } from '@/features/offers/model';
 import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/insurers/rates';
@@ -20,7 +21,7 @@ import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/ins
 // edit is priced by the database (adjust_booking and the pricing functions inside a rolled-back
 // transaction) and shown as the renter will see the offer. Save keeps the changes; Send offer saves and
 // freezes them as the next offer version.
-export interface Line { id: string; charge_type: string; description: string | null; amount_cents: number; hst_cents: number; stage: string; charged_to_renter: boolean }
+export interface Line { id: string; charge_type: string; description: string | null; amount_cents: number; hst_cents: number; hst_applies?: boolean; stage: string; charged_to_renter: boolean }
 export interface B {
   id: string; booking_number: string; status: string; vehicle_id: string; pickup_at: string; return_at: string; booking_type: string;
   daily_rate_cents: number; weekend_rate_cents: number; weekly_rate_cents: number; monthly_rate_cents: number; rental_charge_cents: number;
@@ -41,6 +42,8 @@ export interface B {
   price_tax?: 'plus' | 'included' | null; price_with_tax_cents?: number | null;
   /** 0129: how the rental and the deposit are paid */
   rental_pay_method?: string; deposit_pay_method?: string;
+  /** the booking's HST rate (the settings' when it was priced) */
+  hst_bps?: number;
 }
 type Opt = { id: string; name: string; plate: string | null; free: boolean; daily_rate_cents: number | null };
 
@@ -122,7 +125,19 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   const norm = (l: AddonChoice[]) => JSON.stringify(addonsPayload(l).sort((x, y) => x.code.localeCompare(y.code)));
   const addonsChanged = norm(addons) !== norm(addons0);
   const set = (k: string) => (x: string | boolean) => { setDone(null); setV((s) => ({ ...s, [k]: x })); };
-  const changed = (k: string) => v[k] !== start[k];
+  // 2026-10-27: amounts typed before or after tax (remembered on this device), and the total the renter pays (after tax).
+  // The boxes start with the amounts before tax; after tax they show (and take) the amounts with HST, and what is sent is
+  // always before tax (the rental charge tax included, 0112). The rate is the booking's.
+  const [taxMode, setTaxMode] = useTaxMode();
+  const [totalTyped, setTotalTyped] = useState('');
+  const [solvedW, setSolvedW] = useState<number | null>(null);
+  const bps = b.hst_bps ?? null;
+  const conv = taxMode === 'after' && bps !== null ? 'after' : 'before';
+  const hstOfKey = (k: string) => { const l = k === 'coverage' ? coverageLine : k.startsWith('fee:') ? feeLines.find((x) => `fee:${x.charge_type}` === k) : undefined; return l ? (l.hst_applies ?? l.hst_cents !== 0) : true; };
+  const taxed = (k: string) => k === 'coverage' || k.startsWith('fee:');
+  const beforeOf = (k: string) => { const c = cents(String(v[k] ?? '')); return c === null ? null : toBeforeTax(c, conv, hstOfKey(k), bps ?? 0); };
+  const changed = (k: string) => (taxed(k) ? beforeOf(k) !== cents(String(start[k] ?? '')) : v[k] !== start[k]);
+  const totalCents = /^\s*\$?[\d,]+(\.\d{0,2})?\s*$/.test(totalTyped) ? Math.round(Number(totalTyped.replace(/[$,\s]/g, '')) * 100) : null;
   // 0163: the insurer's rate sheet for this car: the daily rate authorized is filled from it when the insurer is chosen
   const sheetFor = (id: unknown) => insurerRates.find((r) => r.insurer_id === id) ?? null;
   const filled = useRef<string | null>((() => { const s0 = sheetFor(b.insurer_id); return s0 && s0.daily_rate_cents === b.insurer_authorized_daily_rate_cents ? dollars(s0.daily_rate_cents) : null; })());
@@ -148,7 +163,11 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     if (changed('booking_type')) ch.booking_type = v.booking_type;
     for (const k of MONEY_KEYS) if (changed(k)) ch[k] = cents(String(v[k])) ?? (k === 'insurer_authorized_daily_rate_cents' ? null : 0);
     if ((changed('insurer_authorized_daily_rate_cents') || changed('insurer_id')) && String(v.insurer_rate_reason).trim()) ch.insurer_rate_reason = String(v.insurer_rate_reason).trim();
-    if (String(v.rental_charge_cents).trim()) { ch.rental_charge_cents = cents(String(v.rental_charge_cents)); ch.price_tax = v.price_tax; ch.price_reason = String(v.price_reason).trim() || null; }
+    // the cents a line typed after tax may leave (its own HST rounded), for the rental charge to take
+    const residual = conv === 'after' ? [...(changed('coverage') && String(v.coverage).trim() ? ['coverage'] : []), ...feeLines.map((x) => `fee:${x.charge_type}`).filter((k) => changed(k))]
+      .reduce((sum, k) => { const t = cents(String(v[k] ?? '')); return t === null || !hstOfKey(k) ? sum : sum + t - withTax(beforeTax(t, bps!), bps!); }, 0) : 0;
+    if (totalCents !== null && solvedW !== null) { ch.rental_charge_cents = solvedW; ch.price_tax = 'included'; ch.price_reason = String(v.price_reason).trim() || 'Total agreed with the renter'; }
+    else if (String(v.rental_charge_cents).trim()) { const c = cents(String(v.rental_charge_cents)); ch.rental_charge_cents = c === null ? null : taxMode === 'after' ? Math.max(0, c + residual) : c; ch.price_tax = taxMode === 'after' ? 'included' : 'plus'; ch.price_reason = String(v.price_reason).trim() || null; }
     if (changed('staff_discount_reason') || changed('staff_discount_cents')) ch.staff_discount_reason = String(v.staff_discount_reason).trim() || null;
     if (changed('km_allowance_per_day')) ch.km_allowance_per_day = Number(v.km_allowance_per_day);
     for (const k of ['bill_to', 'insurer_id', 'insurer_claim_number', 'insurer_adjuster_name', 'insurer_adjuster_email', 'insurer_adjuster_phone', 'insurer_authorized_until']) if (changed(k)) ch[k] = String(v[k]).trim() || null;
@@ -161,21 +180,23 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
       return_location: { kind: v.return_kind, address: String(v.return_address).trim() || null, distance_km: v.return_km ? Number(v.return_km) : null, airport_code: v.return_kind === 'airport' ? String(v.return_address).trim() : null } };
     // 0132: each fee as its amount for the trip (it was a rate a day before: typing $50 for 3 days gave $150), the Protection Plan too
     const lines: Record<string, number> = {};
-    if (changed('coverage') && String(v.coverage).trim()) lines.coverage_sold = cents(String(v.coverage)) ?? 0;
+    if (changed('coverage') && String(v.coverage).trim()) lines.coverage_sold = beforeOf('coverage') ?? 0;
     if (changed('promo_code')) p.promo_code = String(v.promo_code).trim();
-    for (const l of feeLines.filter((x) => changed(`fee:${x.charge_type}`))) lines[l.charge_type] = cents(String(v[`fee:${l.charge_type}`])) ?? 0;
+    for (const l of feeLines.filter((x) => changed(`fee:${x.charge_type}`))) lines[l.charge_type] = beforeOf(`fee:${l.charge_type}`) ?? 0;
     if (Object.keys(lines).length) { p.line_overrides = lines; p.fee_reason = String(v.fee_reason).trim() || 'Changed on the review screen'; }
     if (changed('blocks_calendar')) { p.blocks_calendar = v.blocks_calendar; p.blocks_calendar_reason = String(v.blocks_reason).trim() || null; }
     if (addonsChanged) p.addons = addonsPayload(addons);
     return p;
-  }, [v, addons]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [v, addons, taxMode, solvedW, totalTyped]); // eslint-disable-line react-hooks/exhaustive-deps
   const payChanged = changed('rental_pay') || changed('deposit_pay');
   const dirty = Object.keys(payload.changes as object).length > 0 || Object.keys(payload).some((k) => !['booking', 'changes'].includes(k));
   // an offer that is out (offered, or approved and not paid): edited in place and sent again in one step (0129)
   const out = ['offered', 'pending_payment'].includes(b.status);
   const [revised, setRevised] = useState<string[] | null>(null);
 
-  // live re-pricing, debounced
+  // live re-pricing, debounced; the payload the preview on screen was priced for
+  const [previewKey, setPreviewKey] = useState('');
+  const payloadKey = JSON.stringify(payload);
   const seq = useRef(0);
   useEffect(() => {
     const n = ++seq.current;
@@ -185,7 +206,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
       if (n !== seq.current) return;
       if (!r.ok) { setProblem(r.message); return; }
       if (!r.data.ok) { setProblem(r.data.error ?? 'The database refused this change.'); setPreview(null); return; }
-      setProblem(null); setPreview({ booking: r.data.booking, available: r.data.available });
+      setProblem(null); setPreview({ booking: r.data.booking, available: r.data.available }); setPreviewKey(JSON.stringify(payload));
     }, 350);
     return () => clearTimeout(t);
   }, [payload, dirty, adminPreview]);
@@ -212,6 +233,36 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   }, [v.pickup_at, v.return_at, b.id, adminPreview]);
 
   const shown = preview?.booking ?? b;
+  // the price on screen is the one for what is typed now (no change: the booking as saved)
+  const fresh = !dirty || (!!preview && previewKey === payloadKey);
+  // 2026-10-27: the total the renter pays, typed: the rental charge (tax included) is worked out so the total priced is it
+  const solveSteps = useRef(0);
+  const othersKey = JSON.stringify({ ...payload, changes: { ...(payload.changes as object), rental_charge_cents: null, price_tax: null, price_reason: null } });
+  useEffect(() => { solveSteps.current = 0; }, [totalTyped, othersKey]);
+  useEffect(() => {
+    if (totalCents === null || !fresh) return;
+    const t = shown.total_due_at_booking_cents;
+    if (t === totalCents || solveSteps.current >= 6) return;
+    const rl = shown.lines.find((l) => l.stage === 'booking' && l.charge_type === 'rental_charge');
+    const w = solveRental(totalCents, t, rl ? rl.amount_cents + rl.hst_cents : 0);
+    if (w === null || w === solvedW) return;
+    solveSteps.current += 1;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the next step follows the price the database just returned
+    setSolvedW(w);
+  }, [shown, fresh, totalTyped]); // eslint-disable-line react-hooks/exhaustive-deps
+  const difference = fresh ? totalDifference(shown.total_due_at_booking_cents, totalCents, (c) => money(c, { cents: true })) : '';
+  // the toggle: every box keeps meaning the same money (a line without HST is left as it is)
+  const changeTaxMode = (m: TaxMode) => {
+    if (m === taxMode) return;
+    const conv1 = (k: string, hst: boolean) => { const c = cents(String(v[k] ?? '')); return c === null || bps === null ? v[k] : dollars(convertTyped(c, taxMode, m, hst, bps)); };
+    setV((s) => ({ ...s, ...Object.fromEntries(['coverage', ...feeLines.map((x) => `fee:${x.charge_type}`), 'rental_charge_cents'].filter((k) => String(s[k] ?? '').trim()).map((k) => [k, conv1(k, k === 'rental_charge_cents' ? true : hstOfKey(k))])),
+      price_tax: m === 'after' ? 'included' : 'plus' }));
+    setTaxMode(m);
+  };
+  const tw = (k: string) => (taxMode === 'after' && hstOfKey(k) ? ', HST included' : ', before tax');
+  const rentalBox = (hint: string) => totalCents !== null
+    ? <p className="small ad-field--wide" data-testid="review-rent-from-total">Rental charge: {solvedW !== null ? `${money(solvedW, { cents: true })} with HST${bps !== null ? ` (${money(beforeTax(solvedW, bps), { cents: true })} before tax)` : ''}, worked out from the total.` : 'worked out from the total.'}</p>
+    : <F k="rental_charge_cents" l={`Rental charge typed by hand${taxMode === 'after' ? ', HST included' : ', before tax'}`} money hint={hint} />;
   const lines = shown.lines.filter((l) => l.stage === 'booking' && l.charged_to_renter !== false && (l.amount_cents !== 0 || l.charge_type === 'rental_charge'));
   const total = shown.bill_to !== 'renter' && shown.renter_due_at_booking_cents !== null ? shown.renter_due_at_booking_cents : shown.total_due_at_booking_cents;
   const diffs: Array<[string, string, string]> = [];
@@ -277,24 +328,35 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
         </fieldset>
         <fieldset className="ad-fields" disabled={!editable}>
           <legend className="pt-kicker">Rates and fees</legend>
+          <div className="ad-field--wide">
+            <TaxModeToggle value={taxMode} onChange={changeTaxMode} idPrefix="rv" bps={bps}>
+              <div className="ad-taxtotal">
+                <div className="field"><label className="label" htmlFor="rv-total-typed">Total the renter pays (after tax, $)</label>
+                  <input className="input input--sm" id="rv-total-typed" inputMode="decimal" placeholder={dollars(shown.total_due_at_booking_cents)} value={totalTyped} disabled={!editable} onChange={(e) => { setDone(null); setTotalTyped(e.target.value); if (!e.target.value.trim()) setSolvedW(null); }} data-testid="review-total-typed" aria-describedby="rv-total-typed-h" /></div>
+                {totalTyped.trim() && <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setTotalTyped(''); setSolvedW(null); }}>Clear the total</button>}
+              </div>
+              <p className="hint" id="rv-total-typed-h" data-testid="review-total-breakdown" aria-live="polite">{totalCents === null ? 'Optional: type the total and the rental charge is worked out so the total comes to it exactly; the other lines stay as they are.'
+                : !fresh || shown.total_due_at_booking_cents !== totalCents ? 'Working out the rental charge…'
+                : `Before tax: ${shown.lines.filter((l) => l.stage === 'booking' && l.amount_cents !== 0).map((l) => `${lineLabel(l)} ${money(l.amount_cents, { cents: true })}`).join(' + ')}; HST ${money(shown.hst_at_booking_cents, { cents: true })}; total ${money(shown.total_due_at_booking_cents, { cents: true })}.`}</p>
+            </TaxModeToggle>
+          </div>
           {va && <p className="hint ad-field--wide">Rates, fees, discounts and the Deposit are set by an Admin. You may type the rental charge with its reason: the rate sheet stays beside it, and a price far under it is flagged for an Admin.</p>}
-          {va && <><F k="rental_charge_cents" l="Rental charge typed by hand" money hint="Leave empty to use the rate sheet" /><S k="price_tax" l="Tax" options={PRICE_TAX_OPTIONS} /><F k="price_reason" l="Reason for the price" /></>}
+          {va && <>{rentalBox('Leave empty to use the rate sheet')}<F k="price_reason" l="Reason for the price" /></>}
           {b.custom_price_reason && <p className="small ad-field--wide" data-testid="review-custom-price">Price typed by hand: {b.price_tax === 'included'
             ? <>{money(b.price_with_tax_cents ?? 0, { cents: true })} tax included ({money(b.rental_charge_cents, { cents: true })} before tax; rate sheet {money(b.rate_sheet_rental_cents ?? 0, { cents: true })})</>
             : <>{money(b.rental_charge_cents, { cents: true })} plus tax (rate sheet {money(b.rate_sheet_rental_cents ?? 0, { cents: true })})</>}. {b.custom_price_reason}{b.price_flags?.length ? ' Flagged for an Admin.' : ''}</p>}
           {!va && <><F k="daily_rate_cents" l="Daily" money /><F k="weekend_rate_cents" l="Weekend" money />
           <F k="weekly_rate_cents" l="Weekly" money /><F k="monthly_rate_cents" l="Monthly" money />
-          <F k="rental_charge_cents" l="Rental charge typed by hand" money hint="Leave empty to use the rates" />
-          <S k="price_tax" l="Tax" options={PRICE_TAX_OPTIONS} />
+          {rentalBox('Leave empty to use the rates')}
           <F k="price_reason" l="Reason for the price" />
           <F k="deposit_cents" l="Deposit" money /></>}
           <S k="km_allowance_per_day" l="Kilometres a day" options={[...new Set([...kmChoices, b.km_allowance_per_day])].sort((a, z) => a - z).map((k) => [String(k), k === 0 ? 'Unlimited' : `${k} km`])} />
           {!va && <><F k="overage_cents_per_km" l="Overage per km" money />
           <F k="staff_discount_cents" l="Discount" money />
           <F k="staff_discount_reason" l="Discount reason" /></>}
-          <F k="coverage" l="Protection Plan price" money hint={coverageLine ? 'What the renter pays for the Protection Plan' : 'Only when the renter chose the Protection Plan (option 3)'} />
+          <F k="coverage" l={`Protection Plan price${tw('coverage')}`} money hint={coverageLine ? 'What the renter pays for the Protection Plan' : 'Only when the renter chose the Protection Plan (option 3)'} />
           <F k="promo_code" l="Promo code" />
-          {feeLines.map((l) => <F key={l.id} k={`fee:${l.charge_type}`} l={`${lineLabel(l)} (for the trip)`} money />)}
+          {feeLines.map((l) => <F key={l.id} k={`fee:${l.charge_type}`} l={`${lineLabel(l)} (for the trip${tw(`fee:${l.charge_type}`)})`} money />)}
           {(feeLines.some((l) => changed(`fee:${l.charge_type}`)) || changed('coverage')) && <F k="fee_reason" l="Reason for the fee change (optional)" />}
         </fieldset>
         <fieldset className="ad-fields" disabled={!editable}>
@@ -350,8 +412,9 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
             {shown.lines.filter((l) => l.stage === 'booking').map((l) => <div key={l.id}><dt>{lineLabel(l)}</dt><dd>{money(l.amount_cents, { cents: true })}</dd></div>)}
             <div><dt>HST <Info text={lineHelp('hst')} label="What is HST?" /></dt><dd>{money(shown.hst_at_booking_cents, { cents: true })}</dd></div>
             {shown.bill_to !== 'renter' && shown.insurer_share_cents ? <div><dt>Insurer pays</dt><dd>{money(shown.insurer_share_cents, { cents: true })}</dd></div> : null}
-            <div><dt><b>Due at booking</b></dt><dd className="pt-total" data-testid="review-total">{money(total, { cents: true })}</dd></div>
+            <div><dt><b>Due at booking</b></dt><dd className="pt-total" data-testid="review-total">{money(total, { cents: true })}{!fresh && <span className="small muted"> updating</span>}</dd></div>
           </dl>
+          {difference && <p className="alert alert--warn" role="alert" data-testid="review-total-diff"><span>{difference} Check the amounts before you save.</span></p>}
           <p className="small">{(preview?.available ?? true) ? 'The car is free for these dates.' : <b className="ad-late">The car is not free for these dates.</b>}</p>
           {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
         </div>
@@ -381,7 +444,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
         <dl className="pt-dl small">
           <div><dt>Pickup</dt><dd>{when(shown.pickup_at)}, {shown.pickup_place ?? 'our location'}</dd></div>
           <div><dt>Return</dt><dd>{when(shown.return_at)}, {shown.return_place ?? 'our location'}</dd></div>
-          <div><dt>Deposit at pickup</dt><dd>{money(shown.deposit_cents)}</dd></div>
+          <div><dt>Deposit at pickup</dt><dd>{v.deposit_pay === 'none' ? 'No deposit' : money(shown.deposit_cents)}</dd></div>
           {shown.km_allowance_total ? <div><dt>Kilometres</dt><dd>{shown.km_allowance_total} km included, then {money(shown.overage_cents_per_km, { cents: true })} per km</dd></div> : null}
         </dl>
         <dl className="pt-dl pt-dl--money small">

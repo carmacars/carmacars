@@ -7,7 +7,9 @@ import { createManualRental, deliveryDistance, draftClose, draftSave, supplyRead
 import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults } from './OwnerChoice';
 import { money } from '@/lib/format';
 import { SourcedChoice, priceFlags, type Choice } from '@/features/sales/SourcedChoice';
-import { PRICE_TAX_OPTIONS, PRICE_TAX_LABEL, type PriceTaxSplit } from '@/features/sales/priceTax';
+import { PRICE_TAX_LABEL, type PriceTaxSplit } from '@/features/sales/priceTax';
+import { TaxModeToggle, useTaxMode } from '@/features/sales/TaxModeToggle';
+import { beforeTax, convertTyped, linesBeforeTax, solveRental, totalDifference, type TaxMode } from '@/features/sales/taxIncluded';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { Info } from '@/features/forms/Info';
 import { FEE_LABEL, lineHelp } from '@/features/offers/help';
@@ -24,7 +26,7 @@ import { DEPOSIT_PAY, PART_METHODS, RENTAL_LINE, RENTAL_PAID_BY, feeOverrides, l
 type Car = { id: string; name: string; plate: string | null; car_code?: string | null; supply_type: string; bookable: boolean; retired: boolean; daily_rate_cents: number | null;
   has_rates?: boolean; listing_finished?: boolean; listing_status?: string; needs_policy_confirm?: boolean; status?: string };
 type Renter = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; is_blocked: boolean; card: { brand: string; last4: string } | null; bookings: number };
-type Line = { description: string; amount_cents: number; hst_cents: number; charge_type: string; booking_addon_id?: string | null; detail?: { code?: string; addon_id?: string; set_by_hand?: boolean } | null; set_by_hand?: boolean };
+type Line = { description: string; amount_cents: number; hst_cents: number; hst_applies?: boolean; custom?: boolean; charge_type: string; booking_addon_id?: string | null; detail?: { code?: string; addon_id?: string; set_by_hand?: boolean } | null; set_by_hand?: boolean };
 type Period = { seq: number; starts_at: string; ends_at: string; days: number };
 type Quote = { role: 'admin' | 'va' | 'field'; phase?: Phase | null; phase_note?: string; free: boolean; clashes: Array<{ kind: string; booking_number?: string; status?: string; starts_at: string; ends_at: string | null; renter?: string; reason?: string; overlaps: boolean }>;
   turnaround_minutes: number; payment_modes: string[]; may_override_price: boolean; rate_sheet_cents: number | null; billable_days: number | null;
@@ -39,7 +41,7 @@ type Quote = { role: 'admin' | 'va' | 'field'; phase?: Phase | null; phase_note?
   has_rates?: boolean; listing_finished?: boolean; needs_policy_confirm?: boolean; notes?: string[]; price_typed_cents?: number | null;
   /** The price typed, split by the database (0112): plus tax or tax included. */
   price_tax?: PriceTaxSplit | null;
-  quote: { lines: Line[]; total_due_at_booking_cents: number; deposit_cents: number; km_allowance_total: number; billable_days: number; rate_rule: string; problems: Array<{ message: string }>; promo: { problem?: string } | null } };
+  quote: { lines: Line[]; total_due_at_booking_cents: number; deposit_cents: number; hst_bps?: number; km_allowance_total: number; billable_days: number; rate_rule: string; problems: Array<{ message: string }>; promo: { problem?: string } | null } };
 
 // what each way means for a rental already underway (0074): it is on trip from the start
 const LIVE_MODE: Record<string, string> = {
@@ -71,7 +73,9 @@ const PHASE_NOTE: Record<Phase, string> = {
 /** What a draft keeps (0148): every field of the form as typed. */
 export interface MrDraft { f?: Record<string, string>; flags?: { do_not_email: boolean; new_renter: boolean; policy: boolean }; paid_by?: RentalPaidBy; deposit_by?: DepositPay;
   agreement?: 'send' | 'paper'; blocks?: boolean; fees?: Record<string, string>; parts?: PayPart[]; customs?: Array<{ label: string; amount: string; hst: boolean }>;
-  rent_mode?: 'trip' | 'day'; rent_day?: string; renter?: Renter | null; renter_id?: string | null; drivers?: Array<{ full_name: string; date_of_birth: string; email: string }>; addons?: AddonChoice[]; choice?: Choice }
+  rent_mode?: 'trip' | 'day'; rent_day?: string; renter?: Renter | null; renter_id?: string | null; drivers?: Array<{ full_name: string; date_of_birth: string; email: string }>; addons?: AddonChoice[]; choice?: Choice;
+  /** 2026-10-27: how the amounts were typed (before or after tax), and the total the renter pays typed */
+  tax_mode?: TaxMode; total?: string }
 const FUEL: Array<[string, string]> = [['100', 'Full'], ['88', '7/8'], ['75', '3/4'], ['63', '5/8'], ['50', '1/2'], ['38', '3/8'], ['25', '1/4'], ['13', '1/8'], ['0', 'Empty']];
 
 export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = null }: { cars: Car[]; base: '/admin' | '/va' | '/field'; isAdmin: boolean; owner?: OwnerDefaults | null; draft?: { id: string; data: MrDraft; held: boolean; quick?: boolean } | null }) {
@@ -111,6 +115,12 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   const [renter, setRenter] = useState<Renter | null>(null);
   const [drivers, setDrivers] = useState<Array<{ full_name: string; date_of_birth: string; email: string }>>([]);
   const [quote, setQuote] = useState<Quote | null>(null);
+  // the spec the quote on screen was priced for (a quote for an older spec is shown as updating)
+  const [quoteKey, setQuoteKey] = useState('');
+  // 2026-10-27: amounts typed before or after tax (remembered on this device), and the total the renter pays (after tax)
+  const [taxMode, setTaxMode] = useTaxMode();
+  const [totalTyped, setTotalTyped] = useState('');
+  const [solvedW, setSolvedW] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState<ManualRentalResult | null>(null);
   // 0148: the draft, saved as typed (server, and this device as a fallback); Hold the car; Quick start at pickup
@@ -129,11 +139,29 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   const phase = phaseOf(f.pickup_at, f.return_at, now);
   const past = phase === 'past';
   const hasOwner = ['program_owner', 'partner'].includes(cars.find((c) => c.id === f.vehicle_id)?.supply_type ?? '');
+  // 2026-10-27: what is sent is always before tax (or the rental charge tax included, 0112), whatever the way of typing.
+  // The HST rate is the settings' (the quote carries it); each line's own HST flag decides whether it is converted.
+  const bps = quote?.quote.hst_bps ?? null;
+  const conv = bps !== null && taxMode === 'after' ? 'after' : 'before';
+  const hstFor = (k: string) => { const l = quote?.quote.lines.find((x) => lineKey(x) === k); return l ? (l.hst_applies ?? l.hst_cents !== 0) : true; };
+  const typedFees = feeOverrides(fees);
+  const feesSent = linesBeforeTax(Object.entries(typedFees).map(([key, typed]) => ({ key, typed, hst: hstFor(key) })), conv, bps ?? 0);
+  const customsTyped = customs.filter((c) => c.label.trim() && cents(c.amount));
+  const customsConv = linesBeforeTax(customsTyped.map((c, i) => ({ key: String(i), typed: cents(c.amount)!, hst: c.hst })), conv, bps ?? 0);
+  const customsSent = customsTyped.map((c, i) => ({ label: c.label.trim(), amount_cents: customsConv.cents[String(i)], hst: c.hst }));
+  const totalCents = cents(totalTyped);
+  const typedRental = cents(f.rental_charge ?? '');
+  // the rental charge sent: from the total typed (tax included, the rounding on it), or as typed; typed after tax it
+  // takes the cent a fee line typed after tax may leave, so the total is what was typed
+  const rentalSent: { cents: number; tax: 'plus' | 'included' } | undefined = totalCents !== undefined && solvedW !== null ? { cents: solvedW, tax: 'included' }
+    : typedRental === undefined ? undefined
+    : taxMode === 'after' ? { cents: Math.max(0, typedRental + feesSent.residual + customsConv.residual), tax: 'included' }
+    : { cents: typedRental, tax: 'plus' };
+  const priceChanged = rentalSent !== undefined || totalCents !== undefined;
   // the price typed, as the database split it at the last check (0112); tax included: flagged on its amount before tax
-  const typed = cents(f.rental_charge ?? '');
-  const split = quote?.price_tax && typed !== undefined && quote.price_tax.tax === f.price_tax
-    && (f.price_tax === 'included' ? quote.price_tax.with_tax_cents : quote.price_tax.before_tax_cents) === typed ? quote.price_tax : null;
-  const typedBeforeTax = f.price_tax === 'included' ? split?.before_tax_cents : typed;
+  const split = quote?.price_tax && rentalSent && quote.price_tax.tax === rentalSent.tax
+    && (rentalSent.tax === 'included' ? quote.price_tax.with_tax_cents : quote.price_tax.before_tax_cents) === rentalSent.cents ? quote.price_tax : null;
+  const typedBeforeTax = !rentalSent ? undefined : rentalSent.tax === 'included' ? split?.before_tax_cents ?? (bps !== null ? beforeTax(rentalSent.cents, bps) : undefined) : rentalSent.cents;
   const id = (k: string) => `mr-${k}`;
   // 0163: the insurer's rate sheet for the car fills the daily rate authorized (staff may type another, with the reason)
   const insurerSheet = paidBy === 'insurer' ? quote?.insurer_rates?.find((r) => r.insurer_id === f.insurer_id) ?? null : null;
@@ -172,15 +200,18 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   const spec = () => ({ vehicle_id: f.vehicle_id, pickup_at: iso(f.pickup_at), return_at: iso(f.return_at), booking_type: f.booking_type, coverage_option: Number(f.coverage_option),
     pickup_method: f.pickup_method, return_method: f.return_method, promo_code: f.promo_code || undefined,
     ...(f.pickup_method === 'delivered' && f.pickup_km ? { pickup_location: { kind: 'delivery', address: f.pickup_place || undefined, distance_km: Number(f.pickup_km) } } : {}),
-    ...(f.return_method === 'picked_up' && f.return_km ? { return_location: { kind: 'delivery', address: f.return_place || undefined, distance_km: Number(f.return_km) } } : {}), renter_id: renter?.id, rental_charge_cents: cents(f.rental_charge ?? ''),
-    price_tax: cents(f.rental_charge ?? '') !== undefined ? f.price_tax : undefined,
+    ...(f.return_method === 'picked_up' && f.return_km ? { return_location: { kind: 'delivery', address: f.return_place || undefined, distance_km: Number(f.return_km) } } : {}), renter_id: renter?.id, rental_charge_cents: rentalSent?.cents,
+    price_tax: rentalSent?.tax,
     addons: addonsPayload(addons),
-    ...(Object.keys(feeOverrides(fees)).length ? { line_overrides: feeOverrides(fees), fee_reason: f.price_reason || f.fee_reason || undefined } : {}),
-    ...(customs.some((c) => c.label.trim() && cents(c.amount)) ? { custom_fees: customs.filter((c) => c.label.trim() && cents(c.amount)).map((c) => ({ label: c.label.trim(), amount_cents: cents(c.amount), hst: c.hst })) } : {}),
+    ...(Object.keys(feesSent.cents).length ? { line_overrides: feesSent.cents, fee_reason: f.price_reason || f.fee_reason || undefined } : {}),
+    ...(customsSent.length ? { custom_fees: customsSent } : {}),
     ...(f.km && /^\d+$/.test(f.km.trim()) ? { km_allowance_per_day: Number(f.km) } : {}),
     drivers: [{ role: 'renter', date_of_birth: renter?.date_of_birth ?? (f.date_of_birth || undefined) }, ...drivers.filter((d) => d.date_of_birth).map((d) => ({ role: 'additional', date_of_birth: d.date_of_birth }))] });
   const specNow = useRef('');
   specNow.current = JSON.stringify(spec());
+  // the price follows everything but the reason typed for it
+  const priceKey = (x: Record<string, unknown>) => JSON.stringify({ ...x, fee_reason: undefined });
+  const fresh = !!quote && quoteKey === priceKey(spec());
   const [recheck, setRecheck] = useState(0);
   const check = () => start(async () => {
     setErr(null);
@@ -194,6 +225,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     if (key !== specNow.current) { setRecheck((n) => n + 1); return; }
     if (!r.ok) { setErr(r.message); setQuote(null); return; }
     setQuote(r.data);
+    setQuoteKey(priceKey(JSON.parse(key)));
     if (!field && !['platform_payout', 'insurer'].includes(paidBy) && !r.data.payment_modes.includes(paymentOf(paidBy).mode)) setPaidBy(r.data.payment_modes.includes('other_way') ? 'e_transfer' : r.data.payment_modes.includes('link') ? 'link' : 'unpaid');
   });
   const search = () => start(async () => {
@@ -220,7 +252,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   // a check that came back stale: once more with the form as it is now
   useEffect(() => { if (!recheck) return; const t = setTimeout(() => check(), 250); return () => clearTimeout(t); }, [recheck]); // eslint-disable-line react-hooks/exhaustive-deps
   // a fee typed by hand: the price again, with the table kept on screen while typing (0132)
-  const feeKey = JSON.stringify([feeOverrides(fees), f.rental_charge ?? '', f.price_tax, f.deposit ?? '', customs, f.km ?? '']);
+  const feeKey = JSON.stringify([feesSent.cents, rentalSent ?? null, f.deposit ?? '', customsSent, f.km ?? '', customs.length, drivers.map((d) => d.date_of_birth)]);
   const firstFees = useRef(true);
   useEffect(() => {
     if (firstFees.current) { firstFees.current = false; return; }
@@ -228,6 +260,47 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     const t = setTimeout(() => check(), 600);
     return () => clearTimeout(t);
   }, [feeKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 2026-10-27: the total the renter pays, typed: the rental charge (tax included) is worked out so the total priced is
+  // exactly it, the other lines kept; a line that follows the rental charge (a discount) may need a second step
+  const solveSteps = useRef(0);
+  const othersKey = JSON.stringify({ ...spec(), rental_charge_cents: null, price_tax: null });
+  useEffect(() => { solveSteps.current = 0; if (totalCents === undefined) setSolvedW(null); }, [totalTyped, othersKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (totalCents === undefined || !quote || !fresh) return;
+    const total = quote.quote.total_due_at_booking_cents;
+    if (total === totalCents || solveSteps.current >= 6) return;
+    const rl = quote.quote.lines.find((l) => l.charge_type === 'rental_charge');
+    const w = solveRental(totalCents, total, rl ? rl.amount_cents + rl.hst_cents : 0);
+    if (w === null || w === solvedW) return;
+    solveSteps.current += 1;
+    setSolvedW(w);
+  }, [quote, fresh, totalTyped]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the toggle: every box typed keeps meaning the same money (a line without HST is left as it is)
+  const changeTaxMode = (m: TaxMode) => {
+    if (m === taxMode) return;
+    const conv1 = (s: string, hst: boolean) => { const c = cents(s); return c === undefined || bps === null ? s : (convertTyped(c, taxMode, m, hst, bps) / 100).toFixed(2); };
+    const days = quote?.quote.billable_days || 1;
+    if (rentMode === 'day' && rentDay.trim()) { const d = conv1(rentDay, true); setRentDay(d); const c = cents(d); setF((x) => ({ ...x, rental_charge: c === undefined ? '' : ((c * days) / 100).toFixed(2) })); }
+    else if ((f.rental_charge ?? '').trim()) setF((x) => ({ ...x, rental_charge: conv1(x.rental_charge ?? '', true) }));
+    setFees((x) => Object.fromEntries(Object.entries(x).map(([k, v]) => [k, v.trim() ? conv1(v, hstFor(k)) : v])));
+    setCustoms((a) => a.map((c) => (c.amount.trim() && c.hst ? { ...c, amount: conv1(c.amount, true) } : c)));
+    setTaxMode(m);
+  };
+  // what the database priced against what was typed after tax: the total typed, or each line typed after tax
+  const expectedTotal = (() => {
+    if (!quote) return null;
+    if (totalCents !== undefined) return totalCents;
+    if (taxMode !== 'after' || bps === null) return null;
+    const lines = quote.quote.lines;
+    let t = quote.quote.total_due_at_booking_cents;
+    let any = false;
+    for (const [k, typed] of Object.entries(typedFees)) { const l = lines.find((x) => lineKey(x) === k); if (!l || !hstFor(k)) continue; t += typed - (l.amount_cents + l.hst_cents); any = true; }
+    const cl = lines.filter((l) => l.charge_type === 'custom_fee');
+    if (cl.length === customsTyped.length) customsTyped.forEach((c, i) => { if (c.hst) { t += cents(c.amount)! - (cl[i]!.amount_cents + cl[i]!.hst_cents); any = true; } });
+    if (typedRental !== undefined) { const rl = lines.find((l) => l.charge_type === 'rental_charge'); t += typedRental - (rl ? rl.amount_cents + rl.hst_cents : 0); any = true; }
+    return any ? t : null;
+  })();
+  const difference = quote && fresh ? totalDifference(quote.quote.total_due_at_booking_cents, expectedTotal, fmt) : '';
 
   // a quick start for the common cases (0129): where it came from and what goes with it
   const preset = (k: 'phone' | 'walk_in' | 'turo' | 'insurer' | 'owner' | 'dummy') => {
@@ -260,8 +333,10 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     if (d.drivers) setDrivers(d.drivers);
     if (d.addons) setAddons(d.addons);
     if (d.choice) setChoice(d.choice);
-  }, [draft]);
-  const snapshot: MrDraft = { f, flags, paid_by: paidBy, deposit_by: depositBy, agreement, blocks, fees, parts, customs, rent_mode: rentMode, rent_day: rentDay, renter, renter_id: renter?.id ?? null, drivers, addons, choice };
+    if (d.tax_mode) setTaxMode(d.tax_mode); else if (d.f?.price_tax === 'included') setTaxMode('after');
+    if (d.total) setTotalTyped(d.total);
+  }, [draft]); // eslint-disable-line react-hooks/exhaustive-deps
+  const snapshot: MrDraft = { f, flags, paid_by: paidBy, deposit_by: depositBy, agreement, blocks, fees, parts, customs, rent_mode: rentMode, rent_day: rentDay, renter, renter_id: renter?.id ?? null, drivers, addons, choice, tax_mode: taxMode, total: totalTyped };
   const snapKey = JSON.stringify(snapshot);
   const localKey = `cc-draft-rental${base}`;
   const firstSnap = useRef(snapKey);
@@ -311,7 +386,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     if (!blocks && !(f.blocks_reason ?? '').trim()) { setErr('Say why it does not block the calendar (for example: insurance replacement, dates not known yet).'); return; }
     if (needsReference(paidBy) && !(f.reference ?? '').trim()) { setErr('Enter the reference of the payment (the e-Transfer, cheque or transfer number).'); return; }
     if (!choice) { setErr('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
-    if (quote && quote.has_rates === false && cents(f.rental_charge ?? '') === undefined) { setErr('This car has no rates yet: type the rental charge for the whole rental and the reason.'); return; }
+    if (quote && quote.has_rates === false && rentalSent === undefined) { setErr('This car has no rates yet: type the rental charge for the whole rental and the reason.'); return; }
     if (quote?.needs_policy_confirm && !past && !flags.policy) { setErr('This car is not on the fleet insurance policy yet: tick the confirmation that it is insured for this rental.'); return; }
     if (parts.length) {
       if (cents(f.amount ?? '') === undefined) { setErr('With more than one payment, enter the amount of the first one too.'); return; }
@@ -322,7 +397,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
       do_not_email: flags.do_not_email, additional_drivers: drivers.filter((d) => d.full_name.trim()),
       renter: renter ? undefined : { full_name: f.full_name, email: f.email, mobile: f.mobile, date_of_birth: f.date_of_birth, licence_number: f.licence_number, licence_class: f.licence_class || 'G',
         licence_issuer: f.licence_issuer || 'ON', licence_expiry: f.licence_expiry || undefined, address_line1: f.address_line1 || undefined, city: f.city || undefined, postal_code: f.postal_code || undefined },
-      price_reason: f.price_reason || f.fee_reason || (cents(f.rental_charge ?? '') !== undefined ? 'Agreed with the renter' : undefined), fleet_policy_confirmed: flags.policy || undefined,
+      price_reason: f.price_reason || f.fee_reason || (rentalSent !== undefined ? (totalCents !== undefined ? 'Total agreed with the renter' : 'Agreed with the renter') : undefined), fleet_policy_confirmed: flags.policy || undefined,
       deposit_cents: isAdmin ? cents(f.deposit ?? '') : undefined, clash_reason: isAdmin ? f.clash_reason || undefined : undefined,
       payment: { ...paymentOf(paidBy), reference: f.reference || undefined, received_on: f.received_on, amount_cents: cents(f.amount ?? ''), note: f.payment_note || undefined },
       ...(parts.length && offline ? { more_payments: parts.map((x) => ({ method: x.method, amount_cents: cents(x.amount), reference: x.reference.trim() || undefined, received_on: f.received_on })) } : {}),
@@ -350,7 +425,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
         {done.status === 'on_rent' && done.payment_mode === 'link' && <p className="alert alert--ok" role="status" data-testid="mr-pay-online"><span>The renter has the email to sign the agreement, then pay online from their booking.</span></p>}
         {done.charge_on_sign && <p className="alert alert--ok" role="status" data-testid="mr-charge-on-sign"><span>Awaiting signature. The saved card is charged when the renter signs the rental agreement (Accept and sign), not before.</span></p>}
         {done.card && <p className={`alert ${done.card.ok ? 'alert--ok' : 'alert--warn'}`} role="status"><span>{done.card.ok ? 'The saved card was charged.' : `The saved card was not charged: ${done.card.message ?? 'declined'}. Finance has a task; send a payment link or record a payment received another way.`}</span></p>}
-        <p className="small">Total {fmt(done.total_cents)}.{done.open_cents ? ` Still to collect: ${fmt(done.open_cents)} (the booking's Money tab).` : ''} The renter signs the rental agreement in their portal, or you record a signature on paper from the booking.</p>
+        {totalCents !== undefined && done.total_cents !== totalCents && <p className="alert alert--warn" role="status" data-testid="mr-done-diff"><span>{totalDifference(done.total_cents, totalCents, fmt)} Check the booking&apos;s price.</span></p>}
+        <p className="small" data-testid="mr-done-total">Total {fmt(done.total_cents)}.{done.open_cents ? ` Still to collect: ${fmt(done.open_cents)} (the booking's Money tab).` : ''} The renter signs the rental agreement in their portal, or you record a signature on paper from the booking.</p>
         <p className="row">{field ? <Link prefetch={false} className="btn btn--primary" href="/field/sales" data-testid="mr-open">Open My sales</Link>
           : <Link prefetch={false} className="btn btn--primary" href={`${base}/bookings/${done.booking_number}`} data-testid="mr-open">Open the booking</Link>}
           <button className="btn btn--ghost" type="button" onClick={() => { setDone(null); setQuote(null); setRenter(null); setChoice(isAdmin ? 'for_carmacars' : ''); }}>Add another</button></p>
@@ -373,7 +449,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
         <span className="small muted">{saveErr ? `Not saved: ${saveErr}. Kept on this device.` : savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}. Finish it any time from Unfinished rentals.` : 'Saved as a draft as you type: nothing is required to save.'}</span>
         <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => start(async () => { await saveDraft(); })} data-testid="mr-save-draft">Save draft</button>
         {draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => start(async () => { await draftClose(draftId, 'discarded'); try { localStorage.removeItem(localKey); } catch { /* none */ } window.location.href = base === '/field' ? '/field/rentals/new' : `${base}/bookings/new`; })} data-testid="mr-discard-draft">Discard</button>}
-        {localDraft && !draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => { const d = localDraft.data; if (d.f) setF((x) => ({ ...x, ...d.f })); if (d.renter) setRenter(d.renter); if (d.fees) setFees(d.fees); if (d.parts) setParts(d.parts); if (d.paid_by) setPaidBy(d.paid_by); if (d.deposit_by) setDepositBy(d.deposit_by); setDraftId(localDraft.id); idRef.current = localDraft.id; setLocalDraft(null); }} data-testid="mr-restore-local">Restore what you were typing on this device</button>}
+        {localDraft && !draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => { const d = localDraft.data; if (d.f) setF((x) => ({ ...x, ...d.f })); if (d.renter) setRenter(d.renter); if (d.fees) setFees(d.fees); if (d.parts) setParts(d.parts); if (d.paid_by) setPaidBy(d.paid_by); if (d.deposit_by) setDepositBy(d.deposit_by); if (d.customs) setCustoms(d.customs); if (d.tax_mode) setTaxMode(d.tax_mode); if (d.total) setTotalTyped(d.total); setDraftId(localDraft.id); idRef.current = localDraft.id; setLocalDraft(null); }} data-testid="mr-restore-local">Restore what you were typing on this device</button>}
       </div>
       <section className={`pt-card ad-card stack${quick ? ' pt-card--next' : ''}`} aria-labelledby="mr-quick-h" data-testid="mr-quick">
         <div className="pt-card__head"><h2 className="d4" id="mr-quick-h">Quick start at pickup</h2>
@@ -485,23 +561,40 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
             {!quote.free && quote.may_override_clash && text('clash_reason', 'Reason to add it over the clash', { wide: true })}
             {quote.notes?.length ? <div className="alert alert--warn" role="note" data-testid="mr-notes"><span>{quote.notes.join(' ')}</span></div> : null}
             {quote.needs_policy_confirm && !past && quote.role === 'admin' && <label className="check" htmlFor={id('policy')}><input id={id('policy')} type="checkbox" checked={flags.policy} onChange={flag('policy')} data-testid="mr-policy-confirm" /> <span>I checked that this car is insured for this rental</span></label>}
+            {(quote.may_override_price || quote.may_edit_fees) && (() => {
+              // 2026-10-27: the toggle, and the total the renter pays with its before-tax breakdown as priced
+              const t = quote.quote.total_due_at_booking_cents;
+              const rl = quote.quote.lines.find((l) => l.charge_type === 'rental_charge');
+              const impossible = totalCents !== undefined && fresh && t !== totalCents && solveRental(totalCents, t, rl ? rl.amount_cents + rl.hst_cents : 0) === null;
+              const shown = quote.quote.lines.filter((l) => l.amount_cents !== 0);
+              const words = `Before tax: ${shown.map((l) => `${l.charge_type === 'rental_charge' ? 'Rental charge' : l.description} ${fmt(l.amount_cents)}`).join(' + ')}; HST ${fmt(shown.reduce((x, l) => x + l.hst_cents, 0))}; total ${fmt(t)}.`;
+              return <TaxModeToggle value={taxMode} onChange={changeTaxMode} idPrefix="mr" bps={bps}>
+                <div className="ad-taxtotal">
+                  <div className="field"><label className="label" htmlFor="mr-total-typed">Total the renter pays (after tax, $)</label>
+                    <input className="input input--sm" id="mr-total-typed" inputMode="decimal" placeholder={(t / 100).toFixed(2)} value={totalTyped} onChange={(e) => setTotalTyped(e.target.value)} data-testid="mr-total-typed" aria-describedby="mr-total-typed-h" /></div>
+                  {totalTyped.trim() && <button className="btn btn--quiet btn--sm" type="button" onClick={() => setTotalTyped('')} data-testid="mr-total-clear">Clear the total</button>}
+                </div>
+                <p className="hint" id="mr-total-typed-h" data-testid="mr-total-breakdown" aria-live="polite">{totalCents === undefined ? 'Optional: type the total and the rental charge is worked out so the total comes to it exactly; the other lines stay as they are.'
+                  : impossible ? 'The other lines already come to more than this total: lower a fee or type a higher total.'
+                  : !fresh || t !== totalCents ? 'Working out the rental charge…' : words}</p>
+              </TaxModeToggle>; })()}
             {quote.has_rates === false && quote.price_typed_cents == null ? null : (() => {
               const days = quote.quote.billable_days || 1;
               const keys = new Set(quote.quote.lines.map((l) => lineKey(l)));
               const pending = Object.keys(fees).filter((k) => !keys.has(k) && !RENTAL_LINE.has(k));
               const edit = !!quote.may_edit_fees;
-              const box = (k: string, label: string, ph: number) => <input className="input input--sm" inputMode="decimal" aria-label={`${label}: amount for the trip ($)`} placeholder={(ph / 100).toFixed(2)}
+              const box = (k: string, label: string, ph: number) => <input className="input input--sm" inputMode="decimal" aria-label={`${label}: amount for the trip, ${taxMode === 'after' && hstFor(k) ? 'HST included' : 'before tax'} ($)`} placeholder={(ph / 100).toFixed(2)}
                 value={fees[k] ?? ''} onChange={(e) => setFees((x) => ({ ...x, [k]: e.target.value }))} data-testid={`mr-fee-${k}`} />;
               const remove = (k: string) => <button className="btn btn--quiet btn--sm" type="button" onClick={() => setFees((x) => ({ ...x, [k]: '0' }))} data-testid={`mr-remove-${k}`} aria-label="Remove this line">Remove</button>;
               return <table className="ad-table" data-testid="mr-price"><caption className="sr-only">Price</caption>
-              <thead><tr><th scope="col">Line</th><th scope="col" className="num">Amount</th>{edit && <th scope="col">Change it ($)</th>}</tr></thead><tbody>
+              <thead><tr><th scope="col">Line</th><th scope="col" className="num">Amount</th>{edit && <th scope="col">Change it ($, {taxMode === 'after' ? 'after tax' : 'before tax'})</th>}</tr></thead><tbody>
               {quote.quote.lines.map((l, i) => { const k = lineKey(l); const rent = l.charge_type === 'rental_charge'; const editable = edit && !RENTAL_LINE.has(l.charge_type);
                 return <tr key={i} data-testid={`mr-line-${k}`}><td>{rent ? `Rental charge (${days} day${days === 1 ? '' : 's'})` : l.description}<Info text={lineHelp(l.charge_type)} />
                   {l.set_by_hand || l.detail?.set_by_hand ? <span className="small muted"> (changed)</span> : null}</td><td className="num">{fmt(l.amount_cents)}</td>
-                  {edit && <td>{editable ? <span className="row">{box(k, l.description, l.amount_cents)}{remove(k)}</span>
-                    : rent && quote.may_override_price && quote.has_rates !== false ? <span className="stack">
-                      <span className="row"><input className="input input--sm" inputMode="decimal" aria-label={rentMode === 'day' ? 'Rental rate a day ($)' : 'Rental charge for the whole trip, before fees and tax ($)'}
-                        placeholder={((rentMode === 'day' ? Math.round(l.amount_cents / days) : l.amount_cents) / 100).toFixed(2)}
+                  {edit && <td>{editable ? <span className="row">{box(k, l.description, l.amount_cents + (taxMode === 'after' ? l.hst_cents : 0))}{remove(k)}</span>
+                    : rent && quote.may_override_price && quote.has_rates !== false ? totalCents !== undefined ? <span className="small" data-testid="mr-rent-from-total">{solvedW !== null ? `From the total: ${fmt(solvedW)} with HST (${fmt(bps !== null ? beforeTax(solvedW, bps) : l.amount_cents)} before tax)` : 'From the total'}</span> : <span className="stack">
+                      <span className="row"><input className="input input--sm" inputMode="decimal" aria-label={rentMode === 'day' ? `Rental rate a day, ${taxMode === 'after' ? 'HST included' : 'before tax'} ($)` : `Rental charge for the whole trip, ${taxMode === 'after' ? 'HST included' : 'before fees and tax'} ($)`}
+                        placeholder={(((rentMode === 'day' ? Math.round(l.amount_cents / days) : l.amount_cents) + (taxMode === 'after' ? (rentMode === 'day' ? Math.round(l.hst_cents / days) : l.hst_cents) : 0)) / 100).toFixed(2)}
                         value={rentMode === 'day' ? rentDay : f.rental_charge ?? ''} data-testid="mr-rental_charge"
                         onChange={(e) => { const v = e.target.value; if (rentMode === 'day') { setRentDay(v); const c = cents(v); setF((x) => ({ ...x, rental_charge: c === undefined ? '' : ((c * days) / 100).toFixed(2) })); } else set('rental_charge')(e); }} />
                         <select className="select select--sm" aria-label="The amount typed is" value={rentMode} onChange={(e) => { setRentMode(e.target.value as 'trip' | 'day'); setRentDay(''); setF((x) => ({ ...x, rental_charge: '' })); }} data-testid="mr-rent-mode">
@@ -510,7 +603,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
               {edit && pending.map((k) => <tr key={k} data-testid={`mr-line-${k}`}><td>{FEE_LABEL[k] ?? k}<Info text={lineHelp(k)} /></td><td className="num">{fmt(cents(fees[k] ?? '') ?? 0)}</td><td><span className="row">{box(k, FEE_LABEL[k] ?? k, 0)}<button className="btn btn--quiet btn--sm" type="button" onClick={() => setFees((x) => { const y = { ...x }; delete y[k]; return y; })}>Remove</button></span></td></tr>)}
               {edit && customs.map((c, i) => <tr key={`c${i}`} data-testid={`mr-custom-${i}`}><td><input className="input input--sm" aria-label="What the charge is for" placeholder="What it is for" value={c.label} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, label: e.target.value } : y)))} data-testid={`mr-custom-${i}-label`} /><Info text={lineHelp('custom_fee')} /></td>
                 <td className="num"><label className="check small"><input type="checkbox" checked={c.hst} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, hst: e.target.checked } : y)))} /> <span>+ HST</span></label></td>
-                <td><span className="row"><input className="input input--sm" inputMode="decimal" aria-label="Amount before HST ($)" placeholder="0.00" value={c.amount} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, amount: e.target.value } : y)))} data-testid={`mr-custom-${i}-amount`} />
+                <td><span className="row"><input className="input input--sm" inputMode="decimal" aria-label={`Amount ${c.hst && taxMode === 'after' ? 'with HST' : 'before HST'} ($)`} placeholder="0.00" value={c.amount} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, amount: e.target.value } : y)))} data-testid={`mr-custom-${i}-amount`} />
                   <button className="btn btn--quiet btn--sm" type="button" onClick={() => setCustoms((a) => a.filter((_, j) => j !== i))}>Remove</button></span></td></tr>)}
               {edit && <tr><td colSpan={3}>
                 <select className="select select--sm" id="mr-add-line" aria-label="Add a line to the price" value="" data-testid="mr-add-line" onChange={(e) => { const k = e.target.value; if (k === 'custom') setCustoms((a) => [...a, { label: '', amount: '', hst: true }]); else if (k) setFees((x) => ({ ...x, [k]: '' })); }}>
@@ -518,23 +611,23 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
                   {Object.entries(FEE_LABEL).filter(([k]) => !keys.has(k) && !(k in fees)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                   <option value="custom">A charge of its own</option></select></td></tr>}
               <tr><td>HST<Info text={lineHelp('hst')} /></td><td className="num">{fmt(quote.quote.lines.reduce((sum, l) => sum + l.hst_cents, 0))}</td>{edit && <td><span className="small muted">worked out for you</span></td>}</tr>
-              <tr><th scope="row">{quote.has_rates === false ? 'Total with the price you typed' : Object.keys(feeOverrides(fees)).length || customs.length || cents(f.rental_charge ?? '') !== undefined ? 'Total with your changes' : 'Total from the rate sheet'}</th><td className="num"><b data-testid="mr-total">{fmt(quote.quote.total_due_at_booking_cents)}</b></td>{edit && <td />}</tr>
+              <tr><th scope="row">{quote.has_rates === false ? 'Total with the price you typed' : Object.keys(feeOverrides(fees)).length || customs.length || priceChanged ? 'Total with your changes' : 'Total from the rate sheet'}</th><td className="num"><b data-testid="mr-total" data-fresh={fresh ? 'yes' : 'no'}>{fmt(quote.quote.total_due_at_booking_cents)}</b>{!fresh && <span className="small muted" data-testid="mr-total-updating"> updating</span>}</td>{edit && <td />}</tr>
               <tr><td>Deposit at pickup<Info text={lineHelp('deposit')} /></td><td className="num">{fmt(quote.quote.deposit_cents)}</td>{edit && <td>{isAdmin ? <input className="input input--sm" inputMode="decimal" aria-label="Deposit: change it to ($)" placeholder={(quote.quote.deposit_cents / 100).toFixed(2)} value={f.deposit ?? ''} onChange={set('deposit')} data-testid="mr-deposit-inline" /> : null}</td>}</tr>
               <tr><td>Kilometres included<Info text={lineHelp('km')} /></td><td className="num">{quote.quote.km_allowance_total} km</td>{edit && <td><span className="row"><input className="input input--sm" inputMode="numeric" aria-label="Kilometres a day" placeholder={String(Math.round(quote.quote.km_allowance_total / days))} value={f.km ?? ''} onChange={set('km')} data-testid="mr-km-inline" /><span className="small muted">a day</span></span></td>}</tr>
             </tbody></table>; })()}
-            {(Object.keys(feeOverrides(fees)).length > 0 || customs.length > 0 || cents(f.rental_charge ?? '') !== undefined) && <div className="ad-fields">{text('price_reason', 'Reason for the changes (optional)', { wide: true, hint: 'Kept on the booking. A price far under the rate sheet is flagged for an Admin, never refused.' })}</div>}
+            {difference && <p className="alert alert--warn" role="alert" data-testid="mr-total-diff"><span>{difference} Check the amounts before you save.</span></p>}
+            {(Object.keys(feeOverrides(fees)).length > 0 || customs.length > 0 || priceChanged) && <div className="ad-fields">{text('price_reason', 'Reason for the changes (optional)', { wide: true, hint: 'Kept on the booking. A price far under the rate sheet is flagged for an Admin, never refused.' })}</div>}
             {(quote.periods?.length ?? 0) > 1 && (() => { const ps = quote.periods!; const shares = periodShares(quote.quote.total_due_at_booking_cents, ps.map((x) => x.days));
               return <div className="stack" data-testid="mr-periods"><p className="small"><b>{ps.length} monthly periods</b> of 30 days (the last one shorter), each priced at the monthly rate. The amounts are each period&apos;s share of the total.</p>
                 <table className="ad-table"><caption className="sr-only">Monthly periods</caption><thead><tr><th scope="col">Period</th><th scope="col">From</th><th scope="col">To</th><th scope="col" className="num">Days</th><th scope="col" className="num">About</th></tr></thead>
                   <tbody>{ps.map((x, i) => <tr key={x.seq}><td>{x.seq}</td><td>{new Date(x.starts_at).toLocaleDateString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' })}</td><td>{new Date(x.ends_at).toLocaleDateString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' })}</td><td className="num">{x.days}</td><td className="num">{fmt(shares[i])}</td></tr>)}</tbody></table></div>; })()}
-            <p className="small muted">Rental charge: {quote.quote.rate_rule}; {quote.quote.km_allowance_total} km included. Type a new amount in any line to change it (amounts before HST).{quote.quote.problems.length ? ` ${quote.quote.problems.map((p) => p.message).join(' ')}` : ''}{quote.quote.promo?.problem ? ` Promo code: ${quote.quote.promo.problem}` : ''}</p>
+            <p className="small muted">Rental charge: {quote.quote.rate_rule}; {quote.quote.km_allowance_total} km included. Type a new amount in any line to change it ({taxMode === 'after' ? 'amounts with HST, as the renter pays them' : 'amounts before HST'}).{quote.quote.problems.length ? ` ${quote.quote.problems.map((p) => p.message).join(' ')}` : ''}{quote.quote.promo?.problem ? ` Promo code: ${quote.quote.promo.problem}` : ''}</p>
             {quote.may_override_price && (
               <div className="stack" data-testid="mr-custom-price">
                 {quote.has_rates === false ? <p className="small">This car has no rates yet. Type the rental charge for the whole rental.</p>
                   : <p className="small">Rental charge from the rate sheet: <b>{fmt(quote.rate_sheet_cents)}</b>. To charge another price, type it {quote.may_edit_fees ? 'in the Rental charge line of the price above' : 'below'}. The rate-sheet price stays on the booking for an Admin to see.</p>}
-                {(quote.has_rates === false || !quote.may_edit_fees) && <div className="ad-fields">{text('rental_charge', quote.has_rates === false ? 'Rental charge for the whole rental ($)' : 'Rental charge typed by hand ($, empty: the rate sheet)', { inputMode: 'decimal' })}
+                {(quote.has_rates === false || !quote.may_edit_fees) && totalCents === undefined && <div className="ad-fields">{text('rental_charge', `${quote.has_rates === false ? 'Rental charge for the whole rental' : 'Rental charge typed by hand'} (${taxMode === 'after' ? 'HST included' : 'before tax'}, $${quote.has_rates === false ? '' : ', empty: the rate sheet'})`, { inputMode: 'decimal' })}
                   {isAdmin && !quote.may_edit_fees && text('deposit', 'Deposit ($, empty: the rate sheet)', { inputMode: 'decimal' })}</div>}
-                {cents(f.rental_charge ?? '') !== undefined && <div className="ad-fields">{select('price_tax', 'The rental charge typed is', PRICE_TAX_OPTIONS)}</div>}
                 {split && <p className="small" data-testid="mr-price-tax">{PRICE_TAX_LABEL[split.tax]}: {fmt(split.before_tax_cents)} before tax and {fmt(split.hst_cents)} HST, {fmt(split.with_tax_cents)} in all.</p>}
                 {(() => { const fl = priceFlags(typedBeforeTax, quote.rate_sheet_cents, quote.billable_days, quote.price_floor_daily_cents, quote.price_max_discount_bps);
                   return fl.length ? <p className="alert alert--warn" role="status" data-testid="mr-price-flag"><span>This price is {fl.join(' and ')}. You can still add the rental: it is flagged for an Admin to review.</span></p> : null; })()}
@@ -613,9 +706,10 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
             <div><dt>Renter</dt><dd>{renter?.legal_name ?? (f.full_name || 'not entered yet')}</dd></div>
             <div><dt>Car</dt><dd>{quote.vehicle.name}</dd></div>
             <div><dt>Dates</dt><dd>{quote.quote.billable_days} days{phase === 'in_progress' ? ', already underway (on trip from the pickup entered)' : phase === 'past' ? ', already ended' : ''}{ps.length > 1 ? `, ${ps.length} monthly periods` : ''}</dd></div>
-            <div><dt>Total</dt><dd>{fmt(total)}{Object.keys(feeOverrides(fees)).length ? ' (with the fees you changed)' : ''}</dd></div>
+            <div><dt>Total</dt><dd data-testid="mr-sum-total">{fmt(total)}{Object.keys(feeOverrides(fees)).length ? ' (with the fees you changed)' : ''}{!fresh ? ' (updating)' : ''}</dd></div>
+            {difference && <div><dt>Check</dt><dd data-testid="mr-sum-diff"><b>{difference}</b></dd></div>}
             <div><dt>Rental paid</dt><dd data-testid="mr-sum-paid">{payWords}{offline ? `: ${fmt(paid)} received${left > 0 ? `, ${fmt(left)} still to collect` : ''}` : ''}</dd></div>
-            <div><dt>Deposit</dt><dd data-testid="mr-sum-deposit">{fmt(cents(f.deposit ?? '') ?? quote.quote.deposit_cents)} by {DEPOSIT_PAY.find(([v]) => v === depositBy)?.[1].toLowerCase()}{f.deposit_reference ? ` (${f.deposit_reference})` : ''}</dd></div>
+            <div><dt>Deposit</dt><dd data-testid="mr-sum-deposit">{depositBy === 'none' ? 'No deposit' : `${fmt(cents(f.deposit ?? '') ?? quote.quote.deposit_cents)} by ${DEPOSIT_PAY.find(([v]) => v === depositBy)?.[1].toLowerCase()}${f.deposit_reference ? ` (${f.deposit_reference})` : ''}`}</dd></div>
             <div><dt>Agreement</dt><dd>{agreement === 'paper' ? 'Signed on paper' : 'Sent to sign online'}</dd></div>
           </dl></section>; })()}
       {err && <p className="alert alert--error" role="alert" data-testid="mr-error"><span>{err}</span></p>}

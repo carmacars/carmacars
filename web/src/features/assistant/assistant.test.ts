@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { checkArgs, jsonSchemas, shortDate, summary, toolsFor, TOOLS, type ToolName } from './tools.ts';
 import { ask, systemPrompt, tidyArgs, type AssistantModel, type Deps, type Step } from './agent.ts';
 import { fakeStep, claudeModel } from './models.ts';
+import { beforeTax, hstOf } from '../sales/taxIncluded.ts';
 import { PAUSE, pauseMessage, paidCost, capProblem, usedUpTitle } from '../usage/model.ts';
 
 // The staff assistant and the usage guard (migration 0080): the tools each portal sees, argument checks, the card text
@@ -241,7 +242,8 @@ function staffDeps(m: AssistantModel, over: Partial<Record<'offer_preview' | 'of
   const base = deps(m, { who, find: async (k, q) => (k === 'car' ? ROWS.car!.filter((r) => String(r.plate).toLowerCase() === q.toLowerCase().replace(/\s/g, '') || q.toLowerCase() === 'corolla le' && r.id === 'v1') : k === 'booking' ? ROWS.booking! : []) });
   base.d.staff = async (what, p) => {
     calls.push({ what, p });
-    const v = over[what] ?? (what === 'offer_preview' ? PREVIEW : what === 'find_customers' ? [] : what === 'offer_form' ? { cars: [] } : {});
+    const o = over[what];
+    const v = typeof o === 'function' ? (o as (x: Record<string, unknown>) => unknown)(p) : o ?? (what === 'offer_preview' ? PREVIEW : what === 'find_customers' ? [] : what === 'offer_form' ? { cars: [] } : {});
     if (v instanceof Error) throw v;
     return v as Record<string, unknown>;
   };
@@ -362,5 +364,53 @@ describe('offers and rentals through the assistant (0133)', () => {
     const f = staffDeps(stub({ action: 'tool', tool: 'availability', args: { pickup_date: '2026-11-02', return_date: '2026-11-04', car: 'Corolla' } }), { offer_form: new Error('ERROR:  An Admin, customer service or sales sends an offer') }, { portal: 'field' });
     const r2 = await ask(f.d, { text: 'free?' });
     assert.match((r2.out[0] as { text: string }).text, /^Yes: the 2023 Toyota Corolla is free/);
+  });
+});
+
+// 2026-10-27: a preview that prices like the database: the rental charge (the rates' $180.00, or typed plus tax, or typed tax
+// included: before tax backed out, the HST what is left), a $20.00 cleaning fee, the Protection Plan set by hand; HST 13%.
+function pricing(p: Record<string, unknown>) {
+  const bps = 1300;
+  const w = p.rental_charge_cents as number | undefined;
+  const rental = w === undefined ? { amount_cents: 18000, hst_cents: hstOf(18000, bps) } : p.price_tax === 'included' ? { amount_cents: beforeTax(w, bps), hst_cents: w - beforeTax(w, bps) } : { amount_cents: w, hst_cents: hstOf(w, bps) };
+  const plan = (p.line_overrides as Record<string, number> | undefined)?.coverage_sold;
+  const lines = [{ charge_type: 'rental_charge', description: 'Rental, 2 days', ...rental, stage: 'booking', charged_to_renter: true },
+    { charge_type: 'cleaning', description: null, amount_cents: 2000, hst_cents: 260, stage: 'booking', charged_to_renter: true },
+    ...(plan !== undefined ? [{ charge_type: 'coverage_sold', description: 'Protection Plan', amount_cents: plan, hst_cents: hstOf(plan, bps), stage: 'booking', charged_to_renter: true }] : [])];
+  const sub = lines.reduce((x, l) => x + l.amount_cents, 0); const hst = lines.reduce((x, l) => x + l.hst_cents, 0);
+  return { ok: true, available: true, booking: { billable_days: 2, hst_bps: bps, deposit_cents: 50000, hst_at_booking_cents: hst, total_due_at_booking_cents: sub + hst, renter_due_at_booking_cents: sub + hst, lines } };
+}
+
+describe('amounts said after tax (2026-10-27)', () => {
+  const customer = { find_customers: [{ id: 'r1', legal_name: 'Maya Chen', email: 'maya@example.com', mobile: '4165550100', date_of_birth: '1990-01-01', is_blocked: false }], offer_preview: pricing };
+  it('the arguments: tax included, the total after tax and the plan price are taken (amounts as text too); not a rental price and a total both', () => {
+    assert.deepEqual(tidyArgs({ total_after_tax: '$320', plan_price: '$50.00', rental_total: '1,270' }), { total_after_tax: '320', plan_price: '50.00', rental_total: '1270' });
+    assert.equal(checkArgs('create_offer', { car: 'Corolla', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'Maya', total_after_tax: 320, plan_price: 50, tax_included: true }).ok, true);
+    const both = checkArgs('add_rental', { car: 'Corolla', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'Maya', rental_total: 270, total_after_tax: 320 });
+    assert.match(!both.ok ? both.problem : '', /not both/);
+    assert.match(systemPrompt({ portal: 'admin' }, '2026-10-27', ['create_offer']), /total_after_tax/);
+  });
+  it('"$270 after tax for the rental and $50 after tax for the Protection Plan": the plan goes before tax, the rental tax included, $340.60 with the cleaning fee', async () => {
+    const m = stub({ action: 'tool', tool: 'create_offer', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'maya@example.com', rental_total: 270, plan_price: 50, tax_included: true, price_reason: 'Paid cash' } });
+    const { d, proposed } = staffDeps(m, customer);
+    await ask(d, { text: 'offer' });
+    const a = proposed[0]!.args as Record<string, unknown>;
+    assert.deepEqual([a.rental_charge_cents, a.price_tax, a.line_overrides, a.coverage_option], [27000, 'included', { coverage_sold: 4425 }, 3]);
+    const rows = Object.fromEntries((proposed[0]!.details as Array<{ rows: Array<{ label: string; value: string }> }>).flatMap((x) => x.rows.map((y) => [y.label, y.value])));
+    assert.equal(rows['Due at booking'], '$342.60');
+    assert.match(rows['Amounts said']!, /After tax/);
+  });
+  it('"$320 total after tax": the rental charge is worked out so the total is exactly $320.00, the rounding on the rental line', async () => {
+    const m = stub({ action: 'tool', tool: 'add_rental', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'maya@example.com', total_after_tax: 320, plan_price: 50, tax_included: true } });
+    const { d, proposed } = staffDeps(m, customer);
+    await ask(d, { text: 'add a rental, $320 total after tax' });
+    const a = proposed[0]!.args as Record<string, unknown>;
+    // 320.00 - plan 50.00 - cleaning 22.60 = rental 247.40 with HST (218.94 + 28.46)
+    assert.deepEqual([a.rental_charge_cents, a.price_tax, a.line_overrides], [24740, 'included', { coverage_sold: 4425 }]);
+    assert.equal(pricing(a).booking.total_due_at_booking_cents, 32000);
+    const rows = Object.fromEntries((proposed[0]!.details as Array<{ rows: Array<{ label: string; value: string }> }>).flatMap((x) => x.rows.map((y) => [y.label, y.value])));
+    assert.equal(rows['Due at booking'], '$320.00');
+    assert.equal(rows.Check, undefined);
+    assert.match(String(a.price_reason), /Total agreed with the customer: \$320\.00 with HST/);
   });
 });
