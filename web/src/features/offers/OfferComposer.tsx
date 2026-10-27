@@ -152,15 +152,18 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   // 2026-10-27: the settings' HST rate and each line's own HST flag, from the offer as priced
   const bps = priced?.booking.hst_bps ?? null;
   const pricedLines = priced?.booking.lines;
+  // each line's HST flag, as a string so a new price with the same lines does not make a new payload (and a new price)
+  const hstSig = JSON.stringify((pricedLines ?? []).filter((x) => x.stage === 'booking').map((x) => [x.booking_addon_id && x.addon_code ? `addon:${x.addon_code}` : lineKey({ charge_type: x.charge_type }), x.hst_applies ?? x.hst_cents !== 0]));
   const payload = useMemo(() => {
     const after = taxMode === 'after';
-    const hstFor = (k: string) => { const l = (pricedLines ?? []).find((x) => x.stage === 'booking' && (x.booking_addon_id && x.addon_code ? `addon:${x.addon_code}` : lineKey({ charge_type: x.charge_type })) === k); return l ? (l.hst_applies ?? l.hst_cents !== 0) : true; };
+    const flags = new Map(JSON.parse(hstSig) as Array<[string, boolean]>);
+    const hstFor = (k: string) => flags.get(k) ?? true;
     const typedC = customs.filter((x) => x.label.trim() && Number(x.amount) > 0);
     const cc = linesBeforeTax(typedC.map((x, i) => ({ key: String(i), typed: Math.round(Number(x.amount) * 100), hst: x.hst })), after && bps !== null ? 'after' : 'before', bps ?? 0);
     const p = offerPayload(f, role, days, addonsPayload(addons), editFees, { after, bps, hstFor, rentalWithTax: totalCents !== null ? solvedW : null, extraResidual: editFees ? cc.residual : 0 });
     const c = typedC.map((x, i) => ({ label: x.label.trim(), amount_cents: cc.cents[String(i)], hst: x.hst }));
     return editFees && c.length ? { ...p, custom_fees: c, fee_reason: p.fee_reason ?? (f.fee_reason.trim() || 'Agreed with the renter') } : p;
-  }, [f, role, days, addons, editFees, customs, taxMode, bps, pricedLines, totalCents, solvedW]);
+  }, [f, role, days, addons, editFees, customs, taxMode, bps, hstSig, totalCents, solvedW]);
   const payloadKey = JSON.stringify({ ...payload, expires_at: null });
   // the price and the renter's view, from the database, as you type
   const seq = useRef(0);
