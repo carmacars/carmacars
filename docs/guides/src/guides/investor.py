@@ -41,8 +41,9 @@ def build():
         f'Press {B("Documents to sign")} in the menu. The top shows what is signed ("0 of 1 signed").',
         'Check the key values: your name and address, the Invested Amount, the Yearly Percentage and the dates. The agreement is filled in from your record.',
         f'Press {B("Read the PDF")} and read it, with its schedules.',
-        'Say whether you got independent legal advice, and tick the risk acknowledgment (Schedule C). Your initials are filled in.',
-        f'Press {B("Sign")}. Your full legal name is your signature (or press {B("Draw instead")}). The signed copy is on the same page.',
+        'Say whether you got independent legal advice.',
+        f'Sign in a few steps: press {B("Send the code")} and type the 6-digit code from your phone or email, tick that you read it, draw your initials beside the risk acknowledgment (Schedule C), tick the two consents and draw your signature.',
+        f'Press {B("Sign")}. The signed copy, with its certificate of completion, is on the same page.',
     ])
     g.para('Once you sign, the agreement shows "Awaiting countersignature by CarmaCars" under Signed. CarmaCars\'s signing officer countersigns it; '
            'the agreement binds CarmaCars once it is countersigned and your funds have cleared. You get the countersigned copy on the same page.')

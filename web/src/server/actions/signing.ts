@@ -8,18 +8,30 @@ import { requestMeta } from '@/server/request';
 import { ownerHome, requireOwnerUser } from '@/server/owner/data';
 import { queueOwnerSignedCopies, type SignedResult } from '@/server/owner/agreements';
 import { currentUser } from '@/server/portal/data';
-import { signDocument, storeDrawnSignature } from '@/server/sign-requests';
+import { signDocument } from '@/server/sign-requests';
 
 // Signing packages (migration 0049): one signature, given once, applied to each document of the package by that
 // document's own signing function (each keeps its signature record: time, IP address, device, the document's SHA-256 and
 // the consent shown for it), then the package itself is recorded with the documents it covered and the time it took.
 // The bound part (which documents) comes from the page; every document is checked again by the database (its signer,
-// its SHA-256, its state), so a changed list can only fail.
+// its SHA-256, its state), so a changed list can only fail. Since 0181 the signature is the signing session's (EsignFlow:
+// the code, the reading, the key terms initialled, the consents, the drawn signature): the database refuses a document
+// the session does not cover, and a drawn signature other than the session's.
 const SR = { role: 'service_role' as const };
 const msg = (e: unknown) => (e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong. Try again or call us.');
 const invalid = (fieldErrors: Record<string, string>): PackageResult => ({ ok: false, code: 'invalid', message: 'Check the highlighted part.', fieldErrors });
 const consentFor = (title: string, all: string[]) => `${SIGN_STATEMENT} I sign "${title}" with the one signature I gave for these ${all.length} documents: ${all.join('; ')}.`;
 const SAFE_NEXT = /^\/(owner|investor|va|field|account)(\/[\w/?=&-]*)?$/;
+const lettersOf = (s: string | undefined) => { const x = (s ?? '').trim().toUpperCase(); return /^[A-Z]{1,4}$/.test(x) ? x : 'X'; };
+/** The signature of the session: the drawn one (its stored key) or, with the Admin's fallback, the typed name. */
+function sessionSignature(input: PackageInput): { drawnPath: string | null; typedName: string | undefined } | null {
+  const e = input.esign;
+  if (!e?.session) return null;
+  if (e.method === 'drawn' && e.drawnPath) return { drawnPath: e.drawnPath, typedName: undefined };
+  if (e.method === 'typed' && e.typedName?.trim()) return { drawnPath: null, typedName: e.typedName.trim() };
+  return null;
+}
+const STEPS = 'Finish the signing steps: the code, the reading, the initials, the consents and your signature.';
 
 async function recordPackage(userId: string, portal: string, input: PackageInput, docs: Array<{ signature_request_id: string; title: string; consent_text: string }>, consent: string) {
   const meta = await requestMeta();
@@ -45,21 +57,18 @@ export async function signOwnerPackage(spec: OwnerPackageSpec, input: PackageInp
     const titles = [...spec.packet.map((d) => d.title), ...spec.requests.map((d) => d.title)];
     if (!titles.length) return { ok: false, code: 'refused', message: 'Nothing to sign.' };
     const enrollment = spec.packet.some((d) => d.key === 'enrollment');
-    const fe: Record<string, string> = {};
-    if (enrollment && !CONFIRMATIONS.every((c) => input.statements.includes(c.code))) fe.statements = 'Tick the three statements (one tap on "All of these").';
-    const initials = (input.initials ?? '').trim().toUpperCase();
-    if (enrollment && !/^[A-Z]{1,4}$/.test(initials)) fe.initials = 'Your initials, letters only.';
-    if (input.method === 'typed' && !(input.typedName ?? '').trim()) fe.signature = 'Use your name or draw your signature.';
-    if (input.method === 'drawn' && !input.drawn) fe.signature = 'Draw your signature in the box.';
-    if (Object.keys(fe).length) return invalid(fe);
-    const drawnPath = input.method === 'drawn' ? await storeDrawnSignature(user.id, input.drawn!) : null;
+    const sig = sessionSignature(input);
+    if (!sig) return invalid({ signature: STEPS });
+    // the confirmations were initialled in the signing session; the signed copy prints the signer's initials beside them
+    const initials = lettersOf(input.initials);
+    const drawnPath = sig.drawnPath;
     const meta = await requestMeta();
     const signed: Array<{ signature_request_id: string; title: string; consent_text: string }> = [];
     let waiting: string[] = [];
     if (spec.packet.length) {
       const consent = `${OWNER_SIGN_STATEMENT} One signature for: ${titles.join('; ')}.`;
       const res = (await rpc('owner_sign_agreements', { p_owner: home.owner.id, p_by: user.id, p: {
-        typed_name: input.method === 'typed' ? input.typedName!.trim() : null, drawn_signature: drawnPath, ip: meta.ip, user_agent: meta.userAgent, consent_text: consent,
+        typed_name: sig.typedName ?? null, drawn_signature: drawnPath, ip: meta.ip, user_agent: meta.userAgent, consent_text: consent,
         initials: enrollment ? Object.fromEntries(CONFIRMATIONS.map((c) => [c.code, initials])) : null,
         documents: spec.packet.map((d) => ({ key: d.key, sha256: d.sha })) } }, SR)) as unknown as SignedResult;
       if (res.complete === false) waiting = res.waiting_for ?? [];
@@ -70,7 +79,7 @@ export async function signOwnerPackage(spec: OwnerPackageSpec, input: PackageInp
       }
     }
     for (const r of spec.requests) {
-      const out = await signDocument(user.id, { id: r.id, sha: r.sha, typedName: input.method === 'typed' ? input.typedName : undefined, drawnPath: drawnPath ?? undefined,
+      const out = await signDocument(user.id, { id: r.id, sha: r.sha, typedName: sig.typedName, drawnPath: drawnPath ?? undefined,
         consent: consentFor(r.title, titles) });
       signed.push({ signature_request_id: out.signature_request_id, title: r.title, consent_text: consentFor(r.title, titles) });
     }
@@ -94,17 +103,16 @@ export async function signPortalPackage(spec: PortalPackageSpec, input: PackageI
     const investment = spec.requests.some((r) => r.doc_type === 'investment_agreement');
     const fe: Record<string, string> = {};
     if (investment && !input.legalAdvice) fe.advice = 'Say whether you got independent legal advice.';
-    if (investment && !/^[A-Za-z]{1,4}$/.test((input.initials ?? '').trim())) fe.initials = 'Your initials, letters only.';
-    if (input.method === 'drawn' && !input.drawn) fe.signature = 'Draw your signature in the box.';
-    if (input.method === 'typed' && !(input.typedName ?? '').trim()) fe.signature = 'Use your name or draw your signature.';
+    const sig = sessionSignature(input);
+    if (!sig) fe.signature = STEPS;
     if (Object.keys(fe).length) return invalid(fe);
-    const drawnPath = input.method === 'drawn' ? await storeDrawnSignature(user.id, input.drawn!) : null;
+    const drawnPath = sig!.drawnPath;
     const titles = spec.requests.map((r) => r.title);
     const signed: Array<{ signature_request_id: string; title: string; consent_text: string }> = [];
     for (const r of spec.requests) {
       const inv = r.doc_type === 'investment_agreement';
-      const out = await signDocument(user.id, { id: r.id, sha: r.sha, typedName: input.method === 'typed' ? input.typedName : undefined, drawnPath: drawnPath ?? undefined,
-        consent: consentFor(r.title, titles), legalAdvice: inv ? input.legalAdvice : undefined, adviser: inv ? input.adviser : undefined, initials: inv ? input.initials : undefined });
+      const out = await signDocument(user.id, { id: r.id, sha: r.sha, typedName: sig!.typedName, drawnPath: drawnPath ?? undefined,
+        consent: consentFor(r.title, titles), legalAdvice: inv ? input.legalAdvice : undefined, adviser: inv ? input.adviser : undefined, initials: inv ? lettersOf(input.initials) : undefined });
       signed.push({ signature_request_id: out.signature_request_id, title: r.title, consent_text: consentFor(r.title, titles) });
     }
     await recordPackage(user.id, spec.portal, input, signed, `One signature for ${titles.length} document${titles.length > 1 ? 's' : ''}: ${titles.join('; ')}.`);

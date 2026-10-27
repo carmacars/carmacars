@@ -1,15 +1,17 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { SignaturePad } from '@/features/portal/SignaturePad';
-import { CONSENTS, type Clause, type ConsentCode } from '@/features/agreement/extra';
+import { CONSENTS, type ConsentCode } from '@/features/agreement/extra';
+import { DOC_CONSENTS, type Term } from './terms';
 import { esignCheckCode, esignSendCode, esignStart, esignStep } from '@/server/actions/esign';
 import type { EsignContext, EsignReady, EsignView } from './types';
 
-// The signature that holds up (migration 0154), the same on every signing page: 1. confirm it is you with a code sent
+// The signature that holds up (migration 0154), the same on every signing page (since 0181 every signature on the site): 1. confirm it is you with a code sent
 // to the phone or email on file; 2. say you read the documents; 3. initial each key term; 4. give the consents; 5. draw
 // your signature. Each step is recorded with its time, IP address and device (and the place, if the signer allows it)
 // and goes in the certificate of completion. The page's own Sign button is enabled once onReady gives the session.
-export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement above' }: { ctx: EsignContext; terms: Clause[]; onReady: (r: EsignReady | null) => void; docsLabel?: string }) {
+export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement above' }: { ctx: EsignContext; terms: Term[]; onReady: (r: EsignReady | null) => void; docsLabel?: string }) {
+  const consentText: Record<string, string> = ctx.kind === 'documents' || ctx.kind === 'cosigner' ? DOC_CONSENTS : CONSENTS;
   const [v, setV] = useState<EsignView | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -102,7 +104,7 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
       {v.verified && v.viewed && initialsDone && <section className="es-step" data-state={consentsDone ? 'done' : 'open'} aria-labelledby="es-4">
         <h3 className="d4" id="es-4">4. Consent</h3>
         {v.required_consents.map((c) => <label key={c} className="check"><input type="checkbox" checked={v.consents.includes(c)} disabled={v.consents.includes(c) || busy}
-          onChange={() => run(() => esignStep(ctx, v.id, { kind: 'consent', code: c as ConsentCode }))} data-testid={`esign-consent-${c}`} /><span>{CONSENTS[c as ConsentCode]}</span></label>)}
+          onChange={() => run(() => esignStep(ctx, v.id, { kind: 'consent', code: c as ConsentCode }))} data-testid={`esign-consent-${c}`} /><span>{consentText[c] ?? c}</span></label>)}
       </section>}
 
       {v.verified && v.viewed && initialsDone && consentsDone && <section className="es-step" data-state={v.signature ? 'done' : 'open'} aria-labelledby="es-5">

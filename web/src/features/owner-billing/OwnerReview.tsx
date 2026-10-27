@@ -6,6 +6,9 @@ import Link from 'next/link';
 import { useAct } from '@/features/portal/useAct';
 import { money } from '@/lib/format';
 import { ownerCorrect, signScheduleChange } from '@/server/actions/owner-billing';
+import { EsignFlow } from '@/features/signing/EsignFlow';
+import { DOC_TERMS } from '@/features/signing/terms';
+import type { EsignReady } from '@/features/signing/types';
 
 // The owner checks what CarmaCars entered for them and corrects it before signing (migration 0067), and signs an
 // updated Vehicle Schedule.
@@ -72,22 +75,20 @@ export function OwnerReview({ data, trackers }: { data: ReviewData; trackers: bo
   );
 }
 
-export function ScheduleSign({ changeId, sha256, owner, signed }: { changeId: string; sha256: string; owner: string; signed: boolean }) {
+// An updated Vehicle Schedule, signed with the signing steps of every signature (0181): a code to the owner's phone or
+// email, the reading, the updated terms initialled, the consents, the drawn signature. The signed copy, with the
+// certificate of completion, is filed in Documents.
+export function ScheduleSign({ changeId, sha256, owner, title, signed }: { changeId: string; sha256: string; owner: string; title: string; signed: boolean }) {
   const router = useRouter();
   const a = useAct<{ schedule_number: string }>();
-  const uid = `ss-${useId().replace(/[^\w-]/g, '')}`;
-  const [name, setName] = useState('');
-  const [agree, setAgree] = useState(false);
-  if (signed || a.res?.ok) return <p className="alert alert--ok" role="status" data-testid="schedule-signed"><span>Signed. Your updated Vehicle Schedule{a.res?.ok ? ` ${a.res.data.schedule_number}` : ''} is in force from its date.</span></p>;
+  const [ready, setReady] = useState<EsignReady | null>(null);
+  if (signed || a.res?.ok) return <p className="alert alert--ok" role="status" data-testid="schedule-signed"><span>Signed. Your updated Vehicle Schedule{a.res?.ok ? ` ${a.res.data.schedule_number}` : ''} is in force from its date. The signed copy is in Documents.</span></p>;
   return (
-    <form className="stack" noValidate aria-label="Sign the updated Vehicle Schedule" data-testid="schedule-sign" onSubmit={(e) => { e.preventDefault(); a.run(() => signScheduleChange(changeId, name, agree, sha256), (r) => { if (r.ok) router.refresh(); }); }}>
-      <label className="check" htmlFor={`${uid}-ok`}><input type="checkbox" id={`${uid}-ok`} checked={agree} onChange={(e) => setAgree(e.target.checked)} data-testid="schedule-agree" /><span>I have read this updated Vehicle Schedule and I agree to it.</span></label>
-      {a.err('agree') && <p className="error" role="alert">{a.err('agree')}</p>}
-      <div className={`field${a.err('name') ? ' has-error' : ''}`}><label className="label" htmlFor={`${uid}-n`}>Type your full legal name to sign</label>
-        <input className="input" id={`${uid}-n`} value={name} onChange={(e) => setName(e.target.value)} placeholder={owner} autoComplete="name" data-testid="schedule-name" aria-describedby={`${uid}-n-e`} />
-        <p className="error" role="alert" id={`${uid}-n-e`}>{a.err('name') ?? ''}</p></div>
+    <form className="stack" noValidate aria-label="Sign the updated Vehicle Schedule" data-testid="schedule-sign" onSubmit={(e) => { e.preventDefault(); if (ready) a.run(() => signScheduleChange(changeId, owner, sha256, ready), (r) => { if (r.ok) router.refresh(); }); }}>
+      <EsignFlow ctx={{ kind: 'documents', role: 'owner', docs: [{ kind: 'schedule_change', ref: changeId, sha: sha256, title }] }} terms={DOC_TERMS} docsLabel="this updated Vehicle Schedule" onReady={setReady} />
+      {a.err('signature') && <p className="error" role="alert">{a.err('signature')}</p>}
       {a.res && !a.res.ok && !a.res.fieldErrors && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
-      <div className="row"><button className="btn btn--primary" type="submit" disabled={a.pending} data-testid="schedule-sign-submit">{a.pending ? 'Signing' : 'Sign'}</button></div>
+      <div className="row"><button className="btn btn--primary" type="submit" disabled={a.pending || !ready} data-testid="schedule-sign-submit">{a.pending ? 'Signing' : 'Sign'}</button></div>
     </form>
   );
 }

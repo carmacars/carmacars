@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, db, noOverflow, watch } from './helpers';
+import { acceptCookies, db, noOverflow, strongSign, watch } from './helpers';
 
 // Migration 0044 end to end: the guide of every portal (the Guide link, the first-visit banner, the page with its
 // contents, search and PDF); a payment received by e-Transfer and cheque recorded by an Admin, then voided; a signature
@@ -280,8 +280,8 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   // 0077: the documents are prepared in their own requests; the sign form appears when they are open
   await expect(op.getByTestId('package-sign')).toBeVisible({ timeout: 45_000 });
   const t0 = Date.now();
-  if (await op.getByTestId('package-tick-all').isVisible()) await op.getByTestId('package-tick-all').check();
-  await expect(op.getByTestId('signature-adopted')).toContainText(o.user.name);
+  // 0181: Forms A and B are signed with the signing steps of every signature
+  await strongSign(op, op.getByTestId('owner-package'));
   await op.getByTestId('package-sign').click();
   await op.waitForURL(/\/owner\?signed=1/, { timeout: 60_000 });
   console.log(`forms A and B package (${info.project.name}): signed in ${Math.round((Date.now() - t0) / 1000)} s after the first tap`);
@@ -326,9 +326,11 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   expect((await doc.body()).subarray(0, 4).toString()).toBe('%PDF');
   const f2 = ip.getByTestId('portal-sign-form');
   await f2.getByRole('radio', { name: /chose not to/ }).check();
-  await f2.locator('input[name="statement"]').check();
-  await expect(f2.getByTestId('package-initials')).toHaveValue(/^[A-Z]{2,4}$/);
+  // 0181: the code, the reading, Schedule C initialled, the consents, the drawn signature
+  await expect(f2.getByTestId('esign-flow')).toBeVisible({ timeout: 20_000 });
   await check(ip, 'investor signing page');
+  await strongSign(ip, f2);
+  await expect(f2.locator('[data-testid="esign-term-schedule_c"]')).toContainText('Initialled');
   await f2.getByTestId('package-sign').click();
   await expect(ip.getByTestId('package-signed').or(ip.getByTestId('sign-done'))).toBeVisible({ timeout: 30_000 });
   await ip.goto('/investor/sign', { waitUntil: 'networkidle' });
@@ -351,16 +353,11 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   await vp2.goto('/va', { waitUntil: 'networkidle' });
   await vp2.getByTestId('va-to-sign').getByRole('link').click();
   await vp2.waitForURL(/\/va\/sign$/);
-  // the documents to sign are one package on this page: the PDF to read, the signature drawn, one button
+  // the documents to sign are one package on this page: the PDF to read, the signing steps (0181: the code, the reading,
+  // the consents, the drawn signature; an uploaded agreement has no key terms of its own to initial), one button
   await expect(vp2.getByTestId('sign-read')).toBeVisible();
-  await vp2.getByTestId('portal-sign-form').getByTestId('signature-mode').click();
-  const canvas = vp2.locator('[data-testid="portal-sign-form"] canvas');
-  await canvas.evaluate((e) => e.scrollIntoView({ block: 'center', behavior: 'instant' }));
-  const b = (await canvas.boundingBox())!;
-  await vp2.mouse.move(b.x + 20, b.y + b.height * 0.6); await vp2.mouse.down();
-  for (let i = 1; i <= 30; i++) await vp2.mouse.move(b.x + 20 + i * ((b.width - 60) / 30), b.y + b.height * (0.6 + 0.25 * Math.sin(i / 2.5)), { steps: 2 });
-  await vp2.mouse.up();
   await check(vp2, 'va signing page');
+  await strongSign(vp2, vp2.getByTestId('portal-sign-form'));
   await vp2.getByTestId('portal-sign-form').getByTestId('package-sign').click();
   await expect(vp2.getByTestId('package-signed').or(vp2.getByTestId('sign-done'))).toBeVisible({ timeout: 30_000 });
   const sa = await sql`select r.status, r.method, (select agreement_document_id from staff_profiles where user_id = ${va.id}) in (r.document_id, r.signed_document_id) as on_file from sign_requests r where r.staff_user_id = ${va.id}`;

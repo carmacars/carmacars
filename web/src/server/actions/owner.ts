@@ -1,16 +1,14 @@
 'use server';
-import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { DbError, rpc } from '@/lib/db/repo';
 import { fakeOnly, payments } from '@/integrations/payments';
 import { storage } from '@/integrations/storage';
 import type { ActionResult } from '@/features/forms/schemas';
-import { CONFIRMATIONS, OWNER_SIGN_STATEMENT, type PacketKey } from '@/features/owner-agreement/model';
-import { requestMeta } from '@/server/request';
+import type { PacketKey } from '@/features/owner-agreement/model';
 import { readToken, sha256Hex, signToken } from '@/server/links';
 import { encryptField, PAYOUT_KEY_VERSION } from '@/server/crypto';
 import { ownerHome, requireOwnerUser } from '@/server/owner/data';
-import { queueOwnerSignedCopies, openOwnerPacket, type SignedResult } from '@/server/owner/agreements';
+import { openOwnerPacket } from '@/server/owner/agreements';
 import { finishDebitSetup, invoiceFacts, invoiceIdFor, invoiceIntent, publishableKey, settleInvoiceIntent, startDebitSetup, type InvoiceSettle, type StartedDebitSetup, type StartedInvoicePayment } from '@/server/owner/payment';
 
 // Every owner action: a server action run for the signed-in user. The database checks again that
@@ -128,51 +126,6 @@ export async function prepareOwnerAgreements(): Promise<R<{ docs: Array<{ key: P
     const { docs } = await openOwnerPacket(home.owner.id, user.id);
     return { ok: true, data: { docs: docs.map((d) => ({ key: d.key, sha: d.sha })) } };
   } catch (e) { return fail(dbMessage(e)); }
-}
-
-function pngBytes(dataUrl: string): Uint8Array | null {
-  const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl ?? '');
-  if (!m) return null;
-  const bin = Uint8Array.from(atob(m[1]!), (c) => c.charCodeAt(0));
-  const sig = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-  return bin.length > 200 && bin.length < 400_000 && sig.every((v, i) => bin[i] === v) ? bin : null;
-}
-
-export interface OwnerSignInput { docs: Array<{ key: PacketKey; sha: string }>; initials: string; confirmations: string[]; typedName?: string; drawn?: string }
-
-export async function signOwnerAgreements(input: OwnerSignInput): Promise<R> {
-  let target = '';
-  try {
-    const { user, home } = await owner();
-    const fe: Record<string, string> = {};
-    const initials = (input.initials ?? '').trim().toUpperCase();
-    const needsInitials = input.docs.some((d) => d.key === 'enrollment');
-    if (needsInitials && !/^[A-Z]{1,4}$/.test(initials)) fe.initials = 'Type your initials (letters only).';
-    if (needsInitials && !CONFIRMATIONS.every((c) => (input.confirmations ?? []).includes(c.code))) fe.confirmations = 'Initial all three confirmations.';
-    let drawnPath: string | null = null;
-    if (input.drawn) {
-      const png = pngBytes(input.drawn);
-      if (!png) fe.signature = 'Please sign your name in the box.';
-      else {
-        drawnPath = `owners/${home.owner.id}/signatures/owner-${crypto.randomUUID()}.png`;
-        if (!Object.keys(fe).length) await (await storage()).put('agreements', drawnPath, png, 'image/png');
-      }
-    } else if (!(input.typedName ?? '').trim()) fe.signature = 'Sign by drawing or by typing your full legal name.';
-    if (Object.keys(fe).length) return invalid(fe);
-    const meta = await requestMeta();
-    const res = (await rpc('owner_sign_agreements', {
-      p_owner: home.owner.id, p_by: user.id,
-      p: {
-        typed_name: input.typedName?.trim() || null, drawn_signature: drawnPath, ip: meta.ip, user_agent: meta.userAgent, consent_text: OWNER_SIGN_STATEMENT,
-        initials: needsInitials ? Object.fromEntries(CONFIRMATIONS.map((c) => [c.code, initials])) : null,
-        documents: input.docs.map((d) => ({ key: d.key, sha256: d.sha }))
-      }
-    }, SR)) as unknown as SignedResult;
-    try { await queueOwnerSignedCopies(home.owner.id, user.id, res); } catch (e) { console.error('owner signed copy job', e); }
-    revalidatePath('/owner'); revalidatePath('/owner/documents');
-    target = '/owner?signed=1';
-  } catch (e) { return fail(dbMessage(e)); }
-  redirect(target);
 }
 
 // ---------------------------------------------------------------- banking, profile, exit, own booking

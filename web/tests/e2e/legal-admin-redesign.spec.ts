@@ -411,8 +411,8 @@ test('legal: Form C on screen with the witness, the co-owner\'s own page, the de
   await expect(op.getByTestId('form-c-sign')).toBeVisible({ timeout: 30_000 });
   await check(op, 'Form C on screen');
   await shot(op, 'form-c');
-  for (const box of await op.locator('[data-testid^="form-c-ack-"]').all()) await box.check();
-  await op.getByTestId('form-c-initials').fill('OO');
+  // 0181: the owner signs with the signing steps of every signature (the three acknowledgments initialled); the witness types
+  await strongSign(op, op.getByTestId('form-c-sign'));
   await op.getByTestId('form-c-witness').fill('Wanda Witness');
   await op.getByTestId('form-c-witness-statement').check();
   await op.getByTestId('form-c-submit').click();

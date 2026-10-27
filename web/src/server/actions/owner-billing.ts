@@ -6,6 +6,9 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
 import { sha256Hex } from '@/server/links';
+import { requestMeta } from '@/server/request';
+import { fileScheduleChangeCopy } from '@/server/signing/certified';
+import type { EsignReady } from '@/features/signing/types';
 
 // Negotiated terms, owner invoices, the Approve step and cars staff add for an owner (migration 0067). Every call goes
 // through the staff door; the database decides who may do what (Admins; customer service and fleet add cars) and
@@ -246,16 +249,20 @@ export async function ownerCorrect(p: { owner?: J; cars?: J[] }) {
     return { ok: true as const, data: r as unknown as { changes: number } };
   } catch (e) { return fail(e); }
 }
-export async function signScheduleChange(changeId: string, name: string, agree: boolean, sha256: string) {
-  const fe: Record<string, string> = {};
-  if (name.trim().length < 2) fe.name = 'Type your full legal name.';
-  if (!agree) fe.agree = 'Tick the box to confirm.';
-  if (Object.keys(fe).length) return invalid(fe);
+/** An updated Vehicle Schedule signed with its signing session (0181): the database checks the signature against the
+ *  session and records the session's signer; then the signed copy, with the certificate of completion, is filed. */
+export async function signScheduleChange(changeId: string, name: string, sha256: string, esign: EsignReady) {
+  const drawn = esign?.method === 'drawn' && esign.drawnPath ? esign.drawnPath : null;
+  const typed = esign?.method === 'typed' && esign.typedName?.trim() ? esign.typedName.trim() : null;
+  if (!esign?.session || (!drawn && !typed)) return invalid({ signature: 'Finish the signing steps: the code, the reading, the initials, the consents and your signature.' });
   try {
     const user = await currentUser();
     if (!user) throw new Error('Sign in first.');
-    const r = await rpc('server_schedule_change_sign', { p_by: user.id, p: { change_id: changeId, name: name.trim(), agree, sha256 } }, SR);
-    revalidatePath('/owner'); revalidatePath(`/owner/sign/schedule/${changeId}`);
+    const meta = await requestMeta();
+    const r = await rpc('server_schedule_change_sign', { p_by: user.id, p: { change_id: changeId, name: (typed ?? name).trim(), agree: true, sha256, drawn_signature: drawn, typed_name: typed,
+      ip: meta.ip ?? null, user_agent: meta.userAgent } }, SR);
+    try { await fileScheduleChangeCopy(changeId); } catch (e) { console.error('schedule change signed copy', e); }
+    revalidatePath('/owner'); revalidatePath('/owner/documents'); revalidatePath(`/owner/sign/schedule/${changeId}`);
     return { ok: true as const, data: r as unknown as { schedule_number: string } };
   } catch (e) { return fail(e); }
 }
