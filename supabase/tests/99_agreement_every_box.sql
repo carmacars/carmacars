@@ -7,8 +7,8 @@ select test.eq('settings: CarmaCars'' GST/HST account is the default (box 1; the
   (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'company_hst_number'), '''76339 9177 RT0001''::text');
 
 update coverage_proofs set coverage_provider = null where booking_id = test.agb('a');
-select test.eq('missing: card coverage without its provider is a field a claim needs',
-  (select count(*) from jsonb_array_elements(app.agreement_missing(test.agb('a'))) x where x ->> 'key' = 'coverage.coverage_provider' and (x ->> 'required')::boolean), 1::bigint);
+select test.eq('missing: card coverage without its provider is listed (recommended: check-out does not wait for it)',
+  (select count(*) from jsonb_array_elements(app.agreement_missing(test.agb('a'))) x where x ->> 'key' = 'coverage.coverage_provider' and not (x ->> 'required')::boolean), 1::bigint);
 select test.eq('fill: customer service fills the provider on the booking: no longer missing',
   (select count(*) from jsonb_array_elements(public.door(test.id('ag_cs'), null, 'ops_do', 'agreement_fill',
      jsonb_build_object('booking', test.agb('a'), 'coverage', jsonb_build_object('coverage_provider', ' Assurant '))) -> 'missing') x

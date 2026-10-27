@@ -17,7 +17,7 @@ using rental coverage, that goes there as well."
   - insurance included with the car: said so in box 12.
 - **The card coverage provider** is a new field of the coverage proof (`coverage_proofs.coverage_provider`). A booking
   on card coverage without it lists "Card coverage: the coverage provider (usually Assurant ...)" on its Agreement card,
-  where staff fill it like the card issuer; it is required for check-out (an Admin can override with a reason, 0154).
+  where staff fill it like the card issuer; it is listed until filled but does not hold up the check-out.
   Filling it files a corrected copy of both agreements (not signed again: the coverage option itself is what is signed).
 - The Admin's sample (Settings > Forms) is now a card-coverage booking, so it shows boxes 1, 12 and 13 filled.
 - Unchanged and already automatic (0154): the pickup copy fills time out, K/M out and fuel out from the check-out; the

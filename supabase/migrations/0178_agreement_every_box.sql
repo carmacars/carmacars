@@ -4,7 +4,7 @@
 -- 13 (insurance company, policy) carry the coverage of every booking, not only an insurance replacement: OPCF 27 the
 -- renter's insurer and policy (as before), card coverage the card's coverage provider (usually Assurant) and the card,
 -- the CarmaCars Protection Plan the plan and its activation reference. The card coverage provider is a new field of the
--- coverage proof, asked on the booking's Agreement card like the card issuer (a claim needs it: check-out waits for it).
+-- coverage proof, asked on the booking's Agreement card like the card issuer (listed until filled; check-out does not wait for it).
 -- The pickup copy and the closing copy (0154) already fill K/M out and fuel out from the check-out, and K/M in, driven,
 -- charged and fuel in from the check-in. SCHEMA_MARKER 0178.
 
@@ -55,7 +55,7 @@ begin
   if b.id is null then return out; end if;
   if b.coverage_option = 2 and (app.coverage_detail(b.id) ->> 'coverage_provider') is null then
     out := out || jsonb_build_array(jsonb_build_object('key', 'coverage.coverage_provider',
-      'label', 'Card coverage: the coverage provider (usually Assurant; on the card''s benefits guide)', 'where', 'coverage', 'required', true));
+      'label', 'Card coverage: the coverage provider (usually Assurant; on the card''s benefits guide)', 'where', 'coverage', 'required', false));
   end if;
   return out;
 end $$;
