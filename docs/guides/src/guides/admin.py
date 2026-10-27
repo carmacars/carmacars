@@ -1257,7 +1257,7 @@ def build():
     g.task('What happens to each application', 'The database scores the answers the moment they arrive. The candidate never sees the points.')
     g.bullets([
         'Score at or above the pass mark, no knock-out: an email with a personal link to book a call (Invited).',
-        'Field staff who do not qualify (no full G licence, under two years of driving, or a low score) are not declined: they get a friendly email offering Sales in person, with a one-click link that fills in their details, and Remote sales named as the other choice (Referred). If they already applied for Sales, nothing is sent and a note says so.',
+        'Field staff who do not qualify (no full G licence, under three years of driving, or a low score) are not declined: they get a friendly email offering Sales in person, with a one-click link that fills in their details, and Remote sales named as the other choice (Referred). If they already applied for Sales, nothing is sent and a note says so.',
         'Sales in person below the pass mark, or remote only, is offered Remote sales. A remote assistant role below the pass mark is offered the closest other open role.',
         'A knock-out with no other role to offer (for example the finance code word missing) gets a polite decline.',
         'Anyone else waits for you as Below the bar, with only a confirmation email.',
