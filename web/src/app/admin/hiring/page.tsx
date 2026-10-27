@@ -74,7 +74,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
       { name: 'roles', label: 'Roles (leave empty for every role)', type: 'list' as const, value: v.role_slugs ?? [], hint: `Role codes, separated by commas: ${data.roles.map((r) => r.slug).join(', ')}` },
       { name: 'note', label: 'Note (only Admins see it)', type: 'text' as const, value: v.note ?? '' }];
     return (<>{head}{tabs}
-      <p className="row"><Act action="hiring_day_save" label="Add an interview day" variant="primary" testId="day-add" refresh={[base]} done="Day added with its slots." fields={dayFields()} /></p>
+      <div className="row"><Act action="hiring_day_save" label="Add an interview day" variant="primary" testId="day-add" refresh={[base]} done="Day added with its slots." fields={dayFields()} /></div>
       <Card title="Interview days" testId="hiring-days">
         <Table<Day & R> rows={data.days as Array<Day & R>} rowKey={(x) => x.id} empty="No interview day yet. Add one: candidates who pass are invited to book on it." cols={[
           { key: 'day', label: 'Day', render: (x) => d(x.day) }, { key: 'start_time', label: 'Hours', render: (x) => `${x.start_time} to ${x.end_time}` },
@@ -98,13 +98,13 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
         return (
           <Card key={r.slug} title={r.title} testId={`role-card-${r.slug}`} aside={<Badge s={r.active ? 'published' : 'closed'}>{r.active ? 'Open' : 'Closed'}</Badge>}>
             <p className="small muted">{r.pay_text}. Pass mark {r.pass_mark} of 100. {r.total} applications.</p>
-            <p className="row">
+            <div className="row">
               <Act action="hiring_role_save" payload={{ slug: r.slug, active: !r.active }} label={r.active ? 'Close the role' : 'Open the role'} variant={r.active ? 'ghost' : 'primary'} testId={`role-toggle-${r.slug}`}
                 refresh={[base, '/careers', `/careers/${r.slug}`, '/sitemap.xml', '/']} done={r.active ? 'Closed: off the careers page.' : 'Open: on the careers page.'} />
               <Act action="hiring_role_save" payload={{ slug: r.slug }} label="Pass mark and pay" refresh={[base, '/careers', `/careers/${r.slug}`]} done="Saved."
                 fields={[{ name: 'pass_mark', label: 'Pass mark (0 to 100)', type: 'number', min: 0, max: 100, value: r.pass_mark }, { name: 'pay_text', label: 'Pay, as shown on the page', type: 'text', value: r.pay_text }]} />
               {r.active && <Link prefetch={false} className="link" href={`/careers/${r.slug}`}>Public page</Link>}
-            </p>
+            </div>
             <CopyText label={src === 'indeed' ? 'Indeed apply link' : 'OnlineJobs.ph apply link'} value={link} testId={`link-${r.slug}`} />
             <CopyText label={src === 'indeed' ? 'Indeed message' : 'OnlineJobs.ph message'} value={inviteMessage(r.title, link)} rows={4} testId={`msg-${r.slug}`} />
             <CopyText label={otherSrc === 'indeed' ? 'Indeed apply link' : 'OnlineJobs.ph apply link'} value={site + applyPath(r.slug, otherSrc)} testId={`link2-${r.slug}`} />

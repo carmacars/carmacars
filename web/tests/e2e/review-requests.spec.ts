@@ -36,7 +36,8 @@ async function returnedBooking(sql: Sql, r: { id: string; email: string }, name:
   const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
   const start = 400 + Math.floor(Math.random() * 300);
   const [v] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
-    where l.status = 'published' and app.vehicle_bookable(v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable)
+    where l.status = 'published' and app.vehicle_bookable(v.id) and v.partner_id is null
+      and exists (select 1 from public_vehicle_listings pl where pl.vehicle_id = v.id)  -- what submit_booking_request requires and (not v.is_sample or v.sample_bookable)
       and not exists (select 1 from bookings b where b.vehicle_id = v.id and b.status in ('requested','offered','pending_payment','confirmed','on_rent','returned','closed')
                         and tstzrange(b.pickup_at - interval '1 day', b.return_at + interval '1 day') && tstzrange(${day(start - 1)}::timestamptz, ${day(start + 4)}::timestamptz))
       and not exists (select 1 from vehicle_calendar_blocks k where k.vehicle_id = v.id and k.removed_at is null and k.starts_at < ${day(start + 4)}::timestamptz and (k.ends_at is null or k.ends_at > ${day(start - 1)}::timestamptz))
