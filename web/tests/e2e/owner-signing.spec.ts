@@ -169,13 +169,14 @@ test('before approval (0180): the owner reads both agreements filled in, the ter
   // both agreements, filled in from the application, the fees pending and never a number
   const docs = op.getByTestId('owner-preview-docs');
   await expect(docs.locator('summary')).toHaveText(['Vehicle Enrollment Agreement', 'Title-Holding and Lease Agreement']);
+  // checked closed, as the signing page is (the agreements themselves name the numbered company, 0122)
+  await check(op, 'preview sign page');
   await docs.locator('summary').first().click();
   await expect(docs.locator('details').first()).toContainText(owner.name);
   await expect(docs.locator('details').first()).toContainText('PREVIEW, NOT FOR SIGNATURE');
   await expect(docs.locator('details').first()).toContainText('Pending approval');
   await expect(op.getByTestId('owner-preview-sign')).toBeDisabled();
   await expect(op.getByTestId('package-sign')).toHaveCount(0);
-  await check(op, 'preview sign page');
   await shot(op, 'preview');
   // nothing was opened for signature
   expect((await sql`select count(*)::int n from owner_agreements where owner_id = ${app.ownerId}`)[0]!.n).toBe(0);
