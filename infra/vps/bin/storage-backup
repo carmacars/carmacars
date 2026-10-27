@@ -56,7 +56,12 @@ exec 9> "$D/state/storage-backup.lock"
 flock -n 9 || { echo "storage-backup: already running" >&2; exit 1; }
 t0=$(date +%s); day=$(date -u +%F)
 # current: an exact mirror; whatever it would delete or overwrite moves to today's trash folder instead
-rclone sync /data sc:current --backup-dir "sc:trash/$day" --transfers 4 --checkers 8 --fast-list --stats-one-line --stats 60s
+# not copied: the stock photos of the vehicle pages (seo-photos, migration 0149): public Wikimedia files the seo-photos
+# workflow fetches again from vehicle_stock_photos (in the database backups); they were most of the copy's growth
+EXCL=(--exclude '**/vehicle-public/seo-photos/**')
+rclone sync /data sc:current "${EXCL[@]}" --backup-dir "sc:trash/$day" --transfers 4 --checkers 8 --fast-list --stats-one-line --stats 60s
+# copies made before the exclusion: removed outright (not to the trash; nothing there needs keeping)
+rclone delete sc:current --include '**/vehicle-public/seo-photos/**' --fast-list || true
 # trash folders past the retention
 cutoff=$(date -u -d "-$TRASH_DAYS days" +%F)
 removed=0

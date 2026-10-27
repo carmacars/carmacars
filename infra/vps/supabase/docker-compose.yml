@@ -364,6 +364,10 @@ services:
       - archive_command=/usr/local/bin/wal-archive %p
       - -c
       - archive_timeout=300
+      # a forced switch every 5 minutes archives a whole 16 MB segment: recycled segments carry old WAL (about 3.4 MB
+      # each after zstd, about 1 GB a day in the backup bucket); fresh zero-filled ones compress to almost nothing
+      - -c
+      - wal_recycle=off
       - -c
       - track_io_timing=on
       - -c
