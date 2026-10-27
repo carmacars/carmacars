@@ -111,6 +111,8 @@ select test.throws('quote: the choice is required', format($$select app.door(%L,
 -- a website request: the offer's sender says they sourced it; an Admin decides
 insert into s37 select 'web1', jsonb_build_object('id', app.request_booking(test.id('renter:sc_ron'), test.s37v('car5'), date_trunc('hour', now()) + interval '40 days',
   date_trunc('hour', now()) + interval '43 days', 'standard', null, 'web', test.id('sc_ron')));
+-- 0177: Sales answer a website request once it has waited request_sales_after_minutes
+update bookings set requested_at = now() - interval '1 hour' where id = (test.s37b('web1')).id;
 select test.throws('offer: the sender must choose', format($$select app.door(%L, 'aal2', 'va_do', 'send_offer', jsonb_build_object('booking', %L, 'expires_at', now() + interval '24 hours'))$$,
   test.id('sc_sales'), (test.s37b('web1')).id), 'I sourced this client');
 select test.lives('offer: "I sourced this client" on a website request', format($$select app.door(%L, 'aal2', 'va_do', 'send_offer', jsonb_build_object('booking', %L, 'expires_at', now() + interval '24 hours', 'sales_choice', 'sourced'))$$,

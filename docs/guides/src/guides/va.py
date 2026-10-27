@@ -105,6 +105,7 @@ def build():
         f'Can\'t do it? {B("Decline")} with Reason and any alternative. Need to know more? {B("Ask the renter")}.',
     ], shot=S('va-cs/04-booking-review-desktop', 0, 60, 1440, 1060, pins=[(3, 1000, 300), (4, 1380, 1040)]))
     g.tip('Reply within 5 minutes: send the offer, or ask the renter what you need. That is the "First reply in opening hours" measure on your scorecard. Requests waiting longer show in red.')
+    g.para('Opening a request takes it for you: the others see "Being answered by" your name and cannot answer it until you send, decline or leave (20 minutes, renewed while you work). One someone else holds shows who, with the buttons off; it opens to you when their claim runs out, or ask an Admin to take it over. Sales: a request from the website shows "Opens to you at" a time for its first 15 minutes, and a To do task says when it opens; after that whoever opens it first answers it, customer service included.')
 
     g.task('An enquiry on an example car', 'Some cars on the site are marked "Example car": samples that show the kind of cars we rent. A request on one is an enquiry, never a booking.')
     g.steps([

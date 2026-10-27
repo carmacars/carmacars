@@ -6,12 +6,15 @@ import { $, Badge, Filters, PageHead, Table, t } from '@/features/admin/ui';
 import { StatCard } from '@/components/portal-ui/StatCard';
 import { WaitTimer } from '@/components/portal-ui/WaitTimer';
 import { requestNow } from '@/features/va/lanes';
+import { opensToYou, type ClaimInfo } from '@/features/offers/claim';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Requests', path: '/va/requests', noindex: true, description: 'Booking requests and offers out.' });
 
 type Req = { id: string; booking_number: string; status: string; state: string; vehicle: string; renter: string; returning: boolean; pickup_at: string; return_at: string; days: number;
-  total_cents: number; waiting_minutes: number; offer_expires_at: string | null; flags: string[] };
+  total_cents: number; waiting_minutes: number; offer_expires_at: string | null; flags: string[];
+  /** 0177: who is answering it now; when it opens to Sales (sales_waits: this person is Sales and it is not open to them yet) */
+  claim?: ClaimInfo | null; sales_opens_at?: string | null; sales_waits?: boolean };
 
 // The requests inbox (05-va.md section 4.1, 03-admin.md section 3): oldest first; each opens the review-and-offer screen.
 export default async function VaRequests({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -39,12 +42,13 @@ export default async function VaRequests({ searchParams }: { searchParams: Promi
       <Table<Req> testId="requests" caption="Booking requests" rows={rows} empty={all.length ? 'No request in this state. Choose All to see every request.' : 'No requests waiting. New requests from the website appear here and on To do.'} cols={[
         { key: 'waiting', label: 'Waiting', render: (r) => <WaitTimer since={new Date(now - r.waiting_minutes * 60_000).toISOString()} targetMin={r.status === 'requested' ? target.minutes : undefined} bar={r.status === 'requested'} now={now} /> },
         { key: 'booking_number', label: 'Booking', render: (r) => <Link prefetch={false} className="link" href={`/va/bookings/${encodeURIComponent(r.booking_number)}`}>{r.booking_number}</Link> },
-        { key: 'state', label: 'State', render: (r) => <Badge s={r.status}>{r.state.replace(/_/g, ' ')}</Badge> }, { key: 'vehicle', label: 'Car' },
+        { key: 'state', label: 'State', className: 'wrap', render: (r) => <><Badge s={r.status}>{r.state.replace(/_/g, ' ')}</Badge>{r.status === 'requested' && (r.sales_waits || r.claim) && <span className="small" data-testid={`claim-${r.booking_number}`}> {r.sales_waits ? opensToYou(r.sales_opens_at) : r.claim!.mine ? 'You are answering it' : r.claim!.text}</span>}</> }, { key: 'vehicle', label: 'Car' },
         { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) }, { key: 'return_at', label: 'Return', render: (r) => t(r.return_at) },
         { key: 'renter', label: 'Renter', render: (r) => <>{r.renter} <span className="muted small">{r.returning ? 'returning' : 'new'}</span></> },
         { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) },
         { key: 'flags', label: 'Flags', className: 'wrap', render: (r) => r.flags.map((f) => <span key={f} className="ad-flag">{f}</span>) },
-        { key: 'act', label: 'Action', render: (r) => <Link prefetch={false} className={`btn btn--sm ${r.status === 'requested' ? 'btn--primary' : 'btn--ghost'}`} href={`/va/bookings/${encodeURIComponent(r.booking_number)}`}>{r.status === 'requested' ? 'Review and offer' : 'Open'}</Link> }]} />
+        { key: 'act', label: 'Action', render: (r) => { const free = r.status === 'requested' && !r.sales_waits && !(r.claim && !r.claim.mine);
+          return <Link prefetch={false} className={`btn btn--sm ${free ? 'btn--primary' : 'btn--ghost'}`} href={`/va/bookings/${encodeURIComponent(r.booking_number)}`}>{free ? 'Review and offer' : 'Open'}</Link>; } }]} />
     </>
   );
 }

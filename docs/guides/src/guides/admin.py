@@ -187,6 +187,7 @@ def build():
         f'Can\'t do it? Press {B("Decline")} and fill in Reason and any alternative.',
         f'Need an answer first? Press {B("Ask the renter")} to send a question.',
     ], shot=S('admin/03-booking-review-desktop', 940, 97, 1440, 177, pins=[(6, 1146, 139), (7, 1030, 139)]), fig_w=5.0)
+    g.para(f'Opening a request takes it for you: everyone else sees "Being answered by" your name and since when, with Send the offer and Decline off, until you send, decline or leave (20 minutes, renewed while you work; Program settings). Press {B("Take over")} to answer one someone else holds; it is noted in the history. A second answer is refused with who answered and when. A request from the website opens to Sales after 15 minutes (Program settings); until then Admins, customer service and fleet answer it.')
     g.task('Send an offer without a request', f'{P("Bookings", "Send an offer")}, or {B("Send an offer")} on Bookings and on Requests. For a customer on the phone, by text or at the counter: no request needed.')
     g.steps([
         f'The customer: type a name, phone or email and choose them. Not on file? Press {B("Add a new customer")}: full legal name, mobile, email (the offer link goes there) and date of birth. A customer already on file with the same email or phone is shown with Use: one person, one record.',

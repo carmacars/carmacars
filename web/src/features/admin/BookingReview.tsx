@@ -22,6 +22,8 @@ import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/ins
 // transaction) and shown as the renter will see the offer. Save keeps the changes; Send offer saves and
 // freezes them as the next offer version.
 export interface Line { id: string; charge_type: string; description: string | null; amount_cents: number; hst_cents: number; hst_applies?: boolean; stage: string; charged_to_renter: boolean }
+// 0177: the offer version this screen shows, sent with a change so a stale screen cannot overwrite a newer offer
+const shownVersion = (b: B) => (b as B & { current_offer_version?: number | null }).current_offer_version ?? null;
 export interface B {
   id: string; booking_number: string; status: string; vehicle_id: string; pickup_at: string; return_at: string; booking_type: string;
   daily_rate_cents: number; weekend_rate_cents: number; weekly_rate_cents: number; monthly_rate_cents: number; rental_charge_cents: number;
@@ -278,7 +280,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     setProblem(null);
     if (!dirty && !payChanged && !String(v.message).trim()) { setProblem('Nothing changed yet: change the offer first.'); return; }
     const r = await offersDo<{ version: number | null; before: Record<string, unknown>; after: Record<string, unknown>; text?: { ok: boolean; reason?: string } | null }>('offer_revise', {
-      ...payload, ...pays(), internal_note: v.note, message: v.message, expires_at: expiresAt(), notify, channels: { email: Boolean(v.by_email), text: Boolean(v.by_text) } },
+      ...payload, ...pays(), internal_note: v.note, message: v.message, expires_at: expiresAt(), notify, channels: { email: Boolean(v.by_email), text: Boolean(v.by_text) }, expected_version: shownVersion(b) },
       [`/admin/bookings/${b.booking_number}`, `/va/bookings/${b.booking_number}`]);
     if (!r.ok) { setProblem(r.message); return; }
     setRevised(describeRevision(r.data.before as never, r.data.after as never, (c) => money(c, { cents: true }), when));
@@ -296,7 +298,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     const body: Record<string, unknown> = { ...payload, internal_note: v.note };
     if (action === 'send_offer') {
       if (needChoice && !choice && va) { setProblem('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
-      body.message = v.message; body.expires_at = expiresAt(); if (needChoice && choice) body.sales_choice = choice;
+      body.message = v.message; body.expires_at = expiresAt(); body.expected_version = shownVersion(b); if (needChoice && choice) body.sales_choice = choice;
     }
     const r = await adminAct(action, body, va ? [] : [`/admin/bookings/${b.booking_number}`, '/admin/requests']);
     if (!r.ok) { setProblem(r.message); return; }
