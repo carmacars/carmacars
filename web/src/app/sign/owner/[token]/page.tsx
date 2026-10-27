@@ -19,7 +19,7 @@ interface Facts {
 
 // Every Owner named in the Title Schedule signs with their own link (the legal review, migration 0053). No account is
 // needed: the link names the Owner. They read the same documents the portal owner reads and sign once for all of them,
-// with the signing steps of every signature (0181): a code to their email, the reading, the confirmations initialled, the
+// with the signing steps of every signature (0182): a code to their email, the reading, the confirmations initialled, the
 // consents, the drawn signature.
 export default async function CosignerSign({ params }: { params: Promise<{ token: string }> }) {
   const token = (await params).token;

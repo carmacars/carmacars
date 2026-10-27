@@ -7,7 +7,7 @@ export default {
   category: 'transactional',
   from: FROM.owners,
   digest: false,
-  trigger: 'Someone about to sign documents other than a rental agreement asks for the identity code by email (migration 0181): an owner signing the program agreements, a schedule or a form, another Owner signing with their link, a partner, an investor or a staff member signing their agreement. The code proves the signer controls the email on file; it is never stored in clear.',
+  trigger: 'Someone about to sign documents other than a rental agreement asks for the identity code by email (migration 0182): an owner signing the program agreements, a schedule or a form, another Owner signing with their link, a partner, an investor or a staff member signing their agreement. The code proves the signer controls the email on file; it is never stored in clear.',
   timing: 'Immediate',
   subject: 'Your CarmaCars signing code: {{code}}',
   preheader: 'Enter it on the signing page within {{minutes}} minutes.',

@@ -72,7 +72,7 @@ export async function attachOwnerSignedCopy(ownerId: string, by: string, doc: Si
       ...company.lines
     ];
     const signedPdf = await agreementPdf(blocks, { title: `${TITLES[doc.key]}, signed`, createdAt: new Date(cc?.signed_at ?? Date.now()), images, record: { heading: 'Signature record', lines }, footer: packetFooter(facts, doc.key) });
-    // the certificate of completion (0181): each Owner's signing session and the SHA-256 of the document signed
+    // the certificate of completion (0182): each Owner's signing session and the SHA-256 of the document signed
     const pdf = await withRequestCertificate(signedPdf, doc.signature_request_id, `${TITLES[doc.key]}${doc.agreement_number ? ` ${doc.agreement_number}` : ''}`,
       cc ? { name: cc.signer_name, at: cc.signed_at, text: company.text ?? 'Countersigned automatically when the Owners signed.' } : null);
     const sha = await sha256Hex(pdf);

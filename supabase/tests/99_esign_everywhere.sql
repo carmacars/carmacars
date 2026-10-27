@@ -1,4 +1,4 @@
--- 99: every signature through the signing session (migration 0181, docs/changes/2026-10-27-esign-everywhere.md): the
+-- 99: every signature through the signing session (migration 0182, docs/changes/2026-10-27-esign-everywhere.md): the
 -- owner's agreements, another Owner's link, Form C on screen, the staff and investment agreements, an updated Vehicle
 -- Schedule. Each signing function refuses a signature without a complete session (the code, the reading, the key terms
 -- initialled, the consents, the drawn signature); the session is checked against the documents; the signature records
@@ -41,8 +41,8 @@ insert into users (id, email, full_name) values (test.id('ee_olga'), 'olga.ee@ex
 create function test.ee_vin(p text) returns text language sql immutable as $$ select upper(substr(md5('ee-vin-' || p), 1, 17)) $$;
 insert into test.ee select 'app', to_jsonb((public.server_submit_owner_application(jsonb_build_object('source', 'web',
   'owner', jsonb_build_object('owner_type', 'individual', 'legal_name', 'Olga Owner', 'first_name', 'Olga', 'last_name', 'Owner', 'email', 'olga.ee@example.test',
-                              'phone', '+16475550181', 'address_line1', '30 King Street West', 'city', 'Toronto', 'province', 'ON', 'postal_code', 'M5H 1A1',
-                              'licence_number', 'O1234-56789-01811', 'date_of_birth', '1985-05-05'),
+                              'phone', '+16475550182', 'address_line1', '30 King Street West', 'city', 'Toronto', 'province', 'ON', 'postal_code', 'M5H 1A1',
+                              'licence_number', 'O1234-56789-01821', 'date_of_birth', '1985-05-05'),
   'vehicles', jsonb_build_array(
     jsonb_build_object('vin', test.ee_vin('1'), 'plate', 'EEAA101', 'year', 2023, 'make', 'Honda', 'model', 'Civic', 'colour', 'Grey', 'odometer_km', 15000,
                        'title_status', 'financed', 'finance_party_name', 'TD Auto Finance', 'management_mode', 'managed', 'onboarding_method', 'transfer', 'current_insurer', 'Aviva'))),
@@ -211,7 +211,7 @@ select test.eq('privileges: the new functions are the service role''s only',
       and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))), 0::bigint);
 select test.eq('privileges: the session checks are not callable from a browser',
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'app' and p.proname in ('esign_start_documents', 'esign_ready_doc', 'esign_mark', 'server_esign_start_pre0181')
+    where n.nspname = 'app' and p.proname in ('esign_start_documents', 'esign_ready_doc', 'esign_mark', 'server_esign_start_pre0182')
       and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))), 0::bigint);
 select test.throws('privileges: a browser session cannot start a signing session', $$set local role authenticated; select public.server_esign_start('{}')$$, 'permission denied');
 

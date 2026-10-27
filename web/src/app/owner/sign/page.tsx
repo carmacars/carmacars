@@ -26,7 +26,7 @@ const MODE: Record<string, string> = { managed: 'Managed', self_managed: 'Self-M
 
 // Signing, simply (migration 0049): every document the owner still signs, filled from what they already gave us, in one
 // package. A short list of the key values with a Fix link for each, the full text one tap away, then the signing steps of
-// every signature (0181: a code to the phone or email, the reading, the confirmations initialled, the consents, the drawn
+// every signature (0182: a code to the phone or email, the reading, the confirmations initialled, the consents, the drawn
 // signature), one button. Forms
 // C and D are signed on paper in front of witnesses (the forms ask for witnesses, and a power of attorney cannot be
 // signed electronically in Ontario): they show in the checklist with their own page.
@@ -68,7 +68,7 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
     ...forms.map((f) => ({ key: `form-${f.code}`, title: f.title })),
     ...(pa ? [{ key: 'partner', title: PARTNER_AGREEMENT_TITLE }] : [])
   ];
-  // what the signing session covers: each document with the SHA-256 shown (the database checks each, 0181)
+  // what the signing session covers: each document with the SHA-256 shown (the database checks each, 0182)
   const esignDocs: EsignDoc[] = [
     ...packet.docs.map((d) => ({ kind: 'packet' as const, ref: d.key, sha: d.sha, title: d.title })),
     ...forms.map((x) => ({ kind: 'request' as const, ref: x.id, sha: x.sha, title: x.title })),

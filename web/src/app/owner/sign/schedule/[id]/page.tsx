@@ -14,7 +14,7 @@ interface Change { change_id: string; status: string; vehicle_name: string; effe
 const day = (iso: string) => new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-CA', { timeZone: 'UTC', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
 // An updated Vehicle Schedule (migration 0067): what changes, the exact text, and the owner's signature, bound to the
-// SHA-256 of the text on screen, given with the signing steps of every signature (0181).
+// SHA-256 of the text on screen, given with the signing steps of every signature (0182).
 export default async function ScheduleChangePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();

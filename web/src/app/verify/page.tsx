@@ -4,7 +4,7 @@ import { VerifyFile } from '@/features/signing/VerifyFile';
 export const metadata = pageMeta({ title: 'Check a signed CarmaCars document', path: '/verify', noindex: true,
   description: 'Check that a signed CarmaCars document (a rental agreement, an owner, partner, investment or staff agreement, a form or an evidence file) is exactly the one CarmaCars recorded.' });
 
-// Tamper evidence (migration 0154; every signed document since 0181): every signed document's SHA-256 is recorded when it is stored. Choose the file: the
+// Tamper evidence (migration 0154; every signed document since 0182): every signed document's SHA-256 is recorded when it is stored. Choose the file: the
 // browser computes its SHA-256 (the file never leaves the device) and asks whether CarmaCars recorded it.
 export default function VerifyPage() {
   return (

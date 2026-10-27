@@ -1,4 +1,4 @@
--- 0181_esign_everywhere.sql
+-- 0182_esign_everywhere.sql
 -- Every signature on the site goes through the signing session of 0154 (docs/changes/2026-10-27-esign-everywhere.md).
 -- The owner: "do it for every signature across the site, even owner agreements and staff agreements."
 --
@@ -44,15 +44,15 @@ alter table esign_sessions add constraint esign_sessions_context_check
 alter table esign_sessions add column if not exists signer_user_id uuid references users (id);
 alter table esign_sessions add column if not exists owner_id uuid references owners (id);
 alter table esign_sessions add column if not exists signed_refs text[] not null default '{}';
-comment on column esign_sessions.signed_refs is 'Documents of the session signed so far (0181), as kind:ref; the session is closed when every document it covered is signed.';
-comment on column esign_sessions.documents is 'What the signer was shown: [{title, sha256}] (0154); for documents and co-owners (0181) also {kind: packet | request | schedule_change, ref}.';
+comment on column esign_sessions.signed_refs is 'Documents of the session signed so far (0182), as kind:ref; the session is closed when every document it covered is signed.';
+comment on column esign_sessions.documents is 'What the signer was shown: [{title, sha256}] (0154); for documents and co-owners (0182) also {kind: packet | request | schedule_change, ref}.';
 create index if not exists esign_sessions_user on esign_sessions (signer_user_id) where signer_user_id is not null;
 
 alter table signature_records add column if not exists esign_session_id uuid references esign_sessions (id);
 create index if not exists signature_records_esign on signature_records (esign_session_id) where esign_session_id is not null;
-comment on column signature_records.esign_session_id is 'The signing session (identity code, initials, consents, drawn signature) of this signature (0181).';
+comment on column signature_records.esign_session_id is 'The signing session (identity code, initials, consents, drawn signature) of this signature (0182).';
 alter table vehicle_term_changes add column if not exists esign_session_id uuid references esign_sessions (id);
-comment on column vehicle_term_changes.esign_session_id is 'The signing session of the owner''s signature of the updated Vehicle Schedule (0181).';
+comment on column vehicle_term_changes.esign_session_id is 'The signing session of the owner''s signature of the updated Vehicle Schedule (0182).';
 
 -- The key terms each document asks to initial (codes of web/src/features/signing/terms.ts).
 create or replace function app.esign_doc_initials(p_kind text, p_ref text, p_doc_type text default null, p_generated boolean default false) returns text[]
@@ -168,13 +168,13 @@ begin
   return app.esign_view(s.id);
 end $$;
 
-alter function public.server_esign_start(jsonb) rename to server_esign_start_pre0181;
-alter function public.server_esign_start_pre0181(jsonb) set schema app;
+alter function public.server_esign_start(jsonb) rename to server_esign_start_pre0182;
+alter function public.server_esign_start_pre0182(jsonb) set schema app;
 create or replace function public.server_esign_start(p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 begin
   if p ->> 'context' in ('documents', 'owner_cosigner') then return app.esign_start_documents(p); end if;
-  return app.server_esign_start_pre0181(p);
+  return app.server_esign_start_pre0182(p);
 end $$;
 
 -- The newest complete session of a signer that covers this document (not signed with it yet).
@@ -217,7 +217,7 @@ end $$;
 -- (the same words as 0154's refusals)
 
 -- 2a. a document sent to sign in a portal: Forms A, B and C, the partner agreement, the investment and staff agreements
-alter function app.sign_request_sign(uuid, uuid, jsonb) rename to sign_request_sign_pre0181;
+alter function app.sign_request_sign(uuid, uuid, jsonb) rename to sign_request_sign_pre0182;
 create or replace function app.sign_request_sign(p_user uuid, p_id uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -236,7 +236,7 @@ begin
       perform app.esign_signature_matches(s, p ->> 'drawn_signature', p ->> 'typed_name');
     end if;
   end if;
-  v := app.sign_request_sign_pre0181(p_user, p_id, p);
+  v := app.sign_request_sign_pre0182(p_user, p_id, p);
   if s.id is not null then
     v_rec := coalesce(nullif(v ->> 'signature_record_id', '')::uuid, (select x.signature_record_id from sign_requests x where x.id = p_id));
     update signature_records set esign_session_id = s.id where id = v_rec;
@@ -244,10 +244,10 @@ begin
   end if;
   return v;
 end $$;
-select pg_temp.copy_grants('app.sign_request_sign(uuid, uuid, jsonb)'::regprocedure, 'app.sign_request_sign_pre0181(uuid, uuid, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.sign_request_sign(uuid, uuid, jsonb)'::regprocedure, 'app.sign_request_sign_pre0182(uuid, uuid, jsonb)'::regprocedure);
 
 -- 2b. the owner's agreements and schedules (the portal owner)
-alter function app.owner_sign_agreements(uuid, uuid, jsonb) rename to owner_sign_agreements_pre0181;
+alter function app.owner_sign_agreements(uuid, uuid, jsonb) rename to owner_sign_agreements_pre0182;
 create or replace function app.owner_sign_agreements(p_owner uuid, p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -268,7 +268,7 @@ begin
     end if;
     perform app.esign_signature_matches(s, p ->> 'drawn_signature', p ->> 'typed_name');
   end if;
-  v := app.owner_sign_agreements_pre0181(p_owner, p_by, p);
+  v := app.owner_sign_agreements_pre0182(p_owner, p_by, p);
   if s.id is not null then
     -- the owner's own records made by this call (the countersignature is CarmaCars')
     update signature_records x set esign_session_id = s.id
@@ -277,10 +277,10 @@ begin
   end if;
   return v;
 end $$;
-select pg_temp.copy_grants('app.owner_sign_agreements(uuid, uuid, jsonb)'::regprocedure, 'app.owner_sign_agreements_pre0181(uuid, uuid, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.owner_sign_agreements(uuid, uuid, jsonb)'::regprocedure, 'app.owner_sign_agreements_pre0182(uuid, uuid, jsonb)'::regprocedure);
 
 -- 2c. another Owner named in the Title Schedule, with their link
-alter function app.owner_cosigner_sign(text, jsonb) rename to owner_cosigner_sign_pre0181;
+alter function app.owner_cosigner_sign(text, jsonb) rename to owner_cosigner_sign_pre0182;
 create or replace function app.owner_cosigner_sign(p_token text, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -302,7 +302,7 @@ begin
       perform app.esign_signature_matches(s, p ->> 'drawn_signature', p ->> 'typed_name');
     end if;
   end if;
-  v := app.owner_cosigner_sign_pre0181(p_token, p);
+  v := app.owner_cosigner_sign_pre0182(p_token, p);
   if s.id is not null then
     update signature_records set esign_session_id = s.id where id in (select unnest(x.signature_record_ids) from owner_cosigners x where x.id = c.id);
     update esign_sessions set signed_refs = array(select (d ->> 'kind') || ':' || (d ->> 'ref') from jsonb_array_elements(documents) d) where id = s.id;
@@ -310,10 +310,10 @@ begin
   end if;
   return v;
 end $$;
-select pg_temp.copy_grants('app.owner_cosigner_sign(text, jsonb)'::regprocedure, 'app.owner_cosigner_sign_pre0181(text, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.owner_cosigner_sign(text, jsonb)'::regprocedure, 'app.owner_cosigner_sign_pre0182(text, jsonb)'::regprocedure);
 
 -- 2d. an updated Vehicle Schedule: the name recorded is the session's signer
-alter function app.schedule_change_sign(uuid, jsonb) rename to schedule_change_sign_pre0181;
+alter function app.schedule_change_sign(uuid, jsonb) rename to schedule_change_sign_pre0182;
 create or replace function app.schedule_change_sign(p_by uuid, p jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -333,14 +333,14 @@ begin
     end if;
     if s.id is not null then q := p || jsonb_build_object('name', s.signer_name, 'agree', true); end if;
   end if;
-  v := app.schedule_change_sign_pre0181(p_by, q);
+  v := app.schedule_change_sign_pre0182(p_by, q);
   if s.id is not null then
     update vehicle_term_changes set esign_session_id = s.id where id = c.id;
     perform app.esign_mark(s.id, array['schedule_change:' || c.id::text], null, nullif(p ->> 'ip', '')::inet, p ->> 'user_agent');
   end if;
   return v;
 end $$;
-select pg_temp.copy_grants('app.schedule_change_sign(uuid, jsonb)'::regprocedure, 'app.schedule_change_sign_pre0181(uuid, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.schedule_change_sign(uuid, jsonb)'::regprocedure, 'app.schedule_change_sign_pre0182(uuid, jsonb)'::regprocedure);
 
 -- What the signed copy of an updated Vehicle Schedule prints, and filing it (its SHA-256 is found on /verify).
 create or replace function public.server_schedule_change_signed_facts(p_change uuid) returns jsonb
@@ -417,7 +417,7 @@ language sql stable security definer set search_path = public, app as $$
 $$;
 
 -- ================================================================ 4. the code by email for these signers
-alter function app.esign_code_email(uuid, text) rename to esign_code_email_pre0181;
+alter function app.esign_code_email(uuid, text) rename to esign_code_email_pre0182;
 create or replace function app.esign_code_email(p_session uuid, p_code text) returns void
 language plpgsql security definer set search_path = public, app as $$
 declare
@@ -425,7 +425,7 @@ declare
   n integer;
 begin
   select * into s from esign_sessions where id = p_session;
-  if s.id is null or s.context not in ('documents', 'owner_cosigner') then perform app.esign_code_email_pre0181(p_session, p_code); return; end if;
+  if s.id is null or s.context not in ('documents', 'owner_cosigner') then perform app.esign_code_email_pre0182(p_session, p_code); return; end if;
   if s.otp_channel <> 'email' or s.email is null then raise exception 'Ask for the code by email first' using errcode = '23514'; end if;
   n := jsonb_array_length(s.documents);
   perform app.emit_event('document_signing_code', 'esign_session', s.id,
@@ -433,12 +433,12 @@ begin
                        'document_label', case when n = 1 then 'your document: ' || (s.documents -> 0 ->> 'title') else format('your %s documents', n) end),
     'document_signing_code:' || s.id || ':' || s.otp_sends);
 end $$;
-select pg_temp.copy_grants('app.esign_code_email(uuid, text)'::regprocedure, 'app.esign_code_email_pre0181(uuid, text)'::regprocedure);
+select pg_temp.copy_grants('app.esign_code_email(uuid, text)'::regprocedure, 'app.esign_code_email_pre0182(uuid, text)'::regprocedure);
 
--- CATALOGUE 0181 START (generated by supabase/seed/0181_gen_catalogue.mjs; do not edit by hand)
+-- CATALOGUE 0182 START (generated by supabase/seed/0182_gen_catalogue.mjs; do not edit by hand)
 insert into notification_catalogue (code, audience, also_sent_to, category, is_digest, digest_slot, from_address, reply_to,
     subject, preheader, timing, trigger_text, replaces_template, link_path, variables, template_html, template_text) values
-  ('document_signing_code', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <owners@carmacars.ca>', 'owners@carmacars.ca', 'Your CarmaCars signing code: {{code}}', 'Enter it on the signing page within {{minutes}} minutes.', 'Immediate', 'Someone about to sign documents other than a rental agreement asks for the identity code by email (migration 0181): an owner signing the program agreements, a schedule or a form, another Owner signing with their link, a partner, an investor or a staff member signing their agreement. The code proves the signer controls the email on file; it is never stored in clear.', null, null, '[{"name":"code","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"document_label","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"minutes","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true}]'::jsonb, 'templates/document_signing_code.html', 'templates/document_signing_code.txt')
+  ('document_signing_code', 'owner', '{}'::text[], 'transactional', false, null, 'CarmaCars <owners@carmacars.ca>', 'owners@carmacars.ca', 'Your CarmaCars signing code: {{code}}', 'Enter it on the signing page within {{minutes}} minutes.', 'Immediate', 'Someone about to sign documents other than a rental agreement asks for the identity code by email (migration 0182): an owner signing the program agreements, a schedule or a form, another Owner signing with their link, a partner, an investor or a staff member signing their agreement. The code proves the signer controls the email on file; it is never stored in clear.', null, null, '[{"name":"code","type":"string"},{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"document_label","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"minutes","type":"string"},{"name":"opening_hours","type":"string","global":true},{"name":"reply_time","type":"string","global":true},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true}]'::jsonb, 'templates/document_signing_code.html', 'templates/document_signing_code.txt')
 on conflict (code) do update set
   audience = excluded.audience, also_sent_to = excluded.also_sent_to, category = excluded.category,
   is_digest = excluded.is_digest, digest_slot = excluded.digest_slot, from_address = excluded.from_address,
@@ -447,14 +447,14 @@ on conflict (code) do update set
   variables = excluded.variables, template_html = excluded.template_html, template_text = excluded.template_text,
   in_catalogue = true, updated_at = now();
 select app.notification_catalogue_refresh();
--- CATALOGUE 0181 END
+-- CATALOGUE 0182 END
 
 -- the catalogue refresh above recomputes each marketing email's consent rule: keep express consent where 0161 and 0167 set it (as 0173 does)
 update notification_catalogue set consent_rule = 'express' where code in ('renter_promo_expiry_3d', 'renter_promo_expiry_1d', 'owner_recruit_outreach');
-update notification_catalogue set emitted_by = 'the signing pages'' identity step for documents (0181)', no_text = true, always_email = true where code = 'document_signing_code';
+update notification_catalogue set emitted_by = 'the signing pages'' identity step for documents (0182)', no_text = true, always_email = true where code = 'document_signing_code';
 
 -- the signer's own email on file (an owner, a co-owner, an investor, a staff member), never a booking's renter
-alter function app.notification_recipients(app_events, notification_catalogue) rename to notification_recipients_pre0181;
+alter function app.notification_recipients(app_events, notification_catalogue) rename to notification_recipients_pre0182;
 create function app.notification_recipients(p_event app_events, p_c notification_catalogue)
 returns table (audience text, user_id uuid, email text, name text, renter_id uuid, owner_id uuid, immediate boolean)
 language plpgsql stable security definer set search_path = public, app as $$
@@ -464,15 +464,15 @@ begin
                   where nullif(p_event.payload ->> 'signer_email', '') is not null;
     return;
   end if;
-  return query select * from app.notification_recipients_pre0181(p_event, p_c);
+  return query select * from app.notification_recipients_pre0182(p_event, p_c);
 end $$;
-select pg_temp.copy_grants('app.notification_recipients(app_events, notification_catalogue)'::regprocedure, 'app.notification_recipients_pre0181(app_events, notification_catalogue)'::regprocedure);
+select pg_temp.copy_grants('app.notification_recipients(app_events, notification_catalogue)'::regprocedure, 'app.notification_recipients_pre0182(app_events, notification_catalogue)'::regprocedure);
 
-alter function app.notification_payload(text, app_events, jsonb) rename to ntf_payload_pre0181;
+alter function app.notification_payload(text, app_events, jsonb) rename to ntf_payload_pre0182;
 create function app.notification_payload(p_code text, p_event app_events, p_to jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
 declare
-  x jsonb := app.ntf_payload_pre0181(p_code, p_event, p_to);
+  x jsonb := app.ntf_payload_pre0182(p_code, p_event, p_to);
 begin
   if p_code = 'document_signing_code' then
     x := coalesce(x, '{}'::jsonb) || jsonb_build_object('code', coalesce(p_event.payload ->> 'code', ''), 'document_label', coalesce(p_event.payload ->> 'document_label', 'your documents'),
@@ -480,7 +480,7 @@ begin
   end if;
   return x;
 end $$;
-select pg_temp.copy_grants('app.notification_payload(text, app_events, jsonb)'::regprocedure, 'app.ntf_payload_pre0181(text, app_events, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.notification_payload(text, app_events, jsonb)'::regprocedure, 'app.ntf_payload_pre0182(text, app_events, jsonb)'::regprocedure);
 
 -- ================================================================ 5. privileges
 do $$
@@ -489,10 +489,10 @@ declare
 begin
   for f in
     select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where (n.nspname = 'app' and p.proname = any (array['esign_doc_initials', 'schedule_change_sha', 'esign_start_documents', 'server_esign_start_pre0181',
-              'esign_ready_doc', 'esign_signature_matches', 'esign_mark', 'sign_request_sign_pre0181', 'owner_sign_agreements_pre0181',
-              'owner_cosigner_sign_pre0181', 'schedule_change_sign_pre0181', 'esign_cert_json', 'esign_code_email_pre0181',
-              'notification_recipients_pre0181', 'ntf_payload_pre0181']))
+     where (n.nspname = 'app' and p.proname = any (array['esign_doc_initials', 'schedule_change_sha', 'esign_start_documents', 'server_esign_start_pre0182',
+              'esign_ready_doc', 'esign_signature_matches', 'esign_mark', 'sign_request_sign_pre0182', 'owner_sign_agreements_pre0182',
+              'owner_cosigner_sign_pre0182', 'schedule_change_sign_pre0182', 'esign_cert_json', 'esign_code_email_pre0182',
+              'notification_recipients_pre0182', 'ntf_payload_pre0182']))
         or (n.nspname = 'public' and p.proname = any (array['server_esign_start', 'server_schedule_change_signed_facts', 'server_schedule_change_attach',
               'server_esign_certificate_for_request', 'server_esign_certificate_sessions', 'server_verify_sha']))
   loop
@@ -502,7 +502,7 @@ begin
 end $$;
 
 -- ================================================================ the guides
--- GUIDES 0181 START (generated by supabase/seed/0181_gen_guides.mjs from docs/guides/content; do not edit by hand)
+-- GUIDES 0182 START (generated by supabase/seed/0182_gen_guides.mjs from docs/guides/content; do not edit by hand)
 select app.guide_release_section('owner', 'apply-and-get-your-car-listed', 'chapter', 'start-here', 'You apply online in about ten minutes. We reply within one business day, set your terms, and walk you through the rest.
 
 ## Apply to list your car
@@ -1583,4 +1583,4 @@ Once you sign, the agreement shows "Awaiting countersignature by CarmaCars" unde
 > Tip: Signed on paper instead? Once we record it, it shows under Signed with the scan.
 ',
   '<p class="gd-p">Investments shows each of your investments: what you put in, what it earns, and when it pays.</p><section class="gd-task" id="your-investments-read-an-investment" data-gd-task><h2 class="gd-h2">Read an investment</h2><div class="gd-stepblock gd-stepblock--side"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The tabs: <b class="gd-ui">Investments</b>, <b class="gd-ui">Statements</b>, <b class="gd-ui">Documents to sign</b>, <b class="gd-ui">Investor deck</b> (while CarmaCars shares it) and <b class="gd-ui">Profile and notices</b>. <b class="gd-ui">Guide</b> and <b class="gd-ui">Sign out</b> are at the top.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Your agreement number and name, your Invested Amount, the Returns paid to date (or reinvested) and the next payment, with a chart of your account month by month.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Each investment: its Invested Amount, how far the lockup period has run, the Yearly Percentage, how Returns are handled (Paid monthly or Reinvested) and the Next Payment Date. Principal, what was reinvested and redeemed to date, the Investment Date and the Lockup End Date are under &quot;Principal, dates and amounts to date&quot;.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Payment schedule: the last Returns on your statements and the next ones. An amount that is not on a statement yet is marked Estimated.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Latest statement, with <b class="gd-ui">Open</b>.</div></li></ol></div><figure class="gd-fig gd-fig--phone"><div class="gd-phone"><div class="gd-imgwrap" style="aspect-ratio:390/1605"><img src="/guides/img/investor-01-investments-phone-16342025.jpg" alt="" loading="lazy" decoding="async" width="390" height="1605"><span class="gd-pin" style="left:25.6%;top:15.3%" aria-hidden="true">1</span><span class="gd-pin" style="left:38.5%;top:34.9%" aria-hidden="true">2</span><span class="gd-pin" style="left:51.3%;top:72.6%" aria-hidden="true">3</span><span class="gd-pin" style="left:51.3%;top:95%" aria-hidden="true">5</span></div></div></figure></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>This area shows your records under your Investment Agreement. It is not an offer or a solicitation.</div></aside></section><section class="gd-task" id="your-investments-sign-your-investment-agreement" data-gd-task><h2 class="gd-h2">Sign your investment agreement</h2><p class="gd-p">When CarmaCars sends your agreement, it is under Documents to sign.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Press <b class="gd-ui">Documents to sign</b> in the menu. The top shows what is signed (&quot;0 of 1 signed&quot;).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Check the key values: your name and address, the Invested Amount, the Yearly Percentage and the dates. The agreement is filled in from your record.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Read the PDF</b> and read it, with its schedules.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Say whether you got independent legal advice.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Sign in a few steps: press <b class="gd-ui">Send the code</b> and type the 6-digit code from your phone or email, tick that you read it, draw your initials beside the risk acknowledgment (Schedule C), tick the two consents and draw your signature.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Press <b class="gd-ui">Sign</b>. The signed copy, with its certificate of completion, is on the same page.</div></li></ol></div><p class="gd-p">Once you sign, the agreement shows &quot;Awaiting countersignature by CarmaCars&quot; under Signed. CarmaCars&#39;s signing officer countersigns it; the agreement binds CarmaCars once it is countersigned and your funds have cleared. You get the countersigned copy on the same page.</p><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Signed on paper instead? Once we record it, it shows under Signed with the scan.</div></aside></section>');
--- GUIDES 0181 END
+-- GUIDES 0182 END

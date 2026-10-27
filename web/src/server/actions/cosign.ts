@@ -24,7 +24,7 @@ export async function signAsCosigner(token: string, input: PackageInput): Promis
     const f = (await rpc('server_owner_cosigner_facts', { p_token: token }, SR)) as unknown as CosignFacts | null;
     if (!f) return { ok: false, code: 'refused', message: 'This link is not valid any more.' };
     const enrollment = f.documents.some((d) => d.key === 'enrollment');
-    // the signature of the signing session (0181): the code to their email, the reading, the confirmations initialled,
+    // the signature of the signing session (0182): the code to their email, the reading, the confirmations initialled,
     // the consents, the drawn signature; the database checks it against the session
     const e = input.esign;
     const drawnPath = e?.method === 'drawn' && e.drawnPath ? e.drawnPath : null;

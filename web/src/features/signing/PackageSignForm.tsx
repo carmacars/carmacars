@@ -7,7 +7,7 @@ import { DOC_TERMS, type Term } from './terms';
 import type { EsignContext, EsignReady } from './types';
 
 // One signature for a whole package of documents (migration 0049), given the way every signature on the site is given
-// since 0181 (EsignFlow, the steps of 0154): a code to the signer's phone or email, the documents read, the key terms the
+// since 0182 (EsignFlow, the steps of 0154): a code to the signer's phone or email, the documents read, the key terms the
 // documents ask to initial, the consents, the drawn signature. Then one button whose label says what signing means. The
 // server signs each document with that one signature (the database checks it against the session) and records the package.
 export interface PackageInput {

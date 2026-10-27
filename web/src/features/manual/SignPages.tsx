@@ -9,7 +9,7 @@ import { homeAddressOf } from '@/features/staff/HomeAddress';
 
 // The signing pages of the investor, VA and Field portals (migrations 0044 and 0049): every document waiting for the
 // person's signature in one package (a generated agreement shows the key values it was filled with, each with a Fix
-// note), one signature for all of them, given with the signing steps of every signature (0181: a code to the phone or
+// note), one signature for all of them, given with the signing steps of every signature (0182: a code to the phone or
 // email, the reading, the key terms initialled, the consents, the drawn signature), and what is already signed. A single
 // document has its own page too.
 type Open = { id: string; doc_type: string; title: string; document_id: string; sent_at: string; extra?: { summary?: SummaryRow[]; generated?: boolean } };

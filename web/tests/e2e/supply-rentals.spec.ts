@@ -313,7 +313,7 @@ test('partner portal: the partner agreement, signed on screen and countersigned'
   const form = page.getByTestId('portal-sign-form');
   // 0077: the agreement is prepared in its own request; the sign form appears once it is open
   await expect(form).toBeVisible({ timeout: 45_000 });
-  // 0181: the code, the reading, the money, insurance and ending terms initialled, the consents, the drawn signature
+  // 0182: the code, the reading, the money, insurance and ending terms initialled, the consents, the drawn signature
   await strongSign(page, form);
   await form.getByTestId('package-sign').click();
   await expect(page.getByTestId('package-signed').or(page.getByTestId('partner-agreement-signed'))).toBeVisible({ timeout: 30_000 });

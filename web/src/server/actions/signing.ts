@@ -14,7 +14,7 @@ import { signDocument } from '@/server/sign-requests';
 // document's own signing function (each keeps its signature record: time, IP address, device, the document's SHA-256 and
 // the consent shown for it), then the package itself is recorded with the documents it covered and the time it took.
 // The bound part (which documents) comes from the page; every document is checked again by the database (its signer,
-// its SHA-256, its state), so a changed list can only fail. Since 0181 the signature is the signing session's (EsignFlow:
+// its SHA-256, its state), so a changed list can only fail. Since 0182 the signature is the signing session's (EsignFlow:
 // the code, the reading, the key terms initialled, the consents, the drawn signature): the database refuses a document
 // the session does not cover, and a drawn signature other than the session's.
 const SR = { role: 'service_role' as const };
