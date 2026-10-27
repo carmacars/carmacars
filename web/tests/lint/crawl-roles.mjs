@@ -23,6 +23,8 @@ if (!process.env.PLAYWRIGHT_BROWSERS_PATH && fs.existsSync('/opt/pw-browsers')) 
 const BASE = (process.env.BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
 const PER_SHAPE = Number(arg('--per-shape', '2'));
+// a role's crawl stops after this many minutes and reports where the time went (a page or link that got slow)
+const MAX_MINUTES = Number(arg('--max-minutes', '30'));
 const OUT = arg('--out', 'reports/crawl.json');
 const ONLY = arg('--roles', '')?.split(',').filter(Boolean);
 const [PART, PARTS] = (/^(\d+)\/(\d+)$/.exec(arg('--part', '1/1')) ?? [0, 1, 1]).slice(1).map(Number);
@@ -214,7 +216,9 @@ async function crawlRole(browser, role) {
   const seen = new Set(); const shapes = new Map(); const checked = new Map(); const familyLinks = new Map();
   const status = async (href) => {
     if (checked.has(href)) return checked.get(href);
+    const t0 = Date.now();
     const r = await ctx.request.get(BASE + href, { maxRedirects: 5, failOnStatusCode: false, timeout: 30_000 }).catch((e) => ({ status: () => 599, headers: () => ({}), err: String(e) }));
+    slow.push([Date.now() - t0, 'link ' + href]);
     const v = { status: r.status(), type: r.headers()['content-type'] ?? '' };
     checked.set(href, v); stats.links++;
     return v;
@@ -239,7 +243,19 @@ async function crawlRole(browser, role) {
     }
   };
 
+  const started = Date.now(); let lastLog = started;
+  const slow = []; const perPage = [];
+  const timeReport = () => {
+    const top = [...slow].sort((a, b) => b[0] - a[0]).slice(0, 12).map(([ms, w]) => `${(ms / 1000).toFixed(1)}s ${w}`);
+    const pages = [...perPage].sort((a, b) => b[0] - a[0]).slice(0, 8).map(([ms, w, n]) => `${(ms / 1000).toFixed(0)}s ${w} (${n} links)`);
+    return `slowest: ${top.join(' | ')} || pages taking longest (render + their links): ${pages.join(' | ')}`;
+  };
   while (queue.length) {
+    if (Date.now() - started > MAX_MINUTES * 60_000) {
+      bad(role, 'time', `the crawl took over ${MAX_MINUTES} minutes (${stats.pages} pages, ${stats.links} links checked, ${queue.length} left): ${timeReport()}`.slice(0, 3000));
+      break;
+    }
+    if (Date.now() - lastLog > 120_000) { lastLog = Date.now(); console.log(`crawl ${role}: ${Math.round((Date.now() - started) / 60_000)} min, ${stats.pages} pages, ${stats.links} links, ${queue.length} queued`); }
     const href = queue.shift();
     if (seen.has(href)) continue;
     seen.add(href);
@@ -257,6 +273,7 @@ async function crawlRole(browser, role) {
     if (!mine(sh)) { await discover(href); continue; }
 
     errors.length = 0;
+    const pageStart = Date.now(); const linksBefore = stats.links;
     const resp = await page.goto(BASE + href, { waitUntil: 'load', timeout: 45_000 }).catch((e) => { bad(role, href, 'load: ' + String(e).slice(0, 150)); return null; });
     // hydrated: the root layout's Effects adds the "js" class in its first effect (then handlers are attached)
     if (resp) await page.waitForFunction(() => document.documentElement.classList.contains('js'), null, { timeout: 15_000 }).catch(() => bad(role, href, 'the page did not hydrate within 15 s'));
@@ -291,6 +308,7 @@ async function crawlRole(browser, role) {
       if (st.status >= 400) bad(role, href, `link ${p} answers ${st.status}`);
       else if (!seen.has(p)) queue.push(p);
     }
+    perPage.push([Date.now() - pageStart, href, stats.links - linksBefore]);
     for (const f of found.forms) {
       stats.forms++;
       if (f.action && /^javascript:/.test(f.action)) continue; // a React server action (POST, writes)
