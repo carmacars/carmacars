@@ -126,6 +126,8 @@ const MISSED = new Set(['missed', 'no-answer', 'no_answer', 'unanswered', 'aband
 type J = Record<string, unknown>;
 const obj = (v: unknown): J => (v && typeof v === 'object' && !Array.isArray(v) ? (v as J) : {});
 const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : typeof v === 'number' ? String(v) : null);
+// Quo sends some durations with decimals (e.g. 12.345678): the database keeps whole seconds
+const secs = (v: unknown): number | null => { const n = num(v); return n === null ? null : Math.round(n); };
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v.trim() && Number.isFinite(Number(v)) ? Number(v) : null);
 const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const strs = (v: unknown): string[] => arr(v).map(str).filter((x): x is string => !!x);
@@ -168,7 +170,7 @@ export function parseQuoEvent(body: unknown, deliveryId?: string | null, ourNumb
   const status = str(r.status) ?? (type === 'call.missed' ? 'missed' : null);
   const answeredAt = str(r.answeredAt);
   const missed = isCall && dir === 'in' && (type === 'call.missed' || (type === 'call.completed' && ((status !== null && MISSED.has(status)) || (!answeredAt && status !== 'answered' && status !== 'completed'))));
-  const recordings = [...arr(r.recordings), ...(legacy ? arr(r.media) : [])].map(obj).map((x) => ({ id: str(x.id), url: str(x.url) ?? '', duration: num(x.duration), type: str(x.type) })).filter((x) => x.url);
+  const recordings = [...arr(r.recordings), ...(legacy ? arr(r.media) : [])].map(obj).map((x) => ({ id: str(x.id), url: str(x.url) ?? '', duration: secs(x.duration), type: str(x.type) })).filter((x) => x.url);
   const dialogue = arr(r.dialogue).map(obj).map((d) => ({ who: (str(d.userId) ? 'us' : (e164(d.identifier) && e164(d.identifier) === ours) ? 'us' : 'them') as 'us' | 'them', text: str(d.content) ?? '', start: num(d.start), end: num(d.end) })).filter((d) => d.text);
   const vm = obj(r.voicemail);
   return {
@@ -188,7 +190,7 @@ export function parseQuoEvent(body: unknown, deliveryId?: string | null, ourNumb
     at: str(r.createdAt),
     answered_at: answeredAt,
     completed_at: str(r.completedAt),
-    duration: num(r.duration),
+    duration: secs(r.duration),
     missed,
     recordings,
     summary: strs(r.summary),
