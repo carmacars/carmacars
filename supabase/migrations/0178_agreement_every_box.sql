@@ -9,6 +9,7 @@
 -- charged and fuel in from the check-in. SCHEMA_MARKER 0178.
 
 -- ================================================================ 1. CarmaCars' GST/HST account (box 1)
+alter table program_settings alter column company_hst_number set default '76339 9177 RT0001';
 update program_settings set company_hst_number = '76339 9177 RT0001'
  where nullif(btrim(coalesce(company_hst_number, '')), '') is null;
 

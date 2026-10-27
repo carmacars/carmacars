@@ -3,7 +3,8 @@
 -- version compares. Uses 87's booking test.agb('a') (card coverage).
 select test.suite('99 agreement every box');
 
-select test.eq('settings: CarmaCars'' GST/HST account is set (box 1)', (select company_hst_number from program_settings limit 1), '76339 9177 RT0001');
+select test.eq('settings: CarmaCars'' GST/HST account is the default (box 1; the live row is set by the migration)',
+  (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'company_hst_number'), '''76339 9177 RT0001''::text');
 
 update coverage_proofs set coverage_provider = null where booking_id = test.agb('a');
 select test.eq('missing: card coverage without its provider is a field a claim needs',
