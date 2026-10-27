@@ -138,9 +138,9 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'Add a rental' })).toBeVisible();
   await fp.goto('/va/bookings/new', { waitUntil: 'networkidle' });
   await fillRental(fp, carId, days + 10);
-  // a price typed tax included (0112): the database backs out the HST ($339.00 is $300.00 and $39.00 HST)
+  // a price typed tax included (0112; 2026-10-27: Amounts I type, After tax): the database backs out the HST ($339.00 is $300.00 and $39.00 HST)
+  await fp.getByTestId('mr-tax-mode-after').click();
   await fp.getByTestId('mr-rental_charge').fill('339');
-  await fp.getByTestId('mr-price_tax').selectOption('included');
   await fp.getByTestId('mr-price_reason').fill('All-in price agreed by phone');
   await fp.getByTestId('mr-check').click();
   await expect(fp.getByTestId('mr-price-tax')).toHaveText('Tax included: $300.00 before tax and $39.00 HST, $339.00 in all.');

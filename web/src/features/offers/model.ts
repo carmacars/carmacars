@@ -1,5 +1,6 @@
 // Offers without a request and rentals input fast (migration 0129): the choices and the payload the database takes.
 // Pure, so the screens and the unit tests share it.
+import { linesBeforeTax } from '../sales/taxIncluded.ts';
 
 export type Role = 'admin' | 'cs' | 'sales';
 export type PlaceKind = 'our_location' | 'delivery' | 'airport' | 'owner_location';
@@ -85,11 +86,23 @@ export function missing(f: OfferForm, role: Role): string[] {
   return m;
 }
 
+/** How the amounts were typed (2026-10-27): after tax, each line HST applies to is worked back to its amount before tax
+ *  (bps: the settings' HST rate, from the priced offer; null before the first price) and the rental charge goes tax
+ *  included; rentalWithTax: the rental charge worked out from the total the renter pays; extraResidual: the cents other
+ *  lines typed after tax left (charges of their own), for the rental charge to take. */
+export interface OfferTax { after: boolean; bps: number | null; hstFor: (key: string) => boolean; rentalWithTax?: number | null; extraResidual?: number }
+
 /** The payload of app.staff_offer_create (and of its preview). Only what the person may change is sent: an assistant
  *  never sends the deposit or a discount, and fees only when Program settings let staff change fees (the database refuses
  *  them otherwise). */
-export function offerPayload(f: OfferForm, role: Role, days: number, addons: Array<{ code: string; quantity: number; hours?: number | null }> = [], editFees: boolean = role === 'admin'): Record<string, unknown> {
-  const rental = typedRental(f, days);
+export function offerPayload(f: OfferForm, role: Role, days: number, addons: Array<{ code: string; quantity: number; hours?: number | null }> = [], editFees: boolean = role === 'admin', tax?: OfferTax): Record<string, unknown> {
+  const typed = typedRental(f, days);
+  const after = tax ? tax.after : f.price_tax === 'included';
+  // 0132: each fee line set by hand (its amount for the booking, before HST), by an Admin or by staff the settings allow
+  const typedLines = editFees ? feeOverrides({ ...f.fees, ...(f.coverage_option === '3' && f.plan_price.trim() ? { coverage_sold: f.plan_price } : {}) }) : {};
+  const conv = linesBeforeTax(Object.entries(typedLines).map(([key, c]) => ({ key, typed: c, hst: tax ? tax.hstFor(key) : true })), after && tax?.bps != null ? 'after' : 'before', tax?.bps ?? 0);
+  const fromTotal = tax?.rentalWithTax ?? null;
+  const rental = fromTotal !== null ? fromTotal : typed === null ? null : after ? Math.max(0, typed + conv.residual + (tax?.extraResidual ?? 0)) : typed;
   const changes: Record<string, unknown> = {};
   if (f.km) changes.km_allowance_per_day = Number(f.km);
   if (role === 'admin' && cents(f.discount)) { changes.staff_discount_cents = cents(f.discount); changes.staff_discount_reason = f.discount_reason.trim() || 'Discount given on the phone'; }
@@ -104,15 +117,11 @@ export function offerPayload(f: OfferForm, role: Role, days: number, addons: Arr
     notify: f.notify && (f.by_email || f.by_text), channels: { email: f.by_email, text: f.by_text }
   };
   if (f.choice) p.sales_choice = f.choice;
-  if (rental !== null) { p.rental_charge_cents = rental; p.price_tax = f.price_tax; p.price_reason = f.price_reason.trim(); }
+  if (rental !== null) { p.rental_charge_cents = rental; p.price_tax = fromTotal !== null || after ? 'included' : 'plus'; p.price_reason = f.price_reason.trim() || (fromTotal !== null ? 'Total agreed with the renter' : ''); }
   if (Object.keys(changes).length) p.changes = changes;
   if (role === 'admin' && cents(f.deposit) !== null) p.deposit_cents = cents(f.deposit);
   if (f.promo_code.trim()) p.promo_code = f.promo_code.trim().toUpperCase();
-  // 0132: each fee line set by hand (its amount for the booking, before HST), by an Admin or by staff the settings allow
-  if (editFees) {
-    const lines = feeOverrides({ ...f.fees, ...(f.coverage_option === '3' && f.plan_price.trim() ? { coverage_sold: f.plan_price } : {}) });
-    if (Object.keys(lines).length) { p.line_overrides = lines; p.fee_reason = f.fee_reason.trim() || 'Agreed with the renter'; }
-  }
+  if (Object.keys(conv.cents).length) { p.line_overrides = conv.cents; p.fee_reason = f.fee_reason.trim() || 'Agreed with the renter'; }
   if (addons.length) p.addons = addons;
   return p;
 }

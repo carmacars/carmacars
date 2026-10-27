@@ -134,7 +134,7 @@ def build():
     g.steps([
         f'Find the customer by name, phone or email, or press {B("Add a new customer")}: full legal name, mobile, email and date of birth. Already on file with that email or phone? Use them: never a second record.',
         'Choose the car (by car code, plate or name; each says Free or Not free), the dates and the places.',
-        'The price: the rate sheet, a total or a rate per day, with the reason for a price you type. The deposit, discounts and fees are set by an Admin; customer service sets the Protection Plan price.',
+        'The price: the rate sheet, a total or a rate per day, with the reason for a price you type. The deposit, discounts and fees are set by an Admin; customer service sets the Protection Plan price. Amounts I type, at the top of the price: Before tax, or After tax (HST included) to type what the renter pays, worked back to before tax for you. Or type the Total the renter pays (after tax): the rental charge is worked out from it.',
         'How the rental and the deposit are paid (card online, e-Transfer, cash, platform payout, the insurer; deposit by card hold, cash or e-Transfer), who found this client, the message, how long it is open (48 hours at most) and Email, Text or both.',
         f'Check the offer as the renter will see it on the right, then press {B("Send the offer")}.',
     ])
@@ -501,7 +501,7 @@ def build():
         'The calendar and the price are checked by themselves once the car and the dates are in. The price comes from the rate sheet. You may add the extras, how damage is covered and an allowed promo code.',
         f'Quick start: {B("Phone")}, {B("Walk-in")}, {B("Turo or another platform")} or {B("Insurance replacement")} sets the usual choices.',
         'A car tagged Listing not finished can be rented too: it stays off the public site. If it has no rates yet, type the rental charge for the whole rental and the reason. An owner\'s car not yet on the fleet insurance policy is added by an Admin only.',
-        'Every line of the price can be changed where it stands (customer service and sales, while Program settings allow it): the rental charge for the trip or a rate a day, the young driver fee, the Protection Plan, delivery, each add-on, the kilometres a day; add a fee from the list or a charge of its own. The (i) beside each line says what it is. The rate-sheet price stays on the booking; a price far under it is flagged for an Admin, never refused.',
+        'Every line of the price can be changed where it stands (customer service and sales, while Program settings allow it): the rental charge for the trip or a rate a day, the young driver fee, the Protection Plan, delivery, each add-on, the kilometres a day; add a fee from the list or a charge of its own. The (i) beside each line says what it is. The rate-sheet price stays on the booking; a price far under it is flagged for an Admin, never refused. Know what the renter paid with tax? Choose After tax (HST included) under Amounts I type and type those amounts ("$270 after tax for the rental, $50 for the Protection Plan"), or type the Total the renter pays (after tax): the rental charge is worked out so the total is exactly that. The total shown is the total saved.',
         'Any length: past 30 days the monthly rate applies for each 30 days, and the monthly periods are listed. Each later period gets its own agreement, sent to the renter to sign a few days before it starts (Monthly periods on the booking; Send the agreement for the next period now if needed).',
         'Choose how the rent is paid (e-Transfer or cash received, card on file, payment link, platform payout, insurer billed later; the ways open to you are set by an Admin; paid in parts: Add another payment) and then how the deposit is paid (card hold, cash or e-Transfer with its reference). Before you save sums it all up. Signed on paper already? Choose it: a task asks for the scan. An insurance replacement with dates not known yet: untick Blocks the car\'s calendar and say why.',
         f'Under Who found this client, choose {B("I sourced this client")} or {B("Entered for CarmaCars")}.',
@@ -650,7 +650,7 @@ def build():
         'Say "I found this client" when you did, so the booking counts for you.',
         f'The card shows the customer, the car, the dates, each price line, the HST, what is due at booking, the deposit, how it is paid and how the offer is sent, priced as {B("Send an offer")} prices it. '
         f'Press {B("Confirm")} to make and send it, or {B("Cancel")}.',
-        'Add a rental the same way: "Add a rental of the Corolla for jane@example.com, Nov 2 10:00 to Nov 4 10:00, paid by e-Transfer ref CA123, deposit in cash".',
+        'Add a rental the same way: "Add a rental of the Corolla for jane@example.com, Nov 2 10:00 to Nov 4 10:00, paid by e-Transfer ref CA123, deposit in cash". Amounts after tax are understood: "$270 after tax for the rental and $50 after tax for the Protection Plan", or "$320 total after tax".',
         'What is owed: "What does booking R-000123 owe?" shows the rental, fees and later charges still open, and the deposit. Finance sees it too.',
         'Only what your function may do from the screens is offered; the booking\'s history says it was made with the staff assistant, with your name.',
     ])

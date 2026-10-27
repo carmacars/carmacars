@@ -7,7 +7,8 @@ import { when } from '@/features/agreement/model';
 import { offersDo, offersRead } from '@/server/actions/offers';
 import { deliveryDistance, draftClose, draftSave, supplyRead } from '@/server/actions/supply';
 import { SourcedChoice } from '@/features/sales/SourcedChoice';
-import { PRICE_TAX_OPTIONS } from '@/features/sales/priceTax';
+import { TaxModeToggle, useTaxMode } from '@/features/sales/TaxModeToggle';
+import { beforeTax, convertTyped, linesBeforeTax, solveRental, totalDifference, type TaxMode } from '@/features/sales/taxIncluded';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { Info } from '@/features/forms/Info';
 import { AddressInput } from '@/features/forms/AddressInput';
@@ -25,8 +26,8 @@ import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults
 type Car = { id: string; name: string; plate: string | null; car_code: string | null; daily_rate_cents: number | null; weekly_rate_cents: number | null; deposit_cents: number | null; free: boolean | null; class?: string | null; body_type?: string | null };
 type Form = { role: Role; offer_hours: number; min_notice_minutes: number; km_choices: number[]; text_enabled: boolean; cars: Car[]; may_edit_fees?: boolean; period_days?: number; cycle?: string };
 type Found = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; is_blocked: boolean; bookings: number; card: { brand: string; last4: string } | null };
-type Line = { id: string; charge_type: string; description: string | null; amount_cents: number; hst_cents: number; stage: string; charged_to_renter: boolean; booking_addon_id?: string | null; addon_code?: string | null };
-type Priced = { booking_number: string; billable_days: number; rate_applied: string | null; rental_charge_cents: number; deposit_cents: number; hst_at_booking_cents: number;
+type Line = { id: string; charge_type: string; description: string | null; amount_cents: number; hst_cents: number; hst_applies?: boolean; stage: string; charged_to_renter: boolean; booking_addon_id?: string | null; addon_code?: string | null };
+type Priced = { booking_number: string; billable_days: number; hst_bps?: number; rate_applied: string | null; rental_charge_cents: number; deposit_cents: number; hst_at_booking_cents: number;
   total_due_at_booking_cents: number; renter_due_at_booking_cents: number | null; km_allowance_total: number | null; overage_cents_per_km: number; pickup_place: string | null; return_place: string | null;
   rate_sheet_rental_cents: number | null; price_flags: string[]; lines: Line[]; vehicle: { name: string } | null; pickup_at: string; return_at: string };
 type Sent = { booking_number: string; version: number; total_cents: number; due_cents: number; expires_at: string; renter_existing: boolean; notified: boolean; text?: { ok: boolean; to?: string; reason?: string } | null; price_flags?: string[] };
@@ -38,7 +39,9 @@ const lineLabel = (l: Line) => l.description || l.charge_type.replace(/_/g, ' ')
 const PLAN_TYPES = ['coverage_sold', 'coverage', 'coverage_option', 'carmacars_coverage', 'coverage_daily'];
 
 /** What an offer draft keeps (0148). */
-export interface OcDraft { f?: Partial<OfferForm>; addons?: AddonChoice[]; customs?: Array<{ label: string; amount: string; hst: boolean }>; chosen?: Found | null; renter_id?: string | null }
+export interface OcDraft { f?: Partial<OfferForm>; addons?: AddonChoice[]; customs?: Array<{ label: string; amount: string; hst: boolean }>; chosen?: Found | null; renter_id?: string | null;
+  /** 2026-10-27: how the amounts were typed, and the total the renter pays typed */
+  tax_mode?: TaxMode; total?: string }
 
 export function OfferComposer({ base, initialCar = null, draft = null, owner = null }: { base: '/admin' | '/va'; initialCar?: string | null; draft?: { id: string; data: OcDraft } | null; owner?: OwnerDefaults | null }) {
   // 0156: what the car's owner sees of the booking
@@ -66,6 +69,18 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   const [addons, setAddons] = useState<AddonChoice[]>(draft?.data.addons ?? []);
   const [addonOptions, setAddonOptions] = useState<AddonOption[]>([]);
   const [priced, setPriced] = useState<{ booking: Priced; available: boolean } | null>(null);
+  // the payload the price on screen was worked out for (an older one shows as updating)
+  const [pricedKey, setPricedKey] = useState('');
+  // 2026-10-27: amounts typed before or after tax (remembered on this device), and the total the renter pays (after tax)
+  const [taxMode, setTaxMode] = useTaxMode();
+  const [totalTyped, setTotalTyped] = useState(draft?.data.total ?? '');
+  const [solvedW, setSolvedW] = useState<number | null>(null);
+  const restoredTax = useRef(false);
+  useEffect(() => {
+    if (restoredTax.current || !draft) return;
+    restoredTax.current = true;
+    if (draft.data.tax_mode) setTaxMode(draft.data.tax_mode); else if (draft.data.f?.price_tax === 'included') setTaxMode('after');
+  }, [draft, setTaxMode]);
   const [problem, setProblem] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [sent, setSent] = useState<Sent | null>(null);
@@ -112,16 +127,19 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     return () => { live = false; };
   }, [f.vehicle_id, f.pickup_at, f.return_at]);
 
-  const need = missing(f, role).filter((m) => m !== 'who found this client');
+  // the total the renter pays typed (after tax): the rental charge is worked out from it, so no price or reason to type
+  const totalCents = /^\s*\$?[\d,]+(\.\d{0,2})?\s*$/.test(totalTyped) ? Math.round(Number(totalTyped.replace(/[$,\s]/g, '')) * 100) : null;
+  const missingNow = () => missing(f, role).filter((m) => totalCents === null || (m !== 'the price' && m !== 'the reason for the price'));
+  const need = missingNow().filter((m) => m !== 'who found this client');
   // 0132: charges of its own on the offer (the renter sees what is typed)
   const [customs, setCustoms] = useState<Array<{ label: string; amount: string; hst: boolean }>>(draft?.data.customs ?? []);
   // 0148: saved as a draft as you type; opened again from Unfinished rentals on any device
   const [draftId, setDraftId] = useState<string | null>(draft?.id ?? null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
-  const snapKey = JSON.stringify({ f, addons, customs, chosen });
+  const snapKey = JSON.stringify({ f, addons, customs, chosen, taxMode, totalTyped });
   const firstSnap = useRef(snapKey);
   const saveDraft = async () => {
-    const data: OcDraft = { f, addons, customs, chosen, renter_id: f.renter_id };
+    const data: OcDraft = { f, addons, customs, chosen, renter_id: f.renter_id, tax_mode: taxMode, total: totalTyped };
     const r = await draftSave({ id: draftId, kind: 'offer', data: data as Record<string, unknown>, title: [chosen?.legal_name ?? f.full_name, form?.cars.find((c) => c.id === f.vehicle_id)?.name].filter(Boolean).join(', ') });
     if (r.ok) { setDraftId(r.data.id); setSavedAt(r.data.updated_at); }
   };
@@ -131,11 +149,22 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     const t = setTimeout(() => { void saveDraft(); }, 1500);
     return () => clearTimeout(t);
   }, [snapKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 2026-10-27: the settings' HST rate and each line's own HST flag, from the offer as priced
+  const bps = priced?.booking.hst_bps ?? null;
+  const pricedLines = priced?.booking.lines;
+  // each line's HST flag, as a string so a new price with the same lines does not make a new payload (and a new price)
+  const hstSig = JSON.stringify((pricedLines ?? []).filter((x) => x.stage === 'booking').map((x) => [x.booking_addon_id && x.addon_code ? `addon:${x.addon_code}` : lineKey({ charge_type: x.charge_type }), x.hst_applies ?? x.hst_cents !== 0]));
   const payload = useMemo(() => {
-    const p = offerPayload(f, role, days, addonsPayload(addons), editFees);
-    const c = customs.filter((x) => x.label.trim() && Number(x.amount) > 0).map((x) => ({ label: x.label.trim(), amount_cents: Math.round(Number(x.amount) * 100), hst: x.hst }));
+    const after = taxMode === 'after';
+    const flags = new Map(JSON.parse(hstSig) as Array<[string, boolean]>);
+    const hstFor = (k: string) => flags.get(k) ?? true;
+    const typedC = customs.filter((x) => x.label.trim() && Number(x.amount) > 0);
+    const cc = linesBeforeTax(typedC.map((x, i) => ({ key: String(i), typed: Math.round(Number(x.amount) * 100), hst: x.hst })), after && bps !== null ? 'after' : 'before', bps ?? 0);
+    const p = offerPayload(f, role, days, addonsPayload(addons), editFees, { after, bps, hstFor, rentalWithTax: totalCents !== null ? solvedW : null, extraResidual: editFees ? cc.residual : 0 });
+    const c = typedC.map((x, i) => ({ label: x.label.trim(), amount_cents: cc.cents[String(i)], hst: x.hst }));
     return editFees && c.length ? { ...p, custom_fees: c, fee_reason: p.fee_reason ?? (f.fee_reason.trim() || 'Agreed with the renter') } : p;
-  }, [f, role, days, addons, editFees, customs]);
+  }, [f, role, days, addons, editFees, customs, taxMode, bps, hstSig, totalCents, solvedW]);
+  const payloadKey = JSON.stringify({ ...payload, expires_at: null });
   // the price and the renter's view, from the database, as you type
   const seq = useRef(0);
   useEffect(() => {
@@ -146,14 +175,40 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
       if (n !== seq.current) return;
       if (!r.ok) { setProblem(r.message); setPriced(null); return; }
       if (!r.data.ok) { setProblem((r.data.error ?? 'The database refused this offer.').replace(/^.*?ERROR:\s*/, '')); setPriced(null); return; }
-      setProblem(null); setPriced({ booking: r.data.booking, available: r.data.available });
+      setProblem(null); setPriced({ booking: r.data.booking, available: r.data.available }); setPricedKey(JSON.stringify({ ...payload, expires_at: null }));
     }, 450);
     return () => clearTimeout(t);
   }, [payload, form, need.length]);
 
+  // 2026-10-27: the total the renter pays, typed: the rental charge (tax included) is worked out so the total priced is it
+  const fresh = !!priced && pricedKey === payloadKey;
+  const solveSteps = useRef(0);
+  const othersKey = JSON.stringify({ ...payload, rental_charge_cents: null, price_tax: null, price_reason: null, expires_at: null });
+  useEffect(() => { solveSteps.current = 0; if (totalCents === null) setSolvedW(null); }, [totalTyped, othersKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (totalCents === null || !priced || !fresh) return;
+    const t = priced.booking.total_due_at_booking_cents;
+    if (t === totalCents || solveSteps.current >= 6) return;
+    const rl = priced.booking.lines.find((l) => l.stage === 'booking' && l.charge_type === 'rental_charge');
+    const w = solveRental(totalCents, t, rl ? rl.amount_cents + rl.hst_cents : 0);
+    if (w === null || w === solvedW) return;
+    solveSteps.current += 1;
+    setSolvedW(w);
+  }, [priced, fresh, totalTyped]); // eslint-disable-line react-hooks/exhaustive-deps
+  // the toggle: every box typed keeps meaning the same money (a line without HST is left as it is)
+  const changeTaxMode = (m: TaxMode) => {
+    if (m === taxMode) return;
+    const lineHst = (k: string) => { const l = (pricedLines ?? []).find((x) => (x.booking_addon_id && x.addon_code ? `addon:${x.addon_code}` : lineKey({ charge_type: x.charge_type })) === k); return l ? (l.hst_applies ?? l.hst_cents !== 0) : true; };
+    const conv1 = (v: string, hst: boolean) => { const c = Number(v.replace(/[$,\s]/g, '')); return !v.trim() || !Number.isFinite(c) || bps === null ? v : (convertTyped(Math.round(c * 100), taxMode, m, hst, bps) / 100).toFixed(2); };
+    setF((s) => ({ ...s, price_tax: m === 'after' ? 'included' : 'plus', price_total: conv1(s.price_total, true), price_day: conv1(s.price_day, true), plan_price: conv1(s.plan_price, true),
+      fees: Object.fromEntries(Object.entries(s.fees).map(([k, v]) => [k, conv1(v, lineHst(k))])) }));
+    setCustoms((a) => a.map((c) => (c.hst ? { ...c, amount: conv1(c.amount, true) } : c)));
+    setTaxMode(m);
+  };
+
   const send = (draft = false) => run(async () => {
     setErr(null);
-    const m = missing(f, role);
+    const m = missingNow();
     if (m.length) { setErr(`Still needed: ${m.join(', ')}.`); return; }
     const o = ownerChoicePayload(ownerChoice, owner);
     const r = await offersDo<Sent & { booking_id: string }>('offer_create', draft ? { ...payload, ...o, draft: true } : { ...payload, ...o }, [`${base}/bookings`]);
@@ -181,6 +236,8 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   const feeLines = (b?.lines ?? []).filter((l) => l.stage === 'booking' && !RENTAL_LINE.has(l.charge_type) && !PLAN_TYPES.includes(l.charge_type));
   const keyOf = (l: Line) => (l.booking_addon_id && l.addon_code ? `addon:${l.addon_code}` : lineKey({ charge_type: l.charge_type }));
   const total = b ? (b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents) : 0;
+  const difference = b && fresh ? totalDifference(b.total_due_at_booking_cents, totalCents, fmt) : '';
+  const tw = taxMode === 'after' ? 'HST included' : 'before tax';
   const cars = (form?.cars ?? []).filter((c) => { const k = carQ.trim().toLowerCase(); return (!k || `${c.name} ${c.plate ?? ''} ${c.car_code ?? ''}`.toLowerCase().includes(k))
     && (!carType || c.body_type === carType || c.class === carType) && (!freeOnly || c.free !== false || c.id === f.vehicle_id); });
   const bodyTypes = [...new Set((form?.cars ?? []).map((c) => c.body_type).filter((x): x is string => !!x))].sort();
@@ -264,29 +321,40 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
         </fieldset>
 
         <fieldset className="stack"><legend className="d4">3. The price</legend>
-          <p className="small"><b>Rental charge</b> (the car&apos;s rate, before fees and tax)<Info text={lineHelp('rental_charge')} /></p>
-          <div className="ad-choices row" role="radiogroup" aria-label="Rental charge">
+          <TaxModeToggle value={taxMode} onChange={changeTaxMode} idPrefix="oc" bps={bps}>
+            <div className="ad-taxtotal">
+              <div className="field"><label className="label" htmlFor="oc-total-typed">Total the renter pays (after tax, $)</label>
+                <input className="input input--sm" id="oc-total-typed" inputMode="decimal" placeholder={b ? (b.total_due_at_booking_cents / 100).toFixed(2) : ''} value={totalTyped} onChange={(e) => setTotalTyped(e.target.value)} data-testid="oc-total-typed" aria-describedby="oc-total-typed-h" /></div>
+              {totalTyped.trim() && <button className="btn btn--quiet btn--sm" type="button" onClick={() => setTotalTyped('')} data-testid="oc-total-clear">Clear the total</button>}
+            </div>
+            <p className="hint" id="oc-total-typed-h" data-testid="oc-total-breakdown" aria-live="polite">{totalCents === null ? 'Optional: type the total and the rental charge is worked out so the total comes to it exactly; the other lines stay as they are.'
+              : !b || !fresh || b.total_due_at_booking_cents !== totalCents ? (b && fresh && (() => { const rl = b.lines.find((l) => l.stage === 'booking' && l.charge_type === 'rental_charge'); return solveRental(totalCents, b.total_due_at_booking_cents, rl ? rl.amount_cents + rl.hst_cents : 0) === null; })() ? 'The other lines already come to more than this total: lower a fee or type a higher total.' : 'Working out the rental charge…')
+              : `Before tax: ${b.lines.filter((l) => l.stage === 'booking' && l.amount_cents !== 0).map((l) => `${lineLabel(l)} ${fmt(l.amount_cents)}`).join(' + ')}; HST ${fmt(b.hst_at_booking_cents)}; total ${fmt(b.total_due_at_booking_cents)}.`}</p>
+          </TaxModeToggle>
+          <p className="small"><b>Rental charge</b> (the car&apos;s rate, {taxMode === 'after' ? 'HST included' : 'before fees and tax'})<Info text={lineHelp('rental_charge')} /></p>
+          {totalCents !== null && <p className="small" data-testid="oc-rent-from-total">{solvedW !== null ? `From the total: ${fmt(solvedW)} with HST${bps !== null ? ` (${fmt(beforeTax(solvedW, bps))} before tax)` : ''}.` : 'Worked out from the total.'}</p>}
+          {totalCents === null && <div className="ad-choices row" role="radiogroup" aria-label="Rental charge">
             {([['sheet', 'Rate sheet'], ['total', 'A total for the trip'], ['day', 'A rate a day']] as const).map(([v, x]) => (
               <label key={v} className="check" htmlFor={`oc-pm-${v}`}><input type="radio" id={`oc-pm-${v}`} name="oc-pm" checked={f.price_mode === v} onChange={() => set('price_mode')(v)} data-testid={`oc-pm-${v}`} /> <span>{x}</span></label>))}
-          </div>
+          </div>}
           <div className="ad-fields">
-            {f.price_mode === 'total' && text('price_total', 'Rental charge for the whole trip, before fees and tax ($)', { inputMode: 'decimal', hint: b?.rate_sheet_rental_cents ? `Rate sheet: ${fmt(b.rate_sheet_rental_cents)}` : car?.daily_rate_cents ? `Rate sheet: ${fmt(car.daily_rate_cents)} a day` : undefined })}
-            {f.price_mode === 'day' && text('price_day', 'Rental rate a day, before fees and tax ($)', { inputMode: 'decimal', hint: days ? `× ${days} day${days === 1 ? '' : 's'} = ${fmt(typedRental(f, days) ?? 0)}` : undefined })}
-            {f.price_mode !== 'sheet' && <>{select('price_tax', 'Tax', PRICE_TAX_OPTIONS)}{text('price_reason', 'Reason for the price', { wide: true, placeholder: 'For example: weekly deal agreed on the phone' })}</>}
+            {f.price_mode === 'total' && totalCents === null && text('price_total', `Rental charge for the whole trip, ${taxMode === 'after' ? 'HST included' : 'before fees and tax'} ($)`, { inputMode: 'decimal', hint: b?.rate_sheet_rental_cents ? `Rate sheet: ${fmt(b.rate_sheet_rental_cents)}` : car?.daily_rate_cents ? `Rate sheet: ${fmt(car.daily_rate_cents)} a day` : undefined })}
+            {f.price_mode === 'day' && totalCents === null && text('price_day', `Rental rate a day, ${taxMode === 'after' ? 'HST included' : 'before fees and tax'} ($)`, { inputMode: 'decimal', hint: days ? `× ${days} day${days === 1 ? '' : 's'} = ${fmt(typedRental(f, days) ?? 0)}` : undefined })}
+            {(f.price_mode !== 'sheet' || totalCents !== null) && text('price_reason', 'Reason for the price', { wide: true, placeholder: 'For example: weekly deal agreed on the phone' })}
             {select('km', 'Kilometres a day', [['', 'The car\'s allowance'], ...(form?.km_choices ?? []).map((k) => [String(k), k === 0 ? 'Unlimited' : `${k} km`] as [string, string])])}
             {text('promo_code', 'Promo code')}
             {admin && <>{text('deposit', 'Deposit ($)', { inputMode: 'decimal', hint: car?.deposit_cents ? `The car's deposit: ${fmt(car.deposit_cents)}` : 'Empty: the car\'s deposit' })}
               {text('discount', 'Discount ($)', { inputMode: 'decimal' })}{cents0(f.discount) && text('discount_reason', 'Discount reason')}</>}
             {select('coverage_option', 'How damage to the car is covered', COVERAGE)}
-            {f.coverage_option === '3' && editFees && text('plan_price', 'Protection Plan price ($, for the trip, the renter pays)', { inputMode: 'decimal', hint: b?.lines.find((l) => l.charge_type === 'coverage_sold') ? `Now ${fmt(b.lines.find((l) => l.charge_type === 'coverage_sold')!.amount_cents)}. Empty: the Protection Plan price table` : 'Empty: the Protection Plan price table' })}
+            {f.coverage_option === '3' && editFees && text('plan_price', `Protection Plan price ($, for the trip, ${tw})`, { inputMode: 'decimal', hint: b?.lines.find((l) => l.charge_type === 'coverage_sold') ? `Now ${fmt(b.lines.find((l) => l.charge_type === 'coverage_sold')!.amount_cents)}. Empty: the Protection Plan price table` : 'Empty: the Protection Plan price table' })}
             {editFees && feeLines.map((l) => { const k = keyOf(l); return (
-              <div key={l.id} className="field ad-field"><label className="label" htmlFor={`oc-fee-${k}`}>{lineLabel(l)} ($, for the trip)<Info text={lineHelp(l.charge_type)} /></label>
+              <div key={l.id} className="field ad-field"><label className="label" htmlFor={`oc-fee-${k}`}>{lineLabel(l)} ($, for the trip, {taxMode === 'after' && (l.hst_applies ?? l.hst_cents !== 0) ? 'HST included' : 'before tax'})<Info text={lineHelp(l.charge_type)} /></label>
                 <input className="input" id={`oc-fee-${k}`} inputMode="decimal" placeholder={(l.amount_cents / 100).toFixed(2)} value={f.fees[k] ?? ''} data-testid={`oc-fee-${k}`}
                   onChange={(e) => setF((s) => ({ ...s, fees: { ...s.fees, [k]: e.target.value } }))} /></div>); })}
             {editFees && customs.map((c, i) => (
               <div key={i} className="field ad-field ad-field--wide" data-testid={`oc-custom-${i}`}><span className="label">A charge of its own<Info text={lineHelp('custom_fee')} /></span>
                 <div className="row"><input className="input" aria-label="What the charge is for" placeholder="What it is for" value={c.label} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, label: e.target.value } : y)))} />
-                  <input className="input" inputMode="decimal" aria-label="Amount before HST ($)" placeholder="Amount ($)" value={c.amount} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, amount: e.target.value } : y)))} />
+                  <input className="input" inputMode="decimal" aria-label={`Amount ${c.hst && taxMode === 'after' ? 'with HST' : 'before HST'} ($)`} placeholder="Amount ($)" value={c.amount} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, amount: e.target.value } : y)))} />
                   <label className="check small"><input type="checkbox" checked={c.hst} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, hst: e.target.checked } : y)))} /> <span>+ HST</span></label>
                   <button className="btn btn--quiet btn--sm" type="button" onClick={() => setCustoms((a) => a.filter((_, j) => j !== i))}>Remove</button></div></div>))}
             {editFees && <p className="ad-field--wide"><button className="btn btn--ghost btn--sm" type="button" onClick={() => setCustoms((a) => [...a, { label: '', amount: '', hst: true }])} data-testid="oc-add-custom">Add a charge of its own</button></p>}
@@ -341,11 +409,12 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
           {b ? (<dl className="pt-dl pt-dl--money">
             {b.lines.filter((l) => l.stage === 'booking').map((l) => <div key={l.id}><dt>{lineLabel(l)}</dt><dd>{fmt(l.amount_cents)}</dd></div>)}
             <div><dt>HST</dt><dd>{fmt(b.hst_at_booking_cents)}</dd></div>
-            <div><dt><b>Due at booking</b></dt><dd className="pt-total" data-testid="oc-total">{fmt(total)}</dd></div>
-            <div><dt>Deposit</dt><dd>{fmt(b.deposit_cents)} ({DEPOSIT_PAY.find(([v]) => v === f.deposit_pay)?.[1].toLowerCase()})</dd></div>
+            <div><dt><b>Due at booking</b></dt><dd className="pt-total" data-testid="oc-total" data-fresh={fresh ? 'yes' : 'no'}>{fmt(total)}{!fresh && <span className="small muted"> updating</span>}</dd></div>
+            <div><dt>Deposit</dt><dd data-testid="oc-deposit">{f.deposit_pay === 'none' ? 'No deposit' : `${fmt(b.deposit_cents)} (${DEPOSIT_PAY.find(([v]) => v === f.deposit_pay)?.[1].toLowerCase()})`}</dd></div>
           </dl>) : <p className="small muted" data-testid="oc-price-wait">{need.length ? `To price it: ${need.join(', ')}.` : 'Pricing…'}</p>}
           {b && <p className="small">{priced?.available ? 'The car is free for these dates.' : <b className="ad-late">The car is not free for these dates.</b>}</p>}
           {b?.price_flags?.length ? <p className="small"><b>Flagged for an Admin:</b> {b.price_flags.map((x) => (x === 'below_floor' ? 'under the price floor' : 'past the discount limit')).join(', ')}.</p> : null}
+          {difference && <p className="alert alert--warn" role="alert" data-testid="oc-total-diff"><span>{difference} Check the amounts before you send.</span></p>}
           {problem && <p className="alert alert--error" role="alert" data-testid="oc-problem"><span>{problem}</span></p>}
         </div>
       </section>

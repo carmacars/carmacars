@@ -26,6 +26,15 @@ const customerFields = {
   renter_name: text(3, 120).optional(), renter_email: z.string().trim().email('the renter\'s email').optional(), renter_mobile: text(7, 30).optional(),
   renter_date_of_birth: date.optional()
 };
+/** The price said in words (2026-10-27): the rental charge, the Protection Plan, either typed after tax ("$270 after tax"),
+ *  or the total the customer pays with HST ("$320 total after tax"), from which the rental charge is worked out. */
+const priceFields = {
+  rental_total: dollars.optional(), price_reason: text(3, 200).optional(), coverage: z.coerce.number().int().min(1).max(3).optional(),
+  tax_included: z.boolean().optional(), total_after_tax: dollars.optional(), plan_price: dollars.optional()
+};
+const PRICE_ARGS = '"rental_total"?: dollars, "tax_included"?: true if after tax, "total_after_tax"?: dollars with HST, "plan_price"?: dollars, "price_reason"?, "coverage"?: 1|2|3';
+const priceRule = (a: { rental_total?: number; total_after_tax?: number }) => a.rental_total === undefined || a.total_after_tax === undefined;
+const PRICE_PROBLEM = { message: 'either the rental price or the total after tax, not both', path: ['total_after_tax'] };
 const hasCustomer = (a: { customer?: string; renter_name?: string; renter_email?: string; renter_mobile?: string }) => !!a.customer || (!!a.renter_name && !!a.renter_email && !!a.renter_mobile);
 const CUSTOMER_PROBLEM = { message: 'the customer: a name, email or phone of one on file, or a new customer\'s name, email and mobile' };
 
@@ -48,15 +57,14 @@ export const SCHEMAS = {
     car: text(2, 80), pickup_at: dateTime, return_at: dateTime, ...customerFields, licence_number: text(5, 40).optional(),
     payment: z.enum(['link', 'other_way']).default('link'), method: z.enum(METHODS).optional(), reference: text(3, 60).optional(), amount: dollars.optional(),
     deposit_method: z.enum(DEPOSIT_PAY).optional(), agreement: z.enum(['send', 'paper']).optional(),
-    sourced_by_me: z.boolean().default(false), note: text(2, 300).optional()
-  }).strict().refine((a) => a.payment !== 'other_way' || !!a.method, { message: 'how the rental was paid', path: ['method'] }).refine(hasCustomer, CUSTOMER_PROBLEM),
+    sourced_by_me: z.boolean().default(false), note: text(2, 300).optional(), ...priceFields
+  }).strict().refine((a) => a.payment !== 'other_way' || !!a.method, { message: 'how the rental was paid', path: ['method'] }).refine(hasCustomer, CUSTOMER_PROBLEM).refine(priceRule, PRICE_PROBLEM),
   create_offer: z.object({
-    car: text(2, 80), pickup_at: dateTime, return_at: dateTime, ...customerFields,
-    rental_total: dollars.optional(), price_reason: text(3, 200).optional(), coverage: z.coerce.number().int().min(1).max(3).optional(),
+    car: text(2, 80), pickup_at: dateTime, return_at: dateTime, ...customerFields, ...priceFields,
     rental_pay: z.enum(RENTAL_PAY).default('card'), deposit_pay: z.enum(DEPOSIT_PAY).default('card'),
     notify: z.enum(['email', 'text', 'both', 'none']).default('email'), message: text(2, 600).optional(), expires_hours: z.coerce.number().int().min(1).max(168).optional(),
     sourced_by_me: z.boolean().default(false)
-  }).strict().refine(hasCustomer, CUSTOMER_PROBLEM).refine((a) => a.rental_total === undefined || !!a.price_reason, { message: 'why the rental price differs from the rates', path: ['price_reason'] }),
+  }).strict().refine(hasCustomer, CUSTOMER_PROBLEM).refine((a) => a.rental_total === undefined || !!a.price_reason, { message: 'why the rental price differs from the rates', path: ['price_reason'] }).refine(priceRule, PRICE_PROBLEM),
   booking_balance: z.object({ booking: text(3, 30).optional(), customer: text(2, 120).optional() }).strict()
     .refine((a) => !!a.booking !== !!a.customer, { message: 'name the booking or the customer (one of them)' }),
   publish_car: z.object({ car: text(2, 80) }).strict(),
@@ -81,8 +89,8 @@ export const TOOLS: Record<ToolName, ToolDef> = {
   owner_balance: { name: 'owner_balance', change: false, about: 'An owner\'s open invoices and what they owe', args: '{"owner": "name"}' },
   draft_message: { name: 'draft_message', change: false, about: 'Write a message for a renter or owner; staff send it themselves', args: '{"to": "renter|owner", "name": "who", "text": "the message", "booking"?: "number"}' },
   record_payment: { name: 'record_payment', change: true, about: 'Record a payment received another way (e-Transfer, cheque, cash, bank transfer) on an owner invoice or a booking', args: '{"invoice"?: "INV-...", "booking"?: "number", "covers"?: "rental|deposit|fees|later" (a booking: which part; default rental), "amount"?: dollars (empty: what is open), "method": "e_transfer|cheque|cash|bank_transfer|other", "reference"?: "number", "received_on": "YYYY-MM-DD", "note"?: "text"}' },
-  add_rental: { name: 'add_rental', change: true, about: 'Add a rental by hand (phone, counter, already underway): it is booked at once', args: '{"car": "name or plate", "pickup_at": "YYYY-MM-DD HH:MM", "return_at": "YYYY-MM-DD HH:MM", "customer"?: "name, email or phone on file" | "renter_name", "renter_email", "renter_mobile", "renter_date_of_birth"?, "licence_number"?, "payment": "link|other_way", "method"?, "reference"?, "amount"?, "deposit_method"?: "card|cash|e_transfer", "agreement"?: "send|paper", "sourced_by_me"?: true|false}' },
-  create_offer: { name: 'create_offer', change: true, about: 'Make an offer and send it to the customer to sign and pay (no request needed)', args: '{"car": "name or plate", "pickup_at": "YYYY-MM-DD HH:MM", "return_at": "YYYY-MM-DD HH:MM", "customer"?: "name, email or phone on file" | "renter_name", "renter_email", "renter_mobile", "renter_date_of_birth": "YYYY-MM-DD", "rental_total"?: dollars before tax (empty: the rates), "price_reason"?, "coverage"?: 1|2|3, "rental_pay"?: "card|e_transfer|cash|cheque|bank_transfer|platform_payout|insurer", "deposit_pay"?: "card|cash|e_transfer", "notify"?: "email|text|both|none", "message"?, "expires_hours"?, "sourced_by_me"?: true|false (the staff member found this client)}' },
+  add_rental: { name: 'add_rental', change: true, about: 'Add a rental by hand (phone, counter, already underway): it is booked at once', args: '{"car": "name or plate", "pickup_at": "YYYY-MM-DD HH:MM", "return_at": "YYYY-MM-DD HH:MM", "customer"?: "name, email or phone on file" | "renter_name", "renter_email", "renter_mobile", "renter_date_of_birth"?, "licence_number"?, "payment": "link|other_way", "method"?, "reference"?, "amount"?: dollars paid, "deposit_method"?: "card|cash|e_transfer", "agreement"?: "send|paper", "sourced_by_me"?: true|false, ' + PRICE_ARGS + '}' },
+  create_offer: { name: 'create_offer', change: true, about: 'Make an offer and send it to the customer to sign and pay (no request needed)', args: '{"car": "name or plate", "pickup_at": "YYYY-MM-DD HH:MM", "return_at": "YYYY-MM-DD HH:MM", "customer"?: "name, email or phone on file" | "renter_name", "renter_email", "renter_mobile", "renter_date_of_birth": "YYYY-MM-DD", ' + PRICE_ARGS + ', "rental_pay"?: "card|e_transfer|cash|cheque|bank_transfer|platform_payout|insurer", "deposit_pay"?: "card|cash|e_transfer", "notify"?: "email|text|both|none", "message"?, "expires_hours"?, "sourced_by_me"?: true|false (the staff member found this client)}' },
   publish_car: { name: 'publish_car', change: true, about: 'Publish a car on the website', args: '{"car": "name or plate"}' },
   mark_insured: { name: 'mark_insured', change: true, about: 'Mark a car insured: the insurer confirmed in writing that it is on the fleet policy', args: '{"car": "name, plate or car code", "on"?: "YYYY-MM-DD, the date of the insurer\'s email (empty: today)", "reference"?: "the email\'s subject"}' },
   set_rates: { name: 'set_rates', change: true, about: 'Set a car\'s rates in dollars (weekend, weekly, monthly optional)', args: '{"car": "name or plate", "daily": dollars, "weekend"?, "weekly"?, "monthly"?}' },

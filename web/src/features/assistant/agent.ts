@@ -6,6 +6,7 @@
 import { checkArgs, cents, PAY_WORDS, shortDate, summary, TOOLS, toolsFor, type Portal, type ToolName, type Who } from './tools.ts';
 import { pauseMessage } from '../usage/model.ts';
 import { torontoInstant } from '../../lib/dates.ts';
+import { beforeTax, solveRental, totalDifference, withTax } from '../sales/taxIncluded.ts';
 
 export interface Turn { role: 'user' | 'assistant'; text: string }
 export interface Step { action: 'reply' | 'tool' | 'ask'; reply?: string; tool?: string; args?: Record<string, unknown>; question?: string; options?: string[] }
@@ -69,7 +70,7 @@ export function systemPrompt(who: Who, today: string, tools: ToolName[]): string
     `You are the CarmaCars staff assistant, helping ${role}. Today is ${today} (Toronto). Answer in one or two short sentences.`,
     'Use a tool for facts: never invent bookings, cars, people, amounts or dates. Changes are only proposed: the staff member confirms a card before anything runs.',
     'If a detail is missing or more than one thing matches, ask (action "ask") and list the choices in "options".',
-    'Amounts are in dollars. Dates YYYY-MM-DD; times HH:MM, 24 hours, Toronto. A car is marked insured only when the insurer confirmed it in writing.',
+    'Amounts are in dollars. Said "after tax" or "HST included": tax_included true; a total with tax: total_after_tax. Dates YYYY-MM-DD; times HH:MM, 24 hours, Toronto. A car is marked insured only when the insurer confirmed it in writing.',
     'Tools:',
     ...tools.map((t) => `- ${t}: ${TOOLS[t].about}. args ${TOOLS[t].args}`),
     'Answer with one JSON object: {"action": "reply" | "tool" | "ask", "reply": "text", "tool": "name", "args": {...}, "question": "text", "options": ["..."]}.'
@@ -85,7 +86,7 @@ export function tidyArgs(a: Record<string, unknown> | undefined): Record<string,
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(a ?? {})) {
     if (v === null || v === '') continue;
-    out[k] = typeof v === 'string' && ['amount', 'daily', 'weekend', 'weekly', 'monthly'].includes(k) ? v.replace(/[$,\s]/g, '') : v;
+    out[k] = typeof v === 'string' && ['amount', 'daily', 'weekend', 'weekly', 'monthly', 'rental_total', 'total_after_tax', 'plan_price'].includes(k) ? v.replace(/[$,\s]/g, '') : v;
   }
   return out;
 }
@@ -180,7 +181,7 @@ async function customerFor(d: Deps, a: Record<string, unknown>): Promise<{ rente
   return { name: String(a.renter_name), label: `${String(a.renter_name)} · ${String(a.renter_email)} · ${String(a.renter_mobile)} (new customer)` };
 }
 
-type Priced = { ok: true; available?: boolean; booking: { billable_days?: number; deposit_cents: number; hst_at_booking_cents?: number; total_due_at_booking_cents: number; renter_due_at_booking_cents?: number | null;
+type Priced = { ok: true; available?: boolean; booking: { billable_days?: number; hst_bps?: number; deposit_cents: number; hst_at_booking_cents?: number; total_due_at_booking_cents: number; renter_due_at_booking_cents?: number | null;
   lines?: Array<{ charge_type: string; description: string | null; amount_cents: number; hst_cents?: number; stage?: string; charged_to_renter?: boolean }> } } | { ok: false; error: string };
 /** The offer screen's preview (0129): the booking made, priced and rolled back. */
 async function preview(d: Deps, p: Record<string, unknown>): Promise<Priced> {
@@ -202,6 +203,43 @@ function priceSection(p: Priced): Details[number] {
     { label: 'Due at booking', value: money(b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents) },
     { label: 'Deposit (refundable)', value: money(b.deposit_cents) }] };
 }
+
+/** The price said in words (2026-10-27), priced by the offer screen's preview: the rental charge and the Protection Plan
+ *  as said (after tax: the plan worked back to before tax, the rental charge tax included and taking the cent the plan's
+ *  rounding may leave), or the total the customer pays with HST, the rental charge worked out so the total is exactly it
+ *  (a line that follows the rental charge may need a second step). price: the fields for the call and its preview;
+ *  check: the difference in words when the total priced is not the total said. */
+async function priceFromWords(d: Deps, a: Record<string, unknown>, base: Record<string, unknown>, defaultReason: string): Promise<{ price: Record<string, unknown>; priced: Priced; check?: string }> {
+  const price: Record<string, unknown> = {};
+  if (a.coverage) price.coverage_option = Number(a.coverage);
+  const incl = a.tax_included === true;
+  const rental = a.rental_total !== undefined ? cents(Number(a.rental_total))! : undefined;
+  const plan = a.plan_price !== undefined ? cents(Number(a.plan_price))! : undefined;
+  const reason = a.price_reason ? String(a.price_reason) : defaultReason;
+  if (plan !== undefined) { price.coverage_option = 3; price.line_overrides = { coverage_sold: plan }; price.fee_reason = reason; }
+  if (rental !== undefined) { price.rental_charge_cents = rental; price.price_tax = incl ? 'included' : 'plus'; price.price_reason = reason; }
+  let priced = await preview(d, { ...base, ...price });
+  const bps = priced.ok ? priced.booking.hst_bps : undefined;
+  if (priced.ok && typeof bps === 'number' && incl && plan !== undefined) {
+    const before = beforeTax(plan, bps);
+    price.line_overrides = { coverage_sold: before };
+    if (rental !== undefined) price.rental_charge_cents = rental + (plan - withTax(before, bps));
+    priced = await preview(d, { ...base, ...price });
+  }
+  if (a.total_after_tax === undefined) return { price, priced };
+  const target = cents(Number(a.total_after_tax))!;
+  for (let i = 0; i < 4 && priced.ok && priced.booking.total_due_at_booking_cents !== target; i++) {
+    const rl = (priced.booking.lines ?? []).find((l) => (l.stage ?? 'booking') === 'booking' && l.charge_type === 'rental_charge');
+    const w = solveRental(target, priced.booking.total_due_at_booking_cents, rl ? rl.amount_cents + (rl.hst_cents ?? 0) : 0);
+    if (w === null) break;
+    Object.assign(price, { rental_charge_cents: w, price_tax: 'included', price_reason: a.price_reason ? String(a.price_reason) : `Total agreed with the customer: ${money(target)} with HST` });
+    priced = await preview(d, { ...base, ...price });
+  }
+  return { price, priced, check: priced.ok ? totalDifference(priced.booking.total_due_at_booking_cents, target, money) || undefined : undefined };
+}
+const saidRows = (a: Record<string, unknown>, check?: string) => [
+  ...(a.total_after_tax !== undefined ? [{ label: 'Total said', value: `${money(cents(Number(a.total_after_tax)))} with HST (the rental charge is worked out from it)` }] : a.tax_included ? [{ label: 'Amounts said', value: 'After tax (HST included), worked back to before tax' }] : []),
+  ...(check ? [{ label: 'Check', value: check }] : [])];
 
 /** Every car with whether it is free (the offer screen's list, 0129: unpublished cars too, with their rates). Null when
  *  the person may not use the offer screen (field staff): the public search answers then. */
@@ -286,20 +324,21 @@ async function prepare(d: Deps, tool: ToolName, a: Record<string, unknown>): Pro
       if ('out' in c) return c;
       k.customer = c.name;
       const deposit = a.deposit_method ? { method: a.deposit_method } : undefined;
-      const args = {
+      const args: Record<string, unknown> = {
         vehicle_id: p.row.id, pickup_at: from, return_at: to, booking_type: 'standard', coverage_option: 1, pickup_method: 'collected', return_method: 'returned', source: 'phone',
         sales_choice: a.sourced_by_me ? 'sourced' : 'for_carmacars', note: a.note ?? undefined, ...(c.renterId ? { renter_id: c.renterId } : { renter: { full_name: a.renter_name, email: a.renter_email, mobile: a.renter_mobile, date_of_birth: a.renter_date_of_birth,
           licence_number: a.licence_number, licence_class: 'G', licence_issuer: 'ON' } }),
         drivers: [{ role: 'renter', date_of_birth: a.renter_date_of_birth ?? c.dob }], additional_drivers: [],
         payment: { mode: a.payment, method: a.method, reference: a.reference, received_on: d.today, amount_cents: cents(a.amount as number | undefined) },
         ...(deposit ? { deposit } : {}), ...(a.agreement ? { agreement: a.agreement } : {}) };
-      // the price as the offer screen works it out (rolled back), for the card
-      const priced = await preview(d, { ...(c.renterId ? { renter_id: c.renterId } : { renter: { full_name: a.renter_name, email: a.renter_email, mobile: a.renter_mobile, date_of_birth: a.renter_date_of_birth } }),
-        vehicle_id: p.row.id, pickup_at: from, return_at: to, source: 'phone', coverage_option: 1, deposit_pay_method: a.deposit_method ?? 'card' });
+      // the price as the offer screen works it out (rolled back), for the card; a price said in words goes in both
+      const { price, priced, check } = await priceFromWords(d, a, { ...(c.renterId ? { renter_id: c.renterId } : { renter: { full_name: a.renter_name, email: a.renter_email, mobile: a.renter_mobile, date_of_birth: a.renter_date_of_birth } }),
+        vehicle_id: p.row.id, pickup_at: from, return_at: to, source: 'phone', coverage_option: 1, deposit_pay_method: a.deposit_method ?? 'card' }, 'Agreed with the customer');
+      Object.assign(args, price);
       const details: Details = [
         { title: 'Rental', rows: [{ label: 'Customer', value: c.label }, { label: 'Car', value: k.car! }, { label: 'Pickup', value: shortDate(String(a.pickup_at)) }, { label: 'Return', value: shortDate(String(a.return_at)) },
           ...(k.phase === 'in_progress' ? [{ label: 'Status', value: 'Already underway: recorded on trip' }] : k.phase === 'past' ? [{ label: 'Status', value: 'Already returned: recorded as past' }] : [])] },
-        priceSection(priced),
+        { ...priceSection(priced), rows: [...priceSection(priced).rows, ...saidRows(a, check)] },
         { title: 'Payments', rows: [
           { label: 'Rental', value: a.payment === 'other_way' ? `Paid by ${PAY_WORDS[String(a.method)] ?? 'another way'}${a.amount ? ` (${dollars(Number(a.amount))})` : ''}${a.reference ? `, reference ${String(a.reference)}` : ''}` : 'Payment link emailed to the renter' },
           { label: 'Deposit', value: `By ${PAY_WORDS[String(a.deposit_method ?? 'card')]}${priced.ok && priced.booking.deposit_cents ? ` (${money(priced.booking.deposit_cents)})` : ''}` },
@@ -322,10 +361,9 @@ async function prepare(d: Deps, tool: ToolName, a: Record<string, unknown>): Pro
         vehicle_id: p.row.id, pickup_at: from, return_at: to, source: 'phone', sales_choice: a.sourced_by_me ? 'sourced' : 'for_carmacars',
         rental_pay_method: a.rental_pay ?? 'card', deposit_pay_method: a.deposit_pay ?? 'card',
         message: a.message ?? null, notify: notify !== 'none', channels: { email: notify === 'email' || notify === 'both', text: notify === 'text' || notify === 'both' } };
-      if (a.coverage) args.coverage_option = Number(a.coverage);
-      if (a.rental_total !== undefined) { args.rental_charge_cents = cents(Number(a.rental_total)); args.price_tax = 'plus'; args.price_reason = a.price_reason; }
       if (a.expires_hours) args.expires_at = new Date((d.now ? d.now() : Date.now()) + Number(a.expires_hours) * 3_600_000).toISOString();
-      const priced = await preview(d, args);
+      const { price, priced, check } = await priceFromWords(d, a, args, 'Agreed with the customer');
+      Object.assign(args, price);
       if (!priced.ok) return { out: { type: 'text', text: `The offer cannot be made: ${priced.error}. Nothing was sent.` } };
       if (priced.available === false) return { out: { type: 'question', text: `The ${k.car} is not free from ${shortDate(String(a.pickup_at))} to ${shortDate(String(a.return_at))}. Which other car or dates?`, options: [] } };
       const b = priced.booking;
@@ -333,7 +371,7 @@ async function prepare(d: Deps, tool: ToolName, a: Record<string, unknown>): Pro
       const details: Details = [
         { title: 'Offer', rows: [{ label: 'Customer', value: c.label }, { label: 'Car', value: k.car }, { label: 'Pickup', value: shortDate(String(a.pickup_at)) }, { label: 'Return', value: shortDate(String(a.return_at)) },
           { label: 'Days', value: String(b.billable_days ?? '') }, { label: 'Client', value: a.sourced_by_me ? 'Found by you' : 'Entered for CarmaCars' }] },
-        priceSection(priced),
+        { ...priceSection(priced), rows: [...priceSection(priced).rows, ...saidRows(a, check)] },
         { title: 'Payments', rows: [
           { label: 'Rental', value: a.rental_pay && a.rental_pay !== 'card' ? `By ${PAY_WORDS[String(a.rental_pay)]}: staff confirm the booking once the money is in` : 'By card, when the customer signs and pays online' },
           { label: 'Deposit', value: `${money(b.deposit_cents)} by ${PAY_WORDS[String(a.deposit_pay ?? 'card')]} at pickup` },
