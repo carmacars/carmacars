@@ -32,7 +32,8 @@ table { border-collapse: collapse; width: 100%; }
 .eyebrow { display: block; font: 600 var(--fs-2xs)/1.2 var(--font-text); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-2); }
 .lead { font-size: var(--fs-lead); line-height: 1.45; max-width: 38em; }
 .muted { color: var(--text-2); }
-.small { font-size: var(--fs-sm); }
+/* small print often carries an email or a link: a long one breaks instead of pushing the page wider at 375 px */
+.small { font-size: var(--fs-sm); overflow-wrap: anywhere; }
 .xs { font-size: var(--fs-xs); }
 .strong { font-weight: 600; }
 .measure { max-width: 42em; }
