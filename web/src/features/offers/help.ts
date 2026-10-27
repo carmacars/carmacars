@@ -7,6 +7,7 @@ export function lineHelp(code: string): string {
   if (code === 'additional_driver') return 'Each driver besides the renter: a rate a day up to a cap per rental, from Settings, fees. Type the amount for the whole trip.';
   if (code === 'coverage_sold') return 'Option 3, the Protection Plan: covers damage to the car instead of the renter\'s own insurance or a credit card\'s. Priced from Settings, Protection Plan prices (a day or per rental). Type the amount for the whole trip.';
   if (code === 'delivery' || code === 'pickup') return 'Bringing the car to the renter, or collecting it: from the car\'s rate card or the distance. Type the amount to change it.';
+  if (['vlf', 'ldw', 'tldw', 'pap_pec', 'waiver_saver'].includes(code)) return 'A charge to the insurer on an insurance replacement (VLF, LDW, T&LDW, PAP/PEC or Waiver Saver): the rate a day typed for this booking, times the days, plus HST. Insurer bookings only.';
   if (code === 'custom_fee') return 'A charge the list has not got. The renter sees what you type. Tick HST when tax applies.';
   if (code === 'hst') return '13% Ontario HST on each taxable line, worked out from the amounts above.';
   if (code === 'deposit') return 'Taken at pickup (a card hold, cash or e-Transfer) and given back after the return, less any charges. Not part of the total.';

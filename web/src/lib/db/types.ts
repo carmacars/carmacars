@@ -1473,6 +1473,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_insurer_fees: {
+        Row: {
+          id: string;
+          booking_id: string;
+          fee_type_code: string;
+          rate_cents: number;
+          set_by: string | null;
+          set_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          fee_type_code: string;
+          rate_cents: number;
+          set_by?: string | null;
+          set_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          fee_type_code?: string;
+          rate_cents?: number;
+          set_by?: string | null;
+          set_at?: string;
+        };
+        Relationships: [];
+      };
       booking_line_items: {
         Row: {
           id: string;

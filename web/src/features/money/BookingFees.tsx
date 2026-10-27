@@ -8,6 +8,7 @@ import { when } from '@/features/agreement/model';
 import { offersDo } from '@/server/actions/offers';
 import { cents } from '@/features/offers/model';
 import { BalanceActions } from './BalanceActions';
+import { isInsurerFee } from '@/features/insurers/fees';
 
 // The fees of a booking, each changeable on its own (migration 0132): young driver, Protection Plan, delivery and pickup,
 // winter tires, baby seats, each add-on. Before or after confirmation; the change is recorded with who, when, before and
@@ -67,8 +68,8 @@ export function BookingFees({ x }: { x: Fees }) {
               <td>{l.label} <Info text={lineHelp(l.key.startsWith('addon:') ? 'addon' : l.key)} label={`What is ${l.label}?`} />{l.set_by_hand ? <span className="small muted"> (set by hand{l.reason ? `: ${l.reason}` : ''})</span> : null}{l.paid ? <span className="small muted"> · paid</span> : null}
                 {edit && l.set_by_hand && <> <button className="btn btn--quiet btn--sm" type="button" disabled={pending} onClick={() => reset(l.key)}>Back to computed</button></>}</td>
               <td className="num">{fmt(l.amount_cents)}</td>
-              {edit && <td><input className="input input--sm" inputMode="decimal" aria-label={`${l.label}: new amount ($)`} placeholder={(l.amount_cents / 100).toFixed(2)} value={typed[l.key] ?? ''}
-                onChange={(e) => setTyped((t) => ({ ...t, [l.key]: e.target.value }))} data-testid={`bf-fee-${l.key}`} /></td>}
+              {edit && <td>{isInsurerFee(l.key) ? <span className="small muted">A rate a day: change it on the Insurance replacement card</span> : <input className="input input--sm" inputMode="decimal" aria-label={`${l.label}: new amount ($)`} placeholder={(l.amount_cents / 100).toFixed(2)} value={typed[l.key] ?? ''}
+                onChange={(e) => setTyped((t) => ({ ...t, [l.key]: e.target.value }))} data-testid={`bf-fee-${l.key}`} />}</td>}
             </tr>))}</tbody></table>)}
       {edit && <div className="stack">
         {x.addable.length > 0 && !add && <div className="field"><label className="label" htmlFor="bf-add">Add a fee not on the booking</label>

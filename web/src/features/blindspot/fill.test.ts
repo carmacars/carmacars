@@ -101,7 +101,7 @@ test('0178: boxes 12 and 13 carry the coverage of every booking: card coverage, 
 test('0178: a box that does not apply says N/A; the insurer boxes are not N/A on an insurance replacement', () => {
   const l = layout(sampleFacts({ mailing: MAILING, hst_number: null }));
   const na = new Set(l.texts.filter((t) => t.text === 'N/A').map((t) => t.box));
-  for (const b of ['2-na', '3-home-na', '7-na', '7-office-na', '8-na', '15-dest-na', 'r-22-na', 'insured-na', 'claim-na', 'adjuster-na', '43-na', '47-na', 'waiver-na']) assert.ok(na.has(b), b);
+  for (const b of ['2-na', '3-home-na', '7-na', '7-office-na', '8-na', '15-dest-na', 'r-22-na', 'insured-na', 'claim-na', 'adjuster-na', '43-amount-na', '45-amount-na', '46-amount-na', '47-amount-na', 'waiver-amount-na']) assert.ok(na.has(b), b);
   assert.ok(!na.has('10-na') && !na.has('42-amount-na') && !na.has('cdw-amount-na'), 'a driver and the charges on the rental are not N/A');
   const ins = new Set(layout(sampleFacts({ mailing: MAILING, hst_number: null }, { insurer: true })).texts.filter((t) => t.text === 'N/A').map((t) => t.box));
   assert.ok(!ins.has('claim-na') && !ins.has('13-expiry-na'));
@@ -113,8 +113,72 @@ test('an insurance replacement rental fills the insurer, the claim and the adjus
   for (const s of ['Example Mutual Insurance', 'CLM-0000-1234', 'Pat Adjuster, (416) 555-0199', 'Insurer authorized 3 days at $99.00/day.']) assert.ok(p1!.text.includes(s), s);
 });
 
-test('every value fits inside the page and its box (shrunk, never past it)', () => {
+// 0179: an insurance replacement with the charges to the insurer (a rate a day each, 3 days)
+const INSURER_LINES = [
+  { charge_type: 'vlf', description: 'VLF (vehicle licence fee): 3 days at $5.00 a day', amount_cents: 1500 },
+  { charge_type: 'ldw', description: 'LDW (loss damage waiver): 3 days at $15.00 a day', amount_cents: 4500 },
+  { charge_type: 'tldw', description: 'T&LDW (theft and loss damage waiver): 3 days at $10.00 a day', amount_cents: 3000 },
+  { charge_type: 'pap_pec', description: 'PAP/PEC (personal accident and effects coverage): 3 days at $7.00 a day', amount_cents: 2100 },
+  { charge_type: 'waiver_saver', description: 'Waiver Saver: 3 days at $3.00 a day', amount_cents: 900 }
+];
+function withInsurerFees(lines = INSURER_LINES): BlindSpotFacts {
   const f = sampleFacts({ mailing: MAILING, hst_number: '79878 1234 RT0001' }, { insurer: true });
+  f.lines = [...f.lines, ...lines];
+  const sub = f.lines.reduce((t, l) => t + l.amount_cents, 0);
+  f.booking.subtotal_at_booking_cents = sub; f.booking.hst_at_booking_cents = Math.round(sub * 0.13); f.booking.total_due_at_booking_cents = sub + Math.round(sub * 0.13);
+  return f;
+}
+const cents = (s: string | undefined) => (s ? Math.round(Number(s.replace(/[$,]/g, '')) * 100) : 0);
+
+test('0179: each charge to the insurer in its box, with its rate a day; the box shows it instead of N/A', async () => {
+  const l = layout(withInsurerFees());
+  const by = (b: string) => l.texts.find((t) => t.box === b)?.text;
+  assert.deepEqual([by('43-rate'), by('43-amount')], ['$5.00', '$15.00'], 'VLF, box 43');
+  assert.deepEqual([by('45-rate'), by('45-amount')], ['$15.00', '$45.00'], 'LDW, box 45');
+  assert.deepEqual([by('46-rate'), by('46-amount')], ['$10.00', '$30.00'], 'T&LDW, box 46');
+  assert.deepEqual([by('47-rate'), by('47-amount')], ['$7.00', '$21.00'], 'PAP/PEC, box 47');
+  assert.equal(by('waiver-amount'), '$9.00', 'Waiver Saver, its white box');
+  for (const b of ['43-amount-na', '45-amount-na', '46-amount-na', '47-amount-na', 'waiver-amount-na']) assert.ok(!by(b), `${b}: charged, not N/A`);
+  // each on its row: the rate in the per-day column (x 448), the amount right-aligned at 577
+  for (const [b, y] of [['43', 508], ['45', 549], ['46', 569.5], ['47', 590]] as const) {
+    const rate = l.texts.find((t) => t.box === `${b}-rate`)!; const amt = l.texts.find((t) => t.box === `${b}-amount`)!;
+    assert.deepEqual([rate.x, rate.y, rate.w, rate.size, amt.x, amt.y, amt.w, amt.align], [448, y, 38, 7, 577, y, 72, 'right'], `box ${b}`);
+  }
+  const w = l.texts.find((t) => t.box === 'waiver-amount')!;
+  assert.deepEqual([w.x, w.y, w.w, w.size], [409, 607, 28, 7]);
+  // drawn on the form, nothing cut
+  const out = await fillBlindSpot(await standIn(), l, {});
+  assert.deepEqual(out.cut, []);
+  const [p1] = await read(out.bytes);
+  for (const s of ['$5.00', '$15.00', '$45.00', '$30.00', '$7.00', '$21.00', '$9.00']) assert.ok(p1!.text.includes(s), s);
+});
+
+test('0179: the charges to the insurer stay out of box 48 and box 14, and the subtotal adds up exactly', () => {
+  const f = withInsurerFees();
+  const l = layout(f);
+  const by = (b: string) => l.texts.find((t) => t.box === b)?.text;
+  assert.equal(by('48'), '$15.00', 'box 48: the delivery only');
+  const info = l.texts.filter((t) => t.box.startsWith('14-')).map((t) => t.text).join(' ');
+  assert.ok(info.includes('Box 48: Delivery $15.00.'), info);
+  assert.ok(!/VLF|LDW|PAP|Waiver/.test(info), 'box 14 does not list them');
+  const boxes = ['39', '42-amount', 'cdw-amount', '43-amount', '44-amount', '45-amount', '46-amount', '47-amount', 'waiver-amount', '48'].reduce((t, b) => t + cents(by(b)), 0);
+  assert.equal(boxes, f.booking.subtotal_at_booking_cents, 'the boxes add up to the subtotal');
+  assert.equal(cents(by('49')), f.booking.subtotal_at_booking_cents, 'box 49');
+});
+
+test('0179: a Waiver Saver too wide for its white box goes to box 48 (and box 14 names it)', () => {
+  const f = withInsurerFees([...INSURER_LINES.slice(0, 4), { charge_type: 'waiver_saver', description: 'Waiver Saver: 3 days at $4,115.00 a day', amount_cents: 1234500 }]);
+  const l = layout(f);
+  const by = (b: string) => l.texts.find((t) => t.box === b)?.text;
+  assert.equal(by('waiver-amount'), 'See 48');
+  assert.equal(by('48'), '$12,360.00', 'box 48: the delivery and Waiver Saver');
+  assert.ok(l.texts.filter((t) => t.box.startsWith('14-')).map((t) => t.text).join(' ').includes('Waiver Saver'));
+  const boxes = ['39', '42-amount', 'cdw-amount', '43-amount', '44-amount', '45-amount', '46-amount', '47-amount', '48'].reduce((t, b) => t + cents(by(b)), 0);
+  assert.equal(boxes, f.booking.subtotal_at_booking_cents);
+});
+
+test('every value fits inside the page and its box (shrunk, never past it)', () => {
+  const f = withInsurerFees();
   f.renter = { ...f.renter!, legal_name: 'Maximiliana Alexandrina Wolfeschlegelsteinhausen-Bergerdorff', address_line1: '12345 Very Long Street Name Boulevard East' };
   for (const t of layout(f).texts) {
     const left = t.align === 'right' ? t.x - t.w : t.align === 'center' ? t.x - t.w / 2 : t.x;

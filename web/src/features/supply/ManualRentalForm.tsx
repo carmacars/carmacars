@@ -15,6 +15,8 @@ import { Info } from '@/features/forms/Info';
 import { FEE_LABEL, lineHelp } from '@/features/offers/help';
 import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/addons/model';
 import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/insurers/rates';
+import { InsurerFeesFields } from '@/features/insurers/InsurerFeesFields';
+import { INSURER_FEES, insurerFeesPayload, isInsurerFee, rateProblem } from '@/features/insurers/fees';
 import { DEPOSIT_PAY, PART_METHODS, RENTAL_LINE, RENTAL_PAID_BY, feeOverrides, lineKey, needsReference, paidSoFar, paymentOf, periodShares, type DepositPay, type PayPart, type RentalPaidBy } from '@/features/offers/model';
 
 // Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, the same screen for every assistant function
@@ -75,7 +77,9 @@ export interface MrDraft { f?: Record<string, string>; flags?: { do_not_email: b
   agreement?: 'send' | 'paper'; blocks?: boolean; fees?: Record<string, string>; parts?: PayPart[]; customs?: Array<{ label: string; amount: string; hst: boolean }>;
   rent_mode?: 'trip' | 'day'; rent_day?: string; renter?: Renter | null; renter_id?: string | null; drivers?: Array<{ full_name: string; date_of_birth: string; email: string }>; addons?: AddonChoice[]; choice?: Choice;
   /** 2026-10-27: how the amounts were typed (before or after tax), and the total the renter pays typed */
-  tax_mode?: TaxMode; total?: string }
+  tax_mode?: TaxMode; total?: string;
+  /** 0179: the charges to the insurer, a rate a day each ({code: dollars}) */
+  insurer_fees?: Record<string, string> }
 const FUEL: Array<[string, string]> = [['100', 'Full'], ['88', '7/8'], ['75', '3/4'], ['63', '5/8'], ['50', '1/2'], ['38', '3/8'], ['25', '1/4'], ['13', '1/8'], ['0', 'Empty']];
 
 export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = null }: { cars: Car[]; base: '/admin' | '/va' | '/field'; isAdmin: boolean; owner?: OwnerDefaults | null; draft?: { id: string; data: MrDraft; held: boolean; quick?: boolean } | null }) {
@@ -99,6 +103,9 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   const [rentMode, setRentMode] = useState<'trip' | 'day'>('trip');
   const [rentDay, setRentDay] = useState('');
   const [customs, setCustoms] = useState<Array<{ label: string; amount: string; hst: boolean }>>([]);
+  // 0179: the charges to the insurer (VLF, LDW, T&LDW, PAP/PEC, Waiver Saver), a rate a day each: an insurance replacement only
+  const [insFees, setInsFees] = useState<Record<string, string>>({});
+  const insSent = paidBy === 'insurer' ? Object.fromEntries(Object.entries(insurerFeesPayload(insFees)).filter(([, c]) => c)) as Record<string, number> : {};
   const offline = ['e_transfer', 'cash', 'cheque', 'bank_transfer'].includes(paidBy);
   // add-ons (0066): the car's, with what is left for the dates; priced in the check below
   const [addons, setAddons] = useState<AddonChoice[]>([]);
@@ -205,6 +212,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     addons: addonsPayload(addons),
     ...(Object.keys(feesSent.cents).length ? { line_overrides: feesSent.cents, fee_reason: f.price_reason || f.fee_reason || undefined } : {}),
     ...(customsSent.length ? { custom_fees: customsSent } : {}),
+    ...(Object.keys(insSent).length ? { insurer_fees: insSent, bill_to_insurer: true } : {}),
     ...(f.km && /^\d+$/.test(f.km.trim()) ? { km_allowance_per_day: Number(f.km) } : {}),
     drivers: [{ role: 'renter', date_of_birth: renter?.date_of_birth ?? (f.date_of_birth || undefined) }, ...drivers.filter((d) => d.date_of_birth).map((d) => ({ role: 'additional', date_of_birth: d.date_of_birth }))] });
   const specNow = useRef('');
@@ -252,7 +260,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   // a check that came back stale: once more with the form as it is now
   useEffect(() => { if (!recheck) return; const t = setTimeout(() => check(), 250); return () => clearTimeout(t); }, [recheck]); // eslint-disable-line react-hooks/exhaustive-deps
   // a fee typed by hand: the price again, with the table kept on screen while typing (0132)
-  const feeKey = JSON.stringify([feesSent.cents, rentalSent ?? null, f.deposit ?? '', customsSent, f.km ?? '', customs.length, drivers.map((d) => d.date_of_birth)]);
+  const feeKey = JSON.stringify([feesSent.cents, rentalSent ?? null, f.deposit ?? '', customsSent, f.km ?? '', customs.length, drivers.map((d) => d.date_of_birth), insSent]);
   const firstFees = useRef(true);
   useEffect(() => {
     if (firstFees.current) { firstFees.current = false; return; }
@@ -335,8 +343,9 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     if (d.choice) setChoice(d.choice);
     if (d.tax_mode) setTaxMode(d.tax_mode); else if (d.f?.price_tax === 'included') setTaxMode('after');
     if (d.total) setTotalTyped(d.total);
+    if (d.insurer_fees) setInsFees(d.insurer_fees);
   }, [draft]); // eslint-disable-line react-hooks/exhaustive-deps
-  const snapshot: MrDraft = { f, flags, paid_by: paidBy, deposit_by: depositBy, agreement, blocks, fees, parts, customs, rent_mode: rentMode, rent_day: rentDay, renter, renter_id: renter?.id ?? null, drivers, addons, choice, tax_mode: taxMode, total: totalTyped };
+  const snapshot: MrDraft = { f, flags, paid_by: paidBy, deposit_by: depositBy, agreement, blocks, fees, parts, customs, rent_mode: rentMode, rent_day: rentDay, renter, renter_id: renter?.id ?? null, drivers, addons, choice, tax_mode: taxMode, total: totalTyped, insurer_fees: insFees };
   const snapKey = JSON.stringify(snapshot);
   const localKey = `cc-draft-rental${base}`;
   const firstSnap = useRef(snapKey);
@@ -381,6 +390,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
 
   const submit = () => start(async () => {
     if (paidBy === 'insurer' && !(f.insurer_id && (f.insurer_id !== 'new' || (f.insurer_name ?? '').trim()))) { setErr('Insurance replacement: choose the insurer (or Not listed, and type its name).'); return; }
+    if (paidBy === 'insurer' && INSURER_FEES.some((x) => rateProblem(insFees[x.code]))) { setErr('Charges to the insurer: type each rate a day in dollars and cents, or leave it empty.'); return; }
     if (paidBy === 'insurer' && rateState.state === 'differs' && !(f.rate_reason ?? '').trim()) { setErr(`${rateState.message.replace(/: say why\.$/, '')}: type the reason for the different rate, or empty the field to take the sheet's.`); return; }
     setErr(null);
     if (!blocks && !(f.blocks_reason ?? '').trim()) { setErr('Say why it does not block the calendar (for example: insurance replacement, dates not known yet).'); return; }
@@ -588,7 +598,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
               const remove = (k: string) => <button className="btn btn--quiet btn--sm" type="button" onClick={() => setFees((x) => ({ ...x, [k]: '0' }))} data-testid={`mr-remove-${k}`} aria-label="Remove this line">Remove</button>;
               return <table className="ad-table" data-testid="mr-price"><caption className="sr-only">Price</caption>
               <thead><tr><th scope="col">Line</th><th scope="col" className="num">Amount</th>{edit && <th scope="col">Change it ($, {taxMode === 'after' ? 'after tax' : 'before tax'})</th>}</tr></thead><tbody>
-              {quote.quote.lines.map((l, i) => { const k = lineKey(l); const rent = l.charge_type === 'rental_charge'; const editable = edit && !RENTAL_LINE.has(l.charge_type);
+              {quote.quote.lines.map((l, i) => { const k = lineKey(l); const rent = l.charge_type === 'rental_charge'; const editable = edit && !RENTAL_LINE.has(l.charge_type) && !isInsurerFee(l.charge_type);
                 return <tr key={i} data-testid={`mr-line-${k}`}><td>{rent ? `Rental charge (${days} day${days === 1 ? '' : 's'})` : l.description}<Info text={lineHelp(l.charge_type)} />
                   {l.set_by_hand || l.detail?.set_by_hand ? <span className="small muted"> (changed)</span> : null}</td><td className="num">{fmt(l.amount_cents)}</td>
                   {edit && <td>{editable ? <span className="row">{box(k, l.description, l.amount_cents + (taxMode === 'after' ? l.hst_cents : 0))}{remove(k)}</span>
@@ -655,7 +665,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
                 {text('rate_reason', 'Reason for a different rate', { wide: true })}</>}
               {insurerSheet?.taxes_note ? <p className="hint ad-field--wide" data-testid="mr-rate-taxes">Taxes: {insurerSheet.taxes_note}</p> : null}
               {text('authorized_until', 'Authorized until (provisional end)', { type: 'date' })}
-              {select('insurer_pays', 'The insurer pays', [['all', 'The rental and the fees'], ['rental', 'The rental only (the renter pays the fees)']])}
+              {select('insurer_pays', 'The insurer pays', [['all', 'The rental and the fees'], ['rental', 'The rental only (the renter pays the other fees)']])}
+              <InsurerFeesFields idPrefix="mr" value={insFees} onChange={(k, x) => setInsFees((y) => ({ ...y, [k]: x }))} days={quote?.quote.billable_days ?? 0} />
               <label className="check ad-field--wide" htmlFor={id('dates_provisional')}><input id={id('dates_provisional')} type="checkbox" checked={f.dates_provisional === 'yes'} onChange={(e) => setF((x) => ({ ...x, dates_provisional: e.target.checked ? 'yes' : '' }))} /> <span>The return date is provisional (the repair is not finished)</span></label>
             </div></fieldset>}
           {['e_transfer', 'cash', 'cheque', 'bank_transfer', 'platform_payout'].includes(paidBy) && <>
