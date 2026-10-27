@@ -19,6 +19,8 @@ export default async function OwnerDocuments() {
     // Forms A and B, signed on screen (migration 0044)
     rpc('owner_screen_forms', { p_by: user.id }, { role: 'service_role' }).then((x) => (x ?? []) as unknown as Array<{ code: string; title: string; status: string; method: string | null; signed_at: string | null; document_id: string | null }>).catch(() => [])]);
   const name = (id: string | null) => home.vehicles.find((v) => v.vehicle_id === id)?.name;
+  // a car still in intake: its agreements can be read now, filled in, and signed once approved (0180)
+  const pending = home.kind !== 'partner' && home.vehicles.some((v) => v.onboarding_status === 'intake');
   return (
     <>
       <PageHeader title="Documents" purpose="Your signed agreements and schedules, and the values for each vehicle's registry forms." />
@@ -40,6 +42,7 @@ export default async function OwnerDocuments() {
               meta={<><span>{KIND[d.kind] ?? d.kind.replace(/_/g, ' ')}</span>{name(d.vehicle_id) && <span>{name(d.vehicle_id)}</span>}<span>{day(d.created_at)}</span></>} />))}
           </DocumentList>
             : <p className="pt-empty muted">Your agreements appear here once they are ready to sign. {home.signing.needed && <Link prefetch={false} href="/owner/sign">Sign them now</Link>}</p>}
+          {pending && <p className="small" data-testid="owner-docs-preview"><Link prefetch={false} className="link" href="/owner/sign#ow-preview">Read your agreements, filled in</Link>: terms pending approval. You can sign once CarmaCars approves your terms.</p>}
         </section>
         </div>
         <aside className="pt-split__aside">

@@ -4,12 +4,12 @@ import { money, pct } from '@/lib/format';
 import { rpc } from '@/lib/db/repo';
 import { Back } from '@/features/portal/Blocks';
 import { AgreementView } from '@/features/agreement/AgreementView';
-import { CONFIRMATIONS, type PacketKey } from '@/features/owner-agreement/model';
+import { CONFIRMATIONS, documentBlocks, packetKeys, PENDING, PREVIEW_NOTICE, TITLES, type OwnerAgreementFacts, type PacketKey } from '@/features/owner-agreement/model';
 import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE } from '@/features/partner/agreement';
 import { OwnerPackage } from '@/features/signing/OwnerPackage';
 import { SignProgress, SignSummary, type ProgressItem, type SummaryRow } from '@/features/signing/Progress';
 import { requireOwner } from '@/server/owner/data';
-import { findOpen, formABFacts, formSpec, ownerAgreementFacts, packetSpecs, partnerFacts, partnerSpec } from '@/server/signing/prepare';
+import { findOpen, formABFacts, formSpec, ownerAgreementFacts, ownerAgreementPreviewFacts, packetSpecs, partnerFacts, partnerSpec } from '@/server/signing/prepare';
 import { PrepareDocs } from '@/features/signing/PrepareDocs';
 import { SignTrouble } from './SignTrouble';
 import { signOwnerPackage, type OwnerPackageSpec } from '@/server/actions/signing';
@@ -19,7 +19,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Sign your documents', path: '/owner/sign', noindex: true, description: 'Everything you sign with CarmaCars, filled from your records, signed once.' });
 
 const SR = { role: 'service_role' as const };
-type Checklist = { items: Array<{ code: string; label: string; status: 'done' | 'open'; vehicle_id?: string | null; vehicle_name?: string | null; detail?: string | null; how: string }>; done: number; total: number };
+type Checklist = { items: Array<{ code: string; label: string; status: 'done' | 'open'; vehicle_id?: string | null; vehicle_name?: string | null; detail?: string | null; how: string; preview?: boolean }>; done: number; total: number };
 type ScreenForm = { code: 'A' | 'B'; title: string; status: 'needed' | 'signed' };
 const MODE: Record<string, string> = { managed: 'Managed', self_managed: 'Self-Managed', turo_only: 'Turo-Only' };
 
@@ -74,13 +74,18 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
   // the checklist: what is in this package is marked; the rest says where it is done
   const inPackage = (code: string) => (code === 'enrollment' || code === 'title_holding' || code === 'schedule') ? packet.docs.length > 0
     : code === 'form_a' || code === 'form_b' ? forms.some((f) => `form_${f.code.toLowerCase()}` === code) : code === 'partner_agreement' ? !!pa : false;
+  // before approval (0180): the agreements filled in from the application, read only, the terms pending
+  const preview = !docs.length && !partner && home.vehicles.some((v) => v.onboarding_status === 'intake')
+    ? await ownerAgreementPreviewFacts(home.owner.id, user.id).catch(() => null) : null;
+  const previewDocs = preview?.preview ? packetKeys(preview).map((key) => ({ key, title: TITLES[key], blocks: documentBlocks(preview, key) })) : [];
   const items: ProgressItem[] = (checklist?.items ?? []).map((i, n) => ({
     key: `${i.code}-${i.vehicle_id ?? ''}-${n}`, label: `${i.label}${i.vehicle_name && i.code !== 'registry_form' ? `, ${i.vehicle_name}` : ''}`, done: i.status === 'done',
     note: i.status === 'done' ? null : i.how === 'paper' ? 'print it filled in, sign it with your witness, then take a photo of the signed page' : i.how === 'banking' ? 'set up in Banking'
       : i.how === 'registry' ? i.detail ?? 'print it filled in and sign it in ink' : i.detail ?? null,
-    href: i.how === 'paper' ? '/owner/documents#ow-wit' : i.how === 'banking' ? '/owner/banking' : i.how === 'registry' ? '/owner/documents' : null,
+    href: i.preview && previewDocs.length ? '#ow-preview' : i.how === 'paper' ? '/owner/documents#ow-wit' : i.how === 'banking' ? '/owner/banking' : i.how === 'registry' ? '/owner/documents' : null,
     here: i.status !== 'done' && inPackage(i.code)
   }));
+  if (previewDocs.length && preview) return <PreviewPage facts={preview} docs={previewDocs} items={items} />;
 
   // the key values, each with where to fix it
   const rows: SummaryRow[] = [];
@@ -90,7 +95,7 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
     rows.push({ label: 'Address', value: f.owner.address ?? '', fix: '/owner/profile' });
     rows.push({ label: 'Email and phone', value: [f.owner.email, f.owner.phone].filter(Boolean).join(', '), fix: '/owner/profile' });
     for (const s of f.schedules.filter((x) => !x.signed_at)) {
-      rows.push({ label: `${s.year} ${s.make} ${s.model}`, value: `VIN ${s.vin}, plate ${s.plate ?? 'not registered yet'}. ${MODE[s.management_mode] ?? s.management_mode}: Insurance Fee ${money(s.insurance_fee_cents)} and Tracker Fee ${money(s.tracker_fee_cents)} a month, Revenue Share ${pct(s.revenue_share_bps)}.`, fix: `/owner/vehicles/${s.vehicle_id}` });
+      rows.push({ label: `${s.year} ${s.make} ${s.model}`, value: `VIN ${s.vin}, plate ${s.plate ?? 'not registered yet'}. ${MODE[s.management_mode] ?? s.management_mode}: Insurance Fee ${money(s.insurance_fee_cents)} and Tracker Fee ${money(s.tracker_fee_cents)} a month, Revenue Share ${s.revenue_share_bps === null ? PENDING.toLowerCase() : pct(s.revenue_share_bps)}.`, fix: `/owner/vehicles/${s.vehicle_id}` });
     }
     if (f.owner.payout) rows.push({ label: 'Payouts to', value: f.owner.payout, fix: '/owner/banking' });
   } else if (pa) {
@@ -146,6 +151,49 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
           </aside>
         </div>
       )}
+    </>
+  );
+}
+
+// Before approval (0180): the owner's two agreements filled in from the application, read only. The fees and the
+// Revenue Share show as pending, never a number CarmaCars has not set; signing stays off until the terms are approved
+// (the documents open for signature only once an Admin's terms make the agreements).
+function PreviewPage({ facts: f, docs, items }: { facts: OwnerAgreementFacts; docs: Array<{ key: PacketKey; title: string; blocks: ReturnType<typeof documentBlocks> }>; items: ProgressItem[] }) {
+  const rows: SummaryRow[] = [
+    { label: 'Signing as', value: f.owner.owner_type === 'corporation' ? `${f.owner.signer_name}, for ${f.owner.corporation_name ?? f.owner.legal_name}` : f.owner.signer_name, fix: '/owner/profile' },
+    { label: 'Address', value: f.owner.address ?? '', fix: '/owner/profile' },
+    { label: 'Email and phone', value: [f.owner.email, f.owner.phone].filter(Boolean).join(', '), fix: '/owner/profile' },
+    ...f.schedules.filter((s) => s.pending).map((s) => ({ label: `${s.year} ${s.make} ${s.model}`,
+      value: `VIN ${s.vin}, plate ${s.plate ?? 'not registered yet'}. ${MODE[s.management_mode] ?? s.management_mode}: Insurance Fee, Tracker Fee and Revenue Share ${PENDING.toLowerCase()}.`,
+      fix: `/owner/vehicles/${s.vehicle_id}` }))
+  ];
+  return (
+    <>
+      <Back href="/owner">Owner portal</Back>
+      <header className="stack">
+        <p className="pt-kicker">Terms pending approval</p>
+        <h1 className="d2">Your agreements, filled in</h1>
+        <p className="muted">Read them now: they are filled in from your application. CarmaCars sets your fees and Revenue Share when it approves your terms; then you check them and sign once.</p>
+      </header>
+      <p className="alert alert--warn" role="status" data-testid="owner-preview-pending"><span className="alert__title">Preview</span><span>{PREVIEW_NOTICE}</span></p>
+      <SignProgress items={items} />
+      <div className="pt-split">
+        <div className="stack-lg">
+          <SignSummary rows={rows} title="What we filled in" />
+          <section className="stack sg-docs" id="ow-preview" aria-labelledby="sg-preview-h" data-testid="owner-preview-docs">
+            <h2 className="d4" id="sg-preview-h">The documents ({docs.length})</h2>
+            <p className="small muted">The full text of each, word for word, as you will sign it. Values still to be set read {PENDING.toLowerCase()}.</p>
+            {docs.map((d) => <details key={d.key}><summary>{d.title}</summary><AgreementView blocks={d.blocks} id={`ow-preview-${d.key}`} label={`${d.title}, preview`} /></details>)}
+          </section>
+        </div>
+        <aside className="pt-split__aside">
+          <section className="pt-card stack" aria-labelledby="ow-sign"><h2 className="d4" id="ow-sign">Sign</h2>
+            <p className="small">{PREVIEW_NOTICE} We email you when they are ready.</p>
+            <button type="button" className="btn btn--primary" disabled aria-disabled="true" data-testid="owner-preview-sign">Sign after approval</button>
+            <Link prefetch={false} className="link small" href="/owner/documents">Documents</Link>
+          </section>
+        </aside>
+      </div>
     </>
   );
 }

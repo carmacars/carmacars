@@ -20,10 +20,12 @@ export const metadata = pageMeta({ title: 'Owner portal', path: '/owner', noinde
 export default async function OwnerHomePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ user, home }, sp] = await Promise.all([requireOwner('/owner'), searchParams]);
   // what is left to sign on screen (0049): one package on /owner/sign
-  const checklist = (await rpc('server_my_signing_checklist', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { items: Array<{ status: string; how: string; label: string }>; done: number; total: number } | null;
+  const checklist = (await rpc('server_my_signing_checklist', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { items: Array<{ status: string; how: string; label: string; preview?: boolean }>; done: number; total: number } | null;
   // what CarmaCars asked for on an application (0054), until the owner answers
   const appTask = (await rpc('server_owner_application_task', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as AppTask | null;
   const onScreen = (checklist?.items ?? []).filter((i) => i.status === 'open' && (i.how === 'screen' || i.how === 'registry'));
+  // before approval (0180): the agreements can be read, filled in, and signed once the terms are approved
+  const previewOnly = !home.signing.needed && onScreen.length > 0 && onScreen.every((i) => i.preview);
   // 0067: an updated Vehicle Schedule to sign comes first; cars set up by staff can be reviewed and corrected before signing
   const changes = ((await rpc('server_owner_schedule_changes', { p_by: user.id }, { role: 'service_role' }).catch(() => [])) ?? []) as unknown as Array<{ change_id: string; vehicle_name: string; effective_from: string }>;
   const view = await ownerView(user, home);
@@ -34,6 +36,8 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
     ? { title: `Sign the updated Vehicle Schedule for the ${changes[0]!.vehicle_name}`, note: `The terms we agreed apply from ${day(changes[0]!.effective_from)} once you sign. Your current terms stay until then.`, href: `/owner/sign/schedule/${changes[0]!.change_id}`, cta: 'Read and sign' }
     : partner && partner.agreement_status !== 'signed'
     ? { title: 'Sign your partner agreement', note: `Your partner agreement with CarmaCars is ready: your cars, our commission and how we pay you. It is filled in for you; check it and sign on this screen.`, href: '/owner/sign', cta: 'Check and sign' }
+    : previewOnly
+    ? { title: 'Your agreements are filled in: terms pending approval', note: 'Read them now, filled in from your application. You can sign once CarmaCars approves your terms; we email you when they are ready.', href: '/owner/sign', cta: 'Read your agreements' }
     : home.signing.needed || onScreen.length
     ? { title: `Sign your documents (${checklist ? `${checklist.done} of ${checklist.total} signed` : 'ready'})`, note: `${onScreen.map((i) => i.label).filter((v, n, a) => a.indexOf(v) === n).join(', ') || 'Your agreements'}: filled in from what you gave us. Check the key values and sign once for all of them, in about a minute.`, href: '/owner/sign', cta: 'Check and sign' }
     : due.length
@@ -110,7 +114,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
           <h2 className="d3" id="ow-next">{next.title}</h2>
           <p>{next.note}</p>
           <p className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}><Link prefetch={false} className="btn btn--primary" href={next.href}>{next.cta}</Link>
-            {next.href === '/owner/sign' && !partner && <Link prefetch={false} className="btn btn--ghost" href="/owner/review" data-testid="owner-review-link">Review or correct your details</Link>}</p>
+            {next.href === '/owner/sign' && !partner && !previewOnly && <Link prefetch={false} className="btn btn--ghost" href="/owner/review" data-testid="owner-review-link">Review or correct your details</Link>}</p>
         </section>
       )}
       <ActionTiles items={attention} title={next ? 'Also needs you' : 'Needs your attention'} />

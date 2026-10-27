@@ -14,14 +14,16 @@ export const invoicePath = (n: string) => `/owner/invoices/${encodeURIComponent(
 
 const WAITS: Record<string, string> = { owner: 'Waiting on you', carmacars: 'With our team', field: 'With our field team', fleet: 'With our fleet team' };
 
-export function Checklist({ items: all, trackers = true }: { items: ChecklistItem[]; trackers?: boolean }) {
+/** intake: the car's terms are not approved yet; its agreements can be read, filled in, on /owner/sign (0180). */
+export function Checklist({ items: all, trackers = true, intake = false }: { items: ChecklistItem[]; trackers?: boolean; intake?: boolean }) {
   const items = trackers ? all : all.filter((c) => c.code !== 'tracker_install');
   const firstOpen = items.findIndex((c) => c.status === 'open');
   return (
     <ol className="pt-steps" aria-label="Onboarding checklist">
       {items.map((c, i) => (
         <li key={c.code} className={c.status === 'done' ? 'is-done' : c.status === 'not_applicable' ? 'is-na' : ''}>
-          <span>{c.label}{i === firstOpen && c.waits_on && <small>{WAITS[c.waits_on] ?? c.waits_on}</small>}{c.status === 'not_applicable' && <span className="vh"> (not needed)</span>}</span>
+          <span>{c.label}{i === firstOpen && c.waits_on && <small>{WAITS[c.waits_on] ?? c.waits_on}</small>}{c.status === 'not_applicable' && <span className="vh"> (not needed)</span>}
+            {c.code === 'signatures' && c.status === 'open' && <small><Link prefetch={false} className="link" href="/owner/sign" data-testid="checklist-agreements">{intake ? 'Read them now, filled in' : 'Check and sign'}</Link></small>}</span>
         </li>
       ))}
     </ol>
@@ -66,7 +68,7 @@ export function VehicleCard({ v, compact = false, trackers = true, photo, live, 
             <span className="xs muted">{WAITS[v.next.waits_on] ?? v.next.waits_on}</span>
           </div>
         )}
-        {!compact && v.checklist && <Checklist items={v.checklist} trackers={trackers} />}
+        {!compact && v.checklist && <Checklist items={v.checklist} trackers={trackers} intake={v.onboarding_status === 'intake'} />}
         {compact && v.checklist && <p className="small pu-car__more"><Link href={`/owner/vehicles/${v.vehicle_id}`}>Every step for this vehicle</Link></p>}
       </div>
     </li>

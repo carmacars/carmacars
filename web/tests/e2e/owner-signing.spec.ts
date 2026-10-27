@@ -154,6 +154,40 @@ test('an individual owner: Check and sign, documents shown at once, prepared in 
   await sql.end();
 });
 
+test('before approval (0180): the owner reads both agreements filled in, the terms pending, and cannot sign yet', async ({ browser }) => {
+  const sql = db();
+  const owner = await mkUser(sql, 'plain', `Pia Preview${tag()}`);
+  const app = await application(sql, owner);
+  const op = await ctx(browser);
+  await signIn(op, owner.email, '/owner');
+  const errors = watch(op);
+  await op.goto('/owner', { waitUntil: 'networkidle' });
+  await op.getByRole('link', { name: 'Read your agreements' }).first().click();
+  await op.waitForURL(/\/owner\/sign$/, { timeout: 20_000 });
+  await expect(op.locator('h1')).toHaveText('Your agreements, filled in');
+  await expect(op.getByTestId('owner-preview-pending')).toContainText('Terms pending approval: you can sign once CarmaCars approves your terms.');
+  // both agreements, filled in from the application, the fees pending and never a number
+  const docs = op.getByTestId('owner-preview-docs');
+  await expect(docs.locator('summary')).toHaveText(['Vehicle Enrollment Agreement', 'Title-Holding and Lease Agreement']);
+  await docs.locator('summary').first().click();
+  await expect(docs.locator('details').first()).toContainText(owner.name);
+  await expect(docs.locator('details').first()).toContainText('PREVIEW, NOT FOR SIGNATURE');
+  await expect(docs.locator('details').first()).toContainText('Pending approval');
+  await expect(op.getByTestId('owner-preview-sign')).toBeDisabled();
+  await expect(op.getByTestId('package-sign')).toHaveCount(0);
+  await check(op, 'preview sign page');
+  await shot(op, 'preview');
+  // nothing was opened for signature
+  expect((await sql`select count(*)::int n from owner_agreements where owner_id = ${app.ownerId}`)[0]!.n).toBe(0);
+  // Documents points to it
+  await op.goto('/owner/documents', { waitUntil: 'networkidle' });
+  await expect(op.getByTestId('owner-docs-preview').getByRole('link', { name: 'Read your agreements, filled in' })).toHaveAttribute('href', '/owner/sign#ow-preview');
+  await check(op, 'preview documents');
+  expect(errors.filter((e) => !/favicon|Failed to load resource.*(404|401)/.test(e))).toEqual([]);
+  await op.context().close();
+  await sql.end();
+});
+
 test('a corporation owner whose car staff added (0067, No invoice chosen) signs for the corporation', async ({ browser }) => {
   const sql = db();
   const admin = await mkUser(sql, 'admin', 'Sg Admin Two');
