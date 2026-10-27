@@ -375,7 +375,8 @@ test('manual rental: amounts typed after tax, the total the renter pays, no depo
   await expect(page.getByTestId('mr-line-rental_charge')).toContainText('$238.94');
   await expect(page.getByTestId('mr-line-coverage_sold')).toContainText('$44.25');
   await expect(page.getByTestId('mr-price')).toContainText('$36.81');
-  await expect(page.getByTestId('mr-sum-total')).toHaveText('$320.00');
+  await expect(page.getByTestId('mr-sum-total')).toContainText('$320.00');
+  await expect(page.getByTestId('mr-sum-total')).not.toContainText('updating');
   await expect(page.getByTestId('mr-total-diff')).toHaveCount(0);
   await page.getByTestId('mr-deposit-by').selectOption('none');
   await expect(page.getByTestId('mr-sum-deposit')).toHaveText('No deposit');
