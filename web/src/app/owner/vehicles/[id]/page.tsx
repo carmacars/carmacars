@@ -61,7 +61,7 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
         <div className="stack-lg">
           {v.checklist && <section className="pt-card" aria-labelledby="ow-check"><h2 className="d4" id="ow-check">Onboarding</h2>
             {v.next && <p className="ow-car__next"><b>{v.next.item}</b>{v.next.action && <span>{v.next.action}</span>}</p>}
-            <Checklist items={v.checklist} trackers={home.trackers_available} />
+            <Checklist items={v.checklist} trackers={home.trackers_available} intake={v.onboarding_status === 'intake'} />
             {v.status === 'onboarding' && (
               <div className="pt-uploads">
                 <OwnerUpload vehicleId={id} kind="ownership_permit" title="Ownership permit" hint="Both sides, flat and readable. Photos or a PDF." done={v.checklist.some((c) => c.code === 'documents' && c.status === 'done')} />

@@ -23136,6 +23136,7 @@ export type Database = {
       server_open_by_content: { Args: { p_by: string; p_keys: string[] }; Returns: Json };
       server_owner_agreement_extras: { Args: { p_owner: string }; Returns: Json };
       server_owner_agreement_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
+      server_owner_agreement_preview_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
       server_owner_application_task: { Args: { p_by: string }; Returns: Json };
       server_owner_car_terms: { Args: { p_by: string }; Returns: Json };
       server_owner_cosigner_facts: { Args: { p_token: string }; Returns: Json };
