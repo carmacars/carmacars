@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { lazy, Suspense, useEffect, useId, useRef, useState, type ComponentType } from 'react';
 import { browserRpc } from '@/lib/browser-rpc';
 import { sessionId, visitorId } from '@/features/live/beacon';
-import { claimProblems, isReplay, wonWords, type GameKind, type PrizeWord, type Trigger, type Visit } from './rules';
-import { forgetSaved, memory, remember, rememberClaim, rememberSeen, rememberWon } from './GameGate';
+import { claimProblems, isReplay, keptWords, mayPlayAgain, waitingWords, wonWords, type GameKind, type PrizeWord, type Trigger, type Visit } from './rules';
+import { forgetSaved, memory, remember, rememberAgain, rememberClaim, rememberSeen, rememberWon } from './GameGate';
 import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 
 // Discount games (migrations 0069 and 0081): the game itself. A slide-in card on a computer and a bottom sheet on a
@@ -17,17 +17,28 @@ import { SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 // email), and the code goes on that booking request. Each game is its own small file, fetched in idle time. 0171: a
 // prize won earlier and not claimed opens this card again by itself ("Your 5% off is still waiting"); the replay prize
 // ("another go") has no claim form but a "Play again" button: the server starts a second play (another game, a prize
-// without the replay), which always ends in a code.
+// without the replay), which always ends in a code. 0176: the prize popping up again by itself is the small slide-in
+// ("Your 5% off is still waiting") with Get my code (the full card with its claim form) and Play again: a new game
+// (game_start with again_of, once a visit and once a day); the visitor keeps the better of the two prizes (the server
+// decides and closes the other), so there are never two open prizes.
 export type Claimed = { code: string; prize_label: string; applies_to: string; expires: string; email: string; min_days?: number | null; again_after?: string | null };
 export interface GamePopupProps {
   trigger: Trigger | 'booking' | 'saved'; path: string; seen: GameKind[]; onDone: (how: 'closed' | 'claimed' | 'failed') => void; slim?: boolean;
+  /** 0176: the prize popping up again by itself (the small slide-in with Get my code and Play again) */
+  repop?: boolean;
+  /** 0176: opened by the badge's Play again: start the new game at once */
+  start?: 'again';
   context?: 'site' | 'booking'; prefill?: { first: string; email: string; phone: string }; onClaimed?: (c: Claimed) => void; applied?: string;
 }
 export interface Play { ok: boolean; reason?: string; /** 0172: with reason claimed, when this person may play again */ again_after?: string; token: string; game: GameKind; prize: PrizeWord & { min_days: number | null; rare?: boolean }; prizes: PrizeWord[]; terms: string; consent: string; revealed?: boolean;
   /** 0171: the second game of a replay prize */
   second?: boolean;
   /** 0100: this visitor already won this prize (an earlier game was played to the end) and has not claimed it */
-  saved?: boolean; context?: 'site' | 'booking'; account?: { first: string | null; email: string } }
+  saved?: boolean; context?: 'site' | 'booking'; account?: { first: string | null; email: string };
+  /** 0176: with a saved prize: whether Play again may start a new game now (once a day, game_saved_again_days) */
+  again?: { ok: boolean; again_after?: string };
+  /** 0176: a game started by Play again on a saved prize: the prize the visitor keeps (the better of the two) */
+  keep?: { from: 'new' | 'saved'; token: string; prize: Play['prize']; other: string } }
 export interface GameProps { prize: Play['prize']; prizes: PrizeWord[]; reduced: boolean; onReveal: () => void }
 
 const LOAD: Record<GameKind, () => Promise<{ default: ComponentType<GameProps> }>> = {
@@ -71,10 +82,11 @@ async function startPlay(p: Record<string, unknown>, booking: boolean): Promise<
   return (await r.json()) as Play;
 }
 
-export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = false, context = 'site', prefill, onClaimed, applied }: GamePopupProps) {
+export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = false, repop = false, start, context = 'site', prefill, onClaimed, applied }: GamePopupProps) {
   const booking = context === 'booking';
   const [play, setPlay] = useState<Play | null>(null);
-  const [slim, setSlim] = useState(slimAtFirst);
+  // 0176: the prize popping up again by itself starts small; the full card opens from Get my code or Play again
+  const [slim, setSlim] = useState(slimAtFirst || repop);
   const [stage, setStage] = useState<'ready' | 'playing' | 'won' | 'claimed'>('ready');
   // 0100: a prize won in an earlier game and not claimed: "Your 5% off is saved", never "You won" again
   const [saved, setSaved] = useState(false);
@@ -116,12 +128,16 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
         // 0100: the prize shows only as the outcome of a game played now. A play already revealed (an earlier game,
         // the same page again) is a saved prize: its claim form opens under "Your ... is saved", never as a new win.
         // 0170: the badge asked for a saved prize the server no longer holds (it lapsed): a new game instead
-        if (trigger === 'saved' && !r.saved && !r.revealed) forgetSaved();
+        if ((trigger === 'saved' || repop) && !r.saved && !r.revealed) forgetSaved();
         if (r.saved || r.revealed) {
           rememberWon(r.prize);
           // 0171: the claim form under "Your ... is saved" (the badge, the request-to-book form's card) or, when the card
-          // popped up again by itself, "Your ... is still waiting"; a replay prize not used yet offers Play again
-          setSaved(true); setStage('won'); return;
+          // popped up again by itself, "Your ... is still waiting"; a replay prize not used yet offers Play again.
+          // 0176: popped up by itself, it is the small slide-in (Get my code, Play again), never the full card
+          setSaved(true); setStage('won');
+          if (!booking && trigger !== 'saved') setSlim(true);
+          if (start === 'again' && !isReplay(r.prize)) void playAgain(r);
+          return;
         }
         rememberSeen(r.game);
       })
@@ -144,7 +160,8 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
   }
   function revealed() {
     setStage('won');
-    if (play) rememberWon(play.prize);
+    // 0176: after Play again on a saved prize the browser keeps the prize the server kept
+    if (play) rememberWon(play.keep ? play.keep.prize : play.prize);
     if (play) void browserRpc('game_reveal', { p_token: play.token }).catch(() => undefined);
   }
   // 0171: the replay prize: the server starts the second game (another game, a prize that is a discount)
@@ -161,6 +178,27 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
     } catch { setFailure('We could not start your next game. Check your connection and try again.'); }
     finally { setBusy(false); }
   }
+  // 0176: Play again on a saved prize: a new game (another kind, a new draw); the better of the two prizes is kept
+  async function playAgain(from: Play) {
+    if (busy) return;
+    setBusy(true); setFailure('');
+    const p = { vid: visitorId(), sid: sessionId(), device: device(), path, trigger, seen: memory().seen ?? [], again_of: from.token };
+    try {
+      const r = await startPlay(p, false);
+      if (r?.ok && GAMES[r.game]) {
+        rememberAgain();
+        setPlay(r); setSaved(false); setSlim(false); setStage('playing');
+        rememberSeen(r.game);
+        setTimeout(() => head.current?.focus(), 0);
+        return;
+      }
+      if (r?.reason === 'again_limited') rememberAgain();
+      // the saved prize stays: its claim form, with why there is no new game
+      setSlim(false);
+      setFailure(r?.reason === 'again_limited' ? `Play again is once a day. Your ${from.prize.label} is still yours: get the code below.` : 'We could not start a new game. Your prize is still yours: get the code below.');
+    } catch { setSlim(false); setFailure('We could not start a new game. Check your connection and try again.'); }
+    finally { setBusy(false); }
+  }
   async function claim(e: React.FormEvent) {
     e.preventDefault();
     if (!play || busy) return;
@@ -172,7 +210,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
     try { visit = JSON.parse(sessionStorage.getItem('cc_game_visit') ?? 'null') as Visit | null; } catch { /* private mode */ }
     try {
       const r = await fetch('/api/games', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({
-        token: play.token, first_name: form.first.trim(), email: form.email.trim(), phone: form.phone.trim(), marketing: form.marketing, sid: sessionId(),
+        token: play.keep?.token ?? play.token, first_name: form.first.trim(), email: form.email.trim(), phone: form.phone.trim(), marketing: form.marketing, sid: sessionId(),
         cars_viewed: visit?.cars.length ?? 0, pages_viewed: visit?.pages ?? 0, seconds: visit ? Math.round((Date.now() - visit.start) / 1000) : 0 }) });
       const j = (await r.json()) as ({ ok: true } & Claimed) | { ok: false; error?: string; message?: string; again_after?: string };
       if (!j.ok) {
@@ -199,6 +237,24 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
   const err = (k: string) => errors[k];
   const account = booking && play.account;
   const replay = isReplay(play.prize);
+  // 0176: the prize shown in the claim form: the one kept after Play again on a saved prize
+  const kept = play.keep?.from === 'saved';
+  const prize = kept ? play.keep!.prize : play.prize;
+  let visitNow: Visit | null = null;
+  try { visitNow = JSON.parse(sessionStorage.getItem('cc_game_visit') ?? 'null') as Visit | null; } catch { /* private mode */ }
+  const againOk = !booking && play.again?.ok !== false && mayPlayAgain(memory(), visitNow, Date.now());
+  if (slim && saved) return (
+    <section className="ccg ccg--two" role="region" aria-label="CarmaCars giveaway" data-testid="game" data-game={play.game} data-slim="true" data-repop="true" data-saved="true">
+      <p className="ccg-two__text">{replay ? 'You still have another go' : waitingWords(play.prize)}
+        <span>{replay ? 'One more game, on us.' : againOk ? 'Get your code, or play again: you keep the better prize.' : 'Get your code before it ends.'}</span></p>
+      <button type="button" className="ccg-x ccg-x--dark" onClick={close} aria-label="Close the game" data-testid="game-close">×</button>
+      <div className="ccg-two__acts">
+        {!replay && <button type="button" className="btn btn--primary btn--sm" onClick={() => { setSlim(false); setTimeout(() => head.current?.focus(), 0); }} data-testid="game-open-code">Get my code</button>}
+        {(replay || againOk) && <button type="button" className={`btn btn--sm ${replay ? 'btn--primary' : 'btn--ghost'}`} disabled={busy} data-testid="game-again"
+          onClick={() => { if (replay) { setSlim(false); void again(); } else void playAgain(play); }}>{busy ? 'Starting...' : 'Play again'}</button>}
+      </div>
+    </section>
+  );
   if (slim) return (
     <section className="ccg ccg--slim" role="region" aria-label="CarmaCars giveaway" data-testid="game" data-game={play.game} data-slim="true">
       <p className="ccg-slim__text"><strong>Play for a discount</strong> <span>on your rental</span></p>
@@ -212,12 +268,12 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
         <div>
           <p className="ccg-kicker">{booking ? 'A discount on this booking' : 'CarmaCars giveaway'}</p>
           <h2 className="ccg-title" id={`${id}-h`} ref={head} tabIndex={-1}>
-            {stage === 'claimed' ? (booking ? 'Your discount is on' : 'Your code is ready') : stage === 'won' ? wonWords(play.prize, saved ? how : 'new') : play.second ? `Your second go: ${g.title}` : g.title}
+            {stage === 'claimed' ? (booking ? 'Your discount is on' : 'Your code is ready') : stage === 'won' ? (kept ? keptWords(prize) : wonWords(play.prize, saved ? how : 'new')) : play.second ? `Your second go: ${g.title}` : g.title}
           </h2>
         </div>
         <button type="button" className="ccg-x" onClick={close} aria-label={booking ? 'Close the game and go on with the booking' : 'Close the game'} data-testid="game-close">×</button>
       </header>
-      {stage === 'won' && !saved && play.prize.rare && !reduced && <Confetti />}
+      {stage === 'won' && !saved && !kept && play.prize.rare && !reduced && <Confetti />}
       <div className="ccg-body">
         {stage === 'ready' && <>
           <p className="ccg-pitch" id={`${id}-d`}>{g.pitch}</p>
@@ -235,8 +291,9 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
           <p className="ccg-fine">{play.terms} <Link className="link" href="/terms#s14" target={booking ? '_blank' : undefined}>Terms</Link></p>
         </div>}
         {stage === 'won' && !replay && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim" onBlur={() => cap.capture({ name: form.first, email: form.email, phone: form.phone })}>
-          {play.prize.rare && !saved && <p className="ccg-rare" data-testid="game-rare">A rare prize</p>}
-          <p className={`ccg-prize${play.prize.rare ? ' ccg-holo' : ''}`} id={`${id}-d`} role="status"><strong>{play.prize.label}</strong> {/free day/.test(play.prize.label) ? 'on ' : ''}{booking ? 'this booking' : 'your rental'}{play.prize.min_days ? ` of ${play.prize.min_days} days or more` : ''}. {booking ? (account ? `We put the code on this booking and send it to ${account.email}.` : 'Where should we send your code? It goes on this booking at once.') : 'Tell us where to send your code.'}</p>
+          {play.prize.rare && !saved && !kept && <p className="ccg-rare" data-testid="game-rare">A rare prize</p>}
+          {play.keep && <p className="ccg-pitch" data-testid="game-kept" data-kept={play.keep.from}>{kept ? `This game gave ${play.keep.other}, so you keep your ${prize.label}.` : `Better than your ${play.keep.other}: this prize replaces it.`}</p>}
+          <p className={`ccg-prize${prize.rare ? ' ccg-holo' : ''}`} id={`${id}-d`} role="status"><strong>{prize.label}</strong> {/free day/.test(prize.label) ? 'on ' : ''}{booking ? 'this booking' : 'your rental'}{prize.min_days ? ` of ${prize.min_days} days or more` : ''}. {booking ? (account ? `We put the code on this booking and send it to ${account.email}.` : 'Where should we send your code? It goes on this booking at once.') : 'Tell us where to send your code.'}</p>
           <label className="ccg-field" htmlFor={`${id}-first`}><span>First name</span>
             <input className="input" id={`${id}-first`} name="first" autoComplete="given-name" value={form.first} onChange={(e) => setForm({ ...form, first: e.target.value })}
               aria-invalid={err('first') ? true : undefined} aria-describedby={err('first') ? `${id}-first-e` : undefined} /></label>

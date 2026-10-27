@@ -1,4 +1,4 @@
-// Discount games (migrations 0069, 0081, 0094, 0100, 0171 and 0172): the rules that decide when a game may show (first, again after
+// Discount games (migrations 0069, 0081, 0094, 0100, 0171, 0172 and 0176): the rules that decide when a game may show (first, again after
 // a close, in the request-to-book form), the rotation, and the layouts the games draw. Pure functions (no browser, no imports) so they are
 // unit tested and shared by the trigger and the games. The prize itself is drawn by the database; nothing here can
 // change it.
@@ -18,10 +18,14 @@ export interface SavedPrize { label: string; short: string; at: number }
  *  prize won and not claimed yet (0100), and when a booking request was started or sent here (0100). dismissedAt is
  *  from 0069 and no longer read; claimed and never 'claimed' are from before 0172 and no longer stop a game. */
 export interface GameMemory { claimed?: boolean; claimedAt?: number; againAt?: number; never?: string; seen?: GameKind[]; last?: GameKind; dismissedAt?: number; code?: string; codeUntil?: string; day?: string; dayShows?: number;
-  won?: SavedPrize; requested?: number }
+  won?: SavedPrize; requested?: number;
+  /** 0176: the day (Toronto) this browser last pressed Play again on a saved prize (the server keeps the real limit) */
+  againDay?: string }
 /** This visit (sessionStorage): when it started, pages and car pages seen, how it began, the games shown, when the
  *  last one was closed (with the car pages seen by then), and (0172) whether a code was claimed in it. */
-export interface Visit { start: number; pages: number; cars: string[]; fromSearch: boolean; shows?: number; closedAt?: number; carsAtClose?: number; pagesAtClose?: number; claimed?: boolean }
+export interface Visit { start: number; pages: number; cars: string[]; fromSearch: boolean; shows?: number; closedAt?: number; carsAtClose?: number; pagesAtClose?: number; claimed?: boolean;
+  /** 0176: Play again on the saved prize was used in this visit (once a visit) */
+  again?: boolean }
 
 /** 0172: after a claim the games wait until the server's again_after (a day after the claim by default, the Admin
  *  setting game_replay_after_claim_days); then they come back on a later visit. A claim remembered from before 0172
@@ -51,6 +55,12 @@ export const savedPrize = (m: GameMemory, now: number): SavedPrize | null =>
 export const savedWords = (p: { label: string }) => `Your ${p.label} is saved`;
 /** 0171: the card of a prize won and not claimed, popping up again by itself: "Your 5% off is still waiting". */
 export const waitingWords = (p: { label: string }) => `Your ${p.label} is still waiting`;
+/** 0176: after Play again on a saved prize the visitor keeps the better of the two prizes (the server decides):
+ *  "You keep your 10% off" when the saved one was better (or as good), "You won 15% off" when the new one is. */
+export const keptWords = (p: { label: string }) => `You keep your ${p.label}`;
+/** 0176: Play again on a saved prize: once a visit, and at most once a day in this browser (the server's own limit,
+ *  game_saved_again_days, is the one that counts; this only hides the button it would refuse). */
+export const mayPlayAgain = (m: GameMemory, v: Visit | null | undefined, now: number) => !v?.again && m.againDay !== gameDay(now);
 /** 0171: the replay prize ("another go"): a second game, never a code, never saved as a discount. */
 export const isReplay = (p: { replay?: boolean } | null | undefined) => p?.replay === true;
 /** 0171: the card's heading when the game is over: "You won 5% off", "You won another go!", or for a prize won in an
@@ -71,8 +81,9 @@ export function requestInProgress(a: { mem: GameMemory; draft: { step?: number; 
   return Boolean(d && recent(d.at) && ((d.step ?? 1) > 1 || d.token || d.draftId));
 }
 export type Trigger = 'pages' | 'time' | 'exit';
-/** Why a game shows, and whether as the small slide-in (the first page of a phone visit from a search engine). */
-export interface Fire { why: Trigger | 'saved'; slim: boolean }
+/** Why a game shows, and whether as the small slide-in (the first page of a phone visit from a search engine). 0176:
+ *  repop: the card of a prize won and not claimed, popping up again by itself (always the small slide-in). */
+export interface Fire { why: Trigger | 'saved'; slim: boolean; repop?: boolean }
 
 /** How much later the small slide-in comes on the first page of a phone visit from a search engine. */
 export const SEARCH_LANDING_DELAY = 15_000;
@@ -98,10 +109,10 @@ export function isSearchReferrer(ref: string | null | undefined): boolean {
 
 /** Why the site's game may not show to this visitor now (null: it may). Signed-in people never see it on the site.
  *  0100: never once a booking request is in progress. 0171: a prize won here and not claimed no longer stops it: the
- *  card pops up again with that prize ("Your 5% off is still waiting"; the server returns the saved play), on the same
- *  rules as a game, with the small badge between pops. 0172: a claim stops it for the rest of the visit and until the
+ *  card pops up again with that prize ("Your 5% off is still waiting"; the server returns the saved play), 0176: once a
+ *  visit, as the small slide-in with Get my code and Play again, with the small badge between. 0172: a claim stops it for the rest of the visit and until the
  *  wait after it ends, then it comes back on a later visit. */
-export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: boolean; path: string; visit?: Visit | null; now?: number; busy?: boolean }): string | null {
+export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: boolean; path: string; visit?: Visit | null; now?: number; busy?: boolean; saved?: boolean }): string | null {
   if (a.signedIn) return 'signed_in';
   if (a.visit?.claimed || claimWait(a.mem, a.now ?? Date.now()) !== null) return 'claimed';
   if (a.mem.never && a.mem.never !== 'claimed') return a.mem.never;
@@ -109,7 +120,7 @@ export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: 
   if (a.busy) return 'in_progress';
   if (!a.cfg) return 'no_settings';
   if (!a.cfg.on) return 'off';
-  if (a.visit && (a.visit.shows ?? 0) >= Math.max(1, a.cfg.per_visit)) return 'visit_cap';
+  if (a.visit && (a.visit.shows ?? 0) >= visitCap(a.cfg, a.saved)) return 'visit_cap';
   return null;
 }
 
@@ -140,16 +151,28 @@ export function reshowDue(cfg: GameCfg, v: Visit, now: number): Trigger | null {
  *  (computers only, when on), whichever first. After a close: enough page views or enough time since the close,
  *  whichever first. On the first page of a phone visit from a search engine there is no interstitial: the
  *  game waits for the second page, or comes SEARCH_LANDING_DELAY after its rule as the small slide-in. */
-export function trigger(a: { cfg: GameCfg; visit: Visit; now: number; exit?: boolean; phone: boolean; today?: number }): Fire | null {
+export function trigger(a: { cfg: GameCfg; visit: Visit; now: number; exit?: boolean; phone: boolean; today?: number; saved?: boolean }): Fire | null {
   const { cfg, visit: v, now } = a;
   const shows = v.shows ?? 0;
-  if (shows >= Math.max(1, cfg.per_visit)) return null;
+  if (shows >= visitCap(cfg, a.saved)) return null;
   if (cfg.per_day && (a.today ?? 0) >= cfg.per_day) return null;
+  // 0176: a prize won and not claimed pops up again once a visit, on the first-show rules, as the small slide-in
+  if (a.saved) { const f = firstShow(a); return f ? { ...f, slim: true, repop: true } : null; }
   if (shows > 0) {
     if (v.closedAt === undefined) return null; // one is open
     const why = reshowDue(cfg, v, now);
     return why ? { why, slim: false } : null;
   }
+  return firstShow(a);
+}
+
+/** 0176: the most cards in one visit: the setting (at least 1); with a prize won and not claimed, 1 (it pops up again
+ *  once a visit; the small badge stays between). */
+export const visitCap = (cfg: GameCfg, saved?: boolean) => (saved ? 1 : Math.max(1, cfg.per_visit));
+
+/** The first card of a visit: enough page views, enough time or exit intent (the phone search landing waits). */
+function firstShow(a: { cfg: GameCfg; visit: Visit; now: number; exit?: boolean; phone: boolean }): Fire | null {
+  const { cfg, visit: v, now } = a;
   // 0100: page views on any page (the 2nd by default)
   const byPages = cfg.car_pages > 0 && v.pages >= cfg.car_pages;
   if (a.phone && v.fromSearch && v.pages <= 1) {
@@ -165,13 +188,13 @@ export function trigger(a: { cfg: GameCfg; visit: Visit; now: number; exit?: boo
 }
 
 /** When to look again (ms from now), so a timer can fire the time rule on time; null when no time rule is pending. */
-export function nextCheck(a: { cfg: GameCfg; visit: Visit; now: number; phone: boolean; today?: number }): number | null {
+export function nextCheck(a: { cfg: GameCfg; visit: Visit; now: number; phone: boolean; today?: number; saved?: boolean }): number | null {
   const { cfg, visit: v, now } = a;
   const shows = v.shows ?? 0;
-  if (shows >= Math.max(1, cfg.per_visit)) return null;
+  if (shows >= visitCap(cfg, a.saved)) return null;
   if (cfg.per_day && (a.today ?? 0) >= cfg.per_day) return null;
   let at: number | null = null;
-  if (shows > 0) {
+  if (shows > 0 && !a.saved) {
     // the time rule is the one a timer can wait for; the page rule is checked on each page
     if (v.closedAt !== undefined && cfg.reshow_seconds > 0) at = v.closedAt + cfg.reshow_seconds * 1000;
   } else {

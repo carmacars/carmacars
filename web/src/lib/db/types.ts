@@ -6207,6 +6207,8 @@ export type Database = {
           user_id: string | null;
           replayed_at: string | null;
           replay_of: string | null;
+          again_of: string | null;
+          dropped_at: string | null;
         };
         Insert: {
           id?: string;
@@ -6225,6 +6227,8 @@ export type Database = {
           user_id?: string | null;
           replayed_at?: string | null;
           replay_of?: string | null;
+          again_of?: string | null;
+          dropped_at?: string | null;
         };
         Update: {
           id?: string;
@@ -6243,6 +6247,8 @@ export type Database = {
           user_id?: string | null;
           replayed_at?: string | null;
           replay_of?: string | null;
+          again_of?: string | null;
+          dropped_at?: string | null;
         };
         Relationships: [];
       };
@@ -12817,6 +12823,7 @@ export type Database = {
           ads_social_drafts_enabled: boolean;
           recruit_outreach_enabled: boolean;
           game_replay_after_claim_days: number;
+          game_saved_again_days: number;
         };
         Insert: {
           id?: string;
@@ -13307,6 +13314,7 @@ export type Database = {
           ads_social_drafts_enabled?: boolean;
           recruit_outreach_enabled?: boolean;
           game_replay_after_claim_days?: number;
+          game_saved_again_days?: number;
         };
         Update: {
           id?: string;
@@ -13797,6 +13805,7 @@ export type Database = {
           ads_social_drafts_enabled?: boolean;
           recruit_outreach_enabled?: boolean;
           game_replay_after_claim_days?: number;
+          game_saved_again_days?: number;
         };
         Relationships: [];
       };

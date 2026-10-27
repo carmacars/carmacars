@@ -8,7 +8,9 @@ import { db, noOverflow } from './helpers';
 // waiting" on the usual rules, never as "You won"; 0171 also: another go and Play again); each of the five new
 // games (coin flip, dice roll, slot machine, prize drop, mystery box) plays to the drawn prize and gives the code; the
 // owner's timings as set live (the 2nd page view; after a close the 3rd page view; 4 a visit; never the same game twice
-// in a row; none once a booking request is in progress); 0172: a winner plays again a day later and wins a 2nd code. The chat greeting: once a visit, for the page (the car's
+// in a row; none once a booking request is in progress); 0172: a winner plays again a day later and wins a 2nd code; 0176: a
+// saved prize pops up once a visit as the small slide-in (never the full card, never on every car page) with Get my code
+// and Play again (a new game; the better prize is kept; once a day). The chat greeting: once a visit, for the page (the car's
 // name on a car page), never over a game, and a reply opens the chat with it as the first message. axe and overflow on
 // every new surface.
 type Sql = ReturnType<typeof db>;
@@ -106,7 +108,7 @@ for (const game of Object.keys(PLAY)) {
   });
 }
 
-test('the prize is never shown before a game: a prize already seen pops up as "still waiting" (0171), never "You won", and the badge between', async ({ browser }) => {
+test('the prize is never shown before a game: a prize already seen pops up small as "still waiting" (0171, 0176), never "You won", and the badge between', async ({ browser }) => {
   test.setTimeout(90_000);
   const sql = db();
   // the live case: an earlier game was played to the prize (revealed), and this browser forgot it (another tab,
@@ -114,13 +116,20 @@ test('the prize is never shown before a game: a prize already seen pops up as "s
   const { page, vid } = await visitor(browser, sql, { game: 'wheel', revealed: true, cfg: { car_pages: 1 } });
   await visit(page, '/faq');
   await answerCookies(page);
-  // 0171: the card itself, with the prize waiting and its form, no game to play
+  // 0176: the small slide-in with the prize waiting (Get my code, Play again), no game to play, never the full card
   const card = page.getByTestId('game');
   await expect(card).toBeVisible({ timeout: 30_000 });
   await expect(card).toHaveAttribute('data-saved', 'true');
-  await expect(page.getByRole('heading', { name: 'Your 10% off is still waiting' })).toBeVisible();
+  await expect(card).toHaveAttribute('data-slim', 'true');
+  await expect(card).toContainText('Your 10% off is still waiting');
+  expect((await card.boundingBox())!.height).toBeLessThan((isPhone() ? 812 : 900) * 0.25);
   await expect(page.getByRole('heading', { name: /You won/ })).toHaveCount(0);
   await expect(page.getByTestId('game-play')).toHaveCount(0);
+  await expect(page.getByTestId('game-again')).toBeVisible();
+  await axe(page, 'waiting slide-in');
+  // Get my code: the card with the form
+  await page.getByTestId('game-open-code').click();
+  await expect(page.getByRole('heading', { name: 'Your 10% off is still waiting' })).toBeVisible();
   await expect(page.getByTestId('game-get-code')).toBeVisible();
   await axe(page, 'waiting card');
   // no new play and no new draw
@@ -129,9 +138,9 @@ test('the prize is never shown before a game: a prize already seen pops up as "s
   await page.getByTestId('game-close').click();
   const badge = page.getByTestId('game-saved');
   await expect(badge).toBeVisible({ timeout: 15_000 });
-  await expect(badge).toHaveText(/Your 10% off is saved/);
+  await expect(badge).toContainText('Your 10% off is saved');
   const b = (await badge.boundingBox())!;
-  expect(b.height).toBeLessThan(80);
+  expect(b.height).toBeLessThan(130);
   await axe(page, 'saved badge', '[data-testid="game-saved"]');
   // on the next page: the badge again, no card yet (the re-show waits for the 3rd page view)
   await visit(page, '/how-it-works');
@@ -147,10 +156,10 @@ test('the prize is never shown before a game: a prize already seen pops up as "s
   await sql.end();
 });
 
-test('0171: a prize won in this browser and closed pops up again on the 3rd page view after the close, the badge between', async ({ browser }) => {
+test('0176: a prize won in this browser and closed never pops up again in that visit: the badge only, on every page', async ({ browser }) => {
   test.setTimeout(120_000);
   const sql = db();
-  const { page, vid } = await visitor(browser, sql, { game: 'dice', cfg: { car_pages: 1 } });
+  const { page, vid } = await visitor(browser, sql, { game: 'dice', cfg: { car_pages: 1, reshow_pages: 1, reshow_seconds: 3 } });
   await visit(page, '/cars/toyota-corolla');
   await answerCookies(page);
   await expect(page.getByTestId('game')).toBeVisible({ timeout: 30_000 });
@@ -158,29 +167,146 @@ test('0171: a prize won in this browser and closed pops up again on the 3rd page
   await PLAY.dice!(page);
   await expect(page.getByRole('heading', { name: 'You won 10% off' })).toBeVisible({ timeout: 15_000 });
   await page.getByTestId('game-close').click();
-  // the 1st page view after the close: the badge, no card
-  await visit(page, '/faq');
-  await expect(page.getByTestId('game-saved')).toHaveText(/Your 10% off is saved/, { timeout: 15_000 });
-  await expect(page.getByTestId('game')).toHaveCount(0);
-  // the badge hidden for this visit when closed; the 2nd page view: nothing
+  // every page after the close (the re-show rules at 1 page and 3 seconds): the badge, never the card
+  for (const p of ['/faq', '/cars/kia-forte', '/how-it-works', '/cars/toyota-corolla']) {
+    await visit(page, p);
+    await expect(page.getByTestId('game-saved')).toContainText('Your 10% off is saved', { timeout: 15_000 });
+    await page.waitForTimeout(3500);
+    await expect(page.getByTestId('game')).toHaveCount(0);
+  }
+  // the badge hidden for this visit when closed
   await page.getByTestId('game-saved-close').click();
-  await visit(page, '/how-it-works');
-  await page.waitForTimeout(1500);
-  await expect(page.getByTestId('game-saved')).toHaveCount(0);
-  await expect(page.getByTestId('game')).toHaveCount(0);
-  // the 3rd: the card again, with the prize waiting (never "You won" again, never a new game)
   await visit(page, '/delivery');
-  await expect(page.getByTestId('game')).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByTestId('game')).toHaveAttribute('data-saved', 'true');
-  await expect(page.getByTestId('game-play')).toHaveCount(0);
-  expect((await sql`select count(*)::int n from game_plays where visitor_id = ${vid}`)[0]!.n).toBe(1);
-  await claim(page, sql, 'Your 10% off is still waiting');
-  // claimed: not again in this visit (0172: a day later on a later visit), no badge
-  await visit(page, '/faq');
   await page.waitForTimeout(1500);
   await expect(page.getByTestId('game-saved')).toHaveCount(0);
   await expect(page.getByTestId('game')).toHaveCount(0);
+  expect((await sql`select count(*)::int n from game_plays where visitor_id = ${vid}`)[0]!.n).toBe(1);
   await page.context().close();
+  await sql.end();
+});
+
+// the games the next play may be: coin or dice (every other game seen in this round)
+const SEEN = ['wheel', 'scratch', 'blackjack', 'cups', 'plinko', 'pack', 'slots', 'drop', 'mystery'];
+/** Plays the game on screen to its end; another go: Play again and its second game. */
+async function playToPrize(page: Page) {
+  const card = page.getByTestId('game');
+  for (let round = 0; round < 2; round++) {
+    const game = (await card.getAttribute('data-game'))!;
+    expect(['coin', 'dice']).toContain(game);
+    await PLAY[game]!(page);
+    const replay = page.getByTestId('game-replay');
+    await expect(page.getByRole('heading', { name: /^(You won|You keep)/ })).toBeVisible({ timeout: 15_000 });
+    if (!(await replay.isVisible())) return;
+    await replay.click();
+    await expect(card).not.toHaveAttribute('data-game', game, { timeout: 15_000 });
+  }
+}
+
+test('0176: the saved prize pops up once a visit, small; Play again starts a new game, keeps the better prize, then the code', async ({ browser }) => {
+  test.setTimeout(150_000);
+  const sql = db();
+  // a saved 1% off (worse than any prize of the table): the new game's prize is kept
+  const won = { label: '1% off', short: '1%', at: Date.now() };
+  const { page, vid } = await visitor(browser, sql, { game: 'wheel', prize: { key: 'grp1', percent_bps: 100, weight: 1 }, revealed: true,
+    cfg: { car_pages: 2, reshow_pages: 1, reshow_seconds: 3 }, storage: { cc_game: JSON.stringify({ seen: SEEN, won }) } });
+  await visit(page, '/faq');
+  await answerCookies(page);
+  // the 1st page: the badge only (Get my code, Play again)
+  await expect(page.getByTestId('game-saved')).toContainText('Your 1% off is saved', { timeout: 15_000 });
+  await expect(page.getByTestId('game-saved-again')).toBeVisible();
+  await axe(page, 'saved badge with Play again', '[data-testid="game-saved"]');
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  // the 2nd page (the first-show rule): the small slide-in, never the full card
+  await visit(page, '/cars/toyota-corolla');
+  const card = page.getByTestId('game');
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  await expect(card).toHaveAttribute('data-repop', 'true');
+  await expect(card).toHaveAttribute('data-slim', 'true');
+  await expect(card).toContainText('Your 1% off is still waiting');
+  const box = (await card.boundingBox())!;
+  expect(box.height).toBeLessThan((isPhone() ? 812 : 900) * 0.25);
+  expect(box.y).toBeGreaterThan((isPhone() ? 812 : 900) * 0.6);
+  await expect(page.getByTestId('game-open-code')).toBeVisible();
+  await expect(page.getByTestId('game-again')).toBeVisible();
+  await axe(page, 'saved prize popping up again');
+  // closed: never again in this visit, on any car page, by pages or by time; the badge between
+  await page.getByTestId('game-close').click();
+  for (const p of ['/cars/kia-forte', '/cars/toyota-corolla', '/faq', '/cars/kia-forte']) {
+    await visit(page, p);
+    await expect(page.getByTestId('game-saved')).toBeVisible({ timeout: 15_000 });
+    await page.waitForTimeout(3500);
+    await expect(card).toHaveCount(0);
+  }
+  // the badge's Play again: a new game (another kind), the full card
+  await page.getByTestId('game-saved-again').click();
+  await expect(card).toBeVisible({ timeout: 20_000 });
+  await expect(card).not.toHaveAttribute('data-saved', 'true');
+  await playToPrize(page);
+  // the new prize is better than 1% off: kept, the saved play closed
+  await expect(page.getByRole('heading', { name: /^You won / })).toBeVisible();
+  await expect(page.getByTestId('game-kept')).toHaveAttribute('data-kept', 'new');
+  await expect(page.getByTestId('game-kept')).toContainText('Better than your 1% off');
+  await axe(page, 'Play again: the better prize');
+  const plays = await sql`select dropped_at, again_of, claimed_at from game_plays where visitor_id = ${vid} order by created_at`;
+  expect(plays[0]!.dropped_at).not.toBeNull();
+  expect(plays.slice(1).every((p) => p.again_of !== null)).toBe(true);
+  const email = `grp.${test.info().project.name}.${Date.now()}.${tag()}@example.test`;
+  await card.getByLabel('First name', { exact: true }).fill('Gia');
+  await card.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByTestId('game-get-code').click();
+  await expect(page.getByTestId('game-code')).toHaveText(/^WIN-[A-Z2-9]{4}-[A-Z2-9]{4}$/, { timeout: 30_000 });
+  const rows = await sql`select pc.percent_bps, pc.amount_cents, g.again_of is not null as again from game_claims c join promo_codes pc on pc.id = c.promo_code_id join game_plays g on g.id = c.play_id where c.email = ${email}`;
+  expect(rows[0]!.again).toBe(true);
+  expect(rows[0]!.percent_bps).not.toBe(100);
+  await page.context().close();
+  await sql.end();
+});
+
+test('0176: Play again once a day: used today, the pop-up offers only the code; the next day Play again is back and the better saved prize is kept', async ({ browser }) => {
+  test.setTimeout(150_000);
+  const sql = db();
+  // a saved 50% off (better than any prize of the table): it is kept whatever the new game gives
+  const won = { label: '50% off', short: '50%', at: Date.now() };
+  const { page, vid } = await visitor(browser, sql, { game: 'wheel', prize: { key: 'grp50', percent_bps: 5000, max_cents: 100000, weight: 1 }, revealed: true,
+    cfg: { car_pages: 1 }, storage: { cc_game: JSON.stringify({ seen: SEEN, won }) } });
+  const saved = (await sql`select id from game_plays where visitor_id = ${vid}`)[0]!.id as string;
+  // Play again already used today (on another device of this visitor's browser id)
+  await sql`insert into game_plays (visitor_id, game, prize, path, trigger, again_of, dropped_at) values (${vid}, 'dice', ${sql.json({ key: 'pct5', percent_bps: 500, weight: 54 } as never)}, '/', 'pages', ${saved}, now())`;
+  await visit(page, '/cars/toyota-corolla');
+  await answerCookies(page);
+  const card = page.getByTestId('game');
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  await expect(card).toHaveAttribute('data-repop', 'true');
+  await expect(card).toContainText('Your 50% off is still waiting');
+  await expect(page.getByTestId('game-open-code')).toBeVisible();
+  await expect(page.getByTestId('game-again')).toHaveCount(0);
+  await page.getByTestId('game-close').click();
+  // the next day (Toronto), a new visit (a new tab)
+  await sql`update game_plays set created_at = ((app.today() - 1)::timestamp + interval '12 hours') at time zone app.tz() where visitor_id = ${vid} and again_of is not null`;
+  const next = await page.context().newPage();
+  await page.close();
+  await visit(next, '/cars/kia-forte');
+  const card2 = next.getByTestId('game');
+  await expect(card2).toBeVisible({ timeout: 30_000 });
+  await expect(card2).toHaveAttribute('data-repop', 'true');
+  await expect(next.getByTestId('game-again')).toBeVisible();
+  await next.getByTestId('game-again').click();
+  await expect(card2).not.toHaveAttribute('data-saved', 'true', { timeout: 20_000 });
+  await expect(card2).not.toHaveAttribute('data-slim', 'true');
+  await playToPrize(next);
+  await expect(next.getByRole('heading', { name: 'You keep your 50% off' })).toBeVisible();
+  await expect(next.getByTestId('game-kept')).toHaveAttribute('data-kept', 'saved');
+  await axe(next, 'Play again: the saved prize kept');
+  const email = `grq.${test.info().project.name}.${Date.now()}.${tag()}@example.test`;
+  await card2.getByLabel('First name', { exact: true }).fill('Gia');
+  await card2.getByLabel('Email', { exact: true }).fill(email);
+  await next.getByTestId('game-get-code').click();
+  await expect(next.getByTestId('game-code')).toHaveText(/^WIN-[A-Z2-9]{4}-[A-Z2-9]{4}$/, { timeout: 30_000 });
+  const rows = await sql`select c.play_id, pc.percent_bps from game_claims c join promo_codes pc on pc.id = c.promo_code_id where c.email = ${email}`;
+  expect(rows[0]!.play_id).toBe(saved);
+  expect(rows[0]!.percent_bps).toBe(5000);
+  expect((await sql`select count(*)::int n from game_plays where visitor_id = ${vid} and again_of is not null and dropped_at is null and claimed_at is null`)[0]!.n).toBe(0);
+  await next.context().close();
   await sql.end();
 });
 

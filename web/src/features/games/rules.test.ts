@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claimMemory, claimWait, CLAIM_RECHECK_DAYS, coinFlip, dieFace, isReplay, nextGame, requestInProgress, reshowDue, savedPrize, savedWords, shortScale, slotStops, slotStrip, SAVED_DAYS, waitingWords, wonWords } from './rules.ts';
+import { claimMemory, claimWait, CLAIM_RECHECK_DAYS, coinFlip, dieFace, isReplay, keptWords, mayPlayAgain, visitCap, nextGame, requestInProgress, reshowDue, savedPrize, savedWords, shortScale, slotStops, slotStrip, SAVED_DAYS, waitingWords, wonWords } from './rules.ts';
 import { addPage, addSeen, countShown, gameDay, shownToday, expectedCost, packCards, prizeCost, tearProgress, TORN, type PrizeRow, bookingIneligible, bookingPath, carSlug, claimProblems, closed, cupSwaps, deck, excludedPath, GAMES, handValue, ineligible, isSearchReferrer, nextCheck, plinkoPath, plinkoSlots,
   SEARCH_LANDING_DELAY, settle, shown, trigger, unseen, wheelSlices, wheelStop, type GameCfg, type GameKind, type PrizeWord, type Visit } from './rules.ts';
 
@@ -188,16 +188,52 @@ describe('a booking request in progress, and a prize already won (0100)', () => 
 
 describe('0171: the card comes back, and the replay prize', () => {
   const won = { label: '5% off', short: '5%', at: NOW - 1000 };
-  it('a won prize pops up again after a close on the re-show rules, and on a later visit on the first-show rules', () => {
+  // 0176 (the owner: "showing your 5% off is still waiting every single time you open a car page rather than letting
+  // you play again"): the saved prize pops up once a visit, on the first-show rules, as the small slide-in
+  const ts = (v: Visit, o: { now?: number; phone?: boolean; cfg?: GameCfg; exit?: boolean } = {}) =>
+    trigger({ cfg: o.cfg ?? CFG, visit: v, now: o.now ?? NOW, phone: o.phone ?? false, exit: o.exit, saved: true });
+  it('0176: a won prize pops up again once a visit, on the first-show rules (2nd page view or 30 seconds), always small', () => {
+    assert.equal(ts(visit({ pages: 1 })), null);
+    assert.deepEqual(ts(visit({ pages: 2 })), { why: 'pages', slim: true, repop: true });
+    assert.deepEqual(ts(visit({ start: NOW - 30_000 })), { why: 'time', slim: true, repop: true });
+    assert.deepEqual(ts(visit({ pages: 2 }), { phone: true }), { why: 'pages', slim: true, repop: true });
+    // the phone landing from a search engine still waits
+    assert.equal(ts(visit({ pages: 1, fromSearch: true, start: NOW - 1000 }), { phone: true }), null);
+  });
+  it('0176: never again in that visit once it was shown (closed): no re-show after 3 page views or 2 minutes, never on every car page', () => {
+    let v = closed(shown(visit({ pages: 2 })), NOW);
+    for (const p of ['/cars/a', '/cars/b', '/cars/c', '/cars/d', '/cars/e', '/cars/f', '/cars/g']) {
+      v = addPage(v, p);
+      assert.equal(ts(v), null, p);
+      assert.equal(ts(v, { now: NOW + 10 * 60_000 }), null, p);
+    }
+    assert.equal(nextCheck({ cfg: CFG, visit: v, now: NOW, phone: false, saved: true }), null);
+    assert.equal(visitCap(CFG, true), 1);
+    assert.equal(visitCap(CFG, false), 4);
+    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: false, path: '/faq', visit: v, now: NOW, saved: true }), 'visit_cap');
+    // without a saved prize the usual re-show rules (a new visitor keeps them)
+    assert.deepEqual(t(v), { why: 'pages', slim: false });
+  });
+  it('0176: not in the visit the prize was won in (a game was already shown): the badge only', () => {
     const v = closed(shown(visit({ pages: 2 })), NOW);
-    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: false, path: '/faq', visit: v, now: NOW }), null);
-    assert.equal(t(v), null);
-    assert.deepEqual(t({ ...v, pages: v.pages + 3 }), { why: 'pages', slim: false });
-    assert.deepEqual(t(v, { now: NOW + 120_000 }), { why: 'time', slim: false });
-    // at most per_visit cards a visit, the saved prize's included
-    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: false, path: '/faq', visit: visit({ shows: 4 }), now: NOW }), 'visit_cap');
-    // a later visit (a new session): the first-show rules
-    assert.deepEqual(t(visit({ pages: 2 })), { why: 'pages', slim: false });
+    assert.equal(ts({ ...v, pages: v.pages + 5 }), null);
+  });
+  it('0176: a later visit (a new session): once more, the timer waits for the 30 seconds', () => {
+    assert.deepEqual(ts(visit({ pages: 2 })), { why: 'pages', slim: true, repop: true });
+    assert.equal(nextCheck({ cfg: CFG, visit: visit({ start: NOW - 5000 }), now: NOW, phone: false, saved: true }), 25_000);
+  });
+  it('0176: still never for a signed-in visitor, on excluded pages, nor after a claim', () => {
+    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: true, path: '/faq', visit: visit(), now: NOW, saved: true }), 'signed_in');
+    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: false, path: '/checkout', visit: visit(), now: NOW, saved: true }), 'page');
+    assert.equal(ineligible({ cfg: CFG, mem: { won }, signedIn: false, path: '/faq', visit: visit({ claimed: true }), now: NOW, saved: true }), 'claimed');
+  });
+  it('0176: Play again on the saved prize: once a visit and once a day in this browser (the server decides)', () => {
+    assert.equal(mayPlayAgain({}, visit(), NOW), true);
+    assert.equal(mayPlayAgain({}, visit({ again: true }), NOW), false);
+    assert.equal(mayPlayAgain({ againDay: gameDay(NOW) }, visit(), NOW), false);
+    assert.equal(mayPlayAgain({ againDay: gameDay(NOW) }, visit(), NOW + 86_400_000), true);
+    assert.equal(mayPlayAgain({}, null, NOW), true);
+    assert.equal(keptWords({ label: '10% off' }), 'You keep your 10% off');
   });
   it('a game closed before its prize: the next visit may show one again (no wait of days)', () => {
     assert.equal(ineligible({ cfg: CFG, mem: { seen: ['wheel'], last: 'wheel', dismissedAt: NOW - 60_000 }, signedIn: false, path: '/faq', visit: visit(), now: NOW }), null);

@@ -3,18 +3,20 @@ import './games.css';
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { usePathname } from 'next/navigation';
 import { browserRpc } from '@/lib/browser-rpc';
-import { addPage, addSeen, claimMemory, claimWait, closed, countShown, excludedPath, shownToday, ineligible, isReplay, isSearchReferrer, nextCheck, requestInProgress, savedPrize, savedWords, shown, trigger, type Fire, type GameCfg, type GameKind, type GameMemory, type PrizeWord, type Visit } from './rules';
+import { addPage, addSeen, claimMemory, claimWait, closed, countShown, excludedPath, gameDay, shownToday, ineligible, isReplay, isSearchReferrer, mayPlayAgain, nextCheck, requestInProgress, savedPrize, savedWords, shown, trigger, type Fire, type GameCfg, type GameKind, type GameMemory, type PrizeWord, type Visit } from './rules';
 import type { GamePopupProps } from './GamePopup';
 
-// Discount games (migrations 0069, 0081, 0094, 0100, 0171 and 0172): the watcher. Loaded after the page is idle (with the beacon and
+// Discount games (migrations 0069, 0081, 0094, 0100, 0171, 0172 and 0176): the watcher. Loaded after the page is idle (with the beacon and
 // the chat), it counts this visit's pages and time in the browser only (sessionStorage: nothing leaves the device for
 // this). 0100 (the owner's defaults, all Admin settings): the first game on the 2nd page view (any page) or after 30
 // seconds, whichever first; after a close another game, never the one just shown, on the 3rd page view after the close
 // or 2 minutes later, whichever first; at most 4 a visit, no daily cap unless one is set; and again on later visits.
 // After a claim (0172) not again in that visit, and back on a later visit once the wait after it ends (a day by default,
 // the server's again_after); never once a booking request is in progress in this browser, and never as a new win once a
-// prize was won here: a small badge "Your 5% off is saved" opens its claim form, and (0171) the card itself pops up again
-// with that prize ("Your 5% off is still waiting") on the same rules as a game. Never for a signed-in visitor (they get it in the request-to-book
+// prize was won here: a small badge "Your 5% off is saved" with Get my code and Play again, and (0171, 0176) the prize
+// pops up again by itself once a visit (the first-show rules, never in the visit it was won, never again after a close)
+// as the small slide-in "Your 5% off is still waiting" with Get my code and Play again (a new game; the better of the
+// two prizes is kept; once a visit and once a day, the server's game_saved_again_days). Never for a signed-in visitor (they get it in the request-to-book
 // form only), never on booking, pay, sign, sign-in or portal pages, never over the cookie banner. On the first page of
 // a phone visit from a search engine it waits for the second page, or comes 15 seconds later as a small slide-in. The
 // game's code is fetched in idle time once the visitor can get one, so it opens at once.
@@ -32,6 +34,11 @@ export const rememberWon = (p: PrizeWord) => {
   const m = memory(); if (!m.won || m.won.label !== p.label) remember({ won: { label: p.label, short: p.short, at: Date.now() } });
 };
 export const forgetSaved = () => remember({ won: undefined });
+/** 0176: Play again on the saved prize was used (or the server says it was): not again this visit nor today here. */
+export const rememberAgain = () => {
+  remember({ againDay: gameDay(Date.now()) });
+  const v = visitNow(); if (v) saveVisit({ ...v, again: true });
+};
 /** 0172: a code claimed here (or the server said this person claimed one): no more games this visit, and none until the
  *  server's again_after; an old memory without a time never stops a game. */
 export const rememberClaim = (againAfter?: string | null, extra: Partial<GameMemory> = {}) => {
@@ -92,15 +99,17 @@ export function GameGate() {
   // the latest check, for timers and listeners set up earlier
   const again = useRef<(exit?: boolean) => void>(() => undefined);
 
-  const [badge, setBadge] = useState<{ label: string } | null>(null);
-  const may = useCallback(() => !automated() && !ineligible({ cfg: cfg.current, mem: memory(), signedIn: signedIn(), path: pathRef.current, visit: visitNow(), now: Date.now(), busy: busy() }), []);
-  // 0100: a prize won here and not claimed: the small badge between cards (closed: not again this visit); 0171: the
-  // card itself still pops up again with that prize on the usual rules
+  const [badge, setBadge] = useState<{ label: string; again: boolean } | null>(null);
+  const hasSaved = () => savedPrize(memory(), Date.now()) !== null;
+  const may = useCallback(() => !automated() && !ineligible({ cfg: cfg.current, mem: memory(), signedIn: signedIn(), path: pathRef.current, visit: visitNow(), now: Date.now(), busy: busy(), saved: hasSaved() }), []);
+  // 0100: a prize won here and not claimed: the small badge between cards (closed: not again this visit), with Get my
+  // code and (0176) Play again; the prize itself pops up again once a visit (the first-show rules)
   const showBadge = useCallback(() => {
     const p = savedPrize(memory(), Date.now());
     let hidden = false;
     try { hidden = sessionStorage.getItem(BADGE_CLOSED) === '1'; } catch { /* private mode */ }
-    setBadge(p && !automated() && !signedIn() && !hidden && !excludedPath(pathRef.current) && cfg.current?.on !== false ? { label: p.label } : null);
+    setBadge(p && !automated() && !signedIn() && !hidden && !excludedPath(pathRef.current) && cfg.current?.on !== false
+      ? { label: p.label, again: mayPlayAgain(memory(), visitNow(), Date.now()) } : null);
   }, []);
 
   const fire = useCallback((f: Fire) => {
@@ -121,9 +130,11 @@ export function GameGate() {
     const c = cfg.current, v = visitNow();
     if (!c || !v || open.current || !may()) return;
     const today = shownToday(memory(), Date.now());
-    const f = trigger({ cfg: c, visit: v, now: Date.now(), exit, phone: phone(), today });
+    // 0176: with a prize won and not claimed, once a visit on the first-show rules, as the small slide-in
+    const saved = hasSaved();
+    const f = trigger({ cfg: c, visit: v, now: Date.now(), exit, phone: phone(), today, saved });
     if (f) { fire(f); return; }
-    const wait = nextCheck({ cfg: c, visit: v, now: Date.now(), phone: phone(), today });
+    const wait = nextCheck({ cfg: c, visit: v, now: Date.now(), phone: phone(), today, saved });
     if (wait !== null) timer.current = setTimeout(() => again.current(), wait + 250);
   }, [fire, may]);
   useEffect(() => { again.current = check; }, [check]);
@@ -171,11 +182,14 @@ export function GameGate() {
     if (how !== 'claimed') check();
   }, [check, fired, showBadge]);
 
-  // the badge opens the saved prize's claim form (the server's play for this visitor, already revealed)
-  const openSaved = useCallback(() => {
+  // the badge opens the saved prize's claim form (the server's play for this visitor, already revealed), or (0176)
+  // starts Play again on it at once
+  const [start, setStart] = useState<'again' | undefined>(undefined);
+  const openSaved = useCallback((how?: 'again') => {
     if (open.current) return;
     open.current = true;
     setBadge(null);
+    setStart(how);
     setFired({ why: 'saved', slim: false });
     announce(true);
     void loadPopup().then((m) => setPopup(() => m.GamePopup)).catch(() => { open.current = false; announce(false); showBadge(); });
@@ -185,11 +199,20 @@ export function GameGate() {
     setBadge(null);
   }, []);
 
-  if (Popup && fired && !excludedPath(path)) return <Popup trigger={fired.why} slim={fired.slim} path={path} seen={memory().seen ?? []} onDone={done} />;
-  if (badge) return (
+  if (Popup && fired && !excludedPath(path)) return <Popup trigger={fired.why} slim={fired.slim} repop={fired.repop} start={fired.why === 'saved' ? start : undefined} path={path} seen={memory().seen ?? []} onDone={done} />;
+  if (badge) return badge.again ? (
+    <section className="ccg ccg--saved ccg--two" role="region" aria-label="Your CarmaCars discount" data-testid="game-saved">
+      <p className="ccg-two__text ccg-saved__text">{savedWords(badge)}</p>
+      <button type="button" className="ccg-x ccg-x--dark" onClick={closeBadge} aria-label="Hide the saved discount" data-testid="game-saved-close">×</button>
+      <div className="ccg-two__acts">
+        <button type="button" className="btn btn--primary btn--sm" onClick={() => openSaved()} data-testid="game-saved-open">Get my code</button>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={() => openSaved('again')} data-testid="game-saved-again">Play again</button>
+      </div>
+    </section>
+  ) : (
     <section className="ccg ccg--saved" role="region" aria-label="Your CarmaCars discount" data-testid="game-saved">
       <p className="ccg-saved__text">{savedWords(badge)}</p>
-      <button type="button" className="btn btn--primary btn--sm ccg-saved__go" onClick={openSaved} data-testid="game-saved-open">Get my code</button>
+      <button type="button" className="btn btn--primary btn--sm ccg-saved__go" onClick={() => openSaved()} data-testid="game-saved-open">Get my code</button>
       <button type="button" className="ccg-x ccg-x--dark" onClick={closeBadge} aria-label="Hide the saved discount" data-testid="game-saved-close">×</button>
     </section>
   );
