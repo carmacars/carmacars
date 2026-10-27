@@ -16,6 +16,8 @@ import { beforeTax, convertTyped, solveRental, toBeforeTax, totalDifference, wit
 import { offersDo } from '@/server/actions/offers';
 import { DEPOSIT_PAY, RENTAL_PAY, describeRevision } from '@/features/offers/model';
 import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/insurers/rates';
+import { InsurerFeesFields } from '@/features/insurers/InsurerFeesFields';
+import { INSURER_FEES, insurerFeesPayload, insurerFeesRemoval, isInsurerFee, typedFrom } from '@/features/insurers/fees';
 
 // Review and adjust a booking request (03-admin.md section 4.2). Staff change the booking itself; every
 // edit is priced by the database (adjust_booking and the pricing functions inside a rolled-back
@@ -46,6 +48,8 @@ export interface B {
   rental_pay_method?: string; deposit_pay_method?: string;
   /** the booking's HST rate (the settings' when it was priced) */
   hst_bps?: number;
+  /** 0180: the charges to the insurer, a rate a day each ({code: cents}) */
+  insurer_fees?: Record<string, number>;
 }
 type Opt = { id: string; name: string; plate: string | null; free: boolean; daily_rate_cents: number | null };
 
@@ -96,7 +100,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   const va = kind === 'va';
   const router = useRouter();
   const coverageLine = b.lines.find((l) => COVERAGE_TYPES.includes(l.charge_type));
-  const feeLines = b.lines.filter((l) => l.stage === 'booking' && !['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type) && !COVERAGE_TYPES.includes(l.charge_type));
+  const feeLines = b.lines.filter((l) => l.stage === 'booking' && !['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type) && !COVERAGE_TYPES.includes(l.charge_type)
+    && !isInsurerFee(l.charge_type));   // 0180: the charges to the insurer are a rate a day, below
   const start = useMemo(() => ({
     vehicle_id: b.vehicle_id, pickup_at: toLocalInput(b.pickup_at), return_at: toLocalInput(b.return_at), booking_type: b.booking_type,
     ...Object.fromEntries(MONEY_KEYS.map((k) => [k, dollars(b[k] as number | null)])),
@@ -108,6 +113,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     insurer_adjuster_email: b.insurer_adjuster_email ?? '', insurer_adjuster_phone: b.insurer_adjuster_phone ?? '', insurer_authorized_days: b.insurer_authorized_days?.toString() ?? '',
     insurer_authorized_until: b.insurer_authorized_until ?? '', insurer_rate_reason: '', dates_provisional: b.dates_provisional, blocks_calendar: b.blocks_calendar, blocks_reason: '',
     ...Object.fromEntries(feeLines.map((l) => [`fee:${l.charge_type}`, dollars(l.amount_cents)])), fee_reason: '',
+    ...Object.fromEntries(INSURER_FEES.map((x) => [`ifee:${x.code}`, typedFrom(b.insurer_fees)[x.code] ?? ''])),
     message: '', expires_hours: String(offerHours), note: b.notes ?? '',
     rental_pay: b.rental_pay_method ?? 'card', deposit_pay: b.deposit_pay_method ?? 'card', notify: true, by_email: true, by_text: false
   }) as Record<string, string | boolean>, [b, offerHours]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -188,6 +194,11 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     if (Object.keys(lines).length) { p.line_overrides = lines; p.fee_reason = String(v.fee_reason).trim() || 'Changed on the review screen'; }
     if (changed('blocks_calendar')) { p.blocks_calendar = v.blocks_calendar; p.blocks_calendar_reason = String(v.blocks_reason).trim() || null; }
     if (addonsChanged) p.addons = addonsPayload(addons);
+    // 0180: the charges to the insurer, a rate a day each (removed with the rest when the booking goes back to the renter)
+    const insBefore = b.insurer_fees ?? {};
+    const ins = v.bill_to === 'renter' ? insurerFeesRemoval(insBefore)
+      : insurerFeesPayload(Object.fromEntries(INSURER_FEES.map((x) => [x.code, String(v[`ifee:${x.code}`] ?? '')])), insBefore);
+    if (Object.keys(ins).length) p.insurer_fees = ins;
     return p;
   }, [v, addons, taxMode, solvedW, totalTyped]); // eslint-disable-line react-hooks/exhaustive-deps
   const payChanged = changed('rental_pay') || changed('deposit_pay');
@@ -373,6 +384,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
               <F k="insurer_rate_reason" l="Reason for a different rate" /></>}
             <F k="insurer_authorized_until" l="Authorized until" type="date" />
             <div className="field ad-field"><label className="check"><input type="checkbox" checked={Boolean(v.dates_provisional)} onChange={(e) => set('dates_provisional')(e.target.checked)} /> <span>Dates are provisional</span></label></div>
+            <InsurerFeesFields idPrefix="rv" days={shown.billable_days} disabled={!editable}
+              value={Object.fromEntries(INSURER_FEES.map((x) => [x.code, String(v[`ifee:${x.code}`] ?? '')]))} onChange={(k, x) => set(`ifee:${k}`)(x)} />
           </>}
           {!va && <div className={`field ad-field${changed('blocks_calendar') ? ' ad-diff' : ''}`}><label className="check"><input type="checkbox" checked={Boolean(v.blocks_calendar)} onChange={(e) => set('blocks_calendar')(e.target.checked)} /> <span>Blocks the calendar</span></label></div>}
           {changed('blocks_calendar') && <F k="blocks_reason" l="Reason for the calendar switch" />}

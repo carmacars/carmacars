@@ -1,15 +1,18 @@
 import Link from 'next/link';
 import { $, Badge, Card, Kv, d } from '@/features/admin/ui';
 import { rateLine, rateSource, type SheetRate } from './rates';
+import { InsurerFeesCard, type InsurerFeeRow } from './InsurerFeesCard';
 
 // The booking's Insurance replacement card (migration 0163): the insurer and claim, the daily rate and where it comes
 // from (the rate sheet, or typed with its reason, flagged when it differs from the sheet), the caps and allowance, what
-// the insurer pays, and its invoices with their PDFs.
+// the insurer pays, its charges a day (0180: VLF, LDW, T&LDW, PAP/PEC, Waiver Saver) and its invoices with their PDFs.
 export interface BookingInsurerData {
   billed_to_insurer: boolean; bill_to?: string; insurer?: { id: string; name: string } | null; claim_number?: string | null; authorized_days?: number | null; authorized_until?: string | null;
   daily_rate_cents?: number | null; rate_source?: string; sheet_rate_cents?: number | null; differs?: boolean; reason?: string | null;
   rate?: (SheetRate & { class_label?: string; effective_from: string }) | null; covered_days?: number; rental_share_cents?: number; fees_share_cents?: number; share_cents?: number; hst_cents?: number;
   rates?: SheetRate[];
+  /** 0180: the charges to the insurer (VLF, LDW, T&LDW, PAP/PEC, Waiver Saver), and whether they can change now */
+  booking_number?: string; extra_fees?: InsurerFeeRow[]; extra_fees_editable?: boolean;
   invoices?: Array<{ id: string; invoice_number: string; status: string; total_cents: number; paid_cents: number; balance_cents: number; daily_rate_cents: number | null; rate_source: string | null; sent_at: string | null; paid_at: string | null }>;
 }
 
@@ -26,6 +29,7 @@ export function BookingInsurer({ x }: { x: BookingInsurerData }) {
         ...(x.rate?.taxes_note ? [['Taxes', x.rate.taxes_note] as [string, string]] : []),
         ['Days covered', `${x.covered_days ?? 0}${x.authorized_days ? ` of ${x.authorized_days} authorized` : ''}${x.authorized_until ? `, until ${d(x.authorized_until)}` : ''}`],
         ['The insurer pays', `${$(x.share_cents ?? 0)} before HST (rental ${$(x.rental_share_cents ?? 0)}${x.fees_share_cents ? `, fees ${$(x.fees_share_cents)}` : ''}), HST ${$(x.hst_cents ?? 0)}`]]} />
+      {x.booking_number && x.extra_fees ? <InsurerFeesCard booking={x.booking_number} fees={x.extra_fees} editable={!!x.extra_fees_editable} /> : null}
       {x.invoices?.length ? <ul className="ad-list" data-testid="booking-insurer-invoices">{x.invoices.map((i) => (
         <li key={i.id}><a className="link" href={`/files/insurer_invoice/${i.id}`}>{i.invoice_number}</a> <Badge s={i.status} />
           <span className="ad-sub">{$(i.total_cents)}{i.balance_cents > 0 && i.status !== 'draft' ? `, ${$(i.balance_cents)} outstanding` : ''}{i.daily_rate_cents != null ? `, at ${$(i.daily_rate_cents)} a day` : ''}</span>

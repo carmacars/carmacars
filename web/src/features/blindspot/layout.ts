@@ -9,6 +9,8 @@
 // return charges, the deposit received, the balance and what was paid; a car swapped during the rental fills the
 // replacement vehicle column; the insurance replacement fills the insured vehicle and box 13 (OPCF 27: the renter's own
 // insurer and policy in boxes 12 and 13); box 48 carries the charges with no box of their own, so the subtotal adds up.
+// 0180: the charges to the insurer of an insurance replacement print in their own boxes: VLF (43), LDW (45), T&LDW (46),
+// PAP/PEC (47), each with its rate a day, and Waiver Saver's amount in its white box (box 48 when it does not fit there).
 import type { AgreementExtra, AgreementVehicle } from '../agreement/extra.ts';
 
 export const PAGE_H = 841.89;
@@ -151,6 +153,12 @@ const RENTAL = new Set(['rental_charge']);
 const FUEL = new Set(['fuel', 'fuel_service_fee', 'recharging']);
 const DAMAGE = /^(damage|deductible)/;
 const LATE = new Set(['late_return_extra_days', 'late_return_fee', 'late_return', 'late_return_admin']);
+/** 0180: the charges to the insurer with a row of their own (box, baseline), and Waiver Saver's white box. */
+const INSURER_ROWS: Array<[string, string, number]> = [['vlf', '43', 508], ['ldw', '45', 549], ['tldw', '46', 569.5], ['pap_pec', '47', 590]];
+const WAIVER = { code: 'waiver_saver', x: 409, y: 607, w: 28 };
+const INSURER_BOXED = new Set([...INSURER_ROWS.map(([c]) => c), WAIVER.code]);
+/** The width of a value in Helvetica (the font fill.ts draws with), in points: digits, $, comma and period. */
+const helvetica = (s: string, size: number) => [...s].reduce((w, c) => w + (/[0-9$]/.test(c) ? 556 : c === '-' ? 333 : c === ',' || c === '.' ? 278 : 600), 0) * size / 1000;
 /** The boxes of the vehicle columns: x of the original vehicle (right) and replacement (left) columns. */
 const COL = { original: { x: 475, w: 102 }, replacement: { x: 327, w: 86 } };
 /** Each row's baseline, from the top of the page (22 to 31). */
@@ -288,7 +296,11 @@ export function layout(f: BlindSpotFacts): Layout {
   const more = x.more ?? null;
   // every line of the version (booking and extension stages; the return stage on the closing copy)
   const all = more ? more.lines.filter((l) => more.return ? true : ['booking', 'extension', 'pickup', 'monthly'].includes(l.stage)) : f.lines.map((l) => ({ ...l, hst_cents: 0, stage: 'booking' }));
+  // 0180: Waiver Saver's amount in its white box, readable (size 6 at least); else in box 48 with the others
+  const waiverCents = all.filter((l) => l.charge_type === WAIVER.code).reduce((t2, l) => t2 + l.amount_cents, 0);
+  const waiverFits = !waiverCents || helvetica(dollars(waiverCents), 6) <= WAIVER.w;
   const otherLines = all.filter((l) => !RENTAL.has(l.charge_type) && !YOUNG.test(l.charge_type) && l.charge_type !== 'coverage_sold' && l.charge_type !== 'winter_tire'
+    && !(INSURER_BOXED.has(l.charge_type) && (l.charge_type !== WAIVER.code || waiverFits))
     && l.charge_type !== 'deposit' && l.charge_type !== 'mileage_overage' && !LATE.has(l.charge_type) && !FUEL.has(l.charge_type) && !DAMAGE.test(l.charge_type));
   const preAdjust = otherLines.filter((l) => ['booking', 'extension', 'pickup', 'monthly'].includes((l as { stage?: string }).stage ?? 'booking'));
   const postAdjust = otherLines.filter((l) => !preAdjust.includes(l));
@@ -373,6 +385,10 @@ export function layout(f: BlindSpotFacts): Layout {
   fee('42', 467, sumOf((c) => YOUNG.test(c)));
   fee('cdw', 487.5, sumOf((c) => c === 'coverage_sold'));
   fee('44', 529, sumOf((c) => c === 'winter_tire'));
+  // 0180: the charges to the insurer: VLF (43), LDW (45), T&LDW (46), PAP/PEC (47), the rate a day and the amount; Waiver
+  // Saver has no amount column: its white box, or box 48 when it does not fit ("See 48" in the white box)
+  for (const [code, box, y] of INSURER_ROWS) fee(box, y, sumOf((c) => c === code));
+  if (waiverCents) t.push(T('waiver-amount', waiverFits ? dollars(waiverCents) : 'See 48', WAIVER.x, WAIVER.y, WAIVER.w, { size: waiverFits ? 7 : 6 }));
   // 48, pre adjustment: the charges with no box of their own (delivery, add-ons, drivers, a discount), so 49 adds up
   const pre = preAdjust.reduce((t2, l) => t2 + l.amount_cents, 0);
   if (pre) t.push(T('48', dollars(pre), 577, 610, 72, { align: 'right' }));
@@ -434,8 +450,8 @@ export function layout(f: BlindSpotFacts): Layout {
   // box 13's province and expiry belong to a policy (insurer, OPCF 27): not to card coverage, the plan or included insurance
   if (!ins && b.coverage_option !== 1) { NA('13-prov', 172, 468, 60); NA('13-expiry', 236, 468, 50); }
   // the optional charges not on this rental: underage, CDW, VLF, winter tires, LDW, T&LDW, PAP/PEC, Waiver Saver
-  NA('42-amount', 577, 467, 72, { align: 'right' }); NA('cdw-amount', 577, 487.5, 72, { align: 'right' }); NA('43', 577, 508, 72, { align: 'right' });
-  NA('44-amount', 577, 529, 72, { align: 'right' }); NA('45', 577, 549, 72, { align: 'right' }); NA('46', 577, 569.5, 72, { align: 'right' });
-  NA('47', 577, 590, 72, { align: 'right' }); NA('waiver', 409, 607, 28);
+  NA('42-amount', 577, 467, 72, { align: 'right' }); NA('cdw-amount', 577, 487.5, 72, { align: 'right' }); NA('43-amount', 577, 508, 72, { align: 'right' });
+  NA('44-amount', 577, 529, 72, { align: 'right' }); NA('45-amount', 577, 549, 72, { align: 'right' }); NA('46-amount', 577, 569.5, 72, { align: 'right' });
+  NA('47-amount', 577, 590, 72, { align: 'right' }); NA('waiver-amount', WAIVER.x, WAIVER.y, WAIVER.w);
   return { texts: t.filter((v2): v2 is Text => !!v2), dots, covers: COVERS };
 }
