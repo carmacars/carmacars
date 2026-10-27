@@ -156,6 +156,7 @@ select test.eq('on shift now', app.swm_on_shift(test.id('swm_rem'), now()) || '/
 -- a website request answered with the first offer on the shift is theirs, even marked "Entered for CarmaCars"
 insert into s99w select 'web1', jsonb_build_object('id', app.request_booking(test.id('renter:swm_ron'), test.swmv('car9'), date_trunc('hour', now()) + interval '40 days',
   date_trunc('hour', now()) + interval '43 days', 'standard', null, 'web', test.id('swm_ron')));
+update bookings set requested_at = now() - interval '1 hour' where id = (test.swmb('web1')).id;  -- 0177: past the Sales wait
 select app.door(test.id('swm_rem'), 'aal2', 'va_do', 'send_offer', jsonb_build_object('booking', (test.swmb('web1')).id, 'expires_at', now() + interval '24 hours', 'sales_choice', 'for_carmacars'));
 select test.eq('website request on shift: credited to the remote rep as sourced, a commission accruing',
   (select (sales_staff_id = test.id('swm_rem')) || '/' || sales_sourced || '/' || sales_choice || '/' || (sales_claim_by is null) from test.swmb('web1')) || '/' || (test.swmc('web1')).status,
@@ -164,6 +165,7 @@ select test.ok('website request on shift: a line in the booking''s history', exi
   and e.note like 'Website request answered on a remote shift by%'));
 insert into s99w select 'web2', jsonb_build_object('id', app.request_booking(test.id('renter:swm_ron'), test.swmv('car9'), date_trunc('hour', now()) + interval '50 days',
   date_trunc('hour', now()) + interval '53 days', 'standard', null, 'web', test.id('swm_ron')));
+update bookings set requested_at = now() - interval '1 hour' where id = (test.swmb('web2')).id;  -- 0177: past the Sales wait
 select app.door(test.id('swm_rem2'), 'aal2', 'va_do', 'send_offer', jsonb_build_object('booking', (test.swmb('web2')).id, 'expires_at', now() + interval '24 hours', 'sales_choice', 'sourced'));
 select test.eq('website request off shift: a claim for an Admin, as before', (select sales_sourced || '/' || (sales_claim_by = test.id('swm_rem2')) from test.swmb('web2')), 'false/true');
 
