@@ -29,7 +29,9 @@ const config: NextConfig = {
   images: { unoptimized: true },
   // The styles go inside the page instead of a separate file the browser must fetch before it paints (0095 speed: the
   // render-blocking stylesheet request was the longest chain before the hero image on a phone).
-  experimental: { inlineCss: true },
+  // Server actions take uploads up to 15 MB (the default is 1 MB): the Blind Spot blank agreement and the official
+  // ServiceOntario forms are 2 to 3 MB PDFs, and an upload above the limit failed the whole page.
+  experimental: { inlineCss: true, serverActions: { bodySizeLimit: '15mb' } },
   env: {
     NEXT_PUBLIC_DATA_BACKEND: process.env.DATA_BACKEND ?? 'local',
     NEXT_PUBLIC_TURNSTILE_PROVIDER: process.env.TURNSTILE_PROVIDER ?? 'fake'

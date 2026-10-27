@@ -36,7 +36,9 @@ function Card({ f }: { f: RentalForm }) {
     setMsg(null);
     const fd = new FormData(); fd.set('file', file); fd.set('form_code', code);
     start(async () => {
-      const r = kind === 'pdf' ? await uploadRentalForm(fd) : await uploadRentalSignature(fd);
+      let r: Awaited<ReturnType<typeof uploadRentalForm>> | Awaited<ReturnType<typeof uploadRentalSignature>>;
+      try { r = kind === 'pdf' ? await uploadRentalForm(fd) : await uploadRentalSignature(fd); }
+      catch { setMsg({ ok: false, text: 'The upload did not go through. Check the file (a PDF under 15 MB) and try again.' }); return; }
       setMsg(r.ok ? { ok: true, text: kind === 'pdf' ? ((r.data as { same?: boolean }).same ? 'That is the PDF already stored.' : 'Stored. Download the filled sample, then press "Checked: use for bookings".') : 'Signature stored: it is used on every new agreement.' } : { ok: false, text: r.message });
       if (r.ok) router.refresh();
     });
