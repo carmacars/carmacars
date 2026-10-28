@@ -15,6 +15,10 @@ Feedback from the desk (Mahad, October 28) on an insurer-billed rental:
 - **Edit the agreement.** The Agreement card has Edit the agreement: every printed field with its value (renter, each
   driver's licence, the car, the coverage, the insurer claim), not only what is missing. Only what changed is saved; a
   material change after signing makes a new version to sign, as before. The renter's legal name is an Admin's correction.
+- **A wrong phone number while signing.** The signing page's code step has "Wrong phone number? Change it" (or "Add a
+  mobile number"): the signed-in renter, or the staff member collecting the signature in person, enters the right
+  number; the next code goes there and the renter's profile keeps it (in the audit log). An additional driver's own
+  link still asks CarmaCars to correct it.
 
 ## Guides
 No guide change: the guides are refreshed after the deploy by the guide upkeep job; the screens named above describe themselves.
