@@ -46,6 +46,10 @@ export function InsurerClaimEdit({ x, insurers }: { x: InsurerClaimData; insurer
     <div className="field ad-field" key={k}><label className="label" htmlFor={`ic-${k}`}>{l}</label>
       <input className="input" id={`ic-${k}`} type={type} value={f[k]} onChange={set(k)} data-testid={`ic-${k}`} /></div>);
   const insurerName = insurers.find((i) => i.id === x.insurer_id)?.name;
+  // a booking billed to the renter: only the way to start billing an insurer, no card
+  if (x.bill_to === 'renter' && !open) {
+    return <p className="small"><button className="btn btn--ghost btn--sm" type="button" onClick={() => { setOpen(true); setF((s) => ({ ...s, bill_to: 'insurer' })); }} data-testid="ic-bill-insurer">Bill an insurer instead</button></p>;
+  }
   return (
     <section className="pt-card ad-card stack" aria-labelledby="ic-h" data-testid="insurer-claim-edit">
       <div className="pt-card__head"><h2 className="d4" id="ic-h">Insurance claim and adjuster</h2>
