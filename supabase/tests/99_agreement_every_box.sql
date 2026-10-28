@@ -60,3 +60,6 @@ select test.throws('edit: only an Admin corrects the legal name', format($$selec
   test.id('ag_cs'), test.agb('a')), '%Admin%legal name%');
 select test.throws('esign: a corrected number must be a Canadian or US mobile', $$select public.server_esign_set_mobile(gen_random_uuid(), '555', null)$$, 'Enter a Canadian or US mobile number');
 select test.throws('esign: no session, nothing to correct', $$select public.server_esign_set_mobile(gen_random_uuid(), '+14165550123', null)$$, '%signing has ended%');
+select test.ok('0184: Sales lists and opens a booking waiting for payment',
+  pg_get_functiondef('app.va_list(uuid, text, jsonb)'::regprocedure) like '%''requested'', ''offered'', ''pending_payment''%'
+  and pg_get_functiondef('app.va_booking_0031(uuid, text, jsonb)'::regprocedure) like '%p_fn = ''sales'' and not (v ->> ''status'' in (''requested'', ''offered'', ''pending_payment'')%');
