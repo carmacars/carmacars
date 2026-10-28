@@ -124,12 +124,12 @@ update hiring_roles set
  where slug = 'va-fleet-operations';
 
 update hiring_roles set
-  summary = 'Run our billing: price post-rental charges, settle deposits, match tolls to bookings, bill car owners and build owner statements and payouts. Part time, 3 days a week.',
-  details = jsonb_set(details, '{hours}', to_jsonb('Part time: 3 days a week, 9 hours a day, Toronto daytime (night in Manila), plus the 1st, 10th and 15th of each month. Independent contractor, 30-day paid trial.'::text)) || '{"test_task":null}'::jsonb,
-  pay_text = 'US$200 a month, part time: 3 days a week, 9 hours a day', pay_currency = 'USD', pay_min_cents = 20000, pay_max_cents = 20000, pay_unit = 'MONTH',
+  summary = 'Run our billing: price post-rental charges, settle deposits, match tolls to bookings, bill car owners and build owner statements and payouts. Part time, 4 days a week.',
+  details = jsonb_set(details, '{hours}', to_jsonb('Part time: 4 days a week, 9 hours a day, Toronto daytime (night in Manila), plus the 1st, 10th and 15th of each month. Independent contractor, 30-day paid trial.'::text)) || '{"test_task":null}'::jsonb,
+  pay_text = 'US$200 a month, part time: 4 days a week, 9 hours a day', pay_currency = 'USD', pay_min_cents = 20000, pay_max_cents = 20000, pay_unit = 'MONTH',
   refer_on = 'below_or_ko', refer_to = '{sales-remote}', refer_alt = null,
   questions = pg_temp.va_screen(
-    'This role is part time: 3 days a week, 9 hours a day, Toronto daytime (night in Manila), plus the 1st, 10th and 15th of each month. Can you work this schedule?',
+    'This role is part time: 4 days a week, 9 hours a day, Toronto daytime (night in Manila), plus the 1st, 10th and 15th of each month. Can you work this schedule?',
     'The pay is US$200 a month. Do you accept this pay?',
     'Years of bookkeeping or billing for a foreign client',
     '["Excel or Google Sheets (formulas, lookups)","QuickBooks","Xero","Stripe","Bank reconciliation","Wise or PayPal"]'::jsonb,
