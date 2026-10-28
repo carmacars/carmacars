@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SignaturePad } from '@/features/portal/SignaturePad';
 import { CONSENTS, type Clause, type ConsentCode } from '@/features/agreement/extra';
-import { esignCheckCode, esignSendCode, esignStart, esignStep } from '@/server/actions/esign';
+import { esignCheckCode, esignSendCode, esignSetMobile, esignStart, esignStep } from '@/server/actions/esign';
 import type { EsignContext, EsignReady, EsignView } from './types';
 
 // The signature that holds up (migration 0154), the same on every signing page: 1. confirm it is you with a code sent
@@ -16,6 +16,8 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
   const [channel, setChannel] = useState<'sms' | 'email'>('sms');
   const [code, setCode] = useState('');
   const [devCode, setDevCode] = useState<string | null>(null);
+  const [fixing, setFixing] = useState(false);
+  const [newPhone, setNewPhone] = useState('');
   const [typed, setTyped] = useState(false);
   const [typedName, setTypedName] = useState('');
   const [sigPath, setSigPath] = useState<string | null>(null);
@@ -44,6 +46,7 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
   // one step at a time, in the order given: each answer is the session after that step (a later step never sees an
   // earlier answer arrive after it)
   const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const canFix = ctx.kind === 'renter' || ctx.kind === 'amendment' || ctx.kind === 'in_person';
   const run = (f: () => Promise<{ ok: true; data: EsignView & { devCode?: string; path?: string } } | { ok: false; message: string }>) => {
     const p = queue.current.then(async () => {
       setBusy(true); setErr(null);
@@ -62,7 +65,7 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
         <div className="es-step__head"><h3 className="d4" id="es-1">1. Confirm it is you</h3>{v.verified && <span className="badge" data-testid="esign-verified">Confirmed</span>}</div>
         {!v.verified && <>
           <p className="small">We send a 6-digit code to {v.signer_name.split(' ')[0]}&apos;s phone or email on file. It shows the signature is yours.</p>
-          {v.channels.length === 0 ? <p className="alert alert--error" role="alert"><span>No mobile number or email is on file for {v.signer_name}. Ask CarmaCars to add one.</span></p> : <>
+          {v.channels.length === 0 && !canFix ? <p className="alert alert--error" role="alert"><span>No mobile number or email is on file for {v.signer_name}. Ask CarmaCars to add one.</span></p> : <>
             <fieldset className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}><legend className="vh">Where to send the code</legend>
               {v.channels.map((c) => <label key={c.channel} className="check"><input type="radio" name="es-channel" checked={channel === c.channel} onChange={() => setChannel(c.channel)} data-testid={`esign-channel-${c.channel}`} />
                 <span>{c.channel === 'sms' ? 'Text' : 'Email'} to {c.to}</span></label>)}
@@ -76,6 +79,13 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
               </>}
             </div>
             {devCode && <p className="xs muted" data-testid="esign-dev-code">Test code (local only): {devCode}</p>}
+            {canFix && (!fixing ? <p className="small"><button type="button" className="link" onClick={() => setFixing(true)} data-testid="esign-fix-phone">{v.channels.some((c) => c.channel === 'sms') ? 'Wrong phone number? Change it' : 'Add a mobile number'}</button></p>
+              : <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'end' }}>
+                <label className="field" style={{ margin: 0 }}><span className="label">The right mobile number</span>
+                  <input className="input" type="tel" inputMode="tel" autoComplete="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} data-testid="esign-new-phone" /></label>
+                <button className="btn btn--ghost" type="button" disabled={busy || newPhone.replace(/\D/g, '').length < 10}
+                  onClick={() => run(() => esignSetMobile(ctx, v.id, newPhone)).then((d) => { if (d) { setFixing(false); setNewPhone(''); setCode(''); setChannel('sms'); } })} data-testid="esign-save-phone">Save the number</button>
+                <button className="btn btn--ghost" type="button" onClick={() => setFixing(false)}>Cancel</button></div>)}
           </>}
         </>}
         {v.licence && <p className="xs muted" data-testid="esign-licence">Licence on file: {[v.licence.licence_front && 'front', v.licence.licence_back && 'back', v.licence.selfie && 'selfie'].filter(Boolean).join(', ') || 'none yet'}{v.licence.verified ? ', verified' : ''}.</p>}

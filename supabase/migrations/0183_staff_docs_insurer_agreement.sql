@@ -120,8 +120,6 @@ begin
 
   insert into audit_log (actor_user_id, action, entity_table, entity_id, after)
   values (p_by, 'staff_document_upload', 'bookings', b.id::text, jsonb_build_object('kind', v_kind, 'document_id', v_doc));
-  perform app.log_booking_event(b.id, 'staff_document_uploaded', b.status::text, b.status::text, null, 'Document uploaded by staff', p_by, 'staff',
-    jsonb_build_object('kind', v_kind, 'document_id', v_doc));
   return jsonb_build_object('ok', true, 'document_id', v_doc);
 end $$;
 
@@ -241,3 +239,33 @@ begin
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
 end $$;
+
+-- ================================================================ 5. a wrong phone number while signing
+-- A renter who typed a wrong mobile never got the signing code and had no way to change it. The signing page now takes
+-- a corrected number (the signed-in renter, or the staff member collecting the signature in person): the session sends
+-- its next code there, and the renter's profile keeps the corrected number. A code already sent stops working.
+create or replace function public.server_esign_set_mobile(p_session uuid, p_mobile text, p_by uuid) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  s esign_sessions;
+  v_old text;
+  v_renter uuid;
+begin
+  if p_mobile is null or p_mobile !~ '^\+1[2-9][0-9]{9}$' then raise exception 'Enter a Canadian or US mobile number' using errcode = '22023'; end if;
+  select * into s from esign_sessions where id = p_session for update;
+  if s.id is null or s.signed_at is not null then raise exception 'This signing has ended: reload the page' using errcode = 'P0002'; end if;
+  if s.otp_verified_at is not null then raise exception 'The code is already confirmed' using errcode = '23514'; end if;
+  v_old := s.mobile;
+  update esign_sessions set mobile = p_mobile, otp_channel = null, otp_to = null, otp_hash = null, otp_expires_at = null, otp_attempts = 0, updated_at = now()
+   where id = s.id;
+  if s.signer_role = 'renter' and s.booking_id is not null then
+    select renter_id into v_renter from bookings where id = s.booking_id;
+    update renters set mobile = p_mobile where id = v_renter;
+  end if;
+  if s.driver_id is not null then update drivers set mobile = p_mobile where id = s.driver_id; end if;
+  insert into audit_log (actor_user_id, action, entity_table, entity_id, before, after)
+  values (p_by, 'esign_mobile_corrected', 'esign_sessions', s.id::text, jsonb_build_object('mobile', v_old), jsonb_build_object('mobile', p_mobile));
+  return app.esign_view(s.id);
+end $$;
+revoke all on function public.server_esign_set_mobile(uuid, text, uuid) from public, anon, authenticated;
+grant execute on function public.server_esign_set_mobile(uuid, text, uuid) to service_role;

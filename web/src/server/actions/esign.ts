@@ -184,3 +184,18 @@ export async function esignStep(ctx: EsignContext, session: string, step: EsignS
     return { ok: true, data: { ...v, path } };
   } catch (e) { return fail(e); }
 }
+
+/** A wrong mobile number while signing (migration 0183): the signed-in renter, or the staff member collecting the
+ *  signature in person, corrects it; the next code goes there and the renter's profile keeps it. */
+export async function esignSetMobile(ctx: EsignContext, session: string, phone: string): Promise<R<EsignView>> {
+  try {
+    if (ctx.kind !== 'renter' && ctx.kind !== 'amendment' && ctx.kind !== 'in_person') throw new Error('Ask the renter or CarmaCars to correct the number for you.');
+    await own(ctx, session);
+    const { toE164 } = await import('@/features/auth/phone');
+    const e164 = toE164(phone);
+    if (!e164) throw new Error('Enter a Canadian or US mobile number.');
+    const user = await currentUser();
+    const v = (await rpc('server_esign_set_mobile', { p_session: session, p_mobile: e164, p_by: user!.id }, SR)) as unknown as EsignView;
+    return { ok: true, data: v };
+  } catch (e) { return fail(e); }
+}

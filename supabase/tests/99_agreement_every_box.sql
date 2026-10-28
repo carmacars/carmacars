@@ -57,3 +57,5 @@ select test.ok('edit: the Agreement card has every printed field with its value'
   (app.agreement_state(test.id('ag_cs'), test.agb('a')) #> '{current,renter}') ? 'legal_name' and jsonb_array_length(app.agreement_state(test.id('ag_cs'), test.agb('a')) #> '{current,drivers}') >= 1);
 select test.throws('edit: only an Admin corrects the legal name', format($$select public.door(%L, null, 'ops_do', 'agreement_fill', jsonb_build_object('booking', %L, 'renter', jsonb_build_object('legal_name', 'New Name')))$$,
   test.id('ag_cs'), test.agb('a')), '%Admin%legal name%');
+select test.throws('esign: a corrected number must be a Canadian or US mobile', $$select public.server_esign_set_mobile(gen_random_uuid(), '555', null)$$, 'Enter a Canadian or US mobile number');
+select test.throws('esign: no session, nothing to correct', $$select public.server_esign_set_mobile(gen_random_uuid(), '+14165550123', null)$$, '%signing has ended%');
