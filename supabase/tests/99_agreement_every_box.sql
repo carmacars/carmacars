@@ -44,10 +44,11 @@ select test.throws('insurer: a bad adjuster email is refused', format($$select p
 select public.door(test.id('ag_cs'), null, 'ops_do', 'booking_insurer_save', jsonb_build_object('booking', test.agb('a'), 'bill_to', 'renter'));
 select test.ok('insurer: each save is in the audit log', (select count(*) >= 2 from audit_log where action = 'booking_insurer_save' and entity_id = test.agb('a')::text));
 
-select test.ok('upload: staff upload the insurance policy; it is linked to the coverage record',
+select test.ok('upload: staff upload the insurance policy',
   (public.door(test.id('ag_cs'), null, 'ops_do', 'staff_document_register', jsonb_build_object('booking', test.agb('a'), 'kind', 'coverage_proof',
-     'path', 'staff/x/coverage_proof-1.pdf', 'mime', 'application/pdf', 'sha256', repeat('b', 64))) ->> 'document_id') is not null
-  and exists (select 1 from verification_uploads u join coverage_proofs c on c.id = u.coverage_proof_id where u.booking_id = test.agb('a') and u.kind = 'coverage_proof' and u.uploaded_by = test.id('ag_cs')));
+     'path', 'staff/x/coverage_proof-1.pdf', 'mime', 'application/pdf', 'sha256', repeat('b', 64))) ->> 'document_id') is not null);
+select test.ok('upload: it is linked to the coverage record for review',
+  exists (select 1 from verification_uploads u join coverage_proofs c on c.id = u.coverage_proof_id where u.booking_id = test.agb('a') and u.kind = 'coverage_proof' and u.uploaded_by = test.id('ag_cs')));
 select test.ok('upload: an insurer letter is kept on the booking',
   (public.door(test.id('ag_cs'), null, 'ops_do', 'staff_document_register', jsonb_build_object('booking', test.agb('a'), 'kind', 'insurer_document', 'path', 'staff/x/insurer-1.pdf')) ->> 'ok')::boolean);
 select test.throws('upload: an unknown kind is refused', format($$select public.door(%L, null, 'ops_do', 'staff_document_register', jsonb_build_object('booking', %L, 'kind', 'selfie', 'path', 'x'))$$,
