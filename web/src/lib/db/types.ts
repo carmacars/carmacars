@@ -13166,6 +13166,7 @@ export type Database = {
           game_saved_again_days: number;
           request_claim_minutes: number;
           request_sales_after_minutes: number;
+          hiring_evening_reminder: boolean;
         };
         Insert: {
           id?: string;
@@ -13672,6 +13673,7 @@ export type Database = {
           game_saved_again_days?: number;
           request_claim_minutes?: number;
           request_sales_after_minutes?: number;
+          hiring_evening_reminder?: boolean;
         };
         Update: {
           id?: string;
@@ -14178,6 +14180,7 @@ export type Database = {
           game_saved_again_days?: number;
           request_claim_minutes?: number;
           request_sales_after_minutes?: number;
+          hiring_evening_reminder?: boolean;
         };
         Relationships: [];
       };
