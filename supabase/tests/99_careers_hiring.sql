@@ -248,6 +248,8 @@ select test.ok('race: the first booking wins, the second is told the slot is tak
 select test.ok('race: never two candidates in a one-place slot', (select count(*) <= 1 from job_applications where slot_id = test.h99slot(3) and status = 'booked'));
 
 -- ================================================================ 4. reminders and the text
+select test.eq('reminder: no evening-before email by default (Resend''s daily cap)', (app.job_hiring(app.local_midnight(app.today() + 2) + interval '18 hours 5 minutes') ->> 'evening')::int, 0);
+update program_settings set hiring_evening_reminder = true;
 select test.eq('reminder: the evening before at 6 pm Toronto time', (app.job_hiring(app.local_midnight(app.today() + 2) + interval '18 hours 5 minutes') ->> 'evening')::int >= 1, true);
 select test.ok('reminder: marked so it goes once', (test.h99a('hirana')).reminded_evening_at is not null
   and (app.job_hiring(app.local_midnight(app.today() + 2) + interval '18 hours 20 minutes') ->> 'evening')::int = 0);
