@@ -7,7 +7,7 @@ import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
 import { requestMeta } from '@/server/request';
-import { enqueuePdfJobs } from '@/server/pdf-jobs';
+import { enqueuePdfJobs, kickPdfJobs } from '@/server/pdf-jobs';
 import { chargeAddedRental } from '@/server/portal/added-charge';
 import { sha256Hex } from '@/server/links';
 import type { SigningState } from '@/features/handover/types';
@@ -74,6 +74,8 @@ export async function signInPerson(input: SignNowInput): Promise<R<{ role: strin
       declined = await chargeAddedRental(s.booking_id, s.booking_number, s.renter_user_id);
       try { await enqueuePdfJobs([{ kind: 'renter_signed_copy', ref: s.booking_id, user_id: s.renter_user_id }]); } catch (e) { console.error('signed copy job', e); }
     }
+    // paid before signing (0185): the database countersigned and queued the signed copy; render it now
+    if (s.paid_unsigned) kickPdfJobs();
     for (const p of input.refresh ?? []) revalidatePath(p);
     return { ok: true, data: { role: g.role, declined } };
   } catch (e) { return fail(e); }

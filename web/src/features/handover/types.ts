@@ -3,6 +3,7 @@ export interface LicenceStatus { licence_front?: string | null; licence_back?: s
 export interface Signer { id: string; role: 'renter' | 'additional_driver'; name: string; signed_at: string | null; driver_id: string | null; in_person: boolean | null; licence: LicenceStatus }
 export interface SigningState {
   booking_id: string; booking_number: string; status: string; renter_user_id: string | null; renter_mobile: string | null; renter_email: string | null; added: boolean; link_due: boolean;
+  /** 0185: confirmed on a payment received another way before the renter signed */ paid_unsigned?: boolean;
   agreement: { id: string; status: string; document_id: string; document_sha256: string; agreement_number: string | null } | null;
   companion: { status: string; document_id: string; document_sha256: string } | null;
   signers: Signer[];

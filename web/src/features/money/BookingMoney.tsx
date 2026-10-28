@@ -90,18 +90,13 @@ export function BookingMoney({ m }: { m: Money }) {
 
       {open === 'record' && (
         <form className="ad-form ad-form--narrow" aria-label="Record a payment" data-testid="bm-record" onSubmit={(e) => { e.preventDefault(); run(async () => {
-          // 0132: one payment for the rental and the fees together: the rental first, the rest for the fees (two records)
+          // 0132: one payment for the rental and the fees together: the rental first, the rest for the fees (two records).
+          // 0185: one call, so both parts are recorded in one transaction or neither is
           const both = rec.covers === 'both';
           const typed = cents(rec.amount);
           if (rec.covers !== 'deposit' && rec.covers !== 'later' && typed === null && (both ? openPart('rental') + openPart('fees') : openPart(rec.covers)) <= 0) { done(false, 'Nothing is open for that part: type the amount, or choose A later charge.'); return; }
-          const amount = cents(rec.amount) ?? (both ? openPart('rental') + openPart('fees') : null);
-          const first = both ? Math.min(amount ?? 0, openPart('rental')) : amount;
-          const firstCovers = both ? (openPart('rental') > 0 ? 'rental' : 'fees') : rec.covers;
-          let r = await offersDo<{ confirmed?: boolean; confirm?: { reason?: string } }>('record_booking_payment', { booking: m.booking_number, covers: firstCovers, method: rec.method, amount_cents: both && firstCovers === 'fees' ? amount : first, reference: rec.reference, received_on: rec.received_on, note: rec.note });
-          if (r.ok && both && firstCovers === 'rental' && amount !== null && first !== null && amount > first) {
-            r = await offersDo('record_booking_payment', { booking: m.booking_number, covers: 'fees', method: rec.method, amount_cents: amount - first, reference: rec.reference ? `${rec.reference} (part 2)` : '', received_on: rec.received_on, note: rec.note || 'The rest of the same payment, for the fees' });
-          }
-          done(r.ok, r.ok ? `Recorded.${r.data.confirmed ? ' The booking is confirmed.' : r.data.confirm?.reason ? ` Not confirmed yet: ${r.data.confirm.reason}.` : ''}` : r.message);
+          const r = await offersDo<{ confirmed?: boolean; confirm?: { reason?: string; awaiting_signature?: boolean } }>('record_booking_payment', { booking: m.booking_number, covers: rec.covers, method: rec.method, amount_cents: typed, reference: rec.reference, received_on: rec.received_on, note: rec.note });
+          done(r.ok, r.ok ? `Recorded.${r.data.confirmed ? (r.data.confirm?.awaiting_signature ? ' The booking is confirmed. CarmaCars countersigns the rental agreement when the renter signs.' : ' The booking is confirmed.') : r.data.confirm?.reason ? ` Not confirmed yet: ${r.data.confirm.reason}.` : ''}` : r.message);
         }); }}>
           <div className="ad-fields">
             <div className="field ad-field"><label className="label" htmlFor="bm-covers">For</label>

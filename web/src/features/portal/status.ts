@@ -45,7 +45,8 @@ export function nextStep(b: BookingSummary | MyBooking, now = Date.now()): NextS
     }
     case 'confirmed': {
       // a rental staff added by hand (0046): confirmed before the agreement is signed
-      if (full && (full as { added_by_staff?: boolean }).added_by_staff && full.agreement?.status !== 'completed' && full.agreement?.status !== 'signed') {
+      // 0185: paid another way before signing, the same
+      if (full && ((full as { added_by_staff?: boolean }).added_by_staff || full.paid_unsigned) && full.agreement?.status !== 'completed' && full.agreement?.status !== 'signed') {
         return { title: 'Sign your rental agreement', note: 'Your rental is booked. Read and sign the agreement before pickup.', href: path('sign'), cta: 'Sign agreement', urgent: true };
       }
       const missing = full?.readiness?.missing ?? [];
