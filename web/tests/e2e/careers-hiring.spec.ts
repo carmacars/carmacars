@@ -65,6 +65,17 @@ const SALES = {
   expect: 'twenty', start: '2026-11-02', hours_week: '25'
 };
 
+const VA_PASS = {
+  schedule: 'Yes, I can work this schedule every week', pay: 'Yes, I accept this pay', internet: 'Fiber or cable, 25 Mbps or faster, plus a backup connection',
+  speed: '80 down, 40 up', backup: 'A generator, inverter or power station', english: 'Fluent: I handle calls on my own every day', years: '5 years or more',
+  experience: 'Five years billing North American clients at an accounting firm: invoices, statements, reconciliations and payouts every day, in Excel and QuickBooks.',
+  tools: ['QuickBooks', 'Stripe'], social: ['Designing posts in Canva'], skills: 'Accuracy to the cent, spreadsheets, clear written English.',
+  business: 'Rents cars to customers in Toronto',
+  role: 'I will price the charges after each rental, settle deposits, match tolls to bookings, bill the owners on the 15th and build their statements and payouts for the 10th.',
+  scenario: 'Change nothing, verify by a phone number we already have and wait for written approval', other_jobs: 'No, this would be my only job', clients: 'No',
+  school: 'No', education: 'College degree', career: 'A long-term career, growing with one company', canada: 'Maybe', start: '2026-11-09'
+};
+
 test('apply from Indeed and pass, book a call, the Admin scores it, the rank follows, Hire invites the staff account', async ({ page, browser }) => {
   test.setTimeout(600_000);
   const errors = watch(page);
@@ -205,23 +216,18 @@ test('a Field staff knock-out is offered Sales with the details filled in; a rem
   expect(s?.source).toBe('referral');
   expect(s?.referred_from).toBe(f!.id);
 
-  // a remote assistant role (opened for the test): the missing code word of the post is a knock-out and a polite decline
+  // a remote assistant role (opened for the test): refusing the schedule is a knock-out, and every VA who does not pass is
+  // referred to Sales (remote) (0179)
   await sql`update hiring_roles set active = true where slug = 'va-finance-billing'`;
   try {
     const fin = `dee.${tag()}@example.test`;
     await page.goto('/careers/va-finance-billing/apply?src=onlinejobs', { waitUntil: 'networkidle' });
     await contact(page, 'Dee Example', fin);
-    await answer(page, { shift: 'Yes, every shift, weekends included', hours_now: '9 pm to 6 am', backup: 'Backup power and a second internet connection', years: '5 years or more',
-      tools_detail: 'Excel, QuickBooks and Xero for client billing.', mistake: 'I once sent an invoice twice.', clients: 'No other clients',
-      scenario: 'Change nothing, verify by a phone number we already have and wait for written approval', tip: 'Refuse it and report it to the office',
-      post_check: 'invoice', rate: '7', start: '2026-11-09', references: 'Two clients we may call.' });
+    await answer(page, { ...VA_PASS, schedule: 'No' });
     await page.getByTestId('ap-submit').click();
-    await expect(page.getByTestId('apply-done')).toHaveAttribute('data-outcome', 'declined', { timeout: 60_000 });
-    const [d] = await sql`select status, source from job_applications where email = ${fin}`;
-    expect(d?.status).toBe('declined');
-    expect(d?.source).toBe('onlinejobs');
-    await expect.poll(async () => { await sql`select app.process_events(1000)`; return (await sql`select payload ->> 'decline_reason' r from notification_outbox where code = 'applicant_declined' and to_address = ${fin}`)[0]?.r as string | undefined; }, { timeout: 30_000 })
-      .toBe('the code word from the job post');
+    await expect(page.getByTestId('apply-done')).toHaveAttribute('data-outcome', 'referred', { timeout: 60_000 });
+    const [d] = await sql`select a.status, a.source, r.slug from job_applications a join hiring_roles r on r.id = a.referred_role_id where a.email = ${fin}`;
+    expect(`${d?.status}/${d?.source}/${d?.slug}`).toBe('referred/onlinejobs/sales-remote');
   } finally {
     await sql`update hiring_roles set active = false where slug = 'va-finance-billing'`;
   }
