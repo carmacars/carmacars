@@ -21,3 +21,12 @@ select test.eq('privileges: the new functions are the service role''s only',
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where ((n.nspname = 'public' and p.proname = 'server_coverage_detail') or (n.nspname = 'app' and p.proname in ('coverage_detail', 'agreement_fill', 'agreement_missing', 'agreement_snapshot')))
       and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))), 0::bigint);
+
+-- 0182: coverage details typed on the Agreement card before any proof was uploaded
+delete from coverage_proofs where booking_id = test.agb('a');
+select public.door(test.id('ag_cs'), null, 'ops_do', 'agreement_fill',
+  jsonb_build_object('booking', test.agb('a'), 'coverage', jsonb_build_object('insurer_name', 'Allstate', 'policy_number', 'P-123', 'policy_expiry', '2027-05-01')));
+select test.eq('fill without proof: a submitted coverage proof is created with the details (no document, not confirmed)',
+  (select status || '/' || policy_number || '/' || (proof_document_id is null)::text from coverage_proofs where booking_id = test.agb('a')), 'submitted/P-123/true');
+select test.ok('fill without proof: the audit log records who entered it',
+  exists (select 1 from audit_log where action = 'coverage_entered_without_proof' and entity_id = test.agb('a')::text));
