@@ -33,7 +33,7 @@ create or replace function test.h99field(p jsonb default '{}'::jsonb) returns js
     "dent":"Stay polite, photograph everything, note it in the app and let the office decide",
     "cash":"Count it in front of them, record it in the app right away and give them the receipt","start":"2026-11-02","pay":"20"}'::jsonb || p $$;
 create or replace function test.h99va(p jsonb default '{}'::jsonb) returns jsonb language sql immutable as $$
-  select jsonb_build_object('schedule', 'Yes, I can work this schedule every week', 'pay', 'Yes, I accept this pay',
+  select jsonb_build_object('schedule', 'Yes, I can work this schedule every week', 'pay', 'Yes, I understand the rate is firm and I accept it',
     'internet', 'Fiber or cable, 25 Mbps or faster, plus a backup connection', 'speed', '80 down, 40 up', 'backup', 'A generator, inverter or power station',
     'english', 'Fluent: I handle calls on my own every day', 'years', '5 years or more',
     'experience', 'Five years billing North American clients at an accounting firm: invoices, statements, reconciliations and payouts every single day of the week',
@@ -95,6 +95,9 @@ select test.eq('score: a VA who accepts both passes the bar with no knock-out', 
   select app.hiring_score((select questions from hiring_roles where slug = 'va-finance-billing'), test.h99va()) s) x), '[]/true');
 select test.eq('score: moving to Canada is asked, never scored', (select d ->> 'max' from jsonb_array_elements(app.hiring_score((select questions from hiring_roles where slug = 'va-customer-service'),
   test.h99va()) -> 'detail') d where d ->> 'key' = 'canada'), '0');
+select test.ok('va: every VA role asks to accept the firm rate, a no is a knock-out and goes to remote sales', (select bool_and(questions::text ~ 'This rate is firm and not negotiable' and refer_on = 'below_or_ko' and refer_to = '{sales-remote}') from hiring_roles where slug in ('va-customer-service', 'va-fleet-operations', 'va-finance-billing')));
+select test.eq('va: refusing the firm rate is a knock-out', jsonb_array_length(app.hiring_score((select questions from hiring_roles where slug = 'va-customer-service'), test.h99va('{"pay":"No"}')) -> 'knockouts'), 1);
+select test.ok('sales: remote sales asks to accept its firm commission rates', (select questions -> 0 ->> 'key' = 'rate_firm' and questions::text ~ 'These rates are firm and not negotiable' from hiring_roles where slug = 'sales-remote'));
 select test.eq('score: the remote sales check wants words, not figures', (select string_agg(d ->> 'points', '/') from (
   select d from jsonb_array_elements(app.hiring_score((select questions from hiring_roles where slug = 'sales-remote'), '{"post_check":"twelve"}'::jsonb) -> 'detail') d where d ->> 'key' = 'post_check'
   union all select d from jsonb_array_elements(app.hiring_score((select questions from hiring_roles where slug = 'sales-remote'), '{"post_check":"12"}'::jsonb) -> 'detail') d where d ->> 'key' = 'post_check') x), '10/0');
@@ -165,7 +168,7 @@ select test.h99apply('hirev', 'sales-in-person', test.h99sales('{"years":"Under 
   "turo":"Match the Turo price","discount":"Say no and end the chat","toll":"Tell them it is not your problem"}'));
 select test.eq('sales in person below the bar: offered remote sales', (select status || '/' || (select slug from hiring_roles where id = referred_role_id) from test.h99a('hirev')), 'referred/sales-remote');
 create or replace function test.h99remote(p jsonb default '{}'::jsonb) returns jsonb language sql immutable as $$
-  select '{"shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
+  select '{"rate_firm":"Yes, I understand the rates are firm and I accept them","shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
     "scenario":"Give the 15% to close the sale","tip":"Accept it if the fee is small","post_check":"5","activity":"No","based":"Lagos, Nigeria","start":"2026-11-09","references":"Two clients"}'::jsonb || p $$;
 select test.h99apply('hirfay', 'sales-remote', test.h99remote());
 select test.eq('remote sales below the bar, the matching role closed: waits for review', (test.h99a('hirfay')).status, 'below_bar');

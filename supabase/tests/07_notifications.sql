@@ -803,13 +803,13 @@ begin
   -- a VA knock-out with Sales (remote) closed: the decline (0179 refers it to Sales (remote) when that role is open)
   update hiring_roles set active = (slug = 'va-finance-billing') where slug in ('va-finance-billing', 'sales-remote');
   perform public.server_hiring_apply(jsonb_build_object('role', 'va-finance-billing', 'full_name', 'Nt Declined', 'email', 'nt.declined@example.test', 'phone', '4165550113',
-    'answers', '{"schedule":"No","pay":"Yes, I accept this pay","internet":"Fiber or cable, 25 Mbps or faster, no backup","speed":"50","backup":"None",
+    'answers', '{"schedule":"No","pay":"Yes, I understand the rate is firm and I accept it","internet":"Fiber or cable, 25 Mbps or faster, no backup","speed":"50","backup":"None",
       "english":"Good: I can handle most calls","years":"5 years or more","experience":"Billing","skills":"Excel","business":"Rents cars to customers in Toronto",
       "role":"Billing","scenario":"Update the details and pay on time","other_jobs":"No, this would be my only job","clients":"No","school":"No",
       "education":"College degree","career":"A job for now","canada":"No","start":"2026-11-09"}'::jsonb), null);
   update hiring_roles set active = (slug = 'sales-remote') where slug in ('va-finance-billing', 'sales-remote');
   perform public.server_hiring_apply(jsonb_build_object('role', 'sales-remote', 'full_name', 'Nt Received', 'email', 'nt.received@example.test', 'phone', '4165550114',
-    'answers', '{"shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
+    'answers', '{"rate_firm":"Yes, I understand the rates are firm and I accept them","shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
       "scenario":"Give the 15% to close the sale","tip":"Accept it if the fee is small","post_check":"5","activity":"No","based":"Nairobi, Kenya","start":"2026-11-09","references":"Two"}'::jsonb), null);
   perform app.hiring_day_delete(test.id('nt_admin'), jsonb_build_object('id', v_day ->> 'id'));
 end $$;

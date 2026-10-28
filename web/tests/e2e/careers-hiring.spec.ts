@@ -66,7 +66,7 @@ const SALES = {
 };
 
 const VA_PASS = {
-  schedule: 'Yes, I can work this schedule every week', pay: 'Yes, I accept this pay', internet: 'Fiber or cable, 25 Mbps or faster, plus a backup connection',
+  schedule: 'Yes, I can work this schedule every week', pay: 'Yes, I understand the rate is firm and I accept it', internet: 'Fiber or cable, 25 Mbps or faster, plus a backup connection',
   speed: '80 down, 40 up', backup: 'A generator, inverter or power station', english: 'Fluent: I handle calls on my own every day', years: '5 years or more',
   experience: 'Five years billing North American clients at an accounting firm: invoices, statements, reconciliations and payouts every day, in Excel and QuickBooks.',
   tools: ['QuickBooks', 'Stripe'], social: ['Designing posts in Canva'], skills: 'Accuracy to the cent, spreadsheets, clear written English.',
