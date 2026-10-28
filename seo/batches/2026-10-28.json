@@ -1,0 +1,94 @@
+{
+  "batch": "2026-10-28",
+  "items": [
+    {
+      "kind": "car",
+      "id": "47c81699-7bfb-46e3-87d3-4a08a2379757",
+      "prompt_version": "car-copy-v2",
+      "copy": {
+        "seo_title": "",
+        "meta_description": "",
+        "h1": "",
+        "intro": "The long version of a big GMC SUV, with space behind the back seats for hockey bags and a week of luggage. Made for family trips out of town.",
+        "highlights": [
+          "Apple CarPlay and Android Auto",
+          "Remote start",
+          "Bluetooth",
+          "Air conditioning",
+          "Cruise control"
+        ],
+        "good_for": [
+          "Large families and groups",
+          "Road trips with lots of luggage",
+          "Hockey and sports gear runs",
+          "Airport pickups with big suitcases"
+        ],
+        "included": [],
+        "pickup_delivery": "",
+        "requirements": [],
+        "faq": [
+          {
+            "question": "What fuel does the Yukon XL take?",
+            "answer": "It runs on gas, so you can fill it at any regular station along the way."
+          },
+          {
+            "question": "Can I use my phone's maps and music on the screen?",
+            "answer": "Yes. It has Apple CarPlay and Android Auto, and Bluetooth for calls and audio."
+          },
+          {
+            "question": "Can I warm it up before I get in on a cold morning?",
+            "answer": "Yes, the Yukon XL has remote start, so you can get the engine and heat going from inside the house."
+          }
+        ],
+        "alt_texts": {}
+      }
+    },
+    {
+      "kind": "car",
+      "id": "02a9aa8a-fd4c-488a-a06f-6561fcdccce8",
+      "prompt_version": "car-copy-v2",
+      "copy": {
+        "seo_title": "",
+        "meta_description": "",
+        "h1": "",
+        "intro": "Five seats, heated front seats and four-wheel drive for slushy side streets. A compact SUV that fits a family weekend and still parks easily.",
+        "highlights": [
+          "Four-wheel drive",
+          "Heated front seats",
+          "Backup camera",
+          "Apple CarPlay and Android Auto",
+          "Lane keeping assist",
+          "Forward collision alert"
+        ],
+        "good_for": [
+          "Small families",
+          "Ski and cottage weekends",
+          "Winter commutes",
+          "Airport runs with luggage"
+        ],
+        "included": [],
+        "pickup_delivery": "",
+        "requirements": [],
+        "faq": [
+          {
+            "question": "How many people fit in the Tucson?",
+            "answer": "It seats 5, and the cargo area behind the back seats takes their bags."
+          },
+          {
+            "question": "Is the Tucson a good choice for snow?",
+            "answer": "It has four-wheel drive, and lane keeping assist and forward collision alert give you an extra set of eyes in slow winter traffic."
+          },
+          {
+            "question": "What fuel does it use?",
+            "answer": "The Tucson runs on gas and has an automatic transmission."
+          },
+          {
+            "question": "Can I connect my phone?",
+            "answer": "Yes. Pair it over Bluetooth, or plug in for Apple CarPlay and Android Auto on the screen."
+          }
+        ],
+        "alt_texts": {}
+      }
+    }
+  ]
+}
