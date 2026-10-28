@@ -166,7 +166,7 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
   let target = '';
   try {
     const { userId, b } = await mine(number);
-    if (!(await accountGate(userId, 'sign')).ok) return fail(GATE_MESSAGE, 'unconfirmed');
+    // 0183: signing does not wait for the account to be confirmed (the e-sign code still proves who signs)
     const { all, need, ticked } = await signatureArgs(input, userId);
     if (!need.every((c) => ticked.has(c))) return { ok: false, code: 'invalid', message: 'Tick all four statements to sign.', fieldErrors: { consents: 'Tick all four statements.' } };
     if (!b.agreement || b.agreement.status !== 'open') return fail('There is no agreement waiting for your signature. Reload the page.');

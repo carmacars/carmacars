@@ -159,8 +159,8 @@ select test.eq('...and back: an account made by phone that loses its number keep
 -- ================================================================ 7. confirmation and the email before the first payment
 select test.eq('a confirmed email confirms the account', app.account_confirmed(test.id('ps_rita')), true);
 select test.eq('a verified phone confirms the account (signin_confirm_by_phone)', app.account_confirmed(test.id('ps_new')), true);
-select test.eq('an account with neither: accepting, signing and paying wait',
-  (select string_agg(app.account_gate(test.id('ps_guest'), s) ->> 'reason', ',') from unnest(array['accept', 'sign', 'pay']) s), 'unconfirmed,unconfirmed,unconfirmed');
+select test.eq('an account with neither: accepting and paying wait; signing does not (0183)',
+  (select string_agg(coalesce(app.account_gate(test.id('ps_guest'), s) ->> 'reason', 'ok'), ',') from unnest(array['accept', 'sign', 'pay']) s), 'unconfirmed,ok,unconfirmed');
 update program_settings set signin_confirm_by_phone = false;
 select test.eq('only a confirmed email counts when an Admin turns the phone off', app.account_gate(test.id('ps_new'), 'accept') ->> 'reason', 'unconfirmed');
 update program_settings set signin_confirm_by_phone = true, signin_confirm_required = false;

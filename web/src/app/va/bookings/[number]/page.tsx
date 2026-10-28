@@ -26,6 +26,7 @@ import { HandoverPanel } from '@/features/handover/HandoverPanel';
 import { OwnerDeductionsPanel, OwnerVisibilityPanel } from '@/features/admin/OwnerControls';
 import { ReviewPanel } from '@/features/reviews/ReviewPanel';
 import { DocumentReview } from '@/features/admin/DocumentReview';
+import { StaffDocUpload } from '@/features/admin/StaffDocUpload';
 import { AgreementPanel } from '@/features/agreements/AgreementPanel';
 import type { PhoneTimelineData } from '@/features/phone/client';
 import { ClaimBanner, ClaimGate, RequestClaim } from '@/features/offers/RequestClaim';
@@ -119,6 +120,11 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
       {fn === 'sales' && ['requested', 'offered', 'tentative', 'pending_payment', 'confirmed', 'on_rent'].includes(b.status) && (
         <Card title="Renter licence" testId="booking-doc-review" aside={<DocumentReview booking={b.booking_number} refresh={R} label="Review the licence" />}>
           <p className="small">Approve or reject the licence front, back and selfie the renter sent; a rejection tells them why. The proof of coverage and the Protection Plan are reviewed by customer service or an Admin.</p>
+        </Card>)}
+      {/* staff upload the renter's documents: licence, insurance policy or pink card, insurer letters (0183) */}
+      {['pending_payment', 'confirmed', 'on_rent', 'returned'].includes(b.status) && b.booking_type !== 'owner' && (
+        <Card title="Upload a renter document" testId="booking-staff-upload">
+          <StaffDocUpload bookingId={String(b.id)} drivers={((b.drivers ?? []) as Array<Record<string, unknown>>).map((d) => ({ driver_id: String(d.driver_id), full_name: String(d.full_name ?? '') }))} />
         </Card>)}
       {/* what the owner sees of this booking (0156) */}
       <OwnerVisibilityPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />

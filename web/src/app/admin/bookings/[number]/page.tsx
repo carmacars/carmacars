@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { BookingInsurer, type BookingInsurerData } from '@/features/insurers/BookingInsurer';
+import { InsurerClaimEdit } from '@/features/insurers/InsurerClaimEdit';
+import { StaffDocUpload } from '@/features/admin/StaffDocUpload';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
 import type { PhoneTimelineData } from '@/features/phone/client';
@@ -150,6 +152,11 @@ export default async function Booking({ params, searchParams }: { params: Promis
       )}
       {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
       {(tab === 'overview' || tab === 'money') && insurerCard?.billed_to_insurer && <BookingInsurer x={insurerCard} />}
+      {tab === 'overview' && b.booking_type !== 'owner' && !['cancelled', 'declined', 'expired'].includes(b.status) && <InsurerClaimEdit insurers={ins.rows} x={{
+        booking: b.booking_number, bill_to: b.bill_to, insurer_id: b.insurer_id, claim_number: b.insurer_claim_number, adjuster_name: b.insurer_adjuster_name,
+        adjuster_email: b.insurer_adjuster_email, adjuster_phone: b.insurer_adjuster_phone, policy_number: (b.insurer_policy_number as string | null) ?? null,
+        policy_province: (b.insurer_policy_province as string | null) ?? null, authorized_days: b.insurer_authorized_days, authorized_until: b.insurer_authorized_until,
+        authorized_daily_rate_cents: b.insurer_authorized_daily_rate_cents }} />}
       {(tab === 'overview' || tab === 'money') && b.billable_days > 27 && <BookingPeriods booking={b.booking_number} rows={await door<PeriodRow[]>(user.id, 'ops_read', 'booking_periods', { booking: b.booking_number }).catch(() => [] as PeriodRow[])} />}
       {(tab === 'overview' || tab === 'review') && renterForm && <RenterEdit x={renterForm} />}
       {(tab === 'overview' || tab === 'review') && renterForm?.may_edit && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: renterForm.renter_id }).catch(() => [] as DuplicateRow[])} />}
@@ -272,6 +279,7 @@ function RenterDocs({ b, refresh }: { b: Detail; refresh: string[] }) {
   return (
     <Card title="Renter documents" testId="booking-doc-review" tone={missing.length ? 'next' : undefined} aside={<DocumentReview booking={b.booking_number} refresh={refresh} label="Review documents" />}>
       <p className="small">{missing.length ? `Still needed before the handover: ${missing.join(' and ')}. Approve or reject what the renter sent; a rejection tells them why.` : 'Identity and coverage are confirmed.'}</p>
+      <StaffDocUpload bookingId={String(b.id)} drivers={(b.drivers ?? []).map((d) => ({ driver_id: String(d.driver_id), full_name: String(d.full_name ?? '') }))} />
     </Card>
   );
 }

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Card } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import { when } from '@/features/agreement/model';
-import { AgreementActions, MissingFields, type Missing } from './AgreementActions';
+import { AgreementActions, AgreementEditAll, MissingFields, type AgreementCurrent, type Missing } from './AgreementActions';
 
 // The booking page's Agreement card (migration 0154), for an Admin and the assistants: the current version of the two
 // rental agreements and every earlier one (what changed, both PDFs, who signed or countersigned), a version waiting for
@@ -17,6 +17,8 @@ interface State {
   booking_id: string; booking_number: string; status: string; plan_state: string; pending: { kind: string; material: boolean; changes: unknown[] } | null;
   versions: Version[]; waiting: { version_no: number; signers: Array<{ id: string; name: string; role: string; token: string }> } | null;
   missing: Missing[]; overrides: Array<{ at: string; reason: string; by: string | null }>; job: { due_at: string; attempts: number; last_error: string | null } | null; is_admin: boolean;
+  /** 0183: every printed field with its value */
+  current?: AgreementCurrent;
   disputes: Array<{ id: string; status: string; built_at: string | null; staged_at: string | null; submitted_at: string | null; document_id: string | null; error: string | null; size: number | null }>;
 }
 const KIND: Record<string, string> = { signed: 'as signed', pickup: 'as picked up', return: 'as returned', change: 'changed', correction: 'corrected' };
@@ -51,6 +53,7 @@ export async function AgreementPanel({ b, base, userId, aal, docBase, finance, o
           </details>
         </>}
         <MissingFields booking={s.booking_id} missing={s.missing} refresh={refresh} isAdmin={s.is_admin} overrides={s.overrides} />
+        {s.current && <AgreementEditAll booking={s.booking_id} current={s.current} refresh={refresh} isAdmin={s.is_admin} />}
         <AgreementActions booking={s.booking_id} refresh={refresh} waiting={!!s.waiting} finance={finance || s.is_admin} disputes={s.disputes} docBase={openDocs ? docBase : ''} />
       </div>
     </Card>

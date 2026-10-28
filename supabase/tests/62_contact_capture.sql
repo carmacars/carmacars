@@ -81,11 +81,26 @@ insert into capture_accounts (user_id, opened_by_capture, sign_in_made) values (
 update users set email_verified_at = null where id = test.id('cap_renter');
 select test.eq('unconfirmed: the gate says so', public.server_capture_unconfirmed(test.id('cap_renter')), true);
 select test.throws('unconfirmed cannot accept an offer', $$select public.renter_approve_offer(test.id('booking:CAP-1'), 1, test.id('cap_renter'))$$, '%Confirm your email first%accept the offer%');
-select test.throws('unconfirmed cannot sign the agreement', $$select public.renter_sign_agreement(test.id('booking:CAP-1'), test.id('cap_renter'), 'I agree', repeat('a', 64), '{}'::jsonb, 'Cap Renter')$$, '%Confirm your email first%sign%');
-select test.throws('unconfirmed cannot sign an amendment', $$select public.renter_sign_amendment(gen_random_uuid(), test.id('cap_renter'), 'I agree', repeat('a', 64), 'Cap Renter')$$, '%Confirm your email first%sign%');
+do $$ begin
+  perform public.renter_sign_agreement(test.id('booking:CAP-1'), test.id('cap_renter'), 'I agree', repeat('a', 64), '{}'::jsonb, 'Cap Renter');
+  perform test.ok('0183: unconfirmed may sign the agreement (not the email gate)', true);
+exception when others then
+  perform test.ok('0183: unconfirmed may sign the agreement (not the email gate)', sqlerrm not like 'Confirm your email first%', sqlerrm);
+end $$;
+do $$ begin
+  perform public.renter_sign_amendment(gen_random_uuid(), test.id('cap_renter'), 'I agree', repeat('a', 64), 'Cap Renter');
+  perform test.ok('0183: unconfirmed may sign an amendment (not the email gate)', true);
+exception when others then
+  perform test.ok('0183: unconfirmed may sign an amendment (not the email gate)', sqlerrm not like 'Confirm your email first%', sqlerrm);
+end $$;
 select test.throws('unconfirmed cannot pay', $$select public.server_record_booking_payment(test.id('booking:CAP-1'), '{}'::jsonb, 100, 1, null, null, test.id('cap_renter'))$$, '%Confirm your email first%pay%');
 select test.throws('unconfirmed cannot pay an extension', $$select public.server_confirm_extension_payment(gen_random_uuid(), '{}'::jsonb, 100, test.id('cap_renter'))$$, '%Confirm your email first%pay%');
-select test.throws('unconfirmed cannot upload ID or licence documents', $$select public.renter_register_upload(test.id('booking:CAP-1'), test.id('cap_renter'), 'id_front', 'x/y.jpg', repeat('a', 64), 'image/jpeg', 'private')$$, '%Confirm your email first%upload%');
+do $$ begin
+  perform public.renter_register_upload(test.id('booking:CAP-1'), test.id('cap_renter'), 'id_front', 'x/y.jpg', repeat('a', 64), 'image/jpeg', 'private');
+  perform test.ok('0183: unconfirmed may upload documents (not the email gate)', true);
+exception when others then
+  perform test.ok('0183: unconfirmed may upload documents (not the email gate)', sqlerrm not like 'Confirm your email first%', sqlerrm);
+end $$;
 select test.eq('an account capture never touched is not gated', public.server_capture_unconfirmed(test.id('cap_admin')), false);
 
 -- ================================================================ 5. the link confirms; every unverified session ends
