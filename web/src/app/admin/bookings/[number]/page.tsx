@@ -147,7 +147,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           {['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && (await door<{ handover_note: string | null }>(user.id, 'ops_read', 'listing_state', { vehicle_id: b.vehicle_id }).catch(() => null))?.handover_note && <p className="alert alert--warn" role="note" data-testid="offer-policy-warning"><span className="alert__title">Car not on the fleet policy yet</span><span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it. When it does, press Insurer confirmed on <Link prefetch={false} className="link" href={`/admin/vehicles/${b.vehicle_id}?tab=listing`}>the car</Link> (or on Admin &gt; Today).</span></p>}
           {/* the renter's licence, uploaded with the request (0130) */}
           <RenterDocs b={b} refresh={[base]} />
-          <ClaimGate testId="claim-gate-review"><BookingReview b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={['requested', 'offered', 'pending_payment'].includes(b.status)} /></ClaimGate>
+          <ClaimGate testId="claim-gate-review" explain><BookingReview b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={['requested', 'offered', 'pending_payment'].includes(b.status)} /></ClaimGate>
         </>
       )}
       {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
