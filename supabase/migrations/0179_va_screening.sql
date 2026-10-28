@@ -5,7 +5,7 @@
 -- CarmaCars, their agreement to the hours and the pay, other jobs, school, education, career or job, and moving to
 -- Canada; every VA who does not pass goes to Sales (remote). Customer service starts at 9:00 and fleet at 11:00 Toronto
 -- time, 6 days a week, 10 hours a day; fleet is a full operations role. Pay is monthly (US$400, US$450, US$200 part time).
--- SCHEMA_MARKER 0179.
+-- No paid test for the VA roles (the owner, October 28): the call, then the decision. SCHEMA_MARKER 0179.
 
 create or replace function pg_temp.yes_no(p_key text, p_label text, p_yes text, p_no text, p_pts int, p_ko_reason text) returns jsonb
 language sql immutable as $$
@@ -76,7 +76,7 @@ language sql immutable as $$
     jsonb_build_array('3:00 to 6:00', p_role),
     jsonb_build_array('6:00 to 8:00', 'Other jobs, school, internet and power backup, start date. Career or job? Good: this is their main job, real backup, a long-term plan.'),
     jsonb_build_array('8:00 to 9:00', 'Tell me back in one sentence what CarmaCars does and what this role does. Good: right on both, without reading.'),
-    jsonb_build_array('9:00 to 10:00', 'Their questions. Next step: the paid test task, then our decision within two days.'))
+    jsonb_build_array('9:00 to 10:00', 'Their questions. Next step: we decide within two days and write to everyone.'))
 $$;
 
 update hiring_roles set
@@ -86,7 +86,7 @@ update hiring_roles set
     "duties":["Answer every call, text, WhatsApp, email and website chat within 15 minutes","Turn enquiries into quotes from our rate sheet and send booking offers","Follow up on unpaid offers and on people who started a booking and stopped","Check driver's licences and insurance coverage before pickup; chase renters for missing details","Handle extension and cancellation requests and questions during a rental","In quiet hours: post our cars on Facebook Marketplace and classified sites, and reach out to car owners who may list with us"],
     "requirements":["Two years of phone and chat support for North American customers","Clear, neutral spoken English","Accurate quoting under time pressure; you follow scripts and never invent a discount","Your own computer, headset, backup internet and power","No work for another car rental business serving Ontario"],
     "hours":"Full time: 6 days a week, 10 hours a day, starting 9:00 am Toronto time (night in Manila), weekends included. Independent contractor, 30-day paid trial.",
-    "test_task":"A one-hour paid test: reply to three customer enquiries using our rate sheet and procedures. Pass mark 16 out of 20; an invented discount or promise fails the test."}$j$::jsonb,
+    "test_task":null}$j$::jsonb,
   pay_text = 'US$400 a month, full time: 6 days a week, 10 hours a day', pay_currency = 'USD', pay_min_cents = 40000, pay_max_cents = 40000, pay_unit = 'MONTH',
   employment_types = '{CONTRACTOR,FULL_TIME}', refer_on = 'below_or_ko', refer_to = '{sales-remote}', refer_alt = null,
   questions = pg_temp.va_screen(
@@ -108,7 +108,7 @@ update hiring_roles set
     "duties":["Build the day's schedule and dispatch our field staff for deliveries, pickups, returns and cleaning; confirm every job is done","Prepare the paperwork for each rental and make sure every rental agreement is complete in full before a car is handed over","Review pickup and return photos within an hour for damage, kilometres and fuel, and pass findings to billing the same day","Watch return times and GPS trackers; chase late returns and handle breakdowns and roadside calls","Dispatch tow trucks when needed","Source parts for maintenance and repairs, and book cars into the shop","Keep each car's status accurate (on rent, cleaning, in the shop)","Take over customer service calls and messages when needed","Before you finish each shift, list all the work needed for the next day"],
     "requirements":["Two years in operations, dispatch or logistics for a foreign client (car rental, automotive or fleet experience is a plus)","Organized and detail-oriented: paperwork done right, photos checked properly","Calm on the phone in an emergency; clear spoken English","Your own computer, headset, backup internet and power","No work for another car rental business serving Ontario"],
     "hours":"Full time: 6 days a week, 10 hours a day, starting 11:00 am Toronto time (night in Manila), weekends included. Independent contractor, 30-day paid trial.",
-    "test_task":"A one-hour paid test: review a return (pickup and return records side by side) and list each charge or action. Pass mark 16 out of 20."}$j$::jsonb,
+    "test_task":null}$j$::jsonb,
   pay_text = 'US$450 a month, full time: 6 days a week, 10 hours a day', pay_currency = 'USD', pay_min_cents = 45000, pay_max_cents = 45000, pay_unit = 'MONTH',
   employment_types = '{CONTRACTOR,FULL_TIME}', refer_on = 'below_or_ko', refer_to = '{sales-remote}', refer_alt = null,
   questions = pg_temp.va_screen(
@@ -125,7 +125,7 @@ update hiring_roles set
 
 update hiring_roles set
   summary = 'Run our billing: price post-rental charges, settle deposits, match tolls to bookings, bill car owners and build owner statements and payouts. Part time, 3 days a week.',
-  details = jsonb_set(details, '{hours}', to_jsonb('Part time: 3 days a week, 9 hours a day, Toronto daytime (night in Manila), plus the 1st, 10th and 15th of each month. Independent contractor, 30-day paid trial.'::text)),
+  details = jsonb_set(details, '{hours}', to_jsonb('Part time: 3 days a week, 9 hours a day, Toronto daytime (night in Manila), plus the 1st, 10th and 15th of each month. Independent contractor, 30-day paid trial.'::text)) || '{"test_task":null}'::jsonb,
   pay_text = 'US$200 a month, part time: 3 days a week, 9 hours a day', pay_currency = 'USD', pay_min_cents = 20000, pay_max_cents = 20000, pay_unit = 'MONTH',
   refer_on = 'below_or_ko', refer_to = '{sales-remote}', refer_alt = null,
   questions = pg_temp.va_screen(
