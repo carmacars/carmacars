@@ -15,7 +15,7 @@ fleet at 11:00 Toronto time; fleet is a full operations role.
   new hours: customer service from 9:00 am, fleet from 11:00 am Toronto time, 6 days a week, 10 hours a day.
 - **Fleet operations** lists its full duties: paperwork and complete rental agreements, tows, parts, covering customer
   service, and the next day's work list before the shift ends.
-- **No paid test** for the VA roles: the 10-minute call, then the decision within two days.
+- **No paid test** in any role: the call, then the decision within two days.
 - **The call guide** is a 10-minute call. The Saturday interview day itself is set in Admin > Hiring > Interview days.
 
 ## Guides

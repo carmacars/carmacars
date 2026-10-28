@@ -139,3 +139,9 @@ update hiring_roles set
     ["A statement is off by $3.40. What do you do?","Finds the exact line before sending; never rounds it away."]]$j$::jsonb),
   updated_at = now()
  where slug = 'va-finance-billing';
+
+-- No paid test in any role (the owner, October 28): the call, then the decision.
+update hiring_roles set details = details || '{"test_task":null}'::jsonb,
+       call_guide = replace(call_guide::text, 'Next step: the paid test task, then our decision.', 'Next step: we decide within two days and write to everyone.')::jsonb,
+       updated_at = now()
+ where details ->> 'test_task' is not null or call_guide::text like '%paid test%';
