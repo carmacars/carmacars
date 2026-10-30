@@ -3,6 +3,8 @@ import { Card } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import { when } from '@/features/agreement/model';
 import { AgreementActions, AgreementEditAll, MissingFields, type AgreementCurrent, type Missing } from './AgreementActions';
+import { AgreementWording, type WordingChange } from './AgreementWording';
+import { CLAUSES, standardText } from '@/features/agreement/wording';
 
 // The booking page's Agreement card (migration 0154), for an Admin and the assistants: the current version of the two
 // rental agreements and every earlier one (what changed, both PDFs, who signed or countersigned), a version waiting for
@@ -10,7 +12,7 @@ import { AgreementActions, AgreementEditAll, MissingFields, type AgreementCurren
 // stops on what a claim needs unless an Admin overrides with a reason), and the dispute evidence pack.
 interface Version {
   id: string; version_no: number; kind: string; material: boolean; status: string; created_at: string; signed_at: string | null; note: string | null;
-  countersigned_name: string | null; changes: Array<{ label: string; before: string; after: string; material: boolean }>; carmacars: string | null; blindspot: string | null;
+  countersigned_name: string | null; changes: Array<{ key?: string; label: string; before: string; after: string; material: boolean }>; carmacars: string | null; blindspot: string | null;
   signers: Array<{ id: string; role: string; name: string; status: string; signed_at: string | null; has_email: boolean; has_mobile: boolean }>;
 }
 interface State {
@@ -19,6 +21,8 @@ interface State {
   missing: Missing[]; overrides: Array<{ at: string; reason: string; by: string | null }>; job: { due_at: string; attempts: number; last_error: string | null } | null; is_admin: boolean;
   /** 0183: every printed field with its value */
   current?: AgreementCurrent;
+  /** 0198: the clauses worded for this booking, and every change */
+  wording?: { is_admin: boolean; wording: Record<string, { action: string; text: string | null }>; history: WordingChange[] };
   disputes: Array<{ id: string; status: string; built_at: string | null; staged_at: string | null; submitted_at: string | null; document_id: string | null; error: string | null; size: number | null }>;
 }
 const KIND: Record<string, string> = { signed: 'as signed', pickup: 'as picked up', return: 'as returned', change: 'changed', correction: 'corrected' };
@@ -47,12 +51,23 @@ export async function AgreementPanel({ b, base, userId, aal, docBase, finance, o
             <ol className="stack" style={{ paddingLeft: '1.2rem' }} reversed>{s.versions.map((v) => (
               <li key={v.id} className="small" data-testid={`agreement-version-${v.version_no}`}><b>Version {v.version_no}</b>, {KIND[v.kind] ?? v.kind}, {STATUS[v.status] ?? v.status}, {when(v.created_at)}{v.countersigned_name ? `, countersigned by ${v.countersigned_name}` : ''}{v.note ? `. ${v.note}` : ''}.
                 {openDocs && v.carmacars && <> <a className="link" href={`${docBase}/${v.carmacars}`} target="_blank" rel="noreferrer">CarmaCars</a></>}{openDocs && v.blindspot && <> · <a className="link" href={`${docBase}/${v.blindspot}`} target="_blank" rel="noreferrer">Blind Spot</a></>}
-                {v.changes.length > 0 && <ul>{v.changes.map((c, i) => <li key={i}>{c.label}: {c.before} → {c.after}{c.material ? ' (signed again)' : ''}</li>)}</ul>}
+                {v.changes.length > 0 && <ul>{v.changes.map((c, i) => c.key?.startsWith('wording.')
+                  // a clause's wording: before and after in full, and the standard wording beside them
+                  ? <li key={i} data-testid="agreement-wording-change">{c.label}{c.material ? ' (signed again)' : ''}: {c.before.length > 60 ? 'changed' : c.before} → {c.after.length > 60 ? 'changed' : c.after}
+                      <details><summary className="link xs">What changed</summary>
+                        <p className="xs"><b>Before</b></p><pre className="xs" style={{ whiteSpace: 'pre-wrap' }}>{c.before}</pre>
+                        <p className="xs"><b>Now</b></p><pre className="xs" style={{ whiteSpace: 'pre-wrap' }}>{c.after}</pre>
+                        {standardText(c.key.slice(8)) && <><p className="xs"><b>Standard wording</b></p><pre className="xs" style={{ whiteSpace: 'pre-wrap' }}>{standardText(c.key.slice(8))}</pre></>}
+                      </details></li>
+                  : <li key={i}>{c.label}: {c.before} → {c.after}{c.material ? ' (signed again)' : ''}</li>)}</ul>}
                 {v.signers.length > 0 && <p className="xs muted">Signers: {v.signers.map((g) => `${g.name} ${g.status === 'signed' ? `signed ${when(g.signed_at)}` : g.status}`).join('; ')}</p>}
               </li>))}</ol>
           </details>
         </>}
         <MissingFields booking={s.booking_id} missing={s.missing} refresh={refresh} isAdmin={s.is_admin} overrides={s.overrides} />
+        {s.wording?.is_admin ? <AgreementWording booking={s.booking_id} refresh={refresh} now={s.wording.wording} history={s.wording.history}
+            clauses={CLAUSES.map((c) => ({ code: c.code, part: c.part, title: c.title, removable: c.removable, editable: c.editable, standard: standardText(c.code) }))} />
+          : s.wording && Object.keys(s.wording.wording).length > 0 && <p className="small" data-testid="agreement-wording-note">{Object.keys(s.wording.wording).length} clause{Object.keys(s.wording.wording).length === 1 ? ' is' : 's are'} worded for this booking by an Admin.</p>}
         {s.current && <AgreementEditAll booking={s.booking_id} current={s.current} refresh={refresh} isAdmin={s.is_admin} />}
         <AgreementActions booking={s.booking_id} refresh={refresh} waiting={!!s.waiting} finance={finance || s.is_admin} disputes={s.disputes} docBase={openDocs ? docBase : ''} />
       </div>

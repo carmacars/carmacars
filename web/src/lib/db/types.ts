@@ -294,6 +294,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      agreement_clauses: {
+        Row: {
+          code: string;
+          part: string;
+          title: string;
+          sort: number;
+          removable: boolean;
+          editable: boolean;
+        };
+        Insert: {
+          code: string;
+          part: string;
+          title: string;
+          sort: number;
+          removable?: boolean;
+          editable?: boolean;
+        };
+        Update: {
+          code?: string;
+          part?: string;
+          title?: string;
+          sort?: number;
+          removable?: boolean;
+          editable?: boolean;
+        };
+        Relationships: [];
+      };
       agreement_overrides: {
         Row: {
           id: string;
@@ -1155,6 +1182,39 @@ export type Database = {
           reminded_at?: string | null;
           expired_at?: string | null;
           renter_declined_at?: string | null;
+        };
+        Relationships: [];
+      };
+      booking_clause_overrides: {
+        Row: {
+          id: string;
+          booking_id: string;
+          clause_code: string;
+          action: string;
+          text: string | null;
+          reason: string;
+          by_user: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          clause_code: string;
+          action: string;
+          text?: string | null;
+          reason: string;
+          by_user: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          clause_code?: string;
+          action?: string;
+          text?: string | null;
+          reason?: string;
+          by_user?: string;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -22837,6 +22897,7 @@ export type Database = {
       server_agreement_version_link: { Args: { p_token: string }; Returns: Json };
       server_agreement_version_sign: { Args: { p_token: string; p: Json }; Returns: Json };
       server_agreement_version_signed_docs: { Args: { p_version: string; p: Json }; Returns: undefined };
+      server_agreement_wording: { Args: { p_booking: string }; Returns: Json };
       server_agreements_due: { Args: { p_limit?: number }; Returns: Json };
       server_ai_allow: { Args: { p_purpose: string; p_est?: number }; Returns: Json };
       server_ai_budget: { Args: never; Returns: Json };

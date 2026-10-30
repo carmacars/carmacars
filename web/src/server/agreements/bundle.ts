@@ -4,6 +4,7 @@ import { storage } from '@/integrations/storage';
 import { env } from '@/lib/env';
 import { agreementBlocks, AGREEMENT_TEMPLATE_VERSION, when, type AgreementFacts, type InitialRow, type SignatureRow } from '@/features/agreement/model';
 import { clauses, depositText, type AgreementExtra, type VersionHeader } from '@/features/agreement/extra';
+import type { Wording } from '@/features/agreement/wording';
 import { agreementPdf } from '@/features/agreement/pdf';
 import { layout } from '@/features/blindspot/layout';
 import { toBlindSpotFacts } from '@/features/blindspot/facts';
@@ -23,21 +24,24 @@ export interface BlindSpotExtra {
   template: { id: string; version: string; file_key: string; sha256: string } | null;
   rep: { name: string; full_name: string | null; signature_key: string | null; signature_sha256: string | null };
 }
-export interface Bundle { f: AgreementFacts; x: AgreementExtra; bs: BlindSpotExtra }
+/** w (0198): the booking's own wording of CarmaCars' clauses (never Blind Spot's form) */
+export interface Bundle { f: AgreementFacts; x: AgreementExtra; bs: BlindSpotExtra; w?: Wording | null }
 
 export const privacyUrl = () => `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/privacy`;
 export const verifyUrl = () => `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/verify`;
 
 export async function loadBundle(bookingId: string, by: string): Promise<Bundle> {
-  const [f, x, bs, cov] = await Promise.all([
+  const [f, x, bs, cov, w] = await Promise.all([
     rpc('server_agreement_facts', { p_booking: bookingId, p_by: by }, SR) as unknown as Promise<AgreementFacts>,
     rpc('server_agreement_extra', { p_booking: bookingId, p_by: by }, SR) as unknown as Promise<AgreementExtra>,
     rpc('server_blindspot_facts', { p_booking: bookingId, p_by: by }, SR) as unknown as Promise<BlindSpotExtra>,
     // 0178: the card coverage provider and the protection plan's activation reference (boxes 12 and 13)
-    rpc('server_coverage_detail', { p_booking: bookingId }, SR) as unknown as Promise<{ coverage_provider: string | null; activation_ref: string | null } | null>
+    rpc('server_coverage_detail', { p_booking: bookingId }, SR) as unknown as Promise<{ coverage_provider: string | null; activation_ref: string | null } | null>,
+    // 0198: the clauses worded for this booking
+    rpc('server_agreement_wording', { p_booking: bookingId }, SR) as unknown as Promise<Wording | null>
   ]);
   if (f.coverage && cov) f.coverage = { ...f.coverage, coverage_provider: cov.coverage_provider, activation_ref: cov.activation_ref };
-  return { f, x, bs };
+  return { f, x, bs, w: w && Object.keys(w).length ? w : null };
 }
 
 /** The key terms of this booking, worded from its own values (the deductible, the deposit, the kilometres...). */
@@ -51,7 +55,7 @@ export function keyTerms(b: Bundle) {
     card: f.card ? `${f.card.brand.toUpperCase()} ending ${f.card.last4}` : null,
     km_per_day: f.booking.km_allowance_per_day, km_total: f.booking.km_allowance_total, overage_cents_per_km: f.booking.overage_cents_per_km,
     grace_minutes: x.late.grace_minutes, late_fee_cents: x.late.fee_cents, coverage: f.booking.coverage_option ? COV[f.booking.coverage_option] ?? 'as chosen' : 'to be chosen before pickup',
-    booking_type: f.booking.booking_type
+    booking_type: f.booking.booking_type, wording: b.w ?? null
   });
 }
 
@@ -80,7 +84,7 @@ export interface CarmaCarsRender {
 /** CarmaCars' agreement as a PDF. */
 export async function renderCarmaCars(b: Bundle, o: CarmaCarsRender): Promise<Uint8Array> {
   const blocks = agreementBlocks(b.f, { privacyUrl: privacyUrl(), signatures: o.signatures, extra: b.x, insurer: b.bs.insurer, multiDayRateCents: b.x.multi_day_rate_cents ?? b.bs.multi_day_rate_cents,
-    version: o.version ?? null, initials: o.initials?.rows ?? null });
+    version: o.version ?? null, initials: o.initials?.rows ?? null, wording: b.w ?? null });
   const pdf = await agreementPdf(blocks, { title: o.title, createdAt: o.createdAt, images: o.images, initials: o.initials?.images, record: o.record, footer: footer(b.f, o.version) });
   return o.certificate ? appendCertificate(pdf, o.certificate) : pdf;
 }

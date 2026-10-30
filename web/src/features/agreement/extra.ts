@@ -4,6 +4,7 @@
 // records. Plus a version's header (what changed) and the key terms a signer initials.
 // Relative imports with their extension: the unit tests run these files in Node directly.
 import { money } from '../../lib/format.ts';
+import { keyTermNote, type Wording } from './wording.ts';
 
 export interface AgreementVehicle { id: string; year: number; make: string; model: string; trim: string | null; colour: string | null; fuel: string | null; plate: string | null; vin: string | null; fleet_number: string | null }
 export interface Damage { label: string; location: string | null; description: string | null }
@@ -96,16 +97,19 @@ export interface Clause { code: ClauseCode; title: string; text: string }
 export interface ClauseFacts {
   deductible_cents: number | null; deposit: string; card: string | null; km_per_day: number | null; km_total: number | null; overage_cents_per_km: number | null;
   grace_minutes: number | null; late_fee_cents: number | null; coverage: string; booking_type: string; difference?: string | null;
+  /** 0198: the booking's own wording: a key term says when its section is worded for the booking */
+  wording?: Wording | null;
 }
 export function clauses(f: ClauseFacts): Clause[] {
   const kmText = f.km_per_day === null ? 'unlimited kilometres' : `${f.km_total ?? 0} km included (${f.km_per_day} km a day), then ${money(f.overage_cents_per_km, { cents: true })} for each kilometre over`;
-  return [
+  const list: Clause[] = [
     { code: 'damage', title: 'Damage and the deductible', text: `I am responsible for loss of or damage to the car during the rental, up to the deductible of ${money(f.deductible_cents)} where a coverage option applies, and in full where it does not (Part 2).` },
     { code: 'charges', title: 'The deposit and later charges', text: `I authorize the deposit (${f.deposit}) and later charges under this agreement (tolls, tickets, fuel, kilometres, late return, cleaning, damage up to the deductible) on ${f.card ?? 'the card on file'}${f.difference ? `, and ${f.difference}` : ''}.` },
     { code: 'fees', title: 'Fuel, kilometres and late returns', text: `The car comes back with the same fuel or charge, else refuelling is charged; ${kmText}; a return later than ${f.grace_minutes ?? 0} minutes after the due-back time is charged each extra day or part day${f.late_fee_cents ? ` plus the late fee of ${money(f.late_fee_cents)}` : ''}.` },
     { code: 'coverage', title: 'My coverage choice', text: `My coverage for the car: ${f.coverage}. I have read what it covers and what it does not.` },
     { code: 'cancellation', title: 'Cancellation', text: f.booking_type === 'non_refundable' ? 'My booking is non-refundable (10% discount): it is not refunded if I cancel (Part 2).' : 'The cancellation policy of Part 2 applies to my booking.' }
   ];
+  return list.map((c) => ({ ...c, text: c.text + keyTermNote(c.code, f.wording) }));
 }
 export const CONSENTS = {
   esign: 'I agree to sign this agreement electronically. My electronic signature and initials are as binding as my handwritten ones (Ontario Electronic Commerce Act, 2000).',
