@@ -5,6 +5,7 @@ import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { chargeSavedCard, holdAction, offersDo, startCardRequest } from '@/server/actions/offers';
 import { Table } from '@/features/admin/ui';
+import { CardTools, type CardRule } from './CardTools';
 
 // The money of a booking by part (migration 0129): what is open for the rental, the fees and later charges; the deposit
 // and how it was taken; the card on file. Record a payment received another way (e-Transfer, cash, cheque, bank
@@ -22,6 +23,8 @@ export interface Money {
   e_transfer_email: string | null; moto: boolean;
   may: { record: boolean; collect: boolean; charge: boolean; hold: boolean; confirm: boolean; return_deposit: boolean };
   can_confirm: boolean;
+  /** Release 21 (0203): the same-card rule of a card-coverage rental, the paired card readers, an Admin. */
+  card_rule?: CardRule | null; readers?: Array<{ id: string; label: string }>; is_admin?: boolean;
 }
 const fmt = (c: number | null | undefined) => money(Number(c ?? 0), { cents: true });
 const PART: Record<string, string> = { rental: 'Rental', fees: 'Fees', later: 'Later charges', deposit: 'Deposit', card: 'Card on file', balance: 'Everything open' };
@@ -87,6 +90,9 @@ export function BookingMoney({ m }: { m: Money }) {
           <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'capture'} onClick={() => setOpen(open === 'capture' ? '' : 'capture')} data-testid="bm-capture-open">Capture the hold</button>
           <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'release'} data-testid="bm-release" onClick={() => setOpen(open === 'release' ? '' : 'release')}>Release the hold</button></>}
       </div>
+
+      <CardTools booking={m.booking_number} parts={m.parts} deposit_cents={m.deposit_cents} depositTaken={!!dep && !['pending', 'failed'].includes(dep.status)}
+        rule={m.card_rule ?? null} readers={m.readers ?? []} isAdmin={!!m.is_admin} mayRecord={m.may.record} mayCollect={m.may.collect} />
 
       {open === 'record' && (
         <form className="ad-form ad-form--narrow" aria-label="Record a payment" data-testid="bm-record" onSubmit={(e) => { e.preventDefault(); run(async () => {

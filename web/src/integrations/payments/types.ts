@@ -35,8 +35,10 @@ export interface Intent {
   lastError: string | null;
   /** The processor's code for that failure (insufficient_funds, account_closed, ...): a returned debit is retried only for insufficient funds (0053). */
   lastErrorCode?: string | null;
-  /** card, or acss_debit (Canadian pre-authorized debit). */
-  methodType: 'card' | 'acss_debit' | null;
+  /** card, acss_debit (Canadian pre-authorized debit), or card_present (a card on a reader, 0202). */
+  methodType: 'card' | 'acss_debit' | 'card_present' | null;
+  /** When an uncaptured card hold lapses (seconds since 1970), when Stripe says (0201). */
+  captureBefore?: number | null;
   /** The bank account of a pre-authorized debit (never the full number). */
   bank: { name: string | null; last4: string } | null;
   /** The pre-authorized debit mandate the owner accepted, kept for the monthly debit. */

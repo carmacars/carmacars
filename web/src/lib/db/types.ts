@@ -1074,6 +1074,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_card_overrides: {
+        Row: {
+          booking_id: string;
+          reason: string;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          booking_id: string;
+          reason: string;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          booking_id?: string;
+          reason?: string;
+          created_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       booking_change_requests: {
         Row: {
           id: string;
@@ -8853,6 +8874,9 @@ export type Database = {
           voided_by: string | null;
           void_reason: string | null;
           covers: string | null;
+          card_last4: string | null;
+          card_source: string | null;
+          stripe_verified: boolean;
         };
         Insert: {
           id?: string;
@@ -8877,6 +8901,9 @@ export type Database = {
           voided_by?: string | null;
           void_reason?: string | null;
           covers?: string | null;
+          card_last4?: string | null;
+          card_source?: string | null;
+          stripe_verified?: boolean;
         };
         Update: {
           id?: string;
@@ -8901,6 +8928,9 @@ export type Database = {
           voided_by?: string | null;
           void_reason?: string | null;
           covers?: string | null;
+          card_last4?: string | null;
+          card_source?: string | null;
+          stripe_verified?: boolean;
         };
         Relationships: [];
       };
@@ -11737,6 +11767,7 @@ export type Database = {
           created_at: string;
           completed_at: string | null;
           last_error: string | null;
+          reader_id: string | null;
         };
         Insert: {
           id?: string;
@@ -11756,6 +11787,7 @@ export type Database = {
           created_at?: string;
           completed_at?: string | null;
           last_error?: string | null;
+          reader_id?: string | null;
         };
         Update: {
           id?: string;
@@ -11775,6 +11807,7 @@ export type Database = {
           created_at?: string;
           completed_at?: string | null;
           last_error?: string | null;
+          reader_id?: string | null;
         };
         Relationships: [];
       };
@@ -17541,6 +17574,72 @@ export type Database = {
           completion_rule?: string | null;
           completion_note?: string | null;
           dedupe_key?: string | null;
+        };
+        Relationships: [];
+      };
+      terminal_locations: {
+        Row: {
+          id: string;
+          stripe_location_id: string;
+          display_name: string;
+          address: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          stripe_location_id: string;
+          display_name: string;
+          address: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          stripe_location_id?: string;
+          display_name?: string;
+          address?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      terminal_readers: {
+        Row: {
+          id: string;
+          stripe_reader_id: string;
+          label: string;
+          device_type: string | null;
+          serial_number: string | null;
+          location_id: string | null;
+          paired_by: string | null;
+          paired_at: string;
+          removed_at: string | null;
+          removed_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          stripe_reader_id: string;
+          label: string;
+          device_type?: string | null;
+          serial_number?: string | null;
+          location_id?: string | null;
+          paired_by?: string | null;
+          paired_at?: string;
+          removed_at?: string | null;
+          removed_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          stripe_reader_id?: string;
+          label?: string;
+          device_type?: string | null;
+          serial_number?: string | null;
+          location_id?: string | null;
+          paired_by?: string | null;
+          paired_at?: string;
+          removed_at?: string | null;
+          removed_by?: string | null;
         };
         Relationships: [];
       };
@@ -23360,8 +23459,13 @@ export type Database = {
       server_partner_referral: { Args: { p: Json }; Returns: Json };
       server_payment_intent_opened: { Args: { p: Json }; Returns: undefined };
       server_payreq_attach: { Args: { p_id: string; p_intent: string }; Returns: undefined };
+      server_payreq_card_check: { Args: { p_id: string; p_card: Json }; Returns: Json };
       server_payreq_facts: { Args: { p_token_sha256: string }; Returns: Json };
+      server_payreq_reader: { Args: { p_id: string }; Returns: Json };
+      server_payreq_reader_fail: { Args: { p_id: string; p_reason: string }; Returns: Json };
       server_payreq_settle: { Args: { p_id: string; p_intent: Json }; Returns: Json };
+      server_payreq_settle_pre0202: { Args: { p_id: string; p_intent: Json }; Returns: Json };
+      server_payreq_settle_pre0203: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_pdf_facts: { Args: { p_kind: string; p_key: string; p_user?: string }; Returns: Json };
       server_pdf_job_done: { Args: { p_job: string }; Returns: undefined };
       server_pdf_job_fail: { Args: { p_job: string; p_error: string }; Returns: undefined };

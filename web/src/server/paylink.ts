@@ -21,7 +21,11 @@ export async function settlePayreq(id: string, intentId: string, kind: PayLinkFa
   const res = (await rpc('server_payreq_settle', { p_id: id, p_intent: {
     id: i.id, status: i.status, amount: i.amountCents, amount_capturable: i.amountCapturableCents, charge_id: i.chargeId, customer_id: i.customerId, method_id: i.paymentMethodId,
     error: i.lastError, card: i.card ? { brand: i.card.brand, last4: i.card.last4, exp_month: i.card.expMonth, exp_year: i.card.expYear, funding: i.card.funding, name: i.card.name, fingerprint: i.card.fingerprint, country: i.card.country ?? null } : null
-  } }, SR)) as unknown as { ok: boolean; reason?: string };
-  return res;
+  } }, SR)) as unknown as { ok: boolean; reason?: string; refund?: boolean };
+  // another card on a card-coverage rental (0203): refused, and the money it took is given back at once
+  if (res.refund && kind === 'charge' && i.status === 'succeeded') {
+    await p.refund({ paymentIntentId: i.id, chargeId: i.chargeId, amountCents: i.amountCents, idempotencyKey: `same-card-refund:${id}`, metadata: { payment_request_id: id, reason: 'card_coverage_other_card' } }).catch(() => undefined);
+  }
+  return { ok: res.ok, reason: res.reason };
 }
 

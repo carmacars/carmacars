@@ -31,6 +31,7 @@ import { ReviewSettings, type ReviewSettingsData } from '@/features/reviews/Revi
 import { googleKeys } from '@/server/reviews/google';
 import { SalesModesCard, type SalesModes } from '@/features/sales/SalesModesAdmin';
 import { StaffFunctions } from '@/features/staff/StaffFunctions';
+import { CardReaderAdmin, type TerminalState } from '@/features/terminal/CardReaderAdmin';
 import { profileFunctions as staffFns, STAFF_FN_LABEL } from '@/features/staff/nav';
 const googleKeysSet = () => googleKeys() !== null;
 
@@ -299,6 +300,7 @@ export default async function Section({ params, searchParams }: { params: Promis
     return (<>{head}<TextAlertsSettings data={await door<SmsSettings>(user.id, 'admin_read', 'sms_settings')}
       form={<SaveForm table="program_settings" rowKey="current" testId="program-sms" fields={fieldsFrom(s.program, keys, { sms_default_with_phone: ch, sms_default_phone_only: ch.slice(0, 2) })} />} /></>);
   }
+  case 'card-reader': return (<>{head}<CardReaderAdmin s={await door<TerminalState>(user.id, 'ops_read', 'terminal_state')} /></>);
   case 'class-rules': return (<>{head}<ClassRules data={await door<ClassRulesData>(user.id, 'ops_read', 'class_rules')} /></>);
   case 'forms': {
     // the registry forms, then the forms filled for every booking (0127: Blind Spot's rental agreement)

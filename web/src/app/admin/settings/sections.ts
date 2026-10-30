@@ -9,6 +9,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['class-rules', 'Vehicle class rules', 'How a new car\'s class is decided from its make, model, trim and body, and when an older car changes class'],
   ['airports', 'Airports and delivery', 'Airports, surcharges, per-km delivery rate and origin'],
   ['coverage', 'Protection Plan prices', 'Price table for the Protection Plan sold to renters'],
+  ['card-reader', 'Card reader', 'Pair the Stripe S700 card reader by the code it shows; card payments and deposit holds on it are started from a booking'],
   ['card-coverage', 'Card coverage', 'Which credit cards include rental car coverage: limits, exclusions, guides and the day each was checked'],
   ['meta-publishing', 'Meta publishing', 'Post approved Facebook Page and Instagram drafts through Meta (off until the Page id, Instagram account id and token are entered)'],
   ['coverage-affiliate', 'RentalCoverage affiliate', 'The affiliate link (off until you paste it), its clicks by place and what RentalCoverage paid us'],

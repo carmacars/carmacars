@@ -16,20 +16,24 @@ type Row = { id: string; booking_number: string; status: string; awaiting_signat
 export default async function Bookings({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ list, user }, sp] = await Promise.all([page('/admin/bookings'), searchParams]);
   const status = sp.status ?? '';
-  const res = await list<Row>('bookings', { eq: status ? { status } : {}, q: sp.q, order: 'pickup_at', limit: 200 });
+  // 0200: the search finds a booking by its number, the renter's or a driver's name, email, phone, plate or car code
+  const q = (sp.q ?? '').trim();
+  const found = q ? (await door<Array<{ id: string }>>(user.id, 'ops_read', 'bookings_search', { q, status, limit: 200 })).map((b) => b.id) : null;
+  const byQ = (eq: Record<string, unknown>) => (found ? { ...eq, id: found.length ? found : ['00000000-0000-0000-0000-000000000000'] } : eq);
+  const res = await list<Row>('bookings', { eq: byQ(status ? { status } : {}), order: 'pickup_at', limit: 200 });
   // by who supplies the car, or only the rentals added by hand (0046)
   const keep = sp.supply || sp.added ? new Set((await door<Array<{ id: string }>>(user.id, 'ops_read', 'bookings_by_supply', { supply: sp.supply ?? '', added: !!sp.added, status, limit: 2000 })).map((b) => b.id)) : null;
   const rows = keep ? res.rows.filter((r) => keep.has(r.id)) : res.rows;
   const drafts = await door<DraftRow[]>(user.id, 'ops_read', 'drafts', { kind: 'rental' }).catch(() => [] as DraftRow[]);
   // bookings waiting for payment (the renter accepted, has not paid): always listed first in All, never cut by the limit
-  const waiting = status ? null : await list<Row>('bookings', { eq: { status: 'pending_payment' }, q: sp.q, order: 'pickup_at', asc: true, limit: 200 });
+  const waiting = status ? null : await list<Row>('bookings', { eq: byQ({ status: 'pending_payment' }), order: 'pickup_at', asc: true, limit: 200 });
   const waitingRows = waiting ? (keep ? waiting.rows.filter((r) => keep.has(r.id)) : waiting.rows) : [];
   const ids = new Set(waitingRows.map((r) => r.id));
   const listed = [...waitingRows, ...rows.filter((r) => !ids.has(r.id))];
   const count = keep ? listed.length : res.count;
   return (
     <>
-      <PageHead title="Bookings" kicker={`${count} found`} purpose="Every booking, newest pickup first. Open one to see its trip, payments and documents."><Search action="/admin/bookings" value={sp.q} placeholder="Booking number, renter, plate" />
+      <PageHead title="Bookings" kicker={`${count} found`} purpose="Every booking, newest pickup first. Open one to see its trip, payments and documents."><Search action="/admin/bookings" value={sp.q} placeholder="Booking number, name, email, phone, plate or car code" />
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/offers/new" data-testid="send-offer-link">Send an offer</Link>
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new" data-testid="add-rental-link">Add a rental</Link></PageHead>
       <UnfinishedRentals rows={drafts} base="/admin" />

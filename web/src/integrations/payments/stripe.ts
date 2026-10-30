@@ -33,12 +33,14 @@ export function bankReasonCode(errorCode: string | null, declineCode: string | n
 
 export function toIntent(pi: Obj): Intent {
   const pm = obj(pi.payment_method);
-  const c = obj(pm?.card);
   const charge = obj(pi.latest_charge);
+  const pmd = obj(charge?.payment_method_details);
+  // a card on a reader is card_present (0202): the same brand, last 4 digits and fingerprint
+  const c = obj(pm?.card) ?? obj(pm?.card_present) ?? obj(pmd?.card_present) ?? obj(pmd?.card);
   const funding = str(c?.funding);
   const acss = obj(pm?.acss_debit);
   const chargeAcss = obj(obj(charge?.payment_method_details)?.acss_debit);
-  const type = str(pm?.type) ?? str(obj(charge?.payment_method_details)?.type);
+  const type = str(pm?.type) ?? str(pmd?.type);
   const card: IntentCard | null = c ? {
     brand: str(c.brand) ?? 'card', last4: str(c.last4) ?? '', expMonth: num(c.exp_month), expYear: num(c.exp_year),
     funding: funding === 'credit' || funding === 'debit' || funding === 'prepaid' ? funding : 'unknown',
@@ -52,7 +54,8 @@ export function toIntent(pi: Obj): Intent {
     // Stripe's generic "payment_intent_payment_attempt_failed" hides the bank's reason, which the charge keeps (a PAD
     // debit returned for insufficient funds can come through as the generic code; only insufficient funds is retried)
     lastErrorCode: bankReasonCode(str(obj(pi.last_payment_error)?.code), str(obj(pi.last_payment_error)?.decline_code), str(charge?.failure_code)),
-    methodType: type === 'card' || type === 'acss_debit' ? type : null,
+    methodType: type === 'card' || type === 'acss_debit' ? type : type === 'card_present' || type === 'interac_present' ? 'card_present' : null,
+    captureBefore: typeof obj(pmd?.card)?.capture_before === 'number' ? (obj(pmd?.card)!.capture_before as number) : null,
     bank: acss || chargeAcss ? { name: str(acss?.bank_name) ?? str(chargeAcss?.bank_name), last4: str(acss?.last4) ?? str(chargeAcss?.last4) ?? '' } : null,
     mandateId: str(chargeAcss?.mandate) ?? str(obj(pi.mandate)?.id) ?? str(pi.mandate)
   };
