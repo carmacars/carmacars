@@ -196,6 +196,8 @@ test('renter: a rental already underway with a payment link: sign in the portal,
   await check(page, 'renter: rental underway');
   await page.getByTestId('live-sign').click();
   await page.waitForURL(new RegExp(`/account/bookings/${number}/sign`), { timeout: 20_000 });
+  // decide only once the page has rendered either the details form or the agreement (on a phone the form can arrive later)
+  await expect(page.locator('#pt-d-address_line1').or(page.getByTestId('complete-details')).or(page.locator('.agreement')).first()).toBeVisible({ timeout: 30_000 });
   if (await page.locator('#pt-d-address_line1').isVisible()) {
     await page.locator('#pt-d-address_line1').fill('100 Queen Street West');
     await page.locator('#pt-d-city').fill('Toronto');
