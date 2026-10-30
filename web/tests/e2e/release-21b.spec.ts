@@ -66,6 +66,8 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
   await player.getByTestId('player-0-play').click();
   await expect(player.getByTestId('player-0-caption')).not.toContainText('Press Play');
   await expect(player.getByTestId('player-0-scene')).toContainText('Scene 1 of');
+  await player.getByTestId('player-0-speed').selectOption('1.5');
+  await expect(player.getByTestId('player-0-play')).toHaveText('Pause');
   await player.getByTestId('player-0-play').click(); // pause
   await expect(player.getByTestId('player-0-play')).toHaveText('Resume');
   const n = Number((await player.getByTestId('player-0-scene').innerText()).match(/of (\d+)/)![1]);
@@ -136,4 +138,112 @@ test('the referral partner sign-up: the address lookup fills the street, the cit
   await check(page, 'partner sign-up');
   expect(quiet(errors)).toEqual([]);
   await page.context().close();
+});
+
+test('Add an investor: the record and the invitation in one step; the investor chooses a password and lands in the investor portal', async ({ browser }, info) => {
+  test.setTimeout(180_000);
+  const phone = info.project.name.startsWith('phone');
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const admin = await mkUser(sql, 'admin');
+  const email = `iris.${Date.now()}.${tag()}@example.test`;
+  const page = await ctx(browser, phone);
+  const errors = watch(page);
+  await signIn(page, admin.email, '/admin');
+  await page.goto('/admin/investors', { waitUntil: 'networkidle' });
+  await page.getByTestId('add-investor').click();
+  const f = page.getByTestId('add-investor-form');
+  await f.getByTestId('ai-name').fill('Iris Investor');
+  await f.getByTestId('ai-type').selectOption('corporation');
+  await f.getByTestId('ai-sign').fill('Iris Officer');
+  await f.getByTestId('ai-email').fill(email);
+  await f.getByTestId('ai-phone').fill('416-555-0100');
+  await f.getByTestId('ai-address').pressSequentially('100 Queen', { delay: 40 });
+  await page.getByRole('option').first().click();
+  await expect(f.getByTestId('ai-roi')).toHaveValue('30');
+  await f.getByTestId('info-ai-roi').click();
+  await expect(page.getByRole('tooltip')).toContainText('investment agreement sets');
+  await check(page, 'add an investor');
+  await page.keyboard.press('Escape');
+  await f.getByTestId('ai-committed').fill('50,000');
+  await expect(f.getByTestId('ai-invite')).toBeChecked();
+  await f.getByTestId('ai-submit').click();
+  await expect(f.getByTestId('ai-msg')).toContainText(`Added and invited: the invitation went to ${email}`);
+  const [rec] = await sql`select investor_type, signatory_name, committed_amount_cents::int c, offered_yearly_bps b, user_id from investors where email = ${email}`;
+  expect(rec).toMatchObject({ investor_type: 'corporation', signatory_name: 'Iris Officer', c: 5_000_000, b: 3000 });
+  expect(rec!.user_id).not.toBeNull();
+  expect(quiet(errors)).toEqual([]);
+  await page.context().close();
+  // the invitation: choose a password, land in the investor portal
+  const m = await sql`select link from local_auth.mailbox where to_email = ${email} order by id desc limit 1`;
+  expect(m[0]?.link).toContain('/update-password?token=');
+  const p = await ctx(browser, phone);
+  const u = new URL(m[0]!.link as string);
+  await p.goto(u.pathname + u.search);
+  await p.locator('#np-pass').fill('a brand new password');
+  await p.getByRole('button', { name: 'Save the new password' }).click();
+  await p.waitForURL((x) => x.pathname.startsWith('/investor'), { timeout: 30_000 });
+  await expect(p.locator('h1').first()).toBeVisible();
+  await p.context().close();
+  await sql.end();
+});
+
+// 0211: no invitation without an open call time (production, October 30, 2026)
+const FIELD_PASS = {
+  licence: 'Yes, a full G', years: '5 years or more', record: 'None', days: ['Monday', 'Friday', 'Saturday', 'Sunday'], hours: 'Full time (35 or more)', transport: 'My own car',
+  experience: ['Delivery driver'], late: 'Message the office at once, keep the renter updated and follow the office\'s instructions',
+  dent: 'Stay polite, photograph everything, note it in the app and let the office decide', cash: 'Count it in front of them, record it in the app right away and give them the receipt',
+  start: '2026-11-02', pay: '20'
+};
+test('hiring: a pass with no open interview day waits; the link says so; Admin is warned; a day added sends the invitation', async ({ browser }, info) => {
+  test.setTimeout(180_000);
+  const phone = info.project.name.startsWith('phone');
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const admin = await mkUser(sql, 'admin');
+  // no open day for Field staff during the test (put back at the end)
+  const open = (await sql`select id from interview_days where active and (role_ids is null or (select id from hiring_roles where slug = 'field-staff') = any (role_ids))`).map((r) => r.id as string);
+  if (open.length) await sql`update interview_days set active = false where id = any (${open}::uuid[])`;
+  try {
+    const email = `hwd.${Date.now()}.${tag()}@example.test`;
+    const [r] = await sql`select public.server_hiring_apply(jsonb_build_object('role', 'field-staff', 'full_name', 'Wendy Waiting', 'email', ${email}::text, 'phone', '4165550144',
+      'answers', ${sql.json(FIELD_PASS as never)}::jsonb), null) as r`;
+    const token = (r!.r as { token: string }).token;
+    await sql`select app.process_events()`;
+    expect((await sql`select waiting_for_day from job_applications where email = ${email}`)[0]!.waiting_for_day).toBe(true);
+    expect((await sql`select count(*)::int n from notification_outbox where code = 'applicant_invited' and to_address = ${email}`)[0]!.n).toBe(0);
+
+    const c = await ctx(browser, phone);
+    await c.goto(`/careers/book/${token}`, { waitUntil: 'networkidle' });
+    await acceptCookies(c);
+    await expect(c.getByTestId('book-none')).toContainText('No call times are open right now. We\'ll email you as soon as new times open.');
+    await check(c, 'booking with no time');
+    expect((await sql`select no_slots_seen_at is not null v from job_applications where email = ${email}`)[0]!.v).toBe(true);
+
+    const ap = await ctx(browser, phone);
+    const errors = watch(ap);
+    await signIn(ap, admin.email, '/admin');
+    await ap.goto('/admin/hiring', { waitUntil: 'networkidle' });
+    const warn = ap.getByTestId('hiring-no-day-field-staff');
+    await expect(warn).toContainText('invited but no interview day is open for');
+    await check(ap, 'hiring warning');
+    await warn.getByRole('link', { name: 'Add an interview day' }).click();
+    await ap.waitForURL(/tab=days/);
+    await ap.getByTestId('day-add').click();
+    const dlg = ap.getByRole('dialog');
+    const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date(Date.now() + 5 * 86_400_000));
+    await dlg.getByLabel('Day', { exact: true }).fill(day);
+    await dlg.getByLabel(/^Roles/).fill('field-staff');
+    await ap.getByTestId('day-add-submit').click();
+    await expect(ap.getByTestId('hiring-no-day-field-staff')).toHaveCount(0, { timeout: 15_000 });
+    await sql`select app.process_events()`;
+    expect((await sql`select status from notification_outbox where code = 'applicant_invited' and to_address = ${email} order by created_at desc limit 1`)[0]?.status).toBe('queued');
+    expect(quiet(errors)).toEqual([]);
+    await c.reload({ waitUntil: 'networkidle' });
+    await expect(c.getByTestId('book-none')).toHaveCount(0);
+    await c.context().close(); await ap.context().close();
+  } finally {
+    if (open.length) await sql`update interview_days set active = true where id = any (${open}::uuid[])`;
+    await sql.end();
+  }
 });

@@ -8384,6 +8384,9 @@ export type Database = {
           created_at: string;
           updated_at: string;
           notify_channel: string | null;
+          signatory_name: string | null;
+          committed_amount_cents: number | null;
+          offered_yearly_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -8401,6 +8404,9 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           notify_channel?: string | null;
+          signatory_name?: string | null;
+          committed_amount_cents?: number | null;
+          offered_yearly_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -8418,6 +8424,9 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           notify_channel?: string | null;
+          signatory_name?: string | null;
+          committed_amount_cents?: number | null;
+          offered_yearly_bps?: number | null;
         };
         Relationships: [];
       };
@@ -8459,6 +8468,9 @@ export type Database = {
           decided_by: string | null;
           purged_at: string | null;
           updated_at: string;
+          waiting_for_day: boolean;
+          no_slots_since: string | null;
+          no_slots_seen_at: string | null;
         };
         Insert: {
           id?: string;
@@ -8497,6 +8509,9 @@ export type Database = {
           decided_by?: string | null;
           purged_at?: string | null;
           updated_at?: string;
+          waiting_for_day?: boolean;
+          no_slots_since?: string | null;
+          no_slots_seen_at?: string | null;
         };
         Update: {
           id?: string;
@@ -8535,6 +8550,9 @@ export type Database = {
           decided_by?: string | null;
           purged_at?: string | null;
           updated_at?: string;
+          waiting_for_day?: boolean;
+          no_slots_since?: string | null;
+          no_slots_seen_at?: string | null;
         };
         Relationships: [];
       };
@@ -23637,6 +23655,7 @@ export type Database = {
       server_hiring_apply: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_hiring_book: { Args: { p_token: string; p_slot: string }; Returns: Json };
       server_hiring_booking: { Args: { p_token: string }; Returns: Json };
+      server_hiring_booking_pre0211: { Args: { p_token: string }; Returns: Json };
       server_hiring_cancel: { Args: { p_token: string }; Returns: Json };
       server_hiring_prefill: { Args: { p_token: string; p_slug: string }; Returns: Json };
       server_in_person_lines: { Args: { p_request: string }; Returns: Json };

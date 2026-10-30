@@ -73,7 +73,15 @@ export function ScenePlayer({ lesson, onDone, testId = 'player' }: { lesson: Les
       timer.current = setTimeout(next, est);
     }
   }, [stop, finish, lesson.scenes, n, speed, voiceOn, voice]);
-  useEffect(() => { playRef.current = play; }, [play]);
+  // a new speed or the voice turned on or off restarts the scene playing, with the new setting
+  const restart = useRef(-1);
+  useEffect(() => {
+    playRef.current = play;
+    if (restart.current < 0) return;
+    const i = restart.current; restart.current = -1;
+    const t = setTimeout(() => playRef.current(i), 0);
+    return () => clearTimeout(t);
+  }, [play]);
 
   const pause = () => { stop(); setPlaying(false); };
   const toggle = () => (playing ? pause() : play(done ? 0 : idx));
@@ -107,9 +115,9 @@ export function ScenePlayer({ lesson, onDone, testId = 'player' }: { lesson: Les
         <button type="button" className="btn btn--sm btn--quiet" onClick={() => go(idx - 1)} disabled={idx === 0} aria-label="Previous scene">Back</button>
         <button type="button" className="btn btn--sm btn--quiet" onClick={nextScene} aria-label="Next scene" data-testid={`${testId}-next`}>Next</button>
         <button type="button" className="btn btn--sm btn--quiet" onClick={() => play(0)} data-testid={`${testId}-replay`}>Replay</button>
-        <label className="ac-speed small">Speed <select className="select select--sm" value={speed} onChange={(e) => { setSpeed(Number(e.target.value)); if (playing) setTimeout(() => play(idx), 0); }} data-testid={`${testId}-speed`}>
+        <label className="ac-speed small">Speed <select className="select select--sm" value={speed} onChange={(e) => { if (playing) restart.current = idx; setSpeed(Number(e.target.value)); }} data-testid={`${testId}-speed`}>
           {SPEEDS.map((s) => <option key={s} value={s}>{s}x</option>)}</select></label>
-        {voice && <button type="button" className="btn btn--sm btn--quiet" aria-pressed={voiceOn} onClick={() => { setVoiceOn((v) => !v); if (playing) setTimeout(() => play(idx), 0); }}>{voiceOn ? 'Voice on' : 'Voice off'}</button>}
+        {voice && <button type="button" className="btn btn--sm btn--quiet" aria-pressed={voiceOn} onClick={() => { if (playing) restart.current = idx; setVoiceOn((v) => !v); }}>{voiceOn ? 'Voice on' : 'Voice off'}</button>}
         <span className="small muted" data-testid={`${testId}-scene`}>Scene {idx + 1} of {n}{captionsOnly ? ' · captions only' : ''}</span>
       </div>
     </div>

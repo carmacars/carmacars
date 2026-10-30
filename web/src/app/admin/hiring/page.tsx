@@ -24,17 +24,20 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
   const [{ read }, sp] = await Promise.all([page('/admin/hiring'), searchParams]);
   const tab = sp.tab ?? 'pipeline';
   const base = '/admin/hiring';
-  const data = await read<{ today: string; phone_enabled: boolean; roles: Role[]; applications: App[]; days: Day[] }>('hiring',
+  const data = await read<{ today: string; phone_enabled: boolean; roles: Role[]; applications: App[]; days: Day[]; waiting?: Array<{ slug: string; title: string; count: number }> }>('hiring',
     { role: sp.role ?? '', status: sp.status ?? '', source: sp.source ?? '', min_score: sp.min_score ?? '' });
   const waiting = data.roles.reduce((n, r) => n + (r.counts.below_bar ?? 0), 0);
   const tabs = <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=pipeline`, 'Applications', waiting], [`${base}?tab=calls`, 'Calls'], [`${base}?tab=shortlist`, 'Shortlist'],
     [`${base}?tab=days`, 'Interview days'], [`${base}?tab=roles`, 'Roles and links']]} />;
   const head = <PageHead title="Hiring" kicker={`${data.roles.filter((r) => r.active).length} roles open`} purpose="Every applicant is scored on the server: a knock-out gets a decline (Field staff: an offer to apply for Sales), a pass gets a booking link, the rest wait here for you." />;
+  // 0211: per role, applicants invited while no interview day is open (their invitation, or "New times are open", goes when a day is added)
+  const noDay = (data.waiting ?? []).map((w) => (
+    <p key={w.slug} className="alert alert--warn" role="status" data-testid={`hiring-no-day-${w.slug}`}><span>{w.count} applicant{w.count === 1 ? '' : 's'} invited but no interview day is open for {w.title}. <Link prefetch={false} className="link" href={`${base}?tab=days`}>Add an interview day</Link></span></p>));
   const roleOptions: Array<[string, string]> = [['', 'All roles'], ...data.roles.map((r) => [r.slug, r.short_title] as [string, string])];
 
   if (tab === 'calls') {
     const s = await read<{ day: string; today: string; days: string[]; phone_enabled: boolean; free: number; calls: Array<App & { ends_at: string; meet_url: string | null }> }>('hiring_schedule', { day: sp.day ?? '' });
-    return (<>{head}{tabs}
+    return (<>{head}{noDay}{tabs}
       <Filters base={`${base}?tab=calls`} name="day" value={s.day} sp={sp} options={(s.days.length ? s.days : [s.day]).map((x) => [x, `${d(x)}${x === s.today ? ' (today)' : ''}`] as [string, string])} />
       <Card title={`Calls on ${d(s.day)} (${s.calls.length})`} testId="hiring-calls" aside={<span className="small muted">{s.free} open slots left</span>}>
         <Table<App & R> rows={s.calls as Array<App & R>} rowKey={(x) => x.id} empty="No calls booked on this day." cols={[
@@ -51,7 +54,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
   }
   if (tab === 'shortlist') {
     const s = await read<{ roles: Array<{ slug: string; title: string; rows: Array<App & R> }> }>('hiring_shortlist');
-    return (<>{head}{tabs}
+    return (<>{head}{noDay}{tabs}
       {s.roles.length === 0 && <p className="muted" data-testid="hiring-shortlist-empty">No interviews scored yet. Score a call and it shows here, ranked.</p>}
       {s.roles.map((r) => (
         <Card key={r.slug} title={r.title} testId={`shortlist-${r.slug}`}>
@@ -73,7 +76,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
       { name: 'mode', label: 'How', type: 'select' as const, options: [['phone', 'Phone: we call the candidate'], ['video', 'Video: a Jitsi Meet link for each booking']] as Array<[string, string]>, value: v.mode ?? 'phone' },
       { name: 'roles', label: 'Roles (leave empty for every role)', type: 'list' as const, value: v.role_slugs ?? [], hint: `Role codes, separated by commas: ${data.roles.map((r) => r.slug).join(', ')}` },
       { name: 'note', label: 'Note (only Admins see it)', type: 'text' as const, value: v.note ?? '' }];
-    return (<>{head}{tabs}
+    return (<>{head}{noDay}{tabs}
       <div className="row"><Act action="hiring_day_save" label="Add an interview day" variant="primary" testId="day-add" refresh={[base]} done="Day added with its slots." fields={dayFields()} /></div>
       <Card title="Interview days" testId="hiring-days">
         <Table<Day & R> rows={data.days as Array<Day & R>} rowKey={(x) => x.id} empty="No interview day yet. Add one: candidates who pass are invited to book on it." cols={[
@@ -90,7 +93,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
   }
   if (tab === 'roles') {
     const site = siteUrl();
-    return (<>{head}{tabs}
+    return (<>{head}{noDay}{tabs}
       {data.roles.map((r) => {
         const src = r.remote ? 'onlinejobs' : 'indeed';
         const link = site + applyPath(r.slug, src);
@@ -111,7 +114,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
           </Card>);
       })}</>);
   }
-  return (<>{head}{tabs}
+  return (<>{head}{noDay}{tabs}
     <div className="row" style={{ gap: '1rem', flexWrap: 'wrap' }}>
       <Filters base={`${base}?tab=pipeline`} name="role" value={sp.role ?? ''} sp={sp} options={roleOptions} />
       <Filters base={`${base}?tab=pipeline`} name="status" value={sp.status ?? ''} sp={sp} options={STATUS_FILTERS} />

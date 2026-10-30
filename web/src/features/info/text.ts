@@ -73,6 +73,7 @@ export const INFO: Record<string, string> = {
   returns_mode: 'Paid monthly: each month\'s return goes to your bank account on the 15th. Reinvested: it is added to your Invested Amount and earns a return from then on.',
   lockup_end: 'No return is earned during the lockup period. Your first Return Month starts on the Lockup End Date.',
   invested_amount: 'What is earning a return: your principal, plus returns reinvested, less amounts redeemed.',
+  investor_roi: 'The yearly return offered, from the investor offer (30% by default, Admin > Investors > Investor deck). It is a note on the record: the investment agreement sets the Yearly Percentage that applies.',
   yearly_percentage: 'The return your agreement sets for a year, paid month by month on the amount at the start of each month.'
 };
 

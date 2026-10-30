@@ -20,6 +20,7 @@ export interface BookingView {
   ok: true; first_name: string; role_title: string; remote: boolean; status: string; can_book: boolean; phone_last: string;
   booked: { slot_id: string; starts_at: string; ends_at: string; mode: 'phone' | 'video'; meet_url: string | null } | null;
   slots: Array<{ id: string; starts_at: string; ends_at: string; mode: 'phone' | 'video'; day: string }>;
+  /** no open call time for the role: the visit is recorded and a day added emails them (0211) */ no_slots?: boolean;
 }
 export async function bookingView(token: string): Promise<BookingView | null> {
   if (!TOKEN.test(token)) return null;

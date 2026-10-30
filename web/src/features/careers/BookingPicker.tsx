@@ -59,7 +59,7 @@ export function BookingPicker({ token, v }: { token: string; v: BookingView }) {
         </div>
       )}
       {days.length === 0
-        ? <p data-testid="book-none">No times are open right now. Reply to our email and we will find one with you.</p>
+        ? <p className="alert" role="status" data-testid="book-none"><span>No call times are open right now. We&apos;ll email you as soon as new times open.</span></p>
         : <div className="stack-lg">
             {days.map(([day, slots]) => (
               <fieldset key={day} className="cr-day">

@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 194,
+  "count": 195,
   "emails": [
     {
       "code": "account_password_reset",
@@ -18960,6 +18960,91 @@
       ],
       "template_html": "templates/applicant_invited.html",
       "template_text": "templates/applicant_invited.txt"
+    },
+    {
+      "code": "applicant_new_times",
+      "audience": "applicant",
+      "category": "transactional",
+      "trigger": "An Admin adds or opens an interview day for a role (Admin > People > Hiring) and a candidate invited for that role had found no open call times on their booking link (migration 0211). One email per candidate per day added.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "New times are open for your CarmaCars interview call",
+      "preheader": "Pick a time on {{call_days}}.",
+      "sample_subject": "New times are open for your CarmaCars interview call",
+      "variables": [
+        {
+          "name": "booking_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/careers/book/3f9a1c"
+        },
+        {
+          "name": "call_days",
+          "type": "string",
+          "sample": "Thursday, November 5"
+        },
+        {
+          "name": "call_minutes",
+          "type": "string",
+          "sample": "15"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Jordan",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "role_title",
+          "type": "string",
+          "sample": "Field Staff: Driver and Detailer"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/applicant_new_times.html",
+      "template_text": "templates/applicant_new_times.txt"
     },
     {
       "code": "applicant_received",

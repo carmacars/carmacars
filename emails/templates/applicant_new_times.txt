@@ -1,0 +1,29 @@
+CarmaCars  |  Careers
+
+========================================
+
+[Careers]
+New times are open, {{first_name}}
+
+We opened new interview call times for {{role_title}}.
+
+Pick any open time on {{call_days}}. The call takes about {{call_minutes}} minutes. You can move or cancel it from the same link.
+
+Book my interview call:
+{{booking_url}}
+
+The link is personal: please do not share it. If no time suits you, reply to this email.
+
+----------------------------------------
+
+Questions about your application? Reply to this email.
+
+You are receiving this because you applied for a job at CarmaCars. We keep the application of a candidate we do not hire for 12 months, then delete it.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}
