@@ -3,6 +3,7 @@ import { submitReferralPartner } from '@/server/actions/referral';
 import { partnerSignupSchema } from '@/features/forms/schemas';
 import { describedBy, Field } from '@/features/forms/Field';
 import { Turnstile } from '@/features/forms/Turnstile';
+import { AddressLookup } from '@/features/forms/AddressFields';
 import { useForm } from '@/features/forms/useForm';
 import type { PartnerKind } from './model';
 
@@ -30,6 +31,11 @@ export function PartnerSignupForm({ kind, noun }: { kind: PartnerKind; noun: str
       {input('business_name', `Your ${noun}'s name`, false, 'text', 'organization')}
       <div className="field-row">{input('contact_name', 'Who we talk to', false, 'text', 'name')}{input('phone', 'Phone', false, 'tel', 'tel')}</div>
       {input('email', 'Email', false, 'email', 'email')}
+      <AddressLookup idp="ps" label="Find your business address" onParts={(p) => {
+        // the lookup fills the lines below (Release 21b, item 8); each stays editable
+        const put = (k: string, v: string) => { const el = document.getElementById(`ps-${k}`) as HTMLInputElement | null; if (el && v) { el.value = v; clear(k); } };
+        put('address_line1', [p.street, p.unit].filter(Boolean).join(' ')); put('city', p.city); put('postal_code', p.postal_code);
+      }} />
       <div className="field-row">{input('address_line1', 'Street address', true, 'text', 'street-address')}{input('city', 'City', true, 'text', 'address-level2')}{input('postal_code', 'Postal code', true, 'text', 'postal-code')}</div>
       <Field float id="ps-note" label="Anything we should know" optional error={e.note}>
         <textarea className="textarea" placeholder=" " id="ps-note" name="note" aria-invalid={!!e.note || undefined} aria-describedby={describedBy('ps-note', e.note)} onInput={() => clear('note')} />

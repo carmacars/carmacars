@@ -1,4 +1,5 @@
 'use client';
+import { InfoTip } from '@/components/InfoTip';
 import { AffiliateNote } from '@/features/coverage/AffiliateNote';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -404,7 +405,7 @@ export function RequestWizard(p: WizardProps) {
               <div className="alert alert--ok" data-testid="coverage-included-step"><span className="alert__title">Insurance included</span>
                 <span>This car comes with its insurance: no personal auto policy, OPCF 27 or credit card coverage needed.{car.noCreditCard ? ' No credit card needed either: a debit card in your name is accepted.' : ''}</span></div>
             ) : (
-            <fieldset className={fieldCls('coverage')}><legend className="label">How will the car be covered?</legend>
+            <fieldset className={fieldCls('coverage')}><legend className="label">How will the car be covered?</legend><InfoTip k="coverage" topic="the coverage options" testId="info-coverage" />
               <p className="hint">Liability coverage is included. This is about damage to the car. You can change your choice any time before pickup.</p>
               <div className="stack">
                 {(['1', '2', '3'] as const).map((v) => (
@@ -416,7 +417,7 @@ export function RequestWizard(p: WizardProps) {
               {p.affiliate && <AffiliateNote name={p.affiliate} placement="booking_step" />}
             </fieldset>
             )}
-            <fieldset className="field"><legend className="label">Booking type</legend>
+            <fieldset className="field"><legend className="label">Booking type</legend><InfoTip k="cancellation" topic="the cancellation rules" />
               <div className="stack">
                 <label className="option"><input type="radio" name="bookingType" value="standard" checked={d.bookingType === 'standard'} onChange={() => set('bookingType', 'standard')} /><span className="option__title">Standard</span><span className="option__body">Cancel {p.tokens.cEarly} hours or more before pickup for {p.tokens.c2} back. <Link className="link" href="/cancellation-policy">All tiers</Link>.</span></label>
                 <label className="option"><input type="radio" name="bookingType" value="non_refundable" checked={d.bookingType === 'non_refundable'} onChange={() => set('bookingType', 'non_refundable')} /><span className="option__title">Non-refundable, {p.tokens.nonRef} off the rental charge</span><span className="option__body">Cheaper, but no refund if you cancel, miss pickup or return early.</span></label>

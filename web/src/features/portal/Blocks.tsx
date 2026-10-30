@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { InfoTip } from '@/components/InfoTip';
 import type { ReactNode } from 'react';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
@@ -50,8 +51,9 @@ export function PriceBreakdown({ lines, hst, total, totalLabel = 'Total due now'
   );
 }
 
-export function Dl({ rows }: { rows: Array<[string, ReactNode]> }) {
-  return <dl className="pt-dl">{rows.filter(([, v]) => v !== null && v !== undefined && v !== '').map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>;
+// a row's third value (Release 21b): the key of its "i" (src/features/info/text.ts)
+export function Dl({ rows }: { rows: Array<[string, ReactNode] | [string, ReactNode, string]> }) {
+  return <dl className="pt-dl">{rows.filter(([, v]) => v !== null && v !== undefined && v !== '').map(([k, v, info]) => <div key={k}><dt>{k}{info && <InfoTip k={info} topic={k} />}</dt><dd>{v}</dd></div>)}</dl>;
 }
 
 export const placeText = (place: string | null, method: string, pickup: boolean) =>

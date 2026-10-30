@@ -47,3 +47,7 @@ test('held functions and the home page', () => {
   assert.equal(staffHome(['field', 'fleet']), '/staff');
   assert.deepEqual(staffNav([]), []);
 });
+
+test('the academy is in the menu of every staff member, once (Release 21b)', () => {
+  for (const fns of [['cs'], ['field'], ['sales', 'field'], ['cs', 'sales', 'fleet', 'finance', 'field']]) assert.equal(hrefs(fns).filter((p) => p === '/staff/academy').length, 1, fns.join());
+});

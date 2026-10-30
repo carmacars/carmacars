@@ -1,4 +1,5 @@
 import { pageMeta } from '@/features/seo/meta';
+import { InfoTip } from '@/components/InfoTip';
 import { money } from '@/lib/format';
 import { Back, Dl } from '@/features/portal/Blocks';
 import { day, monthOf } from '@/features/owner/Blocks';
@@ -45,10 +46,10 @@ export default async function OwnerStatementPage({ params }: { params: Promise<{
               <div className="pt-card__head"><h2 className="d4">{v.name}</h2><span className="small muted">{[v.plate, MODE_LABEL[v.management_mode]].filter(Boolean).join(' · ')}</span></div>
               {v.lines.length ? <ul className="ow-rows">{v.lines.map((l) => <LineRow key={l.id} l={l} />)}</ul> : <p className="small muted">No rentals ended this month.</p>}
               <dl className="pt-dl pt-dl--money">
-                {(v.totals.flat_payment_cents ?? 0) > 0 && <div><dt>Flat monthly payment</dt><dd>{c(v.totals.flat_payment_cents)}</dd></div>}
+                {(v.totals.flat_payment_cents ?? 0) > 0 && <div><dt>Flat monthly payment<InfoTip k="pay_model" topic="the flat monthly payment" /></dt><dd>{c(v.totals.flat_payment_cents)}</dd></div>}
                 {!((v.totals.flat_payment_cents ?? 0) > 0 && !v.totals.owner_revenue_cents && !v.totals.revenue_share_cents) && <>
                 <div><dt>Owner Revenue</dt><dd>{c(v.totals.owner_revenue_cents)}</dd></div>
-                <div><dt>Revenue Share</dt><dd>{c(-(v.totals.revenue_share_cents ?? 0))}</dd></div></>}
+                <div><dt>Revenue Share<InfoTip k="revenue_share" topic="the Revenue Share" /></dt><dd>{c(-(v.totals.revenue_share_cents ?? 0))}</dd></div></>}
                 <div><dt>Net earnings</dt><dd>{c(v.totals.net_earnings_cents)}</dd></div>
                 {(v.totals.fees_deducted_cents ?? 0) + (v.totals.late_fees_deducted_cents ?? 0) + (v.totals.owner_costs_deducted_cents ?? 0) + (v.totals.refund_chargeback_deducted_cents ?? 0) > 0 && <div><dt>Deductions</dt><dd>{c(-((v.totals.fees_deducted_cents ?? 0) + (v.totals.late_fees_deducted_cents ?? 0) + (v.totals.owner_costs_deducted_cents ?? 0) + (v.totals.refund_chargeback_deducted_cents ?? 0)))}</dd></div>}
                 <div><dt><b>Vehicle payable</b></dt><dd className="pt-total">{c(v.totals.payable_cents)}</dd></div>

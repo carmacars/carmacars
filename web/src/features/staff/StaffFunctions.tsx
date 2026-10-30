@@ -1,4 +1,5 @@
 'use client';
+import { InfoTip } from '@/components/InfoTip';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { adminAct } from '@/server/actions/admin-portal';
@@ -28,9 +29,9 @@ export function StaffFunctions({ user, functions, salesMode, fieldRole, testId }
     <details className="ad-inline" data-testid={testId}>
       <summary className="link small">Functions</summary>
       <fieldset className="stack-s">
-        <legend className="small">Staff work this person does</legend>
+        <legend className="small">Staff work this person does</legend><InfoTip k="functions" topic="staff functions" />
         {ALL.map((f) => <label key={f} className="check"><input type="checkbox" checked={fns.includes(f)} onChange={(e) => toggle(f, e.target.checked)} data-testid={`fn-${f}`} /> {STAFF_FN_LABEL[f]}</label>)}
-        {fns.includes('sales') && <label className="small">Sales work <select className="select" value={mode} onChange={(e) => setMode(e.target.value)} data-testid="fn-sales-mode">
+        {fns.includes('sales') && <InfoTip k="sales_work_mode" topic="the Sales work mode" />}{fns.includes('sales') && <label className="small">Sales work <select className="select" value={mode} onChange={(e) => setMode(e.target.value)} data-testid="fn-sales-mode">
           <option value="in_person">In person</option><option value="remote">Remote</option></select></label>}
         {fns.includes('field') && <label className="small">Field role <select className="select" value={role} onChange={(e) => setRole(e.target.value)} data-testid="fn-field-role">
           <option value="driver">Driver</option><option value="detailer">Detailer</option><option value="driver_detailer">Driver and detailer</option></select></label>}

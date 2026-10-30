@@ -7,6 +7,8 @@ import { useDoor } from './door';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { siblingFill } from '@/features/forms/address-parts';
 import { adminToast } from './shell/toast';
+import { InfoTip } from '@/components/InfoTip';
+import { infoText } from '@/features/info/text';
 
 // The admin portal's action controls. One button or one form per database action: fields are typed
 // (money in dollars becomes cents, a percentage becomes basis points, a local date and time becomes an
@@ -19,7 +21,9 @@ export interface Field { name: string; label: string; type?: FieldType; options?
   /** set by the form: the names of the other fields, for an address field's fill (2026-10-24) */
   siblings?: string[];
   /** an address field: suggestions from every country, not only Canada (a staff member's home address) */
-  anywhere?: boolean }
+  anywhere?: boolean;
+  /** the "i" beside the label (Release 21b): this text, a key of src/features/info/text.ts, or by itself the field's name when it is a key; false: none */
+  info?: string | false }
 type Result = { ok: true; data: unknown } | { ok: false; message: string; fieldErrors?: Record<string, string> };
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -62,6 +66,13 @@ export function convert(f: Field, raw: string | boolean): { v?: unknown; err?: s
   }
 }
 
+// the field's "i": its own text, a catalog key, or its name when the catalog has it
+function tip(f: Field) {
+  if (f.info === false) return null;
+  const text = f.info ? (infoText(f.info) ?? f.info) : infoText(f.name);
+  return text ? <InfoTip text={text} topic={f.label.replace(/\s*\(.*$/, '')} testId={`info-${f.name}`} /> : null;
+}
+
 export function FieldInput({ f, value, set, err, idp, fill }: { f: Field; value: string | boolean; set: (v: string | boolean) => void; err?: string; idp: string;
   /** an address field: the chosen suggestion's values for this field and its siblings (city, province, postal code...) */
   fill?: (patch: Record<string, string>) => void }) {
@@ -70,7 +81,7 @@ export function FieldInput({ f, value, set, err, idp, fill }: { f: Field; value:
   if (f.type === 'bool') {
     return (
       <div className={`field ad-field${f.wide ? ' ad-field--wide' : ''}`}>
-        <label className="check" htmlFor={id}><input id={id} type="checkbox" checked={Boolean(value)} onChange={(e) => set(e.target.checked)} aria-describedby={desc} /> <span>{f.label}</span></label>
+        <span className="label-line"><label className="check" htmlFor={id}><input id={id} type="checkbox" checked={Boolean(value)} onChange={(e) => set(e.target.checked)} aria-describedby={desc} /> <span>{f.label}</span></label>{tip(f)}</span>
         {f.hint && <p className="hint" id={`${id}-hint`}>{f.hint}</p>}
       </div>
     );
@@ -78,7 +89,7 @@ export function FieldInput({ f, value, set, err, idp, fill }: { f: Field; value:
   const common = { id, value: String(value), 'aria-invalid': err ? true : undefined, 'aria-describedby': desc, required: f.required, placeholder: f.placeholder };
   return (
     <div className={`field ad-field${err ? ' has-error' : ''}${f.wide || f.type === 'textarea' || f.type === 'json' ? ' ad-field--wide' : ''}`}>
-      <label className="label" htmlFor={id}>{f.label}{f.type === 'money' ? ' ($)' : f.type === 'percent' ? ' (%)' : ''}</label>
+      <span className="label-line"><label className="label" htmlFor={id}>{f.label}{f.type === 'money' ? ' ($)' : f.type === 'percent' ? ' (%)' : ''}</label>{tip(f)}</span>
       {f.type === 'address' ? (
         <AddressInput id={id} name={f.name} value={{ label: String(value), placeId: '' }} onChange={(x) => set(x.label)} invalid={!!err} describedBy={desc} required={f.required} placeholder={f.placeholder} testId={`${f.name}-lookup`} anywhere={f.anywhere}
           onParts={fill ? (p, label, geo) => fill(siblingFill(f.name, f.siblings ?? [f.name], p, label, geo)) : undefined} />

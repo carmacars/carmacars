@@ -12,6 +12,8 @@ import { TaxModeToggle, useTaxMode } from '@/features/sales/TaxModeToggle';
 import { beforeTax, convertTyped, linesBeforeTax, solveRental, totalDifference, type TaxMode } from '@/features/sales/taxIncluded';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { Info } from '@/features/forms/Info';
+import { infoText } from '@/features/info/text';
+const lineHelpInfo = (k: string) => infoText(k) ?? '';
 import { FEE_LABEL, lineHelp } from '@/features/offers/help';
 import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/addons/model';
 import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/insurers/rates';
@@ -651,7 +653,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
             <select className="select" id={id('paid_by')} value={paidBy} onChange={(e) => setPaidBy(e.target.value as RentalPaidBy)} data-testid="mr-paid-by">
               {paidByOptions.map(([v, l]) => <option key={v} value={v} disabled={v === 'card_on_file' && !card}>{l}{v === 'card_on_file' ? (card ? ` (${card.brand} ${card.last4})` : ' (no saved card)') : ''}</option>)}</select>
             <p className="hint">{RENTAL_PAID_BY.find(([v]) => v === paidBy)?.[2]}{phase === 'in_progress' && (paidBy === 'link' || paidBy === 'card_on_file') ? ` ${LIVE_MODE[paidBy === 'link' ? 'link' : 'card']}` : ''}</p></div>
-          {paidBy === 'insurer' && <fieldset className="ad-field ad-field--wide stack" data-testid="mr-insurance"><legend className="label">Insurance replacement</legend>
+          {paidBy === 'insurer' && <fieldset className="ad-field ad-field--wide stack" data-testid="mr-insurance"><legend className="label">Insurance replacement</legend><Info text={lineHelpInfo('bill_to')} label="About insurer-billed rentals" />
             <div className="ad-fields">
               <div className="field ad-field"><label className="label" htmlFor={id('insurer_id')}>Insurer</label>
                 <select className="select" id={id('insurer_id')} value={f.insurer_id ?? ''} onChange={set('insurer_id')} data-testid="mr-insurer">

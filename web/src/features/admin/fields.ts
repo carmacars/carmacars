@@ -41,6 +41,7 @@ const LABELS: Record<string, string> = {
   notify_cap_warn_bps: 'Warn the Admins in the portal at this share of the daily limit', notify_count_auth_emails: 'Count sign-in emails (sent by Supabase through the same provider) in the daily limit',
   owner_debit_notice_days: 'Pre-debit notice (days before each debit, 10 to 30)',
   owner_flat_agreements_awaiting_lawyer: 'Flat-rate agreements awaiting lawyer OK',
+  academy_gate: 'Academy gate: staff open only the academy until they pass their paths', academy_pass_bps: 'Academy: pass mark of a quiz',
   request_response_target_minutes: 'First reply target for customer service and sales (minutes)',
   request_claim_minutes: 'Booking requests: the person answering a request holds it for (minutes)',
   request_sales_after_minutes: 'Booking requests: Sales may answer a request this many minutes after it came in',
@@ -131,6 +132,8 @@ const LABELS: Record<string, string> = {
   esign_typed_fallback: 'E-signing: a signer who cannot draw may type their name and initials', esign_code_minutes: 'E-signing: the code works for (minutes)'
 };
 const HINTS: Record<string, string> = {
+  academy_gate: 'Off (the default): the academy records progress only. On: a staff member who has not passed every path of their functions opens only the academy, the guide and their profile in the staff portal. Admins are never held.',
+  academy_pass_bps: 'The share of a section\'s questions to answer right (80% by default). A passed section opens the next one of the path.',
   esign_code_required: 'Off by default: the signer reads, initials each key term, consents and draws the signature, and the certificate records the time, IP address and device of each step and says the identity was not confirmed by a code. On: the code comes first, as before. Signers can still verify by code when it is off.',
   vlf_daily_cents: 'The VLF a day put on a rental when it is first billed to an insurer (the insurer pays it with the rental, also when it pays the rental only), printed on the Blind Spot form\'s VLF line (43). $0: none. Each booking\'s rate is changed or removed under Charges to the insurer.',
   deposit_release_reminder_days: 'A deposit is due back 7 business days after the check-in. When no check-in was recorded, the reminder counts from the return instead. On the day (a little before, in the Finance queue) Finance gets one task and the Admins and Finance an in-app notice; nothing is emailed. The task closes by itself once the deposit is settled.',
@@ -215,7 +218,7 @@ const HINTS: Record<string, string> = {
 const RANGES: Record<string, [number, number]> = { review_checkin_min_days: [1, 30], review_checkin_after_hours: [1, 240], review_ask_after_minutes: [0, 10080], review_reminder_hours: [1, 336], review_final_days: [1, 60], review_send_from_hour: [0, 23], review_send_until_hour: [1, 24], review_ask_max_days: [1, 365], review_google_match_days: [1, 365], sms_quiet_from_hour: [0, 23], sms_quiet_until_hour: [0, 23], signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_max_per_day: [0, 50], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], game_replay_after_claim_days: [0, 90], game_saved_again_days: [0, 30], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440], request_claim_minutes: [5, 240], request_sales_after_minutes: [0, 1440], sales_remote_min_touches: [0, 10000], sales_remote_drop_tiers: [0, 3], sales_remote_cover_hours: [0, 84], sales_remote_reply_minutes: [1, 240], sales_remote_peak_from_hour: [0, 23], sales_remote_peak_until_hour: [1, 24], deposit_release_reminder_days: [1, 60] };
 export function fieldFor(k: string, v: unknown, options?: Array<[string, string]>): Field {
   const f = fieldForBase(k, v, options);
-  return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k] } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };
+  return { ...f, ...(LABELS[k] ? { label: LABELS[k] } : {}), ...(HINTS[k] ? { hint: HINTS[k], info: false as const } : {}), ...(RANGES[k] ? { min: RANGES[k][0], max: RANGES[k][1] } : {}) };
 }
 function fieldForBase(k: string, v: unknown, options?: Array<[string, string]>): Field {
   if (options) return { name: k, label: nice(k), type: 'select', options, value: v, required: true };

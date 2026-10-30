@@ -6,6 +6,10 @@ import { AddressFields } from '@/features/forms/AddressFields';
 import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 import { checkDetails, detailFields, detailPayload, type RenterMissing } from './renter-details';
 import { useAct } from './useAct';
+import { InfoTip } from '@/components/InfoTip';
+
+// the "i" of a blank (Release 21b)
+const TIP: Record<string, string> = { insurer_name: 'opcf27', policy_number: 'policy_number', policy_expiry: 'policy_expiry', card_issuer: 'card_coverage', card_last4: 'card_coverage' };
 
 const PROVINCES: [string, string][] = [['ON', 'Ontario'], ['QC', 'Quebec'], ['BC', 'British Columbia'], ['AB', 'Alberta'], ['MB', 'Manitoba'], ['SK', 'Saskatchewan'], ['NS', 'Nova Scotia'], ['NB', 'New Brunswick'], ['NL', 'Newfoundland and Labrador'], ['PE', 'Prince Edward Island'], ['YT', 'Yukon'], ['NT', 'Northwest Territories'], ['NU', 'Nunavut']];
 
@@ -40,7 +44,7 @@ export function CompleteDetails({ number, missing, then }: { number: string; mis
             errors={{ address_line1: err('address_line1'), city: err('city'), province: err('province'), postal_code: err('postal_code'), country: err('country') }} />;
           return (
             <div key={f.name} className={`field${err(f.name) ? ' has-error' : ''}`}>
-              <label className="label" htmlFor={id}>{f.label}</label>
+              <span className="label-line"><label className="label" htmlFor={id}>{f.label}</label>{TIP[f.name] && <InfoTip k={TIP[f.name]} topic={f.label} />}</span>
               {f.input === 'insurer' ? <InsurerSelect id={id} value={v[f.name] ?? ''} onChange={(x) => setV((s) => ({ ...s, [f.name]: x }))} required testId="complete-insurer" />
                 : f.input === 'issuer' ? <select className="select" id={id} value={v[f.name] ?? ''} onChange={set(f.name)}>{PROVINCES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}<option value="OTHER">Another country</option></select>
                 : <input className="input" id={id} type={f.input === 'date' ? 'date' : f.input === 'tel' ? 'tel' : 'text'} inputMode={f.input === 'last4' ? 'numeric' : undefined} maxLength={f.input === 'last4' ? 4 : undefined}

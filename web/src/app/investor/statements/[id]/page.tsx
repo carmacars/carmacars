@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { InfoTip } from '@/components/InfoTip';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireInvestor } from '@/server/door';
 import { money } from '@/lib/format';
@@ -28,8 +29,8 @@ export default async function Statement({ params }: { params: Promise<{ id: stri
       <p><a className="btn btn--ghost btn--sm" href={`/files/investor_statement/${id}`} data-testid="statement-pdf">Download PDF</a></p>
       <dl className="pt-dl">
         <div><dt>Investor</dt><dd>{s.legal_name}</dd></div><div><dt>Agreement</dt><dd>{s.agreement_number ?? ''}</dd></div>
-        <div><dt>Invested Amount at the start of the month</dt><dd>{c(s.opening_invested_cents)}</dd></div>
-        <div><dt>Yearly Percentage</dt><dd>{(s.yearly_bps / 100).toFixed(2)}%</dd></div>
+        <div><dt>Invested Amount at the start of the month<InfoTip k="invested_amount" topic="the Invested Amount" /></dt><dd>{c(s.opening_invested_cents)}</dd></div>
+        <div><dt>Yearly Percentage<InfoTip k="yearly_percentage" topic="the Yearly Percentage" /></dt><dd>{(s.yearly_bps / 100).toFixed(2)}%</dd></div>
         <div><dt>Days earning</dt><dd>{s.days_earning} of {s.days_in_month}</dd></div>
         <div><dt>Return for the month</dt><dd>{c(s.return_cents)}</dd></div>
         {s.withheld_tax_cents > 0 && <div><dt>Tax withheld</dt><dd>{c(s.withheld_tax_cents)}</dd></div>}

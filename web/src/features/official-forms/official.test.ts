@@ -10,6 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fillPdf, readFields, type Spec } from './fill.ts';
+import { NOT_MAPPED, notMapped } from './not-mapped.ts';
 import { Pdf, acroForm, fields, filledValues, get, pages, packetText, xfaPackets, xmlTree, type V, type XNode } from './pdf-update.ts';
 
 const FIX = new URL('../../../tests/fixtures/official-forms/', import.meta.url);
@@ -140,6 +141,22 @@ test('every mapped field is a field of the official PDF, of the same type; every
     assert.deepEqual(out.missing, [], `${s} ${code}: every value found its field`);
     assert.deepEqual(out.truncated, [], `${s} ${code}: no value cut at the field's length`);
   }
+});
+
+// Release 21b, item 8: the form-completeness audit. Every field of each publisher's PDF is mapped or deliberately left
+// empty with its reason (not-mapped.ts); a rule that matches nothing, or a mapped field, is stale.
+test('no unmapped field: every field of every official PDF is mapped or left empty on purpose, with the reason', async () => {
+  for (const [code, { map }] of Object.entries(MAPS)) {
+    const { fields: fs } = await readFields(pdf(code));
+    const open = fs.filter((f) => !(f.name in map) && !notMapped(code, f.name, f.type)).map((f) => `${f.type} ${f.name}`);
+    assert.deepEqual(open, [], `${code}: fields neither mapped nor left empty on purpose`);
+    for (const r of NOT_MAPPED[code] ?? []) {
+      const hits = fs.filter((f) => (r.type ? r.type === f.type : true) && r.match.test(f.name));
+      assert.ok(hits.some((f) => !(f.name in map)), `${code}: the rule "${r.reason}" matches no unmapped field`);
+      if (!r.type) assert.deepEqual(hits.filter((f) => f.name in map).map((f) => f.name), [], `${code}: the rule "${r.reason}" matches a mapped field`);
+    }
+  }
+  assert.deepEqual(Object.keys(NOT_MAPPED).sort(), Object.keys(MAPS).sort());
 });
 
 test('the filled form is the official PDF unchanged except its filled text boxes (every form, every method)', async () => {

@@ -27,7 +27,11 @@
 .ad-table .input--sm { width: 100%; max-width: 8rem; min-width: 4.5rem; }
 [data-testid^="mr-part-"] .row { flex-wrap: wrap; }
 [data-testid^="mr-part-"] .row > .input, [data-testid^="mr-part-"] .row > .select { flex: 1 1 8rem; min-width: 0; }
-/* 0132: the (i) beside a field or a price line */
+/* 0132: the (i) beside a field or a price line; Release 21b: the label and its (i) on one line, the (i) a 44px touch target */
+.label-line { display: flex; align-items: center; flex-wrap: wrap; gap: .1rem; }
+.label-line > .label, .label-line > .check { margin: 0; }
+.info__btn::after { content: ''; position: absolute; inset: -.6rem; }
+.info__btn { position: relative; }
 .info { position: relative; display: inline-block; vertical-align: middle; margin-inline-start: .3rem; }
 .info__btn { inline-size: 1.5rem; block-size: 1.5rem; min-inline-size: 1.5rem; border-radius: 50%; border: 1px solid currentColor; background: transparent; color: inherit;
   font: italic 600 .8rem/1 Georgia, serif; cursor: pointer; padding: 0; display: inline-grid; place-items: center; }

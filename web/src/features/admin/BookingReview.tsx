@@ -1,5 +1,6 @@
 'use client';
 import { Info } from '@/features/forms/Info';
+import { infoText } from '@/features/info/text';
 import { lineHelp } from '@/features/offers/help';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { AddressInput } from '@/features/forms/AddressInput';
@@ -64,7 +65,7 @@ type CtxT = { v: Record<string, string | boolean>; set: (k: string) => (x: strin
 const Ctx = createContext<CtxT>({ v: {}, set: () => () => {}, changed: () => false, editable: false });
 const F = ({ k, l, type = 'text', hint, money: m }: { k: string; l: string; type?: string; hint?: string; money?: boolean }) => { const { v, set, changed, editable } = useContext(Ctx); return (
   <div className={`field ad-field${changed(k) ? ' ad-diff' : ''}`}>
-    <label className="label" htmlFor={`rv-${k}`}>{l}{m ? ' ($)' : ''}</label>
+    <span className="label-line"><label className="label" htmlFor={`rv-${k}`}>{l}{m ? ' ($)' : ''}</label>{TIP[k] && <Info text={infoText(TIP[k])!} label={`About ${l}`} />}</span>
     <input className="input" id={`rv-${k}`} type={type} value={String(v[k] ?? '')} disabled={!editable} inputMode={m ? 'decimal' : undefined}
       onChange={(e) => set(k)(e.target.value)} aria-describedby={hint ? `rv-${k}-h` : undefined} />
     {hint && <p className="hint" id={`rv-${k}-h`}>{hint}</p>}
@@ -78,9 +79,12 @@ const A = ({ k, l }: { k: string; l: string }) => { const { v, set, changed, edi
       : <input className="input" id={`rv-${k}`} value={String(v[k] ?? '')} disabled />}
   </div>
 ); };
+// the "i" of a field of the review (Release 21b): the key of src/features/info/text.ts
+const TIP: Record<string, string> = { bill_to: 'bill_to', insurer_claim_number: 'claim_number', insurer_adjuster_name: 'adjuster', insurer_adjuster_email: 'adjuster', insurer_authorized_daily_rate_cents: 'authorized_daily_rate',
+  deposit_cents: 'deposit_cents', coverage: 'coverage', booking_type: 'non_refundable', overage_cents_per_km: 'mileage_overage', staff_discount_cents: 'discount_scope' };
 const S = ({ k, l, options }: { k: string; l: string; options: Array<[string, string]> }) => { const { v, set, changed, editable } = useContext(Ctx); return (
   <div className={`field ad-field${changed(k) ? ' ad-diff' : ''}`}>
-    <label className="label" htmlFor={`rv-${k}`}>{l}</label>
+    <span className="label-line"><label className="label" htmlFor={`rv-${k}`}>{l}</label>{TIP[k] && <Info text={infoText(TIP[k])!} label={`About ${l}`} />}</span>
     <select className="select" id={`rv-${k}`} value={String(v[k] ?? '')} disabled={!editable} onChange={(e) => set(k)(e.target.value)}>{options.map(([a, c]) => <option key={a} value={a}>{c}</option>)}</select>
   </div>
 ); };

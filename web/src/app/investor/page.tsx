@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { InfoTip } from '@/components/InfoTip';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireInvestor } from '@/server/door';
 import { money } from '@/lib/format';
@@ -73,8 +74,8 @@ export default async function InvestorHome() {
                     : <ProgressRing value={1} max={1} title="Earning a Return each month" label={<PuIcon name="check" />} sub="earning" />}
                 </div>
                 <dl className="pt-dl">
-                  <div><dt>Yearly Percentage</dt><dd>{(x.yearly_bps / 100).toFixed(2)}%</dd></div>
-                  <div><dt>Returns</dt><dd>{x.mode === 'reinvest' ? 'Reinvested' : 'Paid monthly'}</dd></div>
+                  <div><dt>Yearly Percentage<InfoTip k="yearly_percentage" topic="the Yearly Percentage" /></dt><dd>{(x.yearly_bps / 100).toFixed(2)}%</dd></div>
+                  <div><dt>Returns<InfoTip k="returns_mode" topic="how returns are handled" /></dt><dd>{x.mode === 'reinvest' ? 'Reinvested' : 'Paid monthly'}</dd></div>
                   <div><dt>Next Payment Date</dt><dd>{day(x.next_payment_date)}</dd></div>
                 </dl>
                 <More summary="Principal, dates and amounts to date">
@@ -82,7 +83,7 @@ export default async function InvestorHome() {
                     <div><dt>Principal</dt><dd>{c(x.principal_cents)}</dd></div><div><dt>Reinvested to date</dt><dd>{c(x.reinvested_cents)}</dd></div>
                     <div><dt>Redeemed to date</dt><dd>{c(x.redeemed_cents)}</dd></div>
                     <div><dt>Investment Date</dt><dd>{day(x.investment_date)}</dd></div>
-                    <div><dt>Lockup End Date</dt><dd>{day(x.lockup_end_date)}{locked ? '. No return is earned for the lockup period.' : ''}</dd></div>
+                    <div><dt>Lockup End Date<InfoTip k="lockup_end" topic="the lockup" /></dt><dd>{day(x.lockup_end_date)}{locked ? '. No return is earned for the lockup period.' : ''}</dd></div>
                   </dl>
                 </More>
               </section>

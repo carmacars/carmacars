@@ -6,6 +6,216 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      academy_attempts: {
+        Row: {
+          id: string;
+          user_id: string;
+          section_id: string;
+          correct: number;
+          total: number;
+          score_bps: number;
+          passed: boolean;
+          answers: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          section_id: string;
+          correct: number;
+          total: number;
+          score_bps: number;
+          passed: boolean;
+          answers?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          section_id?: string;
+          correct?: number;
+          total?: number;
+          score_bps?: number;
+          passed?: boolean;
+          answers?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      academy_lesson_views: {
+        Row: {
+          user_id: string;
+          lesson_id: string;
+          viewed_at: string;
+        };
+        Insert: {
+          user_id: string;
+          lesson_id: string;
+          viewed_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          lesson_id?: string;
+          viewed_at?: string;
+        };
+        Relationships: [];
+      };
+      academy_lessons: {
+        Row: {
+          id: string;
+          section_id: string;
+          sort: number;
+          title: string;
+          scenes: Json;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          section_id: string;
+          sort: number;
+          title: string;
+          scenes?: Json;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          section_id?: string;
+          sort?: number;
+          title?: string;
+          scenes?: Json;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      academy_path_sections: {
+        Row: {
+          path_code: string;
+          section_id: string;
+          sort: number;
+        };
+        Insert: {
+          path_code: string;
+          section_id: string;
+          sort: number;
+        };
+        Update: {
+          path_code?: string;
+          section_id?: string;
+          sort?: number;
+        };
+        Relationships: [];
+      };
+      academy_paths: {
+        Row: {
+          code: string;
+          title: string;
+          blurb: string;
+          sort: number;
+        };
+        Insert: {
+          code: string;
+          title: string;
+          blurb?: string;
+          sort?: number;
+        };
+        Update: {
+          code?: string;
+          title?: string;
+          blurb?: string;
+          sort?: number;
+        };
+        Relationships: [];
+      };
+      academy_questions: {
+        Row: {
+          id: string;
+          section_id: string;
+          sort: number;
+          prompt: string;
+          options: Json;
+          answer: number;
+          explain: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          section_id: string;
+          sort: number;
+          prompt: string;
+          options: Json;
+          answer: number;
+          explain?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          section_id?: string;
+          sort?: number;
+          prompt?: string;
+          options?: Json;
+          answer?: number;
+          explain?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      academy_sections: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          blurb: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          title: string;
+          blurb?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          title?: string;
+          blurb?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      academy_unlocks: {
+        Row: {
+          user_id: string;
+          section_id: string;
+          unlocked_by: string;
+          reason: string;
+          created_at: string;
+        };
+        Insert: {
+          user_id: string;
+          section_id: string;
+          unlocked_by: string;
+          reason: string;
+          created_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          section_id?: string;
+          unlocked_by?: string;
+          reason?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       account_links: {
         Row: {
           id: string;
@@ -13355,6 +13565,8 @@ export type Database = {
           phone_quo_contacts: boolean;
           vlf_daily_cents: number;
           owner_flat_agreements_awaiting_lawyer: boolean;
+          academy_gate: boolean;
+          academy_pass_bps: number;
         };
         Insert: {
           id?: string;
@@ -13867,6 +14079,8 @@ export type Database = {
           phone_quo_contacts?: boolean;
           vlf_daily_cents?: number;
           owner_flat_agreements_awaiting_lawyer?: boolean;
+          academy_gate?: boolean;
+          academy_pass_bps?: number;
         };
         Update: {
           id?: string;
@@ -14379,6 +14593,8 @@ export type Database = {
           phone_quo_contacts?: boolean;
           vlf_daily_cents?: number;
           owner_flat_agreements_awaiting_lawyer?: boolean;
+          academy_gate?: boolean;
+          academy_pass_bps?: number;
         };
         Relationships: [];
       };

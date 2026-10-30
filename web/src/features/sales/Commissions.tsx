@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { InfoTip } from '@/components/InfoTip';
 import { $, Card, Table, Tiles, d } from '@/features/admin/ui';
 
 // A staff member's commissions (migration 0058): this month's progress (Sales: rental days against the target and the
@@ -68,7 +69,7 @@ export function Commissions({ c, own, compact, rowAction }: { c: StaffCommission
   if (compact) {
     return (
       <section className="fd-card stack" aria-labelledby="cm-t" data-testid="commissions">
-        <h2 className="d4" id="cm-t">Commissions</h2>
+        <h2 className="d4" id="cm-t">Commissions<InfoTip k="commission" topic="commission" /></h2>
         <MonthTarget m={c.month} own={own} />
         <ul className="fd-shots" data-testid="commission-totals">
           <li><span>Not earned yet</span><span>{$(tot.not_earned)}</span></li>

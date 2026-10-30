@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { InfoTip } from '@/components/InfoTip';
 import { seoMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { getFleet, getSettings } from '@/lib/site';
@@ -88,7 +89,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   // money: what is paid and what is open, by part, as the database stored it
   const m = moneyParts({ status: b.status, renter_due_at_booking_cents: b.renter_due_at_booking_cents, deposit_cents: b.deposit_cents, link_due: b.link_due, signed,
     payments: b.payments, refunds: b.refunds, extensions: b.extensions, addons: addons?.items ?? [], changes: b.change_requests });
-  const parts: MoneyPart[] = m.parts.map((p) => ({ key: p.key, label: p.label, amount: money(p.cents, { cents: true }), state: p.state, note: p.note,
+  const parts: MoneyPart[] = m.parts.map((p) => ({ key: p.key, label: p.key === 'deposit' ? <>{p.label}<InfoTip k="deposit" topic="the deposit" testId="info-deposit" /></> : p.label, amount: money(p.cents, { cents: true }), state: p.state, note: p.note,
     href: p.sub ? bookingPath(b.booking_number, p.sub) : undefined, cta: p.state === 'owing' || p.state === 'info' ? p.cta : undefined, testId: `money-${p.key}` }));
   // a rental with a payment link already shows its whole amount as owing
   if (balanceDue && !b.link_due) parts.push({ key: 'owe-balance', label: 'Balance due', amount: money(balanceDue, { cents: true }), state: 'owing', note: 'after a change or a charge added', testId: 'money-owe-balance' });

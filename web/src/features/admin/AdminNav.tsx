@@ -20,7 +20,7 @@ export const GROUPS: NavGroup[] = [
   { key: 'people', label: 'People', links: [
     { href: '/admin/applications', label: 'Applications', key: 'a', section: 'Owners and partners' }, { href: '/admin/owners', label: 'Owners', key: 'o' }, { href: '/admin/owners/add-car', label: 'Add a car for an owner' },
     { href: '/admin/partners', label: 'Partners' }, { href: '/admin/referral-partners', label: 'Referral partners' }, { href: '/admin/owner-forms', label: 'Owner forms' }, { href: '/admin/owners?view=checklist', label: 'Paid and signed' },
-    { href: '/admin/renters', label: 'Renters', section: 'Renters, staff and investors' }, { href: '/admin/settings/staff', label: 'Staff' }, { href: '/admin/hiring', label: 'Hiring' }, { href: '/admin/investors', label: 'Investors' },
+    { href: '/admin/renters', label: 'Renters', section: 'Renters, staff and investors' }, { href: '/admin/settings/staff', label: 'Staff' }, { href: '/admin/academy', label: 'Academy' }, { href: '/admin/hiring', label: 'Hiring' }, { href: '/admin/investors', label: 'Investors' },
     { href: '/admin/portals', label: 'Portals and view as' }] },
   { key: 'marketing', label: 'Marketing', links: [
     { href: '/admin/marketing/listings', label: 'Listings', section: 'Ads' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' },

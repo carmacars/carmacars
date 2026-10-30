@@ -1,0 +1,50 @@
+/* The academy (Release 21b, item 9): the scene player, its scenes in motion, the quiz and the path list. Motion stops under
+   prefers-reduced-motion (the scenes still change, without movement). */
+.ac-player { border: 1px solid var(--line); border-radius: .6rem; overflow: hidden; background: var(--surface, #fff); outline-offset: 2px; }
+.ac-player:focus-visible { outline: 2px solid var(--red-600, #c8102e); }
+.ac-stage { position: relative; aspect-ratio: 16 / 9; background: var(--grey-950, #111); color: #fff; overflow: hidden; display: grid; }
+.ac-stage::before { content: ''; position: absolute; inset: -40%; background: radial-gradient(circle at 30% 30%, rgb(200 16 46 / .35), transparent 45%), radial-gradient(circle at 75% 70%, rgb(255 255 255 / .08), transparent 40%); }
+.ac-stage.is-playing::before { animation: ac-drift 18s linear infinite alternate; }
+.ac-cover, .ac-scene { position: relative; padding: clamp(.8rem, 4vw, 2rem); display: flex; flex-direction: column; justify-content: center; gap: .5rem; min-inline-size: 0; }
+.ac-cover__kicker, .ac-scene__kicker { font: 600 .72rem/1.2 var(--font-text, inherit); letter-spacing: .14em; text-transform: uppercase; color: #ff9aa9; margin: 0; }
+.ac-cover__title, .ac-scene__big { font: 700 clamp(1.2rem, 4.5vw, 2.4rem)/1.1 var(--font-display, inherit); margin: 0; }
+.ac-cover__meta, .ac-scene__sub { color: #d6d6d6; margin: 0; font-size: clamp(.85rem, 2.4vw, 1.1rem); }
+.ac-scene__head { font: 700 clamp(1rem, 3.2vw, 1.5rem)/1.2 var(--font-display, inherit); margin: 0; }
+.ac-scene > * { animation: ac-rise .5s ease-out both; }
+.ac-items { margin: 0; padding-inline-start: 1.2rem; display: grid; gap: .3rem; font-size: clamp(.85rem, 2.6vw, 1.15rem); }
+.ac-items li, .ac-money > div, .ac-bubble { animation: ac-rise .45s ease-out both; animation-delay: calc(var(--i, 0) * 450ms + 300ms); }
+.ac-items--steps li::marker { color: #ff9aa9; font-weight: 700; }
+.ac-money { margin: 0; display: grid; gap: .25rem; font-size: clamp(.8rem, 2.5vw, 1.1rem); }
+.ac-money > div { display: flex; justify-content: space-between; gap: 1rem; border-block-end: 1px solid rgb(255 255 255 / .15); padding-block: .15rem; }
+.ac-money dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 600; text-align: end; }
+.ac-money__total { font-weight: 700; border-block-end: 0 !important; }
+.ac-rule { border-inline-start: 4px solid #4ade80; padding: .4rem .8rem; background: rgb(255 255 255 / .06); font-size: clamp(.85rem, 2.6vw, 1.15rem); }
+.ac-rule p { margin: .2rem 0; }
+.ac-rule--warn { border-color: #fbbf24; }
+.ac-chat { display: grid; gap: .45rem; font-size: clamp(.8rem, 2.4vw, 1.05rem); }
+.ac-bubble { margin: 0; max-inline-size: 85%; padding: .45rem .7rem; border-radius: .8rem; background: rgb(255 255 255 / .12); }
+.ac-bubble--you { justify-self: end; background: #c8102e; }
+.ac-bubble__who { display: block; font-size: .7em; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.ac-caption { margin: 0; padding: .6rem .9rem; min-block-size: 3.2rem; background: var(--black, #000); color: #fff; font-size: .95rem; line-height: 1.45; }
+.ac-bar { block-size: .35rem; background: var(--grey-200, #e5e5e5); }
+.ac-bar > span { display: block; block-size: 100%; background: var(--red-600, #c8102e); transition: inline-size .2s linear; }
+.ac-controls { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; padding: .6rem; }
+.ac-speed { display: inline-flex; gap: .3rem; align-items: center; }
+.ac-speed .select { min-inline-size: 0; inline-size: auto; }
+.ac-lesson { display: grid; gap: .5rem; }
+.ac-quiz fieldset { border: 1px solid var(--line); border-radius: .5rem; padding: .7rem .9rem; margin: 0; }
+.ac-quiz legend { font-weight: 600; padding-inline: .3rem; }
+.ac-quiz .check { display: flex; gap: .5rem; align-items: flex-start; padding-block: .2rem; }
+.ac-quiz .is-right { color: var(--green-700, #15803d); }
+.ac-quiz .is-wrong { color: var(--red-700, #b91c1c); }
+.ac-sections { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.ac-sections li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; align-items: center; border: 1px solid var(--line); border-radius: .5rem; padding: .6rem .8rem; }
+.ac-badge { font-size: .75rem; font-weight: 600; padding: .1rem .5rem; border-radius: 999px; background: var(--grey-100, #f3f3f3); color: var(--text); }
+.ac-badge--ok { background: #dcfce7; color: #14532d; }
+.ac-badge--locked { background: var(--grey-200, #e5e5e5); color: #333; }
+@keyframes ac-rise { from { opacity: 0; transform: translateY(.6rem); } to { opacity: 1; transform: none; } }
+@keyframes ac-drift { from { transform: translate(0, 0); } to { transform: translate(6%, 4%); } }
+@media (prefers-reduced-motion: reduce) {
+  .ac-scene > *, .ac-items li, .ac-money > div, .ac-bubble, .ac-stage.is-playing::before { animation: none; }
+  .ac-bar > span { transition: none; }
+}

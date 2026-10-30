@@ -16,7 +16,8 @@ import { viewAs, ViewAsReadOnly } from '@/server/view-as';
 const SR = { role: 'service_role' as const };
 export type Call = 'roles' | 'admin_list' | 'admin_read' | 'admin_save' | 'admin_do' | 'va_list' | 'va_read' | 'va_do' | 'field_read' | 'field_do' | 'investor_read' | 'investor_do' | 'ops_read' | 'ops_do';
 export interface Roles { admin: boolean; va: 'finance' | 'fleet' | 'cs' | 'sales' | null; va_functions?: Array<'finance' | 'fleet' | 'cs' | 'sales'>;
-  /** every staff function held, field work included (0197) */ functions?: Array<'finance' | 'fleet' | 'cs' | 'sales' | 'field'>; sales_work_mode?: 'in_person' | 'remote' | null; field: boolean; owner: boolean; renter: boolean; investor: boolean; staff: boolean; two_step_required: boolean; name: string | null }
+  /** every staff function held, field work included (0197) */ functions?: Array<'finance' | 'fleet' | 'cs' | 'sales' | 'field'>; sales_work_mode?: 'in_person' | 'remote' | null; field: boolean; owner: boolean; renter: boolean; investor: boolean; staff: boolean; two_step_required: boolean; name: string | null;
+  /** the academy gate is on and this staff member has not passed their paths yet (0207) */ academy_locked?: boolean }
 
 export async function sessionAal(): Promise<'aal1' | 'aal2' | null> {
   return (await auth()).assurance();
@@ -77,8 +78,11 @@ export async function requireStaff(kind: 'va' | 'field', next: string): Promise<
   // one staff portal (0197): a person with field work only opens on their jobs; anyone else without the function is told so
   if (kind === 'va' ? !roles.va : !roles.field) redirect(kind === 'va' && roles.field && (next === '/staff' || next === '/va') ? '/staff/field' : '/staff/no-access');
   if (roles.two_step_required && (await sessionAal()) !== 'aal2') redirect(`/two-step?next=${encodeURIComponent(next)}`);
+  // the academy gate (0207, off by default): until their paths are passed, the academy, the guide and the profile only
+  if (roles.academy_locked && !ACADEMY_OPEN.test(next)) redirect('/staff/academy?locked=1');
   return { user, roles };
 }
+const ACADEMY_OPEN = /^\/staff\/(academy|guide|profile|field\/profile|no-access)(\/|\?|$)/;
 
 export async function requireInvestor(next: string): Promise<{ user: SessionUser; roles: Roles }> {
   const user = await currentUser();

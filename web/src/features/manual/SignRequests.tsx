@@ -2,6 +2,7 @@
 import { useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
+import { AddressInput } from '@/features/forms/AddressInput';
 import { createSignRequest, prepareGeneratedAgreement, sendGeneratedAgreement, voidSignRequest } from '@/server/actions/manual-records';
 import type { Field } from '@/features/person-agreements/model';
 
@@ -119,6 +120,9 @@ export function SendGenerated({ docType, who, refresh }: { docType: 'investment_
             {f.options ? (
               <select className="select" id={`${uid}-${f.key}`} value={vals[f.key] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [f.key]: e.target.value }))} data-testid={`gen-${f.key}`}>
                 <option value="">Choose</option>{f.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+            ) : /(^|_)address$/.test(f.key) ? (
+              // an address: the lookup (Release 21b, item 8)
+              <AddressInput id={`${uid}-${f.key}`} name={f.key} value={{ label: vals[f.key] ?? '', placeId: '' }} onChange={(x) => setVals((v) => ({ ...v, [f.key]: x.label }))} testId={`gen-${f.key}`} anywhere />
             ) : <input className="input" id={`${uid}-${f.key}`} value={vals[f.key] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [f.key]: e.target.value }))} data-testid={`gen-${f.key}`} />}
             {f.hint && <p className="hint">{f.hint}</p>}</div>
         ))}

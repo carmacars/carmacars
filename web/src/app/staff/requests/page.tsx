@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { InfoTip } from '@/components/InfoTip';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { door } from '@/server/door';
@@ -30,7 +31,7 @@ export default async function VaRequests({ searchParams }: { searchParams: Promi
   const late = waiting.filter((r) => r.waiting_minutes > target.minutes).length;
   return (
     <>
-      <PageHead title="Requests" kicker={`${waiting.length} waiting · reply within ${target.words}`} purpose="Booking requests and offers out, the longest wait first. Open one to review it and send the offer.">
+      <PageHead title="Requests" kicker={`${waiting.length} waiting · reply within ${target.words}`} purpose={<>Booking requests and offers out, the longest wait first. Open one to review it and send the offer.<InfoTip k="request_claim" topic="answering requests" /></>}>
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/staff/offers/new" data-testid="send-offer-link">Send an offer without a request</Link></PageHead>
       <div className="va-strip" data-testid="requests-strip">
         <StatCard card label="Waiting for an offer" value={waiting.length} sub={`reply within ${target.words}`} />
