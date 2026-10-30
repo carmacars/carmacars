@@ -51,7 +51,7 @@ test('sign-in: each role lands on its own portal; refusal pages name the account
     investor: await mkPerson(sql, 'Ivan Investor', ['investor']),
     renter: await mkPerson(sql, 'Riley Renter', ['renter'])
   };
-  const home = { admin: '/admin', va: '/va', field: '/field', owner: '/owner', investor: '/investor', renter: '/account' } as const;
+  const home = { admin: '/admin', va: '/staff', field: '/staff/field', owner: '/owner', investor: '/investor', renter: '/account' } as const;
   for (const [role, p] of Object.entries(people) as Array<[keyof typeof home, { email: string }]>) {
     const page = await newPage(browser, phone);
     const errors = watch(page);
@@ -65,8 +65,8 @@ test('sign-in: each role lands on its own portal; refusal pages name the account
       await expect(page.getByTestId('no-access-email')).toHaveText(p.email);
       await expect(page.getByTestId('my-portals').getByRole('link', { name: 'Admin' })).toBeVisible();
       await expect(page.getByRole('link', { name: 'Admin > Portals' })).toBeVisible();
-      await page.goto('/va');
-      await expect(page).toHaveURL(/\/va\/no-access/);
+      await page.goto('/staff');
+      await expect(page).toHaveURL(/\/staff\/no-access/);
       await expect(page.getByTestId('no-access')).toContainText('This area is for CarmaCars staff');
       await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
     }
@@ -105,9 +105,11 @@ test('sign-in: several portals: choose one, and each frame links to the others',
   await signIn(page, p.email);
   expect(path(page)).toBe('/choose-portal');
   const list = page.getByTestId('choose-portal');
-  await expect(list.getByRole('link')).toHaveText(['Admin', 'Staff portal: Finance', 'Staff portal: Fleet', 'Owner portal']);
-  await list.getByRole('link', { name: 'Staff portal: Fleet' }).click();
-  await page.waitForURL((u) => u.pathname === '/va');
+  // one staff portal (0197) for every function held; the frame's switcher picks the one worked in
+  await expect(list.getByRole('link')).toHaveText(['Admin', 'Staff portal', 'Owner portal']);
+  await list.getByRole('link', { name: 'Staff portal' }).click();
+  await page.waitForURL((u) => u.pathname === '/staff');
+  await page.getByTestId('fn-switch').getByRole('button', { name: 'Fleet' }).click();
   await expect(page.getByTestId('fn-switch').getByRole('button', { name: 'Fleet' })).toHaveAttribute('aria-pressed', 'true');
   await page.getByTestId('portal-switch').getByRole('link', { name: 'Owner portal' }).click();
   await page.waitForURL((u) => u.pathname === '/owner');
@@ -176,11 +178,11 @@ test('view as: an Admin opens each portal as one of its people, read only, recor
   expect(refused.status()).toBe(403);
   expect(await refused.text()).toMatch(/^Read only/);
   // the staff portal in a function they cover; their switcher is not offered while viewing
-  await open('va-fleet', va, '/va');
+  await open('va-fleet', va, '/staff');
   await expect(page.getByTestId('account-email')).toHaveText('Val Viewed');
   await expect(page.getByTestId('fn-switch')).toHaveCount(0);
   await expect(page.locator('.ad__who')).toContainText('Fleet');
-  await open('field', field, '/field');
+  await open('field', field, '/staff/field');
   await expect(page.locator('h1').first()).toBeVisible();
   await open('investor', investor, '/investor');
   await expect(page.locator('h1').first()).toBeVisible();
@@ -262,7 +264,7 @@ test('invite: an Admin invites an assistant and an owner on file; each chooses a
   await expect(f.getByRole('status')).toContainText(`Invitation sent to owen.${t}@example.test`);
   expect((await sql`select va_function::text || '+' || cover_functions::text v from staff_profiles sp join users u on u.id = sp.user_id where u.email = ${`nina.${t}@example.test`}`)[0]!.v).toBe('finance+{sales}');
   await page.context().close();
-  for (const [email, landing] of [[`nina.${t}@example.test`, '/va'], [`owen.${t}@example.test`, '/owner']] as const) {
+  for (const [email, landing] of [[`nina.${t}@example.test`, '/staff'], [`owen.${t}@example.test`, '/owner']] as const) {
     const m = await sql`select link from local_auth.mailbox where to_email = ${email} order by id desc limit 1`;
     expect(m[0]?.link, email).toContain('/update-password?token=');
     const p = await newPage(browser, phone);

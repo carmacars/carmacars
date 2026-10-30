@@ -143,7 +143,7 @@ test('admin: To do, the six groups, search, the keyboard, Admin access only for 
   await page.goto('/admin/portals', { waitUntil: 'networkidle' });
   const roles = await page.getByTestId('invite-card').locator('select').first().locator('option').allInnerTexts();
   expect(roles.join('|')).not.toMatch(/admin/i);
-  expect(roles).toContain('Staff (assistant)');
+  expect(roles).toContain('Staff');
   // and the database refuses the role to anyone else
   const other = await mkUser(sql, 'plain', 'Lr Other');
   await sql`update users set email = ${'lr.other.' + tag() + '@carmacars.ca'} where id = ${other.id}`;
@@ -456,15 +456,15 @@ test('assistant: the grouped menu, To do first', async ({ browser }) => {
   const sql = db();
   const va = await mkUser(sql, 'va', 'Lr Assistant');
   const page = await ctx(browser);
-  await signIn(page, va.email, '/va');
-  await page.goto('/va', { waitUntil: 'networkidle' });
+  await signIn(page, va.email, '/staff');
+  await page.goto('/staff', { waitUntil: 'networkidle' });
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('To do');
   await openMenu(page);
   const nav = page.getByTestId('va-nav');
-  for (const g of ['My work', 'Live', 'Bookings', 'Renters', 'Cars', 'Owners']) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
-  await nav.getByTestId('nav-group-bookings').click();
+  for (const g of ['My work', 'Live', 'Customer service', 'Rentals']) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
+  await nav.getByTestId('nav-group-cs').click();
   await nav.getByRole('link', { name: 'Requests' }).click();
-  await page.waitForURL(/\/va\/requests/);
+  await page.waitForURL(/\/staff\/requests/);
   await check(page, 'assistant requests');
   await page.context().close();
   await sql.end();

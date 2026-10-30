@@ -19,7 +19,7 @@ Note from Fleet: {{job_note}}
 {{/if}}
 
 Open the job and acknowledge:
-https://carmacars.ca/field/jobs/{{job_id}}
+https://carmacars.ca/staff/field/jobs/{{job_id}}
 
 - Have the car ready 30 minutes before a pickup.
 - Hand over only to the renter, in person. Check the original licence and the physical card.

@@ -11,17 +11,17 @@ export default digest({
   stats: [{ label: 'Statements to issue', value: '3' }, { label: 'Deposits due today', value: '1' }],
   sections: [
     { title: 'Deposits near the limit', items: [
-      { line: 'Booking CC-10431: $500.00 held', meta: 'Day 7 of 7 today. Release or hold back with a reason.', url: 'https://carmacars.ca/va/finance/bookings/CC-10431' },
+      { line: 'Booking CC-10431: $500.00 held', meta: 'Day 7 of 7 today. Release or hold back with a reason.', url: 'https://carmacars.ca/staff/bookings/CC-10431' },
     ] },
     { title: 'Returns to bill', items: [
-      { line: 'Booking CC-10466: fuel short, no damage', meta: 'Checked in yesterday 9:52 am', url: 'https://carmacars.ca/va/finance/bookings/CC-10466' },
-      { line: 'Booking CC-10459: 84 km over the allowance', meta: 'Checked in yesterday 4:10 pm', url: 'https://carmacars.ca/va/finance/bookings/CC-10459' },
+      { line: 'Booking CC-10466: fuel short, no damage', meta: 'Checked in yesterday 9:52 am', url: 'https://carmacars.ca/staff/bookings/CC-10466' },
+      { line: 'Booking CC-10459: 84 km over the allowance', meta: 'Checked in yesterday 4:10 pm', url: 'https://carmacars.ca/staff/bookings/CC-10459' },
     ] },
     { title: 'Tolls and tickets', items: [
-      { line: 'Toll invoice, plate CMCR 482, $18.42', meta: 'Matched to booking CC-10482. Charge by Thu.', url: 'https://carmacars.ca/va/finance/tolls-tickets/tt-9012' },
+      { line: 'Toll invoice, plate CMCR 482, $18.42', meta: 'Matched to booking CC-10482. Charge by Thu.', url: 'https://carmacars.ca/staff/tolls?ticket=tt-9012' },
     ] },
     { title: 'Declined payments', items: [
-      { line: 'Booking CC-10418: $80.57 due', meta: 'Retry 2 runs today.', url: 'https://carmacars.ca/va/finance/bookings/CC-10418' },
+      { line: 'Booking CC-10418: $80.57 due', meta: 'Retry 2 runs today.', url: 'https://carmacars.ca/staff/bookings/CC-10418' },
     ] },
   ],
 });

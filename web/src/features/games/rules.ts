@@ -90,7 +90,7 @@ export const SEARCH_LANDING_DELAY = 15_000;
 
 /** Pages where a game never shows: booking, checkout and paying, signing, sign-in, portals, documents, a request's own
  *  pages (0100: my-request, continue). The request-to-book form has its own game (bookingPath). */
-const NEVER = /^\/(book|account|owner|admin|va|field|investor|sign|sign-in|sign-document|create-account|reset-password|update-password|two-step|choose-portal|read-only|link-expired|unsubscribe|guide-pdf|files|d|r|list-your-car\/apply|auth|my-request|continue|checkout|pay|payment)(\/|$)/;
+const NEVER = /^\/(book|account|owner|admin|va|field|staff|investor|sign|sign-in|sign-document|create-account|reset-password|update-password|two-step|choose-portal|read-only|link-expired|unsubscribe|guide-pdf|files|d|r|list-your-car\/apply|auth|my-request|continue|checkout|pay|payment)(\/|$)/;
 const PAYSIGN = /\/(pay|payment|sign|checkout)(\/|$)/;
 export const excludedPath = (path: string) => NEVER.test(path) || PAYSIGN.test(path);
 /** The request-to-book form (/book and /book/<car>), where the inline card is offered; never its sent page. */

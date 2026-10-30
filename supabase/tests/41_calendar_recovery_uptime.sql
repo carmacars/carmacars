@@ -92,7 +92,7 @@ select test.eq('not modified: the clash is not raised twice', (select count(*) f
 select test.flush62();
 select test.eq('the clash email reaches Fleet with the times in Toronto',
   (select format('%s | %s | %s', to_address, payload ->> 'external_start', payload ->> 'calendar_url') from notification_outbox where code = 'staff_calendar_conflict' and booking_id = test.id('booking:C62-B1') and to_address = 'c62_fleet@example.test'),
-  'c62_fleet@example.test | Sun, Mar 9 at 10:00 am | https://carmacars.ca/va/calendar-sync');
+  'c62_fleet@example.test | Sun, Mar 9 at 10:00 am | https://carmacars.ca/staff/calendar-sync');
 select test.eq('Calendar sync shows the clash to Fleet', (select count(*) from jsonb_array_elements(app.door(test.id('c62_fleet'), '', 'va_read', 'calendar_sync') -> 'conflicts') x where x ->> 'booking_number' = 'C62-B1'), 1::bigint);
 -- the trip is cancelled on Turo: it leaves the link; the block goes and the clash closes by itself
 select app.calendar_feed_apply(test.f62(), jsonb_build_array(

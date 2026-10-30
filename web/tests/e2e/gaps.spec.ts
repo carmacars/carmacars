@@ -97,8 +97,8 @@ test('gaps: customer service and the renter write to each other on the booking, 
   const req = await seedRequest(sql, renter, car.id, car.from, car.to);
   const va = await ctx(browser, phone);
   const errors = watch(va);
-  await signIn(va, cs.email, '/va');
-  await va.goto(`/va/bookings/${req.booking_number}?tab=messages`);
+  await signIn(va, cs.email, '/staff');
+  await va.goto(`/staff/bookings/${req.booking_number}?tab=messages`);
   await va.locator('#em-subject').fill('Your pickup time');
   await va.locator('#em-body').fill('Hello Riley, we can have the car ready at 9:00. Does that work?');
   await va.getByTestId('email-send').click();
@@ -115,7 +115,7 @@ test('gaps: customer service and the renter write to each other on the booking, 
   await check(rp, 'renter booking messages');
   const [t] = await sql`select queue, status from tasks where task_type = 'renter_message' and booking_id = ${req.booking_id}`;
   expect(t).toMatchObject({ queue: 'cs', status: 'open' });
-  await va.goto('/va');
+  await va.goto('/staff');
   await expect(va.locator('body')).toContainText(`Booking ${req.booking_number}: the renter replied`);
   expect(clean(errors)).toEqual([]);
   await sql.end();
@@ -130,8 +130,8 @@ test('gaps: Finance records Turo trips and a processor payout; the scorecard', a
   const [car] = await sql`select v.id, v.plate from vehicles v where v.plate is not null and (app.vehicle_terms(v.id, current_date)).revenue_share_bps is not null order by v.created_at limit 1`;
   const page = await ctx(browser, phone);
   const errors = watch(page);
-  await signIn(page, fin.email, '/va');
-  await page.goto('/va/turo'); await check(page, 'va turo');
+  await signIn(page, fin.email, '/staff');
+  await page.goto('/staff/turo'); await check(page, 'va turo');
   const ref = `E2E-${Date.now()}-${phone ? 'p' : 'd'}`;
   await act(page, 'turo-add', async (d) => {
     await d.getByLabel('Car', { exact: true }).selectOption(car!.id as string);
@@ -145,10 +145,10 @@ test('gaps: Finance records Turo trips and a processor payout; the scorecard', a
   await expect(page.getByTestId('turo-import')).toContainText('1 saved. Not saved: row 2', { timeout: 15_000 });
   await expect(page.getByTestId('turo-trips')).toContainText(`${ref}-2`);
   await check(page, 'va turo after');
-  await page.goto('/va/reconciliation'); await check(page, 'va reconciliation');
+  await page.goto('/staff/reconciliation'); await check(page, 'va reconciliation');
   await act(page, 'reconcile-record', async (d) => { await d.getByLabel('Payout reference').fill(`po_${ref}`); await d.getByLabel('Paid on').fill('2026-10-01'); await d.getByLabel('Amount ($)').fill('123.45'); });
   await expect(page.locator('body')).toContainText(`po_${ref}`, { timeout: 15_000 });
-  await page.goto('/va/scorecard'); await expect(page.getByTestId('scorecard')).toContainText('Refunds paid'); await check(page, 'va scorecard');
+  await page.goto('/staff/scorecard'); await expect(page.getByTestId('scorecard')).toContainText('Refunds paid'); await check(page, 'va scorecard');
   expect(clean(errors)).toEqual([]);
   await sql.end();
 });
@@ -194,9 +194,9 @@ test('gaps: Fleet daily check, photo review with a re-shoot done on a phone, and
   await sql`set session_replication_role = origin`;
   const page = await ctx(browser, phone);
   const errors = watch(page);
-  await signIn(page, fleet.email, '/va');
+  await signIn(page, fleet.email, '/staff');
   // the opening check: everything the system knows is pre-answered
-  await page.goto('/va/checks'); await check(page, 'va checks');
+  await page.goto('/staff/checks'); await check(page, 'va checks');
   for (const n of [1, 2, 3, 4, 5]) {
     const line = page.locator('fieldset.ad-check__line').nth(n - 1);
     await line.getByLabel('OK', { exact: true }).check();
@@ -204,7 +204,7 @@ test('gaps: Fleet daily check, photo review with a re-shoot done on a phone, and
   await page.getByTestId('check-save-opening').click();
   await expect(page.getByTestId('check-opening')).toContainText('Saved', { timeout: 15_000 });
   // the photo review side by side, and the re-shoot
-  await page.goto(`/va/review/${req.booking_number}`);
+  await page.goto(`/staff/review/${req.booking_number}`);
   await expect(page.getByTestId('missing-return')).toContainText('roof, instrument cluster');
   await expect(page.getByTestId('photo-review').locator('img').first()).toBeVisible();
   await check(page, 'va photo review');
@@ -213,7 +213,7 @@ test('gaps: Fleet daily check, photo review with a re-shoot done on a phone, and
   const [job] = await sql`select id, assigned_to from field_jobs where reshoot_report_id = ${rr}`;
   expect(job!.assigned_to).toBe(field.id);
   // the late-return panel
-  await page.goto(`/va/bookings/${lreq.booking_number}`);
+  await page.goto(`/staff/bookings/${lreq.booking_number}`);
   await expect(page.getByTestId('late-panel')).toContainText('Late return');
   await check(page, 'va late panel');
   await act(page, 'late-call', async (d) => { await d.getByLabel('What happened').fill('No answer; left a voicemail'); });
@@ -224,8 +224,8 @@ test('gaps: Fleet daily check, photo review with a re-shoot done on a phone, and
   // the field staff member takes the two shots again on a phone
   const fp = await ctx(browser, true);
   const ferr = watch(fp);
-  await signIn(fp, field.email, '/field');
-  await fp.goto(`/field/jobs/${job!.id}`);
+  await signIn(fp, field.email, '/staff/field');
+  await fp.goto(`/staff/field/jobs/${job!.id}`);
   await fp.getByTestId('acknowledge').click(); await fp.getByTestId('start').click({ timeout: 15_000 });
   await expect(fp.getByTestId('job-checklist')).toBeVisible({ timeout: 15_000 });
   await check(fp, 'field reshoot');
@@ -251,8 +251,8 @@ test('gaps: field checklists, the report, referrals, profile and the home screen
   const [job] = await sql`select app.create_field_job('detail', ${car!.id}::uuid, now() + interval '1 hour', ${admin.id}::uuid, null, ${field.id}::uuid, 'Yard', 'Full detail') id`;
   const page = await ctx(browser, true);
   const errors = watch(page);
-  await signIn(page, field.email, '/field');
-  await page.goto(`/field/jobs/${job!.id as string}`);
+  await signIn(page, field.email, '/staff/field');
+  await page.goto(`/staff/field/jobs/${job!.id as string}`);
   await page.getByTestId('acknowledge').click(); await page.getByTestId('start').click({ timeout: 15_000 });
   await expect(page.getByTestId('job-checklist')).toBeVisible({ timeout: 15_000 });
   await check(page, 'field detail checklist');
@@ -265,24 +265,24 @@ test('gaps: field checklists, the report, referrals, profile and the home screen
   await expect(page.getByTestId('job-done')).toBeVisible({ timeout: 30_000 });
   expect((await sql`select status, cleaning_grade from field_jobs where id = ${job!.id as string}`)[0]).toMatchObject({ status: 'done', cleaning_grade: 'standard' });
   // the report
-  await page.goto('/field/report'); await check(page, 'field report');
+  await page.goto('/staff/field/report'); await check(page, 'field report');
   await page.getByTestId('what-warning_light').click();
   await page.getByTestId('report-details').fill('Tire pressure light came on after the wash');
   await page.getByTestId('report-send').click();
   await expect(page.getByTestId('report-sent')).toBeVisible({ timeout: 15_000 });
   expect((await sql`select queue, priority from tasks where task_type = 'field_report' and created_by = ${field.id}`)[0]).toMatchObject({ queue: 'fleet', priority: 'urgent' });
   // referrals, profile
-  await page.goto('/field/referrals'); await expect(page.getByTestId('referral-code')).toHaveText(/^[A-Z0-9]{7}$/); await expect(page.locator('.fd-qr svg')).toBeVisible(); await check(page, 'field referrals');
-  await page.goto('/field/profile'); await check(page, 'field profile');
+  await page.goto('/staff/field/referrals'); await expect(page.getByTestId('referral-code')).toHaveText(/^[A-Z0-9]{7}$/); await expect(page.locator('.fd-qr svg')).toBeVisible(); await check(page, 'field referrals');
+  await page.goto('/staff/field/profile'); await check(page, 'field profile');
   await page.getByLabel('Mobile phone').fill('416-555-0142'); await page.getByTestId('profile-save').click();
   await expect(page.getByTestId('profile-phone')).toHaveText('416-555-0142', { timeout: 15_000 });
   // add to home screen
-  const m = await page.request.get('/field/manifest.webmanifest');
+  const m = await page.request.get('/staff/field/manifest.webmanifest');
   expect(m.status()).toBe(200);
   const man = await m.json() as { start_url: string; display: string; icons: Array<{ src: string }> };
-  expect(man).toMatchObject({ start_url: '/field', display: 'standalone' });
+  expect(man).toMatchObject({ start_url: '/staff/field', display: 'standalone' });
   for (const i of man.icons) expect((await page.request.get(i.src)).status()).toBe(200);
-  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/field/manifest.webmanifest');
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/staff/field/manifest.webmanifest');
   expect(clean(errors)).toEqual([]);
   await sql.end();
 });
@@ -299,25 +299,25 @@ test('gaps: find a renter, a Sales quote, and an assistant who covers two functi
   await seedRequest(sql, renter, car.id, car.from, car.to);
   const page = await ctx(browser, phone);
   const errors = watch(page);
-  await signIn(page, cs.email, '/va');
-  await page.goto(`/va/renters?q=${encodeURIComponent(renter.email)}`);
+  await signIn(page, cs.email, '/staff');
+  await page.goto(`/staff/renters?q=${encodeURIComponent(renter.email)}`);
   await expect(page.getByTestId('renter-matches')).toContainText('Riley Renter');
   await check(page, 'va find a renter');
   // the function switcher: customer service, also covering Fleet
   await expect(page.getByTestId('fn-switch')).toBeVisible();
-  await page.getByTestId('fn-switch').getByRole('button', { name: 'Fleet operations' }).click();
-  // the menu in groups (October 16, 2026): Daily checks is in Field work
-  await expect(page.locator('nav[aria-label="Assistant"]')).toContainText('Field work', { timeout: 15_000 });
+  await page.getByTestId('fn-switch').getByRole('button', { name: 'Fleet' }).click();
+  // one menu for every function held (0197): Daily checks is in the Fleet group
+  await expect(page.locator('nav[aria-label="Staff"]')).toContainText('Fleet', { timeout: 15_000 });
   if (await page.getByTestId('nav-menu').isVisible()) await page.getByTestId('nav-menu').click();
-  await page.locator('nav[aria-label="Assistant"]').getByTestId('nav-group-field').click();
-  await expect(page.locator('nav[aria-label="Assistant"]')).toContainText('Daily checks');
-  await page.goto('/va/checks'); await expect(page.getByTestId('check-opening')).toBeVisible();
-  await page.getByTestId('fn-switch').getByRole('button', { name: 'Customer service and growth' }).click();
-  await expect(page.locator('nav[aria-label="Assistant"]')).toContainText('Renters', { timeout: 15_000 });
+  await page.locator('nav[aria-label="Staff"]').getByTestId('nav-group-fleet').click();
+  await expect(page.locator('nav[aria-label="Staff"]')).toContainText('Daily checks');
+  await page.goto('/staff/checks'); await expect(page.getByTestId('check-opening')).toBeVisible();
+  await page.getByTestId('fn-switch').getByRole('button', { name: 'Customer service' }).click();
+  await expect(page.locator('nav[aria-label="Staff"]')).toContainText('Customer service', { timeout: 15_000 });
   // a quote by Sales
   const sp = await ctx(browser, phone);
-  await signIn(sp, sales.email, '/va');
-  await sp.goto('/va/quotes/new'); await check(sp, 'va quote');
+  await signIn(sp, sales.email, '/staff');
+  await sp.goto('/staff/quotes/new'); await check(sp, 'va quote');
   const [v] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id and l.status = 'published' and v.partner_id is null and (not v.is_sample or v.sample_bookable) order by random() limit 1`;
   const at = (days: number) => { const d = new Date(Date.now() + days * 86_400_000); return `${d.toISOString().slice(0, 10)}T10:00`; };
   await sp.locator('#q-car').selectOption(v!.id as string);
@@ -327,7 +327,7 @@ test('gaps: find a renter, a Sales quote, and an assistant who covers two functi
   await sp.locator('#q-mobile').fill('647-555-0177'); await sp.locator('#q-dob').fill('1985-02-03');
   await sp.getByTestId('choice-sourced').check(); // 0058: "I sourced this client" or "Entered for CarmaCars"
   await sp.getByTestId('quote-create').click();
-  await sp.waitForURL(/\/va\/bookings\/[^/]+\?tab=review/, { timeout: 20_000 });
+  await sp.waitForURL(/\/staff\/bookings\/[^/]+\?tab=review/, { timeout: 20_000 });
   await check(sp, 'va quote booking');
   const n = decodeURIComponent(new URL(sp.url()).pathname.split('/').pop()!);
   expect((await sql`select status, source, created_by from bookings where booking_number = ${n}`)[0]).toMatchObject({ status: 'requested', source: 'phone', created_by: sales.id });
@@ -373,8 +373,12 @@ test('gaps: an investor downloads a year of statements; an Admin reads an assist
   await signIn(ap, admin.email, '/admin');
   await ap.goto(`/admin/staff/${va.id}/scorecard`); await expect(ap.getByTestId('scorecard')).toContainText('Tolls and tickets matched and charged'); await check(ap, 'admin scorecard');
   await ap.goto('/admin/settings/staff');
-  await act(ap, `cover-${va.id}`, async (d) => { await d.getByLabel('Also covers (finance, fleet, cs, sales; comma separated)').fill('fleet'); });
-  await expect.poll(async () => (await sql`select cover_functions::text c from staff_profiles where user_id = ${va.id}`)[0]!.c, { timeout: 15_000 }).toBe('{fleet}');
+  // the functions as checkboxes (0197)
+  const fns = ap.getByTestId(`functions-${va.email}`);
+  await fns.locator('summary').click();
+  await fns.getByTestId('fn-fleet').check();
+  await fns.getByTestId('fn-save').click();
+  await expect.poll(async () => (await sql`select functions::text f, cover_functions::text c from staff_profiles where user_id = ${va.id}`).map((r) => `${r.f} ${r.c}`)[0], { timeout: 15_000 }).toBe('{finance,fleet} {fleet}');
   expect(clean(errors)).toEqual([]);
   await sql.end();
 });
@@ -385,13 +389,13 @@ test('gaps: each portal home loads for its test account and refuses the others (
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
   const tag = `${Date.now().toString(36)}${phone ? 'p' : 'd'}`;
-  const accounts = [['renter', '/account'], ['owner', '/owner'], ['investor', '/investor'], ['va_cs', '/va'], ['field', '/field']].map(([role, home]) => ({ role: role!, home: home!, id: randomUUID(),
+  const accounts = [['renter', '/account'], ['owner', '/owner'], ['investor', '/investor'], ['va_cs', '/staff'], ['field', '/staff/field']].map(([role, home]) => ({ role: role!, home: home!, id: randomUUID(),
     email: `verify-e2e-${tag}-${role!.replace('_', '-')}@carmacars.ca` }));
   for (const a of accounts) await sql`insert into local_auth.users (id, email, password_hash) values (${a.id}, ${a.email}, ${hash(PW)})`;
   const [r] = await sql`select public.server_verify_accounts(${sql.json(accounts.map((a) => ({ user_id: a.id, email: a.email, role: a.role })))}) v`;
   expect((r!.v as Array<{ roles: { admin: boolean } }>).every((x) => !x.roles.admin)).toBe(true);
   expect((await sql`select count(*)::int n from email_suppressions where email like ${`verify-e2e-${tag}-%`} and lifted_at is null`)[0]!.n).toBe(5);
-  const PORTALS = ['/admin', '/owner', '/investor', '/va', '/field'];
+  const PORTALS = ['/admin', '/owner', '/investor', '/staff', '/staff/field'];
   for (const a of accounts) {
     const page = await ctx(browser, phone);
     const errors = watch(page);

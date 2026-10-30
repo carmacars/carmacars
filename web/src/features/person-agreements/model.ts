@@ -18,7 +18,9 @@ export interface InvestorFacts {
 }
 export interface StaffFacts {
   staff: { user_id: string; full_name: string; email: string | null; phone: string | null; staff_type: string; va_function: string | null; field_function: string | null; started_on: string | null;
-    referral_code: string | null; single_limit_cents: number | null; dual_approval_threshold_cents: number | null; has_signed: boolean; home_address?: string | null };
+    referral_code: string | null; single_limit_cents: number | null; dual_approval_threshold_cents: number | null; has_signed: boolean; home_address?: string | null;
+    /** 0197: which agreement (in_person: the Field Staff Agreement, for field work or in-person sales; remote: the VA contractor agreement) */
+    agreement?: 'in_person' | 'remote'; functions?: string[]; sales_work_mode?: string | null };
   defaults: Record<string, string>;
   company: Company;
 }
@@ -119,10 +121,18 @@ export function investmentSummary(f: InvestorFacts, v: Record<string, string>): 
 }
 
 // ---------------------------------------------------------------- the staff agreements
+/** The remote VA contractor agreement, or the in-person one (field work, or Sales in person; 0197). Older facts: by staff_type. */
+export const isRemote = (s: StaffFacts['staff']) => (s.agreement ?? (s.staff_type === 'va' ? 'remote' : 'in_person')) === 'remote';
+/** The Role row of the in-person agreement: the field role, and in-person sales when held. */
+const inPersonRole = (s: StaffFacts['staff']) => {
+  const sales = !!s.agreement && (s.functions ?? []).includes('sales') && s.sales_work_mode !== 'remote';
+  const field = s.field_function ? FIELD_ROLE[s.field_function] ?? s.field_function : null;
+  return [field, sales ? 'In-person Sales Representative' : null].filter(Boolean).join(' and ') || 'Driver and detailer';
+};
 export function staffFields(f: StaffFacts): Field[] {
   const s = f.staff;
   const d = f.defaults;
-  if (s.staff_type === 'va') {
+  if (isRemote(s)) {
     // pay, schedule and hours start from the defaults of the person's function (Program settings, 0057); Sales is
     // commission only (0059): no Rate, no hours asked
     const perWeek = num(d.days_per_week) && num(d.hours_per_day) ? String(+(Number(d.days_per_week) * Number(d.hours_per_day)).toFixed(2)) : (d.hours_per_week ?? '');
@@ -161,7 +171,7 @@ const signatureLines = (md: string, c: Company, name: string) => md
 export function staffMarkdown(f: StaffFacts, v: Record<string, string>): string {
   const s = f.staff;
   const c = f.company;
-  if (s.staff_type === 'va') {
+  if (isRemote(s)) {
     let md = signatureLines(VA_MD, c, s.full_name);
     md = row(md, 'Contractor', `${s.full_name} (legal name), ${v.country ?? ''} (country), ${s.email ?? ''} (email)`);
     md = row(md, 'Role', VA_ROLE[s.va_function ?? ''] ?? (s.va_function ?? ''));
@@ -188,28 +198,28 @@ export function staffMarkdown(f: StaffFacts, v: Record<string, string>): string 
   let md = signatureLines(FIELD_MD, c, s.full_name);
   md = row(md, 'Employee', `${s.full_name} (legal name), ${v.address ?? ''} (address), ${phone(s.phone)} (phone), ${s.email ?? ''} (email)`);
   md = row(md, 'Driver\'s licence', `Ontario Class G, number ${v.licence ?? ''}`);
-  md = row(md, 'Role', FIELD_ROLE[s.field_function ?? ''] ?? (s.field_function ?? 'Driver and detailer'));
+  md = row(md, 'Role', inPersonRole(s));
   md = row(md, 'Hourly Wage', `$${(v.wage ?? '').replace(/^\$/, '')} an hour`);
   md = row(md, 'Start Date', v.start ?? '');
   md = row(md, 'Vehicle types authorized', v.vehicle_types ?? '');
-  md = row(md, 'Referral code', s.referral_code ?? 'Given in the field portal');
+  md = row(md, 'Referral code', s.referral_code ?? 'Given in the staff portal');
   md = row(md, 'Pay Dates', v.pay_dates ?? '');
   md = row(md, 'Minimum licence period', `Full Class G held for at least ${v.licence_years ?? ''} years`);
   return md;
 }
 
-export const staffTitle = (f: StaffFacts) => (f.staff.staff_type === 'va' ? 'Virtual Assistant Contractor Agreement' : 'Field Staff Agreement');
+export const staffTitle = (f: StaffFacts) => (isRemote(f.staff) ? 'Virtual Assistant Contractor Agreement' : 'Field Staff Agreement');
 export function staffSummary(f: StaffFacts, v: Record<string, string>): Array<{ label: string; value: string; fix?: string | null }> {
   const s = f.staff;
-  const base = s.staff_type === 'va' ? null : '/field/profile'; // the VA portal has no profile page: a wrong value is told to the Admin
-  return s.staff_type === 'va'
+  const base = isRemote(s) ? null : '/staff/field/profile'; // the VA portal has no profile page: a wrong value is told to the Admin
+  return isRemote(s)
     ? [{ label: 'Contractor', value: `${s.full_name}, ${v.country ?? ''}, ${s.email ?? ''}`, fix: base }, { label: 'Role', value: VA_ROLE[s.va_function ?? ''] ?? '', fix: null },
        { label: 'Pay', value: payWords(v), fix: null },
        ...(isCommissionOnly(v) ? [] : [{ label: 'Schedule', value: scheduleWords(v), fix: null }, { label: 'Coverage Hours', value: `${v.coverage ?? ''}, ${v.hours_per_week ?? ''} hours a week`, fix: null },
          { label: 'Rate', value: rateWords(v), fix: null }]),
        { label: 'Start Date', value: v.start ?? '', fix: null }, { label: 'Paid through', value: `${v.platform ?? ''}, ${v.pay_timing ?? ''}`, fix: null }]
     : [{ label: 'Employee', value: `${s.full_name}, ${v.address ?? ''}`, fix: base }, { label: 'Driver\'s licence', value: `Ontario Class G, number ${v.licence ?? ''}`, fix: null },
-       { label: 'Role', value: FIELD_ROLE[s.field_function ?? ''] ?? '', fix: null }, { label: 'Hourly Wage', value: `$${(v.wage ?? '').replace(/^\$/, '')} an hour`, fix: null },
+       { label: 'Role', value: inPersonRole(s), fix: null }, { label: 'Hourly Wage', value: `$${(v.wage ?? '').replace(/^\$/, '')} an hour`, fix: null },
        { label: 'Start Date', value: v.start ?? '', fix: null }, { label: 'Pay Dates', value: v.pay_dates ?? '', fix: null }];
 }
 

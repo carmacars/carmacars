@@ -128,8 +128,8 @@ test('field staff fix the ready check on the phone and release a car whose track
 
   // Fleet: the jobs are there with their place, marked as made from the booking
   const fp = await ctx(browser, phone);
-  await signIn(fp, fleet.email, '/va');
-  await fp.goto('/va/fleet', { waitUntil: 'networkidle' });
+  await signIn(fp, fleet.email, '/staff');
+  await fp.goto('/staff/fleet', { waitUntil: 'networkidle' });
   await expect(fp.getByTestId('fleet-auto-note')).toBeVisible();
   await expect(fp.getByTestId('jobs').getByText('made from the booking').first()).toBeVisible();
   await check(fp, 'fleet board');
@@ -137,8 +137,8 @@ test('field staff fix the ready check on the phone and release a car whose track
 
   const page = await ctx(browser, phone);
   const errors = watch(page);
-  await signIn(page, field.email, '/field');
-  await page.goto(`/field/jobs/${job!.id}`, { waitUntil: 'networkidle' });
+  await signIn(page, field.email, '/staff/field');
+  await page.goto(`/staff/field/jobs/${job!.id}`, { waitUntil: 'networkidle' });
   await page.getByTestId('acknowledge').click();
   await expect(page.getByTestId('start')).toBeVisible({ timeout: 15_000 });
   await page.getByTestId('start').click();
@@ -245,8 +245,8 @@ test('Finance: Payments by day with the methods, totals, the cash drawer count, 
 
   const page = await ctx(browser, phone);
   const errors = watch(page);
-  await signIn(page, fin.email, '/va');
-  await page.goto(`/va/payments?from=${day}&to=${day}`, { waitUntil: 'networkidle' });
+  await signIn(page, fin.email, '/staff');
+  await page.goto(`/staff/payments?from=${day}&to=${day}`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('payments-rows')).toContainText(ref);
   await expect(page.getByTestId('payments-rows')).toContainText('Card Visa ending 4242');
   await expect(page.getByTestId('payments-rows')).not.toContainText('booking_total');
@@ -259,7 +259,7 @@ test('Finance: Payments by day with the methods, totals, the cash drawer count, 
   await expect(page.getByTestId('payments-rows')).not.toContainText(ref);
   await expect(page.getByTestId('payments-rows')).toContainText('Cash');
   // the cash drawer: expected $700.00, counted $695.00: short $5.00
-  await page.goto(`/va/payments?from=${day}&to=${day}`, { waitUntil: 'networkidle' });
+  await page.goto(`/staff/payments?from=${day}&to=${day}`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('payments-days')).toContainText('$700.00');
   await page.getByTestId(`cash-count-${day}`).click();
   const form = page.getByTestId(`cash-count-${day}-form`);

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 // "View as" buttons and pickers: plain forms to /api/view-as/start (they work before the page's script loads). The
 // route checks the Admin and the database checks the person and the portal (app.view_as_start, 0036).
 export type Portal = 'account' | 'owner' | 'va' | 'field' | 'investor';
-export const PORTAL_NAME: Record<Portal, string> = { account: 'renter portal', owner: 'owner portal', va: 'staff portal', field: 'field portal', investor: 'investor portal' };
+export const PORTAL_NAME: Record<Portal, string> = { account: 'renter portal', owner: 'owner portal', va: 'staff portal', field: 'staff portal (field work)', investor: 'investor portal' };
 
 export function ViewAsButton({ user, portal, fn, label, testId }: { user: string; portal: Portal; fn?: string | null; label?: ReactNode; testId?: string }) {
   return (

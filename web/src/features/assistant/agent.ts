@@ -151,7 +151,7 @@ async function read(d: Deps, tool: ToolName, a: Record<string, unknown>): Promis
     }
     case 'booking_balance': return bookingBalance(d, a);
     case 'draft_message': {
-      const href = d.who.portal === 'admin' ? (a.booking ? `/admin/bookings/${String(a.booking)}` : '/admin/messages') : d.who.portal === 'va' ? (a.booking ? `/va/bookings/${String(a.booking)}` : '/va/messages') : '/field';
+      const href = d.who.portal === 'admin' ? (a.booking ? `/admin/bookings/${String(a.booking)}` : '/admin/messages') : d.who.portal === 'va' ? (a.booking ? `/staff/bookings/${String(a.booking)}` : '/staff/messages') : '/staff/field';
       return [{ type: 'draft', to: a.to as 'renter', name: String(a.name), text: String(a.text), href }];
     }
     default: return [];

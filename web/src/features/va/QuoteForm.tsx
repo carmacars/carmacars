@@ -28,7 +28,7 @@ export function QuoteForm({ vehicles, minNotice }: { vehicles: Array<{ id: strin
         rental_charge_cents: price ? Math.round(Number(price) * 100) : null, price_tax: price ? String(fd.get('price_tax') ?? 'plus') : null,
         price_reason: String(fd.get('price_reason') ?? '').trim() || null });
       if (!r.ok) { setErr(r.message); return; }
-      router.push(`/va/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`);
+      router.push(`/staff/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`);
     }); }}>
       <div className="field"><label className="label" htmlFor="q-car">Car</label><select className="select" id="q-car" name="vehicle_id" required defaultValue="">
         <option value="" disabled>Choose the car</option>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}</select></div>

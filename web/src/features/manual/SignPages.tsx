@@ -78,7 +78,7 @@ export async function SignOne({ userId, base, id }: { userId: string; base: stri
   const viewing = !!(await viewAs());
   const inv = f.doc_type === 'investment_agreement';
   // a staff agreement (0059): the staff member's own home address comes first (the layout asks for it at the top)
-  const staffPortal = base.startsWith('/va') ? 'va' : base.startsWith('/field') ? 'field' : null;
+  const staffPortal = base.startsWith('/staff') ? 'va' : base.startsWith('/staff/field') ? 'field' : null;
   const needsAddress = f.doc_type === 'staff_agreement' && staffPortal !== null && !viewing && (await homeAddressOf(userId, staffPortal)).missing;
   return (
     <div className="stack-lg">

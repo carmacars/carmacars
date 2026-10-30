@@ -12,29 +12,29 @@ const FLEET = ['schedule_handover', 'schedule_detail', 'late_return', 'job_unack
 export function taskHref(t: Task): string {
   const n = t.booking_number ? encodeURIComponent(t.booking_number) : null;
   // a visitor who asked for a person: straight to that chat (0078)
-  if (['live_chat_waiting', 'chat_request', 'chat_contact', 'visitor_follow_up'].includes(t.task_type)) return t.related_table === 'chat_conversations' && t.related_id ? `/va/chat?id=${t.related_id}` : '/va/chat';
-  if (n && BOOKING_REVIEW.includes(t.task_type)) return `/va/bookings/${n}?task=${t.id}`;
-  if (n && VERIFY.includes(t.task_type)) return `/va/verify/${n}?task=${t.id}`;
-  if (n && CHANGES.includes(t.task_type)) return `/va/bookings/${n}?tab=changes&task=${t.id}`;
-  if (n && MONEY.includes(t.task_type)) return `/va/bookings/${n}?tab=money&task=${t.id}`;
-  if (n && t.task_type === 'review_photos') return `/va/review/${n}?task=${t.id}`;
-  if (t.task_type === 'renter_message' && n) return `/va/bookings/${n}?tab=messages&task=${t.id}`;
-  if (['opening_checks', 'closing_checks'].includes(t.task_type)) return `/va/checks?kind=${t.task_type === 'closing_checks' ? 'closing' : 'opening'}`;
-  if (FLEET.includes(t.task_type)) return n ? `/va/bookings/${n}?task=${t.id}` : `/va/fleet?task=${t.id}`;
-  if (t.task_type === 'match_toll') return '/va/tolls';
-  if (['reconcile', 'unmatched_payment'].includes(t.task_type)) return '/va/reconciliation';
-  if (['debit_failed', 'arrears', 'collect_upfront', 'review_statements', 'fleet_report'].includes(t.task_type)) return '/va/money';
-  if (['review_listing', 'list_vehicle'].includes(t.task_type)) return '/va/listings';
-  if (t.task_type === 'chauffeur_request') return '/va/chauffeur';
-  if (t.task_type === 'listing_similarity') return '/va/similar-cars';
-  if (t.task_type === 'owner_form_review') return '/va/owner-forms';
-  if (t.task_type === 'account_link_review') return '/va/renters';
-  if (['owner_intake', 'check_owner_document', 'enquiry', 'lost_property'].includes(t.task_type)) return '/va/leads';
-  if (['turo_expiry', 'safety_certificate_window', 'plate_renewal', 'book_registry'].includes(t.task_type)) return '/va/fleet#expiry';
+  if (['live_chat_waiting', 'chat_request', 'chat_contact', 'visitor_follow_up'].includes(t.task_type)) return t.related_table === 'chat_conversations' && t.related_id ? `/staff/chat?id=${t.related_id}` : '/staff/chat';
+  if (n && BOOKING_REVIEW.includes(t.task_type)) return `/staff/bookings/${n}?task=${t.id}`;
+  if (n && VERIFY.includes(t.task_type)) return `/staff/verify/${n}?task=${t.id}`;
+  if (n && CHANGES.includes(t.task_type)) return `/staff/bookings/${n}?tab=changes&task=${t.id}`;
+  if (n && MONEY.includes(t.task_type)) return `/staff/bookings/${n}?tab=money&task=${t.id}`;
+  if (n && t.task_type === 'review_photos') return `/staff/review/${n}?task=${t.id}`;
+  if (t.task_type === 'renter_message' && n) return `/staff/bookings/${n}?tab=messages&task=${t.id}`;
+  if (['opening_checks', 'closing_checks'].includes(t.task_type)) return `/staff/checks?kind=${t.task_type === 'closing_checks' ? 'closing' : 'opening'}`;
+  if (FLEET.includes(t.task_type)) return n ? `/staff/bookings/${n}?task=${t.id}` : `/staff/fleet?task=${t.id}`;
+  if (t.task_type === 'match_toll') return '/staff/tolls';
+  if (['reconcile', 'unmatched_payment'].includes(t.task_type)) return '/staff/reconciliation';
+  if (['debit_failed', 'arrears', 'collect_upfront', 'review_statements', 'fleet_report'].includes(t.task_type)) return '/staff/money';
+  if (['review_listing', 'list_vehicle'].includes(t.task_type)) return '/staff/listings';
+  if (t.task_type === 'chauffeur_request') return '/staff/chauffeur';
+  if (t.task_type === 'listing_similarity') return '/staff/similar-cars';
+  if (t.task_type === 'owner_form_review') return '/staff/owner-forms';
+  if (t.task_type === 'account_link_review') return '/staff/renters';
+  if (['owner_intake', 'check_owner_document', 'enquiry', 'lost_property'].includes(t.task_type)) return '/staff/leads';
+  if (['turo_expiry', 'safety_certificate_window', 'plate_renewal', 'book_registry'].includes(t.task_type)) return '/staff/fleet#expiry';
   // maintenance (0089): the car's Maintenance with the record pop-up open
-  if (['maintenance_due', 'maintenance_backfill'].includes(t.task_type) && t.vehicle_id) return `/va/vehicles/${t.vehicle_id}?record=1#maintenance`;
-  if (t.task_type === 'maintenance_bill' && t.vehicle_id) return `/va/vehicles/${t.vehicle_id}#maintenance`;
-  return `/va/tasks/${t.id}`;
+  if (['maintenance_due', 'maintenance_backfill'].includes(t.task_type) && t.vehicle_id) return `/staff/vehicles/${t.vehicle_id}?record=1#maintenance`;
+  if (t.task_type === 'maintenance_bill' && t.vehicle_id) return `/staff/vehicles/${t.vehicle_id}#maintenance`;
+  return `/staff/tasks/${t.id}`;
 }
 
 // The same task on the Admin's side (migration 0078): Admin > Tasks and Admin > Today open the screen where the work is

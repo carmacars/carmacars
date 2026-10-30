@@ -43,7 +43,7 @@ test('the stale key: public GETs without a session, no deployment in it', () => 
   assert.equal(staleKey(req(car, { cookie: 'cc_geo=CA-ON; sb-abcd-auth-token=base64-x' })), null, 'signed in');
   assert.equal(staleKey(req(car, { cookie: 'sb-abcd-auth-token.0=base64-x' })), null, 'signed in (chunked cookie)');
   assert.equal(staleKey(req(car, { cookie: 'cc-view-as=u1' })), null, 'an Admin viewing as someone');
-  for (const u of ['/admin', '/account/bookings', '/owner', '/va', '/api/rpc/fleet', '/auth/callback', '/field'])
+  for (const u of ['/admin', '/account/bookings', '/owner', '/staff', '/api/rpc/fleet', '/auth/callback', '/staff/field'])
     assert.equal(staleKey(req('https://carmacars.ca' + u)), null, u);
   assert.equal(staleKey(req(car, {}, 'POST')), null);
   assert.equal(staleKey(req(car + '?from=2026-11-01')), null);

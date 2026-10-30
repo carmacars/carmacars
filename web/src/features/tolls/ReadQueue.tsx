@@ -6,7 +6,7 @@ import { $, Badge, Card, Table, t } from '@/features/admin/ui';
 type Q = { reads: Array<{ id: string; read_number: string; file_name: string | null; method: string; authority: string | null; status: string; created_at: string; lines: number; imported: number; exceptions: number; low: number }>;
   exceptions: Array<{ id: string; read_id: string; read_number: string; line_no: number; plate: string | null; occurred_at: string | null; amount_cents: number | null; result_reason: string | null; vehicle_name: string | null }> };
 const METHOD: Record<string, string> = { pdf_text: 'PDF text', vision: 'Vision model', csv: 'CSV', manual: 'Typed' };
-export function ReadQueue({ q, base }: { q: Q; base: '/admin' | '/va' }) {
+export function ReadQueue({ q, base }: { q: Q; base: '/admin' | '/staff' }) {
   return (<>
     <Card title="Notices read" testId="toll-reads">
       <Table rows={q.reads} empty="No notice read yet." testId="toll-reads-table" cols={[

@@ -11,10 +11,10 @@ export default digest({
   stats: [{ label: 'Jobs done', value: '10 of 10' }, { label: 'To close', value: '2' }],
   sections: [
     { title: 'Returns without findings', items: [
-      { line: 'Booking CC-10471: returned 2:15 pm', meta: 'Photo set filed. Send the findings to Finance today.', url: 'https://carmacars.ca/va/fleet/bookings/CC-10471' },
+      { line: 'Booking CC-10471: returned 2:15 pm', meta: 'Photo set filed. Send the findings to Finance today.', url: 'https://carmacars.ca/staff/bookings/CC-10471' },
     ] },
     { title: 'Not ready for tomorrow', items: [
-      { line: '2022 Hyundai Elantra Preferred: status Cleaning', meta: 'Pickup tomorrow 9:00 am', url: 'https://carmacars.ca/va/fleet/vehicles/v-88ad10' },
+      { line: '2022 Hyundai Elantra Preferred: status Cleaning', meta: 'Pickup tomorrow 9:00 am', url: 'https://carmacars.ca/staff/vehicles/v-88ad10' },
     ] },
   ],
 });

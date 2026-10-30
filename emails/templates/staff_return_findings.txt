@@ -17,7 +17,7 @@ Keys: {{keys_summary}}
 Deposit: {{deposit_amount}} {{deposit_method}}, release due {{deposit_release_due}}
 
 Bill this booking:
-https://carmacars.ca/va/finance/bookings/{{booking_number}}
+https://carmacars.ca/staff/bookings/{{booking_number}}
 
 Price each finding from the charge table, before HST. Email the itemized statement with the record for each line. Release the deposit balance within 7 business days of check-in, target 2. Any damage line goes to an admin.
 

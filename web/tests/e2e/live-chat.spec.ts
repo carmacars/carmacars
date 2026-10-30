@@ -80,13 +80,13 @@ test('Live visitors: a visitor viewing six cars shows with a viewing spree for c
   await expect(v.getByTestId('chat-open')).toBeVisible({ timeout: 15_000 });
 
   const staff = await ctx(browser);
-  await signIn(staff, cs.email, '/va');
+  await signIn(staff, cs.email, '/staff');
   await openMenuIfPhone(staff, 'va-nav');
   // Live visitors, Live chat and Game leads are their own group, Live (October 23, 2026)
   await staff.getByTestId('va-nav').getByTestId('nav-group-live').click();
   await expect(staff.getByTestId('va-nav').getByRole('link', { name: 'Live visitors' })).toBeVisible();
   await expect(staff.getByTestId('va-nav').getByRole('link', { name: 'Live chat' })).toBeVisible();
-  await staff.goto('/va/live', { waitUntil: 'networkidle' });
+  await staff.goto('/staff/live', { waitUntil: 'networkidle' });
   const row = staff.getByTestId('live-row').filter({ hasText: `campaign e2e/${camp}` });
   await expect(row).toBeVisible({ timeout: 15_000 });
   await expect(row).toContainText('Visitor from Toronto');
@@ -109,8 +109,8 @@ test('Live chat: the assistant quotes from the pricing function, a person takes 
   const cs = await mkStaff(sql, 'cs');
   // customer service opens Live chat first: they are on shift
   const staff = await ctx(browser);
-  await signIn(staff, cs.email, '/va');
-  await staff.goto('/va/chat', { waitUntil: 'networkidle' });
+  await signIn(staff, cs.email, '/staff');
+  await staff.goto('/staff/chat', { waitUntil: 'networkidle' });
   await check(staff, 'va live chat, empty or with others');
 
   const v = await visitor(browser);
@@ -171,8 +171,8 @@ test('Proactive chat: customer service starts a chat from Live visitors and the 
   const v = await visitor(browser, camp);
   await viewAndBeacon(v, '/cars/mercedes-benz-c300');
   const staff = await ctx(browser);
-  await signIn(staff, sales.email, '/va');
-  await staff.goto('/va/live', { waitUntil: 'networkidle' });
+  await signIn(staff, sales.email, '/staff');
+  await staff.goto('/staff/live', { waitUntil: 'networkidle' });
   const row = staff.getByTestId('live-row').filter({ hasText: `campaign e2e/${camp}` });
   await expect(row).toContainText('Mercedes-Benz C300', { timeout: 15_000 });
   await row.getByRole('button', { name: 'Start a chat' }).click();
@@ -187,7 +187,7 @@ test('Proactive chat: customer service starts a chat from Live visitors and the 
   await expect(v.getByTestId('chat-log')).toContainText('question about the C300', { timeout: 15_000 });
   await v.getByLabel('Your message').fill('Is it automatic?');
   await v.getByRole('button', { name: 'Send' }).click();
-  await staff.goto('/va/chat', { waitUntil: 'networkidle' });
+  await staff.goto('/staff/chat', { waitUntil: 'networkidle' });
   await staff.getByTestId('chat-item').filter({ hasText: 'Is it automatic?' }).first().click();
   await expect(staff.getByTestId('chat-thread')).toContainText('Is it automatic?', { timeout: 15_000 });
   await sql.end();

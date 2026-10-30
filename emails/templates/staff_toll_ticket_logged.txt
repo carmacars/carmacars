@@ -14,7 +14,7 @@ Due: {{notice_due_date}}
 Match: {{match_summary}}
 
 Open the notice:
-https://carmacars.ca/va/finance/tolls-tickets/{{toll_ticket_id}}
+https://carmacars.ca/staff/tolls?ticket={{toll_ticket_id}}
 
 - Renter: pay it, charge the amount plus the fee to the deposit if still held, otherwise the card on file. Send the notice copy.
 - Owner on an Owner Booking: bill at cost, no fee.

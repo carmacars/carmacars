@@ -16,7 +16,7 @@ Verification: {{identity_summary}}
 Coverage: {{coverage_summary}}
 
 Open the booking:
-https://carmacars.ca/va/cs/bookings/{{booking_number}}
+https://carmacars.ca/staff/bookings/{{booking_number}}
 
 - Customer service: complete licence and coverage verification at least 24 hours before pickup.
 - Fleet: assign the pickup and return jobs and check the car is clean for the day.

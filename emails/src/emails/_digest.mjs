@@ -79,9 +79,9 @@ export function fieldJobs({ code, slot }) {
       digest_date: tomorrow ? 'Fri, Oct 23' : 'Fri, Oct 23', job_count: '3', first_job_time: '10:00 am',
       jobs_summary: '2 pickups and 1 return. Please acknowledge each one.',
       jobs: [
-        { time: '10:00 am', type: 'Pickup', vehicle: '2024 Honda Civic Sport (CMCR 482)', place: 'Union Station, 65 Front Street West', note: 'Renter Maya. Deposit $500.00 before handover.', url: 'https://carmacars.ca/field/jobs/J-5521' },
-        { time: '1:30 pm', type: 'Return', vehicle: '2022 Hyundai Elantra Preferred (CHYE 554)', place: 'CarmaCars lot', note: 'Renter Omar. Check fuel and both keys.', url: 'https://carmacars.ca/field/jobs/J-5524' },
-        { time: '4:00 pm', type: 'Pickup', vehicle: '2023 Toyota RAV4 XLE (CXRV 310)', place: 'Delivery to 14 Sample Road, Scarborough', note: 'Renter Chen. Winter tires fitted.', url: 'https://carmacars.ca/field/jobs/J-5527' },
+        { time: '10:00 am', type: 'Pickup', vehicle: '2024 Honda Civic Sport (CMCR 482)', place: 'Union Station, 65 Front Street West', note: 'Renter Maya. Deposit $500.00 before handover.', url: 'https://carmacars.ca/staff/field/jobs/J-5521' },
+        { time: '1:30 pm', type: 'Return', vehicle: '2022 Hyundai Elantra Preferred (CHYE 554)', place: 'CarmaCars lot', note: 'Renter Omar. Check fuel and both keys.', url: 'https://carmacars.ca/staff/field/jobs/J-5524' },
+        { time: '4:00 pm', type: 'Pickup', vehicle: '2023 Toyota RAV4 XLE (CXRV 310)', place: 'Delivery to 14 Sample Road, Scarborough', note: 'Renter Chen. Winter tires fitted.', url: 'https://carmacars.ca/staff/field/jobs/J-5527' },
       ],
     },
   };

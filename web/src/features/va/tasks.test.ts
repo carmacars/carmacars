@@ -10,19 +10,19 @@ const base: Task = { id: 't1', task_type: 'x', title: 'T', queue: 'cs', priority
 const chat = '7b0d9f0e-1111-4222-8333-944445555666';
 
 test('an assistant: a chat waiting for a person opens that chat', () => {
-  assert.equal(taskHref({ ...base, task_type: 'live_chat_waiting', related_table: 'chat_conversations', related_id: chat }), `/va/chat?id=${chat}`);
-  assert.equal(taskHref({ ...base, task_type: 'live_chat_waiting' }), '/va/chat');
+  assert.equal(taskHref({ ...base, task_type: 'live_chat_waiting', related_table: 'chat_conversations', related_id: chat }), `/staff/chat?id=${chat}`);
+  assert.equal(taskHref({ ...base, task_type: 'live_chat_waiting' }), '/staff/chat');
 });
 
 test('an assistant: coverage and Protection Plan tasks open the identity and coverage review', () => {
-  assert.equal(taskHref({ ...base, task_type: 'protection_plan_request', booking_number: 'CC-1042' }), '/va/verify/CC-1042?task=t1');
-  assert.equal(taskHref({ ...base, task_type: 'verify_renter', booking_number: 'CC-1042' }), '/va/verify/CC-1042?task=t1');
+  assert.equal(taskHref({ ...base, task_type: 'protection_plan_request', booking_number: 'CC-1042' }), '/staff/verify/CC-1042?task=t1');
+  assert.equal(taskHref({ ...base, task_type: 'verify_renter', booking_number: 'CC-1042' }), '/staff/verify/CC-1042?task=t1');
 });
 
 test('an assistant: the other kinds keep their screens', () => {
-  assert.equal(taskHref({ ...base, task_type: 'collect_upfront' }), '/va/money');
-  assert.equal(taskHref({ ...base, task_type: 'opening_checks' }), '/va/checks?kind=opening');
-  assert.equal(taskHref({ ...base, task_type: 'unknown_kind' }), '/va/tasks/t1');
+  assert.equal(taskHref({ ...base, task_type: 'collect_upfront' }), '/staff/money');
+  assert.equal(taskHref({ ...base, task_type: 'opening_checks' }), '/staff/checks?kind=opening');
+  assert.equal(taskHref({ ...base, task_type: 'unknown_kind' }), '/staff/tasks/t1');
 });
 
 test('the Admin: each task opens where its work is done', () => {

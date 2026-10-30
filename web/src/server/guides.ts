@@ -8,8 +8,8 @@ import type { SessionUser } from '@/lib/auth';
 const SR = { role: 'service_role' as const };
 export type GuidePortal = 'renter' | 'owner' | 'admin' | 'va' | 'field' | 'investor';
 export const GUIDE_PORTALS: GuidePortal[] = ['renter', 'owner', 'admin', 'va', 'field', 'investor'];
-export const GUIDE_PATH: Record<GuidePortal, string> = { renter: '/account/guide', owner: '/owner/guide', admin: '/admin/guide', va: '/va/guide', field: '/field/guide', investor: '/investor/guide' };
-export const GUIDE_NAME: Record<GuidePortal, string> = { renter: 'Renter', owner: 'Owner', admin: 'Admin', va: 'VA', field: 'Field', investor: 'Investor' };
+export const GUIDE_PATH: Record<GuidePortal, string> = { renter: '/account/guide', owner: '/owner/guide', admin: '/admin/guide', va: '/staff/guide', field: '/staff/field/guide', investor: '/investor/guide' };
+export const GUIDE_NAME: Record<GuidePortal, string> = { renter: 'Renter', owner: 'Owner', admin: 'Admin', va: 'Staff', field: 'Field work', investor: 'Investor' };
 export const isGuidePortal = (p: string): p is GuidePortal => (GUIDE_PORTALS as string[]).includes(p);
 
 export interface GuideData {

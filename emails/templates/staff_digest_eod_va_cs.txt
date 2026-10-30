@@ -28,7 +28,7 @@ Your queue is clear.
 {{/if}}
 
 Open my queue:
-https://carmacars.ca/va/cs
+https://carmacars.ca/staff
 
 Anything still open tonight is in tomorrow morning's digest. Urgent items are sent on their own, at once.
 

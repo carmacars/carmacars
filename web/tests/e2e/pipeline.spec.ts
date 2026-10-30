@@ -193,8 +193,8 @@ test('listing: a failed step shows on the assistant\'s phone with its error, and
     const [job] = await sql`select (j ->> 'id')::uuid as id from jsonb_array_elements((public.server_listing_claim('e2e', 50)) -> 'jobs') j where j ->> 'intake_id' = ${intake}`;
     await sql`select public.server_listing_result(${job!.id}::uuid, ${sql.json({ ok: false, provider: 'vpic', error: 'The VIN decoder did not answer', retryable: false })})`;
     const phone = await ctx(browser, true);
-    await signIn(phone, va.email, '/va', `/va/listings/${intake}`);
-    await phone.goto(`/va/listings/${intake}`);
+    await signIn(phone, va.email, '/staff', `/staff/listings/${intake}`);
+    await phone.goto(`/staff/listings/${intake}`);
     await expect(phone.getByTestId('listing-problems')).toContainText('The VIN decoder did not answer');
     await check(phone, 'va listing failure 375');
     await phone.getByTestId('listing-retry').first().click();

@@ -15,7 +15,7 @@ Refund: {{refund_percent}} of {{amount_paid}} = {{refund_amount}}
 Deposit: {{deposit_status}}
 
 Process the refund:
-https://carmacars.ca/va/finance/bookings/{{booking_number}}
+https://carmacars.ca/staff/bookings/{{booking_number}}
 
 Target 2 business days, limit 10. Any refund outside the table, or over $500, needs an admin.
 

@@ -18,7 +18,7 @@ Management mode wanted: {{management_mode}}
 Referred by: {{referred_by}}
 
 Open the application:
-https://carmacars.ca/va/sales/applications/{{application_id}}
+https://carmacars.ca/staff/leads?application={{application_id}}
 
 - Rebuilt, salvage or irreparable brand: decline that vehicle.
 - Offer only the registration methods open to this car and give the owner the estimate for their situation.

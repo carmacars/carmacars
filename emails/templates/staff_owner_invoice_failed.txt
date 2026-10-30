@@ -15,7 +15,7 @@ Bank reason: {{bank_reason}}
 Next step: {{failure_next_step}}
 
 Open the invoice:
-https://carmacars.ca/va/finance/owner-invoices/{{invoice_number}}
+https://carmacars.ca/staff/money
 
 - First failure: late fee added per vehicle, owner told, retry on the {{retry_day}}.
 - Retry fails: deduct from that vehicle's revenue at the next payout. Do not enable a Self-Managed car for new bookings. Tell an admin.

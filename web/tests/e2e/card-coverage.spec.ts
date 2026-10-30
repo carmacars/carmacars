@@ -128,8 +128,8 @@ test('customer service: the quick reference with what to say and the list', asyn
   try {
     await sql`delete from app.rate_limit_hits`;
     const email = await person(sql, 'va', 'Casey Service');
-    await signIn(page, email, '/va/card-coverage');
-    await page.goto('/va/card-coverage', { waitUntil: 'networkidle' });
+    await signIn(page, email, '/staff/card-coverage');
+    await page.goto('/staff/card-coverage', { waitUntil: 'networkidle' });
     await expect(page.getByTestId('va-nav').getByRole('link', { name: 'Card coverage' })).toBeVisible();
     await expect(page.getByTestId('card-coverage-script')).toContainText('Never say they are covered');
     await expect(page.locator('[data-testid="card-coverage"] tbody tr').first()).toBeVisible();

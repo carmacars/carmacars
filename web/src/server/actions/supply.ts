@@ -112,7 +112,7 @@ export async function createManualRental(p: Record<string, unknown>): Promise<R<
       r.card = { ok, message };
       r.charge = null;
     }
-    rebuild(['/admin/bookings', '/admin/calendar', '/va/requests', '/va/my-sales', '/field/sales', '/cars/[slug]']);
+    rebuild(['/admin/bookings', '/admin/calendar', '/staff/requests', '/staff/my-sales', '/staff/field/sales', '/cars/[slug]']);
     return { ok: true, data: r };
   } catch (e) { return fail(e); }
 }
@@ -150,12 +150,12 @@ export async function draftSave(p: { id?: string | null; kind: 'rental' | 'offer
   try { const { user, aal } = await me(); return { ok: true, data: await door(user.id, 'ops_do', 'draft_save', p, aal) }; } catch (e) { return fail(e); }
 }
 export async function draftClose(id: string, status: 'done' | 'discarded' = 'discarded'): Promise<R<{ ok: boolean }>> {
-  try { const { user, aal } = await me(); const data = await door<{ ok: boolean }>(user.id, 'ops_do', 'draft_close', { id, status }, aal); revalidatePath('/admin/bookings/new'); revalidatePath('/va/bookings/new'); return { ok: true, data }; } catch (e) { return fail(e); }
+  try { const { user, aal } = await me(); const data = await door<{ ok: boolean }>(user.id, 'ops_do', 'draft_close', { id, status }, aal); revalidatePath('/admin/bookings/new'); revalidatePath('/staff/bookings/new'); return { ok: true, data }; } catch (e) { return fail(e); }
 }
 
 /** A long rental's next period (0148): its agreement made and sent on the next job run instead of lead days ahead. */
 export async function periodSendNow(booking: string): Promise<R<{ ok: boolean; seq: number }>> {
-  try { const { user, aal } = await me(); const data = await door<{ ok: boolean; seq: number }>(user.id, 'ops_do', 'period_send_now', { booking }, aal); revalidatePath(`/admin/bookings/${booking}`); revalidatePath(`/va/bookings/${booking}`); return { ok: true, data }; } catch (e) { return fail(e); }
+  try { const { user, aal } = await me(); const data = await door<{ ok: boolean; seq: number }>(user.id, 'ops_do', 'period_send_now', { booking }, aal); revalidatePath(`/admin/bookings/${booking}`); revalidatePath(`/staff/bookings/${booking}`); return { ok: true, data }; } catch (e) { return fail(e); }
 }
 
 /** The driving distance from our location to an address chosen from the suggestions (sim item 12): the delivery is
@@ -179,7 +179,7 @@ export async function renterMerge(keep: string, merge: string, reason?: string):
   try {
     const { user, aal } = await me();
     const data = await door<{ ok: boolean; moved: Record<string, number>; account_moved: boolean }>(user.id, 'ops_do', 'renter_merge', { keep, merge, reason }, aal);
-    revalidatePath('/admin/renters'); revalidatePath('/admin/bookings'); revalidatePath('/va/bookings');
+    revalidatePath('/admin/renters'); revalidatePath('/admin/bookings'); revalidatePath('/staff/bookings');
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }

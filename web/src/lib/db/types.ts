@@ -17297,6 +17297,7 @@ export type Database = {
           home_address_set_by: string | null;
           hourly_rate_cents: number | null;
           sales_work_mode: string | null;
+          functions: string[];
         };
         Insert: {
           user_id: string;
@@ -17320,6 +17321,7 @@ export type Database = {
           home_address_set_by?: string | null;
           hourly_rate_cents?: number | null;
           sales_work_mode?: string | null;
+          functions?: string[];
         };
         Update: {
           user_id?: string;
@@ -17343,6 +17345,7 @@ export type Database = {
           home_address_set_by?: string | null;
           hourly_rate_cents?: number | null;
           sales_work_mode?: string | null;
+          functions?: string[];
         };
         Relationships: [];
       };

@@ -27,7 +27,7 @@ const REASON: Record<string, string> = {
   rate_limited: 'Too many codes asked for. Wait a while, then try again, or sign in with your email.',
   off: 'Sign-in by phone is not available right now. Sign in with your email.'
 };
-const PROFILE_PATHS = ['/account/profile', '/owner/profile', '/va/profile', '/field/profile'];
+const PROFILE_PATHS = ['/account/profile', '/owner/profile', '/staff/profile', '/staff/field/profile'];
 
 /** Texts a code: to sign in (or sign up), or, signed in, to add a number to the account. */
 export async function requestPhoneCode(input: { phone: string; purpose: PhonePurpose; turnstile?: string | null }): Promise<R<{ phone: string; display: string }>> {

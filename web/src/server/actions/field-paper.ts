@@ -68,9 +68,9 @@ export async function fieldPaperScan(form: FormData): Promise<R<{ awaiting_signa
         job, signer_name: String(form.get('signer_name') ?? '').trim() || null, pages: files.length,
         scan: { path: key, sha256: await sha256Hex(out), mime: 'application/pdf' } }, aal);
     } catch (e) { await s.remove('agreements', key).catch(() => undefined); throw e; }
-    revalidatePath(`/field/jobs/${job}`);
+    revalidatePath(`/staff/field/jobs/${job}`);
     revalidatePath('/admin/bookings', 'layout');
-    revalidatePath('/va/bookings', 'layout');
+    revalidatePath('/staff/bookings', 'layout');
     return { ok: true, data: { awaiting_signature: Boolean(r.awaiting_signature) } };
   } catch (e) { return fail(e); }
 }

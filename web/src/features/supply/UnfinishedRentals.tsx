@@ -4,7 +4,7 @@ import type { DraftRow } from '@/server/actions/supply';
 const when = (iso: string) => new Date(iso).toLocaleString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 /** Unfinished rentals (0148): the drafts saved as they were typed, everyone's, newest first; each opens where it was left. */
-export function UnfinishedRentals({ rows, base, current, title = 'Unfinished rentals' }: { rows: DraftRow[]; base: '/admin' | '/va' | '/field'; current?: string | null; title?: string }) {
+export function UnfinishedRentals({ rows, base, current, title = 'Unfinished rentals' }: { rows: DraftRow[]; base: '/admin' | '/staff' | '/staff/field'; current?: string | null; title?: string }) {
   const list = rows.filter((r) => r.id !== current);
   if (!list.length) return null;
   return (
@@ -18,7 +18,7 @@ export function UnfinishedRentals({ rows, base, current, title = 'Unfinished ren
               <br /><span className="small muted">{r.mine ? 'You' : r.by ?? 'Someone'}, {when(r.updated_at)}{r.held_until ? `; the car is held until ${new Date(r.held_until).toLocaleTimeString('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' })}` : ''}
               {r.missing.length ? `; still missing: ${r.missing.join(', ')}` : '; ready to add'}</span>
             </span>
-            <Link prefetch={false} className="btn btn--ghost btn--sm" href={r.kind === 'offer' ? `${base}/offers/new?draft=${r.id}` : `${base === '/field' ? '/field/rentals' : `${base}/bookings`}/new?draft=${r.id}`}>{r.kind === 'offer' ? 'Open the offer' : 'Finish it'}</Link>
+            <Link prefetch={false} className="btn btn--ghost btn--sm" href={r.kind === 'offer' ? `${base}/offers/new?draft=${r.id}` : `${base === '/staff/field' ? '/staff/field/rentals' : `${base}/bookings`}/new?draft=${r.id}`}>{r.kind === 'offer' ? 'Open the offer' : 'Finish it'}</Link>
           </li>))}
       </ul>
     </section>

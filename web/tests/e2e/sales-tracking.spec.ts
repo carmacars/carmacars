@@ -80,13 +80,13 @@ test('Sales: adds a rental within its limits, and My sales credits it with its q
   const quote = (q!.r as { booking_number: string }).booking_number;
 
   const page = await ctx(browser);
-  await signIn(page, sales.email, '/va');
+  await signIn(page, sales.email, '/staff');
   // the menu: My work has My sales for Sales
   if (isPhone()) await page.getByTestId('va-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
   await expect(page.getByTestId('va-nav').getByRole('link', { name: 'My sales' })).toBeVisible();
 
   // Add a rental by hand within the limits: the rate-sheet price, no price typed by hand, no past rental, a payment link
-  await page.goto('/va/bookings/new', { waitUntil: 'networkidle' });
+  await page.goto('/staff/bookings/new', { waitUntil: 'networkidle' });
   await check(page, 'sales add a rental');
   await expect(page.getByTestId('mr-past')).toHaveCount(0);
   const pick = new Date(Date.now() + (days + 10) * 86_400_000);
@@ -115,7 +115,7 @@ test('Sales: adds a rental within its limits, and My sales credits it with its q
   expect(`${bk!.status}/${bk!.added_by_staff}/${bk!.by_me}/${bk!.credited}/${bk!.sales_source}`).toBe('pending_payment/true/true/true/manual_rental');
 
   // My sales: this week's tiles, the deals with how each is credited, the follow-ups due
-  await page.goto('/va/my-sales', { waitUntil: 'networkidle' });
+  await page.goto('/staff/my-sales', { waitUntil: 'networkidle' });
   await expect(page.getByRole('heading', { name: 'My sales', level: 1 })).toBeVisible();
   const tiles = page.getByTestId('sales-tiles');
   await expect(tiles).toContainText('Quotes created this week');
@@ -134,19 +134,19 @@ test('Sales: adds a rental within its limits, and My sales credits it with its q
   await expect(page.getByTestId('sales-periods')).toContainText('Week of');
   await check(page, 'my sales by week');
   await page.getByRole('link', { name: 'By month' }).click();
-  await page.waitForURL(/\/va\/my-sales\?period=month/);
+  await page.waitForURL(/\/staff\/my-sales\?period=month/);
   await expect(page.getByTestId('sales-periods')).toContainText(new Intl.DateTimeFormat('en-CA', { month: 'long', timeZone: 'America/Toronto' }).format(new Date()));
   await expect(page.getByTestId('sales-tiles')).toContainText('Rentals added this month');
   await check(page, 'my sales by month');
   // a rental Sales added opens from My sales
   await page.getByTestId('sales-deals').getByRole('link', { name: number }).click();
-  await page.waitForURL(new RegExp(`/va/bookings/${number}`));
+  await page.waitForURL(new RegExp(`/staff/bookings/${number}`));
   await expect(page.locator('body')).toContainText(number);
   // customer service has My sales too since 0058 (its commissions)
   const cs = await mkUser(sql, 'va', `Casey Service ${tag()}`, 'cs');
   const cp = await ctx(browser);
-  await signIn(cp, cs.email, '/va');
-  const r = await cp.goto('/va/my-sales');
+  await signIn(cp, cs.email, '/staff');
+  const r = await cp.goto('/staff/my-sales');
   expect(r?.status()).toBe(200);
   await expect(cp.getByTestId('commissions')).toBeVisible();
   await cp.context().close();

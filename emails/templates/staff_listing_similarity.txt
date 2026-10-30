@@ -11,7 +11,7 @@ New car: {{vehicle_name}}
 Looks like: {{other_vehicle_name}}
 
 Review similar cars:
-https://carmacars.ca/va/similar-cars
+https://carmacars.ca/staff/similar-cars
 
 The car is not published while the flag is open. Compare the permit, the plate and the photos; clear the flag with a note if they are different cars.
 

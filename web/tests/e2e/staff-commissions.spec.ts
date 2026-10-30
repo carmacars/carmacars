@@ -100,8 +100,8 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
 
   // customer service: a price typed by hand (30% under the rate sheet) and "I sourced this client"
   const page = await ctx(browser);
-  await signIn(page, cs.email, '/va');
-  await page.goto('/va/bookings/new', { waitUntil: 'networkidle' });
+  await signIn(page, cs.email, '/staff');
+  await page.goto('/staff/bookings/new', { waitUntil: 'networkidle' });
   await fillRental(page, carId, days);
   await expect(page.getByTestId('mr-custom-price')).toContainText('$300.00');
   await page.getByTestId('mr-rental_charge').fill('210');
@@ -121,7 +121,7 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
     (select status from staff_commissions c where c.booking_id = b.id and c.kind = 'commission') cstatus from bookings b where b.booking_number = ${n1}`;
   expect(`${b1!.rc}/${b1!.rs}/${b1!.sales_sourced}/${b1!.flags}/${b1!.cstatus}`).toBe('21000/30000/true/discount_over_limit/accruing');
   // My sales: the commission not earned yet, at 10%
-  await page.goto('/va/my-sales', { waitUntil: 'networkidle' });
+  await page.goto('/staff/my-sales', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('commission-rate')).toContainText('10%');
   await expect(page.getByTestId(`commission-status-${n1}-commission`)).toContainText('Not earned yet');
   await expect(page.getByTestId('sales-deals').locator('tr', { hasText: n1 })).toContainText('sourced');
@@ -130,13 +130,13 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
 
   // finance: "Entered for CarmaCars", no commission
   const fp = await ctx(browser);
-  await signIn(fp, fin.email, '/va');
+  await signIn(fp, fin.email, '/staff');
   // the menu has Add a rental and My sales for Finance (0058)
   if (isPhone()) await fp.getByTestId('va-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
   await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'My sales' })).toBeVisible();
   await fp.getByTestId('va-nav').getByRole('button', { name: 'Rentals' }).click();
   await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'Add a rental' })).toBeVisible();
-  await fp.goto('/va/bookings/new', { waitUntil: 'networkidle' });
+  await fp.goto('/staff/bookings/new', { waitUntil: 'networkidle' });
   await fillRental(fp, carId, days + 10);
   // a price typed tax included (0112; 2026-10-27: Amounts I type, After tax): the database backs out the HST ($339.00 is $300.00 and $39.00 HST)
   await fp.getByTestId('mr-tax-mode-after').click();
@@ -160,9 +160,9 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
 
   // field staff: from the field portal, a payment link, "I sourced this client"
   const dp = await ctx(browser);
-  await signIn(dp, field.email, '/field');
-  await expect(dp.locator('.fd-nav').getByRole('link', { name: 'Add a rental' })).toBeVisible();
-  await dp.goto('/field/rentals/new', { waitUntil: 'networkidle' });
+  await signIn(dp, field.email, '/staff/field');
+  await expect(dp.getByTestId('va-nav').getByRole('link', { name: 'Add a rental' })).toBeAttached();
+  await dp.goto('/staff/field/rentals/new', { waitUntil: 'networkidle' });
   await expect(dp.getByTestId('mr-renter-q')).toHaveCount(0);
   await expect(dp.getByTestId('mr-paid-by').locator('option[value=\"e_transfer\"]')).toHaveCount(0);
   await fillRental(dp, carId, days + 20, { field: true });
@@ -175,7 +175,7 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   const [b3] = await sql`select b.status::text s, b.sales_sourced, (b.sales_staff_id = ${field.id}) mine from bookings b where b.booking_number = ${n3}`;
   expect(`${b3!.s}/${b3!.sales_sourced}/${b3!.mine}`).toBe('pending_payment/true/true');
   await dp.getByTestId('mr-open').click();
-  await dp.waitForURL(/\/field\/sales/);
+  await dp.waitForURL(/\/staff\/field\/sales/);
   await expect(dp.getByTestId('field-deals')).toContainText(n3);
   await expect(dp.getByTestId('commissions')).toContainText('10%');
   await check(dp, 'field my sales');
@@ -206,8 +206,8 @@ test('Commissions: completed and paid, approved, paid by hand, reversed by a ref
 
   // My sales: pending approval
   const sp = await ctx(browser);
-  await signIn(sp, cs.email, '/va');
-  await sp.goto('/va/my-sales', { waitUntil: 'networkidle' });
+  await signIn(sp, cs.email, '/staff');
+  await sp.goto('/staff/my-sales', { waitUntil: 'networkidle' });
   await expect(sp.getByTestId(`commission-status-${number}-commission`)).toContainText('Pending approval');
   await check(sp, 'my sales, pending approval');
 
@@ -247,7 +247,7 @@ test('Commissions: completed and paid, approved, paid by hand, reversed by a ref
     select b.id, (select p.id from payments p where p.booking_id = b.id and p.status = 'succeeded' limit 1), 'other',
            (select sum(p.amount_cents) from payments p where p.booking_id = b.id and p.status = 'succeeded'), 'paid', now(), ${admin.id}, ${admin.id}, 'E2E: refunded in full'
       from bookings b where b.booking_number = ${number}`;
-  await sp.goto('/va/my-sales', { waitUntil: 'networkidle' });
+  await sp.goto('/staff/my-sales', { waitUntil: 'networkidle' });
   await expect(sp.getByTestId(`commission-status-${number}-commission`)).toContainText('Paid');
   await expect(sp.getByTestId(`commission-status-${number}-clawback`)).toContainText('Reversed after payment');
   await check(sp, 'my sales, reversed after payment');
@@ -268,13 +268,13 @@ test('Commissions: completed and paid, approved, paid by hand, reversed by a ref
 
   // Sales: the month's target of 100 rental days
   const sl = await ctx(browser);
-  await signIn(sl, sales.email, '/va');
-  await sl.goto('/va/my-sales', { waitUntil: 'networkidle' });
+  await signIn(sl, sales.email, '/staff');
+  await sl.goto('/staff/my-sales', { waitUntil: 'networkidle' });
   await expect(sl.getByTestId('sales-target')).toContainText('of 100 rental days');
   await expect(sl.getByTestId('sales-target')).toContainText('rises to 15% at 50 days / 20% at 100 days');
   await expect(sl.getByRole('progressbar')).toBeVisible();
   await check(sl, 'sales my sales with the target');
-  await sl.goto('/va/scorecard', { waitUntil: 'networkidle' });
+  await sl.goto('/staff/scorecard', { waitUntil: 'networkidle' });
   await expect(sl.getByTestId('score-target')).toContainText('of 100 rental days');
   await check(sl, 'sales scorecard with the target');
   await sl.context().close();

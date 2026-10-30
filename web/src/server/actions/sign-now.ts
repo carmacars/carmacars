@@ -126,7 +126,7 @@ export async function staffDocumentUpload(form: FormData): Promise<R> {
       await door(user.id, 'ops_do', 'staff_document_register', { booking, kind, path: key, sha256: await sha256Hex(bytes), mime,
         title: opt('title'), insurer_name: opt('insurer_name'), policy_number: opt('policy_number'), policy_expiry: opt('policy_expiry') }, aal);
     } catch (e) { await s.remove('documents', key).catch(() => undefined); throw e; }
-    revalidatePath('/admin/bookings'); revalidatePath('/va/bookings');
+    revalidatePath('/admin/bookings'); revalidatePath('/staff/bookings');
     return { ok: true, data: null };
   } catch (e) { return fail(e); }
 }
@@ -142,7 +142,7 @@ export async function prepareAgreementNow(bookingId: string): Promise<R<{ ready:
       const { ensureAgreement } = await import('@/server/agreement-auto');
       if (!(await ensureAgreement(bookingId, r.renter_user_id, 'sign_now'))) throw new Error('The agreement could not be made just now: try again, or record a paper signature.');
     }
-    revalidatePath('/admin/bookings'); revalidatePath('/va/bookings'); revalidatePath('/field');
+    revalidatePath('/admin/bookings'); revalidatePath('/staff/bookings'); revalidatePath('/staff/field');
     return { ok: true, data: { ready: true } };
   } catch (e) { return fail(e); }
 }

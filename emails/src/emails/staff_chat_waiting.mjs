@@ -25,6 +25,6 @@ export default {
   ],
   sample: {
     chat_number: 'LC-1042', visitor_name: 'Visitor from Toronto, phone', chat_reason: 'asked for a person', chat_page: 'Car page',
-    chat_url: 'https://carmacars.ca/va/chat',
+    chat_url: 'https://carmacars.ca/staff/chat',
   },
 };

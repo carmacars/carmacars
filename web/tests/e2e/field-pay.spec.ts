@@ -67,8 +67,8 @@ test('field pay: clock in and out on the phone, Fleet sees the hours, an Admin r
 
   // 1. Ann clocks in and out on her phone
   const fp = await ctx(browser, true);
-  await signIn(fp, ann.email, '/field');
-  await fp.goto('/field/hours', { waitUntil: 'networkidle' });
+  await signIn(fp, ann.email, '/staff/field');
+  await fp.goto('/staff/field/hours', { waitUntil: 'networkidle' });
   await expect(fp.getByTestId('clock-in')).toBeVisible();
   await check(fp, 'my hours, not clocked in');
   await fp.locator('#clk-note').fill('Starting at the lot');
@@ -93,8 +93,8 @@ test('field pay: clock in and out on the phone, Fleet sees the hours, an Admin r
 
   // 2. Fleet sees the period's shifts and may fix them
   const vp = await ctx(browser, phone);
-  await signIn(vp, fleet.email, '/va');
-  await vp.goto(`/va/field-hours?date=${prev}`, { waitUntil: 'networkidle' });
+  await signIn(vp, fleet.email, '/staff');
+  await vp.goto(`/staff/field-hours?date=${prev}`, { waitUntil: 'networkidle' });
   await expect(vp.getByTestId('shifts')).toContainText('Bob Hours');
   await expect(vp.getByTestId('shift-add')).toBeVisible();
   await check(vp, 'Fleet field hours');
@@ -146,8 +146,8 @@ test('field pay: clock in and out on the phone, Fleet sees the hours, an Admin r
 
   // 4. Bob sees his statement
   const bp = await ctx(browser, true);
-  await signIn(bp, bob.email, '/field');
-  await bp.goto('/field/hours', { waitUntil: 'networkidle' });
+  await signIn(bp, bob.email, '/staff/field');
+  await bp.goto('/staff/field/hours', { waitUntil: 'networkidle' });
   await expect(bp.getByTestId('pay-statements')).toContainText('$153.00');
   await expect(bp.getByTestId(`statement-${line!.id}`)).toBeVisible();
   await check(bp, 'my hours with a statement');

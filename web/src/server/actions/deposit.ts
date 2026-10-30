@@ -22,7 +22,7 @@ async function me() {
   if (!user) throw new Error('Sign in first.');
   return { user, aal: await sessionAal() };
 }
-const refresh = (paths: string[]) => { for (const x of [...paths, '/admin/bookings', '/va/bookings']) revalidatePath(x); };
+const refresh = (paths: string[]) => { for (const x of [...paths, '/admin/bookings', '/staff/bookings']) revalidatePath(x); };
 
 /** Settle the deposit: { booking, hold_back_cents, hold_back_reason, hold_back_until, release_now, override_reason } */
 export async function settleDeposit(p: Record<string, unknown>, paths: string[] = []): Promise<R<SettleResult>> {

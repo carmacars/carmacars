@@ -116,15 +116,15 @@ test('field staff review the renter\'s licence from their home and from the job'
 
   // another field staff member's home does not show this booking
   const op = await ctx(browser, true);
-  await signIn(op, other.email, '/field');
+  await signIn(op, other.email, '/staff/field');
   await op.waitForLoadState('networkidle');
   await expect(op.locator('body')).not.toContainText(b.booking_number);
   await op.context().close();
 
   const page = await ctx(browser, true);
   const errors = watch(page);
-  await signIn(page, field.email, '/field');
-  await page.goto('/field', { waitUntil: 'networkidle' });
+  await signIn(page, field.email, '/staff/field');
+  await page.goto('/staff/field', { waitUntil: 'networkidle' });
   const home = page.getByTestId('field-licences');
   await expect(home).toBeVisible({ timeout: 30_000 });
   // this booking's card (the shared test database may hold other bookings of other tests)
@@ -159,7 +159,7 @@ test('field staff review the renter\'s licence from their home and from the job'
   // the renter sends a new front; the job is now close (within 36 hours), so the job page has the review too
   await giveLicence(sql, b.booking_id);
   await sql`update field_jobs set scheduled_at = now() + interval '1 hour', auto_at = now() + interval '1 hour' where id = ${job!.id}`;
-  await page.goto(`/field/jobs/${job!.id}`, { waitUntil: 'networkidle' });
+  await page.goto(`/staff/field/jobs/${job!.id}`, { waitUntil: 'networkidle' });
   const onJob = page.getByTestId('job-licence');
   await expect(onJob).toBeVisible({ timeout: 30_000 });
   await check(page, 'job page with the licence check');
@@ -171,7 +171,7 @@ test('field staff review the renter\'s licence from their home and from the job'
       (select identity_verified_on is not null from booking_drivers where booking_id = ${b.booking_id} and role = 'renter') v,
       (select count(*)::int from booking_events e where e.booking_id = ${b.booking_id} and e.details ->> 'reviewer_role' = 'field' and e.details ->> 'decision' = 'approved') ev`;
   expect([ok!.n, ok!.v, ok!.ev]).toEqual([3, true, 3]);
-  await page.goto('/field', { waitUntil: 'networkidle' });
+  await page.goto('/staff/field', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('licence-card').filter({ hasText: b.booking_number })).toHaveCount(0);
   await check(page, 'field home after the review');
   expect(errors.filter((e) => !/Failed to load resource|favicon|the server responded/.test(e))).toEqual([]);

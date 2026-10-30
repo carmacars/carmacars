@@ -59,7 +59,7 @@ export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: '
     const list = only ? data.now.filter((v) => v.band === 'hot' || v.band === 'warm') : data.now;
     return sort === 'recent' ? [...list].sort((a, b) => b.last_seen_at.localeCompare(a.last_seen_at)) : list;
   }, [data.now, sort, only]);
-  const chatHref = portal === 'admin' ? '/admin/chat' : '/va/chat';
+  const chatHref = portal === 'admin' ? '/admin/chat' : '/staff/chat';
   const known = data.now.filter((v) => v.known).length;
   const hotNow = data.now.filter((v) => v.band === 'hot').length;
   const visitorsToday = data.today.visitors ?? data.today.sessions;
@@ -190,7 +190,7 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat }: { v: Visitor; cf
     void liveRead<SessionDetail>('live_session', { id: v.id }).then((d) => { if (live) setDetail(d); }).catch(() => undefined);
     return () => { live = false; };
   }, [open, v.id, v.last_seen_at]);
-  const chatHref = portal === 'admin' ? '/admin/chat' : '/va/chat';
+  const chatHref = portal === 'admin' ? '/admin/chat' : '/staff/chat';
   const sug = v.suggested ?? null;
   const preview = (sug?.message ?? '').replaceAll('{staff}', cfg.me ?? '');
   const act = async (f: () => Promise<string>) => {

@@ -18,7 +18,7 @@ async function assertVa() {
   const user = await currentUser();
   if (!user) throw new Error('Sign in first.');
   const roles = await rolesOf(user.id);
-  if (!roles.va) throw new Error('Only an assistant may do this.');
+  if (!roles.va) throw new Error('Only staff with an office function may do this.');
   const aal = await sessionAal();
   if (roles.two_step_required && aal !== 'aal2') throw new Error('Two-step sign-in is required.');
   return { user, aal };
@@ -28,7 +28,7 @@ export async function vaAct<T = Record<string, unknown>>(action: string, p: Reco
   try {
     const { user, aal } = await assertVa();
     const data = await door<T>(user.id, 'va_do', action, p, aal);
-    for (const x of refresh) if (x.startsWith('/va')) revalidatePath(x);
+    for (const x of refresh) if (x.startsWith('/staff')) revalidatePath(x);
     if (['listing_review', 'listing_publish', 'listing_publish_now', 'review_publish', 'block_create', 'block_end', 'block_update'].includes(action)) revalidatePath('/', 'layout');
     return { ok: true, data };
   } catch (e) { return fail(e); }
@@ -44,9 +44,10 @@ export async function vaPreview<T = Record<string, unknown>>(what: 'booking_prev
 /** The switcher (05-va.md section 1): an assistant who covers more than one function picks the one to work in. */
 export async function switchFunction(fn: string): Promise<void> {
   const user = await currentUser();
-  if (!user) redirect('/sign-in?next=/va');
+  if (!user) redirect('/sign-in?next=/staff');
   const roles = await rolesOf(user.id);
-  if (!roles.va_functions?.includes(fn as never)) redirect('/va');
+  if (fn === 'field' && roles.field) redirect('/staff/field');
+  if (!roles.va_functions?.includes(fn as never)) redirect('/staff');
   (await cookies()).set(VA_FN_COOKIE, fn, { httpOnly: true, sameSite: 'lax', path: '/', secure: env().NEXT_PUBLIC_APP_URL.startsWith('https:'), maxAge: 30 * 86400 });
-  redirect('/va');
+  redirect('/staff');
 }

@@ -11,16 +11,16 @@ export default digest({
   stats: [{ label: 'Today', value: '6 out, 4 back' }, { label: 'Trackers', value: 'All reporting' }],
   sections: [
     { title: 'Jobs not acknowledged', items: [
-      { line: '4:00 pm pickup: 2023 Toyota RAV4 XLE', meta: 'Assigned to Sam yesterday 6:02 pm No acknowledgement.', url: 'https://carmacars.ca/va/fleet/bookings/CC-10477' },
+      { line: '4:00 pm pickup: 2023 Toyota RAV4 XLE', meta: 'Assigned to Sam yesterday 6:02 pm No acknowledgement.', url: 'https://carmacars.ca/staff/bookings/CC-10477' },
     ] },
     { title: 'Tomorrow\'s pickups not ready', items: [
-      { line: 'Booking CC-10482: coverage proof missing', meta: 'Pickup Fri 10:00 am Customer service is chasing.', url: 'https://carmacars.ca/va/fleet/bookings/CC-10482' },
+      { line: 'Booking CC-10482: coverage proof missing', meta: 'Pickup Fri 10:00 am Customer service is chasing.', url: 'https://carmacars.ca/staff/bookings/CC-10482' },
     ] },
     { title: 'Expiry watch', items: [
-      { line: '2021 Kia Forte EX: safety certificate ends Nov 6', meta: 'No registry visit booked.', url: 'https://carmacars.ca/va/fleet/expiries' },
+      { line: '2021 Kia Forte EX: safety certificate ends Nov 6', meta: 'No registry visit booked.', url: 'https://carmacars.ca/staff/fleet#expiry' },
     ] },
     { title: 'Listings to review', items: [
-      { line: '2023 Toyota RAV4 XLE: draft ready', meta: '14 photos. Live by Wed, Nov 11.', url: 'https://carmacars.ca/va/fleet/listings/v-3f81c2' },
+      { line: '2023 Toyota RAV4 XLE: draft ready', meta: '14 photos. Live by Wed, Nov 11.', url: 'https://carmacars.ca/staff/listings/v-3f81c2' },
     ] },
   ],
 });

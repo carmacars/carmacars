@@ -132,13 +132,13 @@ test('Fleet: a task link opens the pop-up; above the single limit the service is
   const model = `Forte ${tag()}`;
   const carId = await mkCar(sql, admin.id, model);
   const page = await ctx(browser);
-  await signIn(page, fleet.email, '/va');
-  await page.goto(`/va/maintenance?q=${encodeURIComponent(model)}`, { waitUntil: 'networkidle' });
+  await signIn(page, fleet.email, '/staff');
+  await page.goto(`/staff/maintenance?q=${encodeURIComponent(model)}`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId(`maint-car-${carId}`)).toBeVisible();
   await check(page, 'fleet maintenance overview');
 
   // as a task link opens it: the car's view with the pop-up open
-  await page.goto(`/va/vehicles/${carId}?record=1#maintenance`, { waitUntil: 'networkidle' });
+  await page.goto(`/staff/vehicles/${carId}?record=1#maintenance`, { waitUntil: 'networkidle' });
   const dlg = page.getByTestId('record-service-dialog');
   await expect(dlg).toBeVisible({ timeout: 20_000 });
   for (const box of await dlg.locator('input[type="checkbox"][data-item]').all()) if (await box.isChecked()) await box.uncheck();

@@ -16,7 +16,7 @@ IMPORTANT: Do now
 {{late_action}}
 
 Open the booking:
-https://carmacars.ca/va/fleet/bookings/{{booking_number}}
+https://carmacars.ca/staff/bookings/{{booking_number}}
 
 The ladder
 ------------------------

@@ -79,10 +79,10 @@ async function create(role, va) {
   return { id, email };
 }
 
-const HOME = { anon: '/', renter: '/account', owner: '/owner', investor: '/investor', admin: '/admin', field: '/field', va_cs: '/va', va_finance: '/va', va_fleet: '/va', va_sales: '/va' };
+const HOME = { anon: '/', renter: '/account', owner: '/owner', investor: '/investor', admin: '/admin', field: '/staff/field', va_cs: '/staff', va_finance: '/staff', va_fleet: '/staff', va_sales: '/staff' };
 const ROLES = Object.keys(HOME).filter((r) => !ONLY.length || ONLY.includes(r));
 // The other portals' homes: every role is also sent there, to see the refusal page is a good page.
-const PORTALS = ['/account', '/owner', '/investor', '/admin', '/va', '/field'];
+const PORTALS = ['/account', '/owner', '/investor', '/admin', '/staff', '/staff/field'];
 
 // ------------------------------------------------------------------ helpers
 // the place pages (0095): every place and term is the same template, so they are one shape each (two segments: one per
@@ -110,7 +110,7 @@ const LINK_PER_FAMILY = Number(arg('--links-per-family', '2'));
 // Never followed: sign-out, and links that act once (a resume or referral link is requested, not rendered); the OAuth
 // start and callback answer with a redirect to the provider's page (its local stand-in here), never a page of the site.
 const SKIP_RENDER = /^\/(api\/|files\/|d\/|r\/|list-your-car\/apply\/resume|auth\/(callback|oauth)|admin\/reports\/export|admin\/documents\/|account\/documents\/[^/]+$|owner\/documents\/(forms\/)?[^/]+$|investor\/statements\/year\/|field\/manifest)/;
-const PRIVATE = /^\/(account|owner|investor|admin|va|field|two-step|sign\/|unsubscribe)/;
+const PRIVATE = /^\/(account|owner|investor|admin|va|field|staff|two-step|sign\/|unsubscribe)/;
 const IGNORE_CONSOLE = [/Download the React DevTools/];
 
 const problems = [];

@@ -11,7 +11,7 @@ export type Flag = {
 };
 const KIND: Record<Flag['kind'], string> = { vin: 'VIN one character apart', plate: 'Same plate', photo: 'Same photo', copy: 'Listing text alike', specs: 'Same year, make, model, colour' };
 
-export function SimilarityTable({ rows, base, refresh, showVehicle = true }: { rows: Flag[]; base: '/admin' | '/va'; refresh: string[]; showVehicle?: boolean }) {
+export function SimilarityTable({ rows, base, refresh, showVehicle = true }: { rows: Flag[]; base: '/admin' | '/staff'; refresh: string[]; showVehicle?: boolean }) {
   return (
     <Table<Flag> testId="similar-cars" rows={rows} empty="No possible duplicates." cols={[
       ...(showVehicle ? [{ key: 'vehicle_name', label: 'Car', render: (r: Flag) => base === '/admin' ? <a className="link" href={`/admin/vehicles/${r.vehicle_id}`}>{r.vehicle_name}</a> : r.vehicle_name }] : []),

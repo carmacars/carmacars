@@ -13,7 +13,7 @@ Return: {{return_date}}, {{return_time}}
 Assigned to: {{assigned_to}}
 
 Open the request:
-https://carmacars.ca/va/cs/bookings/{{booking_number}}
+https://carmacars.ca/staff/bookings/{{booking_number}}
 
 Admins: if customer service cannot reach it, take it or reassign it from the same page.
 

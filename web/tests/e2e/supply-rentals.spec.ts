@@ -235,8 +235,8 @@ test('VA customer service: add a rental within the limits', async ({ browser }) 
     rates: { daily: 6900, weekend: 7900, weekly: 42000, monthly: 150000, deposit: 30000 } })}) as r`;
   const carId = (car!.r as { vehicle_id: string }).vehicle_id;
   const page = await ctx(browser);
-  await signIn(page, va.email, '/va');
-  await page.goto('/va/bookings/new', { waitUntil: 'networkidle' });
+  await signIn(page, va.email, '/staff');
+  await page.goto('/staff/bookings/new', { waitUntil: 'networkidle' });
   await check(page, 'va add a rental');
   await expect(page.getByTestId('mr-past')).toHaveCount(0);
   // a bookable car with no booking in the next weeks

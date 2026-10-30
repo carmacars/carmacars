@@ -9,7 +9,7 @@ describe('the chat greeting', () => {
       assert.equal(greetingAllowed(p), true, p);
   });
   it('never in the portals, sign-in, booking, checkout or payment pages', () => {
-    for (const p of ['/account', '/account/bookings/CC-1', '/owner', '/owner/cars', '/admin', '/va/live', '/field', '/investor', '/sign-in', '/sign/driver/x', '/create-account',
+    for (const p of ['/account', '/account/bookings/CC-1', '/owner', '/owner/cars', '/admin', '/staff/live', '/staff/field', '/investor', '/sign-in', '/sign/driver/x', '/create-account',
       '/book', '/book/tesla-model-3', '/book/sent/CC-1', '/checkout', '/pay/x', '/x/pay', '/my-request/abc', '/continue/abc'])
       assert.equal(greetingAllowed(p), false, p);
   });

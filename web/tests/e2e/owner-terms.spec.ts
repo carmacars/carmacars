@@ -274,8 +274,8 @@ test('customer service adds a car for a new owner; an Admin approves; one set-up
   const cs = await mkUser(sql, 'cs', 'Carla Service');
   const email = `nadia.${tag()}@example.test`;
   const page = await ctx(browser);
-  await signIn(page, cs.email, '/va');
-  await page.goto('/va/owners/add-car', { waitUntil: 'networkidle' });
+  await signIn(page, cs.email, '/staff');
+  await page.goto('/staff/owners/add-car', { waitUntil: 'networkidle' });
   await check(page, 'va add car');
   const f = page.getByTestId('addcar');
   await f.getByTestId('addcar-new-owner').check();

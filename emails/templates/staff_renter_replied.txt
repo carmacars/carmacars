@@ -11,7 +11,7 @@ The message
 {{message_excerpt}}
 
 Open the booking:
-https://carmacars.ca/va/cs/bookings/{{booking_number}}
+https://carmacars.ca/staff/bookings/{{booking_number}}
 
 Answer from the booking's messages so the reply reaches the renter by email and in their account. The task closes when you reply.
 

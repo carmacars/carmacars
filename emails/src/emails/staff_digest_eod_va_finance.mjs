@@ -11,10 +11,10 @@ export default digest({
   stats: [{ label: 'Reconcile', value: 'Matched' }, { label: 'Open tonight', value: '2' }],
   sections: [
     { title: 'Not billed yet', items: [
-      { line: 'Booking CC-10471: returned today 2:15 pm', meta: 'Findings in. Statement due within 7 business days.', url: 'https://carmacars.ca/va/finance/bookings/CC-10471' },
+      { line: 'Booking CC-10471: returned today 2:15 pm', meta: 'Findings in. Statement due within 7 business days.', url: 'https://carmacars.ca/staff/bookings/CC-10471' },
     ] },
     { title: 'Refunds open', items: [
-      { line: 'Booking CC-10455: $351.71, cancellation', meta: 'Received today 9:14 am Target 2 business days.', url: 'https://carmacars.ca/va/finance/bookings/CC-10455' },
+      { line: 'Booking CC-10455: $351.71, cancellation', meta: 'Received today 9:14 am Target 2 business days.', url: 'https://carmacars.ca/staff/bookings/CC-10455' },
     ] },
   ],
 });

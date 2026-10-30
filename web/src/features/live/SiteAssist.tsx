@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 // Live visitors and live chat (migration 0060) on the public site and the renter and owner portals: nothing loads with
 // the page. Once the page has loaded and the browser is idle, the beacon and the chat button are fetched as their own
 // small files. Staff portals and documents get neither. The discount games' watcher (0069) loads the same way.
-const NONE = /^\/(admin|va|field|investor|guide-pdf|sign-document|two-step|read-only|d\/|files)/;
+const NONE = /^\/(admin|va|field|staff|investor|guide-pdf|sign-document|two-step|read-only|d\/|files)/;
 
 export function SiteAssist() {
   const path = usePathname() ?? '/';

@@ -292,7 +292,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     if (!dirty && !payChanged && !String(v.message).trim()) { setProblem('Nothing changed yet: change the offer first.'); return; }
     const r = await offersDo<{ version: number | null; before: Record<string, unknown>; after: Record<string, unknown>; text?: { ok: boolean; reason?: string } | null }>('offer_revise', {
       ...payload, ...pays(), internal_note: v.note, message: v.message, expires_at: expiresAt(), notify, channels: { email: Boolean(v.by_email), text: Boolean(v.by_text) }, expected_version: shownVersion(b) },
-      [`/admin/bookings/${b.booking_number}`, `/va/bookings/${b.booking_number}`]);
+      [`/admin/bookings/${b.booking_number}`, `/staff/bookings/${b.booking_number}`]);
     if (!r.ok) { setProblem(r.message); return; }
     setRevised(describeRevision(r.data.before as never, r.data.after as never, (c) => money(c, { cents: true }), when));
     setDone(r.data.version ? `Offer version ${r.data.version} ${notify ? 'sent to the renter' : 'saved; the renter was not told'}.${r.data.text && !r.data.text.ok ? ` The text was not sent: ${r.data.text.reason}` : ''}` : 'Saved.');

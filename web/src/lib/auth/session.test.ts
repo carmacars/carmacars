@@ -98,7 +98,7 @@ test('view as: every write outside the Admin portal is refused while the cookie 
   assert.equal(viewAsWriteRefused('POST', '/owner/profile', c), true, 'a server action in a portal');
   assert.equal(viewAsWriteRefused('POST', '/account', c), true);
   assert.equal(viewAsWriteRefused('PUT', '/api/field/upload', c), true, 'an upload');
-  assert.equal(viewAsWriteRefused('DELETE', '/va/tasks/1', c), true);
+  assert.equal(viewAsWriteRefused('DELETE', '/staff/tasks/1', c), true);
   assert.equal(viewAsWriteRefused('POST', '/', c), true, 'a public page');
   assert.equal(viewAsWriteRefused('GET', '/owner', c), false, 'reads go through');
   assert.equal(viewAsWriteRefused('POST', '/admin/settings/staff', c), false, 'the Admin portal is the Admin');

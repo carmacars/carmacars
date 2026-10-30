@@ -14,7 +14,7 @@ Rental: {{pickup_date}} to {{return_date}}
 Handover by: {{field_staff_name}}
 
 Open reviews:
-https://carmacars.ca/va/cs/reviews
+https://carmacars.ca/staff
 
 Publish it as written, or hold it and tell an admin if it names a person or contains private details. Reply personally to a low rating.
 

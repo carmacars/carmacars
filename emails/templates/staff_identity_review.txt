@@ -13,7 +13,7 @@ Pickup: {{pickup_date}}, {{pickup_time}}
 Review due: {{verify_by}}
 
 Review the documents:
-https://carmacars.ca/va/cs/bookings/{{booking_number}}/identity
+https://carmacars.ca/staff/verify/{{booking_number}}
 
 Check
 ------------------------

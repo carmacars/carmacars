@@ -10,7 +10,7 @@ export function NavLink({ href, className, children }: { href: string; className
 }
 
 // "Sign in" on the public pages; inside a portal (signed in by then) the same place goes back to that portal's home.
-const PORTAL = /^\/(account|owner|admin|va|field|investor)(\/|$)/;
+const PORTAL = /^\/(account|owner|admin|va|field|staff|investor)(\/|$)/;
 /** The portal a path is in (account, owner, admin, va, field, investor), or null on the public site. */
 export function portalOf(path: string | null): string | null { return PORTAL.exec(path ?? '')?.[1] ?? null; }
 

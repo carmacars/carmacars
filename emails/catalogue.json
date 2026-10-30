@@ -15163,7 +15163,7 @@
                 {
                   "line": "Booking CC-10471: returned today 2:15 pm",
                   "meta": "Findings in. Statement due within 7 business days.",
-                  "url": "https://carmacars.ca/va/finance/bookings/CC-10471"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10471"
                 }
               ],
               "count": "1"
@@ -15174,7 +15174,7 @@
                 {
                   "line": "Booking CC-10455: $351.71, cancellation",
                   "meta": "Received today 9:14 am Target 2 business days.",
-                  "url": "https://carmacars.ca/va/finance/bookings/CC-10455"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10455"
                 }
               ],
               "count": "1"
@@ -15255,7 +15255,7 @@
                 {
                   "line": "Booking CC-10431: $500.00 held",
                   "meta": "Day 7 of 7 today. Release or hold back with a reason.",
-                  "url": "https://carmacars.ca/va/finance/bookings/CC-10431"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10431"
                 }
               ],
               "count": "1"
@@ -15266,12 +15266,12 @@
                 {
                   "line": "Booking CC-10466: fuel short, no damage",
                   "meta": "Checked in yesterday 9:52 am",
-                  "url": "https://carmacars.ca/va/finance/bookings/CC-10466"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10466"
                 },
                 {
                   "line": "Booking CC-10459: 84 km over the allowance",
                   "meta": "Checked in yesterday 4:10 pm",
-                  "url": "https://carmacars.ca/va/finance/bookings/CC-10459"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10459"
                 }
               ],
               "count": "2"
@@ -15282,7 +15282,7 @@
                 {
                   "line": "Toll invoice, plate CMCR 482, $18.42",
                   "meta": "Matched to booking CC-10482. Charge by Thu.",
-                  "url": "https://carmacars.ca/va/finance/tolls-tickets/tt-9012"
+                  "url": "https://carmacars.ca/staff/tolls?ticket=tt-9012"
                 }
               ],
               "count": "1"
@@ -15293,7 +15293,7 @@
                 {
                   "line": "Booking CC-10418: $80.57 due",
                   "meta": "Retry 2 runs today.",
-                  "url": "https://carmacars.ca/va/finance/bookings/CC-10418"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10418"
                 }
               ],
               "count": "1"
@@ -16078,7 +16078,7 @@
                 {
                   "line": "Booking CC-10471: returned 2:15 pm",
                   "meta": "Photo set filed. Send the findings to Finance today.",
-                  "url": "https://carmacars.ca/va/fleet/bookings/CC-10471"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10471"
                 }
               ],
               "count": "1"
@@ -16089,7 +16089,7 @@
                 {
                   "line": "2022 Hyundai Elantra Preferred: status Cleaning",
                   "meta": "Pickup tomorrow 9:00 am",
-                  "url": "https://carmacars.ca/va/fleet/vehicles/v-88ad10"
+                  "url": "https://carmacars.ca/staff/vehicles/v-88ad10"
                 }
               ],
               "count": "1"
@@ -16170,7 +16170,7 @@
                 {
                   "line": "4:00 pm pickup: 2023 Toyota RAV4 XLE",
                   "meta": "Assigned to Sam yesterday 6:02 pm No acknowledgement.",
-                  "url": "https://carmacars.ca/va/fleet/bookings/CC-10477"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10477"
                 }
               ],
               "count": "1"
@@ -16181,7 +16181,7 @@
                 {
                   "line": "Booking CC-10482: coverage proof missing",
                   "meta": "Pickup Fri 10:00 am Customer service is chasing.",
-                  "url": "https://carmacars.ca/va/fleet/bookings/CC-10482"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10482"
                 }
               ],
               "count": "1"
@@ -16192,7 +16192,7 @@
                 {
                   "line": "2021 Kia Forte EX: safety certificate ends Nov 6",
                   "meta": "No registry visit booked.",
-                  "url": "https://carmacars.ca/va/fleet/expiries"
+                  "url": "https://carmacars.ca/staff/fleet#expiry"
                 }
               ],
               "count": "1"
@@ -16203,7 +16203,7 @@
                 {
                   "line": "2023 Toyota RAV4 XLE: draft ready",
                   "meta": "14 photos. Live by Wed, Nov 11.",
-                  "url": "https://carmacars.ca/va/fleet/listings/v-3f81c2"
+                  "url": "https://carmacars.ca/staff/listings/v-3f81c2"
                 }
               ],
               "count": "1"
@@ -16850,7 +16850,7 @@
         {
           "name": "chat_url",
           "type": "url",
-          "sample": "https://carmacars.ca/va/chat"
+          "sample": "https://carmacars.ca/staff/chat"
         },
         {
           "name": "company_address",
@@ -16922,7 +16922,7 @@
                 {
                   "line": "CC-10482: coverage proof missing",
                   "meta": "Pickup Fri 10:00 am Reminder sent 2:00 pm",
-                  "url": "https://carmacars.ca/va/cs/bookings/CC-10482/identity"
+                  "url": "https://carmacars.ca/staff/verify/CC-10482"
                 }
               ],
               "count": "1"
@@ -16933,12 +16933,12 @@
                 {
                   "line": "CC-10491: expires tomorrow 9:05 am",
                   "meta": "2024 Honda Civic Sport, $468.95",
-                  "url": "https://carmacars.ca/va/cs/bookings/CC-10491"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10491"
                 },
                 {
                   "line": "CC-10492: expires tomorrow 10:20 am",
                   "meta": "2023 Toyota RAV4 XLE, $356.40",
-                  "url": "https://carmacars.ca/va/cs/bookings/CC-10492"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10492"
                 }
               ],
               "count": "2"
@@ -16949,7 +16949,7 @@
                 {
                   "line": "5 of 5: 2024 Honda Civic Sport",
                   "meta": "Booking CC-10440. Waiting to be published.",
-                  "url": "https://carmacars.ca/va/cs/reviews"
+                  "url": "https://carmacars.ca/staff"
                 }
               ],
               "count": "1"
@@ -17030,12 +17030,12 @@
                 {
                   "line": "CC-10491: 2024 Honda Civic Sport, Fri Oct 30 to Mon Nov 2",
                   "meta": "Received yesterday 9:40 pm",
-                  "url": "https://carmacars.ca/va/cs/bookings/CC-10491"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10491"
                 },
                 {
                   "line": "CC-10492: 2023 Toyota RAV4 XLE, Sat Oct 24 to Sun Oct 25",
                   "meta": "Received today 6:15 am Driver is 20.",
-                  "url": "https://carmacars.ca/va/cs/bookings/CC-10492"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10492"
                 }
               ],
               "count": "2"
@@ -17046,7 +17046,7 @@
                 {
                   "line": "CC-10482: Maya Okafor, $468.95",
                   "meta": "Expires 2:15 pm Reminder goes at 8:15 am",
-                  "url": "https://carmacars.ca/va/cs/bookings/CC-10482"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10482"
                 }
               ],
               "count": "1"
@@ -17057,12 +17057,12 @@
                 {
                   "line": "CC-10477: licence and selfie, 1 driver",
                   "meta": "Pickup tomorrow 4:00 pm Due today 4:00 pm",
-                  "url": "https://carmacars.ca/va/cs/bookings/CC-10477/identity"
+                  "url": "https://carmacars.ca/staff/verify/CC-10477"
                 },
                 {
                   "line": "CC-10480: coverage proof",
                   "meta": "Pickup Sat 11:00 am",
-                  "url": "https://carmacars.ca/va/cs/bookings/CC-10480/identity"
+                  "url": "https://carmacars.ca/staff/verify/CC-10480"
                 }
               ],
               "count": "2"
@@ -17073,7 +17073,7 @@
                 {
                   "line": "CC-10479: 2022 Hyundai Elantra Preferred, Mon Oct 26",
                   "meta": "Paid $512.40. Verification not started.",
-                  "url": "https://carmacars.ca/va/cs/bookings/CC-10479"
+                  "url": "https://carmacars.ca/staff/bookings/CC-10479"
                 }
               ],
               "count": "1"
@@ -17653,7 +17653,7 @@
         {
           "name": "sales_url",
           "type": "url",
-          "sample": "https://carmacars.ca/va/my-sales"
+          "sample": "https://carmacars.ca/staff/my-sales"
         }
       ],
       "template_html": "templates/staff_commission_approved.html",
@@ -17748,7 +17748,7 @@
         {
           "name": "sales_url",
           "type": "url",
-          "sample": "https://carmacars.ca/va/my-sales"
+          "sample": "https://carmacars.ca/staff/my-sales"
         }
       ],
       "template_html": "templates/staff_commission_paid.html",
@@ -17809,7 +17809,7 @@
                 {
                   "line": "Lena Park: 2022 Mazda CX-5 GS",
                   "meta": "Upfront invoice sent, $1,130.00.",
-                  "url": "https://carmacars.ca/va/sales/applications/app-0311"
+                  "url": "https://carmacars.ca/staff/leads?application=app-0311"
                 }
               ],
               "count": "1"
@@ -17820,7 +17820,7 @@
                 {
                   "line": "Northline Autos Inc.: 2 vehicles",
                   "meta": "Documents sent, not opened.",
-                  "url": "https://carmacars.ca/va/sales/applications/app-0314"
+                  "url": "https://carmacars.ca/staff/leads?application=app-0314"
                 }
               ],
               "count": "1"
@@ -17901,7 +17901,7 @@
                 {
                   "line": "Daniel Rossi: 2023 Toyota RAV4 XLE",
                   "meta": "Received yesterday 3:20 pm Reply due today.",
-                  "url": "https://carmacars.ca/va/sales/applications/app-0318"
+                  "url": "https://carmacars.ca/staff/leads?application=app-0318"
                 }
               ],
               "count": "1"
@@ -17912,12 +17912,12 @@
                 {
                   "line": "Lena Park: 2022 Mazda CX-5 GS",
                   "meta": "Sent 4 days ago. Sign-by date is Friday.",
-                  "url": "https://carmacars.ca/va/sales/applications/app-0311"
+                  "url": "https://carmacars.ca/staff/leads?application=app-0311"
                 },
                 {
                   "line": "Northline Autos Inc.: 2 vehicles",
                   "meta": "Sent 2 days ago.",
-                  "url": "https://carmacars.ca/va/sales/applications/app-0314"
+                  "url": "https://carmacars.ca/staff/leads?application=app-0314"
                 }
               ],
               "count": "2"
@@ -17928,7 +17928,7 @@
                 {
                   "line": "Omar Haddad: lender permission letter",
                   "meta": "Asked 6 days ago. Safety certificate ends Nov 6.",
-                  "url": "https://carmacars.ca/va/sales/applications/app-0305"
+                  "url": "https://carmacars.ca/staff/leads?application=app-0305"
                 }
               ],
               "count": "1"
@@ -18264,7 +18264,7 @@
               "vehicle": "2024 Honda Civic Sport (CMCR 482)",
               "place": "Union Station, 65 Front Street West",
               "note": "Renter Maya. Deposit $500.00 before handover.",
-              "url": "https://carmacars.ca/field/jobs/J-5521"
+              "url": "https://carmacars.ca/staff/field/jobs/J-5521"
             },
             {
               "time": "1:30 pm",
@@ -18272,7 +18272,7 @@
               "vehicle": "2022 Hyundai Elantra Preferred (CHYE 554)",
               "place": "CarmaCars lot",
               "note": "Renter Omar. Check fuel and both keys.",
-              "url": "https://carmacars.ca/field/jobs/J-5524"
+              "url": "https://carmacars.ca/staff/field/jobs/J-5524"
             },
             {
               "time": "4:00 pm",
@@ -18280,7 +18280,7 @@
               "vehicle": "2023 Toyota RAV4 XLE (CXRV 310)",
               "place": "Delivery to 14 Sample Road, Scarborough",
               "note": "Renter Chen. Winter tires fitted.",
-              "url": "https://carmacars.ca/field/jobs/J-5527"
+              "url": "https://carmacars.ca/staff/field/jobs/J-5527"
             }
           ],
           "fields": [
@@ -18351,7 +18351,7 @@
               "vehicle": "2024 Honda Civic Sport (CMCR 482)",
               "place": "Union Station, 65 Front Street West",
               "note": "Renter Maya. Deposit $500.00 before handover.",
-              "url": "https://carmacars.ca/field/jobs/J-5521"
+              "url": "https://carmacars.ca/staff/field/jobs/J-5521"
             },
             {
               "time": "1:30 pm",
@@ -18359,7 +18359,7 @@
               "vehicle": "2022 Hyundai Elantra Preferred (CHYE 554)",
               "place": "CarmaCars lot",
               "note": "Renter Omar. Check fuel and both keys.",
-              "url": "https://carmacars.ca/field/jobs/J-5524"
+              "url": "https://carmacars.ca/staff/field/jobs/J-5524"
             },
             {
               "time": "4:00 pm",
@@ -18367,7 +18367,7 @@
               "vehicle": "2023 Toyota RAV4 XLE (CXRV 310)",
               "place": "Delivery to 14 Sample Road, Scarborough",
               "note": "Renter Chen. Winter tires fitted.",
-              "url": "https://carmacars.ca/field/jobs/J-5527"
+              "url": "https://carmacars.ca/staff/field/jobs/J-5527"
             }
           ],
           "fields": [
@@ -18426,7 +18426,7 @@
         {
           "name": "hours_url",
           "type": "url",
-          "sample": "https://carmacars.ca/field/hours"
+          "sample": "https://carmacars.ca/staff/field/hours"
         },
         {
           "name": "pay_lines",

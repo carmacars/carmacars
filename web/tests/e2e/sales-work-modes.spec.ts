@@ -78,8 +78,8 @@ test('Sales work modes: an Admin sets a rep remote; remote duties, a touch, a bl
   // the remote rep: To do with Remote duties; log a touch; save a block
   const rp = await ctx(browser, phone);
   const rErr = watch(rp);
-  await signIn(rp, remote.email, '/va');
-  await rp.goto('/va', { waitUntil: 'networkidle' });
+  await signIn(rp, remote.email, '/staff');
+  await rp.goto('/staff', { waitUntil: 'networkidle' });
   const duties = rp.getByTestId('remote-duties');
   await expect(duties).toBeVisible({ timeout: 30_000 });
   await expect(duties.getByTestId('remote-checklist').locator('li')).toHaveCount(4);
@@ -102,15 +102,15 @@ test('Sales work modes: an Admin sets a rep remote; remote duties, a touch, a bl
   const [blk] = await sql`select count(*)::int n from sales_availability where staff_id = ${remote.id}`;
   expect(blk!.n).toBe(1);
   await check(rp, 'remote To do after a touch and a block');
-  await rp.goto('/va/my-sales', { waitUntil: 'networkidle' });
+  await rp.goto('/staff/my-sales', { waitUntil: 'networkidle' });
   await expect(rp.getByTestId('my-sales-hero')).toContainText('Remote: 1 of 400 touches this month');
   await check(rp, 'remote My sales');
 
   // the in person rep: no remote duties
   const ip = await ctx(browser, phone);
   const iErr = watch(ip);
-  await signIn(ip, inPerson.email, '/va');
-  await ip.goto('/va', { waitUntil: 'networkidle' });
+  await signIn(ip, inPerson.email, '/staff');
+  await ip.goto('/staff', { waitUntil: 'networkidle' });
   await expect(ip.getByTestId('va-sales-mode')).toHaveText('In person', { timeout: 30_000 });
   await expect(ip.getByTestId('remote-duties')).toHaveCount(0);
   await check(ip, 'in person To do');

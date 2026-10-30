@@ -12,7 +12,7 @@ Sorted by date. The first {{expiry_urgent_count}} expire within 3 days.
 {{/each}}
 
 Open the expiry list:
-https://carmacars.ca/va/fleet/expiries
+https://carmacars.ca/staff/fleet#expiry
 
 - Turo-Only insurance: the owner gets a notice 14 days before. Unlist the car if proof lapses.
 - Plates: renew before the month ends. The cost is an owner cost on the next statement.

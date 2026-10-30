@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blanksIn, investmentMarkdown, investmentSummary, investorFields, missingRequired, staffFields, staffMarkdown, staffSummary, type InvestorFacts, type StaffFacts } from './model.ts';
+import { blanksIn, investmentMarkdown, investmentSummary, investorFields, missingRequired, staffFields, staffMarkdown, staffSummary, staffTitle, type InvestorFacts, type StaffFacts } from './model.ts';
 
 // Agreements generated from the records (migration 0049): every blank of the source document is filled, the values
 // land in Schedule A, and the signature lines say the signature is given electronically.
@@ -120,4 +120,17 @@ test('the field agreement: the home address the staff member entered is filled i
   const withHome: StaffFacts = { ...f, staff: { ...f.staff, home_address: '12 Queen Street, Toronto, M5H 2N2' } };
   assert.equal(staffFields(withHome).find((x) => x.key === 'address')!.value, '12 Queen Street, Toronto, M5H 2N2');
   assert.match(staffMarkdown(withHome, fill(withHome, { licence: 'C1234' })), /12 Queen Street, Toronto, M5H 2N2 \(address\)/);
+});
+
+test('0197: the in-person agreement for field work or Sales in person, the remote VA agreement otherwise', () => {
+  const f = staff('va');
+  const inPersonSales: StaffFacts = { ...f, staff: { ...f.staff, va_function: 'sales', functions: ['sales'], sales_work_mode: 'in_person', agreement: 'in_person' } };
+  assert.equal(staffTitle(inPersonSales), 'Field Staff Agreement');
+  assert.ok(staffFields(inPersonSales).some((x) => x.key === 'wage'));
+  assert.match(staffMarkdown(inPersonSales, fill(inPersonSales, { address: '12 Queen Street', licence: 'C1234' })), /\| Role \| In-person Sales Representative \|/);
+  const remoteSales: StaffFacts = { ...f, staff: { ...f.staff, va_function: 'sales', functions: ['sales'], sales_work_mode: 'remote', agreement: 'remote' } };
+  assert.equal(staffTitle(remoteSales), 'Virtual Assistant Contractor Agreement');
+  const fieldAndCs: StaffFacts = { ...f, staff: { ...f.staff, va_function: 'cs', field_function: 'driver', functions: ['cs', 'field'], agreement: 'in_person' } };
+  assert.equal(staffTitle(fieldAndCs), 'Field Staff Agreement');
+  assert.equal(staffTitle(staff('field')), 'Field Staff Agreement');
 });

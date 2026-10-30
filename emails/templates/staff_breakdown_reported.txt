@@ -13,7 +13,7 @@ Renter: {{renter_name}}, {{renter_phone}}
 Tracker: {{tracker_summary}}
 
 Open the booking:
-https://carmacars.ca/va/fleet/bookings/{{booking_number}}
+https://carmacars.ca/staff/bookings/{{booking_number}}
 
 - Confirm the renter is safe first.
 - Dispatch the roadside provider on file and send the renter the help notice.

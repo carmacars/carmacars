@@ -88,7 +88,7 @@ export async function saveAddon(p: Record<string, unknown>): Promise<R<Record<st
   try {
     const { user, aal } = await staff();
     const r = await door<Record<string, unknown>>(user.id, 'ops_do', 'addon_save', p, aal);
-    revalidatePath('/admin/settings/addons'); revalidatePath('/va/addons');
+    revalidatePath('/admin/settings/addons'); revalidatePath('/staff/addons');
     return { ok: true, data: r };
   } catch (e) { return fail(e); }
 }

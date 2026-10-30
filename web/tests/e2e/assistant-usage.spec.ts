@@ -185,7 +185,7 @@ test('Assistant (VA): an assistant cannot reach an Admin\'s action; Finance-only
   await neurons(sql, 0);
   const v = await person(sql, 'va', 'fleet');
   const page = await ctx(browser);
-  await signIn(page, v.email, '/va');
+  await signIn(page, v.email, '/staff');
   await openAssistant(page);
   await askIt(page, '{"action": "tool", "tool": "record_payment", "args": {"invoice": "INV-1", "method": "cash", "received_on": "2026-10-15"}}');
   await expect(page.getByTestId('assistant-text').last()).toHaveText('I cannot do that from here. Use the screens, or ask an Admin.');

@@ -115,8 +115,8 @@ test('A renter adds a baby seat and flowers on the car page and sends the reques
   // customer service adds a 4-hour chauffeur on the review screen; the price follows
   const cs = await mkStaff(sql, 'va', `Casey Addons ${tag()}`, 'cs');
   const sp = await ctx(browser);
-  await signIn(sp, cs.email, '/va');
-  await sp.goto(`/va/bookings/${encodeURIComponent(number)}?tab=review`, { waitUntil: 'networkidle' });
+  await signIn(sp, cs.email, '/staff');
+  await sp.goto(`/staff/bookings/${encodeURIComponent(number)}?tab=review`, { waitUntil: 'networkidle' });
   const rv = sp.getByTestId('review-addons');
   await expect(rv.locator('#rv-flowers')).toBeChecked();
   await rv.locator('#rv-chauffeur').check();
@@ -165,8 +165,8 @@ test('Field staff see the add-ons to put in the car; the renter adds an umbrella
 
   // field staff: the handover lists what goes in the car, and the prepaid fuel note
   const fp = await ctx(browser);
-  await signIn(fp, field.email, '/field');
-  await fp.goto(`/field/jobs/${job!.id as string}`, { waitUntil: 'networkidle' });
+  await signIn(fp, field.email, '/staff/field');
+  await fp.goto(`/staff/field/jobs/${job!.id as string}`, { waitUntil: 'networkidle' });
   const put = fp.getByTestId('job-addons');
   await expect(put).toContainText('Put in the car');
   await expect(put).toContainText('Flowers');
@@ -214,8 +214,8 @@ test('Field staff see the add-ons to put in the car; the renter adds an umbrella
   await check(ap, 'admin add-ons');
   await ap.context().close();
   const vp = await ctx(browser);
-  await signIn(vp, fleet.email, '/va');
-  await vp.goto('/va/addons', { waitUntil: 'networkidle' });
+  await signIn(vp, fleet.email, '/staff');
+  await vp.goto('/staff/addons', { waitUntil: 'networkidle' });
   const [before] = await sql`select stock_count from addons where code = 'umbrella'`;
   await vp.getByTestId('stock-umbrella').fill(String(Number(before!.stock_count ?? 4) + 1));
   await vp.locator('[data-addon="umbrella"]').getByRole('button', { name: 'Save' }).click();

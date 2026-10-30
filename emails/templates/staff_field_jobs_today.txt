@@ -17,7 +17,7 @@ First job: {{first_job_time}}
 {{/each}}
 
 Open my jobs:
-https://carmacars.ca/field
+https://carmacars.ca/staff/field
 
 Have each car ready 30 minutes before a pickup. Photos are reviewed within 1 hour, so upload the full set, in order, before you leave. If you cannot do a job, tell Fleet right away.
 

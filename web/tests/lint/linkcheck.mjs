@@ -5,7 +5,7 @@ import { PATHS } from '../../../emails/src/links.mjs';
 import { crawl } from './crawl.mjs';
 
 const base = process.env.BASE_URL || 'http://localhost:3000';
-const PORTAL = /^\/(account|owner|admin|va|field)(\/|$)/;
+const PORTAL = /^\/(account|owner|admin|va|field|staff)(\/|$)/;
 const emailPaths = Object.values(PATHS).filter((p) => !PORTAL.test(p) && !p.includes('{{'));
 const pages = await crawl(base, emailPaths.map((p) => p.split('#')[0]));
 const problems = []; let links = 0; let anchors = 0; let assets = 0; let external = new Set();

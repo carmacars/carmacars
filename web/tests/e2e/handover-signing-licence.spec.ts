@@ -148,8 +148,8 @@ test('check-out by Sales from the booking, a late check-in by an Admin from Toda
   // Sales: the booking page has "Check out (pickup)"
   const page = await ctx(browser, phone);
   const errors = watch(page);
-  await signIn(page, sales.email, '/va');
-  await page.goto(`/va/bookings/${req.booking_number}`, { waitUntil: 'networkidle' });
+  await signIn(page, sales.email, '/staff');
+  await page.goto(`/staff/bookings/${req.booking_number}`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('handover-panel')).toBeVisible();
   await check(page, 'va booking with the check-out card');
   await page.getByTestId('checkout-start').click();
@@ -274,8 +274,8 @@ test('customer service collects the renter\'s signature on their own device, and
   await sql`select app.open_rental_agreement(${req.booking_id}::uuid, ${renter.id}::uuid, 'rental-e2e', encode(sha256(${req.booking_number}::bytea), 'hex'), ${`bookings/${req.booking_id}/agreement.pdf`})`;
 
   const page = await ctx(browser, phone);
-  await signIn(page, cs.email, '/va');
-  await page.goto(`/va/bookings/${req.booking_number}`, { waitUntil: 'networkidle' });
+  await signIn(page, cs.email, '/staff');
+  await page.goto(`/staff/bookings/${req.booking_number}`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('sign-waiting')).toContainText('Riley Renter');
   await page.getByTestId('sign-link-email').click();
   await expect(page.getByTestId('sign-link-result')).toContainText('Emailed to');
@@ -410,15 +410,15 @@ test('field staff open a check-out from their job card in one tap', async ({ bro
   await sql`update bookings set pickup_at = now() + interval '3 minutes', return_at = now() + interval '2 days' where id = ${req.booking_id}`;
   const [job] = await sql`select app.create_field_job('handover', ${car.id}::uuid, now() + interval '3 minutes', ${admin.id}::uuid, ${req.booking_id}::uuid, ${field.id}::uuid, '1 Front St W, Toronto') id`;
   const page = await ctx(browser, true);
-  await signIn(page, field.email, '/field');
+  await signIn(page, field.email, '/staff/field');
   // the job is in an hour: on Tomorrow's list late in the evening
   const [when] = await sql`select (scheduled_at at time zone 'America/Toronto')::date = (now() at time zone 'America/Toronto')::date today from field_jobs where id = ${job!.id}::uuid`;
-  await page.goto(when!.today ? '/field' : '/field?day=tomorrow', { waitUntil: 'networkidle' });
+  await page.goto(when!.today ? '/staff/field' : '/staff/field?day=tomorrow', { waitUntil: 'networkidle' });
   await check(page, 'field jobs with the check-out button');
   // this job's own card: the booking's automatic handover job (0151) may be on the same list, given to the least busy
   // field staff member, who can be this new one
-  await page.getByTestId('job-card').filter({ has: page.locator(`a[href="/field/jobs/${job!.id}"]`) }).getByTestId('field-checkout').click();
-  await page.waitForURL(new RegExp(`/field/jobs/${job!.id}`), { timeout: 30_000 });
+  await page.getByTestId('job-card').filter({ has: page.locator(`a[href="/staff/field/jobs/${job!.id}"]`) }).getByTestId('field-checkout').click();
+  await page.waitForURL(new RegExp(`/staff/field/jobs/${job!.id}`), { timeout: 30_000 });
   await expect(page.getByTestId('ready-check')).toBeVisible({ timeout: 15_000 });
   await sql.end();
 });

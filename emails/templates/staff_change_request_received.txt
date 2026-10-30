@@ -18,7 +18,7 @@ Renter note: {{renter_note}}
 {{/if}}
 
 Open the change request:
-https://carmacars.ca/va/cs/bookings/{{booking_number}}
+https://carmacars.ca/staff/bookings/{{booking_number}}
 
 Check the calendar and reprice the whole booking at its new length. Escalate to an admin for a rate change, unpaid charges or a clash with another booking.
 

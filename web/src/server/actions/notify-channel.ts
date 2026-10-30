@@ -8,7 +8,7 @@ import { isChannel, type Channel, type Reach } from '@/features/phone/alerts';
 // Text alerts (migration 0096): the signed-in person chooses how we reach them (Email, Text or Both). The database
 // works out what that means now (a verified phone, STOP, the US gate) and the routing follows it.
 const SR = { role: 'service_role' as const };
-const PROFILE_PATHS = ['/account/profile', '/owner/profile', '/investor/profile', '/va/profile', '/field/profile'];
+const PROFILE_PATHS = ['/account/profile', '/owner/profile', '/investor/profile', '/staff/profile', '/staff/field/profile'];
 
 export async function saveMyChannel(channel: Channel): Promise<ActionResult<Reach>> {
   if (!isChannel(channel)) return { ok: false, code: 'invalid', message: 'Choose Email, Text or Both.' };

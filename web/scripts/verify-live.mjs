@@ -127,14 +127,14 @@ const ACCOUNTS = [
   { role: 'renter', email: 'verify-signin@carmacars.ca', name: 'Sign-in Check', home: '/account', width: 390 },
   { role: 'owner', email: 'verify-owner@carmacars.ca', name: 'Verify Owner', home: '/owner', width: 1440 },
   { role: 'investor', email: 'verify-investor@carmacars.ca', name: 'Verify Investor', home: '/investor', width: 390 },
-  { role: 'va_cs', email: 'verify-va-cs@carmacars.ca', name: 'Verify Assistant', home: '/va', width: 1440, fn: 'Customer service' },
-  { role: 'va_finance', email: 'verify-va-finance@carmacars.ca', name: 'Verify Finance', home: '/va', width: 1440, fn: 'Finance' },
-  { role: 'va_fleet', email: 'verify-va-fleet@carmacars.ca', name: 'Verify Fleet', home: '/va', width: 390, fn: 'Fleet' },
-  { role: 'va_sales', email: 'verify-va-sales@carmacars.ca', name: 'Verify Sales', home: '/va', width: 1440, fn: 'Sales' },
-  { role: 'field', email: 'verify-field@carmacars.ca', name: 'Verify Field', home: '/field', width: 390 },
+  { role: 'va_cs', email: 'verify-va-cs@carmacars.ca', name: 'Verify Assistant', home: '/staff', width: 1440, fn: 'Customer service' },
+  { role: 'va_finance', email: 'verify-va-finance@carmacars.ca', name: 'Verify Finance', home: '/staff', width: 1440, fn: 'Finance' },
+  { role: 'va_fleet', email: 'verify-va-fleet@carmacars.ca', name: 'Verify Fleet', home: '/staff', width: 390, fn: 'Fleet' },
+  { role: 'va_sales', email: 'verify-va-sales@carmacars.ca', name: 'Verify Sales', home: '/staff', width: 1440, fn: 'Sales' },
+  { role: 'field', email: 'verify-field@carmacars.ca', name: 'Verify Field', home: '/staff/field', width: 390 },
   { role: 'admin', email: 'verify-admin@carmacars.ca', name: 'Verify Admin', home: '/admin', width: 1440 }
 ];
-const PORTALS = ['/admin', '/owner', '/investor', '/va', '/field'];
+const PORTALS = ['/admin', '/owner', '/investor', '/staff', '/staff/field'];
 // RFC 6238, as an authenticator app computes it (only when staff two-step sign-in is switched on)
 async function totp(secret) {
   const { createHmac } = await import('node:crypto');
@@ -379,8 +379,8 @@ if (process.argv.includes('--auth')) {
   // invitation from Admin > Portals through to the password and the portal.
   async function adminChecks(page, r, load) {
     const target = (role) => ACCOUNTS.find((x) => x.role === role);
-    const VIEWS = [['owner', 'owner', '/owner'], ['va-cs', 'va_cs', '/va'], ['va-finance', 'va_finance', '/va'], ['va-fleet', 'va_fleet', '/va'],
-      ['va-sales', 'va_sales', '/va'], ['field', 'field', '/field'], ['investor', 'investor', '/investor'], ['account', 'renter', '/account']];
+    const VIEWS = [['owner', 'owner', '/owner'], ['va-cs', 'va_cs', '/staff'], ['va-finance', 'va_finance', '/staff'], ['va-fleet', 'va_fleet', '/staff'],
+      ['va-sales', 'va_sales', '/staff'], ['field', 'field', '/staff/field'], ['investor', 'investor', '/investor'], ['account', 'renter', '/account']];
     r.viewAs = [];
     for (const [section, role, home] of VIEWS) {
       const t = target(role); const v = { portal: section, as: t.email };
@@ -473,13 +473,13 @@ if (process.argv.includes('--auth')) {
       inv.h1 = await p2.locator('h1').first().textContent({ timeout: 5_000 }).catch(() => null);
       await p2.locator('#np-pass').fill(randomPassword());
       await p2.getByRole('button', { name: 'Save the new password' }).click();
-      await p2.waitForURL((u) => u.pathname === '/va', { timeout: 30_000 });
+      await p2.waitForURL((u) => u.pathname === '/staff', { timeout: 30_000 });
       if (BROKEN.test(await bodyText(p2))) { (inv.retried ??= []).push('va'); await p2.goto(`${BASE}/va`, { waitUntil: 'networkidle' }); }
       inv.portal = new URL(p2.url()).pathname;
       inv.who = await p2.locator('.ad__who').first().textContent().catch(() => null);
       await p2.screenshot({ path: path.join(out, 'invite-landed.png'), fullPage: true });
       await c2.close();
-      inv.ok = /Invitation sent/.test(inv.said ?? '') && inv.landed === '/update-password' && inv.portal === '/va' && /Sales/.test(inv.who ?? '') && /Verify Invitation/.test(inv.who ?? '');
+      inv.ok = /Invitation sent/.test(inv.said ?? '') && inv.landed === '/update-password' && inv.portal === '/staff' && /Sales/.test(inv.who ?? '') && /Verify Invitation/.test(inv.who ?? '');
     } catch (e) { inv.ok = false; inv.error = String(e).slice(0, 300); }
     // tidy up: the sign-in, and the staff record the invitation made
     try {

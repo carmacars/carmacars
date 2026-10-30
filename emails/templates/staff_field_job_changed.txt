@@ -22,7 +22,7 @@ Vehicle: {{vehicle_name}}, plate {{vehicle_plate}}
 {{/if}}
 
 Open my jobs:
-https://carmacars.ca/field
+https://carmacars.ca/staff/field
 
 If the new time does not work, tell Fleet right away.
 

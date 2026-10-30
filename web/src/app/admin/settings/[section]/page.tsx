@@ -30,6 +30,8 @@ import { COVERAGE_LABEL, type CardList, type CoverageKind } from '@/features/cov
 import { ReviewSettings, type ReviewSettingsData } from '@/features/reviews/ReviewSettings';
 import { googleKeys } from '@/server/reviews/google';
 import { SalesModesCard, type SalesModes } from '@/features/sales/SalesModesAdmin';
+import { StaffFunctions } from '@/features/staff/StaffFunctions';
+import { profileFunctions as staffFns, STAFF_FN_LABEL } from '@/features/staff/nav';
 const googleKeysSet = () => googleKeys() !== null;
 
 export const dynamic = 'force-dynamic';
@@ -397,7 +399,7 @@ export default async function Section({ params, searchParams }: { params: Promis
     </>);
   case 'staff':
     return (<>{head}
-      <Card title="Invite"><p className="small muted">An invitation email with a link to choose a password (24 hours), then their portal. Owners and investors on file are invited from <Link prefetch={false} className="link" href="/admin/portals#invite">Admin &gt; Portals</Link>. Admin access is only through the addresses under Admin access below.</p><InviteForm roles={['va', 'field']} testId="staff-invite" /></Card>
+      <Card title="Invite"><p className="small muted">An invitation email with a link to choose a password (24 hours), then their portal. Owners and investors on file are invited from <Link prefetch={false} className="link" href="/admin/portals#invite">Admin &gt; Portals</Link>. Admin access is only through the addresses under Admin access below.</p><InviteForm roles={['staff']} testId="staff-invite" /></Card>
       {await (async () => {
         const acc = await door<{ allowed: string[]; test: string[]; holders: Array<{ email: string; name: string | null; allowed: boolean; test: boolean }> }>(user.id, 'ops_read', 'admin_access').catch(() => null);
         if (!acc) return null;
@@ -410,19 +412,19 @@ export default async function Section({ params, searchParams }: { params: Promis
           </Card>);
       })()}
       <Card title="Staff"><Table rows={s.staff} testId="staff" cols={[{ key: 'full_name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'roles', label: 'Roles', render: (r) => (r.roles as string[] | null)?.join(', ') },
-        { key: 'fn', label: 'Function', render: (r) => { const p = r.profile as R | null; if (!p) return ''; const cover = (p.cover_functions as string[] | null) ?? []; return `${label(p.va_function ?? p.field_function)}${p.sales_work_mode ? `, ${p.sales_work_mode === 'remote' ? 'remote' : 'in person'}` : ''}${cover.length ? ` (also ${cover.map(label).join(', ')})` : ''}`; } }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'last_sign_in_at', label: 'Last sign-in', render: (r) => t(r.last_sign_in_at) },
+        { key: 'fn', label: 'Functions', render: (r) => { const p = r.profile as R | null; if (!p) return ''; return staffFns(p).map((f) => `${STAFF_FN_LABEL[f]}${f === 'sales' && p.sales_work_mode ? ` (${p.sales_work_mode === 'remote' ? 'remote' : 'in person'})` : ''}${f === 'field' && p.field_function ? ` (${label(p.field_function)})` : ''}`).join(', '); } }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'last_sign_in_at', label: 'Last sign-in', render: (r) => t(r.last_sign_in_at) },
         { key: 'limits', label: 'Limits', render: (r) => { const p = r.profile as R | null; return p ? `${$(p.single_limit_cents)} / ${$(p.dual_approval_threshold_cents)}` : ''; } },
         { key: 'act', label: 'Actions', render: (r) => r.id === user.id ? <span className="muted small">you</span> : <span className="ad-actions">
           {r.status === 'active' && <PasswordLinkButton userId={String(r.id)} testId={`pw-${String(r.email)}`} />}
-          {r.status === 'active' && [String((r.profile as R | null)?.va_function ?? ''), ...(((r.profile as R | null)?.cover_functions as string[] | null) ?? [])].filter((f) => f && (r.profile as R | null)?.staff_type === 'va')
-            .map((f) => <ViewAsButton key={f} user={String(r.id)} portal="va" fn={f} label={`View as (${label(f)})`} testId={`view-as-${String(r.email)}-${f}`} />)}
-          {r.status === 'active' && (r.profile as R | null)?.staff_type === 'field' && <ViewAsButton user={String(r.id)} portal="field" testId={`view-as-${String(r.email)}-field`} />}
+          {r.status === 'active' && (r.profile as R | null) && staffFns(r.profile as R).filter((f) => f !== 'field')
+            .map((f) => <ViewAsButton key={f} user={String(r.id)} portal="va" fn={f} label={`View as (${STAFF_FN_LABEL[f]})`} testId={`view-as-${String(r.email)}-${f}`} />)}
+          {r.status === 'active' && (r.profile as R | null) && staffFns(r.profile as R).includes('field') && <ViewAsButton user={String(r.id)} portal="field" label={`View as (${STAFF_FN_LABEL.field})`} testId={`view-as-${String(r.email)}-field`} />}
+          {(r.profile as R | null) && <StaffFunctions user={String(r.id)} functions={staffFns(r.profile as R)} salesMode={((r.profile as R).sales_work_mode as string | null) ?? null} fieldRole={((r.profile as R).field_function as string | null) ?? null} testId={`functions-${String(r.email)}`} />}
           {(r.profile as R | null) && <SaveFormLimits id={String(r.id)} p={r.profile as R} />}
           {(r.profile as R | null)?.va_function ? <>
             <Link prefetch={false} className="link small" href={`/admin/staff/${String(r.id)}/scorecard`}>Scorecard</Link>
             <Link prefetch={false} className="link small" href={`/admin/staff/${String(r.id)}/sales`} data-testid={`sales-${String(r.email)}`}>Sales</Link>
-            <Act action="staff_cover" payload={{ user: r.id }} label="Covers" testId={`cover-${String(r.id)}`} refresh={['/admin/settings/staff']} fields={[{ name: 'functions', label: 'Also covers (finance, fleet, cs, sales; comma separated)', type: 'list',
-              value: ((r.profile as R).cover_functions as string[] | null) ?? [] }]} /></> : null}
+</> : null}
           {r.status === 'active' ? <Act action="staff_end" payload={{ user: r.id }} label="End access" variant="danger" confirm={`End ${String(r.full_name)}'s access now? The staff portal closes to them at once.`} refresh={['/admin/settings/staff']} />
             : <Act action="staff_restore" payload={{ user: r.id }} label="Restore" refresh={['/admin/settings/staff']} />}</span> }]} /></Card>
       {await (async () => {

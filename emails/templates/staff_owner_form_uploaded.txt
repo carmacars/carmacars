@@ -10,7 +10,7 @@ CarmaCars  |  {{owner_name}}
 Witnesses: {{witness_names}}
 
 Review the form:
-https://carmacars.ca/va/owner-forms
+https://carmacars.ca/staff/owner-forms
 
 Check every part is filled, initialled where asked, signed and witnessed. Approve it, or send it back with what to fix.
 

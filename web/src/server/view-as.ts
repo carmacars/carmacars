@@ -18,7 +18,7 @@ export interface ViewAs { target: SessionUser & { name: string }; portal: ViewPo
 interface Payload extends Record<string, unknown> { t: string; e: string; n: string; po: ViewPortal; fn: VaFn | null; by: string }
 
 export const VIEW_AS_TTL_S = 30 * 60;
-export const PORTAL_HOME: Record<ViewPortal, string> = { account: '/account', owner: '/owner', va: '/va', field: '/field', investor: '/investor' };
+export const PORTAL_HOME: Record<ViewPortal, string> = { account: '/account', owner: '/owner', va: '/staff', field: '/staff/field', investor: '/investor' };
 
 export class ViewAsReadOnly extends Error {
   constructor() { super('Read only while viewing as another person. Use Exit on the red banner to go back to your own account.'); this.name = 'ViewAsReadOnly'; }
