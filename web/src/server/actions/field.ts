@@ -30,11 +30,11 @@ export async function fieldAct<T = Record<string, unknown>>(action: typeof ACTIO
     // the licence review keeps its own panel (and its message) on screen: any revalidation re-renders this page and, with nothing left
     // to review, removes the panel; the lists are refreshed when it closes (the office's pages read the database on each visit)
     const quiet = action === 'licence_approve_all' || action === 'licence_reject';
-    if (!quiet) revalidatePath('/field');
-    if (['complete_handover', 'complete_return', 'identity_in_person', 'deposit_offline', 'tracker_override'].includes(action)) { revalidatePath('/admin/bookings', 'layout'); revalidatePath('/va/bookings', 'layout'); }
+    if (!quiet) revalidatePath('/staff/field');
+    if (['complete_handover', 'complete_return', 'identity_in_person', 'deposit_offline', 'tracker_override'].includes(action)) { revalidatePath('/admin/bookings', 'layout'); revalidatePath('/staff/bookings', 'layout'); }
     // 0154: the "as picked up" (or closing) copies of both agreements are rendered right after this response
     if (action === 'complete_handover' || action === 'complete_return') kickPdfJobs();
-    if (typeof p.job === 'string' && !quiet) revalidatePath(`/field/jobs/${p.job}`);
+    if (typeof p.job === 'string' && !quiet) revalidatePath(`/staff/field/jobs/${p.job}`);
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }
@@ -49,9 +49,9 @@ export async function fieldClock<T = Record<string, unknown>>(what: 'in' | 'out'
     const aal = await sessionAal();
     if (roles.two_step_required && aal !== 'aal2') throw new Error('Two-step sign-in is required.');
     const data = await door<T>(user.id, 'ops_do', what === 'in' ? 'field_clock_in' : 'field_clock_out', { note: note?.trim() || null }, aal);
-    revalidatePath('/field/hours');
-    revalidatePath('/field');
-    revalidatePath('/va/field-hours');
+    revalidatePath('/staff/field/hours');
+    revalidatePath('/staff/field');
+    revalidatePath('/staff/field-hours');
     revalidatePath('/admin/money/field-pay');
     return { ok: true, data };
   } catch (e) { return fail(e); }

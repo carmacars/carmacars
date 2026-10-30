@@ -185,11 +185,11 @@ test('tolls: a photo of a notice is read by the vision model, corrected beside t
     // the "photo" of a parking notice: drawn here and taken as a screenshot
     await page.setContent('<body style="margin:0;background:#fff;font:20px Arial"><div style="padding:30px;width:700px"><h1>City of Toronto</h1><p>Penalty Notice Number: PN 7710-0042</p><p>Licence Plate: FAKE 123</p><p>Date of Infraction: 2026-10-02 2:32 PM</p><p>Penalty Amount: $50.00</p></div></body>');
     const shot = await page.screenshot({ type: 'png' });
-    await signIn(page, fin.email, '/va', '/va/tolls/read');
-    await page.goto('/va/tolls/read', { waitUntil: 'networkidle' });
+    await signIn(page, fin.email, '/staff', '/staff/tolls/read');
+    await page.goto('/staff/tolls/read', { waitUntil: 'networkidle' });
     await page.getByTestId('toll-read-file').setInputFiles({ name: 'notice.png', mimeType: 'image/png', buffer: shot });
     await page.getByTestId('toll-read-run').click();
-    await page.waitForURL(/\/va\/tolls\/read\/[0-9a-f-]{36}$/, { timeout: 30_000 });
+    await page.waitForURL(/\/staff\/tolls\/read\/[0-9a-f-]{36}$/, { timeout: 30_000 });
     const readId = page.url().split('/').pop()!;
     const [r] = await sql`select method, model, kind, authority from toll_notice_reads where id = ${readId}`;
     expect([r!.method, r!.model, r!.kind, r!.authority]).toEqual(['vision', 'fake-vision-v1', 'parking', 'City of Toronto']);
@@ -212,7 +212,7 @@ test('tolls: a photo of a notice is read by the vision model, corrected beside t
     expect([t!.kind, t!.notice_number, Number(t!.amount_cents)]).toEqual(['parking', pn, 5000]);
 
     // a reading profile, adjusted without code: tried on pasted text, then saved
-    await page.goto('/va/tolls/profiles', { waitUntil: 'networkidle' });
+    await page.goto('/staff/tolls/profiles', { waitUntil: 'networkidle' });
     const [p] = await sql`select id from toll_import_profiles where header_signature = 'text:ontario-parking'`;
     const row = page.locator('details').filter({ has: page.getByTestId(`profile-${p!.id}`) });
     await row.locator('summary').click();

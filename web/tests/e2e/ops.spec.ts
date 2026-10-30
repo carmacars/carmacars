@@ -341,8 +341,8 @@ test('drivers and accounts: new signing links from the renter and from customer 
     // customer service sends another: the renter's link stops working, the new one works
     const va = await ctx(browser, phone);
     const verrors = watch(va);
-    await signIn(va, cs.email, '/va');
-    await va.goto(`/va/bookings/${req.booking_number}?tab=overview`);
+    await signIn(va, cs.email, '/staff');
+    await va.goto(`/staff/bookings/${req.booking_number}?tab=overview`);
     await expect(va.getByTestId('driver-links')).toContainText('Dana Driver');
     await check(va, 'va driver links');
     await va.getByTestId(`staff-driver-resend-${sg!.id}`).click();
@@ -430,8 +430,8 @@ test('listings and owners: a possible duplicate is cleared; Form D is sent back,
 
     const va = await ctx(browser, phone);
     const verrors = watch(va);
-    await signIn(va, cs.email, '/va');
-    await va.goto('/va/owner-forms');
+    await signIn(va, cs.email, '/staff');
+    await va.goto('/staff/owner-forms');
     const frow = va.getByTestId('owner-forms').locator('tr', { hasText: wit }).first();
     await expect(frow).toContainText('Form D');
     await check(va, 'va owner forms');
@@ -459,8 +459,8 @@ test('listings and owners: a possible duplicate is cleared; Form D is sent back,
     await sql`insert into field_jobs (id, kind, vehicle_id, assigned_to, scheduled_at, status) values (${job}, 'photo_shoot', ${b.car}, ${field.id}, now(), 'in_progress')`;
     const fp = await ctx(browser, true);
     const ferrors = watch(fp);
-    await signIn(fp, field.email, '/field');
-    await fp.goto(`/field/jobs/${job}`);
+    await signIn(fp, field.email, '/staff/field');
+    await fp.goto(`/staff/field/jobs/${job}`);
     await fp.getByTestId('listing-start').click();
     await expect(fp.getByTestId('listing-capture')).toBeVisible({ timeout: 20_000 });
     await check(fp, 'field photo shoot');

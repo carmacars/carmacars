@@ -60,7 +60,7 @@ test('a new account: the users row and renter role (register_account), the welco
 
 test('staff with two-step: the route is whatever afterSignIn says (the code step), never straight to the portal', async () => {
   const { d } = deps(ok(), { after: '/two-step?next=%2Fva' });
-  const r = await finishOAuth(d, 'c3', flow({ next: '/va' }));
+  const r = await finishOAuth(d, 'c3', flow({ next: '/staff' }));
   assert.equal(r.to, '/two-step?next=%2Fva');
 });
 

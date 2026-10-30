@@ -104,8 +104,8 @@ test('Signals: a visitor who prices a car for soon, opens a question, taps the p
   for (const k of keys.map((x) => x.k as string)) expect(['pickup', 'return', 'days', 'total', 'avail', 'deliv', 'xdrv', 'step', 'topic', 'via', 'n', 'sort', 'filter', 'maxp', 'type', 'booking_number', 'code']).toContain(k);
 
   const staff = await ctx(browser);
-  await signIn(staff, sales.email, '/va');
-  await staff.goto('/va/live', { waitUntil: 'networkidle' });
+  await signIn(staff, sales.email, '/staff');
+  await staff.goto('/staff/live', { waitUntil: 'networkidle' });
   const row = staff.getByTestId('live-row').filter({ hasText: `campaign e2e/${camp}` });
   await expect(row).toBeVisible({ timeout: 15_000 });
   await expect(row.getByTestId('score')).toHaveText(new RegExp(`^${s!.score}`));

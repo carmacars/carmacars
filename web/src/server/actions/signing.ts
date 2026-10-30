@@ -19,7 +19,7 @@ const SR = { role: 'service_role' as const };
 const msg = (e: unknown) => (e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong. Try again or call us.');
 const invalid = (fieldErrors: Record<string, string>): PackageResult => ({ ok: false, code: 'invalid', message: 'Check the highlighted part.', fieldErrors });
 const consentFor = (title: string, all: string[]) => `${SIGN_STATEMENT} I sign "${title}" with the one signature I gave for these ${all.length} documents: ${all.join('; ')}.`;
-const SAFE_NEXT = /^\/(owner|investor|va|field|account)(\/[\w/?=&-]*)?$/;
+const SAFE_NEXT = /^\/(owner|investor|va|field|staff|account)(\/[\w/?=&-]*)?$/;
 
 async function recordPackage(userId: string, portal: string, input: PackageInput, docs: Array<{ signature_request_id: string; title: string; consent_text: string }>, consent: string) {
   const meta = await requestMeta();
@@ -108,7 +108,7 @@ export async function signPortalPackage(spec: PortalPackageSpec, input: PackageI
       signed.push({ signature_request_id: out.signature_request_id, title: r.title, consent_text: consentFor(r.title, titles) });
     }
     await recordPackage(user.id, spec.portal, input, signed, `One signature for ${titles.length} document${titles.length > 1 ? 's' : ''}: ${titles.join('; ')}.`);
-    for (const p of ['/investor', '/investor/sign', '/va', '/va/sign', '/field', '/field/sign']) revalidatePath(p);
+    for (const p of ['/investor', '/investor/sign', '/staff', '/staff/sign', '/staff/field', '/staff/field/sign']) revalidatePath(p);
     return { ok: true, data: { signed: signed.length, next: spec.next && SAFE_NEXT.test(spec.next) ? spec.next : undefined,
       message: `Signed ${signed.length > 1 ? `all ${signed.length} documents` : 'the document'}. The signed ${signed.length > 1 ? 'copies appear' : 'copy appears'} below within a few minutes.` } };
   } catch (e) { return { ok: false, code: 'refused', message: msg(e) }; }

@@ -72,12 +72,12 @@ const ROWS: Row[] = [
   { name: 'owner profile: mailing address in parts', who: 'owner', path: '/owner/profile', field: (p) => p.getByTestId('ow-pr-lookup'),
     filled: (p) => [[p.locator('#ow-pr-address_line1'), '65 Front Street West'], [p.locator('#ow-pr-city'), 'Toronto'], [p.locator('#ow-pr-postal_code'), 'M5J 1E6']] },
   // staff
-  { name: 'VA profile: home address and postal code', who: 'va', path: '/va/profile', field: (p) => p.getByTestId('home-address'),
+  { name: 'VA profile: home address and postal code', who: 'va', path: '/staff/profile', field: (p) => p.getByTestId('home-address'),
     filled: (p) => [[p.getByTestId('home-address'), UNION], [p.getByTestId('home-postal'), 'M5J 1E6']] },
   // a car out on a move: End the move opens a panel that asks where it is now (the same field as Start a move's From).
   // Until 2026-10-25 the button itself ended the move, so the field vanished on the refresh while it was typed in (the
   // intermittent failure of the sharded run); now only the panel's own button ends it.
-  { name: 'field portal: vehicle move, now at', who: 'field', path: '/field',
+  { name: 'field portal: vehicle move, now at', who: 'field', path: '/staff/field',
     setup: async (sql, userId) => { await sql`insert into vehicle_moves (vehicle_id, staff_user_id, purpose, started_at, from_place) select v.id, ${userId}, 'repositioning', now() - interval '1 minute', 'Our location' from vehicles v
       where not exists (select 1 from vehicle_moves m where m.vehicle_id = v.id and m.ended_at is null) order by random() limit 1`; },
     cleanup: async (sql, userId) => { await sql`update vehicle_moves set ended_at = now(), to_place = 'Our location' where staff_user_id = ${userId} and ended_at is null`; },

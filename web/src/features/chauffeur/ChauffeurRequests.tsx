@@ -13,7 +13,7 @@ export const STATUSES = ['new', 'quoted', 'confirmed', 'completed', 'cancelled',
 // partner is owed. Staff check the vehicle and the driver with the partner, send the quote (by email or phone, noted
 // here), confirm it, and close it. The actions go through the staff door (ops_do).
 export function ChauffeurRequests({ data, base, status }: { data: ChauffeurData; base: string; status?: string }) {
-  const refresh = [base, '/admin', '/va'];
+  const refresh = [base, '/admin', '/staff'];
   const vehicles: Array<[string, string]> = data.vehicles.map((v) => [v.id, v.name]);
   return (
     <>

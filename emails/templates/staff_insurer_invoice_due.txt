@@ -18,7 +18,7 @@ Sent: {{invoice_sent_at}}
 Last contact: {{last_contact}}
 
 Open the invoice:
-https://carmacars.ca/va/finance/insurer-invoices/{{invoice_number}}
+https://carmacars.ca/staff/money
 
 - Email the adjuster with the invoice and the claim number. Log the date and the answer.
 - Record any receipt against the invoice the day it arrives, with its reference.

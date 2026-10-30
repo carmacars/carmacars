@@ -24,7 +24,7 @@ function nextDue(i: Item): string {
 }
 
 /** The fleet overview: every car with its status chips, most urgent first, with filters and the record pop-up. */
-export function FleetMaintenance({ data, base, sp }: { data: Overview; base: '/admin' | '/va'; sp: Record<string, string | undefined> }) {
+export function FleetMaintenance({ data, base, sp }: { data: Overview; base: '/admin' | '/staff'; sp: Record<string, string | undefined> }) {
   const show = sp.show ?? '';
   const rows = filterCars(data.cars, { show, item: sp.item, q: sp.q, sort: sp.sort });
   const counts = {
@@ -32,7 +32,7 @@ export function FleetMaintenance({ data, base, sp }: { data: Overview; base: '/a
     unknown: data.cars.filter((c) => c.unknown > 0).length, ok: data.cars.filter((c) => c.worst === 'ok').length
   };
   const href = (q: Record<string, string>) => { const u = new URLSearchParams(Object.entries({ ...sp, ...q }).filter(([, v]) => v) as Array<[string, string]>); const s = u.toString(); return s ? `${base}/maintenance?${s}` : `${base}/maintenance`; };
-  const carHref = (id: string) => base === '/admin' ? `/admin/vehicles/${id}?tab=maintenance` : `/va/vehicles/${id}#maintenance`;
+  const carHref = (id: string) => base === '/admin' ? `/admin/vehicles/${id}?tab=maintenance` : `/staff/vehicles/${id}#maintenance`;
   const auto = sp.record && /^[0-9a-f-]{36}$/.test(sp.record) ? sp.record : null;
   return (
     <div className="stack" data-testid="maint-overview">
@@ -83,7 +83,7 @@ export function FleetMaintenance({ data, base, sp }: { data: Overview; base: '/a
 }
 
 /** One car's maintenance: status per item, the tires, the history with its bills, the odometer, and the car's own settings. */
-export function CarMaintenancePanel({ m, base, autoRecord = false }: { m: CarMaintenance; base: '/admin' | '/va'; autoRecord?: boolean }) {
+export function CarMaintenancePanel({ m, base, autoRecord = false }: { m: CarMaintenance; base: '/admin' | '/staff'; autoRecord?: boolean }) {
   const refresh = [`${base}/vehicles/${m.vehicle_id}`, `${base}/maintenance`];
   const P = { vehicle_id: m.vehicle_id };
   const items = m.items.filter((i) => i.active);

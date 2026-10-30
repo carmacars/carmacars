@@ -24,7 +24,7 @@ export function AvailabilityForm({ week, next, today }: { week: WeekBlocks; next
   const pick = (k: 'this' | 'next') => { setWhich(k); setRows(fromWeek(k === 'this' ? week : next)); setMsg(null); };
   const set = (i: number, patch: Partial<Row>) => setRows((r) => r.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   const save = () => start(async () => {
-    const res = await vaAct<{ peak_hours: number }>('sales_availability_save', { week: w.start, blocks: rows.map((r) => ({ day: r.day, from: r.from, to: r.to === '23:59' ? '24:00' : r.to })) }, ['/va']);
+    const res = await vaAct<{ peak_hours: number }>('sales_availability_save', { week: w.start, blocks: rows.map((r) => ({ day: r.day, from: r.from, to: r.to === '23:59' ? '24:00' : r.to })) }, ['/staff']);
     if (res.ok) { setMsg({ ok: true, text: `Saved: ${res.data.peak_hours} peak hours that week.` }); router.refresh(); } else setMsg({ ok: false, text: res.message });
   });
 

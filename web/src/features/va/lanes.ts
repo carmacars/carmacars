@@ -12,33 +12,33 @@ export interface LaneDef {
   /** timed against the first reply target */ reply?: boolean; types: string[];
 }
 
-const REQUESTS: LaneDef = { key: 'requests', label: 'Booking requests', verb: 'Review and send an offer', href: '/va/requests?state=new', icon: 'doc', reply: true,
+const REQUESTS: LaneDef = { key: 'requests', label: 'Booking requests', verb: 'Review and send an offer', href: '/staff/requests?state=new', icon: 'doc', reply: true,
   types: ['booking_request', 'request_open_to_sales', 'reoffer_booking', 'offer_change_requested', 'calendar_offer_clash', 'confirm_offline_booking', 'chauffeur_request', 'place_request'] };
-const MESSAGES: LaneDef = { key: 'messages', label: 'Renter messages', verb: 'Reply to the renter', href: '/va/messages', icon: 'arrow', reply: true, types: ['renter_message'] };
-const PHONE: LaneDef = { key: 'phone', label: 'Texts and calls', verb: 'Call back or text', href: '/va?lane=phone', icon: 'alert', reply: true, types: ['phone_missed_call', 'account_phone_review'] };
-const CHAT: LaneDef = { key: 'chat', label: 'Live chat', verb: 'Answer the visitor', href: '/va/chat', icon: 'arrow', reply: true, types: ['live_chat_waiting', 'chat_request', 'chat_contact'] };
-const OFFERS: LaneDef = { key: 'offers', label: 'Offers out', verb: 'Chase or re-send the offer', href: '/va/requests?state=offer_out', icon: 'clock', types: ['chase_offer', 'offer_expired', 'offer_approved_paid'] };
-const SIGNING: LaneDef = { key: 'signing', label: 'Signing and payment', verb: 'Help the renter finish', href: '/va?lane=signing', icon: 'sign',
+const MESSAGES: LaneDef = { key: 'messages', label: 'Renter messages', verb: 'Reply to the renter', href: '/staff/messages', icon: 'arrow', reply: true, types: ['renter_message'] };
+const PHONE: LaneDef = { key: 'phone', label: 'Texts and calls', verb: 'Call back or text', href: '/staff?lane=phone', icon: 'alert', reply: true, types: ['phone_missed_call', 'account_phone_review'] };
+const CHAT: LaneDef = { key: 'chat', label: 'Live chat', verb: 'Answer the visitor', href: '/staff/chat', icon: 'arrow', reply: true, types: ['live_chat_waiting', 'chat_request', 'chat_contact'] };
+const OFFERS: LaneDef = { key: 'offers', label: 'Offers out', verb: 'Chase or re-send the offer', href: '/staff/requests?state=offer_out', icon: 'clock', types: ['chase_offer', 'offer_expired', 'offer_approved_paid'] };
+const SIGNING: LaneDef = { key: 'signing', label: 'Signing and payment', verb: 'Help the renter finish', href: '/staff?lane=signing', icon: 'sign',
   types: ['verify_renter', 'chase_verification', 'protection_plan_request', 'coverage_review', 'paper_agreement_scan', 'insurer_provisional', 'review_extension', 'booking_change_approval'] };
-const FOLLOW: LaneDef = { key: 'follow', label: 'Follow-ups', verb: 'Follow up', href: '/va?lane=follow', icon: 'chart',
+const FOLLOW: LaneDef = { key: 'follow', label: 'Follow-ups', verb: 'Follow up', href: '/staff?lane=follow', icon: 'chart',
   types: ['visitor_follow_up', 'game_lead_follow_up', 'owner_lead', 'buyer_lead', 'finance_lead', 'detailing_lead', 'bodyshop_lead', 'enquiry', 'sample_car_enquiry', 'owner_intake',
     'auto_service_request', 'detailing_request', 'bodyshop_request'] };
 // Finance
-const PAYMENTS: LaneDef = { key: 'payments', label: 'Payments to fix', verb: 'Collect or match the payment', href: '/va/money#failed', icon: 'pay',
+const PAYMENTS: LaneDef = { key: 'payments', label: 'Payments to fix', verb: 'Collect or match the payment', href: '/staff/money#failed', icon: 'pay',
   types: ['debit_failed', 'arrears', 'collect_upfront', 'stripe_requires_action', 'stripe_dispute_finance', 'unmatched_payment', 'reconcile', 'addon_payment', 'field_cash_handin', 'charge_question'] };
-const DEPOSITS: LaneDef = { key: 'deposits', label: 'Deposits to settle', verb: 'Take or release the deposit', href: '/va/money#deposits', icon: 'bank',
+const DEPOSITS: LaneDef = { key: 'deposits', label: 'Deposits to settle', verb: 'Take or release the deposit', href: '/staff/money#deposits', icon: 'bank',
   types: ['take_deposit', 'release_deposit', 'return_deposit_offline', 'settle_holdback', 'review_damage_match', 'price_findings'] };
-const REFUNDS: LaneDef = { key: 'refunds', label: 'Refunds waiting', verb: 'Request or issue the refund', href: '/va/money#refunds', icon: 'clock',
+const REFUNDS: LaneDef = { key: 'refunds', label: 'Refunds waiting', verb: 'Request or issue the refund', href: '/staff/money#refunds', icon: 'clock',
   types: ['refund_cancellation', 'stripe_refund_failed', 'stripe_refund_outside'] };
-const STATEMENTS: LaneDef = { key: 'statements', label: 'Owner statements', verb: 'Prepare the statement', href: '/va/money#statements', icon: 'doc',
+const STATEMENTS: LaneDef = { key: 'statements', label: 'Owner statements', verb: 'Prepare the statement', href: '/staff/money#statements', icon: 'doc',
   types: ['review_statements', 'statement_correction', 'fleet_report'] };
-const TOLLS: LaneDef = { key: 'tolls', label: 'Tolls and tickets', verb: 'Match the toll', href: '/va/tolls', icon: 'car', types: ['match_toll', 'review_toll_match', 'toll_read_exceptions', 'toll_read_review'] };
+const TOLLS: LaneDef = { key: 'tolls', label: 'Tolls and tickets', verb: 'Match the toll', href: '/staff/tolls', icon: 'car', types: ['match_toll', 'review_toll_match', 'toll_read_exceptions', 'toll_read_review'] };
 // Fleet
-const HANDOVERS: LaneDef = { key: 'handovers', label: 'Handovers and returns', verb: 'Schedule or assign the job', href: '/va/fleet', icon: 'car',
+const HANDOVERS: LaneDef = { key: 'handovers', label: 'Handovers and returns', verb: 'Schedule or assign the job', href: '/staff/fleet', icon: 'car',
   types: ['schedule_handover', 'schedule_detail', 'job_unacknowledged', 'field_job_problem', 'field_report', 'late_return', 'vehicle_swap', 'addon_prep'] };
-const INCIDENTS: LaneDef = { key: 'incidents', label: 'Incidents and breakdowns', verb: 'Handle it now', href: '/va?lane=incidents', icon: 'alert', types: ['incident', 'breakdown', 'recovery_done'] };
-const CHECKS: LaneDef = { key: 'checks', label: 'Checks and photos', verb: 'Do the check', href: '/va/checks', icon: 'check', types: ['opening_checks', 'closing_checks', 'review_photos'] };
-const CARS: LaneDef = { key: 'cars', label: 'Car paperwork and service', verb: 'Renew, book or list', href: '/va/fleet#expiry', icon: 'doc',
+const INCIDENTS: LaneDef = { key: 'incidents', label: 'Incidents and breakdowns', verb: 'Handle it now', href: '/staff?lane=incidents', icon: 'alert', types: ['incident', 'breakdown', 'recovery_done'] };
+const CHECKS: LaneDef = { key: 'checks', label: 'Checks and photos', verb: 'Do the check', href: '/staff/checks', icon: 'check', types: ['opening_checks', 'closing_checks', 'review_photos'] };
+const CARS: LaneDef = { key: 'cars', label: 'Car paperwork and service', verb: 'Renew, book or list', href: '/staff/fleet#expiry', icon: 'doc',
   types: ['plate_renewal', 'safety_certificate_window', 'book_registry', 'turo_expiry', 'record_registration', 'maintenance_due', 'maintenance_backfill', 'maintenance_bill', 'list_vehicle',
     'listing_failed', 'listing_similarity', 'calendar_conflict', 'calendar_feed_failing', 'turo_email_review', 'owner_exit', 'addon_stock'] };
 
@@ -48,7 +48,7 @@ export const LANES: Record<Fn, LaneDef[]> = {
   finance: [PAYMENTS, DEPOSITS, REFUNDS, STATEMENTS, TOLLS],
   fleet: [INCIDENTS, HANDOVERS, CHECKS, CARS]
 };
-export const OTHER: LaneDef = { key: 'other', label: 'Other tasks', verb: 'Open the task', href: '/va?lane=other', icon: 'arrow', types: [] };
+export const OTHER: LaneDef = { key: 'other', label: 'Other tasks', verb: 'Open the task', href: '/staff?lane=other', icon: 'arrow', types: [] };
 
 /** The lane a task belongs to, for this function ('other' when none of its lanes takes it). */
 export function laneOf(fn: Fn, taskType: string): string {

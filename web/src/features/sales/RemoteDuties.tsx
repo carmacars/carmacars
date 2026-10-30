@@ -89,7 +89,7 @@ export function RemoteDuties({ d, own, touchAction }: { d: SalesDuties; own: boo
             </li>);
         })}
       </ul>
-      {own && <Act action="sales_touch_log" label="Log a touch" testId="log-touch" refresh={['/va', '/va/my-sales']} done="Logged."
+      {own && <Act action="sales_touch_log" label="Log a touch" testId="log-touch" refresh={['/staff', '/staff/my-sales']} done="Logged."
         fields={[{ name: 'kind', label: 'Type', type: 'select', options: TOUCH_KINDS, required: true }, { name: 'link', label: 'Link (optional: the post, the profile, the listing)', type: 'text', placeholder: 'https://' },
           { name: 'booking', label: 'Booking number (optional)', type: 'text' }, { name: 'note', label: 'Note (optional)', type: 'text' }]} />}
 

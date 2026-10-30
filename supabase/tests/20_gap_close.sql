@@ -45,7 +45,9 @@ select test.eq('functions: a function they do not cover is ignored (back to the 
   (public.door(test.id('gc_cs2'), null, 'va_read', 'digest', jsonb_build_object('_va', 'finance')) ->> 'function'), 'cs');
 select test.throws('functions: another assistant cannot borrow a function',
   format($$select public.door(%L, null, 'va_read', 'fleet_board', jsonb_build_object('_va', 'fleet'))$$, test.id('gc_cs')), 'Not permitted');
-select test.eq('functions: the choice lasts one call only', app.user_va_has(test.id('gc_cs2'), 'fleet'), false);
+select test.eq('functions: the choice lasts one call only', app.va_active_fn(test.id('gc_cs2')), 'cs');
+-- one staff portal (0197): holding a function is enough for its checks, whichever is chosen on screen
+select test.eq('functions: a held function counts without the choice', app.user_va_has(test.id('gc_cs2'), 'fleet'), true);
 
 -- ---------------------------------------------------------------- 2. renter messages both ways
 update program_settings set staff_blocked_terms = array['Acme Insurance'];

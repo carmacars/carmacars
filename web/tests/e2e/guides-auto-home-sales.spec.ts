@@ -116,12 +116,12 @@ test('home address: an assistant enters it at the first sign-in; Add a rental wa
   const sql = db();
   const va = await mkUser(sql, 'va', 'Ga Sales', 'sales');
   const page = await ctx(browser);
-  await signIn(page, va.email, '/va');
-  await page.goto('/va', { waitUntil: 'networkidle' });
+  await signIn(page, va.email, '/staff');
+  await page.goto('/staff', { waitUntil: 'networkidle' });
   const card = page.getByTestId('home-address-card');
   await expect(card).toContainText('Welcome. First, your home address');
   await check(page, 'first sign-in, address asked');
-  await page.goto('/va/bookings/new', { waitUntil: 'networkidle' });
+  await page.goto('/staff/bookings/new', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('rental-needs-address')).toBeVisible();
   await check(page, 'add a rental waits for the address');
   // a too short address is refused, a full one saved
@@ -133,13 +133,13 @@ test('home address: an assistant enters it at the first sign-in; Add a rental wa
   await card.getByTestId('home-postal').fill('1100');
   await card.getByTestId('home-address-save').click();
   await expect(page.getByTestId('home-address-card')).toHaveCount(0, { timeout: 20_000 });
-  await page.goto('/va/bookings/new', { waitUntil: 'networkidle' });
+  await page.goto('/staff/bookings/new', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('rental-needs-address')).toHaveCount(0);
   const [row] = await sql`select home_address, home_postal_code, home_address_set_by from staff_profiles where user_id = ${va.id}`;
   expect(row!.home_address).toBe('12 Rizal Street, Quezon City, Philippines');
   expect(row!.home_postal_code).toBe('1100');
   expect(row!.home_address_set_by).toBe(va.id);
-  await page.goto('/va/profile', { waitUntil: 'networkidle' });
+  await page.goto('/staff/profile', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('home-address-section').getByTestId('home-address')).toHaveValue('12 Rizal Street, Quezon City, Philippines');
   await expect(page.getByTestId('home-address-section').getByTestId('home-address-save')).toHaveText('Change my home address');
   await check(page, 'assistant profile');
@@ -151,10 +151,10 @@ test('home address: field staff enter it at the first sign-in; Add a rental wait
   const sql = db();
   const field = await mkUser(sql, 'field', 'Ga Field');
   const page = await ctx(browser);
-  await signIn(page, field.email, '/field');
-  await page.goto('/field/rentals/new', { waitUntil: 'networkidle' });
+  await signIn(page, field.email, '/staff/field');
+  await page.goto('/staff/field/rentals/new', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('rental-needs-address')).toBeVisible();
-  await page.goto('/field/profile', { waitUntil: 'networkidle' });
+  await page.goto('/staff/field/profile', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('home-address-above')).toBeVisible();
   const card = page.getByTestId('home-address-card');
   await expect(card).toBeVisible();
@@ -164,7 +164,7 @@ test('home address: field staff enter it at the first sign-in; Add a rental wait
   await card.getByTestId('home-address-save').click();
   await expect(page.getByTestId('home-address-card')).toHaveCount(0, { timeout: 20_000 });
   await expect(page.getByTestId('home-address-section')).toBeVisible();
-  await page.goto('/field/rentals/new', { waitUntil: 'networkidle' });
+  await page.goto('/staff/field/rentals/new', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('rental-needs-address')).toHaveCount(0);
   await check(page, 'field add a rental');
   expect((await sql`select home_postal_code from staff_profiles where user_id = ${field.id}`)[0]!.home_postal_code).toBe('M5H 2N2');

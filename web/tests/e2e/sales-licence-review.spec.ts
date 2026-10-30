@@ -89,8 +89,8 @@ test('Sales review the renter\'s licence from the queue, the booking and the ver
   const phone = test.info().project.name.startsWith('phone');
   const page = await ctx(browser, phone);
   const errors = watch(page);
-  await signIn(page, sales.email, '/va');
-  await page.goto('/va', { waitUntil: 'networkidle' });
+  await signIn(page, sales.email, '/staff');
+  await page.goto('/staff', { waitUntil: 'networkidle' });
   const list = page.getByTestId('va-licences');
   await expect(list).toBeVisible({ timeout: 30_000 });
   const line = list.getByTestId(`va-licence-${b.booking_number}`);
@@ -99,7 +99,7 @@ test('Sales review the renter\'s licence from the queue, the booking and the ver
   await check(page, 'Sales queue with Licences to check');
 
   // the booking page: the review card and the dialog, licence only
-  await page.goto(`/va/bookings/${b.booking_number}`, { waitUntil: 'networkidle' });
+  await page.goto(`/staff/bookings/${b.booking_number}`, { waitUntil: 'networkidle' });
   const card = page.getByTestId('booking-doc-review');
   await expect(card).toBeVisible({ timeout: 30_000 });
   await card.getByTestId('doc-review-open').click();
@@ -123,7 +123,7 @@ test('Sales review the renter\'s licence from the queue, the booking and the ver
 
   // the renter sends a new front; /va/verify: Approve all, no coverage
   await giveLicence(sql, b.booking_id);
-  await page.goto(`/va/verify/${b.booking_number}`, { waitUntil: 'networkidle' });
+  await page.goto(`/staff/verify/${b.booking_number}`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('va-licence-only')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId('va-coverage')).toHaveCount(0);
   await expect(page.getByTestId('upload-licence_front')).toBeVisible();
@@ -137,7 +137,7 @@ test('Sales review the renter\'s licence from the queue, the booking and the ver
   expect([ok!.n, ok!.v, ok!.ev]).toEqual([3, true, 3]);
 
   // the queue no longer lists the booking
-  await page.goto('/va', { waitUntil: 'networkidle' });
+  await page.goto('/staff', { waitUntil: 'networkidle' });
   await expect(page.getByTestId(`va-licence-${b.booking_number}`)).toHaveCount(0);
   await check(page, 'Sales queue after the review');
   expect(errors.filter((e) => !/Failed to load resource|favicon|the server responded/.test(e))).toEqual([]);

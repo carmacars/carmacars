@@ -90,8 +90,8 @@ test('in-person Sales: the renter contact, the wait explained, and the offer sen
 
   const s = await ctx(browser, phone);
   const errors = watch(s);
-  await signIn(s, sales.email, '/va');
-  await s.goto(`/va/bookings/${r.booking_number}`, { waitUntil: 'networkidle' });
+  await signIn(s, sales.email, '/staff');
+  await s.goto(`/staff/bookings/${r.booking_number}`, { waitUntil: 'networkidle' });
   await expect(s.getByTestId('request-renter-phone')).toHaveAttribute('href', 'tel:+16475550123');
   await expect(s.getByTestId('request-renter-phone')).toHaveText('+16475550123');
   await expect(s.getByTestId('request-renter-email')).toHaveAttribute('href', `mailto:${renter.email}`);
@@ -132,8 +132,8 @@ test('in-person Sales: an Admin holds the request; it opens when their claim run
 
   const s = await ctx(browser, phone);
   const errors = watch(s);
-  await signIn(s, sales.email, '/va');
-  await s.goto(`/va/bookings/${r.booking_number}?tab=review`, { waitUntil: 'networkidle' });
+  await signIn(s, sales.email, '/staff');
+  await s.goto(`/staff/bookings/${r.booking_number}?tab=review`, { waitUntil: 'networkidle' });
   await expect(gate(s)).toHaveAttribute('data-locked', 'true', { timeout: 30_000 });
   await expect(why(s)).toContainText(/^The answer buttons are off for now[\s\S]*Ada Admin is answering this request\. Their claim runs out at \d{1,2}:\d{2} [ap]m unless they keep working on it.+ask an Admin to take it over\./);
   await expect(banner(s)).toContainText('Being answered by Ada Admin since');

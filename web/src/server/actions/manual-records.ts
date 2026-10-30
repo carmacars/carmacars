@@ -66,7 +66,7 @@ export async function recordManualPayment(form: FormData): Promise<R<{ invoice_s
     const r = await door<{ invoice_status: string | null; balance_cents: number | null; repeat?: boolean }>(user.id, 'ops_do', 'manual_payment_record', {
       invoice, booking, method, reference: reference || null, received_on: receivedOn, amount_cents: amount, note: note || null, proof: proofRef,
       purpose: String(form.get('purpose') ?? '') || null, settles_payment: String(form.get('settles_payment') ?? '') || null }, aal);
-    refresh(String(form.get('refresh') ?? '').split(',').concat(['/admin/invoices', '/admin/owners', '/va/money', '/admin/reconciliation']));
+    refresh(String(form.get('refresh') ?? '').split(',').concat(['/admin/invoices', '/admin/owners', '/staff/money', '/admin/reconciliation']));
     return { ok: true, data: { invoice_status: r.invoice_status ?? null, balance_cents: r.balance_cents ?? null, repeat: !!r.repeat } };
   } catch (e) { return fail(e); }
 }
@@ -76,7 +76,7 @@ export async function voidManualPayment(id: string, reason: string, paths: strin
   try {
     const { user, aal } = await me();
     await door(user.id, 'ops_do', 'manual_payment_void', { id, reason: reason.trim() }, aal);
-    refresh([...paths, '/admin/invoices', '/admin/owners', '/va/money']);
+    refresh([...paths, '/admin/invoices', '/admin/owners', '/staff/money']);
     return { ok: true, data: null };
   } catch (e) { return fail(e); }
 }
@@ -181,7 +181,7 @@ export async function signRequest(input: SignInput): Promise<R<{ status: string 
     if (!user) throw new Error('Sign in first.');
     const { signDocument } = await import('@/server/sign-requests');
     const r = await signDocument(user.id, input);
-    for (const p of ['/owner/documents', '/owner', '/investor/sign', '/investor', '/va/sign', '/field/sign']) revalidatePath(p);
+    for (const p of ['/owner/documents', '/owner', '/investor/sign', '/investor', '/staff/sign', '/staff/field/sign']) revalidatePath(p);
     return { ok: true, data: r };
   } catch (e) { return fail(e); }
 }

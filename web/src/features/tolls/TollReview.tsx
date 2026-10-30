@@ -41,7 +41,7 @@ type Draft = { kind: string; authority: string; notice_number: string; plate: st
 const draftOf = (l: RLine): Draft => ({ kind: l.kind ?? '', authority: l.authority ?? '', notice_number: l.notice_number ?? '', plate: l.plate ?? '', transponder: l.transponder ?? '', when: toronto(l.occurred_at),
   time_unknown: l.time_unknown, place: l.place ?? '', entry: l.entry ?? '', exit: l.exit ?? '', amount: dollars(l.amount_cents), fees: dollars(l.fees_cents), due_on: l.due_on ?? '' });
 
-export function TollReview({ read, base }: { read: Read; base: '/admin' | '/va' }) {
+export function TollReview({ read, base }: { read: Read; base: '/admin' | '/staff' }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [focus, setFocus] = useState<string | null>(read.lines[0]?.id ?? null);

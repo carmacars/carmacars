@@ -40,6 +40,6 @@ export default {
       { booking: 'CC-10497', month: 'October 2026', what: '15%', amount: '$63.00' },
       { booking: 'CC-10511', month: 'October 2026', what: '15%', amount: '$31.50' },
     ],
-    sales_url: 'https://carmacars.ca/va/my-sales',
+    sales_url: 'https://carmacars.ca/staff/my-sales',
   },
 };

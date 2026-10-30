@@ -11,18 +11,18 @@ export default digest({
   stats: [{ label: 'Requests to answer', value: '2' }, { label: 'Documents to review', value: '2' }],
   sections: [
     { title: 'Requests waiting for an offer', items: [
-      { line: 'CC-10491: 2024 Honda Civic Sport, Fri Oct 30 to Mon Nov 2', meta: 'Received yesterday 9:40 pm', url: 'https://carmacars.ca/va/cs/bookings/CC-10491' },
-      { line: 'CC-10492: 2023 Toyota RAV4 XLE, Sat Oct 24 to Sun Oct 25', meta: 'Received today 6:15 am Driver is 20.', url: 'https://carmacars.ca/va/cs/bookings/CC-10492' },
+      { line: 'CC-10491: 2024 Honda Civic Sport, Fri Oct 30 to Mon Nov 2', meta: 'Received yesterday 9:40 pm', url: 'https://carmacars.ca/staff/bookings/CC-10491' },
+      { line: 'CC-10492: 2023 Toyota RAV4 XLE, Sat Oct 24 to Sun Oct 25', meta: 'Received today 6:15 am Driver is 20.', url: 'https://carmacars.ca/staff/bookings/CC-10492' },
     ] },
     { title: 'Offers expiring today', items: [
-      { line: 'CC-10482: Maya Okafor, $468.95', meta: 'Expires 2:15 pm Reminder goes at 8:15 am', url: 'https://carmacars.ca/va/cs/bookings/CC-10482' },
+      { line: 'CC-10482: Maya Okafor, $468.95', meta: 'Expires 2:15 pm Reminder goes at 8:15 am', url: 'https://carmacars.ca/staff/bookings/CC-10482' },
     ] },
     { title: 'Documents to review', items: [
-      { line: 'CC-10477: licence and selfie, 1 driver', meta: 'Pickup tomorrow 4:00 pm Due today 4:00 pm', url: 'https://carmacars.ca/va/cs/bookings/CC-10477/identity' },
-      { line: 'CC-10480: coverage proof', meta: 'Pickup Sat 11:00 am', url: 'https://carmacars.ca/va/cs/bookings/CC-10480/identity' },
+      { line: 'CC-10477: licence and selfie, 1 driver', meta: 'Pickup tomorrow 4:00 pm Due today 4:00 pm', url: 'https://carmacars.ca/staff/verify/CC-10477' },
+      { line: 'CC-10480: coverage proof', meta: 'Pickup Sat 11:00 am', url: 'https://carmacars.ca/staff/verify/CC-10480' },
     ] },
     { title: 'Confirmed since yesterday', items: [
-      { line: 'CC-10479: 2022 Hyundai Elantra Preferred, Mon Oct 26', meta: 'Paid $512.40. Verification not started.', url: 'https://carmacars.ca/va/cs/bookings/CC-10479' },
+      { line: 'CC-10479: 2022 Hyundai Elantra Preferred, Mon Oct 26', meta: 'Paid $512.40. Verification not started.', url: 'https://carmacars.ca/staff/bookings/CC-10479' },
     ] },
   ],
 });

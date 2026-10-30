@@ -20,7 +20,7 @@ Renter note: {{renter_note}}
 {{/if}}
 
 Open the request:
-https://carmacars.ca/va/cs/bookings/{{booking_number}}
+https://carmacars.ca/staff/bookings/{{booking_number}}
 
 - Check the calendar, each driver's age and licence class, and the price.
 - Adjust dates, car or price if needed, then send the offer. Or ask for information, or decline with a reason.

@@ -384,7 +384,7 @@ insert into test.gm select 'srS2', (test.gm_do('gm_admin', 'sign_request_create'
   'title', 'Field Staff Agreement (corrected)', 'document', jsonb_build_object('path', 'staff/gm/fsa2.pdf', 'sha256', test.gm_sha('fsa2')))) ->> 'id')::uuid;
 select test.eq('staff: a new version voids the one before; the field portal is pointed at',
   (select string_agg(status, ',' order by sent_at) from sign_requests where staff_user_id = test.id('gm_field'))
-  || '/' || (select url like '%/field/sign' from notifications where user_id = test.id('gm_field') and code = 'person_document_to_sign' limit 1), 'voided,sent/true');
+  || '/' || (select url like '%/staff/field/sign' from notifications where user_id = test.id('gm_field') and code = 'person_document_to_sign' limit 1), 'voided,sent/true');
 select public.sign_request_sign(test.id('gm_field'), test.gmv('srS2'), jsonb_build_object('typed_name', 'Gm Field', 'consent_text', 'I agree', 'document_sha256', test.gm_sha('fsa2')));
 select test.eq('staff: signed; the staff profile carries the agreement', (select sp.agreement_document_id = s.document_id from staff_profiles sp, sign_requests s where sp.user_id = test.id('gm_field') and s.id = test.gmv('srS2')), true);
 select test.eq('staff: the person may open the agreement they signed, not another''s',

@@ -34,6 +34,6 @@ export default {
     period_label: 'Oct 18 to Oct 31, 2026', gross_total: '$612.00', hours_total: '32 h 00 min', payout_method: 'e-Transfer', payout_date: 'November 6, 2026',
     payout_reference: 'CA7xQ2', statement_number: 'PS-1001',
     pay_lines: [{ what: 'Hours: 32 h 00 min at $18.00', amount: '$576.00' }, { what: 'Commissions', amount: '$36.00' }],
-    hours_url: 'https://carmacars.ca/field/hours',
+    hours_url: 'https://carmacars.ca/staff/field/hours',
   },
 };

@@ -11,10 +11,10 @@ export default digest({
   stats: [{ label: 'Applications today', value: '2' }, { label: 'Signed today', value: '1' }],
   sections: [
     { title: 'Signed today', items: [
-      { line: 'Lena Park: 2022 Mazda CX-5 GS', meta: 'Upfront invoice sent, $1,130.00.', url: 'https://carmacars.ca/va/sales/applications/app-0311' },
+      { line: 'Lena Park: 2022 Mazda CX-5 GS', meta: 'Upfront invoice sent, $1,130.00.', url: 'https://carmacars.ca/staff/leads?application=app-0311' },
     ] },
     { title: 'No contact for 3 days', items: [
-      { line: 'Northline Autos Inc.: 2 vehicles', meta: 'Documents sent, not opened.', url: 'https://carmacars.ca/va/sales/applications/app-0314' },
+      { line: 'Northline Autos Inc.: 2 vehicles', meta: 'Documents sent, not opened.', url: 'https://carmacars.ca/staff/leads?application=app-0314' },
     ] },
   ],
 });

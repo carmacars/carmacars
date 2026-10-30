@@ -38,10 +38,10 @@ const decode = (s) => s?.replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").re
 const robots = (await get('/robots.txt')).body;
 const SITE = process.argv[i + 1] && i > 0 ? process.argv[i + 1] : /Sitemap: (\S+)\/sitemap\.xml/.exec(robots)?.[1] ?? BASE;
 const disallow = [...robots.matchAll(/^Disallow: (\S+)/gm)].map((m) => m[1]);
-const PRIVATE = ['/choose-portal', '/account', '/owner', '/investor', '/admin', '/va', '/field', '/api/', '/book', '/sign-in', '/create-account', '/reset-password', '/update-password', '/two-step', '/unsubscribe', '/files/', '/d/', '/sign/', '/r/'];
+const PRIVATE = ['/choose-portal', '/account', '/owner', '/investor', '/admin', '/staff', '/staff/field', '/api/', '/book', '/sign-in', '/create-account', '/reset-password', '/update-password', '/two-step', '/unsubscribe', '/files/', '/d/', '/sign/', '/r/'];
 for (const p of PRIVATE) if (!disallow.some((d) => p.startsWith(d))) bad('robots.txt', `does not disallow ${p}`);
 if (!/^Sitemap: https?:\/\/\S+\/sitemap\.xml$/m.test(robots)) bad('robots.txt', 'no sitemap line');
-for (const p of ['/account', '/owner', '/admin', '/va', '/field', '/investor', '/book/x', '/two-step', '/unsubscribe']) {
+for (const p of ['/account', '/owner', '/admin', '/staff', '/staff/field', '/investor', '/book/x', '/two-step', '/unsubscribe']) {
   const r = await get(p);
   const tag = r.headers.get('x-robots-tag') ?? '';
   const metaNo = /<meta name="robots" content="[^"]*noindex/.test(r.body);

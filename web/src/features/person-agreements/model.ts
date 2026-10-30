@@ -192,7 +192,7 @@ export function staffMarkdown(f: StaffFacts, v: Record<string, string>): string 
   md = row(md, 'Hourly Wage', `$${(v.wage ?? '').replace(/^\$/, '')} an hour`);
   md = row(md, 'Start Date', v.start ?? '');
   md = row(md, 'Vehicle types authorized', v.vehicle_types ?? '');
-  md = row(md, 'Referral code', s.referral_code ?? 'Given in the field portal');
+  md = row(md, 'Referral code', s.referral_code ?? 'Given in the staff portal');
   md = row(md, 'Pay Dates', v.pay_dates ?? '');
   md = row(md, 'Minimum licence period', `Full Class G held for at least ${v.licence_years ?? ''} years`);
   return md;
@@ -201,7 +201,7 @@ export function staffMarkdown(f: StaffFacts, v: Record<string, string>): string 
 export const staffTitle = (f: StaffFacts) => (f.staff.staff_type === 'va' ? 'Virtual Assistant Contractor Agreement' : 'Field Staff Agreement');
 export function staffSummary(f: StaffFacts, v: Record<string, string>): Array<{ label: string; value: string; fix?: string | null }> {
   const s = f.staff;
-  const base = s.staff_type === 'va' ? null : '/field/profile'; // the VA portal has no profile page: a wrong value is told to the Admin
+  const base = s.staff_type === 'va' ? null : '/staff/field/profile'; // the VA portal has no profile page: a wrong value is told to the Admin
   return s.staff_type === 'va'
     ? [{ label: 'Contractor', value: `${s.full_name}, ${v.country ?? ''}, ${s.email ?? ''}`, fix: base }, { label: 'Role', value: VA_ROLE[s.va_function ?? ''] ?? '', fix: null },
        { label: 'Pay', value: payWords(v), fix: null },

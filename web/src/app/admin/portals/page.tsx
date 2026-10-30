@@ -23,13 +23,13 @@ export default async function Portals({ searchParams }: { searchParams: Promise<
   const who = (f: (p: Person) => boolean) => active.filter(f).map((p) => ({ id: p.id, name: p.name, email: p.email }));
   const sections: Array<{ key: string; title: string; home: string; portal: Portal | null; fn?: string; people: ReturnType<typeof who> }> = [
     { key: 'admin', title: 'Admin', home: '/admin', portal: null, people: [] },
-    ...['finance', 'fleet', 'cs', 'sales'].map((fn) => ({ key: `va-${fn}`, title: `Staff portal: ${FN_NAME[fn]}`, home: '/va', portal: 'va' as Portal, fn, people: who((p) => p.portals.va_functions.includes(fn)) })),
-    { key: 'field', title: 'Field portal', home: '/field', portal: 'field', people: who((p) => p.portals.field) },
+    ...['finance', 'fleet', 'cs', 'sales'].map((fn) => ({ key: `va-${fn}`, title: `Staff portal: ${FN_NAME[fn]}`, home: '/staff', portal: 'va' as Portal, fn, people: who((p) => p.portals.va_functions.includes(fn)) })),
+    { key: 'field', title: 'Staff portal: Field work', home: '/staff/field', portal: 'field', people: who((p) => p.portals.field) },
     { key: 'owner', title: 'Owner portal', home: '/owner', portal: 'owner', people: who((p) => p.portals.owner) },
     { key: 'investor', title: 'Investor portal', home: '/investor', portal: 'investor', people: who((p) => p.portals.investor) },
     { key: 'account', title: 'Renter portal (My rentals)', home: '/account', portal: 'account', people: who((p) => p.portals.renter) }
   ];
-  const badges = (p: Person) => [p.portals.admin && 'Admin', ...p.portals.va_functions.map((f) => `Staff: ${FN_NAME[f] ?? f}`), p.portals.field && 'Field', p.portals.owner && 'Owner', p.portals.investor && 'Investor', p.portals.renter && 'Renter'].filter(Boolean) as string[];
+  const badges = (p: Person) => [p.portals.admin && 'Admin', ...p.portals.va_functions.map((f) => `Staff: ${FN_NAME[f] ?? f}`), p.portals.field && 'Staff: Field work', p.portals.owner && 'Owner', p.portals.investor && 'Investor', p.portals.renter && 'Renter'].filter(Boolean) as string[];
   return (<>
     <PageHead title="Portals and sign-in" kicker="People" />
     {error && <p className="alert alert--error" role="alert" data-testid="portals-error"><span>{error}</span></p>}

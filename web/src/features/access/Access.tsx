@@ -3,7 +3,7 @@ import { signOut } from '@/server/actions/auth';
 import { currentUser } from '@/server/portal/data';
 import { rolesOf } from '@/server/door';
 import { viewAs } from '@/server/view-as';
-import { portalsFor, type PortalKey } from '@/server/portals';
+import { PORTAL_HOME, portalsFor, type PortalKey } from '@/server/portals';
 
 // Shared pieces of every portal's frame and refusal page: who is signed in, the portals that account has, and
 // Sign out (or Exit, while an Admin views as someone).
@@ -34,7 +34,7 @@ export async function PortalSwitch({ current }: { current: PortalKey }) {
 const WHAT: Record<Exclude<PortalKey, 'account'>, { title: string; text: string }> = {
   admin: { title: 'This area is for CarmaCars admins', text: 'This account does not have admin access. If it should, ask an Admin to add the role in Admin > Staff.' },
   va: { title: 'This area is for CarmaCars staff', text: 'This account does not have a staff role. If you work with us, ask an Admin to add it.' },
-  field: { title: 'This area is for CarmaCars field staff', text: 'This account does not have a field role. Ask an Admin if you think it should.' },
+  field: { title: 'This area is for CarmaCars staff doing field work', text: 'This account does not have field work. Ask an Admin if you think it should.' },
   investor: { title: 'No investments for this account', text: 'This area holds statements for existing investors, invited by CarmaCars.' },
   owner: { title: 'No owner account here yet', text: 'This sign-in is not linked to a car owner. Apply to list your car, or sign in with the email you applied with.' }
 };
@@ -48,7 +48,7 @@ export async function NoAccess({ portal }: { portal: Exclude<PortalKey, 'account
       <div className="pt-empty" data-testid="no-access">
         <h1 className="d3">{w.title}</h1>
         <p className="muted">Sign in to continue.</p>
-        <Link prefetch={false} className="btn btn--primary" href={`/sign-in?next=/${portal}`}>Sign in</Link>
+        <Link prefetch={false} className="btn btn--primary" href={`/sign-in?next=${PORTAL_HOME[portal]}`}>Sign in</Link>
       </div>
     );
   }

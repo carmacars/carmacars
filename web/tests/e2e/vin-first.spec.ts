@@ -195,8 +195,8 @@ test('Add a car for an owner (customer service): the VIN alone; a Cadillac CTS i
   test.setTimeout(1_500_000);
   const sql = db();
   const cs = await mkUser(sql, 'cs');
-  const page = await signedIn(browser, cs.email, '/va');
-  await page.goto('/va/owners/add-car', { waitUntil: 'networkidle' });
+  const page = await signedIn(browser, cs.email, '/staff');
+  await page.goto('/staff/owners/add-car', { waitUntil: 'networkidle' });
   const f = page.getByTestId('addcar');
   await f.getByTestId('addcar-new-owner').check();
   await f.getByTestId('addcar-legal_name').fill(`Cal Vinfirst ${tag()}`);

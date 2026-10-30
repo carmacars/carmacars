@@ -1,4 +1,4 @@
-/* The assistants' portal (/va), redesigned October 25, 2026 (the owner: "extremely easy to use and extremely good UI").
+/* The assistants' portal (/staff), redesigned October 25, 2026 (the owner: "extremely easy to use and extremely good UI").
    Remote assistants work 10-hour shifts on laptops and sometimes phones, so: one place to start (Next up), the lanes as
    big tiles with counts and live timers, quiet everywhere else. Built on the site tokens and portal-ui; the shared
    admin pieces (tables, tiles, filters, cards) get the same rounded, lifted frame here, scoped to .va so the admin

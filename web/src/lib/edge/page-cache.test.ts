@@ -13,7 +13,7 @@ test('only plain public GETs (and cached RSC answers by their segment) have a ke
   assert.equal(edgeKey(req('https://carmacars.ca/cars/porsche-911/')), 'https://edge.cache/v1/carmacars.ca/cars/porsche-911');
   assert.equal(edgeKey(req('https://carmacars.ca/')), 'https://edge.cache/v1/carmacars.ca/');
   assert.equal(edgeKey(req('https://carmacars.ca/sitemap-cars.xml')), 'https://edge.cache/v1/carmacars.ca/sitemap-cars.xml');
-  for (const u of ['/admin', '/admin/audit', '/account/bookings/1', '/owner', '/va', '/api/health', '/field', '/investor', '/files/x/y', '/_next/static/a.js', '/two-step', '/sign/driver/t'])
+  for (const u of ['/admin', '/admin/audit', '/account/bookings/1', '/owner', '/staff', '/api/health', '/staff/field', '/investor', '/files/x/y', '/_next/static/a.js', '/two-step', '/sign/driver/t'])
     assert.equal(edgeKey(req('https://carmacars.ca' + u)), null, u);
   assert.equal(edgeKey(req('https://carmacars.ca/cars', {}, 'POST')), null);
   assert.equal(edgeKey(req('https://carmacars.ca/cars', {}, 'HEAD')), null);

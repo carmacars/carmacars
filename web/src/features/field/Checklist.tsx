@@ -32,7 +32,7 @@ const dataUrlBlob = async (u: string) => {
   return new Blob([out], { type: /data:([^;]+)/.exec(head ?? '')?.[1] ?? 'image/png' });
 };
 
-export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', here }: { j: FieldJob; back?: string; backLabel?: string;
+export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jobs', here }: { j: FieldJob; back?: string; backLabel?: string;
   /** 0151: where this checklist runs (the field job, or the booking's check-out for staff): its sign-now page and the page the card form returns to */
   here?: { signNow: string; self: string } }) {
   const router = useRouter();
@@ -67,7 +67,7 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
   const unattended = Boolean(j.booking?.unattended);
   const ready = j.ready;
   const res = j.resolve ?? null;
-  const at = here ?? { signNow: `/field/jobs/${jobId}/sign-now`, self: `/field/jobs/${jobId}` };
+  const at = here ?? { signNow: `/staff/field/jobs/${jobId}/sign-now`, self: `/staff/field/jobs/${jobId}` };
 
   const save = (extra: Record<string, unknown> = {}) => fieldAct('save_report', { job: jobId, report: { ...strip(r), ...extra } });
   const forward = () => { setStep((n) => n + 1); window.scrollTo(0, 0); };

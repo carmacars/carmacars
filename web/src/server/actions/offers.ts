@@ -37,7 +37,7 @@ export async function offersDo<T = Record<string, unknown>>(action: OffersDo, p:
   try {
     const { user, aal, va } = await me();
     const data = await door<T>(user.id, 'ops_do', action, withFn(p, va), aal);
-    refreshAll([...refresh, '/admin/bookings', '/admin/requests', '/va/requests', '/admin/calendar']);
+    refreshAll([...refresh, '/admin/bookings', '/admin/requests', '/staff/requests', '/admin/calendar']);
     return { ok: true, data };
   } catch (e) { return fail(e); }
 }
@@ -68,7 +68,7 @@ export async function startCardRequest(p: { booking: string; kind: 'charge' | 'h
     const url = `${baseUrl()}/pay/${token}`;
     let sent: CardRequestResult['sent'] = null;
     if (p.channel === 'text' || p.channel === 'email') sent = await door<{ ok: boolean; to?: string; reason?: string }>(user.id, 'ops_do', 'payreq_send', withFn({ id: q.id, link: url }, va), aal);
-    refreshAll([`/admin/bookings/${q.booking_number}`, `/va/bookings/${q.booking_number}`]);
+    refreshAll([`/admin/bookings/${q.booking_number}`, `/staff/bookings/${q.booking_number}`]);
     // the device: the page opens on this screen, by its path (the same origin as the staff portal)
     const backQ = back && /^\/(field|admin|va)\/[\w/-]*$/.test(back) ? `?back=${encodeURIComponent(back)}` : '';
     return { ok: true, data: { id: q.id, url: p.channel === 'device' ? `/pay/${token}${backQ}` : url, kind: q.kind, amount_cents: q.amount_cents, sent } };
@@ -88,7 +88,7 @@ export async function chargeSavedCard(p: { booking: string; amount_cents?: numbe
       ok = i.status === 'succeeded'; intentId = i.id; chargeId = i.chargeId; message = ok ? undefined : i.lastError ?? 'The card was declined.';
     } catch (e) { message = e instanceof Error ? e.message : 'The card could not be charged.'; }
     await door(user.id, 'ops_do', 'card_charge_finish', withFn({ payment: b.payment_id, ok, error: message, intent_id: intentId, charge_id: chargeId, reason: b.reason }, va), aal);
-    refreshAll([`/admin/bookings/${b.booking_number}`, `/va/bookings/${b.booking_number}`]);
+    refreshAll([`/admin/bookings/${b.booking_number}`, `/staff/bookings/${b.booking_number}`]);
     return { ok: true, data: { ok, message } };
   } catch (e) { return fail(e); }
 }
@@ -106,7 +106,7 @@ export async function holdAction(p: { booking: string; action: 'capture' | 'rele
       message = ok ? undefined : i.lastError ?? `Stripe answered ${i.status}`;
     } catch (e) { message = e instanceof Error ? e.message : 'Stripe refused.'; }
     await door(user.id, 'ops_do', 'hold_action_finish', withFn({ deposit: b.deposit_id, action: p.action, amount_cents: b.amount_cents, ok, error: message, reason: p.reason }, va), aal);
-    refreshAll(['/admin/bookings', '/va/bookings']);
+    refreshAll(['/admin/bookings', '/staff/bookings']);
     return { ok: true, data: { ok, message } };
   } catch (e) { return fail(e); }
 }
@@ -127,7 +127,7 @@ export async function editRenter(p: Record<string, unknown> & { send_link?: bool
       signin = s.ok ? (s.none ? 'none' : 'updated') : `not updated: ${s.message}`;
       if (sendLink && s.ok && !s.none) { await a.requestPasswordReset(r.email, `${baseUrl()}/update-password`); linkSent = true; }
     }
-    refreshAll(['/admin/renters', '/admin/bookings', '/va/bookings']);
+    refreshAll(['/admin/renters', '/admin/bookings', '/staff/bookings']);
     return { ok: true, data: { ...r, signin, link_sent: linkSent } };
   } catch (e) { return fail(e); }
 }

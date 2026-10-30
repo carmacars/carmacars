@@ -118,7 +118,7 @@ function ChatThread({ id, portal, onChange }: { id: string; portal: 'admin' | 'v
   if (!t) return <div className="lc-thread"><SkeletonLines lines={4} title /></div>;
   const c = t.chat;
   const s = t.session;
-  const quote = portal === 'va' ? '/va/quotes/new' : '/admin/bookings/new';
+  const quote = portal === 'va' ? '/staff/quotes/new' : '/admin/bookings/new';
   return (
     <div className="lc-main">
       <section className="lc-thread" aria-labelledby="lc-h" data-testid="chat-thread">

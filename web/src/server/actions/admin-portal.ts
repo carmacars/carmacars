@@ -83,6 +83,8 @@ export async function adminPreview<T = Record<string, unknown>>(what: 'booking_p
 
 export interface InviteInput {
   email: string; full_name?: string; role: string; va_function?: string; cover_functions?: string[]; field_function?: string;
+  /** role 'staff' (0197): the kinds of staff work, any of cs, fleet, finance, sales, field */
+  functions?: string[];
   owner_id?: string; investor_id?: string;
   /** a sales hire (0173): where the work is done, in_person or remote, passed with the invitation (kept on the staff profile once 0174 adds it) */
   work_mode?: 'in_person' | 'remote' | null;
@@ -96,8 +98,9 @@ export async function inviteAccount(i: InviteInput): Promise<R<{ user_id: string
   const email = (i.email ?? '').trim().toLowerCase();
   const fe: Record<string, string> = {};
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) fe.email = 'Enter an email address.';
-  if (!['admin', 'va', 'field', 'owner', 'investor'].includes(i.role)) fe.role = 'Choose the role.';
-  if (['admin', 'va', 'field'].includes(i.role) && (i.full_name ?? '').trim().length < 2) fe.full_name = 'Enter the name.';
+  if (!['admin', 'staff', 'va', 'field', 'owner', 'investor'].includes(i.role)) fe.role = 'Choose the role.';
+  if (['admin', 'staff', 'va', 'field'].includes(i.role) && (i.full_name ?? '').trim().length < 2) fe.full_name = 'Enter the name.';
+  if (i.role === 'staff' && !(i.functions ?? []).filter(Boolean).length) fe.functions = 'Choose at least one.';
   if (i.role === 'va' && !i.va_function) fe.va_function = 'Choose one.';
   if (i.role === 'field' && !i.field_function) fe.field_function = 'Choose one.';
   if (i.role === 'owner' && !i.owner_id) fe.owner_id = 'Choose the owner on file.';
@@ -124,7 +127,7 @@ export async function inviteAccount(i: InviteInput): Promise<R<{ user_id: string
       userId = invited.user.id;
     }
     await rpc('admin_invite_account', { p_admin: admin.id, p: { user_id: userId, email, full_name: name || null, role: i.role, va_function: i.va_function || null,
-      cover_functions: (i.cover_functions ?? []).filter(Boolean), field_function: i.field_function || null, owner_id: i.owner_id || null, investor_id: i.investor_id || null,
+      cover_functions: (i.cover_functions ?? []).filter(Boolean), ...(i.role === 'staff' ? { functions: (i.functions ?? []).filter(Boolean) } : {}), field_function: i.field_function || null, owner_id: i.owner_id || null, investor_id: i.investor_id || null,
       ...(i.work_mode ? { work_mode: i.work_mode } : {}) } }, { role: 'service_role' });
     revalidatePath('/admin/settings/staff'); revalidatePath('/admin/portals'); revalidatePath('/admin/owners'); revalidatePath('/admin/investors');
     return { ok: true, data: { user_id: userId, existed, email } };

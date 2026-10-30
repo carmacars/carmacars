@@ -48,7 +48,7 @@ describe('who may see a game on the site', () => {
     assert.equal(ineligible({ ...base, cfg: { ...CFG, per_visit: 5 }, visit: visit({ shows: 4 }) }), null);
   });
   it('never on booking, pay, sign, sign-in or portal pages', () => {
-    for (const p of ['/book/tesla-model-3', '/book/sent/CC-1', '/account', '/account/bookings/CC-1/pay', '/owner', '/sign-in', '/sign/driver/x', '/admin', '/va/live', '/field', '/investor', '/list-your-car/apply', '/sign-document/x', '/create-account', '/reset-password'])
+    for (const p of ['/book/tesla-model-3', '/book/sent/CC-1', '/account', '/account/bookings/CC-1/pay', '/owner', '/sign-in', '/sign/driver/x', '/admin', '/staff/live', '/staff/field', '/investor', '/list-your-car/apply', '/sign-document/x', '/create-account', '/reset-password'])
       assert.equal(excludedPath(p), true, p);
     for (const p of ['/', '/cars', '/cars/tesla-model-3', '/car-rental/toronto', '/guides/x', '/faq', '/list-your-car']) assert.equal(excludedPath(p), false, p);
   });
@@ -329,7 +329,7 @@ describe('the request-to-book form', () => {
   });
   it('only in the form: never on the sent page, pay or sign pages', () => {
     for (const p of ['/book', '/book/tesla-model-3']) assert.equal(bookingPath(p), true, p);
-    for (const p of ['/book/sent/CC-1', '/account/bookings/CC-1/pay', '/account/bookings/CC-1/sign', '/book/x/pay', '/cars/x', '/admin/bookings/new', '/va/bookings/new']) assert.equal(bookingPath(p), false, p);
+    for (const p of ['/book/sent/CC-1', '/account/bookings/CC-1/pay', '/account/bookings/CC-1/sign', '/book/x/pay', '/cars/x', '/admin/bookings/new', '/staff/bookings/new']) assert.equal(bookingPath(p), false, p);
   });
 });
 

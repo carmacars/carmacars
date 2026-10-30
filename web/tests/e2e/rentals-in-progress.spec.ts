@@ -133,8 +133,8 @@ test('assistant: a rental already underway on a car closed to public bookings, w
   const carId = await mkCar(sql, admin.id, `Closed ${tag()}`);
   await sql`update vehicles set bookings_enabled = false where id = ${carId}`;
   const page = await ctx(browser);
-  await signIn(page, va.email, '/va');
-  await page.goto('/va/bookings/new', { waitUntil: 'networkidle' });
+  await signIn(page, va.email, '/staff');
+  await page.goto('/staff/bookings/new', { waitUntil: 'networkidle' });
   await page.getByTestId('mr-vehicle_id').selectOption(carId);
   await expect(page.getByTestId('mr-vehicle_id').locator(`option[value="${carId}"]`)).toContainText('closed to new bookings');
 

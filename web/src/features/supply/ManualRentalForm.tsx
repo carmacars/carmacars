@@ -78,14 +78,14 @@ export interface MrDraft { f?: Record<string, string>; flags?: { do_not_email: b
   tax_mode?: TaxMode; total?: string }
 const FUEL: Array<[string, string]> = [['100', 'Full'], ['88', '7/8'], ['75', '3/4'], ['63', '5/8'], ['50', '1/2'], ['38', '3/8'], ['25', '1/4'], ['13', '1/8'], ['0', 'Empty']];
 
-export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = null }: { cars: Car[]; base: '/admin' | '/va' | '/field'; isAdmin: boolean; owner?: OwnerDefaults | null; draft?: { id: string; data: MrDraft; held: boolean; quick?: boolean } | null }) {
-  const field = base === '/field';
+export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = null }: { cars: Car[]; base: '/admin' | '/staff' | '/staff/field'; isAdmin: boolean; owner?: OwnerDefaults | null; draft?: { id: string; data: MrDraft; held: boolean; quick?: boolean } | null }) {
+  const field = base === '/staff/field';
   // 0156: what the car's owner sees of this rental, and its documented owner deductions
   const [ownerChoice, setOwnerChoice] = useState(() => ownerChoiceInitial(owner));
   const [choice, setChoice] = useState<Choice>(isAdmin ? 'for_carmacars' : '');
   const start0 = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);
   const [f, setF] = useState<Record<string, string>>({ vehicle_id: '', pickup_at: local(start0), return_at: local(new Date(start0.getTime() + 3 * 86_400_000)),
-    pickup_method: 'collected', return_method: 'returned', booking_type: 'standard', coverage_option: '1', price_tax: 'plus', source: 'phone', mode: base === '/field' ? 'link' : 'other_way', method: 'e_transfer',
+    pickup_method: 'collected', return_method: 'returned', booking_type: 'standard', coverage_option: '1', price_tax: 'plus', source: 'phone', mode: base === '/staff/field' ? 'link' : 'other_way', method: 'e_transfer',
     received_on: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) });
   const [flags, setFlags] = useState({ do_not_email: false, new_renter: field, policy: false });
   // 0129: the rental and the deposit each paid its own way, paper or online signing, the calendar switch
@@ -427,7 +427,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
         {done.card && <p className={`alert ${done.card.ok ? 'alert--ok' : 'alert--warn'}`} role="status"><span>{done.card.ok ? 'The saved card was charged.' : `The saved card was not charged: ${done.card.message ?? 'declined'}. Finance has a task; send a payment link or record a payment received another way.`}</span></p>}
         {totalCents !== undefined && done.total_cents !== totalCents && <p className="alert alert--warn" role="status" data-testid="mr-done-diff"><span>{totalDifference(done.total_cents, totalCents, fmt)} Check the booking&apos;s price.</span></p>}
         <p className="small" data-testid="mr-done-total">Total {fmt(done.total_cents)}.{done.open_cents ? ` Still to collect: ${fmt(done.open_cents)} (the booking's Money tab).` : ''} The renter signs the rental agreement in their portal, or you record a signature on paper from the booking.</p>
-        <p className="row">{field ? <Link prefetch={false} className="btn btn--primary" href="/field/sales" data-testid="mr-open">Open My sales</Link>
+        <p className="row">{field ? <Link prefetch={false} className="btn btn--primary" href="/staff/field/sales" data-testid="mr-open">Open My sales</Link>
           : <Link prefetch={false} className="btn btn--primary" href={`${base}/bookings/${done.booking_number}`} data-testid="mr-open">Open the booking</Link>}
           <button className="btn btn--ghost" type="button" onClick={() => { setDone(null); setQuote(null); setRenter(null); setChoice(isAdmin ? 'for_carmacars' : ''); }}>Add another</button></p>
       </section>
@@ -448,7 +448,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
       <div className="row" style={{ flexWrap: 'wrap' }} data-testid="mr-draft-bar" role="status" aria-live="polite">
         <span className="small muted">{saveErr ? `Not saved: ${saveErr}. Kept on this device.` : savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}. Finish it any time from Unfinished rentals.` : 'Saved as a draft as you type: nothing is required to save.'}</span>
         <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => start(async () => { await saveDraft(); })} data-testid="mr-save-draft">Save draft</button>
-        {draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => start(async () => { await draftClose(draftId, 'discarded'); try { localStorage.removeItem(localKey); } catch { /* none */ } window.location.href = base === '/field' ? '/field/rentals/new' : `${base}/bookings/new`; })} data-testid="mr-discard-draft">Discard</button>}
+        {draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => start(async () => { await draftClose(draftId, 'discarded'); try { localStorage.removeItem(localKey); } catch { /* none */ } window.location.href = base === '/staff/field' ? '/staff/field/rentals/new' : `${base}/bookings/new`; })} data-testid="mr-discard-draft">Discard</button>}
         {localDraft && !draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => { const d = localDraft.data; if (d.f) setF((x) => ({ ...x, ...d.f })); if (d.renter) setRenter(d.renter); if (d.fees) setFees(d.fees); if (d.parts) setParts(d.parts); if (d.paid_by) setPaidBy(d.paid_by); if (d.deposit_by) setDepositBy(d.deposit_by); if (d.customs) setCustoms(d.customs); if (d.tax_mode) setTaxMode(d.tax_mode); if (d.total) setTotalTyped(d.total); setDraftId(localDraft.id); idRef.current = localDraft.id; setLocalDraft(null); }} data-testid="mr-restore-local">Restore what you were typing on this device</button>}
       </div>
       <section className={`pt-card ad-card stack${quick ? ' pt-card--next' : ''}`} aria-labelledby="mr-quick-h" data-testid="mr-quick">

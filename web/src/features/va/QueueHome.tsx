@@ -42,7 +42,7 @@ export function NextUp({ task, lane, now, target, userId }: { task: Task | null;
       <div className="va-next__timer"><WaitTimer since={task.created_at} targetMin={lane.reply ? target : undefined} now={now} bar={!!lane.reply} testId="va-next-timer" /></div>
       <div className="va-next__actions">
         <Link prefetch={false} className="btn btn--primary" href={href} data-testid="va-next-open">{lane.verb}</Link>
-        {task.assigned_to !== userId && <Act action="task_take" payload={{ id: task.id }} label="Take it" refresh={['/va']} testId="va-next-take" done="It is yours." />}
+        {task.assigned_to !== userId && <Act action="task_take" payload={{ id: task.id }} label="Take it" refresh={['/staff']} testId="va-next-take" done="It is yours." />}
       </div>
     </section>
   );

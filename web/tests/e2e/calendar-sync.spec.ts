@@ -79,11 +79,11 @@ test('Calendar sync: Fleet adds a calendar link, its trip blocks the car at once
 
   const page = await ctx(browser);
   page.on('dialog', (d) => { void d.accept(); });
-  await signIn(page, fleet.email, '/va');
+  await signIn(page, fleet.email, '/staff');
   if (isPhone()) await page.getByTestId('va-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
   await page.getByTestId('va-nav').getByRole('button', { name: 'Cars', exact: true }).click();
   await expect(page.getByTestId('va-nav').getByRole('link', { name: 'Calendar sync' })).toBeVisible();
-  await page.goto('/va/calendar-sync', { waitUntil: 'networkidle' });
+  await page.goto('/staff/calendar-sync', { waitUntil: 'networkidle' });
   const car = page.getByTestId(`cs-car-${b.id}`);
   await expect(car).toBeVisible();
   await car.getByText('Add a calendar link').click();

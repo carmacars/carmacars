@@ -346,3 +346,7 @@
 .fd-lic-card__id { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; }
 .fd-lic .fd-chip.is-done { color: var(--fd-ok); }
 .fd-lic .fd-chip.is-blocked, .fd-lic .fd-chip.is-scheduled { color: var(--fd-bad); }
+
+/* field work inside the staff portal (0197): the staff frame gives the page; the column keeps its phone-first look */
+.fd--in-staff { min-height: 0; border-radius: var(--r-2); }
+.fd--in-staff .fd__frame { padding-bottom: var(--s-6); }

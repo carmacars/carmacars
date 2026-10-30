@@ -186,15 +186,15 @@ test('staff with an authenticator: Google sign-in still asks for the two-step co
   const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
   const secret = Array.from(randomBytes(32), (b) => A[b % 32]).join('');
   await sql`insert into local_auth.factors (id, user_id, secret, verified_at) values (${randomUUID()}, ${id}, ${secret}, now())`;
-  await google(page, '/sign-in?next=/va', { email });
+  await google(page, '/sign-in?next=/staff', { email });
   await page.waitForURL((u) => u.pathname === '/two-step', { timeout: 20_000 });
-  expect(new URL(page.url()).searchParams.get('next')).toBe('/va');
+  expect(new URL(page.url()).searchParams.get('next')).toBe('/staff');
   // the session is not yet aal2: the database refuses staff calls until the code
   const cookie = (await page.context().cookies()).find((c) => c.name === 'cc-local-session')!;
   expect(JSON.parse(Buffer.from(cookie.value.split('.')[1]!, 'base64url').toString()).aal).toBe('aal1');
   await page.getByTestId('totp-code').fill(totp(secret));
   await page.getByTestId('totp-submit').click();
-  await page.waitForURL((u) => u.pathname === '/va', { timeout: 20_000 });
+  await page.waitForURL((u) => u.pathname === '/staff', { timeout: 20_000 });
   const after = (await page.context().cookies()).find((c) => c.name === 'cc-local-session')!;
   expect(JSON.parse(Buffer.from(after.value.split('.')[1]!, 'base64url').toString()).aal).toBe('aal2');
   await sql.end();

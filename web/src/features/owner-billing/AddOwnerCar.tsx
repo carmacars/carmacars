@@ -21,7 +21,7 @@ type Facts = { admin: boolean; today: string; hst_bps: number; trackers_availabl
 const DOCS: Array<[string, string, string]> = [['ownership_permit', 'Ownership permit', 'Both sides. A photo or a PDF.'], ['owner_insurance_proof', 'Insurance slip', 'The current pink slip.'],
   ['finance_party_permission', 'Lender or lessor information', 'The lender\'s permission or the loan or lease statement.']];
 
-export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' | '/va' }) {
+export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' | '/staff' }) {
   const a = useAct<{ application_id: string; application_number: string; owner_id: string; vehicle_id: string; approved: boolean; note: string | null; docs: number }>();
   const uid = `ac-${useId().replace(/[^\w-]/g, '')}`;
   const [facts, setFacts] = useState<Facts>(initial);

@@ -150,14 +150,14 @@ test('va: customer service reviews a request from the queue and sends the offer'
   const req = await seedRequest(sql, renter, car.id, car.from, car.to);
   const page = await ctx(browser, phone);
   const errors = watch(page);
-  await signIn(page, cs.email, '/va');
+  await signIn(page, cs.email, '/staff');
   await expect(page.getByRole('heading', { name: 'To do', level: 1 })).toBeVisible();
   await check(page, 'va queue');
   await page.screenshot({ path: `${SHOTS}/va-queue-${info.project.name}.png`, fullPage: true });
-  await page.goto('/va/today'); await expect(page.getByTestId('digest')).toBeVisible(); await check(page, 'va today');
-  await page.goto('/va/requests'); await expect(page.getByTestId('requests')).toContainText(req.booking_number); await check(page, 'va requests');
-  await page.goto('/va'); await page.locator(`a[href^="/va/bookings/${req.booking_number}"]`).first().click();
-  await page.waitForURL(new RegExp(`/va/bookings/${req.booking_number}`));
+  await page.goto('/staff/today'); await expect(page.getByTestId('digest')).toBeVisible(); await check(page, 'va today');
+  await page.goto('/staff/requests'); await expect(page.getByTestId('requests')).toContainText(req.booking_number); await check(page, 'va requests');
+  await page.goto('/staff'); await page.locator(`a[href^="/staff/bookings/${req.booking_number}"]`).first().click();
+  await page.waitForURL(new RegExp(`/staff/bookings/${req.booking_number}`));
   await expect(page.getByTestId('booking-review')).toBeVisible();
   await expect(page.getByLabel('Daily ($)')).toHaveCount(0); // no per-booking price override for an assistant
   await page.getByLabel('Message to the renter').fill('Your car is ready for these dates.');
@@ -184,9 +184,9 @@ test('va: finance asks for a refund above the limit and it becomes an Admin appr
   const req = await seedRequest(sql, renter, car.id, car.from, car.to);
   await confirmBooking(sql, req.booking_id, admin.id);
   const page = await ctx(browser, phone);
-  await signIn(page, fin.email, '/va');
-  await page.goto('/va/money'); await expect(page.getByTestId('failed-payments').or(page.getByTestId('failed-payments-empty'))).toBeVisible(); await check(page, 'va money');
-  await page.goto(`/va/bookings/${req.booking_number}?tab=money`);
+  await signIn(page, fin.email, '/staff');
+  await page.goto('/staff/money'); await expect(page.getByTestId('failed-payments').or(page.getByTestId('failed-payments-empty'))).toBeVisible(); await check(page, 'va money');
+  await page.goto(`/staff/bookings/${req.booking_number}?tab=money`);
   await page.getByTestId('request-refund').click();
   await page.getByLabel('Reason').selectOption('goodwill');
   await page.getByLabel('Amount ($)').fill('75.00');
@@ -218,8 +218,8 @@ test('va: fleet checks and assigns the field job made from a booking', async ({ 
   const [j] = await sql`select id, place, auto_created from field_jobs where booking_id = ${req.booking_id} and kind = 'handover' and status <> 'cancelled'`;
   expect([Boolean(j?.place), j?.auto_created]).toEqual([true, true]);
   const page = await ctx(browser, phone);
-  await signIn(page, fleet.email, '/va');
-  await page.goto('/va/fleet');
+  await signIn(page, fleet.email, '/staff');
+  await page.goto('/staff/fleet');
   await expect(page.getByTestId('unscheduled')).not.toContainText(req.booking_number);
   await expect(page.getByTestId('jobs')).toContainText(req.booking_number);
   await check(page, 'va fleet');
@@ -235,7 +235,7 @@ test('va: fleet checks and assigns the field job made from a booking', async ({ 
   await page.locator('dialog[open]').getByLabel('Field staff').selectOption(field.id);
   await page.getByTestId(`assign-${j!.id}-submit`).click();
   await expect.poll(async () => (await sql`select assigned_to from field_jobs where id = ${j!.id}`)[0]?.assigned_to, { timeout: 15_000 }).toBe(field.id);
-  await page.goto('/va/calendar'); await check(page, 'va calendar');
+  await page.goto('/staff/calendar'); await check(page, 'va calendar');
   await sql.end();
 });
 
@@ -264,13 +264,13 @@ test('field: a full handover with every photo and the renter signature, then a l
 
   const page = await ctx(browser, true);
   const errors = watch(page);
-  await signIn(page, field.email, '/field');
-  await page.goto('/field');
-  if (!(await page.getByTestId('job-card').count())) await page.goto('/field?day=tomorrow');
+  await signIn(page, field.email, '/staff/field');
+  await page.goto('/staff/field');
+  if (!(await page.getByTestId('job-card').count())) await page.goto('/staff/field?day=tomorrow');
   await expect(page.getByTestId('job-card').first()).toBeVisible();
   await check(page, 'field jobs');
   await page.screenshot({ path: `${SHOTS}/field-jobs.png`, fullPage: true });
-  await page.goto(`/field/jobs/${job!.id}`);
+  await page.goto(`/staff/field/jobs/${job!.id}`);
   await page.getByTestId('acknowledge').click();
   await page.getByTestId('start').click();
   await expect(page.getByTestId('ready-check')).toBeVisible({ timeout: 15_000 });
@@ -316,7 +316,7 @@ test('field: a full handover with every photo and the renter signature, then a l
     await tx`update bookings set pickup_at = now() - interval '2 days 3 hours' - (return_at - pickup_at - interval '2 days'), handed_over_at = now() - interval '2 days 3 hours', return_at = now() - interval '3 hours' where id = ${req.booking_id}`;
   });
   const [rj] = await sql`select app.create_field_job('return_check_in', ${car.id}::uuid, now() - interval '3 hours', ${admin.id}::uuid, ${req.booking_id}::uuid, ${field.id}::uuid, '1 Front St W, Toronto') id`;
-  await page.goto(`/field/jobs/${rj!.id}`);
+  await page.goto(`/staff/field/jobs/${rj!.id}`);
   await page.getByTestId('acknowledge').click();
   await page.getByTestId('start').click();
   await expect(page.getByTestId('step-title')).toHaveText('Car and keys received', { timeout: 15_000 });

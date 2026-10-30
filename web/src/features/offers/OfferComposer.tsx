@@ -43,7 +43,7 @@ export interface OcDraft { f?: Partial<OfferForm>; addons?: AddonChoice[]; custo
   /** 2026-10-27: how the amounts were typed, and the total the renter pays typed */
   tax_mode?: TaxMode; total?: string }
 
-export function OfferComposer({ base, initialCar = null, draft = null, owner = null }: { base: '/admin' | '/va'; initialCar?: string | null; draft?: { id: string; data: OcDraft } | null; owner?: OwnerDefaults | null }) {
+export function OfferComposer({ base, initialCar = null, draft = null, owner = null }: { base: '/admin' | '/staff'; initialCar?: string | null; draft?: { id: string; data: OcDraft } | null; owner?: OwnerDefaults | null }) {
   // 0156: what the car's owner sees of the booking
   const [ownerChoice, setOwnerChoice] = useState(() => ownerChoiceInitial(owner));
   const start = useMemo(() => { const d = new Date(Date.now() + 86_400_000); d.setMinutes(0, 0, 0); d.setHours(10); return d; }, []);

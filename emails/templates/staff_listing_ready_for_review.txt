@@ -16,7 +16,7 @@ Flagged by the draft step: {{listing_flags}}
 Live by: {{listing_due}}
 
 Review the listing:
-https://carmacars.ca/va/fleet/listings/{{vehicle_id}}
+https://carmacars.ca/staff/listings/{{vehicle_id}}
 
 Check before you publish
 ------------------------

@@ -8,7 +8,7 @@ import { fmtDuration } from './late';
 type Row = { booking_number: string; kind: 'pickup' | 'return'; at: string; vehicle: string; renter: string | null; late: boolean; minutes_late?: number };
 
 // Today's check-outs and check-ins on the staff Today list (migration 0130): each opens its checklist in one tap.
-export async function HandoversToday({ userId, aal, base }: { userId: string; aal?: 'aal1' | 'aal2' | null; base: '/admin' | '/va' }) {
+export async function HandoversToday({ userId, aal, base }: { userId: string; aal?: 'aal1' | 'aal2' | null; base: '/admin' | '/staff' }) {
   const rows = await door<Row[]>(userId, 'ops_read', 'handovers_today', {}, aal).catch(() => [] as Row[]);
   return (
     <Card title={`Check-outs and check-ins today (${rows.length})`} testId="handovers-today">

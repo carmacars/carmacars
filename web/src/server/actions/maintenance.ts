@@ -18,8 +18,8 @@ async function me() {
 }
 
 function refresh(vehicleId?: string) {
-  for (const p of ['/admin/maintenance', '/va/maintenance', '/admin', '/va']) revalidatePath(p);
-  if (vehicleId) { revalidatePath(`/admin/vehicles/${vehicleId}`); revalidatePath(`/va/vehicles/${vehicleId}`); }
+  for (const p of ['/admin/maintenance', '/staff/maintenance', '/admin', '/staff']) revalidatePath(p);
+  if (vehicleId) { revalidatePath(`/admin/vehicles/${vehicleId}`); revalidatePath(`/staff/vehicles/${vehicleId}`); }
 }
 
 /** One car's maintenance, for the pop-up opened from the overview (it loads when opened). */

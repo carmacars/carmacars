@@ -77,7 +77,7 @@ test('Assistant: an offer comes as a card with the full summary, runs only on Co
   const k5 = await car(sql, a.id);
   const email = `nora.${tag()}@example.test`;
   const page = await ctx(browser);
-  await signIn(page, cs.email, '/va');
+  await signIn(page, cs.email, '/staff');
   await page.getByTestId('assistant-open').first().click();
   await expect(page.getByTestId('assistant-panel')).toBeVisible();
 

@@ -16,6 +16,6 @@ export function DoorProvider({ kind, children }: { kind: DoorKind; children: Rea
 export function useDoor() {
   const kind = useContext(Ctx);
   return kind === 'va'
-    ? { kind, act: vaAct, preview: vaPreview, save: adminSaveRow, base: '/va' }
+    ? { kind, act: vaAct, preview: vaPreview, save: adminSaveRow, base: '/staff' }
     : { kind, act: adminAct, preview: adminPreview, save: adminSaveRow, base: '/admin' };
 }

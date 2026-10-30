@@ -15,7 +15,7 @@ Logged: {{logged_at}}
 Nearest records: {{nearest_records}}
 
 Open the notice:
-https://carmacars.ca/va/finance/tolls-tickets/{{toll_ticket_id}}
+https://carmacars.ca/staff/tolls?ticket={{toll_ticket_id}}
 
 Check the tracker history for that time. An admin decides who pays when there is no match. Do not let the due date pass.
 

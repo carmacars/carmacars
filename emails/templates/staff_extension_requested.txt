@@ -15,7 +15,7 @@ Unpaid charges: {{unpaid_charges}}
 Coverage proof valid to: {{coverage_valid_to}}
 
 Open the extension:
-https://carmacars.ca/va/cs/bookings/{{booking_number}}
+https://carmacars.ca/staff/bookings/{{booking_number}}
 
 - Check the calendar, unpaid charges, and coverage proof to the new return date.
 - Total of 30 days or less: reprice the whole booking and take the difference.

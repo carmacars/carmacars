@@ -98,8 +98,8 @@ test('the deposit is held for the toll window, kept whole while a toll is open, 
   // ---- Finance, the day after the return: the toll window holds the rest back
   const page = await ctx(browser, phone);
   const errors = watch(page);
-  await signIn(page, fin.email, '/va');
-  await page.goto(`/va/bookings/${b.number}?tab=money`, { waitUntil: 'networkidle' });
+  await signIn(page, fin.email, '/staff');
+  await page.goto(`/staff/bookings/${b.number}?tab=money`, { waitUntil: 'networkidle' });
   await page.getByTestId('deposit-settle').click();
   const form = page.getByTestId('deposit-form');
   await expect(form).toBeVisible();

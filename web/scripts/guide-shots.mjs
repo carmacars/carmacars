@@ -616,25 +616,25 @@ async function adminPortal(browser, ids) {
 }
 
 const VA_SCREENS = {
-  va_cs: [['queue', '/va', 'Queue: the tasks of customer service, oldest due first.'], ['today', '/va/today', 'Today: pickups, returns and what is due.'],
-    ['requests', '/va/requests', 'Requests: review each request and send the offer.'], ['booking-review', 'REQ', 'Review a request: adjust, Preview, Send offer.'],
-    ['new-quote', '/va/quotes/new', 'New quote: price a car for a caller and send it as an offer.'], ['messages', '/va/messages', 'Renter messages: answer renters.'],
-    ['renters', '/va/renters', 'Find a renter by name, email, phone or booking.'], ['owner-forms', '/va/owner-forms', 'Owner forms: approve or send back Forms C and D.'],
-    ['calendar', '/va/calendar', 'The calendar.']],
-  va_finance: [['queue', '/va', 'Queue: the tasks of Finance.'], ['money', '/va/money', 'Payments, deposits and refunds.'], ['tolls', '/va/tolls', 'Tolls and tickets: the work queue.'],
-    ['tolls-read', '/va/tolls/read', 'Read a notice and check its lines.'], ['reconciliation', '/va/reconciliation', 'Reconciliation of processor payouts.'], ['turo', '/va/turo', 'Turo trips.']],
-  va_fleet: [['queue', '/va', 'Queue: the tasks of Fleet.'], ['field-jobs', '/va/fleet', 'Field jobs: schedule and assign handovers, returns, moves, photo shoots.'],
-    ['daily-checks', '/va/checks', 'Daily checks of the cars.'], ['photo-reviews', '/va/reviews', 'Photo reviews after a return.'], ['listings', '/va/listings', 'Listings and their review.'],
-    ['similar-cars', '/va/similar-cars', 'Similar cars: decide possible duplicates before publishing.']],
-  va_sales: [['queue', '/va', 'Queue: the tasks of Sales.'], ['requests', '/va/requests', 'Requests and offers.'], ['new-quote', '/va/quotes/new', 'New quote.'],
-    ['leads', '/va/leads', 'Owner leads.'], ['scorecard', '/va/scorecard', 'Scorecard: what you did this week.']]
+  va_cs: [['queue', '/staff', 'Queue: the tasks of customer service, oldest due first.'], ['today', '/staff/today', 'Today: pickups, returns and what is due.'],
+    ['requests', '/staff/requests', 'Requests: review each request and send the offer.'], ['booking-review', 'REQ', 'Review a request: adjust, Preview, Send offer.'],
+    ['new-quote', '/staff/quotes/new', 'New quote: price a car for a caller and send it as an offer.'], ['messages', '/staff/messages', 'Renter messages: answer renters.'],
+    ['renters', '/staff/renters', 'Find a renter by name, email, phone or booking.'], ['owner-forms', '/staff/owner-forms', 'Owner forms: approve or send back Forms C and D.'],
+    ['calendar', '/staff/calendar', 'The calendar.']],
+  va_finance: [['queue', '/staff', 'Queue: the tasks of Finance.'], ['money', '/staff/money', 'Payments, deposits and refunds.'], ['tolls', '/staff/tolls', 'Tolls and tickets: the work queue.'],
+    ['tolls-read', '/staff/tolls/read', 'Read a notice and check its lines.'], ['reconciliation', '/staff/reconciliation', 'Reconciliation of processor payouts.'], ['turo', '/staff/turo', 'Turo trips.']],
+  va_fleet: [['queue', '/staff', 'Queue: the tasks of Fleet.'], ['field-jobs', '/staff/fleet', 'Field jobs: schedule and assign handovers, returns, moves, photo shoots.'],
+    ['daily-checks', '/staff/checks', 'Daily checks of the cars.'], ['photo-reviews', '/staff/reviews', 'Photo reviews after a return.'], ['listings', '/staff/listings', 'Listings and their review.'],
+    ['similar-cars', '/staff/similar-cars', 'Similar cars: decide possible duplicates before publishing.']],
+  va_sales: [['queue', '/staff', 'Queue: the tasks of Sales.'], ['requests', '/staff/requests', 'Requests and offers.'], ['new-quote', '/staff/quotes/new', 'New quote.'],
+    ['leads', '/staff/leads', 'Owner leads.'], ['scorecard', '/staff/scorecard', 'Scorecard: what you did this week.']]
 };
 async function vaPortal(browser, ids, role) {
   const email = (await one(sql`select email from users where id = ${ids[role]}`)).email;
   const d = await session(browser, 'desktop', email); const m = await session(browser, 'phone', email); const P = [d, m];
   const portal = role.replace('_', '-');
   for (const [name, p, desc] of VA_SCREENS[role]) {
-    await both(P, portal, name, async () => p === 'REQ' ? (await one(sql`select booking_number from bookings where status = 'requested' order by created_at desc limit 1`).then((r) => r && `/va/bookings/${r.booking_number}?tab=review`)) : p, desc);
+    await both(P, portal, name, async () => p === 'REQ' ? (await one(sql`select booking_number from bookings where status = 'requested' order by created_at desc limit 1`).then((r) => r && `/staff/bookings/${r.booking_number}?tab=review`)) : p, desc);
   }
   await d.context().close(); await m.context().close();
 }
@@ -664,12 +664,12 @@ async function fieldPortal(browser, ids) {
     sql`insert into field_jobs (id, kind, vehicle_id, assigned_to, scheduled_at, status) values (${sjob}, 'photo_shoot', ${shootCar.id}, ${ids.field}, now() + interval '3 hours', 'scheduled')`);
 
   const d = await session(browser, 'desktop', email); const m = await session(browser, 'phone', email); const P = [d, m];
-  await both(P, 'field', 'today', '/field', 'My jobs: today\'s handovers, returns, moves and photo shoots, in order.');
-  await both(P, 'field', 'job', `/field/jobs/${job.id}`, 'A job: the car, the place, the renter, what to bring; Acknowledge, then Start.');
+  await both(P, 'field', 'today', '/staff/field', 'My jobs: today\'s handovers, returns, moves and photo shoots, in order.');
+  await both(P, 'field', 'job', `/staff/field/jobs/${job.id}`, 'A job: the car, the place, the renter, what to bring; Acknowledge, then Start.');
   // the handover checklist, step by step, on the phone
   let s = 0; const step = async (name, desc) => { s++; await shoot(m, 'field', `handover-${String(s).padStart(2, '0')}-${name}`, desc, { kind: 'phone', step: 20 + s }); };
   try {
-    await m.goto(`/field/jobs/${job.id}`);
+    await m.goto(`/staff/field/jobs/${job.id}`);
     await m.getByTestId('acknowledge').click(); await m.getByTestId('start').click();
     await m.getByTestId('ready-check').waitFor({ timeout: 15_000 });
     await step('ready', 'Handover, before you start: what must be ready (signed agreement, paid, ID checked, deposit).');
@@ -690,13 +690,13 @@ async function fieldPortal(browser, ids) {
     await next(m, 'Renter reviews'); await step('summary', 'Step: the renter reads the summary.');
     await next(m, 'Signatures'); await step('signatures', 'Step: the renter and you sign on the screen.');
   } catch (e) { problems.push(`field/handover: ${String(e.message).split('\n')[0]}`); }
-  await both(P, 'field', 'report', '/field/report', 'Report: an incident, damage, a breakdown or a ticket, with photos.');
-  await both(P, 'field', 'profile', '/field/profile', 'Profile: contact details and availability.');
+  await both(P, 'field', 'report', '/staff/field/report', 'Report: an incident, damage, a breakdown or a ticket, with photos.');
+  await both(P, 'field', 'profile', '/staff/field/profile', 'Profile: contact details and availability.');
   // the photo shoot: the listing capture inside the job
   if (shootCar) {
     for (const page of P) {
       try {
-        await page.goto(`/field/jobs/${sjob}`, { waitUntil: 'networkidle' });
+        await page.goto(`/staff/field/jobs/${sjob}`, { waitUntil: 'networkidle' });
         await shoot(page, 'field', 'photo-shoot-job', 'A photo shoot job: the car and the shot list; Start the listing.');
         const ack = page.getByTestId('acknowledge'); if (await ack.isVisible().catch(() => false)) { await ack.click(); await page.getByTestId('start').waitFor({ timeout: 15_000 }).catch(() => {}); }
         const st = page.getByTestId('start'); if (await st.isVisible().catch(() => false)) await st.click();

@@ -12,7 +12,7 @@ import { syncOne, type DueFeed, type Store } from '@/features/calendar/sync-run'
 // hands the result to the database through the door (app.calendar_sync_do).
 type R<T = unknown> = ActionResult<T>;
 const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
-const PAGES = ['/admin/calendar-sync', '/va/calendar-sync'];
+const PAGES = ['/admin/calendar-sync', '/staff/calendar-sync'];
 
 async function who() {
   const user = await currentUser();

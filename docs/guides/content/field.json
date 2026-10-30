@@ -1,8 +1,8 @@
 {
  "portal": "field",
- "title": "Field Portal Guide",
+ "title": "Field Guide",
  "promise": "Every handover, return and photo shoot, right on your phone.",
- "signin_url": "carmacars.ca/sign-in?next=/field",
+ "signin_url": "carmacars.ca/sign-in?next=/staff/field",
  "lands_on": "My jobs, today's jobs in order",
  "sections": [
   {
@@ -10,7 +10,7 @@
    "slug": "start-here",
    "title": "Start here",
    "blurb": "Who this is for and your first sign-in.",
-   "body_md": "### Who this guide is for\n\nCarmaCars field staff: drivers, detailers, and drivers who also detail. You hand cars over, take them back, move them and shoot listing photos. Everything is on your phone.\n\n### What you need\n\n- Your phone, charged, with a data connection (photos and signatures save as you take them)\n- The invitation email from CarmaCars (the link works for 24 hours)\n- A car charger and a cloth for the camera lens\n\n## Your first sign-in\n\n1. Open the invitation email on your phone and press its link within 24 hours. Choose a password and press **Save the new password**.\n2. You land on **My jobs**. Next time, sign in at `carmacars.ca/sign-in` with your Email and Password.\n3. In your browser's menu, choose **Add to Home Screen**. The portal then opens full screen, like an app.\n4. Open **Profile**, add your mobile number and press **Save my phone**.\n5. At the top of the page, fill in your Home address and Postal code and press **Save my home address**. You need it before you add a rental or earn a commission.\n\n![](/guides/img/field-04-profile-phone-f05000e2.jpg \"phone; size: 390 920; pins: 4 92.3 78.3\")\n\n> Good to know: Recommended: on Profile, press **Set up two-step sign-in** and follow the steps with an authenticator app.\n"
+   "body_md": "### Who this guide is for\n\nCarmaCars field staff: drivers, detailers, and drivers who also detail. You hand cars over, take them back, move them and shoot listing photos. Everything is on your phone. Your jobs are under **Field work** in the staff portal; if you also hold another function (Sales, for example), its pages are in the same menu.\n\n### What you need\n\n- Your phone, charged, with a data connection (photos and signatures save as you take them)\n- The invitation email from CarmaCars (the link works for 24 hours)\n- A car charger and a cloth for the camera lens\n\n## Your first sign-in\n\n1. Open the invitation email on your phone and press its link within 24 hours. Choose a password and press **Save the new password**.\n2. You land on **My jobs**. Next time, sign in at `carmacars.ca/sign-in` with your Email and Password.\n3. In your browser's menu, choose **Add to Home Screen**. The portal then opens full screen, like an app.\n4. Open **Profile**, add your mobile number and press **Save my phone**.\n5. At the top of the page, fill in your Home address and Postal code and press **Save my home address**. You need it before you add a rental or earn a commission.\n\n![](/guides/img/field-04-profile-phone-f05000e2.jpg \"phone; size: 390 920; pins: 4 92.3 78.3\")\n\n> Good to know: Recommended: on Profile, press **Set up two-step sign-in** and follow the steps with an authenticator app.\n"
   },
   {
    "kind": "chapter",

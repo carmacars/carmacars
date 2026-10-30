@@ -86,9 +86,9 @@ test('two staff on one request: the claim, the takeover and the late send', asyn
   // customer service opens it first; this page does not look again (a stale screen)
   const b1 = await ctx(browser, phone);
   const errors = watch(b1);
-  await signIn(b1, cs.email, '/va');
+  await signIn(b1, cs.email, '/staff');
   await b1.addInitScript(() => { (window as unknown as { __ccClaimPollMs: number }).__ccClaimPollMs = 3_600_000; });
-  await b1.goto(`/va/bookings/${r.booking_number}?tab=review`, { waitUntil: 'networkidle' });
+  await b1.goto(`/staff/bookings/${r.booking_number}?tab=review`, { waitUntil: 'networkidle' });
   await expect(banner(b1)).toContainText('You are answering this request', { timeout: 30_000 });
 
   // the Admin sees who is answering it, with the buttons off, and takes it over
@@ -106,12 +106,12 @@ test('two staff on one request: the claim, the takeover and the late send', asyn
 
   // customer service on a fresh page: the Admin's claim, the buttons off, and the list says who
   const b2 = await b1.context().newPage();
-  await b2.goto(`/va/bookings/${r.booking_number}?tab=review`, { waitUntil: 'networkidle' });
+  await b2.goto(`/staff/bookings/${r.booking_number}?tab=review`, { waitUntil: 'networkidle' });
   await expect(banner(b2)).toContainText('Being answered by Ada Admin since', { timeout: 30_000 });
   await expect(gate(b2)).toHaveAttribute('data-locked', 'true');
   await expect(b2.getByTestId('request-takeover')).toHaveCount(0);
   await check(b2, 'VA booking page, claimed by the Admin');
-  await b2.goto('/va/requests', { waitUntil: 'networkidle' });
+  await b2.goto('/staff/requests', { waitUntil: 'networkidle' });
   await expect(b2.getByTestId(`claim-${r.booking_number}`)).toContainText('Being answered by Ada Admin', { timeout: 30_000 });
   await check(b2, 'VA requests list with the claim');
   await b2.close();
@@ -145,18 +145,18 @@ test('Sales wait for customer service first; a claim that ran out is taken over'
 
   const s = await ctx(browser, phone);
   const errors = watch(s);
-  await signIn(s, sales.email, '/va');
-  await s.goto('/va/requests', { waitUntil: 'networkidle' });
+  await signIn(s, sales.email, '/staff');
+  await s.goto('/staff/requests', { waitUntil: 'networkidle' });
   await expect(s.getByTestId(`claim-${r.booking_number}`)).toContainText(/Opens to you at \d{1,2}:\d{2} [ap]m/, { timeout: 30_000 });
   await check(s, 'Sales requests list, a request not open to them yet');
-  await s.goto(`/va/bookings/${r.booking_number}?tab=review`, { waitUntil: 'networkidle' });
+  await s.goto(`/staff/bookings/${r.booking_number}?tab=review`, { waitUntil: 'networkidle' });
   await expect(banner(s)).toContainText(/Open to Sales at .+ if nobody answers\. Customer service answers it first\./, { timeout: 30_000 });
   await expect(gate(s)).toHaveAttribute('data-locked', 'true');
   await check(s, 'Sales booking page during the wait');
 
   const c = await ctx(browser, phone);
-  await signIn(c, cs.email, '/va');
-  await c.goto(`/va/bookings/${r.booking_number}?tab=review`, { waitUntil: 'networkidle' });
+  await signIn(c, cs.email, '/staff');
+  await c.goto(`/staff/bookings/${r.booking_number}?tab=review`, { waitUntil: 'networkidle' });
   await expect(banner(c)).toContainText('You are answering this request', { timeout: 30_000 });
   await c.context().close();
 

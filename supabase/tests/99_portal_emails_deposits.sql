@@ -153,7 +153,7 @@ select test.eq('an in-app notice to Finance and to the Admin (no email)',
      from notifications n where n.code = 'staff_deposit_release_due' and n.entity_id = test.id('dep:PQ-3')), '1/1/0');
 select test.eq('the notice opens the booking''s money, in the reader''s portal',
   (select string_agg(n.url, ' ' order by n.url) from notifications n where n.code = 'staff_deposit_release_due' and n.entity_id = test.id('dep:PQ-3') and n.user_id in (test.id('pq_admin'), test.id('pq_fin'))),
-  (app.settings()).notify_base_url || '/admin/bookings/PQ-3?tab=money ' || (app.settings()).notify_base_url || '/va/bookings/PQ-3?tab=money');
+  (app.settings()).notify_base_url || '/admin/bookings/PQ-3?tab=money ' || (app.settings()).notify_base_url || '/staff/bookings/PQ-3?tab=money');
 select test.eq('no email about it', (select count(*) from notification_outbox where code = 'staff_deposit_release_due'), 0::bigint);
 
 select test.eq('the next day: still one task, no second notice', app.job_deposits_due(test.at('2033-03-11 06:30')) || '/'

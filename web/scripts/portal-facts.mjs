@@ -84,17 +84,15 @@ function navFromLinks(code, group) {
 function nav() {
   const f = (p) => read(path.join(SRC, p));
   const admin = navFromGroups(f('features/admin/AdminNav.tsx'), 'GROUPS');
-  const vaCode = f('features/va/VaNav.tsx');
-  // My work with My sales (0057 for Sales, 0058 for every function), and the Rentals group (Add a rental, New quote; 0058)
-  const work = [...vaCode.matchAll(/const (?:\w*WORK|SELL|LIVE)[^=]*= (\{[\s\S]*?\] \});/g)].map((m) => m[1]).join(' ');
-  const va = [];
-  for (const g of navFromGroups(`X ${work} ${vaCode.slice(vaCode.indexOf('VA_GROUPS'))}`, 'X')) if (!va.some((x) => x.group === g.group && x.links.join() === g.links.join())) va.push(g);
+  // one staff portal since 0197: the groups of every function (src/features/staff/nav.ts); field work is its own group there
+  const staff = navFromGroups(f('features/staff/nav.ts'), 'STAFF_GROUPS');
+  const va = staff.filter((g) => g.group !== 'Field work');
   const inv = fs.existsSync(path.join(SRC, 'features/investor/InvestorNav.tsx')) ? f('features/investor/InvestorNav.tsx') : '';
   return {
     admin, va,
     owner: navFromLinks(f('features/owner/OwnerNav.tsx'), 'Owner portal'),
     renter: navFromLinks(f('features/portal/PortalNav.tsx'), 'Your account'),
-    field: navFromLinks(f('features/field/FieldNav.tsx'), 'Field'),
+    field: staff.filter((g) => g.group === 'Field work'),
     investor: navFromLinks(inv, 'Investor portal')
   };
 }

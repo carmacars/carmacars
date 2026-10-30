@@ -230,8 +230,8 @@ test('sales: an offer saved without telling the renter', async ({ browser }) => 
   const sales = await mkStaff(sql, 'va', 'sales', `Sam Sales ${tag()}`);
   const car = await mkCar(sql, admin.id);
   const page = await ctx(browser);
-  await signIn(page, sales.email, '/va');
-  await page.goto(`/va/offers/new?car=${car}`, { waitUntil: 'networkidle' });
+  await signIn(page, sales.email, '/staff');
+  await page.goto(`/staff/offers/new?car=${car}`, { waitUntil: 'networkidle' });
   await page.getByTestId('oc-add-customer').click();
   const email = `sid.${tag()}@example.test`;
   await page.getByTestId('oc-full_name').fill('Sid Sales');

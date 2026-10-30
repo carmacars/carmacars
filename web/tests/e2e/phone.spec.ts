@@ -106,8 +106,8 @@ test('Texts and calls: customer service reads a renter\'s text, takes a suggesti
   expect(task?.queue, 'a missed call raises a task').toBeTruthy();
   expect((await sql`select 1 from phone_outbox o join phone_threads p on p.id = o.thread_id where p.number = ${stranger}`).length, 'no automatic text (Quo\'s own auto-reply is used)').toBe(0);
 
-  await signIn(page, cs.email, '/va');
-  await page.goto('/va/chat', { waitUntil: 'networkidle' });
+  await signIn(page, cs.email, '/staff');
+  await page.goto('/staff/chat', { waitUntil: 'networkidle' });
   await page.getByTestId('tab-phone').click();
   await page.waitForURL(/view=phone/);
   const inbox = page.getByTestId('phone-inbox');

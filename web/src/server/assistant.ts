@@ -55,12 +55,12 @@ async function todo(userId: string, aal: 'aal1' | 'aal2' | null, who: Who, extra
     ]);
     const mine = q.filter((t) => t.bucket === 'mine' || t.bucket === 'unassigned').slice(0, 8);
     return [{ type: 'results', title: `${dg.open} open in your queue, ${dg.overdue} overdue, ${dg.due_today} due today${dg.requests_waiting ? `, ${dg.requests_waiting} requests waiting` : ''}`,
-      rows: mine.map((t) => ({ title: `${t.overdue ? 'Overdue: ' : ''}${t.title}`, sub: [t.priority !== 'normal' ? t.priority : '', t.due_at ? `due ${time(t.due_at)}` : '', t.bucket === 'mine' ? 'yours' : 'unassigned'].filter(Boolean).join(' · '), href: `/va/tasks/${t.task_id}` })),
+      rows: mine.map((t) => ({ title: `${t.overdue ? 'Overdue: ' : ''}${t.title}`, sub: [t.priority !== 'normal' ? t.priority : '', t.due_at ? `due ${time(t.due_at)}` : '', t.bucket === 'mine' ? 'yours' : 'unassigned'].filter(Boolean).join(' · '), href: `/staff/tasks/${t.task_id}` })),
       empty: 'Your queue is clear.' }];
   }
   const f = await door<FieldList>(userId, 'field_read', 'jobs', {}, aal);
   return [{ type: 'results', title: `${f.today.length} job${f.today.length === 1 ? '' : 's'} today`, empty: 'No jobs today.',
-    rows: f.today.map((j) => ({ title: `${time(j.scheduled_at)} ${j.kind.replace(/_/g, ' ')}${j.status === 'done' ? ' (done)' : ''}`, sub: [j.vehicle_label, j.plate, j.place, j.renter_first_name].filter(Boolean).join(' · '), href: `/field/jobs/${j.field_job_id}` })) }];
+    rows: f.today.map((j) => ({ title: `${time(j.scheduled_at)} ${j.kind.replace(/_/g, ' ')}${j.status === 'done' ? ' (done)' : ''}`, sub: [j.vehicle_label, j.plate, j.place, j.renter_first_name].filter(Boolean).join(' · '), href: `/staff/field/jobs/${j.field_job_id}` })) }];
 }
 
 export interface AskInput { userId: string; aal: 'aal1' | 'aal2' | null; portal: Portal; fn?: VaFn | null; name?: string | null; text: string; history?: Turn[] }

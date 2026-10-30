@@ -28,7 +28,7 @@ const vp = (phone: boolean) => (phone ? { width: 375, height: 812 } : { width: 1
 const tag = () => randomBytes(3).toString('hex');
 
 type Portal = 'renter' | 'owner' | 'admin' | 'va' | 'field' | 'investor';
-const HOME: Record<Portal, string> = { renter: '/account', owner: '/owner', admin: '/admin', va: '/va', field: '/field', investor: '/investor' };
+const HOME: Record<Portal, string> = { renter: '/account', owner: '/owner', admin: '/admin', va: '/staff', field: '/staff/field', investor: '/investor' };
 const NAME: Record<Portal, string> = { renter: 'Riley Renter', owner: 'Olive Owner', admin: 'Ada Admin', va: 'Val Assistant', field: 'Finn Field', investor: 'Ivy Investor' };
 
 async function mkUser(sql: Sql, portal: Portal, extra: { va?: string; name?: string } = {}) {
@@ -347,10 +347,10 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   await expect(srow.getByTestId('staff-agreement-status')).toContainText('waiting for their signature', { timeout: 15_000 });
   await check(ap, 'admin staff agreements');
   const vp2 = await ctx(browser, phone);
-  await signIn(vp2, va.email, '/va');
-  await vp2.goto('/va', { waitUntil: 'networkidle' });
+  await signIn(vp2, va.email, '/staff');
+  await vp2.goto('/staff', { waitUntil: 'networkidle' });
   await vp2.getByTestId('va-to-sign').getByRole('link').click();
-  await vp2.waitForURL(/\/va\/sign$/);
+  await vp2.waitForURL(/\/staff\/sign$/);
   // the documents to sign are one package on this page: the PDF to read, the signature drawn, one button
   await expect(vp2.getByTestId('sign-read')).toBeVisible();
   await vp2.getByTestId('portal-sign-form').getByTestId('signature-mode').click();
@@ -365,7 +365,7 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   await expect(vp2.getByTestId('package-signed').or(vp2.getByTestId('sign-done'))).toBeVisible({ timeout: 30_000 });
   const sa = await sql`select r.status, r.method, (select agreement_document_id from staff_profiles where user_id = ${va.id}) in (r.document_id, r.signed_document_id) as on_file from sign_requests r where r.staff_user_id = ${va.id}`;
   expect([sa[0]!.status, sa[0]!.method, sa[0]!.on_file]).toEqual(['signed', 'drawn', true]);
-  await vp2.goto('/va/sign', { waitUntil: 'networkidle' });
+  await vp2.goto('/staff/sign', { waitUntil: 'networkidle' });
   await expect(vp2.getByTestId('sign-done')).toContainText('Signed here');
   await check(vp2, 'va documents signed');
   await vp2.context().close(); await ap.context().close();

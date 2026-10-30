@@ -12,12 +12,15 @@ const EMAIL_PATHS: Array<[string, string]> = [
   ['/owner/bookings/:n', '/owner/bookings'], ['/owner/claims/:n', '/owner/notifications'],
   ['/admin/approvals', '/admin/tasks'], ['/admin/disputes/:id', '/admin/money?tab=disputes'], ['/admin/fleet', '/admin/vehicles'], ['/admin/jobs', '/admin'],
   ['/admin/reports/weekly', '/admin/reports'],
-  ['/va/cs/bookings/:n/identity', '/va/verify/:n'], ['/va/:fn(cs|finance|fleet|sales)/bookings/:n', '/va/bookings/:n'],
-  ['/va/finance/tolls-tickets/:id', '/va/tolls'], ['/va/finance/owner-invoices/:n', '/va/money'], ['/va/finance/insurer-invoices/:n', '/va/money'],
-  ['/va/finance/turo', '/va/turo'], ['/va/finance/reconciliation', '/va/reconciliation'],
-  ['/va/fleet/listings/:id', '/va/listings'], ['/va/fleet/expiries', '/va/fleet#expiry'], ['/va/fleet/vehicles/:id', '/va/vehicles/:id'], ['/va/fleet/checks', '/va/checks'],
-  ['/va/sales/applications/:id', '/va/leads'], ['/va/sales/quotes/new', '/va/quotes/new'], ['/va/cs/reviews', '/va'],
-  ['/va/:fn(cs|finance|sales)', '/va']
+  ['/va/cs/bookings/:n/identity', '/staff/verify/:n'], ['/va/:fn(cs|finance|fleet|sales)/bookings/:n', '/staff/bookings/:n'],
+  ['/va/finance/tolls-tickets/:id', '/staff/tolls'], ['/va/finance/owner-invoices/:n', '/staff/money'], ['/va/finance/insurer-invoices/:n', '/staff/money'],
+  ['/va/finance/turo', '/staff/turo'], ['/va/finance/reconciliation', '/staff/reconciliation'],
+  ['/va/fleet/listings/:id', '/staff/listings/:id'], ['/va/fleet/expiries', '/staff/fleet#expiry'], ['/va/fleet/vehicles/:id', '/staff/vehicles/:id'], ['/va/fleet/checks', '/staff/checks'],
+  ['/va/sales/applications/:id', '/staff/leads'], ['/va/sales/quotes/new', '/staff/quotes/new'], ['/va/cs/reviews', '/staff'],
+  ['/va/:fn(cs|finance|sales)', '/staff'],
+  // one staff portal since 0197 (the owner, October 30, 2026): the assistants' and the field portals' addresses open the same
+  // page under /staff, so older links, bookmarks and home-screen icons keep working
+  ['/field/no-access', '/staff/no-access'], ['/va', '/staff'], ['/va/:path*', '/staff/:path*'], ['/field', '/staff/field'], ['/field/:path*', '/staff/field/:path*']
 ];
 
 const config: NextConfig = {
@@ -46,7 +49,7 @@ const config: NextConfig = {
       { source: '/account/:path*', headers: noindex },
       { source: '/book/:path*', headers: noindex },
       { source: '/api/:path*', headers: noindex },
-      ...['/admin', '/owner', '/va', '/field', '/investor', '/two-step', '/files', '/d', '/sign', '/unsubscribe'].flatMap((p) => [{ source: p, headers: noindex }, { source: `${p}/:path*`, headers: noindex }]),
+      ...['/admin', '/owner', '/va', '/field', '/staff', '/investor', '/two-step', '/files', '/d', '/sign', '/unsubscribe'].flatMap((p) => [{ source: p, headers: noindex }, { source: `${p}/:path*`, headers: noindex }]),
       ...(process.env.APP_ENV === 'staging' ? [{ source: '/:path*', headers: noindex }] : [])
     ];
   },

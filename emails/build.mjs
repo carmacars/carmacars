@@ -21,8 +21,8 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const SRC = join(ROOT, 'src', 'emails');
 const AUDIENCES = ['renter', 'owner', 'investor', 'staff_admin', 'staff_va_finance', 'staff_va_fleet', 'staff_va_cs', 'staff_va_sales', 'staff_field', 'insurer', 'applicant'];
 const AUDIENCE_LABEL = {
-  renter: 'Renter', owner: 'Owner', investor: 'Investor', staff_admin: 'Staff: admin', staff_va_finance: 'Staff: VA finance',
-  staff_va_fleet: 'Staff: VA fleet', staff_va_cs: 'Staff: VA customer service', staff_va_sales: 'Staff: VA sales', staff_field: 'Staff: field', insurer: 'Insurer (billing contact)', applicant: 'Job applicant',
+  renter: 'Renter', owner: 'Owner', investor: 'Investor', staff_admin: 'Staff: admin', staff_va_finance: 'Staff: finance',
+  staff_va_fleet: 'Staff: fleet', staff_va_cs: 'Staff: customer service', staff_va_sales: 'Staff: sales', staff_field: 'Staff: field', insurer: 'Insurer (billing contact)', applicant: 'Job applicant',
 };
 const REQUIRED = ['code', 'audience', 'trigger', 'timing', 'category', 'subject', 'preheader', 'from', 'body'];
 

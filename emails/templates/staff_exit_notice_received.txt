@@ -14,7 +14,7 @@ Transfer-back fees: {{retransfer_fee_note}}
 Fleet count after exit: {{fleet_count_after}}
 
 Open the vehicle:
-https://carmacars.ca/va/fleet/vehicles/{{vehicle_id}}
+https://carmacars.ca/staff/vehicles/{{vehicle_id}}
 
 - Block the calendar after the Exit Date.
 - Get the owner's proof of own insurance from the Exit Date.

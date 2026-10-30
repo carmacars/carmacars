@@ -38,12 +38,13 @@ export function InviteRecordButton({ role, recordId, email, name, testId }: { ro
 }
 
 type Rec = { id: string; name: string; email: string | null };
-const FNS: Array<[string, string]> = [['cs', 'Customer service'], ['sales', 'Sales'], ['fleet', 'Fleet'], ['finance', 'Finance']];
+// the kinds of staff work (0197): any combination, in one staff portal
+const FNS: Array<[string, string]> = [['cs', 'Customer service'], ['sales', 'Sales'], ['fleet', 'Fleet'], ['finance', 'Finance'], ['field', 'Field work']];
 
-export function InviteForm({ owners = [], investors = [], roles = ['va', 'field', 'owner', 'investor'], testId = 'invite-form' }: { owners?: Rec[]; investors?: Rec[]; roles?: string[]; testId?: string }) {
+export function InviteForm({ owners = [], investors = [], roles = ['staff', 'owner', 'investor'], testId = 'invite-form' }: { owners?: Rec[]; investors?: Rec[]; roles?: string[]; testId?: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [f, setF] = useState({ email: '', full_name: '', role: roles[0] ?? 'va', va_function: 'cs', cover: [] as string[], field_function: 'driver', owner_id: '', investor_id: '' });
+  const [f, setF] = useState({ email: '', full_name: '', role: roles[0] ?? 'staff', functions: ['cs'] as string[], sales_work_mode: 'in_person', field_function: 'driver_detailer', owner_id: '', investor_id: '' });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [errs, setErrs] = useState<Record<string, string>>({});
   const pickRecord = (kind: 'owner' | 'investor', id: string) => {
@@ -51,13 +52,14 @@ export function InviteForm({ owners = [], investors = [], roles = ['va', 'field'
     setF({ ...f, [`${kind}_id`]: id, email: r?.email ?? f.email, full_name: r?.name ?? f.full_name });
   };
   const submit = () => start(async () => {
-    const r = await inviteAccount({ email: f.email, full_name: f.full_name, role: f.role, va_function: f.role === 'va' ? f.va_function : undefined,
-      cover_functions: f.role === 'va' ? f.cover : undefined, field_function: f.role === 'field' ? f.field_function : undefined,
+    const staff = f.role === 'staff';
+    const r = await inviteAccount({ email: f.email, full_name: f.full_name, role: f.role, functions: staff ? f.functions : undefined,
+      work_mode: staff && f.functions.includes('sales') ? f.sales_work_mode as 'in_person' | 'remote' : undefined, field_function: staff && f.functions.includes('field') ? f.field_function : undefined,
       owner_id: f.role === 'owner' ? f.owner_id : undefined, investor_id: f.role === 'investor' ? f.investor_id : undefined });
     if (r.ok) {
       setErrs({});
       setMsg({ ok: true, text: r.data.existed ? `${r.data.email} already signs in to CarmaCars: the role is added and no email was sent. Use Send password link if they need one.` : `Invitation sent to ${r.data.email}. The link works for 24 hours; send a new one from the list if it runs out.` });
-      setF({ ...f, email: '', full_name: '', owner_id: '', investor_id: '', cover: [] });
+      setF({ ...f, email: '', full_name: '', owner_id: '', investor_id: '' });
       router.refresh();
     } else { setErrs((r as { fieldErrors?: Record<string, string> }).fieldErrors ?? {}); setMsg({ ok: false, text: r.message }); }
   });
@@ -67,8 +69,7 @@ export function InviteForm({ owners = [], investors = [], roles = ['va', 'field'
       <div className="ad-fields">
         <div className="field ad-field"><label className="label" htmlFor="inv-r">Role</label>
           <select className="select" id="inv-r" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}>
-            {roles.includes('va') && <option value="va">Staff (assistant)</option>}
-            {roles.includes('field') && <option value="field">Field staff</option>}
+            {roles.includes('staff') && <option value="staff">Staff</option>}
             {roles.includes('owner') && <option value="owner">Owner on file</option>}
             {roles.includes('investor') && <option value="investor">Investor on file</option>}
           </select>{err('role')}<p className="small muted">Admin access is only through rent@carmacars.ca (Settings &gt; Staff and roles &gt; Admin access).</p></div>
@@ -84,12 +85,12 @@ export function InviteForm({ owners = [], investors = [], roles = ['va', 'field'
           </select>{err('investor_id')}</div>}
         <div className="field ad-field"><label className="label" htmlFor="inv-n">Name</label><input className="input" id="inv-n" value={f.full_name} onChange={(e) => setF({ ...f, full_name: e.target.value })} aria-invalid={!!errs.full_name || undefined} />{err('full_name')}</div>
         <div className="field ad-field"><label className="label" htmlFor="inv-e">Email</label><input className="input" id="inv-e" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} aria-invalid={!!errs.email || undefined} />{err('email')}</div>
-        {f.role === 'va' && <div className="field ad-field"><label className="label" htmlFor="inv-v">Main function</label>
-          <select className="select" id="inv-v" value={f.va_function} onChange={(e) => setF({ ...f, va_function: e.target.value, cover: f.cover.filter((c) => c !== e.target.value) })}>
-            {FNS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>{err('va_function')}</div>}
-        {f.role === 'va' && <fieldset className="field ad-field"><legend className="label">Also covers</legend>
-          {FNS.filter(([k]) => k !== f.va_function).map(([k, l]) => <label key={k} className="check"><input type="checkbox" checked={f.cover.includes(k)} onChange={(e) => setF({ ...f, cover: e.target.checked ? [...f.cover, k] : f.cover.filter((c) => c !== k) })} /><span className="small">{l}</span></label>)}</fieldset>}
-        {f.role === 'field' && <div className="field ad-field"><label className="label" htmlFor="inv-f">Field function</label>
+        {f.role === 'staff' && <fieldset className="field ad-field" data-testid="inv-functions"><legend className="label">Staff work</legend>
+          {FNS.map(([k, l]) => <label key={k} className="check"><input type="checkbox" value={k} checked={f.functions.includes(k)} onChange={(e) => setF({ ...f, functions: e.target.checked ? [...f.functions, k] : f.functions.filter((c) => c !== k) })} /><span className="small">{l}</span></label>)}{err('functions')}</fieldset>}
+        {f.role === 'staff' && f.functions.includes('sales') && <div className="field ad-field"><label className="label" htmlFor="inv-m">Sales work</label>
+          <select className="select" id="inv-m" value={f.sales_work_mode} onChange={(e) => setF({ ...f, sales_work_mode: e.target.value })}>
+            <option value="in_person">In person</option><option value="remote">Remote</option></select></div>}
+        {f.role === 'staff' && f.functions.includes('field') && <div className="field ad-field"><label className="label" htmlFor="inv-f">Field role</label>
           <select className="select" id="inv-f" value={f.field_function} onChange={(e) => setF({ ...f, field_function: e.target.value })}>
             <option value="driver">Driver</option><option value="detailer">Detailer</option><option value="driver_detailer">Driver and detailer</option></select>{err('field_function')}</div>}
       </div>

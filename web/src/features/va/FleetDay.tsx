@@ -35,7 +35,7 @@ export function DayTimeline({ jobs, now, testId = 'va-day', title = 'Today: hand
               <time className="va-day__time" dateTime={String(j.scheduled_at)}>{clock(String(j.scheduled_at))}</time>
               <span className="va-day__dot" aria-hidden="true" />
               <span className="va-day__body">
-                <span className="va-day__title"><b>{jobWord(kind)}</b> {String(j.vehicle_name ?? '')}{j.booking_number ? <> · <Link prefetch={false} className="link" href={`/va/bookings/${encodeURIComponent(String(j.booking_number))}`}>{String(j.booking_number)}</Link></> : null}</span>
+                <span className="va-day__title"><b>{jobWord(kind)}</b> {String(j.vehicle_name ?? '')}{j.booking_number ? <> · <Link prefetch={false} className="link" href={`/staff/bookings/${encodeURIComponent(String(j.booking_number))}`}>{String(j.booking_number)}</Link></> : null}</span>
                 <span className="va-day__meta">
                   {j.place ? <span>{String(j.place)}</span> : null}
                   <span className={nobody ? 'va-warn' : undefined}>{nobody ? 'Nobody assigned' : `${String(j.assignee_name ?? '')}${unack ? ', not acknowledged' : ''}`}</span>
@@ -67,7 +67,7 @@ export function CarBoard({ rows, now, testId = 'va-cars', compact = false, carHr
             <span className={`pu-pill pu-pill--${TONE[r.state]}`}>{STATE_WORDS[r.state]}</span>
             <span className="va-car__name">{carHref ? <Link prefetch={false} className="link" href={carHref(r.id)}>{r.label}</Link> : r.label}{r.plate ? <span className="va-car__plate">{r.plate}</span> : null}</span>
             <span className="va-car__when">{r.at ? `${r.state === 'out_today' ? 'out' : r.state === 'free' ? '' : 'until'} ${clock(r.at)}${torontoDay(Date.parse(r.at)) !== torontoDay(now) ? `, ${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' }).format(new Date(r.at))}` : ''}` : r.note ?? ''}
-              {r.booking ? <> · <Link prefetch={false} className="link" href={`/va/bookings/${encodeURIComponent(r.booking)}`}>{r.booking}</Link></> : null}</span>
+              {r.booking ? <> · <Link prefetch={false} className="link" href={`/staff/bookings/${encodeURIComponent(r.booking)}`}>{r.booking}</Link></> : null}</span>
           </li>))}</ul>
       ) : compact ? <p className="va-empty-line"><PuIcon name="check" /> No car goes out or comes back today.</p> : <p className="va-empty-line">No cars.</p>}
     </section>

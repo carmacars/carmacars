@@ -15,7 +15,7 @@ type Ctx = { profiles: Profile[]; plates: string[]; transponders: string[]; sett
 type Save = { method: 'csv' | 'pdf_text' | 'vision' | 'manual'; profile_id?: string | null; authority?: string | null; kind: Kind; statement_number?: string | null; account_number?: string | null;
   statement_date?: string | null; due_on?: string | null; total_cents?: number | null; page_count?: number | null; model?: string | null; neurons?: number; problems: string[]; lines: ReadLine[] };
 
-export function TollReader({ base }: { base: '/admin' | '/va' }) {
+export function TollReader({ base }: { base: '/admin' | '/staff' }) {
   const router = useRouter();
   const { act } = useDoor();
   const [ctx, setCtx] = useState<Ctx | null>(null);

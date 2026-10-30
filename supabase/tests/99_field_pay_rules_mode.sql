@@ -184,7 +184,7 @@ select test.eq('email: one pay statement email for each payment, to the person',
 select test.eq('email: the figures; the recipient is the staff member',
   (select (x ->> 'gross_total') || '/' || (x ->> 'period_label' = app.fp_period_label(test.fp_prev())) || '/' || (x ->> 'payout_method') || '/' || (x ->> 'payout_reference') || '/' || jsonb_array_length(x -> 'pay_lines') || '/' || (x ->> 'hours_url') || '/' || (select r.email from app.notification_recipients(e, (select c from notification_catalogue c where c.code = 'staff_pay_statement')) r)
      from app_events e cross join lateral app.notification_payload('staff_pay_statement', e, '{}') x where e.code = 'staff_pay_statement' and e.entity_id = (select id from field_pay_lines where staff_id = test.id('fp_ann') and run_id = (test.fpv('run') ->> 'run_id')::uuid)),
-  '$189.00/true/e-Transfer/CAFP1234/2/https://carmacars.ca/field/hours/fp_ann@example.test');
+  '$189.00/true/e-Transfer/CAFP1234/2/https://carmacars.ca/staff/field/hours/fp_ann@example.test');
 select test.fp_do('fp_admin', 'field_pay_line_email', jsonb_build_object('line_id', (select id from field_pay_lines where staff_id = test.id('fp_ann') and run_id = (test.fpv('run') ->> 'run_id')::uuid)));
 select test.eq('email: Send again makes another', (select count(*) from app_events where code = 'staff_pay_statement' and entity_id in (select id from field_pay_lines where run_id = (test.fpv('run') ->> 'run_id')::uuid)), 4::bigint);
 select test.eq('email: it is in the catalogue as a staff email for field staff', (select audience || '/' || category from notification_catalogue where code = 'staff_pay_statement'), 'staff_field/transactional');

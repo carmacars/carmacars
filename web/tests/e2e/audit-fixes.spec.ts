@@ -257,13 +257,13 @@ test('the car code: on the car page and the fleet cards, found by Admin search a
     await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', 'fleet')`;
     const vc = await browser.newContext({ viewport: page.viewportSize() ?? undefined, baseURL: test.info().project.use.baseURL });
     const vp = await vc.newPage();
-    await vp.goto(`/sign-in?next=${encodeURIComponent('/va/cars')}`, { waitUntil: 'networkidle' });
+    await vp.goto(`/sign-in?next=${encodeURIComponent('/staff/cars')}`, { waitUntil: 'networkidle' });
     await acceptCookies(vp);
     await vp.locator('input[type="email"]').fill(email);
     await vp.locator('input[type="password"]').fill(PW);
     await vp.getByRole('button', { name: 'Sign in' }).click();
-    await vp.waitForURL((u) => u.pathname.startsWith('/va'), { timeout: 20_000 });
-    await vp.goto(`/va/cars?q=${encodeURIComponent((c!.car_code as string).replace('-', ' '))}`, { waitUntil: 'networkidle' });
+    await vp.waitForURL((u) => u.pathname.startsWith('/staff'), { timeout: 20_000 });
+    await vp.goto(`/staff/cars?q=${encodeURIComponent((c!.car_code as string).replace('-', ' '))}`, { waitUntil: 'networkidle' });
     await expect(vp.getByTestId('car-matches')).toContainText(c!.car_code as string);
     await axe(vp, 'find a car');
     await vc.close();

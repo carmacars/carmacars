@@ -73,29 +73,29 @@ export const PATHS = {
   admin_debits: '/admin/debits',
   admin_usage: '/admin/settings/usage',
 
-  // VA portal
-  va_cs: '/va/cs',
-  va_cs_booking: '/va/cs/bookings/{{booking_number}}',
-  va_cs_identity: '/va/cs/bookings/{{booking_number}}/identity',
-  va_cs_reviews: '/va/cs/reviews',
-  va_finance: '/va/finance',
-  va_finance_booking: '/va/finance/bookings/{{booking_number}}',
-  va_finance_toll: '/va/finance/tolls-tickets/{{toll_ticket_id}}',
-  va_finance_invoice: '/va/finance/owner-invoices/{{invoice_number}}',
-  va_finance_insurer_invoice: '/va/finance/insurer-invoices/{{invoice_number}}',
-  va_fleet: '/va/fleet',
-  va_fleet_booking: '/va/fleet/bookings/{{booking_number}}',
-  va_fleet_listing: '/va/fleet/listings/{{vehicle_id}}',
-  va_fleet_expiries: '/va/fleet/expiries',
-  va_fleet_vehicle: '/va/fleet/vehicles/{{vehicle_id}}',
-  va_sales: '/va/sales',
-  va_sales_application: '/va/sales/applications/{{application_id}}',
-  va_similar_cars: '/va/similar-cars',
-  va_owner_forms: '/va/owner-forms',
+  // Staff portal (one portal since 0197)
+  va_cs: '/staff',
+  va_cs_booking: '/staff/bookings/{{booking_number}}',
+  va_cs_identity: '/staff/verify/{{booking_number}}',
+  va_cs_reviews: '/staff',
+  va_finance: '/staff',
+  va_finance_booking: '/staff/bookings/{{booking_number}}',
+  va_finance_toll: '/staff/tolls?ticket={{toll_ticket_id}}',
+  va_finance_invoice: '/staff/money',
+  va_finance_insurer_invoice: '/staff/money',
+  va_fleet: '/staff/fleet',
+  va_fleet_booking: '/staff/bookings/{{booking_number}}',
+  va_fleet_listing: '/staff/listings/{{vehicle_id}}',
+  va_fleet_expiries: '/staff/fleet#expiry',
+  va_fleet_vehicle: '/staff/vehicles/{{vehicle_id}}',
+  va_sales: '/staff',
+  va_sales_application: '/staff/leads?application={{application_id}}',
+  va_similar_cars: '/staff/similar-cars',
+  va_owner_forms: '/staff/owner-forms',
 
-  // Field portal
-  field: '/field',
-  field_job: '/field/jobs/{{job_id}}',
+  // Field work, in the staff portal
+  field: '/staff/field',
+  field_job: '/staff/field/jobs/{{job_id}}',
 };
 
 export function url(name) {

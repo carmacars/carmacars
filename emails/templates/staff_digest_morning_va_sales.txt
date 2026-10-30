@@ -28,7 +28,7 @@ Your queue is clear.
 {{/if}}
 
 Open my queue:
-https://carmacars.ca/va/sales
+https://carmacars.ca/staff
 
 Urgent items are still sent on their own, at once: late returns, incidents, disputes, new booking requests and anything due within hours.
 

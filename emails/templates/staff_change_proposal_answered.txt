@@ -15,7 +15,7 @@ Renter: {{renter_name}}
 Vehicle: {{vehicle_name}}
 
 Open the booking:
-https://carmacars.ca/va/cs/bookings/{{booking_number}}
+https://carmacars.ca/staff/bookings/{{booking_number}}
 
 ----------------------------------------
 

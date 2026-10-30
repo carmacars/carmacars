@@ -149,7 +149,7 @@ insert into s37 select 'pay1', app.commission_payout_record(test.id('sc_admin'),
 select test.eq('paid: recorded by hand with method and reference', (select c.status || '/' || po.method || '/' || po.reference || '/' || (po.amount_cents = c.amount_cents)
   from staff_commissions c join staff_commission_payouts po on po.id = c.payout_id where c.id = (test.s37c('cs_done')).id), 'paid/wise/WISE-SC-1/true');
 select test.ok('paid: an email event with the payment', exists (select 1 from app_events e where e.code = 'staff_commission_paid' and e.entity_id = (test.s37('pay1') ->> 'payout_id')::uuid));
-select test.eq('paid: the email''s values', (select x ->> 'payout_method' || '/' || (x ->> 'payout_reference') || '/' || (x ->> 'commission_count') || '/' || (x ->> 'sales_url' like '%/va/my-sales')
+select test.eq('paid: the email''s values', (select x ->> 'payout_method' || '/' || (x ->> 'payout_reference') || '/' || (x ->> 'commission_count') || '/' || (x ->> 'sales_url' like '%/staff/my-sales')
   from app_events e cross join lateral app.notification_payload('staff_commission_paid', e, '{}'::jsonb) x where e.code = 'staff_commission_paid' and e.entity_id = (test.s37('pay1') ->> 'payout_id')::uuid),
   'Wise/WISE-SC-1/1/true');
 -- a later refund of half the rental: the difference is clawed back

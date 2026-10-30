@@ -13,7 +13,7 @@ export interface NavGroup { key: string; label: string; links: NavLink[] }
 function matches(path: string, query: string, href: string): boolean {
   const [p, q] = href.split('?');
   if (q) return path === p && query.includes(q);
-  return path === p || (p !== '/admin' && p !== '/va' && path.startsWith(`${p}/`));
+  return path === p || (p !== '/admin' && p !== '/staff' && path.startsWith(`${p}/`));
 }
 
 /** The link of the page shown: the most specific match (/admin/bookings/new over /admin/bookings). */
