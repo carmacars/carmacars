@@ -66,3 +66,18 @@ test('on rent and after: check-in, the photo report; completed agreements add no
   assert.equal(v.note, null);
   assert.equal(handoverPanelView({ status: 'returned', canHandover: false, late: false, signing: null }).report, true);
 });
+
+test('0195: record the pickup or the return now beside the checklist, and add the details later', () => {
+  const c = handoverPanelView({ status: 'confirmed', canHandover: true, late: false, signing: null });
+  assert.equal(c.recordPickup, true);
+  assert.equal(c.recordReturn, false);
+  const r = handoverPanelView({ status: 'on_rent', canHandover: true, late: true, signing: null, detailsPending: ['pickup'] });
+  assert.equal(r.recordReturn, true);
+  assert.deepEqual(r.addDetails, ['pickup']);
+  const done = handoverPanelView({ status: 'returned', canHandover: true, late: false, signing: null, detailsPending: ['pickup', 'return'] });
+  assert.deepEqual(done.addDetails, ['pickup', 'return']);
+  assert.equal(done.recordReturn, false);
+  assert.deepEqual(handoverPanelView({ status: 'returned', canHandover: false, late: false, signing: null, detailsPending: ['return'] }).addDetails, []);
+  // a return still on rent is recorded, not completed
+  assert.deepEqual(handoverPanelView({ status: 'on_rent', canHandover: true, late: false, signing: null, detailsPending: ['return'] }).addDetails, []);
+});

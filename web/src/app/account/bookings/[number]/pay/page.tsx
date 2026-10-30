@@ -12,6 +12,8 @@ import { myTripPhotos } from '@/server/portal/data';
 import { PUSH_BACK } from '@/server/portal/payment';
 import { ReceiptEmail } from '@/features/portal/ReceiptEmail';
 import { accountGate, GATE_MESSAGE } from '@/server/sign-in-settings';
+import { CompleteDetails } from '@/features/portal/CompleteDetails';
+import { renterDetailsMissing } from '@/server/portal/renter-details';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Pay for your booking', path: '/account/bookings', noindex: true, description: 'Pay to confirm your booking.' });
@@ -28,7 +30,7 @@ export default async function PayPage({ params }: { params: Promise<{ number: st
   const debitOk = (await rpc('vehicle_takes_debit', { p_vehicle: b.vehicle_id }, { role: 'service_role' }).catch(() => false)) === true;
   const pushedBack = b.status === 'requested' && b.offers[b.offers.length - 1]?.status === 'withdrawn';
   // a confirmed account, and an email for the receipts before the first payment (0091)
-  const [gate, photos] = await Promise.all([accountGate(user.id, 'pay'), myTripPhotos(user)]);
+  const [gate, photos, detailsMissing] = await Promise.all([accountGate(user.id, 'pay'), myTripPhotos(user), renterDetailsMissing(b, user.id)]);
   // paid another way (0129): staff agreed e-Transfer, cash, a platform or the insurer; no card form, the way to pay instead
   const offline = (await rpc('renter_offline_pay_facts', { p_booking: b.id }, { role: 'service_role' }).catch(() => null)) as unknown as { rental_pay_method: string; deposit_pay_method: string; e_transfer_email: string | null; open_cents: number } | null;
   const payOffline = !!offline && offline.rental_pay_method !== 'card' && b.status === 'pending_payment' && !live;
@@ -55,7 +57,7 @@ export default async function PayPage({ params }: { params: Promise<{ number: st
           </section>
           ) : (
           <section className="pt-card" aria-labelledby="pt-pay"><h2 className="d4" id="pt-pay">Card</h2>
-            {gate.ok ? <PayForm number={b.booking_number} amountCents={b.renter_due_at_booking_cents} depositCents={b.deposit_cents} coverageOption={b.coverage_option} debitOk={debitOk} />
+            {detailsMissing.length > 0 ? <CompleteDetails number={b.booking_number} missing={detailsMissing} then="pay" /> : gate.ok ? <PayForm number={b.booking_number} amountCents={b.renter_due_at_booking_cents} depositCents={b.deposit_cents} coverageOption={b.coverage_option} debitOk={debitOk} />
               : gate.reason === 'email_needed' ? <ReceiptEmail path={bookingPath(b.booking_number, 'pay')} />
               : <p className="alert alert--error" role="alert" data-testid="pay-unconfirmed"><span>{GATE_MESSAGE} <Link prefetch={false} className="link" href="/account/profile">Profile</Link></span></p>}
           </section>)}

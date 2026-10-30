@@ -44,6 +44,7 @@ const LABELS: Record<string, string> = {
   request_claim_minutes: 'Booking requests: the person answering a request holds it for (minutes)',
   request_sales_after_minutes: 'Booking requests: Sales may answer a request this many minutes after it came in',
   deposit_release_reminder_days: 'Deposits: with no check-in recorded, due back this many business days after the return',
+  vlf_daily_cents: 'Insurer-billed rentals: VLF (vehicle licensing fee) a day',
   staff_commission_bps: 'Commission outside Sales: customer service, finance, fleet and field staff (also the field referral fee)',
   sales_tier_low_bps: 'Sales commission under the middle tier\'s days', sales_tier_mid_bps: 'Sales commission from the middle tier\'s days', sales_tier_high_bps: 'Sales commission from the top tier\'s days',
   sales_tier_mid_days: 'Sales: rental days in a month for the middle tier', sales_tier_high_days: 'Sales: rental days in a month for the top tier (the month\'s target)',
@@ -129,6 +130,7 @@ const LABELS: Record<string, string> = {
 };
 const HINTS: Record<string, string> = {
   esign_code_required: 'Off by default: the signer reads, initials each key term, consents and draws the signature, and the certificate records the time, IP address and device of each step and says the identity was not confirmed by a code. On: the code comes first, as before. Signers can still verify by code when it is off.',
+  vlf_daily_cents: 'Added a day to every rental billed to an insurer (the insurer pays it with the rental, also when it pays the rental only) and printed on the Blind Spot form\'s VLF line. $0: no VLF. A booking can have its own on the insurance claim card.',
   deposit_release_reminder_days: 'A deposit is due back 7 business days after the check-in. When no check-in was recorded, the reminder counts from the return instead. On the day (a little before, in the Finance queue) Finance gets one task and the Admins and Finance an in-app notice; nothing is emailed. The task closes by itself once the deposit is settled.',
   field_pay_anchor: 'A Sunday works best. Pay runs already made keep their own dates; change this only between pay periods.',
   field_default_hourly_cents: '$18.00 by default. A person\'s own rate is set in Money, Field pay, Hourly rates; a pay run uses the rate when it was started.',

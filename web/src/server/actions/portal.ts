@@ -118,6 +118,21 @@ export async function saveDetails(number: string, d: DetailsInput): Promise<R> {
   } catch (e) { return fail(dbMessage(e)); }
 }
 
+/** "Complete your details" (0195): the agreement's blanks the renter fills in (only blanks are written), then the open
+ *  agreement is made again with them (a signed one follows by itself: a corrected copy). */
+export async function completeAgreementDetails(number: string, p: Record<string, string>): Promise<R<{ missing: unknown[] }>> {
+  try {
+    const { userId, b } = await mine(number);
+    const r = (await rpc('renter_agreement_fill', { p_by: userId, p_booking: b.id, p }, SR)) as unknown as { missing: unknown[] };
+    if (b.agreement?.status === 'open') await openAgreement(b.id, userId).catch(() => undefined);
+    kickPdfJobs();
+    refresh(number);
+    revalidatePath(bookingPath(number, 'sign'));
+    revalidatePath(bookingPath(number, 'pay'));
+    return { ok: true, data: r };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
 /** The licence details alone (number, issuer, class, expiry), from the licence step (0130). */
 export async function saveLicence(number: string, d: { licence_number: string; licence_class: string; licence_issuer: string; licence_expiry: string }): Promise<R> {
   const fe: Record<string, string> = {};

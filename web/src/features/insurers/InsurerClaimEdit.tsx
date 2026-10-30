@@ -9,8 +9,10 @@ export interface InsurerClaimData {
   booking: string; bill_to: string; insurer_id: string | null; claim_number: string | null; adjuster_name: string | null; adjuster_email: string | null;
   adjuster_phone: string | null; policy_number: string | null; policy_province: string | null; authorized_days: number | null; authorized_until: string | null;
   authorized_daily_rate_cents: number | null;
+  /** 0195: the VLF a day of this booking (null: the program setting, vlf_default_cents) */
+  vlf_daily_cents?: number | null; vlf_default_cents?: number | null;
 }
-type K = 'bill_to' | 'insurer_id' | 'claim_number' | 'adjuster_name' | 'adjuster_email' | 'adjuster_phone' | 'policy_number' | 'policy_province' | 'authorized_days' | 'authorized_until' | 'authorized_daily_rate';
+type K = 'bill_to' | 'insurer_id' | 'claim_number' | 'adjuster_name' | 'adjuster_email' | 'adjuster_phone' | 'policy_number' | 'policy_province' | 'authorized_days' | 'authorized_until' | 'authorized_daily_rate' | 'vlf_daily';
 const BILL: Array<[string, string]> = [['renter', 'Renter'], ['insurer', 'Insurer pays rental and fees'], ['split', 'Insurer pays the rental only']];
 
 export function InsurerClaimEdit({ x, insurers }: { x: InsurerClaimData; insurers: Array<{ id: string; name: string }> }) {
@@ -20,6 +22,7 @@ export function InsurerClaimEdit({ x, insurers }: { x: InsurerClaimData; insurer
     bill_to: x.bill_to, insurer_id: x.insurer_id ?? '', claim_number: x.claim_number ?? '', adjuster_name: x.adjuster_name ?? '', adjuster_email: x.adjuster_email ?? '',
     adjuster_phone: x.adjuster_phone ?? '', policy_number: x.policy_number ?? '', policy_province: x.policy_province ?? '', authorized_days: x.authorized_days?.toString() ?? '',
     authorized_until: x.authorized_until ?? '', authorized_daily_rate: x.authorized_daily_rate_cents == null ? '' : (x.authorized_daily_rate_cents / 100).toFixed(2),
+    vlf_daily: x.vlf_daily_cents == null ? '' : (x.vlf_daily_cents / 100).toFixed(2),
   };
   const [open, setOpen] = useState(false);
   const [f, setF] = useState(init);
@@ -34,6 +37,7 @@ export function InsurerClaimEdit({ x, insurers }: { x: InsurerClaimData; insurer
     const p: Record<string, unknown> = { booking: x.booking };
     for (const k of changed) {
       if (k === 'authorized_daily_rate') p.authorized_daily_rate_cents = f[k].trim() ? Math.round(Number(f[k]) * 100) : '';
+      else if (k === 'vlf_daily') p.vlf_daily_cents = f[k].trim() ? Math.round(Number(f[k]) * 100) : '';
       else p[k] = f[k].trim();
     }
     if (changed.includes('bill_to') || changed.includes('insurer_id')) p.insurer_id = f.insurer_id;
@@ -56,7 +60,8 @@ export function InsurerClaimEdit({ x, insurers }: { x: InsurerClaimData; insurer
         {!open && <button className="btn btn--ghost btn--sm" type="button" onClick={() => setOpen(true)} data-testid="ic-open">Edit</button>}</div>
       {!open && <p className="small">
         {x.bill_to === 'renter' ? 'Billed to the renter.' : `Billed to ${insurerName ?? 'the insurer'}${x.bill_to === 'split' ? ' (the rental only)' : ''}.`}
-        {x.claim_number ? ` Claim ${x.claim_number}.` : ''}{x.adjuster_name ? ` Adjuster ${x.adjuster_name}` : ''}{x.adjuster_phone ? `, ${x.adjuster_phone}` : ''}{x.adjuster_email ? `, ${x.adjuster_email}` : ''}
+        {x.claim_number ? ` Claim ${x.claim_number}.` : ''}
+        {x.bill_to !== 'renter' && (x.vlf_daily_cents ?? x.vlf_default_cents) ? ` VLF $${((x.vlf_daily_cents ?? x.vlf_default_cents ?? 0) / 100).toFixed(2)} a day.` : ''}{x.adjuster_name ? ` Adjuster ${x.adjuster_name}` : ''}{x.adjuster_phone ? `, ${x.adjuster_phone}` : ''}{x.adjuster_email ? `, ${x.adjuster_email}` : ''}
         {!x.claim_number && !x.adjuster_name && x.bill_to === 'renter' ? ' No claim recorded.' : ''}</p>}
       {open && <div className="stack">
         <div className="ad-fields">
@@ -73,6 +78,7 @@ export function InsurerClaimEdit({ x, insurers }: { x: InsurerClaimData; insurer
           {input('policy_province', 'Policy province')}
           {input('authorized_daily_rate', 'Authorized daily rate ($, empty: the rate sheet)', 'number')}
           {input('authorized_days', 'Authorized days', 'number')}
+          {f.bill_to !== 'renter' && input('vlf_daily', `VLF a day ($, billed to the insurer; empty: the default${x.vlf_default_cents ? ` $${(x.vlf_default_cents / 100).toFixed(2)}` : ', none'})`, 'number')}
           {input('authorized_until', 'Authorized until', 'date')}
           <div className="field ad-field"><label className="label" htmlFor="ic-reason">Reason (needed when the rate differs from the rate sheet)</label>
             <input className="input" id="ic-reason" value={reason} onChange={(e) => setReason(e.target.value)} data-testid="ic-reason" /></div>

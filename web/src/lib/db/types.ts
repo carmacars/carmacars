@@ -2308,6 +2308,7 @@ export type Database = {
           marketing_source_note: string | null;
           marketing_source_by: string | null;
           marketing_source_at: string | null;
+          vlf_daily_cents: number | null;
         };
         Insert: {
           id?: string;
@@ -2468,6 +2469,7 @@ export type Database = {
           marketing_source_note?: string | null;
           marketing_source_by?: string | null;
           marketing_source_at?: string | null;
+          vlf_daily_cents?: number | null;
         };
         Update: {
           id?: string;
@@ -2628,6 +2630,7 @@ export type Database = {
           marketing_source_note?: string | null;
           marketing_source_by?: string | null;
           marketing_source_at?: string | null;
+          vlf_daily_cents?: number | null;
         };
         Relationships: [];
       };
@@ -4100,6 +4103,8 @@ export type Database = {
           findings: Json | null;
           completed_at: string | null;
           completed_by: string | null;
+          details_pending: boolean;
+          recorded_now: Json | null;
         };
         Insert: {
           id?: string;
@@ -4138,6 +4143,8 @@ export type Database = {
           findings?: Json | null;
           completed_at?: string | null;
           completed_by?: string | null;
+          details_pending?: boolean;
+          recorded_now?: Json | null;
         };
         Update: {
           id?: string;
@@ -4176,6 +4183,8 @@ export type Database = {
           findings?: Json | null;
           completed_at?: string | null;
           completed_by?: string | null;
+          details_pending?: boolean;
+          recorded_now?: Json | null;
         };
         Relationships: [];
       };
@@ -13169,6 +13178,7 @@ export type Database = {
           hiring_evening_reminder: boolean;
           esign_code_required: boolean;
           deposit_release_reminder_days: number;
+          vlf_daily_cents: number;
         };
         Insert: {
           id?: string;
@@ -13678,6 +13688,7 @@ export type Database = {
           hiring_evening_reminder?: boolean;
           esign_code_required?: boolean;
           deposit_release_reminder_days?: number;
+          vlf_daily_cents?: number;
         };
         Update: {
           id?: string;
@@ -14187,6 +14198,7 @@ export type Database = {
           hiring_evening_reminder?: boolean;
           esign_code_required?: boolean;
           deposit_release_reminder_days?: number;
+          vlf_daily_cents?: number;
         };
         Relationships: [];
       };
@@ -22782,6 +22794,8 @@ export type Database = {
       referral_program_public: { Args: never; Returns: Json };
       register_account: { Args: { p_user: string; p_email: string; p_full_name: string; p_phone?: string }; Returns: Json };
       renter_agree_booking_change: { Args: { p_request: string; p_by: string; p_ip?: string; p_user_agent?: string }; Returns: undefined };
+      renter_agreement_fill: { Args: { p_by: string; p_booking: string; p: Json }; Returns: Json };
+      renter_agreement_missing: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_approve_offer: { Args: { p_booking: string; p_version: number; p_by: string }; Returns: undefined };
       renter_balance: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_balance_payreq: { Args: { p_booking: string; p_by: string; p_token_sha256: string }; Returns: Json };

@@ -370,7 +370,7 @@ export function layout(f: BlindSpotFacts): Layout {
   // a line with a box of its own (the rate rows, underage, CDW, winter tires); the others before the rental starts are
   // box 48 (pre adjustment: delivery, add-ons, drivers' fees, a discount, prepaid fuel); after it, damages (52), fuel
   // (53) and the rest (54, post adjustment)
-  const ownBox = (c: string) => RENTAL.has(c) || YOUNG.test(c) || c === 'coverage_sold' || c === 'winter_tire' || c === 'deposit' || c === 'mileage_overage' || LATE.has(c);
+  const ownBox = (c: string) => RENTAL.has(c) || YOUNG.test(c) || c === 'coverage_sold' || c === 'vlf' || c === 'winter_tire' || c === 'deposit' || c === 'mileage_overage' || LATE.has(c);
   const isPre = (l: { stage?: string }) => PRE.includes(l.stage ?? 'booking');
   const preAdjust = all.filter((l) => isPre(l) && !ownBox(l.charge_type));
   const damages = all.filter((l) => !isPre(l) && !ownBox(l.charge_type) && DAMAGE.test(l.charge_type));
@@ -422,6 +422,9 @@ export function layout(f: BlindSpotFacts): Layout {
   };
   fee('42', 467, sumOf((c) => YOUNG.test(c)));
   fee('cdw', 487.5, sumOf((c) => c === 'coverage_sold'));
+  // 43, VLF $ per day (0195): the vehicle licensing fee of an insurer-billed rental
+  const vlf = sumOf((c) => c === 'vlf');
+  fee('43', 508, vlf);
   fee('44', 529, sumOf((c) => c === 'winter_tire'));
   // 48, pre adjustment: the charges with no box of their own (delivery, add-ons, drivers, a discount), so 49 adds up
   const pre = preAdjust.reduce((t2, l) => t2 + l.amount_cents, 0);
@@ -495,7 +498,7 @@ export function layout(f: BlindSpotFacts): Layout {
   // box 13's province and expiry belong to a policy (insurer, OPCF 27): not to card coverage, the plan or included insurance
   if (!ins && b.coverage_option !== 1) { NA('13-prov', 172, 468, 60); NA('13-expiry', 236, 468, 50); }
   // the optional charges not on this rental: underage, CDW, VLF, winter tires, LDW, T&LDW, PAP/PEC, Waiver Saver
-  NA('42-amount', 577, 467, 72, { align: 'right' }); NA('cdw-amount', 577, 487.5, 72, { align: 'right' }); NA('43', 577, 508, 72, { align: 'right' });
+  NA('42-amount', 577, 467, 72, { align: 'right' }); NA('cdw-amount', 577, 487.5, 72, { align: 'right' }); if (!vlf) NA('43', 577, 508, 72, { align: 'right' });
   NA('44-amount', 577, 529, 72, { align: 'right' }); NA('45', 577, 549, 72, { align: 'right' }); NA('46', 577, 569.5, 72, { align: 'right' });
   NA('47', 577, 590, 72, { align: 'right' }); NA('waiver', 409, 607, 28);
   return { texts: t.filter((v2): v2 is Text => !!v2), dots, covers: COVERS };

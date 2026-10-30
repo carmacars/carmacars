@@ -312,3 +312,15 @@ test('31 days on the stand-in: nothing is cut, and the values are where the form
   assert.ok(near('500.00', 374, 707.4), 'deposit received, after the printed $');
   assert.ok(near('Full (100%)', 326, 681.4), 'fuel out');
 });
+
+test('0195: the VLF of an insurer-billed rental on its line (43): the rate a day and the amount; N/A without one', () => {
+  const f = sampleFacts({ mailing: MAILING, hst_number: null }, { insurer: true });
+  const days = f.booking.billable_days;
+  f.lines.push({ charge_type: 'vlf', description: 'VLF (vehicle licensing fee), $2.50 a day, billed to the insurer', amount_cents: 250 * days } as (typeof f.lines)[number]);
+  const l = layout(f);
+  const box = (b: string) => l.texts.find((t) => t.box === b)?.text;
+  assert.equal(box('43-amount'), dollars(250 * days));
+  assert.equal(box('43-rate'), dollars(250));
+  assert.ok(!l.texts.some((t) => t.box === '43-na'), 'not N/A');
+  assert.ok(!l.texts.some((t) => t.box === '14-1' && t.text.includes('VLF')), 'not in box 48 or box 14');
+});
