@@ -86,9 +86,11 @@ async function signFromHome(op: Page, name: string, where: string) {
   const ready = Date.now() - t0;
   await check(op, `${where} sign page`);
   await shot(op, `${where}-sign`);
-  // 0193: the signing steps of every signature (the code, the reading, the confirmations initialled, the consents, the drawn signature)
+  // 0193: the signing steps of every signature (the reading, the confirmations initialled, the consents, the drawn
+  // signature); the code is optional since 0186: the owner opens it here, so the code by text is checked too
+  await op.getByTestId('esign-flow').getByTestId('esign-code-open').click();
   await expect(op.getByTestId('esign-flow')).toContainText(`${name.split(' ')[0]}'s phone or email`, { timeout: 20_000 });
-  await strongSign(op, op.getByTestId('owner-package'));
+  await strongSign(op, op.getByTestId('owner-package'), 'sms', true);
   const t1 = Date.now();
   await op.getByTestId('package-sign').click();
   await op.waitForURL(/\/owner\?signed=1/, { timeout: 30_000 });

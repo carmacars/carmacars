@@ -321,7 +321,7 @@ test('partner portal: the partner agreement, signed on screen and countersigned'
       (select string_agg(x.signer_role || ':' || x.method, ',' order by x.signer_role) from sign_requests s join signature_records x on x.signature_request_id = s.signature_request_id
         where s.owner_id = p.owner_id and s.doc_type = 'partner_agreement' and s.status = 'signed') recs
     from partners p where p.id = ${partnerId}`;
-  expect(`${p!.agreement_status}/${p!.recs}`).toBe('signed/carmacars:automatic,partner:typed');
+  expect(`${p!.agreement_status}/${p!.recs}`).toBe('signed/carmacars:automatic,partner:drawn');
   await page.goto('/owner/partner-agreement', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('partner-agreement-signed')).toContainText('Signed on screen');
   await page.context().close();
