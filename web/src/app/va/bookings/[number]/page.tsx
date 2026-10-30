@@ -32,6 +32,8 @@ import { AgreementPanel } from '@/features/agreements/AgreementPanel';
 import type { PhoneTimelineData } from '@/features/phone/client';
 import { ClaimBanner, ClaimGate, RequestClaim } from '@/features/offers/RequestClaim';
 
+import { MoreActions, NextStepPanel } from '@/features/admin/NextStep';
+import { nextStep } from '@/features/admin/next-step';
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/va', noindex: true, description: 'One booking, as the assistant works it.' });
 
@@ -95,12 +97,21 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
     ...(fn === 'cs' ? [[`${base}?tab=changes`, 'Changes', b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length]] as Array<[string, string, number?]> : []),
     [`${base}?tab=messages`, 'Messages'],
     [`${base}?tab=history`, 'History']];
+  // the next step under the status (2026-10-30): one sentence, and a button only when this function can do the step
+  const step = nextStep({ status: b.status, base, now: new Date(), pickupAt: b.pickup_at, returnAt: b.return_at, offerExpiresAt: b.offer_expires_at,
+    dueCents: Number(b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents ?? 0),
+    paidCents: (b.payments ?? []).filter((r) => r.kind === 'charge' && r.status === 'succeeded').reduce((a, r) => a + Number(r.amount_cents ?? 0), 0),
+    awaitingSignature: b.readiness?.awaiting_signature === true, depositCents: Number(b.deposit_cents ?? 0), depositStatus: (b.deposit?.status as string | undefined) ?? null,
+    insurerBilled: b.bill_to !== 'renter',
+    can: { offer: fn === 'cs' || fn === 'sales', money: fn === 'finance' || fn === 'cs' || fn === 'sales', sign: fn !== 'finance', handover: fn !== 'finance', settle: fn === 'finance' } });
   return (
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && tab === 'review' && (fn === 'cs' || fn === 'sales')} va={fn}>
       <PageHead kicker={<><Link prefetch={false} className="link" href="/va">Queue</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} /></>}>
+        {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
+        <MoreActions>
         {(fn === 'cs' || fn === 'sales') && b.status === 'requested' && <ClaimGate testId="claim-gate-head"><Act action="ask_info" payload={P} label="Ask the renter" fields={[{ name: 'question', label: 'Question', type: 'textarea', required: true }]} refresh={R} done="Question sent." />
           <Act action="decline_request" payload={P} label="Decline" variant="danger" fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={R} testId="decline" /></ClaimGate>}
-        {(fn === 'cs' || (fn === 'sales' && b.status === 'offered')) && ['offered', 'pending_payment'].includes(b.status) && <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}?tab=review`} data-testid="edit-offer">Edit the offer</Link>}
+        {(fn === 'cs' || (fn === 'sales' && b.status === 'offered')) && ['offered', 'pending_payment'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=review`} data-testid="edit-offer">Edit the offer</Link>}
         {fn === 'cs' && ['confirmed', 'on_rent'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=changes`} data-testid="edit-booking">Change the booking</Link>}
         {(fn === 'cs' || fn === 'sales') && b.status === 'offered' && <Act action="approve_offer_by_phone" payload={{ ...P, expected_version: b.current_offer_version }} label="Renter approved by phone" confirm="Record that the renter approved this offer on the phone. The history shows it was staff." refresh={R} />}
         {(fn === 'cs' || fn === 'sales') && ['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Withdraw the offer" fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={R} />}
@@ -112,9 +123,10 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           { name: 'assigned_to', label: 'Assigned to', type: 'select', options: staff.staff.map((s) => [s.id, s.name] as [string, string]) },
           { name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: b.status === 'confirmed' ? b.pickup_at : b.return_at },
           { name: 'place', label: 'Place', type: 'address', required: true, value: (b.status === 'confirmed' ? b.pickup_place : b.return_place) ?? 'Our location' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} refresh={R} done="Job scheduled." />}
-        {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
         {insurerBilled && b.insurer_adjuster_email && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages&to=adjuster`} data-testid="email-adjuster-link">Email the adjuster</Link>}
+        </MoreActions>
       </PageHead>
+      <NextStepPanel s={step} />
       <ClaimBanner />
       {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={R} />}
       {fn === 'fleet' && ['on_rent', 'returned', 'closed'].includes(b.status) && <p className="small"><Link prefetch={false} className="link" href={`/va/review/${encodeURIComponent(n)}`} data-testid="photo-review-link">Photo review: pickup and return side by side</Link></p>}

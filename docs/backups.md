@@ -105,3 +105,48 @@ The private bucket `deploy-reports` (verify reports and screenshots, guide scree
 `PRUNE_REPORTS` is `'1'` in `.github/workflows/backup.yml`, or by hand with the `prune_now` input
 (docs/changes/2026-10-21-cpu-and-storage.md).
 
+
+## Server backups (wal-g on Cloudflare R2): WAL volume and retention
+
+Since the move to the server (`infra/vps/CUTOVER.md`), wal-g also keeps base backups and the WAL (every change, for
+point-in-time recovery) in the R2 backup bucket, free up to 10 GB. In October 2026 the bucket reached 8 GB with about
+2.5 GB of WAL a day. The settings below (docs/changes/2026-10-30-backup-wal-size.md):
+
+| Setting | Before | Now | Where |
+| --- | --- | --- | --- |
+| `wal_compression` | `on` (pglz) | `lz4` (`PG_WAL_COMPRESSION`; `on` is the fallback) | `infra/vps/supabase/docker-compose.yml`, `defaults.env` |
+| `checkpoint_timeout` | 5 min (Postgres default) | 15 min (`PG_CHECKPOINT_TIMEOUT`) | same |
+| `max_wal_size` | 4 GB | 4 GB (unchanged; room for 15 minutes between checkpoints) | `defaults.env` |
+| `archive_timeout` | 5 min | 5 min (unchanged: at most 5 minutes of changes can be lost) | `docker-compose.yml` |
+| Base backups | a full backup every night, 7 kept | a full backup once a week and a delta the other nights (`WALG_DELTA_MAX_STEPS=6`); the newest 7 kept (`WALG_RETAIN_FULL`) with the full they start from | `infra/vps/bin/walg-base`, `bin/backup-configure` |
+| WAL kept | from the oldest of 7 full backups | from the oldest backup kept: 7 to 13 days | wal-g `delete retain FIND_FULL` |
+
+After every checkpoint Postgres writes the whole page the first time it changes ("full-page image"); most of the WAL is
+these images. Fewer checkpoints means fewer images, and lz4 makes each one smaller. Expected: WAL down to about a
+third to a half (roughly 0.8 to 1.2 GB a day before wal-g's own zstd), base backups from 7 full copies to 1 or 2 plus
+small deltas. A crash restart replays up to 15 minutes of WAL instead of 5 (seconds at this volume).
+
+### Applying it on the server (by hand, in a quiet hour; not during the 06:10 UTC base backup)
+
+1. Check the image has lz4: `docker exec supabase-db pg_config --configure | grep -o -- '--with-lz4'` prints
+   `--with-lz4`. If it prints nothing, add `PG_WAL_COMPRESSION=on` to `/opt/carmacars/supabase/.env` first.
+2. Install the new `docker-compose.yml`, `defaults.env` and `bin/` from `main`: the vps-ops workflow, action `reboot`,
+   installs them and recreates the db container. By hand instead: copy `infra/vps/supabase/docker-compose.yml` and
+   `defaults.env` to `/opt/carmacars/supabase/`, `infra/vps/bin/*` to `/opt/carmacars/bin/`, then
+   `sudo /opt/carmacars/bin/dc up -d db` (recreates only the database: about a minute without the API; the other
+   containers reconnect by themselves), then `sudo /opt/carmacars/bin/dc up -d` to bring back anything that stopped.
+3. Check (`docker exec -it supabase-db psql -U supabase_admin -d postgres`):
+
+   ```sql
+   select name, setting, unit from pg_settings
+    where name in ('wal_compression', 'checkpoint_timeout', 'max_wal_size', 'archive_mode', 'archive_command');
+   -- wal_compression lz4 (or on), checkpoint_timeout 900 s, max_wal_size 4096 MB, archive_mode on
+   select pg_stat_reset_shared('wal');   -- then the next day:
+   select pg_size_pretty(wal_bytes) as wal_per_day, wal_fpi as full_page_images, stats_reset from pg_stat_wal;
+   select archived_count, failed_count, last_failed_time from pg_stat_archiver;   -- failed_count stays 0
+   ```
+
+4. The next night's `walg-base` adds `WALG_DELTA_MAX_STEPS='6'` to `backup/walg.env` itself and takes a delta; the
+   journal says so: `journalctl -u carmacars-walg-base -n 20`. `walg backup-list` shows names with `_D_` for deltas.
+5. A week later run vps-ops `backup-report` (WAL per day, full and delta counts, the projection), and
+   `apply-retention` if the plan is lower than 7 / 30. `walg-restore-test` restores LATEST, delta chains included.

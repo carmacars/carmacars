@@ -115,4 +115,31 @@ describe('the heartbeat timer', () => {
     adv(35_000);
     assert.deepEqual(beats, [45_000, 65_000]);
   });
+
+  it('2026-10-30: a visible tab nobody touches stops after 15 minutes; a touch beats at once and starts again', () => {
+    const c = clock();
+    let t = 0;
+    const beats: number[] = [];
+    const hb = createHeartbeat({ visible: () => true, beat: () => beats.push(t), intervalMs: () => 60_000, timers: c.timers, now: () => t, idleStopMs: 15 * 60_000 });
+    hb.start();
+    const adv = (ms: number) => { for (let i = 0; i < ms / 1000; i++) { t += 1000; c.advance(1000); } };
+    adv(30 * 60_000);
+    assert.equal(beats.length, 14);
+    assert.equal(hb.running(), false);
+    hb.activity();
+    assert.equal(beats.length, 15);
+    assert.equal(hb.running(), true);
+    adv(60_000);
+    assert.equal(beats.length, 16);
+  });
+
+  it('activity while beating changes nothing but the idle clock', () => {
+    const c = clock();
+    let t = 0;
+    const beats: number[] = [];
+    const hb = createHeartbeat({ visible: () => true, beat: () => beats.push(t), intervalMs: () => 60_000, timers: c.timers, now: () => t, idleStopMs: 15 * 60_000 });
+    hb.start();
+    for (let m = 0; m < 30; m++) { for (let i = 0; i < 60; i++) { t += 1000; c.advance(1000); } hb.activity(); }
+    assert.equal(beats.length, 30);
+  });
 });

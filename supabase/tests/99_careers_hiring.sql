@@ -254,10 +254,33 @@ select test.eq('reminder: the evening before at 6 pm Toronto time', (app.job_hir
 select test.ok('reminder: marked so it goes once', (test.h99a('hirana')).reminded_evening_at is not null
   and (app.job_hiring(app.local_midnight(app.today() + 2) + interval '18 hours 20 minutes') ->> 'evening')::int = 0);
 update program_settings set phone_enabled = true, hiring_sms_reminders = true;
-select test.ok('reminder: an hour before', (app.job_hiring((select starts_at from interview_slots where id = test.h99slot(2)) - interval '50 minutes') ->> 'hour')::int >= 1);
+-- a number no other test opted out of texts (55_quo_phone opts out the one the fixtures give hirana)
+update job_applications set phone = '437-555-0199' where id = (test.h99a('hirana')).id;
+insert into h99 select 'hour_ana', app.job_hiring((select starts_at from interview_slots where id = test.h99slot(2)) - interval '50 minutes');
+select test.ok('reminder: an hour before', (test.h99('hour_ana') ->> 'hour')::int >= 1);
+select test.ok('reminder (0199): with a phone and texts on, the hour-before reminder is a text', (test.h99('hour_ana') ->> 'hour_texts')::int >= 1);
 select app.process_events();
-select test.eq('reminder: two emails (tomorrow, in about an hour)', (select string_agg(payload ->> 'when_text', ',' order by created_at) from notification_outbox where code = 'applicant_reminder' and to_address = 'hirana@hir.example.test'), 'tomorrow,in about an hour');
-select test.ok('reminder: a text to the candidate an hour before', exists (select 1 from phone_outbox where dedupe_key like 'hiring_reminder:' || (test.h99a('hirana')).id || ':%' and body like 'CarmaCars: your interview call%'));
+select test.eq('reminder (0199): no hour-before email when the text goes (Resend''s daily cap): the evening email only', (select string_agg(payload ->> 'when_text', ',' order by created_at) from notification_outbox where code = 'applicant_reminder' and to_address = 'hirana@hir.example.test'), 'tomorrow');
+select test.ok('reminder: a text to the candidate an hour before', exists (select 1 from phone_outbox where dedupe_key like 'hiring_reminder:' || (test.h99a('hirana')).id || ':%' and body like 'CarmaCars: your interview call%' and status <> 'skipped'));
+select test.ok('reminder (0199): the booking confirmation email (with the link) still goes to a candidate who gets texts', (test.h99out('hirana', 'applicant_booked')).id is not null);
+-- a candidate with no phone gets the email an hour before
+update job_applications set phone = null where id = (test.h99a('hirgus')).id;
+select public.server_hiring_book((test.h99a('hirgus')).token, test.h99slot(3)) from test.h99a('hirgus') where status <> 'booked';
+select test.eq('reminder (0199): no phone: booked on the 9:40 call', (select status || '/' || (slot_id = test.h99slot(3)) from test.h99a('hirgus')), 'booked/true');
+insert into h99 select 'hour_gus', app.job_hiring((select starts_at from interview_slots where id = test.h99slot(3)) - interval '50 minutes');
+select app.process_events();
+select test.eq('reminder (0199): no phone: the email an hour before, no text', ((test.h99('hour_gus') ->> 'hour')::int >= 1)::text
+  || '/' || (select count(*) from notification_outbox where code = 'applicant_reminder' and to_address = 'hirgus@hir.example.test' and payload ->> 'when_text' = 'in about an hour')
+  || '/' || (select count(*) from phone_outbox where dedupe_key like 'hiring_reminder:' || (test.h99a('hirgus')).id || ':%'), 'true/1/0');
+-- texts off: the email goes even with a phone
+update program_settings set hiring_sms_reminders = false;
+update job_applications set phone = '4165550177', reminded_hour_at = null, booking_seq = booking_seq + 1 where id = (test.h99a('hirgus')).id;
+insert into h99 select 'hour_gus2', app.job_hiring((select starts_at from interview_slots where id = test.h99slot(3)) - interval '50 minutes');
+select app.process_events();
+select test.eq('reminder (0199): hiring texts off: the email, no text', ((test.h99('hour_gus2') ->> 'hour')::int >= 1)::text
+  || '/' || (select count(*) from notification_outbox where code = 'applicant_reminder' and to_address = 'hirgus@hir.example.test' and payload ->> 'when_text' = 'in about an hour')
+  || '/' || (select count(*) from phone_outbox where dedupe_key like 'hiring_reminder:' || (test.h99a('hirgus')).id || ':%'), 'true/2/0');
+update program_settings set hiring_sms_reminders = true;
 
 -- ================================================================ 5. the rubric, the score and the rank
 select test.throws('rubric: a browser session cannot call it', format($$set local role authenticated; select app.hiring_score_save(%L, '{}')$$, test.id('hir_admin')), 'permission denied');
