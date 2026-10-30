@@ -6,7 +6,7 @@
 --   picked by the owner's pay model: flat_rate when every car of the owner in the program is on a flat monthly payment (in
 --   force or starting later), standard otherwise. A change of pay model ends the signed Enrollment Agreement of the other
 --   set and opens a new one of the right set: the owner signs again (the cars keep running meanwhile).
---   Program settings: "Flat-rate agreements awaiting lawyer OK" (owner_flat_agreements_awaiting_lawyer, on by default)
+--   Program settings: "Flat-rate agreements awaiting lawyer OK" (owner_flat_agreements_awaiting_lawyer, off by default: the lawyer approved the text)
 --   flags the set in Admin until Abbas turns it off; signing works either way.
 set local check_function_bodies = off;
 
@@ -23,8 +23,8 @@ end $$;
 alter table owner_agreements add column if not exists variant text not null default 'standard' check (variant in ('standard', 'flat_rate'));
 comment on column owner_agreements.variant is 'The agreement set (0205): standard (revenue share and fees) or flat_rate (a flat monthly amount per car, 0196). Only an Enrollment Agreement is flat_rate.';
 alter table owner_agreements add constraint owner_agreements_variant_kind check (variant = 'standard' or kind = 'enrollment');
-alter table program_settings add column if not exists owner_flat_agreements_awaiting_lawyer boolean not null default true;
-comment on column program_settings.owner_flat_agreements_awaiting_lawyer is 'Flat-rate agreements awaiting lawyer OK (0205): shown in Admin until turned off; owners can sign meanwhile.';
+alter table program_settings add column if not exists owner_flat_agreements_awaiting_lawyer boolean not null default false;
+comment on column program_settings.owner_flat_agreements_awaiting_lawyer is 'Flat-rate agreements awaiting lawyer OK (0205): off, the lawyer approved the text; turned on, Admin marks the set awaiting review. Owners can sign either way.';
 
 -- ================================================================ 1. the pay model
 create function app.owner_pay_model(p_owner uuid) returns text

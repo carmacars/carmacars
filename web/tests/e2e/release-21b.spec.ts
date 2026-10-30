@@ -159,7 +159,7 @@ test('Add an investor: the record and the invitation in one step; the investor c
   await f.getByTestId('ai-email').fill(email);
   await f.getByTestId('ai-phone').fill('416-555-0100');
   await f.getByTestId('ai-address').pressSequentially('100 Queen', { delay: 40 });
-  await page.getByRole('option').first().click();
+  await page.getByRole('listbox', { name: 'Address suggestions' }).getByRole('option').first().click();
   await expect(f.getByTestId('ai-roi')).toHaveValue('30');
   await f.getByTestId('info-ai-roi').click();
   await expect(page.getByRole('tooltip')).toContainText('investment agreement sets');

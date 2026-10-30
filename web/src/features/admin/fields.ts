@@ -173,7 +173,7 @@ const HINTS: Record<string, string> = {
   sales_remote_cover_hours: '20 by default. Counted from the availability blocks the rep submits for each week, inside the peak hours below.',
   custom_price_floor_daily_cents: 'A price typed by hand under this amount a day is flagged on the booking and in To do. It is never refused.',
   custom_price_max_discount_bps: 'A price typed by hand this far or more under the rate sheet is flagged on the booking and in To do (20% by default). It is never refused.',
-  owner_flat_agreements_awaiting_lawyer: 'On: Admin marks the Flat-Rate Vehicle Enrollment Agreement "Awaiting lawyer OK". Turn it off once the lawyer approves the text. Owners can sign either way.',
+  owner_flat_agreements_awaiting_lawyer: 'Off: the lawyer approved the flat-rate text. On: Admin marks the Flat-Rate Vehicle Enrollment Agreement "Awaiting lawyer OK", for a new text still under review. Owners can sign either way.',
   owner_debit_notice_days: 'Payments Canada Rule H1: an owner gets the notice of a variable debit at least 10 days ahead. The owner\'s PAD agreement does not waive it, so 10 is the least allowed.',
   toll_read_min_confidence: 'Lines read below this, or with something missing, wait for a person to check them; the rest are imported when the read is confirmed.',
   notify_class_limits: 'Five numbers, in this order: customer booking emails, owner and investor emails, immediate staff emails, digests and summaries, marketing. Keep the first under the daily limit so sign-in emails always have room (default 97, 95, 90, 80, 60 of 100). What cannot go waits until after midnight; nothing is dropped.',

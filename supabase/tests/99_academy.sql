@@ -91,7 +91,7 @@ select test.throws('the answer is one of the options',
 -- ================================================================ 5. the gate
 select test.eq('gate off: never locked', app.academy_locked(test.id('acd_field')), false);
 select test.eq('my_roles says so', (public.my_roles(test.id('acd_field')) ->> 'academy_locked')::boolean, false);
-update program_settings set academy_gate = true where id = (select id from program_settings order by effective_from desc limit 1);
+update program_settings set academy_gate = true where id = (app.settings()).id;
 select test.eq('gate on: a staff member with paths to pass is locked', app.academy_locked(test.id('acd_field')), true);
 select test.eq('gate on: an Admin is never locked', app.academy_locked(test.id('acd_admin')), false);
-update program_settings set academy_gate = false where id = (select id from program_settings order by effective_from desc limit 1);
+update program_settings set academy_gate = false where id = (app.settings()).id;

@@ -108,6 +108,14 @@ create table academy_unlocks (
 );
 comment on table academy_unlocks is 'A section an Admin opened early for one person (0207), with the reason.';
 
+-- the content Admins edit and the sections they open early are audited (who, what, before and after); a lesson watched and
+-- a quiz attempt are the learner's own records (kept in full, never changed), and a path's section order is in the sections' audit
+create trigger audit_academy_paths after insert or update or delete on academy_paths for each row execute function app.audit_row();
+create trigger audit_academy_sections after insert or update or delete on academy_sections for each row execute function app.audit_row();
+create trigger audit_academy_lessons after insert or update or delete on academy_lessons for each row execute function app.audit_row();
+create trigger audit_academy_questions after insert or update or delete on academy_questions for each row execute function app.audit_row();
+create trigger audit_academy_unlocks after insert or update or delete on academy_unlocks for each row execute function app.audit_row();
+
 do $$
 declare t text;
 begin

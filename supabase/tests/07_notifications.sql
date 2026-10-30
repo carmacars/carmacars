@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '194/5');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '195/5');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -821,6 +821,9 @@ begin
   perform public.server_hiring_apply(jsonb_build_object('role', 'sales-remote', 'full_name', 'Nt Received', 'email', 'nt.received@example.test', 'phone', '4165550114',
     'answers', '{"rate_firm":"Yes, I understand the rates are firm and I accept them","shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
       "scenario":"Give the 15% to close the sale","tip":"Accept it if the fee is small","post_check":"5","activity":"No","based":"Nairobi, Kenya","start":"2026-11-09","references":"Two"}'::jsonb), null);
+  -- 0211: "New times are open", as a day added sends it to a candidate who had found no open time
+  perform app.hiring_emit_pre0211('applicant_new_times', a, app.hiring_invite_vars(a), 'applicant_new_times:nt')
+     from job_applications a where a.email = 'nt.referred@example.test';
   perform app.hiring_day_delete(test.id('nt_admin'), jsonb_build_object('id', v_day ->> 'id'));
 end $$;
 select test.flush();
