@@ -405,6 +405,8 @@ test('gaps: each portal home loads for its test account and refuses the others (
     await check(page, `${a.role} home`);
     for (const p of PORTALS.filter((x) => x !== a.home)) {
       await page.goto(p);
+      // one staff portal (0197): field work only opens /staff on its own jobs, not a refusal
+      if (a.role === 'field' && p === '/staff') { expect(new URL(page.url()).pathname).toBe('/staff/field'); continue; }
       expect(new URL(page.url()).pathname, `${a.role} is refused ${p}`).toMatch(/no-access|not-an-owner/);
     }
     expect(clean(errors), `${a.role}`).toEqual([]);

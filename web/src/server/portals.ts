@@ -27,9 +27,10 @@ export function portalsFor(r: Roles): PortalLink[] {
 /** Where a person goes after signing in when no page was asked for: the one portal they have, or the "Choose a
  *  portal" page when they have two or more (renting counts only when there is nothing else). */
 export function landingFor(r: Roles): string {
-  const work = new Set(portalsFor(r).filter((p) => p.key !== 'account').map((p) => p.key));
-  if (work.size >= 2) return '/choose-portal';
-  if (work.size === 1) return PORTAL_HOME[[...work][0]!];
+  // the link's own address: field work only is the staff portal at /staff/field, not a second hop through /staff
+  const work = portalsFor(r).filter((p) => p.key !== 'account');
+  if (work.length >= 2) return '/choose-portal';
+  if (work.length === 1) return work[0]!.href;
   return '/account';
 }
 

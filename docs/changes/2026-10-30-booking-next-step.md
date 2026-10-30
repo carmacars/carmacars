@@ -24,7 +24,7 @@ The owner, October 30: staff were "not sure if it has become a booking or not…
   edits an offer opens the menu first (`offers-and-rentals.spec.ts`).
 
 ## Guides
-Admin guide ("A booking", "Change an offer that is out") and staff guide (offers changed in place): Next step and the
-More actions menu. Changed in `docs/guides/src/guides/admin.py`, `va.py`, `docs/guides/content/admin.json`,
+- `admin/requests-offers-and-bookings` ("A booking", "Change an offer that is out"), `va/customer-service` and
+  `va/sales` (offers changed in place): Next step and the More actions menu. Changed in `docs/guides/src/guides/admin.py`, `va.py`, `docs/guides/content/admin.json`,
 `va.json` and `docs/guides/src/admin.html`, `va.html` by hand (export.py needs the screenshots; the screenshots and
 PDFs refresh on the next guides run).

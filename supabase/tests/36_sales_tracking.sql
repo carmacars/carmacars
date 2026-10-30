@@ -75,6 +75,10 @@ select test.eq('fleet: US$400 a month, full time, 6 days, 10 hours a day',
 select test.eq('finance: US$200 a month, part time, 3 days, 9 hours a day',
   (select d ->> 'pay_basis' || ' ' || (d ->> 'rate') || ' ' || (d ->> 'schedule') || ' ' || (d ->> 'days_per_week') || ' ' || (d ->> 'hours_per_day') from test.s36d('st_fin') d),
   'monthly 200.00 part_time 3 9');
+-- 0197: in person (the default for Sales) the in-person staff agreement and its defaults; remote, the VA agreement's
+select test.eq('sales in person: the in-person agreement, with its defaults (0197)',
+  (select (r #>> '{staff,agreement}') || ' ' || (r #>> '{defaults,wage}') from app.staff_agreement_prepare(test.id('st_admin'), test.id('st_sales')) r), 'in_person 18.00');
+update staff_profiles set sales_work_mode = 'remote' where user_id = test.id('st_sales');
 select test.eq('sales: no rate, commission only (0059)', (select coalesce(d ->> 'rate', 'x') || '|' || coalesce(d ->> 'pay_basis', 'x') from test.s36d('st_sales') d), '|commission');
 select test.ok('assistants: the common values with the function''s (country, platform, trial)',
   (select d ->> 'country' = 'Philippines' and d ->> 'platform' = 'OnlineJobs.ph' and d ->> 'trial_days' = '30' and not d ? 'by_function' from test.s36d('st_sales') d));

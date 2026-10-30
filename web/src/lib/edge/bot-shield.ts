@@ -16,7 +16,7 @@ export const BLOCKED_BOT = /AhrefsBot|SemrushBot|MJ12bot|DotBot|PetalBot|Bytespi
 export const CRAWLER = /bot\b|bot\/|crawler|spider|slurp/i;
 
 /** Portal and sign-in pages, by first path segment (robots.txt PRIVATE_PATHS, the pages a crawler has no use for). */
-const PORTAL = new Set(['book', 'account', 'owner', 'investor', 'admin', 'va', 'field', 'sign-in', 'create-account', 'reset-password', 'update-password',
+const PORTAL = new Set(['book', 'account', 'owner', 'investor', 'admin', 'staff', 'va', 'field', 'sign-in', 'create-account', 'reset-password', 'update-password',
   'two-step', 'choose-portal', 'read-only']);
 /** The public trees whose query-string views robots.txt keeps out (crawlers.ts: /cars?, /cars/*?, /car-rental/*?, ...). */
 const QUERY_VIEW = /^\/(cars(\/.*)?|(car-rental|guides|rent|buy|detailing|body-shop)\/.+)$/;

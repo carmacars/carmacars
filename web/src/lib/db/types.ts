@@ -255,6 +255,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      agreement_clauses: {
+        Row: {
+          code: string;
+          part: string;
+          title: string;
+          sort: number;
+          removable: boolean;
+          editable: boolean;
+        };
+        Insert: {
+          code: string;
+          part: string;
+          title: string;
+          sort: number;
+          removable?: boolean;
+          editable?: boolean;
+        };
+        Update: {
+          code?: string;
+          part?: string;
+          title?: string;
+          sort?: number;
+          removable?: boolean;
+          editable?: boolean;
+        };
+        Relationships: [];
+      };
       agreement_jobs: {
         Row: {
           kind: string;
@@ -291,33 +318,6 @@ export type Database = {
           last_error?: string | null;
           created_at?: string;
           updated_at?: string;
-        };
-        Relationships: [];
-      };
-      agreement_clauses: {
-        Row: {
-          code: string;
-          part: string;
-          title: string;
-          sort: number;
-          removable: boolean;
-          editable: boolean;
-        };
-        Insert: {
-          code: string;
-          part: string;
-          title: string;
-          sort: number;
-          removable?: boolean;
-          editable?: boolean;
-        };
-        Update: {
-          code?: string;
-          part?: string;
-          title?: string;
-          sort?: number;
-          removable?: boolean;
-          editable?: boolean;
         };
         Relationships: [];
       };
@@ -4199,6 +4199,8 @@ export type Database = {
           findings: Json | null;
           completed_at: string | null;
           completed_by: string | null;
+          details_pending: boolean;
+          recorded_now: Json | null;
         };
         Insert: {
           id?: string;
@@ -4237,6 +4239,8 @@ export type Database = {
           findings?: Json | null;
           completed_at?: string | null;
           completed_by?: string | null;
+          details_pending?: boolean;
+          recorded_now?: Json | null;
         };
         Update: {
           id?: string;
@@ -4275,6 +4279,8 @@ export type Database = {
           findings?: Json | null;
           completed_at?: string | null;
           completed_by?: string | null;
+          details_pending?: boolean;
+          recorded_now?: Json | null;
         };
         Relationships: [];
       };
@@ -13296,6 +13302,7 @@ export type Database = {
           esign_code_required: boolean;
           deposit_release_reminder_days: number;
           phone_quo_contacts: boolean;
+          vlf_daily_cents: number;
         };
         Insert: {
           id?: string;
@@ -13806,6 +13813,7 @@ export type Database = {
           esign_code_required?: boolean;
           deposit_release_reminder_days?: number;
           phone_quo_contacts?: boolean;
+          vlf_daily_cents?: number;
         };
         Update: {
           id?: string;
@@ -14316,6 +14324,7 @@ export type Database = {
           esign_code_required?: boolean;
           deposit_release_reminder_days?: number;
           phone_quo_contacts?: boolean;
+          vlf_daily_cents?: number;
         };
         Relationships: [];
       };
@@ -23142,6 +23151,8 @@ export type Database = {
       referral_program_public: { Args: never; Returns: Json };
       register_account: { Args: { p_user: string; p_email: string; p_full_name: string; p_phone?: string }; Returns: Json };
       renter_agree_booking_change: { Args: { p_request: string; p_by: string; p_ip?: string; p_user_agent?: string }; Returns: undefined };
+      renter_agreement_fill: { Args: { p_by: string; p_booking: string; p: Json }; Returns: Json };
+      renter_agreement_missing: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_approve_offer: { Args: { p_booking: string; p_version: number; p_by: string }; Returns: undefined };
       renter_balance: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_balance_payreq: { Args: { p_booking: string; p_by: string; p_token_sha256: string }; Returns: Json };

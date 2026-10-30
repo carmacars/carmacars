@@ -25,7 +25,7 @@ test('SEO tools and scrapers: 403 on every page but robots.txt and the API', () 
 });
 
 test('a crawler on a portal or sign-in page: 403; on a public page: pass', () => {
-  for (const p of ['/admin/bookings/CC-1', '/va', '/sign-in', '/account/bookings/x', '/book/x']) assert.deepEqual(shield('GET', u(p), GOOGLE), { kind: 'refuse', reason: 'portal' }, p);
+  for (const p of ['/admin/bookings/CC-1', '/staff', '/staff/field', '/va', '/sign-in', '/account/bookings/x', '/book/x']) assert.deepEqual(shield('GET', u(p), GOOGLE), { kind: 'refuse', reason: 'portal' }, p);
   for (const p of ['/', '/cars', '/cars/bmw/x5', '/guides/winter-tires', '/r/abc', '/go/x', '/sitemap.xml']) assert.equal(shield('GET', u(p), GOOGLE).kind, 'pass', p);
 });
 

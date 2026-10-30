@@ -26,4 +26,4 @@ its **wording** editable for one booking, tracked like any other change of the a
   pack and certificates use those stored documents.
 
 ## Guides
-Admin guide, "Rental agreements: every version, every field": a step for **Edit the wording**.
+- `admin/requests-offers-and-bookings` ("Rental agreements: every version, every field"): a step for **Edit the wording**.

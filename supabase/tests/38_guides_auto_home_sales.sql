@@ -119,6 +119,7 @@ select test.eq('defaults: Sales is commission only, flexible, no rate or hours',
      from (select (app.settings()).*) s), 'commission/flexible/none/none');
 select test.eq('defaults: the other functions keep their pay', (select (s.staff_agreement_defaults #>> '{va,by_function,cs,pay_basis}') || '/' || (s.staff_agreement_defaults #>> '{va,by_function,cs,rate}')
   from (select (app.settings()).*) s), 'monthly/350.00');
+update staff_profiles set sales_work_mode = 'remote' where user_id = test.id('ga_sales');  -- 0197: a remote one (in person: the in-person agreement)
 select test.eq('defaults: a Sales agreement starts from them',
   (select (d ->> 'pay_basis') || '/' || (d ->> 'schedule') || '/' || (d ->> 'country') from (select app.staff_agreement_prepare(test.id('ga_admin'), test.id('ga_sales')) -> 'defaults' d) x),
   'commission/flexible/Philippines');

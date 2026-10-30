@@ -292,7 +292,7 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   const forms = await sql`select r.doc_type, r.status, r.signed_document_id is not null as copy,
       (select string_agg(x.signer_role || ':' || x.method, ',' order by x.signer_role) from signature_records x where x.signature_request_id = r.signature_request_id) recs
     from sign_requests r where r.owner_id = ${o.owner} and r.status = 'signed' order by r.doc_type`;
-  expect(forms.map((f) => `${f.doc_type}/${f.status}/${f.copy}/${f.recs}`)).toEqual(['form_a/signed/true/carmacars:automatic,owner_individual:typed', 'form_b/signed/true/carmacars:automatic,owner_individual:typed']);
+  expect(forms.map((f) => `${f.doc_type}/${f.status}/${f.copy}/${f.recs}`)).toEqual(['form_a/signed/true/carmacars:automatic,owner_individual:drawn', 'form_b/signed/true/carmacars:automatic,owner_individual:drawn']);
   await op.goto('/owner/documents/screen/a', { waitUntil: 'networkidle' });
   await expect(op.getByTestId('screen-form-signed')).toContainText('Signed on screen');
   await op.context().close();

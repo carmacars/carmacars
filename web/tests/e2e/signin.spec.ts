@@ -251,18 +251,21 @@ test('invite: an Admin invites an assistant and an owner on file; each chooses a
   await signIn(page, admin.email);
   await page.goto('/admin/portals');
   const f = page.getByTestId('invite-form');
-  await f.getByLabel('Role').selectOption('va');
+  // one staff portal (0197): Staff, with any set of functions as checkboxes (Customer service is ticked to start)
+  await f.getByLabel('Role').selectOption('staff');
   await f.getByLabel('Name').fill('Nina New');
   await f.getByLabel('Email').fill(`nina.${t}@example.test`);
-  await f.getByLabel('Main function').selectOption('finance');
-  await f.getByLabel('Sales').check();
+  const fns = f.getByTestId('inv-functions');
+  await fns.getByLabel('Customer service').uncheck();
+  await fns.getByLabel('Finance').check();
+  await fns.getByLabel('Sales').check();
   await f.getByRole('button', { name: 'Invite' }).click();
   await expect(f.getByRole('status')).toContainText(`Invitation sent to nina.${t}@example.test`);
   await f.getByLabel('Role').selectOption('owner');
   await f.getByLabel('Owner', { exact: true }).selectOption(ownerRec);
   await f.getByRole('button', { name: 'Invite' }).click();
   await expect(f.getByRole('status')).toContainText(`Invitation sent to owen.${t}@example.test`);
-  expect((await sql`select va_function::text || '+' || cover_functions::text v from staff_profiles sp join users u on u.id = sp.user_id where u.email = ${`nina.${t}@example.test`}`)[0]!.v).toBe('finance+{sales}');
+  expect((await sql`select functions::text || ' ' || va_function::text || '+' || cover_functions::text v from staff_profiles sp join users u on u.id = sp.user_id where u.email = ${`nina.${t}@example.test`}`)[0]!.v).toBe('{finance,sales} finance+{sales}');
   await page.context().close();
   for (const [email, landing] of [[`nina.${t}@example.test`, '/staff'], [`owen.${t}@example.test`, '/owner']] as const) {
     const m = await sql`select link from local_auth.mailbox where to_email = ${email} order by id desc limit 1`;
