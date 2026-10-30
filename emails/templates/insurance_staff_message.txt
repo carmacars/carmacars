@@ -1,0 +1,27 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Message]
+A message from Blind Spot Car Rental
+
+Hello {{first_name}}. {{staff_name}} wrote to you about {{about_line}}.
+
+{{message_subject}}
+{{message_body}}
+
+To answer, reply to this email. Replies reach the Blind Spot Car Rental insurance desk and stay with the booking.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

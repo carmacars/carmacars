@@ -18,12 +18,15 @@ export const ALIASES = {
   billing: 'billing@carmacars.ca',     // money emails to renters and owners
   privacy: 'privacy@carmacars.ca',     // personal information and account security
   investors: 'investors@carmacars.ca', // investor emails
+  blindspot: 'blindspotcarrental@carmacars.ca', // Blind Spot Car Rental: insurers, adjusters and insurance (0187)
 };
-// The reply-to rule, in order: an email's own replyTo key; investors to investors@; staff to contact@;
+// The reply-to rule, in order: an email's own replyTo key; emails sent as Blind Spot Car Rental to blindspotcarrental@; investors to investors@; staff to contact@;
 // money emails (sent from billing) to billing@; owners to owners@; renter booking emails to bookings@;
 // other renter emails (account, marketing) to contact@. emails/check.mjs enforces the same rule.
 export function replyToFor(email) {
   if (email.replyTo) return ALIASES[email.replyTo];
+  // insurance emails sent as Blind Spot Car Rental come back to its own mailbox (0187)
+  if (email.from === FROM.blindspot) return ALIASES.blindspot;
   if (email.audience === 'investor') return ALIASES.investors;
   if (email.audience.startsWith('staff_')) return ALIASES.contact;
   if (email.from === FROM.billing) return ALIASES.billing;
@@ -54,12 +57,14 @@ export const FONT = "Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Ari
 // Wordmark: bold italic condensed. Falls back through the condensed faces most systems carry, then to Arial bold italic.
 export const FONT_WORDMARK = "'Heros Condensed', 'HelveticaNeue-CondensedBold', 'Helvetica Neue Condensed', 'Arial Narrow', 'Roboto Condensed', 'Liberation Sans Narrow', Arial, Helvetica, sans-serif";
 
-// Sender addresses. Display name is always CarmaCars.
+// Sender addresses. Display name is CarmaCars, except the insurance emails (to insurers and adjusters, and staff
+// messages about an insurance replacement rental), which go as Blind Spot Car Rental from its own address (0187).
 export const FROM = {
   bookings: 'CarmaCars <bookings@carmacars.ca>',
   owners: 'CarmaCars <owners@carmacars.ca>',
   billing: 'CarmaCars <billing@carmacars.ca>',
   hello: 'CarmaCars <hello@carmacars.ca>',
+  blindspot: 'Blind Spot Car Rental <blindspotcarrental@carmacars.ca>',
 };
 
 // Values every email receives. The application sets these once, from program settings.

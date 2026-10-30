@@ -18,7 +18,8 @@ import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
 import { RenterMerge, type DuplicateRow } from '@/features/money/RenterMerge';
 import { door } from '@/server/door';
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatureList, type ManualRow, type PaperDoc, type PaperRow } from '@/features/manual/ManualRecords';
-import { QuickReply } from '@/features/va/QuickReply';
+import { BookingConversation } from '@/features/messages/BookingConversation';
+import type { Conversation } from '@/features/messages/email-choices';
 import { LatePanel, type Late } from '@/features/va/LatePanel';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
@@ -70,11 +71,12 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
   const renterForm = tab === 'overview' || tab === 'review' ? await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
   // calls and texts with the renter (0085): customer service and Sales
   const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'va_read', 'phone_timeline', { booking_id: b.id }, aal).catch(() => null) : null;
-  const [km, replies, staff, messages] = await Promise.all([
+  const [km, staff] = await Promise.all([
     arranging ? list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }).catch(() => ({ rows: [], count: 0 })) : Promise.resolve({ rows: [], count: 0 }),
-    (fn === 'cs' || fn === 'sales') && tab === 'messages' ? list<{ id: string; title: string; body: string }>('quick_replies', { order: 'sort_order', asc: true }) : Promise.resolve({ rows: [], count: 0 }),
-    fn === 'fleet' ? read<{ staff: Array<{ id: string; name: string }> }>('fleet_board') : Promise.resolve({ staff: [] }),
-    fn === 'cs' && tab === 'messages' ? read<R[]>('messages', { booking: b.id }) : Promise.resolve([] as R[])]);
+    fn === 'fleet' ? read<{ staff: Array<{ id: string; name: string }> }>('fleet_board') : Promise.resolve({ staff: [] })]);
+  // Email the renter (every function; the adjuster too on an insurer-billed booking), with the booking's conversation (0187)
+  const conv = tab === 'messages' ? await door<Conversation>(user.id, 'ops_read', 'booking_conversation', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
+  const insurerBilled = b.bill_to !== 'renter' && !!b.insurer_id;
   // the additional drivers' signing links (migration 0040), for customer service
   // payments received another way (Finance) and rental documents signed on paper (customer service), migration 0044
   const [manual, paper] = await Promise.all([
@@ -90,8 +92,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
   const tabs: Array<[string, string, number?]> = [
     ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : []), [`${base}?tab=overview`, 'Overview'],
     ...(fn === 'finance' || fn === 'cs' || fn === 'sales' ? [[`${base}?tab=money`, 'Money']] as Array<[string, string]> : []),
-    ...(fn === 'cs' ? [[`${base}?tab=changes`, 'Changes', b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length], [`${base}?tab=messages`, 'Messages']] as Array<[string, string, number?]> : []),
-    ...(fn === 'sales' ? [[`${base}?tab=messages`, 'Messages']] as Array<[string, string]> : []),
+    ...(fn === 'cs' ? [[`${base}?tab=changes`, 'Changes', b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length]] as Array<[string, string, number?]> : []),
+    [`${base}?tab=messages`, 'Messages'],
     [`${base}?tab=history`, 'History']];
   return (
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && tab === 'review' && (fn === 'cs' || fn === 'sales')} va={fn}>
@@ -110,6 +112,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           { name: 'assigned_to', label: 'Assigned to', type: 'select', options: staff.staff.map((s) => [s.id, s.name] as [string, string]) },
           { name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: b.status === 'confirmed' ? b.pickup_at : b.return_at },
           { name: 'place', label: 'Place', type: 'address', required: true, value: (b.status === 'confirmed' ? b.pickup_place : b.return_place) ?? 'Our location' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} refresh={R} done="Job scheduled." />}
+        {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
+        {insurerBilled && b.insurer_adjuster_email && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages&to=adjuster`} data-testid="email-adjuster-link">Email the adjuster</Link>}
       </PageHead>
       <ClaimBanner />
       {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={R} />}
@@ -192,12 +196,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           <Card title="Questions to the renter"><Table rows={b.info_requests} empty="No questions." cols={[{ key: 'asked_at', label: 'Asked', render: (r) => t(r.asked_at) }, { key: 'question', label: 'Question', className: 'wrap' }, { key: 'status', label: 'Status' }, { key: 'reply', label: 'Reply', className: 'wrap' }]} /></Card>
         </div>
       )}
-      {tab === 'messages' && (fn === 'cs' || fn === 'sales') && (
-        <div className="ad-cols ad-cols--2">
-          <Card title="Messages"><ol className="ad-timeline" data-testid="messages">{messages.map((m) => <li key={String(m.id)}><time>{t(m.occurred_at)}</time><span><b>{m.direction === 'inbound' ? String(m.renter_first_name ?? 'Renter') : String(m.sent_by ?? 'CarmaCars')}</b> {String(m.body ?? m.subject ?? '')}</span></li>)}</ol>{!messages.length && <p className="small muted">No messages on this booking.</p>}</Card>
-          <Card title="Reply"><QuickReply booking={b.id} replies={replies.rows} /></Card>
-        </div>
-      )}
+      {tab === 'messages' && (conv ? <BookingConversation c={conv} refresh={R} initialTo={sp.to === 'adjuster' ? 'adjuster' : 'renter'} /> : <p className="small muted">The messages could not be read. Reload the page.</p>)}
       {tab === 'history' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Timeline" testId="timeline"><ol className="ad-timeline">{b.events.map((e) => <li key={String(e.id)}><time>{t(e.created_at)}</time><span><b>{label(e.kind)}</b>{e.note ? `: ${String(e.note)}` : ''} <span className="muted small">{String(e.actor_name ?? e.actor_type ?? '')}</span></span></li>)}</ol></Card>
