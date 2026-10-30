@@ -249,7 +249,7 @@ export async function ownerCorrect(p: { owner?: J; cars?: J[] }) {
     return { ok: true as const, data: r as unknown as { changes: number } };
   } catch (e) { return fail(e); }
 }
-/** An updated Vehicle Schedule signed with its signing session (0182): the database checks the signature against the
+/** An updated Vehicle Schedule signed with its signing session (0193): the database checks the signature against the
  *  session and records the session's signer; then the signed copy, with the certificate of completion, is filed. */
 export async function signScheduleChange(changeId: string, name: string, sha256: string, esign: EsignReady) {
   const drawn = esign?.method === 'drawn' && esign.drawnPath ? esign.drawnPath : null;

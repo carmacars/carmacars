@@ -1,4 +1,4 @@
--- 99: every signature through the signing session (migration 0182, docs/changes/2026-10-27-esign-everywhere.md): the
+-- 99: every signature through the signing session (migration 0193, docs/changes/2026-10-27-esign-everywhere.md): the
 -- owner's agreements, another Owner's link, Form C on screen, the staff and investment agreements, an updated Vehicle
 -- Schedule. Each signing function refuses a signature without a complete session (the code, the reading, the key terms
 -- initialled, the consents, the drawn signature); the session is checked against the documents; the signature records
@@ -211,7 +211,7 @@ select test.eq('privileges: the new functions are the service role''s only',
       and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))), 0::bigint);
 select test.eq('privileges: the session checks are not callable from a browser',
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'app' and p.proname in ('esign_start_documents', 'esign_ready_doc', 'esign_mark', 'server_esign_start_pre0182')
+    where n.nspname = 'app' and p.proname in ('esign_start_documents', 'esign_ready_doc', 'esign_mark', 'server_esign_start_pre0193')
       and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))), 0::bigint);
 select test.throws('privileges: a browser session cannot start a signing session', $$set local role authenticated; select public.server_esign_start('{}')$$, 'permission denied');
 

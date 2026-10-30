@@ -65,7 +65,7 @@ async function workersAiPaused(): Promise<boolean> {
   } catch { return false; }
 }
 
-/** The five-minute job: booking texts that are due, the AI one-liners of calls Quo did not summarise, and (0179) the
+/** The five-minute job: booking texts that are due, the AI one-liners of calls Quo did not summarise, and (0190) the
  *  Quo contacts of people who changed. A failure of one part never stops the other. */
 export async function runPhoneJob(): Promise<Record<string, unknown>> {
   let texts: Record<string, unknown> = {};
@@ -77,7 +77,7 @@ export async function runPhoneJob(): Promise<Record<string, unknown>> {
   return { ...texts, contacts };
 }
 
-/** Quo contacts (0179): the database's side of the sync (src/features/phone/quo-contacts.ts). */
+/** Quo contacts (0190): the database's side of the sync (src/features/phone/quo-contacts.ts). */
 const contactsDb: SyncDb = {
   due: async (limit) => (await rpc('server_quo_contacts_due', { p_limit: limit }, SR)) as unknown as Due,
   found: (p) => rpc('server_quo_contacts_found', { p: p as unknown as Json }, SR),

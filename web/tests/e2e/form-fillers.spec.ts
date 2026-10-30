@@ -177,7 +177,7 @@ test('a generated investment agreement: sent from Admin, signed in the investor 
     const unsignedPages = (await PDFDocument.load(await unsigned.body())).getPageCount();
     const f = ip.getByTestId('portal-sign-form');
     await f.getByRole('radio', { name: /chose not to/ }).check();
-    // 0182: the code, the reading, Schedule C initialled, the consents, the drawn signature
+    // 0193: the code, the reading, Schedule C initialled, the consents, the drawn signature
     await strongSign(ip, f);
     await f.getByTestId('package-sign').click();
     await expect(ip.getByTestId('package-signed').or(ip.getByTestId('sign-done'))).toBeVisible({ timeout: 30_000 });
@@ -196,7 +196,7 @@ test('a generated investment agreement: sent from Admin, signed in the investor 
     expect(words).toContain('$25,000.00');
     expect(words).toContain('Signature record');
     expect(words).toContain(iu.name);
-    // 0182: the certificate of completion closes the signed copy
+    // 0193: the certificate of completion closes the signed copy
     expect(words).toContain('Certificate of completion');
     expect(words).toMatch(/Initialled: the risk acknowledgment \(Schedule C\)/);
     await ip.context().close();

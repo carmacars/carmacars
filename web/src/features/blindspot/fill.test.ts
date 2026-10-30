@@ -113,7 +113,7 @@ test('an insurance replacement rental fills the insurer, the claim and the adjus
   for (const s of ['Example Mutual Insurance', 'CLM-0000-1234', 'Pat Adjuster, (416) 555-0199', 'Insurer authorized 3 days at $99.00/day.']) assert.ok(p1!.text.includes(s), s);
 });
 
-// 0180: an insurance replacement with the charges to the insurer (a rate a day each, 3 days)
+// 0191: an insurance replacement with the charges to the insurer (a rate a day each, 3 days)
 const INSURER_LINES = [
   { charge_type: 'vlf', description: 'VLF (vehicle licence fee): 3 days at $5.00 a day', amount_cents: 1500 },
   { charge_type: 'ldw', description: 'LDW (loss damage waiver): 3 days at $15.00 a day', amount_cents: 4500 },
@@ -130,7 +130,7 @@ function withInsurerFees(lines = INSURER_LINES): BlindSpotFacts {
 }
 const cents = (s: string | undefined) => (s ? Math.round(Number(s.replace(/[$,]/g, '')) * 100) : 0);
 
-test('0180: each charge to the insurer in its box, with its rate a day; the box shows it instead of N/A', async () => {
+test('0191: each charge to the insurer in its box, with its rate a day; the box shows it instead of N/A', async () => {
   const l = layout(withInsurerFees());
   const by = (b: string) => l.texts.find((t) => t.box === b)?.text;
   assert.deepEqual([by('43-rate'), by('43-amount')], ['$5.00', '$15.00'], 'VLF, box 43');
@@ -153,7 +153,7 @@ test('0180: each charge to the insurer in its box, with its rate a day; the box 
   for (const s of ['$5.00', '$15.00', '$45.00', '$30.00', '$7.00', '$21.00', '$9.00']) assert.ok(p1!.text.includes(s), s);
 });
 
-test('0180: the charges to the insurer stay out of box 48 and box 14, and the subtotal adds up exactly', () => {
+test('0191: the charges to the insurer stay out of box 48 and box 14, and the subtotal adds up exactly', () => {
   const f = withInsurerFees();
   const l = layout(f);
   const by = (b: string) => l.texts.find((t) => t.box === b)?.text;
@@ -166,7 +166,7 @@ test('0180: the charges to the insurer stay out of box 48 and box 14, and the su
   assert.equal(cents(by('49')), f.booking.subtotal_at_booking_cents, 'box 49');
 });
 
-test('0180: a Waiver Saver too wide for its white box goes to box 48 (and box 14 names it)', () => {
+test('0191: a Waiver Saver too wide for its white box goes to box 48 (and box 14 names it)', () => {
   const f = withInsurerFees([...INSURER_LINES.slice(0, 4), { charge_type: 'waiver_saver', description: 'Waiver Saver: 3 days at $4,115.00 a day', amount_cents: 1234500 }]);
   const l = layout(f);
   const by = (b: string) => l.texts.find((t) => t.box === b)?.text;

@@ -9,7 +9,7 @@
 // return charges, the deposit received, the balance and what was paid; a car swapped during the rental fills the
 // replacement vehicle column; the insurance replacement fills the insured vehicle and box 13 (OPCF 27: the renter's own
 // insurer and policy in boxes 12 and 13); box 48 carries the charges with no box of their own, so the subtotal adds up.
-// 0180: the charges to the insurer of an insurance replacement print in their own boxes: VLF (43), LDW (45), T&LDW (46),
+// 0191: the charges to the insurer of an insurance replacement print in their own boxes: VLF (43), LDW (45), T&LDW (46),
 // PAP/PEC (47), each with its rate a day, and Waiver Saver's amount in its white box (box 48 when it does not fit there).
 import type { AgreementExtra, AgreementVehicle } from '../agreement/extra.ts';
 
@@ -153,7 +153,7 @@ const RENTAL = new Set(['rental_charge']);
 const FUEL = new Set(['fuel', 'fuel_service_fee', 'recharging']);
 const DAMAGE = /^(damage|deductible)/;
 const LATE = new Set(['late_return_extra_days', 'late_return_fee', 'late_return', 'late_return_admin']);
-/** 0180: the charges to the insurer with a row of their own (box, baseline), and Waiver Saver's white box. */
+/** 0191: the charges to the insurer with a row of their own (box, baseline), and Waiver Saver's white box. */
 const INSURER_ROWS: Array<[string, string, number]> = [['vlf', '43', 508], ['ldw', '45', 549], ['tldw', '46', 569.5], ['pap_pec', '47', 590]];
 const WAIVER = { code: 'waiver_saver', x: 409, y: 607, w: 28 };
 const INSURER_BOXED = new Set([...INSURER_ROWS.map(([c]) => c), WAIVER.code]);
@@ -296,7 +296,7 @@ export function layout(f: BlindSpotFacts): Layout {
   const more = x.more ?? null;
   // every line of the version (booking and extension stages; the return stage on the closing copy)
   const all = more ? more.lines.filter((l) => more.return ? true : ['booking', 'extension', 'pickup', 'monthly'].includes(l.stage)) : f.lines.map((l) => ({ ...l, hst_cents: 0, stage: 'booking' }));
-  // 0180: Waiver Saver's amount in its white box, readable (size 6 at least); else in box 48 with the others
+  // 0191: Waiver Saver's amount in its white box, readable (size 6 at least); else in box 48 with the others
   const waiverCents = all.filter((l) => l.charge_type === WAIVER.code).reduce((t2, l) => t2 + l.amount_cents, 0);
   const waiverFits = !waiverCents || helvetica(dollars(waiverCents), 6) <= WAIVER.w;
   const otherLines = all.filter((l) => !RENTAL.has(l.charge_type) && !YOUNG.test(l.charge_type) && l.charge_type !== 'coverage_sold' && l.charge_type !== 'winter_tire'
@@ -385,7 +385,7 @@ export function layout(f: BlindSpotFacts): Layout {
   fee('42', 467, sumOf((c) => YOUNG.test(c)));
   fee('cdw', 487.5, sumOf((c) => c === 'coverage_sold'));
   fee('44', 529, sumOf((c) => c === 'winter_tire'));
-  // 0180: the charges to the insurer: VLF (43), LDW (45), T&LDW (46), PAP/PEC (47), the rate a day and the amount; Waiver
+  // 0191: the charges to the insurer: VLF (43), LDW (45), T&LDW (46), PAP/PEC (47), the rate a day and the amount; Waiver
   // Saver has no amount column: its white box, or box 48 when it does not fit ("See 48" in the white box)
   for (const [code, box, y] of INSURER_ROWS) fee(box, y, sumOf((c) => c === code));
   if (waiverCents) t.push(T('waiver-amount', waiverFits ? dollars(waiverCents) : 'See 48', WAIVER.x, WAIVER.y, WAIVER.w, { size: waiverFits ? 7 : 6 }));

@@ -1,4 +1,4 @@
-# Charges to the insurer: VLF, LDW, T&LDW, PAP/PEC, Waiver Saver (0180)
+# Charges to the insurer: VLF, LDW, T&LDW, PAP/PEC, Waiver Saver (0191)
 
 The owner: on insurance replacement rentals CarmaCars charges the insurer extra fees that appear on Blind Spot's rental
 agreement (VLF in box 43, LDW in 45, T&LDW in 46, PAP/PEC in 47, and Waiver Saver). "Only add those fields for insurer
@@ -33,7 +33,7 @@ bookings." Clarified: on a booking the renter pays they are absent from every sc
 - `admin/partners-company-cars-and-rentals-added-by-hand`: Add a rental, Insurer billed later, the charges.
 - `va/add-a-rental-by-hand`: the charges on an insurance replacement.
 
-Published by the guide block of 0180 (`supabase/seed/0180_gen_guides.mjs`).
+Published by the guide block of 0191 (`supabase/seed/0191_gen_guides.mjs`).
 
 ## Tests
 - `supabase/tests/99_insurer_extra_fees.sql`: the charges, Add a rental's check and rental, refused on a renter's

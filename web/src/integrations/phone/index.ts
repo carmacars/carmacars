@@ -12,7 +12,7 @@ export function phoneLine(): PhoneLine {
   return e.QUO_PROVIDER === 'quo' ? quoLine(e.QUO_API_KEY, e.QUO_API_BASE) : fakeLine();
 }
 
-/** Quo contacts (0179): the same provider and key as the line; no key: the sync records why and waits. */
+/** Quo contacts (0190): the same provider and key as the line; no key: the sync records why and waits. */
 export function contactsBook(): ContactsBook {
   const e = env();
   return e.QUO_PROVIDER === 'quo' ? quoBook(e.QUO_API_KEY, e.QUO_API_BASE) : fakeBook();

@@ -280,7 +280,7 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   // 0077: the documents are prepared in their own requests; the sign form appears when they are open
   await expect(op.getByTestId('package-sign')).toBeVisible({ timeout: 45_000 });
   const t0 = Date.now();
-  // 0182: Forms A and B are signed with the signing steps of every signature
+  // 0193: Forms A and B are signed with the signing steps of every signature
   await strongSign(op, op.getByTestId('owner-package'));
   await op.getByTestId('package-sign').click();
   await op.waitForURL(/\/owner\?signed=1/, { timeout: 60_000 });
@@ -326,7 +326,7 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   expect((await doc.body()).subarray(0, 4).toString()).toBe('%PDF');
   const f2 = ip.getByTestId('portal-sign-form');
   await f2.getByRole('radio', { name: /chose not to/ }).check();
-  // 0182: the code, the reading, Schedule C initialled, the consents, the drawn signature
+  // 0193: the code, the reading, Schedule C initialled, the consents, the drawn signature
   await expect(f2.getByTestId('esign-flow')).toBeVisible({ timeout: 20_000 });
   await check(ip, 'investor signing page');
   await strongSign(ip, f2);
@@ -353,7 +353,7 @@ test('portal signing: the owner signs Forms A and B on screen, an investor signs
   await vp2.goto('/va', { waitUntil: 'networkidle' });
   await vp2.getByTestId('va-to-sign').getByRole('link').click();
   await vp2.waitForURL(/\/va\/sign$/);
-  // the documents to sign are one package on this page: the PDF to read, the signing steps (0182: the code, the reading,
+  // the documents to sign are one package on this page: the PDF to read, the signing steps (0193: the code, the reading,
   // the consents, the drawn signature; an uploaded agreement has no key terms of its own to initial), one button
   await expect(vp2.getByTestId('sign-read')).toBeVisible();
   await check(vp2, 'va signing page');

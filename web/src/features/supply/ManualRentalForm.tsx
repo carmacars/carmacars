@@ -78,7 +78,7 @@ export interface MrDraft { f?: Record<string, string>; flags?: { do_not_email: b
   rent_mode?: 'trip' | 'day'; rent_day?: string; renter?: Renter | null; renter_id?: string | null; drivers?: Array<{ full_name: string; date_of_birth: string; email: string }>; addons?: AddonChoice[]; choice?: Choice;
   /** 2026-10-27: how the amounts were typed (before or after tax), and the total the renter pays typed */
   tax_mode?: TaxMode; total?: string;
-  /** 0180: the charges to the insurer, a rate a day each ({code: dollars}) */
+  /** 0191: the charges to the insurer, a rate a day each ({code: dollars}) */
   insurer_fees?: Record<string, string> }
 const FUEL: Array<[string, string]> = [['100', 'Full'], ['88', '7/8'], ['75', '3/4'], ['63', '5/8'], ['50', '1/2'], ['38', '3/8'], ['25', '1/4'], ['13', '1/8'], ['0', 'Empty']];
 
@@ -103,7 +103,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   const [rentMode, setRentMode] = useState<'trip' | 'day'>('trip');
   const [rentDay, setRentDay] = useState('');
   const [customs, setCustoms] = useState<Array<{ label: string; amount: string; hst: boolean }>>([]);
-  // 0180: the charges to the insurer (VLF, LDW, T&LDW, PAP/PEC, Waiver Saver), a rate a day each: an insurance replacement only
+  // 0191: the charges to the insurer (VLF, LDW, T&LDW, PAP/PEC, Waiver Saver), a rate a day each: an insurance replacement only
   const [insFees, setInsFees] = useState<Record<string, string>>({});
   const insSent = paidBy === 'insurer' ? Object.fromEntries(Object.entries(insurerFeesPayload(insFees)).filter(([, c]) => c)) as Record<string, number> : {};
   const offline = ['e_transfer', 'cash', 'cheque', 'bank_transfer'].includes(paidBy);

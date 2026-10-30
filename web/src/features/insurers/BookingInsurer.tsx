@@ -5,13 +5,13 @@ import { InsurerFeesCard, type InsurerFeeRow } from './InsurerFeesCard';
 
 // The booking's Insurance replacement card (migration 0163): the insurer and claim, the daily rate and where it comes
 // from (the rate sheet, or typed with its reason, flagged when it differs from the sheet), the caps and allowance, what
-// the insurer pays, its charges a day (0180: VLF, LDW, T&LDW, PAP/PEC, Waiver Saver) and its invoices with their PDFs.
+// the insurer pays, its charges a day (0191: VLF, LDW, T&LDW, PAP/PEC, Waiver Saver) and its invoices with their PDFs.
 export interface BookingInsurerData {
   billed_to_insurer: boolean; bill_to?: string; insurer?: { id: string; name: string } | null; claim_number?: string | null; authorized_days?: number | null; authorized_until?: string | null;
   daily_rate_cents?: number | null; rate_source?: string; sheet_rate_cents?: number | null; differs?: boolean; reason?: string | null;
   rate?: (SheetRate & { class_label?: string; effective_from: string }) | null; covered_days?: number; rental_share_cents?: number; fees_share_cents?: number; share_cents?: number; hst_cents?: number;
   rates?: SheetRate[];
-  /** 0180: the charges to the insurer (VLF, LDW, T&LDW, PAP/PEC, Waiver Saver), and whether they can change now */
+  /** 0191: the charges to the insurer (VLF, LDW, T&LDW, PAP/PEC, Waiver Saver), and whether they can change now */
   booking_number?: string; extra_fees?: InsurerFeeRow[]; extra_fees_editable?: boolean;
   invoices?: Array<{ id: string; invoice_number: string; status: string; total_cents: number; paid_cents: number; balance_cents: number; daily_rate_cents: number | null; rate_source: string | null; sent_at: string | null; paid_at: string | null }>;
 }

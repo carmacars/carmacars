@@ -26,7 +26,7 @@ const MODE: Record<string, string> = { managed: 'Managed', self_managed: 'Self-M
 
 // Signing, simply (migration 0049): every document the owner still signs, filled from what they already gave us, in one
 // package. A short list of the key values with a Fix link for each, the full text one tap away, then the signing steps of
-// every signature (0182: a code to the phone or email, the reading, the confirmations initialled, the consents, the drawn
+// every signature (0193: a code to the phone or email, the reading, the confirmations initialled, the consents, the drawn
 // signature), one button. Forms
 // C and D are signed on paper in front of witnesses (the forms ask for witnesses, and a power of attorney cannot be
 // signed electronically in Ontario): they show in the checklist with their own page.
@@ -68,7 +68,7 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
     ...forms.map((f) => ({ key: `form-${f.code}`, title: f.title })),
     ...(pa ? [{ key: 'partner', title: PARTNER_AGREEMENT_TITLE }] : [])
   ];
-  // what the signing session covers: each document with the SHA-256 shown (the database checks each, 0182)
+  // what the signing session covers: each document with the SHA-256 shown (the database checks each, 0193)
   const esignDocs: EsignDoc[] = [
     ...packet.docs.map((d) => ({ kind: 'packet' as const, ref: d.key, sha: d.sha, title: d.title })),
     ...forms.map((x) => ({ kind: 'request' as const, ref: x.id, sha: x.sha, title: x.title })),
@@ -82,7 +82,7 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
   // the checklist: what is in this package is marked; the rest says where it is done
   const inPackage = (code: string) => (code === 'enrollment' || code === 'title_holding' || code === 'schedule') ? packet.docs.length > 0
     : code === 'form_a' || code === 'form_b' ? forms.some((f) => `form_${f.code.toLowerCase()}` === code) : code === 'partner_agreement' ? !!pa : false;
-  // before approval (0181): the agreements filled in from the application, read only, the terms pending
+  // before approval (0192): the agreements filled in from the application, read only, the terms pending
   const preview = !docs.length && !partner && home.vehicles.some((v) => v.onboarding_status === 'intake')
     ? await ownerAgreementPreviewFacts(home.owner.id, user.id).catch(() => null) : null;
   const previewDocs = preview?.preview ? packetKeys(preview).map((key) => ({ key, title: TITLES[key], blocks: documentBlocks(preview, key) })) : [];
@@ -163,7 +163,7 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
   );
 }
 
-// Before approval (0181): the owner's two agreements filled in from the application, read only. The fees and the
+// Before approval (0192): the owner's two agreements filled in from the application, read only. The fees and the
 // Revenue Share show as pending, never a number CarmaCars has not set; signing stays off until the terms are approved
 // (the documents open for signature only once an Admin's terms make the agreements).
 function PreviewPage({ facts: f, docs, items }: { facts: OwnerAgreementFacts; docs: Array<{ key: PacketKey; title: string; blocks: ReturnType<typeof documentBlocks> }>; items: ProgressItem[] }) {

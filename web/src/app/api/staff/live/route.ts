@@ -11,7 +11,7 @@ const READS = new Set(['live_visitors', 'live_session', 'vehicle_interest', 'vis
 const ACTS = new Set(['chat_prefs', 'chat_start', 'chat_take', 'chat_reply', 'chat_hand_back', 'chat_close', 'chat_typing', 'chat_transcript',
   // 0086: the one-click actions of Live visitors, and its signal settings (Admins only, checked by the database)
   'live_invite', 'live_discount', 'live_assign', 'live_rules_save', 'live_config_save',
-  // 0179: name a visitor (kept for the browser; staff only)
+  // 0190: name a visitor (kept for the browser; staff only)
   'live_name']);
 const msg = (e: unknown) => (e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '').slice(0, 200) : 'Something went wrong');
 

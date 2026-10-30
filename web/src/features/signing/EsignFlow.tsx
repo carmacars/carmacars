@@ -6,7 +6,7 @@ import { DOC_CONSENTS, type Term } from './terms';
 import { esignCheckCode, esignSendCode, esignStart, esignStep } from '@/server/actions/esign';
 import type { EsignContext, EsignReady, EsignView } from './types';
 
-// The signature that holds up (migration 0154), the same on every signing page (since 0182 every signature on the site): 1. confirm it is you with a code sent
+// The signature that holds up (migration 0154), the same on every signing page (since 0193 every signature on the site): 1. confirm it is you with a code sent
 // to the phone or email on file; 2. say you read the documents; 3. initial each key term; 4. give the consents; 5. draw
 // your signature. Each step is recorded with its time, IP address and device (and the place, if the signer allows it)
 // and goes in the certificate of completion. The page's own Sign button is enabled once onReady gives the session.

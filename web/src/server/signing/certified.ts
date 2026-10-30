@@ -7,7 +7,7 @@ import { when, type Block, type SignatureRow } from '@/features/agreement/model'
 import { appendCertificate, type CertSigner } from '@/features/signing/certificate';
 import { sha256Hex } from '@/server/links';
 
-// The certificate of completion on every signed document (migration 0182), as on the rental agreements (0154): the
+// The certificate of completion on every signed document (migration 0193), as on the rental agreements (0154): the
 // signers with their signing sessions (the code and where it went, the documents read, each initial and consent, the
 // place, IP address and device, the audit trail) and the SHA-256 of the document signed. The signed file's own SHA-256 is
 // recorded when it is filed, so /verify finds it.
@@ -16,7 +16,7 @@ export const verifyUrl = () => `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/
 
 /** The signed copy of a signature request (an owner agreement or schedule, a form, a partner, investment or staff
  *  agreement) with the certificate's pages added at the end. Without a signing session (signed on paper, or before
- *  0182) the copy is returned as it is. */
+ *  0193) the copy is returned as it is. */
 export async function withRequestCertificate(pdf: Uint8Array, signatureRequestId: string, title: string,
   countersign?: { name: string; at: string | null; text: string } | null): Promise<Uint8Array> {
   const c = (await rpc('server_esign_certificate_for_request', { p_request: signatureRequestId }, SR).catch(() => null)) as unknown as { sha256: string | null; signers: CertSigner[] } | null;
@@ -31,7 +31,7 @@ interface ChangeFacts {
   signed_at: string | null; signed_name: string | null; countersignature: string | null; esign_session_id: string | null; signature_path: string | null; signature_method: string | null;
 }
 
-/** The signed copy of an updated Vehicle Schedule (0182; before, the signature was kept without a PDF): the text signed,
+/** The signed copy of an updated Vehicle Schedule (0193; before, the signature was kept without a PDF): the text signed,
  *  the owner's signature and CarmaCars' countersignature, then the certificate of completion. Filed once. */
 export async function fileScheduleChangeCopy(changeId: string): Promise<string | null> {
   const f = (await rpc('server_schedule_change_signed_facts', { p_change: changeId }, SR)) as unknown as ChangeFacts | null;

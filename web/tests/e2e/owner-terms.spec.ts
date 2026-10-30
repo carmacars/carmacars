@@ -253,7 +253,7 @@ test('terms of a signed car: a higher amount is an updated Vehicle Schedule the 
   await expect(op.getByTestId('schedule-compare')).toContainText('$460.00');
   await check(op, 'schedule sign');
   await shot(op, 'schedule-sign');
-  // 0182: signed with the signing steps of every signature (the code, the reading, the updated terms initialled, the
+  // 0193: signed with the signing steps of every signature (the code, the reading, the updated terms initialled, the
   // consents, the drawn signature); the signed copy, with its certificate, is filed and found on /verify
   await strongSign(op, op.getByTestId('schedule-sign'));
   await op.getByTestId('schedule-sign-submit').click();

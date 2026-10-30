@@ -1,4 +1,4 @@
--- 99: Quo contacts that match the site, and names for live visitors (migration 0179,
+-- 99: Quo contacts that match the site, and names for live visitors (migration 0190,
 -- docs/changes/2026-10-27-quo-contacts-visitor-names.md). Who a number is (the strongest record wins), the triggers that
 -- mark a number when a person changes, the job's side (due, leased, Quo's list read first, done, errors and back-off, a
 -- pause without a key, the cron gate), Settings > Quo contacts and Sync everyone again; a visitor named by staff (shown

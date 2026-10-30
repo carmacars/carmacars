@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { contactFields, createContact, e164, findContactByExternalId, listContactsPage, readContact, throttle, upsertContact, QuoError, type ContactPerson } from './quo-api.ts';
 import { syncContacts, type ContactsBook, type Due, type DueRow, type SyncDb } from './quo-contacts.ts';
 
-// Quo contacts (migration 0179): the API mapping with a mocked fetch, and one run of the sync with a fake database.
+// Quo contacts (migration 0190): the API mapping with a mocked fetch, and one run of the sync with a fake database.
 // Fictional people and 555 numbers only.
 const RIA: ContactPerson = { number: '+16475550142', first_name: 'Ria', last_name: 'Sample', email: 'ria@example.test', company: null, role: 'Renter' };
 

@@ -761,7 +761,7 @@ values (test.id('nt_agv'), test.id('booking:NT-1'), 2, 'correction', false, 'fil
         '[{"key": "renter.address", "label": "Renter: address", "before": "1 Old Street", "after": "1 New Street", "material": false}]', '{}', 'nt');
 select app.emit_event('renter_agreement_version', 'agreement_version', test.id('nt_agv'), jsonb_build_object('booking_id', test.id('booking:NT-1'), 'version_id', test.id('nt_agv'), 'needs_signature', false), 'renter_agreement_version:nt');
 select app.emit_event('renter_signing_code', 'esign_session', test.id('nt_esign'), jsonb_build_object('booking_id', test.id('booking:NT-1'), 'signer_email', 'nt.signer@example.test', 'signer_name', 'Nia Signer', 'code', '482913'), 'renter_signing_code:nt');
--- the signing code of the other documents (0182): to the signer's own email
+-- the signing code of the other documents (0193): to the signer's own email
 select app.emit_event('document_signing_code', 'esign_session', test.id('nt_esign_doc'), jsonb_build_object('signer_email', 'nt.docsigner@example.test', 'signer_name', 'Nia Docsigner', 'code', '482913', 'document_label', 'your 2 documents'), 'document_signing_code:nt');
 select test.flush();
 delete from agreement_versions where id = test.id('nt_agv');

@@ -38,7 +38,7 @@ export { parseTarget, targetId } from './content';
 export async function ownerAgreementFacts(ownerId: string, by: string): Promise<OwnerAgreementFacts> {
   return (await rpc('server_owner_agreement_facts', { p_owner: ownerId, p_by: by }, SR)) as unknown as OwnerAgreementFacts;
 }
-/** The agreements before approval (0181): the same facts with each car still in intake, its terms pending. Read only:
+/** The agreements before approval (0192): the same facts with each car still in intake, its terms pending. Read only:
  *  never prepared or opened for signature (app.owner_open_agreements still needs the agreements an Admin's terms make). */
 export async function ownerAgreementPreviewFacts(ownerId: string, by: string): Promise<OwnerAgreementFacts> {
   return (await rpc('server_owner_agreement_preview_facts', { p_owner: ownerId, p_by: by }, SR)) as unknown as OwnerAgreementFacts;

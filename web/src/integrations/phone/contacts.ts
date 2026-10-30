@@ -1,7 +1,7 @@
 import { listContactsPage, throttle, upsertContact, type QuoOptions } from '@/features/phone/quo-api';
 import type { ContactsBook } from '@/features/phone/quo-contacts';
 
-// Quo contacts (migration 0179): the CarmaCars workspace's contact list through Quo's public API with the same key as
+// Quo contacts (migration 0190): the CarmaCars workspace's contact list through Quo's public API with the same key as
 // the texts (QUO_API_KEY, a Worker secret; no other key). Calls are at least 150 ms apart (Quo allows 10 a second).
 export function quoBook(key: string | undefined, base?: string): ContactsBook {
   const o: QuoOptions = { key: key ?? '', base, fetch: throttle(fetch, 150) };

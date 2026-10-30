@@ -1,4 +1,4 @@
-// Every signature through the signing session (migration 0182): the key terms the database asks each document's signer to
+// Every signature through the signing session (migration 0193): the key terms the database asks each document's signer to
 // initial (app.esign_doc_initials) all have their wording on the page, the consents of a document signer name no card,
 // and the certificate names each term initialled in words.
 import { test } from 'node:test';
@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { DOC_CONSENTS, DOC_TERMS, DOC_TERM_LABELS, formCTerms } from './terms.ts';
 import { certificateLines, type Certificate } from './certificate.ts';
 
-const migration = readFileSync(new URL('../../../../supabase/migrations/0182_esign_everywhere.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../../../supabase/migrations/0193_esign_everywhere.sql', import.meta.url), 'utf8');
 const fn = /create or replace function app\.esign_doc_initials[\s\S]*?\$\$;/.exec(migration)![0];
 const codes = [...new Set([...fn.matchAll(/array\[([^\]]+)\]/g)].flatMap((m) => [...m[1]!.matchAll(/'([a-z_]+)'/g)].map((x) => x[1]!)))];
 

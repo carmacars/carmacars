@@ -139,7 +139,7 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
   ];
   let pdf = await agreementPdf(blocks, { title: `${r.title}, signed`, createdAt: new Date(rec.signed_at), images, record: { heading: 'Signature record', lines }, footer: `CarmaCars ${r.title}, signed.` });
   if (whole) pdf = await withDocument(s, r.id, pdf, r.document_sha256);
-  // the certificate of completion (0182): the signer's signing session and the SHA-256 of the document signed
+  // the certificate of completion (0193): the signer's signing session and the SHA-256 of the document signed
   pdf = await withRequestCertificate(pdf, r.signature_request_id, r.title, company.officer && r.doc_type !== 'investment_agreement'
     ? { name: companyName ?? company.officer, at: rec.signed_at, text: company.text ?? 'Countersigned automatically when the document was signed.' } : null);
   const sha = await sha256Hex(pdf);

@@ -86,7 +86,7 @@ async function signFromHome(op: Page, name: string, where: string) {
   const ready = Date.now() - t0;
   await check(op, `${where} sign page`);
   await shot(op, `${where}-sign`);
-  // 0182: the signing steps of every signature (the code, the reading, the confirmations initialled, the consents, the drawn signature)
+  // 0193: the signing steps of every signature (the code, the reading, the confirmations initialled, the consents, the drawn signature)
   await expect(op.getByTestId('esign-flow')).toContainText(`${name.split(' ')[0]}'s phone or email`, { timeout: 20_000 });
   await strongSign(op, op.getByTestId('owner-package'));
   const t1 = Date.now();
@@ -154,7 +154,7 @@ test('an individual owner: Check and sign, documents shown at once, prepared in 
   await sql.end();
 });
 
-test('before approval (0181): the owner reads both agreements filled in, the terms pending, and cannot sign yet', async ({ browser }) => {
+test('before approval (0192): the owner reads both agreements filled in, the terms pending, and cannot sign yet', async ({ browser }) => {
   const sql = db();
   const owner = await mkUser(sql, 'plain', `Pia Preview${tag()}`);
   const app = await application(sql, owner);
