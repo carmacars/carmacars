@@ -50,13 +50,13 @@ select test.ok('cs+fleet holds fleet', app.user_va_has(test.id('stp_cs'), 'fleet
 select test.ok('cs+fleet holds cs', app.user_va_has(test.id('stp_cs'), 'cs'));
 select test.ok('cs+fleet holds no finance', not app.user_va_has(test.id('stp_cs'), 'finance'));
 select test.eq('first office function by default', app.va_active_fn(test.id('stp_cs')), 'cs');
-select set_config('app.va_active', 'fleet', true);
+select set_config('app.va_active', 'fleet', false);
 select test.eq('the function chosen on screen', app.va_active_fn(test.id('stp_cs')), 'fleet');
-select set_config('app.va_active', 'finance', true);
+select set_config('app.va_active', 'finance', false);
 select test.eq('a function not held is ignored', app.va_active_fn(test.id('stp_cs')), 'cs');
-select set_config('app.va_active', 'field', true);
+select set_config('app.va_active', 'field', false);
 select test.eq('field is not an office function to work in', app.va_active_fn(test.id('stp_both')), 'sales');
-select set_config('app.va_active', '', true);
+select set_config('app.va_active', '', false);
 select test.ok('field only: no office function', not app.user_va_has(test.id('stp_field')));
 select test.ok('field only: field work', app.user_is_field(test.id('stp_field')));
 select test.eq('field only: nothing to work in', app.va_active_fn(test.id('stp_field')), null::text);
