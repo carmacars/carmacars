@@ -7,7 +7,7 @@ import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
 import { requestMeta } from '@/server/request';
-import { enqueuePdfJobs } from '@/server/pdf-jobs';
+import { enqueuePdfJobs, kickPdfJobs } from '@/server/pdf-jobs';
 import { chargeAddedRental } from '@/server/portal/added-charge';
 import { sha256Hex } from '@/server/links';
 import type { SigningState } from '@/features/handover/types';
@@ -74,6 +74,8 @@ export async function signInPerson(input: SignNowInput): Promise<R<{ role: strin
       declined = await chargeAddedRental(s.booking_id, s.booking_number, s.renter_user_id);
       try { await enqueuePdfJobs([{ kind: 'renter_signed_copy', ref: s.booking_id, user_id: s.renter_user_id }]); } catch (e) { console.error('signed copy job', e); }
     }
+    // paid before signing (0185): the database countersigned and queued the signed copy; render it now
+    if (s.paid_unsigned) kickPdfJobs();
     for (const p of input.refresh ?? []) revalidatePath(p);
     return { ok: true, data: { role: g.role, declined } };
   } catch (e) { return fail(e); }
@@ -97,6 +99,34 @@ export async function staffLicenceUpload(form: FormData): Promise<R> {
     try {
       await door(user.id, 'ops_do', 'staff_licence_register', { booking, driver, kind, path: key, sha256: await sha256Hex(bytes), mime: jpg ? 'image/jpeg' : 'image/png' }, aal);
     } catch (e) { await s.remove('identity', key).catch(() => undefined); throw e; }
+    return { ok: true, data: null };
+  } catch (e) { return fail(e); }
+}
+
+/** A renter's document uploaded by staff from the booking (migration 0183): the insurance policy or pink card, an
+ *  insurer's letter, or another document (a photo or a PDF). The licence goes through staffLicenceUpload. */
+export async function staffDocumentUpload(form: FormData): Promise<R> {
+  try {
+    const { user, aal } = await staff();
+    const booking = String(form.get('booking') ?? ''); const kind = String(form.get('kind') ?? '');
+    const file = form.get('file');
+    if (!/^[0-9a-f-]{36}$/.test(booking) || !['coverage_proof', 'insurer_document', 'other'].includes(kind)) return fail('Unknown upload.');
+    if (!(file instanceof Blob) || file.size === 0 || file.size > 15 * 1024 * 1024) return fail('The file must be under 15 MB.');
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const jpg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    const png = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    const pdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
+    if (!jpg && !png && !pdf) return fail('Upload a photo (JPG or PNG) or a PDF.');
+    const [ext, mime] = pdf ? ['pdf', 'application/pdf'] : jpg ? ['jpg', 'image/jpeg'] : ['png', 'image/png'];
+    const key = `staff/${booking}/${kind}-${crypto.randomUUID()}.${ext}`;
+    const s = await storage();
+    await s.put('documents', key, bytes, mime);
+    const opt = (k: string) => { const v = String(form.get(k) ?? '').trim(); return v || undefined; };
+    try {
+      await door(user.id, 'ops_do', 'staff_document_register', { booking, kind, path: key, sha256: await sha256Hex(bytes), mime,
+        title: opt('title'), insurer_name: opt('insurer_name'), policy_number: opt('policy_number'), policy_expiry: opt('policy_expiry') }, aal);
+    } catch (e) { await s.remove('documents', key).catch(() => undefined); throw e; }
+    revalidatePath('/admin/bookings'); revalidatePath('/va/bookings');
     return { ok: true, data: null };
   } catch (e) { return fail(e); }
 }

@@ -16,6 +16,9 @@ import type { AgreementExtra, AgreementVehicle } from '../agreement/extra.ts';
 export const PAGE_H = 841.89;
 export const PINK = { r: 255 / 255, g: 186 / 255, b: 204 / 255 };
 export const WHITE = { r: 1, g: 1, b: 1 };
+/** the deposit received box's darker pink, and the blue of the form's rules */
+export const ROSE = { r: 224 / 255, g: 164 / 255, b: 180 / 255 };
+export const RULE = { r: 75 / 255, g: 128 / 255, b: 158 / 255 };
 
 /** The facts of a booking for the form: the rental agreement's own (public.server_agreement_facts) and the extra ones
  *  of public.server_blindspot_facts (the mailing address, the HST number, the insurer, the odometer, the template). */
@@ -26,6 +29,8 @@ export interface BlindSpotFacts {
     monthly_rate_cents: number | null; multi_day_rate_cents?: number | null; rental_charge_cents: number; km_allowance_per_day: number | null;
     km_allowance_total: number | null; overage_cents_per_km: number | null; deposit_cents: number; subtotal_at_booking_cents: number;
     hst_at_booking_cents: number; total_due_at_booking_cents: number; coverage_option?: number | null;
+    /** the daily rate's days and the weekend rate's days of a 1 to 6 day rental (the agreement facts carry them) */
+    daily_days?: number | null; weekend_days?: number | null;
   };
   renter: { legal_name: string | null; date_of_birth: string | null; mobile: string | null; address_line1: string | null; address_line2: string | null;
     city: string | null; province: string | null; postal_code: string | null } | null;
@@ -52,7 +57,7 @@ export interface BlindSpotFacts {
 export type Align = 'left' | 'right' | 'center';
 /** A value in a box: x is the left edge (the right edge when right-aligned, the centre when centred), y the baseline. */
 export interface Text { box: string; text: string; x: number; y: number; w: number; size: number; align?: Align; bold?: boolean }
-export interface Cover { box: string; x: number; y: number; w: number; h: number; color: 'white' | 'pink' }
+export interface Cover { box: string; x: number; y: number; w: number; h: number; color: 'white' | 'pink' | 'rose' | 'rule' }
 export interface Dot { box: string; x: number; y: number; r: number }
 /** Where a signature goes: the rectangle it is fitted in (top, from the top of the page). */
 export interface SigBox { box: string; x: number; top: number; w: number; h: number }
@@ -67,7 +72,14 @@ export const COVERS: Cover[] = [
   { box: '15-to', x: 205.8, y: 522.6, w: 82, h: 8.6, color: 'pink' },
   { box: '21', x: 137, y: 799, w: 57, h: 26, color: 'pink' },
   // 40: the printed "T B D" under M, DD and YYYY, where the due-back date goes
-  { box: '40', x: 291, y: 440.8, w: 87.5, h: 8.8, color: 'pink' }
+  { box: '40', x: 291, y: 440.8, w: 87.5, h: 8.8, color: 'pink' },
+  // the fuel gauges: the printed circles of FUEL OUT (pink row) and FUEL IN (white row) touch and read as "8 8 8 8 8";
+  // covered, and the level of the check-out (and check-in) report written in words instead (blank with no reading)
+  // (the FUEL IN circles run over the rule under their row: covered too, the rule drawn again)
+  { box: 'fuel-out', x: 320.5, y: 674.5, w: 135.8, h: 8.6, color: 'pink' },
+  { box: 'fuel-in', x: 320.5, y: 683.0, w: 135.8, h: 12.0, color: 'white' },
+  { box: 'fuel-in-59', x: 339.5, y: 695.0, w: 93, h: 0.5, color: 'rose' },
+  { box: 'fuel-in-rule', x: 320.5, y: 693.7, w: 135.8, h: 1.1, color: 'rule' }
 ];
 /** The line under box 21's signature, drawn again where the old signature crossed it. */
 export const LINE_21 = { x1: 137, x2: 194, y: 823.7, thickness: 0.32 };
@@ -89,6 +101,14 @@ export const SIG = {
   initialsCleanup: { box: 'cleanup', x: 262, top: 129, w: 54, h: 11.5 } as SigBox,
   initialsDue: { box: '40-x', x: 452, top: 430, w: 48, h: 11 } as SigBox
 };
+/** The date the renter signed, in the empty space right of box 20's signature line (the form has no date box). */
+export const SIGNED_ON = { label: { x: 237, y: 774, size: 5 }, date: { x: 237, y: 781.5, size: 6.5 }, w: 48 };
+/** "2026-10-01": a signature's day in Toronto. */
+export function signedDay(iso: string | null | undefined): string | null {
+  if (!iso || Number.isNaN(new Date(iso).getTime())) return null;
+  const p = parts(iso);
+  return `${p.y}-${p.m}-${p.d}`;
+}
 
 const S = 8; // the size of most values
 const T = (box: string, text: string | null | undefined, x: number, y: number, w: number, o: Partial<Text> = {}): Text | null =>
@@ -159,12 +179,23 @@ const WAIVER = { code: 'waiver_saver', x: 409, y: 607, w: 28 };
 const INSURER_BOXED = new Set([...INSURER_ROWS.map(([c]) => c), WAIVER.code]);
 /** The width of a value in Helvetica (the font fill.ts draws with), in points: digits, $, comma and period. */
 const helvetica = (s: string, size: number) => [...s].reduce((w, c) => w + (/[0-9$]/.test(c) ? 556 : c === '-' ? 333 : c === ',' || c === '.' ? 278 : 600), 0) * size / 1000;
+/** The stages of the lines charged before the rental ends (the closing copy adds the return's). */
+const PRE = ['booking', 'extension', 'pickup', 'monthly'];
 /** The boxes of the vehicle columns: x of the original vehicle (right) and replacement (left) columns. */
 const COL = { original: { x: 475, w: 102 }, replacement: { x: 327, w: 86 } };
 /** Each row's baseline, from the top of the page (22 to 31). */
 const ROW = { '22': 62, '23': 82, make: 103, model: 123, '25': 143.5, '26': 164, '27': 185, '28': 204.5, '29': 224.5, '30': 244.8, '31': 265 };
-/** The fuel gauge circles (E, 1/4, 1/2, 3/4, F): out on the top row, in on the bottom row. */
-export const FUEL_DOTS = { x: [327.1, 353.0, 380.9, 409.7, 444.5], out: 679.2, in: 689.3 };
+/** The fuel level, written over the covered gauges: out on the top row, in on the bottom row (baselines). */
+export const FUEL_TEXT = { x: 326, w: 128, out: 681.4, in: 691.2 };
+/** A fuel reading in words: "Full (100%)", "3/4 (75%)", "Empty (0%)", "About 5/8 (60%)". */
+export function fuelText(pct: number | null | undefined): string | null {
+  if (pct === null || pct === undefined || !Number.isFinite(Number(pct))) return null;
+  const v = Math.max(0, Math.min(100, Math.round(Number(pct))));
+  const NAMES: Record<number, string> = { 0: 'Empty', 25: '1/4', 50: '1/2', 75: '3/4', 100: 'Full' };
+  const q = Math.round(v / 12.5) * 12.5;
+  const name = NAMES[v] ?? (q === 0 ? 'Near empty' : q === 100 ? 'Near full' : Number.isInteger(q / 25) ? `About ${NAMES[q]}` : `About ${q / 12.5}/8`);
+  return `${name} (${v}%)`;
+}
 const kmText = (n: number | null | undefined) => (n === null || n === undefined ? null : `${n.toLocaleString('en-CA')} km`);
 
 /** What goes in each box of page 1 for a booking (the unsigned document; signatures are added by fill.ts). */
@@ -289,23 +320,79 @@ export function layout(f: BlindSpotFacts): Layout {
     t.push(T('12', 'Insurance included with the car', 22, 447.5, 264));
   }
 
+  const more = x.more ?? null;
+  // every line of the version (booking and extension stages; the return stage on the closing copy)
+  const all = more ? more.lines.filter((l) => more.return ? true : PRE.includes(l.stage)) : f.lines.map((l) => ({ ...l, hst_cents: 0, stage: 'booking' }));
+  // the rates (33 to 38): COUNT @ RATE = AMOUNT on the row of the rate, so the count times the rate is the amount. The
+  // weeks or months row when the weekly or monthly rate makes the charge exactly; otherwise the days row at the daily
+  // (or 3+ day) rate, or, when no one rate makes it (a monthly or weekly rate counted by the day, daily and weekend
+  // days, a charge agreed by hand), at the rental charge divided by the days, rounded to the cent, and box 14 says how
+  // the charge was made. Box 39 is the sum of the amounts of these rows.
+  const sumOf = (pred: (c: string) => boolean, ls: Array<{ charge_type: string; amount_cents: number }> = all) => ls.filter((l) => pred(l.charge_type)).reduce((t2, l) => t2 + l.amount_cents, 0);
+  const rental = sumOf((c) => RENTAL.has(c)) || b.rental_charge_cents;
+  let rateRows = 0;
+  const R = (box: string, y: number, count: string | null, rate: number | null, amount: number | null) => {
+    t.push(T(`${box}-count`, count, 404, y, 78, { align: 'right' }));
+    t.push(T(`${box}-rate`, rate != null ? dollars(rate) : null, 415, y, 62));
+    t.push(T(`${box}-amount`, amount ? dollars(amount) : null, 577, y, 72, { align: 'right' }));
+    rateRows += amount ?? 0;
+  };
+  const ret = more?.return ?? null;
+  const overage = sumOf((c) => c === 'mileage_overage');
+  const lateFee = sumOf((c) => c === 'late_return_fee' || c === 'late_return' || c === 'late_return_admin');
+  const extraDays = sumOf((c) => c === 'late_return_extra_days');
+  // 33: the rate per kilometre over the allowance; on the closing copy the kilometres charged and their amount
+  if (b.overage_cents_per_km != null || ret) R('33', 305.5, ret ? (ret.km_charged ?? 0).toLocaleString('en-CA') : null, b.overage_cents_per_km, ret ? overage : null);
+  const ra = b.rate_applied ?? 'daily';
+  let rateNote: string | null = null;
+  if (rental > 0) {
+    const perDay = ra === 'multi_day' ? b.multi_day_rate_cents ?? null : ra === 'daily' || ra === 'weekend' ? b.daily_rate_cents : null;
+    if (ra === 'weekly' && days > 0 && days % 7 === 0 && b.weekly_rate_cents && (days / 7) * b.weekly_rate_cents === rental) R('36', 366.5, String(days / 7), b.weekly_rate_cents, rental);
+    else if (ra === 'monthly' && days > 0 && days % 30 === 0 && b.monthly_rate_cents && (days / 30) * b.monthly_rate_cents === rental) R('37', 387, String(days / 30), b.monthly_rate_cents, rental);
+    else if (days > 0 && perDay && days * perDay === rental) R('35', 346, String(days), perDay, rental);
+    else if (days > 0) {
+      const each = Math.round(rental / days);
+      R('35', 346, String(days), each, rental);
+      const how = ra === 'monthly' && b.monthly_rate_cents ? `the monthly rate ${dollars(b.monthly_rate_cents)} / 30 x ${days} days`
+        : ra === 'weekly' && b.weekly_rate_cents ? `the weekly rate ${dollars(b.weekly_rate_cents)} / 7 x ${days} days`
+        : (ra === 'daily' || ra === 'weekend') && b.daily_days != null && b.weekend_days != null && b.daily_rate_cents && b.weekend_rate_cents
+          ? `${b.daily_days} days x ${dollars(b.daily_rate_cents)} + ${b.weekend_days} weekend days x ${dollars(b.weekend_rate_cents)}`
+        : 'the rental charge agreed';
+      rateNote = `Box 35: ${how} = ${dollars(rental)}, ${dollars(each)} a day${each * days === rental ? '' : ' rounded'}.`;
+    } else R('35', 346, null, null, rental);
+  }
+  // the closing copy: the hours late (34), the extra days (38)
+  if (ret) {
+    if (ret.late_hours || lateFee) R('34', 326, ret.late_hours ? `${ret.late_hours}` : null, null, lateFee || null);
+    if (extraDays) {
+      const n = ret.extra_days ?? 0;
+      R('38', 407.5, n ? String(n) : null, n ? (b.daily_rate_cents && n * b.daily_rate_cents === extraDays ? b.daily_rate_cents : Math.round(extraDays / n)) : null, extraDays);
+    }
+  }
+  if (rateRows > 0) t.push(T('39', dollars(rateRows), 577, 427, 72, { align: 'right' }));
+
   // 14, additional information: what has no box of its own
   const info: string[] = [];
   if (ins && ins.authorized_days) info.push(`Insurer authorized ${ins.authorized_days} day${ins.authorized_days === 1 ? '' : 's'}${ins.authorized_daily_rate_cents ? ` at ${dollars(ins.authorized_daily_rate_cents)}/day` : ''}.`);
   for (const d of others.slice(1)) if (d.licence_number) info.push(`${d.full_name}: licence ${d.licence_number.toUpperCase()}${d.licence_issuer ? ` (${d.licence_issuer})` : ''}${d.licence_expiry ? `, expires ${d.licence_expiry.slice(0, 10)}` : ''}.`);
-  const more = x.more ?? null;
-  // every line of the version (booking and extension stages; the return stage on the closing copy)
-  const all = more ? more.lines.filter((l) => more.return ? true : ['booking', 'extension', 'pickup', 'monthly'].includes(l.stage)) : f.lines.map((l) => ({ ...l, hst_cents: 0, stage: 'booking' }));
-  // 0191: Waiver Saver's amount in its white box, readable (size 6 at least); else in box 48 with the others
+  // a line with a box of its own (the rate rows, underage, CDW, winter tires); the others before the rental starts are
+  // box 48 (pre adjustment: delivery, add-ons, drivers' fees, a discount, prepaid fuel); after it, damages (52), fuel
+  // (53) and the rest (54, post adjustment)
+  // 0191: the charges to the insurer have rows of their own too; Waiver Saver's amount in its white box, readable (size 6
+  // at least), else in box 48 with the others
   const waiverCents = all.filter((l) => l.charge_type === WAIVER.code).reduce((t2, l) => t2 + l.amount_cents, 0);
   const waiverFits = !waiverCents || helvetica(dollars(waiverCents), 6) <= WAIVER.w;
-  const otherLines = all.filter((l) => !RENTAL.has(l.charge_type) && !YOUNG.test(l.charge_type) && l.charge_type !== 'coverage_sold' && l.charge_type !== 'winter_tire'
-    && !(INSURER_BOXED.has(l.charge_type) && (l.charge_type !== WAIVER.code || waiverFits))
-    && l.charge_type !== 'deposit' && l.charge_type !== 'mileage_overage' && !LATE.has(l.charge_type) && !FUEL.has(l.charge_type) && !DAMAGE.test(l.charge_type));
-  const preAdjust = otherLines.filter((l) => ['booking', 'extension', 'pickup', 'monthly'].includes((l as { stage?: string }).stage ?? 'booking'));
-  const postAdjust = otherLines.filter((l) => !preAdjust.includes(l));
+  const ownBox = (c: string) => RENTAL.has(c) || YOUNG.test(c) || c === 'coverage_sold' || c === 'winter_tire' || c === 'deposit' || c === 'mileage_overage' || LATE.has(c)
+    || (INSURER_BOXED.has(c) && (c !== WAIVER.code || waiverFits));
+  const isPre = (l: { stage?: string }) => PRE.includes(l.stage ?? 'booking');
+  const preAdjust = all.filter((l) => isPre(l) && !ownBox(l.charge_type));
+  const damages = all.filter((l) => !isPre(l) && !ownBox(l.charge_type) && DAMAGE.test(l.charge_type));
+  const fuels = all.filter((l) => !isPre(l) && !ownBox(l.charge_type) && FUEL.has(l.charge_type));
+  const postAdjust = all.filter((l) => !isPre(l) && !ownBox(l.charge_type) && !DAMAGE.test(l.charge_type) && !FUEL.has(l.charge_type));
+  if (rateNote) info.push(rateNote);
   if (preAdjust.length) info.push(`Box 48: ${preAdjust.map((l) => `${l.description} ${dollars(l.amount_cents)}`).join('; ')}.`);
   if (postAdjust.length) info.push(`Box 54: ${postAdjust.map((l) => `${l.description} ${dollars(l.amount_cents)}`).join('; ')}.`);
+  if ([...damages, ...fuels, ...postAdjust].some((l) => ((l as { hst_cents?: number }).hst_cents ?? 0) !== 0)) info.push('Boxes 52 to 54 include their HST.');
   // the coverage and how the deposit and rental are paid
   const cov = x.coverage;
   if (b.coverage_option === 2 && cov) info.push(`Coverage: card${cov.card_issuer ? ` (${cov.card_issuer}${cov.card_last4 ? ` ending ${cov.card_last4}` : ''})` : ''}.`);
@@ -331,42 +418,6 @@ export function layout(f: BlindSpotFacts): Layout {
   if (f.card?.last4) t.push(T('18-card', `${f.card.last4}${f.card.brand ? ` (${f.card.brand.charAt(0).toUpperCase()}${f.card.brand.slice(1)})` : ''}`, 172, 669.5, 110, { size: 7 }));
   if (f.card?.last4 && x.card_expiry) t.push(T('18-expiry', x.card_expiry, 140, 679, 80, { size: 7 }));
 
-  // the rates (33 to 38): the rental charge on the row of its rate, with the count and the rate when they make it
-  const sumOf = (pred: (c: string) => boolean, ls: Array<{ charge_type: string; amount_cents: number }> = all) => ls.filter((l) => pred(l.charge_type)).reduce((t2, l) => t2 + l.amount_cents, 0);
-  const rental = sumOf((c) => RENTAL.has(c)) || b.rental_charge_cents;
-  const R = (box: string, y: number, count: string | null, rate: number | null, amount: number | null) => {
-    t.push(T(`${box}-count`, count, 404, y, 78, { align: 'right' }));
-    t.push(T(`${box}-rate`, rate != null ? dollars(rate) : null, 415, y, 62));
-    t.push(T(`${box}-amount`, amount != null ? dollars(amount) : null, 577, y, 72, { align: 'right' }));
-  };
-  if (b.overage_cents_per_km != null) R('33', 305.5, null, b.overage_cents_per_km, null);
-  const ra = b.rate_applied ?? 'daily';
-  if (rental > 0) {
-    if (ra === 'weekly' && days % 7 === 0 && b.weekly_rate_cents && (days / 7) * b.weekly_rate_cents === rental) R('36', 366.5, String(days / 7), b.weekly_rate_cents, rental);
-    else if (ra === 'monthly' && days % 30 === 0 && b.monthly_rate_cents && (days / 30) * b.monthly_rate_cents === rental) R('37', 387, String(days / 30), b.monthly_rate_cents, rental);
-    else {
-      const perDay = ra === 'multi_day' ? b.multi_day_rate_cents ?? null : b.daily_rate_cents;
-      R('35', 346, days ? String(days) : null, perDay && days * perDay === rental ? perDay : null, rental);
-    }
-  }
-  // the closing copy: the kilometres charged (33), the hours late (34), the extra days (38)
-  const ret = more?.return ?? null;
-  const overage = sumOf((c) => c === 'mileage_overage');
-  const lateFee = sumOf((c) => c === 'late_return_fee' || c === 'late_return' || c === 'late_return_admin');
-  const extraDays = sumOf((c) => c === 'late_return_extra_days');
-  if (ret) {
-    t.push(T('33-count', ret.km_charged ? `${ret.km_charged.toLocaleString('en-CA')}` : '0', 404, 305.5, 78, { align: 'right' }));
-    if (overage) t.push(T('33-amount', dollars(overage), 577, 305.5, 72, { align: 'right' }));
-    if (ret.late_hours) t.push(T('34-count', `${ret.late_hours}`, 404, 326, 78, { align: 'right' }));
-    if (lateFee) t.push(T('34-amount', dollars(lateFee), 577, 326, 72, { align: 'right' }));
-    if (extraDays) {
-      t.push(T('38-count', ret.extra_days ? String(ret.extra_days) : null, 404, 407.5, 78, { align: 'right' }));
-      if (b.daily_rate_cents && ret.extra_days && ret.extra_days * b.daily_rate_cents === extraDays) t.push(T('38-rate', dollars(b.daily_rate_cents), 415, 407.5, 62));
-      t.push(T('38-amount', dollars(extraDays), 577, 407.5, 72, { align: 'right' }));
-    }
-  }
-  const timeDistance = rental + (ret ? overage + lateFee + extraDays : 0);
-  if (timeDistance > 0) t.push(T('39', dollars(timeDistance), 577, 427, 72, { align: 'right' }));
 
   // 40: due back, the date under M, DD and YYYY (in place of the printed "T B D"), the time, AM or PM
   const due = parts(b.return_at);
@@ -393,24 +444,40 @@ export function layout(f: BlindSpotFacts): Layout {
   const pre = preAdjust.reduce((t2, l) => t2 + l.amount_cents, 0);
   if (pre) t.push(T('48', dollars(pre), 577, 610, 72, { align: 'right' }));
 
-  // the totals: the subtotal before tax, the HST at 13%, the total, the deposit (the closing copy: every charge)
+  // the totals. 49: every charge before tax but damages, fuel and the post adjustment; 50: its HST (13% of box 49, the
+  // HST charged on those lines); 52, 53, 54 (the closing copy): each with its own HST, as the form adds them after the
+  // tax; 55: the total charged. 49 + 50 + 52 + 53 + 54 = 55.
   const lines = more ? all : null;
-  const subtotal = lines ? lines.filter((l) => ['booking', 'extension', 'pickup', 'monthly'].includes(l.stage)).reduce((t2, l) => t2 + l.amount_cents, 0) : b.subtotal_at_booking_cents;
-  const allHst = lines ? lines.reduce((t2, l) => t2 + l.hst_cents, 0) : b.hst_at_booking_cents;
-  const allTotal = lines ? lines.reduce((t2, l) => t2 + l.amount_cents + l.hst_cents, 0) : b.total_due_at_booking_cents;
-  t.push(T('49', dollars(ret ? subtotal + overage + lateFee + extraDays : subtotal), 577, 630.5, 72, { align: 'right' }));
-  t.push(T('50', dollars(allHst), 577, 650.5, 72, { align: 'right' }));
-  if (ret) {
-    const dmg = sumOf((c) => DAMAGE.test(c)); const fuel = sumOf((c) => FUEL.has(c)); const post = postAdjust.reduce((t2, l) => t2 + l.amount_cents, 0);
+  const after = new Set([...damages, ...fuels, ...postAdjust]);
+  const in49 = lines ? lines.filter((l) => !after.has(l)) : null;
+  const withHst = (ls: Array<{ amount_cents: number; hst_cents: number }>) => ls.reduce((t2, l) => t2 + l.amount_cents + l.hst_cents, 0);
+  const allTotal = lines ? withHst(lines) : b.total_due_at_booking_cents;
+  t.push(T('49', dollars(in49 ? in49.reduce((t2, l) => t2 + l.amount_cents, 0) : b.subtotal_at_booking_cents), 577, 630.5, 72, { align: 'right' }));
+  t.push(T('50', dollars(in49 ? in49.reduce((t2, l) => t2 + l.hst_cents, 0) : b.hst_at_booking_cents), 577, 650.5, 72, { align: 'right' }));
+  if (lines) {
+    const dmg = withHst(damages as Array<{ amount_cents: number; hst_cents: number }>); const fuel = withHst(fuels as Array<{ amount_cents: number; hst_cents: number }>);
+    const post = withHst(postAdjust as Array<{ amount_cents: number; hst_cents: number }>);
     if (dmg) t.push(T('52', dollars(dmg), 577, 671, 72, { align: 'right', size: 7 }));
     if (fuel) t.push(T('53', dollars(fuel), 577, 690, 72, { align: 'right' }));
     if (post) t.push(T('54', dollars(post), 577, 711, 72, { align: 'right' }));
   }
   t.push(T('55', dollars(allTotal), 577, 731.5, 72, { align: 'right', bold: true }));
   if (b.deposit_cents > 0) t.push(T('56', dollars(b.deposit_cents), 577, 751.5, 72, { align: 'right' }));
-  // the deposit received (taken at pickup) and, on the closing copy, the balance and what was paid
-  if (more && b.deposit_cents > 0 && (more.deposit.status === 'held' || more.deposit.status === 'captured' || more.deposit.status === 'settled' || more.deposit.method === 'offline'))
-    t.push(T('deposit-received', dollars(more.deposit.amount_cents), 376, 711, 55, { size: 7.5 }));
+  // 59, deposit received: the deposit taken (a card hold, a charge, cash or e-Transfer) and the month and day it was
+  // taken; before it is taken, the amount due at pickup, said so. The add deposit rows are for a second deposit: blank.
+  const dep = more?.deposit ?? null;
+  const depPaid = more ? more.payments.filter((p) => p.purpose === 'deposit' && p.amount_cents > 0) : [];
+  const taken = !!dep && (['held', 'captured', 'settled', 'carried_forward'].includes(dep.status ?? '') || (dep.method === 'offline' && !!dep.paid_method));
+  const received = taken ? { cents: dep!.amount_cents || b.deposit_cents, at: dep!.taken_at ?? depPaid[depPaid.length - 1]?.at ?? null }
+    : depPaid.length ? { cents: depPaid.reduce((t2, p) => t2 + p.amount_cents, 0), at: depPaid[depPaid.length - 1]!.at ?? null } : null;
+  if (received && received.cents > 0) {
+    t.push(T('deposit-received', dollars(received.cents).replace('$', ''), 374, 707.4, 57, { size: 7.5 }));
+    if (received.at && !Number.isNaN(new Date(received.at).getTime())) {
+      const d = parts(received.at);
+      t.push(T('59-m', d.m, 303, 707.4, 22, { align: 'center', size: 7.5 }));
+      t.push(T('59-d', d.d, 327, 707.4, 18, { align: 'center', size: 7.5 }));
+    }
+  } else if (b.deposit_cents > 0) t.push(T('deposit-due', `${dollars(b.deposit_cents).replace('$', '')} due at pickup`, 374, 707.4, 57, { size: 7.5 }));
   if (more && ret) {
     const paid = more.payments.filter((p) => p.purpose !== 'deposit').reduce((t2, p) => t2 + p.amount_cents, 0);
     const balance = allTotal - paid;
@@ -425,14 +492,9 @@ export function layout(f: BlindSpotFacts): Layout {
     }
     if (more.deposit.released_cents) t.push(T('refund', dollars(more.deposit.released_cents).replace('$', ''), 446, 797, 55, { size: 7.5 }));
   }
-  // the fuel gauge: out (the pickup), in (the return), the nearest quarter
-  const gauge = (pct: number | null | undefined, row: 'out' | 'in') => {
-    if (pct === null || pct === undefined) return;
-    const i = Math.max(0, Math.min(4, Math.round(pct / 25)));
-    dots.push({ box: `fuel-${row}`, x: FUEL_DOTS.x[i]!, y: FUEL_DOTS[row], r: 2.6 });
-  };
-  gauge(more?.pickup?.fuel_pct, 'out');
-  gauge(ret?.fuel_pct, 'in');
+  // the fuel: out (the check-out report), in (the check-in report), in words over the covered gauges; blank with no reading
+  t.push(T('fuel-out', fuelText(more?.pickup?.fuel_pct), FUEL_TEXT.x, FUEL_TEXT.out, FUEL_TEXT.w, { size: 7 }));
+  t.push(T('fuel-in', fuelText(ret?.fuel_pct), FUEL_TEXT.x, FUEL_TEXT.in, FUEL_TEXT.w, { size: 7 }));
 
   // the old address, Blind Spot's HST number and the old signature are always covered (blank until replaced)
   // 0178, the owner: "Every box needs to be filled out": a box that does not apply to this rental says N/A (a box left

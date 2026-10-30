@@ -143,7 +143,7 @@ test('the Rental agreements card: missing fields filled; a material change signe
   await expect(rp.getByRole('heading', { name: `Version ${ver!.version_no} of your rental agreement` })).toBeVisible();
   await expect(rp.locator('table')).toContainText('Coverage option');
   await check(rp, 'version sign page');
-  await strongSign(rp, rp, 'email');
+  await strongSign(rp, rp, 'email', true);   // the optional code (0186), opened by the signer
   await rp.screenshot({ path: `${SHOTS}/${w}-version-ready.png`, fullPage: true });
   await rp.getByTestId('version-sign').click();
   await expect(rp.getByTestId('version-signed')).toBeVisible({ timeout: 20_000 });

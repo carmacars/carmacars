@@ -99,8 +99,9 @@ test('gaps: customer service and the renter write to each other on the booking, 
   const errors = watch(va);
   await signIn(va, cs.email, '/va');
   await va.goto(`/va/bookings/${req.booking_number}?tab=messages`);
-  await va.locator('#qr-body').fill('Hello Riley, we can have the car ready at 9:00. Does that work?');
-  await va.getByTestId('quick-reply-send').click();
+  await va.locator('#em-subject').fill('Your pickup time');
+  await va.locator('#em-body').fill('Hello Riley, we can have the car ready at 9:00. Does that work?');
+  await va.getByTestId('email-send').click();
   await expect(va.getByTestId('messages')).toContainText('ready at 9:00', { timeout: 15_000 });
   await check(va, 'va booking messages');
   await expect.poll(async () => { await sql`select app.process_events(1000)`; return (await sql`select count(*)::int n from notification_outbox where code = 'renter_staff_message' and booking_id = ${req.booking_id} and payload ->> 'message_body' like '%ready at 9:00%'`)[0]!.n; }, { timeout: 15_000 }).toBe(1);

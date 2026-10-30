@@ -190,8 +190,12 @@ select test.eq('ADJ an Admin''s discount comes off the rental charge as its own 
   (select subtotal_at_booking_cents || '/' || hst_at_booking_cents || '/' || total_due_at_booking_cents from bookings where id = test.b('c1'))
   || ' ' || (select amount_cents || '+' || hst_cents || ':' || revenue_class from booking_line_items where booking_id = test.b('c1') and charge_type = 'staff_discount' and voided_at is null),
   '36000/4680/40680 -4000+-520:owner_revenue');
-select test.throws('ADJ the discounts cannot exceed the rental charge',
-  $$select app.adjust_booking(test.b('c1'), test.id('admin_abbas'), '{"staff_discount_cents": 40001, "staff_discount_reason": "x"}')$$, 'bookings_discounts_within_rental');
+-- 0186: discounts come off the rental charge only: a larger one is capped at the rental charge (never off the fees)
+select test.lives('ADJ a discount larger than the rental charge is capped, not refused',
+  $$select app.adjust_booking(test.b('c1'), test.id('admin_abbas'), '{"staff_discount_cents": 40001, "staff_discount_reason": "x"}')$$);
+select test.eq('ADJ the discounts never exceed the rental charge',
+  (select staff_discount_cents || '/' || rental_charge_cents || '/' || subtotal_at_booking_cents from bookings where id = test.b('c1')), '40000/40000/0');
+select app.adjust_booking(test.b('c1'), test.id('admin_abbas'), '{"staff_discount_cents": 4000, "staff_discount_reason": "returning customer"}');
 select app.adjust_booking(test.b('c1'), test.id('rq_cs'), jsonb_build_object('vehicle_id', test.id('vehicle:RQ3')), 'swap: first car is in demand');
 select test.eq('ADJ a swap to another car takes that car''s owner, Revenue Share, rates and Deposit (4 x $90 = $360, less $40, + HST)',
   (select (owner_id = test.id('owner:rq_pam')) || '/' || company_share_bps || '/' || daily_rate_cents || '/' || rental_charge_cents || '/' || deposit_cents
@@ -208,7 +212,7 @@ select test.eq('ADJ taking delivery off voids its line (lines are never deleted)
   || (select count(*) filter (where voided_at is null) || '/' || count(*) from booking_line_items where booking_id = test.b('c1') and charge_type = 'delivery'), '36160/0/1');
 select test.eq('ADJ every adjustment is in the booking''s history with who made it and what changed',
   (select count(*) || '/' || bool_and(actor_type = 'staff' and actor_user_id is not null and details is not null)
-     from booking_events where booking_id = test.b('c1') and kind = 'adjusted'), '5/true');
+     from booking_events where booking_id = test.b('c1') and kind = 'adjusted'), '7/true');
 select test.throws('ADJ a customer service assistant cannot move a request to another owner''s car by editing the row (the server does it)',
   format($$select test.login(%L); update bookings set vehicle_id = %L where id = %L$$, test.id('rq_cs'), test.id('vehicle:RQ1'), test.b('c1')), 'Only an Admin changes');
 select test.logout();

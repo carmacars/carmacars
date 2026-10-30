@@ -189,6 +189,7 @@ function pngBytes(dataUrl: string, min = 120): Uint8Array | null {
 export type EsignStep =
   | { kind: 'viewed' } | { kind: 'document_opened'; title: string }
   | { kind: 'initial'; code: string; png?: string; typed?: string }
+  | { kind: 'initial_clear'; code: string }
   | { kind: 'consent'; code: ConsentCode }
   | { kind: 'geolocation'; lat: number; lng: number; accuracy: number }
   | { kind: 'signature'; png?: string; typed?: string };
@@ -208,7 +209,8 @@ export async function esignStep(ctx: EsignContext, session: string, step: EsignS
     if (step.kind === 'initial') {
       if (step.png) { const b = pngBytes(step.png, 80); if (!b) throw new Error('Initial in the box.'); path = await store(b, `initials-${step.code}`); detail = { code: step.code, path }; }
       else detail = { code: step.code, typed: true, text: (step.typed ?? '').slice(0, 10) };
-    } else if (step.kind === 'consent') {
+    } else if (step.kind === 'initial_clear') detail = { code: step.code };
+    else if (step.kind === 'consent') {
       const texts: Record<string, string> = ctx.kind === 'documents' || ctx.kind === 'cosigner' ? DOC_CONSENTS : CONSENTS;
       if (!texts[step.code]) throw new Error('Unknown consent.');
       detail = { code: step.code, text: texts[step.code] };
@@ -221,5 +223,20 @@ export async function esignStep(ctx: EsignContext, session: string, step: EsignS
     }
     const v = (await rpc('server_esign_step', { p_session: session, p_kind: step.kind, p_detail: detail as unknown as Json, p_ip: meta.ip ?? undefined, p_user_agent: meta.userAgent }, SR)) as unknown as EsignView;
     return { ok: true, data: { ...v, path } };
+  } catch (e) { return fail(e); }
+}
+
+/** A wrong mobile number while signing (migration 0183): the signed-in renter, or the staff member collecting the
+ *  signature in person, corrects it; the next code goes there and the renter's profile keeps it. */
+export async function esignSetMobile(ctx: EsignContext, session: string, phone: string): Promise<R<EsignView>> {
+  try {
+    if (ctx.kind !== 'renter' && ctx.kind !== 'amendment' && ctx.kind !== 'in_person') throw new Error('Ask the renter or CarmaCars to correct the number for you.');
+    await own(ctx, session);
+    const { toE164 } = await import('@/features/auth/phone');
+    const e164 = toE164(phone);
+    if (!e164) throw new Error('Enter a Canadian or US mobile number.');
+    const user = await currentUser();
+    const v = (await rpc('server_esign_set_mobile', { p_session: session, p_mobile: e164, p_by: user!.id }, SR)) as unknown as EsignView;
+    return { ok: true, data: v };
   } catch (e) { return fail(e); }
 }

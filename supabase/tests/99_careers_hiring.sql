@@ -32,6 +32,17 @@ create or replace function test.h99field(p jsonb default '{}'::jsonb) returns js
     "late":"Message the office at once, keep the renter updated and follow the office''s instructions",
     "dent":"Stay polite, photograph everything, note it in the app and let the office decide",
     "cash":"Count it in front of them, record it in the app right away and give them the receipt","start":"2026-11-02","pay":"20"}'::jsonb || p $$;
+create or replace function test.h99va(p jsonb default '{}'::jsonb) returns jsonb language sql immutable as $$
+  select jsonb_build_object('schedule', 'Yes, I can work this schedule every week', 'pay', 'Yes, I understand the rate is firm and I accept it',
+    'internet', 'Fiber or cable, 25 Mbps or faster, plus a backup connection', 'speed', '80 down, 40 up', 'backup', 'A generator, inverter or power station',
+    'english', 'Fluent: I handle calls on my own every day', 'years', '5 years or more',
+    'experience', 'Five years billing North American clients at an accounting firm: invoices, statements, reconciliations and payouts every single day of the week',
+    'tools', jsonb_build_array('QuickBooks', 'Stripe'), 'social', jsonb_build_array('Designing posts in Canva'), 'skills', 'Accuracy, spreadsheets, written English',
+    'business', 'Rents cars to customers in Toronto',
+    'role', 'I will price the charges after each rental, settle the deposits, match tolls to bookings, bill the owners on the fifteenth and build their statements and payouts for the tenth of the month',
+    'scenario', 'Change nothing, verify by a phone number we already have and wait for written approval', 'other_jobs', 'No, this would be my only job', 'clients', 'No',
+    'school', 'No', 'education', 'College degree', 'career', 'A long-term career, growing with one company', 'canada', 'Maybe', 'start', '2026-11-09') || p
+$$;
 create or replace function test.h99sales(p jsonb default '{}'::jsonb) returns jsonb language sql immutable as $$
   select '{"years":"3 to 5 years","done":["Phone sales","Used a CRM","Car rental, dealership or automotive"],"commission":"I like being paid for results",
     "in_person":"Yes","days":["Thursday","Friday","Saturday","Sunday"],"hours":"Yes, all of them","languages":["English","Tagalog"],
@@ -78,10 +89,15 @@ select test.eq('score: languages (English 5, each other 2 up to 5)',
   (select (d ->> 'points') from jsonb_array_elements(app.hiring_score((select questions from hiring_roles where slug = 'sales-in-person'), test.h99sales('{"languages":["English","French","Arabic","Punjabi"]}')) -> 'detail') d where d ->> 'key' = 'languages'), '10');
 select test.eq('score: in person, remote only is the knock-out of the in-person role', jsonb_array_length(app.hiring_score((select questions from hiring_roles where slug = 'sales-in-person'), test.h99sales('{"in_person":"No, only remotely"}')) -> 'knockouts'), 1);
 select test.eq('score: an answer that is not a choice is refused', app.hiring_score((select questions from hiring_roles where slug = 'field-staff'), test.h99field('{"licence":"Maybe"}')) #>> '{errors,licence}', 'Choose one of the answers.');
-select test.eq('score: the finance code word is a knock-out when missing', jsonb_array_length(app.hiring_score((select questions from hiring_roles where slug = 'va-finance-billing'),
-  '{"post_check":"I did not see one"}'::jsonb) -> 'knockouts'), 1);
-select test.eq('score: the finance code word passes in any case', jsonb_array_length(app.hiring_score((select questions from hiring_roles where slug = 'va-finance-billing'),
-  '{"post_check":"Ledger"}'::jsonb) -> 'knockouts'), 0);
+select test.eq('score: a VA who refuses the schedule or the pay is knocked out', jsonb_array_length(app.hiring_score((select questions from hiring_roles where slug = 'va-finance-billing'),
+  test.h99va('{"schedule":"No","pay":"No"}')) -> 'knockouts'), 2);
+select test.eq('score: a VA who accepts both passes the bar with no knock-out', (select (s -> 'knockouts')::text || '/' || ((s ->> 'pct')::int >= 60) from (
+  select app.hiring_score((select questions from hiring_roles where slug = 'va-finance-billing'), test.h99va()) s) x), '[]/true');
+select test.eq('score: moving to Canada is asked, never scored', (select d ->> 'max' from jsonb_array_elements(app.hiring_score((select questions from hiring_roles where slug = 'va-customer-service'),
+  test.h99va()) -> 'detail') d where d ->> 'key' = 'canada'), '0');
+select test.ok('va: every VA role asks to accept the firm rate, a no is a knock-out and goes to remote sales', (select bool_and(questions::text ~ 'This rate is firm and not negotiable' and refer_on = 'below_or_ko' and refer_to = '{sales-remote}') from hiring_roles where slug in ('va-customer-service', 'va-fleet-operations', 'va-finance-billing')));
+select test.eq('va: refusing the firm rate is a knock-out', jsonb_array_length(app.hiring_score((select questions from hiring_roles where slug = 'va-customer-service'), test.h99va('{"pay":"No"}')) -> 'knockouts'), 1);
+select test.ok('sales: remote sales asks to accept its firm commission rates', (select questions -> 0 ->> 'key' = 'rate_firm' and questions::text ~ 'These rates are firm and not negotiable' from hiring_roles where slug = 'sales-remote'));
 select test.eq('score: the remote sales check wants words, not figures', (select string_agg(d ->> 'points', '/') from (
   select d from jsonb_array_elements(app.hiring_score((select questions from hiring_roles where slug = 'sales-remote'), '{"post_check":"twelve"}'::jsonb) -> 'detail') d where d ->> 'key' = 'post_check'
   union all select d from jsonb_array_elements(app.hiring_score((select questions from hiring_roles where slug = 'sales-remote'), '{"post_check":"12"}'::jsonb) -> 'detail') d where d ->> 'key' = 'post_check') x), '10/0');
@@ -152,7 +168,7 @@ select test.h99apply('hirev', 'sales-in-person', test.h99sales('{"years":"Under 
   "turo":"Match the Turo price","discount":"Say no and end the chat","toll":"Tell them it is not your problem"}'));
 select test.eq('sales in person below the bar: offered remote sales', (select status || '/' || (select slug from hiring_roles where id = referred_role_id) from test.h99a('hirev')), 'referred/sales-remote');
 create or replace function test.h99remote(p jsonb default '{}'::jsonb) returns jsonb language sql immutable as $$
-  select '{"shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
+  select '{"rate_firm":"Yes, I understand the rates are firm and I accept them","shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
     "scenario":"Give the 15% to close the sale","tip":"Accept it if the fee is small","post_check":"5","activity":"No","based":"Lagos, Nigeria","start":"2026-11-09","references":"Two clients"}'::jsonb || p $$;
 select test.h99apply('hirfay', 'sales-remote', test.h99remote());
 select test.eq('remote sales below the bar, the matching role closed: waits for review', (test.h99a('hirfay')).status, 'below_bar');
@@ -162,22 +178,17 @@ select test.ok('below the bar: the confirmation only', (test.h99out('hirfay', 'a
 -- a VA role: the knock-out declines; below the bar offers the best matching open VA role
 select app.door(test.id('hir_admin'), 'aal2', 'admin_do', 'hiring_role_save', '{"slug":"va-finance-billing","active":true}');
 select test.eq('role toggle: opening a role dates the posting', (select active || '/' || (posted_on = app.today()) from hiring_roles where slug = 'va-finance-billing'), 'true/true');
-select test.h99apply('hirfin', 'va-finance-billing', jsonb_build_object('shift', 'Yes, every shift, weekends included', 'hours_now', '9 pm to 6 am', 'backup', 'Neither', 'years', '5 years or more',
-  'tools_detail', 'Excel, QuickBooks, Xero', 'mistake', 'none', 'clients', 'No other clients', 'scenario', 'Change nothing, verify by a phone number we already have and wait for written approval',
-  'tip', 'Refuse it and report it to the office', 'post_check', 'invoice', 'rate', '7', 'start', '2026-11-09', 'references', 'Two clients'));
-select test.eq('VA knock-out (no code word): declined with the reason', (select status || '/' || array_to_string(ko_reasons, ',') from test.h99a('hirfin')), 'declined/the code word from the job post');
+select test.h99apply('hirfin', 'va-finance-billing', test.h99va('{"schedule":"No"}'));
+select test.eq('VA knock-out (the schedule): referred to Sales (remote) (0179)', (select status || '/' || (select slug from hiring_roles where id = referred_role_id) from test.h99a('hirfin')), 'referred/sales-remote');
 select app.process_events();
-select test.eq('VA knock-out: the decline email names it', (test.h99out('hirfin', 'applicant_declined')).payload ->> 'decline_reason', 'the code word from the job post');
-select test.h99apply('hirfin2', 'va-finance-billing', jsonb_build_object('shift', 'No', 'hours_now', 'days', 'backup', 'Neither', 'years', 'Under 1 year',
-  'tools_detail', 'Sheets', 'mistake', 'none', 'clients', 'No other clients', 'scenario', 'Update the details and pay on time', 'tip', 'Accept it if the fee is small', 'post_check', 'LEDGER',
-  'rate', '7', 'start', '2026-11-09', 'references', 'Two clients'));
-select test.eq('VA below the bar, the matching role closed: waits for review', (test.h99a('hirfin2')).status, 'below_bar');
-select app.door(test.id('hir_admin'), 'aal2', 'admin_do', 'hiring_role_save', '{"slug":"va-fleet-operations","active":true}');
-select test.h99apply('hirfin3', 'va-finance-billing', jsonb_build_object('shift', 'No', 'hours_now', 'days', 'backup', 'Neither', 'years', 'Under 1 year',
-  'tools_detail', 'Sheets', 'mistake', 'none', 'clients', 'No other clients', 'scenario', 'Update the details and pay on time', 'tip', 'Accept it if the fee is small', 'post_check', 'LEDGER',
-  'rate', '7', 'start', '2026-11-09', 'references', 'Two clients'));
-select test.eq('VA below the bar, the matching role open: referred to Fleet operations', (select status || '/' || (select slug from hiring_roles where id = referred_role_id) from test.h99a('hirfin3')), 'referred/va-fleet-operations');
-select app.door(test.id('hir_admin'), 'aal2', 'admin_do', 'hiring_role_save', '{"slug":"va-fleet-operations","active":false}');
+select test.ok('VA knock-out: the referral email, not a decline', (test.h99out('hirfin', 'applicant_referred')).id is not null and (test.h99out('hirfin', 'applicant_declined')).id is null);
+select test.h99apply('hirfin2', 'va-finance-billing', test.h99va('{"internet":"Slower than 25 Mbps, or mobile data only","english":"Basic: I am more comfortable in writing","years":"Under 1 year",
+  "experience":"none","role":"billing","business":"Sells used cars","career":"A job for now","other_jobs":"Yes, during these hours","tools":[],"social":[],"scenario":"Update the details and pay on time"}'));
+select test.eq('VA below the bar: referred to Sales (remote)', (select status || '/' || (select slug from hiring_roles where id = referred_role_id) from test.h99a('hirfin2')), 'referred/sales-remote');
+update hiring_roles set active = false where slug = 'sales-remote';
+select test.h99apply('hirfin3', 'va-finance-billing', test.h99va('{"schedule":"No"}'));
+select test.eq('VA knock-out, Sales (remote) closed: declined with the reason', (select status || '/' || array_to_string(ko_reasons, ',') from test.h99a('hirfin3')), 'declined/the schedule of the role');
+update hiring_roles set active = true where slug = 'sales-remote';
 select app.door(test.id('hir_admin'), 'aal2', 'admin_do', 'hiring_role_save', '{"slug":"va-finance-billing","active":false}');
 
 -- ================================================================ 3. booking
@@ -237,6 +248,8 @@ select test.ok('race: the first booking wins, the second is told the slot is tak
 select test.ok('race: never two candidates in a one-place slot', (select count(*) <= 1 from job_applications where slot_id = test.h99slot(3) and status = 'booked'));
 
 -- ================================================================ 4. reminders and the text
+select test.eq('reminder: no evening-before email by default (Resend''s daily cap)', (app.job_hiring(app.local_midnight(app.today() + 2) + interval '18 hours 5 minutes') ->> 'evening')::int, 0);
+update program_settings set hiring_evening_reminder = true;
 select test.eq('reminder: the evening before at 6 pm Toronto time', (app.job_hiring(app.local_midnight(app.today() + 2) + interval '18 hours 5 minutes') ->> 'evening')::int >= 1, true);
 select test.ok('reminder: marked so it goes once', (test.h99a('hirana')).reminded_evening_at is not null
   and (app.job_hiring(app.local_midnight(app.today() + 2) + interval '18 hours 20 minutes') ->> 'evening')::int = 0);

@@ -31,10 +31,12 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
   // a rental staff added by hand (0046) is confirmed already: the renter signs it with no payment step after; one added
   // while already underway (0074) is on trip, signed the same way (with a payment link, paid online after signing)
   const added = addedLive(b);
-  if (b.status !== 'pending_payment' && !added) redirect(bookingPath(b.booking_number));
-  if (b.agreement?.renter_signed_at) redirect(added && !b.link_due ? bookingPath(b.booking_number) : bookingPath(b.booking_number, 'pay'));
+  // paid before signing (0185): confirmed already, signed the same way with no payment step after
+  const noPay = added || !!b.paid_unsigned;
+  if (b.status !== 'pending_payment' && !noPay) redirect(bookingPath(b.booking_number));
+  if (b.agreement?.renter_signed_at) redirect(noPay && !b.link_due ? bookingPath(b.booking_number) : bookingPath(b.booking_number, 'pay'));
   // its agreement is made the first time the renter opens this page (there was no offer to approve)
-  if (added && !b.agreement && !(await viewAs())) { await openAgreement(b.id, user.id); redirect(bookingPath(b.booking_number, 'sign')); }
+  if (noPay && !b.agreement && !(await viewAs())) { await openAgreement(b.id, user.id); redirect(bookingPath(b.booking_number, 'sign')); }
   // the second agreement (Blind Spot's, 0127): made here when the rental agreement was opened before it was in use
   let companion = b.agreement?.status === 'open' ? await companionOf(b.id) : null;
   if (b.agreement?.status === 'open' && !companion && !(await viewAs())) { await openCompanionQuietly(b.id, user.id); companion = await companionOf(b.id); }
@@ -51,11 +53,11 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
-      <StepHeader b={b} photo={photos[b.vehicle_id] ?? null} kicker={added ? 'Your rental agreement' : 'Step 2 of 3 · Sign'} title="Sign your rental agreement" step={added ? undefined : 2} />
+      <StepHeader b={b} photo={photos[b.vehicle_id] ?? null} kicker={noPay ? 'Your rental agreement' : 'Step 2 of 3 · Sign'} title="Sign your rental agreement" step={noPay ? undefined : 2} />
       <div className="pt-strip" data-testid="sign-summary" role="group" aria-label="Summary">
         <div><span>Car</span>{carName(b)}</div>
         <div><span>Dates</span>{when(b.pickup_at)} to {when(b.return_at)}</div>
-        {!added && <div><span>Due now</span>{money(b.renter_due_at_booking_cents, { cents: true })}</div>}
+        {!noPay && <div><span>Due now</span>{money(b.renter_due_at_booking_cents, { cents: true })}</div>}
         {b.link_due && <div data-testid="sign-pay-after"><span>Paid online after you sign</span>{money(b.renter_due_at_booking_cents, { cents: true })}</div>}
         {charge && <div data-testid="sign-charge"><span>Charged when you sign</span>{money(charge.amount_cents, { cents: true })}</div>}
         <div><span>Deposit at pickup</span>{money(b.deposit_cents)}</div>
@@ -87,8 +89,8 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
               <h2 className="d4" id="pt-sign">Sign</h2>
               {needDetails && <p className="alert alert--warn" role="note"><span>Add your details above first, so the agreement shows them.</span></p>}
               {charge && <p className="small" data-testid="sign-charge-note">Read and sign your rental agreement; your card is charged when you sign. We charge {money(charge.amount_cents, { cents: true })} to the card ending {charge.last4 ?? 'on file'} when you press Accept and sign.</p>}
-              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} companionSha={companion?.status === 'open' ? companion.document_sha256 : null} consents={consents()} legalName={legal} fixNameHref="#pt-details" terms={keyTerms(bundle)} button={charge ? 'Accept and sign' : added ? 'Sign the agreement' : 'Sign and continue to payment'} />
-              <p className="xs muted">We record the time, your IP address and device with your signature. The agreement is then countersigned by CarmaCars {added ? 'as soon as you sign' : 'when you pay'}. <Link prefetch={false} className="link" href="/privacy">Privacy</Link></p>
+              <SignForm number={b.booking_number} sha={b.agreement.document_sha256} companionSha={companion?.status === 'open' ? companion.document_sha256 : null} consents={consents()} legalName={legal} fixNameHref="#pt-details" terms={keyTerms(bundle)} button={charge ? 'Accept and sign' : noPay ? 'Sign the agreement' : 'Sign and continue to payment'} />
+              <p className="xs muted">We record the time, your IP address and device with your signature. The agreement is then countersigned by CarmaCars {noPay ? 'as soon as you sign' : 'when you pay'}. <Link prefetch={false} className="link" href="/privacy">Privacy</Link></p>
             </section>
           </aside>
         </div>

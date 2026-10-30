@@ -105,7 +105,7 @@ export async function buildDisputePack(packId: string): Promise<void> {
   w.head('How the customer signed');
   const signers = [...ev.signing.rental_agreement, ...ev.signing.amendments, ...ev.signing.versions];
   if (!signers.length) w.line('No electronic signing session on record (signed on paper or before 0154).');
-  for (const g of signers) w.line(`${g.signer_name} (${g.signer_role.replace(/_/g, ' ')}): signed ${stamp(g.signed_at)} ${g.method === 'in_person' ? `in person, collected by ${g.collected_by ?? 'staff'}` : 'remotely'}; identity code by ${g.otp_channel === 'sms' ? 'text' : g.otp_channel ?? 'none'} to ${g.otp_to ?? ''} confirmed ${stamp(g.otp_verified_at)}; IP ${g.ip_address ?? ''}; device ${g.user_agent ?? ''}${g.geo ? `; place ${Number(g.geo.lat).toFixed(3)}, ${Number(g.geo.lng).toFixed(3)}` : ''}; initials on ${Object.keys(g.initials ?? {}).length} key terms; consents: ${Object.keys(g.consents ?? {}).join(', ')}.`, 8.5);
+  for (const g of signers) w.line(`${g.signer_name} (${g.signer_role.replace(/_/g, ' ')}): signed ${stamp(g.signed_at)} ${g.method === 'in_person' ? `in person, collected by ${g.collected_by ?? 'staff'}` : 'remotely'}; ${g.otp_verified_at ? `identity code by ${g.otp_channel === 'sms' ? 'text' : g.otp_channel ?? 'none'} to ${g.otp_to ?? ''} confirmed ${stamp(g.otp_verified_at)}` : 'identity not confirmed by a one-time code'}; IP ${g.ip_address ?? ''}; device ${g.user_agent ?? ''}${g.geo ? `; place ${Number(g.geo.lat).toFixed(3)}, ${Number(g.geo.lng).toFixed(3)}` : ''}; initials on ${Object.keys(g.initials ?? {}).length} key terms; consents: ${Object.keys(g.consents ?? {}).join(', ')}.`, 8.5);
   contents.signers = signers.length;
 
   // 2. the signed documents (the originals, appended page by page)
@@ -195,12 +195,12 @@ export async function buildDisputePack(packId: string): Promise<void> {
       const uj = (await up.json()) as { id?: string; error?: { message?: string } };
       if (!up.ok || !uj.id) throw new Error(uj.error?.message ?? `Stripe files ${up.status}`);
       fileId = uj.id;
-      const log = signers.map((g) => `${g.signer_name}: code confirmed ${stamp(g.otp_verified_at)} (${g.otp_channel}), signed ${stamp(g.signed_at)}, IP ${g.ip_address ?? ''}, ${g.user_agent ?? ''}`).join('\n');
+      const log = signers.map((g) => `${g.signer_name}: ${g.otp_verified_at ? `code confirmed ${stamp(g.otp_verified_at)} (${g.otp_channel})` : 'no one-time code (not asked)'}, signed ${stamp(g.signed_at)}, IP ${g.ip_address ?? ''}, ${g.user_agent ?? ''}`).join('\n');
       await stripe(`/disputes/${encodeURIComponent(ev.pack.stripe_dispute_ref)}`, { form: {
         'evidence[service_documentation]': fileId, 'evidence[customer_signature]': fileId, 'evidence[customer_name]': r.legal_name, 'evidence[customer_email_address]': r.email ?? '',
         'evidence[billing_address]': r.address ?? '', 'evidence[service_date]': (b.handed_over_at ?? b.pickup_at).slice(0, 10),
         'evidence[product_description]': `Car rental, ${b.vehicle ? `${b.vehicle.year} ${b.vehicle.make} ${b.vehicle.model} (plate ${b.vehicle.plate ?? ''})` : ''}, ${b.pickup_at.slice(0, 10)} to ${b.return_at.slice(0, 10)}, under signed rental agreement ${b.agreement_number ?? ''}.`,
-        'evidence[access_activity_log]': log.slice(0, 20000), 'evidence[uncategorized_text]': `The customer confirmed their identity with a one-time code, initialled the key terms (damage, deposit and later charges, fees, coverage, cancellation), consented to card charges under the agreement and drew their signature; the car was checked out and in with photos. The PDF holds the signed agreements with their certificates, the reports, the licence and the messages.`.slice(0, 20000),
+        'evidence[access_activity_log]': log.slice(0, 20000), 'evidence[uncategorized_text]': `${signers.length && signers.every((g) => g.otp_verified_at) ? 'The customer confirmed their identity with a one-time code, initialled' : 'The customer signed electronically (no one-time code was asked; the time, IP address and device of each step are recorded), initialled'} the key terms (damage, deposit and later charges, fees, coverage, cancellation), consented to card charges under the agreement and drew their signature; the car was checked out and in with photos. The PDF holds the signed agreements with their certificates, the reports, the licence and the messages.`.slice(0, 20000),
         submit: 'false' } });
     } catch (e) { stageError = e instanceof Error ? e.message : String(e); console.error('dispute pack: staging', stageError); }
   }

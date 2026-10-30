@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '193/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '194/5');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -602,6 +602,11 @@ values (test.id('msg:NT-2:out'), 'outbound', 'portal', 'Your booking NT-2', 'We 
 insert into test.nt_synth values
   ('renter_staff_message', 'message', test.id('msg:NT-2:out'), jsonb_build_object('booking_id', test.id('booking:NT-2'))),
   ('staff_renter_replied', 'message', test.id('msg:NT-2:in'), jsonb_build_object('booking_id', test.id('booking:NT-2'), '_immediate', true));
+-- the insurance message as Blind Spot Car Rental (0187): to the adjuster of the booking
+insert into messages (id, direction, channel, subject, body, to_address, renter_id, booking_id, status)
+values (test.id('msg:NT-2:adj'), 'outbound', 'email', 'Claim CL-NT-2', 'The repairs take two more days.', 'adjuster.nt@example.test', test.id('renter:nt_rita'), test.id('booking:NT-2'), 'delivered');
+insert into test.nt_synth values
+  ('insurance_staff_message', 'message', test.id('msg:NT-2:adj'), jsonb_build_object('booking_id', test.id('booking:NT-2'), 'to', 'adjuster', 'email', 'adjuster.nt@example.test', 'name', 'Alex Adjuster'));
 -- the owner debit and company statement emails (0037): a run of the day, an exception, a statement with its PDFs
 insert into owner_debit_runs (id, run_on, kind, submitted, submitted_cents) values (test.id('nt_debit_run'), date '2031-06-15', 'debit', 1, 53675);
 select app.build_company_statement(date '2031-06-01', null);
@@ -802,13 +807,16 @@ begin
   perform public.server_hiring_cancel(r ->> 'token');
   perform public.server_hiring_apply(jsonb_build_object('role', 'field-staff', 'full_name', 'Nt Referred', 'email', 'nt.referred@example.test', 'phone', '4165550112',
     'answers', f || '{"licence":"G2"}'), null);
-  update hiring_roles set active = true where slug = 'va-finance-billing';
+  -- a VA knock-out with Sales (remote) closed: the decline (0179 refers it to Sales (remote) when that role is open)
+  update hiring_roles set active = (slug = 'va-finance-billing') where slug in ('va-finance-billing', 'sales-remote');
   perform public.server_hiring_apply(jsonb_build_object('role', 'va-finance-billing', 'full_name', 'Nt Declined', 'email', 'nt.declined@example.test', 'phone', '4165550113',
-    'answers', '{"shift":"Yes, every shift, weekends included","hours_now":"nights","backup":"Neither","years":"5 years or more","tools_detail":"Excel","mistake":"none",
-      "clients":"No other clients","scenario":"Update the details and pay on time","tip":"Refuse it and report it to the office","post_check":"none","rate":"7","start":"2026-11-09","references":"Two"}'::jsonb), null);
-  update hiring_roles set active = false where slug = 'va-finance-billing';
+    'answers', '{"schedule":"No","pay":"Yes, I understand the rate is firm and I accept it","internet":"Fiber or cable, 25 Mbps or faster, no backup","speed":"50","backup":"None",
+      "english":"Good: I can handle most calls","years":"5 years or more","experience":"Billing","skills":"Excel","business":"Rents cars to customers in Toronto",
+      "role":"Billing","scenario":"Update the details and pay on time","other_jobs":"No, this would be my only job","clients":"No","school":"No",
+      "education":"College degree","career":"A job for now","canada":"No","start":"2026-11-09"}'::jsonb), null);
+  update hiring_roles set active = (slug = 'sales-remote') where slug in ('va-finance-billing', 'sales-remote');
   perform public.server_hiring_apply(jsonb_build_object('role', 'sales-remote', 'full_name', 'Nt Received', 'email', 'nt.received@example.test', 'phone', '4165550114',
-    'answers', '{"shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
+    'answers', '{"rate_firm":"Yes, I understand the rates are firm and I accept them","shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
       "scenario":"Give the 15% to close the sale","tip":"Accept it if the fee is small","post_check":"5","activity":"No","based":"Nairobi, Kenya","start":"2026-11-09","references":"Two"}'::jsonb), null);
   perform app.hiring_day_delete(test.id('nt_admin'), jsonb_build_object('id', v_day ->> 'id'));
 end $$;

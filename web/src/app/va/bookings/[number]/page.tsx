@@ -18,7 +18,8 @@ import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
 import { RenterMerge, type DuplicateRow } from '@/features/money/RenterMerge';
 import { door } from '@/server/door';
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatureList, type ManualRow, type PaperDoc, type PaperRow } from '@/features/manual/ManualRecords';
-import { QuickReply } from '@/features/va/QuickReply';
+import { BookingConversation } from '@/features/messages/BookingConversation';
+import type { Conversation } from '@/features/messages/email-choices';
 import { LatePanel, type Late } from '@/features/va/LatePanel';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
@@ -26,6 +27,7 @@ import { HandoverPanel } from '@/features/handover/HandoverPanel';
 import { OwnerDeductionsPanel, OwnerVisibilityPanel } from '@/features/admin/OwnerControls';
 import { ReviewPanel } from '@/features/reviews/ReviewPanel';
 import { DocumentReview } from '@/features/admin/DocumentReview';
+import { StaffDocUpload } from '@/features/admin/StaffDocUpload';
 import { AgreementPanel } from '@/features/agreements/AgreementPanel';
 import type { PhoneTimelineData } from '@/features/phone/client';
 import { ClaimBanner, ClaimGate, RequestClaim } from '@/features/offers/RequestClaim';
@@ -40,6 +42,8 @@ type Detail = B & R & {
   drivers: R[]; available: boolean; readiness: R | null; request_sent: R; current_offer_version: number | null; offer_expires_at: string | null; request_note: string | null;
 };
 const REFUND_REASONS = ['cancellation', 'carmacars_cancelled', 'driver_not_verifiable', 'pricing_error', 'breakdown_unused_days', 'goodwill', 'duplicate', 'other'];
+// a phone number for a tel: link: the digits and a leading +
+const telHref = (n: string) => n.replace(/(?!^\+)[^\d]/g, '');
 const KINDS: Array<[string, string]> = [['handover', 'Handover'], ['delivery', 'Delivery'], ['return_check_in', 'Return check-in'], ['pickup_from_renter', 'Pickup from renter'], ['detail', 'Detail'], ['photo_shoot', 'Photo shoot'], ['recovery', 'Recovery'], ['other', 'Other']];
 
 // One booking for an assistant (05-va.md sections 2 to 5): the admin screens, narrowed by function. Customer
@@ -67,11 +71,12 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
   const renterForm = tab === 'overview' || tab === 'review' ? await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
   // calls and texts with the renter (0085): customer service and Sales
   const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'va_read', 'phone_timeline', { booking_id: b.id }, aal).catch(() => null) : null;
-  const [km, replies, staff, messages] = await Promise.all([
+  const [km, staff] = await Promise.all([
     arranging ? list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }).catch(() => ({ rows: [], count: 0 })) : Promise.resolve({ rows: [], count: 0 }),
-    (fn === 'cs' || fn === 'sales') && tab === 'messages' ? list<{ id: string; title: string; body: string }>('quick_replies', { order: 'sort_order', asc: true }) : Promise.resolve({ rows: [], count: 0 }),
-    fn === 'fleet' ? read<{ staff: Array<{ id: string; name: string }> }>('fleet_board') : Promise.resolve({ staff: [] }),
-    fn === 'cs' && tab === 'messages' ? read<R[]>('messages', { booking: b.id }) : Promise.resolve([] as R[])]);
+    fn === 'fleet' ? read<{ staff: Array<{ id: string; name: string }> }>('fleet_board') : Promise.resolve({ staff: [] })]);
+  // Email the renter (every function; the adjuster too on an insurer-billed booking), with the booking's conversation (0187)
+  const conv = tab === 'messages' ? await door<Conversation>(user.id, 'ops_read', 'booking_conversation', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
+  const insurerBilled = b.bill_to !== 'renter' && !!b.insurer_id;
   // the additional drivers' signing links (migration 0040), for customer service
   // payments received another way (Finance) and rental documents signed on paper (customer service), migration 0044
   const [manual, paper] = await Promise.all([
@@ -87,8 +92,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
   const tabs: Array<[string, string, number?]> = [
     ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : []), [`${base}?tab=overview`, 'Overview'],
     ...(fn === 'finance' || fn === 'cs' || fn === 'sales' ? [[`${base}?tab=money`, 'Money']] as Array<[string, string]> : []),
-    ...(fn === 'cs' ? [[`${base}?tab=changes`, 'Changes', b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length], [`${base}?tab=messages`, 'Messages']] as Array<[string, string, number?]> : []),
-    ...(fn === 'sales' ? [[`${base}?tab=messages`, 'Messages']] as Array<[string, string]> : []),
+    ...(fn === 'cs' ? [[`${base}?tab=changes`, 'Changes', b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length]] as Array<[string, string, number?]> : []),
+    [`${base}?tab=messages`, 'Messages'],
     [`${base}?tab=history`, 'History']];
   return (
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && tab === 'review' && (fn === 'cs' || fn === 'sales')} va={fn}>
@@ -107,6 +112,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           { name: 'assigned_to', label: 'Assigned to', type: 'select', options: staff.staff.map((s) => [s.id, s.name] as [string, string]) },
           { name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: b.status === 'confirmed' ? b.pickup_at : b.return_at },
           { name: 'place', label: 'Place', type: 'address', required: true, value: (b.status === 'confirmed' ? b.pickup_place : b.return_place) ?? 'Our location' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} refresh={R} done="Job scheduled." />}
+        {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
+        {insurerBilled && b.insurer_adjuster_email && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages&to=adjuster`} data-testid="email-adjuster-link">Email the adjuster</Link>}
       </PageHead>
       <ClaimBanner />
       {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={R} />}
@@ -120,6 +127,11 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
         <Card title="Renter licence" testId="booking-doc-review" aside={<DocumentReview booking={b.booking_number} refresh={R} label="Review the licence" />}>
           <p className="small">Approve or reject the licence front, back and selfie the renter sent; a rejection tells them why. The proof of coverage and the Protection Plan are reviewed by customer service or an Admin.</p>
         </Card>)}
+      {/* staff upload the renter's documents: licence, insurance policy or pink card, insurer letters (0183) */}
+      {['pending_payment', 'confirmed', 'on_rent', 'returned'].includes(b.status) && b.booking_type !== 'owner' && (
+        <Card title="Upload a renter document" testId="booking-staff-upload">
+          <StaffDocUpload bookingId={String(b.id)} drivers={((b.drivers ?? []) as Array<Record<string, unknown>>).map((d) => ({ driver_id: String(d.driver_id), full_name: String(d.full_name ?? '') }))} />
+        </Card>)}
       {/* what the owner sees of this booking (0156) */}
       <OwnerVisibilityPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />
       <Tabs current={`${base}?tab=${tab}`} items={tabs} />
@@ -127,10 +139,13 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
         <>
           <Card title="The request as sent">
             <Kv rows={[['Pickup', t(b.request_sent.pickup_at)], ['Return', t(b.request_sent.return_at)], ['Note', String(b.request_note ?? '')], ['Renter', `${b.renter?.legal_name ?? ''}${b.renter?.bookings ? `, ${b.renter.bookings} past bookings` : ', first booking'}`],
+              // 2026-10-28: the renter's phone and email, to call or write to them (customer service and Sales)
+              ['Phone', b.renter?.mobile ? <a className="link" href={`tel:${telHref(b.renter.mobile)}`} data-testid="request-renter-phone">{b.renter.mobile}</a> : null],
+              ['Email', b.renter?.email ? <a className="link" href={`mailto:${b.renter.email}`} data-testid="request-renter-email">{b.renter.email}</a> : null],
               ['Offer', b.current_offer_version ? `version ${b.current_offer_version}${b.offer_expires_at ? `, open until ${t(b.offer_expires_at)}` : ''}` : 'not sent yet'], ['Car free', b.available ? 'yes' : 'no']]} />
           </Card>
           {['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && (await door<{ handover_note: string | null }>(user.id, 'va_read', 'listing_state', { vehicle_id: b.vehicle_id }, aal).catch(() => null))?.handover_note && <p className="alert alert--warn" role="note" data-testid="offer-policy-warning"><span className="alert__title">Car not on the fleet policy yet</span><span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it (the car&apos;s onboarding).</span></p>}
-          <ClaimGate testId="claim-gate-review"><BookingReview b={b} insurers={[]} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={24} editable={['requested', 'offered'].includes(b.status) || (b.status === 'pending_payment' && fn === 'cs')} /></ClaimGate>
+          <ClaimGate testId="claim-gate-review" explain><BookingReview b={b} insurers={[]} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={24} editable={['requested', 'offered'].includes(b.status) || (b.status === 'pending_payment' && fn === 'cs')} /></ClaimGate>
         </>
       )}
       {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
@@ -181,12 +196,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           <Card title="Questions to the renter"><Table rows={b.info_requests} empty="No questions." cols={[{ key: 'asked_at', label: 'Asked', render: (r) => t(r.asked_at) }, { key: 'question', label: 'Question', className: 'wrap' }, { key: 'status', label: 'Status' }, { key: 'reply', label: 'Reply', className: 'wrap' }]} /></Card>
         </div>
       )}
-      {tab === 'messages' && (fn === 'cs' || fn === 'sales') && (
-        <div className="ad-cols ad-cols--2">
-          <Card title="Messages"><ol className="ad-timeline" data-testid="messages">{messages.map((m) => <li key={String(m.id)}><time>{t(m.occurred_at)}</time><span><b>{m.direction === 'inbound' ? String(m.renter_first_name ?? 'Renter') : String(m.sent_by ?? 'CarmaCars')}</b> {String(m.body ?? m.subject ?? '')}</span></li>)}</ol>{!messages.length && <p className="small muted">No messages on this booking.</p>}</Card>
-          <Card title="Reply"><QuickReply booking={b.id} replies={replies.rows} /></Card>
-        </div>
-      )}
+      {tab === 'messages' && (conv ? <BookingConversation c={conv} refresh={R} initialTo={sp.to === 'adjuster' ? 'adjuster' : 'renter'} /> : <p className="small muted">The messages could not be read. Reload the page.</p>)}
       {tab === 'history' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Timeline" testId="timeline"><ol className="ad-timeline">{b.events.map((e) => <li key={String(e.id)}><time>{t(e.created_at)}</time><span><b>{label(e.kind)}</b>{e.note ? `: ${String(e.note)}` : ''} <span className="muted small">{String(e.actor_name ?? e.actor_type ?? '')}</span></span></li>)}</ol></Card>

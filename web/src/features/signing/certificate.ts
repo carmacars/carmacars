@@ -1,6 +1,6 @@
 // The certificate of completion (migration 0154): the last pages of every signed rental agreement, Blind Spot form,
-// amendment and new version. For each signer: who they are, how they proved it (the one-time code and where it went,
-// the licence on file), what they were shown (each document's SHA-256 before signing), each step with its time, IP
+// amendment and new version. For each signer: who they are, how they proved it (the one-time code and where it went, or
+// that no code was asked for (0186: the code is optional), the licence on file), what they were shown (each document's SHA-256 before signing), each step with its time, IP
 // address and device (viewed, each initial, each consent, the signature), the place when they allowed it, and how they
 // signed (remotely, or in person with the staff member who collected it). The file's own SHA-256 is recorded when it is
 // stored: anyone can check a copy on /verify (tamper-evident: a changed byte gives another SHA-256).
@@ -42,7 +42,7 @@ export function stamp(iso: string | null | undefined): string {
   return `${p.year}-${p.month}-${p.day} ${p.hour === '24' ? '00' : p.hour}:${p.minute}:${p.second} Toronto`;
 }
 const STEP: Record<string, string> = { started: 'Signing opened', code_sent: 'Identity code sent', code_failed: 'Wrong code entered', code_verified: 'Identity code confirmed',
-  viewed: 'Documents viewed', document_opened: 'PDF opened', initial: 'Initialled', consent: 'Consented', geolocation: 'Location shared', signature: 'Signature drawn', signed: 'Signed' };
+  viewed: 'Documents viewed', document_opened: 'PDF opened', initial: 'Initialled', initial_clear: 'Initials cleared (initialled again after)', consent: 'Consented', geolocation: 'Location shared', signature: 'Signature drawn', signed: 'Signed' };
 const CLAUSE: Record<string, string> = { damage: 'damage and the deductible', charges: 'the deposit and later charges', fees: 'fuel, kilometres and late returns', coverage: 'the coverage choice', cancellation: 'cancellation',
   ...DOC_TERM_LABELS };
 const CONSENT: Record<string, string> = { esign: 'to sign electronically', erecords: 'to receive records electronically', card: 'to card charges under the agreement' };
@@ -52,12 +52,20 @@ const safe = (s: string) => s.replace(/[^\x20-\x7E\xA0-\xFF]/g, (c) => ({ '’':
 export function eventLine(e: CertEvent): string {
   const d = e.detail ?? {};
   const what = e.kind === 'initial' ? `${STEP.initial} ${CLAUSE[String(d.code)] ?? d.code}`
+    : e.kind === 'initial_clear' ? `Initials cleared for ${CLAUSE[String(d.code)] ?? d.code}`
     : e.kind === 'consent' ? `${STEP.consent} ${CONSENT[String(d.code)] ?? d.code}`
     : e.kind === 'code_sent' || e.kind === 'code_verified' ? `${STEP[e.kind]} (${d.channel === 'sms' ? 'text' : 'email'} to ${d.to ?? ''})`
     : e.kind === 'started' ? `${STEP.started}${d.method === 'in_person' ? ` on a CarmaCars device${d.collected_by ? `, collected by ${d.collected_by}` : ''}` : ' remotely'}`
     : e.kind === 'geolocation' ? STEP.geolocation
     : STEP[e.kind] ?? e.kind;
   return `${stamp(e.at)}  ${what}${e.ip_address ? `  IP ${e.ip_address}` : ''}`;
+}
+
+/** How the signer's identity was confirmed. The one-time code is optional (0186): without it the certificate says so
+ *  plainly, and the licence on file, the IP address and the device below are what tie the signature to the signer. */
+export function identityLine(s: CertSigner): string {
+  if (!s.otp_verified_at) return 'Identity: not confirmed by a one-time code (the code step was not used for this signature)';
+  return `Identity: one-time code by ${s.otp_channel === 'sms' ? 'text' : s.otp_channel === 'email' ? 'email' : '(none)'}${s.otp_to ? ` to ${s.otp_to}` : ''}, confirmed ${stamp(s.otp_verified_at)}`;
 }
 
 /** The certificate's lines, for the PDF and for the tests. */
@@ -72,7 +80,7 @@ export function certificateLines(c: Certificate): Array<{ text: string; bold?: b
   for (const s of c.signers) {
     out.push({ text: `${s.signer_name} (${s.signer_role.replace(/_/g, ' ')})`, bold: true, size: 10.5, gap: 2 });
     out.push({ text: `Signed: ${stamp(s.signed_at)}, ${s.method === 'in_person' ? `in person on a CarmaCars device${s.collected_by ? `, collected by ${s.collected_by}` : ''}` : 'remotely, on their own device'}; ${s.signature_method === 'typed' ? 'typed name (the accessibility fallback an Admin allowed)' : 'drawn signature'}`, size: 8.5 });
-    out.push({ text: `Identity: one-time code by ${s.otp_channel === 'sms' ? 'text' : s.otp_channel === 'email' ? 'email' : '(none)'}${s.otp_to ? ` to ${s.otp_to}` : ''}, confirmed ${stamp(s.otp_verified_at)}`, size: 8.5 });
+    out.push({ text: identityLine(s), size: 8.5 });
     if (s.licence) {
       const files = [s.licence.licence_front && 'front', s.licence.licence_back && 'back', s.licence.selfie && 'selfie'].filter(Boolean).join(', ');
       out.push({ text: `Licence on file: ${files || 'no images'}${s.licence.verified ? '; identity verified by CarmaCars' : '; identity not yet verified'}${s.licence.expiry ? `; expires ${s.licence.expiry}` : ''}`, size: 8.5 });

@@ -112,6 +112,8 @@ export async function companySignature(rep: { name: string; signature_key: strin
 
 export interface BlindSpotRender {
   title: string; renter?: Signature | null; drivers?: Signature[] | null; initials?: Uint8Array | null; note?: string | null;
+  /** when the renter signed: its day beside box 20 (with the renter's signature) */
+  signedOn?: string | null;
   record?: { title: string; lines: Array<[string, string]> } | null; certificate?: Certificate | null;
   /** a signed copy is drawn on the unsigned document (its own bytes), not on the template */
   base?: Uint8Array | null;
@@ -121,7 +123,7 @@ export async function renderBlindSpot(b: Bundle, o: BlindSpotRender): Promise<Ui
   const l = o.base ? { texts: [], dots: [], covers: [] } : layout(blindSpotFacts(b));
   const r = await fillBlindSpot(o.base ?? (await templateBytes(b.bs.template!)), l, {
     company: o.base ? null : await companySignature(b.bs.rep), renter: o.renter ?? null, drivers: o.drivers ?? null, initials: o.initials ?? null,
-    record: o.record ?? null, title: o.title, note: o.note ?? null
+    record: o.record ?? null, title: o.title, note: o.note ?? null, signedOn: o.signedOn ?? null
   });
   return o.certificate ? appendCertificate(r.bytes, o.certificate) : r.bytes;
 }

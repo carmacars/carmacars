@@ -194,6 +194,34 @@ update program_settings set request_sales_after_minutes = 0;
 select test.ok('setting: 0 opens a request to Sales at once', (test.ocl_state('ocl_sales', 'OCL-2') ->> 'sales_waits') = 'false');
 update program_settings set request_sales_after_minutes = 15;
 
+-- ================================================================ 6b. an in-person Sales assistant with a $0 single limit (2026-10-28)
+-- The owner: an in-person Sales person opening a website request could not press anything, could not see the renter's phone
+-- or email, and could not send the offer. The database side: after the wait, with nobody else on it, they read the renter's
+-- contact, save and send an ordinary offer at the rate sheet price (the single limit is for money taken or given back, never
+-- for an offer); while an Admin holds the request they are told who and until when, and once that claim runs out it is theirs.
+select test.mk_user('ocl_sales_ip', 'va', 'sales');
+update staff_profiles set single_limit_cents = 0 where user_id = test.id('ocl_sales_ip');
+select test.mk_vehicle('OCLI', 'ocl_o');
+select test.mk_booking('OCL-9', 'OCLI', 'ocl_r', test.ocl_day(14), test.ocl_day(16), 'requested');
+update bookings set requested_at = now() - interval '30 minutes' where id = test.oclb('OCL-9');
+select test.eq('in person: the Sales assistant is in person with a $0 single limit',
+  (select sales_work_mode || '/' || single_limit_cents from staff_profiles where user_id = test.id('ocl_sales_ip')), 'in_person/0');
+select test.ok('in person: the renter''s email and mobile reach the Sales page',
+  (select x #>> '{renter,email}' = 'ocl_r@example.test' and x #>> '{renter,mobile}' = '647-555-0199'
+     from (select app.door(test.id('ocl_sales_ip'), 'aal2', 'va_read', 'booking', jsonb_build_object('number', 'OCL-9', '_va', 'sales')) x) y));
+select test.eq('in person: an Admin opens it first and holds it', (test.ocl_claim('ocl_admin', 'OCL-9') #>> '{claim,mine}'), 'true');
+select test.ok('in person: Sales see who holds it and until when (no wait left)', (select s ->> 'sales_waits' = 'false' and s #>> '{claim,name}' = 'Ocl Admin' and (s #>> '{claim,until}') is not null
+  from (select test.ocl_state('ocl_sales_ip', 'OCL-9') s) y));
+select test.throws('in person: the send is refused with who and until when', $$select test.ocl_va('ocl_sales_ip', 'send_offer', 'OCL-9')$$,
+  'Being answered by Ocl Admin since %: it is theirs until % unless they finish sooner (an Admin can take it over).');
+update request_claims set expires_at = now() - interval '1 minute' where booking_id = test.oclb('OCL-9');
+select test.eq('in person: the Admin''s claim ran out (idle): Sales take it', (test.ocl_claim('ocl_sales_ip', 'OCL-9') #>> '{claim,mine}'), 'true');
+select test.lives('in person: Save with nothing changed', format($$select app.door(%L, 'aal2', 'va_do', 'booking_save', %L::jsonb)$$, test.id('ocl_sales_ip'),
+  jsonb_build_object('booking', test.oclb('OCL-9'), 'changes', '{}'::jsonb, 'internal_note', '', '_va', 'sales')));
+select test.eq('in person: the offer at the rate sheet price goes out (the $0 single limit does not stop it)',
+  (test.ocl_va('ocl_sales_ip', 'send_offer', 'OCL-9', jsonb_build_object('changes', '{}'::jsonb, 'message', '', 'expires_at', now() + interval '24 hours', '_va', 'sales')) ->> 'version'), '1');
+select test.eq('in person: one offer, sent by them', (select count(*)::text || '/' || min(sent_by::text) from booking_offers where booking_id = test.oclb('OCL-9')), '1/' || test.id('ocl_sales_ip')::text);
+
 -- ================================================================ 7. privileges
 select test.throws('privileges: a browser session cannot claim', format($$set local role authenticated; select app.request_claim(%L, %L)$$, test.id('ocl_cs'), test.oclb('OCL-2')), 'permission denied%');
 select test.throws('privileges: nor read the claims table', $$set local role authenticated; select count(*) from public.request_claims$$, 'permission denied%');

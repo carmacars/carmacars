@@ -1,7 +1,7 @@
 -- 82: offers and rentals made easy (migration 0129): an offer sent without a request (the customer found or made, no
 -- "request received" email, email or text or neither, the preview rolled back), an offer edited in place (sent again in
 -- one step, or saved quietly; approved and unpaid too), payments by part and method (the rental by e-Transfer and the
--- deposit in cash, confirmed by staff once signed and paid; the cash deposit given back as cash), a rental added by hand
+-- deposit in cash, confirmed once paid and countersigned when the renter signs (0185); the cash deposit given back as cash), a rental added by hand
 -- with the deposit method, a platform payout, paper and the calendar switch, card requests (hold, charge) and the
 -- Protection Plan wording. Fixtures start with "of".
 select test.suite('82 offers and rentals');
@@ -128,19 +128,18 @@ select test.throws('a card is not "received another way"', $$select app.door(tes
 select test.throws('an e-Transfer needs its reference', $$select app.door(test.id('of_cs'), 'aal2', 'ops_do', 'record_booking_payment', jsonb_build_object('booking', (test.ofb('o1')).booking_number, 'covers', 'rental', 'method', 'e_transfer'))$$, 'reference');
 select test.throws('fleet records no payment', $$select app.door(test.id('of_fleet'), 'aal2', 'ops_do', 'record_booking_payment', jsonb_build_object('booking', (test.ofb('o1')).booking_number, 'covers', 'rental', 'method', 'cash'))$$, null);
 insert into test.of select 'p1', app.door(test.id('of_cs'), 'aal2', 'ops_do', 'record_booking_payment', jsonb_build_object('booking', (test.ofb('o1')).booking_number, 'covers', 'rental', 'method', 'e_transfer', 'reference', 'CA1234XYZ'));
-select test.eq('the rental by e-Transfer: paid in full, nothing open for it; not confirmed (not signed)',
-  (test.ofv('p1') ->> 'open_cents') || '/' || (test.ofv('p1') ->> 'confirmed') || '/' || (test.ofb('o1')).status, '0/false/pending_payment');
+select test.eq('the rental by e-Transfer: paid in full, nothing open for it; confirmed before the renter signed (0185)',
+  (test.ofv('p1') ->> 'open_cents') || '/' || (test.ofv('p1') ->> 'confirmed') || '/' || (test.ofb('o1')).status, '0/true/confirmed');
 select test.eq('the same reference twice is the same payment', (app.door(test.id('of_cs'), 'aal2', 'ops_do', 'record_booking_payment', jsonb_build_object('booking', (test.ofb('o1')).booking_number, 'covers', 'rental', 'method', 'e_transfer', 'reference', 'ca1234xyz')) ->> 'repeat'), 'true');
 select test.eq('the rental lines carry the payment; the fee lines wait for theirs',
   (select bool_and(payment_id is not null) filter (where charge_type = 'rental_charge') || '/' || coalesce(bool_and(payment_id is null) filter (where charge_type <> 'rental_charge'), true)
      from booking_line_items where booking_id = (test.ofb('o1')).id and stage = 'booking' and voided_at is null and charged_to_renter), 'true/true');
-select test.eq('not confirmed: the agreement is not signed', (test.ofv('p1') -> 'confirm' ->> 'reason') like '%not signed%', true);
+select test.eq('confirmed waiting for the renter''s signature (0185)', test.ofv('p1') -> 'confirm' ->> 'awaiting_signature', 'true');
 select test.throws('nothing open for the fees: nothing to record', $$select app.door(test.id('of_cs'), 'aal2', 'ops_do', 'record_booking_payment', jsonb_build_object('booking', (test.ofb('o1')).booking_number, 'covers', 'fees', 'method', 'cash'))$$, 'nothing is open');
-select test.throws('confirm by hand: refused with the reason', $$select app.door(test.id('of_cs'), 'aal2', 'ops_do', 'confirm_offline_booking', jsonb_build_object('booking', (test.ofb('o1')).booking_number))$$, 'not signed');
+select test.throws('confirm by hand: refused with the reason', $$select app.door(test.id('of_cs'), 'aal2', 'ops_do', 'confirm_offline_booking', jsonb_build_object('booking', (test.ofb('o1')).booking_number))$$, 'not waiting for payment');
 select public.renter_open_agreement((test.ofb('o1')).id, test.ofu('o1'), 'rental-test', repeat('e', 64), 'bookings/o1/x.pdf');
 select public.renter_sign_agreement((test.ofb('o1')).id, test.ofu('o1'), 'I agree', repeat('e', 64), test.of_consents(), 'Nora Offer');
-select test.eq('signed and paid: staff confirm', app.door(test.id('of_cs'), 'aal2', 'ops_do', 'confirm_offline_booking', jsonb_build_object('booking', (test.ofb('o1')).booking_number)) ->> 'status', 'confirmed');
-select test.eq('confirmed, with no card on file (the deposit is cash): the agreement completed', (select b.status || '/' || (b.card_on_file_id is null) || '/' || s.status from test.ofb('o1') b join signature_requests s on s.id = b.signature_request_id), 'confirmed/true/completed');
+select test.eq('signed after paying: confirmed, with no card on file (the deposit is cash), the agreement completed (countersigned when the renter signed)', (select b.status || '/' || (b.card_on_file_id is null) || '/' || s.status from test.ofb('o1') b join signature_requests s on s.id = b.signature_request_id), 'confirmed/true/completed');
 select test.eq('the confirmation task is done', (select count(*) from tasks where booking_id = (test.ofb('o1')).id and task_type = 'confirm_offline_booking' and status = 'open'), 0::bigint);
 
 -- the deposit in cash

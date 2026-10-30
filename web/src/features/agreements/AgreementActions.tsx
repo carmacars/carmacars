@@ -1,6 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 import { agreementFill, agreementOverride, agreementRegenerate, agreementResend, disputePackBuild, disputePackSubmit } from '@/server/actions/agreements';
 
 export interface Missing { key: string; label: string; where: string; required: boolean; driver_id?: string }
@@ -42,10 +43,13 @@ export function MissingFields({ booking, missing, refresh, isAdmin, overrides }:
       <p className="small"><b>{required.length ? `${required.length} field${required.length === 1 ? '' : 's'} a claim needs ${required.length === 1 ? 'is' : 'are'} blank` : 'Recommended'}</b>: the agreements print these blank until they are filled.{required.length ? ' Check-out stops until they are, unless an Admin overrides.' : ''}</p>
       <form className="stack" onSubmit={(e) => { e.preventDefault(); start(async () => { const r = await agreementFill(booking, payload(), refresh); setMsg(r.ok ? { ok: true, text: 'Saved. The agreements follow in a moment.' } : { ok: false, text: r.message }); if (r.ok) { setVals({}); router.refresh(); } }); }}>
         <div className="grid-2" style={{ display: 'grid', gap: 'var(--s-2)', gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))' }}>
-          {fillable.flatMap(inputs).map((f) => (
-            <label key={f.name} className="field" style={{ margin: 0 }}><span className="label">{f.label}{missing.find((m) => f.name.startsWith(m.key))?.required ? ' *' : ''}</span>
+          {fillable.flatMap(inputs).map((f) => f.name === 'coverage.insurer_name'
+            // the renter's own insurer: the list of insurers, or Other with its name typed
+            ? <div key={f.name} className="field" style={{ margin: 0 }}><label className="label" htmlFor="fill-coverage-insurer-name">{f.label}{missing.find((m) => f.name.startsWith(m.key))?.required ? ' *' : ''}</label>
+                <InsurerSelect id="fill-coverage-insurer-name" value={vals[f.name] ?? ''} onChange={(x) => setVals((v) => ({ ...v, [f.name]: x }))} testId="fill-coverage-insurer-name" /></div>
+            : <label key={f.name} className="field" style={{ margin: 0 }}><span className="label">{f.label}{missing.find((m) => f.name.startsWith(m.key))?.required ? ' *' : ''}</span>
               <input className="input" type={f.type} value={vals[f.name] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [f.name]: e.target.value }))} data-testid={`fill-${f.name.replace(/[^a-z0-9]+/gi, '-')}`} /></label>
-          ))}
+          )}
         </div>
         {missing.some((m) => m.where === 'settings') && <p className="xs muted">CarmaCars&apos; HST number: Program settings, Company HST number.</p>}
         {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
@@ -79,6 +83,75 @@ export function AgreementActions({ booking, refresh, waiting, finance, disputes,
         {finance && d.status === 'staged' && <> <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={() => act(() => disputePackSubmit(booking, d.id, refresh), 'Submitted to Stripe.')} data-testid="dispute-pack-submit">Submit to Stripe</button></>}
         {d.error && <span className="error"> {d.error}</span>}</p>)}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
+    </div>
+  );
+}
+
+// Every field the agreements print, with its value, editable by hand (migration 0183), not only what is missing. Only
+// what changed is saved; a material change after signing makes a new version to sign, as before. The legal name is an
+// Admin's correction.
+export interface AgreementCurrent {
+  renter?: Record<string, string | null> | null;
+  drivers?: Array<{ driver_id: string; role: string; name: string; licence_number: string | null; licence_issuer: string | null; licence_expiry: string | null; licence_class: string | null }>;
+  vehicle?: Record<string, string | null> | null;
+  coverage?: Record<string, string | number | null> | null;
+  insurer?: Record<string, string | null> | null;
+}
+const GROUPS: Array<{ group: 'renter' | 'vehicle' | 'coverage' | 'insurer'; title: string; fields: Array<[string, string, string?]> }> = [
+  { group: 'renter', title: 'Renter', fields: [['legal_name', 'Legal name'], ['date_of_birth', 'Date of birth', 'date'], ['mobile', 'Phone', 'tel'], ['address_line1', 'Street'],
+    ['address_line2', 'Unit or line 2'], ['city', 'City'], ['province', 'Province'], ['postal_code', 'Postal code']] },
+  { group: 'vehicle', title: 'Car', fields: [['plate', 'Plate'], ['vin', 'VIN'], ['colour', 'Colour'], ['fleet_number', 'Fleet number']] },
+  { group: 'coverage', title: 'Renter’s coverage', fields: [['insurer_name', 'Insurer'], ['policy_number', 'Policy number'], ['policy_expiry', 'Policy expiry', 'date'],
+    ['card_issuer', 'Card issuer'], ['card_last4', 'Card, last four digits'], ['coverage_provider', 'Card coverage provider']] },
+  { group: 'insurer', title: 'Insurer claim', fields: [['claim_number', 'Claim number'], ['adjuster_name', 'Adjuster'], ['adjuster_phone', 'Adjuster phone', 'tel'],
+    ['policy_number', 'Policy number'], ['policy_province', 'Policy province'], ['policy_expiry', 'Policy expiry', 'date'], ['insured_vehicle', 'Insured vehicle']] },
+];
+const DRIVER_FIELDS: Array<[string, string, string?]> = [['licence_number', 'Licence number'], ['licence_issuer', 'Licence issued by'], ['licence_expiry', 'Licence expiry', 'date'], ['licence_class', 'Licence class']];
+
+export function AgreementEditAll({ booking, current, refresh, isAdmin }: { booking: string; current: AgreementCurrent; refresh: string[]; isAdmin: boolean }) {
+  const router = useRouter();
+  const init: Record<string, string> = {};
+  for (const g of GROUPS) for (const [k] of g.fields) { const v = current[g.group]?.[k]; init[`${g.group}.${k}`] = v == null ? '' : String(v); }
+  for (const d of current.drivers ?? []) for (const [k] of DRIVER_FIELDS) init[`drivers.${d.driver_id}.${k}`] = (d as unknown as Record<string, string | null>)[k] ?? '';
+  const [open, setOpen] = useState(false);
+  const [vals, setVals] = useState(init);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, start] = useTransition();
+  const field = (name: string, label: string, type = 'text', disabled = false) => name === 'coverage.insurer_name'
+    // the renter's own insurer: the list of insurers, or Other with its name typed
+    ? <div key={name} className="field" style={{ margin: 0 }}><label className="label" htmlFor="edit-coverage-insurer-name">{label}</label>
+        <InsurerSelect id="edit-coverage-insurer-name" value={vals[name] ?? ''} disabled={disabled} onChange={(x) => setVals((v) => ({ ...v, [name]: x }))} testId="edit-coverage-insurer-name" /></div>
+    : (
+    <label key={name} className="field" style={{ margin: 0 }}><span className="label">{label}</span>
+      <input className="input" type={type} value={vals[name] ?? ''} disabled={disabled} onChange={(e) => setVals((v) => ({ ...v, [name]: e.target.value }))} data-testid={`edit-${name.replace(/[^a-z0-9]+/gi, '-')}`} /></label>);
+  const save = () => start(async () => {
+    setMsg(null);
+    const p: Record<string, unknown> = {}; const drivers: Record<string, Record<string, string>> = {};
+    for (const [k, v] of Object.entries(vals)) {
+      if (v.trim() === (init[k] ?? '').trim() || !v.trim()) continue;
+      const parts = k.split('.');
+      if (parts[0] === 'drivers') { (drivers[parts[1]!] ??= { driver_id: parts[1]! })[parts[2]!] = v.trim(); continue; }
+      ((p[parts[0]!] ??= {}) as Record<string, string>)[parts[1]!] = v.trim();
+    }
+    if (Object.keys(drivers).length) p.drivers = Object.values(drivers);
+    if (!Object.keys(p).length) { setMsg({ ok: false, text: 'Nothing changed yet.' }); return; }
+    const r = await agreementFill(booking, p, refresh);
+    if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
+    setMsg({ ok: true, text: 'Saved. The agreements follow in a moment (a new version to sign when the change is material).' }); setOpen(false); router.refresh();
+  });
+  if (!open) return <button className="btn btn--ghost btn--sm" type="button" onClick={() => setOpen(true)} data-testid="agreement-edit-open">Edit the agreement</button>;
+  const grid = { display: 'grid', gap: 'var(--s-2)', gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))' } as const;
+  return (
+    <div className="stack" data-testid="agreement-edit-all">
+      {GROUPS.filter((g) => current[g.group]).map((g) => (
+        <fieldset key={g.group} className="stack" style={{ border: 0, padding: 0, margin: 0 }}><legend className="pt-kicker">{g.title}</legend>
+          <div style={grid}>{g.fields.map(([k, l, t]) => field(`${g.group}.${k}`, l, t, g.group === 'renter' && k === 'legal_name' && !isAdmin))}</div></fieldset>))}
+      {(current.drivers ?? []).map((d) => (
+        <fieldset key={d.driver_id} className="stack" style={{ border: 0, padding: 0, margin: 0 }}><legend className="pt-kicker">{d.name} ({d.role === 'renter' ? 'renter' : 'additional driver'})</legend>
+          <div style={grid}>{DRIVER_FIELDS.map(([k, l, t]) => field(`drivers.${d.driver_id}.${k}`, l, t))}</div></fieldset>))}
+      {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
+      <div className="row"><button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={save} data-testid="agreement-edit-save">{pending ? 'Saving' : 'Save the agreement'}</button>
+        <button className="btn btn--ghost btn--sm" type="button" onClick={() => { setVals(init); setOpen(false); setMsg(null); }}>Cancel</button></div>
     </div>
   );
 }

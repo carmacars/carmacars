@@ -18,7 +18,11 @@ Migration 0154 gave the rental agreements a signature that holds up in a dispute
 the same steps (`EsignFlow`), with the same evidence:
 
 1. **Identity**: a 6-digit code by text (the CarmaCars number) or by email to the signer's contact on file; only its hash
-   is kept, 5 tries, 10 minutes, 5 codes a session.
+   is kept, 5 tries, 10 minutes, 5 codes a session. Since 0186 (main, applied before 0193) the code is optional unless
+   Program settings, E-signing, **ask for a one-time code** is on: these signatures follow that setting too (the session
+   is ready without the code, the certificate says the identity was not confirmed by a code, initials are saved with
+   **Save initials** and can be cleared), and a signature refused for an incomplete session asks for the code only when
+   the setting is on (`app.esign_documents_incomplete_message`).
 2. **Read**: the signer says they read the documents.
 3. **Initials** on the key terms of their documents (below).
 4. **Consents**: to sign electronically (Ontario Electronic Commerce Act, 2000) and to receive the records electronically.

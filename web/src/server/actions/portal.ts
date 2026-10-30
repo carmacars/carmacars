@@ -13,7 +13,7 @@ import { requestMeta } from '@/server/request';
 import { readToken, sha256Hex, signToken } from '@/server/links';
 import { findBooking, requireUser } from '@/server/portal/data';
 import { openAgreement } from '@/server/portal/agreement';
-import { enqueuePdfJobs } from '@/server/pdf-jobs';
+import { enqueuePdfJobs, kickPdfJobs } from '@/server/pdf-jobs';
 import { chargeAddedRental } from '@/server/portal/added-charge';
 import { bookingIntent, paymentFacts, reasonMessage, settleIntent, type SettleResult } from '@/server/portal/payment';
 import { consentTexts } from '@/server/booking-data';
@@ -112,7 +112,7 @@ export async function saveDetails(number: string, d: DetailsInput): Promise<R> {
     const { userId, b } = await mine(number);
     await rpc('renter_save_details', { p_by: userId, p_booking: b.id, p_details: { ...d, licence_number: d.licence_number.toUpperCase() } }, SR);
     const added = addedLive(b);
-    if ((b.status === 'pending_payment' || added) && b.agreement?.status === 'open') await openAgreement(b.id, userId);
+    if ((b.status === 'pending_payment' || added || b.paid_unsigned) && b.agreement?.status === 'open') await openAgreement(b.id, userId);
     refresh(number);
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
@@ -166,7 +166,7 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
   let target = '';
   try {
     const { userId, b } = await mine(number);
-    if (!(await accountGate(userId, 'sign')).ok) return fail(GATE_MESSAGE, 'unconfirmed');
+    // 0183: signing does not wait for the account to be confirmed (the e-sign code still proves who signs)
     const { all, need, ticked } = await signatureArgs(input, userId);
     if (!need.every((c) => ticked.has(c))) return { ok: false, code: 'invalid', message: 'Tick all four statements to sign.', fieldErrors: { consents: 'Tick all four statements.' } };
     if (!b.agreement || b.agreement.status !== 'open') return fail('There is no agreement waiting for your signature. Reload the page.');
@@ -196,11 +196,13 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
     // with the countersignature and "Added by", found by the legal review's section 6 test)
     // (0077: a background job, in its own request; the signature is recorded already)
     if (added) { try { await enqueuePdfJobs([{ kind: 'renter_signed_copy', ref: b.id, user_id: userId }]); } catch (e) { console.error('signed copy job', e); } }
+    // paid before signing (0185): countersigned and its signed copy queued by the database; render it now
+    if (b.paid_unsigned) kickPdfJobs();
     refresh(number);
     if (declined) return fail(`Your agreement is signed, but your card was not charged: ${declined} We will contact you to arrange the payment.`, 'payment');
     // a rental staff added by hand (0046) is confirmed already: back to the booking, signed and countersigned; one added
     // while already underway with a payment link (0074) goes on to pay online
-    target = added && !b.link_due ? `${bookingPath(number)}?signed=1` : bookingPath(number, 'pay');
+    target = (added && !b.link_due) || b.paid_unsigned ? `${bookingPath(number)}?signed=1` : bookingPath(number, 'pay');
   } catch (e) { return fail(dbMessage(e)); }
   redirect(target);
 }

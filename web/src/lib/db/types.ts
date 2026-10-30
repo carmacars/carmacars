@@ -13202,6 +13202,9 @@ export type Database = {
           game_saved_again_days: number;
           request_claim_minutes: number;
           request_sales_after_minutes: number;
+          hiring_evening_reminder: boolean;
+          esign_code_required: boolean;
+          deposit_release_reminder_days: number;
           phone_quo_contacts: boolean;
         };
         Insert: {
@@ -13709,6 +13712,9 @@ export type Database = {
           game_saved_again_days?: number;
           request_claim_minutes?: number;
           request_sales_after_minutes?: number;
+          hiring_evening_reminder?: boolean;
+          esign_code_required?: boolean;
+          deposit_release_reminder_days?: number;
           phone_quo_contacts?: boolean;
         };
         Update: {
@@ -14216,6 +14222,9 @@ export type Database = {
           game_saved_again_days?: number;
           request_claim_minutes?: number;
           request_sales_after_minutes?: number;
+          hiring_evening_reminder?: boolean;
+          esign_code_required?: boolean;
+          deposit_release_reminder_days?: number;
           phone_quo_contacts?: boolean;
         };
         Relationships: [];
@@ -23102,6 +23111,7 @@ export type Database = {
       server_esign_code_email: { Args: { p_session: string; p_code: string }; Returns: undefined };
       server_esign_code_set: { Args: { p_session: string; p_channel: string; p_hash: string; p_ip?: string; p_user_agent?: string }; Returns: Json };
       server_esign_owner: { Args: { p_session: string }; Returns: Json };
+      server_esign_set_mobile: { Args: { p_session: string; p_mobile: string; p_by: string }; Returns: Json };
       server_esign_signer: { Args: { p_booking: string; p_user: string; p_signer?: string }; Returns: Json };
       server_esign_start: { Args: { p: Json }; Returns: Json };
       server_esign_step: { Args: { p_session: string; p_kind: string; p_detail: Json; p_ip?: string; p_user_agent?: string }; Returns: Json };

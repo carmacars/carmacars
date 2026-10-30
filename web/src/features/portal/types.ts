@@ -44,6 +44,8 @@ export interface MyBooking extends BookingSummary {
   added_by_staff?: boolean; added_live?: boolean; added_mode?: string | null;
   /** A rental added while underway with a payment link, waiting for the online payment after signing (0074). */
   link_due?: boolean;
+  /** Confirmed on a payment received another way before the renter signed (0185): sign with no payment step after. */
+  paid_unsigned?: boolean;
 }
 
 /** A live rental staff added by hand: the renter signs it with no payment step before it (0046, 0074). */

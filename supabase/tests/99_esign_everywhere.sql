@@ -62,7 +62,7 @@ create function test.ee_sign_owner(p_sig text) returns jsonb language sql as $$
     'initials', '{"own_insurance":"OO","fees_no_income":"OO","tracker_downtime":"OO"}'::jsonb,
     'documents', jsonb_build_array(jsonb_build_object('key', 'enrollment', 'sha256', test.ee_sha('ea')), jsonb_build_object('key', 'title_holding', 'sha256', test.ee_sha('ta'))))) $$;
 
-select test.throws('owner: the agreements are not signed without a signing session', $$select test.ee_sign_owner('signatures/ee/olga.png')$$, 'Confirm your identity with the code');
+select test.throws('owner: the agreements are not signed without a signing session', $$select test.ee_sign_owner('signatures/ee/olga.png')$$, 'initial the key terms, give the consents and draw your signature before signing');
 select test.throws('owner: a session is checked against the open documents (a changed SHA-256 is refused)',
   format($$select public.server_esign_start(%L)$$, jsonb_build_object('context', 'documents', 'signer_ref', test.id('ee_olga'), 'owner_id', test.ee_owner(),
     'documents', jsonb_build_array(jsonb_build_object('kind', 'packet', 'ref', 'enrollment', 'title', 'Enrollment Agreement', 'sha256', repeat('0', 64))))), 'documents changed');
@@ -88,7 +88,7 @@ create function test.ee_co_sign(p_sig text) returns jsonb language sql as $$
   select public.server_owner_cosigner_sign((test.ee_co()).token, jsonb_build_object('drawn_signature', p_sig, 'ip', '203.0.113.8', 'user_agent', 'test',
     'consent_text', 'I have read these documents and I sign them electronically.', 'initials', 'CC',
     'documents', (select jsonb_agg(jsonb_build_object('signature_request_id', q.signature_request_id, 'sha256', q.sha256)) from app.owner_open_requests(test.ee_owner()) q))) $$;
-select test.throws('co-owner: their link does not sign without a signing session', $$select test.ee_co_sign('esign/cora/signature.png')$$, 'Confirm your identity with the code');
+select test.throws('co-owner: their link does not sign without a signing session', $$select test.ee_co_sign('esign/cora/signature.png')$$, 'initial the key terms, give the consents and draw your signature before signing');
 select test.throws('co-owner: their session covers every open document', format($$select public.server_esign_start(%L)$$,
   jsonb_build_object('context', 'owner_cosigner', 'signer_ref', (test.ee_co()).id, 'documents', jsonb_build_array(test.ee_co_docs() -> 0))), 'documents changed');
 insert into test.ee select 'cora_s', to_jsonb(test.ee_session('owner_cosigner', (test.ee_co()).id, test.ee_co_docs(), null, 'esign/cora/signature.png'));
@@ -119,7 +119,7 @@ create function test.ee_fc_sign(p_sig text) returns jsonb language sql as $$
   select public.sign_request_sign(test.id('ee_olga'), (test.eev('fc') ->> 'id')::uuid,
     jsonb_build_object('drawn_signature', p_sig, 'consent_text', 'I sign Form C electronically, in the presence of my witness.', 'document_sha256', test.ee_sha('fc'), 'initials', 'OO',
                        'acknowledgments', '["1","2","3"]'::jsonb, 'witness_name', 'Wendy Witness', 'witness_statement', 'I witnessed Olga Owner sign in my presence.')) $$;
-select test.throws('Form C: not signed without the owner''s session', $$select test.ee_fc_sign('esign/olga/fc.png')$$, 'Confirm your identity with the code');
+select test.throws('Form C: not signed without the owner''s session', $$select test.ee_fc_sign('esign/olga/fc.png')$$, 'initial the key terms, give the consents and draw your signature before signing');
 insert into test.ee select 'fc_s', to_jsonb(test.ee_session('documents', test.id('ee_olga'),
   jsonb_build_array(jsonb_build_object('kind', 'request', 'ref', test.eev('fc') ->> 'id', 'title', 'Form C', 'sha256', test.ee_sha('fc'))), null, 'esign/olga/fc.png'));
 select test.eq('Form C: the owner initials its three acknowledgments', (select array_to_string(required_initials, ',') from esign_sessions where id = (test.eev('fc_s') #>> '{}')::uuid),
@@ -135,7 +135,7 @@ insert into test.ee select 'sa', public.door(test.id('ee_admin'), null, 'ops_do'
 create function test.ee_sa_sign(p_sig text) returns jsonb language sql as $$
   select public.sign_request_sign(test.id('ee_cs'), (test.eev('sa') ->> 'id')::uuid, jsonb_build_object('drawn_signature', p_sig, 'consent_text', 'I agree',
     'document_sha256', test.ee_sha('va'), 'ip', '203.0.113.5', 'user_agent', 'test')) $$;
-select test.throws('staff agreement: not signed without a signing session', $$select test.ee_sa_sign('esign/cs/sig.png')$$, 'Confirm your identity with the code');
+select test.throws('staff agreement: not signed without a signing session', $$select test.ee_sa_sign('esign/cs/sig.png')$$, 'initial the key terms, give the consents and draw your signature before signing');
 select test.throws('staff agreement: only the staff member starts its session', format($$select public.server_esign_start(%L)$$, jsonb_build_object('context', 'documents', 'signer_ref', test.id('ee_admin'),
   'documents', jsonb_build_array(jsonb_build_object('kind', 'request', 'ref', test.eev('sa') ->> 'id', 'title', 'VA Agreement', 'sha256', test.ee_sha('va'))))), 'Not found');
 insert into test.ee select 'sa_s', to_jsonb(test.ee_session('documents', test.id('ee_cs'),
@@ -157,7 +157,7 @@ insert into investors (id, user_id, legal_name, investor_type, email, status) va
 insert into test.ee select 'ia', public.door(test.id('ee_admin'), null, 'ops_do', 'sign_request_create', jsonb_build_object('doc_type', 'investment_agreement', 'investor_id', test.id('inv:ee_ivan'),
   'exemption_category', 'accredited_investor', 'document', jsonb_build_object('path', 'investors/ee/ia.pdf', 'sha256', test.ee_sha('ia'))));
 select test.throws('investment agreement: not signed without a signing session', format($$select public.sign_request_sign(%L, %L, %L)$$, test.id('ee_ivan'), test.eev('ia') ->> 'id',
-  jsonb_build_object('drawn_signature', 'esign/ivan/sig.png', 'consent_text', 'I agree', 'document_sha256', test.ee_sha('ia'), 'legal_advice_choice', 'declined', 'initials', 'II')), 'Confirm your identity with the code');
+  jsonb_build_object('drawn_signature', 'esign/ivan/sig.png', 'consent_text', 'I agree', 'document_sha256', test.ee_sha('ia'), 'legal_advice_choice', 'declined', 'initials', 'II')), 'initial the key terms, give the consents and draw your signature before signing');
 insert into test.ee select 'ia_s', to_jsonb(test.ee_session('documents', test.id('ee_ivan'),
   jsonb_build_array(jsonb_build_object('kind', 'request', 'ref', test.eev('ia') ->> 'id', 'title', 'Investment agreement', 'sha256', test.ee_sha('ia'))), null, 'esign/ivan/sig.png'));
 select test.eq('investment agreement: Schedule C is initialled in the session', (select array_to_string(required_initials, ',') from esign_sessions where id = (test.eev('ia_s') #>> '{}')::uuid), 'schedule_c');
@@ -175,7 +175,7 @@ insert into test.ee select 'chg', public.door(test.id('ee_admin'), null, 'ops_do
 create function test.ee_chg() returns uuid language sql stable as $$ select (test.eev('chg') ->> 'change_id')::uuid $$;
 create function test.ee_chg_sha() returns text language sql stable as $$ select public.server_owner_schedule_change(test.id('ee_sam'), test.ee_chg()) ->> 'sha256' $$;
 select test.throws('schedule: an updated Vehicle Schedule is not signed with a typed name alone', format($$select public.server_schedule_change_sign(%L, %L)$$, test.id('ee_sam'),
-  jsonb_build_object('change_id', test.ee_chg(), 'agree', true, 'name', 'Ee Sam', 'sha256', test.ee_chg_sha())), 'Confirm your identity with the code');
+  jsonb_build_object('change_id', test.ee_chg(), 'agree', true, 'name', 'Ee Sam', 'sha256', test.ee_chg_sha())), 'initial the key terms, give the consents and draw your signature before signing');
 select test.throws('schedule: its session binds the text on screen', format($$select public.server_esign_start(%L)$$, jsonb_build_object('context', 'documents', 'signer_ref', test.id('ee_sam'),
   'documents', jsonb_build_array(jsonb_build_object('kind', 'schedule_change', 'ref', test.ee_chg(), 'title', 'Updated Vehicle Schedule', 'sha256', repeat('1', 64))))), 'changed since');
 insert into test.ee select 'chg_s', to_jsonb(test.ee_session('documents', test.id('ee_sam'),

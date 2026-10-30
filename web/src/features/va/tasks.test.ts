@@ -44,3 +44,7 @@ test('the Admin: an unknown kind falls back to its record, then to Tasks', () =>
   assert.equal(adminTaskHref({ ...t, vehicle_id: 'v9' }), '/admin/vehicles/v9');
   assert.equal(adminTaskHref(t), '/admin/tasks');
 });
+
+test('the Admin: a renter who wrote opens the booking\'s messages, where the Admin emails them back (0187)', () => {
+  assert.equal(adminTaskHref({ task_type: 'renter_message', booking_number: 'CC-1001', vehicle_id: null, related_table: 'messages', related_id: null }), '/admin/bookings/CC-1001?tab=messages');
+});

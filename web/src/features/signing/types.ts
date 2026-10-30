@@ -15,6 +15,8 @@ export type EsignContext =
 export interface EsignView {
   id: string; context: string; signer_name: string; signer_role: string; method: 'remote' | 'in_person';
   channels: Array<{ channel: 'sms' | 'email'; to: string }>; code_sent_to: string | null; verified: boolean; viewed: boolean;
+  /** 0186: Program settings ask for the one-time code (off by default: the code is optional) */
+  code_required: boolean;
   required_initials: string[]; required_consents: string[]; initials: string[]; consents: string[]; signature: 'drawn' | 'typed' | null;
   typed_fallback_allowed: boolean; signed: boolean; ready: boolean;
   licence: { licence_front?: string | null; licence_back?: string | null; selfie?: string | null; verified?: boolean; expiry?: string | null; complete?: boolean } | null;

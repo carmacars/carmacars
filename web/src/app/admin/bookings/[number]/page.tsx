@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { BookingInsurer, type BookingInsurerData } from '@/features/insurers/BookingInsurer';
+import { InsurerClaimEdit } from '@/features/insurers/InsurerClaimEdit';
+import { StaffDocUpload } from '@/features/admin/StaffDocUpload';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
 import type { PhoneTimelineData } from '@/features/phone/client';
@@ -32,6 +34,8 @@ import { AgreementPanel } from '@/features/agreements/AgreementPanel';
 import { OwnerDeductionsPanel, OwnerVisibilityPanel } from '@/features/admin/OwnerControls';
 import { MarketingSource, type MarketingData } from '@/features/ads/MarketingSource';
 import { ClaimBanner, ClaimGate, RequestClaim } from '@/features/offers/RequestClaim';
+import { BookingConversation } from '@/features/messages/BookingConversation';
+import type { Conversation } from '@/features/messages/email-choices';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -94,6 +98,9 @@ export default async function Booking({ params, searchParams }: { params: Promis
   const visits = tab === 'history' ? await door<TimelineData>(user.id, 'admin_read', 'visitor_timeline', { booking_id: b.id }).catch(() => null) : null;
   // calls and texts with the renter about this booking (0085)
   const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { booking_id: b.id }).catch(() => null) : null;
+  // Email the renter or the adjuster, with the booking's conversation and emails (0187)
+  const conv = tab === 'messages' ? await door<Conversation>(user.id, 'ops_read', 'booking_conversation', { booking: b.booking_number }).catch(() => null) : null;
+  const insurerBilled = b.bill_to !== 'renter' && !!b.insurer_id;
   const refresh = [base, '/admin/requests'];
   const pendingChanges = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status)));
   const pendingExt = b.extensions.filter((x) => x.status === 'requested');
@@ -116,6 +123,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
         {b.status === 'on_rent' && <Act action="swap_vehicle" payload={P} label="Swap vehicle" fields={[{ name: 'vehicle', label: 'The car the renter moves to', type: 'select', required: true, options: [['', swapCars.length ? 'Choose the car' : 'No car is free right now'], ...swapCars.map((v) => [v.id, `${v.year} ${v.make} ${v.model}${v.plate ? `, ${v.plate}` : ''}`] as [string, string])] }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
         {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && b.bill_to !== 'renter' && <Act action="draft_insurer_invoice" payload={P} label="Draft insurer invoice" refresh={['/admin/insurer-invoices']} />}
         {b.status === 'returned' && <Act action="issue_booking_statement" payload={P} label="Issue final statement" confirm="Issue the Check-in statement from the assessed lines and settle the deposit plan." refresh={refresh} />}
+        {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
+        {insurerBilled && b.insurer_adjuster_email && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages&to=adjuster`} data-testid="email-adjuster-link">Email the adjuster</Link>}
       </PageHead>
       <ClaimBanner />
       <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />
@@ -127,7 +136,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
       <OwnerVisibilityPanel userId={user.id} booking={b.booking_number} refresh={refresh} />
       <Tabs current={`${base}?tab=${tab}`} items={[
         ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : [[`${base}?tab=overview`, 'Overview']] as Array<[string, string]>),
-        [`${base}?tab=money`, 'Money'], [`${base}?tab=changes`, 'Changes', pendingChanges.length + pendingExt.length], [`${base}?tab=history`, 'History'], [`${base}?tab=documents`, 'Drivers and documents']]} />
+        [`${base}?tab=money`, 'Money'], [`${base}?tab=changes`, 'Changes', pendingChanges.length + pendingExt.length], [`${base}?tab=messages`, 'Messages'], [`${base}?tab=history`, 'History'], [`${base}?tab=documents`, 'Drivers and documents']]} />
       {tab === 'review' && (
         <>
           <div className="ad-cols ad-cols--2">
@@ -145,11 +154,16 @@ export default async function Booking({ params, searchParams }: { params: Promis
           {['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && (await door<{ handover_note: string | null }>(user.id, 'ops_read', 'listing_state', { vehicle_id: b.vehicle_id }).catch(() => null))?.handover_note && <p className="alert alert--warn" role="note" data-testid="offer-policy-warning"><span className="alert__title">Car not on the fleet policy yet</span><span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it. When it does, press Insurer confirmed on <Link prefetch={false} className="link" href={`/admin/vehicles/${b.vehicle_id}?tab=listing`}>the car</Link> (or on Admin &gt; Today).</span></p>}
           {/* the renter's licence, uploaded with the request (0130) */}
           <RenterDocs b={b} refresh={[base]} />
-          <ClaimGate testId="claim-gate-review"><BookingReview b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={['requested', 'offered', 'pending_payment'].includes(b.status)} /></ClaimGate>
+          <ClaimGate testId="claim-gate-review" explain><BookingReview b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={['requested', 'offered', 'pending_payment'].includes(b.status)} /></ClaimGate>
         </>
       )}
       {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
       {(tab === 'overview' || tab === 'money') && insurerCard?.billed_to_insurer && <BookingInsurer x={insurerCard} />}
+      {tab === 'overview' && b.booking_type !== 'owner' && !['cancelled', 'declined', 'expired'].includes(b.status) && <InsurerClaimEdit insurers={ins.rows} x={{
+        booking: b.booking_number, bill_to: b.bill_to, insurer_id: b.insurer_id, claim_number: b.insurer_claim_number, adjuster_name: b.insurer_adjuster_name,
+        adjuster_email: b.insurer_adjuster_email, adjuster_phone: b.insurer_adjuster_phone, policy_number: (b.insurer_policy_number as string | null) ?? null,
+        policy_province: (b.insurer_policy_province as string | null) ?? null, authorized_days: b.insurer_authorized_days, authorized_until: b.insurer_authorized_until,
+        authorized_daily_rate_cents: b.insurer_authorized_daily_rate_cents }} />}
       {(tab === 'overview' || tab === 'money') && b.billable_days > 27 && <BookingPeriods booking={b.booking_number} rows={await door<PeriodRow[]>(user.id, 'ops_read', 'booking_periods', { booking: b.booking_number }).catch(() => [] as PeriodRow[])} />}
       {(tab === 'overview' || tab === 'review') && renterForm && <RenterEdit x={renterForm} />}
       {(tab === 'overview' || tab === 'review') && renterForm?.may_edit && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: renterForm.renter_id }).catch(() => [] as DuplicateRow[])} />}
@@ -210,6 +224,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <Card title="Questions to the renter"><Table rows={b.info_requests} empty="No questions." cols={[{ key: 'asked_at', label: 'Asked', render: (r) => t(r.asked_at) }, { key: 'question', label: 'Question', className: 'wrap' }, { key: 'status', label: 'Status' }, { key: 'reply', label: 'Reply', className: 'wrap' }]} /></Card>
         </div>
       )}
+      {tab === 'messages' && (conv ? <BookingConversation c={conv} refresh={[base]} initialTo={sp.to === 'adjuster' ? 'adjuster' : 'renter'} /> : <p className="small muted">The messages could not be read. Reload the page.</p>)}
       {tab === 'history' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Timeline" testId="timeline">
@@ -272,6 +287,7 @@ function RenterDocs({ b, refresh }: { b: Detail; refresh: string[] }) {
   return (
     <Card title="Renter documents" testId="booking-doc-review" tone={missing.length ? 'next' : undefined} aside={<DocumentReview booking={b.booking_number} refresh={refresh} label="Review documents" />}>
       <p className="small">{missing.length ? `Still needed before the handover: ${missing.join(' and ')}. Approve or reject what the renter sent; a rejection tells them why.` : 'Identity and coverage are confirmed.'}</p>
+      <StaffDocUpload bookingId={String(b.id)} drivers={(b.drivers ?? []).map((d) => ({ driver_id: String(d.driver_id), full_name: String(d.full_name ?? '') }))} />
     </Card>
   );
 }

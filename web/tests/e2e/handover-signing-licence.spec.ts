@@ -303,6 +303,55 @@ test('customer service collects the renter\'s signature on their own device, and
   await sql.end();
 });
 
+// 0185: the renter accepted online and left the pay page without signing or paying; at the office the Admin sees
+// "Sign now on this device" on the booking (the card was empty), records the rental and fees in cash at once (both parts,
+// one step) and the booking is confirmed, waiting for the renter's signature; the car is not released until they sign.
+test('waiting for payment and not signed: sign now on this device; the rental and fees in cash at once confirm it', async ({ browser }, info) => {
+  test.setTimeout(180_000);
+  const phone = info.project.name.startsWith('phone');
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const admin = await mkUser(sql, 'pb', 'admin');
+  const renter = await mkUser(sql, 'rpb', 'renter');
+  const car = await freeCar(sql, 30, 3);
+  const req = await seedRequest(sql, renter, car.id, car.from, car.to);
+  await sql`select app.send_offer(${req.booking_id}::uuid, ${admin.id}::uuid)`;
+  await giveLicence(sql, req.booking_id);
+  await sql`select app.approve_offer(b.id, b.current_offer_version, ${renter.id}::uuid) from bookings b where b.id = ${req.booking_id}`;
+  const [b0] = await sql`select status from bookings where id = ${req.booking_id}`;
+  expect(b0!.status).toBe('pending_payment');
+
+  const page = await ctx(browser, phone);
+  await signIn(page, admin.email, '/admin');
+  const base = `/admin/bookings/${req.booking_number}`;
+  await page.goto(base, { waitUntil: 'networkidle' });
+  await expect(page.getByTestId('handover-panel')).toBeVisible();
+  await expect(page.getByTestId('sign-now-link')).toBeVisible();
+  await expect(page.getByTestId('sign-state')).toContainText('Sign now on this device prepares it');
+  await check(page, 'waiting for payment, sign now');
+
+  await page.goto(`${base}?tab=money`, { waitUntil: 'networkidle' });
+  await page.getByTestId('bm-record-open').click();
+  await expect(page.getByTestId('bm-covers')).toHaveValue('both');
+  await page.getByTestId('bm-method').selectOption('cash');
+  await page.getByTestId('bm-record-save').click();
+  await expect(page.getByTestId('bm-message')).toContainText('CarmaCars countersigns the rental agreement when the renter signs', { timeout: 20_000 });
+  const [b1] = await sql`select b.status, app.booking_part_open(b.id, 'rental') + app.booking_part_open(b.id, 'fees') as open,
+    (select count(*) from manual_payments m where m.booking_id = b.id and m.voided_at is null) as n, app.booking_awaiting_signature(b.id) as awaiting from bookings b where b.id = ${req.booking_id}`;
+  expect(`${b1!.status}/${Number(b1!.open)}/${Number(b1!.n) >= 1}/${b1!.awaiting}`).toBe('confirmed/0/true/true');
+  const refused = await sql`update bookings set status = 'on_rent' where id = ${req.booking_id}`.then(() => '', (e: Error) => e.message);
+  expect(refused).toMatch(/has not signed/);
+
+  await page.goto(base, { waitUntil: 'networkidle' });
+  await expect(page.getByTestId('sign-now-link')).toBeVisible();
+  await page.getByTestId('sign-now-link').click();
+  await page.waitForURL(/\/sign-now$/);
+  // the agreement is made by now (a confirmed booking gets it by itself, 0132), or the page prepares it
+  await expect(page.getByTestId('sign-now-signer-renter').or(page.getByTestId('sign-now-prepare'))).toBeVisible();
+  await check(page, 'paid, sign now');
+  await sql.end();
+});
+
 test('the licence is uploaded from the request before the offer can be accepted', async ({ browser }, info) => {
   test.setTimeout(180_000);
   const phone = info.project.name.startsWith('phone');

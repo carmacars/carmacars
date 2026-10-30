@@ -49,12 +49,15 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
     for (const k of ['code', 'audience', 'trigger', 'category', 'subject', 'preheader', 'variables', 'from']) if (e[k] === undefined || e[k] === '') p.push(`${e.code}: missing ${k}`);
     if (typeof e.digest !== 'boolean') p.push(`${e.code}: digest is not true or false`);
     if (!AUD.includes(e.audience)) p.push(`${e.code}: audience ${e.audience}`);
-    if (!/^CarmaCars <(bookings|owners|billing|hello)@carmacars\.ca>$/.test(e.from)) p.push(`${e.code}: from ${e.from}`);
+    // insurance emails go as Blind Spot Car Rental from its own address (0187); every other email as CarmaCars
+    const blindspot = e.from === 'Blind Spot Car Rental <blindspotcarrental@carmacars.ca>';
+    if (!blindspot && !/^CarmaCars <(bookings|owners|billing|hello)@carmacars\.ca>$/.test(e.from)) p.push(`${e.code}: from ${e.from}`);
     // Reply-to: the alias of the desk that handles the email (docs/email-aliases.md).
     const A = cat.reply_to_aliases || {};
     if (!Object.values(A).includes(e.reply_to) || !/^[a-z]+@carmacars\.ca$/.test(e.reply_to)) p.push(`${e.code}: reply_to ${e.reply_to} is not a receiving alias`);
     const billingFrom = /<billing@/.test(e.from);
-    const want = e.audience === 'investor' ? [A.investors]
+    const want = blindspot ? [A.blindspot]
+      : e.audience === 'investor' ? [A.investors]
       : e.audience.startsWith('staff_') ? [A.contact]
       : billingFrom ? [A.billing]
       : e.audience === 'owner' ? [A.owners]
@@ -163,10 +166,10 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
   for (const [f, s] of outputs) {
     if (!f.startsWith('dist/') || !f.endsWith('.html')) continue;
     const n = (s.match(/class="btn"/g) || []).length;
-    if (n !== 1 && !/renter_vehicle_disabled|renter_breakdown_help|investor_notice_received|renter_signing_code|document_signing_code/.test(f)) p.push(`${f}: ${n} primary buttons`);
+    if (n !== 1 && !/renter_vehicle_disabled|renter_breakdown_help|investor_notice_received|renter_signing_code|document_signing_code|insurance_staff_message/.test(f)) p.push(`${f}: ${n} primary buttons`);
     if (n > 1) p.push(`${f}: more than one primary button`);
   }
-  check('one primary button per rendered email (five emails have none by design: car disabled, breakdown help, investor notice received, the two signing codes)', p);
+  check('one primary button per rendered email (six emails have none by design: car disabled, breakdown help, investor notice received, the two signing codes, the insurance message)', p);
 }
 
 // 10. Marketing emails carry unsubscribe and the mailing address; transactional ones do not carry unsubscribe.
