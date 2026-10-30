@@ -48,6 +48,7 @@ alter table terminal_locations enable row level security;
 alter table terminal_readers enable row level security;
 create policy admin_all on terminal_locations to authenticated using (app.is_admin()) with check (app.is_admin());
 create policy admin_all on terminal_readers to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_terminal_locations after insert or update or delete on terminal_locations for each row execute function app.audit_row();
 create trigger audit_terminal_readers after insert or update or delete on terminal_readers for each row execute function app.audit_row();
 
 -- ================================================================ 2. a payment request on the reader

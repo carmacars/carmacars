@@ -5,7 +5,7 @@
 --   the same when Stripe's card fingerprint matches; a card typed by hand (Record card payment) is checked by its last 4
 --   digits and the staff member confirms it is the same card. Anything else is refused with the reason: another card on
 --   the pay page (refunded at once), on the reader (cancelled before it is captured), or a payment by e-Transfer, cash and
---   the like. An Admin may allow another card or method for one booking, with the reason. Deposits and later charges are
+--   the like once the card is known. An Admin may allow another card or method for one booking, with the reason. Deposits and later charges are
 --   not the rental: any card pays them.
 set local check_function_bodies = off;
 
@@ -106,7 +106,8 @@ declare
 begin
   if v_b is not null and coalesce(nullif(p ->> 'covers', ''), 'rental') in ('rental', 'fees', 'both') then
     r := app.card_coverage_ref(v_b);
-    if (r ->> 'required')::boolean and not coalesce((r ->> 'overridden')::boolean, false) then
+    -- once the card is known (the coverage proof, the Card on File or a card that paid): before that, as before
+    if (r ->> 'required')::boolean and not coalesce((r ->> 'overridden')::boolean, false) and (r ->> 'last4') is not null then
       raise exception 'This rental''s coverage is the renter''s credit card: the whole rental is paid on that card%, not by %. Take it on the card, or an Admin may allow another way with the reason.',
         coalesce(format(' (%s ending %s)', initcap(coalesce(r ->> 'brand', 'card')), r ->> 'last4'), ''), app.payment_method_label(coalesce(nullif(p ->> 'method', ''), 'e_transfer'))
         using errcode = '23514';
