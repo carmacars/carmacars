@@ -2638,6 +2638,7 @@ export type Database = {
           marketing_source_note: string | null;
           marketing_source_by: string | null;
           marketing_source_at: string | null;
+          calendar_token: string;
         };
         Insert: {
           id?: string;
@@ -2798,6 +2799,7 @@ export type Database = {
           marketing_source_note?: string | null;
           marketing_source_by?: string | null;
           marketing_source_at?: string | null;
+          calendar_token?: string;
         };
         Update: {
           id?: string;
@@ -2958,6 +2960,7 @@ export type Database = {
           marketing_source_note?: string | null;
           marketing_source_by?: string | null;
           marketing_source_at?: string | null;
+          calendar_token?: string;
         };
         Relationships: [];
       };
@@ -8645,6 +8648,16 @@ export type Database = {
           business_name: string | null;
           vehicle_text: string | null;
           do_not_contact_at: string | null;
+          pipeline_stage: string | null;
+          pipeline_stage_at: string | null;
+          pipeline_source: string | null;
+          pipeline_note: string | null;
+          followup_step: number;
+          followup_next_at: string | null;
+          followup_stopped_at: string | null;
+          followup_stop_reason: string | null;
+          replied_at: string | null;
+          referred_by_owner_id: string | null;
         };
         Insert: {
           id?: string;
@@ -8677,6 +8690,16 @@ export type Database = {
           business_name?: string | null;
           vehicle_text?: string | null;
           do_not_contact_at?: string | null;
+          pipeline_stage?: string | null;
+          pipeline_stage_at?: string | null;
+          pipeline_source?: string | null;
+          pipeline_note?: string | null;
+          followup_step?: number;
+          followup_next_at?: string | null;
+          followup_stopped_at?: string | null;
+          followup_stop_reason?: string | null;
+          replied_at?: string | null;
+          referred_by_owner_id?: string | null;
         };
         Update: {
           id?: string;
@@ -8709,6 +8732,94 @@ export type Database = {
           business_name?: string | null;
           vehicle_text?: string | null;
           do_not_contact_at?: string | null;
+          pipeline_stage?: string | null;
+          pipeline_stage_at?: string | null;
+          pipeline_source?: string | null;
+          pipeline_note?: string | null;
+          followup_step?: number;
+          followup_next_at?: string | null;
+          followup_stopped_at?: string | null;
+          followup_stop_reason?: string | null;
+          replied_at?: string | null;
+          referred_by_owner_id?: string | null;
+        };
+        Relationships: [];
+      };
+      listing_channel_feed_stats: {
+        Row: {
+          channel_id: string;
+          window_at: string | null;
+          window_n: number;
+          last_at: string | null;
+          fetches: number;
+        };
+        Insert: {
+          channel_id: string;
+          window_at?: string | null;
+          window_n?: number;
+          last_at?: string | null;
+          fetches?: number;
+        };
+        Update: {
+          channel_id?: string;
+          window_at?: string | null;
+          window_n?: number;
+          last_at?: string | null;
+          fetches?: number;
+        };
+        Relationships: [];
+      };
+      listing_channels: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          url: string | null;
+          kind: string;
+          status: string;
+          login_owner: string | null;
+          notes: string | null;
+          how_to_list: string | null;
+          feed_enabled: boolean;
+          feed_token: string;
+          sort: number;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          name: string;
+          url?: string | null;
+          kind: string;
+          status?: string;
+          login_owner?: string | null;
+          notes?: string | null;
+          how_to_list?: string | null;
+          feed_enabled?: boolean;
+          feed_token?: string;
+          sort?: number;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slug?: string;
+          name?: string;
+          url?: string | null;
+          kind?: string;
+          status?: string;
+          login_owner?: string | null;
+          notes?: string | null;
+          how_to_list?: string | null;
+          feed_enabled?: boolean;
+          feed_token?: string;
+          sort?: number;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -9450,6 +9561,21 @@ export type Database = {
         Update: {
           key?: string;
           path?: string;
+        };
+        Relationships: [];
+      };
+      notification_low_priority: {
+        Row: {
+          code: string;
+          priority: number;
+        };
+        Insert: {
+          code: string;
+          priority: number;
+        };
+        Update: {
+          code?: string;
+          priority?: number;
         };
         Relationships: [];
       };
@@ -10777,6 +10903,57 @@ export type Database = {
           licence_province?: string | null;
           date_of_birth?: string | null;
           updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      owner_referral_credits: {
+        Row: {
+          id: string;
+          lead_id: string;
+          referrer_owner_id: string;
+          referred_owner_id: string | null;
+          booking_id: string | null;
+          rental_charge_cents: number | null;
+          kickback_bps: number | null;
+          amount_cents: number | null;
+          status: string;
+          paid_at: string | null;
+          paid_by: string | null;
+          note: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          lead_id: string;
+          referrer_owner_id: string;
+          referred_owner_id?: string | null;
+          booking_id?: string | null;
+          rental_charge_cents?: number | null;
+          kickback_bps?: number | null;
+          amount_cents?: number | null;
+          status?: string;
+          paid_at?: string | null;
+          paid_by?: string | null;
+          note?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          lead_id?: string;
+          referrer_owner_id?: string;
+          referred_owner_id?: string | null;
+          booking_id?: string | null;
+          rental_charge_cents?: number | null;
+          kickback_bps?: number | null;
+          amount_cents?: number | null;
+          status?: string;
+          paid_at?: string | null;
+          paid_by?: string | null;
+          note?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -13585,6 +13762,9 @@ export type Database = {
           owner_flat_agreements_awaiting_lawyer: boolean;
           academy_gate: boolean;
           academy_pass_bps: number;
+          channel_feed_hourly_max: number;
+          owner_followup_enabled: boolean;
+          owner_followup_days: number[];
         };
         Insert: {
           id?: string;
@@ -14099,6 +14279,9 @@ export type Database = {
           owner_flat_agreements_awaiting_lawyer?: boolean;
           academy_gate?: boolean;
           academy_pass_bps?: number;
+          channel_feed_hourly_max?: number;
+          owner_followup_enabled?: boolean;
+          owner_followup_days?: number[];
         };
         Update: {
           id?: string;
@@ -14613,6 +14796,9 @@ export type Database = {
           owner_flat_agreements_awaiting_lawyer?: boolean;
           academy_gate?: boolean;
           academy_pass_bps?: number;
+          channel_feed_hourly_max?: number;
+          owner_followup_enabled?: boolean;
+          owner_followup_days?: number[];
         };
         Relationships: [];
       };
@@ -16192,6 +16378,7 @@ export type Database = {
           updated_at: string;
           publish_consent_at: string | null;
           google_prompt_clicked_at: string | null;
+          reward_points: boolean;
         };
         Insert: {
           id?: string;
@@ -16211,6 +16398,7 @@ export type Database = {
           updated_at?: string;
           publish_consent_at?: string | null;
           google_prompt_clicked_at?: string | null;
+          reward_points?: boolean;
         };
         Update: {
           id?: string;
@@ -16230,6 +16418,187 @@ export type Database = {
           updated_at?: string;
           publish_consent_at?: string | null;
           google_prompt_clicked_at?: string | null;
+          reward_points?: boolean;
+        };
+        Relationships: [];
+      };
+      reward_accounts: {
+        Row: {
+          renter_id: string;
+          referral_code: string;
+          tier_code: string | null;
+          tier_promo_id: string | null;
+          reminded_for: string | null;
+          created_at: string;
+        };
+        Insert: {
+          renter_id: string;
+          referral_code: string;
+          tier_code?: string | null;
+          tier_promo_id?: string | null;
+          reminded_for?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          renter_id?: string;
+          referral_code?: string;
+          tier_code?: string | null;
+          tier_promo_id?: string | null;
+          reminded_for?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      reward_actions: {
+        Row: {
+          code: string;
+          label: string;
+          detail: string | null;
+          points: number;
+          enabled: boolean;
+          limit_text: string;
+          sort: number;
+          updated_at: string;
+        };
+        Insert: {
+          code: string;
+          label: string;
+          detail?: string | null;
+          points: number;
+          enabled?: boolean;
+          limit_text: string;
+          sort?: number;
+          updated_at?: string;
+        };
+        Update: {
+          code?: string;
+          label?: string;
+          detail?: string | null;
+          points?: number;
+          enabled?: boolean;
+          limit_text?: string;
+          sort?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      reward_ledger: {
+        Row: {
+          id: string;
+          renter_id: string;
+          points: number;
+          kind: string;
+          action: string | null;
+          source_key: string;
+          booking_id: string | null;
+          promo_code_id: string | null;
+          rental_days: number | null;
+          reason: string;
+          meta: Json;
+          reversed_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          renter_id: string;
+          points: number;
+          kind: string;
+          action?: string | null;
+          source_key: string;
+          booking_id?: string | null;
+          promo_code_id?: string | null;
+          rental_days?: number | null;
+          reason: string;
+          meta?: Json;
+          reversed_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          renter_id?: string;
+          points?: number;
+          kind?: string;
+          action?: string | null;
+          source_key?: string;
+          booking_id?: string | null;
+          promo_code_id?: string | null;
+          rental_days?: number | null;
+          reason?: string;
+          meta?: Json;
+          reversed_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      reward_tiers: {
+        Row: {
+          code: string;
+          name: string;
+          min_days: number;
+          discount_bps: number;
+          perk: string | null;
+          sort: number;
+        };
+        Insert: {
+          code: string;
+          name: string;
+          min_days: number;
+          discount_bps?: number;
+          perk?: string | null;
+          sort?: number;
+        };
+        Update: {
+          code?: string;
+          name?: string;
+          min_days?: number;
+          discount_bps?: number;
+          perk?: string | null;
+          sort?: number;
+        };
+        Relationships: [];
+      };
+      rewards_settings: {
+        Row: {
+          singleton: boolean;
+          enabled: boolean;
+          points_per_dollar: number;
+          point_value_cents: number;
+          min_redeem_points: number;
+          code_valid_days: number;
+          expiry_months: number;
+          reminder_days: number;
+          late_grace_minutes: number;
+          updated_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          singleton?: boolean;
+          enabled?: boolean;
+          points_per_dollar?: number;
+          point_value_cents?: number;
+          min_redeem_points?: number;
+          code_valid_days?: number;
+          expiry_months?: number;
+          reminder_days?: number;
+          late_grace_minutes?: number;
+          updated_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          singleton?: boolean;
+          enabled?: boolean;
+          points_per_dollar?: number;
+          point_value_cents?: number;
+          min_redeem_points?: number;
+          code_valid_days?: number;
+          expiry_months?: number;
+          reminder_days?: number;
+          late_grace_minutes?: number;
+          updated_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -21653,6 +22022,7 @@ export type Database = {
           trim_candidates: string[] | null;
           for_sale: boolean;
           asking_price_cents: number | null;
+          channel_feed_opt_out: boolean;
         };
         Insert: {
           id?: string;
@@ -21715,6 +22085,7 @@ export type Database = {
           trim_candidates?: string[] | null;
           for_sale?: boolean;
           asking_price_cents?: number | null;
+          channel_feed_opt_out?: boolean;
         };
         Update: {
           id?: string;
@@ -21777,6 +22148,7 @@ export type Database = {
           trim_candidates?: string[] | null;
           for_sale?: boolean;
           asking_price_cents?: number | null;
+          channel_feed_opt_out?: boolean;
         };
         Relationships: [];
       };
@@ -23455,6 +23827,7 @@ export type Database = {
       my_notifications: { Args: { p_limit?: number; p_unread_only?: boolean }; Returns: Json[] };
       my_profile: { Args: never; Returns: Json };
       my_promo_code_problem: { Args: { p_code: string; p_booking: string }; Returns: string };
+      my_rewards: { Args: never; Returns: Json };
       my_roles: { Args: { p_user: string }; Returns: Json };
       my_sign_document: { Args: { p_by: string; p_document: string }; Returns: Json };
       my_sign_requests: { Args: { p_by: string }; Returns: Json };
@@ -23533,6 +23906,10 @@ export type Database = {
       renter_withdraw_booking_change: { Args: { p_request: string; p_by: string }; Returns: undefined };
       renter_withdraw_request: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: undefined };
       resolve_path: { Args: { p_path: string }; Returns: Json };
+      rewards_mine_code_cancel: { Args: { p_code: string }; Returns: Json };
+      rewards_mine_google_claim: { Args: { p_number: string; p_name: string }; Returns: Json };
+      rewards_mine_redeem: { Args: { p_points: number }; Returns: Json };
+      rewards_mine_social: { Args: { p_platform: string }; Returns: Json };
       sample_car_match: { Args: { p_vehicle: string; p_pickup: string; p_return: string }; Returns: Json };
       save_form_draft: { Args: { p_form_code: string; p_data: Json; p_step?: string; p_schema_version?: number; p_user?: string; p_token?: string; p_entity_table?: string; p_entity_id?: string; p_device_label?: string }; Returns: Json };
       search_available: { Args: { p_pickup: string; p_return: string; p_filters?: Json }; Returns: { vehicle_id: string; slug: string; vehicle_year: number; make: string; model: string; vehicle_class: string; seats: number; transmission: string; fuel: string; allows_18_to_20: boolean; daily_rate_cents: number; billable_days: number; rental_charge_cents: number; subtotal_cents: number; hst_cents: number; total_cents: number; deposit_cents: number }[] };
@@ -23581,6 +23958,7 @@ export type Database = {
       server_booking_addon_buy: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
       server_booking_addon_failed: { Args: { p_row: string; p_by: string; p_reason: string }; Returns: undefined };
       server_booking_addon_paid: { Args: { p_row: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
+      server_booking_calendar: { Args: { p_token: string }; Returns: Json };
       server_booking_driver_links: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_booking_payment_capture_failed: { Args: { p_booking: string; p_processor: Json; p_error: string }; Returns: undefined };
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
@@ -23593,6 +23971,7 @@ export type Database = {
       server_capture_sign_in_made: { Args: { p_user: string }; Returns: undefined };
       server_capture_unconfirmed: { Args: { p_user: string }; Returns: boolean };
       server_change_facts: { Args: { p_request: string; p_by: string }; Returns: Json };
+      server_channel_feed: { Args: { p_token: string }; Returns: Json };
       server_chat_ai_reply: { Args: { p_token: string; p: Json }; Returns: Json };
       server_chat_contact: { Args: { p_token: string; p: Json }; Returns: Json };
       server_chat_end: { Args: { p_token: string }; Returns: Json };

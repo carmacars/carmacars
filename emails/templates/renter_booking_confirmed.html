@@ -85,6 +85,7 @@ a{text-decoration:underline;}
 {{else}}
 <tr><td class="px" style="padding:0 36px 24px 36px;"><table role="presentation" cellspacing="0" cellpadding="0" border="0" class="btn"><tr><td align="center" bgcolor="#D0111B" style="background-color:#D0111B;border-radius:6px;"><a href="https://carmacars.ca/account/bookings/{{booking_number}}" target="_blank" style="display:inline-block;padding:17px 34px;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:16px;line-height:20px;font-weight:700;color:#FFFFFF;text-decoration:none;border-radius:6px;border:1px solid #A30C14;mso-padding-alt:0;">View my booking</a></td></tr></table></td></tr>
 {{/if}}
+<tr><td class="px" style="padding:0 36px 24px 36px;"><a href="{{calendar_url}}" class="tx" style="font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:15px;line-height:22px;font-weight:700;color:#000000;text-decoration:underline;">Add pickup and return to my calendar</a></td></tr>
 {{#if is_non_refundable}}
 <tr><td class="px" style="padding:0 36px 20px 36px;"><p class="tx-mid" style="margin:0;font-family:Inter, 'Helvetica Neue', Helvetica, 'Segoe UI', Roboto, Arial, sans-serif;font-size:13px;line-height:21px;color:#5E5E5E;">This is a non-refundable booking. You saved {{non_refundable_percent}} on the rental charge, and it cannot be refunded if you cancel.</p></td></tr>
 {{else}}

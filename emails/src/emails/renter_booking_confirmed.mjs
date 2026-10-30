@@ -31,6 +31,7 @@ export default {
     ], [
       button('View my booking', '@booking'),
     ]),
+    link('Add pickup and return to my calendar', '{{calendar_url}}'),
     when('is_non_refundable', [
       small('This is a non-refundable booking. You saved {{non_refundable_percent}} on the rental charge, and it cannot be refunded if you cancel.'),
     ], [
@@ -38,5 +39,5 @@ export default {
     ]),
   ],
   allowButtons: true,
-  sample: { needs_verification: true, verify_by: 'Thu, Oct 22 at 10:00 am', is_non_refundable: false },
+  sample: { calendar_url: 'https://carmacars.ca/api/booking-ics/6b1f0c7e-2d4a-4f5e-9a1b-3c2d1e0f9a8b', needs_verification: true, verify_by: 'Thu, Oct 22 at 10:00 am', is_non_refundable: false },
 };

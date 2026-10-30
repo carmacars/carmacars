@@ -62,7 +62,15 @@ const schema = z.object({
    *  APIs (a Web application client, redirect URI <site>/api/google/reviews/callback). Unset: Admin > Settings > Reviews
    *  says so and the rest of the review program works. The refresh token itself is in the vault, never here. */
   GOOGLE_REVIEWS_CLIENT_ID: z.string().optional(),
-  GOOGLE_REVIEWS_CLIENT_SECRET: z.string().optional()
+  GOOGLE_REVIEWS_CLIENT_SECRET: z.string().optional(),
+  /** Apple Wallet passes for a confirmed booking (Release 22): the Pass Type ID certificate (PEM), its private key (PKCS#8 PEM,
+   *  RSA), Apple's WWDR intermediate certificate (PEM), the Pass Type ID (pass.ca.carmacars.booking) and the Team ID. All five
+   *  set: "Add to Apple Wallet" shows on the booking page; any missing: hidden, and Admin > Settings lists it under setup. */
+  WALLET_PASS_CERT: z.string().optional(),
+  WALLET_PASS_KEY: z.string().optional(),
+  WALLET_WWDR_CERT: z.string().optional(),
+  WALLET_PASS_TYPE_ID: z.string().optional(),
+  WALLET_TEAM_ID: z.string().optional()
 });
 
 export type ServerEnv = z.infer<typeof schema>;

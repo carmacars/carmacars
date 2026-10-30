@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>195 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>77</span></a><a href="#owner">Owner <span>46</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>8</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>196 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>78</span></a><a href="#owner">Owner <span>46</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>8</span></a></nav>
 <main>
-<h2 id="renter">Renter (77)</h2>
+<h2 id="renter">Renter (78)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -463,6 +463,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span class="m">Marketing</span></div>
 <div class="tr">2 days after booking status becomes closed. Only if the renter has not unsubscribed and no review exists for it. A booking that had a problem (an incident, a dispute, an unpaid balance or a damage charge) is not sent automatically: it waits for a staff member to approve it (review_request_decision task, app.decide_review_request). Only an approval sends it, at once; a refusal means it is never sent. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.</div>
 <div class="ln"><a href="../dist/renter_review_request.html">HTML</a><a href="../dist/renter_review_request.txt">Text</a><a href="../shots/renter_review_request.desktop.png">Desktop</a><a href="../shots/renter_review_request.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_rewards_expiring.html"><img loading="lazy" src="../shots/renter_rewards_expiring.desktop.png" alt="Screenshot of renter_rewards_expiring"></a><div class="b">
+<div class="code">renter_rewards_expiring</div><div class="sub">Your 1,240 CarmaCars points end on Mon, Dec 7, 2026</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">CarmaCars Rewards job (hourly, migration 0212): a renter has points and no rental or redemption for the expiry period less the reminder days (Admin &gt; Settings &gt; Rewards: 12 months and 30 days by default). One email per period of activity. Low priority (class 4): it waits behind customer, owner and staff emails under the daily email cap.</div>
+<div class="ln"><a href="../dist/renter_rewards_expiring.html">HTML</a><a href="../dist/renter_rewards_expiring.txt">Text</a><a href="../shots/renter_rewards_expiring.desktop.png">Desktop</a><a href="../shots/renter_rewards_expiring.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_signing_code.html"><img loading="lazy" src="../shots/renter_signing_code.desktop.png" alt="Screenshot of renter_signing_code"></a><div class="b">
 <div class="code">renter_signing_code</div><div class="sub">Your CarmaCars signing code: 482913</div>

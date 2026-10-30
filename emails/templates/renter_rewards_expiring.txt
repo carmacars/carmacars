@@ -1,0 +1,33 @@
+CarmaCars  |  Rewards
+
+========================================
+
+[Rewards]
+Keep your points, {{first_name}}
+
+You have {{points_balance}} points, worth {{points_value}} off the rental charge of your next booking.
+
+Points: {{points_balance}}
+Worth: {{points_value}}
+They end on: {{expiry_date}}
+
+A rental, or turning points into a code, keeps every point for another year.
+
+See my rewards:
+{{rewards_url}}
+
+Points come off the rental charge only, never fees, add-ons, coverage, tax or the deposit.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

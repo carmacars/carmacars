@@ -23,8 +23,8 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/renters', label: 'Renters', section: 'Renters, staff and investors' }, { href: '/admin/settings/staff', label: 'Staff' }, { href: '/admin/academy', label: 'Academy' }, { href: '/admin/hiring', label: 'Hiring' }, { href: '/admin/investors', label: 'Investors' },
     { href: '/admin/portals', label: 'Portals and view as' }] },
   { key: 'marketing', label: 'Marketing', links: [
-    { href: '/admin/marketing/listings', label: 'Listings', section: 'Ads' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' },
-    { href: '/admin/marketing/report', label: 'Bookings by channel', section: 'Results' }, { href: '/admin/marketing/recruit', label: 'Owner recruitment', section: 'Owners' }] },
+    { href: '/admin/marketing/listings', label: 'Listings', section: 'Ads' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' }, { href: '/admin/marketing/channels', label: 'Listing channels' },
+    { href: '/admin/marketing/report', label: 'Bookings by channel', section: 'Results' }, { href: '/admin/marketing/recruit', label: 'Owner recruitment', section: 'Owners' }, { href: '/admin/marketing/owner-pipeline', label: 'Owner pipeline' }] },
   { key: 'money', label: 'Money', links: [
     { href: '/admin/invoices', label: 'Owner invoices', section: 'Owners' }, { href: '/admin/debits', label: 'Owner debits' }, { href: '/admin/statements', label: 'Owner statements' }, { href: '/admin/payouts', label: 'Payouts' },
     { href: '/admin/payments', label: 'Payments by day', section: 'Renters' }, { href: '/admin/money', label: 'Payments and refunds', key: 'm' }, { href: '/admin/tolls', label: 'Tolls and tickets' },
@@ -33,7 +33,7 @@ export const GROUPS: NavGroup[] = [
   { key: 'settings', label: 'Settings', links: [
     { href: '/admin/settings', label: 'All settings', key: 's' },
     { href: '/admin/settings/site', label: 'Site', section: 'Website' }, { href: '/admin/settings/vehicle-pages', label: 'Vehicle pages' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' },
-    { href: '/admin/settings/addons', label: 'Add-ons' }, { href: '/admin/settings/discount-games', label: 'Discount games' }, { href: '/admin/settings/guides', label: 'Guides' },
+    { href: '/admin/settings/addons', label: 'Add-ons' }, { href: '/admin/settings/discount-games', label: 'Discount games' }, { href: '/admin/settings/rewards', label: 'Rewards' }, { href: '/admin/settings/guides', label: 'Guides' },
     { href: '/admin/settings/program', label: 'Program', section: 'Rules' }, { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/card-coverage', label: 'Card coverage' }, { href: '/admin/settings/card-reader', label: 'Card reader' }, { href: '/admin/settings/coverage-affiliate', label: 'RentalCoverage affiliate' }, { href: '/admin/settings/meta-publishing', label: 'Meta publishing' }, { href: '/admin/settings/reviews', label: 'Reviews' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/settings/email', label: 'Emails' },
     { href: '/admin/messages', label: 'Email log', section: 'Records' }, { href: '/admin/audit', label: 'Audit log' }] }
 ];

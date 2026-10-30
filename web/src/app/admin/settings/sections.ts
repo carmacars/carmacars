@@ -17,6 +17,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['maintenance', 'Maintenance', 'Service items and intervals by class and car, reminders, the winter tire dates, blocks, expense categories'],
   ['partners', 'Partners', 'Partner companies\' CRMs (01 Motors\' GoHighLevel): what we share, partner prices, their cars coming in, leads, the feed and the widget'],
   ['forms', 'Forms', 'Blind Spot\'s rental agreement for every booking, and the official ServiceOntario PDFs and what goes in each field'],
+  ['rewards', 'Rewards', 'CarmaCars Rewards: points per dollar, tiers, ways to earn (referrals, follows, reviews), Google review claims and adjustments'],
   ['discount-games', 'Discount games', 'The giveaway game for visitors: on or off, games, prizes and chances, code rules, when it shows, and its report'],
   ['vehicle-pages', 'Vehicle pages', 'A page for every make, model, year and Canadian trim: indexing, fuel prices, popular models, trim names, the catalog import'],
   ['search', 'Search', 'Car copy written by AI, landing pages, guides, IndexNow, and the day\'s AI use'],

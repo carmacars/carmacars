@@ -5,6 +5,7 @@ import { consentTexts } from '@/server/booking-data';
 import { DbError, rpc } from '@/lib/db/repo';
 import { requestMeta } from '@/server/request';
 import { captureDone } from '@/server/capture';
+import { cookies } from 'next/headers';
 
 // Public enquiries go to public.submit_lead (0022) as the server, after Turnstile. The function
 // rate-limits by address, raises the right task and emits the owner program events.
@@ -38,9 +39,13 @@ export async function submitOwnerApplication(_: unknown, fd: FormData): Promise<
   return submit('owner_program', {
     name: v.name, email: v.email, phone: v.phone,
     message: `${v.year} ${v.make} ${v.model}, ${v.own.toLowerCase()}, registered to ${v.who === 'My corporation' ? 'a corporation' : 'the owner'}. Interested in: ${v.mode}.`,
-    payload: { vehicle: `${v.year} ${v.make} ${v.model}`, year: v.year, make: v.make, model: v.model, ownership: v.own, registered_to: v.who, management_mode: v.mode, car_address: v.carAddress, car_place_id: fd.get('carAddressPlaceId') || null }
+    // an owner's link (/r/<code>?to=owner, 0215): the referring owner goes on the lead (the database ignores a code nobody holds)
+    payload: { vehicle: `${v.year} ${v.make} ${v.model}`, year: v.year, make: v.make, model: v.model, ownership: v.own, registered_to: v.who, management_mode: v.mode, car_address: v.carAddress, car_place_id: fd.get('carAddressPlaceId') || null,
+      referral_code: refCode((await cookies()).get('cc-ref')?.value) }
   }, fd.get('cf-turnstile-response'));
 }
+
+const refCode = (c: string | undefined) => (c && /^[A-Z0-9]{4,12}$/.test(c) ? c : null);
 
 const TIMELINE: Record<string, string> = { now: 'Now', week: 'This week', month: 'Within a month', three: 'Within three months', later: 'Later' };
 /** The vehicle pages' lead forms (0097): a lead for Sales with a To do line; the marketing wording recorded only when ticked. */

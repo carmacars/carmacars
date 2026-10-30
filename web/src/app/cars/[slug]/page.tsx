@@ -309,6 +309,7 @@ export default async function CarPage({ params }: Params) {
               <ul className="linklist">{rv.items.map((r, i) => (
                 <li key={i}><p><b>{r.rating} out of 5</b>{r.title ? `: ${r.title}` : ''}</p>{r.body && <p className="small">{r.body}</p>}
                   <p className="xs muted">{r.name ?? 'A renter'}, {new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(r.month))}</p>
+                  {r.rewarded && <p className="xs muted" data-testid="review-rewarded">Received reward points</p>}
                   {r.reply && <p className="small muted">Our reply: {r.reply}</p>}</li>))}</ul>
             </section>
           )}

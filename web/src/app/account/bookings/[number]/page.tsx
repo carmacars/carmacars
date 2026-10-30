@@ -7,6 +7,7 @@ import { when } from '@/features/agreement/model';
 import { AWAITING_SIGNATURE, STATUS, awaitingSignature, bookingPath, nextStep, progress } from '@/features/portal/status';
 import { Back, PriceBreakdown } from '@/features/portal/Blocks';
 import { AddToCalendar } from '@/features/portal/AddToCalendar';
+import { walletReady } from '@/server/wallet';
 import { InfoReply } from '@/features/portal/InfoReply';
 import { Messages, type Msg } from '@/features/portal/Messages';
 import { rpc } from '@/lib/db/repo';
@@ -72,6 +73,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   const links = b.agreement && b.drivers.some((d) => d.role === 'additional') ? await bookingDriverLinks(b.id, user.id) : [];
   const waiting = b.change_requests.find((c) => ['proposed', 'approved'].includes(c.status));
   const live = ['confirmed', 'on_rent'].includes(b.status);
+  const wallet = live && walletReady();
   const ext = b.extensions[b.extensions.length - 1];
   const phone = s.phone_display ?? s.phone;
   const tel = s.phone ?? phone;
@@ -101,7 +103,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   const next = actionable
     ? <NextStepBox step={step} testId="booking-next-step" ctaTestId={stepId} calm={!step.urgent} />
     : <NextStepBox step={{ ...step, href: undefined }} calm kicker={live ? 'All set' : STATUS[b.status].label} testId="booking-next-step"
-        extra={live ? <div className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}><AddToCalendar number={b.booking_number} car={`${b.vehicle_year} ${b.vehicle_make} ${b.vehicle_model}`} pickup={b.pickup_at} ret={b.return_at} place={b.pickup_place ?? 'CarmaCars'} />{phone && <a className="btn btn--quiet btn--sm" href={`tel:${tel}`}>Call us {phone}</a>}</div> : null} />;
+        extra={live ? <div className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}><AddToCalendar number={b.booking_number} car={`${b.vehicle_year} ${b.vehicle_make} ${b.vehicle_model}`} pickup={b.pickup_at} ret={b.return_at} place={b.pickup_place ?? 'CarmaCars'} />{wallet && <a className="btn btn--ghost btn--sm" href={bookingPath(b.booking_number, 'wallet')} data-testid="add-to-wallet">Add to Apple Wallet</a>}{phone && <a className="btn btn--quiet btn--sm" href={`tel:${tel}`}>Call us {phone}</a>}</div> : null} />;
 
   return (
     <>

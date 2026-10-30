@@ -446,3 +446,9 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.12); }
 .ad-more__menu > .btn, .ad-more__menu .ad-claim-gate > .btn, .ad-more__menu button.btn { justify-content: flex-start; text-align: left; white-space: normal; width: 100%; }
 @media (max-width: 47.99rem) { .ad-more__menu { position: static; margin-top: 4px; box-shadow: none; } }
+
+/* the owner pipeline board (Release 22): one card per stage, wrapping (never a sideways scroll) */
+.op-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: var(--s-3); align-items: start; margin-block: var(--s-3); }
+.op-col { min-width: 0; }
+.op-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.op-card { display: grid; gap: 4px; padding: var(--s-2); border: 1px solid var(--line, rgba(127, 127, 127, 0.25)); border-radius: 10px; min-width: 0; }

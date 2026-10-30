@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 195,
+  "count": 196,
   "emails": [
     {
       "code": "account_password_reset",
@@ -1232,6 +1232,11 @@
           "type": "string",
           "sample": "CC-10482",
           "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "calendar_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/api/booking-ics/6b1f0c7e-2d4a-4f5e-9a1b-3c2d1e0f9a8b"
         },
         {
           "name": "card_brand",
@@ -7999,6 +8004,91 @@
       ],
       "template_html": "templates/renter_review_request.html",
       "template_text": "templates/renter_review_request.txt"
+    },
+    {
+      "code": "renter_rewards_expiring",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "CarmaCars Rewards job (hourly, migration 0212): a renter has points and no rental or redemption for the expiry period less the reminder days (Admin > Settings > Rewards: 12 months and 30 days by default). One email per period of activity. Low priority (class 4): it waits behind customer, owner and staff emails under the daily email cap.",
+      "timing": "About 30 days before the points end",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your {{points_balance}} CarmaCars points end on {{expiry_date}}",
+      "preheader": "Worth {{points_value}} off a rental. Rent or redeem before then to keep them.",
+      "sample_subject": "Your 1,240 CarmaCars points end on Mon, Dec 7, 2026",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "expiry_date",
+          "type": "string",
+          "sample": "Mon, Dec 7, 2026"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "points_balance",
+          "type": "string",
+          "sample": "1,240"
+        },
+        {
+          "name": "points_value",
+          "type": "string",
+          "sample": "$12.40"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "rewards_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/account/rewards"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_rewards_expiring.html",
+      "template_text": "templates/renter_rewards_expiring.txt"
     },
     {
       "code": "renter_signing_code",

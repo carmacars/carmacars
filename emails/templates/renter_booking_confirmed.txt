@@ -36,6 +36,8 @@ View my booking:
 https://carmacars.ca/account/bookings/{{booking_number}}
 {{/if}}
 
+Add pickup and return to my calendar: {{calendar_url}}
+
 {{#if is_non_refundable}}
 This is a non-refundable booking. You saved {{non_refundable_percent}} on the rental charge, and it cannot be refunded if you cancel.
 {{else}}

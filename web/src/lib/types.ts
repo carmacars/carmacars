@@ -36,7 +36,7 @@ export interface CarPage extends CarRow {
   /** 0074: what tells this car apart from another of the same year, make and model (its colour or a short code); null when none. */
   seo_mark?: string | null;
   reviews?: { count: number; average: number | null; min_for_rating: number;
-    items: Array<{ rating: number; title: string | null; body: string | null; name: string | null; month: string; reply: string | null }> };
+    items: Array<{ rating: number; title: string | null; body: string | null; name: string | null; month: string; reply: string | null; rewarded?: boolean }> };
 }
 
 export interface SiteSettings {
