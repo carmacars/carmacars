@@ -23,7 +23,7 @@ export async function agreementFacts(bookingId: string, by: string): Promise<Agr
 
 /** The agreement's blocks for the screen and the PDF. With the bundle, the same as the PDF prints. */
 export function blocksFor(f: AgreementFacts, signatures?: SignatureRow[], b?: Bundle | null) {
-  return agreementBlocks(f, { privacyUrl: privacyUrl(), signatures, extra: b?.x ?? null, insurer: b?.bs.insurer ?? null, multiDayRateCents: b?.x.multi_day_rate_cents ?? b?.bs.multi_day_rate_cents ?? null });
+  return agreementBlocks(f, { privacyUrl: privacyUrl(), signatures, extra: b?.x ?? null, insurer: b?.bs.insurer ?? null, multiDayRateCents: b?.x.multi_day_rate_cents ?? b?.bs.multi_day_rate_cents ?? null, wording: b?.w ?? null });
 }
 
 /** The unsigned document: without the agreement number, which the opening assigns. */

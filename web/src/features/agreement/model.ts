@@ -5,6 +5,7 @@
 import { companyParty, money, phone } from '../../lib/format.ts';
 import { AGREEMENT_CLOSING, AGREEMENT_PARTS, AGREEMENT_TEMPLATE_VERSION } from './source.generated.ts';
 import { carName, depositText, fuelLabel, km, paidText, stageLines, sum, type AgreementExtra, type VersionHeader } from './extra.ts';
+import { shortWording, wordedPart, wordingNotice, type Wording } from './wording.ts';
 
 export type Block =
   | { t: 'title'; text: string }
@@ -112,6 +113,8 @@ export interface BuildOptions {
   version?: VersionHeader | null;
   /** 0154: the key terms initialled (the signed copy) */
   initials?: InitialRow[] | null;
+  /** 0198: the booking's own wording of clauses (an Admin's change), merged into Parts 2, 3 and 5 */
+  wording?: Wording | null;
 }
 
 const KIND_LABEL: Record<string, string> = { pickup: 'as picked up', return: 'as returned', change: 'changed', correction: 'corrected' };
@@ -124,7 +127,9 @@ function versionBlocks(v: VersionHeader): Block[] {
     : v.material ? `The booking changed after the agreement was signed. This version replaces version ${v.previous_no}${v.amendment_number ? `; the Renter signed the change as amendment ${v.amendment_number}` : ' once the Renter (and each driver it affects) signs it; until then version ' + v.previous_no + ' applies'}.`
     : `Details were corrected after the agreement was signed. Nothing the Renter agreed to changes, so this version is filed without signing again; it replaces version ${v.previous_no} as the current record.`;
   out.push({ t: 'p', text: lead });
-  if (v.changes.length) out.push({ t: 'table', head: ['What changed', 'Before', 'Now'], rows: v.changes.map((c) => [c.label + (c.material ? ' (signed again)' : ''), c.before, c.after]) });
+  if (v.changes.length) out.push({ t: 'table', head: ['What changed', 'Before', 'Now'], rows: v.changes.map((c) => c.key?.startsWith('wording.')
+    ? [c.label + (c.material ? ' (signed again)' : ''), shortWording(c.before), shortWording(c.after)]
+    : [c.label + (c.material ? ' (signed again)' : ''), c.before, c.after]) });
   return out;
 }
 
@@ -254,6 +259,7 @@ export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
     ...(x?.pickup ? pickupBlocks(f, x) : []),
     ...(x?.return ? returnBlocks(f, x) : []),
     { t: 'p', text: 'Other Charges may arise during or after the rental under Parts 2 and 3.' },
+    ...(() => { const n = wordingNotice(o.wording, b.booking_type); return n ? [{ t: 'p' as const, text: `**${n}**` }] : []; })(),
     { t: 'p', text: AGREEMENT_CLOSING },
     ...(o.initials?.length ? [{ t: 'h3' as const, text: 'Key terms initialled' }, { t: 'initials' as const, rows: o.initials }] : []),
     { t: 'signatures', rows: sigRows },
@@ -261,8 +267,9 @@ export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
   ];
   const parts: Array<'2' | '3' | '5' | '6'> = b.booking_type === 'owner' ? ['2', '3', '5', '6'] : ['2', '3', '6'];
   for (const n of parts) {
-    blocks.push({ t: 'h2', text: `Part ${n}: ${AGREEMENT_PARTS[n].title}` });
-    blocks.push(...markdown(n === '6' ? AGREEMENT_PARTS[n].body.replace(/☐ /g, '') : AGREEMENT_PARTS[n].body, values));
+    const part = wordedPart(n, o.wording);
+    blocks.push({ t: 'h2', text: `Part ${n}: ${part.title}` });
+    blocks.push(...markdown(n === '6' ? part.body.replace(/☐ /g, '') : part.body, values));
   }
   return blocks;
 }

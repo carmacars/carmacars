@@ -30,6 +30,10 @@ const again = (refresh?: string[]) => { for (const p of refresh ?? []) revalidat
 export async function agreementFill(booking: string, p: Record<string, unknown>, refresh?: string[]): Promise<R<{ missing: unknown[] }>> {
   try { const { user, aal } = await staff(); const r = await door<{ missing: unknown[] }>(user.id, 'ops_do', 'agreement_fill', { ...p, booking }, aal); again(refresh); return { ok: true, data: r }; } catch (e) { return fail(e); }
 }
+/** 0198: an Admin rewords a clause of CarmaCars' agreement for this booking (edit, add, remove, restore), with a reason. */
+export async function agreementWordingSave(booking: string, p: { code: string; action: 'edit' | 'add' | 'remove' | 'restore'; text?: string; reason: string }, refresh?: string[]): Promise<R<{ agreement: string | null }>> {
+  try { const { user, aal } = await staff(); const r = await door<{ agreement: string | null }>(user.id, 'ops_do', 'agreement_wording_save', { ...p, booking }, aal); again(refresh); return { ok: true, data: r }; } catch (e) { return fail(e); }
+}
 export async function agreementOverride(booking: string, reason: string, refresh?: string[]): Promise<R> {
   try { const { user, aal } = await staff(); await door(user.id, 'ops_do', 'agreement_override', { booking, reason }, aal); for (const p of refresh ?? []) revalidatePath(p); return { ok: true, data: null }; } catch (e) { return fail(e); }
 }
