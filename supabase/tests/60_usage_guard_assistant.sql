@@ -126,7 +126,7 @@ select test.eq('an Admin changes an allowance (sizes in MB)', (app.usage_service
 select test.throws('an assistant may not', $$select app.usage_service_save(test.id('ug_fin'), '{"service": "supabase_db", "included": 1}')$$, 'Only an Admin');
 select test.throws('the early warning stays between 10% and 99%', $$select app.usage_service_save(test.id('ug_admin'), '{"service": "workers_ai", "warn_bps": 500}')$$, 'between 10%');
 select test.eq('a figure typed from Supabase''s dashboard (egress)', (app.usage_reading_save(test.id('ug_admin'), jsonb_build_object('service', 'supabase_egress', 'day', app.today(), 'used_mb', 1024)) ->> 'used')::numeric >= 1073741824, true);
-select test.eq('the usage page: every service with its history', jsonb_array_length(app.usage_page(test.id('ug_admin')) -> 'services'), 12);
+select test.eq('the usage page: every service with its history', jsonb_array_length(app.usage_page(test.id('ug_admin')) -> 'services'), 11);  -- 0194: Data sent out retired
 
 -- ================================================================ 7. the assistant: reads within the person's portal and function
 select test.eq('an Admin finds a car', (app.assistant_find(test.id('ug_admin'), '{"portal": "admin", "kind": "car", "q": "ugcar1"}') -> 'rows' -> 0 ->> 'plate'), 'UGCAR1');

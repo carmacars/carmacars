@@ -159,9 +159,9 @@ select test.eq('a flag that still holds stays', (select count(*) from listing_si
 select test.eq('Pro by default: both caps 6,144 MB', (select format('%s %s %s', db_plan, vpage_import_db_cap_mb, place_db_cap_mb) from program_settings where id = (app.settings()).id), 'pro 6144 6144');
 select test.eq('the database allowance on Pro: 8 GB', (select included from usage_services where service = 'supabase_db'), 8589934592::numeric);
 update program_settings set db_plan = 'free' where id = (app.settings()).id;
-select test.eq('Free: both caps 450 MB, the allowance 500 MB',
+select test.eq('Free: both caps 450 MB, the database allowance stays (0194: it is the Admin''s, our server''s disk)',
   (select format('%s %s', vpage_import_db_cap_mb, place_db_cap_mb) from program_settings where id = (app.settings()).id) || ' ' || (select included from usage_services where service = 'supabase_db'),
-  '450 450 524288000');
+  '450 450 8589934592');
 update program_settings set place_db_cap_mb = 5000 where id = (app.settings()).id;
 select test.eq('a cap is never above the plan''s', (select place_db_cap_mb from program_settings where id = (app.settings()).id), 450);
 update program_settings set db_plan = 'pro' where id = (app.settings()).id;

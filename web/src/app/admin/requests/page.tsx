@@ -14,7 +14,7 @@ type Req = { id: string; booking_number: string; status: string; state: string; 
   total_cents: number; waiting_minutes: number; offer_expires_at: string | null; drivers: string[]; flags: string[]; assigned: string | null;
   /** 0177: who is answering it now, and when it opens to Sales */
   claim?: ClaimInfo | null; sales_opens_at?: string | null };
-const STATES: Array<[string, string]> = [['', 'All'], ['new', 'New'], ['waiting_on_renter', 'Waiting on the renter'], ['pushed_back', 'Pushed back'], ['offer_out', 'Offer out'], ['awaiting_payment', 'Signing and payment'], ['expired', 'Offer expired']];
+const STATES: Array<[string, string]> = [['', 'All'], ['new', 'New'], ['waiting_on_renter', 'Waiting on the renter'], ['pushed_back', 'Pushed back'], ['offer_out', 'Offer out'], ['awaiting_payment', 'Waiting for payment'], ['expired', 'Offer expired']];
 
 // The request inbox (03-admin.md section 3): oldest first until each is offered or declined.
 export default async function Requests({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -32,7 +32,7 @@ export default async function Requests({ searchParams }: { searchParams: Promise
         // a request still waiting for its first answer keeps counting while the page is open, red past the reply target
         { key: 'waiting', label: 'Waiting', render: (r) => r.status === 'requested' ? <LiveWait key={`${r.id}-${r.waiting_minutes}`} minutes={r.waiting_minutes} target={target.minutes} /> : <span className="muted">{ago(r.waiting_minutes)}</span> },
         { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
-        { key: 'state', label: 'State', className: 'wrap', render: (r) => <><Badge s={r.status}>{r.state.replace(/_/g, ' ')}</Badge>{r.claim && <span className="small" data-testid={`claim-${r.booking_number}`}> {r.claim.mine ? 'You are answering it' : r.claim.text}</span>}</> },
+        { key: 'state', label: 'State', className: 'wrap', render: (r) => <><Badge s={r.status}>{r.state === 'awaiting_payment' ? 'waiting for payment' : r.state.replace(/_/g, ' ')}</Badge>{r.claim && <span className="small" data-testid={`claim-${r.booking_number}`}> {r.claim.mine ? 'You are answering it' : r.claim.text}</span>}</> },
         { key: 'vehicle', label: 'Car' },
         { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) },
         { key: 'return_at', label: 'Return', render: (r) => t(r.return_at) },

@@ -7,6 +7,7 @@ import { fieldPaperScan } from '@/server/actions/field-paper';
 import { staffLicenceUpload } from '@/server/actions/sign-now';
 import { startCardRequest } from '@/server/actions/offers';
 import { preparePhoto } from './queue';
+import { ID_PHOTO } from '@/lib/image-shrink';
 import type { FieldJob, Resolve } from './types';
 
 // The ready check resolved on the spot (0151): each line that is not ready says what field staff can do about it here,
@@ -38,7 +39,7 @@ export function ResolveSignature({ j, signNow }: { j: FieldJob; signNow: string 
   const b = j.booking!;
   const send = () => run(async () => {
     const fd = new FormData(); fd.set('job', j.job.id); fd.set('booking', b.id); fd.set('signer_name', b.renter?.name ?? '');
-    for (const p of pages) { const x = await preparePhoto(p).catch(() => null); fd.append('page', x ? new File([x.blob], 'page.jpg', { type: 'image/jpeg' }) : p); }
+    for (const p of pages) { const x = p.type === 'application/pdf' ? null : await preparePhoto(p, ID_PHOTO).catch(() => null); fd.append('page', x ? new File([x.blob], 'page.jpg', { type: 'image/jpeg' }) : p); }
     const r = await fieldPaperScan(fd);
     if (r.ok) setPages([]);
     return r;
@@ -86,7 +87,7 @@ function DriverCheck({ j, r, d }: { j: FieldJob; r: Resolve; d: Resolve['drivers
     if (!f) return;
     startUp(async () => {
       setMsg(null);
-      const p = await preparePhoto(f).catch(() => null);
+      const p = await preparePhoto(f, ID_PHOTO).catch(() => null);
       const fd = new FormData(); fd.set('booking', j.booking!.id); fd.set('driver', d.driver_id); fd.set('kind', kind);
       fd.set('file', p ? new File([p.blob], `${kind}.jpg`, { type: 'image/jpeg' }) : f);
       const x = await staffLicenceUpload(fd);
