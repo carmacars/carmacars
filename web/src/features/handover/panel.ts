@@ -21,9 +21,16 @@ export interface PanelView {
   sendLink: boolean;
   /** where the agreement stands, when there is no button for it */
   note: string | null;
+  /** 0195: "Record the pickup now (details later)" / "Record the return now (details later)" */
+  recordPickup: boolean;
+  recordReturn: boolean;
+  /** 0195: a check-out or check-in recorded with the details later: "Add the photos and readings" */
+  addDetails: Array<'pickup' | 'return'>;
 }
 
-export function handoverPanelView(o: { status: string; canHandover: boolean; signing: SigningState | null; late: boolean }): PanelView {
+export function handoverPanelView(o: { status: string; canHandover: boolean; signing: SigningState | null; late: boolean;
+  /** 0195: the reports of this booking waiting for their photos and readings */
+  detailsPending?: Array<'pickup' | 'return'> }): PanelView {
   const s = o.signing;
   const inSigning = (SIGNING_STATUSES as readonly string[]).includes(o.status);
   const agreement = s?.agreement?.status ?? null;
@@ -44,8 +51,11 @@ export function handoverPanelView(o: { status: string; canHandover: boolean; sig
   const checkout = o.canHandover && o.status === 'confirmed';
   const checkin = o.canHandover && o.status === 'on_rent';
   const report = ['on_rent', 'returned', 'closed'].includes(o.status);
+  // 0195: the details of a pickup (once on rent) or a return (once returned) recorded now, added later
+  const addDetails = o.canHandover ? (o.detailsPending ?? []).filter((k) => (k === 'pickup' ? ['on_rent', 'returned', 'closed'] : ['returned', 'closed']).includes(o.status)) : [];
   return {
-    show: checkout || checkin || report || o.late || signNow || note !== null,
-    checkout, checkin, report, signNow, waiting: unsigned.map((g) => g.name), sendLink: renterUnsigned, note
+    show: checkout || checkin || report || o.late || signNow || note !== null || addDetails.length > 0,
+    checkout, checkin, report, signNow, waiting: unsigned.map((g) => g.name), sendLink: renterUnsigned, note,
+    recordPickup: checkout, recordReturn: checkin, addDetails
   };
 }

@@ -5,6 +5,8 @@ export interface FieldDamage { label: string; location: string; description: str
 export interface FieldJob {
   job: { id: string; kind: string; status: string; scheduled_at: string; place: string | null; instructions: string | null; booking_id: string | null; vehicle_id: string; acknowledged_at: string | null; started_at: string | null; completed_at: string | null };
   report_kind: 'pickup' | 'return' | 'ready' | null;
+  /** 0195: a pickup or return recorded with the details later: the photos, readings and staff signature only */
+  details_later?: boolean;
   vehicle: { id: string; name: string; plate: string | null; colour: string | null; class: string; odometer_km: number | null };
   booking: null | {
     id: string; booking_number: string; status: string; pickup_at: string; return_at: string; unattended: boolean; km_allowance_total: number | null; odometer_out_km: number | null; fuel_out_pct: number | null; booking_type: string;

@@ -18,6 +18,8 @@ import { companionOf, openCompanionQuietly } from '@/server/portal/blindspot';
 import { rpc } from '@/lib/db/repo';
 import { StepHeader } from '@/features/portal/trip';
 import { myTripPhotos } from '@/server/portal/data';
+import { CompleteDetails } from '@/features/portal/CompleteDetails';
+import { renterDetailsMissing } from '@/server/portal/renter-details';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Sign your rental agreement', path: '/account/bookings', noindex: true, description: 'Read and sign the rental agreement for your booking.' });
@@ -40,7 +42,7 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
   // the second agreement (Blind Spot's, 0127): made here when the rental agreement was opened before it was in use
   let companion = b.agreement?.status === 'open' ? await companionOf(b.id) : null;
   if (b.agreement?.status === 'open' && !companion && !(await viewAs())) { await openCompanionQuietly(b.id, user.id); companion = await companionOf(b.id); }
-  const [bundle, photos] = await Promise.all([loadBundle(b.id, user.id), myTripPhotos(user)]);
+  const [bundle, photos, detailsMissing] = await Promise.all([loadBundle(b.id, user.id), myTripPhotos(user), renterDetailsMissing(b, user.id)]);
   const facts = bundle.f;
   const r = facts.renter;
   const me = facts.drivers.find((d) => d.role === 'renter');
@@ -71,7 +73,8 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
         {needDetails ? <DetailsForm number={b.booking_number} initial={{ address_line1: r?.address_line1 ?? '', address_line2: r?.address_line2 ?? '', city: r?.city ?? '', province: r?.province ?? 'ON', postal_code: r?.postal_code ?? '', country: r?.country ?? 'Canada', licence_number: me?.licence_number ?? '', licence_class: me?.licence_class ?? 'G', licence_issuer: me?.licence_issuer ?? 'ON', licence_expiry: me?.licence_expiry ?? '' }} />
           : <details><summary className="link">Edit my details</summary><DetailsForm number={b.booking_number} initial={{ address_line1: r?.address_line1 ?? '', address_line2: r?.address_line2 ?? '', city: r?.city ?? '', province: r?.province ?? '', postal_code: r?.postal_code ?? '', country: r?.country ?? '', licence_number: me?.licence_number ?? '', licence_class: me?.licence_class ?? 'G', licence_issuer: me?.licence_issuer ?? 'ON', licence_expiry: me?.licence_expiry ?? '' }} /></details>}
       </section>
-      {!b.agreement ? <PrepareAgreement number={b.booking_number} /> : (
+      {/* 0195: the agreement's blanks first; the agreement and the signature follow once they are saved */}
+      {detailsMissing.length > 0 ? <CompleteDetails number={b.booking_number} missing={detailsMissing} then="sign" /> : !b.agreement ? <PrepareAgreement number={b.booking_number} /> : (
         <div className="pt-split">
           <section className="stack" aria-labelledby="pt-read">
             <div className="pt-card__head"><h2 className="d4" id="pt-read">The agreement</h2><a className="link" href={`/account/documents/${b.agreement.document_id}`} data-testid="agreement-pdf">Download PDF</a></div>

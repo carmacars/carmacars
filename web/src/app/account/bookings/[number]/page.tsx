@@ -22,6 +22,8 @@ import type { HandoverReportData } from '@/features/handover/types';
 import { AnimatedNumber, Disclosure, DocumentList, DocumentRow, MoneyCard, PortalCard, ProgressRing, QuickAction, QuickActions, Timeline, TimelineItem, type MoneyPart } from '@/components/portal-ui';
 import { NextStepBox, TripHero, tripPhoto } from '@/features/portal/trip';
 import { moneyParts } from '@/features/portal/trip-model';
+import { CompleteDetails } from '@/features/portal/CompleteDetails';
+import { renterDetailsMissing } from '@/server/portal/renter-details';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }) {
@@ -62,6 +64,8 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   const balanceDue = balance && balance.balance_cents > 0 ? balance.balance_cents : 0;
   // the licence first (0130): from the request until it is on file
   const licMissing = ['requested', 'offered', 'pending_payment'].includes(b.status) ? renterMissing(await licenceState(b.id, user.id)) : null;
+  // the agreement's blanks the renter fills in (0195): a blocking step at the top, before signing and paying
+  const detailsMissing = await renterDetailsMissing(b, user.id);
   const openQ = b.info_requests.filter((q) => q.status === 'open');
   // each additional driver's own signing link (migration 0040: versioned, expiring, renewed here)
   const links = b.agreement && b.drivers.some((d) => d.role === 'additional') ? await bookingDriverLinks(b.id, user.id) : [];
@@ -106,6 +110,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       {sp.paid && b.status === 'on_rent' && b.added_live && !b.link_due && <div className="pt-ok" role="status" data-testid="paid-live-panel"><h2 className="d3">Paid, thank you</h2><p>Your card was charged {money(b.renter_due_at_booking_cents, { cents: true })} for your rental. Your signed agreement and receipt are below.</p></div>}
       {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
 
+      {detailsMissing.length > 0 && <CompleteDetails number={b.booking_number} missing={detailsMissing} />}
       <TripHero b={b} photo={photo} settings={s} next={next} kmDriven={report?.km_driven ?? null} prepaidFuel={(addons?.items ?? []).some((a) => a.prepaid_fuel)}>
         <p className="small muted" data-testid="status-blurb">{awaitingSignature(b) ? AWAITING_SIGNATURE.blurb : STATUS[b.status].blurb}
           {b.status === 'confirmed' && <> Bring your original licence{card ? ` and the card ending ${card.card_last4}` : ' and the card you paid with'}.</>}</p>

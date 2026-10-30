@@ -64,7 +64,9 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
   const onServer = useMemo(() => new Set((j.report?.photos ?? []).map((p) => p.seq)), [j.report]);
   const has = (seq: number) => onServer.has(seq) || q.arrived(seq) || q.pending.some((x) => x.seq === seq && x.mode === 'photo');
   const set = (p: Partial<Report>) => setR((s) => { const n = { ...s, ...p }; try { localStorage.setItem(key, JSON.stringify(n)); } catch { /* private mode */ } return n; });
-  const unattended = Boolean(j.booking?.unattended);
+  // 0195: a pickup or return recorded with the details later: the photos, readings and staff signature only
+  const later = Boolean(j.details_later);
+  const unattended = Boolean(j.booking?.unattended) || later;
   const ready = j.ready;
   const res = j.resolve ?? null;
   const at = here ?? { signNow: `/field/jobs/${jobId}/sign-now`, self: `/field/jobs/${jobId}` };
@@ -115,8 +117,8 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
 
   // the ready check: a rental added by hand also needs the renter's signature (0051), as a booking made online already has
   const readyOk = Boolean(ready && ready.signed !== false && ready.identity && ready.coverage && ready.drivers_accepted && ready.calendar && ['taken', 'waived', 'none'].includes(ready.deposit));
-  const screens: Array<{ title: string; body: React.ReactNode; can?: boolean; primary?: string; onPrimary?: () => void }> = pickup ? [
-    { title: 'Ready check', can: readyOk, body: (
+  const allScreens: Array<{ title: string; body: React.ReactNode; can?: boolean; primary?: string; onPrimary?: () => void; skip?: boolean }> = pickup ? [
+    { title: 'Ready check', can: readyOk, skip: later, body: (
       <div className="stack">
       <ReadySum items={ready ? [ready.signed !== false, ready.identity, ready.coverage, ready.drivers_accepted, ready.calendar, ['taken', 'waived', 'none'].includes(ready.deposit)] : []} />
       <ul className="fd-checks" data-testid="ready-check">
@@ -167,7 +169,7 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
     { title: 'Keys', can: (r.keys_count ?? 0) >= 1, body: <Stepper label="Keys and fobs handed over" value={r.keys_count ?? 0} set={(v) => set({ keys_count: v })} /> },
     { title: 'Photo set', can: shotsDone === required.length, body: <Shots j={j} has={has} q={q} photo={photo} /> },
     { title: 'Damage', can: closeupsMissing.length === 0, body: <Damages j={j} marks={marks} damages={damages} setDamages={setDamages} save={save} has={has} photo={photo} oldLabel="Recorded before" /> },
-    { title: 'Tracker', can: Boolean(j.tracker.reporting || j.tracker.override), body: (
+    { title: 'Tracker', can: Boolean(j.tracker.reporting || j.tracker.override), skip: later, body: (
       <div className="stack" data-testid="tracker">
         <ul className="fd-checks"><Line ok={j.tracker.reporting}>{j.tracker.reporting ? 'Tracker in place and reporting' : j.tracker.installed ? 'Tracker not reporting' : 'No tracker installed'}</Line></ul>
         <p className="small">Last reading: {j.tracker.reported_at ? new Date(j.tracker.reported_at).toLocaleTimeString('en-CA') : 'none'}</p>
@@ -178,16 +180,16 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
     { title: 'Renter reviews', body: <Summary r={r} damages={damages} old={oldMarks.length} shots={shotsDone} /> },
     { title: 'Signatures', can: Boolean((unattended || r.renter_signature_ref) && r.staff_signature_ref), body: (
       <div className="stack">
-        {!unattended ? <Sign who="renter" label={`${j.booking?.renter?.name ?? 'Renter'} signs`} done={Boolean(r.renter_signature_ref)} sign={sign} /> : <p className="pt-note small">Unattended handover: the renter&apos;s own photo set stands in for their signature.</p>}
+        {!unattended ? <Sign who="renter" label={`${j.booking?.renter?.name ?? 'Renter'} signs`} done={Boolean(r.renter_signature_ref)} sign={sign} /> : <p className="pt-note small">{later ? 'Recorded with the details later: the renter does not sign here.' : 'Unattended handover: the renter\'s own photo set stands in for their signature.'}</p>}
         <Sign who="staff" label="You sign" done={Boolean(r.staff_signature_ref)} sign={sign} />
       </div>) },
-    { title: 'Hand over the keys', can: queueEmpty && shotsDone === required.length, primary: 'Hand over the keys', onPrimary: () => start(async () => {
+    { title: later ? 'Save the check-out details' : 'Hand over the keys', can: queueEmpty && shotsDone === required.length, primary: later ? 'Save the details' : 'Hand over the keys', onPrimary: () => start(async () => {
       setMsg(null);
       let x: Awaited<ReturnType<typeof fieldAct<{ booking_status: string }>>>;
       try { x = await fieldAct<{ booking_status: string }>('complete_handover', { job: jobId, report: { ...strip(r), unattended, renter_present: unattended ? false : r.renter_present } }); } catch { setMsg(OFFLINE); return; }
       if (!x.ok) { setMsg(x.message); return; }
       try { localStorage.removeItem(key); } catch { /* ignore */ }
-      setDone('Checked out. The rental has started; the renter gets the photo report by email.');
+      setDone(later ? 'Check-out details saved. The task is closed.' : 'Checked out. The rental has started; the renter gets the photo report by email.');
     }), body: <Upload q={q} total={required.length} shotsDone={shotsDone} /> }
   ] : [
     { title: 'Car and keys received', can: r.renter_present !== undefined, body: (
@@ -229,10 +231,11 @@ export function Checklist({ j, back = '/field', backLabel = 'Back to my jobs', h
       try { x = await fieldAct<{ booking_status: string; minutes_late?: number }>('complete_return', { job: jobId, report: strip(r) }); } catch { setMsg(OFFLINE); return; }
       if (!x.ok) { setMsg(x.message); return; }
       try { localStorage.removeItem(key); } catch { /* ignore */ }
-      setDone('Checked in. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos. The deposit is not given back today: Finance settles it once tolls and tickets have had time to come in (about 7 days), and any damage you marked keeps it held.');
+      setDone(later ? 'Check-in details saved. The kilometre and fuel charges follow the readings; Fleet reviews the photos.' : 'Checked in. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos. The deposit is not given back today: Finance settles it once tolls and tickets have had time to come in (about 7 days), and any damage you marked keeps it held.');
     }), body: <><Sign who="staff" label="You sign" done={Boolean(r.staff_signature_ref)} sign={sign} /><Upload q={q} total={required.length} shotsDone={shotsDone} /></> }
   ];
 
+  const screens = allScreens.filter((x) => !x.skip);
   if (done) return <div className="fd-screen fd-finish" role="status" data-testid="field-done"><span className="fd-finish__mark" aria-hidden="true"><FdIcon name="check" /></span><h2 className="d3">{done}</h2><Link className="btn btn--primary fd-wide" href={back} data-testid="checklist-back">{backLabel}</Link></div>;
   if (stop) return <div className="fd-screen fd-stopped" role="alert" data-testid="field-stop"><span className="fd-finish__mark" aria-hidden="true"><FdIcon name="cross" /></span><h2 className="d3">Do not release the car. Call CarmaCars.</h2><p>{stop}</p><Link className="btn btn--ghost fd-wide" href={back}>{backLabel}</Link></div>;
   const s = screens[Math.min(step, screens.length - 1)]!;

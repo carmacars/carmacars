@@ -17,6 +17,8 @@ interface State {
   booking_id: string; booking_number: string; status: string; plan_state: string; pending: { kind: string; material: boolean; changes: unknown[] } | null;
   versions: Version[]; waiting: { version_no: number; signers: Array<{ id: string; name: string; role: string; token: string }> } | null;
   missing: Missing[]; overrides: Array<{ at: string; reason: string; by: string | null }>; job: { due_at: string; attempts: number; last_error: string | null } | null; is_admin: boolean;
+  /** 0195: the blanks the renter fills in from their account */
+  renter_missing?: Array<{ key: string; label: string }>;
   /** 0183: every printed field with its value */
   current?: AgreementCurrent;
   disputes: Array<{ id: string; status: string; built_at: string | null; staged_at: string | null; submitted_at: string | null; document_id: string | null; error: string | null; size: number | null }>;
@@ -52,6 +54,7 @@ export async function AgreementPanel({ b, base, userId, aal, docBase, finance, o
               </li>))}</ol>
           </details>
         </>}
+        {(s.renter_missing?.length ?? 0) > 0 && ['pending_payment', 'confirmed', 'on_rent'].includes(s.status) && <p className="small" role="status" data-testid="agreement-renter-waiting"><b>Waiting for the renter&apos;s details:</b> {s.renter_missing!.map((m) => m.label).join('; ')}. Their account asks for them before signing and paying (no email or text is sent). You can also fill them below.</p>}
         <MissingFields booking={s.booking_id} missing={s.missing} refresh={refresh} isAdmin={s.is_admin} overrides={s.overrides} />
         {s.current && <AgreementEditAll booking={s.booking_id} current={s.current} refresh={refresh} isAdmin={s.is_admin} />}
         <AgreementActions booking={s.booking_id} refresh={refresh} waiting={!!s.waiting} finance={finance || s.is_admin} disputes={s.disputes} docBase={openDocs ? docBase : ''} />
