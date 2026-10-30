@@ -25,3 +25,15 @@ export const PRIVATE_PATHS = [
   '/sign-document/', '/guide-pdf/', '/sitemap-files/', '/sign-in', '/create-account', '/reset-password', '/update-password', '/two-step', '/choose-portal', '/read-only',
   '/link-expired', '/api/', '/auth/', '/cars?', '/cars/*?', '/car-rental/*?', '/guides/*?', '/rent/*?', '/buy/*?', '/detailing/*?', '/body-shop/*?'
 ] as const;
+
+// 2026-10-30 (Worker requests and CPU): the training crawlers (no visitor comes from them) still read every public page,
+// at most one page every CRAWL_DELAY_S seconds (Crawl-delay; ClaudeBot, Bing-based and Yandex crawlers honour it). The
+// search and answer crawlers above keep no delay. A crawler named here is taken out of the group above.
+export const SLOW_CRAWLERS = ['GPTBot', 'ClaudeBot', 'CCBot', 'Meta-ExternalAgent', 'Meta-WebIndexer', 'FacebookBot', 'Amazonbot', 'GoogleOther', 'cohere-ai'] as const;
+export const CRAWL_DELAY_S = 10;
+
+// SEO tools and scrapers that bring no visitors and crawl the millions of car pages hardest: not welcome at all. The
+// Worker entry answers them 403 before the app loads (src/lib/edge/bot-shield.ts BLOCKED_BOT), for those that ignore
+// robots.txt (Bytespider does).
+export const BLOCKED_CRAWLERS = ['AhrefsBot', 'SemrushBot', 'MJ12bot', 'DotBot', 'PetalBot', 'Bytespider', 'DataForSeoBot', 'BLEXBot', 'serpstatbot',
+  'MegaIndex.ru', 'SeekportBot', 'Barkrowler', 'ImagesiftBot', 'Timpibot', 'ZoominfoBot', 'AwarioBot', 'magpie-crawler', 'SiteAuditBot', 'trendictionbot', 'Sogou web spider'] as const;

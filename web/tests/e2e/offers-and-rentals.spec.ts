@@ -113,6 +113,9 @@ test('admin: an offer without a request, edited in place, paid by part, confirme
   // B. edited in place: Edit the offer, the deposit, Save and send the update
   await page.getByTestId('offer-open').click();
   await page.waitForURL(new RegExp(`/admin/bookings/${b!.booking_number}`));
+  // the next step says who acts now; the other actions are in the More actions menu (2026-10-30)
+  await expect(page.getByTestId('next-step')).toBeVisible();
+  await page.getByTestId('more-actions-open').click();
   await page.getByTestId('edit-offer').click();
   await expect(page.getByTestId('review-edit-in-place')).toBeVisible();
   await page.locator('#rv-deposit_cents').fill('400');

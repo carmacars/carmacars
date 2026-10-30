@@ -139,7 +139,7 @@ def build():
         'How the rental and the deposit are paid (card online, e-Transfer, cash, platform payout, the insurer; deposit by card hold, cash or e-Transfer), who found this client, the message, how long it is open (48 hours at most) and Email, Text or both.',
         f'Check the offer as the renter will see it on the right, then press {B("Send the offer")}.',
     ])
-    g.tip(f'An offer that is out is changed in place: {B("Edit the offer")}, change it, then {B("Save and send the update")} or {B("Save without telling the renter")}. No need to withdraw it first.')
+    g.tip(f'An offer that is out is changed in place: {B("More actions")} > {B("Edit the offer")}, change it, then {B("Save and send the update")} or {B("Save without telling the renter")}. No need to withdraw it first.')
 
     g.task('New quote for a caller')
     g.steps([
@@ -433,7 +433,7 @@ def build():
     g.steps([
         f'{B("Requests and offers")}: the same queue customer service works. Answer requests and follow offers out.',
         f'{B("Send an offer")}: one screen for a caller, sent at once, as in chapter 2. {B("New quote")} still makes a request to offer later.',
-        f'An offer that is out: {B("Edit the offer")}, then {B("Save and send the update")}.',
+        f'An offer that is out: {B("More actions")} > {B("Edit the offer")}, then {B("Save and send the update")}.',
     ], shot=S('va-sales/02-requests-desktop', 210, 60, 1440, 640, pins=[(1, 700, 405)]))
     g.tip('Your first reply target is 5 minutes, the "Quote sent" measure on your scorecard. Follow every offer out before it expires.')
     g.task('Check the renter\'s licence', 'Sales approve the renter\'s licence like customer service: the licence front, the licence back and the selfie. The proof of coverage and the Protection Plan stay with customer service and Admins.')

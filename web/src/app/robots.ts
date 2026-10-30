@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { env } from '@/lib/env';
 import { robotsSitemaps } from '@/features/seo/sitemap';
 import { siteUrl } from '@/lib/site';
-import { ANSWER_CRAWLERS, PRIVATE_PATHS } from '@/features/seo/crawlers';
+import { ANSWER_CRAWLERS, BLOCKED_CRAWLERS, CRAWL_DELAY_S, PRIVATE_PATHS, SLOW_CRAWLERS } from '@/features/seo/crawlers';
 
 // docs/blueprint/14-seo.md section 10. Read on each request (0097): it names every sitemap index file.
 export const dynamic = 'force-dynamic';
@@ -15,7 +15,10 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   if (env().APP_ENV === 'staging') return { rules: [{ userAgent: '*', disallow: '/' }] };
   return {
     rules: [
-      { userAgent: [...ANSWER_CRAWLERS], allow: ['/', '/llms.txt', '/llms-full.txt'], disallow: [...PRIVATE_PATHS] },
+      { userAgent: ANSWER_CRAWLERS.filter((b) => !(SLOW_CRAWLERS as readonly string[]).includes(b)), allow: ['/', '/llms.txt', '/llms-full.txt'], disallow: [...PRIVATE_PATHS] },
+      // 2026-10-30: the training crawlers, one page every 10 seconds; the SEO tools and scrapers, nothing
+      { userAgent: [...SLOW_CRAWLERS], allow: ['/', '/llms.txt', '/llms-full.txt'], disallow: [...PRIVATE_PATHS], crawlDelay: CRAWL_DELAY_S },
+      { userAgent: [...BLOCKED_CRAWLERS], disallow: ['/', ...PRIVATE_PATHS] },
       { userAgent: '*', allow: '/', disallow: [...PRIVATE_PATHS] }
     ],
     // 0102: the index files, then each child sitemap of the first (src/features/seo/sitemap.ts robotsSitemaps)

@@ -11,8 +11,12 @@
 #                                reads it), and backups beyond it deleted now (wal-g delete retain FULL, logical folders
 #                                older than the kept days)
 #
-# Retention ladder (the first that fits): wal-g full backups 7 / logical days 30, 7/14, 5/14, 4/14, 3/14, 3/7, 2/7.
-# Projection: newest base backup x kept + WAL per day x (kept + 1) + newest logical backup x (days + 1) + the Storage
+# Retention ladder (the first that fits): wal-g backups kept 7 / logical days 30, 7/14, 5/14, 4/14, 3/14, 3/7, 2/7.
+# wal-g takes a full backup once a week and a delta the other nights (WALG_DELTA_MAX_STEPS=6, bin/walg-base) and keeps
+# the newest WALG_RETAIN_FULL backups of either kind plus the full they start from ("retain FIND_FULL"); the field
+# names below keep "retain_full" so the workflow's summary reads the same.
+# Projection: newest full backup x 2 + newest delta x kept (a quarter of the full before the first delta) + WAL per
+# day x (kept + 7) + newest logical backup x (days + 1) + the Storage
 # files (their copy in storage/current, or the server's volumes/storage before the first sync), all x 1.25 for growth,
 # + storage/trash (deleted files, 30 days) + anything else in the bucket.
 #
@@ -99,16 +103,18 @@ jq -n --slurpfile o "$W/objects.json" --slurpfile s "$W/server.json" --argjson f
   ($bases | map(select(.complete))) as $full |
   (($wb | map(.start_time // .time) | map(select(type == "string")) | min) // ($full[0].at // null)) as $oldest |
   ((if $oldest then days_since($oldest) else 1 end) | if . < 1 then 1 else . end) as $span |
-  (($full | last | .bytes) // 0) as $base1 | (($wal | sum) / $span) as $walpd | (($logs | last | .bytes) // 0) as $log1 |
+  ($full | map(select(.name | test("_D_") | not))) as $fulls | ($full | map(select(.name | test("_D_")))) as $deltas |
+  (($fulls | last | .bytes) // ($full | last | .bytes) // 0) as $base1 |
+  (($deltas | last | .bytes) // ($base1 / 4)) as $delta1 | (($wal | sum) / $span) as $walpd | (($logs | last | .bytes) // 0) as $log1 |
   ($other | sum) as $oth |
   ([($stc | sum), ($srv.storage_files_bytes // 0)] | max) as $files | ($stt | sum) as $trash |
-  def proj($n; $k): ((1.25 * ($base1 * $n + $walpd * ($n + 1) + $log1 * ($k + 1) + $files)) + $trash + $oth) | floor;
+  def proj($n; $k): ((1.25 * ($base1 * 2 + $delta1 * $n + $walpd * ($n + 7) + $log1 * ($k + 1) + $files)) + $trash + $oth) | floor;
   ([[7,30],[7,14],[5,14],[4,14],[3,14],[3,7],[2,7]] | map({walg_retain_full: .[0], logical_keep_days: .[1], projected_bytes: proj(.[0]; .[1])})) as $ladder |
   (($ladder | map(select(.projected_bytes <= $target)) | first) // ($ladder | last + {over_target: true})) as $plan |
   {bucket_total_bytes: ($all | sum), objects: ($all | length), free_tier_bytes: $free, target_bytes: $target,
    pct_of_free: ((($all | sum) * 1000 / $free | floor) / 10),
    prefixes: {
-     walg_base: {backups: ($full | length), incomplete: ($bases | map(select(.complete | not)) | length), bytes: ($base | sum),
+     walg_base: {backups: ($full | length), full: ($fulls | length), delta: ($deltas | length), newest_delta_bytes: ($delta1 | floor), incomplete: ($bases | map(select(.complete | not)) | length), bytes: ($base | sum),
                  newest_bytes: $base1, list: $bases},
      walg_wal: {files: ($wal | length), bytes: ($wal | sum), per_day_bytes: ($walpd | floor), days_spanned: (($span * 10 | floor) / 10)},
      logical_nightly: {backups: ($logs | length), bytes: ($log | sum), newest_bytes: $log1,
@@ -151,7 +157,7 @@ deleted_base=0
 have=$(jq '.prefixes.walg_base.backups' "$W/report.json")
 if [ "$have" -gt "$n" ]; then
   if ! vps_ssh "sudo systemctl is-active --quiet carmacars-walg-base.service" < /dev/null; then
-    vps_ssh sudo /opt/carmacars/bin/walg delete retain FULL "$n" --confirm < /dev/null >&2
+    vps_ssh sudo /opt/carmacars/bin/walg delete retain FIND_FULL "$n" --confirm < /dev/null >&2
     deleted_base=$(( have - n ))
   else
     echo "backup-retention: a base backup is running; wal-g's retention applies when it finishes" >&2

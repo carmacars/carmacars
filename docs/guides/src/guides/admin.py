@@ -200,7 +200,7 @@ def build():
     g.tip('It makes the same request and offer the website makes: the renter approves, signs and pays (or you record the payment), and only then is the car on the calendar. '
           'No "request received" email goes to the renter for an offer you send. Staff commissions and statements count it like any other booking.', label='Good to know')
 
-    g.task('Change an offer that is out', f'The renter has the offer (Offered), or approved it and has not paid (Signing and payment). Press {B("Edit the offer")} on the booking.')
+    g.task('Change an offer that is out', f'The renter has the offer (Offered), or approved it and has not paid (Signing and payment). Open {B("More actions")} on the booking and press {B("Edit the offer")}.')
     g.steps([
         'Change anything: the car, the dates, the places, the price, fees, the deposit, add-ons, how it is paid. Each changed field is highlighted and the before and after are listed. Amounts I type (Before tax or After tax) and the Total the renter pays (after tax) work as on Send an offer.',
         'Write what changed in Message to the renter and choose how long the offer is open.',
@@ -260,8 +260,8 @@ def build():
         'Tabs: Overview, Money, Changes, History, and Drivers and documents.',
         'Overview shows the trip, the renter, what is still missing for the handover, and the price.',
         'Open tasks for this booking, with the queue and the due time.',
-        f'Top right: {B("Stop blocking the calendar")}, {B("Cancel for the renter")} and {B("Cancel by CarmaCars")}.',
-        'Under the booking number: where the booking is on its way, from Request to Closed, with the dates, the days, the total and who pays.',
+        f'Top right: {B("Email the renter")} and {B("More actions")}, the menu with {B("Edit the offer")}, {B("Stop blocking the calendar")}, {B("Cancel for the renter")}, {B("Cancel by CarmaCars")} and the rest.',
+        f'Under the booking number: {B("Next step")}, what happens next and who does it, with one button for that step (for example {B("Send the offer")}, {B("Sign on this device")} or {B("Check out the car")}); then where the booking is on its way, from Request to Closed, with the dates, the days, the total and who pays.',
     ], shot=S('admin/04-booking-desktop', 0, 0, 1440, 960, pins=[(2, 720, 447), (4, 1230, 139), (5, 330, 257)]))
 
     g.task('Check a car out or in', 'From the booking, with your phone or a tablet: the same checklist field staff use.')

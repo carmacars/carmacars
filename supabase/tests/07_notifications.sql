@@ -801,7 +801,10 @@ begin
   r := public.server_hiring_apply(jsonb_build_object('role', 'field-staff', 'full_name', 'Nt Applicant', 'email', 'nt.applicant@example.test', 'phone', '4165550111', 'answers', f), null);
   select id into v_slot from interview_slots where day_id = (v_day ->> 'id')::uuid order by starts_at limit 1;
   perform public.server_hiring_book(r ->> 'token', v_slot);
+  -- 0199: a candidate who gets the text gets no hour-before email; with the hiring texts off the email is built here
+  update program_settings set hiring_sms_reminders = false;
   perform app.job_hiring((select starts_at from interview_slots where id = v_slot) - interval '30 minutes');
+  update program_settings set hiring_sms_reminders = true;
   perform public.server_hiring_cancel(r ->> 'token');
   perform public.server_hiring_apply(jsonb_build_object('role', 'field-staff', 'full_name', 'Nt Referred', 'email', 'nt.referred@example.test', 'phone', '4165550112',
     'answers', f || '{"licence":"G2"}'), null);

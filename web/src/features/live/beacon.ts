@@ -277,6 +277,8 @@ export function startBeacon() {
   addEventListener('pagehide', () => leave(true));
   // back from the back-forward cache: the session lives again (the page's end is undone by the next write)
   addEventListener('pageshow', (e) => { if ((e as PageTransitionEvent).persisted) { hb.start(); void beat(); } });
+  // a tab left open and untouched stops its heartbeat after 15 minutes (heartbeat.ts); any touch starts it again
+  for (const k of ['pointerdown', 'keydown', 'scroll'] as const) addEventListener(k, () => hb.activity(), { passive: true, capture: true });
   document.addEventListener('visibilitychange', () => {
     // hidden: what is waiting goes now (the tab may never come back); the heartbeat stops
     if (document.visibilityState === 'hidden' && queue.some(allowed)) void send(true);

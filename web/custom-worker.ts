@@ -11,6 +11,7 @@ import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, clea
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, STALE_HEADER, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
 import { jobsToRun } from './src/lib/edge/cron-gate';
+import { shield, shieldResponse } from './src/lib/edge/bot-shield';
 import { FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
 import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
@@ -38,11 +39,15 @@ interface PublicBucket { get(key: string): Promise<PublicObject | null> }
 
 // The public photo bucket (vehicle photos, site photos, logos) under /media when the site runs on
 // the R2 bindings (STORAGE_PROVIDER=r2-binding, NEXT_PUBLIC_VEHICLE_PHOTOS_URL ending in /media).
-async function media(request: Request, env: Env, path: string): Promise<Response> {
+async function media(request: Request, env: Env, path: string, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
   const bucket = env.R2_VEHICLE_PUBLIC as PublicBucket | undefined;
   const key = decodeURIComponent(path.slice('/media/'.length));
   if (!bucket || !key || key.includes('..') || (request.method !== 'GET' && request.method !== 'HEAD')) return new Response('Not found', { status: 404 });
   const etag = request.headers.get('if-none-match');
+  // 2026-10-30: the data centre's copy first (a car page's photos are asked for by every visitor and crawler): no R2
+  // read; a HEAD or a conditional request goes to R2 as before
+  const edge = request.method === 'GET' && !etag ? await mediaCache()?.match(request.url).catch(() => undefined) : undefined;
+  if (edge) return edge;
   const o = await bucket.get(key);
   if (!o) return new Response('Not found', { status: 404, headers: { 'cache-control': 'public, max-age=60' } });
   const headers = new Headers({ 'content-type': o.httpMetadata?.contentType ?? 'application/octet-stream', etag: o.httpEtag,
@@ -50,7 +55,18 @@ async function media(request: Request, env: Env, path: string): Promise<Response
     // a file opened directly (an SVG especially) can never run script on this origin
     'content-security-policy': "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox" });
   if (etag && etag === o.httpEtag) return new Response(null, { status: 304, headers });
-  return new Response(request.method === 'HEAD' ? null : o.body, { headers });
+  const res = new Response(request.method === 'HEAD' ? null : o.body, { headers });
+  const c = request.method === 'GET' ? mediaCache() : null;
+  if (!c) return res;
+  const [a, b] = res.body!.tee();
+  ctx.waitUntil(c.put(request.url, new Response(b, { headers })).catch(() => undefined));
+  return new Response(a, { headers });
+}
+
+/** Cloudflare's cache of this data centre (caches.default); null outside the Worker. Kept for the file's max-age (a day). */
+function mediaCache(): { match(u: string): Promise<Response | undefined>; put(u: string, r: Response): Promise<void> } | null {
+  const c = (globalThis as unknown as { caches?: { default?: unknown } }).caches?.default;
+  return c ? (c as ReturnType<typeof mediaCache>) : null;
 }
 
 // The listing worker's token: the same HMAC as src/server/listing-worker.ts (LINK_SIGNING_KEY, a fixed label).
@@ -241,10 +257,14 @@ const worker = {
 
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
     const path = new URL(request.url).pathname;
-    if (path.startsWith('/media/')) return media(request, env, path);
+    if (path.startsWith('/media/')) return media(request, env, path, ctx);
     // scanners asking for PHP, WordPress or dot files: answered before the app loads (a render costs a second of CPU
     // on a fresh isolate)
     if (isProbe(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });
+    // 2026-10-30: SEO tools and scrapers, crawlers on the portals and on query-string views: answered here, before the
+    // session refresh and the app (src/lib/edge/bot-shield.ts)
+    const sh = shield(request.method, request.url, request.headers.get('user-agent'));
+    if (sh.kind !== 'pass') return shieldResponse(sh, securityHeaders());
     if (path === '/api/t' && request.method === 'POST') { const t = await track(request, env, ctx); if (t) return t; }
     if (path === '/api/jobs/warm-up' && request.method === 'POST') return warmUp(request, env, ctx);
     // An Admin viewing as someone is read only: every write outside the Admin portal stops here

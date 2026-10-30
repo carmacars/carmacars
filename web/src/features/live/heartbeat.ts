@@ -6,6 +6,9 @@
 export const BEAT_DEFAULT_S = 45;
 export const BEAT_MIN_S = 15;
 export const BEAT_MAX_S = 300;
+/** 2026-10-30 (Worker requests): a visible tab nobody touches (a screen left open) stops beating after this long; the
+ *  next touch, key or scroll beats at once and starts again. The session then ends on Live visitors as for a closed tab. */
+export const BEAT_IDLE_STOP_MS = 15 * 60_000;
 
 /** The interval in milliseconds from the setting in seconds (anything missing or odd: 45 seconds). */
 export function beatMs(seconds: unknown): number {
@@ -25,19 +28,26 @@ export interface Heartbeat {
   stop(): void;
   /** Call on visibilitychange: shown, a beat at once and the wait again; hidden, stop. */
   visibility(): void;
+  /** The visitor touched, typed or scrolled: after an idle stop, a beat at once and the wait again. */
+  activity(): void;
   running(): boolean;
 }
 
-export function createHeartbeat(o: { visible: () => boolean; beat: () => void; intervalMs: () => number; timers?: Timers }): Heartbeat {
+export function createHeartbeat(o: { visible: () => boolean; beat: () => void; intervalMs: () => number; timers?: Timers; now?: () => number; idleStopMs?: number }): Heartbeat {
   const timers = o.timers ?? realTimers;
+  const now = o.now ?? (() => Date.now());
+  const idleStop = o.idleStopMs ?? BEAT_IDLE_STOP_MS;
   let t: unknown;
   let on = false;
+  let lastActive = now();
+  let idle = false;
   const stop = () => { if (t !== undefined) { timers.clear(t); t = undefined; } };
   const schedule = () => {
     stop();
     if (!on || !o.visible()) return;
     t = timers.set(() => {
       t = undefined;
+      if (now() - lastActive >= idleStop) { idle = true; return; }
       if (on && o.visible()) o.beat();
       schedule();
     }, o.intervalMs());
@@ -48,7 +58,13 @@ export function createHeartbeat(o: { visible: () => boolean; beat: () => void; i
     stop() { on = false; stop(); },
     visibility() {
       if (!on) return;
-      if (o.visible()) { o.beat(); schedule(); } else stop();
+      if (o.visible()) { lastActive = now(); idle = false; o.beat(); schedule(); } else stop();
+    },
+    activity() {
+      lastActive = now();
+      if (!idle) return;
+      idle = false;
+      if (on && o.visible()) { o.beat(); schedule(); }
     },
     running: () => t !== undefined
   };

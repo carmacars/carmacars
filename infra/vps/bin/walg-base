@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Nightly base backup with wal-g and the retention (carmacars-walg-base.timer). Point-in-time recovery is possible to
-# any moment since the oldest full backup kept: WALG_RETAIN_FULL (walg.env, default 7) nightly full backups.
+# Nightly base backup with wal-g and the retention (carmacars-walg-base.timer). One full backup a week and a delta
+# (the pages changed since the night before) the other six nights: WALG_DELTA_MAX_STEPS (walg.env, 6). Kept: the
+# newest WALG_RETAIN_FULL (walg.env, default 7) backups, full or delta, i.e. about that many days, plus the full backup
+# they start from (wal-g "retain FIND_FULL"), and the WAL from the oldest one kept. Point-in-time recovery is possible
+# to any moment since then (7 to 13 days). Before 0199's change it kept 7 nightly FULL backups (docs/backups.md).
 set -euo pipefail
 D=/opt/carmacars
 [ -f "$D/backup/enabled-flag/enabled" ] || { echo "walg-base: the backup bucket is not configured; nothing to do"; exit 0; }
@@ -11,9 +14,14 @@ flock -n 9 || { echo "walg-base: already running" >&2; exit 1; }
 keep="${WALG_RETAIN_FULL:-$(sed -n "s/^WALG_RETAIN_FULL='\{0,1\}\([0-9]*\)'\{0,1\}$/\1/p" "$D/backup/walg.env" 2>/dev/null | tail -n 1 || true)}"
 keep="${keep:-7}"
 [[ "$keep" =~ ^[0-9]+$ ]] && [ "$keep" -ge 2 ] || keep=7
+# weekly full + nightly deltas: walg.env written before this change has no WALG_DELTA_MAX_STEPS; add it (bin/walg
+# passes every name in walg.env to wal-g)
+if [ -f "$D/backup/walg.env" ] && ! grep -q '^WALG_DELTA_MAX_STEPS=' "$D/backup/walg.env"; then
+  echo "WALG_DELTA_MAX_STEPS='6'" >> "$D/backup/walg.env"; chmod 600 "$D/backup/walg.env"
+fi
 t0=$(date +%s)
 "$D/bin/walg" backup-push /var/lib/postgresql/data
-"$D/bin/walg" delete retain FULL "$keep" --confirm
+"$D/bin/walg" delete retain FIND_FULL "$keep" --confirm
 secs=$(( $(date +%s) - t0 ))
 "$D/bin/walg" backup-list --json --detail > "$D/state/walg-backups.json" 2>/dev/null || true
 date -u +%FT%TZ > "$D/state/walg-base.last"

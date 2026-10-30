@@ -356,8 +356,13 @@ services:
       - huge_pages=try
       - -c
       - wal_level=replica
+      # lz4 (PostgreSQL 15+) compresses the full-page images in the WAL better and faster than "on" (pglz); a
+      # checkpoint every 15 minutes instead of 5 writes each changed page's full image a third as often
+      # (docs/backups.md, "WAL volume"). PG_WAL_COMPRESSION=on is the fallback for an image built without lz4.
       - -c
-      - wal_compression=on
+      - wal_compression=${PG_WAL_COMPRESSION:-lz4}
+      - -c
+      - checkpoint_timeout=${PG_CHECKPOINT_TIMEOUT:-15min}
       - -c
       - archive_mode=on
       - -c

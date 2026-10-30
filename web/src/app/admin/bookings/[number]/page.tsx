@@ -36,6 +36,8 @@ import { MarketingSource, type MarketingData } from '@/features/ads/MarketingSou
 import { ClaimBanner, ClaimGate, RequestClaim } from '@/features/offers/RequestClaim';
 import { BookingConversation } from '@/features/messages/BookingConversation';
 import type { Conversation } from '@/features/messages/email-choices';
+import { MoreActions, NextStepPanel } from '@/features/admin/NextStep';
+import { nextStep } from '@/features/admin/next-step';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -104,12 +106,20 @@ export default async function Booking({ params, searchParams }: { params: Promis
   const refresh = [base, '/admin/requests'];
   const pendingChanges = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status)));
   const pendingExt = b.extensions.filter((x) => x.status === 'requested');
+  // the next step under the status (2026-10-30): one sentence and one button; every other action in More actions
+  const step = nextStep({ status: b.status, base, now: new Date(), pickupAt: b.pickup_at, returnAt: b.return_at, offerExpiresAt: b.offer_expires_at,
+    dueCents: Number(b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents ?? 0),
+    paidCents: b.payments.filter((r) => r.kind === 'charge' && r.status === 'succeeded').reduce((a, r) => a + Number(r.amount_cents ?? 0), 0),
+    awaitingSignature: b.readiness?.awaiting_signature === true, depositCents: Number(b.deposit_cents ?? 0), depositStatus: (b.deposit?.status as string | undefined) ?? null,
+    insurerBilled: b.bill_to !== 'renter' });
   return (
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && tab === 'review'}>
       <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} />{b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {!b.blocks_calendar && <span className="ad-flag">not blocking</span>}</>}>
+        {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
+        <MoreActions>
         {b.status === 'requested' && <ClaimGate testId="claim-gate-head"><Act action="ask_info" payload={P} label="Ask the renter" fields={[{ name: 'question', label: 'Question', type: 'textarea', required: true }]} refresh={refresh} done="Question sent." />
           <Act action="decline_request" payload={P} label="Decline" variant="danger" fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={refresh} testId="decline" /></ClaimGate>}
-        {['offered', 'pending_payment'].includes(b.status) && <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}?tab=review`} data-testid="edit-offer">Edit the offer</Link>}
+        {['offered', 'pending_payment'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=review`} data-testid="edit-offer">Edit the offer</Link>}
         {['confirmed', 'on_rent'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=changes`} data-testid="edit-booking">Change the booking</Link>}
         {['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Withdraw the offer" confirm="The renter's offer is withdrawn and they are told. To change it instead, press Edit the offer." fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={refresh} />}
         {b.status === 'offered' && <Act action="resend_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Send again, later expiry" fields={[{ name: 'expires_at', label: 'Open until', type: 'datetime', required: true }, { name: 'message', label: 'Message', type: 'textarea' }]} refresh={refresh} />}
@@ -123,9 +133,10 @@ export default async function Booking({ params, searchParams }: { params: Promis
         {b.status === 'on_rent' && <Act action="swap_vehicle" payload={P} label="Swap vehicle" fields={[{ name: 'vehicle', label: 'The car the renter moves to', type: 'select', required: true, options: [['', swapCars.length ? 'Choose the car' : 'No car is free right now'], ...swapCars.map((v) => [v.id, `${v.year} ${v.make} ${v.model}${v.plate ? `, ${v.plate}` : ''}`] as [string, string])] }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
         {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && b.bill_to !== 'renter' && <Act action="draft_insurer_invoice" payload={P} label="Draft insurer invoice" refresh={['/admin/insurer-invoices']} />}
         {b.status === 'returned' && <Act action="issue_booking_statement" payload={P} label="Issue final statement" confirm="Issue the Check-in statement from the assessed lines and settle the deposit plan." refresh={refresh} />}
-        {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
         {insurerBilled && b.insurer_adjuster_email && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages&to=adjuster`} data-testid="email-adjuster-link">Email the adjuster</Link>}
+        </MoreActions>
       </PageHead>
+      <NextStepPanel s={step} />
       <ClaimBanner />
       <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />
       {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} base={base} canHandover canSign
