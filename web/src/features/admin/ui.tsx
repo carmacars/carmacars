@@ -48,7 +48,7 @@ const TONE: Record<string, string> = {
   pending_approval: 'ad-b--amber', awaiting_signature: 'ad-b--amber', published: 'ad-b--dark', needs_review: 'ad-b--amber', open: 'ad-b--wait', done: 'ad-b--light', hidden: 'ad-b--light'
 };
 export function Badge({ s, children }: { s: string; children?: ReactNode }) {
-  const text = label(s);
+  const text = s === 'pending_payment' ? 'waiting for payment' : label(s);
   return <span className={`ad-b ${TONE[s] ?? ''}`} data-status={s}>{children ?? (text.charAt(0).toUpperCase() + text.slice(1))}</span>;
 }
 

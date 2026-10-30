@@ -11,7 +11,7 @@ Service: {{service_label}}
 Used: {{usage_used}} of {{usage_included}} ({{usage_share}})
 Period: {{usage_period}}
 Resets: {{usage_resets}}
-If you allow paid usage: {{usage_cost}}
+Cost or next step: {{usage_cost}}
 
 Open Usage:
 https://carmacars.ca/admin/settings/usage

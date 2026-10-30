@@ -55,7 +55,7 @@ export function VehiclePagesAdmin({ d, program }: { d: VpData; program: Record<s
     </Card>
     <Card title="Settings" testId="vp-settings">
       <p className="small muted">One switch per tier takes it out of search at once (the pages stay up with noindex and leave the sitemaps): places, colours, renting searches, for sale (with the sale searches), detailing and body shop. All are on by default. Index everything is the default. Choose rules to index only the pages that pass them; the others stay visible with noindex,follow and their canonical at the parent page. Saving writes a new dated row of the program settings.</p>
-      <SaveForm table="program_settings" rowKey="current" testId="vp-settings-form" fields={fieldsFrom(program, KEYS, { vpage_index_mode: [['all', 'Index every page'], ['rules', 'Only pages that pass the rules']], db_plan: [['pro', 'Pro (8 GB included)'], ['free', 'Free (500 MB included)']] })} />
+      <SaveForm table="program_settings" rowKey="current" testId="vp-settings-form" fields={fieldsFrom(program, KEYS, { vpage_index_mode: [['all', 'Index every page'], ['rules', 'Only pages that pass the rules']], db_plan: [['pro', 'Standard (the standard cap below)'], ['free', 'Small (the small cap below)']] })} />
     </Card>
     <Card title={`Popular models (${d.popular.length})`} testId="vp-popular">
       <p className="small muted">Used by the rules only: a model year of a popular model from the set year on is indexed. One model per line, most popular first, for example &ldquo;Toyota RAV4&rdquo;. Models the catalog does not have are left out.</p>

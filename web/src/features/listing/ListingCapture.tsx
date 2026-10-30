@@ -2,10 +2,11 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { listingCapture, listingSubmit } from '@/server/actions/listing';
+import { PHOTO, shrinkImage } from '@/lib/image-shrink';
 
 // The capture step (09-listing-pipeline.md section 4): the shot list in order, a photo for each (from the
 // camera on a phone, or a file on a computer), a retake replaces the shot, then "Submit for listing".
-// Each photo is resized in the browser to 3000 px on the long side and re-encoded as JPEG before upload.
+// Each photo is resized in the browser to 2048 px on the long side and re-encoded as JPEG 80 before upload (lib/image-shrink).
 export interface Capture {
   intake_id: string; vehicle_id: string; vehicle_name: string; state: string; submitted: boolean; reason: string | null; may_upload: boolean;
   missing: string[];
@@ -14,17 +15,9 @@ export interface Capture {
 }
 
 async function prepare(file: File): Promise<{ blob: Blob; width: number; height: number }> {
-  try {
-    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
-    const scale = Math.min(1, 3000 / Math.max(bmp.width, bmp.height));
-    const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
-    const c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    c.getContext('2d')!.drawImage(bmp, 0, 0, w, h);
-    const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.9));
-    if (blob) return { blob, width: w, height: h };
-  } catch { /* a format the browser cannot draw: send it as it is, the server checks it */ }
-  return { blob: file, width: 0, height: 0 };
+  // a format the browser cannot draw is sent as it is (width 0): the server checks it
+  const p = await shrinkImage(file, PHOTO);
+  return { blob: p.blob, width: p.width, height: p.height };
 }
 
 export function ListingCapture({ initial, refresh = [] }: { initial: Capture; refresh?: string[] }) {

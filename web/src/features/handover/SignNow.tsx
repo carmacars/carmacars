@@ -6,6 +6,7 @@ import type { Consent } from '@/features/agreement/model';
 import type { Clause } from '@/features/agreement/extra';
 import { EsignFlow } from '@/features/signing/EsignFlow';
 import type { EsignReady } from '@/features/signing/types';
+import { ID_PHOTO, shrinkImage } from '@/lib/image-shrink';
 import { prepareAgreementNow, signInPerson, staffLicenceUpload } from '@/server/actions/sign-now';
 import type { Signer, SigningState } from './types';
 
@@ -70,8 +71,13 @@ function Licence({ s, g }: { s: SigningState; g: Signer }) {
   const l = g.licence;
   const up = (kind: string, f: File | undefined) => {
     if (!f || !g.driver_id) return;
-    const fd = new FormData(); fd.set('booking', s.booking_id); fd.set('driver', g.driver_id); fd.set('kind', kind); fd.set('file', f);
-    start(async () => { const r = await staffLicenceUpload(fd); setErr(r.ok ? null : r.message); if (r.ok) router.refresh(); });
+    const driver = g.driver_id;
+    start(async () => {
+      // a licence or selfie: redrawn at most 2560 px, upright, without the camera's metadata (lib/image-shrink)
+      const p = await shrinkImage(f, ID_PHOTO);
+      const fd = new FormData(); fd.set('booking', s.booking_id); fd.set('driver', driver); fd.set('kind', kind);
+      fd.set('file', p.width ? new File([p.blob], `${kind}.jpg`, { type: 'image/jpeg' }) : f);
+      const r = await staffLicenceUpload(fd); setErr(r.ok ? null : r.message); if (r.ok) router.refresh(); });
   };
   return (
     <div className="stack" style={{ gap: 'var(--s-2)' }} data-testid="sn-licence-state">

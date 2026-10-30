@@ -42,7 +42,7 @@ export default async function UsagePage() {
               <div><dt>Period</dt><dd>{s.period === 'day' ? 'Each day, Toronto time' : s.period === 'month' ? 'Each month' : 'A size (no reset)'}{s.resets_at ? `. Resets ${t(s.resets_at)}` : ''}</dd></div>
               <div><dt>Paid usage</dt><dd data-testid={`usage-${s.service}-paid`}>{s.service === 'workers_ai' ? 'Never: a hard stop at the free allowance each day' : s.pause_mode === 'pause'
                 ? (s.decision?.decision === 'allow' ? `Allowed until ${d(s.decision.ends_on)}, up to ${usd(s.decision.cap_usd)} (${usd(s.decision.spent_usd)} used)` : s.decision?.decision === 'keep_paused' ? 'Kept paused' : 'Not allowed: paused when used up (you are asked first)')
-                : s.pause_mode === 'hold' ? 'Not possible on the free plan' : 'Never paused (would stop bookings): billed at the rate below'}</dd></div>
+                : s.pause_mode === 'hold' ? 'Not possible on the free plan' : !s.usd_per_unit ? 'Never paused: not billed by use (see below for what to do when it gets close)' : 'Never paused (would stop bookings): billed at the rate below'}</dd></div>
               <div><dt>Rate</dt><dd>{s.upgrade_text && s.pause_mode !== 'pause' ? `${s.price_text} ${s.upgrade_text}` : s.price_text}{s.overage_usd > 0 ? ` Above the allowance so far: ${usd(s.overage_usd)}.` : ''}</dd></div>
               <div><dt>When used up</dt><dd>{s.when_used_up}</dd></div>
               <div><dt>Measured by</dt><dd>{s.measured_by}{s.measured_at ? ` Last figure ${t(s.measured_at)}.` : ' No figure yet.'}</dd></div>

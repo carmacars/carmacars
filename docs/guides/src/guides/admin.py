@@ -1690,8 +1690,8 @@ def build():
         'The day is shared in three: 70% is kept for the staff assistant; visitor chat, the phone line and the readers share the rest; background writing (search copy, listing copy, guide rewrites, Turo emails) gets 10%, '
         'and from 9 pm what is left of the day, less a small cushion for the assistant.',
         f'Press {B("Change the shares")} to change the assistant\'s reserve, the background share, the release hour or the cushion.',
-        f'Press {B("Change the allowance")} after a plan change (for example a Supabase or Resend upgrade).',
-        f'Supabase egress is not readable automatically: press {B("Enter a figure")} with the number from the Supabase dashboard.',
+        f'Press {B("Change the allowance")} after a plan change (for example a Resend upgrade, or a larger disk on our server).',
+        f'Database size and file storage are our own server\'s: near the allowance, clean up or move to a larger server disk. Nothing is billed by use.',
         'Emails cannot be paid on the free plan: when the daily or monthly count is used, booking, payment and sign-in emails still go first and the others wait. A banner on To do says so.',
     ])
 

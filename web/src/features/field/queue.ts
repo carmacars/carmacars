@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { PHOTO, fitWithin, type ShrinkPreset } from '@/lib/image-shrink';
 
 // The photo queue of the field portal (06-field.md sections 1 and 11): photos wait on the phone and upload
 // one at a time in the background; a failed upload is tried again when the connection returns (and every
@@ -113,12 +114,12 @@ export function useUploads(job: string) {
   return { pending: mine, failed: mine.filter((x) => x.state === 'failed'), arrived: (seq: number) => uploads.done.has(`${job}:${seq}`) };
 }
 
-/** Resize to 2400 px on the long side at JPEG 85, and check size, blur and darkness (06-field.md section 6). */
-export async function preparePhoto(file: File): Promise<{ blob: Blob; width: number; height: number; flags: string[] }> {
+/** Resize (PHOTO: 2048 px on the long side at JPEG 80, upright, without the camera's metadata; ID_PHOTO for a licence or
+ *  selfie) and check size, blur and darkness (06-field.md section 6). */
+export async function preparePhoto(file: File, preset: ShrinkPreset = PHOTO): Promise<{ blob: Blob; width: number; height: number; flags: string[] }> {
   try {
-    const bmp = await createImageBitmap(file);
-    const scale = Math.min(1, 2400 / Math.max(bmp.width, bmp.height));
-    const w = Math.max(1, Math.round(bmp.width * scale)); const h = Math.max(1, Math.round(bmp.height * scale));
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const { width: w, height: h } = fitWithin(bmp.width, bmp.height, preset.maxEdge);
     const c = document.createElement('canvas'); c.width = w; c.height = h;
     const cg = c.getContext('2d')!; cg.drawImage(bmp, 0, 0, w, h);
     // darkness and blur on a small copy: mean luminance and the variance of a simple edge filter
@@ -134,7 +135,7 @@ export async function preparePhoto(file: File): Promise<{ blob: Blob; width: num
     if (mean < 40) flags.push('dark');
     if (n && ev / n < 30) flags.push('blurry');
     if (bmp.height > bmp.width) flags.push('portrait');
-    const blob = await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('encode'))), 'image/jpeg', 0.85));
+    const blob = await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('encode'))), 'image/jpeg', preset.quality));
     return { blob, width: w, height: h, flags };
   } catch {
     return { blob: file, width: 0, height: 0, flags: ['unchecked'] };
