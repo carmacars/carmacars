@@ -82,7 +82,7 @@ declare
   o1 text := $o$'vehicle_name', app.vehicle_name(coalesce(e.vehicle_id, b.vehicle_id)), 'platform'$o$;
   o2 text := $o$'booking_number', b.booking_number, 'external_start'$o$;
 begin
-  if position(o1 in d) = 0 or position(o2 in d) = 0 then raise exception '0199: calendar conflict payload text not found'; end if;
+  if position(o1 in d) = 0 or position(o2 in d) = 0 then raise notice '0199: calendar conflict payload already changed; skipped'; return; end if;
   d := replace(d, o1, $n$'vehicle_name', coalesce(app.vehicle_name(coalesce(e.vehicle_id, b.vehicle_id)), 'A removed car'), 'platform'$n$);
   d := replace(d, o2, $n$'booking_number', coalesce(b.booking_number, 'a removed booking'), 'external_start'$n$);
   execute d;
