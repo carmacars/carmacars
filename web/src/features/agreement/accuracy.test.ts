@@ -11,7 +11,7 @@ import { agreementBlocks, type SignatureRow } from './model.ts';
 import { richFacts, RICH, type Stage } from './rich-fixture.ts';
 import type { VersionHeader } from './extra.ts';
 import { clauses, depositText } from './extra.ts';
-import { layout, PAGE_H, FUEL_DOTS } from '../blindspot/layout.ts';
+import { layout, PAGE_H } from '../blindspot/layout.ts';
 import { fillBlindSpot } from '../blindspot/fill.ts';
 import { toBlindSpotFacts } from '../blindspot/facts.ts';
 import { standIn } from '../blindspot/stand-in.ts';
@@ -120,8 +120,9 @@ test('Blind Spot form as picked up: time out, K/M out, fuel out, the cash deposi
   const [p1] = pages; assert.ok(p1);
   assert.ok(near(p1.items, 'Jun 16, 2027 10:20 AM', 475, 164), 'box 26: the actual time out');
   assert.ok(near(p1.items, '20,150 km', 475, 204.5), 'box 28: K/M out');
-  assert.ok(l.dots.some((d) => d.box === 'fuel-out' && d.x === FUEL_DOTS.x[4]), 'fuel out: full');
-  assert.ok(l.texts.some((t) => t.box === 'deposit-received' && t.text === '$1,000.00'), 'deposit received');
+  assert.ok(l.texts.some((t) => t.box === 'fuel-out' && t.text === 'Full (100%)'), 'fuel out: full');
+  assert.ok(l.texts.some((t) => t.box === 'deposit-received' && t.text === '1,000.00'), 'deposit received (after the printed $)');
+  assert.ok(l.texts.some((t) => t.box === '59-m' && t.text === '06') && l.texts.some((t) => t.box === '59-d' && t.text === '16'), 'the day it was taken');
   assert.ok(p1.text.includes('Deposit $1,000.00 by cash.'));
 });
 
@@ -141,12 +142,15 @@ test('Blind Spot form as returned: boxes 25 to 31, hours late, extra days, damag
   assert.equal(box('38-count'), '1');
   assert.equal(box('38-amount'), '$99.00');
   assert.equal(box('39'), '$501.00');
-  assert.equal(box('53'), '$35.00');
-  assert.equal(box('54'), '$50.00');
+  // 49 and 50: every charge but the return's fuel and cleaning, and 13% of it; 53 and 54 with their own HST
+  assert.equal(box('49'), '$671.00');
+  assert.equal(box('50'), '$87.23');
+  assert.equal(box('53'), '$39.55');
+  assert.equal(box('54'), '$56.50');
   assert.equal(box('55'), '$854.28');
   assert.equal(box('57'), '$326.57');
   assert.ok(l.dots.some((d) => d.box === '57-renter'), 'the balance is the renter\'s');
-  assert.ok(l.dots.some((d) => d.box === 'fuel-in' && d.x === FUEL_DOTS.x[3]), 'fuel in: 3/4');
+  assert.ok(l.texts.some((t) => t.box === 'fuel-in' && t.text === '3/4 (75%)'), 'fuel in: 3/4');
   assert.equal(box('paid'), '527.71');
   assert.equal(box('refund'), '700.00');
   for (const b of ['25', '27', '29', '31', '33-amount', '55', '57']) assert.ok(p1.text.includes(box(b)!), `box ${b} drawn`);

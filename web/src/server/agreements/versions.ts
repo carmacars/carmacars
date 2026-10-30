@@ -54,8 +54,13 @@ export async function runVersionJob(bookingId: string): Promise<string> {
         signature: kind === 'pickup' ? 'Countersigned electronically at check-out' : kind === 'return' ? 'Countersigned electronically at check-in' : 'Filed by CarmaCars as a corrected copy', when: when(new Date().toISOString()) }];
   const label = kind === 'pickup' ? 'as picked up' : kind === 'return' ? 'as returned' : kind === 'change' ? 'changed' : 'corrected';
   const cc = await renderCarmaCars(b, { version: header, signatures, title: `Rental agreement ${plan.agreement_number ?? ''}, version ${header.version_no} (${label})`, createdAt: new Date() });
+  // a version not signed again carries the signatures of the signed original (the renter's in 16, 17 and 20 with the
+  // day, the drivers', the initials); the note "Signed on the original" only when they cannot be read
+  const { formSignatures } = await import('@/server/portal/blindspot');
+  const stamp = awaiting || !b.bs.template ? null : await formSignatures(bookingId, b).catch((e) => { console.error('blindspot signatures', bookingId, e instanceof Error ? e.message : e); return null; });
   const bs = await renderBlindSpot(b, { title: `Blind Spot rental agreement ${b.f.booking.booking_number}, version ${header.version_no} (${label})`,
-    note: awaiting ? null : plan.original_signed_at ? `Signed on the original, ${plan.original_signed_at.slice(0, 10)}` : 'Signed on the original' });
+    ...(stamp ? { renter: stamp.renter, drivers: stamp.drivers, initials: stamp.initials, signedOn: stamp.signedOn }
+      : { note: awaiting ? null : plan.original_signed_at ? `Signed on the original, ${plan.original_signed_at.slice(0, 10)}` : 'Signed on the original' }) });
   const s = await storage();
   const ccSha = await sha256Hex(cc);
   const ccKey = `bookings/${bookingId}/agreement-version-${header.version_no}-${ccSha.slice(0, 16)}.pdf`;
@@ -117,7 +122,7 @@ export async function runVersionSignedJob(versionId: string): Promise<string> {
       const ini = b ? await initialsOf(b, renterCert) : null;
       const filled = await fillBlindSpot(base, { texts: [], dots: [], covers: [] }, {
         renter: renter ? (pngs.get(renter.id) ? { png: pngs.get(renter.id)! } : { name: renter.name }) : null, drivers,
-        initials: ini?.images.get('fees') ?? null, title: `Signed Blind Spot rental agreement, version ${v.version_no}`
+        initials: ini?.images.get('fees') ?? null, signedOn: renter?.signed_at ?? null, title: `Signed Blind Spot rental agreement, version ${v.version_no}`
       });
       const bs = await appendCertificate(filled.bytes, { ...cert, document: `Blind Spot rental agreement, version ${v.version_no}` });
       const bsSha = await sha256Hex(bs);
