@@ -9663,6 +9663,7 @@ export type Database = {
           ended_at: string | null;
           created_at: string;
           updated_at: string;
+          variant: string;
         };
         Insert: {
           id?: string;
@@ -9681,6 +9682,7 @@ export type Database = {
           ended_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          variant?: string;
         };
         Update: {
           id?: string;
@@ -9699,6 +9701,7 @@ export type Database = {
           ended_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          variant?: string;
         };
         Relationships: [];
       };
@@ -10293,6 +10296,8 @@ export type Database = {
           issued_by: string | null;
           email_count: number;
           last_emailed_at: string | null;
+          from_statement: boolean;
+          from_statement_fallback_at: string | null;
         };
         Insert: {
           id?: string;
@@ -10341,6 +10346,8 @@ export type Database = {
           issued_by?: string | null;
           email_count?: number;
           last_emailed_at?: string | null;
+          from_statement?: boolean;
+          from_statement_fallback_at?: string | null;
         };
         Update: {
           id?: string;
@@ -10389,6 +10396,8 @@ export type Database = {
           issued_by?: string | null;
           email_count?: number;
           last_emailed_at?: string | null;
+          from_statement?: boolean;
+          from_statement_fallback_at?: string | null;
         };
         Relationships: [];
       };
@@ -10898,6 +10907,9 @@ export type Database = {
           is_test: boolean;
           kind: string;
           notify_channel: string | null;
+          fees_paid_from: string;
+          fees_paid_from_set_at: string | null;
+          fees_paid_from_set_by: string | null;
         };
         Insert: {
           id?: string;
@@ -10942,6 +10954,9 @@ export type Database = {
           is_test?: boolean;
           kind?: string;
           notify_channel?: string | null;
+          fees_paid_from?: string;
+          fees_paid_from_set_at?: string | null;
+          fees_paid_from_set_by?: string | null;
         };
         Update: {
           id?: string;
@@ -10986,6 +11001,9 @@ export type Database = {
           is_test?: boolean;
           kind?: string;
           notify_channel?: string | null;
+          fees_paid_from?: string;
+          fees_paid_from_set_at?: string | null;
+          fees_paid_from_set_by?: string | null;
         };
         Relationships: [];
       };
@@ -13336,6 +13354,7 @@ export type Database = {
           deposit_release_reminder_days: number;
           phone_quo_contacts: boolean;
           vlf_daily_cents: number;
+          owner_flat_agreements_awaiting_lawyer: boolean;
         };
         Insert: {
           id?: string;
@@ -13847,6 +13866,7 @@ export type Database = {
           deposit_release_reminder_days?: number;
           phone_quo_contacts?: boolean;
           vlf_daily_cents?: number;
+          owner_flat_agreements_awaiting_lawyer?: boolean;
         };
         Update: {
           id?: string;
@@ -14358,6 +14378,7 @@ export type Database = {
           deposit_release_reminder_days?: number;
           phone_quo_contacts?: boolean;
           vlf_daily_cents?: number;
+          owner_flat_agreements_awaiting_lawyer?: boolean;
         };
         Relationships: [];
       };

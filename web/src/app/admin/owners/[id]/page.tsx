@@ -56,7 +56,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
           <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/invoices/new?owner=${id}`} data-testid="owner-new-invoice">New invoice</Link>
           {fees && <Act ops action="owner_fees_paid_from" payload={{ owner: id }} label={`Fees: ${fees.fees_paid_from === 'statement' ? 'taken from revenue statement' : 'bank debit'}`} title="How fees are paid" testId="owner-fees-paid-from"
             submitLabel="Save" done="Saved." fields={[{ name: 'fees_paid_from', label: 'How fees are paid', type: 'select', required: true, value: fees.fees_paid_from,
-              options: [['debit', 'Bank debit (pre-authorized debit)'], ['statement', 'Take from revenue statement']],
+              options: [['debit', 'Bank debit'], ['statement', 'Take from revenue statement']],
               hint: 'Take from revenue statement: no debit; each invoice is paid from the next owner statement as far as the payout goes, the rest on the next one. Still owing 2 months after billing, it goes back to the bank debit and you get a task.' }]} />}</div></header>
       <Tabs items={tabs} current={tab === 'overview' ? `/admin/owners/${id}` : `/admin/owners/${id}?tab=${tab}`} label="Owner" />
     </>

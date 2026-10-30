@@ -53,7 +53,7 @@ export function fakeTerminal(): TerminalAdapter {
       if (hit) return { ...hit };
       // a payment made in the Dashboard that this process never saw: a test can name its outcome in the id
       // (pi_test_<amount>_<last4>_<succeeded|hold>), as Stripe's test mode would answer
-      const m = /^(?:pi|ch)_test_(\d+)_(\d{4})_(succeeded|hold)$/.exec(id);
+      const m = /^(?:pi|ch)_test_(\d+)_(\d{4})_(succeeded|hold)(?:_[a-z0-9]+)?$/.exec(id);
       if (!m) throw new StripeError(`No such payment: '${id}'`, 404, 'resource_missing', null);
       const cents = Number(m[1]);
       return { id: id.replace(/^ch_/, 'pi_'), status: (m[3] === 'hold' ? 'requires_capture' : 'succeeded') as Intent['status'], amountCents: cents, amountCapturableCents: m[3] === 'hold' ? cents : 0,

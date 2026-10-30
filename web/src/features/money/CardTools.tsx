@@ -23,7 +23,8 @@ export function CardTools(x: CardToolsProps) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, run] = useTransition();
   const openRental = x.parts.filter((p) => p.covers !== 'later').reduce((t, p) => t + Math.max(p.open_cents, 0), 0);
-  const [rec, setRec] = useState({ covers: openRental > 0 ? 'both' : 'later', amount: '', last4: '', brand: '', source: 'dashboard', stripe_id: '', received_on: today(), note: '', same_card: false });
+  const blankRec = () => ({ covers: openRental > 0 ? 'both' : 'later', amount: '', last4: '', brand: '', source: 'dashboard', stripe_id: '', received_on: today(), note: '', same_card: false });
+  const [rec, setRec] = useState(blankRec);
   const [found, setFound] = useState<string | null>(null);
   const [rdr, setRdr] = useState({ kind: 'charge' as 'charge' | 'hold', covers: openRental > 0 ? 'balance' : 'later', amount: '', reason: '', reader: x.readers[0]?.id ?? '' });
   const [live, setLive] = useState<ReaderState | null>(null);
@@ -70,6 +71,7 @@ export function CardTools(x: CardToolsProps) {
         <form className="ad-form ad-form--narrow" aria-label="Record card payment" data-testid="ct-record" onSubmit={(e) => { e.preventDefault(); run(async () => {
           const r = await recordCardPayment({ booking: x.booking, covers: rec.covers, amount_cents: cents(rec.amount), last4: rec.last4, brand: rec.brand, source: rec.source,
             stripe_id: rec.stripe_id || null, received_on: rec.received_on, note: rec.note, same_card: rec.same_card });
+          if (r.ok) { setRec(blankRec()); setFound(null); }
           done(r.ok, r.ok ? (r.data.held ? 'Deposit hold recorded: it is held on the card.' : `Recorded.${r.data.confirmed ? ' The booking is confirmed.' : ''}`) : r.message);
         }); }}>
           <p className="small muted">A card taken in the Stripe Dashboard or on a card reader, outside this site. A deposit hold needs its Stripe payment id, so it can be captured or released from Settle the deposit.</p>

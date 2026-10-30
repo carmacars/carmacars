@@ -131,7 +131,7 @@ begin
       v_refuse := app.card_coverage_same_card(v_b, p #>> '{verified,fingerprint}', nullif(btrim(coalesce(p ->> 'last4', '')), ''));
       if v_refuse is not null then raise exception '%', v_refuse using errcode = '23514'; end if;
       if not coalesce((p ->> 'same_card')::boolean, false) then
-        raise exception 'This rental''s coverage is the renter''s credit card: confirm this is the same card%s', coalesce(format(' (%s ending %s)', initcap(coalesce(r ->> 'brand', 'card')), r ->> 'last4'), '')
+        raise exception 'This rental''s coverage is the renter''s credit card: confirm this is the same card%', coalesce(format(' (%s ending %s)', initcap(coalesce(r ->> 'brand', 'card')), r ->> 'last4'), '')
           using errcode = '22023';
       end if;
     end if;

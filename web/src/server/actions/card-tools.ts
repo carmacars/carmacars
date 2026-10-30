@@ -43,8 +43,9 @@ export async function lookupStripePayment(p: { booking: string; id: string }): P
     await mayHandle(p.booking);
     const id = p.id.trim();
     if (!/^(pi|ch)_[A-Za-z0-9_]{6,}$/.test(id)) return { ok: false, code: 'refused', message: 'A Stripe payment id starts with pi_ (the payment) or ch_ (the charge).' };
-    const { fingerprint: _f, ...v } = verified(await (await terminal()).lookupPayment(id));
-    return { ok: true, data: v };
+    const v: Partial<Verified> = verified(await (await terminal()).lookupPayment(id));
+    delete v.fingerprint;
+    return { ok: true, data: v as Omit<Verified, 'fingerprint'> };
   } catch (e) { return fail(e); }
 }
 
