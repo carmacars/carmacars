@@ -4,10 +4,11 @@
 // is drawn in its box in Helvetica, shrunk to fit. Page 2 (the terms) is not touched.
 // The company representative's signature: the image uploaded in Admin > Settings > Forms when there is one, otherwise
 // the representative's name written in a script hand (Blind Spot's instruction, October 23, 2026).
-// The signed copy adds the renter's signature in boxes 16, 17 and 20 and a signature record page.
+// The signed copy adds the renter's signature in boxes 16, 17 and 20, the day they signed beside box 20, and a signature
+// record page; a version of a signed agreement (as picked up, as returned, corrected) carries the same signature and day.
 // Works in Node and in the Worker (pdf-lib only). Relative imports with their extension: the unit tests run it directly.
 import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFString, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
-import { LINE_21, OLD_ADDRESS, PAGE_H, PINK, SIG, WHITE, type Layout, type SigBox, type Text } from './layout.ts';
+import { LINE_21, OLD_ADDRESS, PAGE_H, PINK, ROSE, RULE, SIG, SIGNED_ON, WHITE, signedDay, type Layout, type SigBox, type Text } from './layout.ts';
 import { SCRIPT_GLYPHS } from './script-glyphs.generated.ts';
 
 export class BlindSpotTemplateError extends Error {}
@@ -103,6 +104,8 @@ export interface FillOptions {
   initials?: Uint8Array | null;
   /** 0154: a version copy: written small in the renter's signature boxes ("Signed on the original, ...") */
   note?: string | null;
+  /** when the renter signed (ISO): its day written beside box 20, with the renter's signature */
+  signedOn?: string | null;
 }
 export async function fillBlindSpot(template: Uint8Array, l: Layout, o: FillOptions = {}): Promise<FillResult> {
   let doc: PDFDocument;
@@ -115,7 +118,7 @@ export async function fillBlindSpot(template: Uint8Array, l: Layout, o: FillOpti
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   for (const c of l.covers) {
-    const col = c.color === 'pink' ? PINK : WHITE;
+    const col = c.color === 'pink' ? PINK : c.color === 'rose' ? ROSE : c.color === 'rule' ? RULE : WHITE;
     page.drawRectangle({ x: c.x, y: PAGE_H - c.y - c.h, width: c.w, height: c.h, color: rgb(col.r, col.g, col.b) });
   }
   // the line under box 21's signature, where the old signature crossed it
@@ -133,7 +136,15 @@ export async function fillBlindSpot(template: Uint8Array, l: Layout, o: FillOpti
   }
   for (const d of l.dots) page.drawCircle({ x: d.x, y: PAGE_H - d.y, size: d.r, color: rgb(0.05, 0.05, 0.1) });
   if (o.company && (o.company.png || o.company.name)) await drawSignature(doc, page, SIG.company, o.company);
-  if (o.renter && (o.renter.png || o.renter.name)) for (const b of [SIG.ldw, SIG.tickets, SIG.terms]) await drawSignature(doc, page, b, o.renter);
+  if (o.renter && (o.renter.png || o.renter.name)) {
+    for (const b of [SIG.ldw, SIG.tickets, SIG.terms]) await drawSignature(doc, page, b, o.renter);
+    const day = signedDay(o.signedOn);
+    if (day) {
+      const ink = rgb(0.05, 0.05, 0.1);
+      page.drawText('SIGNED ON', { x: SIGNED_ON.label.x, y: PAGE_H - SIGNED_ON.label.y, size: SIGNED_ON.label.size, font: regular, color: ink });
+      page.drawText(day, { x: SIGNED_ON.date.x, y: PAGE_H - SIGNED_ON.date.y, size: SIGNED_ON.date.size, font: regular, color: ink });
+    }
+  }
   const drivers = (o.drivers ?? []).filter((d) => d.png || d.name);
   if (drivers.length) {
     const w = SIG.drivers.w / drivers.length;

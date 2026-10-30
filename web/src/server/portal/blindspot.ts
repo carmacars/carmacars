@@ -5,7 +5,7 @@ import { sha256Hex } from '@/server/links';
 import { when } from '@/features/agreement/model';
 import type { Signature } from '@/features/blindspot/fill';
 import { companySignature, initialsOf, loadBundle, renderBlindSpot, templateBytes, verifyUrl, type BlindSpotExtra, type Bundle } from '@/server/agreements/bundle';
-import type { Certificate } from '@/features/signing/certificate';
+import type { Certificate, CertSigner } from '@/features/signing/certificate';
 
 // The second rental agreement of a booking (migration 0127): Blind Spot Car Rental's own agreement, filled from the
 // booking and stored beside CarmaCars' rental agreement when that one opens; signed with the same one signature; its
@@ -46,6 +46,39 @@ export async function openCompanionQuietly(bookingId: string, by: string, bundle
   try { await openCompanion(bookingId, by, bundle); } catch (e) { console.error('blindspot agreement', bookingId, e instanceof Error ? e.message : e); }
 }
 
+/** The signatures the renter (and each additional driver) gave the Blind Spot agreement, for its signed copy and for
+ *  every later version of it: the renter's drawn signature (the signature record's image, else the signing session's),
+ *  or the typed name in the script hand; the day signed; the drivers' drawn signatures; the renter's initials. Null
+ *  while the renter has not signed it (or when the booking was signed before the form was in use: nothing to carry). */
+export interface FormSignatures {
+  renter: Signature; signedOn: string | null; drivers: Signature[]; initials: Uint8Array | null;
+  record: Companion['renter_record']; signers: CertSigner[]; initialsUsed: boolean;
+}
+export async function formSignatures(bookingId: string, b: Bundle, c?: Companion | null): Promise<FormSignatures | null> {
+  const comp = c === undefined ? await companionOf(bookingId) : c;
+  const r = comp && comp.status !== 'open' ? comp.renter_record : null;
+  if (!r) return null;
+  const s = await storage();
+  const { certificateSigners } = await import('@/server/portal/agreement');
+  const signers = await certificateSigners(bookingId);
+  const renterCert = signers.find((x) => x.signer_role === 'renter');
+  const get = (path: string | null | undefined) => (path ? s.get('agreements', path).catch(() => null) : Promise.resolve(null));
+  // the image signed with: the signature record's (a drawn signature, remote or in person), else the session's drawing
+  let png = r.method !== 'typed' ? await get(r.provider_signature) : null;
+  if (!png && renterCert?.signature_method === 'drawn') png = await get((renterCert as { signature_path?: string | null }).signature_path);
+  const renter: Signature = png ? { png } : { name: r.typed_name ?? r.signer_name ?? renterCert?.signer_name ?? null };
+  // each additional driver's drawn signature (box 10), from their signing session
+  const drivers: Signature[] = [];
+  for (const d of signers.filter((x) => x.signer_role === 'additional_driver')) {
+    if (d.signature_method !== 'drawn') continue;
+    const dp = await get((d as { signature_path?: string | null }).signature_path);
+    if (dp) drivers.push({ png: dp });
+  }
+  const ini = await initialsOf(b, renterCert);
+  const initials = ini.images.get('fees') ?? ini.images.values().next().value ?? null;
+  return { renter, signedOn: r.signed_at ?? renterCert?.signed_at ?? null, drivers, initials, record: r, signers, initialsUsed: !!ini.images.get('fees') };
+}
+
 /** After the rental agreement is countersigned: the signed copy of the second agreement, stored once. */
 export async function attachCompanionSigned(bookingId: string, by: string): Promise<void> {
   const c = await companionOf(bookingId);
@@ -54,31 +87,22 @@ export async function attachCompanionSigned(bookingId: string, by: string): Prom
   const unsigned = await s.get(c.document.bucket as 'agreements', c.document.path);
   if (!unsigned) throw new Error(`The Blind Spot agreement of booking ${bookingId} is missing from storage`);
   const r = c.renter_record;
-  let renter: Signature | null = null;
-  if (r?.method === 'drawn' && r.provider_signature) renter = { png: await s.get('agreements', r.provider_signature).catch(() => null) };
-  if (!renter?.png) renter = { name: r?.typed_name ?? r?.signer_name ?? null };
   const b = await loadBundle(bookingId, by);
-  const { certificateSigners } = await import('@/server/portal/agreement');
-  const signers = await certificateSigners(bookingId);
-  const renterCert = signers.find((x) => x.signer_role === 'renter');
-  // each additional driver's drawn signature (box 10), from their signing session
-  const drivers: Signature[] = [];
-  for (const d of signers.filter((x) => x.signer_role === 'additional_driver')) {
-    const path = (d as { signature_path?: string | null }).signature_path;
-    if (path && d.signature_method === 'drawn') { const png = await s.get('agreements', path).catch(() => null); if (png) drivers.push({ png }); }
-  }
-  const ini = await initialsOf(b, renterCert);
+  const stamp = await formSignatures(bookingId, b, c);
+  const renter: Signature = stamp?.renter ?? { name: r?.typed_name ?? r?.signer_name ?? null };
+  const signers = stamp?.signers ?? [];
+  const drivers = stamp?.drivers ?? [];
   const lines: Array<[string, string]> = [
     ['Document', `Blind Spot Car Rental agreement, filled for this booking (template ${b.bs.template?.version ?? ''})`],
     ['Signed with', `the same signature as CarmaCars rental agreement ${c.agreement_number}`],
     ['Unsigned document SHA-256', c.document_sha256],
     ...(r ? [[`Renter: ${r.signer_name}`, `${when(r.signed_at)}; method ${r.method}${r.ip_address ? `; IP address ${r.ip_address}` : ''}${r.user_agent ? `; device ${r.user_agent}` : ''}`] as [string, string]] : []),
-    ['Signed in boxes', `16 (Loss Damage Waiver), 17 (tickets, violations and tolls) and 20 (the terms of pages 1 and 2)${drivers.length ? '; the additional drivers in box 10' : ''}${ini.images.get('fees') ? '; initials on the clean-up charge line and box 40' : ''}`],
+    ['Signed in boxes', `16 (Loss Damage Waiver), 17 (tickets, violations and tolls) and 20 (the terms of pages 1 and 2), the day beside box 20${drivers.length ? '; the additional drivers in box 10' : ''}${stamp?.initialsUsed ? '; initials on the clean-up charge line and box 40' : ''}`],
     ['Authorized company representative', `${b.bs.rep.full_name || b.bs.rep.name}, box 21 (${b.bs.rep.signature_key ? 'signature image on file' : 'name written for the representative'})`]
   ];
   const cert: Certificate | null = signers.length ? { document: `Blind Spot rental agreement for booking ${b.f.booking.booking_number} (signed with rental agreement ${c.agreement_number})`,
     hashes: [{ label: 'Blind Spot rental agreement', sha256: c.document_sha256 }], signers, verifyUrl: verifyUrl(), at: r?.signed_at ?? new Date().toISOString() } : null;
-  const out = await renderBlindSpot(b, { base: unsigned, renter, drivers, initials: ini.images.get('fees') ?? ini.images.values().next().value ?? null,
+  const out = await renderBlindSpot(b, { base: unsigned, renter, drivers, initials: stamp?.initials ?? null, signedOn: stamp?.signedOn ?? r?.signed_at ?? null,
     record: { title: 'Signature record', lines }, title: `Signed Blind Spot rental agreement ${c.agreement_number}`, certificate: cert });
   const sha = await sha256Hex(out!);
   const key = `bookings/${bookingId}/blindspot-${c.agreement_number}-signed.pdf`;

@@ -7,7 +7,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PDFArray, PDFDict, PDFDocument, PDFName } from 'pdf-lib';
-import { COVERS, PAGE_H, SIG, ageOn, dollars, layout, mailingLine, mailingStreet, type BlindSpotFacts } from './layout.ts';
+import { COVERS, PAGE_H, SIG, SIGNED_ON, ageOn, dollars, fuelText, layout, mailingLine, mailingStreet, signedDay, type BlindSpotFacts } from './layout.ts';
+import { richFacts } from '../agreement/rich-fixture.ts';
+import type { AgreementExtra, Line } from '../agreement/extra.ts';
 import { fillBlindSpot, scriptWidth, winAnsi } from './fill.ts';
 import { sampleFacts } from './sample.ts';
 import { standIn } from './stand-in.ts';
@@ -141,8 +143,9 @@ test('the signatures: Ahmad in box 21 (or the uploaded image); the renter in 16,
 
 test('the covers are the colour of their box and the old signature line is drawn again', () => {
   const pink = COVERS.filter((c) => c.color === 'pink').map((c) => c.box).sort();
-  assert.deepEqual(pink, ['15-from', '15-to', '21', '40']);
-  assert.deepEqual(COVERS.filter((c) => c.color === 'white').map((c) => c.box).sort(), ['address', 'hst']);
+  assert.deepEqual(pink, ['15-from', '15-to', '21', '40', 'fuel-out']);
+  assert.deepEqual(COVERS.filter((c) => c.color === 'white').map((c) => c.box).sort(), ['address', 'fuel-in', 'hst']);
+  assert.deepEqual(COVERS.filter((c) => c.color === 'rose' || c.color === 'rule').map((c) => c.box).sort(), ['fuel-in-59', 'fuel-in-rule']);
 });
 
 test('formats: money, ages, the mailing address, the form\'s character set', () => {
@@ -164,4 +167,148 @@ test('the Annots of the stand-in are what the real form has', async () => {
   assert.ok(a.lookup(0, PDFDict).get(PDFName.of('Contents')));
   const f: BlindSpotFacts = sampleFacts({ mailing: MAILING, hst_number: null });
   assert.ok(layout(f).texts.length > 30);
+});
+
+// ---------------------------------------------------------------- a 31-day rental (the desk's report of October 30, 2026)
+// 31 days at the monthly rate counted by the day ($2,997.43 / 30 x 31 = $3,097.35), the Protection Plan at $15.00 a day,
+// delivery, a $500.00 card hold taken at pickup on October 1, 2026, a full tank out.
+const LINES_31: Line[] = [
+  { charge_type: 'rental_charge', description: 'Rental charge', amount_cents: 309735, hst_cents: 40266, stage: 'booking' },
+  { charge_type: 'coverage_sold', description: 'CarmaCars Protection Plan', amount_cents: 46500, hst_cents: 6045, stage: 'booking' },
+  { charge_type: 'delivery', description: 'Delivery', amount_cents: 5000, hst_cents: 650, stage: 'booking' }
+];
+function month(o: { deposit?: 'held' | 'pending'; fuel?: number | null; rate?: string; rental?: number } = {}): BlindSpotFacts {
+  const f = sampleFacts({ mailing: MAILING, hst_number: '79878 1234 RT0001' });
+  const rental = o.rental ?? 309735;
+  const lines = LINES_31.map((l) => (l.charge_type === 'rental_charge' ? { ...l, amount_cents: rental } : l));
+  f.booking = { ...f.booking, pickup_at: '2026-10-01T15:00:00Z', return_at: '2026-11-01T15:00:00Z', billable_days: 31, rate_applied: o.rate ?? 'monthly',
+    daily_rate_cents: 11900, weekly_rate_cents: 72000, monthly_rate_cents: 299743, rental_charge_cents: rental, deposit_cents: 50000, coverage_option: 3,
+    subtotal_at_booking_cents: 361235, hst_at_booking_cents: 46961, total_due_at_booking_cents: 408196 };
+  f.lines = lines.map(({ charge_type, description, amount_cents }) => ({ charge_type, description, amount_cents }));
+  const x: AgreementExtra = { ...richFacts('pickup').x, lines, payments: [], swaps: [], insurer_policy: null,
+    deposit: { amount_cents: 50000, pay_method: 'card', method: 'card_hold', paid_method: null, status: o.deposit ?? 'held', taken_at: o.deposit === 'pending' ? null : '2026-10-01T14:40:00Z',
+      applied_cents: 0, released_cents: 0, held_back_cents: 0, card_hold_days: 7 } };
+  x.pickup = o.fuel === undefined ? x.pickup : o.fuel === null ? null : { ...x.pickup!, fuel_pct: o.fuel };
+  f.extra = { ...f.extra, more: x, coverage: { coverage_option: 3, insurer_name: null, policy_number: null, policy_expiry: null, card_issuer: null, card_last4: null, activation_ref: 'ACT-31' } };
+  return f;
+}
+const box = (l: ReturnType<typeof layout>, b: string) => l.texts.find((t) => t.box === b)?.text;
+const cents = (s: string | undefined) => Math.round(Number((s ?? '').replace(/[$,]/g, '')) * 100);
+
+test('31 days: box 35 is DAYS 31 @ the daily rate = the rental charge; box 14 says how; box 39 is the rate rows', () => {
+  const l = layout(month());
+  assert.equal(box(l, '35-count'), '31');
+  assert.equal(box(l, '35-rate'), '$99.91', 'the rate column holds the rate ($3,097.35 / 31), never the whole charge');
+  assert.equal(box(l, '35-amount'), '$3,097.35');
+  assert.equal(box(l, '39'), '$3,097.35', 'sub total 39 = the rate rows');
+  for (const b of ['36-amount', '37-amount', '37-rate', '38-amount']) assert.equal(box(l, b), undefined, `${b} blank`);
+  const info = l.texts.filter((t) => t.box.startsWith('14-')).map((t) => t.text).join(' ');
+  assert.ok(info.includes('Box 35: the monthly rate $2,997.43 / 30 x 31 days = $3,097.35, $99.91 a day rounded.'), info);
+});
+
+test('31 days: the money boxes add up (48 is delivery only; CDW is the plan; 50 = 13% of 49; 55 the total)', () => {
+  const l = layout(month());
+  assert.equal(box(l, 'cdw-rate'), '$15.00');
+  assert.equal(box(l, 'cdw-amount'), '$465.00');
+  assert.equal(box(l, '48'), '$50.00', 'pre adjustment: the charges with no box of their own (delivery), not the plan');
+  assert.equal(box(l, '49'), '$3,612.35');
+  assert.equal(cents(box(l, '49')), cents(box(l, '39')) + cents(box(l, 'cdw-amount')) + cents(box(l, '48')));
+  assert.equal(box(l, '50'), '$469.61');
+  assert.equal(cents(box(l, '50')), Math.round(cents(box(l, '49')) * 0.13), 'HST 50 = 13% x 49');
+  assert.equal(box(l, '55'), '$4,081.96');
+  assert.equal(cents(box(l, '55')), cents(box(l, '49')) + cents(box(l, '50')));
+  const info = l.texts.filter((t) => t.box.startsWith('14-')).map((t) => t.text).join(' ');
+  assert.ok(info.includes('Box 48: Delivery $50.00.'));
+});
+
+test('31 days: the deposit received and the day it was taken (59); before pickup, the deposit due, said so', () => {
+  const held = layout(month());
+  assert.equal(box(held, 'deposit-received'), '500.00', 'after the printed $');
+  assert.equal(box(held, '59-m'), '10');
+  assert.equal(box(held, '59-d'), '01');
+  assert.equal(box(held, '56'), '$500.00');
+  assert.ok(!held.texts.some((t) => t.box === 'deposit-due'));
+  const due = layout(month({ deposit: 'pending' }));
+  assert.equal(box(due, 'deposit-received'), undefined, 'nothing received yet');
+  assert.equal(box(due, 'deposit-due'), '500.00 due at pickup');
+  assert.equal(box(due, '59-m'), undefined);
+  // cash taken: a deposit payment with no deposit row still counts
+  const f = month({ deposit: 'pending' });
+  f.extra.more = { ...f.extra.more!, payments: [{ purpose: 'deposit', kind: 'charge', method: 'cash', amount_cents: 50000, card_brand: null, card_last4: null, reference: null, at: '2026-10-02T16:00:00Z' }] };
+  const cash = layout(f);
+  assert.equal(box(cash, 'deposit-received'), '500.00');
+  assert.equal(box(cash, '59-d'), '02');
+});
+
+test('the fuel gauges: covered, the check-out level in words, blank with no reading (never the printed "8 8 8 8 8")', () => {
+  assert.equal(box(layout(month({ fuel: 100 })), 'fuel-out'), 'Full (100%)');
+  assert.equal(box(layout(month({ fuel: 75 })), 'fuel-out'), '3/4 (75%)');
+  const none = layout(month({ fuel: null }));
+  assert.equal(box(none, 'fuel-out'), undefined);
+  assert.equal(box(none, 'fuel-in'), undefined);
+  assert.ok(none.covers.some((c) => c.box === 'fuel-out') && none.covers.some((c) => c.box === 'fuel-in'));
+  assert.ok(!none.dots.some((d) => d.box.startsWith('fuel')));
+  assert.equal(fuelText(0), 'Empty (0%)');
+  assert.equal(fuelText(60), 'About 5/8 (60%)');
+  assert.equal(fuelText(48), 'About 1/2 (48%)');
+  assert.equal(fuelText(null), null);
+});
+
+test('the rate rows: the weeks or months row when that rate makes the charge; daily and weekend days and a hand-typed charge as an average', () => {
+  const weeks = month({ rate: 'weekly', rental: 144000 });
+  weeks.booking.billable_days = 14;
+  const w = layout(weeks);
+  assert.deepEqual([box(w, '36-count'), box(w, '36-rate'), box(w, '36-amount'), box(w, '39')], ['2', '$720.00', '$1,440.00', '$1,440.00']);
+  const months = month({ rental: 299743 });
+  months.booking.billable_days = 30;
+  const m = layout(months);
+  assert.deepEqual([box(m, '37-count'), box(m, '37-rate'), box(m, '37-amount')], ['1', '$2,997.43', '$2,997.43']);
+  const typed = layout(month({ rate: 'manual', rental: 300000 }));
+  assert.deepEqual([box(typed, '35-count'), box(typed, '35-rate'), box(typed, '35-amount')], ['31', '$96.77', '$3,000.00']);
+  assert.ok(typed.texts.some((t) => t.box.startsWith('14-') && t.text.includes('Box 35: the rental charge agreed')));
+  const mixed = sampleFacts({ mailing: MAILING, hst_number: null });
+  mixed.booking = { ...mixed.booking, billable_days: 3, daily_days: 2, weekend_days: 1, rental_charge_cents: 33300 };
+  mixed.lines = mixed.lines.map((l) => (l.charge_type === 'rental_charge' ? { ...l, amount_cents: 33300 } : l));
+  const x = layout(mixed);
+  assert.deepEqual([box(x, '35-count'), box(x, '35-rate'), box(x, '35-amount')], ['3', '$111.00', '$333.00']);
+  assert.ok(x.texts.some((t) => t.box.startsWith('14-') && t.text.includes('Box 35: 2 days x $99.00 + 1 weekend days x $135.00 = $333.00, $111.00 a day.')));
+});
+
+test('the signature on the form: the renter in 16, 17 and 20 with the day signed; on a version drawn from the template too', async () => {
+  const f = month();
+  assert.equal(signedDay('2026-10-01T03:30:00Z'), '2026-09-30', 'the day in Toronto');
+  const pages = async (bytes: Uint8Array) => read(bytes.slice()); // pdf.js takes the buffer it reads
+  // the signed copy: the unsigned document, then the renter's signature and day
+  const unsigned = await fillBlindSpot(await standIn(), layout(f), { company: { name: 'Ahmad' } });
+  const signed = await fillBlindSpot(unsigned.bytes, { texts: [], dots: [], covers: [] }, { renter: { png: PNG }, signedOn: '2026-10-01T14:30:00Z' });
+  const [s1] = await pages(signed.bytes);
+  const day = s1!.items.find((i) => i.str === '2026-10-01');
+  assert.ok(day && Math.abs(day.y - (PAGE_H - SIGNED_ON.date.y)) < 0.5 && Math.abs(day.x - SIGNED_ON.date.x) < 0.5, 'the day beside box 20');
+  assert.ok(s1!.text.includes('SIGNED ON'));
+  const images = async (bytes: Uint8Array) => {
+    const doc = await PDFDocument.load(bytes);
+    const xo = doc.getPage(0).node.Resources()?.lookupMaybe(PDFName.of('XObject'), PDFDict);
+    return xo ? xo.keys().length : 0;
+  };
+  assert.equal(await images(unsigned.bytes), 0, 'unsigned: no signature image');
+  assert.ok(await images(signed.bytes) >= 1, 'signed: the renter\'s drawn signature');
+  // a version (as picked up): the template filled again, with the company's and the renter's signatures and the day
+  const version = await fillBlindSpot(await standIn(), layout(f), { company: { name: 'Ahmad' }, renter: { png: PNG }, signedOn: '2026-10-01T14:30:00Z', drivers: [{ png: PNG }] });
+  const [v1] = await pages(version.bytes);
+  assert.ok(v1!.text.includes('2026-10-01') && v1!.text.includes('$99.91'));
+  assert.ok(await images(version.bytes) >= 1);
+  // no day without a signature
+  const [n1] = await pages((await fillBlindSpot(await standIn(), layout(f), { signedOn: '2026-10-01T14:30:00Z' })).bytes);
+  assert.ok(!n1!.text.includes('SIGNED ON'));
+});
+
+test('31 days on the stand-in: nothing is cut, and the values are where the form expects them', async () => {
+  const out = await fillBlindSpot(await standIn(), layout(month()), { company: { name: 'Ahmad' } });
+  assert.deepEqual(out.cut, []);
+  const [p1] = await read(out.bytes);
+  const near = (s2: string, x: number, yTop: number) => p1!.items.some((i) => i.str === s2 && Math.abs(i.y - (PAGE_H - yTop)) < 1 && Math.abs(i.x - x) < 80);
+  assert.ok(near('$99.91', 415, 346), 'box 35 rate, right of the @');
+  assert.ok(near('$3,097.35', 540, 346), 'box 35 amount');
+  assert.ok(near('500.00', 374, 707.4), 'deposit received, after the printed $');
+  assert.ok(near('Full (100%)', 326, 681.4), 'fuel out');
 });
