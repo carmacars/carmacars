@@ -120,7 +120,10 @@ for (const e of cat.emails.filter((x) => !codes.length || codes.includes(x.code)
     values = { ...Object.fromEntries([...cat.global_variables, ...e.variables].map((v) => [v.name, v.sample])), ...(await senderValues(app, { code: e.code })) };
   }
   const fromAddr = /<([^>]+)>/.exec(e.from)?.[1] ?? e.from;
-  if (!/@carmacars\.ca$/.test(fromAddr) || !/^CarmaCars </.test(e.from)) bad(e.code, `from ${e.from}`);
+  // the insurance emails go as Blind Spot Car Rental from its own carmacars.ca address and reply there (0187)
+  const blindspot = e.from === 'Blind Spot Car Rental <blindspotcarrental@carmacars.ca>';
+  if (!/@carmacars\.ca$/.test(fromAddr) || !(blindspot || /^CarmaCars </.test(e.from))) bad(e.code, `from ${e.from}`);
+  if (blindspot && e.reply_to !== ALIAS.blindspot) bad(e.code, `reply-to ${e.reply_to}, the Blind Spot Car Rental emails reply to ${ALIAS.blindspot}`);
   const wantReply = e.audience === 'investor' ? ALIAS.investors : e.audience.startsWith('staff_') ? ALIAS.contact : e.audience === 'owner' ? (fromAddr.startsWith('billing@') ? ALIAS.billing : ALIAS.owners) : null;
   if (wantReply && e.reply_to !== wantReply && !(fromAddr.startsWith('billing@') && e.reply_to === ALIAS.billing)) bad(e.code, `reply-to ${e.reply_to}, the rule gives ${wantReply}`);
   if (!Object.values(ALIAS).includes(e.reply_to)) bad(e.code, `reply-to ${e.reply_to} is not one of the aliases`);

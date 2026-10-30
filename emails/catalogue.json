@@ -7,9 +7,10 @@
     "owners": "owners@carmacars.ca",
     "billing": "billing@carmacars.ca",
     "privacy": "privacy@carmacars.ca",
-    "investors": "investors@carmacars.ca"
+    "investors": "investors@carmacars.ca",
+    "blindspot": "blindspotcarrental@carmacars.ca"
   },
-  "reply_to_rule": "Each email has its own reply_to: investors to investors@; staff to contact@; emails sent from billing to billing@; owners to owners@; renter booking emails to bookings@; other renter emails to contact@; an email may name another alias (privacy@ for account security).",
+  "reply_to_rule": "Each email has its own reply_to: emails sent as Blind Spot Car Rental to blindspotcarrental@; investors to investors@; staff to contact@; emails sent from billing to billing@; owners to owners@; renter booking emails to bookings@; other renter emails to contact@; an email may name another alias (privacy@ for account security).",
   "global_variables": [
     {
       "name": "support_phone",
@@ -54,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 192,
+  "count": 193,
   "emails": [
     {
       "code": "account_password_reset",
@@ -324,6 +325,100 @@
       ],
       "template_html": "templates/account_sign_in_link.html",
       "template_text": "templates/account_sign_in_link.txt"
+    },
+    {
+      "code": "insurance_staff_message",
+      "audience": "renter",
+      "also_sent_to": [
+        "insurer"
+      ],
+      "category": "transactional",
+      "trigger": "A staff member writes from a booking billed to an insurer and sends it as Blind Spot Car Rental (insurance): Email the adjuster (to the adjuster's email on the booking), or Email the renter with Blind Spot Car Rental chosen as the sender (migration 0187). The subject is the one they typed. The message is kept on the booking with who sent it. One email per message.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "Blind Spot Car Rental <blindspotcarrental@carmacars.ca>",
+      "reply_to": "blindspotcarrental@carmacars.ca",
+      "subject": "{{message_subject}}",
+      "preheader": "{{staff_name}} at Blind Spot Car Rental wrote about {{about_line}}.",
+      "sample_subject": "Replacement rental for claim CL-2026-77812",
+      "variables": [
+        {
+          "name": "about_line",
+          "type": "string",
+          "sample": "booking CC-10482, the 2023 Toyota RAV4 XLE, claim CL-2026-77812"
+        },
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "message_body",
+          "type": "string",
+          "sample": "The renter picked up the 2023 Toyota RAV4 XLE today at 10:00 am. The authorization covers 10 days; please confirm whether it can be extended if the repairs take longer."
+        },
+        {
+          "name": "message_subject",
+          "type": "string",
+          "sample": "Replacement rental for claim CL-2026-77812"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "staff_name",
+          "type": "string",
+          "sample": "Priya"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/insurance_staff_message.html",
+      "template_text": "templates/insurance_staff_message.txt"
     },
     {
       "code": "renter_accident_instructions",
@@ -7984,14 +8079,14 @@
       "code": "renter_staff_message",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "A customer service or sales assistant (or an Admin) replies to the renter in the messages of a booking. The message is kept on the booking and shown in the renter's account; this email carries it with a link to reply there. One email per message.",
+      "trigger": "A staff member (customer service, Sales, Fleet, Finance or an Admin) writes to the renter from the booking (Email the renter, or a reply in the booking's messages), sent as CarmaCars. The subject is the one they typed. The message is kept on the booking and shown in the renter's account; this email carries it with a link to reply there. One email per message.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",
       "reply_to": "bookings@carmacars.ca",
-      "subject": "A message about your booking {{booking_number}}",
+      "subject": "{{message_subject}}",
       "preheader": "{{staff_name}} at CarmaCars wrote about your {{vehicle_name}} booking.",
-      "sample_subject": "A message about your booking CC-10482",
+      "sample_subject": "Your booking CC-10482",
       "variables": [
         {
           "name": "booking_number",
@@ -18313,8 +18408,8 @@
       "trigger": "An insurer invoice is sent from the admin portal (Send by email): the invoice for a replacement rental billed to an insurer, with a 7-day link to the PDF. Sending again sends a new email.",
       "timing": "When Finance or an Admin sends the invoice",
       "digest": false,
-      "from": "CarmaCars <billing@carmacars.ca>",
-      "reply_to": "billing@carmacars.ca",
+      "from": "Blind Spot Car Rental <blindspotcarrental@carmacars.ca>",
+      "reply_to": "blindspotcarrental@carmacars.ca",
       "subject": "Invoice {{invoice_number}} for {{renter_name}}: {{invoice_total}}",
       "preheader": "Rental of a {{vehicle_name}}, {{period}}. Claim {{claim_number}}.",
       "sample_subject": "Invoice INS-1004 for Maya Chen: $339.00",

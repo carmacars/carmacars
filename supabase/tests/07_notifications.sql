@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '192/4');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '193/5');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -602,6 +602,11 @@ values (test.id('msg:NT-2:out'), 'outbound', 'portal', 'Your booking NT-2', 'We 
 insert into test.nt_synth values
   ('renter_staff_message', 'message', test.id('msg:NT-2:out'), jsonb_build_object('booking_id', test.id('booking:NT-2'))),
   ('staff_renter_replied', 'message', test.id('msg:NT-2:in'), jsonb_build_object('booking_id', test.id('booking:NT-2'), '_immediate', true));
+-- the insurance message as Blind Spot Car Rental (0187): to the adjuster of the booking
+insert into messages (id, direction, channel, subject, body, to_address, renter_id, booking_id, status)
+values (test.id('msg:NT-2:adj'), 'outbound', 'email', 'Claim CL-NT-2', 'The repairs take two more days.', 'adjuster.nt@example.test', test.id('renter:nt_rita'), test.id('booking:NT-2'), 'delivered');
+insert into test.nt_synth values
+  ('insurance_staff_message', 'message', test.id('msg:NT-2:adj'), jsonb_build_object('booking_id', test.id('booking:NT-2'), 'to', 'adjuster', 'email', 'adjuster.nt@example.test', 'name', 'Alex Adjuster'));
 -- the owner debit and company statement emails (0037): a run of the day, an exception, a statement with its PDFs
 insert into owner_debit_runs (id, run_on, kind, submitted, submitted_cents) values (test.id('nt_debit_run'), date '2031-06-15', 'debit', 1, 53675);
 select app.build_company_statement(date '2031-06-01', null);

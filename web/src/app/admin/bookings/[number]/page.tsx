@@ -34,6 +34,8 @@ import { AgreementPanel } from '@/features/agreements/AgreementPanel';
 import { OwnerDeductionsPanel, OwnerVisibilityPanel } from '@/features/admin/OwnerControls';
 import { MarketingSource, type MarketingData } from '@/features/ads/MarketingSource';
 import { ClaimBanner, ClaimGate, RequestClaim } from '@/features/offers/RequestClaim';
+import { BookingConversation } from '@/features/messages/BookingConversation';
+import type { Conversation } from '@/features/messages/email-choices';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -96,6 +98,9 @@ export default async function Booking({ params, searchParams }: { params: Promis
   const visits = tab === 'history' ? await door<TimelineData>(user.id, 'admin_read', 'visitor_timeline', { booking_id: b.id }).catch(() => null) : null;
   // calls and texts with the renter about this booking (0085)
   const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { booking_id: b.id }).catch(() => null) : null;
+  // Email the renter or the adjuster, with the booking's conversation and emails (0187)
+  const conv = tab === 'messages' ? await door<Conversation>(user.id, 'ops_read', 'booking_conversation', { booking: b.booking_number }).catch(() => null) : null;
+  const insurerBilled = b.bill_to !== 'renter' && !!b.insurer_id;
   const refresh = [base, '/admin/requests'];
   const pendingChanges = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status)));
   const pendingExt = b.extensions.filter((x) => x.status === 'requested');
@@ -118,6 +123,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
         {b.status === 'on_rent' && <Act action="swap_vehicle" payload={P} label="Swap vehicle" fields={[{ name: 'vehicle', label: 'The car the renter moves to', type: 'select', required: true, options: [['', swapCars.length ? 'Choose the car' : 'No car is free right now'], ...swapCars.map((v) => [v.id, `${v.year} ${v.make} ${v.model}${v.plate ? `, ${v.plate}` : ''}`] as [string, string])] }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
         {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && b.bill_to !== 'renter' && <Act action="draft_insurer_invoice" payload={P} label="Draft insurer invoice" refresh={['/admin/insurer-invoices']} />}
         {b.status === 'returned' && <Act action="issue_booking_statement" payload={P} label="Issue final statement" confirm="Issue the Check-in statement from the assessed lines and settle the deposit plan." refresh={refresh} />}
+        {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
+        {insurerBilled && b.insurer_adjuster_email && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages&to=adjuster`} data-testid="email-adjuster-link">Email the adjuster</Link>}
       </PageHead>
       <ClaimBanner />
       <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />
@@ -129,7 +136,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
       <OwnerVisibilityPanel userId={user.id} booking={b.booking_number} refresh={refresh} />
       <Tabs current={`${base}?tab=${tab}`} items={[
         ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : [[`${base}?tab=overview`, 'Overview']] as Array<[string, string]>),
-        [`${base}?tab=money`, 'Money'], [`${base}?tab=changes`, 'Changes', pendingChanges.length + pendingExt.length], [`${base}?tab=history`, 'History'], [`${base}?tab=documents`, 'Drivers and documents']]} />
+        [`${base}?tab=money`, 'Money'], [`${base}?tab=changes`, 'Changes', pendingChanges.length + pendingExt.length], [`${base}?tab=messages`, 'Messages'], [`${base}?tab=history`, 'History'], [`${base}?tab=documents`, 'Drivers and documents']]} />
       {tab === 'review' && (
         <>
           <div className="ad-cols ad-cols--2">
@@ -217,6 +224,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <Card title="Questions to the renter"><Table rows={b.info_requests} empty="No questions." cols={[{ key: 'asked_at', label: 'Asked', render: (r) => t(r.asked_at) }, { key: 'question', label: 'Question', className: 'wrap' }, { key: 'status', label: 'Status' }, { key: 'reply', label: 'Reply', className: 'wrap' }]} /></Card>
         </div>
       )}
+      {tab === 'messages' && (conv ? <BookingConversation c={conv} refresh={[base]} initialTo={sp.to === 'adjuster' ? 'adjuster' : 'renter'} /> : <p className="small muted">The messages could not be read. Reload the page.</p>)}
       {tab === 'history' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Timeline" testId="timeline">

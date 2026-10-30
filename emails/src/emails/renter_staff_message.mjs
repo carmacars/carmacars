@@ -7,9 +7,9 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'A customer service or sales assistant (or an Admin) replies to the renter in the messages of a booking. The message is kept on the booking and shown in the renter\'s account; this email carries it with a link to reply there. One email per message.',
+  trigger: 'A staff member (customer service, Sales, Fleet, Finance or an Admin) writes to the renter from the booking (Email the renter, or a reply in the booking\'s messages), sent as CarmaCars. The subject is the one they typed. The message is kept on the booking and shown in the renter\'s account; this email carries it with a link to reply there. One email per message.',
   timing: 'Immediate',
-  subject: 'A message about your booking {{booking_number}}',
+  subject: '{{message_subject}}',
   preheader: '{{staff_name}} at CarmaCars wrote about your {{vehicle_name}} booking.',
   ref: 'Booking {{booking_number}}',
   body: [

@@ -13168,6 +13168,7 @@ export type Database = {
           request_sales_after_minutes: number;
           hiring_evening_reminder: boolean;
           esign_code_required: boolean;
+          deposit_release_reminder_days: number;
         };
         Insert: {
           id?: string;
@@ -13676,6 +13677,7 @@ export type Database = {
           request_sales_after_minutes?: number;
           hiring_evening_reminder?: boolean;
           esign_code_required?: boolean;
+          deposit_release_reminder_days?: number;
         };
         Update: {
           id?: string;
@@ -14184,6 +14186,7 @@ export type Database = {
           request_sales_after_minutes?: number;
           hiring_evening_reminder?: boolean;
           esign_code_required?: boolean;
+          deposit_release_reminder_days?: number;
         };
         Relationships: [];
       };

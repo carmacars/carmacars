@@ -5,7 +5,8 @@ export default {
   code: 'insurer_invoice',
   audience: 'insurer',
   category: 'transactional',
-  from: FROM.billing,
+  // sent as Blind Spot Car Rental, replies to its mailbox (0187)
+  from: FROM.blindspot,
   digest: false,
   trigger: 'An insurer invoice is sent from the admin portal (Send by email): the invoice for a replacement rental billed to an insurer, with a 7-day link to the PDF. Sending again sends a new email.',
   timing: 'When Finance or an Admin sends the invoice',

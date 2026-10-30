@@ -47,6 +47,8 @@ export function adminTaskHref(t: Pick<Task, 'task_type' | 'booking_number' | 've
   if (n && (VERIFY.includes(t.task_type) || t.task_type === 'live_rental_agreement')) return `/admin/bookings/${n}?tab=documents`;
   if (n && CHANGES.includes(t.task_type)) return `/admin/bookings/${n}?tab=changes`;
   if (n && MONEY.includes(t.task_type)) return `/admin/bookings/${n}?tab=money`;
+  // the renter wrote on the booking: its Messages tab, where the Admin answers by email (0187)
+  if (n && t.task_type === 'renter_message') return `/admin/bookings/${n}?tab=messages`;
   if (['debit_failed', 'arrears', 'collect_upfront', 'owner_overpayment'].includes(t.task_type)) return t.invoice_number ? `/admin/invoices/${encodeURIComponent(t.invoice_number)}` : t.owner_id ? `/admin/owners/${t.owner_id}?tab=invoices` : '/admin/invoices';
   if (['owner_intake', 'onboarding_disclosure'].includes(t.task_type)) return t.owner_id ? `/admin/owners/${t.owner_id}` : '/admin/applications';
   if (['first_last_decide', 'check_owner_document'].includes(t.task_type)) return t.owner_id ? `/admin/owners/${t.owner_id}${t.task_type === 'first_last_decide' ? '?tab=terms' : ''}` : '/admin/owner-forms';

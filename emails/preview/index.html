@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>192 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>76</span></a><a href="#owner">Owner <span>45</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>7</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>193 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>77</span></a><a href="#owner">Owner <span>45</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: VA finance <span>9</span></a><a href="#staff_va_fleet">Staff: VA fleet <span>10</span></a><a href="#staff_va_cs">Staff: VA customer service <span>13</span></a><a href="#staff_va_sales">Staff: VA sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>7</span></a></nav>
 <main>
-<h2 id="renter">Renter (76)</h2>
+<h2 id="renter">Renter (77)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -43,6 +43,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A one-time sign-in link is requested for any account (the sign-in service magic link event). Also used as the invitation when an admin creates an owner, investor or staff account.</div>
 <div class="ln"><a href="../dist/account_sign_in_link.html">HTML</a><a href="../dist/account_sign_in_link.txt">Text</a><a href="../shots/account_sign_in_link.desktop.png">Desktop</a><a href="../shots/account_sign_in_link.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/insurance_staff_message.html"><img loading="lazy" src="../shots/insurance_staff_message.desktop.png" alt="Screenshot of insurance_staff_message"></a><div class="b">
+<div class="code">insurance_staff_message</div><div class="sub">Replacement rental for claim CL-2026-77812</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">A staff member writes from a booking billed to an insurer and sends it as Blind Spot Car Rental (insurance): Email the adjuster (to the adjuster's email on the booking), or Email the renter with Blind Spot Car Rental chosen as the sender (migration 0187). The subject is the one they typed. The message is kept on the booking with who sent it. One email per message.</div>
+<div class="ln"><a href="../dist/insurance_staff_message.html">HTML</a><a href="../dist/insurance_staff_message.txt">Text</a><a href="../shots/insurance_staff_message.desktop.png">Desktop</a><a href="../shots/insurance_staff_message.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_accident_instructions.html"><img loading="lazy" src="../shots/renter_accident_instructions.desktop.png" alt="Screenshot of renter_accident_instructions"></a><div class="b">
 <div class="code">renter_accident_instructions</div><div class="sub">What to do now, booking CC-10482</div>
@@ -465,9 +471,9 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/renter_signing_code.html">HTML</a><a href="../dist/renter_signing_code.txt">Text</a><a href="../shots/renter_signing_code.desktop.png">Desktop</a><a href="../shots/renter_signing_code.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_staff_message.html"><img loading="lazy" src="../shots/renter_staff_message.desktop.png" alt="Screenshot of renter_staff_message"></a><div class="b">
-<div class="code">renter_staff_message</div><div class="sub">A message about your booking CC-10482</div>
+<div class="code">renter_staff_message</div><div class="sub">Your booking CC-10482</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">A customer service or sales assistant (or an Admin) replies to the renter in the messages of a booking. The message is kept on the booking and shown in the renter's account; this email carries it with a link to reply there. One email per message.</div>
+<div class="tr">A staff member (customer service, Sales, Fleet, Finance or an Admin) writes to the renter from the booking (Email the renter, or a reply in the booking's messages), sent as CarmaCars. The subject is the one they typed. The message is kept on the booking and shown in the renter's account; this email carries it with a link to reply there. One email per message.</div>
 <div class="ln"><a href="../dist/renter_staff_message.html">HTML</a><a href="../dist/renter_staff_message.txt">Text</a><a href="../shots/renter_staff_message.desktop.png">Desktop</a><a href="../shots/renter_staff_message.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_trip_checkin.html"><img loading="lazy" src="../shots/renter_trip_checkin.desktop.png" alt="Screenshot of renter_trip_checkin"></a><div class="b">

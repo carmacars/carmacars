@@ -121,7 +121,7 @@ writeFileSync(join(ROOT, 'catalogue.json'), JSON.stringify({
   generated_by: 'emails/build.mjs. Do not edit by hand; edit emails/src/emails/<code>.mjs and rebuild.',
   event_key: 'The event key of every email is its code. The database emits it with app.emit_event(code, entity, entity_id, payload, dedupe_key); the payload carries the values named in variables.',
   reply_to_aliases: ALIASES,
-  reply_to_rule: 'Each email has its own reply_to: investors to investors@; staff to contact@; emails sent from billing to billing@; owners to owners@; renter booking emails to bookings@; other renter emails to contact@; an email may name another alias (privacy@ for account security).',
+  reply_to_rule: 'Each email has its own reply_to: emails sent as Blind Spot Car Rental to blindspotcarrental@; investors to investors@; staff to contact@; emails sent from billing to billing@; owners to owners@; renter booking emails to bookings@; other renter emails to contact@; an email may name another alias (privacy@ for account security).',
   global_variables: Object.keys(GLOBALS).map((k) => ({ name: k, type: 'string', sample: GLOBALS[k], note: GLOBAL_NOTES[k] })),
   count: catalogue.length,
   emails: catalogue,

@@ -391,7 +391,7 @@ select test.eq('catalogue: those two are documented as sent by the sign-in servi
   (select string_agg(code, ',' order by code) from notification_catalogue where emitted_by like 'not emitted%'), 'account_password_reset,account_security_notice');
 select test.eq('catalogue: the two message emails are in the catalogue, with what emits them',
   (select string_agg(code || '=' || emitted_by, '; ' order by code) from notification_catalogue where code in ('renter_staff_message', 'staff_renter_replied')),
-  'renter_staff_message=app.staff_send_message (0033); staff_renter_replied=app.renter_send_message (0033)');
+  'renter_staff_message=app.staff_send_message (0033), app.booking_email_send (0187); staff_renter_replied=app.renter_send_message (0033)');
 
 -- ---------------------------------------------------------------- 14. the live verification's test accounts
 select test.throws('verify accounts: only verify-<name>@carmacars.ca addresses',

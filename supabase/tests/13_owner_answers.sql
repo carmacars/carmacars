@@ -428,8 +428,8 @@ select test.eq('12 the mailing address is required before marketing emails go ou
   (select string_agg((p ->> 'field') || ':' || coalesce(p ->> 'blocks', '-'), ' ') from jsonb_array_elements(app.site_setup_problems()) p
     where p ->> 'field' = 'mailing_address'), 'mailing_address:marketing_emails');
 update site_settings set mailing_address = 'PO Box 1, Toronto, ON';
-select test.eq('12 the six staff aliases', (select string_agg(split_part(address, '@', 1), ',' order by address) from email_aliases),
-  'billing,bookings,contact,investors,owners,privacy');
+select test.eq('12 the six staff aliases, and Blind Spot Car Rental''s for the insurance emails (0187)', (select string_agg(split_part(address, '@', 1), ',' order by address) from email_aliases),
+  'billing,blindspotcarrental,bookings,contact,investors,owners,privacy');
 select test.eq('12 reply-to per audience (money emails to billing), editable in a table',
   app.email_reply_to_for('renter_booking_confirmed', 'renter') || ' ' || app.email_reply_to_for('owner_new_booking', 'owner') || ' '
   || app.email_reply_to_for('investor_return_paid', 'investor') || ' '

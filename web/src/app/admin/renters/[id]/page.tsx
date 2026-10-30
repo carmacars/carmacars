@@ -11,6 +11,8 @@ import type { PhoneTimelineData } from '@/features/phone/client';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
 import { RenterMerge, type DuplicateRow } from '@/features/money/RenterMerge';
 import { door } from '@/server/door';
+import { BookingConversation } from '@/features/messages/BookingConversation';
+import type { Conversation } from '@/features/messages/email-choices';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Renter', path: '/admin/renters', noindex: true, description: 'One renter: details, bookings and visits on the site.' });
@@ -21,8 +23,8 @@ type R = { id: string; name: string; email: string | null; mobile: string | null
   captured?: Array<{ form: string; name: string | null; email: string | null; phone: string | null; at: string; done: boolean }> };
 
 // People > Renters > a renter (migration 0060): the record, the bookings, and what they looked at on the site and their chats.
-export default async function Renter({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function Renter({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { read, user } = await page(`/admin/renters/${id}`);
   const [r, calls] = await Promise.all([read<R>('renter_live', { renter_id: id }).catch(() => null), read<PhoneTimelineData>('phone_timeline', { renter_id: id }).catch(() => null)]);
@@ -32,6 +34,11 @@ export default async function Renter({ params }: { params: Promise<{ id: string 
   const rf = await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { renter: id }).catch(() => null);
   // the same person entered twice (0148)
   const dupes = await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: id }).catch(() => [] as DuplicateRow[]);
+  // Email the renter (0187): an email goes with one of their bookings (the latest unless another is chosen), so it is kept
+  // on that booking's messages and the renter can answer it in their account
+  const latest = [...r.bookings].sort((a, b) => (a.pickup_at < b.pickup_at ? 1 : -1))[0];
+  const chosen = r.bookings.find((b) => b.number === sp.booking) ?? latest;
+  const conv = chosen ? await door<Conversation>(user.id, 'ops_read', 'booking_conversation', { booking: chosen.number }).catch(() => null) : null;
   return (
     <>
       <PageHead title={r.name} kicker="Renter"><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/renters">All renters</Link></PageHead>
@@ -55,6 +62,12 @@ export default async function Renter({ params }: { params: Promise<{ id: string 
           <Card title="On the site" testId="renter-visits"><VisitorTimeline t={r.timeline} chatBase="/admin/chat" /></Card>
         </div>
       </div>
+      <section className="stack" id="email" data-testid="renter-email">
+        <h2 className="d4">Email the renter</h2>
+        {r.bookings.length > 1 && <p className="small">About booking: {r.bookings.map((b, i) => <span key={b.number}>{i ? ' · ' : ''}{b.number === chosen?.number ? <b>{b.number}</b> : <Link prefetch={false} className="link" href={`/admin/renters/${id}?booking=${encodeURIComponent(b.number)}#email`}>{b.number}</Link>}</span>)}</p>}
+        {conv ? <BookingConversation c={conv} refresh={[`/admin/renters/${id}`]} />
+          : <p className="small muted">{r.bookings.length ? 'The messages could not be read. Reload the page.' : 'An email goes with one of the renter\u2019s bookings, so they can answer it in their account. This renter has no booking yet: call them, or answer their request or chat.'}</p>}
+      </section>
     </>
   );
 }
