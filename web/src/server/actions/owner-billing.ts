@@ -58,6 +58,17 @@ export async function carTermsChange(t: CarTermsInput, paths: string[] = []) {
   if (Object.keys(fe).length) return invalid(fe);
   return act<CarTermsPlan>('car_terms_change', t as unknown as J, t.preview ? [] : ['/admin/owners', ...paths]);
 }
+// How the owner is paid for one car (0196): revenue share, or a flat monthly payment from a date (to an optional last day).
+export interface CarPayInput { vehicle_id: string; arrangement: 'flat_monthly' | 'revenue_share'; monthly_cents?: number; from: string; until?: string; reason: string; preview?: boolean }
+export interface CarPayPlan { done: boolean; steps: string[]; invoices: Array<{ invoice_number: string; period_month: string; status: string }>; earliest?: string | null }
+export async function carPaySet(t: CarPayInput, paths: string[] = []) {
+  const fe: Record<string, string> = {};
+  if (t.arrangement === 'flat_monthly' && (!Number.isInteger(t.monthly_cents) || (t.monthly_cents ?? 0) <= 0)) fe.monthly_cents = 'Dollars and cents, for example 900.00.';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t.from ?? '')) fe.from = 'Choose the date.';
+  if (!t.preview && !(t.reason ?? '').trim()) fe.reason = 'Give the reason.';
+  if (Object.keys(fe).length) return invalid(fe);
+  return act<CarPayPlan>('car_pay_set', t as unknown as J, t.preview ? [] : ['/admin/owners', ...paths]);
+}
 // A signed car's Management Mode (0165): managed, self-managed or Turo-only, from a date, with a reason; against the owner it needs their signature and the notice period.
 export interface ModeChangeInput { vehicle_id: string; management_mode: string; onboarding_method?: string; effective_from?: string; reason?: string; owner_requested?: boolean; revenue_share_bps?: number;
   insurance_fee_cents?: number; tracker_fee_cents?: number; preview?: boolean }

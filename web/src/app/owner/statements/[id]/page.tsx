@@ -9,11 +9,14 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Statement', path: '/owner/statements', noindex: true, description: 'A monthly owner statement.' });
 
 const c = (v?: number) => (v === undefined || v === null ? '' : money(v, { cents: true }));
-const LINE: Record<string, string> = { rental: 'Rental', turo_trip: 'Turo trip', withheld: 'Withheld (chargeback open)', fees_deducted: 'Unpaid Fees deducted', owner_cost: 'Owner cost deducted', refund_or_chargeback: 'Earlier refund or chargeback', arrears_moved: 'Arrears moved', kickback_earned: 'Referral Kickback earned', hst_on_payout: 'HST on payout', balance_brought_forward: 'Balance brought forward', credit: 'Credit' };
+const LINE: Record<string, string> = { rental: 'Rental', turo_trip: 'Turo trip', withheld: 'Withheld (chargeback open)', fees_deducted: 'Unpaid Fees deducted', owner_cost: 'Owner cost deducted', refund_or_chargeback: 'Earlier refund or chargeback', arrears_moved: 'Arrears moved', kickback_earned: 'Referral Kickback earned', hst_on_payout: 'HST on payout', balance_brought_forward: 'Balance brought forward', credit: 'Credit', later_revenue: 'Credit', flat_payment: 'Flat monthly payment' };
 
 function LineRow({ l }: { l: StatementLine }) {
   const ref = l.booking_number ? `Booking ${l.booking_number}` : l.invoice_number ? `Invoice ${l.invoice_number}` : l.from_vehicle_name ? `From ${l.from_vehicle_name}` : '';
-  const detail = l.line_type === 'rental'
+  const detail = (l.line_type === 'rental' || l.line_type === 'turo_trip') && l.flat_arrangement_id
+    // 0196: a rental on a flat monthly payment car stays with CarmaCars
+    ? [l.starts_on && `${day(l.starts_on)} to ${day(l.ends_on)}`, 'Flat monthly payment: CarmaCars keeps the rental']
+    : l.line_type === 'rental'
     ? [l.starts_on && `${day(l.starts_on)} to ${day(l.ends_on)}`, `Rental Charge ${c(l.rental_charge_cents)}`, l.mileage_overage_cents ? `mileage ${c(l.mileage_overage_cents)}` : '', l.refunds_cents ? `refunds ${c(-l.refunds_cents)}` : '', l.chargebacks_cents ? `chargebacks ${c(-l.chargebacks_cents)}` : '', (l.kickback_cents ?? 0) - (l.staff_commission_cents ?? 0) ? `Referral Kickback ${c(-((l.kickback_cents ?? 0) - (l.staff_commission_cents ?? 0)))}` : '', l.staff_commission_cents ? `Staff commission ${c(-l.staff_commission_cents)}` : '', l.owner_expense_cents ? `Booking expenses ${c(-l.owner_expense_cents)}` : '', `Owner Revenue ${c(l.owner_revenue_cents)}`,
        l.booking_share_bps !== null && l.booking_share_bps !== undefined ? `Revenue Share for this booking ${(l.booking_share_bps / 100).toFixed(l.booking_share_bps % 100 ? 2 : 0)}%` : '',
        // 0156: each documented deduction with its reason, as the statement stores it
@@ -42,8 +45,10 @@ export default async function OwnerStatementPage({ params }: { params: Promise<{
               <div className="pt-card__head"><h2 className="d4">{v.name}</h2><span className="small muted">{[v.plate, MODE_LABEL[v.management_mode]].filter(Boolean).join(' · ')}</span></div>
               {v.lines.length ? <ul className="ow-rows">{v.lines.map((l) => <LineRow key={l.id} l={l} />)}</ul> : <p className="small muted">No rentals ended this month.</p>}
               <dl className="pt-dl pt-dl--money">
+                {(v.totals.flat_payment_cents ?? 0) > 0 && <div><dt>Flat monthly payment</dt><dd>{c(v.totals.flat_payment_cents)}</dd></div>}
+                {!((v.totals.flat_payment_cents ?? 0) > 0 && !v.totals.owner_revenue_cents && !v.totals.revenue_share_cents) && <>
                 <div><dt>Owner Revenue</dt><dd>{c(v.totals.owner_revenue_cents)}</dd></div>
-                <div><dt>Revenue Share</dt><dd>{c(-(v.totals.revenue_share_cents ?? 0))}</dd></div>
+                <div><dt>Revenue Share</dt><dd>{c(-(v.totals.revenue_share_cents ?? 0))}</dd></div></>}
                 <div><dt>Net earnings</dt><dd>{c(v.totals.net_earnings_cents)}</dd></div>
                 {(v.totals.fees_deducted_cents ?? 0) + (v.totals.late_fees_deducted_cents ?? 0) + (v.totals.owner_costs_deducted_cents ?? 0) + (v.totals.refund_chargeback_deducted_cents ?? 0) > 0 && <div><dt>Deductions</dt><dd>{c(-((v.totals.fees_deducted_cents ?? 0) + (v.totals.late_fees_deducted_cents ?? 0) + (v.totals.owner_costs_deducted_cents ?? 0) + (v.totals.refund_chargeback_deducted_cents ?? 0)))}</dd></div>}
                 <div><dt><b>Vehicle payable</b></dt><dd className="pt-total">{c(v.totals.payable_cents)}</dd></div>

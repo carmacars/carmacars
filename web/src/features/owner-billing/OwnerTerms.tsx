@@ -1,4 +1,4 @@
-import { fmtDay, m, pc, sinceLine, type CarTermsData, type CarTermsRow } from './terms-shared';
+import { fmtDay, m, payLine, pc, sinceLine, type CarTermsData, type CarTermsRow } from './terms-shared';
 import './car-terms.css';
 
 // The owner portal's view of their terms (migration 0135): which terms apply to which car and from when, what is
@@ -19,9 +19,9 @@ export function OwnerTermsSummary({ data }: { data: CarTermsData }) {
           <tbody>{data.cars.map((c) => (
             <tr key={c.vehicle_id} data-testid="owner-terms-row">
               <th scope="row" data-label="Car"><a className="link" href={`/owner/vehicles/${c.vehicle_id}#ow-terms`}><b>{c.name}</b></a><span className="small ct-state">{STATE[c.state] ?? c.state}{c.schedule_number ? `, ${c.schedule_number}` : ''}</span></th>
-              <td data-label="Insurance fee a month" className="num">{m(c.current.insurance_fee_cents)}</td>
-              <td data-label="Tracker fee a month" className="num">{m(c.current.tracker_fee_cents)}</td>
-              <td data-label="Revenue Share" className="num">{pc(c.current.revenue_share_bps)}</td>
+              <td data-label="Insurance fee a month" className="num">{flat(c) ? 'None' : m(c.current.insurance_fee_cents)}</td>
+              <td data-label="Tracker fee a month" className="num">{flat(c) ? 'None' : m(c.current.tracker_fee_cents)}</td>
+              <td data-label="Revenue Share" className="num">{flat(c) ? `Flat ${m(c.pay!.monthly_cents)} a month` : pc(c.current.revenue_share_bps)}</td>
               <td data-label="Since">{sinceLine(c)}</td>
               <td data-label="Coming">{next(c)}</td>
             </tr>))}</tbody>
@@ -32,7 +32,11 @@ export function OwnerTermsSummary({ data }: { data: CarTermsData }) {
   );
 }
 
+// 0196: a car paid a flat monthly payment has no fees and no revenue share while it lasts
+const flat = (c: CarTermsRow) => c.pay?.arrangement === 'flat_monthly';
+
 function next(c: CarTermsRow) {
+  if (c.pay?.next) return c.pay.next.arrangement === 'flat_monthly' ? payLine(c) : `From ${fmtDay(c.pay.next.from)}: revenue share again`;
   if (c.awaiting) return <a className="link" href={`/owner/sign/schedule/${c.awaiting.change_id}`}>Updated Vehicle Schedule to sign (from {fmtDay(c.awaiting.effective_from)})</a>;
   const f = c.scheduled[0];
   if (!f) return 'Nothing';
@@ -43,7 +47,8 @@ function next(c: CarTermsRow) {
 export function OwnerTermsHistory({ car }: { car: CarTermsRow }) {
   return (
     <div className="stack ct" data-testid="owner-terms-history">
-      <p className="small"><b>In force:</b> {m(car.current.insurance_fee_cents)} insurance and {m(car.current.tracker_fee_cents)} tracker a month, {pc(car.current.revenue_share_bps)} Revenue Share, since {sinceLine(car).replace(/^From/, 'from')}.</p>
+      {flat(car) && <p className="small" data-testid="owner-terms-flat"><b>How you are paid:</b> {payLine(car)}. We pay you this amount every month, rented or not (part months by the day); there is no Revenue Share and no insurance or tracker fee for this car while it lasts, and the rentals stay with CarmaCars.</p>}
+      <p className="small"><b>{flat(car) ? 'Your terms for revenue share:' : 'In force:'}</b> {m(car.current.insurance_fee_cents)} insurance and {m(car.current.tracker_fee_cents)} tracker a month, {pc(car.current.revenue_share_bps)} Revenue Share, since {sinceLine(car).replace(/^From/, 'from')}.</p>
       {car.awaiting && <p className="small">An updated Vehicle Schedule (from {fmtDay(car.awaiting.effective_from)}) is waiting for your signature. <a className="link" href={`/owner/sign/schedule/${car.awaiting.change_id}`}>Read and sign it</a></p>}
       {car.scheduled.map((p, i) => <p key={i} className="small" data-testid="owner-terms-coming"><b>From {fmtDay(p.from)}:</b> {m(p.insurance_fee_cents)} insurance, {m(p.tracker_fee_cents)} tracker, {pc(p.revenue_share_bps)} Revenue Share.</p>)}
       <details><summary className="link small">History</summary>

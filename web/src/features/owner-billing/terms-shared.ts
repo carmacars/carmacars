@@ -16,7 +16,13 @@ export interface CarTermsRow { vehicle_id: string; name: string; plate: string |
   /** 0165: a signed car's pending Management Mode change, and what an Admin may do */
   mode_next?: { mode: string; from: string; status: string } | null;
   mode_change?: { may: boolean; options: Record<string, Array<{ method: string; label: string; recommended: boolean }>> | null; notice_days: number } | null;
+  pay?: CarPay | null;
   editable?: { fees: boolean; install: boolean; mode: boolean } | null; options?: Record<string, Array<{ method: string; label: string; recommended: boolean }>> | null }
+/** How the owner is paid for the car (0196): revenue share (the terms above) or a flat monthly payment, by period. */
+export interface CarPay { arrangement: 'revenue_share' | 'flat_monthly'; monthly_cents: number | null; since: string | null; until: string | null;
+  next: { arrangement: 'revenue_share' | 'flat_monthly'; monthly_cents?: number; from: string; until?: string | null } | null;
+  periods: Array<{ id: string; monthly_cents: number; from: string; to: string | null; current: boolean; future: boolean; reason?: string | null; ended_reason?: string | null; by?: string | null; at: string }>;
+  may_set: boolean; earliest?: string | null }
 export interface CarTermsData { today: string; notice_days: number; earliest_raise: string; owner_id?: string | null; cars: CarTermsRow[] }
 
 export const fmtDay = (iso?: string | null) => (iso ? new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-CA', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }) : '');
@@ -38,3 +44,12 @@ export function sinceLine(c: CarTermsRow) {
   return c.since ? fmtDay(c.since) : '';
 }
 
+
+/** The pay line of a car (0196): "Flat monthly payment $900.00 a month since Aug 1, 2026", or empty on revenue share. */
+export function payLine(c: CarTermsRow) {
+  const p = c.pay;
+  if (!p) return '';
+  if (p.arrangement === 'flat_monthly') return `Flat monthly payment ${m(p.monthly_cents)} a month since ${fmtDay(p.since)}${p.until ? `, to ${fmtDay(p.until)}` : ''}`;
+  if (p.next?.arrangement === 'flat_monthly') return `Flat monthly payment ${m(p.next.monthly_cents)} a month from ${fmtDay(p.next.from)}`;
+  return '';
+}

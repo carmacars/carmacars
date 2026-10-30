@@ -6,7 +6,7 @@ import type { OwnerMonthToDate } from './types';
 // The owner's month to date (0151): the statement this month would give today, marked provisional (bookings, revenue,
 // fees, the expected payout), and the rentals still under way. An approved statement for the month is the final one and
 // is linked instead. A plain section: the owner portal's design styles it (ow-mtd).
-const LINE: Record<string, string> = { rental: 'Rental', turo_trip: 'Turo trip', fees_deducted: 'Fees', late_fee: 'Late fee', owner_cost: 'Cost', credit: 'Credit', kickback: 'Referral kickback' };
+const LINE: Record<string, string> = { rental: 'Rental', turo_trip: 'Turo trip', fees_deducted: 'Fees', late_fee: 'Late fee', owner_cost: 'Cost', credit: 'Credit', kickback: 'Referral kickback', later_revenue: 'Credit', flat_payment: 'Flat monthly payment' };
 const c = (v: number | null | undefined) => money(Number(v ?? 0), { cents: true });
 
 export function MonthToDate({ m }: { m: OwnerMonthToDate | null }) {

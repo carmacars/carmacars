@@ -183,6 +183,9 @@ def build():
         f'Press {B("Download PDF")} to keep a copy. We also email it to you with the PDF attached.',
         'Payouts shows what was paid to you and when. Payouts are made on the 10th for the month before.',
     ], shot=S('owner/09-statement-desktop', 0, 280, 1440, 1000, pins=[(2, 230, 450), (1, 950, 532)]))
+    g.tip('Paid a flat monthly payment for a car? Its statement shows a Flat monthly payment line for the month (a part month by the day) instead of the Revenue Share. '
+          'The car\'s rentals are listed without amounts paid to you, as CarmaCars keeps them, and there is no insurance or tracker fee for it. '
+          'A booking expense is taken off only when we charge it to you; it then shows as an owner cost with its reason. Vehicles shows the amount and since when.', label='Good to know')
 
     # ---------------------------------------------------------------- 5
     g.chapter('Documents and forms',
