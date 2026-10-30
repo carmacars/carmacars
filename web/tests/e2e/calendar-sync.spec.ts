@@ -53,7 +53,8 @@ async function signIn(page: Page, email: string, expectPath: string) {
 async function twoCars(sql: Sql) {
   const rows = await sql`select v.id, l.slug, x.token from vehicles v join vehicle_listings l on l.vehicle_id = v.id join vehicle_calendar_exports x on x.vehicle_id = v.id
     where l.status = 'published' and v.partner_id is null and (not v.is_sample or v.sample_bookable)
-      and v.retired_at is null and v.status not in ('exited', 'total_loss', 'declined') order by l.slug`;   // the page lists cars still in the fleet (another test may retire its own car meanwhile)
+      and v.retired_at is null and v.status not in ('exited', 'total_loss', 'declined')
+      and exists (select 1 from public_vehicle_listings p where p.vehicle_id = v.id) order by l.slug`;   // public cars (not one another test closed to bookings); the page lists cars still in the fleet (another test may retire its own car meanwhile)
   const off = isPhone() ? 0 : 2;
   return { a: rows[off]!, b: rows[off + 1]! };
 }
@@ -81,7 +82,7 @@ test('Calendar sync: Fleet adds a calendar link, its trip blocks the car at once
   page.on('dialog', (d) => { void d.accept(); });
   await signIn(page, fleet.email, '/staff');
   if (isPhone()) await page.getByTestId('va-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
-  await page.getByTestId('va-nav').getByRole('button', { name: 'Cars', exact: true }).click();
+  await page.getByTestId('va-nav').getByRole('button', { name: 'Fleet', exact: true }).click();
   await expect(page.getByTestId('va-nav').getByRole('link', { name: 'Calendar sync' })).toBeVisible();
   await page.goto('/staff/calendar-sync', { waitUntil: 'networkidle' });
   const car = page.getByTestId(`cs-car-${b.id}`);

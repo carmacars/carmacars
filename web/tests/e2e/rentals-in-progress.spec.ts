@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, strongSign } from './helpers';
+import { acceptCookies, db, noOverflow, strongSign, completeAgreementDetails } from './helpers';
 
 // Migration 0074 end to end: Add a rental decides the case from the dates, with nothing to tick. An Admin adds the
 // owner's case (the car went out yesterday, back in five days), recorded as on trip; the form says which case it is
@@ -203,8 +203,10 @@ test('renter: a rental already underway with a payment link: sign in the portal,
     await page.locator('#pt-d-licence_number').fill('W1234-56789-01234');
     await page.locator('#pt-d-licence_expiry').fill('2031-06-30');
     await page.getByRole('button', { name: 'Save details' }).click();
+    await completeAgreementDetails(page);
     await expect(page.locator('.agreement')).toContainText('100 Queen Street West', { timeout: 15_000 });
   }
+  await completeAgreementDetails(page);
   await expect(page.getByTestId('sign-pay-after')).toBeVisible();
   await check(page, 'renter: sign a rental underway');
   await page.getByTestId('consents-all').check();
