@@ -94,6 +94,8 @@ export interface StatementLine {
   fee_cents?: number; late_fee_cents?: number; amount_cents: number;
   /** 0156: the booking's documented expenses taken off before Owner Revenue, and its own Revenue Share */
   owner_expense_cents?: number; booking_share_bps?: number | null;
+  /** 0196: the flat monthly payment period of the line (a flat_payment line, or a rental CarmaCars keeps) */
+  flat_arrangement_id?: string | null;
 }
 export interface OwnerStatement {
   statement: { id: string; statement_number: string; statement_month: string; payout_date: string; status: string; is_final: boolean;

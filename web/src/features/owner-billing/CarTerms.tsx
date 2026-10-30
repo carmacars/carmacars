@@ -2,7 +2,7 @@
 import { Fragment, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
-import { carModeChange, carTermsCancel, carTermsChange, scheduleChange, type CarTermsInput, type CarTermsPlan, type ModeChangeInput, type ModeChangePlan } from '@/server/actions/owner-billing';
+import { carModeChange, carPaySet, carTermsCancel, carTermsChange, scheduleChange, type CarPayInput, type CarPayPlan, type CarTermsInput, type CarTermsPlan, type ModeChangeInput, type ModeChangePlan } from '@/server/actions/owner-billing';
 import { MODE_LABEL } from '@/features/owner/types';
 import { dollars, pctOf, toCents } from './shared';
 import './car-terms.css';
@@ -13,7 +13,7 @@ import './car-terms.css';
 // once signed, lower amounts from today or a chosen date, higher ones by written notice (and the owner's signature for
 // a higher management fee). History lists every period and every change, with the notice and Cancel for what has not
 // started. The same component serves the owner page (every car) and the car page (one car).
-import { fmtDay, m, pc, sinceLine, stateLine, STATUS_TEXT, type CarTermsData, type CarTermsRow } from './terms-shared';
+import { fmtDay, m, payLine, pc, sinceLine, stateLine, STATUS_TEXT, type CarTermsData, type CarTermsRow } from './terms-shared';
 export type { CarTermsData, CarTermsRow } from './terms-shared';
 
 type Vals = { ins: string; trk: string; share: string; inst: string; mode: string; method: string };
@@ -131,6 +131,59 @@ function ModeChange({ c, data, paths, onClose }: { c: CarTermsRow; data: CarTerm
   );
 }
 
+// How the owner is paid for the car (0196): revenue share (the terms in the row) or a flat monthly payment from a date,
+// to an optional last day. Admin only. Review shows what happens (nothing saved); Confirm saves it. The periods stay in
+// the history; a month already on an approved owner statement never changes.
+function PayPanel({ c, data, paths, onClose }: { c: CarTermsRow; data: CarTermsData; paths: string[]; onClose: () => void }) {
+  const router = useRouter();
+  const a = useAct<CarPayPlan>();
+  const uid = `cp-${useId().replace(/[^\w-]/g, '')}`;
+  const p = c.pay!;
+  const earliest = p.earliest ?? undefined;
+  const [kind, setKind] = useState<'flat_monthly' | 'revenue_share'>(p.arrangement === 'flat_monthly' ? 'revenue_share' : 'flat_monthly');
+  const [amount, setAmount] = useState(p.monthly_cents ? dollars(p.monthly_cents) : '');
+  const [from, setFrom] = useState(earliest && earliest > data.today ? earliest : data.today);
+  const [until, setUntil] = useState('');
+  const [reason, setReason] = useState('');
+  const [plan, setPlan] = useState<CarPayPlan | null>(null);
+  const [done, setDone] = useState<CarPayPlan | null>(null);
+  const body = (preview: boolean): CarPayInput => ({ vehicle_id: c.vehicle_id, arrangement: kind, from, reason: reason.trim(), preview,
+    ...(kind === 'flat_monthly' ? { monthly_cents: toCents(amount), ...(until ? { until } : {}) } : {}) });
+  const change = (f: () => void) => { f(); setPlan(null); };
+  if (done) return <div className="alert alert--ok stack" role="status" data-testid="car-pay-done"><span className="alert__title">Saved</span>{done.steps.map((x, i) => <span key={i}>{x}</span>)}
+    <button type="button" className="btn btn--quiet btn--sm" onClick={onClose}>Close</button></div>;
+  return (
+    <div className="stack ct-panel" data-testid="car-pay-panel">
+      <p className="small">How {c.name}&apos;s owner is paid. A flat monthly payment is the same amount every month, rented or not (part months by the day): no revenue share, no Insurance Fee or Tracker Fee, and CarmaCars keeps the rentals. A booking expense reaches the owner only when you mark it Charge to the owner on the booking.</p>
+      <fieldset className="field"><legend className="label">Pay</legend>
+        <label className="check"><input type="radio" name={`${uid}-k`} checked={kind === 'flat_monthly'} onChange={() => change(() => setKind('flat_monthly'))} data-testid="car-pay-flat" /> <span>Flat monthly payment</span></label>
+        <label className="check"><input type="radio" name={`${uid}-k`} checked={kind === 'revenue_share'} onChange={() => change(() => setKind('revenue_share'))} data-testid="car-pay-share" /> <span>Revenue share (the car&apos;s terms)</span></label>
+      </fieldset>
+      <div className="field-row">
+        {kind === 'flat_monthly' && <div className="field"><label className="label" htmlFor={`${uid}-amt`}>Amount a month ($)</label>
+          <input className="input" id={`${uid}-amt`} inputMode="decimal" value={amount} placeholder="900.00" onChange={(e) => change(() => setAmount(e.target.value))} data-testid="car-pay-amount" /></div>}
+        <div className="field"><label className="label" htmlFor={`${uid}-from`}>From</label>
+          <input className="input" type="date" id={`${uid}-from`} value={from} min={earliest} onChange={(e) => change(() => setFrom(e.target.value))} data-testid="car-pay-from" /></div>
+        {kind === 'flat_monthly' && <div className="field"><label className="label" htmlFor={`${uid}-until`}>Last day (optional)</label>
+          <input className="input" type="date" id={`${uid}-until`} value={until} min={from} onChange={(e) => change(() => setUntil(e.target.value))} data-testid="car-pay-until" /></div>}
+      </div>
+      {earliest && <p className="hint">The owner statement before {fmtDay(earliest)} is approved: a change starts on {fmtDay(earliest)} at the earliest.</p>}
+      <div className="field"><label className="label" htmlFor={`${uid}-why`}>Reason (kept in the history)</label>
+        <input className="input" id={`${uid}-why`} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="car-pay-reason" /></div>
+      {plan && <ul className="ct-steps" data-testid="car-pay-plan" aria-live="polite">{plan.steps.map((x, i) => <li key={i}>{x}</li>)}</ul>}
+      {a.res && !a.res.ok && <p className="alert alert--error" role="alert" data-testid="car-pay-error"><span>{a.res.message}</span></p>}
+      <div className="row ct-actions">
+        {!plan ? <button type="button" className="btn btn--primary btn--sm" disabled={a.pending} onClick={() => a.run(() => carPaySet(body(true), paths), (r) => { if (r.ok) setPlan(r.data); })} data-testid="car-pay-review">{a.pending ? 'Checking' : 'Review'}</button>
+          : <button type="button" className="btn btn--primary btn--sm" disabled={a.pending || !reason.trim()} onClick={() => a.run(() => carPaySet(body(false), paths), (r) => { if (r.ok) { setDone(r.data); setPlan(null); router.refresh(); } })} data-testid="car-pay-confirm">{a.pending ? 'Saving' : 'Confirm'}</button>}
+        <button type="button" className="btn btn--quiet btn--sm" onClick={onClose}>Cancel</button>
+      </div>
+      {p.periods.length > 0 && <ul className="ct-periods" data-testid="car-pay-periods">{p.periods.map((x) => (
+        <li key={x.id} className={x.current ? 'is-current' : undefined}><span className="ct-when">From {fmtDay(x.from)}{x.to ? ` to ${fmtDay(x.to)}` : ''}{x.current ? ' (in force)' : x.future ? ' (coming)' : ''}</span>
+          <span>{m(x.monthly_cents)} a month</span><span className="small muted">{[x.reason, x.ended_reason && `Ended: ${x.ended_reason}`, x.by].filter(Boolean).join(' · ')}</span></li>))}</ul>}
+    </div>
+  );
+}
+
 function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: string[] }) {
   const router = useRouter();
   const a = useAct<CarTermsPlan>();
@@ -138,6 +191,7 @@ function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: st
   const [edit, setEdit] = useState(false);
   const [hist, setHist] = useState(false);
   const [modeOpen, setModeOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
   const [v, setV] = useState<Vals>(() => valsOf(c));
   const [plan, setPlan] = useState<CarTermsPlan | null>(null);
   const [lower, setLower] = useState(data.today);
@@ -184,7 +238,8 @@ function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: st
     <>
       <tr data-testid="car-terms-row" data-vehicle={c.vehicle_id}>
         <th scope="row" data-label="Car"><span className="ct-car"><b>{c.name}</b>{c.plate ? <span className="small muted"> {c.plate}</span> : null}</span>
-          <span className="small ct-state" data-testid="car-terms-state">{stateLine(c)}{c.awaiting ? ' · updated schedule waiting for the owner' : ''}{c.scheduled.length ? ` · change from ${fmtDay(c.scheduled[0]!.from)}` : ''}{c.mode_next ? ` · ${MODE_LABEL[c.mode_next.mode] ?? c.mode_next.mode} from ${fmtDay(c.mode_next.from)}${c.mode_next.status === 'awaiting_signature' ? ' (waiting for the owner)' : ''}` : ''}</span></th>
+          <span className="small ct-state" data-testid="car-terms-state">{stateLine(c)}{c.awaiting ? ' · updated schedule waiting for the owner' : ''}{c.scheduled.length ? ` · change from ${fmtDay(c.scheduled[0]!.from)}` : ''}{c.mode_next ? ` · ${MODE_LABEL[c.mode_next.mode] ?? c.mode_next.mode} from ${fmtDay(c.mode_next.from)}${c.mode_next.status === 'awaiting_signature' ? ' (waiting for the owner)' : ''}` : ''}</span>
+          {payLine(c) && <span className="small ct-state" data-testid="car-terms-pay">{payLine(c)}{c.pay?.arrangement === 'flat_monthly' && c.pay.next?.arrangement === 'revenue_share' ? ` · revenue share from ${fmtDay(c.pay.next.from)}` : ''}</span>}</th>
         {cell('ins', 'Insurance Fee a month ($)', ed.fees, m(c.current.insurance_fee_cents), 'insurance')}
         {cell('trk', 'Tracker Fee a month ($)', ed.fees, m(c.current.tracker_fee_cents), 'tracker')}
         {cell('share', 'Management fee (Revenue Share, %)', ed.fees, pc(c.current.revenue_share_bps), 'share')}
@@ -203,6 +258,7 @@ function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: st
         <td data-label="Actions" className="ct-buttons">
           {ed.fees && !edit && <button type="button" className="btn btn--ghost btn--sm" onClick={() => { setV(valsOf(c)); setEdit(true); setDone(null); setPlan(null); }} data-testid="car-terms-edit" aria-label={`Edit the terms of ${c.name}`}>Edit</button>}
           {c.mode_change?.may && !modeOpen && <button type="button" className="btn btn--ghost btn--sm" onClick={() => setModeOpen(true)} data-testid="car-mode-open" aria-label={`Change the Management Mode of ${c.name}`}>Change mode</button>}
+          {c.pay?.may_set && !payOpen && <button type="button" className="btn btn--ghost btn--sm" onClick={() => setPayOpen(true)} data-testid="car-pay-open" aria-label={`How the owner of ${c.name} is paid`}>Pay</button>}
           <button type="button" className="btn btn--quiet btn--sm" aria-expanded={hist} onClick={() => setHist(!hist)} data-testid="car-terms-history-toggle" aria-label={`History of ${c.name}`}>History</button>
         </td>
       </tr>
@@ -242,6 +298,7 @@ function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: st
               </div>
             </div>)}
         </td></tr>)}
+      {payOpen && <tr className="ct-panel-row"><td colSpan={cols} data-label=""><PayPanel c={c} data={data} paths={paths} onClose={() => setPayOpen(false)} /></td></tr>}
       {modeOpen && <tr className="ct-panel-row"><td colSpan={cols} data-label=""><ModeChange c={c} data={data} paths={paths} onClose={() => setModeOpen(false)} /></td></tr>}
       {hist && <tr className="ct-panel-row"><td colSpan={cols} data-label=""><History c={c} today={data.today} paths={paths} /></td></tr>}
     </>

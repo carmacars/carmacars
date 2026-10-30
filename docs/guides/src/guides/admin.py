@@ -846,6 +846,16 @@ def build():
     g.para('History, under each car, lists every period of terms (from, to, the amounts, and why: the Vehicle Schedule, a written notice, lowered) and every change with its notice. A change that has not started yet has Cancel (give the reason): the terms before it run on. An updated schedule waiting for the owner has Record signed on paper (with the date) and Withdraw it. One change at a time: cancel or finish the one waiting before making the next.')
     g.para('The same editor is on the car\'s page (Records tab, Owner terms). The owner\'s default terms (for cars whose terms are set later) and the first and last month invoice stay on the Terms tab.')
     g.tip('Invoices follow the dates: a month whose Insurance Fee or Tracker Fee changes part way is billed per day at each rate. The Revenue Share of a rental is the one in force on the day it is booked.', label='Good to know')
+    g.task('Pay an owner a flat monthly amount', 'Some owners want the same amount every month for a car instead of a revenue share and fees. An Admin only, car by car.')
+    g.steps([
+        f'Open the owner\'s Cars and terms table (or the car\'s page) and press {B("Pay")} on the car\'s row.',
+        f'Choose {B("Flat monthly payment")}, type the {B("Amount a month")} (for example 900.00), the date under {B("From")} and, if it ends, the {B("Last day")}. Write the Reason (kept in the history).',
+        f'Press {B("Review")}: it says what happens and lists any monthly invoice already issued for those days. Then press {B("Confirm")}.',
+        'From that date the owner\'s statement pays the amount every month (a part month by the day), with no revenue share and no Insurance Fee or Tracker Fee. Rentals ending on those days stay with CarmaCars, in the company figures.',
+        f'Back to revenue share: press {B("Pay")}, choose Revenue share and the date. The flat period ends the day before; every period stays in the list.',
+    ])
+    g.tip('A month already on an approved owner statement never changes: a new date starts after it. A monthly invoice already issued for flat days stays: void or credit it. '
+          f'A booking expense on a flat car is CarmaCars\' own unless you press {B("Charge to the owner")} beside it on the booking (an Admin only): it is then an owner cost on their statement. Owner costs recorded on the owner\'s account (tickets, tolls, damage of their own use) are charged as before.', label='Good to know')
     g.task('Change a signed car\'s Management Mode', 'Managed, Self-Managed or Turo-Only, from a date, for a car whose Vehicle Schedule is signed. An Admin only.')
     g.steps([
         f'Open the owner\'s Cars and terms table (or the car\'s page) and press {B("Change mode")} on the car\'s row.',

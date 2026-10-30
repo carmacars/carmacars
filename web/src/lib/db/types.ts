@@ -1702,6 +1702,9 @@ export type Database = {
           voided_at: string | null;
           voided_by: string | null;
           void_reason: string | null;
+          charge_to_owner: boolean;
+          charge_set_by: string | null;
+          charge_set_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1715,6 +1718,9 @@ export type Database = {
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
+          charge_to_owner?: boolean;
+          charge_set_by?: string | null;
+          charge_set_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1728,6 +1734,9 @@ export type Database = {
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
+          charge_to_owner?: boolean;
+          charge_set_by?: string | null;
+          charge_set_at?: string | null;
         };
         Relationships: [];
       };
@@ -1919,6 +1928,7 @@ export type Database = {
           partner_markup_cents: number;
           owner_expense_cents: number;
           booking_share_override: boolean;
+          flat_arrangement_id: string | null;
         };
         Insert: {
           booking_id: string;
@@ -1960,6 +1970,7 @@ export type Database = {
           partner_markup_cents?: number;
           owner_expense_cents?: number;
           booking_share_override?: boolean;
+          flat_arrangement_id?: string | null;
         };
         Update: {
           booking_id?: string;
@@ -2001,6 +2012,7 @@ export type Database = {
           partner_markup_cents?: number;
           owner_expense_cents?: number;
           booking_share_override?: boolean;
+          flat_arrangement_id?: string | null;
         };
         Relationships: [];
       };
@@ -9743,6 +9755,8 @@ export type Database = {
           owner_statement_id: string | null;
           created_by: string | null;
           created_at: string;
+          flat_arrangement_id: string | null;
+          flat_month: string | null;
         };
         Insert: {
           id?: string;
@@ -9757,6 +9771,8 @@ export type Database = {
           owner_statement_id?: string | null;
           created_by?: string | null;
           created_at?: string;
+          flat_arrangement_id?: string | null;
+          flat_month?: string | null;
         };
         Update: {
           id?: string;
@@ -9771,6 +9787,8 @@ export type Database = {
           owner_statement_id?: string | null;
           created_by?: string | null;
           created_at?: string;
+          flat_arrangement_id?: string | null;
+          flat_month?: string | null;
         };
         Relationships: [];
       };
@@ -9977,6 +9995,7 @@ export type Database = {
           owner_statement_id: string | null;
           created_by: string | null;
           created_at: string;
+          booking_owner_expense_id: string | null;
         };
         Insert: {
           id?: string;
@@ -9994,6 +10013,7 @@ export type Database = {
           owner_statement_id?: string | null;
           created_by?: string | null;
           created_at?: string;
+          booking_owner_expense_id?: string | null;
         };
         Update: {
           id?: string;
@@ -10011,6 +10031,7 @@ export type Database = {
           owner_statement_id?: string | null;
           created_by?: string | null;
           created_at?: string;
+          booking_owner_expense_id?: string | null;
         };
         Relationships: [];
       };
@@ -10425,6 +10446,7 @@ export type Database = {
           partner_cut_bps: number | null;
           owner_expense_cents: number;
           booking_share_bps: number | null;
+          flat_arrangement_id: string | null;
         };
         Insert: {
           id?: string;
@@ -10458,6 +10480,7 @@ export type Database = {
           partner_cut_bps?: number | null;
           owner_expense_cents?: number;
           booking_share_bps?: number | null;
+          flat_arrangement_id?: string | null;
         };
         Update: {
           id?: string;
@@ -10491,6 +10514,7 @@ export type Database = {
           partner_cut_bps?: number | null;
           owner_expense_cents?: number;
           booking_share_bps?: number | null;
+          flat_arrangement_id?: string | null;
         };
         Relationships: [];
       };
@@ -10509,6 +10533,7 @@ export type Database = {
           refund_chargeback_deducted_cents: number;
           payable_cents: number;
           credits_cents: number;
+          flat_payment_cents: number;
         };
         Insert: {
           id?: string;
@@ -10524,6 +10549,7 @@ export type Database = {
           refund_chargeback_deducted_cents?: number;
           payable_cents?: number;
           credits_cents?: number;
+          flat_payment_cents?: number;
         };
         Update: {
           id?: string;
@@ -10539,6 +10565,7 @@ export type Database = {
           refund_chargeback_deducted_cents?: number;
           payable_cents?: number;
           credits_cents?: number;
+          flat_payment_cents?: number;
         };
         Relationships: [];
       };
@@ -10574,6 +10601,7 @@ export type Database = {
           voided_at: string | null;
           voided_by: string | null;
           void_reason: string | null;
+          flat_payment_cents: number;
         };
         Insert: {
           id?: string;
@@ -10606,6 +10634,7 @@ export type Database = {
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
+          flat_payment_cents?: number;
         };
         Update: {
           id?: string;
@@ -10638,6 +10667,7 @@ export type Database = {
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
+          flat_payment_cents?: number;
         };
         Relationships: [];
       };
@@ -18292,6 +18322,8 @@ export type Database = {
           received_at: string | null;
           created_at: string;
           owner_statement_id: string | null;
+          flat_arrangement_id: string | null;
+          terms_share_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -18311,6 +18343,8 @@ export type Database = {
           received_at?: string | null;
           created_at?: string;
           owner_statement_id?: string | null;
+          flat_arrangement_id?: string | null;
+          terms_share_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -18330,6 +18364,8 @@ export type Database = {
           received_at?: string | null;
           created_at?: string;
           owner_statement_id?: string | null;
+          flat_arrangement_id?: string | null;
+          terms_share_bps?: number | null;
         };
         Relationships: [];
       };
@@ -19974,6 +20010,63 @@ export type Database = {
           insured_before_paperwork_from?: Database["public"]["Enums"]["vehicle_onboarding_status"] | null;
           insurer_confirmed_by?: string | null;
           insurer_confirmation_note?: string | null;
+        };
+        Relationships: [];
+      };
+      vehicle_owner_arrangements: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          owner_id: string;
+          kind: string;
+          monthly_cents: number;
+          starts_on: string;
+          ends_on: string | null;
+          reason: string | null;
+          created_by: string | null;
+          created_at: string;
+          ended_by: string | null;
+          ended_at: string | null;
+          ended_reason: string | null;
+          cancelled_by: string | null;
+          cancelled_at: string | null;
+          cancelled_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          owner_id: string;
+          kind?: string;
+          monthly_cents: number;
+          starts_on: string;
+          ends_on?: string | null;
+          reason?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          ended_by?: string | null;
+          ended_at?: string | null;
+          ended_reason?: string | null;
+          cancelled_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          owner_id?: string;
+          kind?: string;
+          monthly_cents?: number;
+          starts_on?: string;
+          ends_on?: string | null;
+          reason?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          ended_by?: string | null;
+          ended_at?: string | null;
+          ended_reason?: string | null;
+          cancelled_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_reason?: string | null;
         };
         Relationships: [];
       };

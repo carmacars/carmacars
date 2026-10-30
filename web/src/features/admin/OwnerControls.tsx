@@ -14,7 +14,9 @@ type Vis = {
 type Ded = {
   booking_id: string; booking_number: string; has_owner: boolean; may: boolean; may_override: boolean; terms_bps: number; partner: boolean;
   share: { bps: number; terms_bps: number; above_terms: boolean; reason: string; by: string | null; at: string } | null;
-  expenses: Array<{ id: string; category: string; amount_cents: number; reason: string; receipt_ref: string | null; by: string | null; at: string; voided_at: string | null; void_reason: string | null }>;
+  expenses: Array<{ id: string; category: string; amount_cents: number; reason: string; receipt_ref: string | null; by: string | null; at: string; voided_at: string | null; void_reason: string | null; charge_to_owner?: boolean }>;
+  /** 0196: the car's flat monthly payment period this booking counts in (CarmaCars keeps the rental), and who may charge an expense to the owner */
+  flat?: { monthly_cents: number; from: string; until: string | null } | null; may_charge?: boolean;
   split: { owner_revenue_cents: number; owner_expense_cents: number; company_share_cents: number; owner_payout_cents: number; paid_out: boolean } | null;
   owner_view: string; on_statement: string | null;
 };
@@ -60,9 +62,11 @@ export async function OwnerDeductionsPanel({ userId, booking, refresh, aal, va }
   return (
     <Card title="Owner deductions on this booking" testId="owner-deductions"
       aside={<span className="small muted">{d.partner ? 'Partner commission' : 'Revenue Share'} in the car&apos;s terms: {pct(d.terms_bps)}</span>}>
+      {d.flat && <p className="small" data-testid="owner-flat">This car&apos;s owner is paid a flat monthly payment ({$(d.flat.monthly_cents)} a month): CarmaCars keeps this rental. An expense reaches the owner only when an Admin marks it Charge to the owner; it is then an owner cost on their statement.</p>}
       <p className="small muted">Every deduction is itemized on the owner&apos;s statement and in their portal with its reason, and kept in the booking history. An expense comes off before Owner Revenue; the {d.partner ? 'commission' : 'Revenue Share'} applies to what is left.</p>
       {live.length ? <ul className="ad-list" data-testid="owner-expenses">{live.map((e) => (
-        <li key={e.id}><b>{EXPENSE_CATEGORIES.find(([k]) => k === e.category)?.[1] ?? e.category} {$(e.amount_cents)}</b><span className="ad-sub">{e.reason}{e.receipt_ref ? ` · receipt ${e.receipt_ref}` : ''}{e.by ? ` · ${e.by}` : ''}, {t(e.at)}</span>
+        <li key={e.id}><b>{EXPENSE_CATEGORIES.find(([k]) => k === e.category)?.[1] ?? e.category} {$(e.amount_cents)}</b><span className="ad-sub">{e.reason}{e.receipt_ref ? ` · receipt ${e.receipt_ref}` : ''}{e.by ? ` · ${e.by}` : ''}, {t(e.at)}{d.flat ? (e.charge_to_owner ? ' · charged to the owner' : ' · CarmaCars bears it') : ''}</span>
+          {d.flat && d.may_charge && !d.on_statement && <Act ops action="booking_owner_expense_charge" payload={{ id: e.id, charge: !e.charge_to_owner }} label={e.charge_to_owner ? 'Do not charge the owner' : 'Charge to the owner'} variant="quiet" testId="owner-expense-charge" refresh={refresh} done="Saved." />}
           {editable && <Act ops action="booking_owner_expense_void" payload={{ id: e.id }} label="Remove" variant="quiet" refresh={refresh} done="Removed." fields={[{ name: 'reason', label: 'Why it is removed', type: 'text', required: true }]} />}</li>))}</ul>
         : <p className="small muted">No booking expense.</p>}
       <p className="small" data-testid="owner-share">{d.share ? <>{d.partner ? 'Commission' : 'Revenue Share'} for this booking: <b>{pct(d.share.bps)}</b>{d.share.above_terms ? ' (above the signed terms, by an Admin)' : ''}: {d.share.reason}{d.share.by ? ` · ${d.share.by}` : ''}</> : `${d.partner ? 'Commission' : 'Revenue Share'}: the car's terms (${pct(d.terms_bps)}).`}</p>

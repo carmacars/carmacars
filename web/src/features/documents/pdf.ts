@@ -65,6 +65,8 @@ function ownerStatement(f: F): Block[] {
     const others = lines.filter((l) => !['rental', 'turo_trip'].includes(String(l.line_type)));
     if (others.length) blocks.push({ t: 'table', head: ['Item', 'Detail', 'Amount'], rows: others.map((l) => [label(l.line_type), s(l.description) || s(l.booking_number), dollars(n(l.amount_cents) || n(l.fee_cents) + n(l.late_fee_cents))]) });
     blocks.push({ t: 'table', head: ['Vehicle totals', ''], kv: true, rows: [
+      // 0196: a car paid a flat monthly payment
+      ...(n(v.flat_payment_cents) > 0 ? [['Flat monthly payment', dollars(v.flat_payment_cents)] as [string, string]] : []),
       ['Owner Revenue', dollars(v.owner_revenue_cents)], ['Revenue Share kept by CarmaCars', dollars(-n(v.revenue_share_cents))], ['Net earnings', dollars(v.net_earnings_cents)],
       ['Unpaid fees and Late Fees deducted', dollars(-(n(v.fees_deducted_cents) + n(v.late_fees_deducted_cents)))], ['Owner costs deducted', dollars(-n(v.owner_costs_deducted_cents))],
       ['Refund and chargeback shares', dollars(-n(v.refund_chargeback_deducted_cents))], ['Vehicle payable', dollars(v.payable_cents)]] });
