@@ -43,7 +43,7 @@ export default async function AdminInvoice({ params, searchParams }: { params: P
     <>
       <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/invoices">Owner invoices</Link> · <Link prefetch={false} className="link" href={`/admin/owners/${i.owner_id}?tab=invoices`}>{i.owner_name}</Link></>}
         title={`${i.invoice_number}: ${invoiceWhat(i)}`}>
-        <Badge s={i.partly_paid ? 'sent' : INVOICE_BADGE[i.status] ?? i.status}>{statusText(i.status, i.partly_paid)}</Badge>
+        <Badge s={i.partly_paid ? 'sent' : INVOICE_BADGE[i.status] ?? i.status}>{statusText(i.status, i.partly_paid, i.from_statement)}</Badge>
       </PageHead>
       {sp.replaces && <p className="alert alert--ok" role="status" data-testid="invoice-replacement-note"><span>{sp.replaces} is void. This is the corrected invoice, a draft: check the lines, then issue it.</span></p>}
       {sp.issued && <p className="alert alert--ok" role="status"><span>Issued. The owner was emailed.</span></p>}

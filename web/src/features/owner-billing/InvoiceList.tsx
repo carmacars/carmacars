@@ -7,7 +7,7 @@ import { INVOICE_BADGE, KIND_LABEL, statusText } from './shared';
 // void, each opening its own page.
 export interface InvoiceRow { id: string; invoice_number: string; owner_id: string; owner_name: string; vehicle_id: string; vehicle_name: string; kind: string; kind_label: string; title: string | null;
   period_month: string | null; status: string; total_cents: number; balance_cents: number; paid_cents: number; billing_date: string; issued_at: string | null; due_on: string | null;
-  created_at: string; void_reason: string | null; replaces: string | null; replaced_by: string | null; credit_for: string | null; partly_paid: boolean; application_number: string | null }
+  created_at: string; void_reason: string | null; replaces: string | null; replaced_by: string | null; credit_for: string | null; partly_paid: boolean; application_number: string | null; from_statement?: boolean }
 export interface InvoiceListData { rows: InvoiceRow[]; counts: { draft: number; open: number; paid: number; void: number }; cars: Array<{ id: string; name: string; owner_id: string }> }
 
 const month = (iso: string | null) => (iso ? new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-CA', { timeZone: 'UTC', month: 'long', year: 'numeric' }) : '');
@@ -26,7 +26,7 @@ export function InvoiceList({ data, owner = true, newHref, testId = 'invoice-lis
             <Link prefetch={false} className="ow-row-link" href={`/admin/invoices/${i.invoice_number}`}><b>{i.invoice_number}</b> · {invoiceWhat(i)}</Link>
             <span className="ow-amount">{money(i.total_cents, { cents: true })}</span>
             <span className="ow-meta">
-              <Badge s={i.partly_paid ? 'sent' : INVOICE_BADGE[i.status] ?? i.status}>{statusText(i.status, i.partly_paid)}</Badge>
+              <Badge s={i.partly_paid ? 'sent' : INVOICE_BADGE[i.status] ?? i.status}>{statusText(i.status, i.partly_paid, i.from_statement)}</Badge>
               <span>{i.vehicle_name}</span>{owner && <span>{i.owner_name}</span>}
               <span>{i.status === 'draft' ? `Made ${d(i.created_at)}` : `Issued ${d(i.issued_at ?? i.billing_date)}`}</span>
               {i.due_on && !['paid', 'void', 'draft'].includes(i.status) && <span>Due {d(i.due_on)}</span>}

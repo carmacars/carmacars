@@ -5,7 +5,10 @@ export const INVOICE_STATUS: Record<string, string> = {
   in_arrears: 'In arrears', partially_deducted: 'Partly deducted', deducted: 'Deducted from payout', void: 'Void'
 };
 export const INVOICE_BADGE: Record<string, string> = { draft: 'draft', issued: 'sent', processing: 'sent', paid: 'paid', failed: 'failed', in_arrears: 'failed', void: 'cancelled' };
-export const statusText = (status: string, partly?: boolean) => (partly ? 'Partly paid' : INVOICE_STATUS[status] ?? status.replace(/_/g, ' '));
+/** 0204: an invoice taken from the owner's revenue statement. */
+const FROM_STATEMENT: Record<string, string> = { issued: 'From next statement', partially_deducted: 'Part paid from statement', deducted: 'Paid from statement' };
+export const statusText = (status: string, partly?: boolean, fromStatement?: boolean) => (fromStatement && FROM_STATEMENT[status] ? FROM_STATEMENT[status]!
+  : partly ? 'Partly paid' : INVOICE_STATUS[status] ?? status.replace(/_/g, ' '));
 export const KIND_LABEL: Record<string, string> = { upfront: 'First and last month', monthly: 'Monthly fees', tracker_install: 'Tracker install', custom: 'Invoice', credit_note: 'Credit note', adjustment: 'Adjustment' };
 export const SOURCE_LABEL: Record<string, string> = { car: 'set for this car', owner: 'the owner\'s terms', other_car: 'from their other car', standard: 'standard grid', mode: 'set by the management mode', two_months: '2 x the Insurance Fee' };
 

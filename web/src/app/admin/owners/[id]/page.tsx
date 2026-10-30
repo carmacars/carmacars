@@ -7,6 +7,7 @@ import { Back, Dl } from '@/features/portal/Blocks';
 import { day, monthOf } from '@/features/owner/Blocks';
 import { invoiceStatus, invoiceTitle, METHOD_LABEL, MODE_LABEL, ONBOARDING_STATUS, PAY_METHOD_LABEL } from '@/features/owner/types';
 import { IssueInvoices, PendingTerms, SendLinkForm, TermsForm, TrackerActions } from '@/features/admin/AdminForms';
+import { Act } from '@/features/admin/Act';
 import { ShareholderToggle } from '@/features/admin/ShareholderToggle';
 import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/AccountTools';
 import { ViewAsButton } from '@/features/admin/ViewAs';
@@ -37,6 +38,8 @@ const yes = (v: unknown) => (v ? 'Yes' : 'No');
 export default async function AdminOwner({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ user }, { id }, sp] = await Promise.all([requireAdmin('/admin/owners'), params, searchParams]);
   const d = await adminOwner(user, id);
+  // 0204: how the owner's fees are paid (bank debit, or taken from the revenue statement)
+  const fees = await door<{ fees_paid_from: 'debit' | 'statement' } | null>(user.id, 'ops_read', 'owner_fees_paid_from', { owner: id }).catch(() => null);
   if (!d) notFound();
   // the tabs of 0067: Overview (as before), Terms (negotiated per owner and car), Invoices (every invoice, drafts included)
   const tab = sp.tab === 'terms' || sp.tab === 'invoices' ? sp.tab : 'overview';
@@ -47,7 +50,11 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
       <header className="stack"><p className="pt-kicker">{d.applications.map((a) => a.application_number).join(', ')} · {d.owner.owner_type === 'corporation' ? 'Corporation' : 'Individual'}</p><h1 className="d2">{d.owner.legal_name}</h1>
         <p className="muted">{[d.owner.email, d.owner.phone].filter(Boolean).join(' · ')}</p>
         <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}><Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/owners/add-car?owner=${id}`} data-testid="owner-add-car">Add another car</Link>
-          <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/invoices/new?owner=${id}`} data-testid="owner-new-invoice">New invoice</Link></div></header>
+          <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/invoices/new?owner=${id}`} data-testid="owner-new-invoice">New invoice</Link>
+          {fees && <Act ops action="owner_fees_paid_from" payload={{ owner: id }} label={`Fees: ${fees.fees_paid_from === 'statement' ? 'taken from revenue statement' : 'bank debit'}`} title="How fees are paid" testId="owner-fees-paid-from"
+            submitLabel="Save" done="Saved." fields={[{ name: 'fees_paid_from', label: 'How fees are paid', type: 'select', required: true, value: fees.fees_paid_from,
+              options: [['debit', 'Bank debit (pre-authorized debit)'], ['statement', 'Take from revenue statement']],
+              hint: 'Take from revenue statement: no debit; each invoice is paid from the next owner statement as far as the payout goes, the rest on the next one. Still owing 2 months after billing, it goes back to the bank debit and you get a task.' }]} />}</div></header>
       <Tabs items={tabs} current={tab === 'overview' ? `/admin/owners/${id}` : `/admin/owners/${id}?tab=${tab}`} label="Owner" />
     </>
   );

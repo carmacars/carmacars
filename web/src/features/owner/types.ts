@@ -10,6 +10,8 @@ export interface OwnerInvoiceRow {
   id: string; invoice_number: string; vehicle_id: string; vehicle_name: string; kind: 'upfront' | 'monthly' | 'adjustment' | 'tracker_install' | 'custom' | 'credit_note'; period_month: string | null;
   billing_date: string; retry_on: string | null; status: string; fees_cents: number; hst_cents: number; late_fee_cents: number; total_cents: number;
   balance_cents: number; paid_at: string | null; payment_method: string; pending: boolean; payable: boolean; partly_paid?: boolean;
+  /** Taken from the revenue statement, not debited (0204). */
+  from_statement?: boolean;
   /** The automatic pre-authorized debit of this invoice (migration 0037). */
   debit?: InvoiceDebit | null;
   /** Owner invoices made or corrected by hand (migration 0067). */
@@ -134,7 +136,14 @@ export function debitLine(d: InvoiceDebit | null | undefined, day: (iso: string 
     default: return null;
   }
 }
-export const invoiceStatus = (i: Pick<OwnerInvoiceRow, 'status' | 'pending'> & { partly_paid?: boolean }) => (i.pending && i.status !== 'paid' ? { label: 'Payment processing', badge: 'badge--grey' }
+/** An invoice taken from the revenue statement (0204), in words. */
+const FROM_STATEMENT: Record<string, { label: string; badge: string }> = {
+  issued: { label: 'Taken from your next statement', badge: 'badge--outline' },
+  partially_deducted: { label: 'Part paid from statement', badge: 'badge--outline' },
+  deducted: { label: 'Paid from statement', badge: '' }
+};
+export const invoiceStatus = (i: Pick<OwnerInvoiceRow, 'status' | 'pending'> & { partly_paid?: boolean; from_statement?: boolean }) => (i.pending && i.status !== 'paid' ? { label: 'Payment processing', badge: 'badge--grey' }
+  : i.from_statement && FROM_STATEMENT[i.status] ? FROM_STATEMENT[i.status]!
   : i.partly_paid && i.status === 'issued' ? { label: 'Partly paid', badge: 'badge--outline' } : INVOICE_STATUS[i.status] ?? { label: i.status, badge: '' });
 
 export const invoiceTitle = (i: { kind: string; period_month: string | null; title?: string | null }, month: (iso: string | null) => string) =>
