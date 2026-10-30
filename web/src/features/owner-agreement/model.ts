@@ -8,6 +8,7 @@
 import { companyParty, money, pct, phone } from '../../lib/format.ts';
 import { markdown, when, type Block, type SignatureRow } from '../agreement/model.ts';
 import { ENROLLMENT_ARTICLES, ENROLLMENT_SCHEDULE_B, OWNER_TEMPLATE_VERSION, TITLE_ARTICLES } from './source.generated.ts';
+import { FLAT_ARTICLES, FLAT_TEMPLATE_VERSION } from './flat-rate.generated.ts';
 
 export type PacketKey = 'enrollment' | 'title_holding' | 'additional';
 
@@ -19,6 +20,8 @@ export interface OwnerSchedule {
   /** The fees and the Revenue Share are null until CarmaCars approves the terms (the preview of 0192). */
   insurance_fee_cents: number | null; tracker_fee_cents: number | null; install_fee_cents: number | null; revenue_share_bps: number | null; enrollment_date: string | null; special_terms: string | null;
   owners_lien: string; signed_at: string | null; signature_request_id: string | null; title_agreement_id: string | null; onboarding_status: string;
+  /** 0205: the flat monthly payment for this car (0196), when it has one. */
+  monthly_cents?: number | null;
   /** A car still in intake: shown from the application, its terms pending approval (0192). */
   pending?: boolean;
 }
@@ -28,7 +31,11 @@ export interface OwnerAgreementFacts {
     signing_officer_title: string | null; signer_name: string; signer_role: string; payout: string | null };
   company: { trade_name: string; legal_name?: string | null; address: string | null; email: string | null; phone: string | null; signing_officer_name: string; signing_officer_title: string | null; install_fee_cents: number; hst_bps: number };
   /** status 'preview' with no number: an agreement CarmaCars makes when it approves the terms (0192). */
-  agreements: Array<{ id: string | null; kind: 'enrollment' | 'title_holding'; agreement_number: string | null; status: string; agreement_date: string | null; signature_request_id: string | null; document_sha256: string | null }>;
+  agreements: Array<{ id: string | null; kind: 'enrollment' | 'title_holding'; agreement_number: string | null; status: string; agreement_date: string | null; signature_request_id: string | null; document_sha256: string | null;
+    /** 0205: standard (revenue share) or flat_rate (a flat monthly amount per car); replaces: it replaces a signed agreement of the other set (re-signing). */
+    variant?: 'standard' | 'flat_rate'; replaces?: boolean }>;
+  /** 0205: the owner's pay model, which picks the agreement set. */
+  pay_model?: 'standard' | 'flat_rate';
   schedules: OwnerSchedule[];
   /** The other Owners named in the Title Schedule (0053): each signs with their own link. */
   cosigners?: Array<{ id: string; name: string; email: string; status: 'pending' | 'signed'; signed_at: string | null }>;
@@ -53,7 +60,24 @@ export const CONFIRMATIONS = [
   { code: 'fees_no_income', text: 'Fees are due every month, rented or not. No income is promised (2.3, 4.3).' },
   { code: 'tracker_downtime', text: 'The Tracker records location, including when I drive. No pay for downtime (5, 10, 15).' }
 ] as const;
-export { OWNER_TEMPLATE_VERSION };
+export { OWNER_TEMPLATE_VERSION, FLAT_TEMPLATE_VERSION };
+
+// ---------------------------------------------------------------- the flat-rate set (0205)
+// Owners paid a flat monthly amount per car (0196) sign the Flat-Rate Vehicle Enrollment Agreement instead of the
+// standard one; the Title-Holding and Lease Agreement and Forms A to D are the same.
+export const FLAT_TITLE = 'Flat-Rate Vehicle Enrollment Agreement';
+export const FLAT_CONFIRMATIONS = [
+  { code: 'own_insurance', text: 'I keep my own insurance until the Company confirms in writing (3.3).' },
+  { code: 'fees_no_income', text: 'The Monthly Amount is all I am paid: no rental income or revenue report (4.3).' },
+  { code: 'tracker_downtime', text: 'The Tracker records location, including when I drive. No pay for downtime beyond the Monthly Amount (5, 8.4).' }
+] as const;
+export const isFlat = (f: Pick<OwnerAgreementFacts, 'agreements'>) => f.agreements.find((a) => a.kind === 'enrollment')?.variant === 'flat_rate';
+/** The title of a document of this owner's packet. */
+export const titleOf = (f: Pick<OwnerAgreementFacts, 'agreements'>, key: PacketKey) => (key === 'enrollment' && isFlat(f) ? FLAT_TITLE : TITLES[key]);
+/** The confirmations the owner initials on the Enrollment Agreement of this owner's set (the same codes). */
+export const confirmationsOf = (f: Pick<OwnerAgreementFacts, 'agreements'>) => (isFlat(f) ? FLAT_CONFIRMATIONS : CONFIRMATIONS);
+/** The text version of a document of this owner's packet. */
+export const templateVersionOf = (f: Pick<OwnerAgreementFacts, 'agreements'>, key: PacketKey) => (key === 'enrollment' && isFlat(f) ? FLAT_TEMPLATE_VERSION : OWNER_TEMPLATE_VERSION);
 
 const agreement = (f: OwnerAgreementFacts, k: 'enrollment' | 'title_holding') => f.agreements.find((a) => a.kind === k) ?? null;
 const unsigned = (f: OwnerAgreementFacts) => f.schedules.filter((s) => !s.signed_at);
@@ -68,7 +92,8 @@ export function packetKeys(f: OwnerAgreementFacts): PacketKey[] {
   const ea = agreement(f, 'enrollment');
   const ta = agreement(f, 'title_holding');
   const open = unsigned(f);
-  if (!open.length) return keys;
+  // a new agreement of the other set (the pay model changed, 0205) is signed again even when every car is signed
+  if (!open.length) return ea && ea.status !== 'signed' && ea.replaces ? ['enrollment'] : keys;
   if (ea && ea.status !== 'signed') keys.push('enrollment');
   if (ta && ta.status !== 'signed' && open.some((s) => s.management_mode !== 'turo_only')) keys.push('title_holding');
   if (ea?.status === 'signed' && open.some((s) => s.is_additional)) keys.push('additional');
@@ -104,6 +129,57 @@ function scheduleA(s: OwnerSchedule): Block {
     ['Special terms', s.special_terms ?? 'None']
   ] };
 }
+function scheduleAFlat(s: OwnerSchedule): Block {
+  return { t: 'table', kv: true, head: ['Item', `Vehicle no. ${s.vehicle_number}`], rows: [
+    ['Schedule number', s.schedule_number ?? 'Given when the Company approves your terms'],
+    ['Year, make, model, colour', vehicleLine(s)],
+    ['VIN, plate, odometer (km)', `${s.vin}, ${s.plate ?? 'plate to come'}, ${s.odometer_km?.toLocaleString('en-CA') ?? 'to be recorded'}`],
+    ['Held by', l(s.held_by)],
+    ['Lender or lessor', s.finance_party_name ?? 'None'],
+    ['Onboarding Method', l(s.onboarding_method) || PENDING],
+    ['Monthly Amount', s.monthly_cents ? `${money(s.monthly_cents)} a month, plus HST if registered` : PENDING],
+    ['Enrollment Date', dateOr(s.enrollment_date, 'The date the Company confirms in writing')],
+    ['Special terms', s.special_terms ?? 'None']
+  ] };
+}
+function flatEnrollment(f: OwnerAgreementFacts, signed?: SignedBy): Block[] {
+  const ea = agreement(f, 'enrollment');
+  const o = f.owner;
+  const company = f.company.legal_name || 'the Company';
+  const notice = [f.company.address, f.company.email].filter(Boolean).join(', ') || 'The email address on this page';
+  const ownerAddress = [o.address, o.email, phone(o.phone), o.hst_number ? `HST ${o.hst_number}` : 'No HST number'].filter(Boolean).join('; ');
+  return [
+    { t: 'title', text: FLAT_TITLE },
+    ...previewNotice(f),
+    { t: 'h2', text: 'Cover summary' },
+    { t: 'p', text: 'This page is a summary. The rest governs.' },
+    { t: 'table', kv: true, head: ['Party', 'Details'], rows: [
+      ['Agreement number', ea?.agreement_number ?? ''],
+      ['The Company', company],
+      ['Notice address', notice],
+      ['Owner (legal name)', o.legal_name],
+      ["Owner's corporation, if any", o.corporation_name ? `${o.corporation_name}, corporation no. ${o.corporation_number ?? 'to come'}` : 'None'],
+      ['Owner address, email, phone, HST number', ownerAddress],
+      ['Payout method and details', o.payout ?? 'Given in the owner portal before the first payout'],
+      ['Agreement Date', dateOr(ea?.agreement_date, 'The date the Owner signs')]
+    ] },
+    { t: 'table', kv: true, head: ['Topic', 'Summary'], rows: [
+      ['Pay (4)', 'A fixed Monthly Amount per Vehicle, paid on the Payout Date. Part months by the day.'],
+      ['No fees (4.3)', 'No revenue split, no Insurance, Tracker or Install Fee.'],
+      ['Own use (7)', 'Free under a Rental Agreement when the Vehicle is not booked.'],
+      ['Damage (8)', 'Repaired through the claim at approved shops.'],
+      ['Leaving (10)', 'No minimum term. 30 days\' notice either way.']
+    ] },
+    { t: 'h2', text: 'The Agreement' },
+    ...markdown(FLAT_ARTICLES, {}),
+    { t: 'h2', text: 'Signatures' },
+    { t: 'signatures', rows: signatureRows(f, signed).map((r) => (r.party === 'CarmaCars' ? { ...r, party: company } : r)) },
+    { t: 'table', kv: true, head: ['The Owner confirms', 'Initials'], rows: FLAT_CONFIRMATIONS.map((c) => [c.text, signed?.initials ?? '']) },
+    { t: 'h2', text: 'Schedule A: Vehicle Schedule' },
+    { t: 'p', text: `Vehicle Schedule to the Flat-Rate Vehicle Enrollment Agreement${sp(ea?.agreement_number)} between ${company} and ${ownerLine(f)} (the Owner). It has one entry, as below, for each Vehicle.` },
+    ...f.schedules.filter((x) => !x.is_additional).map(scheduleAFlat)
+  ];
+}
 function schedule1(s: OwnerSchedule): Block {
   return { t: 'table', kv: true, head: ['Item', `Vehicle no. ${s.vehicle_number}`], rows: [
     ['Year, make, model, colour', vehicleLine(s)],
@@ -138,6 +214,7 @@ export function documentBlocks(f: OwnerAgreementFacts, key: PacketKey, signed?: 
   const company = companyParty(f.company.legal_name, f.company.trade_name || 'CarmaCars');
   const notice = [f.company.address, f.company.email].filter(Boolean).join(', ') || 'The email address on this page';
   const ownerAddress = [o.address, o.email, phone(o.phone), o.hst_number ? `HST ${o.hst_number}` : 'No HST number'].filter(Boolean).join('; ');
+  if (key === 'enrollment' && isFlat(f)) return flatEnrollment(f, signed);
   if (key === 'enrollment') {
     const schedules = f.schedules.filter((s) => !s.is_additional);
     return [
@@ -209,7 +286,7 @@ export function documentBlocks(f: OwnerAgreementFacts, key: PacketKey, signed?: 
     { t: 'title', text: 'CarmaCars Additional Vehicle Schedule' },
     ...previewNotice(f),
     { t: 'p', text: `Additional Vehicle Schedule to the Enrollment Agreement${sp(ea?.agreement_number)}${ta ? ` and the Title Agreement${sp(ta.agreement_number)}` : ''} between CarmaCars and ${ownerLine(f)} (the Owner). The Vehicles below are added to both agreements, or to the Enrollment Agreement alone if Turo-Only. Schedule 1 and Forms A to D of the Title Agreement apply to each of them, and the Owner repeats the Form C acknowledgments for each one that is Financed or Leased. Nothing else changes.` },
-    ...added.flatMap((s) => [{ t: 'h3', text: `Vehicle no. ${s.vehicle_number}: Schedule A entry` } as Block, scheduleA(s),
+    ...added.flatMap((s) => [{ t: 'h3', text: `Vehicle no. ${s.vehicle_number}: Schedule A entry` } as Block, isFlat(f) ? scheduleAFlat(s) : scheduleA(s),
       ...(s.management_mode !== 'turo_only' ? [{ t: 'h3', text: `Vehicle no. ${s.vehicle_number}: Schedule 1 entry` } as Block, schedule1(s)] : [])]),
     { t: 'h2', text: 'Signatures' },
     { t: 'signatures', rows: signatureRows(f, signed) }

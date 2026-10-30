@@ -40,6 +40,8 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   const d = await adminOwner(user, id);
   // 0204: how the owner's fees are paid (bank debit, or taken from the revenue statement)
   const fees = await door<{ fees_paid_from: 'debit' | 'statement' } | null>(user.id, 'ops_read', 'owner_fees_paid_from', { owner: id }).catch(() => null);
+  // 0205: the agreement set picked by the pay model (the flat-rate set flagged while it awaits the lawyer's OK)
+  const set = await door<{ pay_model: string; variant: string | null; status: string | null; awaiting_lawyer: boolean } | null>(user.id, 'ops_read', 'owner_agreement_set', { owner: id }).catch(() => null);
   if (!d) notFound();
   // the tabs of 0067: Overview (as before), Terms (negotiated per owner and car), Invoices (every invoice, drafts included)
   const tab = sp.tab === 'terms' || sp.tab === 'invoices' ? sp.tab : 'overview';
@@ -49,6 +51,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
       <Back href="/admin/owners">Owner applications</Back>
       <header className="stack"><p className="pt-kicker">{d.applications.map((a) => a.application_number).join(', ')} · {d.owner.owner_type === 'corporation' ? 'Corporation' : 'Individual'}</p><h1 className="d2">{d.owner.legal_name}</h1>
         <p className="muted">{[d.owner.email, d.owner.phone].filter(Boolean).join(' · ')}</p>
+        {set?.variant === 'flat_rate' && <p className="small" data-testid="owner-agreement-set">Agreements: the flat-rate set (Flat-Rate Vehicle Enrollment Agreement, {set.status === 'signed' ? 'signed' : 'waiting for the owner\'s signature'}){set.awaiting_lawyer ? <> <span className="badge badge--outline" data-testid="flat-rate-lawyer">Awaiting lawyer OK</span></> : null}</p>}
         <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}><Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/owners/add-car?owner=${id}`} data-testid="owner-add-car">Add another car</Link>
           <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/invoices/new?owner=${id}`} data-testid="owner-new-invoice">New invoice</Link>
           {fees && <Act ops action="owner_fees_paid_from" payload={{ owner: id }} label={`Fees: ${fees.fees_paid_from === 'statement' ? 'taken from revenue statement' : 'bank debit'}`} title="How fees are paid" testId="owner-fees-paid-from"

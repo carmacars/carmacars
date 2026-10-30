@@ -4,7 +4,7 @@ import { money, pct } from '@/lib/format';
 import { rpc } from '@/lib/db/repo';
 import { Back } from '@/features/portal/Blocks';
 import { AgreementView } from '@/features/agreement/AgreementView';
-import { CONFIRMATIONS, documentBlocks, packetKeys, PENDING, PREVIEW_NOTICE, TITLES, type OwnerAgreementFacts, type PacketKey } from '@/features/owner-agreement/model';
+import { CONFIRMATIONS, confirmationsOf, documentBlocks, packetKeys, PENDING, PREVIEW_NOTICE, TITLES, type OwnerAgreementFacts, type PacketKey } from '@/features/owner-agreement/model';
 import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE } from '@/features/partner/agreement';
 import { OwnerPackage } from '@/features/signing/OwnerPackage';
 import type { EsignDoc } from '@/features/signing/types';
@@ -151,7 +151,7 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
                 <PrepareDocs targets={missing.map((d) => d.target)} titles={missing.map((d) => d.title)} />
               ) : (
                 <OwnerPackage docs={docs} signerName={signer} role={partner ? 'partner' : 'owner'} esignDocs={esignDocs}
-                  statements={enrollment ? CONFIRMATIONS.map((c) => ({ code: c.code, text: c.text })) : []}
+                  statements={enrollment ? (f ? confirmationsOf(f) : CONFIRMATIONS).map((c) => ({ code: c.code, text: c.text })) : []}
                   consent={`By pressing Sign you sign ${docs.length > 1 ? `these ${docs.length} documents` : 'this document'} electronically, with the same effect as signing on paper. We record the time, your IP address and device. ${(f?.cosigners ?? []).some((c) => c.status !== 'signed') ? `Every Owner named in the Title Schedule signs with their own link (${(f?.cosigners ?? []).map((c) => c.name).join(', ')}); CarmaCars countersigns when the last one signs.` : 'CarmaCars countersigns at the same moment.'}`}
                   button={docs.length > 1 ? `Sign all ${docs.length}` : 'Sign'} action={signOwnerPackage.bind(null, spec)} />
               )}

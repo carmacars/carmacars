@@ -3,7 +3,7 @@ import { rpc } from '@/lib/db/repo';
 import { storage } from '@/integrations/storage';
 import { agreementPdf } from '@/features/agreement/pdf';
 import type { Block } from '@/features/agreement/model';
-import { documentBlocks, OWNER_TEMPLATE_VERSION, packetKeys, TITLES, type OwnerAgreementFacts, type PacketKey } from '@/features/owner-agreement/model';
+import { documentBlocks, packetKeys, templateVersionOf, titleOf, type OwnerAgreementFacts, type PacketKey } from '@/features/owner-agreement/model';
 import { screenFormBlocks, SCREEN_FORMS_VERSION, SCREEN_FORM_TITLE, type ScreenFormFacts } from '@/features/owner-agreement/screen-forms';
 import { FORM_C_SCREEN_VERSION, FORM_TITLE, screenFormCBlocks, type WitnessedFacts } from '@/features/owner-agreement/witnessed';
 import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE, PARTNER_AGREEMENT_VERSION, type PartnerFacts } from '@/features/partner/agreement';
@@ -44,7 +44,7 @@ export async function ownerAgreementPreviewFacts(ownerId: string, by: string): P
   return (await rpc('server_owner_agreement_preview_facts', { p_owner: ownerId, p_by: by }, SR)) as unknown as OwnerAgreementFacts;
 }
 export const packetFooter = (f: OwnerAgreementFacts, key: PacketKey) =>
-  `CarmaCars ${TITLES[key]} ${f.agreements.find((a) => a.kind === key)?.agreement_number ?? ''} for ${f.owner.legal_name}. ${OWNER_TEMPLATE_VERSION}`;
+  `CarmaCars ${titleOf(f, key)} ${f.agreements.find((a) => a.kind === key)?.agreement_number ?? ''} for ${f.owner.legal_name}. ${templateVersionOf(f, key)}`;
 
 /** Every document of the owner's packet still to sign (none while the other Owners of the Title Schedule sign). */
 export async function packetSpecs(facts: OwnerAgreementFacts, ownerId: string, by: string): Promise<DocSpec[]> {
@@ -52,12 +52,12 @@ export async function packetSpecs(facts: OwnerAgreementFacts, ownerId: string, b
   if (!keys.length || facts.waiting_for_owners) return [];
   return Promise.all(keys.map(async (key) => {
     const blocks = documentBlocks(facts, key);
-    const pdf: PdfInput = { title: `${TITLES[key]}, ${facts.owner.legal_name}`, createdAt: UNSIGNED_DATE, footer: packetFooter(facts, key) };
+    const pdf: PdfInput = { title: `${titleOf(facts, key)}, ${facts.owner.legal_name}`, createdAt: UNSIGNED_DATE, footer: packetFooter(facts, key) };
     return {
-      target: { t: 'packet', key } as PrepTarget, title: TITLES[key], blocks, pdf, key: await contentKey(blocks, pdf),
+      target: { t: 'packet', key } as PrepTarget, title: titleOf(facts, key), blocks, pdf, key: await contentKey(blocks, pdf),
       path: (sha: string) => `owners/${ownerId}/agreements/${key}-${sha.slice(0, 16)}.pdf`,
       open: async (sha: string, path: string) => {
-        const r = (await rpc('owner_open_agreements', { p_owner: ownerId, p_by: by, p_docs: [{ key, template_version: OWNER_TEMPLATE_VERSION, sha256: sha, storage_path: path }] }, SR)) as unknown as { requests?: Array<{ key: string; signature_request_id: string }> };
+        const r = (await rpc('owner_open_agreements', { p_owner: ownerId, p_by: by, p_docs: [{ key, template_version: templateVersionOf(facts, key), sha256: sha, storage_path: path }] }, SR)) as unknown as { requests?: Array<{ key: string; signature_request_id: string }> };
         return { id: r.requests?.find((x) => x.key === key)?.signature_request_id ?? '' };
       }
     };

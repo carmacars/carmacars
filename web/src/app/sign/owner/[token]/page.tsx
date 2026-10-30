@@ -3,7 +3,7 @@ import { rpc } from '@/lib/db/repo';
 import { pageMeta } from '@/features/seo/meta';
 import { AgreementView } from '@/features/agreement/AgreementView';
 import { PackageSignForm } from '@/features/signing/PackageSignForm';
-import { CONFIRMATIONS, documentBlocks, OWNER_SIGN_STATEMENT, TITLES, type PacketKey } from '@/features/owner-agreement/model';
+import { CONFIRMATIONS, confirmationsOf, documentBlocks, OWNER_SIGN_STATEMENT, titleOf, type PacketKey } from '@/features/owner-agreement/model';
 import { ownerAgreementFacts } from '@/server/owner/agreements';
 import { signAsCosigner } from '@/server/actions/cosign';
 
@@ -29,7 +29,7 @@ export default async function CosignerSign({ params }: { params: Promise<{ token
   );
   const first = f.cosigner.name.split(' ')[0];
   const facts = f.owner.user_id && f.documents.length ? await ownerAgreementFacts(f.owner.id, f.owner.user_id) : null;
-  const docs = facts ? f.documents.map((d) => ({ key: d.key, title: TITLES[d.key], blocks: documentBlocks(facts, d.key) })) : [];
+  const docs = facts ? f.documents.map((d) => ({ key: d.key, title: titleOf(facts, d.key), blocks: documentBlocks(facts, d.key) })) : [];
   const enrollment = f.documents.some((d) => d.key === 'enrollment');
   return (
     <div className="pt"><div className="wrap pt__body">
@@ -41,7 +41,7 @@ export default async function CosignerSign({ params }: { params: Promise<{ token
           <div className="stack-lg">{docs.map((d) => <details key={d.key} open={docs.length === 1}><summary>{d.title}</summary><AgreementView blocks={d.blocks} id={`co-doc-${d.key}`} label={d.title} /></details>)}</div>
           <aside className="pt-split__aside"><section className="pt-card" aria-labelledby="co-sign"><h2 className="d4" id="co-sign">Sign</h2>
             <PackageSignForm docs={docs.map((d) => ({ key: d.key, title: d.title }))} signerName={f.cosigner.name} esign={{ kind: 'cosigner', token }}
-              statements={[{ code: 'statement', text: OWNER_SIGN_STATEMENT }, ...(enrollment ? CONFIRMATIONS.map((c) => ({ code: c.code, text: c.text })) : [])]}
+              statements={[{ code: 'statement', text: OWNER_SIGN_STATEMENT }, ...(enrollment ? (facts ? confirmationsOf(facts) : CONFIRMATIONS).map((c) => ({ code: c.code, text: c.text })) : [])]}
               consent={`By pressing Sign you sign ${docs.length > 1 ? `these ${docs.length} documents` : 'this document'} electronically, with the same effect as signing on paper. We record the time, your IP address and device.${f.waiting_for.length || !f.owner_signed ? ' The agreements take effect when every Owner has signed.' : ' You are the last Owner to sign: CarmaCars countersigns at the same moment.'}`}
               button={docs.length > 1 ? `Sign all ${docs.length}` : 'Sign'} action={signAsCosigner.bind(null, token)} testId="cosign-form" />
           </section></aside>
