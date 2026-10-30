@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { UploadCard } from './UploadCard';
+import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 import { confirmCardCoverage, requestProtectionPlan, setCoverageOption } from '@/server/actions/portal';
 import type { RenterCoverage } from '@/features/coverage/types';
 
@@ -38,7 +39,8 @@ export function CoverageSection({ number, c }: { number: string; c: RenterCovera
       {c.option === 1 && !c.confirmed && (
         <div className="stack">
           <p className="small">Send your policy document or the OPCF 27 endorsement: a PDF, or photos of each page. It must still be active after your return on {fmtDay(c.return_date)}. Our team checks it before pickup.</p>
-          {field('insurer_name', 'Insurer', { maxLength: 120 })}
+          <div className="field"><label className="label" htmlFor="pt-cov-insurer_name">Insurer</label>
+            <InsurerSelect id="pt-cov-insurer_name" value={d.insurer_name ?? ''} onChange={(v) => setD((x) => ({ ...x, insurer_name: v }))} required testId="coverage-insurer" /></div>
           <div className="field-row">{field('policy_number', 'Policy number', { maxLength: 60 })}{field('policy_expiry', 'Policy expiry', { type: 'date', min: c.min_policy_expiry })}</div>
           {d.policy_expiry && d.policy_expiry < c.min_policy_expiry && <p className="error" role="alert">The policy must still be active after your return date.</p>}
           {pages.length > 0 && <p className="small" data-testid="coverage-pages">{pages.length} {pages.length === 1 ? 'page' : 'pages'} sent{p?.status === 'submitted' ? ', in review' : ''}.</p>}

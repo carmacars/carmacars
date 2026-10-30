@@ -176,18 +176,23 @@ export async function drawOn(page: Page, pad: Locator, points = 24) {
 /** The signature that holds up (migration 0154), on any signing page: the code (shown on the page by the local fake
  *  line), the reading, each key term initialled, each consent, the drawn signature; resolves once the page's Sign
  *  button may be pressed. */
-export async function strongSign(page: Page, scope: Page | Locator = page, channel: 'sms' | 'email' = 'sms') {
+export async function strongSign(page: Page, scope: Page | Locator = page, channel: 'sms' | 'email' = 'sms', useCode = false) {
   const flow = scope.getByTestId('esign-flow');
   await expect(flow).toBeVisible({ timeout: 20_000 });
-  const ch = flow.getByTestId(`esign-channel-${channel}`);
-  if (await ch.count()) await ch.check();
-  await flow.getByTestId('esign-send').click();
-  const dev = flow.getByTestId('esign-dev-code');
-  await expect(dev).toBeVisible({ timeout: 15_000 });
-  const code = ((await dev.textContent()) ?? '').replace(/\D/g, '').slice(-6);
-  await flow.getByTestId('esign-code').fill(code);
-  await flow.getByTestId('esign-confirm').click();
-  await expect(flow.getByTestId('esign-verified')).toBeVisible({ timeout: 15_000 });
+  // 0186: the code is optional (Program settings, off by default): the step is a link then; useCode opens it anyway
+  await expect(flow.getByTestId('esign-send').or(flow.getByTestId('esign-code-open'))).toBeVisible({ timeout: 20_000 });
+  if (useCode && await flow.getByTestId('esign-code-open').count()) await flow.getByTestId('esign-code-open').click();
+  if (await flow.getByTestId('esign-send').count()) {
+    const ch = flow.getByTestId(`esign-channel-${channel}`);
+    if (await ch.count()) await ch.check();
+    await flow.getByTestId('esign-send').click();
+    const dev = flow.getByTestId('esign-dev-code');
+    await expect(dev).toBeVisible({ timeout: 15_000 });
+    const code = ((await dev.textContent()) ?? '').replace(/\D/g, '').slice(-6);
+    await flow.getByTestId('esign-code').fill(code);
+    await flow.getByTestId('esign-confirm').click();
+    await expect(flow.getByTestId('esign-verified')).toBeVisible({ timeout: 15_000 });
+  }
   // the boxes follow the record: each tick is saved first, then shown ticked (so a click, then the wait)
   await flow.getByTestId('esign-viewed').click();
   await expect(flow.getByTestId('esign-viewed')).toBeChecked({ timeout: 10_000 });
@@ -196,6 +201,8 @@ export async function strongSign(page: Page, scope: Page | Locator = page, chann
     if (!(await pad.count())) break;
     const id = await pad.getAttribute('data-testid');
     await drawOn(page, pad, 10);
+    // 0186: drawn initials are saved only when the signer presses Save initials
+    await flow.getByTestId(`esign-save-initials-${id!.replace(/^initials-/, '')}`).click();
     await expect(flow.locator(`canvas[data-testid="${id}"]`)).toHaveCount(0, { timeout: 15_000 });
   }
   for (let n = 0; n < 4; n++) {

@@ -154,6 +154,7 @@ function pngBytes(dataUrl: string, min = 120): Uint8Array | null {
 export type EsignStep =
   | { kind: 'viewed' } | { kind: 'document_opened'; title: string }
   | { kind: 'initial'; code: string; png?: string; typed?: string }
+  | { kind: 'initial_clear'; code: string }
   | { kind: 'consent'; code: ConsentCode }
   | { kind: 'geolocation'; lat: number; lng: number; accuracy: number }
   | { kind: 'signature'; png?: string; typed?: string };
@@ -173,7 +174,8 @@ export async function esignStep(ctx: EsignContext, session: string, step: EsignS
     if (step.kind === 'initial') {
       if (step.png) { const b = pngBytes(step.png, 80); if (!b) throw new Error('Initial in the box.'); path = await store(b, `initials-${step.code}`); detail = { code: step.code, path }; }
       else detail = { code: step.code, typed: true, text: (step.typed ?? '').slice(0, 10) };
-    } else if (step.kind === 'consent') detail = { code: step.code, text: CONSENTS[step.code] };
+    } else if (step.kind === 'initial_clear') detail = { code: step.code };
+    else if (step.kind === 'consent') detail = { code: step.code, text: CONSENTS[step.code] };
     else if (step.kind === 'geolocation') detail = { lat: step.lat, lng: step.lng, accuracy: step.accuracy };
     else if (step.kind === 'document_opened') detail = { title: step.title.slice(0, 120) };
     else if (step.kind === 'signature') {

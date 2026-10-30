@@ -60,6 +60,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Listings', (k) => k.startsWith('listing_') || k.startsWith('photo_') || k.startsWith('plate_')],
   ['Vision model', (k) => k.startsWith('ai_vision')],
   ['Email and notifications', (k) => k.startsWith('notify_')],
+  ['E-signing (rental agreements, amendments, new versions)', (k) => k.startsWith('esign_')],
   ['Partners, rentals added by hand and agreements', (k) => /^(partner_|manual_rental_|staff_agreement_)/.test(k)],
   ['Staff commissions and prices typed by hand', (k) => /^(staff_commission_|sales_tier_|sales_remote_|custom_price_)/.test(k)],
   ['Referral partners (body shops, tow trucks)', (k) => k.startsWith('referral_partner_')],

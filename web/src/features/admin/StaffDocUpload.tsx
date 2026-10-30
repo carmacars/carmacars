@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { staffDocumentUpload, staffLicenceUpload } from '@/server/actions/sign-now';
+import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 
 // Staff upload a renter's documents from the booking (migration 0183): the licence (front or back, per driver), the
 // insurance policy or pink card, an insurer's authorization or claim letter, or any other document. Photos or PDFs.
@@ -17,6 +18,7 @@ export function StaffDocUpload({ bookingId, drivers }: { bookingId: string; driv
   const [file, setFile] = useState<File | null>(null);
   const [f, setF] = useState({ insurer_name: '', policy_number: '', policy_expiry: '', title: '' });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [resets, setResets] = useState(0);
   const [pending, run] = useTransition();
   const licence = kind === 'licence_front' || kind === 'licence_back';
   const upload = () => run(async () => {
@@ -36,7 +38,7 @@ export function StaffDocUpload({ bookingId, drivers }: { bookingId: string; driv
     }
     if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
     setMsg({ ok: true, text: 'Uploaded. It is on the booking; review it with Review documents.' });
-    setFile(null); setF({ insurer_name: '', policy_number: '', policy_expiry: '', title: '' }); router.refresh();
+    setFile(null); setF({ insurer_name: '', policy_number: '', policy_expiry: '', title: '' }); setResets((n) => n + 1); router.refresh();
   });
   if (!open) return <button className="btn btn--ghost btn--sm" type="button" onClick={() => setOpen(true)} data-testid="sdu-open">Upload a document</button>;
   return (
@@ -50,7 +52,7 @@ export function StaffDocUpload({ bookingId, drivers }: { bookingId: string; driv
             {drivers.map((d) => <option key={d.driver_id} value={d.driver_id}>{d.full_name}</option>)}</select></div>}
         {kind === 'coverage_proof' && <>
           <div className="field ad-field"><label className="label" htmlFor="sdu-ins">Insurer (optional)</label>
-            <input className="input" id="sdu-ins" value={f.insurer_name} onChange={(e) => setF((s) => ({ ...s, insurer_name: e.target.value }))} /></div>
+            <InsurerSelect key={resets} id="sdu-ins" value={f.insurer_name} onChange={(v) => setF((s) => ({ ...s, insurer_name: v }))} testId="sdu-ins" /></div>
           <div className="field ad-field"><label className="label" htmlFor="sdu-pol">Policy number (optional)</label>
             <input className="input" id="sdu-pol" value={f.policy_number} onChange={(e) => setF((s) => ({ ...s, policy_number: e.target.value }))} /></div>
           <div className="field ad-field"><label className="label" htmlFor="sdu-exp">Policy expiry (optional)</label>

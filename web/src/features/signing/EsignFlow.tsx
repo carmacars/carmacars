@@ -6,8 +6,9 @@ import { esignCheckCode, esignSendCode, esignSetMobile, esignStart, esignStep } 
 import type { EsignContext, EsignReady, EsignView } from './types';
 
 // The signature that holds up (migration 0154), the same on every signing page: 1. confirm it is you with a code sent
-// to the phone or email on file; 2. say you read the documents; 3. initial each key term; 4. give the consents; 5. draw
-// your signature. Each step is recorded with its time, IP address and device (and the place, if the signer allows it)
+// to the phone or email on file (0186: only when Program settings require it; otherwise an optional link); 2. say you
+// read the documents; 3. initial each key term (saved when the signer presses Save initials; Clear takes it back); 4.
+// give the consents; 5. draw your signature. Each step is recorded with its time, IP address and device (and the place, if the signer allows it)
 // and goes in the certificate of completion. The page's own Sign button is enabled once onReady gives the session.
 export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement above' }: { ctx: EsignContext; terms: Clause[]; onReady: (r: EsignReady | null) => void; docsLabel?: string }) {
   const [v, setV] = useState<EsignView | null>(null);
@@ -21,6 +22,10 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
   const [typed, setTyped] = useState(false);
   const [typedName, setTypedName] = useState('');
   const [sigPath, setSigPath] = useState<string | null>(null);
+  const [showCode, setShowCode] = useState(false);
+  // initials drawn or typed but not saved yet, by key term (saved only on Save initials)
+  const [drafts, setDrafts] = useState<Record<string, string | null>>({});
+  const [typedIni, setTypedIni] = useState<Record<string, string>>({});
   const geoAsked = useRef(false);
 
   useEffect(() => {
@@ -35,13 +40,14 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
     else onReady(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [v?.ready, sigPath, typed, typedName]);
-  // the place, once identity is confirmed, if the signer's device allows it (never in the way)
+  // the place, once identity is confirmed (or the code is not asked for), if the signer's device allows it (never in the way)
+  const codeOk = !!v && (v.verified || !v.code_required);
   useEffect(() => {
-    if (!v?.verified || geoAsked.current || typeof navigator === 'undefined' || !navigator.geolocation) return;
+    if (!v || !codeOk || geoAsked.current || typeof navigator === 'undefined' || !navigator.geolocation) return;
     geoAsked.current = true;
     navigator.geolocation.getCurrentPosition((p) => { void esignStep(ctx, v.id, { kind: 'geolocation', lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }); }, () => undefined, { timeout: 8000, maximumAge: 600000 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [v?.verified]);
+  }, [codeOk]);
 
   // one step at a time, in the order given: each answer is the session after that step (a later step never sees an
   // earlier answer arrive after it)
@@ -59,10 +65,20 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
   const want = terms.filter((t) => v.required_initials.includes(t.code));
   const initialsDone = want.every((t) => v.initials.includes(t.code));
   const consentsDone = v.required_consents.every((c) => v.consents.includes(c));
+  // step 1 is shown when the code is required, already confirmed, or the signer chose to verify by code
+  const askCode = v.code_required || v.verified || showCode;
+  const n0 = askCode ? 1 : 0;
+  const saveInitials = (code: string, step: { png?: string; typed?: string }) => run(() => esignStep(ctx, v.id, { kind: 'initial', code, ...step }))
+    .then((d) => { if (d) { setDrafts((x) => ({ ...x, [code]: null })); setTypedIni((x) => ({ ...x, [code]: '' })); } });
+  // clearing a saved initial removes it from the session: the signer initials again (and signs again after)
+  const clearInitials = (code: string) => run(() => esignStep(ctx, v.id, { kind: 'initial_clear', code }))
+    .then((d) => { if (d) { setDrafts((x) => ({ ...x, [code]: null })); setSigPath(null); } });
   return (
     <div className="es-flow" data-testid="esign-flow" data-ready={v.ready ? 'true' : 'false'} data-complete={v.ready && (sigPath || (typed && typedName.trim())) ? 'true' : 'false'}>
-      <section className="es-step" data-state={v.verified ? 'done' : 'open'} aria-labelledby="es-1">
-        <div className="es-step__head"><h3 className="d4" id="es-1">1. Confirm it is you</h3>{v.verified && <span className="badge" data-testid="esign-verified">Confirmed</span>}</div>
+      {!askCode && <p className="small" data-testid="esign-code-optional">
+        <button type="button" className="link" onClick={() => setShowCode(true)} data-testid="esign-code-open">Verify by code (optional)</button></p>}
+      {askCode && <section className="es-step" data-state={v.verified ? 'done' : 'open'} aria-labelledby="es-1">
+        <div className="es-step__head"><h3 className="d4" id="es-1">1. Confirm it is you{v.code_required ? '' : ' (optional)'}</h3>{v.verified && <span className="badge" data-testid="esign-verified">Confirmed</span>}</div>
         {!v.verified && <>
           <p className="small">We send a 6-digit code to {v.signer_name.split(' ')[0]}&apos;s phone or email on file. It shows the signature is yours.</p>
           {v.channels.length === 0 && !canFix ? <p className="alert alert--error" role="alert"><span>No mobile number or email is on file for {v.signer_name}. Ask CarmaCars to add one.</span></p> : <>
@@ -88,35 +104,41 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
                 <button className="btn btn--ghost" type="button" onClick={() => setFixing(false)}>Cancel</button></div>)}
           </>}
         </>}
-        {v.licence && <p className="xs muted" data-testid="esign-licence">Licence on file: {[v.licence.licence_front && 'front', v.licence.licence_back && 'back', v.licence.selfie && 'selfie'].filter(Boolean).join(', ') || 'none yet'}{v.licence.verified ? ', verified' : ''}.</p>}
-      </section>
+      </section>}
+      {v.licence && <p className="xs muted" data-testid="esign-licence">Licence on file: {[v.licence.licence_front && 'front', v.licence.licence_back && 'back', v.licence.selfie && 'selfie'].filter(Boolean).join(', ') || 'none yet'}{v.licence.verified ? ', verified' : ''}.</p>}
 
-      {v.verified && <section className="es-step" data-state={v.viewed ? 'done' : 'open'} aria-labelledby="es-2">
-        <h3 className="d4" id="es-2">2. Read</h3>
+      {codeOk && <section className="es-step" data-state={v.viewed ? 'done' : 'open'} aria-labelledby="es-2">
+        <h3 className="d4" id="es-2">{n0 + 1}. Read</h3>
         <label className="check"><input type="checkbox" checked={v.viewed} disabled={v.viewed || busy} onChange={() => run(() => esignStep(ctx, v.id, { kind: 'viewed' }))} data-testid="esign-viewed" />
           <span>I have read {docsLabel}.</span></label>
       </section>}
 
-      {v.verified && v.viewed && want.length > 0 && <section className="es-step" data-state={initialsDone ? 'done' : 'open'} aria-labelledby="es-3">
-        <div className="es-step__head"><h3 className="d4" id="es-3">3. Initial the key terms</h3><span className="small muted">{v.initials.filter((c) => want.some((t) => t.code === c)).length} of {want.length}</span></div>
+      {codeOk && v.viewed && want.length > 0 && <section className="es-step" data-state={initialsDone ? 'done' : 'open'} aria-labelledby="es-3">
+        <div className="es-step__head"><h3 className="d4" id="es-3">{n0 + 2}. Initial the key terms</h3><span className="small muted">{v.initials.filter((c) => want.some((t) => t.code === c)).length} of {want.length}</span></div>
         {want.map((t) => <div key={t.code} className="es-term" data-testid={`esign-term-${t.code}`}>
           <p className="small"><b>{t.title}.</b> {t.text}</p>
-          {v.initials.includes(t.code) ? <p className="fd-line is-ok"><span aria-hidden="true">✓</span> Initialled</p>
-            : typed ? <div className="row" style={{ gap: 'var(--s-2)' }}><input className="input" aria-label={`Your initials for ${t.title}`} maxLength={5} id={`es-ti-${t.code}`} />
-              <button className="btn btn--ghost btn--sm" type="button" disabled={busy} onClick={() => { const el = document.getElementById(`es-ti-${t.code}`) as HTMLInputElement | null; if (el?.value.trim()) void run(() => esignStep(ctx, v.id, { kind: 'initial', code: t.code, typed: el.value.trim() })); }}>Initial</button></div>
-            : <SignaturePad id={`es-in-${t.code}`} small minPoints={4} testId={`initials-${t.code}`} label={`Initials box for ${t.title}: draw your initials`}
-                onChange={(png) => { if (png) void run(() => esignStep(ctx, v.id, { kind: 'initial', code: t.code, png })); }} />}
+          {v.initials.includes(t.code) ? <div className="row" style={{ gap: 'var(--s-2)', alignItems: 'center' }}><p className="fd-line is-ok" style={{ margin: 0 }}><span aria-hidden="true">✓</span> Initialled</p>
+              <button className="btn btn--quiet btn--sm" type="button" disabled={busy} onClick={() => void clearInitials(t.code)} aria-label={`Clear your initials for ${t.title} and initial again`} data-testid={`esign-clear-initials-${t.code}`}>Clear</button></div>
+            : typed ? <div className="row" style={{ gap: 'var(--s-2)' }}><input className="input" aria-label={`Your initials for ${t.title}`} maxLength={5} id={`es-ti-${t.code}`}
+                value={typedIni[t.code] ?? ''} onChange={(e) => setTypedIni((x) => ({ ...x, [t.code]: e.target.value }))} data-testid={`esign-typed-initials-${t.code}`} />
+              <button className="btn btn--ghost btn--sm" type="button" disabled={busy || !(typedIni[t.code] ?? '').trim()} onClick={() => void saveInitials(t.code, { typed: (typedIni[t.code] ?? '').trim() })} data-testid={`esign-save-initials-${t.code}`}>Save initials</button>
+              {(typedIni[t.code] ?? '') && <button className="btn btn--quiet btn--sm" type="button" onClick={() => setTypedIni((x) => ({ ...x, [t.code]: '' }))}>Clear</button>}</div>
+            : <div className="stack" style={{ gap: 'var(--s-1)' }}>
+                <SignaturePad id={`es-in-${t.code}`} small minPoints={4} testId={`initials-${t.code}`} label={`Initials box for ${t.title}: draw your initials`}
+                  onChange={(png) => setDrafts((x) => ({ ...x, [t.code]: png }))} />
+                <div><button className="btn btn--ghost btn--sm" type="button" disabled={busy || !drafts[t.code]} onClick={() => { const png = drafts[t.code]; if (png) void saveInitials(t.code, { png }); }}
+                  data-testid={`esign-save-initials-${t.code}`}>Save initials</button></div></div>}
         </div>)}
       </section>}
 
-      {v.verified && v.viewed && initialsDone && <section className="es-step" data-state={consentsDone ? 'done' : 'open'} aria-labelledby="es-4">
-        <h3 className="d4" id="es-4">4. Consent</h3>
+      {codeOk && v.viewed && initialsDone && <section className="es-step" data-state={consentsDone ? 'done' : 'open'} aria-labelledby="es-4">
+        <h3 className="d4" id="es-4">{n0 + (want.length > 0 ? 3 : 2)}. Consent</h3>
         {v.required_consents.map((c) => <label key={c} className="check"><input type="checkbox" checked={v.consents.includes(c)} disabled={v.consents.includes(c) || busy}
           onChange={() => run(() => esignStep(ctx, v.id, { kind: 'consent', code: c as ConsentCode }))} data-testid={`esign-consent-${c}`} /><span>{CONSENTS[c as ConsentCode]}</span></label>)}
       </section>}
 
-      {v.verified && v.viewed && initialsDone && consentsDone && <section className="es-step" data-state={v.signature ? 'done' : 'open'} aria-labelledby="es-5">
-        <div className="es-step__head"><h3 className="d4" id="es-5">5. Sign</h3>
+      {codeOk && v.viewed && initialsDone && consentsDone && <section className="es-step" data-state={v.signature ? 'done' : 'open'} aria-labelledby="es-5">
+        <div className="es-step__head"><h3 className="d4" id="es-5">{n0 + (want.length > 0 ? 4 : 3)}. Sign</h3>
           {v.typed_fallback_allowed && <button type="button" className="btn btn--quiet btn--sm" onClick={() => setTyped(!typed)} data-testid="esign-typed-toggle">{typed ? 'Draw instead' : 'I cannot draw a signature'}</button>}</div>
         {typed ? <label className="field"><span className="label">Type your full legal name: {v.signer_name}</span>
             <input className="input sigpad__typed" value={typedName} onChange={(e) => setTypedName(e.target.value)} onBlur={() => { if (typedName.trim()) void run(() => esignStep(ctx, v.id, { kind: 'signature', typed: typedName.trim() })); }} /></label>

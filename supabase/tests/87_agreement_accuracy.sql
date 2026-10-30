@@ -13,6 +13,9 @@ select test.eq('settings: the signing session and the check-out check are on by 
   'agreement_claim_check=false,esign_strict=false,esign_typed_fallback=false');
 -- helpers.sql turned the first two off for the earlier suites (its defaults too); this suite turns them on
 update program_settings set esign_strict = true, agreement_claim_check = true;
+-- the one-time code is optional since 0186 (off by default); this suite tests it required (99_esign_no_code_discount_scope
+-- tests it off)
+update program_settings set esign_code_required = true;
 -- the licence before an offer is accepted (82 leaves it on) is not this suite's subject: its booking has no licence images
 update program_settings set booking_licence_required = false;
 
@@ -277,4 +280,4 @@ select test.eq('privileges: the new functions are the service role''s only',
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.proname like 'server_esign%' and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))), 0::bigint);
 
-update program_settings set esign_strict = false, agreement_claim_check = false;
+update program_settings set esign_strict = false, agreement_claim_check = false, esign_code_required = false;

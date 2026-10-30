@@ -122,9 +122,12 @@ const LABELS: Record<string, string> = {
   field_pay_anchor: 'Field pay: the first day of a pay period (every period is two weeks from it)', field_default_hourly_cents: 'Field pay: the hourly rate of a field staff member with no rate of their own',
   field_overtime_on: 'Field pay: pay overtime', field_overtime_weekly_hours: 'Field pay: overtime starts after this many hours in a week', field_overtime_bps: 'Field pay: overtime is paid at this share of the hourly rate',
   field_vacation_pay_bps: 'Field pay: vacation pay added to each pay statement (0 is off)', field_shift_max_hours: 'Field pay: the longest shift (hours)',
-  ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day'
+  ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day',
+  esign_code_required: 'E-signing: ask for a one-time code by text or email first', esign_strict: 'E-signing: sign only after reading, initialling, consenting and drawing the signature',
+  esign_typed_fallback: 'E-signing: a signer who cannot draw may type their name and initials', esign_code_minutes: 'E-signing: the code works for (minutes)'
 };
 const HINTS: Record<string, string> = {
+  esign_code_required: 'Off by default: the signer reads, initials each key term, consents and draws the signature, and the certificate records the time, IP address and device of each step and says the identity was not confirmed by a code. On: the code comes first, as before. Signers can still verify by code when it is off.',
   field_pay_anchor: 'A Sunday works best. Pay runs already made keep their own dates; change this only between pay periods.',
   field_default_hourly_cents: '$18.00 by default. A person\'s own rate is set in Money, Field pay, Hourly rates; a pay run uses the rate when it was started.',
   field_overtime_on: 'Off by default: every hour is paid at the hourly rate. On: hours past the weekly line are paid at the share below. A week is seven days of the pay period, from its first day.',

@@ -179,6 +179,14 @@ test('the key terms initialled are worded from the booking; the certificate of c
   const last = withCert[withCert.length - 1]!.text;
   assert.ok(last.includes('Certificate of completion') || withCert.some((p) => p.text.includes('Certificate of completion')), 'the certificate pages are at the end');
   assert.ok(withCert.length > (await read(base)).length, 'pages were added');
+
+  // 0186: the code is optional; signed without it, the certificate says so (and never claims a code), the initials
+  // cleared and redone are in the audit trail
+  const noCode: Certificate = { ...cert, signers: [{ ...cert.signers[0]!, otp_channel: null, otp_to: null, otp_verified_at: null,
+    events: [{ at: '2027-06-02T12:00:05Z', kind: 'initial_clear', detail: { code: 'damage' }, ip_address: '203.0.113.9' }, { at: '2027-06-02T12:02:00Z', kind: 'signed', ip_address: '203.0.113.9' }] }] };
+  const nl = certificateLines(noCode).map((l) => l.text).join(' ');
+  has(nl, ['Identity: not confirmed by a one-time code', 'Initials cleared for damage and the deductible', '203.0.113.9', 'Test Browser'], 'the certificate without a code');
+  assert.ok(!nl.includes('one-time code by'), 'no code is claimed');
 });
 
 test('a long rental in periods: the length in all and the period this version covers (long rentals)', async () => {

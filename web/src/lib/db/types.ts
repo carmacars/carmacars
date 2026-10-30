@@ -13167,6 +13167,7 @@ export type Database = {
           request_claim_minutes: number;
           request_sales_after_minutes: number;
           hiring_evening_reminder: boolean;
+          esign_code_required: boolean;
         };
         Insert: {
           id?: string;
@@ -13674,6 +13675,7 @@ export type Database = {
           request_claim_minutes?: number;
           request_sales_after_minutes?: number;
           hiring_evening_reminder?: boolean;
+          esign_code_required?: boolean;
         };
         Update: {
           id?: string;
@@ -14181,6 +14183,7 @@ export type Database = {
           request_claim_minutes?: number;
           request_sales_after_minutes?: number;
           hiring_evening_reminder?: boolean;
+          esign_code_required?: boolean;
         };
         Relationships: [];
       };

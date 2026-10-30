@@ -1,6 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 import { agreementFill, agreementOverride, agreementRegenerate, agreementResend, disputePackBuild, disputePackSubmit } from '@/server/actions/agreements';
 
 export interface Missing { key: string; label: string; where: string; required: boolean; driver_id?: string }
@@ -42,10 +43,13 @@ export function MissingFields({ booking, missing, refresh, isAdmin, overrides }:
       <p className="small"><b>{required.length ? `${required.length} field${required.length === 1 ? '' : 's'} a claim needs ${required.length === 1 ? 'is' : 'are'} blank` : 'Recommended'}</b>: the agreements print these blank until they are filled.{required.length ? ' Check-out stops until they are, unless an Admin overrides.' : ''}</p>
       <form className="stack" onSubmit={(e) => { e.preventDefault(); start(async () => { const r = await agreementFill(booking, payload(), refresh); setMsg(r.ok ? { ok: true, text: 'Saved. The agreements follow in a moment.' } : { ok: false, text: r.message }); if (r.ok) { setVals({}); router.refresh(); } }); }}>
         <div className="grid-2" style={{ display: 'grid', gap: 'var(--s-2)', gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))' }}>
-          {fillable.flatMap(inputs).map((f) => (
-            <label key={f.name} className="field" style={{ margin: 0 }}><span className="label">{f.label}{missing.find((m) => f.name.startsWith(m.key))?.required ? ' *' : ''}</span>
+          {fillable.flatMap(inputs).map((f) => f.name === 'coverage.insurer_name'
+            // the renter's own insurer: the list of insurers, or Other with its name typed
+            ? <div key={f.name} className="field" style={{ margin: 0 }}><label className="label" htmlFor="fill-coverage-insurer-name">{f.label}{missing.find((m) => f.name.startsWith(m.key))?.required ? ' *' : ''}</label>
+                <InsurerSelect id="fill-coverage-insurer-name" value={vals[f.name] ?? ''} onChange={(x) => setVals((v) => ({ ...v, [f.name]: x }))} testId="fill-coverage-insurer-name" /></div>
+            : <label key={f.name} className="field" style={{ margin: 0 }}><span className="label">{f.label}{missing.find((m) => f.name.startsWith(m.key))?.required ? ' *' : ''}</span>
               <input className="input" type={f.type} value={vals[f.name] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [f.name]: e.target.value }))} data-testid={`fill-${f.name.replace(/[^a-z0-9]+/gi, '-')}`} /></label>
-          ))}
+          )}
         </div>
         {missing.some((m) => m.where === 'settings') && <p className="xs muted">CarmaCars&apos; HST number: Program settings, Company HST number.</p>}
         {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
@@ -113,7 +117,11 @@ export function AgreementEditAll({ booking, current, refresh, isAdmin }: { booki
   const [vals, setVals] = useState(init);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
-  const field = (name: string, label: string, type = 'text', disabled = false) => (
+  const field = (name: string, label: string, type = 'text', disabled = false) => name === 'coverage.insurer_name'
+    // the renter's own insurer: the list of insurers, or Other with its name typed
+    ? <div key={name} className="field" style={{ margin: 0 }}><label className="label" htmlFor="edit-coverage-insurer-name">{label}</label>
+        <InsurerSelect id="edit-coverage-insurer-name" value={vals[name] ?? ''} disabled={disabled} onChange={(x) => setVals((v) => ({ ...v, [name]: x }))} testId="edit-coverage-insurer-name" /></div>
+    : (
     <label key={name} className="field" style={{ margin: 0 }}><span className="label">{label}</span>
       <input className="input" type={type} value={vals[name] ?? ''} disabled={disabled} onChange={(e) => setVals((v) => ({ ...v, [name]: e.target.value }))} data-testid={`edit-${name.replace(/[^a-z0-9]+/gi, '-')}`} /></label>);
   const save = () => start(async () => {
