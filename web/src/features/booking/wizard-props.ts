@@ -23,7 +23,7 @@ export async function wizardProps(initialSlug: string | null): Promise<WizardPro
   const [options, initialCar, f, t, s, r, c, affiliate] = await Promise.all([bookingCars(), initialSlug ? bookingCar(initialSlug) : Promise.resolve(null), getFacts(), getTokens(), getSettings(), rules(), consentTexts(), affiliateName()]);
   const pick = (k: string) => t[k] ?? '';
   return {
-    affiliate, options, initialCar, initialSlug, rules: r, airports: f.airports,
+    affiliate, options, initialCar, initialSlug, rules: r, airports: f.airports, gate: f.phone_gate ?? null,
     tokens: Object.fromEntries(['notice', 'turnaround', 'offerHours', 'hst', 'minAge', 'licence', 'addDrvPct', 'cEarly', 'c2', 'nonRef', 'winter', 'winterCap', 'baby', 'babyCap', 'maxDays', 'brand'].map((k) => [k, pick(k)])) as unknown as WizardProps['tokens'],
     marketingText: c.marketing.text, agreeLine: c.agreeLine(r.minAge), ourAddress: s.street_address ? fill(s.street_address, t) : null
   };

@@ -35,7 +35,9 @@ const PUBLIC: Record<string, string[]> = {
   // the RentalCoverage link (0164) shows on the coverage pages and the booking request
   coverage_affiliate_save: ['/'],
   // the careers pages (0173): opening or closing a role changes the careers page, the role's page, the footer and the sitemap
-  hiring_role_save: ['/careers', '/careers/[slug]', '/', '/sitemap.xml']
+  hiring_role_save: ['/careers', '/careers/[slug]', '/', '/sitemap.xml'],
+  // the phone number box (0280): its settings are in site_facts, read by the car, fleet and request pages
+  phone_gate_switch: ['/', '/cars', '/cars/[slug]', '/book/[slug]']
 };
 
 function rebuild(paths: string[]) {

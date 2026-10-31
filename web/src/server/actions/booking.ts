@@ -2,6 +2,7 @@
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { DbError, rpc } from '@/lib/db/repo';
+import type { Json } from '@/lib/db/types';
 import { torontoInstant, torontoMinutesNow, torontoToday } from '@/lib/dates';
 import { getFacts, getFleet } from '@/lib/site';
 import { consentTexts, rules } from '@/server/booking-data';
@@ -12,7 +13,7 @@ import { typedReferralCode } from '@/features/referral/model';
 import { addonsPayload } from '@/features/addons/model';
 import type { ActionResult } from '@/features/forms/schemas';
 import { requestMeta } from '@/server/request';
-import { captureDone, pendingAddBooking } from '@/server/capture';
+import { captureDone, pendingAddBooking, visitorCookie } from '@/server/capture';
 import { PARTNER_COOKIE } from '@/features/partner-crm/feed-key';
 
 // Request to book (docs/blueprint/02-booking-and-renter.md section 3). The server validates with the
@@ -129,6 +130,8 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
     // contact saved as it was typed is done
     if (!user) await pendingAddBooking(String(res.booking_number));
     await captureDone('booking_request');
+    // 0280: the request counts for the phone number box report (from a visitor who saw the box, or not); no personal data
+    if (res.created !== false) await rpc('server_phone_gate_request', { p: { visitor_id: await visitorCookie() } as unknown as Json }, { role: 'service_role' }).catch(() => undefined);
     return { ok: true, data: { bookingNumber: String(res.booking_number), totalCents: (res.total_due_at_booking_cents as number) ?? null, depositCents: (res.deposit_cents as number) ?? null, created: res.created === true } };
   } catch (e) {
     return { ok: false, code: 'refused', message: e instanceof DbError ? e.message : 'We could not send the request. Please try again or call us.' };
