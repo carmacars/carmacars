@@ -13438,8 +13438,7 @@ export type Database = {
           deductible_cents: number;
           kickback_bps: number;
           shareholder_company_share_bps: number;
-          non_refundable_discount_bps: number
-          non_refundable_min_days: number;
+          non_refundable_discount_bps: number;
           notice_period_days: number;
           free_retransfer_months: number;
           buyout_premium_bps: number;
@@ -13945,6 +13944,7 @@ export type Database = {
           cf_email_enabled: boolean;
           cf_email_monthly_included: number;
           card_types_accepted: string;
+          non_refundable_min_days: number;
         };
         Insert: {
           id?: string;
@@ -13961,8 +13961,7 @@ export type Database = {
           deductible_cents?: number;
           kickback_bps?: number;
           shareholder_company_share_bps?: number;
-          non_refundable_discount_bps?: number
-          non_refundable_min_days?: number;
+          non_refundable_discount_bps?: number;
           notice_period_days?: number;
           free_retransfer_months?: number;
           buyout_premium_bps?: number;
@@ -14468,6 +14467,7 @@ export type Database = {
           cf_email_enabled?: boolean;
           cf_email_monthly_included?: number;
           card_types_accepted?: string;
+          non_refundable_min_days?: number;
         };
         Update: {
           id?: string;
@@ -14484,8 +14484,7 @@ export type Database = {
           deductible_cents?: number;
           kickback_bps?: number;
           shareholder_company_share_bps?: number;
-          non_refundable_discount_bps?: number
-          non_refundable_min_days?: number;
+          non_refundable_discount_bps?: number;
           notice_period_days?: number;
           free_retransfer_months?: number;
           buyout_premium_bps?: number;
@@ -14991,6 +14990,7 @@ export type Database = {
           cf_email_enabled?: boolean;
           cf_email_monthly_included?: number;
           card_types_accepted?: string;
+          non_refundable_min_days?: number;
         };
         Relationships: [];
       };
@@ -19172,6 +19172,7 @@ export type Database = {
           engine_enabled: boolean | null;
           locked: boolean | null;
           tamper_alert: boolean;
+          heading_deg: number | null;
         };
         Insert: {
           tracker_device_id: string;
@@ -19183,6 +19184,7 @@ export type Database = {
           engine_enabled?: boolean | null;
           locked?: boolean | null;
           tamper_alert?: boolean;
+          heading_deg?: number | null;
         };
         Update: {
           tracker_device_id?: string;
@@ -19194,6 +19196,7 @@ export type Database = {
           engine_enabled?: boolean | null;
           locked?: boolean | null;
           tamper_alert?: boolean;
+          heading_deg?: number | null;
         };
         Relationships: [];
       };
@@ -22774,6 +22777,8 @@ export type Database = {
           conversions: string[];
           has_contact: boolean;
           exclude_reason: string | null;
+          geo_lat: number | null;
+          geo_lng: number | null;
         };
         Insert: {
           id: string;
@@ -22814,6 +22819,8 @@ export type Database = {
           conversions?: string[];
           has_contact?: boolean;
           exclude_reason?: string | null;
+          geo_lat?: number | null;
+          geo_lng?: number | null;
         };
         Update: {
           id?: string;
@@ -22854,6 +22861,8 @@ export type Database = {
           conversions?: string[];
           has_contact?: boolean;
           exclude_reason?: string | null;
+          geo_lat?: number | null;
+          geo_lng?: number | null;
         };
         Relationships: [];
       };

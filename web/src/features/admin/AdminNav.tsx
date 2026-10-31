@@ -7,7 +7,7 @@ import { GroupNav, type NavGroup } from './GroupNav';
 // pages keep their addresses, so links in emails and bookmarks work.
 export const GROUPS: NavGroup[] = [
   { key: 'today', label: 'Today', links: [
-    { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Staff tasks', key: 'k' }, { href: '/admin/live', label: 'Live visitors' }, { href: '/admin/live/history', label: 'Visitor history' }] },
+    { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Staff tasks', key: 'k' }, { href: '/admin/live', label: 'Live visitors' }, { href: '/admin/live-map', label: 'Live map' }, { href: '/admin/live/history', label: 'Visitor history' }] },
   { key: 'bookings', label: 'Bookings', links: [
     { href: '/admin/requests', label: 'Requests', key: 'r', section: 'Trips' }, { href: '/admin/bookings', label: 'Bookings', key: 'b' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
     { href: '/admin/offers/new', label: 'Send an offer' }, { href: '/admin/bookings/new', label: 'Add a rental' }, { href: '/admin/chauffeur', label: 'Chauffeur' },
