@@ -89,7 +89,7 @@ export async function collectBalance(bookingId: string, depth = 0): Promise<{ ac
     const q = (await call('server_balance_payreq', { p_booking: bookingId, p_token_sha256: await payTokenHash(token), p_amount: n.open_cents })) as { id: string; booking_number: string };
     const p = await payments();
     const customerId = n.renter.customer_id ?? (await p.createCustomer({ email: n.renter.email ?? '', name: n.renter.legal_name, renterId: n.renter.id, idempotencyKey: `customer:${n.renter.id}` })).id;
-    const intent = await p.createStaffIntent({ amountCents: n.open_cents, customerId, capture: 'automatic', description: `CarmaCars booking ${q.booking_number}: charges after the rental`,
+    const intent = await p.createStaffIntent({ amountCents: n.open_cents, customerId, capture: 'manual', description: `CarmaCars booking ${q.booking_number}: charges after the rental`,
       metadata: { booking_id: bookingId, booking_number: q.booking_number, purpose: 'staff_request', payment_request_id: q.id, covers: 'later' }, idempotencyKey: `payreq:${q.id}` });
     await call('server_payreq_attach', { p_id: q.id, p_intent: intent.id });
     await call('server_balance_payreq_send', { p_id: q.id, p_link: `${siteUrl()}/pay/${token}` });

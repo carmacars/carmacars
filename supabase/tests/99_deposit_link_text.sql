@@ -65,6 +65,20 @@ select test.ok('a task "Deposit link not sent" on the booking, and the Admins to
     and t.title like 'Deposit link not sent%' and t.completed_at is null)
   and exists (select 1 from notifications n where n.user_id = test.id('dlt_admin') and n.code = 'staff_deposit_link_not_sent'));
 
+-- the staff pay link takes the booking's cards: credit; debit only on a car that needs no credit card; never prepaid
+create temp table dlt_q as select id from payment_requests where booking_id = (select id from bookings where booking_number = 'CC-DLT1') and status = 'open' and kind = 'hold';
+select test.ok('a credit card is taken', public.server_payreq_card_ok((select id from dlt_q), '{"funding": "credit", "is_credit": true}'));
+select test.ok('a prepaid card is refused', not public.server_payreq_card_ok((select id from dlt_q), '{"funding": "prepaid", "is_credit": false}'));
+select test.ok('the request stays open and says why', public.server_payreq_card_refused((select id from dlt_q)) and (select status from payment_requests where id = (select id from dlt_q)) = 'open');
+select test.ok('a debit card is refused on a car that needs a credit card', not public.server_payreq_card_ok((select id from dlt_q), '{"funding": "debit", "is_credit": false}'));
+update vehicles set no_credit_card = true where id = (select vehicle_id from bookings where booking_number = 'CC-DLT1');
+select test.ok('a debit card is taken on a car that needs no credit card', public.server_payreq_card_ok((select id from dlt_q), '{"funding": "debit", "is_credit": false}'));
+select test.ok('a prepaid card never', not public.server_payreq_card_ok((select id from dlt_q), '{"funding": "prepaid", "is_credit": false}'));
+update vehicles set no_credit_card = false where id = (select vehicle_id from bookings where booking_number = 'CC-DLT1');
+insert into payment_requests (booking_id, renter_id, kind, covers, amount_cents, token_sha256, channel, expires_at)
+select b.id, b.renter_id, 'setup', 'card', 0, encode(sha256('dltsetupabcdefghijklmnopqrs'::bytea), 'hex'), 'text', now() + interval '1 day' from bookings b where b.booking_number = 'CC-DLT2';
+select test.ok('saving a card is not concerned', public.server_payreq_card_ok((select id from payment_requests where token_sha256 = encode(sha256('dltsetupabcdefghijklmnopqrs'::bytea), 'hex')), '{"funding": "prepaid", "is_credit": false}'));
+
 update program_settings set phone_enabled = (select v from dlt_phone) where id = (app.settings()).id;
 update payment_requests set status = 'cancelled' where booking_id in (select id from bookings where booking_number like 'CC-DLT%') and status = 'open';
 update bookings set deposit_pay_method = 'cash' where booking_number like 'CC-DLT%';

@@ -355,7 +355,7 @@ test('email limit: an Admin texts a held email instead; sign-in opens on the pho
 });
 
 // 0213: the deposit hold link texted before pickup by the deposit job, on the Money tab, texted and opened
-test('deposit link by text: the job texts the hold link before pickup; the Money tab says texted, then opened', async ({ browser }, info) => {
+test('deposit link by text: the job texts the hold link before pickup; the Money tab says texted, then opened; a prepaid card is refused', async ({ browser }, info) => {
   test.setTimeout(150_000);
   const phone = info.project.name.startsWith('phone');
   const sql = db();
@@ -409,6 +409,26 @@ test('deposit link by text: the job texts the hold link before pickup; the Money
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page.getByTestId('bm-deposit-link')).toContainText('opened');
     await expect(page.getByTestId('bm-deposit-link')).not.toContainText('not opened');
+    // the staff link takes the same cards as the booking's pay page: a prepaid card is refused, nothing held; a credit card places the hold
+    const rp = await ctx(browser, phone);
+    await rp.goto(new URL(link).pathname, { waitUntil: 'networkidle' });
+    const pay = async (number: string) => {
+      await rp.locator('#pl-name').fill('Dana Deposit');
+      await rp.locator('#pl-num').fill(number);
+      await rp.locator('#pl-exp').fill('12 / 30');
+      await rp.locator('#pl-cvc').fill('123');
+      await rp.getByTestId('paylink-submit').click();
+    };
+    await pay('5105105105105100');
+    await expect(rp.getByTestId('paylink-message')).toContainText('Please use a credit card. Debit and prepaid cards cannot be used for a rental.');
+    expect((await sql`select count(*)::int n from deposits where booking_id = ${v.booking_id} and status = 'held'`)[0]!.n).toBe(0);
+    expect((await sql`select status, last_error from payment_requests where booking_id = ${v.booking_id} and kind = 'hold' order by created_at desc limit 1`)[0]).toMatchObject({ status: 'open' });
+    await check(rp, 'pay link prepaid refused');
+    await expect(rp.getByTestId('paylink-submit')).toBeEnabled({ timeout: 15_000 });
+    await pay('4242424242424242');
+    await expect(rp.getByTestId('paylink-done')).toBeVisible({ timeout: 20_000 });
+    expect((await sql`select count(*)::int n from deposits where booking_id = ${v.booking_id} and status = 'held'`)[0]!.n).toBe(1);
+    await rp.context().close();
     expect(quiet(errors)).toEqual([]);
     await page.context().close();
   } finally {

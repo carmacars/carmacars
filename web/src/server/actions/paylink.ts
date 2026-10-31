@@ -29,7 +29,7 @@ export async function payLinkFakeConfirm(token: string, card: { number: string; 
   return { ok: true, data: { status: r.status, error: r.lastError } };
 }
 
-export async function payLinkFinish(token: string): Promise<R<{ ok: boolean; reason?: string }>> {
+export async function payLinkFinish(token: string): Promise<R<{ ok: boolean; reason?: string; message?: string }>> {
   const f = await payLinkFacts(token);
   if (!f?.intent_id) return fail('This link is no longer open.');
   if (f.status === 'paid') return { ok: true, data: { ok: true } };

@@ -23750,6 +23750,8 @@ export type Database = {
       server_payment_intent_opened: { Args: { p: Json }; Returns: undefined };
       server_payreq_attach: { Args: { p_id: string; p_intent: string }; Returns: undefined };
       server_payreq_card_check: { Args: { p_id: string; p_card: Json }; Returns: Json };
+      server_payreq_card_ok: { Args: { p_id: string; p_card: Json }; Returns: boolean };
+      server_payreq_card_refused: { Args: { p_id: string }; Returns: boolean };
       server_payreq_facts: { Args: { p_token_sha256: string }; Returns: Json };
       server_payreq_opened: { Args: { p_token_sha256: string }; Returns: undefined };
       server_payreq_reader: { Args: { p_id: string }; Returns: Json };

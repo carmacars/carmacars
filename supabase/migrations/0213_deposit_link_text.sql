@@ -236,3 +236,33 @@ begin
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
 end $$;
+
+-- Staff pay links (/pay/<token>, a charge or a hold on a rental) take the same cards as the booking's pay page
+-- (app.finalize_live_payment): a credit card, or a debit card on a car that needs no credit card (app.booking_card_ok);
+-- never prepaid. A card refused is voided (a hold) or never captured (a charge is authorized first), the request stays
+-- open for another card, and the renter is told to use a credit card. Saving a card (setup) and the card reader are
+-- not concerned. (2026-10-30: a renter paid a staff link with a prepaid card and was declined at the bank.)
+create or replace function public.server_payreq_card_ok(p_id uuid, p_card jsonb) returns boolean
+language plpgsql security definer set search_path = public, app as $$
+declare
+  q payment_requests;
+  v_ok boolean;
+begin
+  select * into q from payment_requests where id = p_id;
+  if q.id is null or q.kind = 'setup' or q.channel = 'reader' or q.booking_id is null then return true; end if;
+  v_ok := coalesce(p_card ->> 'funding', '') = 'credit' or app.booking_card_ok(q.booking_id, p_card);
+  if not v_ok then
+    update payment_requests set last_error = 'card_not_credit: a ' || coalesce(nullif(p_card ->> 'funding', ''), 'non-credit') || ' card was refused' where id = q.id and status = 'open';
+  end if;
+  return v_ok;
+end $$;
+revoke all on function public.server_payreq_card_ok(uuid, jsonb) from public, anon, authenticated;
+grant execute on function public.server_payreq_card_ok(uuid, jsonb) to service_role;
+
+-- what the pay page is told when the webhook refused the card first (the link waits for another card)
+create or replace function public.server_payreq_card_refused(p_id uuid) returns boolean
+language sql stable security definer set search_path = public, app as $$
+  select exists (select 1 from payment_requests q where q.id = p_id and q.status = 'open' and q.last_error like 'card_not_credit:%')
+$$;
+revoke all on function public.server_payreq_card_refused(uuid) from public, anon, authenticated;
+grant execute on function public.server_payreq_card_refused(uuid) to service_role;

@@ -1,4 +1,4 @@
-# The deposit link texted before pickup, and texts by default (0213)
+# The deposit link texted before pickup, texts by default, and staff pay links take credit cards (0213)
 
 Owner requests, Release 21b. Migration `supabase/migrations/0213_deposit_link_text.sql`. Code: `web/src/server/deposit-guard.ts`
 (`sendDepositLinks`), `web/src/server/paylink.ts`, `web/src/app/pay/[token]/page.tsx`, `web/src/features/money/BookingMoney.tsx`,
@@ -33,6 +33,19 @@ Owner requests, Release 21b. Migration `supabase/migrations/0213_deposit_link_te
   without one. A balance's pay link and the signing link: Text first.
 - The signing code: by text first (`app.esign_view` `default_channel`, 0212); with no mobile, a note that it goes by email.
 - No agreement wording changed.
+
+## 3. Staff pay links take the booking's cards
+
+- Production, October 30, 2026: a renter paid a staff link with a prepaid card and was declined at the bank. A staff pay
+  link (/pay/<token>: a charge or a deposit hold on a rental, made by staff, the balance follow-up or the deposit link)
+  now takes the same cards as the booking's pay page (`app.booking_card_ok`, as `app.finalize_live_payment`): a credit
+  card, or a debit card on a car that needs no credit card; never prepaid (`public.server_payreq_card_ok`).
+- A charge is now authorized first (manual capture) and captured only once the card is accepted
+  (`web/src/server/pay-card.ts` `payCardStep`, in `settlePayreq`); a hold refused is voided. The link stays open with a new
+  authorization and the page says "Please use a credit card. Debit and prepaid cards cannot be used for a rental. Nothing
+  was charged." (also when the webhook refused the card first: `server_payreq_card_refused`).
+- Saving a card (setup) and the card reader are not concerned. Tests: `web/src/server/pay-card.test.ts`,
+  `supabase/tests/99_deposit_link_text.sql`, the deposit link e2e (the fake prepaid card 5105 1051 0510 5100).
 
 ## Guides
 
