@@ -36,19 +36,29 @@ test('send an offer: one flow, the rate card folded, a delivery fee goes with th
   await signIn(page, email);
   await page.goto(`/admin/offers/new?car=${car}`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('offer-composer')).toBeVisible();
+  // one checklist above Send says what is missing; Send pressed, each missing field says it beside the field
+  await expect(page.getByTestId('oc-ready')).toContainText('Missing: renter');
   await page.getByTestId('oc-add-customer').click();
+  await expect(page.getByTestId('oc-full_name')).toBeVisible();
+  await page.getByTestId('oc-send').click();
+  await expect(page.getByTestId('oc-need-full_name')).toHaveText('Type the full legal name.');
   await page.getByTestId('oc-full_name').fill('Flo Flow');
   await page.getByTestId('oc-mobile').fill(`416555${String(Date.now()).slice(-4)}`);
   await page.getByTestId('oc-email').fill(`flo.${tag()}@example.test`);
   await page.getByTestId('oc-date_of_birth').fill('1988-04-05');
   await expect(page.getByTestId('oc-total')).toBeVisible({ timeout: 15_000 });
   const plain = (await page.getByTestId('oc-total').innerText()).trim();
+  await expect(page.getByTestId('oc-ready')).toHaveText('Ready to send');
+  await expect(page.getByTestId('oc-send')).toHaveText('Send the offer to Flo');
+  // another price and the fees are under More options, closed while nothing in them is used
+  await expect(page.getByTestId('oc-price-more')).not.toHaveAttribute('open', /.*/);
+  await expect(page.getByTestId('oc-price-now')).toContainText('Rate sheet price');
 
   // the rate card is folded until asked for
   const card = page.getByTestId('oc-rate-card');
   await expect(card).not.toHaveAttribute('open', /.*/);
   await expect(card.getByText('Daily rate')).toBeHidden();
-  await card.locator('summary').click();
+  await card.locator(':scope > summary').click();
   await expect(card.getByText('Daily rate')).toBeVisible();
 
   // a delivery: its fee is a line, automatic; set by hand, it says so
@@ -57,10 +67,13 @@ test('send an offer: one flow, the rate card folded, a delivery fee goes with th
   await page.keyboard.press('Escape');
   await page.getByTestId('oc-pickup_km').fill('15');
   await expect(page.getByTestId('oc-charge-delivery')).toContainText('Automatic', { timeout: 15_000 });
+  await page.getByTestId('oc-price-more').locator(':scope > summary').click();
   await page.getByTestId('oc-change-delivery').click();
   await page.getByTestId('oc-fee-delivery').fill('90');
   await expect(page.getByTestId('oc-charge-delivery')).toContainText('Set by hand', { timeout: 15_000 });
   await expect(page.getByTestId('oc-feenote-delivery')).toContainText('$90.00');
+  // the summary in plain words
+  await expect(page.getByTestId('oc-line-delivery')).toContainText('Delivery to 1 Test Street');
   await expect(page.getByTestId('oc-total')).not.toHaveText(plain);
   await noOverflow(page);
 

@@ -44,6 +44,17 @@ dropdowns, and if the delivery is removed in one spot, the charge for it has to 
   `web/tests/e2e/send-offer-flow.spec.ts` (delivery removed takes its fee; the rate card closed; no horizontal overflow
   at 375 and 1440).
 
+- **Simplicity pass** (the owner: "make it as easy to follow and understand as possible"): plain step titles, each with
+  one line of what to do (Who is renting and when, Which car, Where they pick up and return, How damage is covered,
+  Extras, The price, Send it); each step shows only what the current choices need, the rest under a labelled **More
+  options** that opens by itself while something in it is used (another price, fees, deposit, discount, payment, how
+  long the offer is open, the owner's view, the internal note, car filters); the price step says the rate sheet price
+  in a sentence; what is missing is said beside its field once Send is pressed (`missingFields`, model.ts) and in one
+  checklist above Send ("Ready to send" / "Missing: dates, car"); one primary button, "Send the offer to Nora", with
+  Save without sending quiet; summary lines in plain words ("Car rental, 3 days", "Delivery to 78 Main St"), the
+  total big; an (i) on the date of birth, coverage, kilometres, deposit and discount. On the review screen the
+  discount and extra kilometre price are under More options.
+
 ## Guides
 
 - `admin/requests-offers-and-bookings`: Send an offer without a request (the seven steps, Charges, Set by hand, choices

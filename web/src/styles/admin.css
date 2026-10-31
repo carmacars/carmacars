@@ -510,3 +510,18 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
   .oc-summary.is-open .oc-summary__body { max-height: 60vh; overflow-y: auto; }
   .oc-summary__foot { border-top: 0; padding-top: 0; }
 }
+/* the simplicity pass: one line of what to do under each step, what is missing beside its field, one checklist above
+   Send, one primary button, the total big */
+.oc-step__lead { margin: calc(-1 * var(--s-2)) 0 0; }
+.oc-more > summary { color: var(--text-2); }
+.oc-need { margin: 0.25rem 0 0; font-size: var(--fs-xs); font-weight: 600; color: var(--red-700, #a1121a); }
+.oc-form .is-invalid { border-color: var(--red-600); box-shadow: 0 0 0 1px var(--red-600); }
+.oc-pricenow { margin: 0; }
+.oc-ready { margin: 0; padding: var(--s-2) var(--s-3); font-size: var(--fs-sm); font-weight: 600; border: 1px solid var(--grey-300); background: var(--grey-50); }
+.oc-ready.is-ready { border-color: #1f6f3f; background: #eaf6ee; color: #14532d; }
+.oc-ready.is-ready::before { content: "\2713  "; }
+.oc-ready.is-missing { border-color: #8a5a00; background: #fff4d6; color: #5c3b00; }
+.oc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.oc-actions .btn--primary { min-width: min(100%, 16rem); }
+.oc-summary__due .pt-total { font-size: var(--fs-d3, 1.75rem); line-height: 1.1; }
+.oc-lines dd { white-space: nowrap; }

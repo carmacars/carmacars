@@ -86,6 +86,31 @@ export function missing(f: OfferForm, role: Role): string[] {
   return m;
 }
 
+/** What is missing, field by field (Release 24, the simplicity pass): the field to show it next to, the words for the
+ *  checklist above Send ("Missing: dates, car"), and the sentence next to the field. Same rules as missing(). */
+export interface MissingField { field: 'renter' | 'full_name' | 'email' | 'mobile' | 'date_of_birth' | 'vehicle_id' | 'return_at' | 'price' | 'price_reason' | 'choice'; short: string; say: string }
+export function missingFields(f: OfferForm, role: Role, o: { adding?: boolean } = {}): MissingField[] {
+  const m: MissingField[] = [];
+  if (!f.renter_id) {
+    if (!o.adding) m.push({ field: 'renter', short: 'renter', say: 'Find the renter, or add a new customer.' });
+    else {
+      if (!f.full_name.trim()) m.push({ field: 'full_name', short: 'renter\'s name', say: 'Type the full legal name.' });
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim())) m.push({ field: 'email', short: 'email', say: 'Type an email: the offer link goes there.' });
+      if (f.mobile.replace(/\D/g, '').length < 10) m.push({ field: 'mobile', short: 'mobile', say: 'Type a mobile number (10 digits).' });
+      if (!f.date_of_birth) m.push({ field: 'date_of_birth', short: 'date of birth', say: 'Type the date of birth.' });
+    }
+  }
+  if (!f.pickup_at || !f.return_at) m.push({ field: 'return_at', short: 'dates', say: 'Set the pickup and the return.' });
+  else if (daysBetween(f.pickup_at, f.return_at) === 0) m.push({ field: 'return_at', short: 'dates', say: 'The return must be after the pickup.' });
+  if (!f.vehicle_id) m.push({ field: 'vehicle_id', short: 'car', say: 'Choose the car.' });
+  if (f.price_mode !== 'sheet' && cents(f.price_mode === 'total' ? f.price_total : f.price_day) === null) m.push({ field: 'price', short: 'price', say: 'Type the price, or go back to the rate sheet.' });
+  if (f.price_mode !== 'sheet' && !f.price_reason.trim()) m.push({ field: 'price_reason', short: 'reason for the price', say: 'Say why this price (for example: weekly deal on the phone).' });
+  if (role !== 'admin' && !f.choice) m.push({ field: 'choice', short: 'who found this client', say: 'Choose who found this client.' });
+  return m;
+}
+/** The renter's first name, for the Send button ("Send the offer to Nora"). */
+export const firstName = (full: string | null | undefined) => (full ?? '').trim().split(/\s+/)[0] ?? '';
+
 /** How the amounts were typed (2026-10-27): after tax, each line HST applies to is worked back to its amount before tax
  *  (bps: the settings' HST rate, from the priced offer; null before the first price) and the rental charge goes tax
  *  included; rentalWithTax: the rental charge worked out from the total the renter pays; extraResidual: the cents other

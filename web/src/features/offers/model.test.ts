@@ -194,3 +194,15 @@ test('age bands on the pickup day, as the database bands them', () => {
   assert.equal(youngBand('1990-01-01', '2026-11-09T10:00'), null);
   assert.equal(youngBand('', '2026-11-09T10:00'), null);
 });
+
+import { firstName, missingFields } from './model.ts';
+test('what is missing, next to its field, in plain words', () => {
+  const none = base({ full_name: '', email: 'x', mobile: '12', date_of_birth: '', vehicle_id: '', choice: '' });
+  assert.deepEqual(missingFields(none, 'sales').map((m) => m.short), ['renter', 'car', 'who found this client']);
+  assert.deepEqual(missingFields(none, 'admin', { adding: true }).map((m) => m.field), ['full_name', 'email', 'mobile', 'date_of_birth', 'vehicle_id']);
+  assert.deepEqual(missingFields(base({ return_at: '2026-11-02T09:00' }), 'admin', { adding: true }).map((m) => m.say), ['The return must be after the pickup.']);
+  assert.deepEqual(missingFields(base({ price_mode: 'total' }), 'admin', { adding: true }).map((m) => m.short), ['price', 'reason for the price']);
+  assert.deepEqual(missingFields(base({ renter_id: 'r1' }), 'admin'), []);
+  assert.equal(firstName('  Nora  Offer '), 'Nora');
+  assert.equal(firstName(''), '');
+});

@@ -393,9 +393,11 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
           <F k="price_reason" l="Reason for the price" />
           <F k="deposit_cents" l="Deposit" money /></>}
           <S k="km_allowance_per_day" l="Kilometres a day" options={[...new Set([...kmChoices, b.km_allowance_per_day])].sort((a, z) => a - z).map((k) => [String(k), k === 0 ? 'Unlimited' : `${k} km`])} />
-          {!va && <><F k="overage_cents_per_km" l="Overage per km" money />
-          <F k="staff_discount_cents" l="Discount" money />
-          <F k="staff_discount_reason" l="Discount reason" /></>}
+          {!va && <details className="oc-disclose oc-more ad-field--wide" open={['overage_cents_per_km', 'staff_discount_cents', 'staff_discount_reason'].some(changed) || undefined} data-testid="review-more-price">
+            <summary>More options: discount and extra kilometres</summary>
+            <div className="ad-fields"><F k="overage_cents_per_km" l="Extra kilometre price" money />
+              <F k="staff_discount_cents" l="Discount" money />
+              <F k="staff_discount_reason" l="Why the discount" /></div></details>}
           <F k="coverage" l={`Protection Plan price${tw('coverage')}`} money hint={coverageLine ? 'What the renter pays for the Protection Plan' : 'Only when the renter chose the Protection Plan (option 3)'} />
           <F k="promo_code" l="Promo code" />
           {boxLines.map((l) => { const k = `fee:${l.charge_type}`; return <div key={l.id} className="ad-field" data-testid={`review-fee-${l.charge_type}`}>
