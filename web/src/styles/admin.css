@@ -454,32 +454,53 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .op-card { display: grid; gap: 4px; padding: var(--s-2); border: 1px solid var(--line, rgba(127, 127, 127, 0.25)); border-radius: 10px; min-width: 0; }
 
 /* Send an offer (Release 24): one flow of numbered steps beside a live price summary, sticky on a desktop and a
-   bottom sheet on a phone; reference tables (the rate card) folded in disclosures. Same tokens as the rest of Admin. */
+   bottom sheet on a phone. One level of grouping: light dividers between steps, quiet "More options" disclosures (text
+   and a chevron), spacing on the 8px grid (--s-2 is 8px). Same tokens as the rest of Admin. */
 .oc-flow { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); align-items: start; }
 .oc-flow > * { min-width: 0; }
 .oc-form { gap: 0; }
-.oc-step { border: 0; margin: 0; padding: var(--s-4) 0; display: grid; gap: var(--s-3); min-width: 0; border-top: 1px solid var(--grey-200); }
+.oc-step { border: 0; margin: 0; padding: var(--s-5) 0; display: grid; gap: var(--s-4); min-width: 0; border-top: 1px solid var(--grey-200); }
 .oc-step:first-of-type { border-top: 0; padding-top: var(--s-2); }
-.oc-step__head { display: flex; align-items: center; gap: var(--s-2); padding: 0; margin-bottom: var(--s-1); }
-.oc-step__n { display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 999px; background: var(--black); color: var(--white); font-size: var(--fs-2xs); font-weight: 700; flex: none; }
+.oc-step__head { display: flex; align-items: center; gap: var(--s-2); padding: 0; margin: 0; }
+.oc-step__n { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 999px; background: var(--black); color: var(--white); font-size: var(--fs-2xs); font-weight: 700; flex: none; }
+.oc-step__lead { margin: calc(-1 * var(--s-2)) 0 0; }
 .oc-sub { gap: var(--s-2); }
-.oc-sub > .label { margin: 0; }
+.oc-sub > .label, .oc-sub > .label-line { margin: 0; }
 .oc-check { align-self: end; min-height: 40px; display: flex; align-items: center; }
-.oc-legs { display: grid; gap: var(--s-3); grid-template-columns: minmax(0, 1fr); }
+.oc-form .ad-fields { align-items: start; }
+.oc-legs { display: grid; gap: var(--s-4); grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 40rem) { .oc-legs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .oc-leg { gap: var(--s-2); align-content: start; }
-.oc-feenote { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
-.oc-disclose { border: 1px solid var(--grey-200); padding: var(--s-2) var(--s-3); background: var(--grey-50); min-width: 0; }
-.oc-disclose > summary { cursor: pointer; font-size: var(--fs-xs); font-weight: 600; min-height: 32px; display: flex; align-items: center; gap: 0.5em; list-style: none; }
+.oc-feenote { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1); }
+/* disclosures: quiet text with a chevron; the content under a light divider, never a box in a box */
+.oc-disclose { min-width: 0; border: 0; padding: 0; background: none; }
+.oc-disclose > summary { cursor: pointer; font-size: var(--fs-sm); font-weight: 600; min-height: 32px; display: inline-flex; align-items: center; gap: var(--s-2); list-style: none; color: var(--text-2); }
+.oc-disclose > summary:hover { color: var(--text); }
 .oc-disclose > summary::-webkit-details-marker { display: none; }
-.oc-disclose > summary::before { content: ""; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; flex: none; }
-.oc-disclose[open] > summary::before { transform: rotate(45deg); }
-.oc-disclose[open] > summary { margin-bottom: var(--s-2); }
-.oc-disclose .ad-renter-view { border-width: 1px; background: var(--white); }
-.oc-charges { list-style: none; margin: 0; padding: 0; display: grid; border: 1px solid var(--grey-200); }
-.oc-charge { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-1) var(--s-3); align-items: center; padding: var(--s-2) var(--s-3); border-top: 1px solid var(--grey-200); }
+.oc-disclose > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; flex: none; }
+.oc-disclose[open] > summary::before { transform: rotate(45deg) translate(-2px, -2px); }
+.oc-disclose[open] > :not(summary) { margin-top: var(--s-2); padding-top: var(--s-4); border-top: 1px solid var(--grey-200); display: grid; gap: var(--s-4); }
+.oc-disclose .oc-disclose[open] > :not(summary) { border-top: 0; padding-top: 0; }
+.oc-disclose .ad-renter-view { border: 0; background: none; padding: 0; }
+/* the before or after tax choice inside a step: no frame of its own */
+.oc-form .ad-taxmode { border: 0; padding: 0; gap: var(--s-2); }
+/* one choice of a few: the segmented control of "Before tax / After tax" */
+.oc-seg { margin: 0; }
+.oc-seg .ad-taxmode__opt { min-height: 40px; font-size: var(--fs-sm); }
+/* two choices at once (Text, Email): chips in the same style */
+.oc-chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.oc-chip { position: relative; display: inline-flex; align-items: center; gap: var(--s-1); min-height: 40px; padding: 0 var(--s-4); border: 1px solid var(--black); font-weight: 600; font-size: var(--fs-sm); cursor: pointer; }
+.oc-chip input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.oc-chip::before { content: ""; width: 0.75rem; height: 0.75rem; border: 1.5px solid currentColor; flex: none; }
+.oc-chip:has(input:checked) { background: var(--black); color: var(--white); }
+.oc-chip:has(input:checked)::before { background: currentColor; box-shadow: inset 0 0 0 2px var(--black); }
+.oc-chip:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+.oc-chip:has(input:disabled) { opacity: 0.5; cursor: not-allowed; }
+/* the fees: rows under light dividers */
+.oc-charges { list-style: none; margin: 0; padding: 0; display: grid; }
+.oc-charge { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s-1) var(--s-4); align-items: center; padding: var(--s-2) 0; border-top: 1px solid var(--grey-200); }
 .oc-charge:first-child { border-top: 0; }
-.oc-charge__label { display: flex; align-items: center; gap: 0.35rem; min-width: 0; overflow-wrap: anywhere; }
+.oc-charge__label { display: flex; align-items: center; gap: var(--s-1); min-width: 0; overflow-wrap: anywhere; }
 .oc-charge__amt { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
 .oc-charge__state { grid-column: 1; }
 .oc-charge__do { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
@@ -491,16 +512,23 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
   .oc-charge.is-editing .oc-charge__do { grid-column: 1 / -1; justify-content: flex-end; }
   .oc-charge--own { grid-template-columns: minmax(0, 1fr) auto; }
 }
-.oc-form .ad-fields { align-items: start; }
+/* the summary */
 .oc-summary { display: grid; gap: var(--s-2); }
-.oc-summary__body { display: grid; gap: var(--s-3); min-width: 0; }
-.oc-lines dt .btn { min-height: 0; padding: 0 0.25rem; }
-.oc-summary__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); border-top: 2px solid var(--black); padding-top: var(--s-2); }
+.oc-summary__body { display: grid; gap: var(--s-4); min-width: 0; }
+.oc-lines > div { grid-template-columns: minmax(0, 1fr) auto; }
+.oc-lines dd { white-space: nowrap; }
+.oc-lines dt .btn { min-height: 0; padding: 0 var(--s-1); }
+.oc-dt { display: inline-flex; align-items: center; gap: var(--s-1); white-space: nowrap; }
+.oc-summary__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); border-top: 1px solid var(--black); padding-top: var(--s-2); }
 .oc-summary__due { display: grid; }
-.oc-summary__due .pt-total { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-d4); font-variant-numeric: tabular-nums; }
+.oc-total-row { display: inline-flex; align-items: center; gap: var(--s-2); }
+.oc-summary__due .pt-total { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-d3, 1.75rem); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.oc-spin { width: 14px; height: 14px; border-radius: 999px; border: 2px solid var(--grey-300); border-top-color: var(--text-2); animation: oc-spin 0.8s linear infinite; flex: none; }
+@keyframes oc-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .oc-spin { animation: none; border-top-color: var(--grey-300); border-right-color: var(--text-2); } }
 @media (min-width: 64rem) {
   .oc-flow { grid-template-columns: minmax(0, 1fr) minmax(20rem, 24rem); }
-  .oc-summary { position: sticky; top: var(--s-3); max-height: calc(100vh - 2 * var(--s-3)); overflow-y: auto; }
+  .oc-summary { position: sticky; top: calc(var(--header-h, 0px) + var(--s-4)); max-height: calc(100vh - var(--header-h, 0px) - 2 * var(--s-4)); overflow-y: auto; }
   .oc-summary__toggle { display: none; }
 }
 @media (max-width: 63.99rem) {
@@ -510,18 +538,19 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
   .oc-summary.is-open .oc-summary__body { max-height: 60vh; overflow-y: auto; }
   .oc-summary__foot { border-top: 0; padding-top: 0; }
 }
-/* the simplicity pass: one line of what to do under each step, what is missing beside its field, one checklist above
-   Send, one primary button, the total big */
-.oc-step__lead { margin: calc(-1 * var(--s-2)) 0 0; }
-.oc-more > summary { color: var(--text-2); }
-.oc-need { margin: 0.25rem 0 0; font-size: var(--fs-xs); font-weight: 600; color: var(--red-700, #a1121a); }
+/* what is missing beside its field, one checklist above Send, one primary button */
+.oc-need { margin: var(--s-1) 0 0; font-size: var(--fs-xs); font-weight: 600; color: var(--red-700, #a1121a); }
 .oc-form .is-invalid { border-color: var(--red-600); box-shadow: 0 0 0 1px var(--red-600); }
 .oc-pricenow { margin: 0; }
-.oc-ready { margin: 0; padding: var(--s-2) var(--s-3); font-size: var(--fs-sm); font-weight: 600; border: 1px solid var(--grey-300); background: var(--grey-50); }
-.oc-ready.is-ready { border-color: #1f6f3f; background: #eaf6ee; color: #14532d; }
+.oc-ready { margin: 0; padding: var(--s-2) var(--s-4); font-size: var(--fs-sm); font-weight: 600; border-left: 3px solid var(--grey-300); background: var(--grey-50); }
+.oc-ready.is-ready { border-left-color: #1f6f3f; background: #eaf6ee; color: #14532d; }
 .oc-ready.is-ready::before { content: "\2713  "; }
-.oc-ready.is-missing { border-color: #8a5a00; background: #fff4d6; color: #5c3b00; }
-.oc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
+.oc-ready.is-missing { border-left-color: #8a5a00; background: #fff4d6; color: #5c3b00; }
+.oc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-4); }
 .oc-actions .btn--primary { min-width: min(100%, 16rem); }
-.oc-summary__due .pt-total { font-size: var(--fs-d3, 1.75rem); line-height: 1.1; }
-.oc-lines dd { white-space: nowrap; }
+/* inside the offer, a stack is a grid: one gap, never a margin on top of a gap */
+.oc-form .stack { display: grid; gap: var(--s-4); }
+.oc-form .stack > * + * { margin-top: 0; }
+.oc-form .oc-leg, .oc-form .oc-sub { gap: var(--s-2); }
+.oc-form .oc-step > * { margin: 0; }
+.oc-form .oc-step > .oc-step__lead { margin-top: calc(-1 * var(--s-2)); }
