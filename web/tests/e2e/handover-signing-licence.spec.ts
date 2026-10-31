@@ -141,7 +141,7 @@ test('check-out by Sales from the booking, a late check-in by an Admin from Toda
   const req = await seedRequest(sql, renter, car.id, car.from, car.to);
   await confirmBooking(sql, req.booking_id, admin.id);
   // pickup moves to just ahead of now (the request itself must be 2 hours out, so a fixed 10:00 failed after 8 a.m.)
-  await sql`update bookings set pickup_at = now() + interval '10 minutes', return_at = now() + interval '2 days' where id = ${req.booking_id}`;
+  await sql`update bookings set pickup_at = now() + interval '10 minutes', return_at = now() + interval '2 days', billable_days = calc_billable_days(now() + interval '10 minutes', now() + interval '2 days') where id = ${req.booking_id}`;
   await tracker(sql, car.id);
   const [odo] = await sql`select coalesce(odometer_km, 0)::int o from vehicles where id = ${car.id}`;
 
@@ -407,7 +407,7 @@ test('field staff open a check-out from their job card in one tap', async ({ bro
   await confirmBooking(sql, req.booking_id, admin.id);
   // pickup moves to just ahead of now (the request itself must be 2 hours out, so a fixed 10:00 failed after 8 a.m.)
   // the job and the pickup a few minutes ahead, so both are today's even late in the evening (the field list is today's jobs)
-  await sql`update bookings set pickup_at = now() + interval '3 minutes', return_at = now() + interval '2 days' where id = ${req.booking_id}`;
+  await sql`update bookings set pickup_at = now() + interval '3 minutes', return_at = now() + interval '2 days', billable_days = calc_billable_days(now() + interval '3 minutes', now() + interval '2 days') where id = ${req.booking_id}`;
   const [job] = await sql`select app.create_field_job('handover', ${car.id}::uuid, now() + interval '3 minutes', ${admin.id}::uuid, ${req.booking_id}::uuid, ${field.id}::uuid, '1 Front St W, Toronto') id`;
   const page = await ctx(browser, true);
   await signIn(page, field.email, '/staff/field');

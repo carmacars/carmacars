@@ -248,7 +248,9 @@ test('sales: an offer saved without telling the renter', async ({ browser }) => 
   await page.getByTestId('oc-send').click();
   await expect(page.getByTestId('oc-error')).toContainText('who found this client');
   await page.getByTestId('choice-sourced').check();
-  await page.getByTestId('oc-by-email').uncheck();
+  // the link goes by text by default (2026-11-01): neither box ticked, nothing is sent
+  await expect(page.getByTestId('oc-by-email')).not.toBeChecked();
+  await page.getByTestId('oc-by-text').uncheck();
   await expect(page.getByTestId('oc-send')).toHaveText('Make the offer (not sent)');
   await check(page, 'sales offer screen');
   await page.getByTestId('oc-send').click();

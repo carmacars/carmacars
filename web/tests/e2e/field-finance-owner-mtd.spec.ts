@@ -122,7 +122,7 @@ test('field staff fix the ready check on the phone and release a car whose track
   expect(jobs.map((j) => `${j.kind}:${j.auto_created}:${j.place ? 'place' : 'none'}`)).toEqual(['handover:true:place', 'return_check_in:true:place']);
   // the pickup and the job a few minutes ahead, so both fall on today at any hour of the run (the booking was made for
   // 10:00 the day after tomorrow's start: late in the evening the job sat on tomorrow and the check-out ran a day early)
-  await sql`update bookings set pickup_at = now() + interval '3 minutes', return_at = now() + interval '2 days' where id = ${b.booking_id}`;
+  await sql`update bookings set pickup_at = now() + interval '3 minutes', return_at = now() + interval '2 days', billable_days = calc_billable_days(now() + interval '3 minutes', now() + interval '2 days') where id = ${b.booking_id}`;
   const [job] = await sql`update field_jobs set assigned_to = ${field.id}, scheduled_at = now() + interval '3 minutes', auto_at = now() + interval '3 minutes'
                            where booking_id = ${b.booking_id} and kind = 'handover' returning id`;
 
