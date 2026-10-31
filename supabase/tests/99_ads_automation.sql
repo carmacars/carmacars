@@ -21,7 +21,7 @@ create or replace function test.s99post(p_k text) returns ad_postings language s
 create or replace function test.s99task(p_k text) returns tasks language sql stable as $$ select * from tasks where id = (test.s99post(p_k)).update_task_id $$;
 -- a rate change as the Rates screen makes it (the old card closed and the new one opened in one statement)
 create or replace function test.s99rates(p_car text, p_daily bigint, p_weekly bigint default 56000) returns void language sql as $$
-  select app.set_rate_card(test.id('vehicle:' || p_car), p_daily, 15000, p_weekly, 180000, now(), test.id('ads_admin'),
+  select app.set_rate_card(test.id('vehicle:' || p_car), p_daily, 12000, p_weekly, 180000, now(), test.id('ads_admin'),
     jsonb_build_object('deposit_cents', 100000, 'delivery_fee_cents', 7500, 'pickup_fee_cents', 7500, 'km_allowance_per_day', 200, 'overage_cents_per_km', 35)) $$;
 
 -- ================================================================ 1. words
@@ -61,7 +61,7 @@ select test.ok('the task: the channel and the car in its title, the change, the 
 select test.eq('every live ad of the car has its own task', (select count(distinct update_task_id) from ad_postings where vehicle_id = test.id('vehicle:ads_car') and needs_update), 2::bigint);
 select test.eq('the other car''s ads are not touched', (select count(*) from tasks where task_type = 'ad_update' and vehicle_id = test.id('vehicle:ads_car2')), 0::bigint);
 select test.s99rates('ads_car', 12000);
-select test.eq('a second change: the same task, its detail brought up to date', (select count(*) || '/' || bool_and(detail like 'Daily rate $100 to $120.%') from tasks where task_type = 'ad_update' and related_id = (test.s99post('kj')).id), '1/true');
+select test.eq('a second change: the same task, its detail brought up to date', (select count(*) || '/' || bool_and(detail like 'Daily rate $100 to $120;%') from tasks where task_type = 'ad_update' and related_id = (test.s99post('kj')).id), '1/true');
 select app.ad_posting_save(test.id('ads_admin'), jsonb_build_object('vehicle', test.id('vehicle:ads_car'), 'channel', 'kijiji', 'body', 'From $120 a day.'));
 select test.eq('marked updated: the ad says the new figures, the task is done', (select (snapshot ->> 'daily') || '/' || needs_update || '/' || updated_on from test.s99post('kj')) || '/'
   || (select status from tasks where task_type = 'ad_update' and related_id = (test.s99post('kj')).id), '12000/false/' || app.today() || '/done');
