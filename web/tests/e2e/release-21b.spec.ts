@@ -142,7 +142,7 @@ test('the referral partner sign-up: the address lookup fills the street, the cit
   await page.context().close();
 });
 
-test('Add an investor: the record and the invitation in one step; the investor chooses a password and lands in the investor portal', async ({ browser }, info) => {
+test('Add an investor: the record and the invitation in one step; the investor chooses a password and the sign-in is linked to the record', async ({ browser }, info) => {
   test.setTimeout(180_000);
   const phone = info.project.name.startsWith('phone');
   const sql = db();
@@ -184,8 +184,11 @@ test('Add an investor: the record and the invitation in one step; the investor c
   await p.goto(u.pathname + u.search);
   await p.locator('#np-pass').fill('a brand new password');
   await p.getByRole('button', { name: 'Save the new password' }).click();
-  await p.waitForURL((x) => x.pathname.startsWith('/investor'), { timeout: 30_000 });
+  // signed in; a prospect has no investor portal until the agreement makes them active (my_roles: active or exited)
+  await p.waitForURL((x) => !x.pathname.startsWith('/update-password'), { timeout: 30_000 });
   await expect(p.locator('h1').first()).toBeVisible();
+  const [linked] = await sql`select i.status, u.email from investors i join users u on u.id = i.user_id where i.email = ${email}`;
+  expect(linked).toMatchObject({ status: 'prospect', email });
   await p.context().close();
   await sql.end();
 });
@@ -378,7 +381,11 @@ test('deposit link by text: the job texts the hold link before pickup; the Money
   const [r] = await sql`select public.submit_booking_request(${sql.json(req as never)}, '203.0.113.9', 'e2e', null) v`;
   const v = r!.v as { ok: boolean; booking_id: string; booking_number: string; message?: string };
   expect(v.ok, v.message).toBe(true);
-  await sql`update bookings set status = 'confirmed', deposit_pay_method = 'card', deposit_cents = greatest(deposit_cents, 25000) where id = ${v.booking_id}`;
+  // confirmed as an approved and paid offer would leave it (the status path itself is tested elsewhere)
+  await sql.begin(async (t) => {
+    await t`set local session_replication_role = replica`;
+    await t`update bookings set status = 'confirmed', deposit_pay_method = 'card', deposit_cents = greatest(deposit_cents, 25000) where id = ${v.booking_id}`;
+  });
   const [hrs] = await sql`select deposit_link_hours h from site_settings where singleton`;
   await sql`update site_settings set deposit_link_hours = 72 where singleton`;
   try {
