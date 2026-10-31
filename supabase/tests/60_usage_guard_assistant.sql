@@ -21,7 +21,7 @@ update program_settings set require_staff_two_step = false;
 -- ================================================================ 1. the services and the ledger
 select test.eq('every metered service is in the ledger, in order',
   (select string_agg(service, ',' order by sort) from usage_services),
-  'workers_ai,workers_requests,workers_cpu,images,resend_day,resend_month,supabase_db,supabase_storage,supabase_egress,r2_storage,github_actions,claude');
+  'workers_ai,workers_requests,workers_cpu,images,resend_day,resend_month,cf_email,quo_texts,supabase_db,supabase_storage,supabase_egress,r2_storage,github_actions,claude');  -- 0222, 0229
 select test.eq('the included defaults of the plans', (select string_agg(service || '=' || included::bigint, ',' order by sort) from usage_services where service in ('workers_ai', 'workers_requests', 'workers_cpu', 'images', 'resend_day', 'resend_month')),
   'workers_ai=10000,workers_requests=10000000,workers_cpu=30000000,images=5000,resend_day=100,resend_month=3000');
 select test.eq('what pauses, holds or only alerts', (select string_agg(service || ':' || pause_mode, ',' order by sort) from usage_services where service in ('workers_ai', 'workers_requests', 'images', 'resend_day', 'supabase_db', 'claude')),
@@ -110,7 +110,7 @@ update usage_alerts set emailed_at = null, email_note = null where email_note is
 select test.eq('never at night: 3 am in Toronto sends nothing', app.usage_send_alerts(app.local_midnight(app.today()) + interval '3 hours'), 0);
 update program_settings set usage_alert_max_emails = 2;
 select test.eq('in the day: at most the daily maximum', app.usage_send_alerts(app.local_midnight(app.today()) + interval '10 hours'), 2);
-select test.eq('the rest are shown on Admin > To do and say why', (select count(*) from usage_alerts where email_note like 'not emailed%'), 1::bigint);
+select test.eq('the rest are shown on Admin > To do and say why', (select count(*) from usage_alerts where email_note like 'not emailed%'), 2::bigint);  -- 0221: the CPU time warns at 70% too
 select test.eq('one event per alert email', (select count(*) from app_events where code = 'staff_usage_alert'), 2::bigint);
 update program_settings set usage_alert_max_emails = 4;
 select test.eq('to the alert address of Program settings',
@@ -126,7 +126,7 @@ select test.eq('an Admin changes an allowance (sizes in MB)', (app.usage_service
 select test.throws('an assistant may not', $$select app.usage_service_save(test.id('ug_fin'), '{"service": "supabase_db", "included": 1}')$$, 'Only an Admin');
 select test.throws('the early warning stays between 10% and 99%', $$select app.usage_service_save(test.id('ug_admin'), '{"service": "workers_ai", "warn_bps": 500}')$$, 'between 10%');
 select test.eq('a figure typed from Supabase''s dashboard (egress)', (app.usage_reading_save(test.id('ug_admin'), jsonb_build_object('service', 'supabase_egress', 'day', app.today(), 'used_mb', 1024)) ->> 'used')::numeric >= 1073741824, true);
-select test.eq('the usage page: every service with its history', jsonb_array_length(app.usage_page(test.id('ug_admin')) -> 'services'), 11);  -- 0194: Data sent out retired
+select test.eq('the usage page: every service with its history', jsonb_array_length(app.usage_page(test.id('ug_admin')) -> 'services'), 13);  -- 0194: Data sent out retired; 0222 Cloudflare emails, 0229 Quo texts
 
 -- ================================================================ 7. the assistant: reads within the person's portal and function
 select test.eq('an Admin finds a car', (app.assistant_find(test.id('ug_admin'), '{"portal": "admin", "kind": "car", "q": "ugcar1"}') -> 'rows' -> 0 ->> 'plate'), 'UGCAR1');
@@ -194,4 +194,4 @@ select test.eq('Claude''s cost never spends the photo budget', (app.listing_budg
 
 -- ================================================================ 10. the photo retry once transformations may be used
 select test.eq('nothing to retry while paused or without fallbacks', app.usage_retry_photos(), 0);
-select test.eq('the hourly job reports every state', (select count(*) from jsonb_object_keys(app.job_usage_refresh() -> 'states')), 12::bigint);
+select test.eq('the hourly job reports every state', (select count(*) from jsonb_object_keys(app.job_usage_refresh() -> 'states')), 14::bigint);  -- 0222, 0229

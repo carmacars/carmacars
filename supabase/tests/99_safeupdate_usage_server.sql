@@ -23,6 +23,9 @@ update program_settings set indexnow_enabled = false where id = (app.settings())
 select test.eq('a new day: the claim resets the count, even with IndexNow off', app.server_indexnow_claim(10) ->> 'why', 'off');
 select test.eq('the day and count of the new day', (select (day = (now() at time zone 'America/Toronto')::date) || '/' || sent_today from indexnow_sweep), 'true/0');
 update program_settings set indexnow_enabled = true, indexnow_batch = 10000, indexnow_daily_max = 2000000 where id = (app.settings()).id;
+-- 0220: the changed pages go first and the sweep waits for them; this suite looks at the sweep alone
+delete from indexnow_queue where sent_at is null;
+update indexnow_sweep set next_round_at = null, q_backoff_until = null where id;
 create temp table c99 as select app.server_indexnow_claim(5) c;
 select test.ok('the sweep hands out a batch with its cursor', (select jsonb_array_length(c -> 'paths') between 1 and 5 and c ? 'cursor' from c99));
 select app.server_indexnow_report(jsonb_build_object('status', 200, 'count', 5, 'cursor', (select c -> 'cursor' from c99)));

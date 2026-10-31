@@ -1,4 +1,6 @@
 import 'server-only';
+import { deliveryArea, deliveryFrom } from './delivery';
+export { deliveryArea, deliveryFrom } from './delivery';
 import { cache } from 'react';
 import { rpc } from '@/lib/db/repo';
 import { env } from '@/lib/env';
@@ -57,12 +59,12 @@ async function makeTokens(fleet: CarRow[]): Promise<Tokens> {
   const [bandA, bandB] = bands;
   const fullAge = (bands[bands.length - 1]?.to_age ?? 25) + 1;
   const ydA = bandA ? amt(bandA.code) : ''; const ydB = bandB ? amt(bandB.code) : '';
-  const dels = fleet.map((c) => c.delivery_fee_cents); const overs = fleet.map((c) => c.overage_cents_per_km); const dailies = fleet.map((c) => c.daily_rate_cents);
+  const dels = fleet.map((c) => deliveryFrom(c.delivery_fee_cents, f.delivery_min_cents)); const overs = fleet.map((c) => c.overage_cents_per_km); const dailies = fleet.map((c) => c.daily_rate_cents);
   const c = f.cancellation;
   const lic = [...f.accepted_licence_classes].sort((a, b) => b.length - a.length || a.localeCompare(b));
   const late = fee('late_return_fee');
   return {
-    brand: s.brand_name, tagline: s.tagline ?? '', carma, city: s.city, region: s.region, serviceArea: s.service_area,
+    brand: s.brand_name, tagline: s.tagline ?? '', carma, city: s.city, region: s.region, serviceArea: s.service_area, deliveryArea: deliveryArea(s),
     email: s.public_email ?? '', reply: replyText(s), replyShort: s.reply_wording ?? '',
     hours: s.opening_hours_text ?? '', phone: s.phone_display ?? '', roadside: s.roadside_phone_display ?? '',
     hst: pct(f.hst_bps), maxDays: String(f.max_rental_days), maxDaysLess1: '29', monthDays: '30',

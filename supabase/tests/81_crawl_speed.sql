@@ -9,14 +9,17 @@ select test.suite('81 crawl speed');
 update indexnow_sweep set backoff_until = null, backoff_s = 0, file_i = 0, pos = -1, sent_today = 0, phase = 'priority', p_i = 0, p_pos = 0,
        day = (now() at time zone 'America/Toronto')::date;
 update program_settings set indexnow_enabled = true, indexnow_batch = 10000, indexnow_daily_max = 2000000 where id = (app.settings()).id;
+-- 0220: the changed pages go first and the sweep waits for them; this suite looks at the sweep alone
+delete from indexnow_queue where sent_at is null;
+update indexnow_sweep set next_round_at = null, q_backoff_until = null, streak_429 = 0 where id;
 
 create temp table c81 as select app.server_indexnow_claim(10000) c;
 select test.ok('the first batch starts with the site''s own pages (the fleet''s cars, the landing pages)',
   (select (c -> 'paths' ->> 0) = (select p.path from app.indexnow_priority_paths() p order by p.o, p.path limit 1) from c81)
   and (select count(*) from app.indexnow_priority_paths() p where p.o = 0) > 0);
 select test.ok('the priority list comes whole and in its order before any other address (each address once in it)',
-  (select array(select x from c81, jsonb_array_elements_text(c -> 'paths') with ordinality e(x, n) where n <= least(10000, (select count(*) from app.indexnow_priority_paths())) order by n)
-     = array(select p.path from app.indexnow_priority_paths() p order by p.o, p.path limit 10000))
+  (select array(select x from c81, jsonb_array_elements_text(c -> 'paths') with ordinality e(x, n) where n <= least(10000, (select count(*) from app.indexnow_priority_paths() p where app.crawl_scope_ok(p.path))) order by n)
+     = array(select p.path from app.indexnow_priority_paths() p where app.crawl_scope_ok(p.path) order by p.o, p.path limit 10000))
   and (select count(distinct path) = count(*) from app.indexnow_priority_paths()));
 select test.ok('the priority sitemap (0115) is in the priority list', not exists (select 1 from app.sitemap_priority_cache s where not exists (select 1 from app.indexnow_priority_paths() p where p.path = s.path)));
 select test.ok('the cursor says where the batch ended (phase and the vehicle files'' place)', (select (c -> 'cursor') ?& array['phase', 'p_i', 'p_pos', 'file_i', 'pos'] from c81));
@@ -29,14 +32,14 @@ select test.ok('a 429 keeps the cursor', (select phase = 'places' and p_i = 2 an
 update indexnow_sweep set backoff_until = null, backoff_s = 0;
 select test.ok('the job is due while the sweep has place addresses (no copy waiting needed)', (app.server_jobs_due() ->> 'seo')::boolean);
 
--- the place files: their addresses, then the vehicle files
-update indexnow_sweep set phase = 'places', p_i = 0, p_pos = 0;
-select test.ok('the place phase sends the place sitemap''s addresses',
-  (select coalesce(bool_and(x ~ '^/(car-rental|buy|detailing|body-shop)/'), false) from jsonb_array_elements_text(app.server_indexnow_claim(3) -> 'paths') x)
-  or jsonb_array_length(coalesce(public.place_sitemap_files(), '[]'::jsonb)) = 0);
-update indexnow_sweep set phase = 'places', p_i = 1000000, p_pos = 0;
-select test.ok('past the last place file the sweep goes on with the vehicle files in the same batch',
-  (select (c -> 'cursor' ->> 'phase') in ('vehicles', 'priority') or c ->> 'why' = 'nothing to send' from (select app.server_indexnow_claim(10) c) x));
+-- the place files and the vehicle files are out of the crawl scope (0220): past the priority list the round ends, and the
+-- next waits a week
+-- (the job check above may queue changed car pages; they go first, so clear them for the sweep's own answer)
+delete from indexnow_queue where sent_at is null;
+update indexnow_sweep set phase = 'places', p_i = 0, p_pos = 0 where id;
+select test.eq('the place phase ends the round (out of the crawl scope)', app.server_indexnow_claim(3) ->> 'why', 'next round');
+select test.ok('the next round starts with the priority list, in a week', (select phase = 'priority' and next_round_at > now() + interval '6 days' from indexnow_sweep));
+update indexnow_sweep set next_round_at = null where id;
 
 -- the end of a round
 update indexnow_sweep set phase = 'vehicles', file_i = 0, pos = -1;
@@ -48,7 +51,7 @@ select test.eq('a cursor without a phase is the vehicle files'' (0097''s answer)
 -- a failed claim is recorded and waits ten minutes
 select app.server_indexnow_report('{"status": 0, "count": 0, "error": "claim: canceling statement due to statement timeout"}');
 select test.ok('a failed claim is kept with its reason and waits', (select last_error like 'claim:%' and backoff_until between now() + interval '9 minutes' and now() + interval '11 minutes' from indexnow_sweep));
-update indexnow_sweep set backoff_until = null, backoff_s = 0, file_i = 0, pos = -1, sent_today = 0, phase = 'priority', p_i = 0, p_pos = 0;
+update indexnow_sweep set backoff_until = null, backoff_s = 0, file_i = 0, pos = -1, sent_today = 0, phase = 'priority', p_i = 0, p_pos = 0, next_round_at = null, streak_429 = 0 where id;
 
 -- the footer's hubs
 select test.ok('popular hubs: makes, models, places and services, each from the priority list',

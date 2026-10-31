@@ -1,5 +1,5 @@
 // What the Worker entry (custom-worker.ts) answers a crawler before the app loads (2026-10-30: website requests at 70%
-// of the 10 million a month, Worker CPU ten times its allowance). No imports: it runs in the Worker entry and in Node
+// of the 10 million a month, Worker CPU ten times its allowance). No imports but crawl-scope.ts: it runs in the Worker entry and in Node
 // for the unit test. Keep BLOCKED_BOT in step with src/features/seo/crawlers.ts BLOCKED_CRAWLERS.
 //
 // - SEO tools and scrapers (no visitor comes from them, and some ignore robots.txt): 403, a day in the browser's and
@@ -8,6 +8,10 @@
 //   keeps them out; those that ignore it no longer cost a render. Never a person, never the API (webhooks, monitors).
 // - A crawler on a public page's query-string view (filters, dates, campaign tags) that robots.txt keeps out: 301 to the
 //   clean address, which the edge copy answers without loading the app. People keep their query strings.
+// - R23: a crawler on a page outside the crawl scope (crawl-scope.ts: the term trees, for sale, below the trim, a term in a
+//   place) that robots.txt keeps out: 403, kept a day. People still see every page.
+
+import { deepOutOfScope } from './crawl-scope.ts';
 
 export const BLOCKED_BOT = /AhrefsBot|SemrushBot|MJ12bot|DotBot|PetalBot|Bytespider|DataForSeoBot|BLEXBot|serpstatbot|MegaIndex|SeekportBot|Barkrowler|ImagesiftBot|Timpibot|ZoominfoBot|AwarioBot|magpie-crawler|SiteAuditBot|trendictionbot|Sogou web spider/i;
 /** A user agent that says it is a crawler. Not a headless browser or a script (the e2e tests and uptime checks are never
@@ -21,7 +25,7 @@ const PORTAL = new Set(['book', 'account', 'owner', 'investor', 'admin', 'staff'
 /** The public trees whose query-string views robots.txt keeps out (crawlers.ts: /cars?, /cars/*?, /car-rental/*?, ...). */
 const QUERY_VIEW = /^\/(cars(\/.*)?|(car-rental|guides|rent|buy|detailing|body-shop)\/.+)$/;
 
-export type Shield = { kind: 'pass' } | { kind: 'refuse'; reason: 'blocked' | 'portal' } | { kind: 'redirect'; location: string };
+export type Shield = { kind: 'pass' } | { kind: 'refuse'; reason: 'blocked' | 'portal' | 'scope' } | { kind: 'redirect'; location: string };
 
 export function shield(method: string, url: string, ua: string | null | undefined): Shield {
   if (!ua || (method !== 'GET' && method !== 'HEAD')) return { kind: 'pass' };
@@ -31,6 +35,7 @@ export function shield(method: string, url: string, ua: string | null | undefine
   if (BLOCKED_BOT.test(ua)) return { kind: 'refuse', reason: 'blocked' };
   if (!CRAWLER.test(ua)) return { kind: 'pass' };
   if (PORTAL.has(path.split('/')[1] ?? '')) return { kind: 'refuse', reason: 'portal' };
+  if (deepOutOfScope(path)) return { kind: 'refuse', reason: 'scope' };
   if (u.search && QUERY_VIEW.test(path)) {
     // Next.js's own RSC fetches carry _rsc; a crawler never sends it, but leave them alone
     if ([...u.searchParams.keys()].every((k) => k === '_rsc')) return { kind: 'pass' };
@@ -43,5 +48,18 @@ export function shield(method: string, url: string, ua: string | null | undefine
 export function shieldResponse(s: Exclude<Shield, { kind: 'pass' }>, headers: Record<string, string>): Response {
   if (s.kind === 'redirect') return new Response(null, { status: 301, headers: { location: s.location, 'cache-control': 'public, max-age=86400', ...headers } });
   return new Response('Not available to crawlers. See /robots.txt.', { status: 403, headers: {
-    'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex', 'cache-control': `public, max-age=${s.reason === 'blocked' ? 86400 : 3600}`, ...headers } });
+    'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex', 'cache-control': `public, max-age=${s.reason === 'portal' ? 3600 : 86400}`, ...headers } });
+}
+
+/** R23: the hard guard while the month's Worker CPU time is at 70% of the included allowance or more (the owner's choice) (the cron tick keeps the flag,
+ *  custom-worker.ts): a crawler asking for a catalog or place page gets 503 with Retry-After a day (search engines come
+ *  back later and keep what they indexed), never a render. People, the fleet's own car pages (/cars/<slug>), the home
+ *  page and everything else are untouched. */
+const CATALOG = /^\/(cars\/[^/]+\/.+|car-rental\/.+|makes(\/.*)?|places(\/.*)?|guides\/.+)$/;
+export function cpuGuard(method: string, path: string, ua: string | null | undefined, over: boolean): boolean {
+  return over && !!ua && (method === 'GET' || method === 'HEAD') && CRAWLER.test(ua) && CATALOG.test(path);
+}
+export function cpuGuardResponse(headers: Record<string, string>): Response {
+  return new Response('Busy for crawlers, try again tomorrow.', { status: 503, headers: {
+    'content-type': 'text/plain; charset=utf-8', 'retry-after': '86400', 'cache-control': 'no-store', ...headers } });
 }

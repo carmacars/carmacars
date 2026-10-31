@@ -5,7 +5,10 @@
 // The token needs "Account Analytics: Read" (and nothing else).
 
 export interface UsageDay { day: string; values: Record<string, number> }
-export interface CloudflareUsage { source: 'cloudflare'; days: UsageDay[]; unavailable: Record<string, string> }
+export interface CloudflareUsage { source: 'cloudflare'; days: UsageDay[]; unavailable: Record<string, string>;
+  /** R23: today's size of each R2 bucket in bytes, largest first (the usage workflow prints it, so the bucket that fills
+   *  the shared 10 GB is named). */
+  buckets?: Array<{ bucket: string; bytes: number }> }
 
 type Fetch = (url: string, init: { method: string; headers: Record<string, string>; body: string }) => Promise<{ json(): Promise<unknown> }>;
 
@@ -43,6 +46,7 @@ export async function cloudflareUsage(o: { token: string; account: string; now?:
   const days = o.days ?? monthDays(now);
   const unavailable: Record<string, string> = {};
   const out: UsageDay[] = days.map((day) => ({ day, values: {} }));
+  let buckets: Array<{ bucket: string; bytes: number }> = [];
   const gql = async (query: string, variables: Record<string, unknown>) => {
     const r = await f('https://api.cloudflare.com/client/v4/graphql', { method: 'POST', headers: { authorization: `Bearer ${o.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ query, variables }) });
     const j = (await r.json()) as { data?: { viewer?: { accounts?: Array<Record<string, unknown>> } }; errors?: Array<{ message: string }> };
@@ -84,6 +88,7 @@ export async function cloudflareUsage(o: { token: string; account: string; now?:
     for (const r of rows) by.set(r.dimensions.bucketName, Math.max(by.get(r.dimensions.bucketName) ?? 0, (r.max.payloadSize ?? 0) + (r.max.metadataSize ?? 0)));
     const today = out.find((x) => x.day === torontoDay(now));
     if (today) today.values.r2_storage = [...by.values()].reduce((n, v) => n + v, 0);
+    buckets = [...by].map(([bucket, bytes]) => ({ bucket, bytes })).sort((x, y) => y.bytes - x.bytes);
   } catch (err) { unavailable.r2_storage = String((err as Error).message ?? err); }
-  return { source: 'cloudflare', days: out.filter((d) => Object.keys(d.values).length), unavailable };
+  return { source: 'cloudflare', days: out.filter((d) => Object.keys(d.values).length), unavailable, buckets };
 }

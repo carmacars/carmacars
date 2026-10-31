@@ -13,7 +13,7 @@ import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo
 import { getSeoLinks } from '@/features/seo/data';
 import { rpc } from '@/lib/db/repo';
 import { money, FUEL_LABEL } from '@/lib/format';
-import { fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, photoUrl, siteUrl } from '@/lib/site';
+import { deliveryFrom, fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, photoUrl, siteUrl } from '@/lib/site';
 import type { CarPage as Car } from '@/lib/types';
 import { makePage, type MakePage } from '@/features/vehicles/data';
 import { MakeView, makeMeta } from '@/features/vehicles/views';
@@ -283,7 +283,7 @@ export default async function CarPage({ params }: Params) {
           <section id="delivery" className="car-sec" aria-labelledby="h-del">
             <h2 className="d2" id="h-del">Pickup and delivery</h2>
             <table className="spec"><tbody>
-              <tr><th scope="row">Delivered to an address</th><td><span className="num">{money(c.delivery_fee_cents)}</span> plus distance from our location</td></tr>
+              <tr><th scope="row">Delivered to an address</th><td><span className="num">{money(deliveryFrom(c.delivery_fee_cents, f.delivery_min_cents))}</span> plus distance from our location</td></tr>
               <tr><th scope="row">Picked up from you at the end</th><td><span className="num">{money(c.pickup_fee_cents)}</span> plus distance</td></tr>
               <tr><th scope="row">{F('At {{airports}}')}</th><td>The same, plus distance. An airport surcharge may apply</td></tr>
               <tr><th scope="row">Collect it yourself</th><td>No charge, at our location{places?.owner_location ? ' or at the car owner’s location' : ''}</td></tr>

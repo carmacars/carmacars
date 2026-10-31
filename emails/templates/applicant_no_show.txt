@@ -1,0 +1,35 @@
+CarmaCars  |  Careers
+
+========================================
+
+[Careers]
+We missed you, {{first_name}}
+
+We were ready for your interview call for {{role_title}}, but we could not reach you.
+
+We understand that things come up. We have closed this application for now.
+
+{{#if personal_note}}
+{{personal_note}}
+{{/if}}
+
+If you are still interested, you are welcome to apply again for any of our open roles.
+
+See our open roles:
+https://carmacars.ca/careers
+
+Thank you for your interest in CarmaCars.
+
+----------------------------------------
+
+Questions about your application? Reply to this email.
+
+You are receiving this because you applied for a job at CarmaCars. We keep the application of a candidate we do not hire for 12 months, then delete it.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

@@ -8,7 +8,7 @@ import { UsageAllow } from './UsageAllow';
 
 // The usage guard on Admin > To do (migration 0080): one quiet card at 80% of an included allowance, one card when it is
 // used up (with "Allow paid usage" where paying is possible), and a banner while emails are held by the plan's limits.
-type CardRow = ServiceState & { alert_id: string; level: 80 | 100; title: string; emailed_at: string | null; email_note: string | null };
+type CardRow = ServiceState & { alert_id: string; level: 70 | 80 | 100; title: string; emailed_at: string | null; email_note: string | null };
 interface Cards { cards: CardRow[]; emails_held: number }
 
 export async function UsageCards({ userId }: { userId: string }) {
@@ -26,9 +26,9 @@ export async function UsageCards({ userId }: { userId: string }) {
 function UsageCard({ c }: { c: CardRow }) {
   const name = shortLabel(c.label);
   const resets = c.resets_at ? `Resets ${t(c.resets_at)}.` : '';
-  if (c.level === 80) {
+  if (c.level < 100) {
     return (
-      <section className="pt-card ad-card" aria-labelledby={`u-${c.alert_id}`} data-testid={`usage-card-${c.service}`} data-level="80">
+      <section className="pt-card ad-card" aria-labelledby={`u-${c.alert_id}`} data-testid={`usage-card-${c.service}`} data-level={c.level}>
         <div className="pt-card__head"><h2 className="d4" id={`u-${c.alert_id}`}>{name} at {share(c.share_bps)} of the included allowance</h2>
           <Act action="usage_alert_dismiss" payload={{ id: c.alert_id }} label="Dismiss" variant="quiet" testId={`usage-dismiss-${c.service}`} /></div>
         <p className="small">{c.used_text} of {c.included_text} used. {resets} Nothing changes yet. When it is used up: {c.when_used_up}</p>
@@ -58,5 +58,25 @@ function UsageCard({ c }: { c: CardRow }) {
       {c.pause_mode === 'pause' && !paid && cost.canPay && <UsageAllow s={c} testId={`usage-allow-${c.service}`} />}
       <p className="small"><Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link></p>
     </section>
+  );
+}
+
+// R23 (0221): the banner at the top of Admin > Today for every figure at its warning level or past it this period (red
+// at 100%, amber before), not dismissible: it goes when the figure resets or the allowance is raised. The Admins are
+// also texted (once per figure and level a month).
+type Banner = { service: string; label: string; share_bps: number; level: 70 | 80 | 100; used_text: string; included_text: string; overage_usd: number; resets_at: string | null };
+export async function UsageBanner({ userId }: { userId: string }) {
+  const rows = await door<Banner[]>(userId, 'ops_read', 'usage_banner').catch(() => null);
+  if (!rows?.length) return null;
+  const over = rows.filter((r) => r.level === 100);
+  const near = rows.filter((r) => r.level < 100);
+  const line = (r: Banner) => `${shortLabel(r.label)} at ${share(r.share_bps)} (${r.used_text} of ${r.included_text})${r.overage_usd > 0 ? `, about ${usd(r.overage_usd)} above the allowance so far` : ''}`;
+  return (
+    <div className="stack" data-testid="usage-banner">
+      {over.length > 0 && <p className="alert alert--error" role="alert" data-testid="usage-banner-over"><span className="alert__title">Over the included allowance</span>
+        <span>{over.map(line).join('; ')}. <Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link></span></p>}
+      {near.length > 0 && <p className="alert alert--warn" role="status" data-testid="usage-banner-near"><span className="alert__title">Close to the included allowance</span>
+        <span>{near.map(line).join('; ')}. <Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link></span></p>}
+    </div>
   );
 }

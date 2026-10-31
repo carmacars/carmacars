@@ -69,3 +69,14 @@ export async function cancelBooking(token: string): Promise<BookResult> {
     return r.ok ? { ok: true } : { ok: false, message: BOOK_ERRORS[r.error ?? ''] ?? 'We could not cancel the call.' };
   } catch { return { ok: false, message: 'We could not cancel the call. Please try again.' }; }
 }
+
+/** R23 (0229): a remote role's call confirmed from the "Confirm my call" email (no sign-in: the candidate's link). */
+export async function confirmCall(token: string, seq: number | null): Promise<{ ok: true; starts_at?: string } | { ok: false; message: string }> {
+  if (!TOKEN.test(token ?? '')) return { ok: false, message: 'This link is not valid.' };
+  try {
+    const r = (await rpc('server_hiring_confirm', { p_token: token, ...(Number.isInteger(seq) ? { p_seq: seq as number } : {}) }, SR)) as unknown as { ok: boolean; error?: string; starts_at?: string };
+    if (r.ok) return { ok: true, starts_at: r.starts_at };
+    return { ok: false, message: r.error === 'cancelled' ? 'This call was cancelled because it was not confirmed in time. You can book another time from your link.'
+      : r.error === 'moved' ? 'This call was moved: the newest email is the one to confirm.' : r.error === 'not_booked' ? 'There is no booked call on this link.' : 'This link is not valid.' };
+  } catch { return { ok: false, message: 'We could not confirm the call. Please try again.' }; }
+}

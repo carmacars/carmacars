@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '196/6');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '200/6');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -829,6 +829,12 @@ end $$;
 -- the rewards expiry reminder (0214)
 select app.emit_event('renter_rewards_expiring', 'renter', test.id('renter:nt_rita'), jsonb_build_object('renter_id', test.id('renter:nt_rita'), 'points_balance', '1,240',
   'points_value', '$12.40', 'expiry_date', 'Mon, Dec 7, 2026', 'rewards_url', 'https://carmacars.ca/account/rewards'), 'nt:rewards_expiring');
+select test.flush();
+-- Release 23 (0226, 0229): the hiring decision emails and the remote call confirmation
+select app.hiring_emit_pre0211(c, a, jsonb_build_object('personal_note', '', 'call_when', 'Tuesday at 9:00 am', 'call_when_manila', 'Tuesday at 10:00 pm',
+  'confirm_url', 'https://carmacars.ca/careers/book/x/confirm', 'confirm_by', 'Monday at 9:00 pm', 'meet_url', 'https://meet.jit.si/x',
+  'manage_url', 'https://carmacars.ca/careers/book/x', 'booking_url', 'https://carmacars.ca/careers/book/x'), 'nt:' || c)
+  from job_applications a, unnest(array['applicant_hired', 'applicant_no_show', 'applicant_confirm', 'applicant_unconfirmed']) c where a.email = 'nt.referred@example.test';
 select test.flush();
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');

@@ -66,7 +66,7 @@ export interface SiteFacts {
   other_licence_for_review: boolean; max_additional_drivers: number; max_baby_seats: number; request_note_max_chars: number;
   deductible_cents: number; non_refundable_discount_bps: number; damage_late_report_hours: number; incident_report_hours: number;
   payout_day: number; billing_day: number; notice_period_days: number; kickback_bps: number; install_fee_cents: number;
-  delivery_per_km_cents: number; privacy_officer_name: string | null; privacy_officer_email: string | null;
+  delivery_per_km_cents: number; delivery_min_cents?: number | null; delivery_max_cents?: number | null; privacy_officer_name: string | null; privacy_officer_email: string | null;
   company_email: string | null; incident_line_phone: string | null;
   young_driver_bands: { code: string; from_age: number; to_age: number }[];
   fees: Record<string, Fee>; deposit_tiers_cents: number[]; km_choices: number[];

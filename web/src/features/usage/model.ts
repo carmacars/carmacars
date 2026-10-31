@@ -39,7 +39,7 @@ export const usd = (n: number | null | undefined) => {
 };
 
 /** What allowing paid usage would cost at the current rates: per unit, a typical day above the allowance, and the cap. */
-export function paidCost(s: Pick<ServiceState, 'service' | 'unit' | 'usd_per_unit' | 'included' | 'period' | 'pause_mode' | 'upgrade_text' | 'overage_usd'>): { rate: string; example: string; canPay: boolean } {
+export function paidCost(s: Pick<ServiceState, 'service' | 'unit' | 'usd_per_unit' | 'included' | 'period' | 'pause_mode' | 'upgrade_text' | 'overage_usd'> & { used?: number }): { rate: string; example: string; canPay: boolean } {
   if (s.pause_mode === 'hold') return { rate: 'The free plan cannot pay for more.', example: s.upgrade_text ?? 'Upgrade the plan to send more.', canPay: false };
   if (!s.usd_per_unit) return { rate: 'Not billed by use.', example: s.upgrade_text ?? 'Nothing to pay.', canPay: false };
   const per = (n: number, label: string) => `${usd(s.usd_per_unit! * n)} per ${n.toLocaleString('en-US')} ${label}`;
@@ -50,6 +50,8 @@ export function paidCost(s: Pick<ServiceState, 'service' | 'unit' | 'usd_per_uni
     case 'workers_requests': return { rate: `${per(1_000_000, 'requests')}.`, example: `So far above the allowance: about ${usd(s.overage_usd)}.`, canPay: false };
     case 'workers_cpu': return { rate: `${per(1_000_000, 'CPU milliseconds')}.`, example: `So far above the allowance: about ${usd(s.overage_usd)}.`, canPay: false };
     case 'claude': return { rate: 'Billed per token by Anthropic, at the prices in Program settings.', example: 'A question costs about US$0.002 to US$0.01 with the default model, so US$1 covers 100 or more.', canPay: true };
+    // R23 (0229): every text costs about a cent, inside the budget too
+    case 'quo_texts': return { rate: `${usd(s.usd_per_unit)} per text.`, example: `This month: ${(s.used ?? 0).toLocaleString('en-US')} texts, about ${usd(s.usd_per_unit * (s.used ?? 0))}.`, canPay: false };
     default: return { rate: `${usd(s.usd_per_unit)} per unit.`, example: `So far above the allowance: about ${usd(s.overage_usd)}.`, canPay: false };
   }
 }

@@ -205,13 +205,17 @@ export default async function Section({ params, searchParams }: { params: Promis
       <StockPhotosAdmin d={await door<StockData>(user.id, 'admin_read', 'stock_photos').catch(() => ({ coverage: { models: 0, models_checked: 0, models_with_photo: 0, model_years: 0, model_years_with_photo: 0,
         generations: 0, model_only: 0, hidden: 0, pending: 0, failed: 0, generic: {}, popular: 0, popular_with_photo: 0, popular_missing: [], last_run: null }, photos: [] }))} /></>);
   case 'search': {
-    type Ov = { cars: R[]; pages: Array<PageRow & R>; articles: Array<ArticleRow & R>; indexnow: { waiting: number; sent_7d: number; last: { at: string | null; status: number | null } };
+    type Ov = { cars: R[]; pages: Array<PageRow & R>; articles: Array<ArticleRow & R>; indexnow: { waiting: number; sent_7d: number; last: { at: string | null; status: number | null };
+      answer?: IxAnswer; sweep?: IxAnswer & { next_round: string | null; streak_429: number } };
       neurons: { seo: number; all: number; seo_cap: number; all_cap: number }; min_real_cars: number };
     const [o, po] = await Promise.all([door<Ov>(user.id, 'admin_read', 'seo_overview'), door<PlacesOverview>(user.id, 'admin_read', 'place_overview').catch(() => null)]);
     return (<>{head}
       <p className="small muted">The car pages, the landing pages and the guides are written by the daily Claude batch (docs/seo-batches.md; Workers AI only when its writer is on in Program settings) from the facts in the database, checked (lengths, the house style, no number or claim the facts do not support) and published by themselves. Nothing waits for review. A field you change is locked and kept by every rewrite.</p>
       <Card title="Today" testId="seo-today"><Kv rows={[['Workers AI used for search copy', `${o.neurons.seo} of ${o.neurons.seo_cap} neurons`], ['All Workers AI use today', `${o.neurons.all} of ${o.neurons.all_cap} neurons`],
         ['IndexNow', `${o.indexnow.waiting} addresses waiting, ${o.indexnow.sent_7d} sent in 7 days${o.indexnow.last?.at ? `, last ${t(o.indexnow.last.at)} (${String(o.indexnow.last.status ?? '')})` : ''}`],
+        // R23 (0220): the changed pages and the sweep each with their last answer and back-off
+        ['IndexNow: changed pages', <span key="ixq" data-testid="seo-indexnow-answer">{ixLine(o.indexnow.answer, t)}</span>],
+        ['IndexNow: sweep', <span key="ixs" data-testid="seo-indexnow-sweep">{ixLine(o.indexnow.sweep, t)}{o.indexnow.sweep?.next_round ? `; next round ${t(o.indexnow.sweep.next_round)}` : ''}</span>],
         ['Landing pages for a use', `indexed with ${o.min_real_cars} or more real matching cars (Program settings)`]]} /></Card>
       <Card title={`Car copy (${o.cars.length} real cars)`} testId="seo-cars"><Table rows={o.cars} rowKey={(r) => String(r.vehicle_id)} empty="No real car yet. Sample cars keep their sample text." cols={[
         { key: 'vehicle', label: 'Car', render: (r) => <Link prefetch={false} className="link" href={`/admin/vehicles/${String(r.vehicle_id)}?tab=listing`}>{String(r.vehicle)}</Link> },
@@ -446,4 +450,12 @@ export default async function Section({ params, searchParams }: { params: Promis
 
 function SaveFormLimits({ id, p }: { id: string; p: R }) {
   return <details><summary className="link small">Limits</summary><SaveForm table="staff_profiles" rowKey={id} compact fields={[{ name: 'single_limit_cents', label: 'Single limit', type: 'money', value: p.single_limit_cents }, { name: 'dual_approval_threshold_cents', label: 'Second approval above', type: 'money', value: p.dual_approval_threshold_cents }]} /></details>;
+}
+
+// R23 (0220): one IndexNow sender's last answer in words: status, Bing's message, and how long it waits
+type IxAnswer = { status: number | null; error: string | null; at: string | null; until: string | null };
+function ixLine(a: IxAnswer | undefined, t: (x: string) => string): string {
+  if (!a || !a.at) return 'Nothing sent yet';
+  const msg = a.error ? (/"message":"([^"]+)"/.exec(a.error)?.[1] ?? a.error).slice(0, 120) : '';
+  return `last answer ${a.status ?? 'none'} ${t(a.at)}${msg ? ` (${msg})` : ''}${a.until ? `; waits until ${t(a.until)}` : ''}`;
 }

@@ -7,6 +7,8 @@
 // scripts/serve.mjs locally. No imports: it runs in the Worker entry and in Node.
 
 export const FLEET_SIG_KEY = 'carmacars/fleet-sig';
+/** R23: 1 while the month's Worker CPU time is at 70% of the included allowance or more (custom-worker.ts, bot-shield.ts cpuGuard). */
+export const CPU_GUARD_KEY = 'carmacars/cpu-guard';
 /** The fleet signature waiting for its second rebuild (the confirm, custom-worker.ts); 0 when none. */
 export const FLEET_SIG_CONFIRM_KEY = 'carmacars/fleet-sig-confirm';
 

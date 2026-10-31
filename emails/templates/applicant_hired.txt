@@ -1,0 +1,37 @@
+CarmaCars  |  Careers
+
+========================================
+
+[Careers]
+Welcome aboard, {{first_name}}
+
+Thank you for the call. We would like you to join CarmaCars as {{role_title}}.
+
+Here is what happens next:
+
+1. Y
+   o
+2. S
+   i
+3. W
+   e
+
+{{#if personal_note}}
+{{personal_note}}
+{{/if}}
+
+Questions? Reply to this email and we will help.
+
+----------------------------------------
+
+Questions about your application? Reply to this email.
+
+You are receiving this because you applied for a job at CarmaCars. We keep the application of a candidate we do not hire for 12 months, then delete it.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

@@ -11,6 +11,12 @@
 // Secrets (Edge Function secrets, set by the deploy job): OUTBOX_JOB_TOKEN, RESEND_API_KEY, APP_URL,
 // LINK_SIGNING_KEY (the site's key: the 7-day file links are opened by the site at /d/<token>).
 // SUPABASE_DB_URL is provided by Supabase. Statement emails carry their PDFs as attachments (app.outbox_attachments).
+//
+// R23 (0222, docs/changes/2026-11-03-cloudflare-email.md): Cloudflare Email Service first, Resend after. While the
+// database says Cloudflare may send (app.cf_email_try: switched on, this month's included sends not used, no
+// failure in the last 15 minutes), each email goes to the site's /api/email/send (the Worker's EMAIL binding), signed with
+// LINK_SIGNING_KEY like the cron jobs; a refusal is reported (server_cf_email_result) and the email goes through Resend
+// as before. The daily and monthly holds of 0018 then apply only when Cloudflare cannot send either.
 import postgres from 'npm:postgres@3.4.5';
 import { render, renderText } from './engine.mjs';
 
@@ -94,6 +100,25 @@ const fromHeader = (a: string | null) => {
   return addr.includes('<') ? addr : `CarmaCars <${addr}>`;
 };
 
+// the bearer token the site's /api/email/send accepts: HMAC of a fixed label with LINK_SIGNING_KEY (web/src/server/email-send.ts)
+async function siteToken(): Promise<string> {
+  const hk = await crypto.subtle.importKey('raw', enc.encode(LINK_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return Array.from(new Uint8Array(await crypto.subtle.sign('HMAC', hk, enc.encode('carmacars-email-send-v1'))), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+type Mail = { from: string; to: string; reply_to?: string; subject: string; html: string; text: string; headers?: Record<string, string>;
+  attachments?: Array<{ filename: string; content: string; content_type: string }> };
+// Cloudflare Email Service through the site's Worker: its message id, or the reason it did not send
+async function viaCloudflare(m: Mail): Promise<{ id: string } | { error: string }> {
+  try {
+    const res = await fetch(`${APP_URL}/api/email/send`, { method: 'POST', headers: { authorization: `Bearer ${await siteToken()}`, 'content-type': 'application/json' },
+      body: JSON.stringify(m), signal: AbortSignal.timeout(20_000) });
+    const j = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
+    if (res.ok && j.id) return { id: j.id };
+    return { error: `Cloudflare ${res.status}: ${(j.error ?? '').slice(0, 300)}` };
+  } catch (e) { return { error: `Cloudflare: ${(e as Error).message}`.slice(0, 300) }; }
+}
+let cfOn = false;
+
 // Resend's 429 body names the limit: rate_limit_exceeded, daily_quota_exceeded or monthly_quota_exceeded.
 class Held extends Error { constructor(public reason: string, public until: 'minute' | 'midnight') { super(reason); } }
 function held(status: number, body: string): Held | null {
@@ -129,6 +154,18 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
     }
     const files = await attachments(r);
+    if (cfOn) {
+      const cf = await viaCloudflare({ from: fromHeader(r.from_address), to: r.to_address, reply_to: r.reply_to || undefined, subject: r.subject, html, text,
+        headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined });
+      if ('id' in cf) {
+        await sql`select public.server_cf_email_result(${JSON.stringify({ ok: true })}::jsonb)`;
+        await sql`select app.outbox_mark_sent(${r.id}::uuid, ${'cf:' + cf.id}, ${text})`;
+        return 'sent';
+      }
+      // not this time: reported (Cloudflare rests 15 minutes), and this email goes through Resend
+      cfOn = false;
+      await sql`select public.server_cf_email_result(${JSON.stringify({ ok: false, error: cf.error })}::jsonb)`;
+    }
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND}`, 'content-type': 'application/json', 'Idempotency-Key': `outbox-${r.id}-${r.attempts}` },
@@ -155,6 +192,8 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
 Deno.serve(async (req) => {
   if (!TOKEN || req.headers.get('authorization') !== `Bearer ${TOKEN}`) return new Response('Forbidden', { status: 403 });
   if (!RESEND) return new Response('RESEND_API_KEY is not set', { status: 500 });
+  // 0222: Cloudflare first while the database says it may send (an older database without it: Resend only)
+  try { cfOn = ((await sql`select app.cf_email_try() as ok`) as unknown as [{ ok: boolean }])[0].ok === true && !!LINK_KEY; } catch { cfOn = false; }
   const rows = (await sql`select * from app.outbox_claim(${BATCH})`) as unknown as Row[];
   let sent = 0, failed = 0, deferred = 0;
   let stop: Held | null = null;
@@ -165,8 +204,8 @@ Deno.serve(async (req) => {
     const out = await sendOne(r);
     if (out instanceof Held) { deferred++; if (out.until === 'midnight') stop = out; }
     else if (out === 'sent') sent++; else failed++;
-    // Resend allows 2 requests a second per account
-    const wait = 550 - (Date.now() - t0);
+    // Resend allows 2 requests a second per account (Cloudflare's sends need no spacing)
+    const wait = (cfOn ? 0 : 550) - (Date.now() - t0);
     if (wait > 0) await pause(wait);
   }
   return Response.json({ claimed: rows.length, sent, failed, deferred });

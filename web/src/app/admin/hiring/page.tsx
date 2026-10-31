@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { Badge, Card, Filters, PageHead, Table, Tabs, d } from '@/features/admin/ui';
+import { DecisionEmails, type DecisionsData } from '@/features/careers/admin/DecisionEmails';
+import { Badge, Card, Filters, PageHead, Table, Tabs, d, t } from '@/features/admin/ui';
 import { CopyText } from '@/features/ads/CopyText';
-import { applyPath, fmtSlot, inviteMessage, SOURCE_WORDS, STATUS_FILTERS, STATUS_WORDS } from '@/features/careers/model';
+import { applyPath, DECISIONS, fmtSlot, inviteMessage, SOURCE_WORDS, STATUS_FILTERS, STATUS_WORDS } from '@/features/careers/model';
 import { siteUrl } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,7 @@ type App = { id: string; role: string; role_slug: string; status: string; full_n
   knockouts: string[]; created_at: string; slot_starts_at: string | null; mode: string | null; interview_score: number | null; final_score: number | null; decision: string | null; rank: number | null;
   referred_role: string | null; referred_from: string | null; referral_application: string | null; note: string | null };
 type Day = { id: string; day: string; start_time: string; end_time: string; slot_minutes: number; buffer_minutes: number; capacity: number; mode: string; active: boolean; note: string | null; roles: string[]; role_slugs: string[]; slots: number; booked: number };
+const CONFIRM_WORDS: Record<string, string> = { confirmed: 'Confirmed', waiting: 'Waiting', not_asked: 'Asked 24 hours before', cancelled: 'Cancelled' };
 const tone = (s: string) => (['hired', 'interviewed', 'booked'].includes(s) ? 'published' : ['invited', 'below_bar', 'new'].includes(s) ? 'draft' : 'closed');
 
 // Admin > People > Hiring (migration 0173): every application from carmacars.ca/careers with its screening score, the calls
@@ -24,19 +26,22 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
   const [{ read }, sp] = await Promise.all([page('/admin/hiring'), searchParams]);
   const tab = sp.tab ?? 'pipeline';
   const base = '/admin/hiring';
-  const data = await read<{ today: string; phone_enabled: boolean; roles: Role[]; applications: App[]; days: Day[]; waiting?: Array<{ slug: string; title: string; count: number }> }>('hiring',
+  const data = await read<{ today: string; phone_enabled: boolean; roles: Role[]; applications: App[]; days: Day[]; waiting?: Array<{ slug: string; title: string; count: number }>; decisions_waiting?: number }>('hiring',
     { role: sp.role ?? '', status: sp.status ?? '', source: sp.source ?? '', min_score: sp.min_score ?? '' });
   const waiting = data.roles.reduce((n, r) => n + (r.counts.below_bar ?? 0), 0);
   const tabs = <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=pipeline`, 'Applications', waiting], [`${base}?tab=calls`, 'Calls'], [`${base}?tab=shortlist`, 'Shortlist'],
-    [`${base}?tab=days`, 'Interview days'], [`${base}?tab=roles`, 'Roles and links']]} />;
+    [`${base}?tab=days`, 'Interview days'], [`${base}?tab=roles`, 'Roles and links'], [`${base}?tab=emails`, 'Emails to send', data.decisions_waiting ?? 0]]} />;
   const head = <PageHead title="Hiring" kicker={`${data.roles.filter((r) => r.active).length} roles open`} purpose="Every applicant is scored on the server: a knock-out gets a decline (Field staff: an offer to apply for Sales), a pass gets a booking link, the rest wait here for you." />;
   // 0211: per role, applicants invited while no interview day is open (their invitation, or "New times are open", goes when a day is added)
   const noDay = (data.waiting ?? []).map((w) => (
     <p key={w.slug} className="alert alert--warn" role="status" data-testid={`hiring-no-day-${w.slug}`}><span>{w.count} applicant{w.count === 1 ? '' : 's'} invited but no interview day is open for {w.title}. <Link prefetch={false} className="link" href={`${base}?tab=days`}>Add an interview day</Link></span></p>));
+  // R23 (0226): the decisions of the calls and the emails they send, all at once
+  if (tab === 'emails') return (<>{head}{tabs}<DecisionEmails d={await read<DecisionsData>('hiring_decisions')} /></>);
   const roleOptions: Array<[string, string]> = [['', 'All roles'], ...data.roles.map((r) => [r.slug, r.short_title] as [string, string])];
 
   if (tab === 'calls') {
-    const s = await read<{ day: string; today: string; days: string[]; phone_enabled: boolean; free: number; calls: Array<App & { ends_at: string; meet_url: string | null }> }>('hiring_schedule', { day: sp.day ?? '' });
+    const s = await read<{ day: string; today: string; days: string[]; phone_enabled: boolean; free: number; calls: Array<App & { ends_at: string; meet_url: string | null; confirm?: string | null }>;
+      unconfirmed?: Array<{ id: string; full_name: string; role: string; cancelled_at: string }> }>('hiring_schedule', { day: sp.day ?? '' });
     return (<>{head}{noDay}{tabs}
       <Filters base={`${base}?tab=calls`} name="day" value={s.day} sp={sp} options={(s.days.length ? s.days : [s.day]).map((x) => [x, `${d(x)}${x === s.today ? ' (today)' : ''}`] as [string, string])} />
       <Card title={`Calls on ${d(s.day)} (${s.calls.length})`} testId="hiring-calls" aside={<span className="small muted">{s.free} open slots left</span>}>
@@ -47,9 +52,15 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
           { key: 'mode', label: 'How', render: (x) => (x.mode === 'video' ? (x.meet_url ? <a className="link" href={String(x.meet_url)} rel="noopener" target="_blank">Video link</a> : 'Video')
             : x.phone ? <a className="link" href={`tel:${String(x.phone).replace(/[^\d+]/g, '')}`}>{s.phone_enabled ? 'Call (Quo)' : 'Call'} {x.phone}</a> : 'Phone') },
           { key: 'status', label: 'Status', render: (x) => <Badge s={tone(x.status)}>{STATUS_WORDS[x.status] ?? x.status}</Badge> },
+          // 0229: a remote role's call is confirmed by the candidate (24 hours before), or cancelled
+          { key: 'confirm', label: 'Confirmed', render: (x) => <span data-testid={`call-confirm-${x.id}`}>{CONFIRM_WORDS[String(x.confirm ?? '')] ?? ''}</span> },
           { key: 'final_score', label: 'Final', num: true },
           { key: 'act', label: '', render: (x) => <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}/${x.id}#rubric`} data-testid={`start-${x.id}`}>{x.status === 'booked' ? 'Start' : 'Open'}</Link> }]} />
       </Card>
+      {(s.unconfirmed ?? []).length > 0 && <Card title="Cancelled: not confirmed" testId="hiring-unconfirmed">
+        <ul className="small">{s.unconfirmed!.map((u) => <li key={u.id}><Link prefetch={false} className="link" href={`${base}/${u.id}`}>{u.full_name}</Link> ({u.role}), {t(u.cancelled_at)}: they can book again from their link.</li>)}</ul>
+      </Card>}
+      <p className="small muted">The in-person roles are called by phone and the remote roles meet by video, whatever the day says. A remote candidate confirms the call from an email 24 hours before; unconfirmed calls are cancelled.</p>
       <p className="small muted">Start opens the candidate with the rubric beside the call guide. Scores save as you go; the interview score, final score and rank fill in by themselves.</p></>);
   }
   if (tab === 'shortlist') {
@@ -61,7 +72,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
           <Table<App & R> rows={r.rows} rowKey={(x) => x.id} cols={[
             { key: 'rank', label: 'Rank', num: true }, { key: 'full_name', label: 'Candidate', render: (x) => <Link prefetch={false} className="link" href={`${base}/${x.id}`}>{x.full_name}</Link> },
             { key: 'score', label: 'Screening', num: true }, { key: 'interview_score', label: 'Interview', num: true }, { key: 'final_score', label: 'Final (40/60)', num: true },
-            { key: 'decision', label: 'Decision', render: (x) => (x.decision ? String(x.decision).replace('_', ' ') : '') },
+            { key: 'decision', label: 'Decision', render: (x) => (x.decision ? (DECISIONS.find(([k]) => k === x.decision)?.[1] ?? String(x.decision).replace('_', ' ')) : '') },
             { key: 'status', label: 'Status', render: (x) => STATUS_WORDS[x.status] ?? x.status }]} />
         </Card>))}</>);
   }
@@ -73,7 +84,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
       { name: 'slot_minutes', label: 'Call length (minutes)', type: 'number' as const, min: 5, max: 120, value: v.slot_minutes ?? 15 },
       { name: 'buffer_minutes', label: 'Break between calls (minutes)', type: 'number' as const, min: 0, max: 60, value: v.buffer_minutes ?? 5 },
       { name: 'capacity', label: 'Candidates a slot', type: 'number' as const, min: 1, max: 10, value: v.capacity ?? 1 },
-      { name: 'mode', label: 'How', type: 'select' as const, options: [['phone', 'Phone: we call the candidate'], ['video', 'Video: a Jitsi Meet link for each booking']] as Array<[string, string]>, value: v.mode ?? 'phone' },
+      { name: 'mode', label: 'How (the default shown; each call follows its role: in person by phone, remote by video)', type: 'select' as const, options: [['phone', 'Phone: we call the candidate'], ['video', 'Video: a Jitsi Meet link for each booking']] as Array<[string, string]>, value: v.mode ?? 'phone' },
       { name: 'roles', label: 'Roles (leave empty for every role)', type: 'list' as const, value: v.role_slugs ?? [], hint: `Role codes, separated by commas: ${data.roles.map((r) => r.slug).join(', ')}` },
       { name: 'note', label: 'Note (only Admins see it)', type: 'text' as const, value: v.note ?? '' }];
     return (<>{head}{noDay}{tabs}

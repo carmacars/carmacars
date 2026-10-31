@@ -37,7 +37,7 @@ export const STATUS_WORDS: Record<string, string> = {
 };
 export const STATUS_FILTERS: Array<[string, string]> = [['', 'All'], ['open', 'Open (to act on)'], ['below_bar', 'Below the bar'], ['invited', 'Invited'], ['booked', 'Booked'],
   ['interviewed', 'Interviewed'], ['referred', 'Referred'], ['declined', 'Declined'], ['hired', 'Hired'], ['rejected', 'Not hired'], ['no_show', 'No show'], ['withdrawn', 'Withdrawn']];
-export const DECISIONS: Array<[string, string]> = [['hire', 'Hire'], ['maybe', 'Maybe'], ['no', 'No'], ['no_show', 'No show']];
+export const DECISIONS: Array<[string, string]> = [['hire', 'Hire'], ['maybe', 'Maybe'], ['no', 'No'], ['sales', 'Good fit for Sales instead'], ['no_show', 'No show']];
 export const OUTCOME_WORDS: Record<string, { h: string; p: string }> = {
   invited: { h: 'Thank you. We would like to talk.', p: 'Your answers fit what this role needs. Book a short call now, or use the link we just emailed you.' },
   received: { h: 'Thank you. We have your application.', p: 'A person at CarmaCars reads every application. If your experience fits what we need, we will write to you with a time to talk.' },
@@ -132,3 +132,19 @@ export function payOver(typed: string, maxCents: number | null | undefined): boo
   return Number.isFinite(n) && n > 0 && Math.round(n * 100) > maxCents;
 }
 
+
+/** R23 (0226): the next morning at `hour`:00 in Toronto, as an instant: on the weekday `weekday` (0 Sunday, 1 Monday...)
+ *  or, when null, the next day; never today. For "Send all decision emails" at a set time. */
+export function nextTorontoMorning(weekday: number | null, hour: number, now: Date = new Date()): { iso: string; label: string } {
+  const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: TORONTO, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+  const today = new Date(`${ymd(now)}T12:00:00Z`);
+  let add = 1;
+  if (weekday !== null) { add = (weekday - today.getUTCDay() + 7) % 7; if (add === 0) add = 7; }
+  const day = new Date(today.getTime() + add * 86_400_000).toISOString().slice(0, 10);
+  // the zone's offset that day at that hour (EST -5 or EDT -4)
+  const guess = new Date(`${day}T${String(hour).padStart(2, '0')}:00:00Z`);
+  const local = new Intl.DateTimeFormat('en-US', { timeZone: TORONTO, hour: 'numeric', hourCycle: 'h23' }).format(guess);
+  const at = new Date(guess.getTime() + ((hour - Number(local) + 24) % 24) * 3_600_000);
+  const label = new Intl.DateTimeFormat('en-CA', { timeZone: TORONTO, weekday: 'long', month: 'long', day: 'numeric' }).format(at);
+  return { iso: at.toISOString(), label };
+}

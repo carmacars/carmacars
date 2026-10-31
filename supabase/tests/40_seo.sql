@@ -192,7 +192,7 @@ select test.eq('IndexNow: sent addresses are marked', (select count(*) from inde
 select public.server_indexnow_sent(jsonb_build_object('paths', jsonb_build_array('/guides'), 'status', 429, 'error', 'Too many requests'));
 -- 0104: a 429 is the engine's rate limit: the address keeps its attempts and the whole queue waits
 select test.eq('IndexNow: a refusal keeps the address for the next run', (select (sent_at is null) || '/' || attempts || '/' || last_status from indexnow_queue where path = '/guides'), 'true/0/429');
-update indexnow_sweep set backoff_until = null, backoff_s = 0;
+update indexnow_sweep set backoff_until = null, backoff_s = 0, q_backoff_until = null, q_backoff_s = 0 where id;
 update articles set body_md = E'## One\n\nChanged again.\n' where slug = 'se-guide';
 select test.eq('IndexNow: a change after sending queues it again', (select sent_at is null from indexnow_queue where path = '/guides/se-guide'), true);
 select test.ok('sitemap: real cars with their photos, indexable landing pages and articles; no sample car',

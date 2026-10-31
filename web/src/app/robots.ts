@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { env } from '@/lib/env';
-import { robotsSitemaps } from '@/features/seo/sitemap';
+import { landingPaths, robotsSitemaps } from '@/features/seo/sitemap';
+import { OUT_OF_SCOPE, allowLines } from '@/lib/edge/crawl-scope';
 import { siteUrl } from '@/lib/site';
 import { ANSWER_CRAWLERS, BLOCKED_CRAWLERS, CRAWL_DELAY_S, PRIVATE_PATHS, SLOW_CRAWLERS } from '@/features/seo/crawlers';
 
@@ -13,13 +14,17 @@ export const dynamic = 'force-dynamic';
 // says plainly that the owner wants them (several engines treat an unnamed AI crawler as unwelcome on some hosts).
 export default async function robots(): Promise<MetadataRoute.Robots> {
   if (env().APP_ENV === 'staging') return { rules: [{ userAgent: '*', disallow: '/' }] };
+  // R23 (src/lib/edge/crawl-scope.ts): the multiplying trees are out of every crawler's reach; the landing pages under
+  // /car-rental/ are allowed by name (a longer rule wins over the Disallow)
+  const allow = ['/', '/llms.txt', '/llms-full.txt', ...allowLines(await landingPaths().catch(() => []))];
+  const disallow = [...PRIVATE_PATHS, ...OUT_OF_SCOPE];
   return {
     rules: [
-      { userAgent: ANSWER_CRAWLERS.filter((b) => !(SLOW_CRAWLERS as readonly string[]).includes(b)), allow: ['/', '/llms.txt', '/llms-full.txt'], disallow: [...PRIVATE_PATHS] },
+      { userAgent: ANSWER_CRAWLERS.filter((b) => !(SLOW_CRAWLERS as readonly string[]).includes(b)), allow, disallow },
       // 2026-10-30: the training crawlers, one page every 10 seconds; the SEO tools and scrapers, nothing
-      { userAgent: [...SLOW_CRAWLERS], allow: ['/', '/llms.txt', '/llms-full.txt'], disallow: [...PRIVATE_PATHS], crawlDelay: CRAWL_DELAY_S },
+      { userAgent: [...SLOW_CRAWLERS], allow, disallow, crawlDelay: CRAWL_DELAY_S },
       { userAgent: [...BLOCKED_CRAWLERS], disallow: ['/', ...PRIVATE_PATHS] },
-      { userAgent: '*', allow: '/', disallow: [...PRIVATE_PATHS] }
+      { userAgent: '*', allow: allow.filter((a) => a !== '/llms.txt' && a !== '/llms-full.txt'), disallow }
     ],
     // 0102: the index files, then each child sitemap of the first (src/features/seo/sitemap.ts robotsSitemaps)
     sitemap: await robotsSitemaps().catch(() => [`${siteUrl()}/sitemap.xml`])

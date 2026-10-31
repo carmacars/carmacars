@@ -47,28 +47,24 @@ select test.eq('the batch size holds: 2 of 3 addresses', app.server_seo_claim('a
 select app.server_indexnow_sent('{"paths": ["/a3/one", "/a3/two"], "status": 429, "error": "TooManyRequests"}');
 select test.eq('a 429 spends no attempt', (select string_agg(path || ':' || attempts || ':' || last_status, ' ' order by path) from indexnow_queue where path in ('/a3/one', '/a3/two')),
   '/a3/one:0:429 /a3/two:0:429');
-select test.ok('a 429 pauses the whole queue until tomorrow (Toronto)',
-  (select backoff_until > now() + interval '1 minute' and (backoff_until at time zone 'America/Toronto')::date = (now() at time zone 'America/Toronto')::date + 1 from indexnow_sweep));
+-- 0220: the changed pages wait on their own back-off (an hour without Retry-After), never the sweep's
+select test.ok('a 429 pauses the changed pages, not the sweep',
+  (select q_backoff_until > now() + interval '50 minutes' and backoff_until is null from indexnow_sweep));
 select test.eq('while it waits nothing is claimed', app.server_seo_claim('a3', 0) #> '{indexnow,paths}', '[]'::jsonb);
-select test.eq('while it waits the tick does not run the job for IndexNow alone',
-  (select count(*) from indexnow_queue where sent_at is null) > 0 and not exists (select 1 from car_copy c where c.status in ('pending', 'failed') and c.next_attempt_at <= now())
-    and not exists (select 1 from seo_pages p where p.is_active and p.status in ('pending', 'failed') and p.next_attempt_at <= now())
-    and not exists (select 1 from articles a where a.status in ('pending', 'failed') and a.next_attempt_at <= now())
-    and (app.server_jobs_due() ->> 'seo')::boolean, false);
 select app.server_indexnow_report('{"status": 429, "count": 0, "retry_after": 120}');
-select test.ok('a Retry-After is kept', (select backoff_until between now() + interval '100 seconds' and now() + interval '140 seconds' from indexnow_sweep));
-update indexnow_sweep set backoff_until = null, backoff_s = 0;
+select test.ok('a Retry-After is kept (the sweep)', (select backoff_until between now() + interval '100 seconds' and now() + interval '140 seconds' from indexnow_sweep));
+update indexnow_sweep set backoff_until = null, backoff_s = 0, q_backoff_until = null, q_backoff_s = 0, streak_429 = 0 where id;
 select app.server_indexnow_sent('{"paths": ["/a3/one", "/a3/two"], "status": 200}');
 select test.ok('a 2xx sends them and counts them', (select count(*) = 2 from indexnow_queue where sent_at is not null and path like '/a3/%')
-  and (select sent_today >= 2 and backoff_until is null from indexnow_sweep));
+  and (select sent_today >= 2 and q_backoff_until is null from indexnow_sweep));
 select app.server_indexnow_sent('{"paths": ["/a3/three"], "status": 400, "error": "Bad request"}');
 select test.eq('another failure still spends an attempt', (select attempts from indexnow_queue where path = '/a3/three'), 1);
 update program_settings set indexnow_daily_max = (select sent_today from indexnow_sweep) where id = (app.settings()).id;
-update indexnow_sweep set backoff_until = null;
-select test.eq('the day''s ceiling holds', app.server_seo_claim('a3', 0) #> '{indexnow,paths}', '[]'::jsonb);
+update indexnow_sweep set q_backoff_until = null, q_backoff_s = 0 where id;
+select test.ok('the sweep''s daily ceiling does not hold back the changed pages (0220)', app.server_seo_claim('a3', 0) #> '{indexnow,paths}' @> '["/a3/three"]'::jsonb);
 update program_settings set indexnow_daily_max = 2000000, indexnow_batch = 10000, indexnow_enabled = false where id = (app.settings()).id;
 delete from indexnow_queue where path like '/a3/%';
-update indexnow_sweep set backoff_until = null, backoff_s = 0, last_status = null, last_error = null;
+update indexnow_sweep set backoff_until = null, backoff_s = 0, last_status = null, last_error = null, q_backoff_until = null, q_backoff_s = 0 where id;
 
 -- ---------------------------------------------------------------- 3. partner cars: one title and heading each
 select test.eq('partner cars: every search title is different',

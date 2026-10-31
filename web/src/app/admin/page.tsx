@@ -7,7 +7,7 @@ import { BookingLink, Card, t } from '@/features/admin/ui';
 import { TodayBoard, boardTiles, type Dash } from '@/features/admin/today/TodayBoard';
 import { Prompts } from '@/features/admin/todo/Prompts';
 import type { Todo } from '@/features/admin/todo/types';
-import { UsageCards } from '@/features/usage/UsageCards';
+import { UsageBanner, UsageCards } from '@/features/usage/UsageCards';
 import { More } from '@/features/portal/Chrome';
 
 export const dynamic = 'force-dynamic';
@@ -47,6 +47,7 @@ export default async function AdminToDo() {
   const siteProblems = h ? h.checks.filter((c) => c.status === 'failing').length : 0;
   return (
     <>
+      <UsageBanner userId={user.id} />
       <TodayBoard name={gate.name ?? null} tiles={boardTiles(dash, d, siteProblems)}
         lead={need ? `${need} thing${need > 1 ? 's' : ''} need${need > 1 ? '' : 's'} you, most urgent first.` : 'Nothing needs you right now. New requests and anything that needs you show up here.'}
         actions={<><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/overview">Overview</Link><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new">Add a rental</Link></>} />

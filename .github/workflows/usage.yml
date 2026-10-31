@@ -44,6 +44,8 @@ jobs:
         run: |
           F="$RUNNER_TEMP/usage.json"
           jq -r '.unavailable | to_entries[] | "\(.key): \(.value)"' "$F" | sed 's/^/::notice title=not readable::/'
+          # R23: which R2 bucket holds the space (the photos, the documents, the server backups)
+          jq -r '(.buckets // []) | map("\(.bucket) \((.bytes / 1073741824 * 100 | round) / 100) GB") | join(", ") | select(length > 0)' "$F" | sed 's/^/::notice title=r2 buckets::/'
           if [ "$(jq '.days | length' "$F")" = 0 ]; then echo "::notice title=usage::no Cloudflare figures this hour"; exit 0; fi
           Q=$(jq -c '{source: "cloudflare", days: .days}' "$F" | sed "s/'/''/g")
           printf "select app.usage_record_external('%s'::jsonb) -> 'refresh' -> 'states' as states" "$Q" > "$RUNNER_TEMP/usage.sql"

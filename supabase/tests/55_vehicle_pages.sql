@@ -229,6 +229,9 @@ select test.ok('the index: every tree has the level files and the tiers files', 
 select test.ok('every tree is allowed by default', public.vehicle_sitemap_tree('') and public.vehicle_sitemap_tree('buy-') and public.vehicle_sitemap_tree('t-car-hire-') and public.vehicle_sitemap_tree('t-ceramic-coating-'));
 -- (earlier suites send IndexNow batches too: one quota, one sweep; start from a clean cursor)
 update indexnow_sweep set backoff_until = null, backoff_s = 0, file_i = 0, pos = -1, sent_today = 0, day = (now() at time zone 'America/Toronto')::date;
+-- 0220: the changed pages go first and the sweep waits for them; this suite looks at the sweep alone
+delete from indexnow_queue where sent_at is null;
+update indexnow_sweep set next_round_at = null, q_backoff_until = null, phase = 'priority', p_i = 0, p_pos = 0 where id;
 update program_settings set indexnow_enabled = true where id = (app.settings()).id;
 select test.ok('IndexNow: a batch of at most 10,000 addresses from the sitemaps, the cursor after it', (select jsonb_array_length(c -> 'paths') between 1 and 10000 and (c -> 'cursor' ->> 'file_i') is not null
   from app.server_indexnow_claim(10000) c));

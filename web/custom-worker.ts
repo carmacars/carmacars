@@ -11,8 +11,8 @@ import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, clea
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, STALE_HEADER, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
 import { jobsToRun } from './src/lib/edge/cron-gate';
-import { shield, shieldResponse } from './src/lib/edge/bot-shield';
-import { FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
+import { cpuGuard, cpuGuardResponse, shield, shieldResponse } from './src/lib/edge/bot-shield';
+import { CPU_GUARD_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
 import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
 
@@ -199,6 +199,12 @@ const worker = {
       .then((r: Response) => r.text()).catch(() => undefined));
     // only when the database has work for them (src/lib/edge/cron-gate.ts, 0076): an idle tick then never loads the app
     const due = await jobsToRun(env);
+    // R23: the month's Worker CPU time at 70% of the allowance or more (the database's usage figures): the flag the fetch handler reads
+    // for the crawler guard (bot-shield.ts cpuGuard), written only when it changes
+    if (due.checked) ctx.waitUntil((async () => {
+      const want = due.cpu_guard ? 1 : 0;
+      if ((await readNumber(env, CPU_GUARD_KEY)) !== want) await writeNumber(env, CPU_GUARD_KEY, want);
+    })().catch(() => undefined));
     if (due.listing) run('/api/jobs/listing');
     // the search copy (cars, landing pages, articles) and IndexNow (migration 0061)
     if (due.seo) run('/api/jobs/seo');
@@ -265,6 +271,9 @@ const worker = {
     // session refresh and the app (src/lib/edge/bot-shield.ts)
     const sh = shield(request.method, request.url, request.headers.get('user-agent'));
     if (sh.kind !== 'pass') return shieldResponse(sh, securityHeaders());
+    // R23: from 70% of the month's included CPU time, crawlers get no catalog render (one KV read, kept 30 s)
+    { const ua = request.headers.get('user-agent');
+      if (cpuGuard(request.method, path, ua, true) && (await readNumber(env, CPU_GUARD_KEY)) === 1) return cpuGuardResponse(securityHeaders()); }
     if (path === '/api/t' && request.method === 'POST') { const t = await track(request, env, ctx); if (t) return t; }
     if (path === '/api/jobs/warm-up' && request.method === 'POST') return warmUp(request, env, ctx);
     // An Admin viewing as someone is read only: every write outside the Admin portal stops here

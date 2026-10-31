@@ -5628,6 +5628,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      email_provider_state: {
+        Row: {
+          id: boolean;
+          cf_failed_at: string | null;
+          cf_error: string | null;
+          cf_ok_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: boolean;
+          cf_failed_at?: string | null;
+          cf_error?: string | null;
+          cf_ok_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: boolean;
+          cf_failed_at?: string | null;
+          cf_error?: string | null;
+          cf_ok_at?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       email_reply_to: {
         Row: {
           id: string;
@@ -7236,6 +7260,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      hiring_decisions: {
+        Row: {
+          application_id: string;
+          outcome: string;
+          send_email: boolean;
+          sales_role_id: string | null;
+          personal_note: string | null;
+          decided_by: string | null;
+          decided_at: string;
+          send_after: string | null;
+          sent_at: string | null;
+          sent_by: string | null;
+          email_code: string | null;
+          event_id: number | null;
+        };
+        Insert: {
+          application_id: string;
+          outcome: string;
+          send_email?: boolean;
+          sales_role_id?: string | null;
+          personal_note?: string | null;
+          decided_by?: string | null;
+          decided_at?: string;
+          send_after?: string | null;
+          sent_at?: string | null;
+          sent_by?: string | null;
+          email_code?: string | null;
+          event_id?: number | null;
+        };
+        Update: {
+          application_id?: string;
+          outcome?: string;
+          send_email?: boolean;
+          sales_role_id?: string | null;
+          personal_note?: string | null;
+          decided_by?: string | null;
+          decided_at?: string;
+          send_after?: string | null;
+          sent_at?: string | null;
+          sent_by?: string | null;
+          email_code?: string | null;
+          event_id?: number | null;
+        };
+        Relationships: [];
+      };
       hiring_roles: {
         Row: {
           id: string;
@@ -7688,6 +7757,13 @@ export type Database = {
           phase: string;
           p_i: number;
           p_pos: number;
+          q_backoff_until: string | null;
+          q_backoff_s: number;
+          q_last_status: number | null;
+          q_last_error: string | null;
+          q_last_at: string | null;
+          streak_429: number;
+          next_round_at: string | null;
         };
         Insert: {
           id?: boolean;
@@ -7705,6 +7781,13 @@ export type Database = {
           phase?: string;
           p_i?: number;
           p_pos?: number;
+          q_backoff_until?: string | null;
+          q_backoff_s?: number;
+          q_last_status?: number | null;
+          q_last_error?: string | null;
+          q_last_at?: string | null;
+          streak_429?: number;
+          next_round_at?: string | null;
         };
         Update: {
           id?: boolean;
@@ -7722,6 +7805,13 @@ export type Database = {
           phase?: string;
           p_i?: number;
           p_pos?: number;
+          q_backoff_until?: string | null;
+          q_backoff_s?: number;
+          q_last_status?: number | null;
+          q_last_error?: string | null;
+          q_last_at?: string | null;
+          streak_429?: number;
+          next_round_at?: string | null;
         };
         Relationships: [];
       };
@@ -8474,6 +8564,9 @@ export type Database = {
           waiting_for_day: boolean;
           no_slots_since: string | null;
           no_slots_seen_at: string | null;
+          confirm_sent_at: string | null;
+          confirmed_at: string | null;
+          unconfirmed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -8515,6 +8608,9 @@ export type Database = {
           waiting_for_day?: boolean;
           no_slots_since?: string | null;
           no_slots_seen_at?: string | null;
+          confirm_sent_at?: string | null;
+          confirmed_at?: string | null;
+          unconfirmed_at?: string | null;
         };
         Update: {
           id?: string;
@@ -8556,6 +8652,9 @@ export type Database = {
           waiting_for_day?: boolean;
           no_slots_since?: string | null;
           no_slots_seen_at?: string | null;
+          confirm_sent_at?: string | null;
+          confirmed_at?: string | null;
+          unconfirmed_at?: string | null;
         };
         Relationships: [];
       };
@@ -13783,6 +13882,9 @@ export type Database = {
           channel_feed_hourly_max: number;
           owner_followup_enabled: boolean;
           owner_followup_days: number[];
+          usage_alert_texts: boolean;
+          cf_email_enabled: boolean;
+          cf_email_monthly_included: number;
         };
         Insert: {
           id?: string;
@@ -14300,6 +14402,9 @@ export type Database = {
           channel_feed_hourly_max?: number;
           owner_followup_enabled?: boolean;
           owner_followup_days?: number[];
+          usage_alert_texts?: boolean;
+          cf_email_enabled?: boolean;
+          cf_email_monthly_included?: number;
         };
         Update: {
           id?: string;
@@ -14817,6 +14922,9 @@ export type Database = {
           channel_feed_hourly_max?: number;
           owner_followup_enabled?: boolean;
           owner_followup_days?: number[];
+          usage_alert_texts?: boolean;
+          cf_email_enabled?: boolean;
+          cf_email_monthly_included?: number;
         };
         Relationships: [];
       };
@@ -19501,6 +19609,8 @@ export type Database = {
           email_note: string | null;
           dismissed_at: string | null;
           dismissed_by: string | null;
+          texted_at: string | null;
+          text_note: string | null;
         };
         Insert: {
           id?: string;
@@ -19514,6 +19624,8 @@ export type Database = {
           email_note?: string | null;
           dismissed_at?: string | null;
           dismissed_by?: string | null;
+          texted_at?: string | null;
+          text_note?: string | null;
         };
         Update: {
           id?: string;
@@ -19527,6 +19639,8 @@ export type Database = {
           email_note?: string | null;
           dismissed_at?: string | null;
           dismissed_by?: string | null;
+          texted_at?: string | null;
+          text_note?: string | null;
         };
         Relationships: [];
       };
@@ -24000,6 +24114,7 @@ export type Database = {
       server_capture_session_read: { Args: { p_token: string; p_visitor?: string }; Returns: Json };
       server_capture_sign_in_made: { Args: { p_user: string }; Returns: undefined };
       server_capture_unconfirmed: { Args: { p_user: string }; Returns: boolean };
+      server_cf_email_result: { Args: { p: Json }; Returns: Json };
       server_change_facts: { Args: { p_request: string; p_by: string }; Returns: Json };
       server_channel_feed: { Args: { p_token: string }; Returns: Json };
       server_chat_ai_reply: { Args: { p_token: string; p: Json }; Returns: Json };
@@ -24070,6 +24185,7 @@ export type Database = {
       server_hiring_booking: { Args: { p_token: string }; Returns: Json };
       server_hiring_booking_pre0211: { Args: { p_token: string }; Returns: Json };
       server_hiring_cancel: { Args: { p_token: string }; Returns: Json };
+      server_hiring_confirm: { Args: { p_token: string; p_seq?: number }; Returns: Json };
       server_hiring_prefill: { Args: { p_token: string; p_slug: string }; Returns: Json };
       server_in_person_lines: { Args: { p_request: string }; Returns: Json };
       server_indexnow_claim: { Args: { p_limit: number }; Returns: Json };

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
+import { DECISION_WORDS, emailLine, type DecisionRow } from '@/features/careers/admin/DecisionEmails';
 import { Badge, Card, Kv, PageHead, Table, d, t } from '@/features/admin/ui';
 import { Rubric } from '@/features/careers/admin/Rubric';
 import { Hire } from '@/features/careers/admin/Hire';
@@ -22,6 +23,7 @@ interface Detail {
   score: { scores: Record<string, number>; interview_score: number | null; final_score: number | null; notes: string | null; decision: string | null; interviewer: string | null; updated_at: string } | null;
   linked: Array<{ id: string; role: string; status: string; score: number | null; created_at: string; referred_from: string | null }>;
   phone_enabled: boolean;
+  decision?: (Pick<DecisionRow, 'outcome' | 'send_email' | 'email_code' | 'subject' | 'sales_role' | 'send_after' | 'sent_at'>) | null;
 }
 
 // One candidate (migration 0173): contact, source, the answers with the points each earned, the knock-outs, the booked call,
@@ -90,6 +92,11 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
             ? <Rubric id={id} criteria={x.criteria} screening={a.score} initial={x.score ? { scores: x.score.scores, notes: x.score.notes, decision: x.score.decision } : null} />
             : <p className="muted small">The rubric opens once the candidate has a call.</p>}
         </Card>
+        {x.decision && <Card title="Decision email" testId="cand-decision">
+          <p className="small" data-testid="cand-decision-line"><b>{DECISION_WORDS[x.decision.outcome] ?? x.decision.outcome}:</b> {x.decision.send_email || x.decision.outcome === 'sales_shortlist' ? emailLine(x.decision) : 'no email (turned off)'}.{' '}
+            {x.decision.sent_at ? `Sent ${t(x.decision.sent_at)}.` : x.decision.send_after ? `Goes ${t(x.decision.send_after)}.` : 'Nothing is sent until you send the decision emails.'}{' '}
+            <Link prefetch={false} className="link" href={`${base}?tab=emails`}>Emails to send</Link></p>
+        </Card>}
         <Card title="Call guide (15 minutes)" testId="cand-guide">
           <ol className="cr-guide">{(x.role.call_guide.steps ?? []).map(([time, text]) => <li key={time}><b>{time}</b> {text}</li>)}</ol>
           <h3 className="d4">{x.role.short_title}: role questions</h3>

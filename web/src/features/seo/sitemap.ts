@@ -3,6 +3,7 @@ import { rpc, sharedRead } from '@/lib/db/repo';
 import { absUrl } from '@/features/seo/meta';
 import { siteUrl } from '@/lib/site';
 import { env } from '@/lib/env';
+import { inCrawlScope } from '@/lib/edge/crawl-scope';
 
 // The sitemaps read as the server (public paths only), not as a visitor: a file walks thousands of pages, which the
 // visitor's 2.5 s limit (0106) cut off (/sitemap.xml and /sitemap-vehicles/makes.xml answered 500, Oct 22).
@@ -40,6 +41,11 @@ async function rows(): Promise<Row[]> {
   return [...all, ...careers];
 }
 
+/** R23: the landing pages' addresses (robots.txt allows them by name under /car-rental/, src/lib/edge/crawl-scope.ts). */
+export async function landingPaths(): Promise<string[]> {
+  return (await rows()).filter((r) => r.kind === 'landing').map((r) => r.path);
+}
+
 type Prio = Array<{ path: string; lastmod: string | null }>;
 async function priorityRows(): Promise<Prio> {
   try { return ((await memo('sitemap_priority', () => rpc('sitemap_priority', {}, SR))) ?? []) as unknown as Prio; } catch { return []; }
@@ -62,12 +68,14 @@ function entries(name: SitemapName, all: Row[], prio: Prio = [], hubs: Prio = []
     // the index); it keeps its own selection (the makes, the popular models, the place pages nearest us).
     case 'priority': {
       const seen = new Set<string>([...FIXED, ...all.filter((r) => r.kind !== 'model_hub').map((r) => r.path), ...hubs.map((r) => r.path)]);
-      return prio.filter((r) => !seen.has(r.path) && !!seen.add(r.path)).slice(0, 50_000).map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
+      // R23: only addresses in the crawl scope (the place pages and the trees below the trim are out)
+      const landing = new Set(all.filter((r) => r.kind === 'landing').map((r) => r.path));
+      return prio.filter((r) => inCrawlScope(r.path, landing) && !seen.has(r.path) && !!seen.add(r.path)).slice(0, 50_000).map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
     }
     case 'cars': return all.filter((r) => r.kind === 'car').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod), images: (r.images ?? []).map((i) => absUrl(i.loc)) }));
     case 'landing': return all.filter((r) => r.kind === 'landing').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
     case 'guides': return all.filter((r) => r.kind === 'article').map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
-    case 'hubs': return hubs.map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
+    case 'hubs': return hubs.filter((r) => inCrawlScope(r.path, new Set())).map((r) => ({ loc: url(r.path), lastmod: iso(r.lastmod) }));
   }
 }
 
@@ -113,7 +121,10 @@ type VIndex = { total: number; files: Array<{ file: string; lastmod: string | nu
 // 0110: the numbering of app.vpage_index_page, done here from the stored shape (the level files, the place and colour
 // files per tree, the trees) instead of 50,000 rows built in SQL on every request (7 to 12 s, past the 8 s limit).
 type Shape = { base: Array<{ file: string; lastmod: string | null }>; tiers: number; trees: string[] };
-const shape = () => memo('vehicle_sitemap_shape', () => rpc('vehicle_sitemap_shape', {}, SR)) as Promise<Shape>;
+// R23 (crawl scope): only the renting tree's level files (makes, models, years, trims); the place and colour files, the
+// for-sale tree and the search term trees are out of every sitemap
+export const scopedShape = (sh: Shape): Shape => ({ base: sh.base, tiers: 0, trees: (sh.trees ?? []).filter((t) => t === '') });
+const shape = async () => scopedShape(await (memo('vehicle_sitemap_shape', () => rpc('vehicle_sitemap_shape', {}, SR)) as Promise<Shape>));
 export function numberFiles(sh: Shape, offset: number, limit: number): VIndex {
   const nb = sh.base.length;
   const per = nb + (sh.tiers ?? 0);
@@ -128,23 +139,19 @@ export function numberFiles(sh: Shape, offset: number, limit: number): VIndex {
 }
 const vIndex = async (offset: number, limit: number): Promise<VIndex> => numberFiles(await shape(), offset, Math.min(limit, INDEX_SIZE));
 
-// the place pages (0095): one file per term and range of places, listed by the database without reading the pages
-type PlaceFile = { file: string; vertical: string; term: string; page: number; lastmod: string | null };
-async function placeFiles(): Promise<PlaceFile[]> {
-  try { return ((await memo('place_sitemap_files', () => rpc('place_sitemap_files', {}, SR))) ?? []) as unknown as PlaceFile[]; } catch { return []; }
-}
 const lastOf = (e: Array<{ lastmod: string | null }>) => e.map((x) => x.lastmod).filter(Boolean).sort().pop();
 const sm = (loc: string, last: string | null | undefined) => `<sitemap><loc>${esc(loc)}</loc>${last ? `<lastmod>${last}</lastmod>` : ''}</sitemap>`;
 /** The site's own sitemaps (the priority list in files of PRIORITY_CHUNK) and the place files (at most 49,000), first in
  *  the index. */
 async function siteEntries(): Promise<string[]> {
-  const [all, places, prio] = await Promise.all([rows(), placeFiles(), priorityRows()]);
+  // R23: no place files (the place pages are out of the crawl scope; the landing pages have their own file)
+  const [all, prio] = await Promise.all([rows(), priorityRows()]);
   const hubs = await hubRows(all);
   return [...SITEMAPS.flatMap((name) => {
     const e = entries(name, all, prio, hubs);
     if (name === 'priority') return chunk(e, PRIORITY_CHUNK).map((c, i) => sm(sitemapUrl.priority(i + 1), lastOf(c)));
     return [sm(`${siteUrl()}/sitemap-${name}.xml`, lastOf(e))];
-  }), ...places.slice(0, 49_000).map((f) => sm(sitemapUrl.places(f.file), iso(f.lastmod)))];
+  })];
 }
 /** The list in parts of n (at least one part, so an empty priority list is still one valid, empty file). */
 export function chunk<T>(list: T[], n: number): T[][] {
@@ -214,7 +221,8 @@ export async function vehicleSitemapFile(file: string): Promise<Response> {
   if (!/^[a-z0-9-]{1,120}$/.test(file)) return NOT_FOUND();
   const terms = (((await rpc('vehicle_tiers', {}, SR)) as unknown as { terms?: Array<{ slug: string }> } | null)?.terms ?? []).map((t) => t.slug);
   const f = splitFile(file, terms);
-  if (!f || !(await rpc('vehicle_sitemap_tree', { p_prefix: f.prefix }, SR))) return NOT_FOUND();
+  // R23: the renting tree's level files only (crawl scope)
+  if (!f || f.prefix !== '' || /^tiers-/.test(f.base) || !(await rpc('vehicle_sitemap_tree', { p_prefix: f.prefix }, SR))) return NOT_FOUND();
   const base = siteUrl();
   const tier = /^tiers-(\d+)$/.exec(f.base);
   if (tier) {
@@ -244,12 +252,9 @@ export async function vehicleSitemapFile(file: string): Promise<Response> {
   return new Response(HEAD + rowsV.map((r) => url(base, { path: f.to(r.path), lastmod: r.lastmod })).join('') + '</urlset>\n', { headers: XML });
 }
 
-/** One file of place pages: /sitemap-places/<vertical>.<term>.<page>.xml (a primary key range of places, 0095). */
+/** One file of place pages: /sitemap-places/<vertical>.<term>.<page>.xml (0095). R23: the place pages are out of the
+ *  crawl scope (src/lib/edge/crawl-scope.ts), so every place file answers 404 and leaves the index. */
 export async function placeSitemapFile(file: string): Promise<Response> {
-  const m = /^(rental|sale|detailing|bodyshop)\.([a-z0-9-]+)\.(\d{1,6})\.xml$/.exec(file);
-  if (!m) return new Response('Not found', { status: 404 });
-  const rowsP = ((await rpc('place_sitemap', { p_vertical: m[1]!, p_term: m[2]!, p_page: Number(m[3]) }, SR)) ?? []) as unknown as Array<{ path: string; lastmod: string | null }>;
-  const base = siteUrl();
-  const body = rowsP.map((x) => `<url><loc>${esc(base + x.path)}</loc>${x.lastmod ? `<lastmod>${x.lastmod.slice(0, 10)}</lastmod>` : ''}</url>`).join('\n');
-  return new Response(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`, { headers: XML });
+  void file;
+  return NOT_FOUND();
 }
