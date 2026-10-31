@@ -41,7 +41,7 @@ test('a booking intent is card only, manual capture, saves the card, carries the
   assert.equal(h['idempotency-key'], 'booking:b1:total:2');
   const body = new URLSearchParams(String(c.init.body));
   assert.equal(body.get('capture_method'), 'manual');
-  assert.equal(body.get('payment_method_options[card][request_extended_authorization]'), 'if_available');
+  assert.equal(body.get('payment_method_options[card][request_extended_authorization]'), null);
   assert.equal(body.get('setup_future_usage'), 'off_session');
   assert.equal(body.get('currency'), 'cad');
   assert.equal(body.get('amount'), '71190');

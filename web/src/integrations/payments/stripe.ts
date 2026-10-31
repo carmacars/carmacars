@@ -177,9 +177,8 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
       return toIntent(await call('POST', '/payment_intents', {
         amount: r.amountCents, currency: 'cad', customer: r.customerId, capture_method: 'manual', setup_future_usage: 'off_session',
         payment_method_types: ['card'], description: r.description,
-        // a longer hold where the card network and the account's pricing allow it (vehicle rental, MCC 7512: up to about
-        // 30 days); otherwise Stripe places the usual hold and the platform renews it before it lapses
-        'payment_method_options[card][request_extended_authorization]': 'if_available',
+        // no extended authorization (2026-10-30): the account is not eligible and Stripe refused the payment at
+        // confirmation ("not eligible for the requested card features"); the platform renews holds before they lapse
         metadata: { booking_id: r.bookingId, booking_number: r.bookingNumber, offer_version: String(r.offerVersion), purpose: 'booking_total' },
         expand
       }, r.idempotencyKey));
@@ -201,7 +200,6 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
       return toIntent(await call('POST', '/payment_intents', {
         amount: r.amountCents, currency: 'cad', customer: r.customerId, capture_method: r.capture, setup_future_usage: 'off_session',
         payment_method_types: ['card'], description: r.description, metadata: r.metadata,
-        ...(r.capture === 'manual' ? { 'payment_method_options[card][request_extended_authorization]': 'if_available' } : {}),
         expand
       }, r.idempotencyKey));
     },
