@@ -2,15 +2,16 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { acceptCookies, db, noOverflow } from './helpers';
-
-// The Live map (migration 0242) end to end: an Admin opens Today > Live map and sees the KPI tiles, the legend with its
-// counts, a pin per lead and a card per lead (masked until Show details); TV mode fills 1920x1080 and 3840x2160 with no
-// scrollbars and no admin menu, with the spotlight. The map library and the tiles are blocked here, so the page draws its
+// The Live map (migration 0242) end to end: an Admin opens Today > Live map and sees the four numbers, the legend of the
+// four stages with its counts, a dot per lead on the map and a row per lead (masked until Show details); TV mode fills
+// 1920x1080 and 3840x2160 with no scrollbars and no admin menu, with the spotlight and the live feed. The map, its basemap
+// and its font are the site's own files (no third-party network); WebGL comes from the browser's software renderer.
 // simplified map (the same pins); the test never depends on a third-party network. Fixtures are example.test only.
 const PW = 'correct horse battery';
 const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${salt.toString('base64')}$${scryptSync(pw, salt, 64).toString('base64')}`; };
 const tag = () => randomBytes(3).toString('hex');
-const offline = async (page: Page) => { await page.route(/cdn\.jsdelivr\.net|tiles\.openfreemap\.org/, (r) => r.abort()); };
+// MapLibre needs WebGL: the headless browser's software renderer
+test.use({ launchOptions: { args: ['--no-proxy-server', '--force-prefers-reduced-motion', '--enable-unsafe-swiftshader', '--use-angle=swiftshader', '--ignore-gpu-blocklist'] } });
 
 async function signIn(page: Page, email: string) {
   await page.goto('/sign-in', { waitUntil: 'networkidle' });
@@ -22,9 +23,7 @@ async function signIn(page: Page, email: string) {
 }
 async function ctx(browser: Browser, w: number, h: number) {
   const c = await browser.newContext({ viewport: { width: w, height: h }, baseURL: test.info().project.use.baseURL });
-  const page = await c.newPage();
-  await offline(page);
-  return page;
+  return c.newPage();
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -56,31 +55,32 @@ test('Live map: pins, legend, cards and masking on the page; TV mode fills the s
     await expect(page.getByRole('heading', { level: 1, name: 'Live map' })).toBeVisible();
     await expect(page.getByTestId('admin-nav').getByRole('link', { name: 'Live map' })).toHaveCount(1);
     await expect(page.getByTestId('lm-kpis')).toContainText('On the site now');
-    // the legend counts each kind
+    // the legend counts each stage
     const legend = page.getByTestId('lm-legend');
-    await expect(legend.getByRole('button')).toHaveCount(8);
-    expect(Number(await page.getByTestId('lm-count-draft').innerText())).toBeGreaterThanOrEqual(1);
-    expect(Number(await page.getByTestId('lm-count-game').innerText())).toBeGreaterThanOrEqual(1);
-    // the simplified map (the library is blocked here) draws the pins
-    await expect(page.getByTestId('lm-map')).toHaveAttribute('data-mode', 'schematic', { timeout: 30_000 });
-    await expect(page.locator('.lm-pin--draft')).not.toHaveCount(0);
-    await expect(page.locator('.lm-pin--game')).not.toHaveCount(0);
-    // cards: masked until Show details
-    const erin = page.getByTestId('lm-card').filter({ hasText: `Erin E.` }).first();
+    await expect(legend.getByRole('button')).toHaveCount(4);
+    expect(Number(await page.getByTestId('lm-count-progress').innerText())).toBeGreaterThanOrEqual(1);
+    expect(Number(await page.getByTestId('lm-count-site').innerText())).toBeGreaterThanOrEqual(2);
+    // the map draws the dots on the site's own basemap
+    const map = page.getByTestId('lm-map');
+    await expect(map).toHaveAttribute('data-mode', 'map', { timeout: 60_000 });
+    await expect.poll(async () => Number(await map.getAttribute('data-pins'))).toBeGreaterThanOrEqual(3);
+    // the table: masked until Show details; a row opens its signals
+    const erin = page.getByTestId('lm-card').filter({ hasText: 'Erin E.' }).first();
     await expect(erin).toBeVisible();
-    await expect(erin).toContainText('ending 0142');
-    await expect(erin).not.toContainText('@example.test');
-    await expect(erin).toContainText(/\+15 Form started/);
     await expect(page.getByTestId('lm-card').filter({ hasText: 'Visitor in Mississauga' }).first()).toBeVisible();
-    // a pin's card on hover
-    await page.locator('.lm-pin--draft').first().focus();
-    await expect(page.getByTestId('lm-popup')).toBeVisible();
-    // hiding a kind removes its pins
-    await legend.locator('[data-type="game"]').click();
-    await expect(page.locator('.lm-pin--game')).toHaveCount(0);
-    await legend.locator('[data-type="game"]').click();
+    await erin.getByRole('button', { name: 'Erin E.' }).click();
+    const more = page.locator('.lm-more').first();
+    await expect(more).toContainText('ending 0142');
+    await expect(more).toContainText(/\+15 Form started/);
+    await expect(more).not.toContainText('@example.test');
+    // hiding a stage takes its dots off the map and its rows out of the table
+    const before = Number(await map.getAttribute('data-pins'));
+    await legend.locator('[data-stage="site"]').click();
+    await expect.poll(async () => Number(await map.getAttribute('data-pins'))).toBeLessThan(before);
+    await expect(page.getByTestId('lm-card').filter({ hasText: 'Visitor in Mississauga' })).toHaveCount(0);
+    await legend.locator('[data-stage="site"]').click();
     await page.getByTestId('lm-details').check();
-    await expect(page.getByTestId('lm-card').filter({ hasText: `Erin Example${t}` }).first()).toContainText(`lm.erin.${t}@example.test`);
+    await expect(page.getByTestId('lm-card').filter({ hasText: `Erin Example${t}` }).first()).toBeVisible();
     await noOverflow(page);
     const r = await new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).exclude('.lm-map').analyze();
     expect(r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(', ')}`)).toEqual([]);
@@ -95,11 +95,17 @@ test('Live map: pins, legend, cards and masking on the page; TV mode fills the s
       await signIn(tv, email);
       await tv.goto('/admin/live-map?tv=1', { waitUntil: 'networkidle' });
       await expect(tv.getByTestId('live-map-tv')).toBeVisible();
-      await expect(tv.getByTestId('lm-map')).toHaveAttribute('data-mode', /schematic|map/, { timeout: 30_000 });
+      await expect(tv.getByTestId('lm-map')).toHaveAttribute('data-mode', 'map', { timeout: 90_000 });
       await expect(tv.getByTestId('lm-spotlight')).toBeVisible();
       await expect(tv.locator('.ad__rail')).toBeHidden();
-      await expect(tv.locator('.lm-pin')).not.toHaveCount(0);
+      await expect.poll(async () => Number(await tv.getByTestId('lm-map').getAttribute('data-pins'))).toBeGreaterThanOrEqual(3);
+      const rows = await tv.getByTestId('lm-feed-row').count();
+      expect(rows, 'the live feed: one line per event, at most 6').toBeGreaterThanOrEqual(1);
+      expect(rows).toBeLessThanOrEqual(6);
+      await expect(tv.getByTestId('lm-kpis').locator('li')).toHaveCount(4);
+      // nothing personal beyond a first name and initial on the wall
       await expect(tv.getByTestId('live-map-tv')).not.toContainText('@example.test');
+      await expect(tv.getByTestId('live-map-tv')).not.toContainText('0142');
       await noOverflow(tv);
       // no scrollbars: the page cannot scroll and none takes room (the admin frame behind is clipped)
       const m = await tv.evaluate(() => ({ cw: document.documentElement.clientWidth, ch: document.documentElement.clientHeight, iw: window.innerWidth, ih: window.innerHeight,

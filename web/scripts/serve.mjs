@@ -19,12 +19,9 @@ const INNER = PORT + 100;
 // Same policy as src/lib/security/csp.ts (kept in step by tests/e2e/security.spec.ts).
 // the partner widget (0136, csp.ts embeddable) is the one page other sites may frame
 const embeddable = (p) => /^\/partner-widget\/[0-9a-f-]{36}$/.test(p);
-// the Live map (0242, csp.ts mapPage): MapLibre from jsDelivr, its blob worker and the OpenFreeMap tiles, on that page only
-const mapPage = (p) => p === '/admin/live-map';
-const csp = (nonce, framed = false, map = false) => [
-  "default-src 'self'", `script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com https://js.stripe.com${map ? ' https://cdn.jsdelivr.net' : ''}`, `style-src 'self' 'unsafe-inline'${map ? ' https://cdn.jsdelivr.net' : ''}`,
-  ...(map ? ["worker-src 'self' blob:", "child-src 'self' blob:"] : []),
-  "img-src 'self' data: blob: https:", "font-src 'self'", `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.r2.cloudflarestorage.com${map ? ' https://tiles.openfreemap.org' : ''} https://challenges.cloudflare.com`,
+const csp = (nonce, framed = false) => [
+  "default-src 'self'", `script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com https://js.stripe.com`, "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:", "font-src 'self'", "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.r2.cloudflarestorage.com https://challenges.cloudflare.com",
   'frame-src https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com', framed ? 'frame-ancestors https:' : "frame-ancestors 'none'", "form-action 'self'", "base-uri 'none'", "object-src 'none'"
 ].join('; ');
 const security = {
@@ -184,7 +181,7 @@ http.createServer(async (req, res) => {
       const nonce = randomBytes(16).toString('base64');
       const body = Buffer.from(Buffer.concat(chunks).toString('utf8').replace(/<script(?=[\s>])/g, `<script nonce="${nonce}"`));
       delete h['content-length']; delete h['transfer-encoding'];
-      h['content-security-policy'] = csp(nonce, embeddable(pathname), mapPage(pathname));
+      h['content-security-policy'] = csp(nonce, embeddable(pathname));
       if (embeddable(pathname)) delete h['x-frame-options'];
       const out = enc === 'br' ? zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 5 } }) : enc === 'gzip' ? zlib.gzipSync(body) : body;
       h['content-length'] = out.length;

@@ -1,16 +1,18 @@
-// The Live map (migration 0242): the map library, the tiles and the area it frames. Shared by the page, the content
-// security policy (src/lib/security/csp.ts, which allows exactly these origins on /admin/live-map) and the Worker.
+// The Live map (migration 0242): the map library, the basemap and the area it frames. Everything is served by the site
+// itself (web/public): MapLibre GL JS, the Natural Earth basemap (scripts/live-map/basemap.mjs) and the label font, so
+// the map looks the same with or without internet and needs no tile service, key or change to the security policy.
 // No imports: the Worker entry bundles this file.
 
-/** MapLibre GL JS, one pinned version (BSD-3-Clause), from jsDelivr's npm mirror; loaded in the browser on the map page only. */
+/** MapLibre GL JS 4.7.1 (BSD-3-Clause), its build for a strict content security policy, and its worker, from /vendor. */
 export const MAPLIBRE_VERSION = '4.7.1';
-export const MAP_CDN = 'https://cdn.jsdelivr.net';
-export const MAPLIBRE_JS = `${MAP_CDN}/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.js`;
-export const MAPLIBRE_CSS = `${MAP_CDN}/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`;
-/** OpenFreeMap: free vector tiles from OpenStreetMap data, no key and no limits (openfreemap.org; attribution required). */
-export const MAP_TILES = 'https://tiles.openfreemap.org';
-export const MAP_STYLE = `${MAP_TILES}/styles/dark`;
-export const MAP_ATTRIBUTION = '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">&copy; OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+const VENDOR = `/vendor/maplibre-gl-${MAPLIBRE_VERSION}`;
+export const MAPLIBRE_JS = `${VENDOR}/maplibre-gl-csp.js`;
+export const MAPLIBRE_WORKER = `${VENDOR}/maplibre-gl-csp-worker.js`;
+export const MAPLIBRE_CSS = `${VENDOR}/maplibre-gl.css`;
+/** Water, the 400-series highways and the city labels (Natural Earth, public domain); Noto Sans for the labels (OFL). */
+export const BASEMAP = '/live-map/basemap.geojson';
+export const GLYPHS = '/live-map/fonts/{fontstack}/{range}.pbf';
+export const MAP_ATTRIBUTION = 'Basemap: Natural Earth';
 
 /** [west, south, east, north]. */
 export type Bounds = [number, number, number, number];
@@ -23,7 +25,7 @@ export const TORONTO: [number, number] = [-79.3832, 43.6532];
 /** Refresh every 30 seconds; the server keeps one answer 20 seconds. */
 export const REFRESH_MS = 30_000;
 export const CACHE_MS = 20_000;
-/** A pin pulses when its last activity is this recent (and while the visitor is on the site). */
+/** An event this recent shows in the feed as new (and its pin ripples once when it arrives). */
 export const NEW_MS = 5 * 60_000;
 /** The TV spotlight moves to the next lead every 10 seconds. */
 export const SPOTLIGHT_MS = 10_000;

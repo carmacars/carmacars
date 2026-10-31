@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { agoText, bandOf, hash, maskPhone, scoreOf, shortName, signalsOf, spotlight, spread, tally, toView, type RawMap, type RawPin } from './model.ts';
+import { agoText, bandOf, compactMoney, hash, maskPhone, reasonOf, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
 import { HOME_BOUNDS, MAX_BOUNDS, inBounds, roundGeo } from './config.ts';
 
 // The Live map (migration 0242): the score and its signals, the masking for the TV, the spread of pins that share a spot.
@@ -86,14 +86,26 @@ describe('spotlight and time', () => {
   });
 });
 
-describe('content security policy', () => {
-  it('allows the map library, its worker and the tiles on the Live map only', async () => {
-    const { cspHeader, mapPage } = await import('../../lib/security/csp.ts');
-    const on = cspHeader('n', { map: true }), off = cspHeader('n');
-    assert.match(on, /script-src [^;]*https:\/\/cdn\.jsdelivr\.net/);
-    assert.match(on, /connect-src [^;]*https:\/\/tiles\.openfreemap\.org/);
-    assert.match(on, /worker-src 'self' blob:/);
-    assert.doesNotMatch(off, /jsdelivr|openfreemap|worker-src/);
-    assert.deepEqual([mapPage('/admin/live-map'), mapPage('/admin/live'), mapPage('/')], [true, false, false]);
+describe('the wall', () => {
+  it('four stages, four colours, with counts', () => {
+    assert.deepEqual(['on_rent', 'booking', 'request', 'lead', 'draft', 'game', 'session', 'previous'].map((t) => stageOf(t as never)),
+      ['booked', 'booked', 'progress', 'progress', 'progress', 'site', 'site', 'past']);
+    const v = toView(raw([pin(), pin({ id: 'r', type: 'request' }), pin({ id: 'b', type: 'booking' })]), false);
+    const t = tally(v, () => true);
+    assert.deepEqual([t.byStage.booked, t.byStage.progress, t.byStage.site, t.byStage.past], [1, 1, 1, 0]);
+  });
+  it('one reason line: the two strongest signals after the stage itself', () => {
+    const p = toView(raw([pin({ type: 'request', facts: { ...facts, pages: 12, reasons: [{ label: 'Pickup soon', why: 'Pickup tomorrow', weight: 25 }] } })]), false).pins[0]!;
+    assert.equal(reasonOf(p.signals), 'Pickup tomorrow · 12 pages');
+  });
+  it('the feed says what happened', () => {
+    assert.equal(verbOf({ type: 'draft', detail: 'Started the booking request (dates)' }), 'started a booking');
+    assert.equal(verbOf({ type: 'game', detail: null, signals: [{ label: 'Claimed a game prize', points: 12 }] }), 'won a discount');
+    assert.equal(verbOf({ type: 'session', detail: null }), 'is on the site');
+  });
+  it('money and time read across the room', () => {
+    assert.deepEqual([compactMoney(4823500), compactMoney(123456789), compactMoney(95000), compactMoney(-250000)], ['$48.2K', '$1.2M', '$950', '-$2.5K']);
+    const now = Date.parse('2026-11-04T15:00:00Z');
+    assert.deepEqual(['2026-11-04T14:59:50Z', '2026-11-04T14:58:00Z', '2026-11-04T12:00:00Z', '2026-11-02T15:00:00Z'].map((x) => shortAgo(x, now)), ['now', '2m', '3h', '2d']);
   });
 });

@@ -11,8 +11,6 @@ export function newNonce(): string {
   return btoa(s);
 }
 
-import { MAP_CDN, MAP_TILES } from '../../features/live-map/config.ts';
-
 // Stripe's Payment Element (its script and its card frame) and browser uploads straight to R2.
 const STRIPE_JS = 'https://js.stripe.com', STRIPE_HOOKS = 'https://hooks.stripe.com', STRIPE_API = 'https://api.stripe.com';
 const R2_UPLOADS = 'https://*.r2.cloudflarestorage.com';
@@ -27,13 +25,6 @@ export interface CspOptions {
   upgrade?: boolean;
   /** Who may frame the page: 'none' unless the page is embeddable (the partner widget, 0147). */
   frameAncestors?: string;
-  /** The Live map (0242): MapLibre from its CDN (one pinned version), its blob worker, and the OpenFreeMap tiles. Admin > Live map only. */
-  map?: boolean;
-}
-
-/** The pages that draw the Live map (and so load MapLibre and the map tiles). */
-export function mapPage(path: string): boolean {
-  return path === '/admin/live-map';
 }
 
 /** The pages other sites may put in an iframe: the partner inventory widget only (migration 0147). */
@@ -44,14 +35,11 @@ export function embeddable(path: string): boolean {
 export function cspHeader(nonce: string, o: CspOptions = {}): string {
   const turnstile = o.turnstile ? ' https://challenges.cloudflare.com' : '';
   const img = ['\'self\'', 'data:', 'blob:', ...(o.imgOrigins ?? [])].join(' ');
-  const connect = ['\'self\'', ...(o.connectOrigins ?? []), 'https://*.supabase.co', 'wss://*.supabase.co', STRIPE_API, R2_UPLOADS, ...(o.map ? [MAP_TILES] : [])].join(' ');
-  const map = o.map ? ` ${MAP_CDN}` : '';
+  const connect = ['\'self\'', ...(o.connectOrigins ?? []), 'https://*.supabase.co', 'wss://*.supabase.co', STRIPE_API, R2_UPLOADS].join(' ');
   return [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}'${turnstile} ${STRIPE_JS}${map}`,
-    `style-src 'self' 'unsafe-inline'${map}`,
-    // MapLibre draws the map in a worker it starts from a blob
-    ...(o.map ? [`worker-src 'self' blob:`, `child-src 'self' blob:`] : []),
+    `script-src 'self' 'nonce-${nonce}'${turnstile} ${STRIPE_JS}`,
+    `style-src 'self' 'unsafe-inline'`,
     `img-src ${img} https:`,
     `font-src 'self'`,
     // the investor deck's narrated video, its poster and captions: short-lived signed links to Supabase Storage

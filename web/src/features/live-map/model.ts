@@ -38,6 +38,48 @@ export const TYPES: Array<{ type: LeadType; label: string; short: string; colour
   { type: 'session', label: 'On the site now', short: 'On site', colour: '#38bdf8' }
 ];
 export const TYPE: Record<LeadType, { label: string; short: string; colour: string }> = Object.fromEntries(TYPES.map((t) => [t.type, t])) as unknown as Record<LeadType, { label: string; short: string; colour: string }>;
+/** Four stages for the wall: one hue each (green booked, amber in progress, cyan on the site, grey past). */
+export type Stage = 'booked' | 'progress' | 'site' | 'past';
+export const STAGES: Array<{ stage: Stage; label: string; colour: string; types: LeadType[] }> = [
+  { stage: 'booked', label: 'On rent or booked', colour: '#34d399', types: ['on_rent', 'booking'] },
+  { stage: 'progress', label: 'Requests and forms', colour: '#fbbf24', types: ['request', 'lead', 'draft'] },
+  { stage: 'site', label: 'On site and games', colour: '#22d3ee', types: ['session', 'game'] },
+  { stage: 'past', label: 'Past renters', colour: '#94a3b8', types: ['previous'] }
+];
+export const stageOf = (t: LeadType): Stage => STAGES.find((s) => s.types.includes(t))?.stage ?? 'site';
+export const STAGE: Record<Stage, { label: string; colour: string; types: LeadType[] }> = Object.fromEntries(STAGES.map((s) => [s.stage, s])) as unknown as Record<Stage, { label: string; colour: string; types: LeadType[] }>;
+
+/** What happened, for the feed: "started a booking", "sent a request". */
+export function verbOf(p: { type: LeadType; detail: string | null; signals?: Signal[] }): string {
+  switch (p.type) {
+    case 'on_rent': return 'is on rent';
+    case 'booking': return 'booked';
+    case 'request': return 'sent a request';
+    case 'lead': return 'sent a form';
+    case 'draft': return /booking/i.test(p.detail ?? '') ? 'started a booking' : 'started a form';
+    case 'game': return p.signals?.some((s) => s.label === 'Claimed a game prize') ? 'won a discount' : 'played a game';
+    case 'previous': return 'came back';
+    default: return 'is on the site';
+  }
+}
+/** The one reason line: the two strongest signals after the stage itself ("Pickup tomorrow · Saw the full price"). */
+export function reasonOf(signals: Signal[]): string {
+  const steps = new Set(Object.values(TYPE_POINTS).map((x) => x![0]));
+  return signals.filter((s) => !steps.has(s.label)).slice(0, 2).map((s) => s.label).join(' · ');
+}
+/** $48.2K, $1.3M, $950: money read across the room. */
+export function compactMoney(cents: number): string {
+  const d = cents / 100, a = Math.abs(d), sign = d < 0 ? '-' : '';
+  if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(1)}M`;
+  if (a >= 1e3) return `${sign}$${(a / 1e3).toFixed(1)}K`;
+  return `${sign}$${Math.round(a)}`;
+}
+/** "now", "2m", "3h", "2d". */
+export function shortAgo(iso: string, now = Date.now()): string {
+  const m = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000));
+  return m < 1 ? 'now' : m < 60 ? `${m}m` : m < 1440 ? `${Math.round(m / 60)}h` : `${Math.round(m / 1440)}d`;
+}
+
 export const FLEET_STATUS: Record<FleetCar['status'], { label: string; colour: string }> = {
   on_rent: { label: 'On rent', colour: '#4ade80' }, available: { label: 'Available', colour: '#38bdf8' }, in_service: { label: 'In service', colour: '#fb923c' }
 };
@@ -155,13 +197,17 @@ export function tally(v: MapView, inArea: (lng: number, lat: number) => boolean)
     else if (!inArea(p.lng, p.lat)) outside++;
   }
   const byType = Object.fromEntries(TYPES.map((t) => [t.type, Number(v.totals[t.type] ?? v.pins.filter((p) => p.type === t.type).length)])) as Record<LeadType, number>;
-  return { byType, none, outside, shown: v.pins.length - none - outside };
+  const byStage = Object.fromEntries(STAGES.map((s) => [s.stage, s.types.reduce((n, t) => n + byType[t], 0)])) as Record<Stage, number>;
+  return { byType, byStage, none, outside, shown: v.pins.length - none - outside };
 }
 
 /** The TV spotlight: the hottest leads first (a car photo first among equals), at most 8. */
 export function spotlight(v: MapView, n = 8): Pin[] {
-  return [...v.pins].sort((a, b) => b.score - a.score || Number(!!b.car?.photo) - Number(!!a.car?.photo) || (b.at > a.at ? 1 : b.at < a.at ? -1 : 0)).slice(0, n);
+  return [...v.pins].sort((a, b) => b.score - a.score || Number(realPhoto(b)) - Number(realPhoto(a)) || (b.at > a.at ? 1 : b.at < a.at ? -1 : 0)).slice(0, n);
 }
+
+/** A listing photo of the car (not a sample drawing). */
+export const realPhoto = (p: Pin) => !!p.car?.photo?.path && !p.car.photo.sample;
 
 /** "now", "2 min ago", "3 h ago", "2 days ago". */
 export function agoText(iso: string, now = Date.now()): string {
