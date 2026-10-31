@@ -6,7 +6,7 @@ select test.mk_user('opl_fin', 'va', 'finance');
 select test.mk_owner('opl_ref', 'OPLREF1');
 
 -- the website's owner form, with an owner's referral code
-insert into leads (kind, name, email, phone, source, payload) values ('owner_program', 'Olga Prospect', 'olga.opl@example.test', '4165550101', 'web', '{"referral_code": "oplref1", "vehicle": "2022 Audi Q5"}');
+insert into leads (kind, name, email, phone, source, payload) values ('owner_program', 'Olga Prospect', 'olga.opl@example.test', '4165559801', 'web', '{"referral_code": "oplref1", "vehicle": "2022 Audi Q5"}');
 create temp table opl as select id from leads where email = 'olga.opl@example.test';
 select test.ok('a website lead is new, from the website, referred by the owner, with its day-0 follow-up due',
   exists (select 1 from leads l, opl where l.id = opl.id and l.pipeline_stage = 'new' and l.pipeline_source = 'referral' and l.referred_by_owner_id = test.id('owner:opl_ref') and l.followup_next_at <= now()));
@@ -21,7 +21,7 @@ select app.job_owner_pipeline();
 select test.eq('day 2 sent', (select count(*)::int from notification_outbox o, opl where o.entity_id = opl.id), 2);
 
 -- a reply by text stops it
-insert into phone_threads (id, number, match_kind, lead_id) values (test.id('thread:opl'), '+14165550101', 'lead', (select id from opl));
+insert into phone_threads (id, number, match_kind, lead_id) values (test.id('thread:opl'), '+14165559801', 'lead', (select id from opl));
 insert into phone_activity (thread_id, kind, direction, body, lead_id) values (test.id('thread:opl'), 'text', 'in', 'Interested, call me', (select id from opl));
 update leads set followup_next_at = now() - interval '1 minute' where id = (select id from opl);
 select app.job_owner_pipeline();

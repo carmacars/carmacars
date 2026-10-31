@@ -823,6 +823,10 @@ begin
       "scenario":"Give the 15% to close the sale","tip":"Accept it if the fee is small","post_check":"5","activity":"No","based":"Nairobi, Kenya","start":"2026-11-09","references":"Two"}'::jsonb), null);
   perform app.hiring_day_delete(test.id('nt_admin'), jsonb_build_object('id', v_day ->> 'id'));
 end $$;
+-- New times are open (0211) and the rewards expiry reminder (0212)
+select app.hiring_emit_pre0211('applicant_new_times', a, app.hiring_invite_vars(a), 'nt:new_times') from job_applications a where a.email = 'nt.received@example.test';
+select app.emit_event('renter_rewards_expiring', 'renter', test.id('renter:nt_rita'), jsonb_build_object('renter_id', test.id('renter:nt_rita'), 'points_balance', '1,240',
+  'points_value', '$12.40', 'expiry_date', 'Mon, Dec 7, 2026', 'rewards_url', 'https://carmacars.ca/account/rewards'), 'nt:rewards_expiring');
 select test.flush();
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');
