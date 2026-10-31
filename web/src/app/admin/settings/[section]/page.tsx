@@ -48,6 +48,7 @@ const SITE_GROUPS: Array<[string, string[]]> = [
   ['Hours and handover', ['opening_hours_text', 'handover_any_time', 'handover_slots', 'city', 'region', 'service_area', 'delivery_area_text', 'delivery_areas', 'airport_delivery']],
   ['Social, reviews and search', ['social_links', 'google_place_id', 'review_source', 'reply_wording', 'seo_default_title', 'seo_title_suffix', 'seo_default_description', 'listing_time_promise', 'featured_mode']],
   ['Search engines', ['google_site_verification', 'google_verification_file', 'bing_site_verification']],
+  ['Email limit', ['email_limit_texts', 'email_limit_text_codes']],
   ['Business name, address and phone', ['business_name', 'business_street', 'business_city', 'business_region', 'business_postal_code', 'business_latitude', 'business_longitude', 'business_categories', 'business_description']]
 ];
 const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [

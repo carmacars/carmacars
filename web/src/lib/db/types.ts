@@ -9488,6 +9488,8 @@ export type Database = {
           reply_to: string | null;
           channel: string | null;
           sms_planned: boolean;
+          limit_text_id: string | null;
+          limit_texted_at: string | null;
         };
         Insert: {
           id?: string;
@@ -9523,6 +9525,8 @@ export type Database = {
           reply_to?: string | null;
           channel?: string | null;
           sms_planned?: boolean;
+          limit_text_id?: string | null;
+          limit_texted_at?: string | null;
         };
         Update: {
           id?: string;
@@ -9558,6 +9562,8 @@ export type Database = {
           reply_to?: string | null;
           channel?: string | null;
           sms_planned?: boolean;
+          limit_text_id?: string | null;
+          limit_texted_at?: string | null;
         };
         Relationships: [];
       };
@@ -17127,6 +17133,8 @@ export type Database = {
           business_description: string | null;
           business_listings: Json;
           google_review_link: string | null;
+          email_limit_texts: boolean;
+          email_limit_text_codes: string[];
         };
         Insert: {
           id?: string;
@@ -17193,6 +17201,8 @@ export type Database = {
           business_description?: string | null;
           business_listings?: Json;
           google_review_link?: string | null;
+          email_limit_texts?: boolean;
+          email_limit_text_codes?: string[];
         };
         Update: {
           id?: string;
@@ -17259,6 +17269,8 @@ export type Database = {
           business_description?: string | null;
           business_listings?: Json;
           google_review_link?: string | null;
+          email_limit_texts?: boolean;
+          email_limit_text_codes?: string[];
         };
         Relationships: [];
       };
@@ -23625,6 +23637,7 @@ export type Database = {
       server_driver_link_valid: { Args: { p_signer: string; p_version: number }; Returns: boolean };
       server_driver_register_upload: { Args: { p_signer: string; p_kind: string; p_storage_path: string; p_sha256: string; p_mime_type: string }; Returns: string };
       server_driver_save_licence: { Args: { p_signer: string; p: Json }; Returns: Json };
+      server_email_capped: { Args: never; Returns: Json };
       server_esign_certificate: { Args: { p_context: string; p_refs: string[] }; Returns: Json };
       server_esign_certificate_for_booking: { Args: { p_booking: string }; Returns: Json };
       server_esign_certificate_for_request: { Args: { p_request: string }; Returns: Json };

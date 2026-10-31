@@ -32,7 +32,7 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
 
   useEffect(() => {
     let live = true;
-    esignStart(ctx).then((r) => { if (!live) return; if (r.ok) { setV(r.data); setChannel(r.data.channels[0]?.channel ?? 'email'); } else setErr(r.message); });
+    esignStart(ctx).then((r) => { if (!live) return; if (r.ok) { setV(r.data); setChannel(r.data.default_channel ?? r.data.channels[0]?.channel ?? 'email'); } else setErr(r.message); });
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -86,7 +86,7 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
           {v.channels.length === 0 && !canFix ? <p className="alert alert--error" role="alert"><span>No mobile number or email is on file for {v.signer_name}. Ask CarmaCars to add one.</span></p> : <>
             <fieldset className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}><legend className="vh">Where to send the code</legend>
               {v.channels.map((c) => <label key={c.channel} className="check"><input type="radio" name="es-channel" checked={channel === c.channel} onChange={() => setChannel(c.channel)} data-testid={`esign-channel-${c.channel}`} />
-                <span>{c.channel === 'sms' ? 'Text' : 'Email'} to {c.to}</span></label>)}
+                <span>{c.channel === 'sms' ? 'Text' : 'Email'} to {c.to}{c.channel === 'email' && v.email_held ? ' (our emails are delayed right now)' : ''}</span></label>)}
             </fieldset>
             <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'end' }}>
               <button className="btn btn--ghost" type="button" disabled={busy} onClick={() => run(() => esignSendCode(ctx, v.id, channel))} data-testid="esign-send">{v.code_sent_to ? 'Send a new code' : 'Send the code'}</button>

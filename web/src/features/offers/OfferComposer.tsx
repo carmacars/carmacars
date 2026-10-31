@@ -79,7 +79,8 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   useEffect(() => {
     if (restoredTax.current || !draft) return;
     restoredTax.current = true;
-    if (draft.data.tax_mode) setTaxMode(draft.data.tax_mode); else if (draft.data.f?.price_tax === 'included') setTaxMode('after');
+    // the boxes of the draft are in the draft's mode: the device's saved mode never reinterprets them
+    setTaxMode(draft.data.tax_mode ?? (draft.data.f?.price_tax === 'included' ? 'after' : 'before'));
   }, [draft, setTaxMode]);
   const [problem, setProblem] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);

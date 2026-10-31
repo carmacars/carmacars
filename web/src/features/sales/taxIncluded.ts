@@ -43,6 +43,20 @@ export function convertTyped(typedCents: number, from: TaxMode, to: TaxMode, hst
   return to === 'after' ? withTax(typedCents, bps) : beforeTax(typedCents, bps);
 }
 
+/** The boxes of a form moved from one mode to the other, each keeping the same money (a line without HST is left as it
+ *  is), with price_tax following the mode. Empty or unreadable boxes stay as they are. Before, after and back is exact. */
+export function convertBoxes<V extends Record<string, unknown>>(values: V, keys: Array<[string, boolean]>, from: TaxMode, to: TaxMode, bps: number): V {
+  if (from === to) return values;
+  const out: Record<string, unknown> = { ...values, price_tax: to === 'after' ? 'included' : 'plus' };
+  for (const [k, hst] of keys) {
+    const raw = String(values[k] ?? '').trim();
+    if (!/^\$?[\d,]*(\.\d{0,2})?$/.test(raw) || !/\d/.test(raw)) continue;
+    const c = Math.round(Number(raw.replace(/[$,]/g, '')) * 100);
+    out[k] = (convertTyped(c, from, to, hst, bps) / 100).toFixed(2);
+  }
+  return out as V;
+}
+
 /** Lines typed after tax, worked back to before tax. A line typed after tax may land a cent away from the amount typed
  *  once its own HST is rounded (before + HST of before); residual is the sum of those cents, for the rental charge to
  *  take so the total is still what was typed. */

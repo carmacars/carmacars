@@ -110,9 +110,11 @@ test('Usage guard: the used-up card on To do, the cost pop-up, paid usage up to 
 
   await page.goto('/admin/settings/usage', { waitUntil: 'networkidle' });
   await expect(page.getByRole('heading', { name: 'Usage', level: 1 })).toBeVisible();
-  for (const svc of ['workers_ai', 'workers_requests', 'workers_cpu', 'images', 'resend_day', 'resend_month', 'supabase_db', 'supabase_storage', 'supabase_egress', 'r2_storage', 'github_actions', 'claude']) {
+  for (const svc of ['workers_ai', 'workers_requests', 'workers_cpu', 'images', 'resend_day', 'resend_month', 'supabase_db', 'supabase_storage', 'r2_storage', 'github_actions', 'claude']) {
     await expect(page.getByTestId(`usage-${svc}`)).toBeVisible();
   }
+  // Data sent out (supabase_egress) was retired with the move to our own server (0194): not shown
+  await expect(page.getByTestId('usage-supabase_egress')).toHaveCount(0);
   await expect(page.getByTestId('usage-workers_ai-paid')).toContainText('Never');
   await expect(page.getByTestId('usage-ai-features')).toBeVisible();
   await expect(page.getByTestId('usage-workers_requests-paid')).toContainText('Never paused');
