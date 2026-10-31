@@ -8,4 +8,4 @@
   (an old form opened with the refused option is left to expire; nothing was charged on it).
 
 ## Guides
-- None changed: no screen or step is different.
+No guide change: no screen or step is different; renters can pay again.
