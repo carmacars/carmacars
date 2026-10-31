@@ -9,6 +9,7 @@ const car = (over: Partial<ChannelCar> = {}): ChannelCar => ({ vehicle_id: 'v1',
 
 test('never a partner car', () => {
   assert.deepEqual(shared([car(), car({ supply_type: 'partner' }), car({ supply_type: 'program_owner' })]).map((c) => c.supply_type), ['company', 'program_owner']);
+  assert.deepEqual(shared([car({ car_url: null as unknown as string }), car({ photos: null as unknown as string[] })]).length, 1, 'a car with no page is left out; one with no photos stays');
 });
 test('a row: dollars, the tracked link, photos', () => {
   const r = row(car(), 'kayak', (p) => `https://img/${p}`);

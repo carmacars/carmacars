@@ -22,7 +22,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   if (f.limited) return new NextResponse('Too many requests', { status: 429, headers: { ...head, 'retry-after': String(f.retry_after ?? 3600), 'cache-control': 'no-store' } });
   const s = await storage();
   const abs = (p: string) => (/^https?:\/\//.test(p) ? p : `${f.site.url}${p.startsWith('/') ? '' : '/'}${p}`);
-  const rows = shared(f.cars).map((c) => row(c, f.channel, (p) => photoUrls([p], f.site.url, (x) => abs(s.publicUrl(x)))[0] ?? p));
+  // one car that cannot be listed (no page, a bad photo path) is left out and logged; it never takes the whole feed down
+  const rows = shared(f.cars).flatMap((c) => {
+    try { return [row(c, f.channel, (p) => photoUrls([p], f.site.url, (x) => abs(s.publicUrl(x)))[0] ?? p)]; }
+    catch (e) { console.error('channel feed: car left out', c.car_code ?? c.vehicle_id, e instanceof Error ? e.message : e); return []; }
+  });
   const cache = { ...head, 'cache-control': 'public, max-age=900, s-maxage=900' };
   if (format === 'csv') return new NextResponse(csv(rows), { headers: { ...cache, 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'inline; filename="carmacars-cars.csv"' } });
   if (format === 'xml') return new NextResponse(xml(rows, f.site), { headers: { ...cache, 'content-type': 'application/xml; charset=utf-8' } });

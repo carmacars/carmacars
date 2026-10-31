@@ -9,7 +9,9 @@ export interface ChannelCar {
   km_per_day: string | number | null; availability: { available_today: boolean; next_free_date: string | null; free_days_30: number } | null;
 }
 export const SHARED: ReadonlySet<string> = new Set(['company', 'program_owner']);
-export const shared = (cars: ChannelCar[]) => cars.filter((c) => SHARED.has(c.supply_type));
+// a car with no public page (no slug yet) has nothing to link to, so it is left out rather than breaking the whole feed
+const linkable = (c: ChannelCar) => { try { return Boolean(c.car_url) && /^https?:$/.test(new URL(c.car_url).protocol); } catch { return false; } };
+export const shared = (cars: ChannelCar[]) => (cars ?? []).filter((c) => SHARED.has(c.supply_type) && linkable(c));
 
 const dollars = (c: number | null | undefined) => (c === null || c === undefined ? null : Math.round(Number(c)) / 100);
 const num = (x: unknown) => (x === null || x === undefined || x === '' || !Number.isFinite(Number(x)) ? null : Number(x));
@@ -26,7 +28,7 @@ export const COLUMNS = ['id', 'title', 'year', 'make', 'model', 'trim', 'class',
 export type Row = Record<(typeof COLUMNS)[number], string | number | boolean | null>;
 
 export function row(c: ChannelCar, channel: string, photo: (p: string) => string): Row {
-  const photos = c.photos.map(photo);
+  const photos = (c.photos ?? []).filter(Boolean).map(photo);
   return {
     id: c.car_code || c.vehicle_id, title: c.name, year: c.year, make: c.make, model: c.model, trim: c.trim, class: c.class, body_style: c.body_style, seats: num(c.seats),
     doors: num(c.doors), transmission: c.transmission, fuel: c.fuel ?? null, colour: c.colour, daily_rate_cad: dollars(c.daily_cents), weekly_rate_cad: dollars(c.weekly_cents),

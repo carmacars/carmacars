@@ -219,7 +219,10 @@ async function crawlRole(browser, role) {
     const t0 = Date.now();
     const r = await ctx.request.get(BASE + href, { maxRedirects: 5, failOnStatusCode: false, timeout: 30_000 }).catch((e) => ({ status: () => 599, headers: () => ({}), err: String(e) }));
     slow.push([Date.now() - t0, 'link ' + href]);
-    const v = { status: r.status(), type: r.headers()['content-type'] ?? '' };
+    // a link of ours that sends the browser on to another site (a follow on the Rewards page): ours answered with the
+    // redirect, which is what counts; the other site's answer (a 429, a page that is not ours) is not checked or rendered
+    const away = typeof r.url === 'function' && new URL(r.url()).origin !== BASE;
+    const v = away ? { status: 200, type: 'external' } : { status: r.status(), type: r.headers()['content-type'] ?? '' };
     checked.set(href, v); stats.links++;
     return v;
   };

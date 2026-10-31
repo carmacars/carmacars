@@ -80,7 +80,7 @@ async function renterWithBooking(sql: Sql) {
   const ret = new Date(new Date(pickup.replace(' ', 'T').replace('+00', 'Z')).getTime() + 2 * 86_400_000).toISOString();
   const cols = (await sql<Array<{ c: string }>>`select column_name as c from information_schema.columns
      where table_schema = 'public' and table_name = 'bookings' and is_generated = 'NEVER' order by ordinal_position`).map((x) => `"${x.c}"`).join(', ');
-  const patch = { booking_number, agreement_number: null, renter_id: r!.id, status: 'closed', renews_booking_id: null, pickup_at: pickup, return_at: ret,
+  const patch = { booking_number, agreement_number: null, renter_id: r!.id, status: 'closed', renews_booking_id: null, calendar_token: randomUUID(), pickup_at: pickup, return_at: ret,
     original_return_at: ret, booked_at: pickup, checked_in_at: null, handed_over_at: null };
   await sql.unsafe(`insert into bookings (${cols}) select ${cols} from jsonb_populate_record(null::bookings,
       (select to_jsonb(b) || jsonb_build_object('id', gen_random_uuid()) || $j$${JSON.stringify(patch)}$j$::jsonb
