@@ -38,11 +38,22 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
   const tel = a.phone ? a.phone.replace(/[^\d+]/g, '') : null;
   const portal = x.role.staff_kind === 'field' ? 'field staff' : 'assistant';
   const canScore = ['booked', 'interviewed', 'invited', 'no_show'].includes(a.status);
+  // the calls of the same day in time order: Previous and Next go straight to the neighbour's rubric
+  let prev: { id: string; full_name: string } | null = null; let next: { id: string; full_name: string } | null = null;
+  if (a.slot_starts_at) {
+    const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(a.slot_starts_at));
+    const sch = await read<{ calls: Array<{ id: string; full_name: string; slot_starts_at: string | null }> }>('hiring_schedule', { day }).catch(() => null);
+    const calls = (sch?.calls ?? []).filter((c) => c.slot_starts_at).sort((p1, p2) => String(p1.slot_starts_at).localeCompare(String(p2.slot_starts_at)));
+    const i = calls.findIndex((c) => c.id === id);
+    if (i >= 0) { prev = calls[i - 1] ?? null; next = calls[i + 1] ?? null; }
+  }
   return (<>
     <PageHead title={a.full_name} kicker={<><Link prefetch={false} className="link" href={base}>Hiring</Link> · {x.role.title}</>}
       purpose={<span data-testid="cand-status"><Badge s={['hired', 'interviewed', 'booked'].includes(a.status) ? 'published' : 'draft'}>{STATUS_WORDS[a.status] ?? a.status}</Badge>
         {a.status === 'referred' && a.referred_role ? ` to ${a.referred_role}` : ''}{a.rank ? ` · Rank ${a.rank} in ${x.role.short_title}` : ''}</span>}>
       <span className="ad-actions">
+        {prev && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/${prev.id}#rubric`} data-testid="cand-prev" title={prev.full_name}>Previous call</Link>}
+        {next && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/${next.id}#rubric`} data-testid="cand-next" title={next.full_name}>Next call: {next.full_name}</Link>}
         {['below_bar', 'declined', 'referred', 'no_show'].includes(a.status) && <Act action="hiring_invite" payload={{ id }} label="Invite anyway" variant="primary" testId="cand-invite" refresh={refresh} done="Invited: the booking link is on its way." confirm={`Send ${a.full_name} the booking link?`} />}
         {['below_bar', 'invited', 'referred', 'no_show'].includes(a.status) && <Act action="hiring_decline" payload={{ id }} label="Decline" testId="cand-decline" refresh={refresh} done="Declined."
           fields={[{ name: 'email', label: 'Send the polite decline email', type: 'bool', value: true }, { name: 'reason', label: 'The requirement it names (optional: "This role needs ...")', type: 'text' }]} />}

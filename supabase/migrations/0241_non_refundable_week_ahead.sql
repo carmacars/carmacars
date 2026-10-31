@@ -36,6 +36,6 @@ create trigger bookings_non_refundable_lead before insert or update of booking_t
   for each row execute function app.non_refundable_lead_guard();
 
 create or replace function public.site_facts() returns jsonb
-language sql stable set search_path = public, app as $$
+language sql stable security definer set search_path = public, app as $$
   select app.public_site_facts() || jsonb_build_object('non_refundable_min_days', coalesce((app.settings()).non_refundable_min_days, 0))
 $$;

@@ -43,6 +43,15 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
   const [cls, setCls] = useState<string[]>(() => (p.get('cls') ?? '').split(',').filter((c) => classes.includes(c)));
   const [seats, setSeats] = useState(p.get('seats') ?? 'any');
   const [trans, setTrans] = useState(p.get('trans') ?? 'any');
+  // make, model and colour (the owner's request of October 31, 2026): the lists come from the cars on the site
+  const makes = useMemo(() => [...new Set(cars.map((c) => c.make).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [cars]);
+  const [make, setMake] = useState(() => { const m = p.get('make') ?? ''; return makes.includes(m) ? m : ''; });
+  const models = useMemo(() => [...new Set(cars.filter((c) => !make || c.make === make).map((c) => c.model).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [cars, make]);
+  const [model, setModel] = useState(() => p.get('model') ?? '');
+  const colourOf = (c: { colour: string | null }) => (c.colour ?? '').trim().replace(/^./, (x) => x.toUpperCase());
+  const colours = useMemo(() => [...new Set(cars.map(colourOf).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [cars]);
+  const [col, setCol] = useState<string[]>(() => (p.get('colour') ?? '').split(',').filter((c) => colours.includes(c)));
+  const modelOk = model && models.includes(model) ? model : '';
   const [max, setMax] = useState(() => { const m = Number(p.get('max')); return m >= minP && m <= maxP ? m : maxP; });
   const [sort, setSort] = useState(p.get('sort') ?? 'featured');
   // the site search box (the WebSite SearchAction of 0061): words matched against make, model, trim, class and body
@@ -87,12 +96,15 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
     if (cls.length) q.set('cls', cls.join(','));
     if (seats !== 'any') q.set('seats', seats);
     if (trans !== 'any') q.set('trans', trans);
+    if (make) q.set('make', make);
+    if (modelOk) q.set('model', modelOk);
+    if (col.length) q.set('colour', col.join(','));
     if (max < maxP) q.set('max', String(max));
     if (sort !== 'featured') q.set('sort', sort);
     if (qText) q.set('q', qText);
     const s = q.toString();
     if (sync) window.history.replaceState(null, '', `/cars${s ? '?' + s : ''}`);
-  }, [sync, hasDates, dates.from, dates.to, tf, tt, mode, cls, seats, trans, max, sort, maxP, qText]);
+  }, [sync, hasDates, dates.from, dates.to, tf, tt, mode, cls, seats, trans, make, modelOk, col, max, sort, maxP, qText]);
 
   useEffect(() => { document.body.style.overflow = panel ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [panel]);
 
@@ -123,6 +135,9 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
       const st = c.seats ?? 0;
       if (seats === '2' && st !== 2) ok = false; if (seats === '5' && st < 5) ok = false; if (seats === '7' && st < 7) ok = false;
       if (trans !== 'any' && c.transmission !== trans) ok = false;
+      if (make && c.make !== make) ok = false;
+      if (modelOk && c.model !== modelOk) ok = false;
+      if (col.length && !col.includes(colourOf(c))) ok = false;
       if (c.daily_rate_cents / 100 > max) ok = false;
       if (words.length) { const hay = [c.year, c.make, c.model, c.trim, c.body_style, c.fuel, ...c.classes.map((k) => labels[k] ?? k)].join(' ').toLowerCase(); if (!words.every((w) => hay.includes(w))) ok = false; }
       const a = avail?.get(c.vehicle_id);
@@ -137,7 +152,7 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
     };
     // real cars always before the sample cars (0104), whatever the sort
     return list.sort((x, y) => Number(x.busy) - Number(y.busy) || Number(!!x.c.is_sample) - Number(!!y.c.is_sample) || (by[sort] ?? by.featured!)(x, y));
-  }, [cars, cls, seats, trans, max, avail, hasDates, sort, words, labels]);
+  }, [cars, cls, seats, trans, make, modelOk, col, max, avail, hasDates, sort, words, labels]);
 
   const shown = rows.filter((r) => r.ok && (!r.busy || showBooked));
   const free = shown.filter((r) => !r.busy).length;
@@ -146,11 +161,14 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
     ...cls.map((k) => ['cls:' + k, labels[k] ?? k] as [string, string]),
     ...(seats !== 'any' ? [['seats', seats === '2' ? '2 seats' : `${seats}+ seats`] as [string, string]] : []),
     ...(trans !== 'any' ? [['trans', trans] as [string, string]] : []),
+    ...(make ? [['make', make] as [string, string]] : []),
+    ...(modelOk ? [['model', modelOk] as [string, string]] : []),
+    ...col.map((k) => ['col:' + k, k] as [string, string]),
     ...(max < maxP ? [['max', `Up to ${money(max * 100)}`] as [string, string]] : []),
     ...(qText ? [['q', `"${qText}"`] as [string, string]] : [])
   ];
-  const clearAll = () => { setCls([]); setSeats('any'); setTrans('any'); setMax(maxP); setQ(''); };
-  const removeChip = (k: string) => { if (k.startsWith('cls:')) setCls(cls.filter((c) => c !== k.slice(4))); else if (k === 'seats') setSeats('any'); else if (k === 'trans') setTrans('any'); else if (k === 'q') setQ(''); else setMax(maxP); };
+  const clearAll = () => { setCls([]); setSeats('any'); setTrans('any'); setMake(''); setModel(''); setCol([]); setMax(maxP); setQ(''); };
+  const removeChip = (k: string) => { if (k === 'make') { setMake(''); setModel(''); return; } if (k === 'model') { setModel(''); return; } if (k.startsWith('col:')) { setCol(col.filter((c) => c !== k.slice(4))); return; } if (k.startsWith('cls:')) setCls(cls.filter((c) => c !== k.slice(4))); else if (k === 'seats') setSeats('any'); else if (k === 'trans') setTrans('any'); else if (k === 'q') setQ(''); else setMax(maxP); };
   const carHref = (slug: string) => {
     if (!hasDates) return `/cars/${slug}`;
     const q = new URLSearchParams({ from: dates.from, to: dates.to, tf, tt });
@@ -204,6 +222,19 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
               <fieldset className="filters__group"><legend>Seats</legend>
                 <div className="seg">{SEATS.map(([v, l]) => <label key={v}><input type="radio" name="seats" value={v} checked={seats === v} onChange={() => setSeats(v)} />{l}</label>)}</div>
               </fieldset>
+              <div className="filters__group">
+                <label className="filters__legend" htmlFor="fl-make">Make</label>
+                <select className="select" id="fl-make" value={make} onChange={(e) => { setMake(e.target.value); setModel(''); }}>
+                  <option value="">Any make</option>{makes.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <label className="filters__legend" htmlFor="fl-model">Model</label>
+                <select className="select" id="fl-model" value={modelOk} onChange={(e) => setModel(e.target.value)}>
+                  <option value="">Any model</option>{models.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              {colours.length > 1 && <fieldset className="filters__group"><legend>Colour <span className="small muted">(any of these)</span></legend>
+                {colours.map((c) => <label className="check" key={c}><input type="checkbox" name="colour" value={c} checked={col.includes(c)} onChange={(e) => setCol(e.target.checked ? [...col, c] : col.filter((x) => x !== c))} /><span>{c}</span></label>)}
+              </fieldset>}
               <fieldset className="filters__group"><legend>Transmission</legend>
                 <div className="seg">{['any', 'Automatic', 'Manual'].map((v) => <label key={v}><input type="radio" name="trans" value={v} checked={trans === v} onChange={() => setTrans(v)} />{v === 'any' ? 'Any' : v}</label>)}</div>
               </fieldset>

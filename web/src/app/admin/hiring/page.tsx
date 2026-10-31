@@ -48,12 +48,12 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
         <Table<App & R> rows={s.calls as Array<App & R>} rowKey={(x) => x.id} empty="No calls booked on this day." cols={[
           { key: 'slot_starts_at', label: 'Time (Toronto)', render: (x) => (x.slot_starts_at ? fmtSlot(x.slot_starts_at, undefined, false) : '') },
           { key: 'full_name', label: 'Candidate', render: (x) => <Link prefetch={false} className="link" href={`${base}/${x.id}`}>{x.full_name}</Link> },
-          { key: 'role', label: 'Role' }, { key: 'score', label: 'Screening', num: true },
+          { key: 'role', label: 'Role' }, { key: 'score', label: 'Screen', num: true },
           { key: 'mode', label: 'How', render: (x) => (x.mode === 'video' ? (x.meet_url ? <a className="link" href={String(x.meet_url)} rel="noopener" target="_blank">Video link</a> : 'Video')
             : x.phone ? <a className="link" href={`tel:${String(x.phone).replace(/[^\d+]/g, '')}`}>{s.phone_enabled ? 'Call (Quo)' : 'Call'} {x.phone}</a> : 'Phone') },
-          { key: 'status', label: 'Status', render: (x) => <Badge s={tone(x.status)}>{STATUS_WORDS[x.status] ?? x.status}</Badge> },
-          // 0229: a remote role's call is confirmed by the candidate (24 hours before), or cancelled
-          { key: 'confirm', label: 'Confirmed', render: (x) => <span data-testid={`call-confirm-${x.id}`}>{CONFIRM_WORDS[String(x.confirm ?? '')] ?? ''}</span> },
+          // 0229: a remote role's call is confirmed by the candidate (24 hours before), or cancelled; shown under the status
+          // (its own column pushed the table past the screen)
+          { key: 'status', label: 'Status', render: (x) => <><Badge s={tone(x.status)}>{STATUS_WORDS[x.status] ?? x.status}</Badge>{CONFIRM_WORDS[String(x.confirm ?? '')] ? <span className="small muted" style={{ display: 'block' }} data-testid={`call-confirm-${x.id}`}>{CONFIRM_WORDS[String(x.confirm ?? '')]}</span> : null}</> },
           { key: 'final_score', label: 'Final', num: true },
           { key: 'act', label: '', render: (x) => <Link prefetch={false} className="btn btn--primary btn--sm" href={`${base}/${x.id}#rubric`} data-testid={`start-${x.id}`}>{x.status === 'booked' ? 'Start' : 'Open'}</Link> }]} />
       </Card>
