@@ -8,13 +8,13 @@ import { offersDo, offersRead } from '@/server/actions/offers';
 import { deliveryDistance, draftClose, draftSave, supplyRead } from '@/server/actions/supply';
 import { SourcedChoice } from '@/features/sales/SourcedChoice';
 import { TaxModeToggle, useTaxMode } from '@/features/sales/TaxModeToggle';
-import { beforeTax, convertTyped, linesBeforeTax, solveRental, totalDifference, type TaxMode } from '@/features/sales/taxIncluded';
+import { beforeTax, convertTyped, hstOf, linesBeforeTax, solveRental, totalDifference, type TaxMode } from '@/features/sales/taxIncluded';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { Info } from '@/features/forms/Info';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { lineHelp } from './help';
 import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/addons/model';
-import { COVERAGE, DEPOSIT_PAY, PLACES, RENTAL_LINE, RENTAL_PAY, daysBetween, hasMobile, lineKey, missing, offerChannels, offerPayload, periodShares, typedRental, type OfferForm, type PlaceKind, type Role } from './model';
+import { COVERAGE, DEPOSIT_PAY, PLACES, RENTAL_LINE, RENTAL_PAY, daysBetween, droppedByPrice, firstName, hasMobile, lineKey, liveFees, missing, missingFields, offerChannels, offerChoices, offerPayload, periodShares, typedRental, type MissingField, type OfferForm, type PlaceKind, type Role } from './model';
 import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults } from '@/features/supply/OwnerChoice';
 
 // Send an offer without a request (migration 0129): one screen for an Admin, customer service and sales. The customer
@@ -23,6 +23,11 @@ import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults
 // and the deposit are paid, who found the client, the message and how long the offer is open. The right side is the
 // offer as the renter will see it, priced by the database (and rolled back) as you type. Send makes the same records a
 // website request and its offer make; the renter gets the link by email, by text, both or neither.
+// Release 24 (the owner: "not cohesive, rate cards everywhere, delivery removed in one spot and its charge in another"):
+// one flow (renter and dates, car, pickup and return, coverage, add-ons, price, message and send) beside a live summary
+// (sticky on a desktop, a bottom sheet on a phone); the rate card folded away; and the choices drive the charges: a fee
+// set by hand is kept only while the choice that makes its line is chosen (model.ts liveFees, and the database again,
+// migration 0250), shown as "Set by hand" with Reset to automatic.
 type Car = { id: string; name: string; plate: string | null; car_code: string | null; daily_rate_cents: number | null; weekly_rate_cents: number | null; deposit_cents: number | null; free: boolean | null; class?: string | null; body_type?: string | null };
 type Form = { role: Role; offer_hours: number; min_notice_minutes: number; km_choices: number[]; text_enabled: boolean; cars: Car[]; may_edit_fees?: boolean; period_days?: number; cycle?: string };
 type Found = { id: string; legal_name: string; email: string | null; mobile: string | null; date_of_birth: string | null; is_blocked: boolean; bookings: number; card: { brand: string; last4: string } | null };
@@ -58,6 +63,14 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     ...(draft?.data.f ?? {})
   }));
   const set = <K extends keyof OfferForm>(k: K) => (v: OfferForm[K]) => setF((s) => ({ ...s, [k]: v }));
+  // Release 24: a choice that makes a fee line (where the car is handed over and taken back, the coverage): a fee set by
+  // hand whose choice is no longer chosen goes with it, and the place typed for another kind of place is cleared
+  const choose = (patch: Partial<OfferForm>) => setF((s) => {
+    const n = { ...s, ...patch };
+    if (patch.pickup_kind && patch.pickup_kind !== s.pickup_kind) { n.pickup_address = ''; n.pickup_km = ''; }
+    if (patch.return_kind && patch.return_kind !== s.return_kind) { n.return_address = ''; n.return_km = ''; }
+    return { ...n, fees: liveFees(n.fees, offerChoices(n)), plan_price: n.coverage_option === '3' ? n.plan_price : '' };
+  });
   const [q, setQ] = useState('');
   const [found, setFound] = useState<Found[]>([]);
   const [chosen, setChosen] = useState<Found | null>(draft?.data.chosen ?? null);
@@ -67,6 +80,8 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   const [carType, setCarType] = useState('');
   const [freeOnly, setFreeOnly] = useState(false);
   const [addons, setAddons] = useState<AddonChoice[]>(draft?.data.addons ?? []);
+  // an add-on taken off: its price set by hand goes with it
+  const changeAddons = (v: AddonChoice[]) => { setAddons(v); setF((s) => ({ ...s, fees: liveFees(s.fees, { addons: v.map((a) => a.code) }) })); };
   const [addonOptions, setAddonOptions] = useState<AddonOption[]>([]);
   const [priced, setPriced] = useState<{ booking: Priced; available: boolean } | null>(null);
   // the payload the price on screen was worked out for (an older one shows as updating)
@@ -183,6 +198,14 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
 
   // 2026-10-27: the total the renter pays, typed: the rental charge (tax included) is worked out so the total priced is it
   const fresh = !!priced && pricedKey === payloadKey;
+  // Release 24: a fee set by hand the database priced away (its choice is gone: a young driver fee once the date of
+  // birth is not young) is dropped here too, so it never comes back with the choice
+  useEffect(() => {
+    if (!fresh || !priced) return;
+    const gone = droppedByPrice((payload.line_overrides ?? {}) as Record<string, unknown>, priced.booking.lines);
+    if (!gone.length) return;
+    setF((s) => { const fees = { ...s.fees }; for (const k of gone) delete fees[k]; return { ...s, fees, plan_price: gone.includes('coverage_sold') ? '' : s.plan_price }; });
+  }, [fresh, priced]); // eslint-disable-line react-hooks/exhaustive-deps
   const solveSteps = useRef(0);
   const othersKey = JSON.stringify({ ...payload, rental_charge_cents: null, price_tax: null, price_reason: null, expires_at: null });
   useEffect(() => { solveSteps.current = 0; if (totalCents === null) setSolvedW(null); }, [totalTyped, othersKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -207,8 +230,13 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     setTaxMode(m);
   };
 
+  // the price summary as a bottom sheet on a phone (open or folded), and the charges being changed by hand
+  const [sheet, setSheet] = useState(false);
+  const [editing, setEditing] = useState<string[]>([]);
+  // Send pressed with something missing: each missing field then says so beside it
+  const [tried, setTried] = useState(false);
   const send = (draft = false) => run(async () => {
-    setErr(null);
+    setErr(null); setTried(true);
     const m = missingNow();
     if (m.length) { setErr(`Still needed: ${m.join(', ')}.`); return; }
     const o = ownerChoicePayload(ownerChoice, owner);
@@ -231,12 +259,27 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     </section>
   );
 
+
   const b = priced?.booking;
-  const renterLines = (b?.lines ?? []).filter((l) => l.stage === 'booking' && l.charged_to_renter !== false && (l.amount_cents !== 0 || l.charge_type === 'rental_charge'));
-  // every fee line of the offer (0132): young driver, delivery, add-ons, winter tires; the Protection Plan has its own box
-  const feeLines = (b?.lines ?? []).filter((l) => l.stage === 'booking' && !RENTAL_LINE.has(l.charge_type) && !PLAN_TYPES.includes(l.charge_type));
+  // the rental charge and what comes off it first, then the charges, in the database's order
+  const bookingLines = (b?.lines ?? []).filter((l) => l.stage === 'booking').map((l, i) => ({ l, i })).sort((x, y) => (RENTAL_LINE.has(y.l.charge_type) ? 1 : 0) - (RENTAL_LINE.has(x.l.charge_type) ? 1 : 0) || x.i - y.i).map((x) => x.l);
+  const renterLines = bookingLines.filter((l) => l.charged_to_renter !== false && (l.amount_cents !== 0 || l.charge_type === 'rental_charge'));
+  // every fee line of the offer (0132): young driver, delivery, collection, add-ons; the Protection Plan is with the coverage
+  const feeLines = bookingLines.filter((l) => !RENTAL_LINE.has(l.charge_type) && !PLAN_TYPES.includes(l.charge_type));
   const keyOf = (l: Line) => (l.booking_addon_id && l.addon_code ? `addon:${l.addon_code}` : lineKey({ charge_type: l.charge_type }));
-  const total = b ? (b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents) : 0;
+  // the lines set by hand, as sent (a fee whose choice is gone is never sent: model.ts liveFees)
+  const handKeys = new Set(Object.keys((payload.line_overrides ?? {}) as Record<string, number>));
+  const isHand = (l: Line) => handKeys.has(keyOf(l)) || (PLAN_TYPES.includes(l.charge_type) && handKeys.has('coverage_sold'));
+  const reset = (k: string) => { setEditing((e) => e.filter((x) => x !== k)); if (k === 'coverage_sold') set('plan_price')(''); else setF((s) => { const fees = { ...s.fees }; delete fees[k]; return { ...s, fees }; }); };
+  const priced0 = b ? (b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents) : 0;
+  // a fee typed shows at once (its amount before tax, and the total moved by it and its HST); the database checks it a
+  // moment later (the debounced preview) and its answer replaces this
+  const typedOver = (payload.line_overrides ?? {}) as Record<string, number>;
+  const shownCents = (l: Line) => { const k = PLAN_TYPES.includes(l.charge_type) ? 'coverage_sold' : keyOf(l); return !fresh && k in typedOver && !RENTAL_LINE.has(l.charge_type) ? typedOver[k]! : l.amount_cents; };
+  const lineDelta = (l: Line) => { const c = shownCents(l); if (c === l.amount_cents) return 0; const hst = l.hst_applies ?? l.hst_cents !== 0; return c - l.amount_cents + (hst && bps !== null ? hstOf(c, bps) - l.hst_cents : 0); };
+  const hstDelta = (l: Line) => { const c = shownCents(l); return c === l.amount_cents || !(l.hst_applies ?? l.hst_cents !== 0) || bps === null ? 0 : hstOf(c, bps) - l.hst_cents; };
+  const total = priced0 + (b ? b.lines.filter((l) => l.stage === 'booking').reduce((x, l) => x + lineDelta(l), 0) : 0);
+  const hstShown = b ? b.hst_at_booking_cents + b.lines.filter((l) => l.stage === 'booking').reduce((x, l) => x + hstDelta(l), 0) : 0;
   const difference = b && fresh ? totalDifference(b.total_due_at_booking_cents, totalCents, fmt) : '';
   const tw = taxMode === 'after' ? 'HST included' : 'before tax';
   const cars = (form?.cars ?? []).filter((c) => { const k = carQ.trim().toLowerCase(); return (!k || `${c.name} ${c.plate ?? ''} ${c.car_code ?? ''}`.toLowerCase().includes(k))
@@ -244,204 +287,288 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   const bodyTypes = [...new Set((form?.cars ?? []).map((c) => c.body_type).filter((x): x is string => !!x))].sort();
   const classes = [...new Set((form?.cars ?? []).map((c) => c.class).filter((x): x is string => !!x))].sort();
   const car = form?.cars.find((c) => c.id === f.vehicle_id);
+  // the simplicity pass: what is missing, beside its field once Send was pressed, and in one checklist above Send
+  const missingList = missingFields(f, role, { adding }).filter((m) => totalCents === null || (m.field !== 'price' && m.field !== 'price_reason'));
+  const needOf = (field: MissingField['field']) => missingList.find((m) => m.field === field);
+  const needMsg = (field: MissingField['field']) => { const m = tried ? needOf(field) : undefined; return m ? <p className="oc-need" data-testid={`oc-need-${field}`}>{m.say}</p> : null; };
+  const who = firstName(chosen?.legal_name ?? f.full_name);
+  // each line of the summary in plain words ("Delivery to 78 Main St")
+  const place = (leg: 'pickup' | 'return') => { const k = f[`${leg}_kind`]; const a = String(f[`${leg}_address`] ?? '').trim();
+    return k === 'airport' ? `the airport${a ? ` (${a.toUpperCase()})` : ''}` : a ? a.split(',')[0]! : 'the renter'; };
+  const plain = (l: Line) => l.charge_type === 'rental_charge' && b ? `Car rental, ${b.billable_days} day${b.billable_days === 1 ? '' : 's'}`
+    : l.charge_type === 'delivery' ? `Delivery to ${place('pickup')}` : l.charge_type === 'pickup' ? `Collection from ${place('return')}`
+    : PLAN_TYPES.includes(l.charge_type) ? 'Protection Plan' : lineLabel(l);
   const id = (k: string) => `oc-${k}`;
-  const text = (k: keyof OfferForm, l: string, o: { type?: string; hint?: string; inputMode?: 'decimal' | 'numeric' | 'tel' | 'email'; wide?: boolean; placeholder?: string; auto?: string } = {}) => (
-    <div className={`field ad-field${o.wide ? ' ad-field--wide' : ''}`}><label className="label" htmlFor={id(k)}>{l}</label>
-      <input className="input" id={id(k)} type={o.type ?? 'text'} inputMode={o.inputMode} placeholder={o.placeholder} autoComplete={o.auto ?? 'off'} value={String(f[k] ?? '')}
-        onChange={(e) => set(k)(e.target.value as never)} data-testid={`oc-${k}`} aria-describedby={o.hint ? `${id(k)}-h` : undefined} />
-      {o.hint && <p className="hint" id={`${id(k)}-h`}>{o.hint}</p>}</div>);
-  const select = (k: keyof OfferForm, l: string, options: Array<[string, string]>) => (
-    <div className="field ad-field"><label className="label" htmlFor={id(k)}>{l}</label>
-      <select className="select" id={id(k)} value={String(f[k])} onChange={(e) => set(k)(e.target.value as never)} data-testid={`oc-${k}`}>{options.map(([v, x]) => <option key={v} value={v}>{x}</option>)}</select></div>);
-  const placeFields = (leg: 'pickup' | 'return') => (<>
-    {select(`${leg}_kind`, leg === 'pickup' ? 'Pickup' : 'Return', PLACES.map(([v, x]) => [v, leg === 'return' && v === 'delivery' ? 'We collect' : leg === 'pickup' && v === 'delivery' ? 'We deliver' : x]))}
+  const text = (k: keyof OfferForm, l: string, o: { type?: string; hint?: string; inputMode?: 'decimal' | 'numeric' | 'tel' | 'email'; wide?: boolean; placeholder?: string; auto?: string; need?: MissingField['field']; info?: string } = {}) => (
+    <div className={`field ad-field${o.wide ? ' ad-field--wide' : ''}`}><span className="label-line"><label className="label" htmlFor={id(k)}>{l}</label>{o.info && <Info text={o.info} label={`About ${l}`} />}</span>
+      <input className={`input${o.need && tried && needOf(o.need) ? ' is-invalid' : ''}`} id={id(k)} type={o.type ?? 'text'} inputMode={o.inputMode} placeholder={o.placeholder} autoComplete={o.auto ?? 'off'} value={String(f[k] ?? '')}
+        onChange={(e) => set(k)(e.target.value as never)} data-testid={`oc-${k}`} aria-describedby={o.hint ? `${id(k)}-h` : undefined} aria-invalid={o.need && tried && needOf(o.need) ? true : undefined} />
+      {o.hint && <p className="hint" id={`${id(k)}-h`}>{o.hint}</p>}{o.need && needMsg(o.need)}</div>);
+  const select = (k: keyof OfferForm, l: string, options: Array<[string, string]>, onPick?: (v: string) => void, info?: string) => (
+    <div className="field ad-field"><span className="label-line"><label className="label" htmlFor={id(k)}>{l}</label>{info && <Info text={info} label={`About ${l}`} />}</span>
+      <select className="select" id={id(k)} value={String(f[k])} onChange={(e) => (onPick ? onPick(e.target.value) : set(k)(e.target.value as never))} data-testid={`oc-${k}`}>{options.map(([v, x]) => <option key={v} value={v}>{x}</option>)}</select></div>);
+  // the fee a choice makes, beside the choice: its amount, and whether it is the automatic one or set by hand
+  const feeNote = (key: string, what: string) => {
+    const l = bookingLines.find((x) => keyOf(x) === key || (key === 'coverage_sold' && PLAN_TYPES.includes(x.charge_type)));
+    if (!l) return null;
+    const hand = isHand(l);
+    return <p className="small oc-feenote" data-testid={`oc-feenote-${key}`}>{what}: <b className="num">{fmt(shownCents(l))}</b> {hand
+      ? <><span className="ad-b ad-b--amber">Set by hand</span> <button className="btn btn--quiet btn--sm" type="button" onClick={() => reset(key)}>Reset to automatic</button></>
+      : <span className="ad-b ad-b--light">Automatic</span>}</p>;
+  };
+  const placeFields = (leg: 'pickup' | 'return') => (<div className="stack oc-leg" data-testid={`oc-leg-${leg}`}>
+    {select(`${leg}_kind`, leg === 'pickup' ? 'They pick up the car' : 'They return the car', PLACES.map(([v]) => [v, leg === 'return' && v === 'delivery' ? 'We collect it from them' : leg === 'pickup' && v === 'delivery' ? 'We deliver it to them' : v === 'our_location' ? 'At our location' : v === 'airport' ? 'At an airport' : 'At the owner\'s location']),
+      (v) => choose({ [`${leg}_kind`]: v as PlaceKind }))}
     {(f[`${leg}_kind`] as PlaceKind) === 'delivery' && <><div className="field ad-field"><label className="label" htmlFor={id(`${leg}_address`)}>{leg === 'pickup' ? 'Delivery address' : 'Collection address'}</label>
       <AddressInput id={id(`${leg}_address`)} name={`${leg}_address`} value={{ label: String(f[`${leg}_address`] ?? ''), placeId: '' }} onChange={(x) => {
         set(`${leg}_address`)(x.label as never);
         // a suggestion chosen: the distance is measured, and prices the delivery (sim item 12); typed by hand stays as typed
         if (x.placeId) void deliveryDistance(x.placeId, x.session).then((r) => { if (r.ok && r.data.km !== null) set(`${leg}_km`)(String(r.data.km) as never); });
-      }} testId={`oc-${leg}_address`} /></div>{text(`${leg}_km`, 'Distance (km)', { inputMode: 'decimal', hint: 'Measured from our location when you pick the address from the list; prices the delivery fee' })}</>}
+      }} testId={`oc-${leg}_address`} /></div>{text(`${leg}_km`, 'Distance (km)', { inputMode: 'decimal', hint: 'Filled when you pick the address from the list. It sets the fee.' })}</>}
     {(f[`${leg}_kind`] as PlaceKind) === 'airport' && text(`${leg}_address`, 'Airport code', { placeholder: 'YYZ' })}
-  </>);
+    {feeNote(leg === 'pickup' ? 'delivery' : 'pickup', leg === 'pickup' ? 'Delivery fee' : 'Collection fee')}
+  </div>);
+  const step = (n: number, title: string, lead: string, body: React.ReactNode, o: { testId?: string } = {}) => (
+    <fieldset className="oc-step" data-testid={o.testId}><legend className="oc-step__head"><span className="oc-step__n" aria-hidden="true">{n}</span><span className="d4">{title}</span></legend>
+      <p className="small muted oc-step__lead">{lead}</p>{body}</fieldset>);
+  // "More options" of a step: closed unless something in it is in use
+  const more = (testId: string, label: string, inUse: boolean, body: React.ReactNode) => (
+    <details className="oc-disclose oc-more" open={inUse || undefined} data-testid={testId}><summary>{label}{inUse ? ' (in use)' : ''}</summary><div className="stack">{body}</div></details>);
+  const periods = b && form?.period_days && b.billable_days > form.period_days ? (() => { const n = Math.ceil(b.billable_days / form.period_days!); const sh = periodShares(total, Array.from({ length: n }, (_, i) => (i < n - 1 ? form.period_days! : b.billable_days - form.period_days! * (n - 1))));
+    return <p className="alert alert--ok small" role="status" data-testid="oc-periods"><span>{b.billable_days} days: {n} monthly periods of 30 days at the monthly rate (about {sh.map((x) => fmt(x)).join(', ')}).</span></p>; })() : null;
+  const rentalLine = bookingLines.find((l) => l.charge_type === 'rental_charge');
+  const priceInUse = f.price_mode !== 'sheet' || !!totalTyped.trim() || handKeys.size > 0 || customs.length > 0 || !!f.km || !!f.promo_code.trim() || !!f.deposit.trim() || cents0(f.discount) || editing.length > 0;
+  const payInUse = f.rental_pay !== 'card' || f.deposit_pay !== 'card';
+  const payWords = `${RENTAL_PAY.find(([v]) => v === f.rental_pay)?.[1]}; deposit: ${DEPOSIT_PAY.find(([v]) => v === f.deposit_pay)?.[1].toLowerCase()}`;
+  let n = 0;
 
   return (
-    <div className="ad-review" data-testid="offer-composer">
-      <form className="pt-card ad-card ad-form ad-form--narrow" aria-label="The offer" noValidate onSubmit={(e) => { e.preventDefault(); send(); }}>
+    <div className="oc-flow" data-testid="offer-composer">
+      <form className="pt-card ad-card ad-form ad-form--narrow oc-form" aria-label="The offer" noValidate onSubmit={(e) => { e.preventDefault(); send(); }}>
         <p className="small muted" role="status" aria-live="polite" data-testid="oc-draft-status">{savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}: finish it later from Unfinished rentals.` : 'Saved as a draft as you type.'}
           {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); router.push(`${base}/offers/new`); })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
-        <fieldset className="stack"><legend className="d4">1. The customer</legend>
+
+        {step(++n, 'Who is renting and when', 'Find the renter (or add them), then set when they pick up and return the car.', <>
           {chosen ? (
             <p data-testid="oc-customer"><b>{chosen.legal_name}</b> <span className="small">{chosen.email} · {chosen.mobile} · {chosen.bookings ? `${chosen.bookings} past rental${chosen.bookings === 1 ? '' : 's'}` : 'no rental yet'}{chosen.card ? ` · card ${chosen.card.brand} ${chosen.card.last4}` : ''}</span>{' '}
               <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setChosen(null); set('renter_id')(null); }}>Change</button></p>
           ) : !adding ? (<>
-            <div className="field"><label className="label" htmlFor="oc-q">Find the customer</label>
-              <input className="input" id="oc-q" type="search" placeholder="Name, phone or email" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" data-testid="oc-q" aria-describedby="oc-q-h" />
-              <p className="hint" id="oc-q-h">Type 3 or more characters. Not on file? Add them below.</p></div>
+            <div className="field"><label className="label" htmlFor="oc-q">Find the renter</label>
+              <input className={`input${tried && needOf('renter') ? ' is-invalid' : ''}`} id="oc-q" type="search" placeholder="Name, phone or email" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" data-testid="oc-q" aria-describedby="oc-q-h" />
+              <p className="hint" id="oc-q-h">Type 3 or more letters or digits.</p>{needMsg('renter')}</div>
             {found.length > 0 && <ul className="stack" data-testid="oc-found">{found.map((r) => (
               <li key={r.id}><button className="btn btn--quiet btn--sm" type="button" disabled={r.is_blocked} onClick={() => { setChosen(r); setF((x) => ({ ...x, renter_id: r.id, mobile: r.mobile ?? '' })); setFound([]); }}>{r.legal_name}</button>
                 <span className="small"> {r.email} · {r.mobile} · {r.bookings} rental(s){r.is_blocked ? ' · blocked' : ''}</span></li>))}</ul>}
             <p><button className="btn btn--ghost btn--sm" type="button" data-testid="oc-add-customer" onClick={() => {
               setAdding(true); const t = q.trim();
               setF((s) => ({ ...s, email: t.includes('@') ? t : s.email, mobile: /^[\d\s()+-]{7,}$/.test(t) ? t : s.mobile, full_name: !t.includes('@') && !/\d/.test(t) ? t : s.full_name }));
-            }}>Add a new customer</button></p>
+            }}>Not on file? Add a new customer</button></p>
           </>) : (<>
             <div className="ad-fields">
-              {text('full_name', 'Full legal name', { auto: 'off' })}{text('mobile', 'Mobile', { inputMode: 'tel', type: 'tel' })}
-              {text('email', 'Email', { inputMode: 'email', type: 'email', hint: 'The offer link goes here' })}{text('date_of_birth', 'Date of birth', { type: 'date', hint: 'Decides the car and the young driver fee' })}
+              {text('full_name', 'Full legal name', { auto: 'off', need: 'full_name' })}{text('mobile', 'Mobile', { inputMode: 'tel', type: 'tel', need: 'mobile' })}
+              {text('email', 'Email', { inputMode: 'email', type: 'email', hint: 'The offer link goes here', need: 'email' })}{text('date_of_birth', 'Date of birth', { type: 'date', need: 'date_of_birth', info: 'The renter\'s age decides which cars they may rent and whether a young driver fee applies.' })}
             </div>
             {dupe && <p className="alert alert--warn" role="status" data-testid="oc-dupe"><span>{dupe.legal_name} is already on file with this {f.email.includes('@') && dupe.email?.toLowerCase() === f.email.trim().toLowerCase() ? 'email' : 'phone'}.{' '}
               <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setChosen(dupe); setF((x) => ({ ...x, renter_id: dupe.id, mobile: dupe.mobile ?? '' })); setAdding(false); }}>Use {dupe.legal_name}</button></span></p>}
             <p><button className="btn btn--quiet btn--sm" type="button" onClick={() => setAdding(false)}>Search instead</button></p>
           </>)}
-        </fieldset>
-
-        <fieldset className="stack"><legend className="d4">2. The car and the dates</legend>
           <div className="ad-fields">
             {text('pickup_at', 'Pickup', { type: 'datetime-local', hint: form ? `At least ${Math.round(form.min_notice_minutes / 60)} hours from now` : undefined })}
-            {text('return_at', 'Return', { type: 'datetime-local' })}
-            <div className="field ad-field ad-field--wide"><label className="label" htmlFor="oc-vehicle_id">Car</label>
-              <input className="input" type="search" placeholder="Car code, plate or name" aria-label="Find the car" value={carQ} onChange={(e) => {
+            {text('return_at', 'Return', { type: 'datetime-local', need: 'return_at', hint: days ? `${days} day${days === 1 ? '' : 's'}` : undefined })}
+          </div>
+        </>, { testId: 'oc-step-renter' })}
+
+        {step(++n, 'Which car', 'Search by car code, plate or name. Each car says whether it is free for these dates.', <>
+          <div className="ad-fields">
+            <div className="field ad-field ad-field--wide"><label className="label" htmlFor="oc-car-q">Find the car</label>
+              <input className="input" id="oc-car-q" type="search" placeholder="Car code, plate or name" value={carQ} onChange={(e) => {
                 setCarQ(e.target.value); const k = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
                 const hit = k.length >= 4 ? form?.cars.find((c) => (c.car_code ?? '').replace(/[^A-Z0-9]/g, '') === k || (c.car_code ?? '').replace(/[^A-Z0-9]/g, '') === `CC${k}` || (c.plate ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '') === k) : undefined;
                 if (hit) set('vehicle_id')(hit.id);
-              }} data-testid="oc-car-q" />
-              <div className="row">
-                <label className="sr-only" htmlFor="oc-car-type">Type of car</label>
-                <select className="select" id="oc-car-type" value={carType} onChange={(e) => setCarType(e.target.value)} data-testid="oc-car-type">
-                  <option value="">Every type</option>
-                  {bodyTypes.length > 0 && <optgroup label="Body">{bodyTypes.map((x) => <option key={`b-${x}`} value={x}>{x}</option>)}</optgroup>}
-                  {classes.length > 0 && <optgroup label="Class">{classes.map((x) => <option key={`c-${x}`} value={x}>{x[0]!.toUpperCase() + x.slice(1)}</option>)}</optgroup>}</select>
-                <label className="check" htmlFor="oc-free-only"><input id="oc-free-only" type="checkbox" checked={freeOnly} onChange={(e) => setFreeOnly(e.target.checked)} data-testid="oc-free-only" /> <span>Free for these dates only</span></label></div>
-              <select className="select" id="oc-vehicle_id" value={f.vehicle_id} onChange={(e) => set('vehicle_id')(e.target.value)} data-testid="oc-vehicle_id">
+              }} data-testid="oc-car-q" /></div>
+            <div className="field ad-field ad-field--wide"><label className="label" htmlFor="oc-vehicle_id">Car</label>
+              <select className={`select${tried && needOf('vehicle_id') ? ' is-invalid' : ''}`} id="oc-vehicle_id" value={f.vehicle_id} onChange={(e) => set('vehicle_id')(e.target.value)} data-testid="oc-vehicle_id">
                 <option value="">Choose the car ({cars.length})</option>
-                {cars.map((c) => <option key={c.id} value={c.id}>{c.free === false ? 'Not free · ' : c.free ? 'Free · ' : ''}{c.name}{c.car_code ? `, ${c.car_code}` : ''}{c.plate ? `, ${c.plate}` : ''}{c.daily_rate_cents ? ` · ${fmt(c.daily_rate_cents)} a day` : ' · no rates'}</option>)}
+                {cars.map((c) => <option key={c.id} value={c.id}>{c.free === false ? 'Not free · ' : c.free ? 'Free · ' : ''}{c.name}{c.car_code ? `, ${c.car_code}` : ''}{c.plate ? `, ${c.plate}` : ''}</option>)}
               </select>
-              {car && <p className="hint" data-testid="oc-car-free">{car.free === false ? <b className="ad-late">Not free for these dates: another rental, a block or the cleaning time is in the way.</b> : car.free ? 'Free for these dates.' : ''}</p>}</div>
-            {placeFields('pickup')}{placeFields('return')}
+              {car && <p className="hint" data-testid="oc-car-free">{car.free === false ? <b className="ad-late">Not free for these dates: another rental, a block or the cleaning time is in the way.</b> : car.free ? 'Free for these dates.' : ''}</p>}
+              {needMsg('vehicle_id')}</div>
           </div>
-        </fieldset>
+          <details className="oc-disclose oc-more" open={!!carType || freeOnly || undefined} data-testid="oc-rate-card"><summary>More options: rate card and filters</summary>
+            <div className="stack">
+              {car && <dl className="pt-dl pt-dl--money small">
+                <div><dt>Daily rate</dt><dd>{car.daily_rate_cents ? fmt(car.daily_rate_cents) : 'none'}</dd></div>
+                <div><dt>Weekly rate (a day)</dt><dd>{car.weekly_rate_cents ? fmt(car.weekly_rate_cents) : 'none'}</dd></div>
+                <div><dt>Deposit</dt><dd>{car.deposit_cents ? fmt(car.deposit_cents) : 'none'}</dd></div>
+                {b?.rate_sheet_rental_cents != null && <div><dt>Rate sheet for these dates</dt><dd>{fmt(b.rate_sheet_rental_cents)}</dd></div>}
+                {b?.rate_applied && <div><dt>Rate used</dt><dd>{b.rate_applied.replace(/_/g, ' ')}, {b.billable_days} day{b.billable_days === 1 ? '' : 's'}</dd></div>}
+                {b?.km_allowance_total ? <div><dt>Kilometres</dt><dd>{b.km_allowance_total} km, then {fmt(b.overage_cents_per_km)} a km</dd></div> : null}
+              </dl>}
+              <div className="ad-fields">
+                <div className="field ad-field"><label className="label" htmlFor="oc-car-type">Type of car</label>
+                  <select className="select" id="oc-car-type" value={carType} onChange={(e) => setCarType(e.target.value)} data-testid="oc-car-type">
+                    <option value="">Every type</option>
+                    {bodyTypes.length > 0 && <optgroup label="Body">{bodyTypes.map((x) => <option key={`b-${x}`} value={x}>{x}</option>)}</optgroup>}
+                    {classes.length > 0 && <optgroup label="Class">{classes.map((x) => <option key={`c-${x}`} value={x}>{x[0]!.toUpperCase() + x.slice(1)}</option>)}</optgroup>}</select></div>
+                <div className="field ad-field oc-check"><label className="check" htmlFor="oc-free-only"><input id="oc-free-only" type="checkbox" checked={freeOnly} onChange={(e) => setFreeOnly(e.target.checked)} data-testid="oc-free-only" /> <span>Only cars free for these dates</span></label></div>
+              </div>
+            </div></details>
+          {periods}
+        </>, { testId: 'oc-step-car' })}
 
-        <fieldset className="stack"><legend className="d4">3. The price</legend>
-          <TaxModeToggle value={taxMode} onChange={changeTaxMode} idPrefix="oc" bps={bps}>
-            <div className="ad-taxtotal">
-              <div className="field"><label className="label" htmlFor="oc-total-typed">Total the renter pays (after tax, $)</label>
-                <input className="input input--sm" id="oc-total-typed" inputMode="decimal" placeholder={b ? (b.total_due_at_booking_cents / 100).toFixed(2) : ''} value={totalTyped} onChange={(e) => setTotalTyped(e.target.value)} data-testid="oc-total-typed" aria-describedby="oc-total-typed-h" /></div>
-              {totalTyped.trim() && <button className="btn btn--quiet btn--sm" type="button" onClick={() => setTotalTyped('')} data-testid="oc-total-clear">Clear the total</button>}
+        {step(++n, 'Where they pick up and return', 'At our location unless you deliver or collect the car. A delivery fee is added for you.', <div className="oc-legs">{placeFields('pickup')}{placeFields('return')}</div>, { testId: 'oc-step-places' })}
+
+        {step(++n, 'How damage is covered', 'Ask the renter: their own insurance, their credit card, or our Protection Plan.', <>
+          <div className="field"><span className="label-line"><label className="label" htmlFor="oc-coverage_option">Coverage</label><Info text={lineHelp('coverage_sold')} label="About coverage" /></span>
+            <select className="select" id="oc-coverage_option" value={f.coverage_option} onChange={(e) => choose({ coverage_option: e.target.value })} data-testid="oc-coverage_option" aria-describedby="oc-coverage-h">
+              {COVERAGE.map(([v]) => <option key={v} value={v}>{COVER_SHORT[v] ?? v}</option>)}</select>
+            <p className="hint" id="oc-coverage-h">{COVER_HELP[f.coverage_option] ?? ''}</p></div>
+          {f.coverage_option === '3' && feeNote('coverage_sold', 'Protection Plan')}
+          {f.coverage_option === '3' && editFees && more('oc-coverage-more', 'More options: another Protection Plan price', !!f.plan_price.trim(),
+            <div className="ad-fields">{text('plan_price', `Protection Plan price for the trip, ${tw} ($)`, { inputMode: 'decimal', hint: 'Empty: the price from the Protection Plan table' })}</div>)}
+        </>, { testId: 'oc-step-coverage' })}
+
+        {addonOptions.length > 0 && step(++n, 'Extras', 'Optional: add-ons the renter asked for. Their price is added for you.', <details className="oc-disclose" open={addons.length > 0 || undefined} data-testid="oc-addons"><summary>{addons.length ? `${addons.length} chosen: change` : 'Choose add-ons'}</summary>
+          <AddonPicker idPrefix="oc" staff compact options={addonOptions} value={addons} onChange={changeAddons} /></details>, { testId: 'oc-step-addons' })}
+
+        {step(++n, 'The price', 'The rate sheet price is filled in for you. Change it only if you agreed another price with the renter.', <>
+          <p className="oc-pricenow" data-testid="oc-price-now">{!b ? 'The price shows once the renter, the dates and the car are in.'
+            : totalCents !== null ? `Worked out from the total you typed: ${fmt(total)}.`
+            : f.price_mode === 'sheet' ? <>Rate sheet price: <b className="num">{fmt(rentalLine?.amount_cents ?? b.rate_sheet_rental_cents ?? 0)}</b> for {b.billable_days} day{b.billable_days === 1 ? '' : 's'}, before tax.</>
+            : <>Price you typed: <b className="num">{fmt(rentalLine?.amount_cents ?? 0)}</b> before tax (rate sheet {fmt(b.rate_sheet_rental_cents ?? 0)}).</>}</p>
+          {needMsg('price')}{needMsg('price_reason')}
+          {more('oc-price-more', 'More options: another price, fees, deposit, discount', priceInUse, <>
+            <TaxModeToggle value={taxMode} onChange={changeTaxMode} idPrefix="oc" bps={bps}>
+              <details className="oc-disclose" open={!!totalTyped.trim() || undefined} data-testid="oc-total-typed-d"><summary>Type the total the renter pays</summary>
+                <div className="ad-taxtotal">
+                  <div className="field"><label className="label" htmlFor="oc-total-typed">Total the renter pays (after tax, $)</label>
+                    <input className="input input--sm" id="oc-total-typed" inputMode="decimal" placeholder={b ? (b.total_due_at_booking_cents / 100).toFixed(2) : ''} value={totalTyped} onChange={(e) => setTotalTyped(e.target.value)} data-testid="oc-total-typed" aria-describedby="oc-total-typed-h" /></div>
+                  {totalTyped.trim() && <button className="btn btn--quiet btn--sm" type="button" onClick={() => setTotalTyped('')} data-testid="oc-total-clear">Clear the total</button>}
+                </div>
+                <p className="hint" id="oc-total-typed-h" data-testid="oc-total-breakdown" aria-live="polite">{totalCents === null ? 'The car rental is worked out so the total comes to exactly this; the other lines stay as they are.'
+                  : !b || !fresh || b.total_due_at_booking_cents !== totalCents ? (b && fresh && (() => { const rl = b.lines.find((l) => l.stage === 'booking' && l.charge_type === 'rental_charge'); return solveRental(totalCents, b.total_due_at_booking_cents, rl ? rl.amount_cents + rl.hst_cents : 0) === null; })() ? 'The other lines already come to more than this total: lower a fee or type a higher total.' : 'Working out the car rental…')
+                  : `Before tax: ${b.lines.filter((l) => l.stage === 'booking' && l.amount_cents !== 0).map((l) => `${plain(l)} ${fmt(l.amount_cents)}`).join(' + ')}; HST ${fmt(b.hst_at_booking_cents)}; total ${fmt(b.total_due_at_booking_cents)}.`}</p>
+              </details>
+            </TaxModeToggle>
+            <div className="stack oc-sub"><p className="label-line"><span className="label">Car rental price</span><Info text={lineHelp('rental_charge')} label="About the car rental price" /></p>
+              {totalCents !== null && <p className="small" data-testid="oc-rent-from-total">{solvedW !== null ? `From the total: ${fmt(solvedW)} with HST${bps !== null ? ` (${fmt(beforeTax(solvedW, bps))} before tax)` : ''}.` : 'Worked out from the total.'}</p>}
+              {totalCents === null && <div className="ad-taxmode__opts oc-seg" role="radiogroup" aria-label="Car rental price">
+                {([['sheet', 'Rate sheet'], ['total', 'A total for the trip'], ['day', 'A rate a day']] as const).map(([v, x]) => (
+                  <label key={v} className="ad-taxmode__opt" htmlFor={`oc-pm-${v}`}><input type="radio" id={`oc-pm-${v}`} name="oc-pm" value={v} checked={f.price_mode === v} onChange={() => set('price_mode')(v)} data-testid={`oc-pm-${v}`} /> <span>{x}</span></label>))}
+              </div>}
+              {(f.price_mode !== 'sheet' || totalCents !== null) && <div className="ad-fields">
+                {f.price_mode === 'total' && totalCents === null && text('price_total', `For the whole trip, ${tw} ($)`, { inputMode: 'decimal', need: 'price', hint: b?.rate_sheet_rental_cents ? `Rate sheet: ${fmt(b.rate_sheet_rental_cents)}` : car?.daily_rate_cents ? `Rate sheet: ${fmt(car.daily_rate_cents)} a day` : undefined })}
+                {f.price_mode === 'day' && totalCents === null && text('price_day', `A day, ${tw} ($)`, { inputMode: 'decimal', need: 'price', hint: days ? `× ${days} day${days === 1 ? '' : 's'} = ${fmt(typedRental(f, days) ?? 0)}` : undefined })}
+                {text('price_reason', 'Why this price', { wide: true, need: 'price_reason', placeholder: 'For example: weekly deal agreed on the phone' })}
+              </div>}</div>
+            <div className="ad-fields">
+              {select('km', 'Kilometres a day', [['', 'The car\'s allowance'], ...(form?.km_choices ?? []).map((k) => [String(k), k === 0 ? 'Unlimited' : `${k} km`] as [string, string])], undefined, lineHelp('km'))}
+              {text('promo_code', 'Promo code')}
+              {admin && <>{text('deposit', 'Deposit ($)', { inputMode: 'decimal', info: lineHelp('deposit'), hint: car?.deposit_cents ? `Empty: the car's ${fmt(car.deposit_cents)}` : 'Empty: the car\'s deposit' })}
+                {text('discount', 'Discount ($)', { inputMode: 'decimal', info: 'Taken off the car rental before tax. Recorded with your name and the reason.' })}{cents0(f.discount) && text('discount_reason', 'Why the discount', { wide: true })}</>}
             </div>
-            <p className="hint" id="oc-total-typed-h" data-testid="oc-total-breakdown" aria-live="polite">{totalCents === null ? 'Optional: type the total and the rental charge is worked out so the total comes to it exactly; the other lines stay as they are.'
-              : !b || !fresh || b.total_due_at_booking_cents !== totalCents ? (b && fresh && (() => { const rl = b.lines.find((l) => l.stage === 'booking' && l.charge_type === 'rental_charge'); return solveRental(totalCents, b.total_due_at_booking_cents, rl ? rl.amount_cents + rl.hst_cents : 0) === null; })() ? 'The other lines already come to more than this total: lower a fee or type a higher total.' : 'Working out the rental charge…')
-              : `Before tax: ${b.lines.filter((l) => l.stage === 'booking' && l.amount_cents !== 0).map((l) => `${lineLabel(l)} ${fmt(l.amount_cents)}`).join(' + ')}; HST ${fmt(b.hst_at_booking_cents)}; total ${fmt(b.total_due_at_booking_cents)}.`}</p>
-          </TaxModeToggle>
-          <p className="small"><b>Rental charge</b> (the car&apos;s rate, {taxMode === 'after' ? 'HST included' : 'before fees and tax'})<Info text={lineHelp('rental_charge')} /></p>
-          {totalCents !== null && <p className="small" data-testid="oc-rent-from-total">{solvedW !== null ? `From the total: ${fmt(solvedW)} with HST${bps !== null ? ` (${fmt(beforeTax(solvedW, bps))} before tax)` : ''}.` : 'Worked out from the total.'}</p>}
-          {totalCents === null && <div className="ad-choices row" role="radiogroup" aria-label="Rental charge">
-            {([['sheet', 'Rate sheet'], ['total', 'A total for the trip'], ['day', 'A rate a day']] as const).map(([v, x]) => (
-              <label key={v} className="check" htmlFor={`oc-pm-${v}`}><input type="radio" id={`oc-pm-${v}`} name="oc-pm" checked={f.price_mode === v} onChange={() => set('price_mode')(v)} data-testid={`oc-pm-${v}`} /> <span>{x}</span></label>))}
-          </div>}
-          <div className="ad-fields">
-            {f.price_mode === 'total' && totalCents === null && text('price_total', `Rental charge for the whole trip, ${taxMode === 'after' ? 'HST included' : 'before fees and tax'} ($)`, { inputMode: 'decimal', hint: b?.rate_sheet_rental_cents ? `Rate sheet: ${fmt(b.rate_sheet_rental_cents)}` : car?.daily_rate_cents ? `Rate sheet: ${fmt(car.daily_rate_cents)} a day` : undefined })}
-            {f.price_mode === 'day' && totalCents === null && text('price_day', `Rental rate a day, ${taxMode === 'after' ? 'HST included' : 'before fees and tax'} ($)`, { inputMode: 'decimal', hint: days ? `× ${days} day${days === 1 ? '' : 's'} = ${fmt(typedRental(f, days) ?? 0)}` : undefined })}
-            {(f.price_mode !== 'sheet' || totalCents !== null) && text('price_reason', 'Reason for the price', { wide: true, placeholder: 'For example: weekly deal agreed on the phone' })}
-            {select('km', 'Kilometres a day', [['', 'The car\'s allowance'], ...(form?.km_choices ?? []).map((k) => [String(k), k === 0 ? 'Unlimited' : `${k} km`] as [string, string])])}
-            {text('promo_code', 'Promo code')}
-            {admin && <>{text('deposit', 'Deposit ($)', { inputMode: 'decimal', hint: car?.deposit_cents ? `The car's deposit: ${fmt(car.deposit_cents)}` : 'Empty: the car\'s deposit' })}
-              {text('discount', 'Discount ($)', { inputMode: 'decimal' })}{cents0(f.discount) && text('discount_reason', 'Discount reason')}</>}
-            {select('coverage_option', 'How damage to the car is covered', COVERAGE)}
-            {f.coverage_option === '3' && editFees && text('plan_price', `Protection Plan price ($, for the trip, ${tw})`, { inputMode: 'decimal', hint: b?.lines.find((l) => l.charge_type === 'coverage_sold') ? `Now ${fmt(b.lines.find((l) => l.charge_type === 'coverage_sold')!.amount_cents)}. Empty: the Protection Plan price table` : 'Empty: the Protection Plan price table' })}
-            {editFees && feeLines.map((l) => { const k = keyOf(l); return (
-              <div key={l.id} className="field ad-field"><label className="label" htmlFor={`oc-fee-${k}`}>{lineLabel(l)} ($, for the trip, {taxMode === 'after' && (l.hst_applies ?? l.hst_cents !== 0) ? 'HST included' : 'before tax'})<Info text={lineHelp(l.charge_type)} /></label>
-                <input className="input" id={`oc-fee-${k}`} inputMode="decimal" placeholder={(l.amount_cents / 100).toFixed(2)} value={f.fees[k] ?? ''} data-testid={`oc-fee-${k}`}
-                  onChange={(e) => setF((s) => ({ ...s, fees: { ...s.fees, [k]: e.target.value } }))} /></div>); })}
-            {editFees && customs.map((c, i) => (
-              <div key={i} className="field ad-field ad-field--wide" data-testid={`oc-custom-${i}`}><span className="label">A charge of its own<Info text={lineHelp('custom_fee')} /></span>
-                <div className="row"><input className="input" aria-label="What the charge is for" placeholder="What it is for" value={c.label} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, label: e.target.value } : y)))} />
-                  <input className="input" inputMode="decimal" aria-label={`Amount ${c.hst && taxMode === 'after' ? 'with HST' : 'before HST'} ($)`} placeholder="Amount ($)" value={c.amount} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, amount: e.target.value } : y)))} />
-                  <label className="check small"><input type="checkbox" checked={c.hst} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, hst: e.target.checked } : y)))} /> <span>+ HST</span></label>
-                  <button className="btn btn--quiet btn--sm" type="button" onClick={() => setCustoms((a) => a.filter((_, j) => j !== i))}>Remove</button></div></div>))}
-            {editFees && <p className="ad-field--wide"><button className="btn btn--ghost btn--sm" type="button" onClick={() => setCustoms((a) => [...a, { label: '', amount: '', hst: true }])} data-testid="oc-add-custom">Add a charge of its own</button></p>}
-            {(Object.values(f.fees).some((v) => v.trim()) || f.plan_price.trim() || customs.length > 0) && text('fee_reason', 'Reason for the changes (optional)', { wide: true })}
-          </div>
-          {!admin && <p className="hint">{editFees ? 'The deposit and discounts are set by an Admin. You may type the rental charge with its reason and change a fee (each change is recorded with your name); a price far under the rate sheet is flagged for an Admin, not refused.' : 'The deposit, discounts and fees are set by an Admin. You may type the rental charge with its reason; a price far under the rate sheet is flagged for an Admin, not refused.'}</p>}
-          {b && form?.period_days && b.billable_days > form.period_days && (() => { const n = Math.ceil(b.billable_days / form.period_days!); const sh = periodShares(total, Array.from({ length: n }, (_, i) => (i < n - 1 ? form.period_days! : b.billable_days - form.period_days! * (n - 1))));
-            return <p className="alert alert--ok small" role="status" data-testid="oc-periods"><span>{b.billable_days} days: {n} monthly periods of 30 days at the monthly rate (about {sh.map((x) => fmt(x)).join(', ')}).</span></p>; })()}
-          {addonOptions.length > 0 && <details className="stack" data-testid="oc-addons"><summary className="link small">Add-ons ({addons.length ? `${addons.length} chosen` : 'optional'})</summary>
-            <AddonPicker idPrefix="oc" staff compact options={addonOptions} value={addons} onChange={setAddons} /></details>}
-        </fieldset>
+            {(feeLines.length > 0 || (editFees && customs.length > 0)) && <div className="stack oc-sub"><p className="label">Fees</p>
+              <ul className="oc-charges" data-testid="oc-charges">
+                {feeLines.map((l) => { const k = keyOf(l); const hand = isHand(l); const open = hand || editing.includes(k); return (
+                  <li key={l.id} className={`oc-charge${editFees && open ? ' is-editing' : ''}`} data-testid={`oc-charge-${k}`}>
+                    <span className="oc-charge__label">{plain(l)}<Info text={lineHelp(l.charge_type)} /></span>
+                    <span className="oc-charge__amt num">{fmt(shownCents(l))}</span>
+                    <span className="oc-charge__state">{hand ? <span className="ad-b ad-b--amber">Set by hand</span> : <span className="ad-b ad-b--light">Automatic</span>}</span>
+                    {editFees && <span className="oc-charge__do">{open ? <>
+                      <label className="vh" htmlFor={`oc-fee-${k}`}>{plain(l)}: amount for the trip, {taxMode === 'after' && (l.hst_applies ?? l.hst_cents !== 0) ? 'HST included' : 'before tax'} ($)</label>
+                      <input className="input input--sm" id={`oc-fee-${k}`} inputMode="decimal" placeholder={(l.amount_cents / 100).toFixed(2)} value={f.fees[k] ?? ''} data-testid={`oc-fee-${k}`}
+                        onChange={(e) => setF((s) => ({ ...s, fees: { ...s.fees, [k]: e.target.value } }))} />
+                      <button className="btn btn--quiet btn--sm" type="button" onClick={() => reset(k)} data-testid={`oc-reset-${k}`}>{hand ? 'Reset to automatic' : 'Cancel'}</button></>
+                      : <button className="btn btn--quiet btn--sm" type="button" onClick={() => setEditing((e) => [...e, k])} data-testid={`oc-change-${k}`}>Change</button>}</span>}
+                  </li>); })}
+                {editFees && customs.map((c, i) => (
+                  <li key={`c${i}`} className="oc-charge oc-charge--own" data-testid={`oc-custom-${i}`}>
+                    <span className="oc-charge__label"><input className="input input--sm" aria-label="What the charge is for" placeholder="What it is for" value={c.label} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, label: e.target.value } : y)))} /><Info text={lineHelp('custom_fee')} /></span>
+                    <span className="oc-charge__do"><input className="input input--sm" inputMode="decimal" aria-label={`Amount ${c.hst && taxMode === 'after' ? 'with HST' : 'before HST'} ($)`} placeholder="Amount ($)" value={c.amount} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, amount: e.target.value } : y)))} />
+                      <label className="check small"><input type="checkbox" checked={c.hst} onChange={(e) => setCustoms((a) => a.map((y, j) => (j === i ? { ...y, hst: e.target.checked } : y)))} /> <span>+ HST</span></label>
+                      <button className="btn btn--quiet btn--sm" type="button" onClick={() => setCustoms((a) => a.filter((_, j) => j !== i))}>Remove</button></span>
+                  </li>))}
+              </ul></div>}
+            {editFees && <p><button className="btn btn--quiet btn--sm" type="button" onClick={() => setCustoms((a) => [...a, { label: '', amount: '', hst: true }])} data-testid="oc-add-custom">+ Add another charge</button></p>}
+            {(handKeys.size > 0 || customs.length > 0) && <div className="ad-fields">{text('fee_reason', 'Why the fees changed (optional)', { wide: true })}</div>}
+            {!admin && <p className="hint">{editFees ? 'The deposit and discounts are set by an Admin. You may type another price with its reason and change a fee (recorded with your name). A price far under the rate sheet is flagged for an Admin, not refused.' : 'The deposit, discounts and fees are set by an Admin. You may type another price with its reason; a price far under the rate sheet is flagged for an Admin, not refused.'}</p>}
+          </>)}
+          <p className="small" data-testid="oc-pay-now">Paid by: {payWords}.</p>
+          {more('oc-pay-more', 'More options: how it is paid', payInUse, <>
+            <div className="ad-fields">
+              {select('rental_pay', 'The rental', RENTAL_PAY.map(([v, x]) => [v, x]))}
+              {select('deposit_pay', 'The deposit', DEPOSIT_PAY.filter(([v]) => admin || v !== 'none').map(([v, x]) => [v, x]))}
+            </div>
+            <p className="hint" data-testid="oc-pay-hint">{RENTAL_PAY.find(([v]) => v === f.rental_pay)?.[2]} {DEPOSIT_PAY.find(([v]) => v === f.deposit_pay)?.[2]}</p></>)}
+        </>, { testId: 'oc-step-price' })}
 
-        <fieldset className="stack"><legend className="d4">4. How it is paid</legend>
-          <div className="ad-fields">
-            {select('rental_pay', 'The rental', RENTAL_PAY.map(([v, x]) => [v, x]))}
-            {select('deposit_pay', 'The deposit', DEPOSIT_PAY.filter(([v]) => admin || v !== 'none').map(([v, x]) => [v, x]))}
-          </div>
-          <p className="hint" data-testid="oc-pay-hint">{RENTAL_PAY.find(([v]) => v === f.rental_pay)?.[2]} {DEPOSIT_PAY.find(([v]) => v === f.deposit_pay)?.[2]}</p>
-        </fieldset>
-
-        <fieldset className="stack"><legend className="d4">5. Who found this client</legend>
-          <SourcedChoice id="oc" value={f.choice} onChange={(v) => set('choice')(v)} optional={admin} />
-        </fieldset>
-
-        {owner?.may && <fieldset className="stack"><legend className="d4">The car&apos;s owner</legend>
-          <OwnerChoice d={owner} value={ownerChoice} onChange={setOwnerChoice} testPrefix="oc" />
-        </fieldset>}
-
-        <fieldset className="stack"><legend className="d4">6. Send it</legend>
-          <div className="field"><label className="label" htmlFor="oc-message">Message to the renter</label>
+        {step(++n, 'Send it', 'Add a short message if you like, choose how the link goes, then send.', <>
+          {!admin && <div>{needMsg('choice')}<SourcedChoice id="oc" value={f.choice} onChange={(v) => set('choice')(v)} optional={admin} /></div>}
+          <div className="field"><label className="label" htmlFor="oc-message">Message to the renter (optional)</label>
             <textarea className="input ad-textarea" id="oc-message" maxLength={1000} value={f.message} onChange={(e) => set('message')(e.target.value)} data-testid="oc-message" /></div>
-          <div className="ad-fields">
-            {select('hours', 'Offer open for', [...new Set([6, 12, 24, 48, 72, form?.offer_hours ?? 24])].filter((h) => admin || h <= 48).sort((a, z) => a - z).map((h) => [String(h), `${h} hours`]))}
-            <div className="field ad-field"><span className="label">Send the link by</span>
-              <label className="check" htmlFor="oc-by-email"><input id="oc-by-email" type="checkbox" checked={f.by_email} onChange={(e) => set('by_email')(e.target.checked)} data-testid="oc-by-email" /> <span>Email</span></label>
-              <label className="check" htmlFor="oc-by-text"><input id="oc-by-text" type="checkbox" checked={f.by_text} disabled={form ? !form.text_enabled : false} onChange={(e) => set('by_text')(e.target.checked)} data-testid="oc-by-text" /> <span>Text{form && !form.text_enabled ? ' (texts are off in Program settings)' : ''}</span></label></div>
+          <div className="field"><span className="label">Send the link by</span>
+            <div className="oc-chips">
+              <label className="oc-chip" htmlFor="oc-by-text"><input id="oc-by-text" type="checkbox" checked={f.by_text} disabled={form ? !form.text_enabled : false} onChange={(e) => set('by_text')(e.target.checked)} data-testid="oc-by-text" /> <span>Text{form && !form.text_enabled ? ' (off in Program settings)' : ''}</span></label>
+              <label className="oc-chip" htmlFor="oc-by-email"><input id="oc-by-email" type="checkbox" checked={f.by_email} onChange={(e) => set('by_email')(e.target.checked)} data-testid="oc-by-email" /> <span>Email</span></label></div>
+            {f.by_text && !hasMobile(f.mobile) && <p className="small ad-flag" role="note" data-testid="oc-no-mobile">No mobile number for this renter: the link goes by email instead.</p>}</div>
+          {more('oc-send-more', 'More options: how long it is open, owner, internal note', !!f.note.trim() || (admin && !!f.choice) || f.hours !== String(form ? (admin ? form.offer_hours : Math.min(form.offer_hours, 48)) : 24), <>
+            <div className="ad-fields">{select('hours', 'Offer open for', [...new Set([6, 12, 24, 48, 72, form?.offer_hours ?? 24])].filter((h) => admin || h <= 48).sort((a, z) => a - z).map((h) => [String(h), `${h} hours`]))}</div>
+            {admin && <SourcedChoice id="oc" value={f.choice} onChange={(v) => set('choice')(v)} optional={admin} />}
+            {owner?.may && <OwnerChoice d={owner} value={ownerChoice} onChange={setOwnerChoice} testPrefix="oc" />}
+            <div className="field"><label className="label" htmlFor="oc-note">Internal note (staff only)</label>
+              <textarea className="input ad-textarea" id="oc-note" value={f.note} onChange={(e) => set('note')(e.target.value)} /></div></>)}
+          <p className={`oc-ready${missingList.length ? ' is-missing' : ' is-ready'}`} role="status" aria-live="polite" data-testid="oc-ready">{missingList.length ? <>Missing: {missingList.map((m) => m.short).join(', ')}</> : <>Ready to send</>}</p>
+          {err && <p className="alert alert--error" role="alert" data-testid="oc-error"><span>{err}</span></p>}
+          <div className="oc-actions">
+            <button className="btn btn--primary" type="submit" disabled={pending} data-testid="oc-send">{pending ? 'Sending' : f.by_email || f.by_text ? `Send the offer${who ? ` to ${who}` : ''}` : 'Make the offer (not sent)'}</button>
+            <button className="btn btn--quiet" type="button" disabled={pending} onClick={() => send(true)} data-testid="oc-draft">Save without sending</button>
           </div>
-          {f.by_text && !hasMobile(f.mobile) && <p className="small ad-flag" role="note" data-testid="oc-no-mobile">No mobile number for this renter: the link goes by email instead.</p>}
-          <div className="field"><label className="label" htmlFor="oc-note">Internal note (staff only)</label>
-            <textarea className="input ad-textarea" id="oc-note" value={f.note} onChange={(e) => set('note')(e.target.value)} /></div>
-        </fieldset>
-        {err && <p className="alert alert--error" role="alert" data-testid="oc-error"><span>{err}</span></p>}
-        <div className="row">
-          <button className="btn btn--primary" type="submit" disabled={pending} data-testid="oc-send">{pending ? 'Sending' : f.by_email || f.by_text ? 'Send the offer' : 'Make the offer (not sent)'}</button>
-          <button className="btn btn--ghost" type="button" disabled={pending} onClick={() => send(true)} data-testid="oc-draft">Save without sending</button>
-        </div>
+        </>, { testId: 'oc-step-send' })}
       </form>
 
-      <div className="stack ad-sticky">
-      <section className="stack" aria-label="Price">
-        <div className="pt-card ad-card" data-testid="oc-price">
-          <div className="pt-card__head"><h2 className="d4">Price</h2>{b && <span className="small muted">{b.billable_days} days · {b.rate_applied?.replace(/_/g, ' ')}</span>}</div>
-          {b ? (<dl className="pt-dl pt-dl--money">
-            {b.lines.filter((l) => l.stage === 'booking').map((l) => <div key={l.id}><dt>{lineLabel(l)}</dt><dd>{fmt(l.amount_cents)}</dd></div>)}
-            <div><dt>HST</dt><dd>{fmt(b.hst_at_booking_cents)}</dd></div>
-            <div><dt><b>Due at booking</b></dt><dd className="pt-total" data-testid="oc-total" data-fresh={fresh ? 'yes' : 'no'}>{fmt(total)}{!fresh && <span className="small muted"> updating</span>}</dd></div>
-            <div><dt>Deposit</dt><dd data-testid="oc-deposit">{f.deposit_pay === 'none' ? 'No deposit' : `${fmt(b.deposit_cents)} (${DEPOSIT_PAY.find(([v]) => v === f.deposit_pay)?.[1].toLowerCase()})`}</dd></div>
-          </dl>) : <p className="small muted" data-testid="oc-price-wait">{need.length ? `To price it: ${need.join(', ')}.` : 'Pricing…'}</p>}
+      <aside className={`pt-card ad-card oc-summary${sheet ? ' is-open' : ''}`} aria-label="Price" data-testid="oc-price">
+        <div className="oc-summary__body" id="oc-summary-body">
+          <div className="pt-card__head"><h2 className="d4">The price</h2>{b && <span className="small muted">{b.billable_days} day{b.billable_days === 1 ? '' : 's'}</span>}</div>
+          {b ? (<dl className="pt-dl pt-dl--money oc-lines">
+            {bookingLines.map((l) => { const hand = isHand(l) && !RENTAL_LINE.has(l.charge_type); return (
+              <div key={l.id} data-testid={`oc-line-${keyOf(l)}`}><dt>{plain(l)}{hand && <> <span className="ad-b ad-b--amber">Set by hand</span> <button className="btn btn--quiet btn--sm" type="button" onClick={() => reset(PLAN_TYPES.includes(l.charge_type) ? 'coverage_sold' : keyOf(l))} aria-label={`${plain(l)}: reset to automatic`}>Reset</button></>}</dt><dd>{fmt(shownCents(l))}</dd></div>); })}
+            <div><dt>HST</dt><dd>{fmt(hstShown)}</dd></div>
+            <div><dt><span className="oc-dt">Deposit<Info text={lineHelp('deposit')} label="About the deposit" /></span></dt><dd data-testid="oc-sum-deposit">{f.deposit_pay === 'none' ? 'No deposit' : `${fmt(b.deposit_cents)} (${DEPOSIT_PAY.find(([v]) => v === f.deposit_pay)?.[1].toLowerCase()})`}</dd></div>
+          </dl>) : <p className="small muted" data-testid="oc-price-wait">{need.length ? `To work out the price: ${missingList.filter((m) => m.field !== 'choice').map((m) => m.short).join(', ') || need.join(', ')}.` : 'Working out the price…'}</p>}
           {b && <p className="small">{priced?.available ? 'The car is free for these dates.' : <b className="ad-late">The car is not free for these dates.</b>}</p>}
           {b?.price_flags?.length ? <p className="small"><b>Flagged for an Admin:</b> {b.price_flags.map((x) => (x === 'below_floor' ? 'under the price floor' : 'past the discount limit')).join(', ')}.</p> : null}
           {difference && <p className="alert alert--warn" role="alert" data-testid="oc-total-diff"><span>{difference} Check the amounts before you send.</span></p>}
-          {problem && <p className="alert alert--error" role="alert" data-testid="oc-problem"><span>{problem}</span></p>}
+          <details className="oc-disclose" data-testid="oc-renter-view-d"><summary>The offer as the renter sees it</summary>
+            <div className="ad-renter-view" aria-label="The offer as the renter sees it" data-testid="oc-renter-view">
+              <h3 className="d4">Your offer for the {b?.vehicle?.name ?? car?.name ?? 'car'}</h3>
+              <p className="pt-note small"><b>This offer does not hold the car.</b> The car is reserved once you approve, sign and {f.rental_pay === 'card' ? 'pay' : 'we receive your payment'}.</p>
+              {f.message.trim() && <div><b className="small">Message from our team</b><p className="small">{f.message}</p></div>}
+              {b && <><dl className="pt-dl small">
+                <div><dt>Pickup</dt><dd>{when(b.pickup_at)}, {b.pickup_place ?? 'our location'}</dd></div>
+                <div><dt>Return</dt><dd>{when(b.return_at)}, {b.return_place ?? 'our location'}</dd></div>
+                <div><dt>Deposit at pickup</dt><dd>{money(b.deposit_cents)}</dd></div>
+                {b.km_allowance_total ? <div><dt>Kilometres</dt><dd>{b.km_allowance_total} km included, then {fmt(b.overage_cents_per_km)} per km</dd></div> : null}
+                <div><dt>You pay by</dt><dd>{RENTAL_PAY.find(([v]) => v === f.rental_pay)?.[1]}</dd></div>
+              </dl>
+              <dl className="pt-dl pt-dl--money small">
+                {renterLines.map((l) => <div key={l.id}><dt>{lineLabel(l)}</dt><dd>{fmt(l.amount_cents)}</dd></div>)}
+                <div><dt>HST</dt><dd>{fmt(b.hst_at_booking_cents)}</dd></div>
+                <div><dt><b>Total due at booking</b></dt><dd><b>{fmt(total)}</b></dd></div>
+              </dl></>}
+              <p className="small muted" suppressHydrationWarning>Open for {f.hours} hours after it is sent</p>
+            </div></details>
         </div>
-      </section>
-
-      <aside className="ad-renter-view" aria-label="The offer as the renter sees it" data-testid="oc-renter-view">
-        <p className="pt-kicker">The offer as the renter sees it</p>
-        <h3 className="d4">Your offer for the {b?.vehicle?.name ?? car?.name ?? 'car'}</h3>
-        <p className="pt-note small"><b>This offer does not hold the car.</b> The car is reserved once you approve, sign and {f.rental_pay === 'card' ? 'pay' : 'we receive your payment'}.</p>
-        {f.message.trim() && <div><b className="small">Message from our team</b><p className="small">{f.message}</p></div>}
-        {b && <><dl className="pt-dl small">
-          <div><dt>Pickup</dt><dd>{when(b.pickup_at)}, {b.pickup_place ?? 'our location'}</dd></div>
-          <div><dt>Return</dt><dd>{when(b.return_at)}, {b.return_place ?? 'our location'}</dd></div>
-          <div><dt>Deposit at pickup</dt><dd>{money(b.deposit_cents)}</dd></div>
-          {b.km_allowance_total ? <div><dt>Kilometres</dt><dd>{b.km_allowance_total} km included, then {fmt(b.overage_cents_per_km)} per km</dd></div> : null}
-          <div><dt>You pay by</dt><dd>{RENTAL_PAY.find(([v]) => v === f.rental_pay)?.[1]}</dd></div>
-        </dl>
-        <dl className="pt-dl pt-dl--money small">
-          {renterLines.map((l) => <div key={l.id}><dt>{lineLabel(l)}</dt><dd>{fmt(l.amount_cents)}</dd></div>)}
-          <div><dt>HST</dt><dd>{fmt(b.hst_at_booking_cents)}</dd></div>
-          <div><dt><b>Total due at booking</b></dt><dd><b>{fmt(total)}</b></dd></div>
-        </dl></>}
-        <p className="small muted" suppressHydrationWarning>Open for {f.hours} hours after it is sent</p>
+        {problem && <p className="alert alert--error" role="alert" data-testid="oc-problem"><span>{problem}</span></p>}
+        <div className="oc-summary__foot">
+          <span className="oc-summary__due"><span className="small muted">Total to pay now</span>
+            <span className="oc-total-row">{b ? <b className="pt-total" data-testid="oc-total" data-fresh={fresh ? 'yes' : 'no'}>{fmt(total)}</b> : <b className="pt-total muted">not priced yet</b>}{b && !fresh && <span className="oc-spin" role="status" aria-label="Checking the price" data-testid="oc-updating" />}</span></span>
+          <button className="btn btn--ghost btn--sm oc-summary__toggle" type="button" aria-expanded={sheet} aria-controls="oc-summary-body" onClick={() => setSheet((x) => !x)} data-testid="oc-sheet-toggle">{sheet ? 'Hide the details' : 'See every line'}</button>
+        </div>
       </aside>
-      </div>
     </div>
   );
 }
+// the coverage in a few words, the detail under it
+const COVER_SHORT: Record<string, string> = { '1': 'Their own car insurance', '2': 'Their credit card', '3': 'Our Protection Plan' };
+const COVER_HELP: Record<string, string> = { '1': 'Option 1: the renter\'s own car insurance covers the rental (OPCF 27 on their policy).', '2': 'Option 2: the rental coverage of the credit card they pay with.', '3': 'Option 3: they buy our Protection Plan; its price is added to the offer.' };
 const cents0 = (s: string) => Number(String(s).replace(/[$,\s]/g, '')) > 0;

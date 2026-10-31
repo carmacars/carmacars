@@ -89,11 +89,15 @@ test('admin: an offer without a request, edited in place, paid by part, confirme
   await page.getByTestId('oc-date_of_birth').fill('1991-02-03');
   await page.getByTestId('oc-vehicle_id').selectOption(car);
   await expect(page.getByTestId('oc-car-free')).toContainText('Free for these dates');
+  // another price, how it is paid and who found the client are under each step's More options (Release 24)
+  await page.getByTestId('oc-price-more').locator(':scope > summary').click();
   await page.getByTestId('oc-pm-total').check();
   await page.getByTestId('oc-price_total').fill('250');
   await page.getByTestId('oc-price_reason').fill('Phone deal');
+  await page.getByTestId('oc-pay-more').locator(':scope > summary').click();
   await page.getByTestId('oc-rental_pay').selectOption('e_transfer');
   await page.getByTestId('oc-deposit_pay').selectOption('cash');
+  await page.getByTestId('oc-send-more').locator(':scope > summary').click();
   await page.getByTestId('choice-for_carmacars').check();
   await page.getByTestId('oc-message').fill('As discussed on the phone.');
   // the renter's view, priced by the database: $250 plus 13% HST
