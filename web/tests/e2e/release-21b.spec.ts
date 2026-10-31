@@ -195,7 +195,7 @@ test('Add an investor: the record and the invitation in one step; the investor c
 
 // 0211: no invitation without an open call time (production, October 30, 2026)
 const FIELD_PASS = {
-  licence: 'Yes, a full G', years: '5 years or more', record: 'None', days: ['Monday', 'Friday', 'Saturday', 'Sunday'], hours: 'Full time (35 or more)', transport: 'My own car',
+  english: 'Fluent: I handle calls on my own every day', licence: 'Yes, a full G', years: '5 years or more', record: 'None', days: ['Monday', 'Friday', 'Saturday', 'Sunday'], hours: 'Full time (35 or more)', transport: 'My own car',
   experience: ['Delivery driver'], late: 'Message the office at once, keep the renter updated and follow the office\'s instructions',
   dent: 'Stay polite, photograph everything, note it in the app and let the office decide', cash: 'Count it in front of them, record it in the app right away and give them the receipt',
   start: '2026-11-02', pay: '20'
