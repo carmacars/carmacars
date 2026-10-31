@@ -39,7 +39,7 @@ export const SAMPLES = {
   ], 'Booking lines in order, HST last. Each item: label, amount.'),
   total_amount: v('$468.95', 'Total due at booking, HST included.'),
   amount_paid: v('$468.95'),
-  deposit_amount: v('$500.00', 'Security deposit for this booking, taken at pickup.'),
+  deposit_amount: v('$500.00', 'Security deposit for this booking, a hold on the day of pickup.'),
   card_last4: v('4242', 'Last four digits of the Card on File.'),
   card_brand: v('Visa'),
   roadside_phone: v('289-312-5991', 'The 24-hour roadside and incident line (site_settings.roadside_phone_display).'),

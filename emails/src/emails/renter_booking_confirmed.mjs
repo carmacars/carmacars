@@ -23,7 +23,7 @@ export default {
       ['Receipt no.', '{{receipt_number}}'],
       ['Card', '{{card_brand}} ending {{card_last4}}'],
       ['Kilometres included', '{{km_allowance}}, then {{overage_rate}} per km'],
-      ['Security deposit', '{{deposit_amount}}, taken on this card at pickup'],
+      ['Security deposit', '{{deposit_amount}}, a hold on this card on the day of pickup'],
     ),
     when('needs_verification', [
       notice('alert', 'One step left before pickup', 'We need each driver\'s licence photos and a selfie, plus proof of coverage, by {{verify_by}}. No car is released without them.'),

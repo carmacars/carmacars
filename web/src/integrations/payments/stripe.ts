@@ -220,6 +220,7 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
     async chargeOffSession(r) {
       return toIntent(await call('POST', '/payment_intents', {
         amount: r.amountCents, currency: 'cad', customer: r.customerId, payment_method: r.paymentMethodId, off_session: true, confirm: true,
+        ...(r.capture === 'manual' ? { capture_method: 'manual', payment_method_types: ['card'] } : {}),
         description: r.description, metadata: r.metadata, expand
       }, r.idempotencyKey));
     },

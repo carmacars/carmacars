@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { payCardStep } from './pay-card.ts';
+import { holdAmountMessage, holdAmountStep, payCardStep } from './pay-card.ts';
 
 test('payCardStep: a charge is captured only after the card is accepted; a refused card is never charged', () => {
   assert.equal(payCardStep('charge', 'requires_capture', true), 'capture');
@@ -13,4 +13,12 @@ test('payCardStep: a hold with a debit or prepaid card is voided; saving a card 
   assert.equal(payCardStep('hold', 'requires_capture', false), 'refuse');
   assert.equal(payCardStep('hold', 'requires_capture', true), 'settle');
   assert.equal(payCardStep('setup', 'succeeded', false), 'settle');
+});
+test('holdAmountStep: a debit card on a credit-card hold is asked again for the debit deposit; the right amount settles', () => {
+  assert.deepEqual(holdAmountStep(30000, 60000), { reask: true, amountCents: 60000 });
+  assert.deepEqual(holdAmountStep(60000, 30000), { reask: true, amountCents: 30000 });
+  assert.deepEqual(holdAmountStep(60000, 60000), { reask: false });
+  assert.deepEqual(holdAmountStep(30000, null), { reask: false });
+  assert.match(holdAmountMessage('debit', 60000), /debit or prepaid card the deposit hold is \$600\.00/);
+  assert.match(holdAmountMessage('credit', 30000), /credit card the deposit hold is \$300\.00/);
 });

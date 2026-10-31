@@ -28,6 +28,7 @@ const LABELS: Record<string, string> = {
   vpage_stock_photos: 'Show stock photos (licensed, credited) on the vehicle, place and service pages',
   search_scope: 'Search scope',
   card_types_accepted: 'Card types accepted',
+  deposit_timing: 'Deposit timing', deposit_auto_hour: 'Deposit hold: hour on the pickup day', debit_deposit_multiplier: 'Deposit with a debit or prepaid card (times the deposit)',
   usage_alert_texts: 'Usage alerts: also text every Admin with a verified phone (once per figure and level a month)',
   vpage_import_db_cap_mb: 'Database size cap for the catalog import (MB)', db_plan: 'Import size limit', db_cap_pro_mb: 'Database size cap for the imports, standard (MB)',
   db_cap_free_mb: 'Database size cap for the imports, small (MB)', indexnow_daily_max: 'IndexNow: most addresses a day', indexnow_batch: 'IndexNow: addresses a request (at most 10,000)',
@@ -178,7 +179,7 @@ const HINTS: Record<string, string> = {
   custom_price_floor_daily_cents: 'A price typed by hand under this amount a day is flagged on the booking and in To do. It is never refused.',
   custom_price_max_discount_bps: 'A price typed by hand this far or more under the rate sheet is flagged on the booking and in To do (20% by default). It is never refused.',
   email_limit_texts: 'On: while emails are held for the daily or monthly limit, the booking and pickup ones (the list below) go at once by text to the person\'s mobile, with the link to their page. Once per email; the email still goes when the limit lifts.',
-  deposit_link_auto: 'On: a confirmed booking whose deposit is a card hold, with no hold yet, gets the deposit hold link by text from the CarmaCars number before pickup (once per booking and deposit; a link not sent makes a task). The hold is still needed before the keys.',
+  deposit_link_auto: 'On: a confirmed booking whose deposit is a card hold, with no hold yet (and, with the deposit taken on the pickup day, no saved card for it or the hold declined), gets the deposit hold link by text (by email when there is no mobile) from the CarmaCars number before pickup (once per booking and deposit; a link not sent makes a task). The hold is still needed before the keys.',
   deposit_link_hours: 'How long before pickup the link goes (24). A booking confirmed closer to pickup gets it at once.',
   email_limit_text_codes: 'Email codes, separated by commas (Admin > Email shows each email\'s code).',
   owner_flat_agreements_awaiting_lawyer: 'Off: the lawyer approved the flat-rate text. On: Admin marks the Flat-Rate Vehicle Enrollment Agreement "Awaiting lawyer OK", for a new text still under review. Owners can sign either way.',
@@ -221,6 +222,9 @@ const HINTS: Record<string, string> = {
   sms_generic_text: '{{subject}} is the email\'s subject and {{link}} the page. Keep CarmaCars and {{link}}; no long dashes. Every customer email has its own text, so this is only for one added later.',
   sms_stop_confirm_text: 'Quo sends no confirmation of its own. Texted once, right away (even in the quiet hours), when someone replies STOP. Name CarmaCars and say how to undo it (START).',
   sms_start_confirm_text: 'Texted once, right away, when someone replies START. Name CarmaCars and say how to stop (STOP).',
+  deposit_timing: 'On the morning of pickup day (the default): the deposit hold is placed on the card on file at the hour below (at once when the booking is confirmed later that day, from midnight when the pickup is earlier). If it does not go through, the renter gets the deposit link and staff a task "Deposit not taken". At handover (old): the hold is taken at the handover, with the deposit link texted before pickup.',
+  deposit_auto_hour: 'The hour, Toronto time (0 to 23), the deposit hold is placed on the pickup day (8: 8:00 am).',
+  debit_deposit_multiplier: 'On a booking that takes a debit or prepaid card, the deposit hold on such a card is the deposit times this (2: $300 becomes $600). Staff can set another amount on a booking (Money tab). Applies to the automatic hold, the deposit link and Collect a card.',
   card_types_accepted: 'Credit only (the default): the pay page, staff pay links and the deposit hold take a credit card, so the deductible can be charged; an Admin can allow a debit or prepaid card for one booking on its Money tab. Credit, debit and prepaid: every booking takes them. A booking on credit card rental coverage is always paid on that credit card.',
   search_scope: 'What search engines are invited to read (robots.txt, the sitemaps, IndexNow). Full: every page, which costs more website CPU time as crawlers read them. Core: the fixed pages, the cars, the landing pages, the guides and the vehicle pages down to the trim. From 70% of the month\'s CPU allowance crawlers get no catalog page until the month resets, in either scope. Takes effect within minutes, no deploy.'
 };
@@ -247,6 +251,7 @@ function fieldForBase(k: string, v: unknown, options?: Array<[string, string]>):
 const OPTIONS: Record<string, Array<[string, string]>> = {
   search_scope: [['full', 'Full (every page)'], ['core', 'Core (about 23,000 pages)']],
   card_types_accepted: [['credit', 'Credit only (default)'], ['any', 'Credit, debit and prepaid']],
+  deposit_timing: [['pickup_day', 'On the morning of pickup day (default)'], ['handover', 'At handover (old)']],
   owner_revenue_visibility: [['right_away', 'Right away (default)'], ['after_return', 'After the return'], ['statement', 'When the statement is approved']]
 };
 export const fieldsFrom = (row: Record<string, unknown>, keys: string[], options: Record<string, Array<[string, string]>> = {}) => keys.filter((k) => k in row).map((k) => fieldFor(k, row[k], options[k] ?? OPTIONS[k]));

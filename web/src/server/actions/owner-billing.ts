@@ -214,7 +214,8 @@ export async function staffAddOwnerCar(form: FormData): Promise<R<{ application_
   }
   // the VIN, or the plate when the VIN is not at hand (0070; VIN first since 0082)
   if (v.vin && !/^[A-HJ-NPR-Z0-9]{17}$/i.test(String(v.vin).trim())) fe.vin = 'The VIN has 17 letters and digits, never I, O or Q.';
-  if (!v.vin && !String(v.plate ?? '').trim()) fe.vin = 'Enter the 17-character VIN, or the plate.';
+  // 0264: neither yet: the year, make and model (an onboarding draft until the VIN or plate is added)
+  if (!v.vin && !String(v.plate ?? '').trim() && !(v.year && String(v.make ?? '').trim() && String(v.model ?? '').trim())) fe.vin = 'Enter the 17-character VIN, or the plate, or the year, make and model when neither is known yet.';
   if (!v.title_status) fe.title_status = 'Choose owned, financed or leased.';
   if (v.title_status && v.title_status !== 'owned_outright' && !String(v.finance_party_name ?? '').trim()) fe.finance_party_name = 'Enter the lender or lease company.';
   const files: Array<[string, { bytes: Uint8Array; type: string; ext: string }]> = [];
@@ -275,5 +276,47 @@ export async function signScheduleChange(changeId: string, name: string, sha256:
     try { await fileScheduleChangeCopy(changeId); } catch (e) { console.error('schedule change signed copy', e); }
     revalidatePath('/owner'); revalidatePath('/owner/documents'); revalidatePath(`/owner/sign/schedule/${changeId}`);
     return { ok: true as const, data: r as unknown as { schedule_number: string } };
+  } catch (e) { return fail(e); }
+}
+
+// ---------------------------------------------------------------- 0264: an owner on their own, a car's notes and VIN
+export interface AddOwnerInput { legal_name: string; email?: string; phone?: string; owner_type: 'individual' | 'corporation'; corporation_name?: string;
+  terms?: { insurance_fee_cents?: number | null; tracker_fee_cents?: number | null; revenue_share_bps?: number | null }; invite?: boolean }
+/** Owners > Add an owner: on file without a car; nothing is emailed unless Invite is chosen (then the usual invitation). */
+export async function addOwner(p: AddOwnerInput): Promise<R<{ owner_id: string; invited: boolean; note: string | null }>> {
+  const fe: Record<string, string> = {};
+  if (!p.legal_name?.trim()) fe.legal_name = 'Enter the owner\'s full legal name.';
+  if (p.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(p.email.trim())) fe.email = 'Check the email address.';
+  if (!p.email?.trim() && !p.phone?.trim()) fe.email = 'Enter the email or the phone.';
+  if (p.invite && !p.email?.trim()) fe.email = 'An invitation needs the email.';
+  if (p.owner_type === 'corporation' && !p.corporation_name?.trim()) fe.corporation_name = 'Enter the corporation\'s name.';
+  if (Object.keys(fe).length) return invalid(fe);
+  try {
+    const { user, aal } = await me();
+    const roles = await rolesOf(user.id);
+    const terms = Object.fromEntries(Object.entries(p.terms ?? {}).filter(([, x]) => x !== null && x !== undefined && !Number.isNaN(x)));
+    const r = await door<{ owner_id: string }>(user.id, roles.admin ? 'ops_do' : 'va_do', 'owner_add', { legal_name: p.legal_name, email: p.email || null, phone: p.phone || null,
+      owner_type: p.owner_type, corporation_name: p.corporation_name || null, terms }, aal);
+    let note: string | null = null;
+    let invited = false;
+    if (p.invite && p.email) {
+      const { inviteAccount } = await import('@/server/actions/admin-portal');
+      const i = await inviteAccount({ email: p.email, full_name: p.legal_name, role: 'owner', owner_id: r.owner_id });
+      invited = i.ok;
+      note = i.ok ? 'Invited: the owner got the link to choose a password.' : `Added, but the invitation did not go: ${i.message}`;
+    }
+    again(['/admin/owners', `/admin/owners/${r.owner_id}`]);
+    return { ok: true, data: { owner_id: r.owner_id, invited, note } };
+  } catch (e) { return fail(e); }
+}
+
+/** The car page: its notes, and the VIN or plate of a car added before either was known. */
+export async function vehicleNotesOrId(p: { vehicle_id: string; notes?: string; vin?: string; plate?: string }, what: 'notes' | 'id'): Promise<R<J>> {
+  try {
+    const { user, aal } = await me();
+    const roles = await rolesOf(user.id);
+    const r = await door<J>(user.id, roles.admin ? 'ops_do' : 'va_do', what === 'notes' ? 'vehicle_notes_set' : 'vehicle_id_set', p as J, aal);
+    again([`/admin/vehicles/${p.vehicle_id}`, '/admin/vehicles', '/admin']);
+    return { ok: true, data: r };
   } catch (e) { return fail(e); }
 }

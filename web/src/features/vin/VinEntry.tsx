@@ -95,8 +95,9 @@ export function YearMakeModel({ value, onChange, prefix, errs = {} }: { value: C
   );
 }
 
-export function VinEntry({ value, onChange, prefix = 'vin', allowPlate = true, showClass = true, carHref, err }: {
+export function VinEntry({ value, onChange, prefix = 'vin', allowPlate = true, allowNone = false, showClass = true, carHref, err }: {
   value: VinValue; onChange: (v: VinValue) => void; prefix?: string; allowPlate?: boolean; showClass?: boolean;
+  /** 0264: staff may save the car before the VIN or plate is known (an onboarding draft) */ allowNone?: boolean;
   /** the link to a car already in the fleet (Admin) */ carHref?: (id: string) => string; err?: string;
 }) {
   const classes = useClasses();
@@ -164,15 +165,20 @@ export function VinEntry({ value, onChange, prefix = 'vin', allowPlate = true, s
             {msg ?? 'On the ownership permit, the insurance slip and the driver\'s door frame. The car\'s details come from it.'}</p>
           {err && <p className="error" role="alert">{err}</p>}
           {allowPlate && <button type="button" className="link vin-switch" onClick={() => { setProblem(null); set({ mode: 'plate', facts: null, edits: {} }); }} data-testid={`${prefix}-use-plate`}>No VIN at hand? Add the car by its plate</button>}
+          {allowNone && <button type="button" className="link vin-switch" onClick={() => { setProblem(null); set({ mode: 'none', facts: null, edits: {} }); }} data-testid={`${prefix}-use-none-vin`}>Neither the VIN nor the plate yet?</button>}
         </div>
       ) : (
-        <div className="field">
+        value.mode === 'plate' && <div className="field">
           <label className="label" htmlFor={`${uid}-plate`}>Plate</label>
           <input className="input" id={`${uid}-plate`} value={value.plate} onChange={(e) => set({ plate: e.target.value.toUpperCase() })} autoCapitalize="characters" data-testid={`${prefix}-plate`} />
           <p className="hint">The car&apos;s checklist asks for the VIN later; its details fill in once it is entered.</p>
           <button type="button" className="link vin-switch" onClick={() => set({ mode: 'vin', edits: {} })} data-testid={`${prefix}-use-vin`}>Use the VIN instead</button>
+          {allowNone && <button type="button" className="link vin-switch" onClick={() => set({ mode: 'none', facts: null, edits: {} })} data-testid={`${prefix}-use-none`}>Neither the VIN nor the plate yet? Save it with the year, make and model</button>}
         </div>
       )}
+      {value.mode === 'none' && (
+        <p className="alert alert--warn" role="status" data-testid={`${prefix}-none`}><span>VIN or plate needed later: the car is saved as an onboarding draft with its fleet number. It is not listed, booked or put on the fleet policy until the VIN or the plate is added on the car page.</span>
+          {' '}<button type="button" className="link" onClick={() => set({ mode: 'vin', edits: {} })}>Use the VIN</button></p>)}
 
       {value.facts?.taken && value.mode === 'vin' && (
         <p className="alert alert--error" role="alert" data-testid={`${prefix}-taken`}><span>Already in the fleet: {value.facts.taken.name} ({value.facts.taken.supply}{value.facts.taken.retired ? ', retired' : ''}).
@@ -206,13 +212,13 @@ export function VinEntry({ value, onChange, prefix = 'vin', allowPlate = true, s
           </div>
           <p className="small"><button type="button" className="link" onClick={() => setEditing(false)}>Done</button> <span className="muted">Seats, doors and the rest stay as decoded; change them on the car&apos;s listing.</span></p>
         </div>)}
-      {(notDecoded || value.mode === 'plate') && (
+      {(notDecoded || value.mode === 'plate' || value.mode === 'none') && (
         <div className="stack" data-testid={`${prefix}-fallback`}>
           {notDecoded && <p className="small" role="status">The VIN could not be read by the decoder. Choose the year, make and model; it is saved all the same and the rest fills in when the VIN is decoded later.</p>}
           <YearMakeModel value={value.edits} onChange={(e) => set({ edits: e })} prefix={prefix} />
         </div>)}
 
-      {showClass && (c.make || value.mode === 'plate' || notDecoded) && (
+      {showClass && (c.make || value.mode !== 'vin' || notDecoded) && (
         <div className="field" style={{ maxWidth: '24rem' }}>
           <label className="label" htmlFor={`${uid}-class`}>Class</label>
           <select className="select" id={`${uid}-class`} value={value.class} onChange={(e) => set({ class: e.target.value, classSource: 'person', classWhy: null })} data-testid={`${prefix}-class`}>

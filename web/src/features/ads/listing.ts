@@ -139,7 +139,7 @@ export function writeListing(c: CarFacts, r: Rules, channel: AdChannel, site: st
       join([describe(c), ratesSentence(c)]), kmSentence(c),
       c.delivery ? `Delivery from ${money(c.delivery)} each way, or pick it up yourself.` : 'Pick it up yourself.',
       c.on_fleet_policy ? 'Liability coverage included.' : '',
-      needs(c, r), c.deposit ? `${money(c.deposit)} refundable deposit taken at pickup.` : '', r.max_days ? `Rentals up to ${r.max_days} days.` : '',
+      needs(c, r), c.deposit ? `${money(c.deposit)} refundable deposit hold on the day of pickup.` : '', r.max_days ? `Rentals up to ${r.max_days} days.` : '',
       `Book or check the calendar on CarmaCars: ${link}`, code];
     body = join(lines.map(sentence), '\n\n');
   }

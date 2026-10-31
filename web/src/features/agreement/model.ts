@@ -222,7 +222,7 @@ export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
     ...(f.period ? [['This agreement covers', `Period ${f.period.seq} of ${f.period.of}: ${when(f.period.starts_at)} to ${when(f.period.ends_at)} (${f.period.days} days). Rent and fees for this period, with HST: ${money(f.period.amount_cents)}. The terms of the earlier periods' agreements continue unchanged.`]] : []),
     ['Rate', rate],
     ['Mileage', b.km_allowance_per_day === null ? 'Unlimited kilometres' : `Allowance: ${b.km_allowance_per_day} km per day × ${b.billable_days} days = ${b.km_allowance_total ?? 0} km  Overage: ${money(b.overage_cents_per_km, { cents: true })} per km`],
-    ['Deposit', x ? depositText(x) : `${money(b.deposit_cents)}, taken at pickup: a card hold for rentals of 7 days or less, otherwise charged and refunded`],
+    ['Deposit', x ? depositText(x) : `${money(b.deposit_cents)}, taken on the day of pickup: a card hold for rentals of 7 days or less, otherwise charged and refunded`],
     ...(x ? [['Payment', paidText(x, f.card)]] : []),
     ...(x && x.late.grace_minutes !== null ? [['Late return', `After a grace period of ${x.late.grace_minutes} minutes, each extra day or part day at the daily rate${x.late.fee_cents ? `, plus a late fee of ${money(x.late.fee_cents)}` : ''}`]] : []),
     ['Coverage Option', coverageText + (b.coverage_option === 3 ? (() => { const pp = f.lines.filter((l) => l.charge_type === 'coverage_sold').reduce((t, l) => t + l.amount_cents, 0); return pp ? ` (${money(pp, { cents: true })} for the rental)` : ''; })() : '')],
@@ -236,7 +236,7 @@ export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
   ];
   const charges: string[][] = f.lines.map((l) => [l.description, money(l.amount_cents, { cents: true })]);
   charges.push(['HST', money(b.hst_at_booking_cents, { cents: true })]);
-  charges.push([`**Total due at booking**${x && (x.deposit.pay_method === 'none' || !x.deposit.amount_cents) ? '' : ' (the Deposit is taken at pickup)'}`, `**${money(b.total_due_at_booking_cents, { cents: true })}**`]);
+  charges.push([`**Total due at booking**${x && (x.deposit.pay_method === 'none' || !x.deposit.amount_cents) ? '' : ' (the Deposit is taken on the day of pickup)'}`, `**${money(b.total_due_at_booking_cents, { cents: true })}**`]);
   // 0154: charges added since booking (an extension, a fee added at pickup), each with its HST
   const since = x ? stageLines(x, ['extension', 'pickup', 'monthly']) : [];
 

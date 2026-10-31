@@ -11,3 +11,16 @@ export function payCardStep(kind: 'charge' | 'hold' | 'setup', status: string, c
   if (kind === 'charge' && status === 'requires_capture') return 'capture';
   return 'settle';
 }
+
+// 0262: the deposit hold on a debit or prepaid card is higher (Program settings, Deposit with a debit or prepaid card).
+// A hold authorized for another amount than the card needs is asked again for the right amount.
+export function holdAmountStep(authorizedCents: number, neededCents: number | null | undefined): { reask: false } | { reask: true; amountCents: number } {
+  if (!neededCents || neededCents <= 0 || neededCents === authorizedCents) return { reask: false };
+  return { reask: true, amountCents: neededCents };
+}
+const dollars = (c: number) => `$${(c / 100).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+export function holdAmountMessage(funding: string | null | undefined, cents: number): string {
+  return funding === 'debit' || funding === 'prepaid'
+    ? `With a debit or prepaid card the deposit hold is ${dollars(cents)}. Nothing was held: enter the card again to place it.`
+    : `With a credit card the deposit hold is ${dollars(cents)}. Nothing was held: enter the card again to place it.`;
+}

@@ -2643,6 +2643,7 @@ export type Database = {
           debit_allowed_by: string | null;
           debit_allowed_reason: string | null;
           insurer_adjuster_id: string | null;
+          debit_deposit_cents: number | null;
         };
         Insert: {
           id?: string;
@@ -2808,6 +2809,7 @@ export type Database = {
           debit_allowed_by?: string | null;
           debit_allowed_reason?: string | null;
           insurer_adjuster_id?: string | null;
+          debit_deposit_cents?: number | null;
         };
         Update: {
           id?: string;
@@ -2973,6 +2975,7 @@ export type Database = {
           debit_allowed_by?: string | null;
           debit_allowed_reason?: string | null;
           insurer_adjuster_id?: string | null;
+          debit_deposit_cents?: number | null;
         };
         Relationships: [];
       };
@@ -11474,6 +11477,8 @@ export type Database = {
           fees_paid_from: string;
           fees_paid_from_set_at: string | null;
           fees_paid_from_set_by: string | null;
+          added_alone_at: string | null;
+          added_alone_by: string | null;
         };
         Insert: {
           id?: string;
@@ -11521,6 +11526,8 @@ export type Database = {
           fees_paid_from?: string;
           fees_paid_from_set_at?: string | null;
           fees_paid_from_set_by?: string | null;
+          added_alone_at?: string | null;
+          added_alone_by?: string | null;
         };
         Update: {
           id?: string;
@@ -11568,6 +11575,8 @@ export type Database = {
           fees_paid_from?: string;
           fees_paid_from_set_at?: string | null;
           fees_paid_from_set_by?: string | null;
+          added_alone_at?: string | null;
+          added_alone_by?: string | null;
         };
         Relationships: [];
       };
@@ -12354,6 +12363,7 @@ export type Database = {
           texted_at: string | null;
           text_id: string | null;
           opened_at: string | null;
+          emailed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -12378,6 +12388,7 @@ export type Database = {
           texted_at?: string | null;
           text_id?: string | null;
           opened_at?: string | null;
+          emailed_at?: string | null;
         };
         Update: {
           id?: string;
@@ -12402,6 +12413,7 @@ export type Database = {
           texted_at?: string | null;
           text_id?: string | null;
           opened_at?: string | null;
+          emailed_at?: string | null;
         };
         Relationships: [];
       };
@@ -13945,6 +13957,11 @@ export type Database = {
           cf_email_monthly_included: number;
           card_types_accepted: string;
           non_refundable_min_days: number;
+          deposit_timing: string;
+          deposit_auto_hour: number;
+          debit_deposit_multiplier: number;
+          essentials_reminders: string;
+          essentials_task_hour: number;
         };
         Insert: {
           id?: string;
@@ -14468,6 +14485,11 @@ export type Database = {
           cf_email_monthly_included?: number;
           card_types_accepted?: string;
           non_refundable_min_days?: number;
+          deposit_timing?: string;
+          deposit_auto_hour?: number;
+          debit_deposit_multiplier?: number;
+          essentials_reminders?: string;
+          essentials_task_hour?: number;
         };
         Update: {
           id?: string;
@@ -14991,6 +15013,11 @@ export type Database = {
           cf_email_monthly_included?: number;
           card_types_accepted?: string;
           non_refundable_min_days?: number;
+          deposit_timing?: string;
+          deposit_auto_hour?: number;
+          debit_deposit_multiplier?: number;
+          essentials_reminders?: string;
+          essentials_task_hour?: number;
         };
         Relationships: [];
       };
@@ -22241,6 +22268,8 @@ export type Database = {
           ssc_expires_on: string | null;
           permit_number: string | null;
           sticker_expires_on: string | null;
+          id_pending: boolean;
+          notes: string | null;
         };
         Insert: {
           id?: string;
@@ -22309,6 +22338,8 @@ export type Database = {
           ssc_expires_on?: string | null;
           permit_number?: string | null;
           sticker_expires_on?: string | null;
+          id_pending?: boolean;
+          notes?: string | null;
         };
         Update: {
           id?: string;
@@ -22377,6 +22408,8 @@ export type Database = {
           ssc_expires_on?: string | null;
           permit_number?: string | null;
           sticker_expires_on?: string | null;
+          id_pending?: boolean;
+          notes?: string | null;
         };
         Relationships: [];
       };
@@ -24189,6 +24222,7 @@ export type Database = {
       server_booking_addon_failed: { Args: { p_row: string; p_by: string; p_reason: string }; Returns: undefined };
       server_booking_addon_paid: { Args: { p_row: string; p_by: string; p_processor: Json; p_amount_cents: number }; Returns: Json };
       server_booking_calendar: { Args: { p_token: string }; Returns: Json };
+      server_booking_debit_deposit: { Args: { p_booking: string }; Returns: number };
       server_booking_driver_links: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_booking_payment_capture_failed: { Args: { p_booking: string; p_processor: Json; p_error: string }; Returns: undefined };
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
@@ -24218,6 +24252,9 @@ export type Database = {
       server_coverage_click: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_coverage_detail: { Args: { p_booking: string }; Returns: Json };
       server_db_busy: { Args: never; Returns: Json };
+      server_deposit_auto_begin: { Args: { p_booking: string; p_token_sha256: string }; Returns: Json };
+      server_deposit_auto_failed: { Args: { p_id: string; p_error: string }; Returns: Json };
+      server_deposit_autos_due: { Args: never; Returns: Json };
       server_deposit_capture_begin: { Args: { p_deposit: string }; Returns: Json };
       server_deposit_guard_sweep: { Args: never; Returns: Json };
       server_deposit_hold_lapsed: { Args: { p_intent: string }; Returns: Json };
@@ -24333,13 +24370,18 @@ export type Database = {
       server_payreq_card_check: { Args: { p_id: string; p_card: Json }; Returns: Json };
       server_payreq_card_ok: { Args: { p_id: string; p_card: Json }; Returns: boolean };
       server_payreq_card_refused: { Args: { p_id: string }; Returns: boolean };
+      server_payreq_debit_deposit: { Args: { p_id: string }; Returns: number };
       server_payreq_facts: { Args: { p_token_sha256: string }; Returns: Json };
+      server_payreq_hold_required: { Args: { p_id: string; p_card: Json }; Returns: number };
+      server_payreq_hold_reset: { Args: { p_id: string; p_intent: string; p_amount: number }; Returns: undefined };
       server_payreq_opened: { Args: { p_token_sha256: string }; Returns: undefined };
       server_payreq_reader: { Args: { p_id: string }; Returns: Json };
       server_payreq_reader_fail: { Args: { p_id: string; p_reason: string }; Returns: Json };
       server_payreq_settle: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_payreq_settle_pre0202: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_payreq_settle_pre0203: { Args: { p_id: string; p_intent: Json }; Returns: Json };
+      server_payreq_settle_pre0260: { Args: { p_id: string; p_intent: Json }; Returns: Json };
+      server_payreq_settle_pre0261: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_pdf_facts: { Args: { p_kind: string; p_key: string; p_user?: string }; Returns: Json };
       server_pdf_job_done: { Args: { p_job: string }; Returns: undefined };
       server_pdf_job_fail: { Args: { p_job: string; p_error: string }; Returns: undefined };

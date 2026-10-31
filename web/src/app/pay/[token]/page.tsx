@@ -40,7 +40,8 @@ export default async function PayLink({ params, searchParams }: { params: Promis
           : f.kind === 'setup' ? 'Your card is saved for the deposit and the later charges you agreed to in your rental agreement. Nothing is charged now.'
           : `${money(f.amount_cents, { cents: true })} for ${f.reason ? f.reason.toLowerCase() : WHAT[f.covers] ?? 'your booking'}.`}</p>
         <PayLinkForm token={token} kind={f.kind} amountCents={f.amount_cents} legalName={f.renter_name} backTo={backTo}
-          debitOk={(await rpc('booking_takes_debit', { p_booking: f.booking_id }, { role: 'service_role' }).catch(() => false)) === true} />
+          debitOk={(await rpc('booking_takes_debit', { p_booking: f.booking_id }, { role: 'service_role' }).catch(() => false)) === true}
+          debitDepositCents={f.kind === 'hold' ? ((await rpc('server_payreq_debit_deposit', { p_id: f.id }, { role: 'service_role' }).catch(() => null)) as number | null) : null} />
       </section>
       <p className="small muted">The card is entered in Stripe&apos;s secure form. CarmaCars never sees or keeps the card number.</p>
     </div></div>

@@ -29,8 +29,8 @@ const BANK: Record<string, Bank> = {
   ],
   weekend_head: ['Free this weekend on CarmaCars:', 'Still free for the weekend:', 'Plans this weekend? These cars are free:'],
   req: [
-    'What you need to rent with CarmaCars: {age}, a G2 or G licence, one coverage option (OPCF 27 on your own policy, your credit card\'s rental coverage, or the CarmaCars Protection Plan) and a refundable deposit at pickup. Rentals up to {max} days.',
-    'Renting with CarmaCars, in short: you are {age}, you hold a G2 or G licence, you pick one coverage option (your own OPCF 27, your credit card\'s coverage or our Protection Plan) and a refundable deposit is taken at pickup. Up to {max} days.'
+    'What you need to rent with CarmaCars: {age}, a G2 or G licence, one coverage option (OPCF 27 on your own policy, your credit card\'s rental coverage, or the CarmaCars Protection Plan) and a refundable deposit hold on the day of pickup. Rentals up to {max} days.',
+    'Renting with CarmaCars, in short: you are {age}, you hold a G2 or G licence, you pick one coverage option (your own OPCF 27, your credit card\'s coverage or our Protection Plan) and a refundable deposit hold on the day of pickup. Up to {max} days.'
   ],
   price_head: ['The lowest daily rate on CarmaCars right now: the {car} from {daily} a day.', 'Need a car without spending much? The {car} is from {daily} a day.'],
   trip: [

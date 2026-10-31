@@ -6,6 +6,7 @@ import { when } from '@/features/agreement/model';
 import { chargeSavedCard, holdAction, offersDo, startCardRequest } from '@/server/actions/offers';
 import { Table } from '@/features/admin/ui';
 import { CardTools, type CardRule } from './CardTools';
+import { depositAutoText, type DepositAuto } from './deposit-auto-text';
 
 // The money of a booking by part (migration 0129): what is open for the rental, the fees and later charges; the deposit
 // and how it was taken; the card on file. Record a payment received another way (e-Transfer, cash, cheque, bank
@@ -24,6 +25,10 @@ export interface Money {
   /** 2026-11-01: Collect a card sends by text first when the renter has a mobile number */
   renter_has_mobile?: boolean;
   deposit_link?: { id: string; status: string; texted_at: string | null; opened_at: string | null; error: string | null; auto: boolean; channel: string } | null;
+  /** 0261: the deposit hold placed automatically on the pickup day */
+  deposit_auto?: DepositAuto | null;
+  /** 0262: the deposit with a debit or prepaid card (the multiplier, or the amount staff set) */
+  debit_deposit?: { cents: number; multiplier: number; set_by_staff: boolean; takes: boolean } | null;
   /** 0230: the cards used on the booking and their type (debit and prepaid are accepted; card coverage needs the credit card) */
   cards?: Array<{ brand: string | null; last4: string | null; funding: 'credit' | 'debit' | 'prepaid' | 'unknown'; payments: number; last_at: string }>;
   debit?: { allowed_at: string | null; reason: string | null; by: string | null; takes: boolean; coverage: boolean; site: 'credit' | 'any' };
@@ -224,6 +229,8 @@ export function BookingMoney({ m }: { m: Money }) {
           : m.debit.allowed_at ? `Debit and prepaid cards allowed for this booking${m.debit.by ? ` by ${m.debit.by}` : ''} on ${when(m.debit.allowed_at)}: ${m.debit.reason ?? ''}`
           : m.debit.takes ? 'This booking takes a debit or prepaid card (the car or the site-wide setting).'
           : 'A credit card is required (no debit or prepaid card).'}</p>)}
+      {depositAutoText(m.deposit_auto, when, fmt) && <p className={`small${m.deposit_auto?.status === 'failed' ? ' alert alert--warn' : ''}`} data-testid="bm-deposit-auto">{depositAutoText(m.deposit_auto, when, fmt)}</p>}
+      {m.debit_deposit && m.debit_deposit.takes && <p className="small" data-testid="bm-debit-deposit">Debit deposit: {m.debit_deposit.set_by_staff ? `${fmt(m.debit_deposit.cents)} (set for this booking)` : `${Number(m.debit_deposit.multiplier)}x (${fmt(m.debit_deposit.cents)})`}: the deposit hold with a debit or prepaid card.</p>}
       {m.deposit_link && (m.deposit_link.texted_at || m.deposit_link.error) && (
         <p className="small" data-testid="bm-deposit-link">{m.deposit_link.texted_at ? `Deposit link texted ${when(m.deposit_link.texted_at)}` : `Deposit link not sent: ${m.deposit_link.error}`}
           {m.deposit_link.opened_at ? `, opened ${when(m.deposit_link.opened_at)}` : m.deposit_link.texted_at ? ', not opened yet' : ''}{m.deposit_link.status === 'paid' ? ': the hold is placed.' : '.'}</p>)}

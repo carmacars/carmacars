@@ -23,18 +23,41 @@ export interface NextStepInput {
   checkedInAt?: string | null;
   /** an insurer pays the rental (bill_to is not the renter) */
   insurerBilled?: boolean;
+  /** Release 24b: every driver's licence approved (readiness.all_drivers_verified); false puts the licence first */
+  licenceOk?: boolean | null;
+  /** Release 24b: the pickup Condition Report's photos are complete (after the check-out) */
+  checkoutPhotosOk?: boolean | null;
+  /** Release 24b: the return Condition Report has its photos, km and fuel */
+  checkinOk?: boolean | null;
   /** what this person may do: false hides a button they could not use (staff without that function) */
   can?: Partial<Record<'offer' | 'money' | 'sign' | 'handover' | 'settle', boolean>>;
 }
 
 export interface NextStep {
   /** a short code for tests and the page (data-step) */
-  step: 'send_offer' | 'wait_offer' | 'wait_payment' | 'sign' | 'deposit' | 'checkout' | 'checkin' | 'settle' | 'done' | 'closed' | 'other';
+  step: 'send_offer' | 'wait_offer' | 'wait_payment' | 'licence' | 'sign' | 'deposit' | 'checkout' | 'checkin' | 'settle' | 'done' | 'closed' | 'other';
   /** the plain sentence */
   text: string;
   /** who does it */
   who: string;
   action?: { label: string; href: string; testId: string };
+  /** Release 24b: the handover essentials (licence, agreement, deposit, photos) with what is done, top of the booking */
+  essentials?: Essential[];
+}
+export interface Essential { key: 'licence' | 'agreement' | 'deposit' | 'checkout_photos' | 'checkin'; label: string; done: boolean }
+
+/** The three handover essentials (and the photos), in the order they are needed, for a booking on its way to the car or out. */
+export function essentials(x: NextStepInput): Essential[] | undefined {
+  if (!['pending_payment', 'confirmed', 'on_rent'].includes(x.status)) return undefined;
+  const depositDone = !(Number(x.depositCents ?? 0) > 0) || x.insurerBilled === true || HELD.has(String(x.depositStatus ?? ''));
+  const out: Essential[] = [
+    { key: 'licence', label: 'Driver\'s licence approved', done: x.licenceOk !== false },
+    { key: 'agreement', label: 'Rental agreement signed', done: x.status !== 'pending_payment' && !x.awaitingSignature },
+    { key: 'deposit', label: 'Deposit taken (or waived by an Admin)', done: depositDone },
+    { key: 'checkout_photos', label: 'Check-out photos', done: x.status === 'on_rent' || x.checkoutPhotosOk === true }
+  ];
+  if (x.status === 'on_rent') out.push({ key: 'checkin', label: 'Check-in photos, km and fuel', done: x.checkinOk === true });
+  return out;
 }
 
 const TZ = 'America/Toronto';
@@ -51,6 +74,12 @@ const money = (c: number) => `$${(c / 100).toLocaleString('en-CA', { minimumFrac
 const HELD = new Set(['held', 'captured', 'settled', 'carried_forward']);
 
 export function nextStep(x: NextStepInput): NextStep {
+  const s = nextStepOnly(x);
+  const e = essentials(x);
+  return e ? { ...s, essentials: e } : s;
+}
+
+function nextStepOnly(x: NextStepInput): NextStep {
   const can = (k: keyof NonNullable<NextStepInput['can']>) => x.can?.[k] !== false;
   const btn = (k: keyof NonNullable<NextStepInput['can']>, label: string, href: string, testId: string) => (can(k) ? { action: { label, href, testId } } : {});
   const today = dayKey(x.now);
@@ -69,10 +98,13 @@ export function nextStep(x: NextStepInput): NextStep {
         ...btn('money', 'Record a payment or send a pay link', `${x.base}?tab=money`, 'next-step-pay') };
     }
     case 'confirmed': {
+      // Release 24b: the licence first (no car without it), then the signature, then the deposit
+      if (x.licenceOk === false) return { step: 'licence', who: 'The renter, then customer service', text: `The driver's licence is not approved yet. The renter uploads it (photo, HEIC or PDF scan) and staff approve it before pickup (${when(x.pickupAt)}).`,
+        ...btn('handover', 'Review the licence', `${x.base}?tab=documents`, 'next-step-licence') };
       if (x.awaitingSignature) return { step: 'sign', who: 'The renter', text: 'Booked and paid. The renter signs the rental agreement: on this device, or from the link in their email.',
         ...btn('sign', 'Sign on this device', `${x.base}/sign-now`, 'next-step-sign') };
       if (pickupDay <= today) return { step: 'checkout', who: 'The person at the pickup',
-        text: `Pickup ${pickupDay < today ? 'was' : 'is'} ${when(x.pickupAt)}. Check out the car${depositNeeded && !x.insurerBilled ? ` and take the ${money(Number(x.depositCents))} deposit hold` : ''}.`,
+        text: `Pickup ${pickupDay < today ? 'was' : 'is'} ${when(x.pickupAt)}. ${depositNeeded && !x.insurerBilled ? `No deposit yet: take the ${money(Number(x.depositCents))} deposit hold now, then check out the car` : 'Check out the car'}.`,
         ...btn('handover', 'Check out the car', '#c-check-out-check-in-and-signing', 'next-step-checkout') };
       if (depositNeeded && !x.insurerBilled) return { step: 'deposit', who: 'The person at the pickup',
         text: `Booked, paid and signed. At the pickup (${when(x.pickupAt)}), take the ${money(Number(x.depositCents))} deposit hold, then check out the car.` };

@@ -137,7 +137,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
           </div>
         </div>
       ) : <div className="pt-cardbox" ref={mount} aria-label="Card details">{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
-      <p className="small">This card becomes your Card on File for the {money(depositCents)} deposit at pickup and any later charges, as you authorized when signing.</p>
+      <p className="small">This card becomes your Card on File for the {money(depositCents)} deposit hold on the day of pickup and any later charges, as you authorized when signing.</p>
       {debitOk && coverageOption !== 2 && <p className="small muted" data-testid="pay-debit-note">With a debit or prepaid card, the deposit hold lowers the money available on your card or account until it is released, and the release can take several business days.</p>}
       {msg && <p className={`alert ${msg.kind === 'wait' ? 'alert--warn' : 'alert--error'}`} role={msg.kind === 'wait' ? 'status' : 'alert'} data-testid="pay-message"><span>{msg.text}
         {msg.coverage && <> <a className="link" href={`/account/bookings/${encodeURIComponent(number)}/verify#pt-cov`}>Change how the car is covered</a></>}</span></p>}

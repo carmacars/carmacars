@@ -101,7 +101,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
   const step = nextStep({ status: b.status, base, now: new Date(), pickupAt: b.pickup_at, returnAt: b.return_at, offerExpiresAt: b.offer_expires_at,
     dueCents: Number(b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents ?? 0),
     paidCents: (b.payments ?? []).filter((r) => r.kind === 'charge' && r.status === 'succeeded').reduce((a, r) => a + Number(r.amount_cents ?? 0), 0),
-    awaitingSignature: b.readiness?.awaiting_signature === true, depositCents: Number(b.deposit_cents ?? 0), depositStatus: (b.deposit?.status as string | undefined) ?? null,
+    awaitingSignature: b.readiness?.awaiting_signature === true, licenceOk: (b.readiness?.all_drivers_verified as boolean | undefined) ?? null, depositCents: Number(b.deposit_cents ?? 0), depositStatus: (b.deposit?.status as string | undefined) ?? null,
     insurerBilled: b.bill_to !== 'renter',
     can: { offer: fn === 'cs' || fn === 'sales', money: fn === 'finance' || fn === 'cs' || fn === 'sales', sign: fn !== 'finance', handover: fn !== 'finance', settle: fn === 'finance' } });
   return (

@@ -4,6 +4,8 @@ import { payments } from '@/integrations/payments';
 import { siteUrl } from '@/lib/site';
 import { newPayToken, payTokenHash } from '@/server/pay-token';
 import { outcomeOf, settlementOrder, stepFor, type MoneyFacts, type MoneyOutcome } from '@/server/money-steps';
+import { autoHoldStep } from '@/server/deposit-auto';
+import { settlePayreq } from '@/server/paylink';
 
 // The deposit guard's runner (migration 0155). The database decides every money step and marks it on a payment
 // (payments.server_action); this runs it at Stripe once (the idempotency key is the payment's) and records the answer.
@@ -119,8 +121,49 @@ export async function runDepositGuard(limit = 40) {
   for (const b of (s.balances ?? []).slice(0, limit)) {
     try { await collectBalance(b); out.balances++; } catch (e) { out.errors.push((e instanceof Error ? e.message : String(e)).slice(0, 200)); }
   }
+  // 0261: the holds of the pickup day first; a try that fails makes its booking's link due at once, sent just below
+  const holds = await placeDepositHolds().catch((e) => ({ held: 0, failed: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
   const links = await sendDepositLinks().catch((e) => ({ sent: 0, not_sent: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
-  return { ...out, deposit_links: links.sent, deposit_links_not_sent: links.not_sent, errors: [...out.errors, ...links.errors] };
+  return { ...out, deposit_holds: holds.held, deposit_holds_failed: holds.failed, deposit_links: links.sent, deposit_links_not_sent: links.not_sent,
+    errors: [...out.errors, ...holds.errors, ...links.errors] };
+}
+
+/** 0261: the deposit hold on the morning of the pickup day (Program settings, Deposit timing), off-session on the card on
+ *  file: the database says which bookings are due and makes one request per booking (never two holds); Stripe authorizes
+ *  (manual capture) and the hold is recorded as every hold (settlePayreq). A failure is recorded with its reason: a task
+ *  "Deposit not taken", and the deposit link goes to the renter in the same run. */
+export async function placeDepositHolds(limit = 10): Promise<{ held: number; failed: number; errors: string[] }> {
+  const due = ((await call('server_deposit_autos_due', {})) as Array<{ booking_id: string; booking_number: string }> | null) ?? [];
+  const out = { held: 0, failed: 0, errors: [] as string[] };
+  for (const d of due.slice(0, limit)) {
+    try {
+      // the request's token is never sent (no link): a fresh one, thrown away
+      const b = (await call('server_deposit_auto_begin', { p_booking: d.booking_id, p_token_sha256: await payTokenHash(newPayToken()) })) as
+        { ok: boolean; id?: string; reason?: string; booking_number?: string; amount_cents?: number; customer_id?: string; method_id?: string } | null;
+      if (!b?.ok || !b.id) { if (b?.id) out.failed++; continue; }
+      const p = await payments();
+      let intent: Awaited<ReturnType<typeof p.chargeOffSession>> | null = null;
+      let err: unknown = null;
+      try {
+        intent = await p.chargeOffSession({ customerId: b.customer_id ?? '', paymentMethodId: b.method_id ?? '', amountCents: b.amount_cents ?? 0, capture: 'manual',
+          description: `CarmaCars booking ${b.booking_number ?? d.booking_number}: deposit hold`,
+          metadata: { booking_id: d.booking_id, booking_number: b.booking_number ?? d.booking_number, purpose: 'staff_request', payment_request_id: b.id, covers: 'deposit' },
+          idempotencyKey: `payreq:${b.id}` });
+      } catch (e) { err = e; }
+      if (intent) await call('server_payreq_attach', { p_id: b.id, p_intent: intent.id });
+      const step = autoHoldStep(intent, err);
+      if (step.next === 'settle' && intent) {
+        const r = await settlePayreq(b.id, intent.id, 'hold');
+        if (r.ok) { out.held++; continue; }
+        await call('server_deposit_auto_failed', { p_id: b.id, p_error: r.message ?? r.reason ?? 'the hold was not recorded' });
+      } else if (step.next === 'failed') {
+        if (step.cancel && intent) await p.cancelIntent(intent.id, `void:${intent.id}`).catch(() => undefined);
+        await call('server_deposit_auto_failed', { p_id: b.id, p_error: step.reason });
+      }
+      out.failed++;
+    } catch (e) { out.errors.push(`${d.booking_number}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200)); }
+  }
+  return out;
 }
 
 /** 0213: the deposit hold link texted before pickup (Site settings, Deposit link by text): the same payment request as

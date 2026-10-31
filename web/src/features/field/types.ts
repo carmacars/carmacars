@@ -22,7 +22,9 @@ export interface FieldJob {
     /** 0071: the coverage in words */
     coverage_label?: string | null;
     /** 0213: the deposit hold link sent to the renter: texted, opened */
-    deposit_link?: { status: string; texted_at: string | null; opened_at: string | null; error: string | null } | null };
+    deposit_link?: { status: string; texted_at: string | null; opened_at: string | null; error: string | null } | null;
+    /** 0261: the deposit hold placed automatically on the pickup day */
+    deposit_auto?: import('@/features/money/deposit-auto-text').DepositAuto | null };
   tracker: { installed: boolean; reported_at: string | null; reporting: boolean; override?: TrackerOverride | null };
   /** What the check-out screens need to resolve the ready check on the spot (0151). */
   resolve?: Resolve;

@@ -50,7 +50,7 @@ test('confirmed, signed, deposit not held, pickup ahead: take the deposit hold a
 test('confirmed, pickup today: check out the car (and the deposit when not held)', () => {
   const s = nextStep(x({ status: 'confirmed', pickupAt: '2026-10-30T20:00:00Z', depositCents: 50000 }));
   assert.equal(s.step, 'checkout');
-  assert.match(s.text, /^Pickup is .*Check out the car and take the \$500\.00 deposit hold\./);
+  assert.match(s.text, /^Pickup is .*No deposit yet: take the \$500\.00 deposit hold now, then check out the car\./);
   assert.equal(s.action?.testId, 'next-step-checkout');
   assert.match(nextStep(x({ status: 'confirmed', pickupAt: '2026-10-29T20:00:00Z' })).text, /^Pickup was/);
 });
@@ -80,4 +80,16 @@ test('the words: no dashes or codes in any sentence', () => {
     const s = nextStep(x({ status: st, offerExpiresAt: '2026-10-31T14:00:00Z', dueCents: 1000, depositCents: 100 }));
     assert.doesNotMatch(s.text, /[–—_]/, st);
   }
+});
+
+test('Release 24b: the licence comes first, and the essentials show what is done', () => {
+  const s = nextStep(x({ status: 'confirmed', licenceOk: false, awaitingSignature: true, depositCents: 50000 }));
+  assert.equal(s.step, 'licence');
+  assert.equal(s.action?.testId, 'next-step-licence');
+  assert.deepEqual(s.essentials?.map((e) => `${e.key}:${e.done}`), ['licence:false', 'agreement:false', 'deposit:false', 'checkout_photos:false']);
+  const ok = nextStep(x({ status: 'confirmed', licenceOk: true, depositCents: 50000, depositStatus: 'held' }));
+  assert.deepEqual(ok.essentials?.filter((e) => !e.done).map((e) => e.key), ['checkout_photos']);
+  const out = nextStep(x({ status: 'on_rent', licenceOk: true, depositCents: 50000, depositStatus: 'held' }));
+  assert.deepEqual(out.essentials?.map((e) => `${e.key}:${e.done}`), ['licence:true', 'agreement:true', 'deposit:true', 'checkout_photos:true', 'checkin:false']);
+  assert.equal(nextStep(x({ status: 'closed' })).essentials, undefined);
 });

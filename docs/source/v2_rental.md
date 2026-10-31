@@ -19,7 +19,7 @@ This Agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 | Length | [●] days (30 days maximum) |
 | Rate | ☐ 1 to 6 days: [●] daily days × $[●], plus [●] weekend days × $[●]  ☐ 7 to 29 days: weekly rate $[●] ÷ 7 × [●] days  ☐ 30 days: monthly rate $[●] |
 | Mileage | Allowance: [●] km per day × [●] days = [●] km  Overage: $[●] per km |
-| Deposit | $[●], taken at pickup  ☐ Card hold  ☐ Charged and refunded  ☐ Carried over from the earlier agreement |
+| Deposit | $[●], taken on the day of pickup  ☐ Card hold  ☐ Charged and refunded  ☐ Carried over from the earlier agreement |
 | Coverage Option | ☐ 1: OPCF 27 (insurer, policy no., expiry: [●])  ☐ 2: credit card (issuer, last four digits: [●])  ☐ 3: the CarmaCars Protection Plan  Proof or activation confirmed: ☐ |
 | Deductible | $2,500 |
 | Card on File | Type and last four digits: [●]  Cardholder: [●] |
@@ -34,7 +34,7 @@ This Agreement is between 18122211 Canada Inc., operating as CarmaCars ("CarmaCa
 | Protection Plan (option 3) | $[●] |
 | Other fees: [●] | $[●] |
 | HST (13%) | $[●] |
-| **Total due at booking** (the Deposit is taken at pickup) | $[●] |
+| **Total due at booking** (the Deposit is taken on the day of pickup) | $[●] |
 
 Other Charges may arise during or after the rental under Parts 2 and 3.
 
@@ -94,7 +94,7 @@ CarmaCars: phone [●], email [●], address [●]. 24-hour incident and roadsid
 
 **5.1 Rental charge and fees.** The rental charge uses the Vehicle's rates quoted at booking and the days billed. For 1 to 6 days, each day is charged at the daily rate, or at the weekend rate if it starts on a Friday or Saturday, up to the weekly rate. For 7 to 29 days, each day is charged at one-seventh of the weekly rate, up to the monthly rate. For 30 days, the monthly rate applies. The "booking's daily rate" is the rental charge divided by the days billed. The mileage allowance is the daily allowance in the Summary multiplied by the days billed. You must also pay each Schedule fee that applies. Distance is measured by the odometer or, if it fails or is tampered with, by the Tracker.
 
-**5.2 Deposit.** The Deposit secures all Charges and does not limit what you owe. We take it at pickup, before handover, as a card hold or a refundable charge, as the Schedule says. A card hold lapses after about 7 days, so we may renew it or charge the Deposit instead if it would lapse before Check-in. At Check-in we capture or keep what you owe, and what we reasonably expect you to owe for a claim, toll or ticket still being assessed, and release the rest within 7 business days. We refund any amount held back and not owed within 30 days after Check-in. On a renewal, the Deposit carries over to the new agreement.
+**5.2 Deposit.** The Deposit secures all Charges and does not limit what you owe. We take it on the day of pickup, before handover, as a card hold (which we may place on the Card on File that morning) or a refundable charge, as the Schedule says. A card hold lapses after about 7 days, so we may renew it or charge the Deposit instead if it would lapse before Check-in. At Check-in we capture or keep what you owe, and what we reasonably expect you to owe for a claim, toll or ticket still being assessed, and release the rest within 7 business days. We refund any amount held back and not owed within 30 days after Check-in. On a renewal, the Deposit carries over to the new agreement.
 
 **5.3 Card authorization.** You must pay the total in the Summary at booking. The Card on File must be a valid credit card in your name. You authorize us to charge it, without asking you again, for every Charge, whenever it arises, including tolls, tickets, fees and Damage that become known only after return, until all Charges are paid. We will email you an itemized statement with the supporting record for anything charged after return or taken from the Deposit.
 
@@ -223,7 +223,7 @@ Standard amounts. Section 1.3 applies.
 
 | Fee | When it applies | Standard amount |
 | --- | --- | --- |
-| Deposit | Every rental, taken at pickup | $500 economy and standard; $1,000 premium and SUV; $2,500 luxury and exotic |
+| Deposit | Every rental, taken on the day of pickup | $500 economy and standard; $1,000 premium and SUV; $2,500 luxury and exotic |
 | Deposit method | Section 5.2 | Card hold for rentals of 7 days or less; charged and refunded for longer rentals |
 | Delivery fee and pickup fee | Each way | $75 to $200, depending on the vehicle |
 | Young driver fee, ages 18 to 20 | Each such driver | $35 per day, up to $350 per rental |

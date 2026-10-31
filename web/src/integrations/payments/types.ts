@@ -108,6 +108,8 @@ export interface OffSessionChargeRequest {
   customerId: string;
   paymentMethodId: string;
   amountCents: number;
+  /** 0261: manual places a hold (the deposit on the pickup day), captured later; automatic (the default) charges */
+  capture?: 'automatic' | 'manual';
   description: string;
   metadata: Record<string, string>;
   idempotencyKey: string;

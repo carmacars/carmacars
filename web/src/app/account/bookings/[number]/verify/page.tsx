@@ -13,7 +13,7 @@ import { LicenceForm } from '@/features/portal/LicenceForm';
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Licence, selfie and coverage', path: '/account/bookings', noindex: true, description: 'Upload your licence, a selfie and proof of coverage before pickup.' });
 
-const MISSING: Record<string, string> = { identity: 'Licence photos and selfie for every driver', coverage: 'Proof of coverage', additional_driver_acceptance: 'Each additional driver accepts the agreement', deposit: 'Deposit, taken at pickup', calendar_switch: 'Final check by our team', agreement: 'Signed agreement', pickup_condition_report: 'Condition Report, done at pickup' };
+const MISSING: Record<string, string> = { identity: 'Licence photos and selfie for every driver', coverage: 'Proof of coverage', additional_driver_acceptance: 'Each additional driver accepts the agreement', deposit: 'Deposit, a hold on the day of pickup', calendar_switch: 'Final check by our team', agreement: 'Signed agreement', pickup_condition_report: 'Condition Report, done at pickup' };
 
 // Identity and coverage (02 section 7.3, 08-forms.md section 7): three photos per driver and the proof
 // for the chosen coverage option, each reviewed by our team. Status from booking_readiness.

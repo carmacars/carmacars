@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
+import { rpc } from '@/lib/db/repo';
 import { getFacts } from '@/lib/site';
 import { when } from '@/features/agreement/model';
 import { bookingPath, carName, offerChanges } from '@/features/portal/status';
@@ -21,6 +22,8 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
   const missing = renterMissing(await licenceState(b.id, user.id));
   if (b.status === 'pending_payment') redirect(bookingPath(b.booking_number, b.agreement?.renter_signed_at ? 'pay' : 'sign'));
   const o = b.offers.find((x) => x.version === b.current_offer_version);
+  // 0262: the deposit with a debit or prepaid card, once the booking takes one
+  const debitDeposit = (await rpc('server_booking_debit_deposit', { p_booking: b.id }, { role: 'service_role' }).catch(() => null)) as number | null;
   const last = b.offers[b.offers.length - 1];
   const f = await getFacts();
   const c = (f as unknown as { cancellation?: { grace_bps: number; early_bps: number; mid_bps: number; late_bps: number; grace_hours: number; early_hours: number; late_hours: number } }).cancellation;
@@ -74,7 +77,7 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
               ['Return', `${when(o.return_at)}, ${placeText(b.return_place, b.return_method, false)}`],
               ['Length', `${o.billable_days} days`],
               ['Rate', b.booking_type === 'non_refundable' ? 'Non-refundable (10% off the rental charge)' : 'Standard: cancel under our policy'],
-              ['Deposit at pickup', money(o.deposit_cents)],
+              ['Deposit (on the day of pickup)', `${money(o.deposit_cents)}${debitDeposit ? `; ${money(debitDeposit)} with a debit or prepaid card` : ''}`],
               ['Kilometres', b.km_allowance_total ? `${b.km_allowance_total} km included, then ${money(b.overage_cents_per_km, { cents: true })} per km` : '']
             ]} />
           </section>

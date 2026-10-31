@@ -62,7 +62,7 @@ export default async function SignPage({ params }: { params: Promise<{ number: s
         {!noPay && <div><span>Due now</span>{money(b.renter_due_at_booking_cents, { cents: true })}</div>}
         {b.link_due && <div data-testid="sign-pay-after"><span>Paid online after you sign</span>{money(b.renter_due_at_booking_cents, { cents: true })}</div>}
         {charge && <div data-testid="sign-charge"><span>Charged when you sign</span>{money(charge.amount_cents, { cents: true })}</div>}
-        <div><span>Deposit at pickup</span>{money(b.deposit_cents)}</div>
+        <div><span>Deposit (on the day of pickup)</span>{money(b.deposit_cents)}</div>
         <div><span>Deductible</span>{money(b.deductible_cents)}</div>
         <div><span>Cancellation</span>{b.booking_type === 'non_refundable' ? 'Non-refundable' : 'Standard tiers'}</div>
       </div>

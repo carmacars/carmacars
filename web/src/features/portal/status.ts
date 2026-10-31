@@ -114,7 +114,7 @@ export function offerChanges(b: MyBooking): Array<{ label: string; before: strin
     add('Pickup', when(prev.pickup_at), when(cur.pickup_at));
     add('Return', when(prev.return_at), when(cur.return_at));
     add('Total', money(prev.total_cents), money(cur.total_cents));
-    add('Deposit at pickup', money(prev.deposit_cents), money(cur.deposit_cents));
+    add('Deposit (on the day of pickup)', money(prev.deposit_cents), money(cur.deposit_cents));
   } else {
     add('Car', car(req.vehicle), car(cur.vehicle));
     add('Pickup', req.pickup_at ? when(String(req.pickup_at)) : '', when(cur.pickup_at));
