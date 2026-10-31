@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
-import { acceptCookies, carByHand, db, noOverflow, strongSign } from './helpers';
+import { acceptCookies, carByHand, db, noOverflow, strongSign, completeAgreementDetails } from './helpers';
 
 // Migration 0046 end to end: Admin > Partners (add a partner), Admin > Vehicles > Add a car (a partner's car and a
 // CarmaCars-owned car), Add a rental by hand (Admin, and customer service in the VA portal within its limits), the renter
@@ -168,8 +168,10 @@ test('admin: partners, add a car (partner and company), add a rental, retire, de
     await rp.locator('#pt-d-licence_number').fill('W1234-56789-01234');
     await rp.locator('#pt-d-licence_expiry').fill('2031-06-30');
     await rp.getByRole('button', { name: 'Save details' }).click();
+    await completeAgreementDetails(rp);
     await expect(rp.locator('.agreement')).toContainText('100 Queen Street West', { timeout: 15_000 });
   }
+  await completeAgreementDetails(rp);
   await check(rp, 'renter signs a rental added by hand');
   await rp.getByTestId('consents-all').check();
   await strongSign(rp);

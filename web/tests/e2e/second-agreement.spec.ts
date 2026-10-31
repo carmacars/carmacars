@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { PDFArray, PDFDocument, PDFName, PDFString, StandardFonts } from 'pdf-lib';
-import { acceptCookies, db, noOverflow, pdfText, watch, giveLicence, strongSign } from './helpers';
+import { acceptCookies, db, noOverflow, pdfText, watch, giveLicence, strongSign, completeAgreementDetails } from './helpers';
 
 // The second rental agreement (docs/changes/2026-10-23-second-rental-agreement.md), end to end at 1440:
 // - an Admin uploads Blind Spot's form in Settings > Forms (a stand-in made here: Blind Spot's PDF is private and never
@@ -28,9 +28,10 @@ async function standIn(): Promise<Buffer> {
   p1.node.set(PDFName.of('Annots'), annots);
   return Buffer.from(await doc.save());
 }
-async function axe(page: Page, where: string) {
+async function axe(page: Page, where: string, exclude?: string) {
   await noOverflow(page);
-  const r = await new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  const b = new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']);
+  const r = await (exclude ? b.exclude(exclude) : b).analyze();
   expect(r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${where} ${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(', ')}`)).toEqual([]);
 }
 async function signIn(page: Page, email: string, next: string) {
@@ -86,7 +87,9 @@ test('the Blind Spot agreement: uploaded and checked by an Admin, filled for the
     expect(sampleText).toContain(String(mail!.m).toUpperCase().split(',')[0]);
     expect(sampleText).toContain('CC-10001');
     expect(sampleText).not.toMatch(/crockford/i);
-    await axe(ap, 'admin forms');
+    // the Blind Spot card; the registry forms' field tables below (five official PDFs, about 250 rows) are checked by
+    // form-fillers.spec.ts, and a second whole-page scan of them here runs the browser out of memory
+    await axe(ap, 'admin forms', '[data-testid^="form-map-"]');
     await ap.getByTestId('rental-form-check-BLINDSPOT-RA').click();
     await expect(ap.getByTestId('rental-form-state-BLINDSPOT-RA')).toHaveText('In use for bookings', { timeout: 20_000 });
 
@@ -123,6 +126,7 @@ test('the Blind Spot agreement: uploaded and checked by an Admin, filled for the
     await page.locator('#pt-d-licence_number').fill('S1234-56789-03144');
     await page.locator('#pt-d-licence_expiry').fill('2031-03-14');
     await page.getByRole('button', { name: 'Save details' }).click();
+    await completeAgreementDetails(page);
     await expect(page.locator('.agreement')).toContainText('200 Example Avenue', { timeout: 15_000 });
     const second = page.getByTestId('sign-companion');
     await expect(second).toContainText('Blind Spot Car Rental agreement');

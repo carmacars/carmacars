@@ -161,6 +161,8 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   // field staff: from the field portal, a payment link, "I sourced this client"
   const dp = await ctx(browser);
   await signIn(dp, field.email, '/staff/field');
+  // 0197: the one staff menu folds behind "Menu" on a phone
+  if (isPhone()) await dp.getByTestId('va-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
   await expect(dp.getByTestId('va-nav').getByRole('link', { name: 'Add a rental' })).toBeAttached();
   await dp.goto('/staff/field/rentals/new', { waitUntil: 'networkidle' });
   await expect(dp.getByTestId('mr-renter-q')).toHaveCount(0);

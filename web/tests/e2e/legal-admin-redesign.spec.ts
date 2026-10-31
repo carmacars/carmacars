@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { acceptCookies, db, noOverflow, pdfText, strongSign } from './helpers';
+import { acceptCookies, db, noOverflow, pdfText, strongSign, completeAgreementDetails, readyDocumentsEsign } from './helpers';
 
 // The legal review and the admin redesign of October 16, 2026 (migrations 0052 to 0055), end to end at 375 and 1440:
 //   the admin portal's To do home, its seven menu groups (one Menu button on a phone), search and the keyboard; Admin access
@@ -91,6 +91,8 @@ async function cloneRow(sql: Sql, table: string, id: string, over: Record<string
 test.describe.configure({ mode: 'serial' });
 
 test('admin: To do, the six groups, search, the keyboard, Admin access only for rent@carmacars.ca', async ({ browser }) => {
+  // five accessibility scans; Settings > Staff lists every staff member with their functions (0197), the longest page
+  test.setTimeout(120_000);
   const sql = db();
   const admin = await mkUser(sql, 'admin', 'Lr Admin');
   const page = await ctx(browser);
@@ -327,8 +329,10 @@ test('legal: a rental added with the saved card is charged only when the renter 
     await rp.locator('#pt-d-licence_number').fill('W1234-56789-01234');
     await rp.locator('#pt-d-licence_expiry').fill('2031-06-30');
     await rp.getByRole('button', { name: 'Save details' }).click();
+    await completeAgreementDetails(rp);
     await expect(rp.locator('.agreement')).toContainText('100 Queen Street West', { timeout: 15_000 });
   }
+  await completeAgreementDetails(rp);
   await expect(rp.getByTestId('sign-charge-note')).toContainText('Read and sign your rental agreement; your card is charged when you sign.');
   await check(rp, 'sign and be charged');
   await rp.getByTestId('consents-all').check();
@@ -367,7 +371,10 @@ test('legal: an investment agreement shows "Awaiting countersignature" until the
   const sha = randomBytes(32).toString('hex');
   const [req] = await sql`select public.door(${admin.id}::uuid, null, 'ops_do', 'sign_request_create', ${sql.json({ doc_type: 'investment_agreement', investor_id: iv!.id,
     exemption_category: 'accredited_investor', document: { path: `investors/${iv!.id}/ia.pdf`, sha256: sha } })}) r`;
-  await sql`select public.sign_request_sign(${inv.id}::uuid, ${(req!.r as { id: string }).id}::uuid, ${sql.json({ typed_name: inv.name, consent_text: 'I agree', document_sha256: sha, legal_advice_choice: 'declined', initials: 'II' })})`;
+  // 0193: the investor signs through a complete signing session (Schedule C initialled, a drawn signature)
+  const reqId = (req!.r as { id: string }).id;
+  const drawn = await readyDocumentsEsign(sql, inv.id, [{ kind: 'request', ref: reqId, title: 'Investment agreement', sha256: sha }]);
+  await sql`select public.sign_request_sign(${inv.id}::uuid, ${reqId}::uuid, ${sql.json({ drawn_signature: drawn, consent_text: 'I agree', document_sha256: sha, legal_advice_choice: 'declined', initials: 'II' })})`;
   const countersigned = async () => (await sql`select count(*)::int n from signature_records r join investment_agreements a on a.signature_request_id = r.signature_request_id where a.investor_id = ${iv!.id} and r.signer_role = 'carmacars'`)[0]!.n;
   expect(await countersigned(), 'no automatic countersignature').toBe(0);
   const page = await ctx(browser);
@@ -463,7 +470,7 @@ test('assistant: the grouped menu, To do first', async ({ browser }) => {
   const nav = page.getByTestId('va-nav');
   for (const g of ['My work', 'Live', 'Customer service', 'Rentals']) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
   await nav.getByTestId('nav-group-cs').click();
-  await nav.getByRole('link', { name: 'Requests' }).click();
+  await nav.getByRole('link', { name: 'Requests', exact: true }).click();
   await page.waitForURL(/\/staff\/requests/);
   await check(page, 'assistant requests');
   await page.context().close();

@@ -45,7 +45,7 @@ export async function bookingIntent(f: PaymentFacts): Promise<Intent> {
   const customerId = f.customer_id ?? (await p.createCustomer({ email: f.email, name: f.legal_name, renterId: f.renter_id, idempotencyKey: `customer:${f.renter_id}` })).id;
   const i = await p.createBookingIntent({
     bookingId: f.booking_id, bookingNumber: f.booking_number, offerVersion: f.offer_approved_version ?? 0, amountCents: f.renter_due_at_booking_cents,
-    customerId, description: `CarmaCars booking ${f.booking_number}`, idempotencyKey: `booking:${f.booking_id}:total:${f.offer_approved_version}`
+    customerId, description: `CarmaCars booking ${f.booking_number}`, idempotencyKey: `booking:${f.booking_id}:total:${f.offer_approved_version}:std`
   });
   // the card form opened, on record before anything is paid (0079)
   await intentOpened({ payment_id: i.id, purpose: 'booking_total', booking_id: f.booking_id, amount_cents: i.amountCents, by: f.renter_user_id });
