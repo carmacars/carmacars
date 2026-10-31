@@ -22,7 +22,9 @@ export default async function Delivery() {
   // the real cars' delivery fees and the day one last changed (sample cars never price anything)
   const real = fleet.filter((c) => !c.is_sample);
   // R23: never below the delivery minimum of Program settings (a car with no fee of its own showed "from $0")
-  const delFrom = real.length ? Math.min(...real.map((c) => deliveryFrom(c.delivery_fee_cents, facts.delivery_min_cents))) : null;
+  // a $0 minimum means no delivery price is set yet: the page then says nothing about a price, never "from $0"
+  const delMin = real.length ? Math.min(...real.map((c) => deliveryFrom(c.delivery_fee_cents, facts.delivery_min_cents))) : 0;
+  const delFrom = delMin > 0 ? delMin : null;
   const updated = real.map((c) => c.updated_at ?? '').filter(Boolean).sort().pop() ?? null;
   const F = (x: string) => fill(x, t);
   const fee = (c: { delivery_fee_cents: number }) => deliveryFrom(c.delivery_fee_cents, facts.delivery_min_cents);
