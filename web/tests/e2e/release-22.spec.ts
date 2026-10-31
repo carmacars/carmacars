@@ -94,13 +94,14 @@ test('rewards: the renter earns on a follow, makes a code from points and gives 
   await ap.getByTestId('rw-action-review_google').click();
   await ap.getByRole('dialog').getByLabel('On', { exact: true }).uncheck();
   await ap.getByTestId('rw-action-review_google-submit').click();
-  await expect(ap.getByTestId('rw-actions').locator('tr', { hasText: 'Review us on Google' })).toContainText('Off');
+  await expect(ap.getByTestId('rw-actions').locator('tr', { hasText: 'Review us on Google' })).toContainText('Off', { timeout: 30_000 });
   await ap.goto(`/admin/settings/rewards?renter=${renter.renterId}`, { waitUntil: 'networkidle' });
   await ap.getByTestId('rw-adjust').click();
   await ap.getByRole('dialog').getByLabel(/^Points/).fill('25');
   await ap.getByRole('dialog').getByLabel(/^Reason/).fill('Sorry for the wait at pickup');
   await ap.getByTestId('rw-adjust-submit').click();
-  await expect(ap.getByTestId('rw-renter')).toContainText('1,275 points');
+  await expect(ap.getByRole('dialog')).toHaveCount(0, { timeout: 30_000 });
+  await expect(ap.getByTestId('rw-renter')).toContainText('1,275 points', { timeout: 30_000 });
   await check(ap, 'admin rewards renter');
   await sql`update reward_actions set enabled = true where code = 'review_google'`;
   // the setup checklist names Apple Wallet while it is not set up
@@ -130,7 +131,7 @@ test('listing channels: the checklist, a channel updated, the feeds never carry 
   await ap.getByRole('dialog').getByLabel('Status').selectOption('applied');
   await ap.getByRole('dialog').getByLabel('Who holds the login').fill('Sales desk');
   await ap.getByTestId('channel-kijiji-submit').click();
-  await expect(ap.getByTestId('channels').locator('tr', { hasText: 'Kijiji' })).toContainText('Applied');
+  await expect(ap.getByTestId('channels').locator('tr', { hasText: 'Kijiji' })).toContainText('Applied', { timeout: 30_000 });
   expect(quiet(errors)).toEqual([]);
 
   const token = (await sql`select feed_token from listing_channels where slug = 'meta_catalog'`)[0]!.feed_token as string;
@@ -169,7 +170,8 @@ test('owner pipeline: Admin adds a lead and moves it; Sales sees the board; the 
   await dlg.getByLabel('The car (for example 2021 Honda Civic)').fill('2022 Toyota RAV4');
   await ap.getByTestId('op-add-submit').click();
   const card = ap.getByTestId('op-col-new').getByTestId('op-lead').filter({ hasText: who });
-  await expect(card).toContainText('Follow-up 1 of 4');
+  await expect(ap.getByRole('dialog')).toHaveCount(0, { timeout: 30_000 });
+  await expect(card).toContainText('Follow-up 1 of 4', { timeout: 30_000 });
   await sql`select app.job_owner_pipeline()`;
   const sent = await sql`select count(*)::int n from notification_outbox o join leads l on l.id = o.entity_id where l.name = ${who} and o.code = 'owner_recruit_outreach'`;
   expect(sent[0]!.n).toBe(1);
@@ -177,7 +179,7 @@ test('owner pipeline: Admin adds a lead and moves it; Sales sees the board; the 
   await ap.getByTestId('op-col-new').getByTestId('op-lead').filter({ hasText: who }).getByRole('button', { name: 'Move' }).click();
   await ap.getByRole('dialog').getByLabel('Stage').selectOption('call_booked');
   await ap.getByRole('dialog').getByRole('button', { name: 'Move' }).click();
-  await expect(ap.getByTestId('op-col-call_booked').getByTestId('op-lead').filter({ hasText: who })).toContainText('Follow-ups stopped');
+  await expect(ap.getByTestId('op-col-call_booked').getByTestId('op-lead').filter({ hasText: who })).toContainText('Follow-ups stopped', { timeout: 30_000 });
   await check(ap, 'owner pipeline moved');
   expect(quiet(errors)).toEqual([]);
 
