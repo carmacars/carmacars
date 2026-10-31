@@ -43,10 +43,16 @@ const sameName = (a: string | null | undefined, b: string | null | undefined) =>
 export async function bookingIntent(f: PaymentFacts): Promise<Intent> {
   const p = await payments();
   const customerId = f.customer_id ?? (await p.createCustomer({ email: f.email, name: f.legal_name, renterId: f.renter_id, idempotencyKey: `customer:${f.renter_id}` })).id;
-  const i = await p.createBookingIntent({
+  // one intent per offer version; once one is cancelled (a refused card, a payment voided by our checks) the same key
+  // would hand back that cancelled intent forever, so the next try takes a key chained to the cancelled one: still
+  // idempotent (two presses get the same new intent), and the renter can pay again after a refusal or a staff change
+  const base = `booking:${f.booking_id}:total:${f.offer_approved_version}:std`;
+  const make = (idempotencyKey: string) => p.createBookingIntent({
     bookingId: f.booking_id, bookingNumber: f.booking_number, offerVersion: f.offer_approved_version ?? 0, amountCents: f.renter_due_at_booking_cents,
-    customerId, description: `CarmaCars booking ${f.booking_number}`, idempotencyKey: `booking:${f.booking_id}:total:${f.offer_approved_version}:std`
+    customerId, description: `CarmaCars booking ${f.booking_number}`, idempotencyKey
   });
+  let i = await make(base);
+  for (let n = 0; i.status === 'canceled' && n < 10; n++) i = await make(`${base}:after:${i.id}`);
   // the card form opened, on record before anything is paid (0079)
   await intentOpened({ payment_id: i.id, purpose: 'booking_total', booking_id: f.booking_id, amount_cents: i.amountCents, by: f.renter_user_id });
   return i;
