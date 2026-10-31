@@ -1265,7 +1265,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "first_name",
@@ -1452,7 +1452,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "first_name",
@@ -2987,7 +2987,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "deposit_method_text",
@@ -3878,7 +3878,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "deposit_applied",
@@ -4420,7 +4420,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "first_name",
@@ -5133,7 +5133,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "first_name",
@@ -5313,7 +5313,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "first_name",
@@ -5838,7 +5838,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "field_staff_name",
@@ -6644,7 +6644,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "first_name",
@@ -6835,7 +6835,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "deposit_method",
@@ -7303,7 +7303,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "deposit_release_days",
@@ -13318,7 +13318,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$1,000.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "first_name",
@@ -15709,7 +15709,7 @@
           "name": "deposit_amount",
           "type": "string",
           "sample": "$500.00",
-          "note": "Security deposit for this booking, taken at pickup."
+          "note": "Security deposit for this booking, a hold on the day of pickup."
         },
         {
           "name": "deposit_method",

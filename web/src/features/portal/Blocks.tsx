@@ -46,7 +46,7 @@ export function PriceBreakdown({ lines, hst, total, totalLabel = 'Total due now'
         {insurer ? <div><dt>Billed to your insurer</dt><dd>{money(-insurer, { cents: true })}</dd></div> : null}
         <div><dt><b>{totalLabel}</b></dt><dd className="pt-total" data-testid="total-due">{money(total, { cents: true })}</dd></div>
       </dl>
-      {deposit !== undefined && <p className="small muted">Refundable deposit of {money(deposit)} is taken at pickup, not today.</p>}
+      {deposit !== undefined && <p className="small muted">Refundable deposit of {money(deposit)} is a hold on the day of pickup, not today.</p>}
     </div>
   );
 }

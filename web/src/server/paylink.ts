@@ -2,7 +2,7 @@ import 'server-only';
 import { rpc } from '@/lib/db/repo';
 import { payments, type Intent } from '@/integrations/payments';
 import { isPayToken, payTokenHash } from '@/server/pay-token';
-import { CARD_NOT_CREDIT, payCardStep } from '@/server/pay-card';
+import { CARD_NOT_CREDIT, holdAmountMessage, holdAmountStep, payCardStep } from '@/server/pay-card';
 
 // A card request staff started (0129): its facts by the link's token, and what Stripe reports for it, read again from
 // Stripe (the pay page's action and the webhook both end here; the database makes the second call a repeat).
@@ -45,10 +45,29 @@ export async function settlePayreq(id: string, intentId: string, kind: PayLinkFa
     }
     if (step === 'capture') i = await p.captureIntent(i.id, `capture:${i.id}`);
   }
-  const res = (await rpc('server_payreq_settle', { p_id: id, p_intent: {
+  // 0262: a deposit hold is higher on a debit or prepaid card; a hold placed for the other kind of card's amount is voided
+  // and the same link asks again for the right amount (never two holds)
+  if (kind === 'hold' && i.card && i.status === 'requires_capture') {
+    const need = (await rpc('server_payreq_hold_required', { p_id: id, p_card: { funding: i.card.funding } as never }, SR).catch(() => null)) as unknown as number | null;
+    const step = holdAmountStep(i.amountCents, need);
+    if (step.reask) {
+      await p.cancelIntent(i.id, `void:${i.id}`).catch(() => undefined);
+      const fresh = await p.createStaffIntent({ amountCents: step.amountCents, customerId: i.customerId ?? '', capture: 'manual', description: `CarmaCars booking ${i.metadata.booking_number ?? ''}: deposit hold`.trim(),
+        metadata: { ...i.metadata }, idempotencyKey: `payreq:${id}:amount:${i.id}` });
+      await rpc('server_payreq_hold_reset', { p_id: id, p_intent: fresh.id, p_amount: step.amountCents }, SR);
+      return { ok: false, reason: 'hold_amount', message: holdAmountMessage(i.card.funding, step.amountCents) };
+    }
+  }
+  // a hold that cannot be recorded (the deposit was already taken another way, 0261): the authorization is voided, so
+  // the renter never has two holds
+  const settle = (args: { p_id: string; p_intent: never }) => rpc('server_payreq_settle', args, SR).catch(async (e: unknown) => {
+    if (kind === 'hold' && i.status === 'requires_capture' && /already been taken/.test(e instanceof Error ? e.message : String(e))) await p.cancelIntent(i.id, `void:${i.id}`).catch(() => undefined);
+    throw e;
+  });
+  const res = (await settle({ p_id: id, p_intent: {
     id: i.id, status: i.status, amount: i.amountCents, amount_capturable: i.amountCapturableCents, charge_id: i.chargeId, customer_id: i.customerId, method_id: i.paymentMethodId,
     error: i.lastError, card: i.card ? { brand: i.card.brand, last4: i.card.last4, exp_month: i.card.expMonth, exp_year: i.card.expYear, funding: i.card.funding, name: i.card.name, fingerprint: i.card.fingerprint, country: i.card.country ?? null } : null
-  } }, SR)) as unknown as { ok: boolean; reason?: string; refund?: boolean };
+  } } as never)) as unknown as { ok: boolean; reason?: string; refund?: boolean };
   // another card on a card-coverage rental (0203): refused, and the money it took is given back at once
   if (res.refund && kind === 'charge' && i.status === 'succeeded') {
     await p.refund({ paymentIntentId: i.id, chargeId: i.chargeId, amountCents: i.amountCents, idempotencyKey: `same-card-refund:${id}`, metadata: { payment_request_id: id, reason: 'card_coverage_other_card' } }).catch(() => undefined);

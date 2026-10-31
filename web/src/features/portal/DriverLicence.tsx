@@ -2,7 +2,8 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { driverLicenceSave, driverLicenceUpload } from '@/server/actions/driver-licence';
-import { reencode } from './UploadCard';
+import { toStandardImage } from '@/features/uploads/standard-image';
+import { PHOTO_ACCEPT } from '@/features/uploads/formats';
 import type { LicenceStatus } from '@/features/handover/types';
 
 // The additional driver's licence on their signing link (migration 0130): the details, then the front, the back and a
@@ -19,8 +20,8 @@ export function DriverLicence({ token, l, selfie }: { token: string; l: LicenceS
     if (!f) return;
     start(async () => {
       setErr(null);
-      let body: Blob = f;
-      try { body = await reencode(f); } catch { /* keep the original */ }
+      let body: Blob;
+      try { body = await toStandardImage(f); } catch (e) { setErr(e instanceof Error ? e.message : 'We could not read that file.'); return; }
       const fd = new FormData(); fd.set('kind', kind); fd.set('file', body, `${kind}.jpg`);
       const r = await driverLicenceUpload(token, fd);
       if (!r.ok) setErr(r.message); else router.refresh();
@@ -48,7 +49,9 @@ export function DriverLicence({ token, l, selfie }: { token: string; l: LicenceS
             <div key={k} className="pt-up" data-testid={`dl-${k}`}>
               <div className="pt-card__head"><h3 className="d4">{t}</h3>{st && <span className={`badge ${st === 'approved' ? '' : st === 'rejected' ? 'badge--red' : 'badge--outline'}`}>{STATE[st] ?? st}</span>}</div>
               <label className="btn btn--ghost btn--sm">{pending ? 'Uploading' : st && st !== 'rejected' ? 'Replace' : 'Take or choose a photo'}
-                <input className="vh" type="file" accept="image/*" capture={cam as 'user' | 'environment'} onChange={(e) => { up(k, e.target.files?.[0]); e.target.value = ''; }} data-testid={`dl-file-${k}`} /></label>
+                <input className="vh" type="file" accept={k === 'selfie' ? 'image/*' : PHOTO_ACCEPT} capture={cam as 'user' | 'environment'} onChange={(e) => { up(k, e.target.files?.[0]); e.target.value = ''; }} data-testid={`dl-file-${k}`} /></label>
+              {k !== 'selfie' && <label className="btn btn--quiet btn--sm">Choose a file (photo, HEIC or PDF)
+                <input className="vh" type="file" accept={PHOTO_ACCEPT} onChange={(e) => { up(k, e.target.files?.[0]); e.target.value = ''; }} data-testid={`dl-pick-${k}`} /></label>}
             </div>
           );
         })}

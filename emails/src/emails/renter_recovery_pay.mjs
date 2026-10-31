@@ -16,7 +16,7 @@ export default {
   body: [
     hero('Almost booked', 'You are one step away', 'You approved our offer for the {{vehicle_name}}, {{first_name}}, but the payment was not finished. The car is booked only when you sign and pay.'),
     trip(),
-    figure('To pay now', '{{total_amount}}', 'HST included. The security deposit is separate and taken at pickup.'),
+    figure('To pay now', '{{total_amount}}', 'HST included. The security deposit is separate: a hold on the day of pickup.'),
     button('Finish and pay', '@booking_pay'),
     small('Did the card not go through? Try another credit card in your name, or reply to this email and we will help.'),
   ],

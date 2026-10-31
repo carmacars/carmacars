@@ -22,7 +22,7 @@ export default {
     facts(
       ['Payment', '{{payment_line}}'],
       ['Kilometres included', '{{km_allowance}}, then {{overage_rate}} per km'],
-      ['Security deposit', '{{deposit_amount}}, taken at pickup'],
+      ['Security deposit', '{{deposit_amount}}, a hold on the day of pickup'],
     ),
     notice('info', 'Sign your rental agreement', '{{sign_line}} It takes about two minutes. Sign in with this email address; if you have no account yet, create one with this same address and your booking is there.'),
     button('Sign my rental agreement', '@booking_sign'),

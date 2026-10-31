@@ -56,7 +56,7 @@ test('ads automation: listing text, posted ad and its update task, social drafts
     expect(link).toContain('utm_medium=classified');
     if (code) expect(link).toContain(`utm_campaign=${code}`);
     await expect(page.getByTestId('ads-body')).toHaveValue(/For rent by the day, week or month\./);
-    await expect(page.getByTestId('ads-body')).toHaveValue(/\$300 refundable deposit taken at pickup\./);
+    await expect(page.getByTestId('ads-body')).toHaveValue(/\$300 refundable deposit hold on the day of pickup\./);
     expect(await page.getByTestId('ads-body').inputValue()).not.toMatch(/—|18122211/);
     await axe(page, 'listings 1440');
     await page.setViewportSize({ width: 375, height: 900 });

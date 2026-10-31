@@ -21,6 +21,8 @@ export const metadata = pageMeta({ title: 'Pay for your booking', path: '/accoun
 // Pay (02 section 6): the lines as stored, the deposit rule, and the card form.
 export default async function PayPage({ params }: { params: Promise<{ number: string }> }) {
   const { b, user } = await myBooking((await params).number, 'pay');
+  // 0262: the deposit with a debit or prepaid card, once the booking takes one
+  const debitDeposit = (await rpc('server_booking_debit_deposit', { p_booking: b.id }, { role: 'service_role' }).catch(() => null)) as number | null;
   // a rental added while already underway with a payment link (0074) is paid here after signing, on trip
   const live = !!b.link_due;
   if (!live && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status)) redirect(bookingPath(b.booking_number));
@@ -55,7 +57,7 @@ export default async function PayPage({ params }: { params: Promise<{ number: st
               : offline.rental_pay_method === 'insurer' ? <p>Your insurer is billed for this rental: nothing to pay now. We confirm your booking shortly.</p>
               : offline.rental_pay_method === 'platform_payout' ? <p>This rental is paid on the platform you booked through: nothing to pay here. We confirm your booking shortly.</p>
               : <p>Pay <b>{money(offline.open_cents, { cents: true })}</b> as agreed with our team ({offline.rental_pay_method.replace(/_/g, ' ')}). We confirm your booking when it is received.</p>}
-            <p className="small">{offline.deposit_pay_method === 'card' ? `The refundable deposit of ${money(b.deposit_cents)} is held on your credit card at pickup.` : offline.deposit_pay_method === 'none' ? 'No deposit on this booking.' : `The refundable deposit of ${money(b.deposit_cents)} is paid ${offline.deposit_pay_method === 'cash' ? 'in cash' : 'by e-Transfer'} and given back the same way.`}</p>
+            <p className="small">{offline.deposit_pay_method === 'card' ? `The refundable deposit of ${money(b.deposit_cents)} is held on your credit card on the day of pickup${debitDeposit ? ` (${money(debitDeposit)} on a debit or prepaid card)` : ''}.` : offline.deposit_pay_method === 'none' ? 'No deposit on this booking.' : `The refundable deposit of ${money(b.deposit_cents)} is paid ${offline.deposit_pay_method === 'cash' ? 'in cash' : 'by e-Transfer'} and given back the same way.`}</p>
           </section>
           ) : (
           <section className="pt-card" aria-labelledby="pt-pay"><h2 className="d4" id="pt-pay">Card</h2>

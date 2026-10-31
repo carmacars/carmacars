@@ -7,6 +7,8 @@ import type { Clause } from '@/features/agreement/extra';
 import { EsignFlow } from '@/features/signing/EsignFlow';
 import type { EsignReady } from '@/features/signing/types';
 import { ID_PHOTO, shrinkImage } from '@/lib/image-shrink';
+import { toStandardImage } from '@/features/uploads/standard-image';
+import { PHOTO_ACCEPT } from '@/features/uploads/formats';
 import { prepareAgreementNow, signInPerson, staffLicenceUpload } from '@/server/actions/sign-now';
 import type { Signer, SigningState } from './types';
 
@@ -74,9 +76,12 @@ function Licence({ s, g }: { s: SigningState; g: Signer }) {
     const driver = g.driver_id;
     start(async () => {
       // a licence or selfie: redrawn at most 2560 px, upright, without the camera's metadata (lib/image-shrink)
-      const p = await shrinkImage(f, ID_PHOTO);
+      const p = await shrinkImage(f, ID_PHOTO).catch(() => ({ blob: f as Blob, width: 0 }));
+      // Release 24b: a photo the camera code cannot read (HEIC, WEBP, a PDF scan) through the standard conversion
+      let file: File | null = p.width ? new File([p.blob], `${kind}.jpg`, { type: 'image/jpeg' }) : null;
+      if (!file) { try { file = new File([await toStandardImage(f)], `${kind}.jpg`, { type: 'image/jpeg' }); } catch (e) { setErr(e instanceof Error ? e.message : 'We could not read that file.'); return; } }
       const fd = new FormData(); fd.set('booking', s.booking_id); fd.set('driver', driver); fd.set('kind', kind);
-      fd.set('file', p.width ? new File([p.blob], `${kind}.jpg`, { type: 'image/jpeg' }) : f);
+      fd.set('file', file);
       const r = await staffLicenceUpload(fd); setErr(r.ok ? null : r.message); if (r.ok) router.refresh(); });
   };
   return (
@@ -85,7 +90,7 @@ function Licence({ s, g }: { s: SigningState; g: Signer }) {
       {!l.complete && g.driver_id && <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
         {KINDS.filter(([k]) => !(l as unknown as Record<string, string | null>)[k] || (l as unknown as Record<string, string | null>)[k] === 'rejected').map(([k, t]) => (
           <label key={k} className="btn btn--ghost btn--sm">{pending ? 'Uploading' : `Photograph: ${t}`}
-            <input className="vh" type="file" accept="image/*" capture={k === 'selfie' ? 'user' : 'environment'} data-testid={`sn-photo-${k}`} onChange={(e) => { up(k, e.target.files?.[0]); e.target.value = ''; }} /></label>
+            <input className="vh" type="file" accept={k === 'selfie' ? 'image/*' : PHOTO_ACCEPT} capture={k === 'selfie' ? 'user' : 'environment'} data-testid={`sn-photo-${k}`} onChange={(e) => { up(k, e.target.files?.[0]); e.target.value = ''; }} /></label>
         ))}
       </div>}
       {err && <p className="error" role="alert">{err}</p>}

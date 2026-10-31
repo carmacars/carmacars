@@ -16,7 +16,7 @@ export default {
   body: [
     hero('Offer expiring', 'Your offer ends in {{time_left}}', 'Your offer for the {{vehicle_name}} is open until {{offer_expires_at}}, {{first_name}}. The car is not booked until you approve, sign and pay.'),
     trip(),
-    figure('Total to pay now', '{{total_amount}}', 'HST included. The {{deposit_amount}} security deposit is separate and taken at pickup.'),
+    figure('Total to pay now', '{{total_amount}}', 'HST included. The {{deposit_amount}} security deposit is separate: a hold on the day of pickup.'),
     button('Approve and pay', '@booking_offer'),
     small('If the dates no longer work, [ask for a change](@booking_change). If you have changed your mind, do nothing and the offer will expire. No charge either way.'),
     small('An offer does not hold the car. If another renter pays for the same car and dates first, we withdraw the offer and tell you.'),

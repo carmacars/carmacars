@@ -180,6 +180,9 @@ export function fakePayments(): FakePayments {
       return once(r.idempotencyKey, () => {
         const i = blank(r.amountCents, r.metadata, r.customerId);
         i.paymentMethodId = r.paymentMethodId; i.chargeId = `ch_fake_${i.id.slice(8)}`; i.status = 'succeeded';
+        // a saved card named "decline" is refused off-session; a hold (manual capture) waits for its capture
+        if (/decline/.test(r.paymentMethodId)) { i.status = 'requires_payment_method'; i.chargeId = null; i.lastError = 'Your card was declined.'; }
+        else if (r.capture === 'manual') { i.status = 'requires_capture'; i.amountCapturableCents = i.amountCents; }
         return i;
       });
     },

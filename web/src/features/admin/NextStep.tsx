@@ -11,6 +11,10 @@ export function NextStepPanel({ s }: { s: NextStep }) {
         <h2 className="ad-next__h" id="next-step-h">Next step</h2>
         <p className="ad-next__say" data-testid="next-step-text">{s.text}</p>
         <p className="small muted" data-testid="next-step-who">Who: {s.who}</p>
+        {/* Release 24b: the handover essentials, a hard priority: the car is not released without them */}
+        {s.essentials && <ul className="ad-next__list small" aria-label="Before the car goes out" data-testid="next-step-essentials">
+          {s.essentials.map((e) => <li key={e.key} data-testid={`essential-${e.key}`} data-done={e.done ? 'yes' : 'no'}>{e.done ? 'Done: ' : 'Needed: '}{e.label}</li>)}
+        </ul>}
       </div>
       {s.action && <Link prefetch={false} className="btn btn--primary btn--sm" href={s.action.href} data-testid={s.action.testId}>{s.action.label}</Link>}
     </section>

@@ -139,7 +139,7 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
       </section>
 
       <section className="pt-card stack" aria-labelledby={`${uid}-c`}><h2 className="d4" id={`${uid}-c`}>2. The car</h2>
-        <VinEntry value={car} onChange={setCar} prefix="addcar" carHref={base === '/admin' ? (id) => `/admin/vehicles/${id}` : undefined} err={a.err('vin')} />
+        <VinEntry value={car} onChange={setCar} prefix="addcar" allowNone carHref={base === '/admin' ? (id) => `/admin/vehicles/${id}` : undefined} err={a.err('vin')} />
         <ColourSwatches value={car.colour} onChange={(c) => setCar((x) => ({ ...x, colour: c }))} prefix="addcar" legend="Colour (optional)"
           hint="Not in the VIN. Leave it empty and it is read from the cover photo once there is one." />
         <div className="ad-fields ob-terms">
@@ -150,6 +150,9 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
           <div className="field"><label className="label" htmlFor={`${uid}-mm`}>How it is rented</label>
             <select className="select" id={`${uid}-mm`} value={v.management_mode} onChange={(e) => setV({ ...v, management_mode: e.target.value })}><option value="managed">Managed</option><option value="self_managed">Self-Managed</option><option value="turo_only">Turo-Only</option></select></div>
         </div>
+        <div className="field"><label className="label" htmlFor={`${uid}-notes`}>Notes (optional)</label>
+          <textarea className="input ad-textarea" rows={3} id={`${uid}-notes`} maxLength={4000} value={v.notes ?? ''} onChange={(e) => setV({ ...v, notes: e.target.value })} data-testid="addcar-notes" />
+          <p className="hint">For staff: what the owner said, what is still to come. Shown on the car page.</p></div>
         <p className="small muted">Photos are optional: the listing shows sample photos until real ones are added on the car&apos;s listing.</p>
         <fieldset className="stack"><legend className="label">Documents (optional)</legend>
           {DOCS.filter(([k]) => k !== 'finance_party_permission' || v.title_status !== 'owned_outright').map(([k, l, h]) => (

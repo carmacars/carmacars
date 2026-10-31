@@ -23,8 +23,9 @@ function loadStripe(key: string): Promise<StripeLink> {
   });
 }
 
-export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null, debitOk = false }: { token: string; kind: 'charge' | 'hold' | 'setup'; amountCents: number; legalName: string; backTo?: string | null;
-  /** 0230: the booking takes a debit or prepaid card (an Admin's override, the site-wide setting, a car needing no credit card) */ debitOk?: boolean }) {
+export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null, debitOk = false, debitDepositCents = null }: { token: string; kind: 'charge' | 'hold' | 'setup'; amountCents: number; legalName: string; backTo?: string | null;
+  /** 0230: the booking takes a debit or prepaid card (an Admin's override, the site-wide setting, a car needing no credit card) */ debitOk?: boolean;
+  /** 0262: the deposit with a debit or prepaid card (higher), said before the card is entered */ debitDepositCents?: number | null }) {
   const [p, setP] = useState<PayLinkStart | null>(null);
   const [fatal, setFatal] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -70,7 +71,7 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
         if (r.error) { setMsg(r.error.message ?? 'Your card was declined.'); setBusy(false); return; }
       }
       const f = await payLinkFinish(token);
-      if (f.ok && !f.data.ok && f.data.reason === 'card_not_credit') { setMsg(f.data.message ?? 'Please use a credit card. If you only have a debit or prepaid card, contact us.'); setBusy(false); setRound((x) => x + 1); return; }
+      if (f.ok && !f.data.ok && (f.data.reason === 'card_not_credit' || f.data.reason === 'hold_amount')) { setMsg(f.data.message ?? 'Please use a credit card. If you only have a debit or prepaid card, contact us.'); setBusy(false); setRound((x) => x + 1); return; }
       if (!f.ok || !f.data.ok) { setMsg(f.ok ? f.data.reason ?? 'The card was not accepted.' : f.message); setBusy(false); return; }
       setDone(true);
     } catch { setMsg('We could not finish. If your card was charged, we will see it: call us.'); setBusy(false); }
@@ -93,7 +94,7 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
           </div>
         </div>
       ) : <div className="pt-cardbox" ref={mount} aria-label="Card details">{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
-      {debitOk && kind !== 'setup' && <p className="small muted" data-testid="paylink-debit-note">With a debit or prepaid card, {kind === 'hold' ? 'this hold lowers' : 'a deposit hold lowers'} the money available on the card or account until it is released, and the release can take several business days.</p>}
+      {debitOk && kind !== 'setup' && <p className="small muted" data-testid="paylink-debit-note">With a debit or prepaid card, {kind === 'hold' ? 'this hold lowers' : 'a deposit hold lowers'} the money available on the card or account until it is released, and the release can take several business days.{debitDepositCents ? ` The deposit is ${money(debitDepositCents, { cents: true })} with a debit or prepaid card.` : ''}</p>}
       {msg && <p className="alert alert--error" role="alert" data-testid="paylink-message"><span>{msg}</span></p>}
       <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy} data-testid="paylink-submit">{busy ? 'Working' : kind === 'hold' ? `Place the hold of ${money(amountCents, { cents: true })}` : kind === 'setup' ? 'Save the card' : `Pay ${money(amountCents, { cents: true })}`}</button>
     </form>

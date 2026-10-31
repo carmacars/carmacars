@@ -165,6 +165,11 @@ test('admin: an offer without a request, edited in place, paid by part, confirme
   expect(pays.map((p) => `${p.method}:${p.purpose}`).join(',')).toBe('e_transfer:booking_total,cash:deposit');
   const [b3] = await sql`select status from bookings where id = ${b!.id}`;
   expect(b3!.status).toBe('confirmed');
+  // Release 24b: the handover essentials at the top of the booking: the deposit is done, the check-out photos still needed
+  await page.reload({ waitUntil: 'networkidle' });
+  await expect(page.getByTestId('next-step-essentials')).toBeVisible();
+  await expect(page.getByTestId('essential-deposit')).toHaveAttribute('data-done', 'yes');
+  await expect(page.getByTestId('essential-checkout_photos')).toHaveAttribute('data-done', 'no');
   await sql.end();
 });
 

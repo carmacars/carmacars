@@ -41,7 +41,7 @@ export default {
       ['Pickup place', '{{pickup_place}}'],
       ['Return place', '{{return_place}}'],
       ['Kilometres included', '{{km_allowance}}, then {{overage_rate}} per km'],
-      ['Security deposit', '{{deposit_amount}}, taken at pickup and separate from the total'],
+      ['Security deposit', '{{deposit_amount}}, a hold on the day of pickup, separate from the total'],
     ),
     button('Review, approve and pay', '@booking_offer'),
     notice('info', 'This offer is open until {{offer_expires_at}}', 'An offer does not hold the car. It is booked only when you approve, sign and pay. If another renter pays for the same car and dates first, we withdraw the offer and tell you.'),

@@ -53,7 +53,7 @@ export default async function CancelPage({ params }: { params: Promise<{ number:
             ['Kept by CarmaCars', money(p.retained_cents, { cents: true })],
             ['Refund sent by', p.refund_due_by ? when(`${p.refund_due_by}T12:00:00Z`, false) : '']
           ]} />
-          <p className="small muted">The deposit is taken at pickup, so none is held now. <Link prefetch={false} className="link" href="/cancellation-policy">Cancellation policy</Link></p>
+          <p className="small muted">The deposit is a hold on the day of pickup, so none is held now. <Link prefetch={false} className="link" href="/cancellation-policy">Cancellation policy</Link></p>
         </section>
         <aside className="pt-split__aside"><section className="pt-card" aria-labelledby="pt-confirm"><h2 className="d4" id="pt-confirm">Confirm</h2>
           {p.can_cancel ? <CancelForm number={b.booking_number} /> : <p>{p.message ?? 'This booking cannot be cancelled online. Call us.'}</p>}

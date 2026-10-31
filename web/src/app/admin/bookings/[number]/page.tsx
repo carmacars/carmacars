@@ -110,7 +110,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
   const step = nextStep({ status: b.status, base, now: new Date(), pickupAt: b.pickup_at, returnAt: b.return_at, offerExpiresAt: b.offer_expires_at,
     dueCents: Number(b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents ?? 0),
     paidCents: b.payments.filter((r) => r.kind === 'charge' && r.status === 'succeeded').reduce((a, r) => a + Number(r.amount_cents ?? 0), 0),
-    awaitingSignature: b.readiness?.awaiting_signature === true, depositCents: Number(b.deposit_cents ?? 0), depositStatus: (b.deposit?.status as string | undefined) ?? null,
+    awaitingSignature: b.readiness?.awaiting_signature === true, licenceOk: (b.readiness?.all_drivers_verified as boolean | undefined) ?? null, depositCents: Number(b.deposit_cents ?? 0), depositStatus: (b.deposit?.status as string | undefined) ?? null,
     insurerBilled: b.bill_to !== 'renter' });
   return (
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && tab === 'review'}>
@@ -209,6 +209,9 @@ export default async function Booking({ params, searchParams }: { params: Promis
               : <Act action="booking_allow_debit" payload={{ booking: b.booking_number, allow: true }} label="Allow debit and prepaid cards for this booking" refresh={refresh} testId="booking-debit-on"
                   confirm="The pay page, staff pay links and the deposit hold of this booking will take a debit or prepaid card. The renter is told the hold lowers the money available on the card until it is released. The deductible may not be chargeable on such a card."
                   fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} />}
+            {/* 0262: the deposit with a debit or prepaid card, for this booking */}
+            {moneyByPart.debit_deposit?.takes && <Act action="booking_debit_deposit" payload={{ booking: b.booking_number }} label="Change the debit deposit" refresh={refresh} testId="booking-debit-deposit"
+              fields={[{ name: 'amount_cents', label: 'Deposit with a debit or prepaid card (empty: the standard multiple)', type: 'money' }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} />}
           </div>}
           <OwnerDeductionsPanel userId={user.id} booking={b.booking_number} refresh={refresh} />
           {fees && <BookingFees x={fees} />}

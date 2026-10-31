@@ -85,6 +85,23 @@ test('an off-session charge confirms at once on the saved card', async () => {
   assert.equal(body.get('metadata[extension_id]'), 'e1');
 });
 
+test('0261: the deposit hold off-session is a manual-capture card authorization on the saved card', async () => {
+  const { f, calls } = mock([{ body: pi({ status: 'requires_capture' }) }]);
+  await stripeAdapter('sk_test_abc', f).chargeOffSession({ customerId: 'cus_1', paymentMethodId: 'pm_1', amountCents: 50000, capture: 'manual', description: 'Deposit hold', metadata: { payment_request_id: 'q1' }, idempotencyKey: 'payreq:q1' });
+  const body = new URLSearchParams(String(calls[0]!.init.body));
+  assert.equal(body.get('capture_method'), 'manual');
+  assert.equal(body.get('off_session'), 'true');
+  assert.equal(body.get('confirm'), 'true');
+  assert.equal(body.get('payment_method_types[]'), 'card');
+  assert.equal((calls[0]!.init.headers as Record<string, string>)['idempotency-key'], 'payreq:q1');
+});
+
+test('an off-session charge without capture stays automatic', async () => {
+  const { f, calls } = mock([{ body: pi({ status: 'succeeded' }) }]);
+  await stripeAdapter('sk_test_abc', f).chargeOffSession({ customerId: 'cus_1', paymentMethodId: 'pm_1', amountCents: 100, description: 'x', metadata: {}, idempotencyKey: 'k' });
+  assert.equal(new URLSearchParams(String(calls[0]!.init.body)).get('capture_method'), null);
+});
+
 test('a Stripe error becomes a StripeError with the decline code; a 500 is retried', async () => {
   const { f, calls } = mock([
     { status: 500, body: { error: { message: 'temporary' } } },

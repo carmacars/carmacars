@@ -53,7 +53,7 @@ test('classified text: the spec\'s template, facts only', () => {
   assert.match(l.body, /Delivery from \$40 each way, or pick it up yourself\./);
   assert.match(l.body, /You need: age 18 or older \(this car is open to ages 18 to 20\); a G2 or G licence; one coverage option/);
   assert.match(l.body, /a credit card in your name\./);
-  assert.match(l.body, /\$500 refundable deposit taken at pickup\./);
+  assert.match(l.body, /\$500 refundable deposit hold on the day of pickup\./);
   assert.match(l.body, /Rentals up to 30 days\./);
   assert.match(l.body, /Car code CC-7F3A/);
   // a car without the young driver setting, without a card, off the fleet policy: the sentences change or go

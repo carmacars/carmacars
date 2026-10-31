@@ -7,7 +7,7 @@ select test.mk_vehicle('DLTB', 'dlt_o');
 select test.mk_vehicle('DLTC', 'dlt_o');
 select test.mk_renter('dlt_r');
 select test.mk_renter('dlt_n', false);
-update renters set mobile = null where id = test.id('renter:dlt_n');
+update renters set mobile = null, email = null where id = test.id('renter:dlt_n');  -- 0261: no mobile and no email (with an email the link goes by email)
 create temp table dlt_phone as select (app.settings()).phone_enabled v;
 update program_settings set phone_enabled = true where id = (app.settings()).id;
 create or replace function test.dlt_at(p_hours int) returns text language sql as $$
@@ -58,7 +58,7 @@ update site_settings set deposit_link_auto = false where singleton;
 select test.ok('the switch off: nothing is due', not test.dlt_due('CC-DLT3'));
 update site_settings set deposit_link_auto = true where singleton;
 
--- no mobile: the task "Deposit link not sent"
+-- no mobile and no email: the task "Deposit link not sent"
 insert into dlt select 'n', public.server_deposit_link_payreq((select id from bookings where booking_number = 'CC-DLT3'), encode(sha256('dltnomobileabcdefghijklmnop'::bytea), 'hex'));
 select test.eq('no mobile: not sent', public.server_deposit_link_send((select (v ->> 'id')::uuid from dlt where k = 'n'), 'https://carmacars.ca/pay/dltnomobileabcdefghijklmnop') ->> 'reason', 'no mobile');
 select test.ok('a task "Deposit link not sent" on the booking, and the Admins told', exists (select 1 from tasks t where t.booking_id = (select id from bookings where booking_number = 'CC-DLT3')

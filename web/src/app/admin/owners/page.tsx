@@ -10,6 +10,7 @@ import { ViewAsButton } from '@/features/admin/ViewAs';
 import { door } from '@/server/door';
 import { Tabs } from '@/features/admin/ui';
 import { ChecklistItems, OwnerChecklist, type OwnerChecklistRow } from '@/features/manual/OwnerChecklist';
+import { AddOwnerForm } from '@/features/owner-billing/AddOwnerForm';
 
 type Acct = { id: string; email: string; name: string; status: string };
 
@@ -40,7 +41,8 @@ export default async function AdminOwners({ searchParams }: { searchParams: Prom
                 : <InviteRecordButton role="owner" recordId={o.owner_id} email={o.email} name={o.legal_name} testId={`invite-owner-${o.owner_id}`} />}</span>
             </li>))}</ul> : <p className="pt-empty muted">No applications yet.</p>}
         </section>
-        <aside className="pt-split__aside"><section className="pt-card" aria-labelledby="ad-invite"><h2 className="d4" id="ad-invite">Invite an owner</h2><p className="small muted">Sends a link to the application, valid for 14 days.</p><SendLinkForm kind="invite" /></section></aside>
+        <aside className="pt-split__aside stack"><section className="pt-card" aria-labelledby="ad-add-owner"><h2 className="d4" id="ad-add-owner">Add an owner</h2><p className="small muted">On file without a car; add cars later. Nothing is emailed unless you choose to invite.</p><AddOwnerForm /></section>
+          <section className="pt-card" aria-labelledby="ad-invite"><h2 className="d4" id="ad-invite">Invite an owner</h2><p className="small muted">Sends a link to the application, valid for 14 days.</p><SendLinkForm kind="invite" /></section></aside>
       </div>
     </>
   );

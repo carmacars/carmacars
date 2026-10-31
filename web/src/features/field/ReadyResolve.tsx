@@ -1,4 +1,6 @@
 'use client';
+import { toStandardImage } from '@/features/uploads/standard-image';
+import { PHOTO_ACCEPT } from '@/features/uploads/formats';
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -88,8 +90,11 @@ function DriverCheck({ j, r, d }: { j: FieldJob; r: Resolve; d: Resolve['drivers
     startUp(async () => {
       setMsg(null);
       const p = await preparePhoto(f, ID_PHOTO).catch(() => null);
+      // Release 24b: HEIC, WEBP or a PDF scan the camera code cannot read: the standard conversion
+      let file: File | null = p ? new File([p.blob], `${kind}.jpg`, { type: 'image/jpeg' }) : null;
+      if (!file) { try { file = new File([await toStandardImage(f)], `${kind}.jpg`, { type: 'image/jpeg' }); } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : 'We could not read that file.' }); return; } }
       const fd = new FormData(); fd.set('booking', j.booking!.id); fd.set('driver', d.driver_id); fd.set('kind', kind);
-      fd.set('file', p ? new File([p.blob], `${kind}.jpg`, { type: 'image/jpeg' }) : f);
+      fd.set('file', file);
       const x = await staffLicenceUpload(fd);
       if (!x.ok) { setMsg({ ok: false, text: x.message }); return; }
       router.refresh();
@@ -104,7 +109,7 @@ function DriverCheck({ j, r, d }: { j: FieldJob; r: Resolve; d: Resolve['drivers
         <li key={k} className={have(k) ? 'is-done' : undefined}>
           <span><b>{t}</b><span className="small">{have(k) ? ' taken' : l[k] === 'rejected' ? ' rejected: take it again' : ''}</span></span>
           <label className="btn btn--ghost btn--sm fd-cam">{up ? 'Sending' : have(k) ? 'Retake' : 'Take'}
-            <input className="vh" type="file" accept="image/*" capture={k === 'selfie' ? 'user' : 'environment'} data-testid={`fix-photo-${d.role}-${k}`}
+            <input className="vh" type="file" accept={k === 'selfie' ? 'image/*' : PHOTO_ACCEPT} capture={k === 'selfie' ? 'user' : 'environment'} data-testid={`fix-photo-${d.role}-${k}`}
               onChange={(e) => { photo(k, e.target.files?.[0]); e.target.value = ''; }} /></label>
         </li>))}
       </ol>

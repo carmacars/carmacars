@@ -11,7 +11,7 @@ Pickup: {{pickup_date}}, {{pickup_time}}
 Return: {{return_date}}, {{return_time}}
 
 Total to pay now: {{total_amount}}
-HST included. The {{deposit_amount}} security deposit is separate and taken at pickup.
+HST included. The {{deposit_amount}} security deposit is separate: a hold on the day of pickup.
 
 Approve and pay:
 https://carmacars.ca/account/bookings/{{booking_number}}/offer
