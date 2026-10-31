@@ -72,6 +72,8 @@ export interface SiteFacts {
   fees: Record<string, Fee>; deposit_tiers_cents: number[]; km_choices: number[];
   email_aliases: Record<string, string>; airports: { code: string; name: string; surcharge_cents: number | null }[];
   cancellation: { grace_hours: number; grace_bps: number; early_hours: number; early_bps: number; late_hours: number; mid_bps: number; late_bps: number };
+  /** 0280: the phone number box settings (no personal data) */
+  phone_gate?: import('@/features/phone-gate/rules').GateRules;
 }
 
 export interface ContentBlock { key: string; page: string; kind: 'text' | 'rich_text' | 'faq' | 'list'; body: string | null; data: Record<string, unknown> }

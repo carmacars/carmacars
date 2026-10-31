@@ -26,6 +26,8 @@ import { addonsPayload } from '@/features/addons/model';
 import { useBookingGame } from '@/features/games/BookingGame';
 import { Estimate, useQuote, type LabelTokens } from './Estimate';
 import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
+import { gateOn, type GateRules } from '@/features/phone-gate/rules';
+import { gatePhone, usePhoneGate } from '@/features/phone-gate/usePhoneGate';
 import { ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, nonRefAllowed, stepOfKey, type RequestData, type RequestRules } from './schema';
 
 // Request to book: five steps (0066: add-ons have their own), autosaved to form_drafts (and this device) and resumable, one schema
@@ -41,6 +43,8 @@ export interface WizardProps {
   marketingText: string; agreeLine: string; ourAddress: string | null;
   /** the RentalCoverage suggestion's name when an Admin has turned it on, else null */
   affiliate?: string | null;
+  /** 0280: the phone number box (site_facts().phone_gate) */
+  gate?: GateRules | null;
 }
 
 const KEY = 'cc.request.v2';
@@ -77,6 +81,22 @@ export function RequestWizard(p: WizardProps) {
   // contact capture (0090): the name, email and phone are saved as each becomes valid, with this draft
   const cap = useCapture('booking_request', () => ({ ref: meta.current.draftId, draftToken: meta.current.token }));
   const { relink } = cap;
+  // 0280: the number given in the phone number box fills the form; with the box on before a request (off by default) it
+  // is asked before the first step's Continue, and the form shows that number instead of asking it again
+  const { ask: askGate, dialog: gateDialog } = usePhoneGate(p.gate);
+  const gateRequest = gateOn(p.gate, 'request');
+  const [gatePh, setGatePh] = useState<string | null>(null);
+  const [editPhone, setEditPhone] = useState(false);
+  useEffect(() => {
+    const g = gatePhone();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (g) setGatePh(g);
+  }, []);
+  useEffect(() => {
+    if (!gatePh || !ready.current) return;
+    setD((x) => (x.phone ? x : { ...x, phone: formatPhone(gatePh) }));
+  }, [gatePh, step]);
+  const fromGate = () => { const g = gatePhone(); if (g) { setGatePh(g); setD((x) => ({ ...x, phone: formatPhone(g) })); } };
   // signed in (0091): the account's verified phone and email fill the form; an account made by phone may leave the email
   const [account, setAccount] = useState<{ signedIn: boolean; email: string | null; phone: string | null } | null>(null);
   useEffect(() => {
@@ -353,7 +373,7 @@ export function RequestWizard(p: WizardProps) {
             <p className="hint">Any time, day or night, with at least {p.tokens.notice}’ notice. Each car needs {p.tokens.turnaround} between bookings, so a day next to another booking may only be free for part of it.</p>
             {renderPlace('pickup')}
             {renderPlace('return')}
-            <div className="req__nav"><span></span><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(1)) show(2); }}>Continue to driver details</button></div>
+            <div className="req__nav"><span></span><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(1)) void askGate('request', () => { fromGate(); show(2); }); }}>Continue to driver details</button></div>
           </section>
 
           <section data-step="2" className="req__step stack-lg" aria-labelledby="rs2" hidden={step !== 2} onBlur={() => cap.capture({ name: `${d.first} ${d.last}`.trim(), email: d.email, phone: d.phone })}>
@@ -364,7 +384,9 @@ export function RequestWizard(p: WizardProps) {
             </div>
             <div className="field-row">
               <div className={fieldCls('email')}><label className="label" htmlFor="rq-email">Email{emailOptional && <> <span className="opt">optional</span></>}</label><input className="input" id="rq-email" type="email" autoComplete="email" value={d.email} onChange={(e) => set('email', e.target.value)} {...aria('email', 'rq-email', true)} /><p className="hint" id="rq-email-hint">{emailOptional ? 'We send the confirmed price here. You can also add it before you pay.' : 'We send the confirmed price here.'}</p>{errEl('email', 'rq-email')}</div>
-              <div className={fieldCls('phone')}><label className="label" htmlFor="rq-phone">Mobile number</label><input className="input" id="rq-phone" type="tel" autoComplete="tel" value={d.phone} onChange={(e) => set('phone', e.target.value)} {...aria('phone', 'rq-phone', true)} /><p className="hint" id="rq-phone-hint">For questions about this request only.</p>{errEl('phone', 'rq-phone')}</div>
+              {gateRequest && gatePh && !editPhone && d.phone === formatPhone(gatePh)
+                ? <div className="field" data-testid="rq-phone-given"><span className="label">Mobile number</span><p><span className="num">{d.phone}</span> <button type="button" className="link small" onClick={() => setEditPhone(true)}>Change</button></p></div>
+                : <div className={fieldCls('phone')}><label className="label" htmlFor="rq-phone">Mobile number</label><input className="input" id="rq-phone" type="tel" autoComplete="tel" value={d.phone} onChange={(e) => set('phone', e.target.value)} {...aria('phone', 'rq-phone', true)} /><p className="hint" id="rq-phone-hint">For questions about this request only.</p>{errEl('phone', 'rq-phone')}</div>}
             </div>
             <CaptureNote reply={cap.reply} />
             <SavedAsYouType />
@@ -470,6 +492,7 @@ export function RequestWizard(p: WizardProps) {
             <p className="small muted">No payment now. No card needed.</p>
           </section>
         </form>
+        {gateDialog}
 
         <aside className="req__side" aria-label="Your request">
           <details className="req__sum" open={sumOpen} onToggle={(e) => setSumOpen((e.target as HTMLDetailsElement).open)}>

@@ -150,7 +150,7 @@ export default async function CarPage({ params }: Params) {
       <section className="car-top on-dark">
         <div className="wrap car-top__crumbs"><Crumbs trail={trail} /></div>
         <div className="car-top__grid">
-          <Gallery name={name(c)} photos={c.photos} />
+          <Gallery name={name(c)} photos={c.photos} gate={f.phone_gate ?? null} />
           <div className="car-top__info">
             <p className="row"><span className="small muted">{classText}</span>{c.is_sample && <span className="badge badge--outline car-top__example" data-testid="example-car-badge">Example car</span>}</p>
             {/* 0104: a partner car's trim and every twin's mark, so no two cars share a heading */}
@@ -220,7 +220,7 @@ export default async function CarPage({ params }: Params) {
             <Suspense fallback={<section className="car-sec"><h2 className="d2">Dates and price</h2><div className="skeleton sk-img" /></section>}>
               <CarBooking vehicleId={c.vehicle_id} slug={c.slug} name={name(c)} deliveryFee={c.delivery_fee_cents} pickupFee={c.pickup_fee_cents}
                 rates={{ daily: c.daily_rate_cents, weekend: c.weekend_rate_cents, weekly: c.weekly_rate_cents, monthly: c.monthly_rate_cents, multi: c.multi_day_rate_cents ?? null }}
-                maxDays={f.max_rental_days} noticeMinutes={f.booking_min_notice_minutes} tokens={tokens} allowsYoung={c.allows_18_to_20} isSample={!!c.is_sample} />
+                maxDays={f.max_rental_days} noticeMinutes={f.booking_min_notice_minutes} tokens={tokens} allowsYoung={c.allows_18_to_20} isSample={!!c.is_sample} gate={f.phone_gate ?? null} />
             </Suspense>
             </div>
           )}

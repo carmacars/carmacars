@@ -12,6 +12,8 @@ import { money } from '@/lib/format';
 import { AddonPicker, useAddonOptions } from '@/features/addons/AddonPicker';
 import { addonsPayload, type AddonChoice } from '@/features/addons/model';
 import { SampleMatch } from '@/features/booking/SampleMatch';
+import { gateOn, type GateRules } from '@/features/phone-gate/rules';
+import { usePhoneGate, useGatePassed } from '@/features/phone-gate/usePhoneGate';
 
 export interface CarBookingProps {
   vehicleId: string; slug: string; name: string; deliveryFee: number; pickupFee: number;
@@ -20,7 +22,11 @@ export interface CarBookingProps {
   allowsYoung: boolean;
   /** 0102: a sample (example) car offers the best real car free for the chosen dates */
   isSample?: boolean;
+  /** 0280: the phone number box (site_facts().phone_gate) */
+  gate?: GateRules | null;
 }
+
+const NO_BLOCKS: Block[] = [];
 
 export const AGE_BANDS = { '26_plus': 'fullAge', '21_to_25': 'youngB', '18_to_20': 'youngA' } as const;
 export type AgeBand = keyof typeof AGE_BANDS;
@@ -56,6 +62,11 @@ export function CarBooking(p: CarBookingProps) {
   const [addons, setAddons] = useState<AddonChoice[]>(() => (sp.get('addons') ?? '').split(',').map((x) => x.split(':'))
     .filter(([c]) => /^[a-z0-9_]{2,40}$/.test(c ?? '')).map(([c, n, h]) => ({ code: c!, quantity: Math.min(Math.max(Number(n) || 1, 1), 20), hours: h ? Number(h) || null : null })));
   const checked = useRef(false);
+  // 0280: picking dates and seeing whether this car is free for them is always open; the booked days on the calendar
+  // (the full availability) show once a mobile number was given on this device
+  const passed = useGatePassed();
+  const { ask, dialog } = usePhoneGate(p.gate);
+  const gated = gateOn(p.gate, 'dates') && !passed;
 
   // dates carried from the fleet that this car cannot do are cleared, with a note
   useEffect(() => {
@@ -100,7 +111,10 @@ export function CarBooking(p: CarBookingProps) {
       {failed && <p className="alert alert--warn"><span className="alert__title">Live availability is not loading</span><span>You can still send a request and we will confirm.</span></p>}
       <div className="booking">
         <div className="booking__cal">
-          <Calendar months={1} min={today} today={today} maxDays={p.maxDays} blocks={blocks} from={from} to={to}
+          <p className="small booking__full" data-testid="full-availability">{gated
+            ? <button type="button" className="link" onClick={() => void ask('dates', () => undefined)} data-testid="see-full-availability">See full availability</button>
+            : <span className="muted">Days already booked are crossed out.</span>}</p>
+          <Calendar months={1} min={today} today={today} maxDays={p.maxDays} blocks={gated ? NO_BLOCKS : blocks} from={from} to={to}
             onChange={(v) => { setFrom(v.from); setTo(v.to); if (v.to) setClashNote(''); }} />
           <div className="field-row booking__times">
             <TimeSelect id="car-tf" label="Pickup time" value={tf} onChange={setTf} />
@@ -135,6 +149,7 @@ export function CarBooking(p: CarBookingProps) {
           <p className="small muted booking__assure"><b>No payment now.</b> We confirm the car and send the final price as an offer, open for {p.tokens.offerHours} hours. The car is booked only when you approve, sign and pay. If someone else pays for it first, we offer another car or other dates.</p>
         </div>
       </div>
+      {dialog}
     </section>
   );
 }

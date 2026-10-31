@@ -12948,6 +12948,102 @@ export type Database = {
         };
         Relationships: [];
       };
+      phone_gate_contacts: {
+        Row: {
+          id: string;
+          visitor_id: string;
+          phone: string;
+          country: string;
+          gate: string;
+          page: string | null;
+          verified_at: string | null;
+          consent_source: string;
+          transactional: boolean;
+          marketing_opt_in: boolean;
+          marketing_text: string | null;
+          marketing_at: string | null;
+          user_id: string | null;
+          capture_id: string | null;
+          lead_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          visitor_id: string;
+          phone: string;
+          country: string;
+          gate: string;
+          page?: string | null;
+          verified_at?: string | null;
+          consent_source?: string;
+          transactional?: boolean;
+          marketing_opt_in?: boolean;
+          marketing_text?: string | null;
+          marketing_at?: string | null;
+          user_id?: string | null;
+          capture_id?: string | null;
+          lead_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          visitor_id?: string;
+          phone?: string;
+          country?: string;
+          gate?: string;
+          page?: string | null;
+          verified_at?: string | null;
+          consent_source?: string;
+          transactional?: boolean;
+          marketing_opt_in?: boolean;
+          marketing_text?: string | null;
+          marketing_at?: string | null;
+          user_id?: string | null;
+          capture_id?: string | null;
+          lead_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      phone_gate_daily: {
+        Row: {
+          day: string;
+          gate: string;
+          shown: number;
+          given: number;
+          closed: number;
+          verified: number;
+          texts: number;
+          requests: number;
+          requests_gated: number;
+        };
+        Insert: {
+          day: string;
+          gate: string;
+          shown?: number;
+          given?: number;
+          closed?: number;
+          verified?: number;
+          texts?: number;
+          requests?: number;
+          requests_gated?: number;
+        };
+        Update: {
+          day?: string;
+          gate?: string;
+          shown?: number;
+          given?: number;
+          closed?: number;
+          verified?: number;
+          texts?: number;
+          requests?: number;
+          requests_gated?: number;
+        };
+        Relationships: [];
+      };
       phone_outbox: {
         Row: {
           id: string;
@@ -13962,6 +14058,16 @@ export type Database = {
           debit_deposit_multiplier: number;
           essentials_reminders: string;
           essentials_task_hour: number;
+          weekend_premium_bps: number;
+          phone_gate_gallery: boolean;
+          phone_gate_free_photos: number;
+          phone_gate_dates: boolean;
+          phone_gate_request: boolean;
+          phone_gate_verify: boolean;
+          phone_gate_allow_unverified: boolean;
+          phone_gate_texts_per_number_day: number;
+          phone_gate_texts_per_ip_day: number;
+          phone_gate_texts_per_day: number;
         };
         Insert: {
           id?: string;
@@ -14490,6 +14596,16 @@ export type Database = {
           debit_deposit_multiplier?: number;
           essentials_reminders?: string;
           essentials_task_hour?: number;
+          weekend_premium_bps?: number;
+          phone_gate_gallery?: boolean;
+          phone_gate_free_photos?: number;
+          phone_gate_dates?: boolean;
+          phone_gate_request?: boolean;
+          phone_gate_verify?: boolean;
+          phone_gate_allow_unverified?: boolean;
+          phone_gate_texts_per_number_day?: number;
+          phone_gate_texts_per_ip_day?: number;
+          phone_gate_texts_per_day?: number;
         };
         Update: {
           id?: string;
@@ -15018,6 +15134,16 @@ export type Database = {
           debit_deposit_multiplier?: number;
           essentials_reminders?: string;
           essentials_task_hour?: number;
+          weekend_premium_bps?: number;
+          phone_gate_gallery?: boolean;
+          phone_gate_free_photos?: number;
+          phone_gate_dates?: boolean;
+          phone_gate_request?: boolean;
+          phone_gate_verify?: boolean;
+          phone_gate_allow_unverified?: boolean;
+          phone_gate_texts_per_number_day?: number;
+          phone_gate_texts_per_ip_day?: number;
+          phone_gate_texts_per_day?: number;
         };
         Relationships: [];
       };
@@ -19199,6 +19325,7 @@ export type Database = {
           engine_enabled: boolean | null;
           locked: boolean | null;
           tamper_alert: boolean;
+          heading_deg: number | null;
         };
         Insert: {
           tracker_device_id: string;
@@ -19210,6 +19337,7 @@ export type Database = {
           engine_enabled?: boolean | null;
           locked?: boolean | null;
           tamper_alert?: boolean;
+          heading_deg?: number | null;
         };
         Update: {
           tracker_device_id?: string;
@@ -19221,6 +19349,7 @@ export type Database = {
           engine_enabled?: boolean | null;
           locked?: boolean | null;
           tamper_alert?: boolean;
+          heading_deg?: number | null;
         };
         Relationships: [];
       };
@@ -22807,6 +22936,8 @@ export type Database = {
           conversions: string[];
           has_contact: boolean;
           exclude_reason: string | null;
+          geo_lat: number | null;
+          geo_lng: number | null;
         };
         Insert: {
           id: string;
@@ -22847,6 +22978,8 @@ export type Database = {
           conversions?: string[];
           has_contact?: boolean;
           exclude_reason?: string | null;
+          geo_lat?: number | null;
+          geo_lng?: number | null;
         };
         Update: {
           id?: string;
@@ -22887,6 +23020,8 @@ export type Database = {
           conversions?: string[];
           has_contact?: boolean;
           exclude_reason?: string | null;
+          geo_lat?: number | null;
+          geo_lng?: number | null;
         };
         Relationships: [];
       };
@@ -24396,6 +24531,10 @@ export type Database = {
       server_phone_ai_log: { Args: { p: Json }; Returns: Json };
       server_phone_due: { Args: { p_limit?: number }; Returns: Json };
       server_phone_event: { Args: { p: Json }; Returns: Json };
+      server_phone_gate_code: { Args: { p: Json }; Returns: Json };
+      server_phone_gate_event: { Args: { p: Json }; Returns: Json };
+      server_phone_gate_request: { Args: { p: Json }; Returns: Json };
+      server_phone_gate_save: { Args: { p: Json }; Returns: Json };
       server_phone_sent: { Args: { p: Json }; Returns: Json };
       server_phone_signed_in: { Args: { p_user: string; p_phone: string; p_name?: string }; Returns: Json };
       server_phone_summary: { Args: { p: Json }; Returns: Json };

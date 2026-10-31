@@ -18,6 +18,7 @@ import { AdminAccessForm, SampleRowActions, SampleThumb, SampleUpload } from '@/
 import { StaffDefaults, type StaffDefaultsValue } from '@/features/admin/StaffDefaults';
 import { GameSettings, type CostBasis, type Prize } from '@/features/games/GameSettings';
 import { GameReportTiles, type GameReport } from '@/features/games/GameLeads';
+import { GateReport, GateSwitches, type GateReportData } from '@/features/phone-gate/GateReport';
 import { ArticleEditor, BusinessListings, PageEditor, type ArticleRow, type Listing, type PageRow } from '@/features/seo/SeoAdmin';
 import { AddonsAdmin, type AddonsData } from '@/features/addons/AddonsAdmin';
 import { VehiclePagesAdmin, type VpData } from '@/features/vehicles/VehiclePagesAdmin';
@@ -77,6 +78,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Forms left unfinished (contact capture)', (k) => k.startsWith('capture_')],
   ['Promo codes', (k) => k.startsWith('promo_')],
   ['Discount games', (k) => k.startsWith('game_')],
+  ['Phone number box', (k) => k.startsWith('phone_gate_')],
   ['Text alerts', (k) => k.startsWith('sms_')],
   ['Phone and texts (Quo)', (k) => k.startsWith('phone_')],
   ['Sign-in by phone', (k) => k.startsWith('signin_')],
@@ -241,6 +243,18 @@ export default async function Section({ params, searchParams }: { params: Promis
         <Card title="Regions and places" testId="seo-regions"><PlaceRegions o={po} /></Card>
         <Card title={`Terms and services (${po.terms.length} terms)`} testId="seo-terms"><PlaceTerms o={po} /></Card>
       </>}
+    </>);
+  }
+  case 'phone-gate': {
+    // the phone number box (0280): light by default (more photos and the full availability on, the request and the code off)
+    const g = await door<GateReportData>(user.id, 'admin_read', 'phone_gate_report', { days: 30 });
+    const keys = ['phone_gate_gallery', 'phone_gate_free_photos', 'phone_gate_dates', 'phone_gate_request', 'phone_gate_verify', 'phone_gate_allow_unverified',
+      'phone_gate_texts_per_number_day', 'phone_gate_texts_per_ip_day', 'phone_gate_texts_per_day'];
+    return (<>{head}
+      <p className="small muted">A visitor who has not given a mobile number on this device is asked for one before more than the first {String(s.program.phone_gate_free_photos ?? 6)} photos of a car, and before the full availability (the booked days on a car&apos;s calendar, and the cars booked for the chosen dates). Picking dates and seeing whether that car is free stays open, and search engines see every photo. Signed-in renters with a verified mobile, and devices that gave a number in the last 90 days, never see it. Numbers given are under <Link prefetch={false} className="link" href="/admin/leads">Bookings &gt; Renter leads</Link> and on Live visitors.</p>
+      <Card title="Each box, one press"><GateSwitches r={g.rules} /></Card>
+      <GateReport g={g} />
+      <Card title="All the settings" testId="gate-settings"><SaveForm table="program_settings" rowKey="current" testId="program-phone-gate" fields={fieldsFrom(s.program, keys)} /></Card>
     </>);
   }
   case 'discount-games': {

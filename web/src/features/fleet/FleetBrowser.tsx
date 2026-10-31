@@ -8,6 +8,8 @@ import { browserRpc } from '@/lib/browser-rpc';
 import { shortDate, torontoInstant, torontoToday, validIso, validTime } from '@/lib/dates';
 import { money, plural } from '@/lib/format';
 import type { CarRow } from '@/lib/types';
+import type { GateRules } from '@/features/phone-gate/rules';
+import { usePhoneGate } from '@/features/phone-gate/usePhoneGate';
 
 // The fleet (docs/blueprint/01-public-site.md 4.2, prototype fleet page). The list of cars is in the
 // static HTML; filters apply in the browser, and chosen dates ask public.search_available which cars
@@ -15,7 +17,7 @@ import type { CarRow } from '@/lib/types';
 type Avail = { vehicle_id: string; billable_days: number; rental_charge_cents: number; total_cents: number };
 const SEATS = [['any', 'Any'], ['2', '2'], ['5', '5+'], ['7', '7+']] as const;
 
-type Props = { cars: CarRow[]; labels: Record<string, string>; classes: string[]; maxDays: number };
+type Props = { cars: CarRow[]; labels: Record<string, string>; classes: string[]; maxDays: number; gate?: GateRules | null };
 
 // The server renders every car with the default filters (useSearchParams would leave only a skeleton in the
 // static HTML, and crawlers would see no car links). After hydration the address's filters and dates are
@@ -28,7 +30,7 @@ export function FleetBrowser(props: Props) {
   return <Browser key={qs ?? ''} {...props} p={new URLSearchParams(qs ?? '')} sync={qs !== null} />;
 }
 
-function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSearchParams; sync: boolean }) {
+function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p: URLSearchParams; sync: boolean }) {
   const router = useRouter();
   const today = torontoToday();
   const prices = cars.map((c) => c.daily_rate_cents / 100);
@@ -58,7 +60,10 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
   const [q, setQ] = useState(() => (p.get('q') ?? '').trim().slice(0, 60));
   const qText = q;
   const words = useMemo(() => qText.toLowerCase().split(/\s+/).filter(Boolean), [qText]);
-  const [showBooked, setShowBooked] = useState(false);
+  const [showBooked, setShowBookedRaw] = useState(false);
+  // 0280: the cars booked for the chosen dates (the full availability) show once a mobile number was given on this device
+  const { ask, dialog } = usePhoneGate(gate);
+  const setShowBooked = (v: boolean) => { if (v) void ask('dates', () => setShowBookedRaw(true)); else setShowBookedRaw(false); };
   const [res, setRes] = useState<{ key: string; avail: Map<string, Avail> | null; failed: boolean } | null>(null);
   const [panel, setPanel] = useState(false);
   const [, startTransition] = useTransition();
@@ -286,6 +291,7 @@ function Browser({ cars, labels, classes, maxDays, p, sync }: Props & { p: URLSe
           </div>
         </div>
       </section>
+      {dialog}
     </div>
   );
 }
