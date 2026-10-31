@@ -1,0 +1,141 @@
+{
+ "version": "seo-queue-v1",
+ "generated_at": "2026-10-31T09:42:17.372713+00:00",
+ "count": 0,
+ "waiting": {
+  "cars": 0,
+  "pages": 0,
+  "articles": 0
+ },
+ "rules": {
+  "banned": [
+   "adventure awaits",
+   "best in class",
+   "boasts",
+   "breathtaking",
+   "cutting-edge",
+   "delve",
+   "dream car",
+   "effortless",
+   "elevate",
+   "embark",
+   "exhilarating",
+   "game changer",
+   "game-changer",
+   "head-turning",
+   "hidden gem",
+   "hit the road",
+   "in today's",
+   "look no",
+   "look no further",
+   "luxurious ride",
+   "must-have",
+   "nestled",
+   "open road awaits",
+   "seamless",
+   "second to none",
+   "state-of-the-art",
+   "testament",
+   "thrill",
+   "top-notch",
+   "turn heads",
+   "unforgettable",
+   "unleash",
+   "unlock",
+   "unparalleled",
+   "whether you are",
+   "whether you're",
+   "world-class"
+  ],
+  "similarity_max": 0.5,
+  "limits": {
+   "seo_title": [
+    25,
+    60
+   ],
+   "meta_description": [
+    90,
+    155
+   ],
+   "h1": [
+    20,
+    70
+   ],
+   "intro_words": [
+    8,
+    40
+   ],
+   "highlights": [
+    4,
+    6
+   ],
+   "highlight_chars": 70,
+   "good_for": [
+    2,
+    4
+   ],
+   "included": [
+    3,
+    5
+   ],
+   "item_chars": 90,
+   "pickup": [
+    60,
+    420
+   ],
+   "requirements": [
+    3,
+    5
+   ],
+   "faq": [
+    3,
+    6
+   ],
+   "question_chars": 110,
+   "answer_chars": 360,
+   "alt_chars": 125,
+   "page_intro_words": [
+    50,
+    160
+   ],
+   "page_sections": [
+    2,
+    4
+   ],
+   "section_words": [
+    40,
+    220
+   ],
+   "page_faq": [
+    3,
+    6
+   ],
+   "article_words": [
+    500,
+    2200
+   ],
+   "article_title": [
+    20,
+    100
+   ],
+   "article_description": [
+    90,
+    160
+   ]
+  },
+  "house": [
+   "No em dash or en dash anywhere.",
+   "Write CarmaCars exactly so; never name a numbered or legal company.",
+   "No exclamation marks, no hype words.",
+   "Never present insurance as something renters get from CarmaCars: say nothing, or name \"the Protection Plan\".",
+   "Only numbers that are in the facts; no prices on landing pages or articles (articles use the {{tokens}} only).",
+   "Claim no equipment, condition, rating or service the facts do not state; promise no guarantee, warranty, same-day service or free extra.",
+   "Every page reads differently from every other page (cars of the same model, other landing pages, other items of the batch)."
+  ]
+ },
+ "output": {
+  "file": "seo/batches/<date>-<name>.json",
+  "shape": "{\"batch\": \"name\", \"items\": [{\"kind\": \"car|page|article\", \"id\": \"<id from the queue>\", \"copy\": {...} | \"title\", \"description\", \"body_md\", \"faq\"}]}"
+ },
+ "items": []
+}
