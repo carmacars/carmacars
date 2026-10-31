@@ -201,6 +201,15 @@ export default async function Booking({ params, searchParams }: { params: Promis
       {tab === 'money' && (
         <div className="stack">
           {moneyByPart && <BookingMoney m={moneyByPart} />}
+          {/* 0230: an Admin may allow a debit or prepaid card for this booking (never on card coverage) */}
+          {moneyByPart?.debit && !moneyByPart.debit.coverage && <div className="ad-actions" data-testid="booking-debit-override">
+            {moneyByPart.debit.allowed_at
+              ? <Act action="booking_allow_debit" payload={{ booking: b.booking_number, allow: false }} label="Require a credit card again" refresh={refresh} testId="booking-debit-off"
+                  confirm="The pay page, pay links and the deposit hold of this booking take a credit card only again." />
+              : <Act action="booking_allow_debit" payload={{ booking: b.booking_number, allow: true }} label="Allow debit and prepaid cards for this booking" refresh={refresh} testId="booking-debit-on"
+                  confirm="The pay page, staff pay links and the deposit hold of this booking will take a debit or prepaid card. The renter is told the hold lowers the money available on the card until it is released. The deductible may not be chargeable on such a card."
+                  fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} />}
+          </div>}
           <OwnerDeductionsPanel userId={user.id} booking={b.booking_number} refresh={refresh} />
           {fees && <BookingFees x={fees} />}
           {(!moneyByPart || b.payments.some((r) => r.status === 'failed')) && <Card title={moneyByPart ? 'Card payments that failed' : 'Payments'}><Table rows={moneyByPart ? b.payments.filter((r) => r.status === 'failed') : b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'method', label: 'Method' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },

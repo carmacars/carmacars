@@ -30,7 +30,7 @@ const REASONS: Record<string, string> = {
   vehicle_not_bookable: PUSH_BACK,
   offer_changed: 'This offer was updated. Nothing was charged. Review the new version.',
   agreement_not_signed: 'Sign the rental agreement first. Nothing was charged.',
-  card_not_credit: 'Please use a credit card. Debit and prepaid cards cannot be used for a rental. Nothing was charged.',
+  card_not_credit: 'Please use a credit card. If you only have a debit or prepaid card, contact us. Nothing was charged.',
   amount_mismatch: 'The amount changed. Nothing was charged. Reload the page.',
   already_confirmed: 'This booking is already confirmed.',
   name_mismatch: 'The card must be in the renter\'s name. Nothing was charged.'

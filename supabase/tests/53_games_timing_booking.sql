@@ -109,7 +109,7 @@ select test.eq('a signed-in renter claims with their account''s email (not one t
 select test.eq('the code keeps the rules: single use, the cap, 7 days, the minimum length of its prize',
   (select pc.max_uses || ' ' || pc.once_per_renter || ' ' || (pc.valid_until::date - pc.valid_from::date) || ' ' || coalesce(pc.max_discount_cents::text, '-') || ' ' || coalesce(pc.min_rental_days::text, '-')
      from promo_codes pc where pc.code = (select v ->> 'code' from g2 where n = 11)),
-  (select '1 true 7 ' || case when p.prize ? 'percent_bps' then '7500' else '-' end || ' ' || coalesce(p.prize ->> 'min_days', '-') from game_plays p where p.token = (select v ->> 'token' from g2 where n = 10)));
+  (select '1 true 7 ' || case when p.prize ? 'percent_bps' then coalesce(p.prize ->> 'max_cents', '7500') else '-' end || ' ' || coalesce(p.prize ->> 'min_days', '-') from game_plays p where p.token = (select v ->> 'token' from g2 where n = 10)));
 select test.eq('one per person a day (0172): the account cannot play again on any browser, nor claim again, that day',
   (test.g2start('r4', '{}', 'booking', test.id('g2_rita')) ->> 'reason') || ' ' || (app.server_game_claim(jsonb_build_object('token', (select v ->> 'token' from g2 where n = 10), 'first_name', 'R'), test.id('g2_rita')) ->> 'error'),
   'claimed claimed');

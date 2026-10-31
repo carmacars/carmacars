@@ -37,8 +37,12 @@ select test.ok('the job is due while the sweep has place addresses (no copy wait
 -- (the job check above may queue changed car pages; they go first, so clear them for the sweep's own answer)
 delete from indexnow_queue where sent_at is null;
 update indexnow_sweep set phase = 'places', p_i = 0, p_pos = 0 where id;
-select test.eq('the place phase ends the round (out of the crawl scope)', app.server_indexnow_claim(3) ->> 'why', 'next round');
+select test.ok('in the Full search scope (the default) the place phase goes on', app.server_indexnow_claim(3) ->> 'why' is distinct from 'next round');
+update indexnow_sweep set phase = 'places', p_i = 0, p_pos = 0 where id;
+update program_settings set search_scope = 'core' where id = (app.settings()).id;
+select test.eq('in Core the place phase ends the round (out of the crawl scope)', app.server_indexnow_claim(3) ->> 'why', 'next round');
 select test.ok('the next round starts with the priority list, in a week', (select phase = 'priority' and next_round_at > now() + interval '6 days' from indexnow_sweep));
+update program_settings set search_scope = 'full' where id = (app.settings()).id;
 update indexnow_sweep set next_round_at = null where id;
 
 -- the end of a round

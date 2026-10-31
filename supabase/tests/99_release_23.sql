@@ -1,7 +1,7 @@
--- 99: Release 23a (migrations 0220 to 0229, docs/changes/2026-11-03-*.md). IndexNow's changed pages on their own back-off
+-- 99: Release 23a (migrations 0220 to 0232, docs/changes/2026-11-03-*.md). IndexNow's changed pages on their own back-off
 -- and first, the sweep inside the crawl scope; the CPU guard flag; usage alerts texted to the Admins; Cloudflare email
 -- first; the hiring decisions sent together; remote calls confirmed or cancelled, the call method by role; the Quo texts
--- on Usage. Fixtures start with "r23".
+-- on Usage; the search scope; a credit card by default with an Admin's override per booking. Fixtures start with "r23".
 select test.suite('99 release 23');
 
 select test.mk_user('r23_admin', 'admin');
@@ -39,7 +39,11 @@ select app.server_indexnow_sent('{"paths": ["/guides/r23-one", "/cars/r23-car"],
 select test.ok('a 2xx sends them and clears their back-off', (select q_backoff_until is null and q_backoff_s = 0 and q_last_status = 202 from indexnow_sweep)
   and not exists (select 1 from indexnow_queue where path like '%r23%' and sent_at is null));
 
--- the crawl scope
+-- the search scope: Full by default (every address may be sent), Core keeps to the crawl scope
+select test.eq('the search scope is Full by default', (select search_scope from program_settings where id = (app.settings()).id), 'full');
+select test.ok('Full: every address is in', app.crawl_scope_ok('/t/buffing/audi/a4/2021') and app.crawl_scope_ok('/places/3') and app.crawl_scope_ok('/car-rental/weekly/toronto'));
+select test.eq('the tick hands the scope to the Worker', app.server_jobs_due() ->> 'search_scope', 'full');
+update program_settings set search_scope = 'core' where id = (app.settings()).id;
 select test.ok('crawl scope: the trees that multiply are out',
   not app.crawl_scope_ok('/t/buffing/audi/a4/2021') and not app.crawl_scope_ok('/buy/honda') and not app.crawl_scope_ok('/cars/audi/a4/2021/s-line/toronto')
   and not app.crawl_scope_ok('/car-rental/weekly/toronto') and not app.crawl_scope_ok('/car-rental/r23-nowhere-oh') and not app.crawl_scope_ok('/places/3'));
@@ -49,6 +53,8 @@ delete from indexnow_queue where sent_at is null;
 update indexnow_sweep set phase = 'places', p_i = 3 where id;
 select test.eq('past the priority list the round is done: the next waits a week', app.server_indexnow_claim(100) ->> 'why', 'next round');
 select test.ok('back at the start of the priority list', (select phase = 'priority' and p_pos = 0 and next_round_at > now() + interval '6 days' from indexnow_sweep));
+select test.eq('the tick says Core', app.server_jobs_due() ->> 'search_scope', 'core');
+update program_settings set search_scope = 'full' where id = (app.settings()).id;
 update indexnow_sweep set next_round_at = null, streak_429 = 1, backoff_until = null where id;
 select app.server_indexnow_report('{"status": 429, "count": 5}');
 select test.ok('a second 429 in a row adds a day', (select streak_429 = 2 and backoff_until > now() + interval '1 day' from indexnow_sweep));
@@ -139,3 +145,34 @@ select test.eq('Cancelled on the Calls tab', app.hiring_confirm_state((select x 
 select test.ok('Settings > Usage counts the Quo texts', exists (select 1 from usage_services where service = 'quo_texts' and usd_per_unit = 0.01));
 select app.usage_measure('quo_texts', now());
 select test.ok('measured from the texts sent', exists (select 1 from usage_readings where service = 'quo_texts'));
+
+-- ================================================================ 6. a credit card by default, an Admin's override per booking (0230)
+select test.mk_booking('R23-D1', 'r23_car', 'r23_renter', '2026-12-01 10:00', '2026-12-04 10:00', 'confirmed');
+create function test.r23d() returns uuid language sql stable as $$ select id from bookings where booking_number = 'R23-D1' $$;
+select test.ok('by default a credit card is required: debit and prepaid refused, credit taken',
+  not app.booking_card_ok(test.r23d(), '{"funding": "debit"}') and not app.booking_card_ok(test.r23d(), '{"funding": "prepaid"}') and app.booking_card_ok(test.r23d(), '{"funding": "credit"}')
+  and not public.booking_takes_debit(test.r23d()));
+select test.throws('only an Admin allows a debit card', $$ select app.booking_allow_debit(test.id('r23_cs'), jsonb_build_object('booking_id', test.r23d(), 'reason', 'x')) $$, 'Admin');
+select test.throws('with a reason', $$ select app.booking_allow_debit(test.id('r23_admin'), jsonb_build_object('booking_id', test.r23d())) $$, 'reason');
+select app.door(test.id('r23_admin'), 'aal2', 'admin_do', 'booking_allow_debit', jsonb_build_object('booking_id', test.r23d(), 'reason', 'Only a debit card, deposit by e-Transfer agreed'));
+select test.ok('allowed: who, when and why kept, audited; debit and prepaid taken on this booking',
+  (select debit_allowed_at is not null and debit_allowed_by = test.id('r23_admin') and debit_allowed_reason like 'Only a debit card%' from bookings where id = test.r23d())
+  and exists (select 1 from audit_log where action = 'booking_allow_debit' and entity_id = test.r23d()::text)
+  and app.booking_card_ok(test.r23d(), '{"funding": "prepaid"}') and public.booking_takes_debit(test.r23d()));
+select test.ok('the Money tab shows it', (app.booking_money(test.id('r23_admin'), jsonb_build_object('booking', 'R23-D1')) #>> '{debit,takes}')::boolean);
+update bookings set coverage_option = 2 where id = test.r23d();
+select test.ok('card coverage is never overridden', not app.booking_card_ok(test.r23d(), '{"funding": "debit"}'));
+select test.throws('and cannot be allowed', $$ select app.booking_allow_debit(test.id('r23_admin'), jsonb_build_object('booking_id', test.r23d(), 'reason', 'x')) $$, 'credit card rental coverage');
+update bookings set coverage_option = null where id = test.r23d();
+select app.booking_allow_debit(test.id('r23_admin'), jsonb_build_object('booking_id', test.r23d(), 'allow', false));
+select test.ok('turned off again', not app.booking_card_ok(test.r23d(), '{"funding": "debit"}'));
+update program_settings set card_types_accepted = 'any' where id = (app.settings()).id;
+select test.ok('the site-wide default "credit, debit and prepaid" takes them on every booking', app.booking_card_ok(test.r23d(), '{"funding": "prepaid"}'));
+update program_settings set card_types_accepted = 'credit' where id = (app.settings()).id;
+-- the card's type on the payment, from the saved card
+insert into payment_methods (renter_id, card_brand, card_last4, cardholder_name, exp_month, exp_year, is_credit, funding)
+values (test.id('renter:r23_renter'), 'visa', '5556', 'R23 Renter', 12, 2030, false, 'debit');
+insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status, card_brand, card_last4)
+values (test.r23d(), test.id('renter:r23_renter'), 'deposit', 'hold', 'card', 50000, 'authorized', 'visa', '5556');
+select test.eq('the payment keeps the card''s type', (select card_funding from payments where booking_id = test.r23d() and card_last4 = '5556'), 'debit');
+select test.eq('the Money tab lists the card with its type', app.booking_money(test.id('r23_admin'), jsonb_build_object('booking', 'R23-D1')) #>> '{cards,0,funding}', 'debit');

@@ -2639,6 +2639,9 @@ export type Database = {
           marketing_source_by: string | null;
           marketing_source_at: string | null;
           calendar_token: string;
+          debit_allowed_at: string | null;
+          debit_allowed_by: string | null;
+          debit_allowed_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -2800,6 +2803,9 @@ export type Database = {
           marketing_source_by?: string | null;
           marketing_source_at?: string | null;
           calendar_token?: string;
+          debit_allowed_at?: string | null;
+          debit_allowed_by?: string | null;
+          debit_allowed_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -2961,6 +2967,9 @@ export type Database = {
           marketing_source_by?: string | null;
           marketing_source_at?: string | null;
           calendar_token?: string;
+          debit_allowed_at?: string | null;
+          debit_allowed_by?: string | null;
+          debit_allowed_reason?: string | null;
         };
         Relationships: [];
       };
@@ -12381,6 +12390,7 @@ export type Database = {
           server_attempts: number;
           server_last_error: string | null;
           server_attempted_at: string | null;
+          card_funding: string | null;
         };
         Insert: {
           id?: string;
@@ -12411,6 +12421,7 @@ export type Database = {
           server_attempts?: number;
           server_last_error?: string | null;
           server_attempted_at?: string | null;
+          card_funding?: string | null;
         };
         Update: {
           id?: string;
@@ -12441,6 +12452,7 @@ export type Database = {
           server_attempts?: number;
           server_last_error?: string | null;
           server_attempted_at?: string | null;
+          card_funding?: string | null;
         };
         Relationships: [];
       };
@@ -13882,9 +13894,11 @@ export type Database = {
           channel_feed_hourly_max: number;
           owner_followup_enabled: boolean;
           owner_followup_days: number[];
+          search_scope: string;
           usage_alert_texts: boolean;
           cf_email_enabled: boolean;
           cf_email_monthly_included: number;
+          card_types_accepted: string;
         };
         Insert: {
           id?: string;
@@ -14402,9 +14416,11 @@ export type Database = {
           channel_feed_hourly_max?: number;
           owner_followup_enabled?: boolean;
           owner_followup_days?: number[];
+          search_scope?: string;
           usage_alert_texts?: boolean;
           cf_email_enabled?: boolean;
           cf_email_monthly_included?: number;
+          card_types_accepted?: string;
         };
         Update: {
           id?: string;
@@ -14922,9 +14938,11 @@ export type Database = {
           channel_feed_hourly_max?: number;
           owner_followup_enabled?: boolean;
           owner_followup_days?: number[];
+          search_scope?: string;
           usage_alert_texts?: boolean;
           cf_email_enabled?: boolean;
           cf_email_monthly_included?: number;
+          card_types_accepted?: string;
         };
         Relationships: [];
       };
@@ -23895,6 +23913,7 @@ export type Database = {
       articles_public: { Args: never; Returns: Json };
       booking_car: { Args: { p_slug: string }; Returns: Json };
       booking_cars: { Args: never; Returns: Json };
+      booking_takes_debit: { Args: { p_booking: string }; Returns: boolean };
       business_rating: { Args: never; Returns: Json };
       calc_billable_days: { Args: { p_pickup: string; p_return: string; p_tz?: string }; Returns: number };
       calc_booking_split: { Args: { p_rental_charge_cents: number; p_mileage_overage_cents: number; p_kickback_eligible: boolean; p_company_share_bps: number; p_kickback_bps?: number }; Returns: { kickback_cents: number; owner_revenue_cents: number; company_share_cents: number; owner_payout_cents: number }[] };
@@ -24057,6 +24076,7 @@ export type Database = {
       sample_car_match: { Args: { p_vehicle: string; p_pickup: string; p_return: string }; Returns: Json };
       save_form_draft: { Args: { p_form_code: string; p_data: Json; p_step?: string; p_schema_version?: number; p_user?: string; p_token?: string; p_entity_table?: string; p_entity_id?: string; p_device_label?: string }; Returns: Json };
       search_available: { Args: { p_pickup: string; p_return: string; p_filters?: Json }; Returns: { vehicle_id: string; slug: string; vehicle_year: number; make: string; model: string; vehicle_class: string; seats: number; transmission: string; fuel: string; allows_18_to_20: boolean; daily_rate_cents: number; billable_days: number; rental_charge_cents: number; subtotal_cents: number; hst_cents: number; total_cents: number; deposit_cents: number }[] };
+      search_scope: { Args: never; Returns: string };
       seo_hub_links: { Args: never; Returns: Json };
       seo_links: { Args: never; Returns: Json };
       seo_page: { Args: { p_slug: string }; Returns: Json };

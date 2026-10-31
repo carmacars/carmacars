@@ -25,7 +25,7 @@ function loadStripe(key: string): Promise<StripeJs> {
 const same = (a: string, b: string) => a.replace(/\s+/g, '').toLowerCase() === b.replace(/\s+/g, '').toLowerCase();
 
 export function PayForm({ number, amountCents, depositCents, coverageOption = null, debitOk = false }: { number: string; amountCents: number; depositCents: number; coverageOption?: number | null;
-  /** 0093: no credit card needed on this car: a debit card in the renter's name pays and holds the deposit */ debitOk?: boolean }) {
+  /** 0093 and 0230: this booking takes a debit card (a car marked no credit card needed, an Admin's override or the site-wide setting) */ debitOk?: boolean }) {
   const router = useRouter();
   const [p, setP] = useState<StartedPayment | null>(null);
   const [fatal, setFatal] = useState<{ code: string; message: string } | null>(null);
@@ -123,8 +123,8 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
         <input className="input" id="pt-card-name" value={name} onChange={(e) => setName(e.target.value)} autoComplete="cc-name" aria-invalid={!!err('name') || undefined} aria-describedby="pt-card-name-hint pt-card-name-err" />
         <p className="hint" id="pt-card-name-hint">{coverageOption === 2
           ? 'You chose the rental coverage on your credit card: pay with that credit card, in the renter\'s name. Debit and prepaid cards do not qualify.'
-          : debitOk ? 'No credit card needed for this car: a credit or debit card in the renter\'s name. Prepaid cards are not accepted.'
-          : 'The card must be a credit card in the renter\'s name.'}</p>
+          : debitOk ? 'A credit card in the renter\'s name is preferred. This booking also takes a debit or prepaid card in the renter\'s name.'
+          : 'The card must be a credit card in the renter\'s name. If you only have a debit or prepaid card, contact us.'}</p>
         <p className="error" role="alert" id="pt-card-name-err">{err('name') ?? ''}</p>
       </div>
       {p?.provider === 'fake' ? (
@@ -138,6 +138,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
         </div>
       ) : <div className="pt-cardbox" ref={mount} aria-label="Card details">{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
       <p className="small">This card becomes your Card on File for the {money(depositCents)} deposit at pickup and any later charges, as you authorized when signing.</p>
+      {debitOk && coverageOption !== 2 && <p className="small muted" data-testid="pay-debit-note">With a debit or prepaid card, the deposit hold lowers the money available on your card or account until it is released, and the release can take several business days.</p>}
       {msg && <p className={`alert ${msg.kind === 'wait' ? 'alert--warn' : 'alert--error'}`} role={msg.kind === 'wait' ? 'status' : 'alert'} data-testid="pay-message"><span>{msg.text}
         {msg.coverage && <> <a className="link" href={`/account/bookings/${encodeURIComponent(number)}/verify#pt-cov`}>Change how the car is covered</a></>}</span></p>}
       <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy}>{busy ? 'Confirming' : `Pay ${money(p?.amountCents ?? amountCents, { cents: true })}`}</button>

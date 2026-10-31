@@ -26,8 +26,10 @@ export default async function PayPage({ params }: { params: Promise<{ number: st
   if (!live && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status)) redirect(bookingPath(b.booking_number));
   if (b.status === 'offered') redirect(bookingPath(b.booking_number, 'offer'));
   if ((b.status === 'pending_payment' || live) && !b.agreement?.renter_signed_at) redirect(bookingPath(b.booking_number, 'sign'));
-  // 0093: a car marked "no credit card needed" takes a debit card
-  const debitOk = (await rpc('vehicle_takes_debit', { p_vehicle: b.vehicle_id }, { role: 'service_role' }).catch(() => false)) === true;
+  // 0093: a car marked "no credit card needed" takes a debit card; 0230: so does a booking an Admin allowed, or every booking
+  // when Settings says credit, debit and prepaid
+  const debitOk = (await rpc('vehicle_takes_debit', { p_vehicle: b.vehicle_id }, { role: 'service_role' }).catch(() => false)) === true
+    || (await rpc('booking_takes_debit', { p_booking: b.id }, { role: 'service_role' }).catch(() => false)) === true;
   const pushedBack = b.status === 'requested' && b.offers[b.offers.length - 1]?.status === 'withdrawn';
   // a confirmed account, and an email for the receipts before the first payment (0091)
   const [gate, photos, detailsMissing] = await Promise.all([accountGate(user.id, 'pay'), myTripPhotos(user), renterDetailsMissing(b, user.id)]);

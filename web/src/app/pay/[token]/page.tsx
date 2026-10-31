@@ -4,6 +4,7 @@ import { when } from '@/features/agreement/model';
 import { money } from '@/lib/format';
 import { markPayLinkOpened, payLinkFacts } from '@/server/paylink';
 import { PayLinkForm } from '@/features/money/PayLinkForm';
+import { rpc } from '@/lib/db/repo';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Pay securely', path: '/pay', noindex: true, description: 'Pay CarmaCars by card for your booking.' });
@@ -38,7 +39,8 @@ export default async function PayLink({ params, searchParams }: { params: Promis
           ? `A hold of ${money(f.amount_cents, { cents: true })} for ${WHAT.deposit}. Nothing is charged now: the hold is released after the rental, unless a charge in your agreement applies. A hold lasts about ${f.hold_days} days.`
           : f.kind === 'setup' ? 'Your card is saved for the deposit and the later charges you agreed to in your rental agreement. Nothing is charged now.'
           : `${money(f.amount_cents, { cents: true })} for ${f.reason ? f.reason.toLowerCase() : WHAT[f.covers] ?? 'your booking'}.`}</p>
-        <PayLinkForm token={token} kind={f.kind} amountCents={f.amount_cents} legalName={f.renter_name} backTo={backTo} />
+        <PayLinkForm token={token} kind={f.kind} amountCents={f.amount_cents} legalName={f.renter_name} backTo={backTo}
+          debitOk={(await rpc('booking_takes_debit', { p_booking: f.booking_id }, { role: 'service_role' }).catch(() => false)) === true} />
       </section>
       <p className="small muted">The card is entered in Stripe&apos;s secure form. CarmaCars never sees or keeps the card number.</p>
     </div></div>

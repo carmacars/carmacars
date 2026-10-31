@@ -157,3 +157,27 @@ test('hiring: a remote candidate confirms the call in one press; the Calls tab s
   expect(quiet(errors)).toEqual([]);
   await sql.end();
 });
+
+test('money: a credit card by default; an Admin allows debit and prepaid cards for one booking on its Money tab', async ({ browser }, info) => {
+  test.setTimeout(180_000);
+  const phone = info.project.name.startsWith('phone');
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const a = await mkAdmin(sql);
+  const [b] = await sql`select id, booking_number from bookings where coverage_option is distinct from 2 and debit_allowed_at is null and status::text in ('confirmed', 'awaiting_payment', 'in_progress') order by created_at desc limit 1`;
+  test.skip(!b, 'no booking in the seed');
+  const page = await ctx(browser, phone);
+  const errors = watch(page);
+  await signIn(page, a.email, '/admin');
+  await page.goto(`/admin/bookings/${b!.booking_number}?tab=money`, { waitUntil: 'networkidle' });
+  await expect(page.getByTestId('bm-debit')).toContainText(/credit card is required|takes a debit/);
+  await expect(page.getByTestId('booking-debit-on')).toBeVisible();
+  await check(page, 'money-debit');
+  await sql`select app.booking_allow_debit(${a.id}::uuid, ${sql.json({ booking_id: b!.id, reason: 'e2e: debit only' })})`;
+  await page.reload({ waitUntil: 'networkidle' });
+  await expect(page.getByTestId('bm-debit')).toContainText('Debit and prepaid cards allowed for this booking');
+  await expect(page.getByTestId('booking-debit-off')).toBeVisible();
+  await sql`update bookings set debit_allowed_at = null, debit_allowed_by = null, debit_allowed_reason = null where id = ${b!.id}`;
+  expect(quiet(errors)).toEqual([]);
+  await sql.end();
+});

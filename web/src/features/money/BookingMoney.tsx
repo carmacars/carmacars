@@ -24,6 +24,9 @@ export interface Money {
   /** 2026-11-01: Collect a card sends by text first when the renter has a mobile number */
   renter_has_mobile?: boolean;
   deposit_link?: { id: string; status: string; texted_at: string | null; opened_at: string | null; error: string | null; auto: boolean; channel: string } | null;
+  /** 0230: the cards used on the booking and their type (debit and prepaid are accepted; card coverage needs the credit card) */
+  cards?: Array<{ brand: string | null; last4: string | null; funding: 'credit' | 'debit' | 'prepaid' | 'unknown'; payments: number; last_at: string }>;
+  debit?: { allowed_at: string | null; reason: string | null; by: string | null; takes: boolean; coverage: boolean; site: 'credit' | 'any' };
   e_transfer_email: string | null; moto: boolean;
   may: { record: boolean; collect: boolean; charge: boolean; hold: boolean; confirm: boolean; return_deposit: boolean };
   can_confirm: boolean;
@@ -213,6 +216,14 @@ export function BookingMoney({ m }: { m: Money }) {
         { key: 'status', label: 'Status', render: (r) => (r.voided ? 'Voided' : words(STATUS, r.status)) },
         { key: 'reference', label: 'Reference', render: (r) => String(r.reference ?? '') },
         { key: 'receipt', label: 'Receipt', render: (r) => (r.method !== 'card' && r.status === 'succeeded' ? <button className="btn btn--quiet btn--sm" type="button" onClick={() => print(r as unknown as Money['payments'][number])}>Print</button> : null) }]} />
+      {!!m.cards?.length && (
+        <p className="small" data-testid="bm-cards">Cards used: {m.cards.map((c) => `${(c.brand ?? 'card').toUpperCase()} ending ${c.last4 ?? ''} (${c.funding === 'credit' ? 'credit' : c.funding === 'debit' ? 'debit' : c.funding === 'prepaid' ? 'prepaid' : 'type unknown'})`).join(', ')}.
+          {m.cards.some((c) => c.funding === 'debit' || c.funding === 'prepaid') ? ' A deposit hold on a debit or prepaid card lowers the renter\'s available balance until it is released.' : ''}</p>)}
+      {m.debit && (
+        <p className="small" data-testid="bm-debit">{m.debit.coverage ? 'Card coverage: paid on the credit card that carries the coverage (no debit or prepaid card).'
+          : m.debit.allowed_at ? `Debit and prepaid cards allowed for this booking${m.debit.by ? ` by ${m.debit.by}` : ''} on ${when(m.debit.allowed_at)}: ${m.debit.reason ?? ''}`
+          : m.debit.takes ? 'This booking takes a debit or prepaid card (the car or the site-wide setting).'
+          : 'A credit card is required (no debit or prepaid card).'}</p>)}
       {m.deposit_link && (m.deposit_link.texted_at || m.deposit_link.error) && (
         <p className="small" data-testid="bm-deposit-link">{m.deposit_link.texted_at ? `Deposit link texted ${when(m.deposit_link.texted_at)}` : `Deposit link not sent: ${m.deposit_link.error}`}
           {m.deposit_link.opened_at ? `, opened ${when(m.deposit_link.opened_at)}` : m.deposit_link.texted_at ? ', not opened yet' : ''}{m.deposit_link.status === 'paid' ? ': the hold is placed.' : '.'}</p>)}

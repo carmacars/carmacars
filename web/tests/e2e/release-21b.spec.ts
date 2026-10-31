@@ -427,7 +427,7 @@ test('deposit link by text: the job texts the hold link before pickup; the Money
       await rp.getByTestId('paylink-submit').click();
     };
     await pay('5105105105105100');
-    await expect(rp.getByTestId('paylink-message')).toContainText('Please use a credit card. Debit and prepaid cards cannot be used for a rental.');
+    await expect(rp.getByTestId('paylink-message')).toContainText('Please use a credit card. If you only have a debit or prepaid card, contact us.');
     expect((await sql`select count(*)::int n from deposits where booking_id = ${v.booking_id} and status = 'held'`)[0]!.n).toBe(0);
     expect((await sql`select status, last_error from payment_requests where booking_id = ${v.booking_id} and kind = 'hold' order by created_at desc limit 1`)[0]).toMatchObject({ status: 'open' });
     await check(rp, 'pay link prepaid refused');

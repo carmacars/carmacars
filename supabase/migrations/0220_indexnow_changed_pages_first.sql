@@ -12,8 +12,11 @@
 --    back-off and daily ceiling no longer hold them back, and theirs no longer holds back the sweep... except that:
 -- 2. The sweep waits while changed pages are waiting (they go first, alone), and after a 429 without Retry-After it waits
 --    one more day for each 429 in a row (at most a week).
--- 3. The sweep sends the priority list only, within the crawl scope (web/src/lib/edge/crawl-scope.ts: no place page, no
---    page below the trim, no search term, for sale, detailing or body shop tree), then waits 7 days for its next round.
+-- 3. The search scope (program_settings.search_scope, Settings > Vehicle pages, the owner's choice): Full (the default,
+--    every page in robots.txt, the sitemaps and IndexNow, as before) or Core (about 23,000 pages, web/src/lib/edge/
+--    crawl-scope.ts: no place page, no page below the trim, no search term, for sale, detailing or body shop tree). In Core
+--    the sweep sends the priority list only, then waits 7 days for its next round. The switch needs no deploy: the
+--    database, the sitemaps and robots.txt read it, and the five-minute tick hands it to the Worker (search_scope).
 -- 4. The five-minute tick runs the search job when the changed pages may go out, or the sweep may (2 and 3).
 -- 5. Settings > Search shows the last answer and the back-off of each.
 -- 6. The tick also says whether the month's Worker CPU time is at 70% of its allowance or more (cpu_guard), for the
@@ -42,15 +45,28 @@ comment on column indexnow_sweep.q_backoff_until is 'The changed pages (indexnow
 comment on column indexnow_sweep.streak_429 is 'The sweep''s 429 answers in a row (0220): each adds a day to the wait, at most a week.';
 comment on column indexnow_sweep.next_round_at is 'The sweep''s next round of the priority list starts then (0220: a round a week).';
 
--- the crawl scope, as web/src/lib/edge/crawl-scope.ts says it (keep the two in step)
+-- the search scope: full (every page, the default) or core (the crawl scope of web/src/lib/edge/crawl-scope.ts)
+alter table program_settings add column if not exists search_scope text not null default 'full' check (search_scope in ('full', 'core'));
+comment on column program_settings.search_scope is 'R23 (0220): what crawlers are invited to read. full: every page (robots.txt, the sitemaps, IndexNow). core: about 23,000 pages (web/src/lib/edge/crawl-scope.ts). The 70% CPU guard applies in both.';
+
+-- the scope for the sitemaps and robots.txt (the server's read)
+create or replace function public.search_scope() returns text
+language sql stable security definer set search_path = public, app as $$
+  select coalesce((app.settings()).search_scope, 'full')
+$$;
+revoke all on function public.search_scope() from public, anon, authenticated;
+grant execute on function public.search_scope() to service_role;
+
+-- an address crawlers may be sent to: every address in Full; in Core, the crawl scope as web/src/lib/edge/crawl-scope.ts
+-- says it (keep the two in step)
 create or replace function app.crawl_scope_ok(p_path text) returns boolean
 language sql stable security definer set search_path = public, app as $$
-  select p_path is not null
-     and p_path !~ '^/(t|buy)(/|$)'
+  select p_path is not null and ((app.settings()).search_scope is distinct from 'core' or (
+         p_path !~ '^/(t|buy)(/|$)'
      and p_path !~ '^/cars/[^/]+/[^/]+/[^/]+/[^/]+/[^/]+'
      and p_path !~ '^/(car-rental|detailing|body-shop)/[^/]+/[^/]+'
      and p_path !~ '^/places/.'
-     and (p_path !~ '^/car-rental/[^/]+$' or exists (select 1 from seo_pages s where app.seo_page_path(s.slug) = p_path and s.is_active))
+     and (p_path !~ '^/car-rental/[^/]+$' or exists (select 1 from seo_pages s where app.seo_page_path(s.slug) = p_path and s.is_active))))
 $$;
 
 -- whether the changed pages may be sent now
@@ -130,8 +146,9 @@ begin
   if w.next_round_at > now() then
     return jsonb_build_object('paths', '[]'::jsonb, 'why', 'next round', 'until', w.next_round_at);
   end if;
-  -- the priority list only: past it (the place and vehicle files are out of the crawl scope) the round is done
-  if w.phase <> 'priority' then
+  -- Core: the priority list only: past it (the place and vehicle files are out of the crawl scope) the round is done.
+  -- Full: the place and vehicle files follow, as before (0124)
+  if w.phase <> 'priority' and (app.settings()).search_scope = 'core' then
     update indexnow_sweep set phase = 'priority', p_i = 0, p_pos = 0, file_i = 0, pos = -1, rounds = rounds + 1,
            next_round_at = now() + interval '7 days', updated_at = now() where id;
     return jsonb_build_object('paths', '[]'::jsonb, 'why', 'next round', 'until', now() + interval '7 days');
@@ -199,7 +216,7 @@ begin
     v_cpu := coalesce((app.usage_state('workers_cpu', now()) ->> 'share_bps')::integer >= 7000, false);
   exception when others then v_cpu := false;
   end;
-  return v || jsonb_build_object('seo', v_seo, 'cpu_guard', v_cpu);
+  return v || jsonb_build_object('seo', v_seo, 'cpu_guard', v_cpu, 'search_scope', coalesce(ps.search_scope, 'full'));
 end $$;
 select pg_temp.copy_grants('app.server_jobs_due()'::regprocedure, 'app.server_jobs_due_pre0220()'::regprocedure);
 
@@ -217,7 +234,8 @@ begin
       'answer', jsonb_build_object('status', w.q_last_status, 'error', w.q_last_error, 'at', w.q_last_at, 'until', case when w.q_backoff_until > now() then w.q_backoff_until end),
       'sweep', jsonb_build_object('status', w.last_status, 'error', w.last_error, 'at', w.last_at, 'until', case when w.backoff_until > now() then w.backoff_until end,
                                   'next_round', case when w.next_round_at > now() then w.next_round_at end, 'streak_429', w.streak_429),
-      'out_of_scope', (select count(*) from indexnow_queue q where q.sent_at is null and not app.crawl_scope_ok(q.path))));
+      'out_of_scope', (select count(*) from indexnow_queue q where q.sent_at is null and not app.crawl_scope_ok(q.path)),
+      'scope', (app.settings()).search_scope));
   end if;
   return v;
 end $$;
@@ -234,6 +252,6 @@ begin
   end loop;
 end $$;
 
--- the changed pages may go out at the next tick; addresses of the queue outside the crawl scope are dropped (never sent)
+-- the changed pages may go out at the next tick (in Full nothing of the queue is out of scope)
 update indexnow_sweep set q_backoff_until = null, q_backoff_s = 0 where id;
 delete from indexnow_queue where sent_at is null and not app.crawl_scope_ok(path);

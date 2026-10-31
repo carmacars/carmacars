@@ -8,8 +8,9 @@
 //   keeps them out; those that ignore it no longer cost a render. Never a person, never the API (webhooks, monitors).
 // - A crawler on a public page's query-string view (filters, dates, campaign tags) that robots.txt keeps out: 301 to the
 //   clean address, which the edge copy answers without loading the app. People keep their query strings.
-// - R23: a crawler on a page outside the crawl scope (crawl-scope.ts: the term trees, for sale, below the trim, a term in a
-//   place) that robots.txt keeps out: 403, kept a day. People still see every page.
+// - R23, when the search scope is Core (Settings > Vehicle pages; the Worker keeps the flag): a crawler on a page outside
+//   the crawl scope (crawl-scope.ts: the term trees, for sale, below the trim, a term in a place) that robots.txt keeps
+//   out: 403, kept a day. In Full (the default) every public page is open to crawlers. People always see every page.
 
 import { deepOutOfScope } from './crawl-scope.ts';
 
@@ -27,7 +28,10 @@ const QUERY_VIEW = /^\/(cars(\/.*)?|(car-rental|guides|rent|buy|detailing|body-s
 
 export type Shield = { kind: 'pass' } | { kind: 'refuse'; reason: 'blocked' | 'portal' | 'scope' } | { kind: 'redirect'; location: string };
 
-export function shield(method: string, url: string, ua: string | null | undefined): Shield {
+/** Whether a user agent says it is a crawler (custom-worker.ts reads the search scope flag only for one). */
+export const isCrawler = (ua: string | null | undefined): boolean => !!ua && CRAWLER.test(ua);
+
+export function shield(method: string, url: string, ua: string | null | undefined, core = false): Shield {
   if (!ua || (method !== 'GET' && method !== 'HEAD')) return { kind: 'pass' };
   const u = new URL(url);
   const path = u.pathname;
@@ -35,7 +39,7 @@ export function shield(method: string, url: string, ua: string | null | undefine
   if (BLOCKED_BOT.test(ua)) return { kind: 'refuse', reason: 'blocked' };
   if (!CRAWLER.test(ua)) return { kind: 'pass' };
   if (PORTAL.has(path.split('/')[1] ?? '')) return { kind: 'refuse', reason: 'portal' };
-  if (deepOutOfScope(path)) return { kind: 'refuse', reason: 'scope' };
+  if (core && deepOutOfScope(path)) return { kind: 'refuse', reason: 'scope' };
   if (u.search && QUERY_VIEW.test(path)) {
     // Next.js's own RSC fetches carry _rsc; a crawler never sends it, but leave them alone
     if ([...u.searchParams.keys()].every((k) => k === '_rsc')) return { kind: 'pass' };
@@ -51,11 +55,12 @@ export function shieldResponse(s: Exclude<Shield, { kind: 'pass' }>, headers: Re
     'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex', 'cache-control': `public, max-age=${s.reason === 'portal' ? 3600 : 86400}`, ...headers } });
 }
 
-/** R23: the hard guard while the month's Worker CPU time is at 70% of the included allowance or more (the owner's choice) (the cron tick keeps the flag,
- *  custom-worker.ts): a crawler asking for a catalog or place page gets 503 with Retry-After a day (search engines come
- *  back later and keep what they indexed), never a render. People, the fleet's own car pages (/cars/<slug>), the home
- *  page and everything else are untouched. */
-const CATALOG = /^\/(cars\/[^/]+\/.+|car-rental\/.+|makes(\/.*)?|places(\/.*)?|guides\/.+)$/;
+/** R23: the hard guard while the month's Worker CPU time is at 70% of the included allowance or more (the owner's choice;
+ *  the cron tick keeps the flag, custom-worker.ts), in either search scope: a crawler asking for a catalog, place, search
+ *  term, for-sale, detailing or body shop page gets 503 with Retry-After a day (search engines come back later and keep
+ *  what they indexed), never a render. People, the fleet's own car pages (/cars/<slug>), the home page and everything
+ *  else are untouched. */
+const CATALOG = /^\/(cars\/[^/]+\/.+|car-rental\/.+|makes(\/.*)?|places(\/.*)?|guides\/.+|t\/.+|buy(\/.*)?|detailing\/.+|body-shop\/.+)$/;
 export function cpuGuard(method: string, path: string, ua: string | null | undefined, over: boolean): boolean {
   return over && !!ua && (method === 'GET' || method === 'HEAD') && CRAWLER.test(ua) && CATALOG.test(path);
 }

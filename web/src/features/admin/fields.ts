@@ -26,6 +26,8 @@ const LABELS: Record<string, string> = {
   vpage_place_index: 'Index the place pages', vpage_colour_index: 'Index the colour pages', vpage_term_index: 'Index the search term pages', vpage_buy_index: 'Index the /buy pages',
   vpage_detailing_index: 'Index the detailing pages', vpage_bodyshop_index: 'Index the body shop pages', vpage_finance_disclaimer: 'Financing disclaimer',
   vpage_stock_photos: 'Show stock photos (licensed, credited) on the vehicle, place and service pages',
+  search_scope: 'Search scope',
+  card_types_accepted: 'Card types accepted',
   usage_alert_texts: 'Usage alerts: also text every Admin with a verified phone (once per figure and level a month)',
   vpage_import_db_cap_mb: 'Database size cap for the catalog import (MB)', db_plan: 'Import size limit', db_cap_pro_mb: 'Database size cap for the imports, standard (MB)',
   db_cap_free_mb: 'Database size cap for the imports, small (MB)', indexnow_daily_max: 'IndexNow: most addresses a day', indexnow_batch: 'IndexNow: addresses a request (at most 10,000)',
@@ -218,7 +220,9 @@ const HINTS: Record<string, string> = {
   sms_quiet_from_hour: 'Toronto time. Urgent texts (late return, same-day pickup and return details, breakdown, accident) still go.',
   sms_generic_text: '{{subject}} is the email\'s subject and {{link}} the page. Keep CarmaCars and {{link}}; no long dashes. Every customer email has its own text, so this is only for one added later.',
   sms_stop_confirm_text: 'Quo sends no confirmation of its own. Texted once, right away (even in the quiet hours), when someone replies STOP. Name CarmaCars and say how to undo it (START).',
-  sms_start_confirm_text: 'Texted once, right away, when someone replies START. Name CarmaCars and say how to stop (STOP).'
+  sms_start_confirm_text: 'Texted once, right away, when someone replies START. Name CarmaCars and say how to stop (STOP).',
+  card_types_accepted: 'Credit only (the default): the pay page, staff pay links and the deposit hold take a credit card, so the deductible can be charged; an Admin can allow a debit or prepaid card for one booking on its Money tab. Credit, debit and prepaid: every booking takes them. A booking on credit card rental coverage is always paid on that credit card.',
+  search_scope: 'What search engines are invited to read (robots.txt, the sitemaps, IndexNow). Full: every page, which costs more website CPU time as crawlers read them. Core: the fixed pages, the cars, the landing pages, the guides and the vehicle pages down to the trim. From 70% of the month\'s CPU allowance crawlers get no catalog page until the month resets, in either scope. Takes effect within minutes, no deploy.'
 };
 // numbers with a range the database also checks
 const RANGES: Record<string, [number, number]> = { review_checkin_min_days: [1, 30], review_checkin_after_hours: [1, 240], review_ask_after_minutes: [0, 10080], review_reminder_hours: [1, 336], review_final_days: [1, 60], review_send_from_hour: [0, 23], review_send_until_hour: [1, 24], review_ask_max_days: [1, 365], review_google_match_days: [1, 365], sms_quiet_from_hour: [0, 23], sms_quiet_until_hour: [0, 23], signin_phone_hourly_per_number: [1, 50], signin_phone_hourly_per_ip: [1, 500], phone_missed_call_text_hours: [1, 168], phone_keep_months: [1, 120], owner_debit_notice_days: [10, 30], game_trigger_car_pages: [0, 20], game_max_per_day: [0, 50], game_trigger_seconds: [0, 1800], game_reshow_car_pages: [0, 20], game_reshow_seconds: [0, 3600], game_max_per_visit: [1, 10], game_replay_after_claim_days: [0, 90], game_saved_again_days: [0, 30], default_km_allowance_per_day: [1, 5000], request_response_target_minutes: [1, 1440], request_claim_minutes: [5, 240], request_sales_after_minutes: [0, 1440], sales_remote_min_touches: [0, 10000], sales_remote_drop_tiers: [0, 3], sales_remote_cover_hours: [0, 84], sales_remote_reply_minutes: [1, 240], sales_remote_peak_from_hour: [0, 23], sales_remote_peak_until_hour: [1, 24], deposit_release_reminder_days: [1, 60] };
@@ -241,6 +245,8 @@ function fieldForBase(k: string, v: unknown, options?: Array<[string, string]>):
 }
 // settings that are one of a few words (a select)
 const OPTIONS: Record<string, Array<[string, string]>> = {
+  search_scope: [['full', 'Full (every page)'], ['core', 'Core (about 23,000 pages)']],
+  card_types_accepted: [['credit', 'Credit only (default)'], ['any', 'Credit, debit and prepaid']],
   owner_revenue_visibility: [['right_away', 'Right away (default)'], ['after_return', 'After the return'], ['statement', 'When the statement is approved']]
 };
 export const fieldsFrom = (row: Record<string, unknown>, keys: string[], options: Record<string, Array<[string, string]>> = {}) => keys.filter((k) => k in row).map((k) => fieldFor(k, row[k], options[k] ?? OPTIONS[k]));

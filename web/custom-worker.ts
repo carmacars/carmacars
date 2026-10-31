@@ -11,8 +11,9 @@ import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, clea
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, STALE_HEADER, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
 import { jobsToRun } from './src/lib/edge/cron-gate';
-import { cpuGuard, cpuGuardResponse, shield, shieldResponse } from './src/lib/edge/bot-shield';
-import { CPU_GUARD_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
+import { cpuGuard, cpuGuardResponse, isCrawler, shield, shieldResponse } from './src/lib/edge/bot-shield';
+import { deepOutOfScope } from './src/lib/edge/crawl-scope';
+import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
 import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
 
@@ -204,6 +205,9 @@ const worker = {
     if (due.checked) ctx.waitUntil((async () => {
       const want = due.cpu_guard ? 1 : 0;
       if ((await readNumber(env, CPU_GUARD_KEY)) !== want) await writeNumber(env, CPU_GUARD_KEY, want);
+      // the search scope (Settings > Vehicle pages): 1 for Core, which keeps crawlers to the crawl scope here
+      const core = due.search_core ? 1 : 0;
+      if ((await readNumber(env, SEARCH_SCOPE_KEY)) !== core) await writeNumber(env, SEARCH_SCOPE_KEY, core);
     })().catch(() => undefined));
     if (due.listing) run('/api/jobs/listing');
     // the search copy (cars, landing pages, articles) and IndexNow (migration 0061)
@@ -269,7 +273,10 @@ const worker = {
     if (isProbe(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });
     // 2026-10-30: SEO tools and scrapers, crawlers on the portals and on query-string views: answered here, before the
     // session refresh and the app (src/lib/edge/bot-shield.ts)
-    const sh = shield(request.method, request.url, request.headers.get('user-agent'));
+    // R23: the search scope flag is read (one KV read, kept 30 s) only for a crawler on a page outside the core crawl scope
+    const ua0 = request.headers.get('user-agent');
+    const core = isCrawler(ua0) && deepOutOfScope(path) ? (await readNumber(env, SEARCH_SCOPE_KEY)) === 1 : false;
+    const sh = shield(request.method, request.url, ua0, core);
     if (sh.kind !== 'pass') return shieldResponse(sh, securityHeaders());
     // R23: from 70% of the month's included CPU time, crawlers get no catalog render (one KV read, kept 30 s)
     { const ua = request.headers.get('user-agent');
