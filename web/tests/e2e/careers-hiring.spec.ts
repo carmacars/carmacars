@@ -55,14 +55,14 @@ const FIELD_PASS = {
   licence: 'Yes, a full G', years: '5 years or more', record: 'None', days: ['Monday', 'Friday', 'Saturday', 'Sunday'], hours: 'Full time (35 or more)', transport: 'My own car',
   experience: ['Delivery driver'], late: 'Message the office at once, keep the renter updated and follow the office\'s instructions',
   dent: 'Stay polite, photograph everything, note it in the app and let the office decide', cash: 'Count it in front of them, record it in the app right away and give them the receipt',
-  start: '2026-11-02', pay: '20'
+  start: '2026-11-02', pay: '20', english: 'Fluent: I handle calls on my own every day'
 };
 const SALES = {
   in_person: 'Yes', years: '3 to 5 years', done: ['Phone sales', 'Used a CRM'], commission: 'I like being paid for results', days: ['Thursday', 'Friday', 'Saturday', 'Sunday'],
   hours: 'Yes, all of them', languages: ['English'], turo: 'Ask what matters most to them, then show what is included (delivery, support, coverage options) and offer only the savings our rate sheet allows',
   discount: 'Explain the options we do have (longer rental rates, the non-refundable saving) and ask which works for them',
   toll: 'Listen, show them the toll record, explain the charge, and pass it to the office if they still dispute it', why_local: 'A person answers and fixes problems the same day.',
-  expect: 'twenty', start: '2026-11-02', hours_week: '25'
+  expect: 'twenty', start: '2026-11-02', hours_week: '25', english: 'Fluent: I handle calls on my own every day'
 };
 
 const VA_PASS = {

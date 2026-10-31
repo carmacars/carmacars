@@ -3,7 +3,7 @@
 // npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyPath, employmentWords, finalScore, fmtSlot, interviewScore, inviteMessage, jobPostingLd, MANILA, sourceOf, torontoDay, utmOf, type Criterion, type RolePublic } from './model.ts';
+import { applyPath, employmentWords, finalScore, fmtSlot, interviewScore, inviteMessage, jobPostingLd, MANILA, sourceOf, torontoDay, utmOf, type Criterion, type RolePublic, payOver } from './model.ts';
 import { roleDescription, roleTitle } from './seo.ts';
 
 const CRIT: Criterion[] = [
@@ -69,4 +69,14 @@ test('JobPosting: a remote role has the countries and the pay; an on-site role h
   assert.deepEqual(field.employmentType, ['FULL_TIME', 'PART_TIME']);
   assert.equal(((field.jobLocation as { address: Record<string, string> }).address).addressCountry, 'CA');
   assert.equal(employmentWords(['FULL_TIME', 'PART_TIME']), 'Full time, part time');
+});
+
+test('the pay asked above what the role pays', () => {
+  assert.equal(payOver('25', 2000), true);
+  assert.equal(payOver('$20/hr', 2000), false);
+  assert.equal(payOver('18 to 22', 2000), false);
+  assert.equal(payOver('1,500', 20000), true);
+  assert.equal(payOver('150', 20000), false);
+  assert.equal(payOver('anything', 2000), false);
+  assert.equal(payOver('30', null), false);
 });

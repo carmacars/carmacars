@@ -13,6 +13,8 @@ select test.ok('a website lead is new, from the website, referred by the owner, 
 select app.job_owner_pipeline();
 select test.ok('day 0: the follow-up email is queued, low priority (marketing class)', exists (select 1 from notification_outbox o, opl where o.entity_id = opl.id and o.code = 'owner_recruit_outreach'
   and o.category = 'marketing' and o.priority >= 4 and o.payload ->> 'message_body' like '%fleet insurance policy%' and o.unsubscribe_token is not null));
+select test.ok('the follow-up email carries the footer''s contact details (support_phone and the rest)', exists (select 1 from notification_outbox o, opl where o.entity_id = opl.id
+  and o.code = 'owner_recruit_outreach' and o.payload ? 'support_phone' and o.payload ? 'company_address'));
 select test.ok('the next one is day 2', (select followup_step = 1 and followup_next_at::date = (created_at + interval '2 days')::date from leads l, opl where l.id = opl.id));
 select app.job_owner_pipeline();
 select test.eq('nothing more before it is due', (select count(*)::int from notification_outbox o, opl where o.entity_id = opl.id), 1);

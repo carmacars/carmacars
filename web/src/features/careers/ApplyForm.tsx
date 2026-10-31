@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { submitApplication, type ApplyResult } from '@/server/actions/careers';
 import { describedBy, Field } from '@/features/forms/Field';
 import { Turnstile } from '@/features/forms/Turnstile';
-import { OUTCOME_WORDS, type Question, type RolePublic } from './model';
+import { OUTCOME_WORDS, payOver, type Question, type RolePublic } from './model';
 
 // The screening form of one role (migration 0173): contact details, then the role's questions, one column, about five minutes.
 // What is typed is kept on this device as it is typed (localStorage, never sent until Send) and restored on return. The
@@ -22,6 +22,8 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
   const [message, setMessage] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [done, setDone] = useState<Extract<ApplyResult, { ok: true }> | null>(null);
+  const [payNote, setPayNote] = useState<null | 'over' | 'no'>(null);
+  const payAcked = useRef(false);
   const loaded = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -39,7 +41,16 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
   }, [KEY, d]);
 
   const set = (k: keyof Omit<Draft, 'answers'>, v: string) => { setD((x) => ({ ...x, [k]: v })); clear(k); };
-  const answer = (k: string, v: string | string[]) => { setD((x) => ({ ...x, answers: { ...x.answers, [k]: v } })); clear(k); };
+  const answer = (k: string, v: string | string[]) => {
+    setD((x) => ({ ...x, answers: { ...x.answers, [k]: v } })); clear(k);
+    if (k === 'pay' && payQ?.type === 'single' && v === payQ.choices?.find((c) => c !== payYes)) setPayNote('no');
+  };
+  // the pay of the role is fixed: a higher figure, or a no to the pay, opens a note with the pay and the choices (once)
+  const payQ = role.questions.find((q) => q.key === 'pay');
+  const payYes = payQ?.choices?.find((c) => /^yes/i.test(c));
+  const payMax = role.pay_max_cents ?? role.pay_min_cents;
+  const askedOver = () => payQ?.type === 'text' && payOver(String(d.answers.pay ?? ''), payMax);
+  const checkPay = () => { if (!payAcked.current && askedOver()) setPayNote('over'); };
   const clear = (k: string) => setErrors((e) => { if (!e[k]) return e; const n = { ...e }; delete n[k]; return n; });
 
   function check(): Record<string, string> {
@@ -62,6 +73,7 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
     const e = check();
     setErrors(e);
     if (Object.keys(e).length) { setMessage('Check the highlighted answers.'); focusFirst(); return; }
+    if (!payAcked.current && askedOver()) { setPayNote('over'); return; }
     setBusy(true);
     const fd = new FormData(ev.currentTarget);
     const r = await submitApplication({ role: role.slug, full_name: d.full_name, email: d.email, phone: d.phone, profile_name: d.profile_name, answers: d.answers, src, utm,
@@ -107,9 +119,13 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
       </fieldset>
       <fieldset className="stack-lg cr-group">
         <legend className="d4">About the role</legend>
-        {role.questions.map((q, n) => <QuestionField key={q.key} q={q} n={n + 1} value={d.answers[q.key]} error={errors[q.key]} onChange={(v) => answer(q.key, v)} />)}
+        {role.questions.map((q, n) => <QuestionField key={q.key} q={q} n={n + 1} value={d.answers[q.key]} error={errors[q.key]} onChange={(v) => answer(q.key, v)}
+          onBlur={q.key === 'pay' ? checkPay : undefined} />)}
       </fieldset>
       <div className="cr-hp" aria-hidden="true"><label htmlFor="ap-website">Website</label><input id="ap-website" name="website" tabIndex={-1} autoComplete="off" /></div>
+      {payNote && <PayNote kind={payNote} payText={role.pay_text} max={payMax} unit={role.pay_unit} currency={role.pay_currency}
+        onAccept={() => { payAcked.current = true; if (payNote === 'no' && payYes) answer('pay', payYes); else if (payMax) answer('pay', String(payMax / 100)); setPayNote(null); }}
+        onKeep={() => { payAcked.current = true; setPayNote(null); }} />}
       <Turnstile action="job_apply" />
       <button className="btn btn--primary btn--lg" type="submit" disabled={busy} data-testid="ap-submit">{busy ? 'Sending' : 'Send my application'}</button>
       <p className="small muted" aria-live="polite">{saved ? 'Saved on this device as you type. ' : ''}We use your answers only to assess your application; see our <Link className="link" href="/privacy">Privacy policy</Link>.</p>
@@ -117,7 +133,7 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
   );
 }
 
-function QuestionField({ q, n, value, error, onChange }: { q: Question; n: number; value: string | string[] | undefined; error?: string; onChange: (v: string | string[]) => void }) {
+function QuestionField({ q, n, value, error, onChange, onBlur }: { q: Question; n: number; value: string | string[] | undefined; error?: string; onChange: (v: string | string[]) => void; onBlur?: () => void }) {
   const id = `ap-q-${q.key}`;
   const label = <>{n}. {q.label}</>;
   if (q.type === 'single' || q.type === 'multi') {
@@ -145,8 +161,29 @@ function QuestionField({ q, n, value, error, onChange }: { q: Question; n: numbe
     <Field id={id} label={label} optional={!q.required} error={error} hint={q.hint}>
       {q.type === 'para'
         ? <textarea className="textarea" id={id} rows={4} maxLength={2000} value={v} onChange={(e) => onChange(e.target.value)} aria-invalid={!!error || undefined} aria-describedby={describedBy(id, error, !!q.hint)} data-testid={`q-${q.key}`} />
-        : <input className="input" id={id} type={q.type === 'date' ? 'date' : 'text'} maxLength={300} placeholder={q.placeholder} value={v} onChange={(e) => onChange(e.target.value)}
+        : <input className="input" id={id} type={q.type === 'date' ? 'date' : 'text'} maxLength={300} placeholder={q.placeholder} value={v} onChange={(e) => onChange(e.target.value)} onBlur={onBlur}
             aria-invalid={!!error || undefined} aria-describedby={describedBy(id, error, !!q.hint)} data-testid={`q-${q.key}`} />}
     </Field>
+  );
+}
+
+// A modal note about the role's fixed pay: the pay, then accept it, keep my answer, or see the other roles.
+function PayNote({ kind, payText, max, unit, currency, onAccept, onKeep }: { kind: 'over' | 'no'; payText: string; max: number | null; unit: 'HOUR' | 'MONTH' | null;
+  currency: string | null; onAccept: () => void; onKeep: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => { const dl = ref.current; if (dl && !dl.open) dl.showModal?.(); }, []);
+  const most = max ? `${currency && currency !== 'CAD' ? `${currency} ` : ''}$${(max / 100).toLocaleString('en-CA', { maximumFractionDigits: 2 })}${unit === 'HOUR' ? ' an hour' : unit === 'MONTH' ? ' a month' : ''}` : payText;
+  return (
+    <dialog ref={ref} className="modal" aria-labelledby="cr-pay-h" onCancel={(e) => { e.preventDefault(); onKeep(); }} data-testid="apply-pay-note">
+      <div className="modal__head"><h2 className="d4" id="cr-pay-h">This role pays {payText}</h2></div>
+      <div className="modal__body stack">
+        <p>{kind === 'over' ? `The pay is set for this role and we cannot go above ${most}. If that works for you, keep going.` : 'The pay is set for this role and we cannot change it. If it does not work for you, another role may suit you better.'}</p>
+        <p><Link prefetch={false} className="link" href="/careers">See the other open roles</Link></p>
+      </div>
+      <div className="modal__foot" style={{ flexWrap: 'wrap' }}>
+        <button type="button" className="btn btn--ghost" onClick={onKeep} data-testid="apply-pay-keep">Keep my answer</button>
+        <button type="button" className="btn btn--primary" onClick={onAccept} data-testid="apply-pay-accept">{kind === 'over' ? `${most} works for me` : 'I accept this pay'}</button>
+      </div>
+    </dialog>
   );
 }

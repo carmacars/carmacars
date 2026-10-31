@@ -124,3 +124,11 @@ export function employmentWords(types: string[]): string {
   const s = types.map((t) => W[t] ?? t.toLowerCase()).join(', ');
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+/** The figure typed for the pay asked, above the most the role pays (dollars in the text; cents in the role). */
+export function payOver(typed: string, maxCents: number | null | undefined): boolean {
+  if (!maxCents) return false;
+  const n = Number((typed.replace(/,/g, '').match(/\d+(?:\.\d+)?/) ?? [])[0]);
+  return Number.isFinite(n) && n > 0 && Math.round(n * 100) > maxCents;
+}
+

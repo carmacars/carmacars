@@ -1,6 +1,6 @@
 // A booking's pickup and return as two calendar events (Release 22: the confirmation email's link; the booking page builds
 // the same in the browser). No imports: Worker and `node --test`.
-const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 const stamp = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
 
 export function bookingIcs(b: { number: string; car: string; pickup_at: string; return_at: string; pickup_place: string; return_place?: string | null }, now = new Date()): string {

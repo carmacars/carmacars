@@ -27,7 +27,7 @@ create or replace function test.h99out(p_k text, p_code text) returns notificati
 
 -- a strong field applicant, and the same with changes
 create or replace function test.h99field(p jsonb default '{}'::jsonb) returns jsonb language sql immutable as $$
-  select '{"licence":"Yes, a full G","years":"5 years or more","record":"None","days":["Saturday","Sunday","Monday","Tuesday","Wednesday"],
+  select '{"english":"Fluent: I handle calls on my own every day","licence":"Yes, a full G","years":"5 years or more","record":"None","days":["Saturday","Sunday","Monday","Tuesday","Wednesday"],
     "hours":"Full time (35 or more)","transport":"My own car","experience":["Delivery driver","Car detailing or car wash"],
     "late":"Message the office at once, keep the renter updated and follow the office''s instructions",
     "dent":"Stay polite, photograph everything, note it in the app and let the office decide",
@@ -44,7 +44,7 @@ create or replace function test.h99va(p jsonb default '{}'::jsonb) returns jsonb
     'school', 'No', 'education', 'College degree', 'career', 'A long-term career, growing with one company', 'canada', 'Maybe', 'start', '2026-11-09') || p
 $$;
 create or replace function test.h99sales(p jsonb default '{}'::jsonb) returns jsonb language sql immutable as $$
-  select '{"years":"3 to 5 years","done":["Phone sales","Used a CRM","Car rental, dealership or automotive"],"commission":"I like being paid for results",
+  select '{"english":"Fluent: I handle calls on my own every day","years":"3 to 5 years","done":["Phone sales","Used a CRM","Car rental, dealership or automotive"],"commission":"I like being paid for results",
     "in_person":"Yes","days":["Thursday","Friday","Saturday","Sunday"],"hours":"Yes, all of them","languages":["English","Tagalog"],
     "turo":"Ask what matters most to them, then show what is included (delivery, support, coverage options) and offer only the savings our rate sheet allows",
     "discount":"Explain the options we do have (longer rental rates, the non-refundable saving) and ask which works for them",
@@ -60,12 +60,12 @@ select test.eq('roles: the open roles list for the careers page', (select string
 select test.ok('public role: no points, knock-outs, knock-out reasons, scoring rules or call guide reach a browser',
   public.hiring_role_public('field-staff')::text !~ '"(pts|ko|ko_reason|ko_unless_contains|score|call_guide|pass_mark|refer_to)"'
   and public.hiring_role_public('sales-in-person')::text !~ '"(pts|ko|score)"');
-select test.ok('public role: the questions and their choices are there', jsonb_array_length(public.hiring_role_public('field-staff') -> 'questions') = 13
+select test.ok('public role: the questions and their choices are there', jsonb_array_length(public.hiring_role_public('field-staff') -> 'questions') = 14
   and public.hiring_role_public('field-staff') #>> '{questions,0,choices,0}' = 'Yes, a full G');
 select test.ok('public role: a closed role answers nothing', public.hiring_role_public('va-finance-billing') is null);
-select test.ok('sales: no right-to-work question in either role; the only in-person knock-out is the place of work',
+select test.ok('sales: no right-to-work question in either role; the in-person knock-outs are the place of work and the two minimums (0219)',
   public.hiring_role_public('sales-in-person')::text !~* 'legally|right to work|citizen' and public.hiring_role_public('sales-remote')::text !~* 'legally|right to work|citizen'
-  and (select string_agg(q ->> 'key', ',') from hiring_roles r, jsonb_array_elements(r.questions) q where r.slug = 'sales-in-person' and q ? 'ko_reason') = 'in_person');
+  and (select string_agg(q ->> 'key', ',') from hiring_roles r, jsonb_array_elements(r.questions) q where r.slug = 'sales-in-person' and q ? 'ko_reason') = 'in_person,years,english');
 select test.eq('sales: both commission only; in person 10% to 20%, remote 5 points lower on every rate', (select string_agg(pay_text, ' / ' order by sort_order) from hiring_roles where slug like 'sales-%'),
   'Commission only: 10% to 20% of the rental charge of each rental you source / Commission only: 5% to 15% of the rental charge of each rental you source');
 select test.ok('sales: the rates by rental days on each page', (select details::text ~ '10% of the rental charge under 50 rental days in the calendar month, 15% from 50 days, 20% from 100 days' from hiring_roles where slug = 'sales-in-person')
@@ -119,8 +119,8 @@ create or replace function test.h99slot(p_n integer, p_day text default 'day') r
 
 select test.h99apply('hirana', 'field-staff', test.h99field(), '{"source":"indeed","utm":{"utm_source":"indeed","utm_campaign":"field-oct","x":"dropped"}}');
 select test.eq('pass: invited, with a booking token', test.h99('hirana') ->> 'outcome', 'invited');
-select test.eq('pass: score, source and campaign kept (unknown keys dropped)', (select score || '/' || source || '/' || (utm ->> 'utm_campaign') || '/' || (utm ? 'x') from test.h99a('hirana')), '96/indeed/field-oct/false');
-select test.ok('pass: the breakdown has every question with its points', (select jsonb_array_length(score_detail) = 13 and score_points = 101 and score_max = 105 from test.h99a('hirana')));
+select test.eq('pass: score, source and campaign kept (unknown keys dropped)', (select score || '/' || source || '/' || (utm ->> 'utm_campaign') || '/' || (utm ? 'x') from test.h99a('hirana')), '97/indeed/field-oct/false');
+select test.ok('pass: the breakdown has every question with its points', (select jsonb_array_length(score_detail) = 14 and score_points = 116 and score_max = 120 from test.h99a('hirana')));
 select app.process_events();
 select test.eq('pass: the invitation is queued to the candidate', (test.h99out('hirana', 'applicant_invited')).status, 'queued');
 select test.ok('pass: the invitation carries the personal booking link and the call day', (test.h99out('hirana', 'applicant_invited')).payload ->> 'booking_url' like '%/careers/book/' || (test.h99a('hirana')).token
@@ -168,7 +168,7 @@ select test.h99apply('hirev', 'sales-in-person', test.h99sales('{"years":"Under 
   "turo":"Match the Turo price","discount":"Say no and end the chat","toll":"Tell them it is not your problem"}'));
 select test.eq('sales in person below the bar: offered remote sales', (select status || '/' || (select slug from hiring_roles where id = referred_role_id) from test.h99a('hirev')), 'referred/sales-remote');
 create or replace function test.h99remote(p jsonb default '{}'::jsonb) returns jsonb language sql immutable as $$
-  select '{"rate_firm":"Yes, I understand the rates are firm and I accept them","shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
+  select '{"english":"Fluent: I handle calls on my own every day","rate_firm":"Yes, I understand the rates are firm and I accept them","shift":"No","hours_now":"days","backup":"Neither","years":"1 to 2 years","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
     "scenario":"Give the 15% to close the sale","tip":"Accept it if the fee is small","post_check":"5","activity":"No","based":"Lagos, Nigeria","start":"2026-11-09","references":"Two clients"}'::jsonb || p $$;
 select test.h99apply('hirfay', 'sales-remote', test.h99remote());
 select test.eq('remote sales below the bar, the matching role closed: waits for review', (test.h99a('hirfay')).status, 'below_bar');
@@ -288,9 +288,9 @@ select test.throws('rubric: an assistant cannot use the door', format($$select a
 select test.throws('rubric: scores are 1 to 5', format($$select app.door(%L, 'aal2', 'admin_do', 'hiring_score', jsonb_build_object('id', %L, 'scores', '{"communication": 6}'::jsonb))$$, test.id('hir_admin'), (test.h99a('hirana')).id), '1 to 5');
 insert into h99 select 'score_ana', app.door(test.id('hir_admin'), 'aal2', 'admin_do', 'hiring_score', jsonb_build_object('id', (test.h99a('hirana')).id,
   'scores', '{"communication":5,"reliability":4,"role_skills":4,"customer":3,"judgement":5,"attitude":5}'::jsonb, 'notes', 'Strong', 'decision', 'hire'));
--- interview = (5*20 + 4*20 + 4*20 + 3*15 + 5*15 + 5*10) / 5 = 86; final = 96 * 0.4 + 86 * 0.6 = 90.0
+-- interview = (5*20 + 4*20 + 4*20 + 3*15 + 5*15 + 5*10) / 5 = 86; final = 97 * 0.4 + 86 * 0.6 = 90.4
 select test.eq('rubric: interview score of 100 from the weights, final = 40% screening + 60% interview',
-  (select interview_score || '/' || final_score from interview_scores where application_id = (test.h99a('hirana')).id), '86/90.0');
+  (select interview_score || '/' || final_score from interview_scores where application_id = (test.h99a('hirana')).id), '86/90.4');
 select test.eq('rubric: the call is marked as held', (test.h99a('hirana')).status, 'interviewed');
 select test.eq('rank: first in the role', (test.h99('score_ana') ->> 'rank'), '1');
 -- a second interviewed candidate with a higher final score takes rank 1

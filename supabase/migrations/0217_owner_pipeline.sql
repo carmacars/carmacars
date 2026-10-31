@@ -429,3 +429,17 @@ begin
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;
 end $$;
+
+-- the owner outreach email's footer (phone, address, hours, social links): its senders (Admin > Owner recruitment, 0167,
+-- and the follow-ups above) build the payload by hand, so the contact details are added here when the row is queued;
+-- anything the payload already has wins
+create or replace function app.outbox_outreach_contact() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if new.code = 'owner_recruit_outreach' then new.payload := app.ntf_contact() || coalesce(new.payload, '{}'::jsonb); end if;
+  return new;
+end $$;
+revoke all on function app.outbox_outreach_contact() from public, anon, authenticated;
+grant execute on function app.outbox_outreach_contact() to service_role;
+drop trigger if exists notification_outbox_contact on notification_outbox;
+create trigger notification_outbox_contact before insert on notification_outbox for each row execute function app.outbox_outreach_contact();

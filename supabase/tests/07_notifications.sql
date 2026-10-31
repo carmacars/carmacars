@@ -794,7 +794,7 @@ select app.recruit_send(test.id('nt_admin'), jsonb_build_object('lead', (select 
 do $$
 declare
   v_day jsonb := app.hiring_day_save(test.id('nt_admin'), jsonb_build_object('day', app.today() + 5, 'start_time', '13:00', 'end_time', '14:00', 'note', 'nt hiring'));
-  f jsonb := '{"licence":"Yes, a full G","years":"5 years or more","record":"None","days":["Saturday","Sunday","Monday"],"hours":"Full time (35 or more)","transport":"My own car",
+  f jsonb := '{"english":"Fluent: I handle calls on my own every day","licence":"Yes, a full G","years":"5 years or more","record":"None","days":["Saturday","Sunday","Monday"],"hours":"Full time (35 or more)","transport":"My own car",
     "late":"Message the office at once, keep the renter updated and follow the office''s instructions","dent":"Stay polite, photograph everything, note it in the app and let the office decide",
     "cash":"Count it in front of them, record it in the app right away and give them the receipt","start":"2026-11-02","pay":"20"}';
   r jsonb;
@@ -819,7 +819,7 @@ begin
       "education":"College degree","career":"A job for now","canada":"No","start":"2026-11-09"}'::jsonb), null);
   update hiring_roles set active = (slug = 'sales-remote') where slug in ('va-finance-billing', 'sales-remote');
   perform public.server_hiring_apply(jsonb_build_object('role', 'sales-remote', 'full_name', 'Nt Received', 'email', 'nt.received@example.test', 'phone', '4165550114',
-    'answers', '{"rate_firm":"Yes, I understand the rates are firm and I accept them","shift":"No","hours_now":"days","backup":"Neither","years":"Under 1 year","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
+    'answers', '{"english":"Good: I can handle most calls","rate_firm":"Yes, I understand the rates are firm and I accept them","shift":"No","hours_now":"days","backup":"Neither","years":"1 to 2 years","tools_detail":"Sheets","mistake":"none","clients":"No other clients",
       "scenario":"Give the 15% to close the sale","tip":"Accept it if the fee is small","post_check":"5","activity":"No","based":"Nairobi, Kenya","start":"2026-11-09","references":"Two"}'::jsonb), null);
   -- 0211: "New times are open", as a day added sends it to a candidate who had found no open time
   perform app.hiring_emit_pre0211('applicant_new_times', a, app.hiring_invite_vars(a), 'applicant_new_times:nt')
