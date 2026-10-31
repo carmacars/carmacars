@@ -71,3 +71,19 @@ update notification_catalogue
    set timing = 'About an hour before the call, only for candidates who do not get the text (no phone, or phone and texts off); the evening-before email is off unless Program settings turn it on',
        trigger_text = 'A booked interview call is about an hour away (app.job_hiring every 15 minutes), or the next day at 6 pm Toronto time when Program settings turn the evening reminder on. Not sent when the call was booked after that moment. When phone and texts are on and the candidate has a phone that takes texts, the hour-before reminder is a text and no email goes (migration 0199). One email per reminder.'
  where code = 'applicant_reminder';
+
+-- ================================================================ calendar conflict email after its booking or car is gone
+-- A conflict whose booking (or car) was deleted before the email went out left booking_number and vehicle_name empty, and
+-- the email could not render. It now reads "a removed booking" / "A removed car".
+do $$
+declare
+  s regprocedure := 'app.ntf_payload_pre_ot(text, app_events, jsonb)'::regprocedure;
+  d text := pg_get_functiondef(s);
+  o1 text := $o$'vehicle_name', app.vehicle_name(coalesce(e.vehicle_id, b.vehicle_id)), 'platform'$o$;
+  o2 text := $o$'booking_number', b.booking_number, 'external_start'$o$;
+begin
+  if position(o1 in d) = 0 or position(o2 in d) = 0 then raise notice '0199: calendar conflict payload already changed; skipped'; return; end if;
+  d := replace(d, o1, $n$'vehicle_name', coalesce(app.vehicle_name(coalesce(e.vehicle_id, b.vehicle_id)), 'A removed car'), 'platform'$n$);
+  d := replace(d, o2, $n$'booking_number', coalesce(b.booking_number, 'a removed booking'), 'external_start'$n$);
+  execute d;
+end $$;

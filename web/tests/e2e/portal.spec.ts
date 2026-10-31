@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, watch, giveLicence, storeFixturePdf, strongSign, readyEsign } from './helpers';
+import { acceptCookies, db, noOverflow, watch, giveLicence, storeFixturePdf, strongSign, readyEsign, completeAgreementDetails } from './helpers';
 
 // The renter portal end to end, at 375 and 1440: request (the wizard, signed in), the staff step seeded
 // through app.send_offer, approve, details, sign by drawing on the canvas, pay with the fake adapter
@@ -130,6 +130,7 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await page.locator('#pt-d-licence_number').fill('P1234-56789-01234');
   await page.locator('#pt-d-licence_expiry').fill('2031-06-30');
   await page.getByRole('button', { name: 'Save details' }).click();
+  await completeAgreementDetails(page);
   await expect(page.locator('.agreement')).toContainText('100 Queen Street West', { timeout: 15_000 });
   await expect(page.locator('.agreement')).toContainText('P1234-56789-01234');
   await expect(page.locator('.agreement')).toContainText('Part 6: Booking Consents');
@@ -334,6 +335,7 @@ test('race: another renter pays first, the authorization is voided and the push-
   await page.locator('#pt-d-licence_number').fill('S1234-56789-01234');
   await page.locator('#pt-d-licence_expiry').fill('2030-01-31');
   await page.getByRole('button', { name: 'Save details' }).click();
+  await completeAgreementDetails(page);
   await expect(page.locator('.agreement')).toContainText('1 Yonge Street', { timeout: 15_000 });
   // the legal name on file is the signature: one tap for the statements, one to sign
   await page.getByTestId('consents-all').check();

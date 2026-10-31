@@ -69,6 +69,10 @@ export function RequestWizard(p: WizardProps) {
   const [failure, setFailure] = useState('');
   const meta = useRef<{ token: string | null; draftId: string | null; key: string }>({ token: null, draftId: null, key: '' });
   const ready = useRef(false);
+  // the person has typed or moved on: a draft that arrives later (another device, a slow lookup) never takes the form back
+  const touched = useRef(false);
+  const [moved, setMoved] = useState(false);
+  useEffect(() => { if (moved) touched.current = true; }, [moved]);
   const form = useRef<HTMLFormElement>(null);
   // contact capture (0090): the name, email and phone are saved as each becomes valid, with this draft
   const cap = useCapture('booking_request', () => ({ ref: meta.current.draftId, draftToken: meta.current.token }));
@@ -120,9 +124,10 @@ export function RequestWizard(p: WizardProps) {
       setD((x) => { const next = migrateExtras({ ...x, ...fromLink }); if (next.from && next.from < today) { next.from = ''; next.to = ''; } return next; });
       // another device: a signed-in person's draft, or the token kept here
       loadRequestDraft(meta.current.token).then((r) => {
+        if (touched.current) { if (r.ok && r.data && !fresh) meta.current.draftId = r.data.draftId; ready.current = true; return; }
         if (r.ok && r.data && !fresh) { meta.current.draftId = r.data.draftId; apply({ ...emptyRequest(), ...r.data.data }, r.data.step, true); }
         else apply({ ...emptyRequest(), car: p.initialSlug ?? '' }, 1, false);
-      }).catch(() => apply(emptyRequest(), 1, false));
+      }).catch(() => { if (touched.current) ready.current = true; else apply(emptyRequest(), 1, false); });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -155,7 +160,7 @@ export function RequestWizard(p: WizardProps) {
     return () => { live = false; };
   }, [d.car, cars, p.options]);
   const { blocks } = useBlocks(car?.vehicleId ?? null);
-  const set = <K extends keyof RequestData>(k: K, v: RequestData[K]) => { setD((x) => ({ ...x, [k]: v })); setErrors((e) => { const n = { ...e }; delete n[k as string]; if (k === 'from' || k === 'to') delete n.dates; if (String(k).startsWith('dob')) delete n.dob; return n; }); };
+  const set = <K extends keyof RequestData>(k: K, v: RequestData[K]) => { setMoved(true); setD((x) => ({ ...x, [k]: v })); setErrors((e) => { const n = { ...e }; delete n[k as string]; if (k === 'from' || k === 'to') delete n.dates; if (String(k).startsWith('dob')) delete n.dob; return n; }); };
 
   const age = ageOn(d.dobY, d.dobM, d.dobD, d.from || today);
   const far = (k: string) => k === 'delivery' || k === 'airport';
@@ -196,6 +201,7 @@ export function RequestWizard(p: WizardProps) {
   function show(n: number) {
     // the step that appears comes in from the side it is on (src/styles/motion.css)
     form.current?.setAttribute('data-dir', n < step ? 'back' : 'next');
+    setMoved(true);
     setStep(n);
     requestAnimationFrame(() => {
       const h = form.current?.querySelector<HTMLElement>(`[data-step="${n}"] h2`); h?.focus({ preventScroll: true });

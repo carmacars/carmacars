@@ -219,3 +219,42 @@ export async function strongSign(page: Page, scope: Page | Locator = page, chann
   await expect(flow).toHaveAttribute('data-complete', 'true', { timeout: 15_000 });
   await page.waitForTimeout(300);
 }
+
+/** "Complete your details" (migration 0195): the rental agreement's blanks the renter fills before signing or paying
+ *  (the coverage card or policy, a licence or address left blank). Fills whichever fields the panel asks for; does
+ *  nothing when the agreement is already complete. */
+export async function completeAgreementDetails(page: Page) {
+  const panel = page.getByTestId('complete-details');
+  await expect(page.locator('#pt-d-address_line1')).toBeHidden({ timeout: 30_000 });
+  await expect(panel.or(page.locator('.agreement')).first()).toBeAttached({ timeout: 20_000 });
+  if (!(await panel.count())) return;
+  const values: Record<string, string> = { card_issuer: 'Example Bank', card_last4: '4242', policy_number: 'POL-123456', policy_expiry: '2031-06-30',
+    licence_number: 'P1234-56789-01234', licence_expiry: '2031-06-30', date_of_birth: '1990-01-15', mobile: '4165550123' };
+  const insurer = panel.getByTestId('complete-insurer');
+  if (await insurer.count()) await insurer.selectOption({ index: 1 });
+  for (const [k, v] of Object.entries(values)) { const f = panel.getByTestId(`complete-${k}`); if (await f.count()) await f.fill(v); }
+  if (await panel.locator('#pt-cd-address_line1').isVisible()) {
+    await panel.locator('#pt-cd-address_line1').fill('100 Queen Street West');
+    await panel.locator('#pt-cd-city').fill('Toronto');
+    await panel.locator('#pt-cd-postal_code').fill('M5H 2N2');
+  }
+  await panel.getByTestId('complete-details-save').click();
+  await expect(panel).toHaveCount(0, { timeout: 20_000 });
+}
+
+/** A complete signing session for the documents (migration 0193: every signature on the site goes through one), as
+ *  the signer would make it on screen: the code, the documents read, the initials and consents the documents need,
+ *  the drawn signature. Returns the signature's path (the drawn_signature to sign with). */
+export async function readyDocumentsEsign(sql: ReturnType<typeof db>, signerId: string, documents: Array<{ kind: string; ref: string; title: string; sha256: string }>): Promise<string> {
+  const [s] = await sql`select (public.server_esign_start(${sql.json({ context: 'documents', signer_ref: signerId, ip: '203.0.113.9', user_agent: 'e2e', documents })}) ->> 'id') id`;
+  const id = s!.id as string;
+  await sql`select public.server_esign_code_set(${id}::uuid, 'email', ${'d'.repeat(64)})`;
+  await sql`select public.server_esign_code_check(${id}::uuid, ${'d'.repeat(64)})`;
+  await sql`select public.server_esign_step(${id}::uuid, 'viewed', '{}')`;
+  const [need] = await sql`select required_initials i, required_consents c from esign_sessions where id = ${id}::uuid`;
+  for (const k of need!.i as string[]) await sql`select public.server_esign_step(${id}::uuid, 'initial', ${sql.json({ code: k, path: `esign/${id}/initials-${k}.png` })})`;
+  for (const k of need!.c as string[]) await sql`select public.server_esign_step(${id}::uuid, 'consent', ${sql.json({ code: k, text: 'I agree' })})`;
+  const path = `esign/${id}/signature.png`;
+  await sql`select public.server_esign_step(${id}::uuid, 'signature', ${sql.json({ method: 'drawn', path })})`;
+  return path;
+}

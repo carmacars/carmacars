@@ -110,9 +110,11 @@ test('Usage guard: the used-up card on To do, the cost pop-up, paid usage up to 
 
   await page.goto('/admin/settings/usage', { waitUntil: 'networkidle' });
   await expect(page.getByRole('heading', { name: 'Usage', level: 1 })).toBeVisible();
-  for (const svc of ['workers_ai', 'workers_requests', 'workers_cpu', 'images', 'resend_day', 'resend_month', 'supabase_db', 'supabase_storage', 'supabase_egress', 'r2_storage', 'github_actions', 'claude']) {
+  for (const svc of ['workers_ai', 'workers_requests', 'workers_cpu', 'images', 'resend_day', 'resend_month', 'supabase_db', 'supabase_storage', 'r2_storage', 'github_actions', 'claude']) {
     await expect(page.getByTestId(`usage-${svc}`)).toBeVisible();
   }
+  // 0194: the database and files are on our own server; data sent out is not measured there (retired, hidden)
+  await expect(page.getByTestId('usage-supabase_egress')).toHaveCount(0);
   await expect(page.getByTestId('usage-workers_ai-paid')).toContainText('Never');
   await expect(page.getByTestId('usage-ai-features')).toBeVisible();
   await expect(page.getByTestId('usage-workers_requests-paid')).toContainText('Never paused');
@@ -120,10 +122,10 @@ test('Usage guard: the used-up card on To do, the cost pop-up, paid usage up to 
   await check(page, 'settings usage');
   // an allowance an Admin changes
   await page.getByTestId('usage-edit-supabase_db').click();
-  await page.getByTestId('usage-edit-supabase_db-form').getByLabel('Included (MB)').fill('8192');
+  await page.getByTestId('usage-edit-supabase_db-form').getByLabel('Included (MB)').fill('10240');
   await page.getByTestId('usage-edit-supabase_db-submit').click();
-  await expect(page.getByTestId('usage-supabase_db-used')).toContainText('of 8.00 GB', { timeout: 15_000 });
-  await sql`update usage_services set included = 524288000 where service = 'supabase_db'`;
+  await expect(page.getByTestId('usage-supabase_db-used')).toContainText('of 10.00 GB', { timeout: 15_000 });
+  await sql`update usage_services set included = 8589934592 where service = 'supabase_db'`;
   await neurons(sql, 0);
   await sql.end();
 });
