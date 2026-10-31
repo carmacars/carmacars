@@ -26,7 +26,7 @@ import { addonsPayload } from '@/features/addons/model';
 import { useBookingGame } from '@/features/games/BookingGame';
 import { Estimate, useQuote, type LabelTokens } from './Estimate';
 import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
-import { ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, stepOfKey, type RequestData, type RequestRules } from './schema';
+import { ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, nonRefAllowed, stepOfKey, type RequestData, type RequestRules } from './schema';
 
 // Request to book: five steps (0066: add-ons have their own), autosaved to form_drafts (and this device) and resumable, one schema
 // checked here and again on the server, Turnstile, and one call to submit_booking_request with an
@@ -163,16 +163,19 @@ export function RequestWizard(p: WizardProps) {
   const set = <K extends keyof RequestData>(k: K, v: RequestData[K]) => { setMoved(true); setD((x) => ({ ...x, [k]: v })); setErrors((e) => { const n = { ...e }; delete n[k as string]; if (k === 'from' || k === 'to') delete n.dates; if (String(k).startsWith('dob')) delete n.dob; return n; }); };
 
   const age = ageOn(d.dobY, d.dobM, d.dobD, d.from || today);
+  // the non-refundable discount needs the pickup far enough ahead (0241): an earlier choice counts as standard until it is
+  const nonRefOk = nonRefAllowed(d.from, today, p.rules.nonRefMinDays);
+  const bookingType = nonRefOk ? d.bookingType : 'standard';
   const far = (k: string) => k === 'delivery' || k === 'airport';
   const options = useMemo(() => ({
-    booking_type: d.bookingType, coverage_option: d.coverage ? Number(d.coverage) : undefined,
+    booking_type: bookingType, coverage_option: d.coverage ? Number(d.coverage) : undefined,
     pickup_method: far(d.pickupAt) ? 'delivered' : 'collected', return_method: far(d.returnAt) ? 'picked_up' : 'returned',
     pickup_location: d.pickupAt === 'airport' ? { kind: 'airport', airport_code: d.pickupAirport } : d.pickupAt === 'delivery' ? { kind: 'delivery' } : undefined,
     return_location: d.returnAt === 'airport' ? { kind: 'airport', airport_code: d.returnAirport } : d.returnAt === 'delivery' ? { kind: 'delivery' } : undefined,
     drivers: [{ role: 'renter', age_band: band(age) }, ...d.drivers.map((x) => ({ role: 'additional', age_band: band(ageOn(x.dobY, x.dobM, x.dobD, d.from || today)) }))],
     addons: addonsPayload(d.addons),
     promo_code: /^[A-Za-z0-9-]{3,40}$/.test(d.promo) ? d.promo.toUpperCase() : undefined
-  }), [d.bookingType, d.coverage, d.pickupAt, d.returnAt, d.pickupAirport, d.returnAirport, age, d.drivers, d.from, d.addons, today, d.promo]);
+  }), [bookingType, d.coverage, d.pickupAt, d.returnAt, d.pickupAirport, d.returnAirport, age, d.drivers, d.from, d.addons, today, d.promo]);
   const haveDates = !!(car && d.from && d.to);
   const { options: addonOptions } = useAddonOptions(car?.vehicleId ?? null, haveDates ? d.from : undefined, haveDates ? d.to : undefined, d.tf, d.tt);
   const { q, error: qErr, loading } = useQuote(haveDates ? { vehicleId: car!.vehicleId, from: d.from, to: d.to, tf: d.tf, tt: d.tt, options } : null);
@@ -220,10 +223,10 @@ export function RequestWizard(p: WizardProps) {
       const sv = await saveRequestDraft({ data: d, step, token: meta.current.token }).catch(() => null);
       if (sv?.ok) { meta.current.token = sv.data.token; meta.current.draftId = sv.data.draftId; }
     }
-    let r = await submitBookingRequest({ data: d, requestKey: meta.current.key, token, draftId: meta.current.draftId }).catch(() => null);
+    let r = await submitBookingRequest({ data: { ...d, bookingType }, requestKey: meta.current.key, token, draftId: meta.current.draftId }).catch(() => null);
     if (r && !r.ok && r.code === 'turnstile' && form.current) {
       const again = await freshTurnstileToken(form.current);
-      if (again) r = await submitBookingRequest({ data: d, requestKey: meta.current.key, token: again, draftId: meta.current.draftId }).catch(() => null);
+      if (again) r = await submitBookingRequest({ data: { ...d, bookingType }, requestKey: meta.current.key, token: again, draftId: meta.current.draftId }).catch(() => null);
     }
     setSending(false);
     if (!r) { setFailure('We could not reach the server. Check your connection and send again.'); return; }
@@ -301,7 +304,7 @@ export function RequestWizard(p: WizardProps) {
     ['Additional drivers', d.drivers.length ? d.drivers.map((x) => `${x.first} ${x.last}`).join(', ') : 'None', 2],
     ['Licence', d.licClass === 'other' ? `Other (${d.licIssuer}), for review` : d.licClass ? `Ontario class ${d.licClass}` : '', 3], ['Coverage', car?.insuranceIncluded ? 'Insurance included with the car' : covText[d.coverage] ?? '', 3],
     ...(car?.noCreditCard ? [['Card', 'No credit card needed: a credit or debit card in your name', 3] as [string, string, number]] : []),
-    ['Booking type', d.bookingType === 'non_refundable' ? `Non-refundable, ${p.tokens.nonRef} off the rental charge` : 'Standard, refund by cancellation tier', 3],
+    ['Booking type', bookingType === 'non_refundable' ? `Non-refundable, ${p.tokens.nonRef} off the rental charge` : 'Standard, refund by cancellation tier', 3],
     ['Add-ons', d.addons.filter((c) => c.quantity > 0).map((c) => { const o = addonOptions.find((x) => x.code === c.code); const n = o?.name ?? c.code.replace(/_/g, ' ');
       return `${c.quantity > 1 ? `${c.quantity} x ` : ''}${n}${c.hours ? `, ${c.hours} hours` : ''}`; }).join(', ') || 'None', 4]
   ];
@@ -425,8 +428,8 @@ export function RequestWizard(p: WizardProps) {
             )}
             <fieldset className="field"><legend className="label">Booking type</legend><InfoTip k="cancellation" topic="the cancellation rules" />
               <div className="stack">
-                <label className="option"><input type="radio" name="bookingType" value="standard" checked={d.bookingType === 'standard'} onChange={() => set('bookingType', 'standard')} /><span className="option__title">Standard</span><span className="option__body">Cancel {p.tokens.cEarly} hours or more before pickup for {p.tokens.c2} back. <Link className="link" href="/cancellation-policy">All tiers</Link>.</span></label>
-                <label className="option"><input type="radio" name="bookingType" value="non_refundable" checked={d.bookingType === 'non_refundable'} onChange={() => set('bookingType', 'non_refundable')} /><span className="option__title">Non-refundable, {p.tokens.nonRef} off the rental charge</span><span className="option__body">Cheaper, but no refund if you cancel, miss pickup or return early.</span></label>
+                <label className="option"><input type="radio" name="bookingType" value="standard" checked={bookingType === 'standard'} onChange={() => set('bookingType', 'standard')} /><span className="option__title">Standard</span><span className="option__body">Cancel {p.tokens.cEarly} hours or more before pickup for {p.tokens.c2} back. <Link className="link" href="/cancellation-policy">All tiers</Link>.</span></label>
+                <label className="option"><input type="radio" name="bookingType" value="non_refundable" disabled={!nonRefOk} checked={bookingType === 'non_refundable'} onChange={() => set('bookingType', 'non_refundable')} /><span className="option__title">Non-refundable, {p.tokens.nonRef} off the rental charge</span><span className="option__body">{nonRefOk ? 'Cheaper, but no refund if you cancel, miss pickup or return early.' : `Only when you book at least ${p.rules.nonRefMinDays} days before pickup.`}</span></label>
               </div>
             </fieldset>
             <div className={fieldCls('notes')}><label className="label" htmlFor="rq-notes">Anything we should know? <span className="opt">optional</span></label><textarea className="textarea" id="rq-notes" maxLength={p.rules.noteMax} value={d.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Flight number, a trip outside Ontario, a pet coming along" aria-describedby="rq-notes-hint" /><p className="hint" id="rq-notes-hint">Trips outside Ontario and pets need our approval first, so mention them here.</p>{errEl('notes', 'rq-notes')}</div>

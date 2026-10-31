@@ -5,7 +5,7 @@ import type { RequestRules } from '@/features/booking/schema';
 
 export async function rules(): Promise<RequestRules> {
   const f = await getFacts();
-  return { minAge: f.min_renter_age, maxDays: f.max_rental_days, maxAdditional: f.max_additional_drivers, maxSeats: f.max_baby_seats, noteMax: f.request_note_max_chars, licenceClasses: [...f.accepted_licence_classes].sort(), otherLicence: f.other_licence_for_review, noticeMinutes: f.booking_min_notice_minutes };
+  return { minAge: f.min_renter_age, maxDays: f.max_rental_days, maxAdditional: f.max_additional_drivers, maxSeats: f.max_baby_seats, noteMax: f.request_note_max_chars, licenceClasses: [...f.accepted_licence_classes].sort(), otherLicence: f.other_licence_for_review, noticeMinutes: f.booking_min_notice_minutes, nonRefMinDays: Number((f as unknown as { non_refundable_min_days?: number }).non_refundable_min_days ?? 0) };
 }
 
 /** The consent wording shown on the form, with its version: what is recorded is what was shown. */

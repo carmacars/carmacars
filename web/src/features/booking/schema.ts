@@ -4,7 +4,7 @@ import { email, phone } from '@/features/forms/schemas';
 // The booking request: one schema for the browser and the server action (docs/blueprint/08-forms.md
 // section 2). The database checks everything again in public.submit_booking_request; this schema
 // gives the person a clear message first. Policy numbers come from the database (site_facts).
-export interface RequestRules { minAge: number; maxDays: number; maxAdditional: number; maxSeats: number; noteMax: number; licenceClasses: string[]; otherLicence: boolean; noticeMinutes: number }
+export interface RequestRules { minAge: number; maxDays: number; maxAdditional: number; maxSeats: number; noteMax: number; licenceClasses: string[]; otherLicence: boolean; noticeMinutes: number; nonRefMinDays?: number }
 
 // session: the address field's Google session token (0113), so the Place Details lookup at submit closes the same
 // billing session as the suggestions that found the place
@@ -120,3 +120,5 @@ export function requestSchema(r: RequestRules, ctx: { todayIso: string; nowMinut
     for (const [k, message] of Object.entries(checkRequest(v, r, { todayIso: ctx.todayIso, nowMinutes: ctx.nowMinutes, knownCar: ctx.knownCar(v.car), emailOptional: ctx.emailOptional, insuranceIncluded: ctx.insuranceIncluded?.(v.car) ?? false }))) c.addIssue({ code: 'custom', path: k.split('.'), message });
   });
 }
+
+export { nonRefAllowed } from './nonref';

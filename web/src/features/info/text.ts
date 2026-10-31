@@ -15,7 +15,7 @@ export const INFO: Record<string, string> = {
   fuel: 'Return the car with the fuel it had at pickup. Less is charged at the pump price plus 25%, and a $25 service fee. A prepaid full tank means no fuel charge.',
   tolls_tickets: 'Tolls and tickets are the renter\'s. When one reaches us we pay it and charge the amount plus our fee ($15 a toll, $40 a ticket) to the card on file.',
   cancellation: 'Standard bookings: 95% back within 24 hours of booking (48 hours or more before pickup), 75% from 48 hours before, 50% from 24 to 48 hours, nothing under 24 hours. Non-refundable bookings get nothing back.',
-  non_refundable: 'Non-refundable: 10% off the rental charge, but no refund if the renter cancels.',
+  non_refundable: 'Non-refundable: 10% off the rental charge, but no refund if the renter cancels. Only when the booking is made at least a week before pickup.',
   hst: 'Ontario HST, 13%, on each line that carries it. Tolls and tickets at cost carry none.',
   // coverage
   coverage: 'How damage to the car is covered: Option 1, OPCF 27 on the renter\'s own auto policy; Option 2, the rental coverage of the credit card they pay with; Option 3, the CarmaCars Protection Plan. It can change any time before pickup.',

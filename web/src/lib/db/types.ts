@@ -13438,7 +13438,8 @@ export type Database = {
           deductible_cents: number;
           kickback_bps: number;
           shareholder_company_share_bps: number;
-          non_refundable_discount_bps: number;
+          non_refundable_discount_bps: number
+          non_refundable_min_days: number;
           notice_period_days: number;
           free_retransfer_months: number;
           buyout_premium_bps: number;
@@ -13960,7 +13961,8 @@ export type Database = {
           deductible_cents?: number;
           kickback_bps?: number;
           shareholder_company_share_bps?: number;
-          non_refundable_discount_bps?: number;
+          non_refundable_discount_bps?: number
+          non_refundable_min_days?: number;
           notice_period_days?: number;
           free_retransfer_months?: number;
           buyout_premium_bps?: number;
@@ -14482,7 +14484,8 @@ export type Database = {
           deductible_cents?: number;
           kickback_bps?: number;
           shareholder_company_share_bps?: number;
-          non_refundable_discount_bps?: number;
+          non_refundable_discount_bps?: number
+          non_refundable_min_days?: number;
           notice_period_days?: number;
           free_retransfer_months?: number;
           buyout_premium_bps?: number;
