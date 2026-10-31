@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState } from 'react';
-import { vinClassHint, vinFacts, vinModels } from '@/server/actions/vin';
+import { vinClassHint, vinClassOptions, vinFacts, vinModels } from '@/server/actions/vin';
 import { COLOURS, FUEL_WORDS, MAKES, carName, cleanVin, detailLine, vinMessage, vinState, yearChoices } from './vin';
 import { decoded, effectiveCar, type CarEdits, type VinValue } from './entry';
 export { effectiveCar, emptyVin, vinPayload, vinProblem, type VinValue } from './entry';
@@ -10,8 +10,20 @@ export { effectiveCar, emptyVin, vinPayload, vinProblem, type VinValue } from '.
 // the VIN, decoded at the 17th character into one summary line with an Edit link; the plate instead when the VIN is not
 // at hand (year, make and model then from lists); the colour in one tap; the class inferred, editable. The owner's own
 // application uses the same pieces (ColourSwatches, the summary) through its own VIN lookup.
+// R23 (0233): the picker shows the class list of Settings > Vehicle classes (read once); these are shown until it arrives
 export const CLASSES = ['economy', 'standard', 'premium', 'suv', 'luxury', 'exotic'] as const;
 const CLASS_LABEL: Record<string, string> = { economy: 'Economy', standard: 'Standard', premium: 'Premium', suv: 'SUV', luxury: 'Luxury', exotic: 'Exotic' };
+let classList: Promise<Array<{ code: string; label: string }>> | null = null;
+function useClasses(): Array<{ code: string; label: string }> {
+  const [list, setList] = useState<Array<{ code: string; label: string }>>(() => CLASSES.map((k) => ({ code: k, label: CLASS_LABEL[k]! })));
+  useEffect(() => {
+    let live = true;
+    classList ??= vinClassOptions().then((r) => (r.ok && r.data.length ? r.data : [])).catch(() => []);
+    void classList.then((l) => { if (live && l.length) setList(l); });
+    return () => { live = false; };
+  }, []);
+  return list;
+}
 
 export function ColourSwatches({ value, onChange, prefix, hint, err, legend = 'Colour' }: { value: string; onChange: (c: string) => void; prefix: string; hint?: string; err?: string; legend?: string }) {
   const uid = useId().replace(/[^\w-]/g, '');
@@ -87,6 +99,7 @@ export function VinEntry({ value, onChange, prefix = 'vin', allowPlate = true, s
   value: VinValue; onChange: (v: VinValue) => void; prefix?: string; allowPlate?: boolean; showClass?: boolean;
   /** the link to a car already in the fleet (Admin) */ carHref?: (id: string) => string; err?: string;
 }) {
+  const classes = useClasses();
   const uid = useId().replace(/[^\w-]/g, '');
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -203,7 +216,7 @@ export function VinEntry({ value, onChange, prefix = 'vin', allowPlate = true, s
         <div className="field" style={{ maxWidth: '24rem' }}>
           <label className="label" htmlFor={`${uid}-class`}>Class</label>
           <select className="select" id={`${uid}-class`} value={value.class} onChange={(e) => set({ class: e.target.value, classSource: 'person', classWhy: null })} data-testid={`${prefix}-class`}>
-            {CLASSES.map((k) => <option key={k} value={k}>{CLASS_LABEL[k]}</option>)}</select>
+            {[...classes, ...(value.class && !classes.some((c) => c.code === value.class) ? [{ code: value.class, label: CLASS_LABEL[value.class] ?? value.class }] : [])].map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}</select>
           <p className="hint" data-testid={`${prefix}-class-why`}>{value.classSource === 'person' ? 'Chosen by you.' : value.classWhy ? `${value.classWhy}. Change it if it is wrong.` : 'Set from the make and model.'}
             {value.rate ? ` Rates start at ${value.rate.text}.` : ''}</p>
         </div>)}

@@ -11,7 +11,9 @@ export const metadata = pageMeta({ title: 'Insurer rates', path: '/admin/insurer
 
 type Rate = SheetRate & { id: string; effective_from: string };
 type Ins = { id: string; name: string; is_active: boolean; rates: Record<string, { now: Rate | null; next: Rate | null }>; open_bookings: number; billed_cents: number; outstanding_cents: number };
-type Sheet = { today: string; classes: Array<{ code: string; label: string }>; insurers: Ins[] };
+type Billed = Record<string, unknown> & { insurer_id: string; insurer: string; class_code: string; class_label: string | null; bookings: number; days: number; average_rate_cents: number | null;
+  rental_cents: number; fees_cents: number; hst_cents: number; share_cents: number; billed_cents: number; outstanding_cents: number };
+type Sheet = { today: string; classes: Array<{ code: string; label: string }>; insurers: Ins[]; billed?: Billed[] };
 
 // The insurance-replacement rate sheet (migration 0163): one row per insurer, one column per car class. Each cell is the
 // rate today (with the next one already saved); Set or Change adds a rate from a date, the earlier one stays in the
@@ -49,6 +51,16 @@ export default async function InsurerRates() {
         empty="No insurer yet. Add one in Settings > Insurers (or from Add a rental, Insurance replacement)."
         cols={[{ key: 'name', label: 'Insurer', render: (i) => <Link prefetch={false} className="link" href={`/admin/insurers/${i.id}`} data-testid={`ir-open-${i.id}`}>{i.name}</Link> },
           ...s.classes.map((c) => ({ key: `c_${c.code}`, label: c.label, render: (i: Ins) => cell(i, c) }))]} />
+    </Card>
+    <Card title="Billed by insurer and class" testId="ir-billed">
+      <p className="small">Every booking billed to an insurer (confirmed, on rent, returned or closed): the days, the average daily rate, the rental, the charges (VLF, LDW and the others), HST and the insurer&apos;s total. Open an insurer for each car and each adjuster.</p>
+      <Table<Billed> rows={s.billed ?? []} rowKey={(b) => `${b.insurer_id}-${b.class_code}`} empty="Nothing billed to an insurer yet."
+        cols={[{ key: 'insurer', label: 'Insurer', render: (b) => <Link prefetch={false} className="link" href={`/admin/insurers/${b.insurer_id}`}>{b.insurer}</Link> },
+          { key: 'class_label', label: 'Class', render: (b) => b.class_label ?? b.class_code }, { key: 'bookings', label: 'Bookings', num: true }, { key: 'days', label: 'Days', num: true },
+          { key: 'average_rate_cents', label: 'Average daily rate', num: true, render: (b) => (b.average_rate_cents == null ? '' : $(b.average_rate_cents)) },
+          { key: 'rental_cents', label: 'Rental', num: true, render: (b) => $(b.rental_cents) }, { key: 'fees_cents', label: 'Charges (VLF, LDW...)', num: true, render: (b) => $(b.fees_cents) },
+          { key: 'hst_cents', label: 'HST', num: true, render: (b) => $(b.hst_cents) }, { key: 'share_cents', label: 'Insurer total', num: true, render: (b) => $(b.share_cents) },
+          { key: 'billed_cents', label: 'Billed', num: true, render: (b) => $(b.billed_cents) }, { key: 'outstanding_cents', label: 'Outstanding', num: true, render: (b) => $(b.outstanding_cents) }]} />
     </Card>
     <Card title="What each insurer owes" testId="ir-owed">
       <Table<Ins & Record<string, unknown>> rows={s.insurers as Array<Ins & Record<string, unknown>>} empty="No insurer yet."

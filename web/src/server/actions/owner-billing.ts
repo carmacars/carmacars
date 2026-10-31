@@ -84,11 +84,11 @@ export async function carTermsCancel(p: { change_id: string; reason: string }, p
 }
 
 // ---------------------------------------------------------------- the first and last month invoice: the Admin's choice (0077)
-export type FirstLastAction = 'send' | 'draft' | 'paid' | 'none';
+export type FirstLastAction = 'send' | 'draft' | 'paid' | 'none' | 'deduct';
 export interface FirstLastInput { vehicle_id: string; action: FirstLastAction; amount_cents?: number; payment?: { method: string; received_on: string; reference?: string; amount_cents?: number; note?: string } }
 export async function chooseFirstLast(c: FirstLastInput, paths: string[] = []) {
   const fe: Record<string, string> = {};
-  if (!['send', 'draft', 'paid', 'none'].includes(c.action)) fe.action = 'Choose what to do.';
+  if (!['send', 'draft', 'paid', 'none', 'deduct'].includes(c.action)) fe.action = 'Choose what to do.';
   if (c.action !== 'none' && (!Number.isInteger(c.amount_cents) || (c.amount_cents ?? 0) <= 0)) fe.amount = 'Enter the amount in dollars and cents.';
   if (c.action === 'paid' && ['e_transfer', 'cheque', 'bank_transfer'].includes(c.payment?.method ?? '') && (c.payment?.reference ?? '').trim().length < 3) fe.reference = 'Enter the reference of the payment.';
   if (Object.keys(fe).length) return invalid(fe);

@@ -17,7 +17,7 @@ export interface PlanCar { vehicle_id: string; name: string; onboarding_status: 
 export interface Plan { id: string; application_number: string; status: string; trackers_available: boolean; today: string; entered_by_name: string | null; signing_method: string | null;
   plan: Record<string, { terms?: Record<string, number>; invoices?: Array<Record<string, unknown>> }> | null; cars: PlanCar[] }
 
-export type Action = 'send' | 'draft' | 'paid' | 'none';
+export type Action = 'send' | 'draft' | 'paid' | 'none' | 'deduct';
 export interface Inv { on: boolean; amount: string; hst: boolean; action: Action; method: string; on_date: string; reference: string; paid: string; title: string }
 interface CarState { mode: string; method: string; ins: string; trk: string; share: string; inst: string; fl: string; special: string; first_last: Inv; registration: Inv; tracker: Inv; custom: Inv & { desc: string } }
 export const METHODS: Array<[string, string]> = [['e_transfer', 'e-Transfer'], ['cash', 'Cash'], ['cheque', 'Cheque'], ['bank_transfer', 'Bank transfer'], ['other', 'Other']];
@@ -53,7 +53,7 @@ export function InvoiceChoice({ uid, label, v, set, hstBps, children, testId, al
           <p className="small ob-choice__total">With HST: <b data-testid={`${testId}-total`}>{money(total, { cents: true })}</b></p>
         </div>}
         <div className="row ob-actions" role="radiogroup" aria-label={`${label}: what to do`} style={{ flexWrap: 'wrap', gap: 'var(--s-3)' }}>
-          {([['send', 'Send now'], ['draft', 'Save as draft'], ['paid', 'Already paid'], ...(allowNone ? [['none', 'No invoice']] : [])] as Array<[Action, string]>).map(([k, l]) => (
+          {([['send', 'Send now'], ['deduct', 'Deduct from payouts'], ['draft', 'Save as draft'], ['paid', 'Already paid'], ...(allowNone ? [['none', 'No invoice']] : [])] as Array<[Action, string]>).map(([k, l]) => (
             <label key={k} className="check" htmlFor={`${uid}-a-${k}`}><input type="radio" id={`${uid}-a-${k}`} name={`${uid}-a`} checked={v.action === k} onChange={() => set({ ...v, action: k })} data-testid={`${testId}-${k}`} /><span>{l}</span></label>))}
         </div>
         {v.action === 'paid' && (
@@ -110,7 +110,7 @@ export function ApproveStep({ plan, owner, isTest, hstBps }: { plan: Plan; owner
     }
     return out;
   };
-  const summary = cars.map((c) => { const s = st[c.vehicle_id]!; const parts = (['first_last', 'registration', 'tracker', 'custom'] as const).filter((k) => s[k].on).map((k) => `${k === 'first_last' ? 'first and last' : k === 'tracker' ? 'tracker install' : k === 'registration' ? 'registration fee' : 'other'} (${s[k].action === 'paid' ? 'paid' : s[k].action === 'draft' ? 'draft' : s[k].action === 'none' ? 'no invoice' : 'send'})`); return `${c.name}: ${parts.length ? parts.join(', ') : 'no invoice'}${s.first_last.on ? '' : ' (first and last month: decide later, on the Terms tab)'}`; }).join('; ');
+  const summary = cars.map((c) => { const s = st[c.vehicle_id]!; const parts = (['first_last', 'registration', 'tracker', 'custom'] as const).filter((k) => s[k].on).map((k) => `${k === 'first_last' ? 'first and last' : k === 'tracker' ? 'tracker install' : k === 'registration' ? 'registration fee' : 'other'} (${s[k].action === 'paid' ? 'paid' : s[k].action === 'draft' ? 'draft' : s[k].action === 'none' ? 'no invoice' : s[k].action === 'deduct' ? 'deduct from payouts' : 'send'})`); return `${c.name}: ${parts.length ? parts.join(', ') : 'no invoice'}${s.first_last.on ? '' : ' (first and last month: decide later, on the Terms tab)'}`; }).join('; ');
   const submit = () => {
     setProblem(null);
     const cs = build();

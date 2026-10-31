@@ -2642,6 +2642,7 @@ export type Database = {
           debit_allowed_at: string | null;
           debit_allowed_by: string | null;
           debit_allowed_reason: string | null;
+          insurer_adjuster_id: string | null;
         };
         Insert: {
           id?: string;
@@ -2806,6 +2807,7 @@ export type Database = {
           debit_allowed_at?: string | null;
           debit_allowed_by?: string | null;
           debit_allowed_reason?: string | null;
+          insurer_adjuster_id?: string | null;
         };
         Update: {
           id?: string;
@@ -2970,6 +2972,7 @@ export type Database = {
           debit_allowed_at?: string | null;
           debit_allowed_by?: string | null;
           debit_allowed_reason?: string | null;
+          insurer_adjuster_id?: string | null;
         };
         Relationships: [];
       };
@@ -7824,6 +7827,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      insurer_adjusters: {
+        Row: {
+          id: string;
+          insurer_id: string;
+          name: string | null;
+          email: string | null;
+          phone: string | null;
+          notes: string | null;
+          is_active: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          insurer_id: string;
+          name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          notes?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          insurer_id?: string;
+          name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          notes?: string | null;
+          is_active?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       insurer_invoices: {
         Row: {
           id: string;
@@ -10766,6 +10808,7 @@ export type Database = {
           last_emailed_at: string | null;
           from_statement: boolean;
           from_statement_fallback_at: string | null;
+          collect_by: string;
         };
         Insert: {
           id?: string;
@@ -10816,6 +10859,7 @@ export type Database = {
           last_emailed_at?: string | null;
           from_statement?: boolean;
           from_statement_fallback_at?: string | null;
+          collect_by?: string;
         };
         Update: {
           id?: string;
@@ -10866,6 +10910,7 @@ export type Database = {
           last_emailed_at?: string | null;
           from_statement?: boolean;
           from_statement_fallback_at?: string | null;
+          collect_by?: string;
         };
         Relationships: [];
       };
@@ -21483,6 +21528,7 @@ export type Database = {
           created_at: string;
           first_last_cents: number | null;
           one_off_fees: Json;
+          withdrawn_at: string | null;
         };
         Insert: {
           id?: string;
@@ -21519,6 +21565,7 @@ export type Database = {
           created_at?: string;
           first_last_cents?: number | null;
           one_off_fees?: Json;
+          withdrawn_at?: string | null;
         };
         Update: {
           id?: string;
@@ -21555,6 +21602,7 @@ export type Database = {
           created_at?: string;
           first_last_cents?: number | null;
           one_off_fees?: Json;
+          withdrawn_at?: string | null;
         };
         Relationships: [];
       };
@@ -22185,6 +22233,11 @@ export type Database = {
           for_sale: boolean;
           asking_price_cents: number | null;
           channel_feed_opt_out: boolean;
+          ssc_number: string | null;
+          ssc_issued_on: string | null;
+          ssc_expires_on: string | null;
+          permit_number: string | null;
+          sticker_expires_on: string | null;
         };
         Insert: {
           id?: string;
@@ -22248,6 +22301,11 @@ export type Database = {
           for_sale?: boolean;
           asking_price_cents?: number | null;
           channel_feed_opt_out?: boolean;
+          ssc_number?: string | null;
+          ssc_issued_on?: string | null;
+          ssc_expires_on?: string | null;
+          permit_number?: string | null;
+          sticker_expires_on?: string | null;
         };
         Update: {
           id?: string;
@@ -22311,6 +22369,11 @@ export type Database = {
           for_sale?: boolean;
           asking_price_cents?: number | null;
           channel_feed_opt_out?: boolean;
+          ssc_number?: string | null;
+          ssc_issued_on?: string | null;
+          ssc_expires_on?: string | null;
+          permit_number?: string | null;
+          sticker_expires_on?: string | null;
         };
         Relationships: [];
       };
@@ -24429,7 +24492,7 @@ export type Database = {
       revenue_class: "owner_revenue" | "company_only" | "pass_through" | "booking_expense" | "claim_funds";
       title_status: "owned_outright" | "financed" | "leased";
       va_function: "finance" | "fleet" | "cs" | "sales";
-      vehicle_class: "economy" | "standard" | "premium" | "suv" | "luxury" | "exotic";
+      vehicle_class: "economy" | "standard" | "premium" | "suv" | "luxury" | "exotic" | "convertible" | "coupe" | "sedan" | "van" | "pickup";
       vehicle_onboarding_status: "intake" | "declined" | "terms_set" | "documents_sent" | "documents_signed" | "upfront_paid" | "registry_booked" | "registered" | "tracker_installed" | "on_fleet_policy" | "enrolled" | "withdrawn";
       vehicle_status: "onboarding" | "ready_to_list" | "available" | "on_rent" | "cleaning" | "out_of_service" | "exit_notice" | "exited" | "total_loss" | "declined";
     };

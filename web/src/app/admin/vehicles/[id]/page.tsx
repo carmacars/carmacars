@@ -7,6 +7,7 @@ import { Suspense } from 'react';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
+import { Registration, type RegistrationData } from '@/features/vehicles/Registration';
 import { MasterCalendar, type CalData } from '@/features/admin/MasterCalendar';
 import { rangeFrom } from '@/features/admin/range';
 import { $, Badge, BookingLink, Card, Kv, PageHead, Table, Tabs, t, d, label } from '@/features/admin/ui';
@@ -93,7 +94,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
           <Card title="Edit details">
             <Act inline action="vehicle_save" payload={P} nest="values" label="Save details" refresh={refresh} testId="vehicle-save" fields={[
               { name: 'plate', label: 'Plate', value: v.plate }, { name: 'colour', label: 'Colour', value: v.colour }, { name: 'odometer_km', label: 'Odometer (km)', type: 'number', value: v.odometer_km },
-              { name: 'fleet_number', label: 'Fleet number', value: v.fleet_number }, { name: 'class', label: 'Deposit class', type: 'select', value: v.class, options: [['economy', 'Economy'], ['standard', 'Standard'], ['premium', 'Premium'], ['luxury', 'Luxury'], ['exotic', 'Exotic']] },
+              { name: 'fleet_number', label: 'Fleet number', value: v.fleet_number }, { name: 'class', label: 'Deposit class', type: 'select', value: v.class, options: classOptions(classes, v.class) },
               { name: 'home_location', label: 'Home area', value: v.home_location }, { name: 'allows_18_to_20', label: 'Drivers aged 18 to 20 allowed', type: 'bool', value: v.allows_18_to_20 },
               { name: 'bookings_enabled', label: 'Open for bookings', type: 'bool', value: v.bookings_enabled }]} />
           </Card>
@@ -117,6 +118,11 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
                   { name: 'partner_id', label: 'Partner (for a partner car)', type: 'select', options: partners.map((x) => [x.id, x.business_name] as [string, string]) },
                   { name: 'commission_bps', label: 'Commission (partner car; empty: the partner\'s)', type: 'percent' },
                   { name: 'owner_id', label: 'Owner (for a program owner\'s car)', type: 'select', options: owners.map((o) => [o.owner_id, o.legal_name] as [string, string]) }]} />
+              {/* 0237: a car added under the wrong owner moves, while nothing for it is signed, issued or paid */}
+              {v.supply_type === 'program_owner' && <Act action="vehicle_move_owner" payload={{ vehicle_id: id }} label="Move to another owner" refresh={refresh} testId="vehicle-move-owner"
+                confirm="For a car added under the wrong owner. Its unsigned owner application and vehicle schedule are withdrawn (kept in the history) and its draft owner invoices deleted. Nobody is notified. Refused once anything for the car is signed, issued or paid."
+                fields={[{ name: 'owner_id', label: 'Move to', type: 'select', required: true,
+                  options: [['company', 'CarmaCars (owner not known yet)'] as [string, string], ...owners.filter((o) => o.owner_id !== v.owner?.id).map((o) => [o.owner_id, o.legal_name] as [string, string])] }]} />}
             </div>
           </Card>
           <Card title="Retire or delete" testId="vehicle-retire-card">
@@ -181,6 +187,14 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
           <CarCopyPanel d={await door<CarCopyData>(user.id, 'ops_read', 'car_copy', { vehicle: id }).catch(() => null)} slug={slug} />
         </div>
       )}
+      {/* 0237: the registration and the car's documents */}
+      {tab === 'records' && sp.docs === 'failed' && <p className="alert alert--warn" role="status" data-testid="vehicle-docs-failed"><span>The car was added, but a document did not upload. Upload it again under Documents.</span></p>}
+      {tab === 'records' && <Registration d={{ vehicle_id: id, vin: (v.vin as string | null) ?? null, year: (v.year as number | null) ?? null, body_type: ((v as Record<string, unknown>).body_type as string | null) ?? null,
+        trim: ((v as Record<string, unknown>).trim as string | null) ?? null, permit_number: ((v as Record<string, unknown>).permit_number as string | null) ?? null,
+        sticker_expires_on: ((v as Record<string, unknown>).sticker_expires_on as string | null) ?? null,
+        ssc: { number: ((v as Record<string, unknown>).ssc_number as string | null) ?? null, issued_on: ((v as Record<string, unknown>).ssc_issued_on as string | null) ?? null,
+          expires_on: ((v as Record<string, unknown>).ssc_expires_on as string | null) ?? null },
+        documents: await door<RegistrationData['documents']>(user.id, 'ops_read', 'vehicle_documents', { vehicle_id: id }).catch(() => []) }} />}
       {tab === 'records' && (
         <div className="ad-cols ad-cols--2">
           {/* a program owner's car: the owner terms editor (0135), the same as the owner page's; others: their fixed terms */}
@@ -233,4 +247,11 @@ function ListingWarnings({ w, vehicleId, name, ownerId, intakeId, refresh }: { w
       {!w.missing.length && !w.checklist.length && <p className="small muted">Nothing open.</p>}
     </Card>
   );
+}
+
+// R23 (0233): the pricing class picker reads the class list (Settings > Vehicle classes), keeping the car's own class
+// even when it is no longer shown
+function classOptions(classes: Array<{ code: string; label: string }>, current: string | null | undefined): Array<[string, string]> {
+  const o = classes.map((c) => [c.code, c.label] as [string, string]);
+  return current && !o.some(([c]) => c === current) ? [[current, current], ...o] : o;
 }

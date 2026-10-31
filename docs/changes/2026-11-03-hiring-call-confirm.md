@@ -21,7 +21,7 @@ The owner, Release 23:
 - Code: `web/src/app/careers/book/[token]/confirm/page.tsx`, `web/src/features/careers/ConfirmCall.tsx`,
   `web/src/server/actions/careers.ts` (confirmCall), `web/src/app/admin/hiring/page.tsx`. Emails
   `emails/src/emails/applicant_confirm.mjs`, `applicant_unconfirmed.mjs` (catalogue rows by `supabase/seed/0229_gen_catalogue.mjs`).
-- Tests: `supabase/tests/99_release_23.sql` section 9, `web/tests/e2e/release-23.spec.ts`.
+- Tests: `supabase/tests/99_release_23.sql` section 5, `web/tests/e2e/release-23.spec.ts`.
 
 ## Guides
 

@@ -84,7 +84,9 @@ export interface MrDraft { f?: Record<string, string>; flags?: { do_not_email: b
   insurer_fees?: Record<string, string> }
 const FUEL: Array<[string, string]> = [['100', 'Full'], ['88', '7/8'], ['75', '3/4'], ['63', '5/8'], ['50', '1/2'], ['38', '3/8'], ['25', '1/4'], ['13', '1/8'], ['0', 'Empty']];
 
-export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = null }: { cars: Car[]; base: '/admin' | '/staff' | '/staff/field'; isAdmin: boolean; owner?: OwnerDefaults | null; draft?: { id: string; data: MrDraft; held: boolean; quick?: boolean } | null }) {
+export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = null, adjusters = [] }: { cars: Car[]; base: '/admin' | '/staff' | '/staff/field'; isAdmin: boolean; owner?: OwnerDefaults | null; draft?: { id: string; data: MrDraft; held: boolean; quick?: boolean } | null;
+  /** 0234: the insurers' saved adjusters: picking one fills the adjuster's fields (a new one typed is saved with the insurer) */
+  adjusters?: Array<{ id: string; insurer_id: string; name: string | null; email: string | null; phone: string | null }> }) {
   const field = base === '/staff/field';
   // 0156: what the car's owner sees of this rental, and its documented owner deductions
   const [ownerChoice, setOwnerChoice] = useState(() => ownerChoiceInitial(owner));
@@ -661,6 +663,12 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
                   <option value="">Choose the insurer</option>{(quote?.insurers ?? []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}<option value="new">Not listed: type its name</option></select></div>
               {f.insurer_id === 'new' && text('insurer_name', 'Insurer\'s name')}
               {text('claim_number', 'Claim number')}
+              {adjusters.some((a) => a.insurer_id === f.insurer_id) && <div className="field ad-field"><label className="label" htmlFor={id('adjuster_pick')}>Saved adjuster</label>
+                <select className="select" id={id('adjuster_pick')} value="" data-testid="mr-adjuster-pick" onChange={(e) => {
+                  const a = adjusters.find((x) => x.id === e.target.value);
+                  if (a) setF((x) => ({ ...x, adjuster_name: a.name ?? '', adjuster_email: a.email ?? '', adjuster_phone: a.phone ?? '' }));
+                }}><option value="">Pick one to fill the fields, or type a new one</option>
+                  {adjusters.filter((a) => a.insurer_id === f.insurer_id).map((a) => <option key={a.id} value={a.id}>{a.name ?? a.email}{a.name && a.email ? ` (${a.email})` : ''}</option>)}</select></div>}
               {text('adjuster_name', 'Adjuster')}{text('adjuster_email', 'Adjuster\'s email', { type: 'email', inputMode: 'email' })}{text('adjuster_phone', 'Adjuster\'s phone', { inputMode: 'tel' })}
               {text('authorized_days', 'Days authorized', { inputMode: 'numeric' })}
               {text('authorized_rate', 'Daily rate authorized ($)', { inputMode: 'decimal', hint: insurerSheet ? `${insurerName}'s rate sheet for ${insurerSheet.class_label ?? insurerSheet.class_code}: ${rateLine(insurerSheet)}. Empty takes the sheet's.` : 'The insurer pays up to this a day; the rest is the renter\'s.' })}

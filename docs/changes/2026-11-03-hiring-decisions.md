@@ -15,7 +15,7 @@ instead"; decisions do not email at once; one list of the emails to send and one
   the statuses follow (referred, Not hired, No show; Hire still needs the staff account).
 - The candidate page shows the decision email and its state.
 - Emails: `emails/src/emails/applicant_hired.mjs`, `applicant_no_show.mjs` (catalogue rows by `supabase/seed/0226_gen_catalogue.mjs`).
-- Tests: `supabase/tests/99_release_23.sql` section 7, `web/src/features/careers/decisions.test.ts`, `web/tests/e2e/release-23.spec.ts`.
+- Tests: `supabase/tests/99_release_23.sql` section 4, `web/src/features/careers/decisions.test.ts`, `web/tests/e2e/release-23.spec.ts`.
 
 ## Guides
 

@@ -66,3 +66,41 @@ export async function listingCapture<T = Record<string, unknown>>(intake: string
     return { ok: true, data: await door<T>(user.id, 'ops_read', 'listing_capture', { intake }, aal) };
   } catch (e) { return fail(e); }
 }
+
+/** R23 (0236): the newest handover's photos (the check-out or check-in photos field staff took) become the car's listing
+ *  photos: each copied into the listing intake as if taken on the capture screen, then the intake is submitted when every
+ *  required shot is there, so the studio editor runs and the listing review follows as usual. */
+export async function listingFromHandover(vehicleId: string, refresh: string[] = []): Promise<R<{ intake_id: string; copied: number; missing: string[]; submitted: boolean }>> {
+  try {
+    const { user, aal } = await me();
+    if (!/^[0-9a-f-]{36}$/i.test(vehicleId)) throw new Error('Unknown car.');
+    const set = await door<{ photos: Array<{ shot_type: string; bucket: string; path: string; width: number | null; height: number | null }> }>(user.id, 'ops_read', 'handover_listing_photos', { vehicle: vehicleId }, aal);
+    if (!set.photos.length) throw new Error('This car has no handover photos of the listing shots yet.');
+    const start = await door<{ intake_id: string; state: string }>(user.id, 'ops_do', 'listing_start', { vehicle_id: vehicleId }, aal);
+    const { storage } = await import('@/integrations/storage');
+    const { sha256Hex } = await import('@/server/links');
+    const s = await storage();
+    let copied = 0;
+    let last: { missing: string[]; complete: boolean } = { missing: [], complete: false };
+    for (const ph of set.photos) {
+      if (ph.bucket !== 'condition-photos') continue;
+      const bytes = await s.get('condition-photos', ph.path);
+      if (!bytes) continue;
+      const png = bytes[0] === 0x89 && bytes[1] === 0x50;
+      const key = `vehicles/${vehicleId}/original/${start.intake_id}/${ph.shot_type}-handover-${crypto.randomUUID().slice(0, 8)}.${png ? 'png' : 'jpg'}`;
+      await s.put('vehicle-originals', key, bytes, png ? 'image/png' : 'image/jpeg');
+      try {
+        last = await door<{ missing: string[]; complete: boolean }>(user.id, 'ops_do', 'listing_upload', { intake: start.intake_id, shot_type: ph.shot_type, original_path: key,
+          width: ph.width, height: ph.height, byte_size: bytes.length, mime_type: png ? 'image/png' : 'image/jpeg', sha256: await sha256Hex(bytes) }, aal);
+        copied++;
+      } catch (e) {
+        await s.remove('vehicle-originals', key).catch(() => undefined);
+        if (!copied) throw e;
+      }
+    }
+    let submitted = false;
+    if (copied && last.complete) { await door(user.id, 'ops_do', 'listing_submit', { intake: start.intake_id }, aal); submitted = true; kick(); }
+    for (const x of refresh) revalidatePath(x);
+    return { ok: true, data: { intake_id: start.intake_id, copied, missing: last.missing ?? [], submitted } };
+  } catch (e) { return fail(e); }
+}

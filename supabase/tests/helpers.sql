@@ -169,6 +169,8 @@ begin
   insert into rate_cards (vehicle_id, daily_rate_cents, weekend_rate_cents, weekly_rate_cents, monthly_rate_cents,
         km_allowance_per_day, overage_cents_per_km, deposit_cents, delivery_fee_cents, pickup_fee_cents, effective_from)
   values (v_id, 10000, 12000, 56000, 180000, 200, 35, 100000, 7500, 7500, p_enrolled::timestamptz);
+  -- 0239: the Tracker Fee runs from a recorded installation: a fixture car with a Tracker Fee has its tracker from the enrolment
+  update vehicles set tracker_installed_on = p_enrolled where id = v_id and p_tracker > 0 and tracker_installed_on is null and not coalesce(tracker_install_pending, false);
   return v_id;
 end $$;
 

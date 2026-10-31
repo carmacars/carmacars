@@ -9,7 +9,7 @@ export interface MaintSettings {
     block_bookings_when_overdue: boolean; block_handover_when_expired: boolean; active: boolean; help: string | null }>;
   rules: Array<R & { id: string; item_code: string; vehicle_class: string | null; vehicle_id: string | null; vehicle_name: string | null }>;
   categories: Array<{ code: string; label: string; item_codes: string[] | null; is_service: boolean }>;
-  classes: string[]; vehicles: Array<{ id: string; name: string }>;
+  classes: string[]; class_labels?: Record<string, string>; vehicles: Array<{ id: string; name: string }>;
 }
 const KIND: Record<string, string> = { interval: 'By km and months', record: 'Recorded when done', expiry: 'Expiry date', tires: 'Tread and age', seasonal: 'Seasonal dates' };
 const MAINT_KEYS = ['maint_due_soon_km', 'maint_due_soon_days', 'maint_default_km_per_day', 'maint_km_per_day_window_days', 'maint_winter_on_reminder', 'maint_winter_on_by',
@@ -40,7 +40,7 @@ export function MaintenanceSettings({ s, program }: { s: MaintSettings; program:
     </Card>
     <Card title="Intervals by class or for one car" testId="maint-settings-rules" aside={<Act ops action="maint_rule_save" payload={{}} label="Add an interval" refresh={R_} testId="rule-add" done="Saved." fields={[
       { name: 'item_code', label: 'Item', type: 'select', required: true, options: s.items.map((i) => [i.code, i.label] as [string, string]) },
-      { name: 'vehicle_class', label: 'Class (or choose a car)', type: 'select', options: s.classes.map((c) => [c, c.charAt(0).toUpperCase() + c.slice(1)] as [string, string]) },
+      { name: 'vehicle_class', label: 'Class (or choose a car)', type: 'select', options: s.classes.map((c) => [c, s.class_labels?.[c] ?? c.charAt(0).toUpperCase() + c.slice(1)] as [string, string]) },
       { name: 'vehicle_id', label: 'Car', type: 'select', options: s.vehicles.map((v) => [v.id, v.name] as [string, string]) },
       { name: 'interval_km', label: 'Every (km; 0: not by km)', type: 'number', min: 0 }, { name: 'interval_months', label: 'Every (months; 0: not by date)', type: 'number', min: 0 },
       { name: 'due_soon_km', label: 'Due soon (km before)', type: 'number', min: 0 }, { name: 'due_soon_days', label: 'Due soon (days before)', type: 'number', min: 0 },

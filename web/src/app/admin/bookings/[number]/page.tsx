@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { BookingInsurer, type BookingInsurerData } from '@/features/insurers/BookingInsurer';
-import { InsurerClaimEdit } from '@/features/insurers/InsurerClaimEdit';
+import { InsurerClaimEdit, type AdjusterOpt } from '@/features/insurers/InsurerClaimEdit';
 import { StaffDocUpload } from '@/features/admin/StaffDocUpload';
 import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
@@ -170,11 +170,11 @@ export default async function Booking({ params, searchParams }: { params: Promis
       )}
       {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
       {(tab === 'overview' || tab === 'money') && insurerCard?.billed_to_insurer && <BookingInsurer x={insurerCard} />}
-      {tab === 'overview' && b.booking_type !== 'owner' && !['cancelled', 'declined', 'expired'].includes(b.status) && <InsurerClaimEdit insurers={ins.rows} x={{
+      {tab === 'overview' && b.booking_type !== 'owner' && !['cancelled', 'declined', 'expired'].includes(b.status) && <InsurerClaimEdit insurers={ins.rows} adjusters={await door<AdjusterOpt[]>(user.id, 'admin_read', 'insurer_adjusters', {}).catch(() => [] as AdjusterOpt[])} x={{
         booking: b.booking_number, bill_to: b.bill_to, insurer_id: b.insurer_id, claim_number: b.insurer_claim_number, adjuster_name: b.insurer_adjuster_name,
         adjuster_email: b.insurer_adjuster_email, adjuster_phone: b.insurer_adjuster_phone, policy_number: (b.insurer_policy_number as string | null) ?? null,
         policy_province: (b.insurer_policy_province as string | null) ?? null, authorized_days: b.insurer_authorized_days, authorized_until: b.insurer_authorized_until,
-        authorized_daily_rate_cents: b.insurer_authorized_daily_rate_cents }} />}
+        authorized_daily_rate_cents: b.insurer_authorized_daily_rate_cents, adjuster_id: ((b as Record<string, unknown>).insurer_adjuster_id as string | null) ?? null }} />}
       {(tab === 'overview' || tab === 'money') && b.billable_days > 27 && <BookingPeriods booking={b.booking_number} rows={await door<PeriodRow[]>(user.id, 'ops_read', 'booking_periods', { booking: b.booking_number }).catch(() => [] as PeriodRow[])} />}
       {(tab === 'overview' || tab === 'review') && renterForm && <RenterEdit x={renterForm} />}
       {(tab === 'overview' || tab === 'review') && renterForm?.may_edit && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: renterForm.renter_id }).catch(() => [] as DuplicateRow[])} />}

@@ -192,7 +192,7 @@ select test.ok('the functions are not callable from the browser', not has_functi
 
 -- ================================================================ 6. vehicle class rules
 select test.throws('rules: an Admin only', $$select test.fp_read('fp_cs', 'class_rules')$$, 'Admin');
-select test.eq('rules: the rows that exist and the classes', (select jsonb_array_length(x -> 'rules') > 50 and jsonb_array_length(x -> 'classes') = 6 from (select test.fp_read('fp_admin', 'class_rules') x) y), true);
+select test.eq('rules: the rows that exist and the classes', (select jsonb_array_length(x -> 'rules') > 50 and jsonb_array_length(x -> 'classes') = (select count(*) from vehicle_classes where is_active) from (select test.fp_read('fp_admin', 'class_rules') x) y), true);
 select test.throws('rules: a rule needs a condition', $$select test.fp_do('fp_admin', 'class_rule_save', '{"rank": 5, "class": "luxury", "note": "Everything"}')$$, 'at least one condition');
 select test.throws('rules: a pattern that does not compile', $$select test.fp_do('fp_admin', 'class_rule_save', '{"rank": 5, "make": "crbrand", "model_re": "^(abc", "class": "luxury", "note": "Broken"}')$$, 'not a valid pattern');
 select test.throws('rules: the rank', $$select test.fp_do('fp_admin', 'class_rule_save', '{"rank": 0, "make": "crbrand", "class": "luxury", "note": "Rank"}')$$, 'rank');

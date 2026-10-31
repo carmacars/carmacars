@@ -3,9 +3,10 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { acceptCookies, db, noOverflow, watch } from './helpers';
 
-// Release 23a end to end, at both widths: the rubric's "Good fit for Sales instead" and No, Hiring > Emails to send and
-// Send all decision emails (nothing goes before, one email each after); the usage banner on Today; robots.txt's crawl
-// scope; /delivery's minimum and delivery area; a remote candidate confirming the call and the Calls tab.
+// Release 23 end to end, at both widths: the rubric's "Good fit for Sales instead" and No, Hiring > Emails to send and
+// Send all decision emails (nothing goes before, one email each after); the usage banner on Today; Cars on sample photos
+// on Listings; an adjuster added on a booking's insurance claim and the insurer's billing by car and adjuster; robots.txt's
+// crawl scope; /delivery's minimum and delivery area.
 const PW = 'correct horse battery';
 type Sql = ReturnType<typeof db>;
 const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${salt.toString('base64')}$${scryptSync(pw, salt, 64).toString('base64')}`; };
@@ -87,7 +88,7 @@ test('hiring: the rubric says Sales instead and No; nothing is emailed until Sen
   await sql.end();
 });
 
-test('admin: the usage banner on Today', async ({ browser }, info) => {
+test('admin: the usage banner on Today, Cars on sample photos on Listings', async ({ browser }, info) => {
   test.setTimeout(180_000);
   const phone = info.project.name.startsWith('phone');
   const sql = db();
@@ -101,7 +102,44 @@ test('admin: the usage banner on Today', async ({ browser }, info) => {
   await page.goto('/admin', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('usage-banner-over')).toContainText('Website CPU time', { timeout: 30_000 });
   await check(page, 'today');
+  await page.goto('/admin/listings', { waitUntil: 'networkidle' });
+  await expect(page.getByTestId('photos-needed')).toBeVisible();
+  await check(page, 'listings');
   await sql`delete from usage_readings where service = 'workers_cpu' and source = 'cloudflare' and day = app.local_date(now())`;
+  expect(quiet(errors)).toEqual([]);
+  await sql.end();
+});
+
+test('insurers: an adjuster added on a booking is saved with the insurer; the insurer page bills by car and adjuster', async ({ browser }, info) => {
+  test.setTimeout(240_000);
+  const phone = info.project.name.startsWith('phone');
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const a = await mkAdmin(sql);
+  const t = tag();
+  const [ins] = await sql`insert into insurers (name) values (${'E2E Mutual ' + t}) returning id`;
+  const [b] = await sql`select booking_number from bookings where status in ('confirmed', 'on_rent') and booking_type <> 'owner' order by created_at desc limit 1`;
+  test.skip(!b, 'no confirmed booking in the seed');
+  const page = await ctx(browser, phone);
+  const errors = watch(page);
+  await signIn(page, a.email, '/admin');
+  await page.goto(`/admin/bookings/${b!.booking_number}`, { waitUntil: 'networkidle' });
+  const open = page.getByTestId('ic-bill-insurer');
+  if (await open.isVisible()) await open.click(); else await page.getByTestId('ic-open').click();
+  await page.getByTestId('ic-bill_to').selectOption('insurer');
+  await page.getByTestId('ic-insurer_id').selectOption(String(ins!.id));
+  await page.getByTestId('ic-adjuster').selectOption('new');
+  await page.getByTestId('ic-adjuster_name').fill('Ada Adjuster');
+  await page.getByTestId('ic-adjuster_email').fill(`ada.${t}@example.test`);
+  await page.getByTestId('ic-save').click();
+  await expect.poll(async () => (await sql`select count(*)::int as n from insurer_adjusters where insurer_id = ${ins!.id} and email = ${`ada.${t}@example.test`}`)[0]!.n, { timeout: 60_000 }).toBe(1);
+  await page.goto(`/admin/insurers/${ins!.id}`, { waitUntil: 'networkidle' });
+  await expect(page.getByTestId('ir-adjusters')).toContainText('Ada Adjuster');
+  await expect(page.getByTestId('ir-by-car')).toBeVisible();
+  await expect(page.getByTestId('ir-by-adjuster')).toBeVisible();
+  await check(page, 'insurer');
+  // back to the renter, as the seed had it
+  await sql`update bookings set bill_to = 'renter' where booking_number = ${b!.booking_number}`;
   expect(quiet(errors)).toEqual([]);
   await sql.end();
 });
@@ -163,6 +201,55 @@ test('hiring: a remote candidate confirms the call in one press; the Calls tab s
   await sql`update job_applications set status = 'withdrawn', slot_id = null where id = ${app!.id}`;
   await sql`delete from interview_slots where id = ${slot!.id}`;
   await sql`delete from interview_days where id = ${day!.id}`;
+  expect(quiet(errors)).toEqual([]);
+  await sql.end();
+});
+
+test('cars: the registration saved on a car, a wrong VIN refused, the ownership permit and the safety certificate uploaded', async ({ browser }, info) => {
+  test.setTimeout(180_000);
+  const phone = info.project.name.startsWith('phone');
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const a = await mkAdmin(sql);
+  const [car] = await sql`select id from vehicles where not is_sample and retired_at is null order by created_at limit 1`;
+  test.skip(!car, 'no real car in the seed');
+  const page = await ctx(browser, phone);
+  const errors = watch(page);
+  await signIn(page, a.email, '/admin');
+  await page.goto(`/admin/vehicles/${car!.id}?tab=records`, { waitUntil: 'networkidle' });
+  await expect(page.getByTestId('vehicle-registration')).toBeVisible();
+  await check(page, 'registration');
+  const before = (await sql`select vin from vehicles where id = ${car!.id}`)[0]!.vin as string | null;
+  await page.getByTestId('reg-vin').fill('2T1BR32E14C230231');
+  await page.getByTestId('reg-save').click();
+  await expect(page.getByTestId('reg-msg')).toContainText('check digit', { timeout: 30_000 });
+  await page.getByTestId('reg-vin').fill(before ?? '');
+  await page.getByTestId('reg-permit_number').fill('E2E 7654321');
+  await page.getByTestId('reg-sticker_expires_on').fill('2027-06-30');
+  await page.getByTestId('reg-save').click();
+  await expect(page.getByTestId('reg-msg')).toHaveText(/Saved/, { timeout: 30_000 });
+  expect((await sql`select permit_number from vehicles where id = ${car!.id}`)[0]!.permit_number).toBe('E2E 7654321');
+  await page.getByTestId('reg-doc-kind').selectOption('ownership_permit');
+  await page.getByTestId('reg-doc-file').setInputFiles({ name: 'permit.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n%e2e\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n') });
+  await page.getByTestId('reg-doc-upload').click();
+  await expect(page.getByTestId('reg-doc-msg')).toHaveText('Uploaded.', { timeout: 30_000 });
+  expect(Number((await sql`select count(*)::int as n from documents where vehicle_id = ${car!.id} and kind = 'ownership_permit'`)[0]!.n)).toBeGreaterThan(0);
+  // the Safety Standards Certificate with its number and dates (0237)
+  await page.getByTestId('reg-doc-kind').selectOption('safety_certificate');
+  await page.getByTestId('reg-ssc-number').fill('E2ESSC1');
+  await page.getByTestId('reg-ssc-issued').fill('2026-10-01');
+  await page.getByTestId('reg-ssc-expires').fill('2027-10-01');
+  await page.getByTestId('reg-doc-file').setInputFiles({ name: 'ssc.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4\n%e2e\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n') });
+  await page.getByTestId('reg-doc-upload').click();
+  await expect(page.getByTestId('reg-doc-msg')).toHaveText('Uploaded.', { timeout: 30_000 });
+  await expect(page.getByTestId('reg-ssc')).toContainText('E2ESSC1');
+  expect((await sql`select ssc_expires_on::text as d from vehicles where id = ${car!.id}`)[0]!.d).toBe('2027-10-01');
+  // a program owner's car offers Move to another owner on the Overview
+  if ((await sql`select supply_type from vehicles where id = ${car!.id}`)[0]!.supply_type === 'program_owner') {
+    await page.goto(`/admin/vehicles/${car!.id}`, { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('vehicle-move-owner')).toBeVisible();
+  }
+  await sql`update vehicles set permit_number = null, sticker_expires_on = null, ssc_number = null, ssc_issued_on = null, ssc_expires_on = null where id = ${car!.id}`;
   expect(quiet(errors)).toEqual([]);
   await sql.end();
 });

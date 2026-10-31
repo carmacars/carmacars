@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supplyDo } from '@/server/actions/supply';
+import { uploadVehicleDocument } from '@/server/actions/vehicle-registration';
 import { RateFields } from '@/features/rates/RateFields';
 import { ratePayload, ratesEmpty, type RateCheck } from '@/features/rates/rates';
 import { ColourSwatches, VinEntry, effectiveCar, emptyVin, vinPayload, vinProblem, type VinValue } from '@/features/vin/VinEntry';
@@ -29,6 +30,8 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
   const [rates, setRates] = useState<Record<string, string>>({ km_mode: 'default' });
   const [chk, setChk] = useState<RateCheck | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  // 0237: the ownership permit and the Safety Standards Certificate may come with the car (uploaded right after it is added)
+  const [docs, setDocs] = useState<{ permit: File | null; ssc: File | null; number: string; issued_on: string; expires_on: string }>({ permit: null, ssc: null, number: '', issued_on: '', expires_on: '' });
   const [pending, start] = useTransition();
   const set = (k: string) => (e: { target: { value: string } }) => setV((s) => ({ ...s, [k]: e.target.value }));
   const input = (k: string, label: string, o: { type?: string; hint?: string; required?: boolean; inputMode?: 'decimal' | 'numeric' } = {}) => (
@@ -51,7 +54,15 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
     if (supply === 'partner') Object.assign(p, { partner_id: v.partner_id, commission_bps: v.commission ? Math.round(Number(v.commission) * 100) : undefined });
     const r = await supplyDo<{ vehicle_id: string }>('vehicle_add', p, ['/admin/vehicles']);
     if (!r.ok) { setErr(r.message); return; }
-    router.push(`/admin/vehicles/${r.data.vehicle_id}?added=1`);
+    let docsFailed = false;
+    for (const [kind, file] of [['ownership_permit', docs.permit], ['safety_certificate', docs.ssc]] as Array<[string, File | null]>) {
+      if (!file) continue;
+      const form = new FormData(); form.set('vehicle', r.data.vehicle_id); form.set('kind', kind); form.set('file', file);
+      if (kind === 'safety_certificate') { form.set('number', docs.number); form.set('issued_on', docs.issued_on); form.set('expires_on', docs.expires_on); }
+      const u = await uploadVehicleDocument(form);
+      if (!u.ok) docsFailed = true;
+    }
+    router.push(`/admin/vehicles/${r.data.vehicle_id}?added=1${docsFailed ? '&docs=failed&tab=records' : ''}`);
   });
   const ec = effectiveCar(car);
   return (
@@ -90,6 +101,24 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
             {!partners.length && <p className="hint">No partner yet: add one in <Link prefetch={false} className="link" href="/admin/partners">Partners</Link> first.</p>}</div>
           {input('commission', 'Commission for this car (%)', { inputMode: 'decimal', hint: `Empty: the partner's commission (the default is ${defaultCommission / 100}%).` })}
         </div>)}
+      <fieldset className="stack" data-testid="add-car-docs"><legend className="d4">Documents (optional)</legend>
+        <p className="small muted">A photo or PDF of each. They are saved on the car (Records tab, Registration), and the ownership permit clears its item on the owner&apos;s checklist.</p>
+        <div className="ad-fields">
+          <div className="field ad-field"><label className="label" htmlFor="ac-doc-permit">Ownership permit</label>
+            <input className="input" id="ac-doc-permit" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => setDocs((x) => ({ ...x, permit: e.target.files?.[0] ?? null }))} data-testid="add-car-doc-permit" /></div>
+          <div className="field ad-field"><label className="label" htmlFor="ac-doc-ssc">Safety Standards Certificate</label>
+            <input className="input" id="ac-doc-ssc" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => setDocs((x) => ({ ...x, ssc: e.target.files?.[0] ?? null }))} data-testid="add-car-doc-ssc" /></div>
+          {docs.ssc && <>
+            <div className="field ad-field"><label className="label" htmlFor="ac-ssc-number">Certificate number</label>
+              <input className="input" id="ac-ssc-number" value={docs.number} onChange={(e) => setDocs((x) => ({ ...x, number: e.target.value }))} data-testid="add-car-ssc-number" /></div>
+            <div className="field ad-field"><label className="label" htmlFor="ac-ssc-issued">Issued on</label>
+              <input className="input" id="ac-ssc-issued" type="date" value={docs.issued_on} onChange={(e) => setDocs((x) => ({ ...x, issued_on: e.target.value }))} data-testid="add-car-ssc-issued" /></div>
+            <div className="field ad-field"><label className="label" htmlFor="ac-ssc-expires">Expires on</label>
+              <input className="input" id="ac-ssc-expires" type="date" value={docs.expires_on} onChange={(e) => setDocs((x) => ({ ...x, expires_on: e.target.value }))} data-testid="add-car-ssc-expires" />
+              <p className="hint">Fleet gets a task 30 and 7 days before.</p></div>
+          </>}
+        </div>
+      </fieldset>
       <fieldset className="stack"><legend className="d4">Rates and kilometres</legend>
         <p className="small muted">The daily rate starts from similar cars, else the class. Keep it to post the car in one pass, change it, or empty it and set the rates on the car&apos;s Rates tab. The kilometres start from the defaults.</p>
         <RateFields v={rates} set={(k, x) => setRates((s) => ({ ...s, [k]: x }))} context={{ class: car.class, make: ec.make ?? '', model: ec.model ?? '' }} prefix="add-car" optional onCheck={setChk} />

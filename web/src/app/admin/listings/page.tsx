@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { Badge, PageHead, Table, t } from '@/features/admin/ui';
+import { Badge, Card, PageHead, Table, t } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import { ProgressCell, type Progress } from '@/features/listing/ListingProgress';
+import { NeedCell, type NeedRow } from '@/features/listing/PhotosNeeded';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Listings', path: '/admin/listings', noindex: true, description: 'Listing intake and review.' });
@@ -16,6 +17,8 @@ export default async function Listings() {
   const { read, user } = await page('/admin/listings');
   const rows = await read<I[]>('listings');
   const prog = rows.length ? await door<Record<string, Progress>>(user.id, 'ops_read', 'listing_progress', { intakes: rows.map((r) => r.id) }) : {};
+  // R23 (0236): the real cars still on sample photos, with their handover photos
+  const need = await door<{ required: number; cars: NeedRow[] }>(user.id, 'ops_read', 'photos_needed').catch(() => ({ required: 0, cars: [] as NeedRow[] }));
   const samples = new Set(((await door<Array<{ vehicle_id: string }>>(user.id, 'ops_read', 'vehicles_using_samples').catch(() => [])) ?? []).map((x) => x.vehicle_id));
   return (
     <>
@@ -29,6 +32,14 @@ export default async function Listings() {
         { key: 'started', label: 'Started by', render: (r) => `${r.started_by_name ?? ''} (${r.started_role})` }, { key: 'reason', label: 'Note', className: 'wrap' },
         { key: 'updated_at', label: 'Updated', render: (r) => t(r.updated_at) }
       ]} />
+      <Card title={`Cars on sample photos (${need.cars.length})`} testId="photos-needed">
+        <p className="small">Each real car whose page still shows sample photos. Where a handover photographed the car (the check-out and check-in photos), use them: the studio editor puts the car on the CarmaCars backdrop and the listing waits for your review. The others need photos at their next handover.</p>
+        <Table<NeedRow & Record<string, unknown>> rows={need.cars as Array<NeedRow & Record<string, unknown>>} rowKey={(r) => r.vehicle_id} empty="Every real car has its own photos."
+          cols={[{ key: 'name', label: 'Car', render: (r) => <Link prefetch={false} className="link" href={`/admin/vehicles/${r.vehicle_id}`}>{r.name}{r.fleet_number ? ` (${r.fleet_number})` : ''}</Link> },
+            { key: 'status', label: 'Status', render: (r) => <Badge s={r.status} /> },
+            { key: 'handover_at', label: 'Newest handover photos', render: (r) => (r.handover_at ? `${t(r.handover_at)}: ${r.handover_shots} shots` : 'None') },
+            { key: 'act', label: '', render: (r) => <NeedCell r={r} /> }]} />
+      </Card>
     </>
   );
 }

@@ -1,7 +1,9 @@
--- 99: Release 23a (migrations 0220 to 0232, docs/changes/2026-11-03-*.md). IndexNow's changed pages on their own back-off
+-- 99: Release 23 (migrations 0220 to 0240, docs/changes/2026-11-03-*.md). IndexNow's changed pages on their own back-off
 -- and first, the sweep inside the crawl scope; the CPU guard flag; usage alerts texted to the Admins; Cloudflare email
 -- first; the hiring decisions sent together; remote calls confirmed or cancelled, the call method by role; the Quo texts
--- on Usage; the search scope; a credit card by default with an Admin's override per booking. Fixtures start with "r23".
+-- on Usage; the search scope; a credit card by default with an Admin's override per booking. Release 23b: every class in the class pickers; insurers' adjusters and
+-- the billing by class, car and adjuster; tasks that close themselves; the cars on sample photos; a car's registration,
+-- documents and move; owner charges deducted from payouts; the Tracker Fee from the installation. Fixtures start with "r23".
 select test.suite('99 release 23');
 
 select test.mk_user('r23_admin', 'admin');
@@ -176,3 +178,137 @@ insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents
 values (test.r23d(), test.id('renter:r23_renter'), 'deposit', 'hold', 'card', 50000, 'authorized', 'visa', '5556');
 select test.eq('the payment keeps the card''s type', (select card_funding from payments where booking_id = test.r23d() and card_last4 = '5556'), 'debit');
 select test.eq('the Money tab lists the card with its type', app.booking_money(test.id('r23_admin'), jsonb_build_object('booking', 'R23-D1')) #>> '{cards,0,funding}', 'debit');
+
+-- ================================================================ 7. every class (0233)
+select test.ok('the enum has every class of the list', not exists (select 1 from vehicle_classes c where not exists (
+  select 1 from pg_enum e where e.enumtypid = 'vehicle_class'::regtype and e.enumlabel = c.code)));
+insert into fee_defaults (fee_type_code, vehicle_class, amount_cents, effective_from)
+  values ((select code from fee_types order by sort_order limit 1), 'van', 4321, current_date - 1);
+update vehicles set class = 'van' where id = test.id('vehicle:r23_car');
+select test.eq('a fee default for Van applies to a car priced as a Van',
+  (select amount_cents from public.effective_fee((select code from fee_types order by sort_order limit 1), test.id('vehicle:r23_car'))), 4321::bigint);
+select test.eq('Class rules list the classes in the list''s order', jsonb_array_length(app.class_rules_read(test.id('r23_admin')) -> 'classes'),
+  (select count(*)::integer from vehicle_classes where is_active));
+
+-- ================================================================ 8. adjusters (0234)
+insert into insurers (name) values ('R23 Mutual'), ('R23 Other');
+create function test.r23ins(p text) returns uuid language sql stable as $$ select id from insurers where name = p $$;
+select test.mk_booking('R23-1', 'r23_car', 'r23_renter', '2026-10-01 10:00', '2026-10-05 10:00', 'confirmed');
+select test.mk_booking('R23-2', 'r23_car2', 'r23_renter', '2026-10-10 10:00', '2026-10-12 10:00', 'confirmed');
+update bookings set insurer_id = test.r23ins('R23 Mutual'), bill_to = 'insurer', insurer_adjuster_name = 'Ada Adjuster', insurer_adjuster_email = 'ada@r23.example.test'
+ where id = test.id('booking:R23-1');
+select test.ok('an adjuster typed on a booking is saved with the insurer',
+  exists (select 1 from insurer_adjusters a join bookings b on b.insurer_adjuster_id = a.id where b.id = test.id('booking:R23-1') and a.insurer_id = test.r23ins('R23 Mutual') and a.email = 'ada@r23.example.test'));
+update bookings set insurer_id = test.r23ins('R23 Mutual'), bill_to = 'insurer', insurer_adjuster_name = 'Ada A.', insurer_adjuster_email = 'ADA@r23.example.test', insurer_adjuster_phone = '416-555-0142'
+ where id = test.id('booking:R23-2');
+select test.eq('the same email is the same adjuster (one row), with the phone added',
+  (select count(*) || '/' || max(phone) from insurer_adjusters where insurer_id = test.r23ins('R23 Mutual')), '1/416-555-0142');
+select app.door(test.id('r23_admin'), 'aal2', 'admin_do', 'insurer_adjuster_save', jsonb_build_object('insurer_id', test.r23ins('R23 Other'), 'name', 'Cy Other', 'email', 'cy@r23.example.test'));
+select test.throws('an adjuster of another insurer is refused', $$ update bookings set insurer_adjuster_id = (select id from insurer_adjusters where email = 'cy@r23.example.test')
+  where id = test.id('booking:R23-2') $$, 'another insurer');
+select app.door(test.id('r23_admin'), 'aal2', 'admin_do', 'insurer_adjuster_save', jsonb_build_object('insurer_id', test.r23ins('R23 Mutual'), 'name', 'Bo Adjuster', 'email', 'bo@r23.example.test'));
+select app.booking_insurer_save(test.id('r23_cs'), jsonb_build_object('booking', 'R23-2', 'adjuster_id', (select id from insurer_adjusters where email = 'bo@r23.example.test')));
+select test.eq('a saved adjuster picked on a booking fills its details', (select insurer_adjuster_email from bookings where id = test.id('booking:R23-2')), 'bo@r23.example.test');
+select app.booking_insurer_save(test.id('r23_cs'), jsonb_build_object('booking', 'R23-2', 'insurer_id', 'new', 'insurer_name', 'R23 Brand New Insurance'));
+select test.ok('an insurer added by name on the booking', (select insurer_id = test.r23ins('R23 Brand New Insurance') from bookings where id = test.id('booking:R23-2')));
+select test.ok('billing by class, by car and by adjuster', (select b ? 'by_car' and b ? 'by_adjuster' and b ? 'class_charges' and jsonb_array_length(b -> 'by_adjuster') >= 1
+  from (select app.insurer_billing(test.id('r23_admin'), jsonb_build_object('insurer', test.r23ins('R23 Mutual'))) b) x));
+select test.ok('the rate sheet lists what was billed by insurer and class', app.insurer_rate_sheet(test.id('r23_admin'), '{}'::jsonb) ? 'billed');
+select test.ok('an insurer needs no billing contact of its own', (select billing_email is null from insurers where id = test.r23ins('R23 Mutual')));
+
+-- ================================================================ 9. tasks close themselves (0235)
+select app.raise_task(p_type => 'live_rental_car_status', p_queue => 'fleet', p_priority => 'high', p_title => 'R23 car is out: set its status to On rent',
+  p_booking => test.id('booking:R23-1'), p_vehicle => test.id('vehicle:r23_car'), p_dedupe => 'live_rental_car_status:r23');
+update vehicles set status = 'on_rent' where id = test.id('vehicle:r23_car');
+select test.eq('the car set to On rent closes "set its status to On rent"', (select status from tasks where dedupe_key = 'live_rental_car_status:r23'), 'done');
+select app.raise_task(p_type => 'live_rental_car_status', p_queue => 'fleet', p_priority => 'high', p_title => 'R23 car is out (2)',
+  p_booking => test.id('booking:R23-2'), p_vehicle => test.id('vehicle:r23_car2'), p_dedupe => 'live_rental_car_status:r23b');
+update bookings set vehicle_id = test.id('vehicle:r23_car') where id = test.id('booking:R23-2');
+select test.eq('the booking moved to another car closes it too', (select status from tasks where dedupe_key = 'live_rental_car_status:r23b'), 'done');
+
+-- ================================================================ 10. the cars on sample photos (0236)
+select test.ok('photos needed: a list for an Admin', jsonb_typeof(app.photos_needed(test.id('r23_admin')) -> 'cars') = 'array');
+select test.throws('not for customer service', $$ select app.photos_needed(test.id('r23_cs')) $$, 'fleet');
+select test.eq('the handover shots map to the listing shots', (select listing_shot from app.handover_shot_map() where handover_shot = 'instrument_cluster' and pref = 1), 'odometer');
+
+update program_settings set uptime_quiet_from_hour = (select f from r23q), uptime_quiet_until_hour = (select u from r23q) where id = (app.settings()).id;
+
+-- ================================================================ 11. a car's registration (0237)
+select test.throws('the check digit', $$ select app.vehicle_registration_save(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car2'), 'vin', '2T1BR32E14C230231')) $$, 'check digit');
+select test.throws('17 characters, no I, O or Q', $$ select app.vehicle_registration_save(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car2'), 'vin', '2T1BR32EX4C2302O1')) $$, '17 letters');
+select app.vehicle_registration_save(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car2'), 'vin', '2T1BR32EX4C230231', 'year', '2024',
+  'body_type', 'Sedan', 'permit_number', 'R23 1234567', 'sticker_expires_on', (app.local_date(now()) + 25)::text));
+select test.eq('VIN, year, body style, permit number and sticker saved', (select vin || '/' || year || '/' || body_type || '/' || permit_number || '/' || (sticker_expires_on - app.local_date(now())) from vehicles where id = test.id('vehicle:r23_car2')),
+  '2T1BR32EX4C230231/2024/Sedan/R23 1234567/25');
+select test.throws('a VIN already on another car is refused', $$ select app.vehicle_registration_save(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car'), 'vin', '2T1BR32EX4C230231')) $$, 'another car');
+select test.throws('customer service cannot', $$ select app.vehicle_registration_save(test.id('r23_cs'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car2'), 'year', '2020')) $$, 'fleet');
+select app.job_expiry_watch(now());
+select test.ok('the sticker 25 days away: a fleet task (the 30-day one), no owner billing', exists (select 1 from tasks where vehicle_id = test.id('vehicle:r23_car2') and task_type = 'sticker_renewal' and queue = 'fleet' and dedupe_key like '%:30'));
+update vehicles set sticker_expires_on = app.local_date(now()) + 5 where id = test.id('vehicle:r23_car2');
+select app.job_expiry_watch(now());
+select test.ok('and again at 7 days', exists (select 1 from tasks where vehicle_id = test.id('vehicle:r23_car2') and task_type = 'sticker_renewal' and dedupe_key like '%:7'));
+select app.vehicle_registration_save(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car2'), 'sticker_expires_on', (app.local_date(now()) + 365)::text));
+select test.eq('a new sticker date closes its tasks', (select count(*) from tasks where vehicle_id = test.id('vehicle:r23_car2') and task_type = 'sticker_renewal' and status = 'open'), 0::bigint);
+select app.vehicle_document_register(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car2'), 'kind', 'ownership_permit', 'path', 'vehicles/r23/documents/permit.pdf', 'mime', 'application/pdf'));
+select test.ok('the ownership permit uploaded on the car is on file for its checklist', exists (select 1 from documents where vehicle_id = test.id('vehicle:r23_car2') and kind = 'ownership_permit' and purged_at is null));
+select test.eq('the car''s documents are listed', jsonb_array_length(app.vehicle_documents_read(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car2')))), 1);
+
+-- ================================================================ 12. owner charges deducted from payouts (0238)
+create temp table r23i as select app.owner_invoice_draft_save(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car'), 'title', 'First and last month',
+  'lines', '[{"description": "First and last month", "quantity": 1, "unit_amount_cents": 60000, "hst": true}]'::jsonb)) j;
+create function test.r23inv() returns owner_invoices language sql stable as $$ select * from owner_invoices where id = (select (j ->> 'id')::uuid from r23i) $$;
+select app.owner_invoice_collect_by(test.id('r23_admin'), jsonb_build_object('id', (test.r23inv()).id, 'collect_by', 'payout'));
+select test.eq('deduct from payouts: the draft is issued quietly', (select collect_by || '/' || status || '/' || total_cents from owner_invoices where id = (test.r23inv()).id), 'payout/issued/67800');
+select test.eq('never debited by bank', app.owner_debit_block((test.r23inv()).id), 'deducted from payouts');
+select test.ok('not a debit candidate', not exists (select 1 from app.owner_debit_candidates(test.id('owner:r23_owner'), app.local_date(now()) + 60) c where c.id = (test.r23inv()).id));
+select test.throws('only Admins', $$ select app.owner_invoice_collect_by(test.id('r23_cs'), jsonb_build_object('id', (test.r23inv()).id, 'collect_by', 'bank_debit')) $$, 'Admin');
+-- the statement deducts it: a fees_deducted line for what the payout allows
+select test.mk_booking('R23-9', 'r23_car', 'r23_renter', '2026-08-03 10:00', '2026-08-06 10:00', 'closed');
+select app.build_owner_statement(test.id('owner:r23_owner'), date '2026-08-01');
+select test.ok('the statement deducts it (an itemized deduction on the car, or carried forward when there is no payout)',
+  exists (select 1 from owner_statement_lines l join owner_statements s on s.id = l.owner_statement_id
+           where s.owner_id = test.id('owner:r23_owner') and l.owner_invoice_id = (test.r23inv()).id and l.line_type in ('fees_deducted', 'arrears_moved') and l.amount_cents < 0)
+  or not exists (select 1 from owner_statement_vehicles sv join owner_statements s on s.id = sv.owner_statement_id where s.owner_id = test.id('owner:r23_owner') and sv.net_earnings_cents > 0));
+select test.ok('the first and last month decision offers Deduct from payouts', (select pg_get_constraintdef(oid) like '%deduct%' from pg_constraint where conname = 'vehicle_onboardings_first_last_choice_check'));
+
+-- ================================================================ 13. the Tracker Fee from the installation (0239)
+select test.mk_vehicle('r23_notrk', 'r23_owner', p_enrolled => date '2026-09-01');
+update vehicles set tracker_installed_on = null, tracker_install_pending = false where id = test.id('vehicle:r23_notrk');
+select app.generate_owner_invoice(test.id('vehicle:r23_notrk'), date '2026-10-01', test.id('r23_admin'));
+select test.eq('no tracker installed: no Tracker Fee on the monthly invoice',
+  (select coalesce(sum(l.amount_cents), 0) from owner_invoice_lines l join owner_invoices i on i.id = l.owner_invoice_id
+    where i.vehicle_id = test.id('vehicle:r23_notrk') and i.period_month = date '2026-10-01' and l.kind = 'tracker_fee'), 0::numeric);
+update vehicles set tracker_installed_on = date '2026-11-16' where id = test.id('vehicle:r23_notrk');
+select app.generate_owner_invoice(test.id('vehicle:r23_notrk'), date '2026-11-01', test.id('r23_admin'));
+select test.ok('installed on the 16th: the first month prorated from the install date',
+  (select sum(l.amount_cents) between 1 and 2499 from owner_invoice_lines l join owner_invoices i on i.id = l.owner_invoice_id
+    where i.vehicle_id = test.id('vehicle:r23_notrk') and i.period_month = date '2026-11-01' and l.kind = 'tracker_fee'));
+select test.ok('the audit lists what was charged without an installation', (app.tracker_fee_audit(test.id('r23_admin')) ? 'charged_cents'));
+
+-- ================================================================ 14. the Safety Standards Certificate, a car moved to another owner (0237)
+select app.vehicle_document_register(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car2'), 'kind', 'safety_certificate', 'path', 'vehicles/r23/documents/ssc.pdf',
+  'mime', 'application/pdf', 'number', 'r23ssc01', 'issued_on', (app.local_date(now()) - 340)::text, 'expires_on', (app.local_date(now()) + 20)::text));
+select test.eq('the certificate''s number and dates are on the car, with its document', (select ssc_number || '/' || (ssc_expires_on - ssc_issued_on) from vehicles where id = test.id('vehicle:r23_car2')), 'R23SSC01/360');
+select test.ok('a document, not a service record', exists (select 1 from documents where vehicle_id = test.id('vehicle:r23_car2') and kind = 'safety_certificate'));
+select app.job_expiry_watch(now());
+select test.ok('20 days before it expires: a fleet task', exists (select 1 from tasks where vehicle_id = test.id('vehicle:r23_car2') and task_type = 'ssc_renewal' and queue = 'fleet' and status = 'open'));
+select test.throws('the expiry after the issue date', $$ select app.vehicle_document_register(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car2'), 'kind', 'safety_certificate',
+  'path', 'vehicles/r23/documents/ssc2.pdf', 'mime', 'application/pdf', 'issued_on', '2026-10-01', 'expires_on', '2026-09-01')) $$, 'after the issue date');
+
+select test.mk_owner('r23_owner2');
+select test.mk_vehicle('r23_moved', 'r23_owner');
+update vehicle_schedules set signed_at = null where vehicle_id = test.id('vehicle:r23_moved');
+select app.owner_invoice_draft_save(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_moved'), 'title', 'First and last month',
+  'lines', '[{"description": "First and last month", "quantity": 1, "unit_amount_cents": 60000, "hst": true}]'::jsonb));
+select test.throws('only Admins move a car', $$ select app.vehicle_move_owner(test.id('r23_cs'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_moved'), 'owner_id', test.id('owner:r23_owner2'))) $$, 'Admin');
+select test.throws('a car with a signed schedule stays with its owner', $$ select app.vehicle_move_owner(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car2'), 'owner_id', test.id('owner:r23_owner2'))) $$, 'signed');
+create temp table r23m as select app.vehicle_move_owner(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_moved'), 'owner_id', test.id('owner:r23_owner2'))) j;
+select test.eq('moved: the new owner, the unsigned schedule withdrawn and kept, the draft invoice deleted',
+  (select (j ->> 'schedules_withdrawn') || '/' || (j ->> 'draft_invoices_deleted') from r23m)
+  || '/' || (select (owner_id = test.id('owner:r23_owner2'))::text from vehicles where id = test.id('vehicle:r23_moved'))
+  || '/' || (select count(*) from vehicle_schedules where vehicle_id = test.id('vehicle:r23_moved') and withdrawn_at is not null)
+  || '/' || (select count(*) from owner_invoices where vehicle_id = test.id('vehicle:r23_moved')), '1/1/true/1/0');
+select test.ok('no notice to either owner', not exists (select 1 from notification_outbox e where e.vehicle_id = test.id('vehicle:r23_moved')));
+select app.vehicle_move_owner(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_moved'), 'to', 'company'));
+select test.eq('an unknown owner: the car is CarmaCars'' own', (select supply_type || '/' || (owner_id = app.company_owner_id())::text from vehicles where id = test.id('vehicle:r23_moved')), 'company/true');
+select test.throws('the first car (signed, its invoice issued) stays with its owner', $$ select app.vehicle_move_owner(test.id('r23_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:r23_car'), 'owner_id', test.id('owner:r23_owner2'))) $$, 'signed');

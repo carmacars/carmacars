@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
 import { page } from '@/server/admin/api';
+import { Act } from '@/features/admin/Act';
 import { door } from '@/server/door';
 import { Badge, Card, Kv, PageHead, Table, d, t } from '@/features/admin/ui';
 import { InvoiceEditor, type DraftLine } from '@/features/owner-billing/InvoiceEditor';
@@ -85,6 +86,15 @@ export default async function AdminInvoice({ params, searchParams }: { params: P
             <Kv rows={[['Owner', <Link key="o" prefetch={false} className="link" href={`/admin/owners/${i.owner_id}?tab=invoices`}>{i.owner_name}</Link>], ['Email', i.owner_email], ['Car', i.vehicle_name],
               ['Application', i.application_number], ['Issued', i.issued_at ? t(i.issued_at) : 'Not yet'], ['Due', i.due_on ? d(i.due_on) : ''], ['Replaces', i.replaces], ['Replaced by', i.replaced_by], ['Credit for', i.credit_for],
               ['Credit notes', i.credit_notes.map((c) => `${c.invoice_number} (${money(c.total_cents, { cents: true })})`).join(', ')]]} />
+          </Card>
+          {/* R23 (0238): how it is paid: bank debit on the 15th, or deducted from the owner's payouts until paid */}
+          <Card title="How it's paid" testId="invoice-collect-by">
+            <p className="small" data-testid="invoice-collect-by-now">{(i as unknown as Record<string, unknown>).collect_by === 'payout'
+              ? `Deducted from the owner's monthly payouts until paid (never debited). Deducted so far: ${money(Number((i as unknown as Record<string, unknown>).deducted_cents ?? 0), { cents: true })}; left: ${money(i.balance_cents, { cents: true })}.`
+              : 'Bank debit on the 15th.'}</p>
+            {!['paid', 'deducted', 'void'].includes(i.status) && i.kind !== 'credit_note' && <Act action="owner_invoice_collect_by" payload={{ id: i.id }} label="Change how it's paid" variant="quiet" refresh={paths} testId="invoice-collect-by-change"
+              done="Saved." submitLabel="Save" fields={[{ name: 'collect_by', label: 'How it is paid', type: 'select', required: true, value: String((i as unknown as Record<string, unknown>).collect_by ?? 'bank_debit'),
+                options: [['bank_debit', 'Bank debit on the 15th'], ['payout', 'Deduct from payouts']] }]} />}
           </Card>
           <Card title="Actions"><InvoiceActions id={i.id} number={i.invoice_number} can={i.can} paths={paths} /></Card>
           <Card title="Emails" testId="invoice-emails">

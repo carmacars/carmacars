@@ -32,7 +32,7 @@ export default async function VaAddRental({ searchParams }: { searchParams: Prom
       {home.missing ? <p className="alert alert--error" role="status" data-testid="rental-needs-address"><span>Add your home address at the top of the page before you add a rental.</span></p>
         : <div className="stack" style={{ maxWidth: '60rem' }}>{uuid && !open && <p className="alert alert--error" role="status"><span>That unfinished rental was already added or discarded.</span></p>}
           <UnfinishedRentals rows={drafts} base="/staff" current={open?.id} />
-          <ManualRentalForm key={open?.id ?? 'new'} cars={cars} base="/staff" isAdmin={false} owner={owner} draft={open} /></div>}
+          <ManualRentalForm key={open?.id ?? 'new'} cars={cars} base="/staff" adjusters={await door<Array<{ id: string; insurer_id: string; name: string | null; email: string | null; phone: string | null }>>(user.id, 'va_read', 'insurer_adjusters', {}, aal).catch(() => [])} isAdmin={false} owner={owner} draft={open} /></div>}
     </>
   );
 }

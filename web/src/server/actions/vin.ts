@@ -61,3 +61,12 @@ export async function vinModels(make: string, year: number): Promise<R<string[]>
   if (!make || !(year >= 1980 && year <= 2100)) return { ok: true, data: [] };
   return { ok: true, data: await modelsFor(make.slice(0, 40), year) };
 }
+
+/** R23 (0233): the class list for the class picker (Settings > Vehicle classes, the shown ones in their order). */
+export async function vinClassOptions(): Promise<R<Array<{ code: string; label: string }>>> {
+  try {
+    await staff();
+    const { getClasses } = await import('@/lib/site');
+    return { ok: true, data: (await getClasses()).map((c) => ({ code: c.code, label: c.label })) };
+  } catch (e) { return fail(e); }
+}

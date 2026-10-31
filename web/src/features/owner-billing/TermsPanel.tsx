@@ -21,7 +21,8 @@ export interface CarTerms { vehicle_id: string; name: string; mode: string; bill
 export interface FirstLast { choice: FirstLastAction | null; amount_cents: number | null; at: string | null; by: string | null; default_cents: number | null; needed: boolean;
   invoice: { invoice_number: string; status: string; total_cents: number } | null }
 
-const CHOICES: Array<[FirstLastAction, string]> = [['send', 'Send invoice now'], ['draft', 'Draft only'], ['paid', 'Already paid'], ['none', 'No invoice']];
+// R23 (0238): Deduct from payouts: issued quietly, taken from the owner's monthly payouts until paid, never debited
+const CHOICES: Array<[FirstLastAction, string]> = [['send', 'Send invoice now (bank debit on the 15th)'], ['deduct', 'Deduct from payouts'], ['draft', 'Draft only'], ['paid', 'Already paid'], ['none', 'No invoice']];
 
 // The first and last month invoice of one car (0077): never made by itself. The Admin's choice, the amount (default
 // 2 x the Insurance Fee) and what happens: sent now, kept as a draft, recorded as paid, or no invoice at all.
