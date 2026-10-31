@@ -3,7 +3,8 @@ select test.suite('99 non-refundable a week ahead');
 select test.mk_owner('nrw_owner');
 select test.mk_vehicle('nrw_car', 'nrw_owner');
 select test.mk_renter('nrw_rita');
-select test.mk_booking('NRW-1', 'nrw_car', 'nrw_rita', to_char(now() + interval '3 days', 'YYYY-MM-DD HH24:MI'), to_char(now() + interval '5 days', 'YYYY-MM-DD HH24:MI'), 'requested', 20000);
+select test.mk_booking('NRW-1', 'nrw_car', 'nrw_rita', to_char(now() + interval '3 days', 'YYYY-MM-DD HH24:MI'), to_char(now() + interval '5 days', 'YYYY-MM-DD HH24:MI'), 'requested', 20000,
+  p_booked => to_char(now() at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'));
 select test.mk_booking('NRW-2', 'nrw_car', 'nrw_rita', to_char(now() + interval '10 days', 'YYYY-MM-DD HH24:MI'), to_char(now() + interval '12 days', 'YYYY-MM-DD HH24:MI'), 'requested', 20000);
 select test.eq('the setting starts at 7 days', (app.settings()).non_refundable_min_days, 7);
 select test.throws('pickup in 3 days: non-refundable refused with the reason',
