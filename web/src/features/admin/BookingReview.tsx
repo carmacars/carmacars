@@ -13,6 +13,7 @@ import { SourcedChoice, type Choice } from '@/features/sales/SourcedChoice';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { addonsPayload, type AddonChoice, type AddonOption, type BookingAddon } from '@/features/addons/model';
 import { TaxModeToggle, useTaxMode } from '@/features/sales/TaxModeToggle';
+import { hasMobile, offerChannels } from '@/features/offers/model';
 import { beforeTax, convertBoxes, solveRental, toBeforeTax, totalDifference, withTax, type TaxMode } from '@/features/sales/taxIncluded';
 import { offersDo } from '@/server/actions/offers';
 import { DEPOSIT_PAY, RENTAL_PAY, describeRevision } from '@/features/offers/model';
@@ -45,6 +46,7 @@ export interface B {
   sales_choice?: 'sourced' | 'for_carmacars' | null; sales_claim_by?: string | null; rate_sheet_rental_cents?: number | null; custom_price_reason?: string | null; price_flags?: string[];
   /** 0112: the price typed is plus tax or tax included (then the amount typed) */
   price_tax?: 'plus' | 'included' | null; price_with_tax_cents?: number | null;
+  /** the renter's mobile (texts by default, 2026-11-01) */ renter?: { mobile: string | null } | null;
   /** 0129: how the rental and the deposit are paid */
   rental_pay_method?: string; deposit_pay_method?: string;
   /** the booking's HST rate (the settings' when it was priced) */
@@ -119,7 +121,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     ...Object.fromEntries(feeLines.map((l) => [`fee:${l.charge_type}`, dollars(l.amount_cents)])), fee_reason: '',
     ...Object.fromEntries(INSURER_FEES.map((x) => [`ifee:${x.code}`, typedFrom(b.insurer_fees)[x.code] ?? ''])),
     message: '', expires_hours: String(offerHours), note: b.notes ?? '',
-    rental_pay: b.rental_pay_method ?? 'card', deposit_pay: b.deposit_pay_method ?? 'card', notify: true, by_email: true, by_text: false
+    rental_pay: b.rental_pay_method ?? 'card', deposit_pay: b.deposit_pay_method ?? 'card', notify: true, by_email: !hasMobile(b.renter?.mobile), by_text: hasMobile(b.renter?.mobile)
   }) as Record<string, string | boolean>, [b, offerHours]); // eslint-disable-line react-hooks/exhaustive-deps
   const [v, setV] = useState(() => (va && Number(start.expires_hours) > 48 ? { ...start, expires_hours: '48' } : start));
   const [preview, setPreview] = useState<{ booking: B; available: boolean } | null>(null);
@@ -300,7 +302,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     setProblem(null);
     if (!dirty && !payChanged && !String(v.message).trim()) { setProblem('Nothing changed yet: change the offer first.'); return; }
     const r = await offersDo<{ version: number | null; before: Record<string, unknown>; after: Record<string, unknown>; text?: { ok: boolean; reason?: string } | null }>('offer_revise', {
-      ...payload, ...pays(), internal_note: v.note, message: v.message, expires_at: expiresAt(), notify, channels: { email: Boolean(v.by_email), text: Boolean(v.by_text) }, expected_version: shownVersion(b) },
+      ...payload, ...pays(), internal_note: v.note, message: v.message, expires_at: expiresAt(), notify, channels: offerChannels({ by_email: Boolean(v.by_email), by_text: Boolean(v.by_text), mobile: b.renter?.mobile ?? '' }), expected_version: shownVersion(b) },
       [`/admin/bookings/${b.booking_number}`, `/staff/bookings/${b.booking_number}`]);
     if (!r.ok) { setProblem(r.message); return; }
     setRevised(describeRevision(r.data.before as never, r.data.after as never, (c) => money(c, { cents: true }), when));
@@ -420,7 +422,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
                 {[...new Set([6, 12, 24, 48, 72, offerHours])].filter((h) => !va || h <= 48).sort((a, z) => a - z).map((h) => <option key={h} value={h}>{h} hours</option>)}</select></div>
             <div className="field ad-field"><span className="label">Send the update by</span>
               <label className="check" htmlFor="rv-by-email"><input id="rv-by-email" type="checkbox" checked={Boolean(v.by_email)} onChange={(e) => set('by_email')(e.target.checked)} /> <span>Email</span></label>
-              <label className="check" htmlFor="rv-by-text"><input id="rv-by-text" type="checkbox" checked={Boolean(v.by_text)} onChange={(e) => set('by_text')(e.target.checked)} /> <span>Text</span></label></div>
+              <label className="check" htmlFor="rv-by-text"><input id="rv-by-text" type="checkbox" checked={Boolean(v.by_text)} onChange={(e) => set('by_text')(e.target.checked)} /> <span>Text</span></label>
+              {Boolean(v.by_text) && !hasMobile(b.renter?.mobile) && <p className="small ad-flag" role="note" data-testid="rv-no-mobile">No mobile number for this renter: the update goes by email instead.</p>}</div>
             <div className="row">
               <button className="btn btn--primary" type="button" disabled={pending} onClick={() => revise(Boolean(v.by_email) || Boolean(v.by_text))} data-testid="review-revise-send">{pending ? 'Saving' : 'Save and send the update'}</button>
               <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => revise(false)} data-testid="review-revise-quiet">Save without telling the renter</button>

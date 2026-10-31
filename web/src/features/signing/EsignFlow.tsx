@@ -88,6 +88,7 @@ export function EsignFlow({ ctx, terms, onReady, docsLabel = 'the agreement abov
               {v.channels.map((c) => <label key={c.channel} className="check"><input type="radio" name="es-channel" checked={channel === c.channel} onChange={() => setChannel(c.channel)} data-testid={`esign-channel-${c.channel}`} />
                 <span>{c.channel === 'sms' ? 'Text' : 'Email'} to {c.to}{c.channel === 'email' && v.email_held ? ' (our emails are delayed right now)' : ''}</span></label>)}
             </fieldset>
+            {!v.channels.some((c) => c.channel === 'sms') && <p className="small muted" data-testid="esign-no-mobile">No mobile number on file: the code goes by email.</p>}
             <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'end' }}>
               <button className="btn btn--ghost" type="button" disabled={busy} onClick={() => run(() => esignSendCode(ctx, v.id, channel))} data-testid="esign-send">{v.code_sent_to ? 'Send a new code' : 'Send the code'}</button>
               {v.code_sent_to && <>

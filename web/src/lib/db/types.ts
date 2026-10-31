@@ -12020,6 +12020,10 @@ export type Database = {
           completed_at: string | null;
           last_error: string | null;
           reader_id: string | null;
+          auto: boolean;
+          texted_at: string | null;
+          text_id: string | null;
+          opened_at: string | null;
         };
         Insert: {
           id?: string;
@@ -12040,6 +12044,10 @@ export type Database = {
           completed_at?: string | null;
           last_error?: string | null;
           reader_id?: string | null;
+          auto?: boolean;
+          texted_at?: string | null;
+          text_id?: string | null;
+          opened_at?: string | null;
         };
         Update: {
           id?: string;
@@ -12060,6 +12068,10 @@ export type Database = {
           completed_at?: string | null;
           last_error?: string | null;
           reader_id?: string | null;
+          auto?: boolean;
+          texted_at?: string | null;
+          text_id?: string | null;
+          opened_at?: string | null;
         };
         Relationships: [];
       };
@@ -17135,6 +17147,8 @@ export type Database = {
           google_review_link: string | null;
           email_limit_texts: boolean;
           email_limit_text_codes: string[];
+          deposit_link_auto: boolean;
+          deposit_link_hours: number;
         };
         Insert: {
           id?: string;
@@ -17203,6 +17217,8 @@ export type Database = {
           google_review_link?: string | null;
           email_limit_texts?: boolean;
           email_limit_text_codes?: string[];
+          deposit_link_auto?: boolean;
+          deposit_link_hours?: number;
         };
         Update: {
           id?: string;
@@ -17271,6 +17287,8 @@ export type Database = {
           google_review_link?: string | null;
           email_limit_texts?: boolean;
           email_limit_text_codes?: string[];
+          deposit_link_auto?: boolean;
+          deposit_link_hours?: number;
         };
         Relationships: [];
       };
@@ -23623,6 +23641,9 @@ export type Database = {
       server_deposit_capture_begin: { Args: { p_deposit: string }; Returns: Json };
       server_deposit_guard_sweep: { Args: never; Returns: Json };
       server_deposit_hold_lapsed: { Args: { p_intent: string }; Returns: Json };
+      server_deposit_link_payreq: { Args: { p_booking: string; p_token_sha256: string }; Returns: Json };
+      server_deposit_link_send: { Args: { p_id: string; p_link: string }; Returns: Json };
+      server_deposit_links_due: { Args: never; Returns: Json };
       server_dispute_evidence: { Args: { p_pack: string }; Returns: Json };
       server_dispute_pack: { Args: { p_pack: string }; Returns: Json };
       server_dispute_pack_built: { Args: { p_pack: string; p: Json }; Returns: undefined };
@@ -23730,6 +23751,7 @@ export type Database = {
       server_payreq_attach: { Args: { p_id: string; p_intent: string }; Returns: undefined };
       server_payreq_card_check: { Args: { p_id: string; p_card: Json }; Returns: Json };
       server_payreq_facts: { Args: { p_token_sha256: string }; Returns: Json };
+      server_payreq_opened: { Args: { p_token_sha256: string }; Returns: undefined };
       server_payreq_reader: { Args: { p_id: string }; Returns: Json };
       server_payreq_reader_fail: { Args: { p_id: string; p_reason: string }; Returns: Json };
       server_payreq_settle: { Args: { p_id: string; p_intent: Json }; Returns: Json };

@@ -20,6 +20,10 @@ export interface Money {
   payments: Array<{ id: string; created_at: string; processed_at: string | null; purpose: string; kind: string; method: string; amount_cents: number; status: string; card_last4: string | null; card_brand: string | null;
     covers: string | null; reference: string | null; note: string | null; manual_id: string | null; voided: boolean; by: string | null }>;
   requests: Array<{ id: string; kind: string; covers: string; amount_cents: number; channel: string; status: string; created_at: string; expires_at: string; last_error: string | null }>;
+  /** 0213: the latest deposit hold link sent to the renter (texted by the job before pickup, or by staff) */
+  /** 2026-11-01: Collect a card sends by text first when the renter has a mobile number */
+  renter_has_mobile?: boolean;
+  deposit_link?: { id: string; status: string; texted_at: string | null; opened_at: string | null; error: string | null; auto: boolean; channel: string } | null;
   e_transfer_email: string | null; moto: boolean;
   may: { record: boolean; collect: boolean; charge: boolean; hold: boolean; confirm: boolean; return_deposit: boolean };
   can_confirm: boolean;
@@ -44,7 +48,7 @@ export function BookingMoney({ m }: { m: Money }) {
   const [pending, run] = useTransition();
   const [rec, setRec] = useState({ covers: (m.parts.some((p) => p.covers !== 'later' && p.open_cents > 0) ? 'both' : m.parts.find((p) => p.open_cents > 0)?.covers ?? (m.deposit ? 'later' : 'deposit')) as string, method: m.rental_pay_method !== 'card' ? m.rental_pay_method : 'e_transfer', amount: '', reference: '', received_on: today(), note: '' });
   // a card payment covers everything open by default (sim item 7: a link for the rental alone left the fees open)
-  const [col, setCol] = useState({ kind: 'charge' as 'charge' | 'hold' | 'setup', covers: (m.parts.filter((p) => p.covers !== 'later' && p.open_cents > 0).length ? 'balance' : 'later') as string, amount: '', reason: '', channel: 'device' as 'device' | 'text' | 'email' });
+  const [col, setCol] = useState({ kind: 'charge' as 'charge' | 'hold' | 'setup', covers: (m.parts.filter((p) => p.covers !== 'later' && p.open_cents > 0).length ? 'balance' : 'later') as string, amount: '', reason: '', channel: (m.renter_has_mobile ? 'text' : 'device') as 'device' | 'text' | 'email' });
   const [chg, setChg] = useState({ amount: '', reason: '', covers: 'later' as 'later' | 'deposit' });
   const [cap, setCap] = useState({ amount: '', reason: '' });
   const [rel, setRel] = useState('');
@@ -148,6 +152,7 @@ export function BookingMoney({ m }: { m: Money }) {
                 <label key={v} className="check" htmlFor={`bm-ch-${v}`}><input type="radio" id={`bm-ch-${v}`} name="bm-ch" checked={col.channel === v} onChange={() => setCol({ ...col, channel: v })} data-testid={`bm-ch-${v}`} /> <span>{x}</span></label>))}
               <p className="hint">{m.moto ? 'Typing a card the renter reads out (phone order) is on for this account: use On this device.' : 'Staff never type a card number: the renter types it in Stripe\'s form. (Phone orders need Stripe MOTO: Program settings.)'}</p></div>
           </div>
+          {col.channel === 'text' && m.renter_has_mobile === false && <p className="small ad-flag" role="note" data-testid="bm-no-mobile">No mobile number for this renter: send the link by email or open it on this device.</p>}
           <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="bm-collect-go">{pending ? 'Working' : col.channel === 'device' ? 'Open the card form' : 'Send the link'}</button>
         </form>)}
 
@@ -208,6 +213,9 @@ export function BookingMoney({ m }: { m: Money }) {
         { key: 'status', label: 'Status', render: (r) => (r.voided ? 'Voided' : words(STATUS, r.status)) },
         { key: 'reference', label: 'Reference', render: (r) => String(r.reference ?? '') },
         { key: 'receipt', label: 'Receipt', render: (r) => (r.method !== 'card' && r.status === 'succeeded' ? <button className="btn btn--quiet btn--sm" type="button" onClick={() => print(r as unknown as Money['payments'][number])}>Print</button> : null) }]} />
+      {m.deposit_link && (m.deposit_link.texted_at || m.deposit_link.error) && (
+        <p className="small" data-testid="bm-deposit-link">{m.deposit_link.texted_at ? `Deposit link texted ${when(m.deposit_link.texted_at)}` : `Deposit link not sent: ${m.deposit_link.error}`}
+          {m.deposit_link.opened_at ? `, opened ${when(m.deposit_link.opened_at)}` : m.deposit_link.texted_at ? ', not opened yet' : ''}{m.deposit_link.status === 'paid' ? ': the hold is placed.' : '.'}</p>)}
       {m.requests.filter((q) => q.status === 'open').map((q) => (
         <p key={q.id} className="small" data-testid="bm-request">Card {q.kind === 'hold' ? 'hold' : q.kind === 'setup' ? 'save' : 'payment'} of {fmt(q.amount_cents)} waiting ({q.channel === 'device' ? 'on a device' : `sent by ${q.channel}`}, until {when(q.expires_at)}).{' '}
           <button className="btn btn--quiet btn--sm" type="button" disabled={pending} onClick={() => run(async () => { const r = await offersDo('payreq_cancel', { id: q.id }); done(r.ok, r.ok ? 'Cancelled.' : r.message); })}>Cancel</button></p>))}

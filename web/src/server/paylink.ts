@@ -15,6 +15,12 @@ export async function payLinkFacts(token: string): Promise<PayLinkFacts | null> 
   return (await rpc('server_payreq_facts', { p_token_sha256: await payTokenHash(token) }, SR)) as unknown as PayLinkFacts | null;
 }
 
+/** 0213: the first opening of the link (the Money tab and the ready check say the renter opened it). */
+export async function markPayLinkOpened(token: string): Promise<void> {
+  if (!isPayToken(token)) return;
+  await rpc('server_payreq_opened', { p_token_sha256: await payTokenHash(token) }, SR).catch(() => undefined);
+}
+
 export async function settlePayreq(id: string, intentId: string, kind: PayLinkFacts['kind']): Promise<{ ok: boolean; reason?: string }> {
   const p = await payments();
   const i: Intent = kind === 'setup' ? await p.retrieveCardSetup(intentId) : await p.retrieveIntent(intentId);

@@ -20,7 +20,9 @@ export interface FieldJob {
     /** False while a rental staff added by hand waits for the renter's signature (0051): the car is not released. */
     signed?: boolean;
     /** 0071: the coverage in words */
-    coverage_label?: string | null };
+    coverage_label?: string | null;
+    /** 0213: the deposit hold link sent to the renter: texted, opened */
+    deposit_link?: { status: string; texted_at: string | null; opened_at: string | null; error: string | null } | null };
   tracker: { installed: boolean; reported_at: string | null; reporting: boolean; override?: TrackerOverride | null };
   /** What the check-out screens need to resolve the ready check on the spot (0151). */
   resolve?: Resolve;

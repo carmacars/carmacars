@@ -28,8 +28,10 @@ export function BalanceActions({ booking, open, rental, fees, card, reach, why }
     <div className="alert alert--warn stack" role="status" data-testid="bal-open">
       <p><b>Open now: {money(open, { cents: true })}</b>{rental !== undefined && fees !== undefined ? ` (rental ${money(rental, { cents: true })}, fees ${money(fees, { cents: true })})` : ''}. Tell the renter and take the payment:</p>
       <div className="row">
-        {reach?.email !== false && <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={() => send('email')} data-testid="bal-email">Email a pay link</button>}
-        {reach?.mobile && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => send('text')} data-testid="bal-text">Text a pay link</button>}
+        {/* 2026-11-01: by text first; without a mobile number, by email */}
+        {reach?.mobile && <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={() => send('text')} data-testid="bal-text">Text a pay link</button>}
+        {reach?.email !== false && <button className={`btn ${reach?.mobile ? 'btn--ghost' : 'btn--primary'} btn--sm`} type="button" disabled={pending} onClick={() => send('email')} data-testid="bal-email">Email a pay link</button>}
+        {reach && !reach.mobile && <span className="small muted" data-testid="bal-no-mobile">No mobile number on file: the link goes by email.</span>}
         {card && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={charge} data-testid="bal-charge">Charge {card.brand} {card.last4} (renter agreed)</button>}
         <a className="btn btn--quiet btn--sm" href={`?tab=money#bm-h`}>Record cash or e-Transfer</a>
       </div>

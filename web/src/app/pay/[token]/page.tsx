@@ -2,7 +2,7 @@ import '@/styles/portal.css';
 import { pageMeta } from '@/features/seo/meta';
 import { when } from '@/features/agreement/model';
 import { money } from '@/lib/format';
-import { payLinkFacts } from '@/server/paylink';
+import { markPayLinkOpened, payLinkFacts } from '@/server/paylink';
 import { PayLinkForm } from '@/features/money/PayLinkForm';
 
 export const dynamic = 'force-dynamic';
@@ -18,6 +18,7 @@ export default async function PayLink({ params, searchParams }: { params: Promis
   const back = (await searchParams).back;
   const backTo = back && /^\/(field|admin|va|account)\/[\w/-]*$/.test(back) ? back : null;
   const f = await payLinkFacts(token);
+  if (f?.status === 'open') await markPayLinkOpened(token);
   if (!f || f.status !== 'open') return (
     <div className="pt"><div className="wrap pt__body stack" style={{ maxWidth: '36rem' }} data-testid="paylink-closed">
       <h1 className="d2">{f?.status === 'paid' ? 'Paid, thank you' : 'This link is no longer open'}</h1>

@@ -95,6 +95,13 @@ export interface OfferTax { after: boolean; bps: number | null; hstFor: (key: st
 /** The payload of app.staff_offer_create (and of its preview). Only what the person may change is sent: an assistant
  *  never sends the deposit or a discount, and fees only when Program settings let staff change fees (the database refuses
  *  them otherwise). */
+/** A mobile number that takes a text (10 digits or more). */
+export const hasMobile = (m: string | null | undefined) => (m ?? '').replace(/\D/g, '').length >= 10;
+/** How the link goes: by text by default (2026-11-01); without a mobile number the text becomes an email. */
+export function offerChannels(f: Pick<OfferForm, 'by_email' | 'by_text' | 'mobile'>): { email: boolean; text: boolean } {
+  const text = f.by_text && hasMobile(f.mobile);
+  return { email: f.by_email || (f.by_text && !text), text };
+}
 export function offerPayload(f: OfferForm, role: Role, days: number, addons: Array<{ code: string; quantity: number; hours?: number | null }> = [], editFees: boolean = role === 'admin', tax?: OfferTax): Record<string, unknown> {
   const typed = typedRental(f, days);
   const after = tax ? tax.after : f.price_tax === 'included';
@@ -114,7 +121,7 @@ export function offerPayload(f: OfferForm, role: Role, days: number, addons: Arr
     rental_pay_method: f.rental_pay, deposit_pay_method: f.deposit_pay,
     message: f.message.trim() || null, note: f.note.trim() || null,
     expires_at: new Date(Date.now() + Math.max(1, Number(f.hours) || 24) * 3_600_000).toISOString(),
-    notify: f.notify && (f.by_email || f.by_text), channels: { email: f.by_email, text: f.by_text }
+    notify: f.notify && (f.by_email || f.by_text), channels: offerChannels(f)
   };
   if (f.choice) p.sales_choice = f.choice;
   if (rental !== null) { p.rental_charge_cents = rental; p.price_tax = fromTotal !== null || after ? 'included' : 'plus'; p.price_reason = f.price_reason.trim() || (fromTotal !== null ? 'Total agreed with the renter' : ''); }
