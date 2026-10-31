@@ -27,7 +27,7 @@ select test.ok('fleet number: given at once, in the real cars'' range (Program s
       >= (select fleet_number_first from program_settings order by effective_from desc limit 1));
 select test.eq('fleet number: marked as set automatically', (select auto_defaults ? 'fleet_number' from vehicles where id = test.s58v('plain')), true);
 select test.eq('rate card: daily from the suggestion, weekend, weekly and monthly by the rate form''s rule',
-  (select format('%s %s %s %s', (rc).weekend_rate_cents = (rc).daily_rate_cents, (rc).weekly_rate_cents = 6 * (rc).daily_rate_cents,
+  (select format('%s %s %s %s', (rc).weekend_rate_cents = app.weekend_floor_cents((rc).daily_rate_cents), (rc).weekly_rate_cents = 6 * (rc).daily_rate_cents,
                  (rc).monthly_rate_cents = 22 * (rc).daily_rate_cents, (rc).daily_rate_cents = (app.listing_default_daily(test.s58v('plain')) ->> 'daily_cents')::bigint)
      from (select test.s58rc('plain') rc) x), 't t t t');
 select test.eq('rate card: kilometres, extra km, deposit by class, delivery and pickup at the class delivery default',

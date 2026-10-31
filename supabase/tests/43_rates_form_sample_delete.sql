@@ -123,7 +123,7 @@ insert into s43 select 'add_owner', app.vehicle_add(test.id('rf_admin'), jsonb_b
 select test.eq('A Add a car: company, partner and program owner cars each get their rate card in the same step',
   (select string_agg(format('%s %s %s/%s %skm %sc', x.k, (test.s43(x.k) ->> 'rates_set'), r.daily_rate_cents, r.weekend_rate_cents, r.km_allowance_per_day, r.overage_cents_per_km), ', ' order by x.k)
      from (values ('add_company'), ('add_owner'), ('add_partner')) x(k) join rate_cards r on r.vehicle_id = (test.s43(x.k) ->> 'vehicle_id')::uuid),
-  'add_company true 6500/7500 200km 35c, add_owner true 8000/8000 200km 35c, add_partner true 7000/7000 400km 30c');
+  'add_company true 6500/7500 200km 35c, add_owner true 8000/9200 200km 35c, add_partner true 7000/8100 400km 30c');
 select test.throws('A Add a car: a bad rate refuses before anything is added', $$select app.vehicle_add(test.id('rf_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1RFCXMPANY0000002',
   'year', 2024, 'make', 'Toyota', 'model', 'Camry', 'rates', jsonb_build_object('daily', 6500, 'weekend', 0)))$$, 'Check the rates. Weekend rate%');
 select test.ok('A Add a car: nothing was added by the refused call', not exists (select 1 from vehicles where vin = '1RFCXMPANY0000002'));

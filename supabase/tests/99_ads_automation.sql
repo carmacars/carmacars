@@ -21,7 +21,7 @@ create or replace function test.s99post(p_k text) returns ad_postings language s
 create or replace function test.s99task(p_k text) returns tasks language sql stable as $$ select * from tasks where id = (test.s99post(p_k)).update_task_id $$;
 -- a rate change as the Rates screen makes it (the old card closed and the new one opened in one statement)
 create or replace function test.s99rates(p_car text, p_daily bigint, p_weekly bigint default 56000) returns void language sql as $$
-  select app.set_rate_card(test.id('vehicle:' || p_car), p_daily, 12000, p_weekly, 180000, now(), test.id('ads_admin'),
+  select app.set_rate_card(test.id('vehicle:' || p_car), p_daily, 15000, p_weekly, 180000, now(), test.id('ads_admin'),
     jsonb_build_object('deposit_cents', 100000, 'delivery_fee_cents', 7500, 'pickup_fee_cents', 7500, 'km_allowance_per_day', 200, 'overage_cents_per_km', 35)) $$;
 
 -- ================================================================ 1. words

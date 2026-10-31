@@ -146,9 +146,9 @@ select test.eq('the renter''s booking page reads the same line', (select count(*
 select app.withdraw_offer((test.s75b('q')).id, test.id('pt_admin'), 'dates change');
 select app.door(test.id('pt_cs'), 'aal2', 'va_do', 'booking_save', jsonb_build_object('booking', (test.s75b('q')).id,
   'changes', jsonb_build_object('return_at', date_trunc('hour', now()) + interval '45 days')));
-select test.eq('new dates: the rate sheet again (five days $500.00 plus tax), no choice, no words',
+select test.eq('new dates: the rate sheet again (five days $530.00 plus tax, the weekend day above the daily rate), no choice, no words',
   (select coalesce(price_tax, 'none') || '/' || coalesce(price_with_tax_cents::text, 'none') || '/' || (custom_price_at is null) || '/' || total_due_at_booking_cents from test.s75b('q')) || ' ' || test.s75l('q'),
-  'none/none/true/56500 50000/6500/Rental charge (daily, weekend, weekly or monthly rate)');
+  'none/none/true/59890 53000/6890/Rental charge (daily, weekend, weekly or monthly rate)');
 
 -- ================================================================ 4. Admin
 select test.eq('Admin''s booking page: the choice beside the price typed by hand',

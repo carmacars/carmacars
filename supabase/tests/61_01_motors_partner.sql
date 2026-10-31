@@ -48,7 +48,7 @@ select test.eq('drivers 18 to 20 follow Program settings like every car (0087)',
 -- ================================================================ 2. the renter's rates and the 3+ day tier
 select test.eq('rate card: 1-2 days, 3+ days, 7+ days (a week, 30 days) at the sheet rate plus 10%, to the dollar',
   (select format('%s %s %s %s %s', (rc).daily_rate_cents, (rc).weekend_rate_cents, (rc).multi_day_rate_cents, (rc).weekly_rate_cents, (rc).monthly_rate_cents)
-     from (select test.pm_rc('Mercedes C43 AMG Blue') rc) x), '27500 27500 24800 154000 660000');
+     from (select test.pm_rc('Mercedes C43 AMG Blue') rc) x), '27500 31700 24800 154000 660000');
 select test.eq('rounding: $175 becomes $193 (half a dollar up)', app.partner_renter_cents(17500, 1000), 19300::bigint);
 select test.eq('the engine: 3 to 6 days at the multi-day rate, capped at the week',
   (select string_agg(format('%s:%s:%s', d, r.rate_applied, r.rental_charge_cents), ' ' order by d)

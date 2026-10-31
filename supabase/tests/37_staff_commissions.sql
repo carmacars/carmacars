@@ -104,7 +104,7 @@ insert into s37 select 'q1', app.door(test.id('sc_fleet'), 'aal2', 'va_do', 'quo
   'pickup_at', date_trunc('hour', now()) + interval '20 days', 'return_at', date_trunc('hour', now()) + interval '24 days', 'full_name', 'Quinn Caller', 'email', 'sc.quinn@example.test',
   'mobile', '4165550111', 'date_of_birth', '1985-03-04', 'sales_choice', 'sourced', 'rental_charge_cents', 38000, 'price_reason', 'Four days for the price of a week minus one'));
 select test.eq('quote by Fleet: a request, sourced, the price typed with the rate sheet beside it',
-  (select status || '/' || sales_sourced || '/' || rental_charge_cents || '/' || rate_sheet_rental_cents from test.s37b('q1')), 'requested/true/38000/40000');
+  (select status || '/' || sales_sourced || '/' || rental_charge_cents || '/' || rate_sheet_rental_cents from test.s37b('q1')), 'requested/true/38000/43000');
 select test.throws('quote: the choice is required', format($$select app.door(%L, 'aal2', 'va_do', 'quote_create', jsonb_build_object('vehicle_id', test.s37v('car4'), 'source', 'phone',
   'pickup_at', date_trunc('hour', now()) + interval '30 days', 'return_at', date_trunc('hour', now()) + interval '32 days', 'full_name', 'Quinn Caller', 'email', 'sc.quinn@example.test',
   'mobile', '4165550111', 'date_of_birth', '1985-03-04'))$$, test.id('sc_fin')), 'I sourced this client');
