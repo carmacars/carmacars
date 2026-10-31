@@ -56,7 +56,7 @@ export function Tabs({ items, current, label: aria = 'Sections' }: { items: Arra
   return (
     <nav className="ad-tabs" aria-label={aria}>
       {items.map(([href, text, n]) => (
-        <Link prefetch={false} key={href} href={href} aria-current={href === current ? 'page' : undefined}>{text}{n ? <span className="pt__count">{n}</span> : null}</Link>
+        <Link prefetch={false} scroll={false} key={href} href={href} aria-current={href === current ? 'page' : undefined}>{text}{n ? <span className="pt__count">{n}</span> : null}</Link>
       ))}
     </nav>
   );
@@ -115,7 +115,7 @@ export function Filters({ base, name, value, options, sp }: { base: string; name
   };
   return (
     <nav className="ad-filters" aria-label={`Filter by ${name.replace(/_/g, ' ')}`}>
-      {options.map(([v, l]) => <Link prefetch={false} key={v || 'all'} href={href(v)} aria-current={value === v ? 'page' : undefined}>{l}</Link>)}
+      {options.map(([v, l]) => <Link prefetch={false} scroll={false} key={v || 'all'} href={href(v)} aria-current={value === v ? 'page' : undefined}>{l}</Link>)}
     </nav>
   );
 }

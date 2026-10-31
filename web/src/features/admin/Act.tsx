@@ -154,7 +154,8 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
         dlg.current?.close();
         // a dialog or a one-press button says what happened in a toast (the inline form shows its own line)
         if (!inline && !go && done) adminToast(done);
-        if (go) router.push(fill(go, r.data)); else router.refresh();
+        // staying on the same page (a tab, a section) keeps the scroll position; only a new page starts at the top
+        if (go) { const to = fill(go, r.data); router.push(to, { scroll: new URL(to, window.location.href).pathname !== window.location.pathname }); } else router.refresh();
       }
     });
   };
