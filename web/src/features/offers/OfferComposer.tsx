@@ -14,7 +14,7 @@ import { Info } from '@/features/forms/Info';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { lineHelp } from './help';
 import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/addons/model';
-import { COVERAGE, DEPOSIT_PAY, PLACES, RENTAL_LINE, RENTAL_PAY, daysBetween, lineKey, missing, offerPayload, periodShares, typedRental, type OfferForm, type PlaceKind, type Role } from './model';
+import { COVERAGE, DEPOSIT_PAY, PLACES, RENTAL_LINE, RENTAL_PAY, daysBetween, hasMobile, lineKey, missing, offerChannels, offerPayload, periodShares, typedRental, type OfferForm, type PlaceKind, type Role } from './model';
 import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults } from '@/features/supply/OwnerChoice';
 
 // Send an offer without a request (migration 0129): one screen for an Admin, customer service and sales. The customer
@@ -54,7 +54,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     pickup_kind: 'our_location', pickup_address: '', pickup_km: '', return_kind: 'our_location', return_address: '', return_km: '',
     price_mode: 'sheet', price_total: '', price_day: '', price_tax: 'plus', price_reason: '',
     deposit: '', discount: '', discount_reason: '', promo_code: '', km: '', coverage_option: '1', plan_price: '', fees: {}, fee_reason: '',
-    rental_pay: 'card', deposit_pay: 'card', choice: '', message: '', note: '', hours: '24', by_email: true, by_text: false, notify: true,
+    rental_pay: 'card', deposit_pay: 'card', choice: '', message: '', note: '', hours: '24', by_email: false, by_text: true, notify: true,
     ...(draft?.data.f ?? {})
   }));
   const set = <K extends keyof OfferForm>(k: K) => (v: OfferForm[K]) => setF((s) => ({ ...s, [k]: v }));
@@ -79,7 +79,8 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   useEffect(() => {
     if (restoredTax.current || !draft) return;
     restoredTax.current = true;
-    if (draft.data.tax_mode) setTaxMode(draft.data.tax_mode); else if (draft.data.f?.price_tax === 'included') setTaxMode('after');
+    // the boxes of the draft are in the draft's mode: the device's saved mode never reinterprets them
+    setTaxMode(draft.data.tax_mode ?? (draft.data.f?.price_tax === 'included' ? 'after' : 'before'));
   }, [draft, setTaxMode]);
   const [problem, setProblem] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -221,7 +222,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   if (sent) return (
     <section className="pt-card stack" aria-labelledby="oc-sent" data-testid="offer-sent">
       <h2 className="d3" id="oc-sent">Offer {sent.booking_number} sent</h2>
-      <p>{sent.notified ? `The renter has the link${f.by_email ? ' by email' : ''}${f.by_email && f.by_text ? ' and' : ''}${f.by_text ? ' by text' : ''}.` : 'Not sent to the renter: tell them yourself, or press Send again later from the booking.'}
+      <p>{sent.notified ? `The renter has the link${offerChannels(f).email ? ' by email' : ''}${offerChannels(f).email && offerChannels(f).text ? ' and' : ''}${offerChannels(f).text ? ' by text' : ''}.` : 'Not sent to the renter: tell them yourself, or press Send again later from the booking.'}
         {' '}Total {fmt(sent.total_cents)}, open until {when(sent.expires_at)}. The car is reserved once they approve, sign{f.rental_pay === 'card' ? ' and pay' : ' and you record the payment'}.</p>
       {sent.text && !sent.text.ok && <p className="alert alert--warn" role="status"><span>The text was not sent: {sent.text.reason}</span></p>}
       {sent.price_flags?.length ? <p className="small">The price you typed is flagged for an Admin to review.</p> : null}
@@ -277,7 +278,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
               <input className="input" id="oc-q" type="search" placeholder="Name, phone or email" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" data-testid="oc-q" aria-describedby="oc-q-h" />
               <p className="hint" id="oc-q-h">Type 3 or more characters. Not on file? Add them below.</p></div>
             {found.length > 0 && <ul className="stack" data-testid="oc-found">{found.map((r) => (
-              <li key={r.id}><button className="btn btn--quiet btn--sm" type="button" disabled={r.is_blocked} onClick={() => { setChosen(r); set('renter_id')(r.id); setFound([]); }}>{r.legal_name}</button>
+              <li key={r.id}><button className="btn btn--quiet btn--sm" type="button" disabled={r.is_blocked} onClick={() => { setChosen(r); setF((x) => ({ ...x, renter_id: r.id, mobile: r.mobile ?? '' })); setFound([]); }}>{r.legal_name}</button>
                 <span className="small"> {r.email} · {r.mobile} · {r.bookings} rental(s){r.is_blocked ? ' · blocked' : ''}</span></li>))}</ul>}
             <p><button className="btn btn--ghost btn--sm" type="button" data-testid="oc-add-customer" onClick={() => {
               setAdding(true); const t = q.trim();
@@ -289,7 +290,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
               {text('email', 'Email', { inputMode: 'email', type: 'email', hint: 'The offer link goes here' })}{text('date_of_birth', 'Date of birth', { type: 'date', hint: 'Decides the car and the young driver fee' })}
             </div>
             {dupe && <p className="alert alert--warn" role="status" data-testid="oc-dupe"><span>{dupe.legal_name} is already on file with this {f.email.includes('@') && dupe.email?.toLowerCase() === f.email.trim().toLowerCase() ? 'email' : 'phone'}.{' '}
-              <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setChosen(dupe); set('renter_id')(dupe.id); setAdding(false); }}>Use {dupe.legal_name}</button></span></p>}
+              <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setChosen(dupe); setF((x) => ({ ...x, renter_id: dupe.id, mobile: dupe.mobile ?? '' })); setAdding(false); }}>Use {dupe.legal_name}</button></span></p>}
             <p><button className="btn btn--quiet btn--sm" type="button" onClick={() => setAdding(false)}>Search instead</button></p>
           </>)}
         </fieldset>
@@ -392,6 +393,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
               <label className="check" htmlFor="oc-by-email"><input id="oc-by-email" type="checkbox" checked={f.by_email} onChange={(e) => set('by_email')(e.target.checked)} data-testid="oc-by-email" /> <span>Email</span></label>
               <label className="check" htmlFor="oc-by-text"><input id="oc-by-text" type="checkbox" checked={f.by_text} disabled={form ? !form.text_enabled : false} onChange={(e) => set('by_text')(e.target.checked)} data-testid="oc-by-text" /> <span>Text{form && !form.text_enabled ? ' (texts are off in Program settings)' : ''}</span></label></div>
           </div>
+          {f.by_text && !hasMobile(f.mobile) && <p className="small ad-flag" role="note" data-testid="oc-no-mobile">No mobile number for this renter: the link goes by email instead.</p>}
           <div className="field"><label className="label" htmlFor="oc-note">Internal note (staff only)</label>
             <textarea className="input ad-textarea" id="oc-note" value={f.note} onChange={(e) => set('note')(e.target.value)} /></div>
         </fieldset>

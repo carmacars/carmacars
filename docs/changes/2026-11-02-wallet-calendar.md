@@ -1,7 +1,7 @@
-# Add to calendar from the email, and Add to Apple Wallet (0213)
+# Add to calendar from the email, and Add to Apple Wallet (0215)
 
-Abbas's request (Release 22, item 2). Migration `supabase/migrations/0213_booking_calendar_wallet.sql`; the confirmation
-email `emails/src/emails/renter_booking_confirmed.mjs` (catalogue row by `supabase/seed/0213_gen_catalogue.mjs`). Code:
+Abbas's request (Release 22, item 2). Migration `supabase/migrations/0215_booking_calendar_wallet.sql`; the confirmation
+email `emails/src/emails/renter_booking_confirmed.mjs` (catalogue row by `supabase/seed/0215_gen_catalogue.mjs`). Code:
 `web/src/app/api/booking-ics/[token]/route.ts`, `web/src/features/portal/booking-ics.ts`, `web/src/features/wallet/pkpass.ts`,
 `web/src/server/wallet.ts`, `web/src/app/account/bookings/[number]/wallet/route.ts`, `web/src/app/admin/settings/page.tsx`.
 Tests: `supabase/tests/99_booking_calendar.sql`, `web/src/features/wallet/pkpass.test.ts`, `web/src/features/portal/booking-ics.test.ts`.

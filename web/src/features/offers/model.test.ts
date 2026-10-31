@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cents, daysBetween, describeRevision, feeOverrides, lineKey, missing, offerPayload, paidSoFar, paymentOf, periodShares, typedRental, needsReference, type OfferForm } from './model.ts';
+import { cents, daysBetween, describeRevision, feeOverrides, lineKey, missing, offerChannels, offerPayload, paidSoFar, paymentOf, periodShares, typedRental, needsReference, type OfferForm } from './model.ts';
 
 const base = (o: Partial<OfferForm> = {}): OfferForm => ({
   renter_id: null, full_name: 'Nora Offer', email: 'nora@example.test', mobile: '416 555 0177', date_of_birth: '1991-02-03',
@@ -8,7 +8,7 @@ const base = (o: Partial<OfferForm> = {}): OfferForm => ({
   pickup_kind: 'our_location', pickup_address: '', pickup_km: '', return_kind: 'delivery', return_address: '12 King St W', return_km: '14',
   price_mode: 'sheet', price_total: '', price_day: '', price_tax: 'plus', price_reason: '',
   deposit: '', discount: '', discount_reason: '', promo_code: '', km: '', coverage_option: '1', plan_price: '', fees: {}, fee_reason: '',
-  rental_pay: 'card', deposit_pay: 'card', choice: '', message: '', note: '', hours: '24', by_email: true, by_text: false, notify: true, ...o
+  rental_pay: 'card', deposit_pay: 'card', choice: '', message: '', note: '', hours: '24', by_email: false, by_text: true, notify: true, ...o
 });
 
 test('money typed in dollars becomes cents; empty or bad is nothing', () => {
@@ -129,4 +129,13 @@ test('amounts typed after tax (2026-10-27): the rental charge goes tax included,
   const n = offerPayload(f, 'admin', 3, [], true, { after: true, bps: null, hstFor: hst });
   assert.equal(n.price_tax, 'included');
   assert.deepEqual(n.line_overrides, { coverage_sold: 5000, collection_cost: 2500 });
+});
+
+// 2026-11-01: the link goes by text by default; without a mobile number it goes by email
+test('offerChannels: text by default, email when there is no mobile number', () => {
+  assert.deepEqual(offerChannels(base({})), { email: false, text: true });
+  assert.deepEqual(offerChannels(base({ mobile: '' })), { email: true, text: false });
+  assert.deepEqual(offerChannels(base({ by_email: true, by_text: true })), { email: true, text: true });
+  assert.deepEqual(offerChannels(base({ by_email: true, by_text: false, mobile: '' })), { email: true, text: false });
+  assert.deepEqual(offerPayload(base({ mobile: '' }), 'admin', 3).channels, { email: true, text: false });
 });

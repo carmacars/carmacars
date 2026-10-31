@@ -9,7 +9,6 @@ import { infoText } from '@/features/info/text';
 export function InfoTip({ text, k, topic, label, testId }: { text?: string; k?: string; topic?: string; label?: string; testId?: string }) {
   const body = text ?? (k ? infoText(k) : undefined);
   const [open, setOpen] = useState(false);
-  const [shift, setShift] = useState(0);
   const id = useId();
   const box = useRef<HTMLSpanElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
@@ -21,13 +20,22 @@ export function InfoTip({ text, k, topic, label, testId }: { text?: string; k?: 
     document.addEventListener('pointerdown', off); document.addEventListener('focusin', off); document.addEventListener('keydown', esc, true);
     return () => { document.removeEventListener('pointerdown', off); document.removeEventListener('focusin', off); document.removeEventListener('keydown', esc, true); };
   }, [open]);
-  // keep the popover inside the window (a phone, a field near the right edge)
+  // keep the popover inside the window (a phone, a field near the right edge): placed against the window from the button's
+  // position, so no container (a table, a scroll area, a card) can push it past the edge; again on a scroll or a resize
   useLayoutEffect(() => {
-    if (!open || !tip.current) { setShift(0); return; }
-    const r = tip.current.getBoundingClientRect();
-    const vw = document.documentElement.clientWidth;
-    if (r.right > vw - 8) setShift(Math.round(vw - 8 - r.right));
-    else if (r.left < 8) setShift(Math.round(8 - r.left));
+    if (!open) return;
+    const place = () => {
+      if (!btn.current || !tip.current) return;
+      const b = btn.current.getBoundingClientRect();
+      const w = tip.current.offsetWidth;
+      const vw = document.documentElement.clientWidth;
+      const t = tip.current.style;
+      t.position = 'fixed'; t.insetInlineStart = 'auto'; t.insetInlineEnd = 'auto';
+      t.left = `${Math.round(Math.max(8, Math.min(b.left - 8, vw - 8 - w)))}px`; t.top = `${Math.round(b.bottom + 6)}px`; t.visibility = 'visible';
+    };
+    place();
+    window.addEventListener('resize', place); window.addEventListener('scroll', place, true);
+    return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
   }, [open]);
   if (!body) return null;
   const name = label ?? (topic ? `About ${topic}` : 'What is this?');
@@ -35,7 +43,7 @@ export function InfoTip({ text, k, topic, label, testId }: { text?: string; k?: 
     <span className="info" ref={box}>
       <button type="button" ref={btn} className="info__btn" aria-label={name} aria-expanded={open} aria-controls={open ? id : undefined} aria-describedby={open ? id : undefined}
         data-testid={testId} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((v) => !v); }}>i</button>
-      {open && <span className="info__tip" role="tooltip" id={id} ref={tip} style={shift ? { transform: `translateX(${shift}px)` } : undefined}>{body}</span>}
+      {open && <span className="info__tip" role="tooltip" id={id} ref={tip} style={{ visibility: 'hidden' }}>{body}</span>}
     </span>
   );
 }

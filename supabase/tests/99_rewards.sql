@@ -1,4 +1,4 @@
--- 99: CarmaCars Rewards (migration 0212). Fixtures start with "rwd".
+-- 99: CarmaCars Rewards (migration 0214). Fixtures start with "rwd".
 select test.suite('99 rewards');
 select test.mk_user('rwd_admin', 'admin');
 select test.mk_user('rwd_cs', 'va', 'cs');

@@ -1,4 +1,4 @@
-// The owner pipeline (migration 0215): stages and their words. No imports: Worker and `node --test`.
+// The owner pipeline (migration 0217): stages and their words. No imports: Worker and `node --test`.
 export const STAGES: Array<[string, string]> = [['new', 'New'], ['contacted', 'Contacted'], ['call_booked', 'Call booked'], ['agreement_sent', 'Agreement sent'],
   ['signed', 'Signed'], ['car_onboarded', 'Car onboarded'], ['lost', 'Lost']];
 export const SOURCES: Record<string, string> = { website: 'Website form', referral: 'Referral', manual: 'Added by hand', classified: 'Classified ad' };

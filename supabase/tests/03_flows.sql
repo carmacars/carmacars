@@ -458,8 +458,11 @@ select test.eq('A every table that holds money, pricing or status is audited',
 
                             -- one answer per request (0177): who is answering a request now (working state; each takeover is on the booking history)
                             'request_claims',
-                            -- listing channels (0214): the read counter of each channel's feed (written on every read; the channels are audited)
-                            'listing_channel_feed_stats')
+                            -- listing channels (0216): the read counter of each channel's feed (written on every read; the channels are audited)
+                            'listing_channel_feed_stats',
+                            -- the academy (0207): a lesson watched and a quiz attempt are the learner's own records, never changed; a
+                            -- path's section order (academy_path_sections) is written with the audited sections
+                            'academy_lesson_views', 'academy_attempts', 'academy_path_sections')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

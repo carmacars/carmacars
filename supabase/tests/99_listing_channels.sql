@@ -1,4 +1,4 @@
--- 99: Listing channels and their feeds (migration 0214). Fixtures start with "lch".
+-- 99: Listing channels and their feeds (migration 0216). Fixtures start with "lch".
 select test.suite('99 listing channels');
 select test.mk_user('lch_admin', 'admin');
 select test.mk_user('lch_cs', 'va', 'cs');

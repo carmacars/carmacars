@@ -29,6 +29,8 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
   const [name, setName] = useState('');
   const [card, setCard] = useState({ number: '', exp: '', cvc: '' });
   const [msg, setMsg] = useState<string | null>(null);
+  // 0213: a card refused (debit or prepaid) leaves the link open with a new authorization: the form loads again
+  const [round, setRound] = useState(0);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const stripe = useRef<{ js: StripeLink; elements: unknown } | null>(null);
@@ -43,12 +45,13 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
       if (r.data.provider === 'stripe' && r.data.publishableKey && mount.current) {
         const js = await loadStripe(r.data.publishableKey);
         const elements = js.elements({ clientSecret: r.data.clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#D0111B', borderRadius: '6px' } } });
+        mount.current.replaceChildren();
         elements.create('payment', { layout: 'tabs', wallets: { applePay: 'auto', googlePay: 'auto' }, fields: { billingDetails: { name: 'never' } } }).mount(mount.current);
         stripe.current = { js, elements };
       }
     }).catch(() => live && setFatal('The card form did not load. Reload the page.'));
     return () => { live = false; };
-  }, [token]);
+  }, [token, round]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +69,7 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
         if (r.error) { setMsg(r.error.message ?? 'Your card was declined.'); setBusy(false); return; }
       }
       const f = await payLinkFinish(token);
+      if (f.ok && !f.data.ok && f.data.reason === 'card_not_credit') { setMsg(f.data.message ?? 'Please use a credit card.'); setBusy(false); setRound((x) => x + 1); return; }
       if (!f.ok || !f.data.ok) { setMsg(f.ok ? f.data.reason ?? 'The card was not accepted.' : f.message); setBusy(false); return; }
       setDone(true);
     } catch { setMsg('We could not finish. If your card was charged, we will see it: call us.'); setBusy(false); }

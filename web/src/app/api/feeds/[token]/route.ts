@@ -4,7 +4,7 @@ import { storage } from '@/integrations/storage';
 import { photoUrls } from '@/features/partner-crm/mapping';
 import { csv, row, shared, xml, type ChannelCar } from '@/features/channels/feed';
 
-// A listing channel's inventory feed (migration 0214): /api/feeds/<token>?format=json|csv|xml. CarmaCars' own and
+// A listing channel's inventory feed (migration 0216): /api/feeds/<token>?format=json|csv|xml. CarmaCars' own and
 // co-hosted cars only, never a partner car. Each channel has its own key (Admin > Marketing > Listing channels; New key
 // ends the old address). The database allows a set number of fetches an hour per channel; each answer is cached 15 minutes.
 export const dynamic = 'force-dynamic';

@@ -89,7 +89,7 @@ export async function collectBalance(bookingId: string, depth = 0): Promise<{ ac
     const q = (await call('server_balance_payreq', { p_booking: bookingId, p_token_sha256: await payTokenHash(token), p_amount: n.open_cents })) as { id: string; booking_number: string };
     const p = await payments();
     const customerId = n.renter.customer_id ?? (await p.createCustomer({ email: n.renter.email ?? '', name: n.renter.legal_name, renterId: n.renter.id, idempotencyKey: `customer:${n.renter.id}` })).id;
-    const intent = await p.createStaffIntent({ amountCents: n.open_cents, customerId, capture: 'automatic', description: `CarmaCars booking ${q.booking_number}: charges after the rental`,
+    const intent = await p.createStaffIntent({ amountCents: n.open_cents, customerId, capture: 'manual', description: `CarmaCars booking ${q.booking_number}: charges after the rental`,
       metadata: { booking_id: bookingId, booking_number: q.booking_number, purpose: 'staff_request', payment_request_id: q.id, covers: 'later' }, idempotencyKey: `payreq:${q.id}` });
     await call('server_payreq_attach', { p_id: q.id, p_intent: intent.id });
     await call('server_balance_payreq_send', { p_id: q.id, p_link: `${siteUrl()}/pay/${token}` });
@@ -118,6 +118,31 @@ export async function runDepositGuard(limit = 40) {
   }
   for (const b of (s.balances ?? []).slice(0, limit)) {
     try { await collectBalance(b); out.balances++; } catch (e) { out.errors.push((e instanceof Error ? e.message : String(e)).slice(0, 200)); }
+  }
+  const links = await sendDepositLinks().catch((e) => ({ sent: 0, not_sent: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
+  return { ...out, deposit_links: links.sent, deposit_links_not_sent: links.not_sent, errors: [...out.errors, ...links.errors] };
+}
+
+/** 0213: the deposit hold link texted before pickup (Site settings, Deposit link by text): the same payment request as
+ *  Money > Collect a card > The deposit hold, its Stripe hold intent, then the text from the CarmaCars number. The database
+ *  decides which bookings are due and keeps one live request per booking and deposit; a text not sent makes a task. */
+export async function sendDepositLinks(limit = 20): Promise<{ sent: number; not_sent: number; errors: string[] }> {
+  const due = ((await call('server_deposit_links_due', {})) as Array<{ booking_id: string; booking_number: string }> | null) ?? [];
+  const out = { sent: 0, not_sent: 0, errors: [] as string[] };
+  for (const d of due.slice(0, limit)) {
+    try {
+      const token = newPayToken();
+      const q = (await call('server_deposit_link_payreq', { p_booking: d.booking_id, p_token_sha256: await payTokenHash(token) })) as
+        { ok: boolean; id: string; booking_number: string; amount_cents: number; renter: { id: string; legal_name: string; email: string | null; customer_id: string | null } } | null;
+      if (!q?.ok) continue;
+      const p = await payments();
+      const customerId = q.renter.customer_id ?? (await p.createCustomer({ email: q.renter.email ?? '', name: q.renter.legal_name, renterId: q.renter.id, idempotencyKey: `customer:${q.renter.id}` })).id;
+      const intent = await p.createStaffIntent({ amountCents: q.amount_cents, customerId, capture: 'manual', description: `CarmaCars booking ${q.booking_number}: deposit hold`,
+        metadata: { booking_id: d.booking_id, booking_number: q.booking_number, purpose: 'staff_request', payment_request_id: q.id, covers: 'deposit' }, idempotencyKey: `payreq:${q.id}` });
+      await call('server_payreq_attach', { p_id: q.id, p_intent: intent.id });
+      const r = (await call('server_deposit_link_send', { p_id: q.id, p_link: `${siteUrl()}/pay/${token}` })) as { ok: boolean } | null;
+      if (r?.ok) out.sent++; else out.not_sent++;
+    } catch (e) { out.errors.push(`${d.booking_number}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200)); }
   }
   return out;
 }

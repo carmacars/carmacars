@@ -24,7 +24,7 @@ for (const s of SECTIONS) {
   if (!s.lessons.length || s.quiz.length < 5) problems.push(`${s.slug}: lessons and at least 5 questions`);
   for (const l of s.lessons) for (const sc of l.scenes) if (!sc.caption || !sc.say || !sc.visual?.kind) problems.push(`${s.slug}/${l.title}: a scene without caption, words or picture`);
   for (const x of s.quiz) if (!(x.answer >= 0 && x.answer < x.options.length)) problems.push(`${s.slug}: answer out of range in "${x.prompt}"`);
-  if (/[–—]/.test(JSON.stringify(s))) problems.push(`${s.slug}: a long dash`);
+  if (/[\u2013\u2014]/.test(JSON.stringify(s))) problems.push(`${s.slug}: a long dash`);
 }
 for (const p of PATHS) for (const s of p.sections) if (!bySlug.has(s)) problems.push(`${p.code}: no section ${s}`);
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }

@@ -1,4 +1,4 @@
--- 0215: the owner pipeline, owner recruitment that follows up by itself (Release 22, item 4). SCHEMA_MARKER 0215.
+-- 0217: the owner pipeline, owner recruitment that follows up by itself (Release 22, item 4). SCHEMA_MARKER 0217.
 -- docs/changes/2026-11-02-owner-pipeline.md.
 --   1. Every prospective owner is one lead in one pipeline: the website's owner form (kind owner_program), a classified ad
 --      (owner_recruit, 0167), a referral by an owner, or one added by hand. Stages: new, contacted, call booked, agreement
@@ -33,8 +33,8 @@ end $$;
 alter table program_settings
   add column if not exists owner_followup_enabled boolean not null default true,
   add column if not exists owner_followup_days integer[] not null default array[0, 2, 5, 10] check (cardinality(owner_followup_days) between 1 and 8);
-comment on column program_settings.owner_followup_enabled is 'Owner pipeline (0215): follow-up emails to prospective owners on owner_followup_days, until they reply or the stage changes.';
-comment on column program_settings.owner_followup_days is 'Owner pipeline (0215): the days after a lead comes in when a follow-up email goes (0, 2, 5, 10).';
+comment on column program_settings.owner_followup_enabled is 'Owner pipeline (0217): follow-up emails to prospective owners on owner_followup_days, until they reply or the stage changes.';
+comment on column program_settings.owner_followup_days is 'Owner pipeline (0217): the days after a lead comes in when a follow-up email goes (0, 2, 5, 10).';
 
 alter table leads
   add column if not exists pipeline_stage text check (pipeline_stage is null or pipeline_stage in ('new', 'contacted', 'call_booked', 'agreement_sent', 'signed', 'car_onboarded', 'lost')),
@@ -48,8 +48,8 @@ alter table leads
   add column if not exists replied_at timestamptz,
   add column if not exists referred_by_owner_id uuid references owners (id) on delete set null;
 create index if not exists leads_followup_due_idx on leads (followup_next_at) where followup_next_at is not null and followup_stopped_at is null;
-comment on column leads.pipeline_stage is 'Owner pipeline (0215): new, contacted, call_booked, agreement_sent, signed, car_onboarded or lost; owner_program and owner_recruit leads only.';
-comment on column leads.referred_by_owner_id is 'Owner pipeline (0215): the owner whose link brought this prospective owner (the referral credit, 0215).';
+comment on column leads.pipeline_stage is 'Owner pipeline (0217): new, contacted, call_booked, agreement_sent, signed, car_onboarded or lost; owner_program and owner_recruit leads only.';
+comment on column leads.referred_by_owner_id is 'Owner pipeline (0217): the owner whose link brought this prospective owner (the referral credit, 0217).';
 
 create table if not exists owner_referral_credits (
   id              uuid primary key default gen_random_uuid(),
@@ -67,7 +67,7 @@ create table if not exists owner_referral_credits (
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
-comment on table owner_referral_credits is 'Owner pipeline (0215): an owner who referred a new owner. Waiting until the referred owner''s car completes its first rental, then due: the Kickback Rate (program_settings.kickback_bps, 20%) of that Rental Charge, as for a renter referral (0007). Paid by hand with the referrer''s payout.';
+comment on table owner_referral_credits is 'Owner pipeline (0217): an owner who referred a new owner. Waiting until the referred owner''s car completes its first rental, then due: the Kickback Rate (program_settings.kickback_bps, 20%) of that Rental Charge, as for a renter referral (0007). Paid by hand with the referrer''s payout.';
 
 -- the stages: a stage from the lead's old status for the leads already on file; their follow-ups are not started
 update leads set pipeline_stage = case status when 'contacted' then 'contacted' when 'qualified' then 'contacted' when 'converted' then 'signed'
@@ -396,7 +396,7 @@ create trigger owners_referral_code_default before insert or update of status on
 update owners set referral_code = 'O' || substr(translate(upper(md5(id::text || clock_timestamp()::text)), '01', ''), 1, 7)
  where referral_code is null and status = 'active';
 
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0215;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0217;
 create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 begin
@@ -409,9 +409,9 @@ begin
     perform app.door_begin(p_user, p_aal);
     return app.owner_pipeline_do(p_user, p_name, coalesce(p, '{}'::jsonb) - '_va');
   end if;
-  return app.door_pre0215(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre0217(p_user, p_aal, p_call, p_name, p);
 end $$;
-select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre0215(uuid, text, text, text, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre0217(uuid, text, text, text, jsonb)'::regprocedure);
 
 alter table owner_referral_credits enable row level security;
 revoke all on owner_referral_credits from anon, authenticated;
@@ -424,7 +424,7 @@ do $$
 declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'app' and (p.proname like 'owner\_pipeline%' or p.proname like 'owner\_followup%' or p.proname in ('job_owner_pipeline', 'door_pre0215', 'owner_referral_code_default')) loop
+            where n.nspname = 'app' and (p.proname like 'owner\_pipeline%' or p.proname like 'owner\_followup%' or p.proname in ('job_owner_pipeline', 'door_pre0217', 'owner_referral_code_default')) loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;

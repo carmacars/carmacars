@@ -7,7 +7,7 @@ export default {
   category: 'transactional',
   from: FROM.hello,
   digest: false,
-  trigger: 'CarmaCars Rewards job (hourly, migration 0212): a renter has points and no rental or redemption for the expiry period less the reminder days (Admin > Settings > Rewards: 12 months and 30 days by default). One email per period of activity. Low priority (class 4): it waits behind customer, owner and staff emails under the daily email cap.',
+  trigger: 'CarmaCars Rewards job (hourly, migration 0214): a renter has points and no rental or redemption for the expiry period less the reminder days (Admin > Settings > Rewards: 12 months and 30 days by default). One email per period of activity. Low priority (class 4): it waits behind customer, owner and staff emails under the daily email cap.',
   timing: 'About 30 days before the points end',
   subject: 'Your {{points_balance}} CarmaCars points end on {{expiry_date}}',
   preheader: 'Worth {{points_value}} off a rental. Rent or redeem before then to keep them.',

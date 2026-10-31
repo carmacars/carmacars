@@ -16,8 +16,8 @@ Release 21, item 6. Migration `supabase/migrations/0205_flat_rate_owner_agreemen
 - Switching pay model (`car_pay_set`, or terms set for a first car): an open Enrollment Agreement changes set; a signed
   one ends and a new one of the right set opens for signature (`packetKeys` asks for it even when every car is signed).
   Changed back before signing, the signed one is in force again and the new one is void.
-- Program settings **owner_flat_agreements_awaiting_lawyer** (on by default): Admin shows "Awaiting lawyer OK" on the
-  owner's page while it is on. Owners sign either way.
+- Program settings **owner_flat_agreements_awaiting_lawyer** (off by default: the lawyer approved the flat-rate text
+  with all Release 21 legal text): turned on, Admin shows "Awaiting lawyer OK" on the owner's page. Owners sign either way.
 
 ## Guides
 

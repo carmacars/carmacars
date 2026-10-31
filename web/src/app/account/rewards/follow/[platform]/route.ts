@@ -3,7 +3,7 @@ import { rpc } from '@/lib/db/repo';
 import { currentUser, realUser } from '@/server/portal/data';
 import { env } from '@/lib/env';
 
-// A follow from the Rewards page (migration 0212): the points are given on this click (a follow cannot be checked), once
+// A follow from the Rewards page (migration 0214): the points are given on this click (a follow cannot be checked), once
 // per platform, then the browser goes on to the page. While an Admin views as a renter, no points: just the page.
 export const dynamic = 'force-dynamic';
 export async function GET(_req: Request, { params }: { params: Promise<{ platform: string }> }) {

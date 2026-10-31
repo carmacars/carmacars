@@ -261,7 +261,9 @@ select test.eq('month to date: provisional, worked out, the month of today',
   (select (x ->> 'final') || '/' || (x ->> 'provisional') || '/' || (x -> 'totals' is not null and jsonb_typeof(x -> 'totals') = 'object') || '/' || (x ->> 'month') from test.ffmtd),
   'false/true/true/' || app.month_start(app.today())::text);
 select test.eq('month to date: the expected payout and the cars', (select jsonb_typeof(x #> '{totals,payout_cents}') || '/' || (jsonb_array_length(x -> 'vehicles') >= 1) from test.ffmtd), 'number/true');
-select test.eq('month to date: the bookings still under way are listed', (select count(*) from test.ffmtd, jsonb_array_elements(x -> 'in_progress') b where b ->> 'booking_number' like 'FF-%') >= 1, true);
+-- the month of FF-1's pickup (tomorrow): on the last day of a month, today's month has none of the FF bookings
+select test.eq('month to date: the bookings still under way are listed',
+  (select count(*) from jsonb_array_elements(public.owner_portal_month_to_date(test.id('fq_o'), app.month_start(app.today() + 1)) -> 'in_progress') b where b ->> 'booking_number' like 'FF-%') >= 1, true);
 select test.eq('month to date: nothing kept (no statement, no number used)',
   (select count(*) from owner_statements where owner_id = test.id('owner:fq_o')) || '/' ||
   ((select last_value from pg_sequences where sequencename = 'owner_statement_number_seq') is not distinct from (select last_value from test.ffseq)), '0/true');

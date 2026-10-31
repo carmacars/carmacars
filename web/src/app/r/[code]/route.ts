@@ -9,7 +9,7 @@ import { REFERRAL_COOKIE_DAYS } from '@/features/referral/model';
 export const dynamic = 'force-dynamic';
 export async function GET(req: Request, { params }: { params: Promise<{ code: string }> }) {
   const code = (await params).code.toUpperCase();
-  // ?to=owner (0215): an owner's link for a new owner opens the owner program page; the same cookie credits the referrer
+  // ?to=owner (0217): an owner's link for a new owner opens the owner program page; the same cookie credits the referrer
   const to = new URL(req.url).searchParams.get('to') === 'owner' ? '/list-your-car' : '/cars';
   const res = NextResponse.redirect(new URL(to, env().NEXT_PUBLIC_APP_URL), 302);
   if (/^[A-Z0-9]{4,12}$/.test(code)) {

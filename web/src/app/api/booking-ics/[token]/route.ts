@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { rpc } from '@/lib/db/repo';
 import { bookingIcs } from '@/features/portal/booking-ics';
 
-// The calendar file of a confirmed booking (migration 0213), from the confirmation email's link: pickup and return as two
+// The calendar file of a confirmed booking (migration 0215), from the confirmation email's link: pickup and return as two
 // events. The token is the booking's calendar_token; only the car, the times and the place are in it.
 export const dynamic = 'force-dynamic';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

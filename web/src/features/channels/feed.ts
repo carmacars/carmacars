@@ -1,4 +1,4 @@
-// Listing channels (migration 0214): one car of the channel feed as a JSON row, a CSV row and a Google vehicle-listings
+// Listing channels (migration 0216): one car of the channel feed as a JSON row, a CSV row and a Google vehicle-listings
 // style RSS item (g: namespace). Only CarmaCars' own and co-hosted cars ever reach here: the database filters
 // (app.channel_feed_cars) and SHARED is the second lock. No imports: Worker and `node --test`.
 

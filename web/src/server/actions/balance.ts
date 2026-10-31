@@ -18,7 +18,7 @@ export async function renterPayBalance(form: FormData): Promise<void> {
   const q = (await rpc('renter_balance_payreq', { p_booking: bookingId, p_by: user.id, p_token_sha256: await payTokenHash(token) }, SR)) as unknown as Req;
   const pay = await payments();
   const customerId = q.renter.customer_id ?? (await pay.createCustomer({ email: q.renter.email ?? '', name: q.renter.legal_name, renterId: q.renter.id, idempotencyKey: `customer:${q.renter.id}` })).id;
-  const intent = await pay.createStaffIntent({ amountCents: q.amount_cents, customerId, capture: 'automatic', description: `CarmaCars booking ${q.booking_number}: the balance`,
+  const intent = await pay.createStaffIntent({ amountCents: q.amount_cents, customerId, capture: 'manual', description: `CarmaCars booking ${q.booking_number}: the balance`,
     metadata: { booking_id: q.booking_id, booking_number: q.booking_number, purpose: 'staff_request', payment_request_id: q.id, covers: 'balance' }, idempotencyKey: `payreq:${q.id}` });
   await rpc('server_payreq_attach', { p_id: q.id, p_intent: intent.id }, SR);
   redirect(`/pay/${token}?back=${encodeURIComponent(`/account/bookings/${q.booking_number}`)}`);

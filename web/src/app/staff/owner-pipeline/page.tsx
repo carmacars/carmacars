@@ -6,7 +6,7 @@ import { PipelineBoard, type PipelineData } from '@/features/owner-pipeline/Boar
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner pipeline', path: '/staff/owner-pipeline', noindex: true, description: 'Prospective owners by stage, with automatic follow-ups.' });
 
-// The owner pipeline for staff working as Sales or Customer service (migration 0215): the same board as the Admin's,
+// The owner pipeline for staff working as Sales or Customer service (migration 0217): the same board as the Admin's,
 // without the referral credits.
 export default async function StaffOwnerPipeline() {
   const { read } = await vaPage('/staff/owner-pipeline', ['sales', 'cs']);

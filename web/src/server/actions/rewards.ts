@@ -4,7 +4,7 @@ import { DbError, rpc } from '@/lib/db/repo';
 import type { ActionResult } from '@/features/forms/schemas';
 import { requireUser } from '@/server/portal/data';
 
-// The renter's CarmaCars Rewards actions (migration 0212). Each runs as the signed-in renter (role authenticated); the
+// The renter's CarmaCars Rewards actions (migration 0214). Each runs as the signed-in renter (role authenticated); the
 // database finds their renter record and checks everything again. While an Admin views as a renter, nothing is changed
 // (src/lib/db/repo.ts refuses the call).
 type R<T = null> = ActionResult<T>;

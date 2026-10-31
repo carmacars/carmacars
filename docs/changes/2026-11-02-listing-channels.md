@@ -1,7 +1,7 @@
-# Listing channels (0214)
+# Listing channels (0216)
 
 Abbas's request (Release 22, item 3): CarmaCars' cars on other car rental sites. Migration
-`supabase/migrations/0214_listing_channels.sql`. Code: `web/src/app/admin/marketing/channels/page.tsx`,
+`supabase/migrations/0216_listing_channels.sql`. Code: `web/src/app/admin/marketing/channels/page.tsx`,
 `web/src/app/api/feeds/[token]/route.ts`, `web/src/features/channels/`. Tests: `supabase/tests/99_listing_channels.sql`,
 `web/src/features/channels/feed.test.ts`, `web/tests/e2e/release-22.spec.ts`.
 

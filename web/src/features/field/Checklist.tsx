@@ -134,6 +134,9 @@ export function Checklist({ j, back = '/staff/field', backLabel = 'Back to my jo
         <Row ok={ready?.calendar} text="The booking holds the calendar">
           {ready && !ready.calendar && <p className="fd-office small">The office turns the calendar on for this booking. Call CarmaCars.</p>}</Row>
         <Row ok={ready ? ['taken', 'waived', 'none'].includes(ready.deposit) : false} text={`Deposit: ${ready?.deposit === 'taken' ? 'taken' : ready?.deposit === 'waived' ? 'waived by an Admin' : ready?.deposit === 'declined' ? 'declined' : ready?.deposit === 'none' ? 'none on this booking' : 'not taken yet'}`}>
+          {ready && !['taken', 'waived', 'none'].includes(ready.deposit) && ready.deposit_link && <span className="small muted" data-testid="ready-deposit-link">{' '}{ready.deposit_link.texted_at
+            ? `The deposit link was texted ${linkWhen(ready.deposit_link.texted_at)}${ready.deposit_link.opened_at ? ` and opened ${linkWhen(ready.deposit_link.opened_at)}` : ', not opened yet'}.`
+            : ready.deposit_link.error ? `The deposit link was not sent: ${ready.deposit_link.error}.` : ''}</span>}
           {ready && !['taken', 'waived', 'none'].includes(ready.deposit) && res && j.job.status === 'in_progress' && <ResolveDeposit j={j} r={res} back={at.self} />}</Row>
         <li><button className="btn btn--ghost fd-wide" type="button" onClick={() => router.refresh()} data-testid="ready-refresh"><FdIcon name="retry" />Check again</button></li>
         {ready && !readyOk &&
@@ -465,4 +468,9 @@ function Sign({ who, label, done, sign }: { who: 'renter' | 'staff'; label: stri
       {err && <p className="error" role="alert">{err}</p>}
     </div>
   );
+}
+
+// 0213: when the deposit link was texted or opened, in Toronto time
+function linkWhen(iso: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
 }

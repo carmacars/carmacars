@@ -14,7 +14,7 @@ type Data = { settings: Settings; google_review_link: string | null; social_link
   totals: { members: number; outstanding: number; earned_30d: number; redeemed_30d: number }; google_claims: R[]; recent: R[];
   matches: Array<{ id: string; name: string; email: string | null; balance: number }> | null; renter: (RewardsState & { id: string; name: string }) | null };
 
-// Admin > Settings > Rewards (migration 0212): on by default with sensible numbers; every way to earn on or off with its
+// Admin > Settings > Rewards (migration 0214): on by default with sensible numbers; every way to earn on or off with its
 // points; the tiers; every Google review claimed (on the renter's word) with Reverse; a renter's points with Add or take off.
 export default async function RewardsAdmin({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ read }, sp] = await Promise.all([page('/admin/settings/rewards'), searchParams]);

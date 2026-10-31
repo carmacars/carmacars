@@ -1,4 +1,4 @@
--- 99: the booking's calendar link (migration 0213). Fixtures start with "bcal".
+-- 99: the booking's calendar link (migration 0215). Fixtures start with "bcal".
 select test.suite('99 booking calendar');
 select test.mk_owner('bcal_owner');
 select test.mk_vehicle('bcal_car', 'bcal_owner');

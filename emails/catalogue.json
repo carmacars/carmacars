@@ -8009,7 +8009,7 @@
       "code": "renter_rewards_expiring",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "CarmaCars Rewards job (hourly, migration 0212): a renter has points and no rental or redemption for the expiry period less the reminder days (Admin > Settings > Rewards: 12 months and 30 days by default). One email per period of activity. Low priority (class 4): it waits behind customer, owner and staff emails under the daily email cap.",
+      "trigger": "CarmaCars Rewards job (hourly, migration 0214): a renter has points and no rental or redemption for the expiry period less the reminder days (Admin > Settings > Rewards: 12 months and 30 days by default). One email per period of activity. Low priority (class 4): it waits behind customer, owner and staff emails under the daily email cap.",
       "timing": "About 30 days before the points end",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",

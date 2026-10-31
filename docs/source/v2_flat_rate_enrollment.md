@@ -1,6 +1,6 @@
 # Flat-Rate Vehicle Enrollment Agreement
 
-Status: awaiting the lawyer's review (Program settings, "Flat-rate agreements: awaiting lawyer OK"). Owners can sign it in the meantime.
+Status: approved by the lawyer (Release 21). Program settings, "Flat-rate agreements awaiting lawyer OK", is off.
 
 ## 1. Definitions
 

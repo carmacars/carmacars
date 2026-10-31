@@ -343,7 +343,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     if (d.drivers) setDrivers(d.drivers);
     if (d.addons) setAddons(d.addons);
     if (d.choice) setChoice(d.choice);
-    if (d.tax_mode) setTaxMode(d.tax_mode); else if (d.f?.price_tax === 'included') setTaxMode('after');
+    // the boxes of the draft are in the draft's mode: the device's saved mode never reinterprets them
+    setTaxMode(d.tax_mode ?? (d.f?.price_tax === 'included' ? 'after' : 'before'));
     if (d.total) setTotalTyped(d.total);
     if (d.insurer_fees) setInsFees(d.insurer_fees);
   }, [draft]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -461,7 +462,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
         <span className="small muted">{saveErr ? `Not saved: ${saveErr}. Kept on this device.` : savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}. Finish it any time from Unfinished rentals.` : 'Saved as a draft as you type: nothing is required to save.'}</span>
         <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => start(async () => { await saveDraft(); })} data-testid="mr-save-draft">Save draft</button>
         {draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => start(async () => { await draftClose(draftId, 'discarded'); try { localStorage.removeItem(localKey); } catch { /* none */ } window.location.href = base === '/staff/field' ? '/staff/field/rentals/new' : `${base}/bookings/new`; })} data-testid="mr-discard-draft">Discard</button>}
-        {localDraft && !draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => { const d = localDraft.data; if (d.f) setF((x) => ({ ...x, ...d.f })); if (d.renter) setRenter(d.renter); if (d.fees) setFees(d.fees); if (d.parts) setParts(d.parts); if (d.paid_by) setPaidBy(d.paid_by); if (d.deposit_by) setDepositBy(d.deposit_by); if (d.customs) setCustoms(d.customs); if (d.tax_mode) setTaxMode(d.tax_mode); if (d.total) setTotalTyped(d.total); setDraftId(localDraft.id); idRef.current = localDraft.id; setLocalDraft(null); }} data-testid="mr-restore-local">Restore what you were typing on this device</button>}
+        {localDraft && !draftId && <button className="btn btn--quiet btn--sm" type="button" onClick={() => { const d = localDraft.data; if (d.f) setF((x) => ({ ...x, ...d.f })); if (d.renter) setRenter(d.renter); if (d.fees) setFees(d.fees); if (d.parts) setParts(d.parts); if (d.paid_by) setPaidBy(d.paid_by); if (d.deposit_by) setDepositBy(d.deposit_by); if (d.customs) setCustoms(d.customs); setTaxMode(d.tax_mode ?? (d.f?.price_tax === 'included' ? 'after' : 'before')); if (d.total) setTotalTyped(d.total); setDraftId(localDraft.id); idRef.current = localDraft.id; setLocalDraft(null); }} data-testid="mr-restore-local">Restore what you were typing on this device</button>}
       </div>
       <section className={`pt-card ad-card stack${quick ? ' pt-card--next' : ''}`} aria-labelledby="mr-quick-h" data-testid="mr-quick">
         <div className="pt-card__head"><h2 className="d4" id="mr-quick-h">Quick start at pickup</h2>

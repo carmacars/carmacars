@@ -9614,6 +9614,8 @@ export type Database = {
           reply_to: string | null;
           channel: string | null;
           sms_planned: boolean;
+          limit_text_id: string | null;
+          limit_texted_at: string | null;
         };
         Insert: {
           id?: string;
@@ -9649,6 +9651,8 @@ export type Database = {
           reply_to?: string | null;
           channel?: string | null;
           sms_planned?: boolean;
+          limit_text_id?: string | null;
+          limit_texted_at?: string | null;
         };
         Update: {
           id?: string;
@@ -9684,6 +9688,8 @@ export type Database = {
           reply_to?: string | null;
           channel?: string | null;
           sms_planned?: boolean;
+          limit_text_id?: string | null;
+          limit_texted_at?: string | null;
         };
         Relationships: [];
       };
@@ -12191,6 +12197,10 @@ export type Database = {
           completed_at: string | null;
           last_error: string | null;
           reader_id: string | null;
+          auto: boolean;
+          texted_at: string | null;
+          text_id: string | null;
+          opened_at: string | null;
         };
         Insert: {
           id?: string;
@@ -12211,6 +12221,10 @@ export type Database = {
           completed_at?: string | null;
           last_error?: string | null;
           reader_id?: string | null;
+          auto?: boolean;
+          texted_at?: string | null;
+          text_id?: string | null;
+          opened_at?: string | null;
         };
         Update: {
           id?: string;
@@ -12231,6 +12245,10 @@ export type Database = {
           completed_at?: string | null;
           last_error?: string | null;
           reader_id?: string | null;
+          auto?: boolean;
+          texted_at?: string | null;
+          text_id?: string | null;
+          opened_at?: string | null;
         };
         Relationships: [];
       };
@@ -17496,6 +17514,10 @@ export type Database = {
           business_description: string | null;
           business_listings: Json;
           google_review_link: string | null;
+          email_limit_texts: boolean;
+          email_limit_text_codes: string[];
+          deposit_link_auto: boolean;
+          deposit_link_hours: number;
         };
         Insert: {
           id?: string;
@@ -17562,6 +17584,10 @@ export type Database = {
           business_description?: string | null;
           business_listings?: Json;
           google_review_link?: string | null;
+          email_limit_texts?: boolean;
+          email_limit_text_codes?: string[];
+          deposit_link_auto?: boolean;
+          deposit_link_hours?: number;
         };
         Update: {
           id?: string;
@@ -17628,6 +17654,10 @@ export type Database = {
           business_description?: string | null;
           business_listings?: Json;
           google_review_link?: string | null;
+          email_limit_texts?: boolean;
+          email_limit_text_codes?: string[];
+          deposit_link_auto?: boolean;
+          deposit_link_hours?: number;
         };
         Relationships: [];
       };
@@ -23990,6 +24020,9 @@ export type Database = {
       server_deposit_capture_begin: { Args: { p_deposit: string }; Returns: Json };
       server_deposit_guard_sweep: { Args: never; Returns: Json };
       server_deposit_hold_lapsed: { Args: { p_intent: string }; Returns: Json };
+      server_deposit_link_payreq: { Args: { p_booking: string; p_token_sha256: string }; Returns: Json };
+      server_deposit_link_send: { Args: { p_id: string; p_link: string }; Returns: Json };
+      server_deposit_links_due: { Args: never; Returns: Json };
       server_dispute_evidence: { Args: { p_pack: string }; Returns: Json };
       server_dispute_pack: { Args: { p_pack: string }; Returns: Json };
       server_dispute_pack_built: { Args: { p_pack: string; p: Json }; Returns: undefined };
@@ -24004,6 +24037,7 @@ export type Database = {
       server_driver_link_valid: { Args: { p_signer: string; p_version: number }; Returns: boolean };
       server_driver_register_upload: { Args: { p_signer: string; p_kind: string; p_storage_path: string; p_sha256: string; p_mime_type: string }; Returns: string };
       server_driver_save_licence: { Args: { p_signer: string; p: Json }; Returns: Json };
+      server_email_capped: { Args: never; Returns: Json };
       server_esign_certificate: { Args: { p_context: string; p_refs: string[] }; Returns: Json };
       server_esign_certificate_for_booking: { Args: { p_booking: string }; Returns: Json };
       server_esign_certificate_for_request: { Args: { p_request: string }; Returns: Json };
@@ -24095,7 +24129,10 @@ export type Database = {
       server_payment_intent_opened: { Args: { p: Json }; Returns: undefined };
       server_payreq_attach: { Args: { p_id: string; p_intent: string }; Returns: undefined };
       server_payreq_card_check: { Args: { p_id: string; p_card: Json }; Returns: Json };
+      server_payreq_card_ok: { Args: { p_id: string; p_card: Json }; Returns: boolean };
+      server_payreq_card_refused: { Args: { p_id: string }; Returns: boolean };
       server_payreq_facts: { Args: { p_token_sha256: string }; Returns: Json };
+      server_payreq_opened: { Args: { p_token_sha256: string }; Returns: undefined };
       server_payreq_reader: { Args: { p_id: string }; Returns: Json };
       server_payreq_reader_fail: { Args: { p_id: string; p_reason: string }; Returns: Json };
       server_payreq_settle: { Args: { p_id: string; p_intent: Json }; Returns: Json };

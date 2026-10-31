@@ -1,4 +1,4 @@
--- 0214: Listing channels, CarmaCars' cars on other car rental sites (Release 22, item 3). SCHEMA_MARKER 0214.
+-- 0216: Listing channels, CarmaCars' cars on other car rental sites (Release 22, item 3). SCHEMA_MARKER 0216.
 -- docs/changes/2026-11-02-listing-channels.md.
 --   1. listing_channels: a checklist of the sites and directories where CarmaCars can list its cars, each with its address,
 --      status (not started, applied, live, paused, not for us), who holds the login, notes, and its own inventory feed
@@ -24,10 +24,10 @@ begin
 end $$;
 
 alter table program_settings add column if not exists channel_feed_hourly_max integer not null default 60 check (channel_feed_hourly_max between 1 and 10000);
-comment on column program_settings.channel_feed_hourly_max is 'Listing channels (0214): fetches of one channel''s feed allowed an hour; more get "429 Too many requests".';
+comment on column program_settings.channel_feed_hourly_max is 'Listing channels (0216): fetches of one channel''s feed allowed an hour; more get "429 Too many requests".';
 
 alter table vehicles add column if not exists channel_feed_opt_out boolean not null default false;
-comment on column vehicles.channel_feed_opt_out is 'Listing channels (0214): keep this car out of every channel feed (Admin > Marketing > Listing channels).';
+comment on column vehicles.channel_feed_opt_out is 'Listing channels (0216): keep this car out of every channel feed (Admin > Marketing > Listing channels).';
 
 create table if not exists listing_channels (
   id              uuid primary key default gen_random_uuid(),
@@ -46,7 +46,7 @@ create table if not exists listing_channels (
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now()
 );
-comment on table listing_channels is 'Listing channels (0214): where CarmaCars lists its cars beyond carmacars.ca, with status, login owner and notes, and each channel''s own feed address. No integration is implied: the feed is what a site or partner program ingests, when it does.';
+comment on table listing_channels is 'Listing channels (0216): where CarmaCars lists its cars beyond carmacars.ca, with status, login owner and notes, and each channel''s own feed address. No integration is implied: the feed is what a site or partner program ingests, when it does.';
 
 -- the feed's reads (a counter written on every read: kept apart so the audited channel row changes only when staff change it)
 create table if not exists listing_channel_feed_stats (
@@ -56,7 +56,7 @@ create table if not exists listing_channel_feed_stats (
   last_at     timestamptz,
   fetches     bigint not null default 0
 );
-comment on table listing_channel_feed_stats is 'Listing channels (0214): reads of each channel''s feed (the hourly allowance and the last read).';
+comment on table listing_channel_feed_stats is 'Listing channels (0216): reads of each channel''s feed (the hourly allowance and the last read).';
 
 insert into listing_channels (slug, name, url, kind, how_to_list, sort) values
   ('turo', 'Turo', 'https://turo.com/ca/en/list-your-car', 'peer_to_peer', 'Each car is listed by hand in the Turo host app (no feed import). Trips come back through Calendar sync.', 1),
@@ -188,7 +188,7 @@ begin
   raise exception 'Unknown listing channel call %', p_name using errcode = '22023';
 end $$;
 
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0214;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0216;
 create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 begin
@@ -200,9 +200,9 @@ begin
     perform app.door_begin(p_user, p_aal);
     return app.listing_channels_do(p_user, p_name, coalesce(p, '{}'::jsonb) - '_va');
   end if;
-  return app.door_pre0214(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre0216(p_user, p_aal, p_call, p_name, p);
 end $$;
-select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre0214(uuid, text, text, text, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre0216(uuid, text, text, text, jsonb)'::regprocedure);
 
 do $$
 declare t text;
@@ -222,7 +222,7 @@ do $$
 declare f record;
 begin
   for f in select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where n.nspname = 'app' and p.proname in ('channel_feed_cars', 'listing_channels_read', 'listing_channels_do', 'door_pre0214') loop
+            where n.nspname = 'app' and p.proname in ('channel_feed_cars', 'listing_channels_read', 'listing_channels_do', 'door_pre0216') loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
   end loop;

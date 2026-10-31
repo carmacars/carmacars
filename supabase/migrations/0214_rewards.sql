@@ -1,4 +1,4 @@
--- 0212: CarmaCars Rewards, the renter loyalty program (Release 22, item 1). SCHEMA_MARKER 0212.
+-- 0214: CarmaCars Rewards, the renter loyalty program (Release 22, item 1). SCHEMA_MARKER 0214.
 -- docs/changes/2026-11-02-rewards.md.
 --   1. Points. A rental earns rewards_settings.points_per_dollar (1) point per dollar of the rental charge after every
 --      discount (never the fees, add-ons, coverage, tax or deposit), when the booking closes (deposit settled). More ways to
@@ -49,7 +49,7 @@ create table if not exists rewards_settings (
   updated_at           timestamptz not null default now()
 );
 insert into rewards_settings (singleton) values (true) on conflict do nothing;
-comment on table rewards_settings is 'CarmaCars Rewards (0212): on by default; 1 point per dollar of the rental charge after discounts; 100 points = $1 (point_value_cents 1); redeem from 500; codes valid 90 days; points end 12 months after the last earn or redeem, with a reminder 30 days before.';
+comment on table rewards_settings is 'CarmaCars Rewards (0214): on by default; 1 point per dollar of the rental charge after discounts; 100 points = $1 (point_value_cents 1); redeem from 500; codes valid 90 days; points end 12 months after the last earn or redeem, with a reminder 30 days before.';
 
 create table if not exists reward_tiers (
   code          text primary key check (code ~ '^[a-z]{2,20}$'),
@@ -64,7 +64,7 @@ insert into reward_tiers (code, name, min_days, discount_bps, perk, sort) values
   ('silver', 'Silver', 10, 500, '5% off the rental charge, and one add-on free per rental on request (a child seat or an extra driver)', 2),
   ('gold', 'Gold', 30, 1000, '10% off the rental charge, one add-on free per rental on request, and the first choice of car', 3)
 on conflict (code) do nothing;
-comment on table reward_tiers is 'CarmaCars Rewards (0212): tiers by rental days in the last 12 months. The discount is a promo code of the renter''s own (off the rental charge only); the perk is a line staff honour on request.';
+comment on table reward_tiers is 'CarmaCars Rewards (0214): tiers by rental days in the last 12 months. The discount is a promo code of the renter''s own (off the rental charge only); the perk is a line staff honour on request.';
 
 create table if not exists reward_actions (
   code       text primary key,
@@ -89,7 +89,7 @@ insert into reward_actions (code, label, detail, points, limit_text, sort) value
   ('social_facebook', 'Follow us on Facebook', 'Points when you open our page from your Rewards page. We cannot check the follow.', 50, 'Once', 10),
   ('birthday', 'Your birthday', 'With your date of birth on file.', 100, 'Once a year', 11)
 on conflict (code) do nothing;
-comment on table reward_actions is 'CarmaCars Rewards (0212): the ways to earn, each on or off with its points (rental: points per dollar). Admin > Settings > Rewards.';
+comment on table reward_actions is 'CarmaCars Rewards (0214): the ways to earn, each on or off with its points (rental: points per dollar). Admin > Settings > Rewards.';
 
 -- ================================================================ 2. accounts and the ledger
 create table if not exists reward_accounts (
@@ -100,7 +100,7 @@ create table if not exists reward_accounts (
   reminded_for       timestamptz,
   created_at         timestamptz not null default now()
 );
-comment on column reward_accounts.reminded_for is 'The last-activity time the expiry reminder was sent for (0212): one reminder per activity period.';
+comment on column reward_accounts.reminded_for is 'The last-activity time the expiry reminder was sent for (0214): one reminder per activity period.';
 
 create table if not exists reward_ledger (
   id           uuid primary key default gen_random_uuid(),
@@ -120,10 +120,10 @@ create table if not exists reward_ledger (
 );
 create index if not exists reward_ledger_renter_idx on reward_ledger (renter_id, created_at desc);
 create index if not exists reward_ledger_action_idx on reward_ledger (action, created_at desc);
-comment on table reward_ledger is 'CarmaCars Rewards (0212): every change of a renter''s points with its reason. source_key makes each award happen once (rental:<booking>, review_google:<booking>, social:<platform>:<renter>, ...). A reversal is a new row (reverse:<id>).';
+comment on table reward_ledger is 'CarmaCars Rewards (0214): every change of a renter''s points with its reason. source_key makes each award happen once (rental:<booking>, review_google:<booking>, social:<platform>:<renter>, ...). A reversal is a new row (reverse:<id>).';
 
 alter table reviews add column if not exists reward_points boolean not null default false;
-comment on column reviews.reward_points is 'The review earned CarmaCars Rewards points (0212): shown with it as "Received reward points".';
+comment on column reviews.reward_points is 'The review earned CarmaCars Rewards points (0214): shown with it as "Received reward points".';
 
 create or replace function app.rewards() returns rewards_settings
 language sql stable security definer set search_path = public, app as $$ select * from rewards_settings limit 1 $$;
@@ -516,26 +516,26 @@ begin
 end $$;
 
 -- the email's values: the event's payload (the renter's name comes from the recipient)
-alter function app.notification_payload(text, app_events, jsonb) rename to ntf_payload_pre0212;
+alter function app.notification_payload(text, app_events, jsonb) rename to ntf_payload_pre0214;
 create function app.notification_payload(p_code text, p_event app_events, p_to jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
-declare x jsonb := app.ntf_payload_pre0212(p_code, p_event, p_to);
+declare x jsonb := app.ntf_payload_pre0214(p_code, p_event, p_to);
 begin
   if p_code = 'renter_rewards_expiring' then
     x := coalesce(x, '{}'::jsonb) || (coalesce(p_event.payload, '{}'::jsonb) - 'renter_id');
   end if;
   return x;
 end $$;
-select pg_temp.copy_grants('app.notification_payload(text, app_events, jsonb)'::regprocedure, 'app.ntf_payload_pre0212(text, app_events, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.notification_payload(text, app_events, jsonb)'::regprocedure, 'app.ntf_payload_pre0214(text, app_events, jsonb)'::regprocedure);
 
 -- low priority: these follow-ups wait behind customer, owner and staff emails under the daily cap
 create table if not exists notification_low_priority (code text primary key, priority smallint not null check (priority between 4 and 5));
-comment on table notification_low_priority is 'Codes app.notification_catalogue_refresh keeps at a low priority class (0212): reminders and follow-ups that may wait for the next day under the 100-a-day email cap.';
+comment on table notification_low_priority is 'Codes app.notification_catalogue_refresh keeps at a low priority class (0214): reminders and follow-ups that may wait for the next day under the 100-a-day email cap.';
 insert into notification_low_priority values ('renter_rewards_expiring', 4) on conflict (code) do nothing;
-alter function app.notification_catalogue_refresh() rename to notification_catalogue_refresh_pre0212;
+alter function app.notification_catalogue_refresh() rename to notification_catalogue_refresh_pre0214;
 create function app.notification_catalogue_refresh() returns integer
 language plpgsql security definer set search_path = public, app as $$
-declare n integer := app.notification_catalogue_refresh_pre0212();
+declare n integer := app.notification_catalogue_refresh_pre0214();
 begin
   update notification_catalogue c set priority = l.priority from notification_low_priority l where l.code = c.code and c.priority <> l.priority;
   -- the express-consent emails (0161, 0167): the refresh of 0062 would set them back to implied (0211 did)
@@ -639,7 +639,7 @@ begin
   raise exception 'Unknown rewards call %', p_name using errcode = '22023';
 end $$;
 
-alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0212;
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0214;
 create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
 language plpgsql security definer set search_path = public, app as $$
 begin
@@ -651,9 +651,9 @@ begin
     perform app.door_begin(p_user, p_aal);
     return app.rewards_admin_do(p_user, p_name, coalesce(p, '{}'::jsonb) - '_va');
   end if;
-  return app.door_pre0212(p_user, p_aal, p_call, p_name, p);
+  return app.door_pre0214(p_user, p_aal, p_call, p_name, p);
 end $$;
-select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre0212(uuid, text, text, text, jsonb)'::regprocedure);
+select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre0214(uuid, text, text, text, jsonb)'::regprocedure);
 
 -- the car page: a review that earned points says so ("Received reward points")
 create or replace function app.public_car_reviews(p_vehicle uuid) returns jsonb
@@ -687,7 +687,7 @@ do $$
 declare f record;
 begin
   for f in select p.oid::regprocedure as sig, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-            where (n.nspname = 'app' and (p.proname like 'rewards%' or p.proname in ('job_rewards', 'door_pre0212', 'ntf_payload_pre0212', 'notification_catalogue_refresh_pre0212', 'notification_catalogue_refresh')))
+            where (n.nspname = 'app' and (p.proname like 'rewards%' or p.proname in ('job_rewards', 'door_pre0214', 'ntf_payload_pre0214', 'notification_catalogue_refresh_pre0214', 'notification_catalogue_refresh')))
                or (n.nspname = 'public' and (p.proname like 'my\_rewards%' or p.proname like 'rewards\_mine\_%')) loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);
@@ -695,10 +695,10 @@ begin
   end loop;
 end $$;
 
--- CATALOGUE 0212 START (generated by supabase/seed/0212_gen_catalogue.mjs; do not edit by hand)
+-- CATALOGUE 0214 START (generated by supabase/seed/0214_gen_catalogue.mjs; do not edit by hand)
 insert into notification_catalogue (code, audience, also_sent_to, category, is_digest, digest_slot, from_address, reply_to,
     subject, preheader, timing, trigger_text, replaces_template, link_path, variables, template_html, template_text) values
-  ('renter_rewards_expiring', 'renter', '{}'::text[], 'transactional', false, null, 'CarmaCars <hello@carmacars.ca>', 'contact@carmacars.ca', 'Your {{points_balance}} CarmaCars points end on {{expiry_date}}', 'Worth {{points_value}} off a rental. Rent or redeem before then to keep them.', 'About 30 days before the points end', 'CarmaCars Rewards job (hourly, migration 0212): a renter has points and no rental or redemption for the expiry period less the reminder days (Admin > Settings > Rewards: 12 months and 30 days by default). One email per period of activity. Low priority (class 4): it waits behind customer, owner and staff emails under the daily email cap.', null, null, '[{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"expiry_date","type":"string"},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"opening_hours","type":"string","global":true},{"name":"points_balance","type":"string"},{"name":"points_value","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"rewards_url","type":"url"},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true}]'::jsonb, 'templates/renter_rewards_expiring.html', 'templates/renter_rewards_expiring.txt')
+  ('renter_rewards_expiring', 'renter', '{}'::text[], 'transactional', false, null, 'CarmaCars <hello@carmacars.ca>', 'contact@carmacars.ca', 'Your {{points_balance}} CarmaCars points end on {{expiry_date}}', 'Worth {{points_value}} off a rental. Rent or redeem before then to keep them.', 'About 30 days before the points end', 'CarmaCars Rewards job (hourly, migration 0214): a renter has points and no rental or redemption for the expiry period less the reminder days (Admin > Settings > Rewards: 12 months and 30 days by default). One email per period of activity. Low priority (class 4): it waits behind customer, owner and staff emails under the daily email cap.', null, null, '[{"name":"company_address","type":"string","global":true},{"name":"contact_email","type":"string","global":true},{"name":"expiry_date","type":"string"},{"name":"first_name","type":"string"},{"name":"instagram_url","type":"url","global":true},{"name":"opening_hours","type":"string","global":true},{"name":"points_balance","type":"string"},{"name":"points_value","type":"string"},{"name":"reply_time","type":"string","global":true},{"name":"rewards_url","type":"url"},{"name":"support_phone","type":"string","global":true},{"name":"tiktok_url","type":"url","global":true}]'::jsonb, 'templates/renter_rewards_expiring.html', 'templates/renter_rewards_expiring.txt')
 on conflict (code) do update set
   audience = excluded.audience, also_sent_to = excluded.also_sent_to, category = excluded.category,
   is_digest = excluded.is_digest, digest_slot = excluded.digest_slot, from_address = excluded.from_address,
@@ -707,8 +707,8 @@ on conflict (code) do update set
   variables = excluded.variables, template_html = excluded.template_html, template_text = excluded.template_text,
   in_catalogue = true, updated_at = now();
 select app.notification_catalogue_refresh();
--- CATALOGUE 0212 END
-update notification_catalogue set emitted_by = 'app.job_rewards (0212)' where code = 'renter_rewards_expiring';
+-- CATALOGUE 0214 END
+update notification_catalogue set emitted_by = 'app.job_rewards (0214)' where code = 'renter_rewards_expiring';
 update notification_catalogue set emitted_by = 'app.hiring_release_waiting (0211)' where code = 'applicant_new_times' and emitted_by is null;
 select app.notification_catalogue_refresh();
 -- its text, for a renter who chose texts (0096)

@@ -19,6 +19,8 @@ export interface EsignView {
   code_required: boolean;
   required_initials: string[]; required_consents: string[]; initials: string[]; consents: string[]; signature: 'drawn' | 'typed' | null;
   typed_fallback_allowed: boolean; signed: boolean; ready: boolean;
+  /** 0212: the channel offered first (text when a mobile is on file), and whether email is at its limit (the code by email waits) */
+  default_channel?: 'sms' | 'email' | null; email_held?: boolean;
   licence: { licence_front?: string | null; licence_back?: string | null; selfie?: string | null; verified?: boolean; expiry?: string | null; complete?: boolean } | null;
 }
 

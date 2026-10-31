@@ -1,4 +1,4 @@
-// CarmaCars Rewards (migration 0212): what public.my_rewards returns. No imports: Worker and `node --test`.
+// CarmaCars Rewards (migration 0214): what public.my_rewards returns. No imports: Worker and `node --test`.
 export interface RewardTier { code: string; name: string; min_days: number; discount_bps: number; perk: string | null }
 export interface RewardsState {
   enabled: boolean; renter: boolean; balance: number; value_cents: number; point_value_cents: number; min_redeem: number; code_valid_days: number; expiry_months: number;

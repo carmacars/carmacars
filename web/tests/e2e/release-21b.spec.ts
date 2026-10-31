@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
+import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { acceptCookies, db, noOverflow, watch } from './helpers';
 
 // Release 21b end to end, at both widths: the "i" (InfoTip: opens on a click or a tap, Escape closes it and gives the focus
@@ -140,7 +142,7 @@ test('the referral partner sign-up: the address lookup fills the street, the cit
   await page.context().close();
 });
 
-test('Add an investor: the record and the invitation in one step; the investor chooses a password and lands in the investor portal', async ({ browser }, info) => {
+test('Add an investor: the record and the invitation in one step; the investor chooses a password and the sign-in is linked to the record', async ({ browser }, info) => {
   test.setTimeout(180_000);
   const phone = info.project.name.startsWith('phone');
   const sql = db();
@@ -159,7 +161,7 @@ test('Add an investor: the record and the invitation in one step; the investor c
   await f.getByTestId('ai-email').fill(email);
   await f.getByTestId('ai-phone').fill('416-555-0100');
   await f.getByTestId('ai-address').pressSequentially('100 Queen', { delay: 40 });
-  await page.getByRole('option').first().click();
+  await page.getByRole('listbox', { name: 'Address suggestions' }).getByRole('option').first().click();
   await expect(f.getByTestId('ai-roi')).toHaveValue('30');
   await f.getByTestId('info-ai-roi').click();
   await expect(page.getByRole('tooltip')).toContainText('investment agreement sets');
@@ -182,8 +184,11 @@ test('Add an investor: the record and the invitation in one step; the investor c
   await p.goto(u.pathname + u.search);
   await p.locator('#np-pass').fill('a brand new password');
   await p.getByRole('button', { name: 'Save the new password' }).click();
-  await p.waitForURL((x) => x.pathname.startsWith('/investor'), { timeout: 30_000 });
+  // signed in; a prospect has no investor portal until the agreement makes them active (my_roles: active or exited)
+  await p.waitForURL((x) => !x.pathname.startsWith('/update-password'), { timeout: 30_000 });
   await expect(p.locator('h1').first()).toBeVisible();
+  const [linked] = await sql`select i.status, u.email from investors i join users u on u.id = i.user_id where i.email = ${email}`;
+  expect(linked).toMatchObject({ status: 'prospect', email });
   await p.context().close();
   await sql.end();
 });
@@ -244,6 +249,198 @@ test('hiring: a pass with no open interview day waits; the link says so; Admin i
     await c.context().close(); await ap.context().close();
   } finally {
     if (open.length) await sql`update interview_days set active = true where id = any (${open}::uuid[])`;
+    await sql.end();
+  }
+});
+
+// 2026-10-30: a device with "After tax" saved sent every fee and the coverage of a reviewed request about 11.5% low
+test('After tax saved on this device: a request\'s review changes nothing, and the offer keeps every fee and the coverage', async ({ browser }, info) => {
+  test.setTimeout(180_000);
+  const phone = info.project.name.startsWith('phone');
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const admin = await mkUser(sql, 'admin');
+  const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+  const ahead = 400 + Math.floor(Math.random() * 200);
+  const from = ymd(new Date(Date.now() + ahead * 86_400_000)); const to = ymd(new Date(Date.now() + (ahead + 3) * 86_400_000));
+  const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
+    where l.status = 'published' and app.vehicle_bookable(v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable)
+      and app.vehicle_is_available(v.id, ${`${from}T10:00:00-04:00`}::timestamptz - interval '1 day', ${`${to}T10:00:00-04:00`}::timestamptz + interval '1 day', null)
+    order by random() limit 1`;
+  expect(car, 'a free car').toBeTruthy();
+  const req = {
+    request_key: randomUUID(), vehicle_id: car!.id, pickup_at: `${from}T10:00:00-04:00`, return_at: `${to}T10:00:00-04:00`, booking_type: 'standard',
+    pickup_method: 'collected', return_method: 'returned', pickup_location: { kind: 'our_location' }, return_location: { kind: 'our_location' }, coverage_option: 3, extras: {},
+    renter: { email: `tax.${tag()}@example.test`, full_name: 'Tess Taxmode', mobile: '+16475550123', date_of_birth: '1988-03-14', licence_class: 'G', licence_issuer: 'ON' }, additional_drivers: [],
+    consents: { terms: { accepted: true, version: 'e2e', text: 'I agree.' }, privacy: { accepted: true, version: 'e2e', text: 'I agree.' }, marketing: { opted_in: false, version: 'e2e', text: 'No.' } },
+    details: { source: 'e2e' }
+  };
+  const [r] = await sql`select public.submit_booking_request(${sql.json(req as never)}, '203.0.113.9', 'e2e', null) v`;
+  const v = r!.v as { ok: boolean; booking_id: string; booking_number: string; message?: string };
+  expect(v.ok, v.message).toBe(true);
+  const lines = () => sql`select charge_type, amount_cents, hst_cents from booking_line_items where booking_id = ${v.booking_id} and stage = 'booking' and voided_at is null order by charge_type, amount_cents`;
+  const linesBefore = await lines();
+  const [stored] = await sql`select total_due_at_booking_cents t from bookings where id = ${v.booking_id}`;
+
+  const page = await ctx(browser, phone);
+  await page.context().addInitScript(() => { try { localStorage.setItem('cc-amounts-typed', 'after'); } catch { /* none */ } });
+  const errors = watch(page);
+  await signIn(page, admin.email, '/admin');
+  await page.goto(`/admin/bookings/${v.booking_number}`, { waitUntil: 'networkidle' });
+  const review = page.getByTestId('booking-review');
+  await expect(review).toBeVisible();
+  await expect(page.getByTestId('rv-tax-mode')).toHaveAttribute('data-mode', 'after');
+  // the boxes now show the amounts with HST, and nothing counts as changed
+  await expect(review.locator('.ad-diff')).toHaveCount(0);
+  await expect(page.getByTestId('review-send')).toHaveText('Send the offer');
+  const total = Number((await page.getByTestId('review-total').innerText()).replace(/[^\d.]/g, '').match(/^\d+(\.\d{1,2})?/)![0]);
+  expect(Math.round(total * 100)).toBe(Number(stored!.t));
+  await check(page, 'review after tax');
+  if (await page.getByTestId('choice-for_carmacars').count()) await page.getByTestId('choice-for_carmacars').check();
+  await page.getByTestId('review-send').click();
+  await expect(page.getByRole('status').filter({ hasText: 'Offer sent' })).toBeVisible({ timeout: 15_000 });
+  expect((await sql`select status::text s from bookings where id = ${v.booking_id}`)[0]!.s).toBe('offered');
+  expect(await lines()).toEqual(linesBefore);
+  expect(quiet(errors)).toEqual([]);
+  await page.context().close();
+  await sql.end();
+});
+
+// 0212: the email limit reached: Text it instead, and sign-in opens on the phone option
+test('email limit: an Admin texts a held email instead; sign-in opens on the phone while email is held', async ({ browser }, info) => {
+  test.setTimeout(120_000);
+  const phone = info.project.name.startsWith('phone');
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const admin = await mkUser(sql, 'admin');
+  const k = tag();
+  const [rn] = await sql`insert into renters (legal_name, email, mobile) values ('Lima Limit', ${`lim.${k}@example.test`}, '416-555-0190') returning id`;
+  const [o] = await sql`insert into notification_outbox (code, category, priority, audience, to_address, renter_id, payload, dedupe_key, status, status_reason, send_after)
+    values ('renter_payment_receipt', 'transactional', 1, 'renter', ${`lim.${k}@example.test`}, ${rn!.id}, ${sql.json({ booking_number: `CC-L${k}` } as never)}, ${`e2e-limit:${k}`}, 'delayed', 'daily email limit', now() + interval '6 hours')
+    returning id`;
+  try {
+    const page = await ctx(browser, phone);
+    const errors = watch(page);
+    await signIn(page, admin.email, '/admin');
+    await page.goto(`/admin/messages?status=delayed&q=${encodeURIComponent(`lim.${k}`)}`, { waitUntil: 'networkidle' });
+    await page.getByTestId(`outbox-text-${o!.id}`).click();
+    await page.getByTestId(`outbox-text-${o!.id}-submit`).click();
+    await expect(page.getByTestId(`outbox-texted-${o!.id}`)).toBeVisible({ timeout: 15_000 });
+    const [p] = await sql`select p.to_number, p.status, n.status n from notification_outbox n join phone_outbox p on p.id = n.limit_text_id where n.id = ${o!.id}`;
+    expect(p).toMatchObject({ to_number: '+14165550190', n: 'delayed' });
+    expect(['queued', 'sending', 'sent']).toContain(p!.status);
+    await check(page, 'email text it instead');
+    expect(quiet(errors)).toEqual([]);
+    await page.context().close();
+
+    // sign-in while email is held (the answer of /api/email-status, so the other tests' sign-ins are not touched)
+    const s = await ctx(browser, phone);
+    await s.route('**/api/email-status', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ capped: true, phone_signin: true }) }));
+    await s.goto('/sign-in', { waitUntil: 'networkidle' });
+    await acceptCookies(s);
+    await expect(s.getByTestId('signin-email-held')).toContainText('sign in with the code we text you');
+    await expect(s.locator('input[type="tel"]').first()).toBeVisible();
+    await check(s, 'sign-in email held');
+    await s.context().close();
+    const n = await ctx(browser, phone);
+    await n.route('**/api/email-status', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ capped: false, phone_signin: true }) }));
+    await n.goto('/sign-in', { waitUntil: 'networkidle' });
+    await expect(n.locator('input[type="email"]')).toBeVisible();
+    await expect(n.getByTestId('signin-email-held')).toHaveCount(0);
+    await n.context().close();
+    const live = await (await fetch(`${test.info().project.use.baseURL ?? 'http://localhost:3000'}/api/email-status`)).json() as { capped: boolean; phone_signin: boolean };
+    expect(typeof live.capped).toBe('boolean');
+  } finally {
+    await sql`delete from phone_outbox where notification_id = ${o!.id}`;
+    await sql`delete from notification_outbox where id = ${o!.id}`;
+    await sql.end();
+  }
+});
+
+// 0213: the deposit hold link texted before pickup by the deposit job, on the Money tab, texted and opened
+test('deposit link by text: the job texts the hold link before pickup; the Money tab says texted, then opened; a prepaid card is refused', async ({ browser }, info) => {
+  test.setTimeout(150_000);
+  const phone = info.project.name.startsWith('phone');
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const admin = await mkUser(sql, 'admin');
+  const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+  const from = ymd(new Date(Date.now() + 2 * 86_400_000)); const to = ymd(new Date(Date.now() + 5 * 86_400_000));
+  const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
+    where l.status = 'published' and app.vehicle_bookable(v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable)
+      and app.vehicle_is_available(v.id, ${`${from}T10:00:00-04:00`}::timestamptz - interval '1 day', ${`${to}T10:00:00-04:00`}::timestamptz + interval '1 day', null)
+    order by random() limit 1`;
+  test.skip(!car, 'no free car in two days');
+  const req = {
+    request_key: randomUUID(), vehicle_id: car!.id, pickup_at: `${from}T10:00:00-04:00`, return_at: `${to}T10:00:00-04:00`, booking_type: 'standard',
+    pickup_method: 'collected', return_method: 'returned', pickup_location: { kind: 'our_location' }, return_location: { kind: 'our_location' }, coverage_option: 3, extras: {},
+    renter: { email: `dep.${tag()}@example.test`, full_name: 'Dana Deposit', mobile: '+16475550124', date_of_birth: '1988-03-14', licence_class: 'G', licence_issuer: 'ON' }, additional_drivers: [],
+    consents: { terms: { accepted: true, version: 'e2e', text: 'I agree.' }, privacy: { accepted: true, version: 'e2e', text: 'I agree.' }, marketing: { opted_in: false, version: 'e2e', text: 'No.' } },
+    details: { source: 'e2e' }
+  };
+  const [r] = await sql`select public.submit_booking_request(${sql.json(req as never)}, '203.0.113.9', 'e2e', null) v`;
+  const v = r!.v as { ok: boolean; booking_id: string; booking_number: string; message?: string };
+  expect(v.ok, v.message).toBe(true);
+  // confirmed as an approved and paid offer would leave it (the status path itself is tested elsewhere)
+  await sql.begin(async (t) => {
+    await t`set local session_replication_role = replica`;
+    await t`update bookings set status = 'confirmed', deposit_pay_method = 'card', deposit_cents = greatest(deposit_cents, 25000) where id = ${v.booking_id}`;
+  });
+  const [hrs] = await sql`select deposit_link_hours h from site_settings where singleton`;
+  await sql`update site_settings set deposit_link_hours = 72 where singleton`;
+  try {
+    const env = readFileSync(path.join(process.cwd(), '.env.local'), 'utf8');
+    const token = createHmac('sha256', /^LINK_SIGNING_KEY=(.*)$/m.exec(env)![1]!.trim()).update('carmacars-listing-worker-v1').digest('hex');
+    const page = await ctx(browser, phone);
+    const res = await page.request.post('/api/jobs/deposits', { headers: { authorization: `Bearer ${token}` } });
+    expect(res.ok()).toBe(true);
+    const [q] = await sql`select q.texted_at, q.auto, p.body, p.to_number from payment_requests q join phone_outbox p on p.id = q.text_id
+      where q.booking_id = ${v.booking_id} and q.kind = 'hold' and q.status = 'open'`;
+    expect(q).toMatchObject({ auto: true, to_number: '+16475550124' });
+    expect(q!.texted_at).toBeTruthy();
+    expect(String(q!.body)).toContain(`booking ${v.booking_number}`);
+    const link = /https?:\/\/\S+\/pay\/[A-Za-z0-9_-]{20,}/.exec(String(q!.body))![0];
+    // a second run sends nothing more
+    await page.request.post('/api/jobs/deposits', { headers: { authorization: `Bearer ${token}` } });
+    expect((await sql`select count(*)::int n from payment_requests where booking_id = ${v.booking_id} and kind = 'hold'`)[0]!.n).toBe(1);
+
+    const errors = watch(page);
+    await signIn(page, admin.email, '/admin');
+    await page.goto(`/admin/bookings/${v.booking_number}?tab=money`, { waitUntil: 'networkidle' });
+    await expect(page.getByTestId('bm-deposit-link')).toContainText('Deposit link texted');
+    await expect(page.getByTestId('bm-deposit-link')).toContainText('not opened yet');
+    await check(page, 'money deposit link');
+    const renter = await ctx(browser, phone);
+    await renter.goto(new URL(link).pathname, { waitUntil: 'networkidle' });
+    await renter.context().close();
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.getByTestId('bm-deposit-link')).toContainText('opened');
+    await expect(page.getByTestId('bm-deposit-link')).not.toContainText('not opened');
+    // the staff link takes the same cards as the booking's pay page: a prepaid card is refused, nothing held; a credit card places the hold
+    const rp = await ctx(browser, phone);
+    await rp.goto(new URL(link).pathname, { waitUntil: 'networkidle' });
+    const pay = async (number: string) => {
+      await rp.locator('#pl-name').fill('Dana Deposit');
+      await rp.locator('#pl-num').fill(number);
+      await rp.locator('#pl-exp').fill('12 / 30');
+      await rp.locator('#pl-cvc').fill('123');
+      await rp.getByTestId('paylink-submit').click();
+    };
+    await pay('5105105105105100');
+    await expect(rp.getByTestId('paylink-message')).toContainText('Please use a credit card. Debit and prepaid cards cannot be used for a rental.');
+    expect((await sql`select count(*)::int n from deposits where booking_id = ${v.booking_id} and status = 'held'`)[0]!.n).toBe(0);
+    expect((await sql`select status, last_error from payment_requests where booking_id = ${v.booking_id} and kind = 'hold' order by created_at desc limit 1`)[0]).toMatchObject({ status: 'open' });
+    await check(rp, 'pay link prepaid refused');
+    await expect(rp.getByTestId('paylink-submit')).toBeEnabled({ timeout: 15_000 });
+    await pay('4242424242424242');
+    await expect(rp.getByTestId('paylink-done')).toBeVisible({ timeout: 20_000 });
+    expect((await sql`select count(*)::int n from deposits where booking_id = ${v.booking_id} and status = 'held'`)[0]!.n).toBe(1);
+    await rp.context().close();
+    expect(quiet(errors)).toEqual([]);
+    await page.context().close();
+  } finally {
+    await sql`update site_settings set deposit_link_hours = ${Number(hrs!.h)} where singleton`;
+    await sql`update payment_requests set status = 'cancelled' where booking_id = ${v.booking_id} and status = 'open'`;
     await sql.end();
   }
 });

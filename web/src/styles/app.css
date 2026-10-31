@@ -36,7 +36,7 @@
 .info__btn { inline-size: 1.5rem; block-size: 1.5rem; min-inline-size: 1.5rem; border-radius: 50%; border: 1px solid currentColor; background: transparent; color: inherit;
   font: italic 600 .8rem/1 Georgia, serif; cursor: pointer; padding: 0; display: inline-grid; place-items: center; }
 .info__btn:focus-visible { outline: 2px solid var(--c-red, #c8102e); outline-offset: 2px; }
-.info__tip { position: absolute; z-index: 30; inset-block-start: calc(100% + .35rem); inset-inline-start: -.5rem; inline-size: min(18rem, 80vw); padding: .6rem .7rem;
+.info__tip { position: absolute; z-index: 30; inset-block-start: calc(100% + .35rem); inset-inline-start: -.5rem; inline-size: min(18rem, calc(100vw - 16px)); padding: .6rem .7rem;
   background: var(--c-ink, #111); color: #fff; font: 400 .85rem/1.4 inherit; border-radius: .35rem; box-shadow: 0 6px 18px rgb(0 0 0 / .2); white-space: normal; font-style: normal; }
 .ad-table td .info__tip, .ad-table th .info__tip { inset-inline-start: auto; inset-inline-end: -.5rem; }
 .ad-table .select--sm, .select.select--sm { inline-size: auto; min-inline-size: 7rem; }

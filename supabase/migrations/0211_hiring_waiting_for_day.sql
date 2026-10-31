@@ -140,3 +140,9 @@ on conflict (code) do update set
   in_catalogue = true, updated_at = now();
 select app.notification_catalogue_refresh();
 -- CATALOGUE 0211 END
+
+-- the catalogue refresh above recomputes each marketing email's consent rule: keep express consent where 0161 and 0167 set it (as 0193 does)
+update notification_catalogue set consent_rule = 'express' where code in ('renter_promo_expiry_3d', 'renter_promo_expiry_1d', 'owner_recruit_outreach');
+update notification_catalogue set emitted_by = 'app.hiring_release_waiting, from app.hiring_day_save (0211)' where code = 'applicant_new_times';
+update notification_catalogue set emitted_by = emitted_by || '; app.hiring_release_waiting (0211: an invitation that waited for an interview day)'
+ where code = 'applicant_invited' and emitted_by not like '%hiring_release_waiting%';

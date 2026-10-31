@@ -7,7 +7,7 @@ import { PipelineBoard, type PipelineData } from '@/features/owner-pipeline/Boar
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner pipeline', path: '/admin/marketing/owner-pipeline', noindex: true, description: 'Prospective owners from the website, referrals, classified ads and staff, by stage, with automatic follow-ups.' });
 
-// Admin > Marketing > Owner pipeline (migration 0215).
+// Admin > Marketing > Owner pipeline (migration 0217).
 export default async function OwnerPipeline() {
   const { read } = await page('/admin/marketing/owner-pipeline');
   const d = await read<PipelineData>('owner_pipeline');

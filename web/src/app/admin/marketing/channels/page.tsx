@@ -16,7 +16,7 @@ const STATUS: Array<[string, string]> = [['not_started', 'Not started'], ['appli
 const KIND: Record<string, string> = { peer_to_peer: 'Car sharing', aggregator: 'Aggregator', classifieds: 'Classifieds', social: 'Social', search: 'Search', directory: 'Directory' };
 const tone = (s: string) => (s === 'live' ? 'published' : s === 'applied' ? 'draft' : 'closed');
 
-// Admin > Marketing > Listing channels (migration 0214): the checklist of other sites (status, who holds the login, notes)
+// Admin > Marketing > Listing channels (migration 0216): the checklist of other sites (status, who holds the login, notes)
 // and each channel's own feed of our cars (JSON, CSV, XML). No site here is connected automatically: a channel goes live
 // when it is applied for on that site, and a site or partner program that takes a feed is given that channel's address.
 export default async function Channels() {

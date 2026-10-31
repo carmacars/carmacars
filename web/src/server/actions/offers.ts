@@ -62,7 +62,7 @@ export async function startCardRequest(p: { booking: string; kind: 'charge' | 'h
     const metadata = { booking_id: q.booking_id, booking_number: q.booking_number, purpose: 'staff_request', payment_request_id: q.id, covers: q.covers };
     const intent = q.kind === 'setup'
       ? await pay.createCardSetup({ customerId, description: `CarmaCars booking ${q.booking_number}: card on file`, metadata, idempotencyKey: `payreq:${q.id}` })
-      : await pay.createStaffIntent({ amountCents: q.amount_cents, customerId, capture: q.kind === 'hold' ? 'manual' : 'automatic',
+      : await pay.createStaffIntent({ amountCents: q.amount_cents, customerId, capture: 'manual',
           description: `CarmaCars booking ${q.booking_number}: ${q.kind === 'hold' ? 'deposit hold' : p.reason || q.covers}`, metadata, idempotencyKey: `payreq:${q.id}` });
     await rpc('server_payreq_attach', { p_id: q.id, p_intent: intent.id }, SR);
     const url = `${baseUrl()}/pay/${token}`;

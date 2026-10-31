@@ -1,7 +1,7 @@
-# The owner pipeline (0215)
+# The owner pipeline (0217)
 
 Abbas's request (Release 22, item 4): owner recruitment that follows up by itself. Migration
-`supabase/migrations/0215_owner_pipeline.sql`. Code: `web/src/features/owner-pipeline/`,
+`supabase/migrations/0217_owner_pipeline.sql`. Code: `web/src/features/owner-pipeline/`,
 `web/src/app/admin/marketing/owner-pipeline/page.tsx`, `web/src/app/staff/owner-pipeline/page.tsx`,
 `web/src/server/actions/leads.ts`, `web/src/app/r/[code]/route.ts`. Tests: `supabase/tests/99_owner_pipeline.sql`,
 `web/src/features/owner-pipeline/model.test.ts`, `web/tests/e2e/release-22.spec.ts`.

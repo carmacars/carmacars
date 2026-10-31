@@ -13,7 +13,7 @@ export const metadata = pageMeta({ title: 'Rewards', path: '/account/rewards', n
 const fmtDate = (d: string) => new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(d));
 const fmtAt = (d: string) => new Intl.DateTimeFormat('en-CA', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Toronto' }).format(new Date(d));
 
-// The renter's CarmaCars Rewards (migration 0212): points and what they are worth, the tier and its code, ways to earn
+// The renter's CarmaCars Rewards (migration 0214): points and what they are worth, the tier and its code, ways to earn
 // (referral link, follows, reviews), codes made from points, and every change with its reason.
 export default async function Rewards() {
   const user = await requireUser('/account/rewards');

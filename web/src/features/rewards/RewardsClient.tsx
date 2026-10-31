@@ -6,7 +6,7 @@ import { cancelRewardCode, claimGoogleReview, redeemPoints } from '@/server/acti
 import { money } from '@/lib/format';
 import { pointsWorth, redeemSteps } from './types';
 
-// The renter's Rewards actions (migration 0212): turn points into a code, give an unused code back, claim a Google review.
+// The renter's Rewards actions (migration 0214): turn points into a code, give an unused code back, claim a Google review.
 export function Redeem({ balance, min, centsPerPoint, validDays }: { balance: number; min: number; centsPerPoint: number; validDays: number }) {
   const steps = redeemSteps(balance, min);
   const [points, setPoints] = useState(steps[0] ?? 0);

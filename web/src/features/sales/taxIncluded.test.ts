@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { beforeTax, bpsOf, breakdown, convertTyped, dollarsToCents, hstOf, linesBeforeTax, solveRental, splitIncluded, toBeforeTax, totalDifference, withTax } from './taxIncluded.ts';
+import { beforeTax, bpsOf, breakdown, convertBoxes, convertTyped, dollarsToCents, hstOf, linesBeforeTax, solveRental, splitIncluded, toBeforeTax, totalDifference, withTax } from './taxIncluded.ts';
 
 const HST = 1300;   // the tests' setting; the screens read it from the quote or the booking
 
@@ -89,4 +89,19 @@ test('dollars typed and the difference in words', () => {
   assert.equal(totalDifference(32001, 32000, m), 'The total priced is $320.01: $0.01 more than the $320.00 typed.');
   assert.equal(totalDifference(31999, 32000, m), 'The total priced is $319.99: $0.01 less than the $320.00 typed.');
   assert.equal(totalDifference(31999, null, m), '');
+});
+
+// 2026-10-30: the review screen's boxes are converted once when the device's saved mode is After tax
+test('convertBoxes: before, after and back is exact to the cent at 13%, for every amount up to $2,000', () => {
+  for (let c = 0; c <= 200_000; c += 1) {
+    const before = { coverage: (c / 100).toFixed(2), 'fee:cleaning': (c / 100).toFixed(2), price_tax: 'plus' };
+    const keys: Array<[string, boolean]> = [['coverage', true], ['fee:cleaning', true]];
+    const after = convertBoxes(before, keys, 'before', 'after', 1300);
+    const back = convertBoxes(after, keys, 'after', 'before', 1300);
+    if (back.coverage !== before.coverage || back['fee:cleaning'] !== before['fee:cleaning']) assert.fail(`${c} cents: ${after.coverage} came back as ${back.coverage}`);
+  }
+  const keys: Array<[string, boolean]> = [['coverage', true], ['fee:x', false], ['empty', true]];
+  const a = convertBoxes({ coverage: '100.00', 'fee:x': '25.00', empty: '', price_tax: 'plus' }, keys, 'before', 'after', 1300);
+  assert.deepEqual(a, { coverage: '113.00', 'fee:x': '25.00', empty: '', price_tax: 'included' });
+  assert.equal(convertBoxes(a, keys, 'after', 'after', 1300), a);
 });

@@ -113,7 +113,8 @@ test('owner application with address lookup sends an owner_program lead', async 
   await page.getByRole('button', { name: 'Send application' }).click();
   await expect(page.getByText('Application sent.')).toBeVisible();
   const sql = db();
-  const r = await sql`select kind, payload ->> 'car_address' a from leads where email = ${email}`;
+  // the application's lead (the details typed are also kept as a contact capture of their own)
+  const r = await sql`select kind, payload ->> 'car_address' a from leads where email = ${email} order by (kind = 'owner_program') desc, created_at desc`;
   await sql.end();
   expect(r[0]?.kind).toBe('owner_program');
   expect(r[0]?.a).toMatch(/Yorkdale/);

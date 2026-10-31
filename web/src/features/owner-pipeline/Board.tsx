@@ -7,7 +7,7 @@ export interface PipelineData {
   credits: Array<Record<string, unknown>> | null; owner_links: Array<{ owner: string; code: string; url: string }> | null;
 }
 
-// The owner pipeline board (migration 0215), the same for an Admin and for staff working as Sales or Customer service:
+// The owner pipeline board (migration 0217), the same for an Admin and for staff working as Sales or Customer service:
 // one column per stage, each lead with its follow-ups, Move, They replied and Stop or Restart. The database decides.
 export function PipelineBoard({ d, refresh }: { d: PipelineData; refresh: string[] }) {
   const cols = byStage(d.leads);

@@ -20,4 +20,4 @@ Release 21b, item 8. Code: `web/src/features/manual/SignRequests.tsx`, `web/src/
 
 ## Guides
 
-None.
+No guide change: the address lookup fills the same fields the guides already name.

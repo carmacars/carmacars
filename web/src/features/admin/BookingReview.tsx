@@ -13,7 +13,8 @@ import { SourcedChoice, type Choice } from '@/features/sales/SourcedChoice';
 import { AddonPicker } from '@/features/addons/AddonPicker';
 import { addonsPayload, type AddonChoice, type AddonOption, type BookingAddon } from '@/features/addons/model';
 import { TaxModeToggle, useTaxMode } from '@/features/sales/TaxModeToggle';
-import { beforeTax, convertTyped, solveRental, toBeforeTax, totalDifference, withTax, type TaxMode } from '@/features/sales/taxIncluded';
+import { hasMobile, offerChannels } from '@/features/offers/model';
+import { beforeTax, convertBoxes, solveRental, toBeforeTax, totalDifference, withTax, type TaxMode } from '@/features/sales/taxIncluded';
 import { offersDo } from '@/server/actions/offers';
 import { DEPOSIT_PAY, RENTAL_PAY, describeRevision } from '@/features/offers/model';
 import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/insurers/rates';
@@ -45,6 +46,7 @@ export interface B {
   sales_choice?: 'sourced' | 'for_carmacars' | null; sales_claim_by?: string | null; rate_sheet_rental_cents?: number | null; custom_price_reason?: string | null; price_flags?: string[];
   /** 0112: the price typed is plus tax or tax included (then the amount typed) */
   price_tax?: 'plus' | 'included' | null; price_with_tax_cents?: number | null;
+  /** the renter's mobile (texts by default, 2026-11-01) */ renter?: { mobile: string | null } | null;
   /** 0129: how the rental and the deposit are paid */
   rental_pay_method?: string; deposit_pay_method?: string;
   /** the booking's HST rate (the settings' when it was priced) */
@@ -119,7 +121,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     ...Object.fromEntries(feeLines.map((l) => [`fee:${l.charge_type}`, dollars(l.amount_cents)])), fee_reason: '',
     ...Object.fromEntries(INSURER_FEES.map((x) => [`ifee:${x.code}`, typedFrom(b.insurer_fees)[x.code] ?? ''])),
     message: '', expires_hours: String(offerHours), note: b.notes ?? '',
-    rental_pay: b.rental_pay_method ?? 'card', deposit_pay: b.deposit_pay_method ?? 'card', notify: true, by_email: true, by_text: false
+    rental_pay: b.rental_pay_method ?? 'card', deposit_pay: b.deposit_pay_method ?? 'card', notify: true, by_email: !hasMobile(b.renter?.mobile), by_text: hasMobile(b.renter?.mobile)
   }) as Record<string, string | boolean>, [b, offerHours]); // eslint-disable-line react-hooks/exhaustive-deps
   const [v, setV] = useState(() => (va && Number(start.expires_hours) > 48 ? { ...start, expires_hours: '48' } : start));
   const [preview, setPreview] = useState<{ booking: B; available: boolean } | null>(null);
@@ -144,7 +146,11 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   const [totalTyped, setTotalTyped] = useState('');
   const [solvedW, setSolvedW] = useState<number | null>(null);
   const bps = b.hst_bps ?? null;
-  const conv = taxMode === 'after' && bps !== null ? 'after' : 'before';
+  // the mode the boxes are in: they start before tax; the device's saved mode (read after hydration) or the toggle
+  // converts them in one place (the effect below), so a box never changes meaning (2026-10-30: an "After tax" device
+  // sent every fee and the coverage 11.5% low)
+  const [boxMode, setBoxMode] = useState<TaxMode>('before');
+  const conv = boxMode === 'after' && bps !== null ? 'after' : 'before';
   const hstOfKey = (k: string) => { const l = k === 'coverage' ? coverageLine : k.startsWith('fee:') ? feeLines.find((x) => `fee:${x.charge_type}` === k) : undefined; return l ? (l.hst_applies ?? l.hst_cents !== 0) : true; };
   const taxed = (k: string) => k === 'coverage' || k.startsWith('fee:');
   const beforeOf = (k: string) => { const c = cents(String(v[k] ?? '')); return c === null ? null : toBeforeTax(c, conv, hstOfKey(k), bps ?? 0); };
@@ -179,7 +185,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     const residual = conv === 'after' ? [...(changed('coverage') && String(v.coverage).trim() ? ['coverage'] : []), ...feeLines.map((x) => `fee:${x.charge_type}`).filter((k) => changed(k))]
       .reduce((sum, k) => { const t = cents(String(v[k] ?? '')); return t === null || !hstOfKey(k) ? sum : sum + t - withTax(beforeTax(t, bps!), bps!); }, 0) : 0;
     if (totalCents !== null && solvedW !== null) { ch.rental_charge_cents = solvedW; ch.price_tax = 'included'; ch.price_reason = String(v.price_reason).trim() || 'Total agreed with the renter'; }
-    else if (String(v.rental_charge_cents).trim()) { const c = cents(String(v.rental_charge_cents)); ch.rental_charge_cents = c === null ? null : taxMode === 'after' ? Math.max(0, c + residual) : c; ch.price_tax = taxMode === 'after' ? 'included' : 'plus'; ch.price_reason = String(v.price_reason).trim() || null; }
+    else if (String(v.rental_charge_cents).trim()) { const c = cents(String(v.rental_charge_cents)); ch.rental_charge_cents = c === null ? null : conv === 'after' ? Math.max(0, c + residual) : c; ch.price_tax = conv === 'after' ? 'included' : 'plus'; ch.price_reason = String(v.price_reason).trim() || null; }
     if (changed('staff_discount_reason') || changed('staff_discount_cents')) ch.staff_discount_reason = String(v.staff_discount_reason).trim() || null;
     if (changed('km_allowance_per_day')) ch.km_allowance_per_day = Number(v.km_allowance_per_day);
     for (const k of ['bill_to', 'insurer_id', 'insurer_claim_number', 'insurer_adjuster_name', 'insurer_adjuster_email', 'insurer_adjuster_phone', 'insurer_authorized_until']) if (changed(k)) ch[k] = String(v[k]).trim() || null;
@@ -204,7 +210,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
       : insurerFeesPayload(Object.fromEntries(INSURER_FEES.map((x) => [x.code, String(v[`ifee:${x.code}`] ?? '')])), insBefore);
     if (Object.keys(ins).length) p.insurer_fees = ins;
     return p;
-  }, [v, addons, taxMode, solvedW, totalTyped]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [v, addons, conv, solvedW, totalTyped]); // eslint-disable-line react-hooks/exhaustive-deps
   const payChanged = changed('rental_pay') || changed('deposit_pay');
   const dirty = Object.keys(payload.changes as object).length > 0 || Object.keys(payload).some((k) => !['booking', 'changes'].includes(k));
   // an offer that is out (offered, or approved and not paid): edited in place and sent again in one step (0129)
@@ -269,17 +275,18 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   }, [shown, fresh, totalTyped]); // eslint-disable-line react-hooks/exhaustive-deps
   const difference = fresh ? totalDifference(shown.total_due_at_booking_cents, totalCents, (c) => money(c, { cents: true })) : '';
   // the toggle: every box keeps meaning the same money (a line without HST is left as it is)
-  const changeTaxMode = (m: TaxMode) => {
-    if (m === taxMode) return;
-    const conv1 = (k: string, hst: boolean) => { const c = cents(String(v[k] ?? '')); return c === null || bps === null ? v[k] : dollars(convertTyped(c, taxMode, m, hst, bps)); };
-    setV((s) => ({ ...s, ...Object.fromEntries(['coverage', ...feeLines.map((x) => `fee:${x.charge_type}`), 'rental_charge_cents'].filter((k) => String(s[k] ?? '').trim()).map((k) => [k, conv1(k, k === 'rental_charge_cents' ? true : hstOfKey(k))])),
-      price_tax: m === 'after' ? 'included' : 'plus' }));
-    setTaxMode(m);
-  };
-  const tw = (k: string) => (taxMode === 'after' && hstOfKey(k) ? ', HST included' : ', before tax');
+  useEffect(() => {
+    if (bps === null || taxMode === boxMode) return;
+    const keys = ['coverage', ...feeLines.map((x) => `fee:${x.charge_type}`), 'rental_charge_cents'];
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the boxes follow the mode in one step
+    setV((s) => convertBoxes(s, keys.map((k) => [k, k === 'rental_charge_cents' ? true : hstOfKey(k)] as [string, boolean]), boxMode, taxMode, bps));
+    setBoxMode(taxMode);
+  }, [taxMode, boxMode, bps]); // eslint-disable-line react-hooks/exhaustive-deps
+  const changeTaxMode = (m: TaxMode) => setTaxMode(m);
+  const tw = (k: string) => (conv === 'after' && hstOfKey(k) ? ', HST included' : ', before tax');
   const rentalBox = (hint: string) => totalCents !== null
     ? <p className="small ad-field--wide" data-testid="review-rent-from-total">Rental charge: {solvedW !== null ? `${money(solvedW, { cents: true })} with HST${bps !== null ? ` (${money(beforeTax(solvedW, bps), { cents: true })} before tax)` : ''}, worked out from the total.` : 'worked out from the total.'}</p>
-    : <F k="rental_charge_cents" l={`Rental charge typed by hand${taxMode === 'after' ? ', HST included' : ', before tax'}`} money hint={hint} />;
+    : <F k="rental_charge_cents" l={`Rental charge typed by hand${conv === 'after' ? ', HST included' : ', before tax'}`} money hint={hint} />;
   const lines = shown.lines.filter((l) => l.stage === 'booking' && l.charged_to_renter !== false && (l.amount_cents !== 0 || l.charge_type === 'rental_charge'));
   const total = shown.bill_to !== 'renter' && shown.renter_due_at_booking_cents !== null ? shown.renter_due_at_booking_cents : shown.total_due_at_booking_cents;
   const diffs: Array<[string, string, string]> = [];
@@ -295,7 +302,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     setProblem(null);
     if (!dirty && !payChanged && !String(v.message).trim()) { setProblem('Nothing changed yet: change the offer first.'); return; }
     const r = await offersDo<{ version: number | null; before: Record<string, unknown>; after: Record<string, unknown>; text?: { ok: boolean; reason?: string } | null }>('offer_revise', {
-      ...payload, ...pays(), internal_note: v.note, message: v.message, expires_at: expiresAt(), notify, channels: { email: Boolean(v.by_email), text: Boolean(v.by_text) }, expected_version: shownVersion(b) },
+      ...payload, ...pays(), internal_note: v.note, message: v.message, expires_at: expiresAt(), notify, channels: offerChannels({ by_email: Boolean(v.by_email), by_text: Boolean(v.by_text), mobile: b.renter?.mobile ?? '' }), expected_version: shownVersion(b) },
       [`/admin/bookings/${b.booking_number}`, `/staff/bookings/${b.booking_number}`]);
     if (!r.ok) { setProblem(r.message); return; }
     setRevised(describeRevision(r.data.before as never, r.data.after as never, (c) => money(c, { cents: true }), when));
@@ -415,7 +422,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
                 {[...new Set([6, 12, 24, 48, 72, offerHours])].filter((h) => !va || h <= 48).sort((a, z) => a - z).map((h) => <option key={h} value={h}>{h} hours</option>)}</select></div>
             <div className="field ad-field"><span className="label">Send the update by</span>
               <label className="check" htmlFor="rv-by-email"><input id="rv-by-email" type="checkbox" checked={Boolean(v.by_email)} onChange={(e) => set('by_email')(e.target.checked)} /> <span>Email</span></label>
-              <label className="check" htmlFor="rv-by-text"><input id="rv-by-text" type="checkbox" checked={Boolean(v.by_text)} onChange={(e) => set('by_text')(e.target.checked)} /> <span>Text</span></label></div>
+              <label className="check" htmlFor="rv-by-text"><input id="rv-by-text" type="checkbox" checked={Boolean(v.by_text)} onChange={(e) => set('by_text')(e.target.checked)} /> <span>Text</span></label>
+              {Boolean(v.by_text) && !hasMobile(b.renter?.mobile) && <p className="small ad-flag" role="note" data-testid="rv-no-mobile">No mobile number for this renter: the update goes by email instead.</p>}</div>
             <div className="row">
               <button className="btn btn--primary" type="button" disabled={pending} onClick={() => revise(Boolean(v.by_email) || Boolean(v.by_text))} data-testid="review-revise-send">{pending ? 'Saving' : 'Save and send the update'}</button>
               <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => revise(false)} data-testid="review-revise-quiet">Save without telling the renter</button>

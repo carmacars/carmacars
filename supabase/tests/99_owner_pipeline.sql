@@ -1,4 +1,4 @@
--- 99: the owner pipeline and its follow-ups (migration 0215). Fixtures start with "opl".
+-- 99: the owner pipeline and its follow-ups (migration 0217). Fixtures start with "opl".
 select test.suite('99 owner pipeline');
 select test.mk_user('opl_admin', 'admin');
 select test.mk_user('opl_sales', 'va', 'sales');
