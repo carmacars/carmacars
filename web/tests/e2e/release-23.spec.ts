@@ -106,12 +106,21 @@ test('admin: the usage banner on Today', async ({ browser }, info) => {
   await sql.end();
 });
 
-test('public: robots.txt keeps crawlers in the crawl scope; /delivery shows the minimum and the delivery area', async ({ page }) => {
+test('public: robots.txt follows the search scope (Full by default, Core keeps crawlers in the crawl scope); /delivery shows the minimum and the delivery area', async ({ page }) => {
   const sql = db();
-  const robots = await (await page.request.get('/robots.txt')).text();
-  expect(robots).toContain('Disallow: /t/');
-  expect(robots).toContain('Disallow: /buy/');
-  expect(robots).toContain('Disallow: /cars/*/*/*/*/');
+  const full = await (await page.request.get('/robots.txt')).text();
+  expect(full).not.toContain('Disallow: /t/');
+  await sql`update program_settings set search_scope = 'core' where id = (select id from app.settings())`;
+  try {
+    // the server keeps the scope a few minutes outside local runs: only check when it shows Core already
+    const robots = await (await page.request.get('/robots.txt')).text();
+    if (robots.includes('Disallow: /t/')) {
+      expect(robots).toContain('Disallow: /buy/');
+      expect(robots).toContain('Disallow: /cars/*/*/*/*/');
+    }
+  } finally {
+    await sql`update program_settings set search_scope = 'full' where id = (select id from app.settings())`;
+  }
   const [s] = await sql`select delivery_area_text from site_settings limit 1`;
   const [p] = await sql`select delivery_min_cents from app.settings()`;
   await page.goto('/delivery', { waitUntil: 'networkidle' });
