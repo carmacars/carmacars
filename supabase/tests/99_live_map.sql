@@ -69,7 +69,11 @@ select test.throws('the map is for Admins: customer service is refused',
   format('select app.door(%L, %L, %L, %L)', test.id('lm_cs'), 'aal2', 'admin_read', 'live_map'));
 select test.throws('the map is for Admins: a renter is refused',
   format('select app.door(%L, %L, %L, %L)', test.id('lm_rita'), 'aal2', 'admin_read', 'live_map'));
-create temp table s99lm as select app.door(test.id('lm_admin'), 'aal2', 'admin_read', 'live_map') as v;
+-- the fixtures' pins (p.who: these renters and browsers), so the earlier suites' data and the 500 cap do not matter
+create temp table s99lm as select app.door(test.id('lm_admin'), 'aal2', 'admin_read', 'live_map', jsonb_build_object('who', jsonb_build_array(
+  test.id('renter:lm_rita'), test.id('renter:lm_omar'), test.id('renter:lm_paula'), test.id('renter:lm_quinn'),
+  test.lmvid('lena'), test.lmvid('dora'), test.lmvid('anon'), test.lmvid('junk')))) as v;
+create temp table s99lm_all as select app.door(test.id('lm_admin'), 'aal2', 'admin_read', 'live_map') as v;
 create or replace function test.lm() returns jsonb language sql stable as $$ select v from pg_temp.s99lm $$;
 create or replace function test.lmpin(p_where text, p_val text) returns jsonb language sql stable as $$
   select x from jsonb_array_elements(test.lm() -> 'pins') x where x ->> p_where = p_val limit 1 $$;
@@ -108,14 +112,16 @@ select test.eq('game: played by the anonymous visitor on the site now; the car v
 select test.eq('the visitor on the site with a junk position: a session pin, no position, the city kept',
   (select format('%s %s %s', p ->> 'type', coalesce(p ->> 'lat', 'none'), p ->> 'city') from (select x from jsonb_array_elements(test.lm() -> 'pins') x where x ->> 'session_id' = test.lmsid('junk')::text) y(p)),
   'session none Toronto');
-select test.ok('totals per type count every person (before the cap): at least the fixtures of each kind',
-  (select bool_and(coalesce((test.lm() -> 'totals' ->> k)::integer, 0) >= 1) from unnest(array['on_rent', 'booking', 'request', 'previous', 'lead', 'draft', 'game', 'session']) k));
+select test.eq('totals per type count every person (before the cap); "who" keeps the fixtures only',
+  (select format('%s %s %s %s %s %s %s %s', t ->> 'on_rent', t ->> 'booking', t ->> 'request', t ->> 'previous', t ->> 'lead', t ->> 'draft', t ->> 'game', t ->> 'session') from (select test.lm() -> 'totals' t) x),
+  '1 1 1 1 1 1 1 1');
+select test.ok('without "who": every person, at most 500 pins', jsonb_array_length((select v from pg_temp.s99lm_all) -> 'pins') between 8 and 500);
 select test.eq('the cap: limit 2 keeps the current ones first (on rent or booked)',
   (select count(*) from jsonb_array_elements(app.live_map(test.id('lm_admin'), '{"limit": 2}') -> 'pins') x where x ->> 'type' in ('on_rent', 'booking')), 2::bigint);
 
 -- ================================================================ 4. the tiles and the fleet layer
 select test.eq('KPI: on the site now, requests today, bookings confirmed this week, on rent now',
-  (select format('%s %s %s %s', k ->> 'active_now', k ->> 'requests_today', k ->> 'bookings_week', k ->> 'on_rent_now') from (select test.lm() -> 'kpi' k) x),
+  (select format('%s %s %s %s', k ->> 'active_now', k ->> 'requests_today', k ->> 'bookings_week', k ->> 'on_rent_now') from (select (select v from pg_temp.s99lm_all) -> 'kpi' k) x),
   format('%s %s %s %s', (select count(*) from visitor_sessions where last_seen_at > now() - make_interval(mins => (app.settings()).visitor_live_minutes) and ended_at is null and exclude_reason is null),
          (select count(*) from bookings where booked_at >= app.local_midnight(app.local_date(now())) and booking_type <> 'owner'),
          (select count(*) from bookings where confirmed_at >= app.local_midnight(date_trunc('week', app.local_date(now()))::date) and booking_type <> 'owner'),

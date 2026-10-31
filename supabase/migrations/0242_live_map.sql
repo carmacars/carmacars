@@ -16,6 +16,7 @@
 -- 4. app.live_map(p_by, p): everything the map shows in one read (Admins only, admin_read live_map through the door):
 --    the KPI tiles, the pins (last 30 days plus what is current, one per person, at most 500), the cars they looked at with
 --    a photo and price, and the fleet positions. No per-pin round trips; the website keeps the answer 20 seconds.
+--    p: limit (at most 500), who (only these renter or browser ids).
 -- No applied migration is edited.
 
 -- ================================================================ 1. where a visit came from
@@ -90,6 +91,8 @@ declare
   v_month date := date_trunc('month', v_day)::date;
   v_week date := date_trunc('week', v_day)::date;
   v_cap integer := least(greatest(coalesce((p ->> 'limit')::integer, 500), 1), 500);
+  -- only these people (renter or browser ids): one person's pins, and the tests
+  v_who uuid[] := case when jsonb_typeof(p -> 'who') = 'array' then array(select x::uuid from jsonb_array_elements_text(p -> 'who') x) end;
   v_out jsonb;
 begin
   perform app.assert_admin(p_by);
@@ -154,8 +157,10 @@ begin
                                    and s.visitor_id = c0.visitor_id and s.renter_id is not null order by s.started_at desc limit 1) vr on true
   ),
   c2 as (select c1.*, coalesce('r:' || c1.who_renter::text, 'v:' || c1.visitor_id::text, c1.type || ':' || c1.ref) as k from c1),
-  g as (select k, array_agg(distinct type) as types, max(at) as last_at from c2 group by k),
-  d0 as (select distinct on (c2.k) c2.* from c2 order by c2.k, c2.rank, c2.at desc),
+  c3 as (select * from c2 where v_who is null or c2.who_renter = any (v_who) or c2.visitor_id = any (v_who)),
+  -- a time ahead (a booking made for later) counts as now
+  g as (select k, array_agg(distinct type) as types, max(least(at, now())) as last_at from c3 group by k),
+  d0 as (select distinct on (c3.k) c3.* from c3 order by c3.k, c3.rank, c3.at desc),
   -- the cap: current first, then the newest
   d as (select d0.*, g.types, g.last_at from d0 join g using (k) order by d0.rank <= 2 desc, g.last_at desc limit v_cap),
   e as (
