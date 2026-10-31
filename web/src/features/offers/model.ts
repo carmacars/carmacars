@@ -106,7 +106,8 @@ export function offerPayload(f: OfferForm, role: Role, days: number, addons: Arr
   const typed = typedRental(f, days);
   const after = tax ? tax.after : f.price_tax === 'included';
   // 0132: each fee line set by hand (its amount for the booking, before HST), by an Admin or by staff the settings allow
-  const typedLines = editFees ? feeOverrides({ ...f.fees, ...(f.coverage_option === '3' && f.plan_price.trim() ? { coverage_sold: f.plan_price } : {}) }) : {};
+  // Release 24: only the fees whose choice is still chosen (delivery removed: its fee set by hand is not sent)
+  const typedLines = editFees ? feeOverrides(liveFees({ ...f.fees, ...(f.coverage_option === '3' && f.plan_price.trim() ? { coverage_sold: f.plan_price } : {}) }, offerChoices(f, addons))) : {};
   const conv = linesBeforeTax(Object.entries(typedLines).map(([key, c]) => ({ key, typed: c, hst: tax ? tax.hstFor(key) : true })), after && tax?.bps != null ? 'after' : 'before', tax?.bps ?? 0);
   const fromTotal = tax?.rentalWithTax ?? null;
   const rental = fromTotal !== null ? fromTotal : typed === null ? null : after ? Math.max(0, typed + conv.residual + (tax?.extraResidual ?? 0)) : typed;
@@ -131,6 +132,11 @@ export function offerPayload(f: OfferForm, role: Role, days: number, addons: Arr
   if (Object.keys(conv.cents).length) { p.line_overrides = conv.cents; p.fee_reason = f.fee_reason.trim() || 'Agreed with the renter'; }
   if (addons.length) p.addons = addons;
   return p;
+}
+
+/** The choices of the offer screen that make fee lines (the drivers are the database's to judge). */
+export function offerChoices(f: Pick<OfferForm, 'pickup_kind' | 'return_kind' | 'coverage_option'>, addons?: Array<{ code: string }>): LineChoices {
+  return { pickup_kind: f.pickup_kind, return_kind: f.return_kind, coverage_option: f.coverage_option, ...(addons ? { addons: addons.map((a) => a.code) } : {}) };
 }
 
 /** The before and after of an offer edited in place, in words (the history and the confirmation). */
@@ -183,6 +189,54 @@ export function feeOverrides(typed: Record<string, string>): Record<string, numb
   const out: Record<string, number> = {};
   for (const [k, v] of Object.entries(typed)) { const c = cents(v); if (c !== null && !RENTAL_LINE.has(k)) out[k] = c; }
   return out;
+}
+
+// ---------------------------------------------------------------- choices drive charges (Release 24, migration 0250)
+/** The choices on a screen that make a fee line: where the car is handed over and taken back, how damage is covered, the
+ *  add-ons chosen and the drivers (age bands of the renter and the drivers, and whether an additional driver is named).
+ *  A field left undefined is not known on that screen: the line it makes is then never dropped here (the database checks
+ *  again, app.line_overrides_live). */
+export interface LineChoices {
+  pickup_kind?: string; return_kind?: string; coverage_option?: string | number;
+  addons?: string[]; young_bands?: Array<'18_20' | '21_25'>; additional_driver?: boolean;
+}
+const HANDED = new Set(['delivery', 'airport']);
+/** Whether the choice that makes a fee line is still chosen: the delivery fee only with a delivery or an airport for the
+ *  pickup, the collection (pickup) fee only with one for the return, the Protection Plan only with option 3, an add-on
+ *  only while it is chosen, a young driver fee only with a driver of that age band, the additional driver fee only with
+ *  an additional driver. Any other line (a charge of its own, an insurer's charge) is not made by a choice: true. */
+export function lineLive(key: string, c: LineChoices): boolean {
+  if (key === 'delivery') return c.pickup_kind === undefined || HANDED.has(c.pickup_kind);
+  if (key === 'pickup') return c.return_kind === undefined || HANDED.has(c.return_kind);
+  if (key === 'coverage_sold') return c.coverage_option === undefined || String(c.coverage_option) === '3';
+  if (key.startsWith('addon:')) return !c.addons || c.addons.includes(key.slice(6));
+  if (key === 'young_driver_18_20' || key === 'young_driver_21_25') return !c.young_bands || c.young_bands.includes(key.slice(13) as '18_20' | '21_25');
+  if (key === 'additional_driver') return c.additional_driver === undefined || c.additional_driver;
+  return true;
+}
+/** The fees set by hand that still have their choice: the others are dropped, so a charge never outlives its choice
+ *  (delivery removed: its fee set by hand goes with it). The same object back when nothing is dropped. */
+export function liveFees<T>(fees: Record<string, T>, c: LineChoices): Record<string, T> {
+  const dead = Object.keys(fees).filter((k) => !lineLive(k, c));
+  if (!dead.length) return fees;
+  const out = { ...fees };
+  for (const k of dead) delete out[k];
+  return out;
+}
+/** The fees set by hand the database dropped: keys sent as set by hand that no line of the fresh price carries (the
+ *  database priced them away, app.line_overrides_live: a young driver fee once the date of birth is no longer young). */
+export function droppedByPrice(sent: Record<string, unknown>, lines: Array<{ charge_type: string; booking_addon_id?: string | null; addon_code?: string | null; stage?: string }>): string[] {
+  const keys = new Set(lines.filter((l) => !l.stage || l.stage === 'booking').flatMap((l) => (l.booking_addon_id && l.addon_code ? [`addon:${l.addon_code}`, l.charge_type] : [l.charge_type])));
+  return Object.keys(sent).filter((k) => !keys.has(k));
+}
+/** A renter's age band on the pickup day, as the database bands it (app.age_band): 18 to 20, 21 to 25, or none. */
+export function youngBand(dob: string | null | undefined, pickup: string | null | undefined): '18_20' | '21_25' | null {
+  if (!dob || !pickup || !/^\d{4}-\d{2}-\d{2}/.test(dob)) return null;
+  const b = new Date(`${dob.slice(0, 10)}T12:00:00`); const p = new Date(pickup);
+  if (Number.isNaN(b.getTime()) || Number.isNaN(p.getTime())) return null;
+  let age = p.getFullYear() - b.getFullYear();
+  if (p.getMonth() < b.getMonth() || (p.getMonth() === b.getMonth() && p.getDate() < b.getDate())) age -= 1;
+  return age >= 18 && age <= 20 ? '18_20' : age >= 21 && age <= 25 ? '21_25' : null;
 }
 export interface PayPart { method: 'e_transfer' | 'cash' | 'cheque' | 'bank_transfer'; amount: string; reference: string }
 export const PART_METHODS: Array<[PayPart['method'], string]> = [['cash', 'Cash'], ['e_transfer', 'e-Transfer'], ['cheque', 'Cheque'], ['bank_transfer', 'Bank transfer']];

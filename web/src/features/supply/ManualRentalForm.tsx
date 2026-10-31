@@ -19,7 +19,7 @@ import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/ad
 import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/insurers/rates';
 import { InsurerFeesFields } from '@/features/insurers/InsurerFeesFields';
 import { INSURER_FEES, insurerFeesPayload, isInsurerFee, rateProblem } from '@/features/insurers/fees';
-import { DEPOSIT_PAY, PART_METHODS, RENTAL_LINE, RENTAL_PAID_BY, feeOverrides, lineKey, needsReference, paidSoFar, paymentOf, periodShares, type DepositPay, type PayPart, type RentalPaidBy } from '@/features/offers/model';
+import { DEPOSIT_PAY, PART_METHODS, RENTAL_LINE, RENTAL_PAID_BY, droppedByPrice, feeOverrides, lineKey, lineLive, liveFees, needsReference, paidSoFar, paymentOf, periodShares, youngBand, type DepositPay, type LineChoices, type PayPart, type RentalPaidBy } from '@/features/offers/model';
 
 // Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, the same screen for every assistant function
 // and for field staff (0058). The database decides what each may do (staff: the rate sheet or a price typed with its
@@ -142,7 +142,13 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   const [quick, setQuick] = useState<boolean>(draft?.quick ?? false);
   const [quickDone, setQuickDone] = useState<boolean>(draft?.quick ?? false);
   const [pending, start] = useTransition();
-  const set = (k: string) => (e: { target: { value: string } }) => { setF((s) => ({ ...s, [k]: e.target.value })); if (['vehicle_id', 'pickup_at', 'return_at', 'booking_type', 'promo_code', 'coverage_option', 'pickup_method', 'return_method', 'date_of_birth'].includes(k)) setQuote(null); };
+  // Release 24: choices drive charges: the car handed over at our location, the coverage changed: the fee set by hand for
+  // the choice gone goes with it (the database drops it too, migration 0250)
+  const mrChoices = (x: Record<string, string>, codes: string[] = addons.map((a) => a.code)): LineChoices => ({
+    pickup_kind: x.pickup_method === 'delivered' ? 'delivery' : 'our_location', return_kind: x.return_method === 'picked_up' ? 'delivery' : 'our_location', coverage_option: x.coverage_option, addons: codes });
+  const set = (k: string) => (e: { target: { value: string } }) => { setF((s) => ({ ...s, [k]: e.target.value }));
+    if (['pickup_method', 'return_method', 'coverage_option'].includes(k)) setFees((x) => liveFees(x, mrChoices({ ...f, [k]: e.target.value })));
+    if (['vehicle_id', 'pickup_at', 'return_at', 'booking_type', 'promo_code', 'coverage_option', 'pickup_method', 'return_method', 'date_of_birth'].includes(k)) setQuote(null); };
   const flag = (k: keyof typeof flags) => (e: { target: { checked: boolean } }) => { setFlags((s) => ({ ...s, [k]: e.target.checked })); };
   // the case the dates make, kept current while the dates are typed (the clock moves too)
   const [now, setNow] = useState(() => Date.now());
@@ -263,6 +269,13 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   useEffect(() => { if (rentMode !== 'day' || !quote) return; const c = cents(rentDay); const t = c === undefined ? '' : ((c * (quote.quote.billable_days || 1)) / 100).toFixed(2); if (t !== (f.rental_charge ?? '')) setF((x) => ({ ...x, rental_charge: t })); }, [quote?.quote.billable_days]); // eslint-disable-line react-hooks/exhaustive-deps
   // a check that came back stale: once more with the form as it is now
   useEffect(() => { if (!recheck) return; const t = setTimeout(() => check(), 250); return () => clearTimeout(t); }, [recheck]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Release 24: a fee set by hand the database priced away (its choice is gone: a young driver fee once the dates of
+  // birth are not young) is dropped from the boxes too
+  useEffect(() => {
+    if (!fresh || !quote) return;
+    const gone = droppedByPrice(feesSent.cents, quote.quote.lines);
+    if (gone.length) setFees((x) => { const y = { ...x }; for (const k of gone) delete y[k]; return y; });
+  }, [quote, fresh]); // eslint-disable-line react-hooks/exhaustive-deps
   // a fee typed by hand: the price again, with the table kept on screen while typing (0132)
   const feeKey = JSON.stringify([feesSent.cents, rentalSent ?? null, f.deposit ?? '', customsSent, f.km ?? '', customs.length, drivers.map((d) => d.date_of_birth), insSent]);
   const firstFees = useRef(true);
@@ -566,7 +579,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
           <div className="ad-fields">{select('booking_type', 'Booking', [['standard', 'Standard'], ['non_refundable', 'Non-refundable (fixed discount)']])}{text('promo_code', 'Promo code')}</div></details>
         {f.vehicle_id && addonOptions.length > 0 && (
           <details className="stack" data-testid="mr-addons-block" open={addons.length > 0}><summary className="link small">Add-ons ({addons.length ? `${addons.length} chosen` : 'optional'})</summary>
-            <AddonPicker idPrefix="mr" staff compact options={addonOptions} value={addons} onChange={(v) => { setAddons(v); setQuote(null); }} /></details>)}
+            <AddonPicker idPrefix="mr" staff compact options={addonOptions} value={addons} onChange={(v) => { setAddons(v); setFees((x) => liveFees(x, { addons: v.map((a) => a.code) })); setQuote(null); }} /></details>)}
         <p><button className="btn btn--ghost btn--sm" type="button" onClick={check} disabled={pending} data-testid="mr-check">{pending ? 'Checking' : quote ? 'Check again' : 'Check the calendar and the price'}</button></p>
         {quote && (
           <div className="stack" data-testid="mr-quote">
@@ -598,6 +611,12 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
               const keys = new Set(quote.quote.lines.map((l) => lineKey(l)));
               const pending = Object.keys(fees).filter((k) => !keys.has(k) && !RENTAL_LINE.has(k));
               const edit = !!quote.may_edit_fees;
+              // only a line whose choice is chosen may be added by hand (a delivery fee with a delivery, a young driver fee
+              // with a young driver): Release 24, no charge without its choice
+              const dobs = [renter?.date_of_birth ?? f.date_of_birth, ...drivers.map((d) => d.date_of_birth)];
+              const addable: LineChoices = { ...mrChoices(f), additional_driver: drivers.some((d) => d.date_of_birth),
+                // no date of birth known yet: a young driver fee may still be typed (the database keeps it too)
+                young_bands: dobs.some((d) => d) ? dobs.map((d) => youngBand(d, f.pickup_at)).filter((x): x is '18_20' | '21_25' => !!x) : undefined };
               const box = (k: string, label: string, ph: number) => <input className="input input--sm" inputMode="decimal" aria-label={`${label}: amount for the trip, ${taxMode === 'after' && hstFor(k) ? 'HST included' : 'before tax'} ($)`} placeholder={(ph / 100).toFixed(2)}
                 value={fees[k] ?? ''} onChange={(e) => setFees((x) => ({ ...x, [k]: e.target.value }))} data-testid={`mr-fee-${k}`} />;
               const remove = (k: string) => <button className="btn btn--quiet btn--sm" type="button" onClick={() => setFees((x) => ({ ...x, [k]: '0' }))} data-testid={`mr-remove-${k}`} aria-label="Remove this line">Remove</button>;
@@ -623,7 +642,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
               {edit && <tr><td colSpan={3}>
                 <select className="select select--sm" id="mr-add-line" aria-label="Add a line to the price" value="" data-testid="mr-add-line" onChange={(e) => { const k = e.target.value; if (k === 'custom') setCustoms((a) => [...a, { label: '', amount: '', hst: true }]); else if (k) setFees((x) => ({ ...x, [k]: '' })); }}>
                   <option value="">+ Add a line (a fee from the list, or a charge of its own)</option>
-                  {Object.entries(FEE_LABEL).filter(([k]) => !keys.has(k) && !(k in fees)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                  {Object.entries(FEE_LABEL).filter(([k]) => !keys.has(k) && !(k in fees) && lineLive(k, addable)).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                   <option value="custom">A charge of its own</option></select></td></tr>}
               <tr><td>HST<Info text={lineHelp('hst')} /></td><td className="num">{fmt(quote.quote.lines.reduce((sum, l) => sum + l.hst_cents, 0))}</td>{edit && <td><span className="small muted">worked out for you</span></td>}</tr>
               <tr><th scope="row">{quote.has_rates === false ? 'Total with the price you typed' : Object.keys(feeOverrides(fees)).length || customs.length || priceChanged ? 'Total with your changes' : 'Total from the rate sheet'}</th><td className="num"><b data-testid="mr-total" data-fresh={fresh ? 'yes' : 'no'}>{fmt(quote.quote.total_due_at_booking_cents)}</b>{!fresh && <span className="small muted" data-testid="mr-total-updating"> updating</span>}</td>{edit && <td />}</tr>
