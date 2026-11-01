@@ -22,7 +22,7 @@ const WHAT: Record<PushRole, string> = {
   admin: 'New requests, payments, messages and urgent alerts, the moment they happen.'
 };
 export const SETTINGS: Record<PushRole, string> = {
-  renter: '/account/profile', owner: '/owner/profile', investor: '/investor/profile', staff: '/staff/profile', field: '/staff/field/profile', admin: '/admin/alerts'
+  renter: '/account/profile', owner: '/owner/account', investor: '/investor/profile', staff: '/staff/profile', field: '/staff/field/profile', admin: '/admin/alerts'
 };
 
 const noop = () => () => undefined;

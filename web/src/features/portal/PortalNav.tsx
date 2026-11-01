@@ -1,25 +1,8 @@
 'use client';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { PortalMenu } from '@/features/portal-nav/PortalMenu';
+import { RENTER_MENU } from './menu';
 
-const LINKS = [
-  { href: '/account', label: 'Trips', match: (p: string) => p === '/account' || p.startsWith('/account/bookings') },
-  { href: '/account/documents', label: 'Documents', match: (p: string) => p.startsWith('/account/documents') },
-  { href: '/account/rewards', label: 'Rewards', match: (p: string) => p.startsWith('/account/rewards') },
-  { href: '/account/notifications', label: 'Notifications', match: (p: string) => p.startsWith('/account/notifications') },
-  { href: '/account/profile', label: 'Profile', match: (p: string) => p.startsWith('/account/profile') }
-];
-
+// The renter portal's menu (r27 portals): Trips, Documents, Rewards, Account (features/portal/menu.ts).
 export function PortalNav({ unread }: { unread: number }) {
-  const path = usePathname() ?? '/account';
-  return (
-    <nav className="pt__nav" aria-label="Your account">
-      {LINKS.map((l) => (
-        <Link prefetch={false} key={l.href} href={l.href} aria-current={l.match(path) ? 'page' : undefined}>
-          {l.label}
-          {l.label === 'Notifications' && unread > 0 && <span className="pt__count" aria-label={`${unread} unread`}>{unread}</span>}
-        </Link>
-      ))}
-    </nav>
-  );
+  return <PortalMenu menu={RENTER_MENU} label="Your account" unread={unread} testId="renter-nav" />;
 }

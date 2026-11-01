@@ -47,7 +47,7 @@ describe('the facts read from the code', () => {
     expect(facts.nav.admin.find((g: { group: string }) => g.group === 'People').links).toContain('Applications');
     expect(facts.nav.va.map((g: { group: string }) => g.group)).toContain('My work');
     expect(facts.nav.va.find((g: { group: string }) => g.group === 'Live').links).toContain('Live chat');
-    expect(facts.nav.investor[0].links).toContain('Profile and notices');
+    expect(facts.nav.investor[0].links).toContain('Account');
     expect(facts.nav.owner[0].links).toContain('Documents');
   });
   it('knows the labels of a page from its code', () => {

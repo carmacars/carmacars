@@ -395,7 +395,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
       <li><b>Send the funds</b><span>Your Investment Date is the day we receive cleared funds. The {inv.lockup_months}-month lockup starts then.</span></li>
       <li><b>Follow it here</b><span>Your investment, monthly statements and notices, any time in the investor portal.</span></li>
     </ol>
-    <p className="dk-screen-only"><Link className="btn btn--primary" href="/investor/sign" prefetch={false}>Documents to sign</Link></p></div>
+    <p className="dk-screen-only"><Link className="btn btn--primary" href="/investor/documents?tab=sign" prefetch={false}>Documents to sign</Link></p></div>
   </> });
 
   add({ title: 'Contact', tone: 'dark', id: 'contact', node: <>

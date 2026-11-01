@@ -1,5 +1,6 @@
 import '@/styles/portal.css';
 import '@/components/portal-ui/portal-ui.css';
+import '@/styles/portal-revamp.css';
 import '@/styles/investor.css';
 import { InvestorNav } from '@/features/investor/InvestorNav';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
@@ -17,7 +18,7 @@ export default async function InvestorLayout({ children }: { children: React.Rea
   // the investor deck (0083): for investors while the Admin shows it, for Admins always
   const deck = investor ? await door<{ visible: boolean }>(user!.id, 'investor_read', 'deck_visible').then((r) => r.visible).catch(() => false) : roles?.admin ?? false;
   return (
-    <div className="pt pt--lux">
+    <div className="pt pt--lux pt--rv">
       <div className="container iv-frame" style={{ paddingBlock: 'var(--s-4) var(--s-6)' }}>
         {user && (
           <div className="pt__top iv-top">

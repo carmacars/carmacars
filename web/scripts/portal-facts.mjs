@@ -87,11 +87,12 @@ function nav() {
   // one staff portal since 0197: the groups of every function (src/features/staff/nav.ts); field work is its own group there
   const staff = navFromGroups(f('features/staff/nav.ts'), 'STAFF_GROUPS');
   const va = staff.filter((g) => g.group !== 'Field work');
-  const inv = fs.existsSync(path.join(SRC, 'features/investor/InvestorNav.tsx')) ? f('features/investor/InvestorNav.tsx') : '';
+  // r27 portals: the customer portals' menus and their merged pages' tabs are plain data (features/*/menu.ts)
+  const inv = fs.existsSync(path.join(SRC, 'features/investor/menu.ts')) ? f('features/investor/menu.ts') : '';
   return {
     admin, va,
-    owner: navFromLinks(f('features/owner/OwnerNav.tsx'), 'Owner portal'),
-    renter: navFromLinks(f('features/portal/PortalNav.tsx'), 'Your account'),
+    owner: navFromLinks(f('features/owner/menu.ts'), 'Owner portal'),
+    renter: navFromLinks(f('features/portal/menu.ts'), 'Your account'),
     field: staff.filter((g) => g.group === 'Field work'),
     investor: navFromLinks(inv, 'Investor portal')
   };

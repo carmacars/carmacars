@@ -1,11 +1,9 @@
-import { pageMeta } from '@/features/seo/meta';
-import { requireInvestor } from '@/server/door';
-import { SignList } from '@/features/manual/SignPages';
+import { redirect } from 'next/navigation';
+import { movedTo } from '@/features/portal-nav/tabs';
+import { INVESTOR_MOVED } from '@/features/investor/menu';
 
-export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Documents to sign', path: '/investor/sign', noindex: true, description: 'Your investment agreement, signed online.' });
-
-export default async function InvestorSign() {
-  const { user } = await requireInvestor('/investor/sign');
-  return <SignList userId={user.id} base="/investor/sign" />;
+// r27 portals: this page is a tab of Documents now (features/investor/menu.ts); the query is kept.
+export default async function Moved({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const [to, tab] = INVESTOR_MOVED['/investor/sign']!;
+  redirect(movedTo(to, tab, await searchParams));
 }

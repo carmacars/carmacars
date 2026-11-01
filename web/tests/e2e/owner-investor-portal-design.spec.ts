@@ -45,7 +45,10 @@ test('owner portal design: live cars, months, coming up, money rows', async ({ p
   await expect(hero.locator('.ow-hero-car')).toHaveCount(3);
   for (const label of ['On rent', 'Available', 'In service']) await expect(hero).toContainText(label);
   await expect(hero.locator('img')).not.toHaveCount(0);
-  await expect(page.getByTestId('owner-month-rental')).toHaveText(/^\$\d[\d,]*$/);
+  // r27 portals: what the owner earned this month (the month so far, provisional), cars out, the next payout, fees due
+  await expect(page.getByTestId('owner-month-earned')).toHaveText(/^\$\d[\d,]*\.\d\d$|^On your statement$/);
+  await expect(page.getByTestId('owner-cars-out')).toHaveText('1 of 3');
+  await expect(page.getByTestId('owner-now')).toHaveText('1 of 3 cars out right now.');
   await expect(page.getByTestId('owner-next-payout')).toHaveText(/^\$6,554\.00$/);
   await expect(page.getByTestId('owner-due')).toHaveText('$0.00');
   // the months: switch month and car, the chart's columns are buttons
@@ -75,7 +78,7 @@ test('owner portal design: live cars, months, coming up, money rows', async ({ p
   await expect(page.getByTestId('vehicle-months')).toBeVisible();
   await expect(page.getByTestId('vehicle-coming-up').locator('li')).not.toHaveCount(0);
   await check(page, 'owner vehicle');
-  for (const [path, id] of [['/owner/vehicles', 'owner-vehicle'], ['/owner/bookings', 'owner-coming-up'], ['/owner/statements', 'owner-statements'], ['/owner/payouts', 'owner-payouts'], ['/owner/invoices', 'invoice-rows'], ['/owner/documents', null]] as const) {
+  for (const [path, id] of [['/owner/vehicles', 'owner-vehicle'], ['/owner/vehicles?tab=bookings', 'owner-coming-up'], ['/owner/money', 'owner-statements'], ['/owner/money?tab=payouts', 'owner-payouts'], ['/owner/money?tab=invoices', 'invoice-rows'], ['/owner/documents', null]] as const) {
     await page.goto(path, { waitUntil: 'networkidle' });
     if (id) await expect(page.getByTestId(id).first()).toBeVisible();
     await check(page, path);

@@ -49,7 +49,7 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   const terms = ((await rpc('server_owner_car_terms', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as CarTermsData | null)?.cars.find((c) => c.vehicle_id === id) ?? null;
   return (
     <>
-      <Back href="/owner/vehicles">Vehicles</Back>
+      <Back href="/owner/vehicles">Cars</Back>
       <header className="ow-car-hero" data-testid="vehicle-hero">
         <div className="ow-car-hero__media"><CarPhoto photo={view.photo[id]} name={v.name} eager /><span className={`pu-pill pu-pill--${live.tone}`} data-testid="vehicle-live">{live.label}</span></div>
         <div className="ow-car-hero__text">
@@ -86,7 +86,7 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
           <section className="pt-card" aria-labelledby="ow-bk"><h2 className="d4" id="ow-bk">Bookings</h2>
             {bookings.length ? <ul className="ow-rows">{bookings.map((b) => <OwnerBookingRow key={b.booking_id} b={b} withCar={false} />)}</ul>
               : <p className="muted small">No bookings yet.</p>}
-            <p><Link prefetch={false} className="btn btn--ghost btn--sm" href={`/owner/bookings?vehicle=${id}#book-own`}>Book it for myself</Link></p>
+            <p><Link prefetch={false} className="btn btn--ghost btn--sm" href={`/owner/vehicles?tab=bookings&vehicle=${id}#book-own`}>Book it for myself</Link></p>
           </section>
           {service && <ServiceHistory h={service} />}
           <section className="pt-card" aria-labelledby="ow-inv"><h2 className="d4" id="ow-inv">Invoices</h2><InvoiceRows items={home.invoices.filter((i) => i.vehicle_id === id)} /></section>

@@ -26,7 +26,7 @@ export async function signCount(userId: string): Promise<number> {
   return r?.open.length ?? 0;
 }
 
-export async function SignList({ userId, base }: { userId: string; base: string }) {
+export async function SignList({ userId, base, embedded = false }: { userId: string; base: string; /** a tab of a page that has its own h1 (the investor's Documents, r27) */ embedded?: boolean }) {
   const r = (await rpc('my_sign_requests', { p_by: userId }, SR)) as unknown as { open: Open[]; signed: Signed[] };
   const facts = (await Promise.all(r.open.map((x) => rpc('sign_request_facts', { p_by: userId, p_id: x.id }, SR).catch(() => null)))) as unknown as Array<Facts | null>;
   const open = facts.filter((f): f is Facts => !!f && f.status === 'sent');
@@ -34,7 +34,7 @@ export async function SignList({ userId, base }: { userId: string; base: string 
   const summary = open.flatMap((f) => (f.extra?.summary ?? []).map((row) => ({ ...row, label: open.length > 1 ? `${f.title}: ${row.label}` : row.label })));
   return (
     <div className="stack-lg">
-      <header className="stack"><h1 className="d2">Documents to sign</h1>
+      <header className="stack">{embedded ? <h2 className="d3">Documents to sign</h2> : <h1 className="d2">Documents to sign</h1>}
         <p className="muted">{open.length ? `Everything is filled in from your record. Check the values, then sign ${open.length > 1 ? 'once for all of them' : 'it'}. It takes about a minute.` : 'Nothing is waiting for your signature.'}</p></header>
       <SignProgress items={[...r.signed.map((x) => ({ key: x.id, label: x.title, done: true, note: x.method === 'paper' ? 'signed on paper' : null })),
         ...open.map((x) => ({ key: x.id, label: x.title, done: false, here: true }))]} />
