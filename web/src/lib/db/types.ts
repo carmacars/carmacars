@@ -268,6 +268,7 @@ export type Database = {
           posted_by: string | null;
           created_at: string;
           updated_at: string;
+          renewed_on: string | null;
         };
         Insert: {
           id?: string;
@@ -290,6 +291,7 @@ export type Database = {
           posted_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          renewed_on?: string | null;
         };
         Update: {
           id?: string;
@@ -312,6 +314,7 @@ export type Database = {
           posted_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          renewed_on?: string | null;
         };
         Relationships: [];
       };
@@ -2669,6 +2672,7 @@ export type Database = {
           placeholder_reason: string | null;
           placeholder_by: string | null;
           placeholder_at: string | null;
+          heard_about: string | null;
         };
         Insert: {
           id?: string;
@@ -2839,6 +2843,7 @@ export type Database = {
           placeholder_reason?: string | null;
           placeholder_by?: string | null;
           placeholder_at?: string | null;
+          heard_about?: string | null;
         };
         Update: {
           id?: string;
@@ -3009,6 +3014,7 @@ export type Database = {
           placeholder_reason?: string | null;
           placeholder_by?: string | null;
           placeholder_at?: string | null;
+          heard_about?: string | null;
         };
         Relationships: [];
       };
@@ -9495,6 +9501,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      marketplace_log: {
+        Row: {
+          id: string;
+          at: string;
+          on_date: string;
+          kind: string;
+          vehicle_id: string | null;
+          posting_id: string | null;
+          conversations: number | null;
+          replies: number | null;
+          numbers: number | null;
+          note: string | null;
+          logged_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          at?: string;
+          on_date?: string;
+          kind: string;
+          vehicle_id?: string | null;
+          posting_id?: string | null;
+          conversations?: number | null;
+          replies?: number | null;
+          numbers?: number | null;
+          note?: string | null;
+          logged_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          at?: string;
+          on_date?: string;
+          kind?: string;
+          vehicle_id?: string | null;
+          posting_id?: string | null;
+          conversations?: number | null;
+          replies?: number | null;
+          numbers?: number | null;
+          note?: string | null;
+          logged_by?: string | null;
+        };
+        Relationships: [];
+      };
       message_templates: {
         Row: {
           code: string;
@@ -14141,6 +14189,9 @@ export type Database = {
           ai_vision_permit_daily_per_person: number;
           field_renter_walkthrough: boolean;
           push_enabled: boolean;
+          marketplace_posts_per_day: number;
+          marketplace_renew_days: number;
+          marketplace_location: string;
         };
         Insert: {
           id?: string;
@@ -14683,6 +14734,9 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          marketplace_posts_per_day?: number;
+          marketplace_renew_days?: number;
+          marketplace_location?: string;
         };
         Update: {
           id?: string;
@@ -15225,6 +15279,9 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          marketplace_posts_per_day?: number;
+          marketplace_renew_days?: number;
+          marketplace_location?: string;
         };
         Relationships: [];
       };
@@ -24557,6 +24614,7 @@ export type Database = {
       server_booking_calendar: { Args: { p_token: string }; Returns: Json };
       server_booking_debit_deposit: { Args: { p_booking: string }; Returns: number };
       server_booking_driver_links: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_booking_heard_about: { Args: { p_booking_number: string; p_value: string }; Returns: boolean };
       server_booking_payment_capture_failed: { Args: { p_booking: string; p_processor: Json; p_error: string }; Returns: undefined };
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
       server_capture_contact: { Args: { p: Json }; Returns: Json };

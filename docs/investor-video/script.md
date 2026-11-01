@@ -4,6 +4,9 @@ The owner, October 23, 2026: "generate a video using claude for the investor pag
 addition to the deck (goes over the entire deck with animations and sound and voiceover and transitions) throw it on the
 investor page right above the deck".
 
+Updated November 1, 2026 for the platform as it is today (the deck's new feature slides, one staff portal, the roadmap);
+the scene by scene plan is `docs/investor-video/storyboard.md`.
+
 This file is the video's script and its source: `web/scripts/investor-video/build.mjs` reads it, one scene per `##`
 heading, in the deck's order. The rules are the deck's own (docs/changes/2026-10-21-investor-deck.md):
 
@@ -77,15 +80,15 @@ Each new car makes the business stronger: fixed fees, one fleet policy spread wi
 
 ## The platform at a glance
 
-One platform for everyone in the business: seven portals, and the automation behind them.
+One platform for everyone in the business: portals for renters, owners, investors, staff and Admin, and the automation behind them.
 
 ## For renters (group)
 
-For renters, it all happens on the phone: the whole price, request, sign with a code and a drawn signature, pay, upload ID, and a trip page that always shows the next step.
+For renters, it all happens on the phone: the whole price, request, sign, pay and upload ID, with a walkthrough of every step of the rental. Rewards bring them back, and the booking goes straight into their calendar and wallet.
 
 ## For car owners (group)
 
-Owners apply in minutes, see each car with its status and earnings by month, have terms car by car, get a statement with every line, and are paid to their bank.
+Owners apply in minutes, see each car with its status and earnings by month, and get a statement with every line. Each car has its own terms: a revenue share, or a flat monthly payment.
 
 ## For investors (group)
 
@@ -93,15 +96,15 @@ Investors have their own portal: the account month by month, the payment schedul
 
 ## For our team (group)
 
-A small team runs a large fleet: queues with live timers against reply targets, offers and rentals added fast, tolls matched to the renter, deposits settled after the bills come in, and handovers guided on a phone.
+One staff portal for every function: queues with live timers, offers and rentals added fast, tolls matched to the renter, and handovers guided on a phone. Card payments at the car, insurer billing, and a training academy for every role.
 
 ## Admin and automation (group)
 
-The platform does the busywork: an Admin home that says what needs you, one calendar, AI listings, Turo sync, a staff assistant, automated emails and self-updating guides.
+The platform does the busywork: an Admin home that says what needs you, one calendar, AI listings, Turo sync, a staff assistant and automated emails. Every signature has an audit trail, alerts reach every phone, and a live map shows demand as it happens.
 
 ## Growth and marketing (group)
 
-Search pages for every car, place and need: trillions of combinations, rendered on demand. Live visitor signals and unfinished forms become leads, with an account opened at once. Partner fleets add exotic cars and chauffeurs.
+Search pages for every car, place and need, rendered on demand. Our cars go out to other rental sites and to Facebook Marketplace, with every lead tracked. Visitor signals and unfinished forms become leads, and owner recruitment follows up by itself.
 
 ## Safety and risk controls
 
@@ -109,11 +112,11 @@ Built to protect every car and every dollar: reviewed requests, verified renters
 
 ## Team and operations
 
-A lean, founder-led team, supported by the platform, with a 24/7 incident line.
+A lean, founder-led team in one staff portal, trained in our own academy, with a 24/7 incident line.
 
 ## Roadmap
 
-Next: native apps, GPS trackers, more partner fleets and marketplaces. Plans, not promises.
+Next: native apps, GPS trackers with their dashboard, our cars on every rental site, and more partner fleets. Plans, not promises.
 
 ## The investment offer
 
