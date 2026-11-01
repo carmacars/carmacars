@@ -46,6 +46,8 @@ export class CanvasMap {
   private back: ReturnType<typeof setTimeout> | undefined;
   private ro: ResizeObserver | null = null;
   private dead = false;
+  /** As engine.ts: on the page, after a lead was shown or a count opened, new pins do not re-fit the map. */
+  private held = false;
 
   constructor(private box: HTMLElement, private ev: EngineEvents, private o: { tv: boolean; scale: number }) {}
 
@@ -105,6 +107,7 @@ export class CanvasMap {
   /** The same rule as engine.frame: the owner's box edge to edge, or the box and every pin when a pin would sit under the UI. */
   frame(home: Bounds, all: Bounds, pad: Pad) {
     this.lastFrame = [home, all, pad];
+    if (this.held && !this.o.tv) return;
     const { w, h } = this.size();
     if (!w || !h) return;
     const k = this.o.scale, half = this.card(false).h / 2 + 6 * k;
@@ -121,6 +124,7 @@ export class CanvasMap {
     this.draw();
   }
   reframe() {
+    this.held = false;
     if (!this.lastFrame) return;
     this.fitKey = '';
     this.frame(...this.lastFrame);
@@ -128,6 +132,7 @@ export class CanvasMap {
   focus(id: string) {
     const p = this.pins.find((x) => x.id === id);
     if (!p) return;
+    this.held = true;
     this.cam = { x: mx(p.lng), y: my(p.lat), z: Math.max(this.cam.z, 11.5) };
     this.fitKey = '';
     this.ev.moved();
@@ -167,6 +172,7 @@ export class CanvasMap {
       if (best.id) return this.ev.select(best.id, this.spot(best.x, best.y, 12, 12));
       // a count: zoom in on it (a TV goes back to its frame after 20 seconds)
       const [lng, lat] = this.unproject(x, y);
+      this.held = true;
       this.cam = { x: mx(lng), y: my(lat), z: Math.min(this.cam.z + 1.6, 12) };
       this.fitKey = '';
       this.ev.moved();

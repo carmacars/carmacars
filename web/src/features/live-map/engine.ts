@@ -77,6 +77,8 @@ export class MapEngine {
   private framed = false;
   private lastFrame: [Bounds, Bounds, Pad] | null = null;
   private back: ReturnType<typeof setTimeout> | undefined;
+  /** On the page, once the user moved the map (or a lead was shown on it), new pins no longer re-fit it: it stays where they put it. */
+  private held = false;
   private breath = 0;
   private ripple = 0;
   private dead = false;
@@ -143,6 +145,7 @@ export class MapEngine {
   frame(home: Bounds, all: Bounds, pad: Pad) {
     if (!this.map) return;
     this.lastFrame = [home, all, pad];
+    if (this.held && !this.o.tv) return;
     const k = this.o.scale, half = this.pinSize(false).h / 2 + 6 * k;
     const w = this.box.clientWidth, h = this.box.clientHeight;
     const fit = (p: Pad): Pad => {
@@ -172,6 +175,7 @@ export class MapEngine {
 
   /** Back to the frame (after a card closes or a cluster was opened on a TV): the same view as before. */
   reframe() {
+    this.held = false;
     if (!this.lastFrame || !this.map) return;
     const [home, all, pad] = this.lastFrame;
     this.fitKey = '';
@@ -182,6 +186,7 @@ export class MapEngine {
   focus(id: string) {
     const at = this.where.get(id);
     if (!at || !this.map) return;
+    this.held = true;
     this.map.once('moveend', () => this.ev.select(id, this.spotAt(at)));
     this.map.easeTo({ center: at, zoom: Math.max(this.map.getZoom(), 11.5), duration: 700 });
   }
@@ -336,6 +341,7 @@ export class MapEngine {
       const f = map.queryRenderedFeatures(e.point, { layers: ['pin', 'cluster'] })[0];
       if (!f) return this.ev.select(null, null);
       if (f.properties?.cluster_id !== undefined) {
+        this.held = true;
         void map.getSource('pins').getClusterExpansionZoom(f.properties.cluster_id).then((z: number) => map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.2, duration: 600 }));
         // a TV goes back to its frame by itself after 20 seconds
         if (this.o.tv) { clearTimeout(this.back); this.back = setTimeout(() => this.reframe(), 20_000); }
@@ -345,7 +351,7 @@ export class MapEngine {
     });
     map.on('mouseenter', 'cluster', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'cluster', () => { map.getCanvas().style.cursor = ''; });
-    map.on('movestart', () => this.ev.moved());
+    map.on('movestart', (e: any) => { if (e?.originalEvent) this.held = true; this.ev.moved(); });
     map.on('moveend', () => this.layout());
     map.on('resize', () => this.layout());
   }

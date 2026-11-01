@@ -74,6 +74,9 @@ the card while it's hovered over".
   leads searched by the name; `model.adminHref`). × or Escape closes it; on a TV it closes by itself after 20 seconds
   and the map goes back to its frame (also 20 seconds after a count was opened). The TV's map now listens for clicks
   but still never pans or zooms by hand.
+- **The map stays put on the page:** once a lead was shown on the map, a count opened or the map moved by hand, new
+  pins arriving with the 30-second refresh no longer re-fit it (a TV still re-fits, and goes back to its frame when a
+  card closes).
 - **Hover previews:** resting on a lead (or reaching a car card with Tab) shows its card after 150 ms, anchored to the
   pin; leaving hides it after 300 ms, time enough to move onto the card. A click (a tap on a touch screen) pins it.
 - **Names:** the first name and last initial on the dots (beside each, real names before visitors, giving way when
