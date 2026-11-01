@@ -16,7 +16,8 @@
 -- 4. app.live_map(p_by, p): everything the map shows in one read (Admins only, admin_read live_map through the door):
 --    the KPI tiles, the pins (last 30 days plus what is current, one per person, at most 500), the cars they looked at with
 --    a photo and price, and the fleet positions. No per-pin round trips; the website keeps the answer 20 seconds.
---    p: limit (at most 500), who (only these renter or browser ids).
+--    p: limit (at most 500), who (only these renter or browser ids). hq: the delivery origin (Program settings), for the
+--    home base marker and the delivery arcs.
 -- No applied migration is edited.
 
 -- ================================================================ 1. where a visit came from
@@ -215,9 +216,13 @@ begin
   )
   select jsonb_build_object(
     'at', now(), 'days', 30, 'cap', v_cap, 'live_minutes', ps.visitor_live_minutes,
+    -- home base: the delivery origin of Program settings (app.delivery_origin, 0027); null when not set
+    'hq', app.delivery_origin(),
     'kpi', jsonb_build_object(
       'active_now', (select count(*) from visitor_sessions s where s.last_seen_at > now() - v_live and s.ended_at is null and s.exclude_reason is null),
       'requests_today', (select count(*) from bookings b where b.booked_at >= app.local_midnight(v_day) and b.booking_type <> 'owner'),
+      -- the same hours of yesterday, for the change under the number
+      'requests_yesterday', (select count(*) from bookings b where b.booked_at >= app.local_midnight(v_day - 1) and b.booked_at < now() - interval '1 day' and b.booking_type <> 'owner'),
       'bookings_week', (select count(*) from bookings b where b.confirmed_at >= app.local_midnight(v_week) and b.booking_type <> 'owner'),
       'on_rent_now', (select count(*) from bookings b where b.status = 'on_rent' and b.booking_type <> 'owner'),
       'collected_month_cents', coalesce((select sum(case when x.kind = 'refund' then -x.amount_cents else x.amount_cents end) from payments x
@@ -225,6 +230,8 @@ begin
     'totals', coalesce((select jsonb_object_agg(type, n) from (select d0.type, count(*) as n from d0 group by d0.type) t), '{}'::jsonb),
     'pins', coalesce((select jsonb_agg(jsonb_build_object(
         'id', md5(pins.k), 'type', pins.type, 'types', pins.types, 'at', pins.last_at, 'detail', pins.detail, 'booking_number', pins.booking_number,
+        'pickup_at', (select b.pickup_at from bookings b where pins.booking_number is not null and b.booking_number = pins.booking_number),
+        'return_at', (select b.return_at from bookings b where pins.booking_number is not null and b.booking_number = pins.booking_number),
         'renter_id', pins.who_renter, 'session_id', pins.s_id,
         'name', coalesce(nullif(btrim(pins.r_name), ''), nullif(btrim(pins.name), ''), nullif(btrim(pins.s_name), '')),
         'email', coalesce(pins.r_email, pins.email), 'phone', coalesce(pins.r_phone, pins.phone),

@@ -3,9 +3,12 @@
 // into a count where they crowd; a hot lead is larger with a soft halo, a visitor on the site breathes slowly, and a new
 // event sends one ripple out from its dot. The fleet's cars (once trackers report) are photo markers that glide to each
 // new position. Everything comes from this site (config.ts), so it draws the same offline.
+import { arc } from './model';
 import { BASEMAP, GLYPHS, HOME_BOUNDS, MAPLIBRE_CSS, MAPLIBRE_JS, MAPLIBRE_WORKER, MAP_ATTRIBUTION, MAX_BOUNDS, type Bounds } from './config';
 
-export interface PinSpec { id: string; lng: number; lat: number; colour: string; stage: string; hot: boolean; live: boolean; fresh: boolean; label: string }
+export interface PinSpec { id: string; lng: number; lat: number; colour: string; stage: string; hot: boolean; live: boolean; fresh: boolean; label: string;
+  /** A photo pin (on rent, booked or hot): the car's thumbnail, else the make's initial in the ring; `route` draws its delivery arc from home base. */
+  photo?: { src: string | null; initial: string; route: boolean } }
 export interface CarSpec { id: string; lng: number; lat: number; colour: string; heading: number | null; label: string; photo: string | null }
 export interface Spot { x: number; y: number; w: number; h: number; bw: number; bh: number }
 export interface EngineEvents { select(id: string | null, at: Spot | null): void; hover(id: string | null, at: Spot | null): void; moved(): void }
@@ -48,6 +51,10 @@ export class MapEngine {
   private ml: Ml | null = null;
   private map: MlMap | null = null;
   private cars = new Map<string, { el: HTMLDivElement; marker: MlMarker; lng: number; lat: number; anim: number }>();
+  private photos = new Map<string, { el: HTMLDivElement; marker: MlMarker; key: string }>();
+  private hq: { marker: MlMarker; key: string } | null = null;
+  private hqAt: [number, number] | null = null;
+  private dash = 0;
   private where = new Map<string, [number, number]>();
   private seen: Set<string> | null = null;
   private lastPins: PinSpec[] = [];
@@ -86,6 +93,7 @@ export class MapEngine {
           this.wire();
           this.render();
           this.animate();
+          this.animateArcs();
           return 'map';
         }
         map.remove();
@@ -97,13 +105,15 @@ export class MapEngine {
 
   destroy() {
     this.dead = true;
-    cancelAnimationFrame(this.breath); cancelAnimationFrame(this.ripple);
+    cancelAnimationFrame(this.breath); cancelAnimationFrame(this.ripple); cancelAnimationFrame(this.dash);
     for (const c of this.cars.values()) cancelAnimationFrame(c.anim);
     this.map?.remove();
   }
 
   setPins(p: PinSpec[]) { this.lastPins = p; if (this.map) this.syncPins(); }
   setCars(c: CarSpec[]) { this.lastCars = c; if (this.map) this.syncCars(); }
+  /** Home base (the delivery origin of Program settings): a branded marker with a soft pulse, and where the arcs start. */
+  setHq(at: { lat: number; lng: number } | null) { this.hqAt = at ? [at.lng, at.lat] : null; if (this.map) { this.syncHq(); this.syncPins(true); } }
 
   /** Frames the area, widened to take in the pins drawn (never past southern Ontario); only when that changes. */
   frame(b: Bounds) {
@@ -132,16 +142,33 @@ export class MapEngine {
         pins: { type: 'geojson', data: EMPTY, cluster: true, clusterRadius: 26 * k, clusterMaxZoom: 10,
           clusterProperties: { hot: ['max', ['get', 'hot']], live: ['max', ['get', 'live']], booked: ['+', ['case', ['==', ['get', 'stage'], 'booked'], 1, 0]],
             progress: ['+', ['case', ['==', ['get', 'stage'], 'progress'], 1, 0]], site: ['+', ['case', ['==', ['get', 'stage'], 'site'], 1, 0]], past: ['+', ['case', ['==', ['get', 'stage'], 'past'], 1, 0]] } },
-        ripples: { type: 'geojson', data: EMPTY }
+        ripples: { type: 'geojson', data: EMPTY },
+        heat: { type: 'geojson', data: EMPTY },
+        arcs: { type: 'geojson', data: EMPTY, lineMetrics: true }
       },
       layers: [
-        { id: 'land', type: 'background', paint: { 'background-color': '#0b0f17' } },
-        { id: 'water', type: 'fill', source: 'base', filter: ['==', ['get', 'k'], 'water'], paint: { 'fill-color': '#131c2c' } },
-        { id: 'shore', type: 'line', source: 'base', filter: ['==', ['get', 'k'], 'water'], paint: { 'line-color': '#1c2940', 'line-width': 1 * k } },
+        // land a warm charcoal; water deep blue, lighter and glowing along the shore (a gradient towards the coast)
+        { id: 'land', type: 'background', paint: { 'background-color': '#141317' } },
+        { id: 'water', type: 'fill', source: 'base', filter: ['==', ['get', 'k'], 'water'], paint: { 'fill-color': '#0a1d36' } },
+        { id: 'shore-wash', type: 'line', source: 'base', filter: ['==', ['get', 'k'], 'water'], paint: { 'line-color': '#1d4f86', 'line-width': 26 * k, 'line-blur': 22 * k, 'line-opacity': 0.45, 'line-offset': 12 * k } },
+        { id: 'shore-glow', type: 'line', source: 'base', filter: ['==', ['get', 'k'], 'water'], paint: { 'line-color': '#3b82c4', 'line-width': 6 * k, 'line-blur': 5 * k, 'line-opacity': 0.35 } },
+        { id: 'shore', type: 'line', source: 'base', filter: ['==', ['get', 'k'], 'water'], paint: { 'line-color': '#4b8fd0', 'line-width': 0.8 * k, 'line-opacity': 0.55 } },
+        // highways: thin lines with a faint warm glow, a city at night
+        { id: 'roads-glow', type: 'line', source: 'base', filter: ['==', ['get', 'k'], 'road'], layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: { 'line-color': '#f59e0b', 'line-width': 5 * k, 'line-blur': 4 * k, 'line-opacity': 0.09 } },
         { id: 'roads', type: 'line', source: 'base', filter: ['==', ['get', 'k'], 'road'], layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: { 'line-color': '#26324a', 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 0.6 * k, 10, 1.2 * k], 'line-opacity': 0.85 } },
+          paint: { 'line-color': '#8a6a3a', 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 0.6 * k, 10, 1.1 * k], 'line-opacity': 0.55 } },
+        // where the leads crowd: a soft cyan to magenta glow under the dots
+        { id: 'heat', type: 'heatmap', source: 'heat', maxzoom: 13, paint: {
+          'heatmap-weight': ['get', 'w'], 'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.7, 11, 1.4],
+          'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 6, 22 * k, 11, 46 * k], 'heatmap-opacity': 0.6,
+          'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'], 0, 'rgba(34,211,238,0)', 0.25, 'rgba(34,211,238,0.35)', 0.6, 'rgba(168,85,247,0.55)', 1, 'rgba(236,72,153,0.7)'] } },
+        // the delivery arcs from home base: a faint gradient line, and a dash travelling along it
+        { id: 'arc', type: 'line', source: 'arcs', layout: { 'line-cap': 'round' }, paint: { 'line-width': 1.4 * k,
+          'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(250,250,250,0.05)', 1, 'rgba(52,211,153,0.6)'] } },
+        { id: 'arc-dash', type: 'line', source: 'arcs', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#a7f3d0', 'line-width': 1.6 * k, 'line-opacity': 0.75, 'line-dasharray': [0, 4, 3] } },
         { id: 'cities', type: 'symbol', source: 'base', filter: ['==', ['get', 'k'], 'city'],
-          layout: { 'text-field': ['get', 'name'], 'text-font': ['noto-medium'], 'text-size': ['match', ['get', 'rank'], 1, 16 * k, 14 * k], 'symbol-sort-key': ['get', 'rank'],
+          layout: { 'text-field': ['get', 'name'], 'text-font': ['noto-medium'], 'text-size': ['match', ['get', 'rank'], 1, 18 * k, 16 * k], 'symbol-sort-key': ['get', 'rank'],
             'text-anchor': 'left', 'text-offset': [1.4, 0], 'text-letter-spacing': 0.06, 'text-transform': 'uppercase', 'text-allow-overlap': false, 'text-padding': 6 * k },
           paint: { 'text-color': '#5d6b84', 'text-halo-color': '#0b0f17', 'text-halo-width': 1.5 * k } },
         // the dots: a soft glow under each, the dot, and the clusters' counts
@@ -194,15 +221,24 @@ export class MapEngine {
     return { x: p.x - 6, y: p.y - 6, w: 12, h: 12, bw: this.box.clientWidth, bh: this.box.clientHeight };
   }
 
-  private render() { this.syncPins(); this.syncCars(); }
+  private render() { this.syncHq(); this.syncPins(); this.syncCars(); }
 
-  private syncPins() {
-    const key = JSON.stringify(this.lastPins.map((p) => [p.id, p.lng, p.lat, p.colour, p.hot, p.live]));
+  private syncPins(force = false) {
+    const key = JSON.stringify([this.hqAt, this.lastPins.map((p) => [p.id, p.lng, p.lat, p.colour, p.hot, p.live, p.photo?.src ?? p.photo?.initial ?? ''])]);
     this.where = new Map(this.lastPins.map((p) => [p.id, [p.lng, p.lat] as [number, number]]));
     this.box.dataset.pins = String(this.lastPins.length);
-    if (key === this.pinsKey) return;
+    if (key === this.pinsKey && !force) return;
     this.pinsKey = key;
-    this.map.getSource('pins').setData({ type: 'FeatureCollection', features: this.lastPins.map((p) => ({
+    const dots = this.lastPins.filter((p) => !p.photo), photos = this.lastPins.filter((p) => p.photo);
+    this.box.dataset.photos = String(photos.length);
+    this.syncPhotos(photos);
+    this.map.getSource('heat').setData({ type: 'FeatureCollection', features: this.lastPins.map((p) => ({
+      type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: { w: p.hot ? 1 : 0.55 } })) });
+    const hq = this.hqAt, routes = hq ? photos.filter((p) => p.photo?.route) : [];
+    this.map.getSource('arcs').setData({ type: 'FeatureCollection', features: routes.map((p) => ({
+      type: 'Feature', geometry: { type: 'LineString', coordinates: arc(hq!, [p.lng, p.lat]) }, properties: {} })) });
+    this.box.dataset.arcs = String(routes.length);
+    this.map.getSource('pins').setData({ type: 'FeatureCollection', features: dots.map((p) => ({
       type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
       properties: { id: p.id, colour: p.colour, stage: p.stage, hot: p.hot ? 1 : 0, live: p.live ? 1 : 0 }
     })) });
@@ -213,6 +249,71 @@ export class MapEngine {
       if (fresh.length) this.rippleOut(fresh);
     }
     this.seen = ids;
+  }
+
+  /** Photo pins: the car's thumbnail in a ring of the stage colour, above the dots, never clustered. */
+  private syncPhotos(list: PinSpec[]) {
+    const seen = new Set<string>(), k = this.o.scale;
+    for (const p of list) {
+      seen.add(p.id);
+      const key = `${p.colour}|${p.photo!.src ?? p.photo!.initial}|${p.hot}`;
+      let v = this.photos.get(p.id);
+      if (!v) {
+        const el = document.createElement('div');
+        el.className = 'lm-ph';
+        el.tabIndex = this.o.tv ? -1 : 0;
+        el.setAttribute('role', 'button');
+        const id = p.id, spot = (): Spot => { const r = el.getBoundingClientRect(), b = this.box.getBoundingClientRect(); return { x: r.left - b.left, y: r.top - b.top, w: r.width, h: r.height, bw: b.width, bh: b.height }; };
+        el.addEventListener('mouseenter', () => this.ev.hover(id, spot()));
+        el.addEventListener('mouseleave', () => this.ev.hover(null, null));
+        el.addEventListener('focus', () => this.ev.hover(id, spot()));
+        el.addEventListener('blur', () => this.ev.hover(null, null));
+        el.addEventListener('click', (e) => { e.stopPropagation(); this.ev.select(id, spot()); });
+        v = { el, marker: new this.ml.Marker({ element: el, anchor: 'center' }).setLngLat([p.lng, p.lat]).addTo(this.map), key: '' };
+        this.photos.set(p.id, v);
+      }
+      v.marker.setLngLat([p.lng, p.lat]);
+      v.el.setAttribute('aria-label', p.label);
+      if (v.key !== key) {
+        v.key = key;
+        v.el.style.setProperty('--c', p.colour);
+        v.el.style.setProperty('--s', `${(p.hot && !p.photo!.route ? 36 : 42) * (this.o.tv ? 1 : 0.8) * k}px`);
+        v.el.classList.toggle('lm-ph--hot', p.hot);
+        v.el.innerHTML = p.photo!.src ? `<img alt="" src="${encodeURI(p.photo!.src)}" decoding="async">` : `<span aria-hidden="true">${p.photo!.initial.replace(/[^A-Z0-9?]/g, '')}</span>`;
+      }
+    }
+    for (const [id, v] of this.photos) if (!seen.has(id)) { v.marker.remove(); this.photos.delete(id); }
+  }
+
+  private syncHq() {
+    const at = this.hqAt, key = at ? at.join(',') : '';
+    if (this.hq && this.hq.key === key) return;
+    this.hq?.marker.remove(); this.hq = null;
+    if (!at) return;
+    const el = document.createElement('div');
+    el.className = 'lm-hq';
+    el.setAttribute('role', 'img');
+    el.setAttribute('aria-label', 'CarmaCars home base');
+    el.style.setProperty('--s', `${30 * this.o.scale}px`);
+    el.innerHTML = '<span class="lm-hq__pulse" aria-hidden="true"></span><span class="lm-hq__mark" aria-hidden="true">C</span>';
+    this.hq = { marker: new this.ml.Marker({ element: el, anchor: 'center' }).setLngLat(at).addTo(this.map), key };
+  }
+
+  /** The dash travelling along the delivery arcs (MapLibre's dash sequence, about one step every 70 ms). */
+  private animateArcs() {
+    if (reduced()) return;
+    const seq = [[0, 4, 3], [0.5, 4, 2.5], [1, 4, 2], [1.5, 4, 1.5], [2, 4, 1], [2.5, 4, 0.5], [3, 4, 0], [0, 0.5, 3, 3.5], [0, 1, 3, 3], [0, 1.5, 3, 2.5], [0, 2, 3, 2], [0, 2.5, 3, 1.5], [0, 3, 3, 1], [0, 3.5, 3, 0.5]];
+    let step = -1, last = 0;
+    const tick = (t: number) => {
+      if (this.dead || !this.map) return;
+      if (t - last > 70) {
+        last = t;
+        const n = Math.floor(t / 70) % seq.length;
+        if (n !== step) { step = n; this.map.setPaintProperty('arc-dash', 'line-dasharray', seq[n]); }
+      }
+      this.dash = requestAnimationFrame(tick);
+    };
+    this.dash = requestAnimationFrame(tick);
   }
 
   private rippleOut(pins: PinSpec[]) {

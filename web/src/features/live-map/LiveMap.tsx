@@ -6,7 +6,7 @@ import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
 import { HOME_BOUNDS, MAX_BOUNDS, NEW_MS, REFRESH_MS, SPOTLIGHT_MS, inBounds, type Bounds } from './config';
 import { MapEngine, type CarSpec, type PinSpec, type Spot } from './engine';
-import { CAR_HOW, FLEET_STATUS, compactMoney, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, spread, stageOf, tally, verbOf,
+import { CAR_HOW, FLEET_STATUS, compactMoney, makeInitial, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, spread, stageOf, tally, verbOf,
   type CarPhoto, type Kpi, type MapView, type Pin, type Stage } from './model';
 
 // Today > Live map (migration 0242). The map is the hero: the site's own dark basemap with a glowing dot per lead (four
@@ -95,14 +95,18 @@ export function LiveMap({ initial, tv }: { initial: MapView | null; tv: boolean 
   useEffect(() => {
     const e = engine.current;
     if (!e || mode !== 'map') return;
+    const withPhoto = photoPins(placed.map(({ p }) => p));
     e.setPins(layers.leads ? placed.map(({ p, at }): PinSpec => ({
       id: p.id, lng: at.lng, lat: at.lat, colour: colourOf(p), stage: stageOf(p.type), hot: p.band === 'hot', live: p.online,
-      fresh: isNew(p.at, NEW_MS, now), label: `${TYPE[p.type].label}: ${p.who}`
+      fresh: isNew(p.at, NEW_MS, now), label: `${TYPE[p.type].label}: ${p.who}${p.car ? `, ${p.car.name}` : ''}`,
+      photo: withPhoto.has(p.id) ? { src: imgOf(p.car?.photo, 96), initial: makeInitial(p.car?.name), route: p.type === 'on_rent' || p.type === 'booking' } : undefined
     })) : []);
     const b: Bounds = [...HOME_BOUNDS];
     for (const { at } of placed) { b[0] = Math.min(b[0], at.lng - 0.05); b[1] = Math.min(b[1], at.lat - 0.05); b[2] = Math.max(b[2], at.lng + 0.05); b[3] = Math.max(b[3], at.lat + 0.05); }
     e.frame(b);
   }, [placed, layers.leads, now, mode]);
+
+  useEffect(() => { if (mode === 'map') engine.current?.setHq(view?.hq ?? null); }, [view?.hq, mode]);
 
   useEffect(() => {
     const e = engine.current;
@@ -153,7 +157,8 @@ export function LiveMap({ initial, tv }: { initial: MapView | null; tv: boolean 
             <div className="lm-brand"><span>CarmaCars <b>Live</b></span><Clock now={now} /></div>
             <Kpis k={view?.kpi} />
           </header>
-          <footer className="lm-tv__foot">{legend}</footer>
+          <div className="lm-tv__chips">{legend}</div>
+          <footer className="lm-tv__foot"><Filmstrip pins={onTheRoad(pins, now)} /></footer>
         </section>
         <aside className="lm-rail">
           <section className="lm-spot" aria-label="Spotlight: the hottest lead" data-testid="lm-spotlight">
@@ -211,14 +216,48 @@ function floatAt(s: Spot): React.CSSProperties {
 }
 
 function Kpis({ k }: { k: Kpi | undefined }) {
-  const items: Array<[string, string, boolean?]> = [
-    ['On site now', String(k?.active_now ?? 0), true], ['Requests today', String(k?.requests_today ?? 0)], ['On rent now', String(k?.on_rent_now ?? 0)],
+  // the one change that is cheap from the read: requests today against yesterday to the same hour
+  const d = k && typeof k.requests_yesterday === 'number' ? k.requests_today - k.requests_yesterday : null;
+  const delta = d === null ? null : <span className={`lm-delta${d > 0 ? ' is-up' : d < 0 ? ' is-down' : ''}`}>{d > 0 ? `+${d}` : d < 0 ? `${d}` : 'same as'} vs yesterday</span>;
+  const items: Array<[string, string, boolean?, React.ReactNode?]> = [
+    ['On site now', String(k?.active_now ?? 0), true], ['Requests today', String(k?.requests_today ?? 0), false, delta], ['On rent now', String(k?.on_rent_now ?? 0)],
     ['Collected this month', k?.collected_month_cents === null || k?.collected_month_cents === undefined ? '' : compactMoney(k.collected_month_cents)]
   ];
   return (
     <ul className="lm-kpis" aria-label="Today at a glance" data-testid="lm-kpis">
-      {items.filter(([, v]) => v !== '').map(([label, v, live]) => <li key={label}><b className="lm-kpi__v">{v}</b><span className="lm-kpi__k">{live && <span className="lm-live" aria-hidden="true" />}{label}</span></li>)}
+      {items.filter(([, v]) => v !== '').map(([label, v, live, sub]) => <li key={label}><b className="lm-kpi__v">{v}</b><span className="lm-kpi__k">{live && <span className="lm-live" aria-hidden="true" />}{label}</span>{sub}</li>)}
     </ul>
+  );
+}
+
+/** On the road (TV): the cars on rent now and those picked up today, photo, car, renter (masked), due back; scrolls when it overflows. */
+function Filmstrip({ pins }: { pins: Pin[] }) {
+  const box = useRef<HTMLDivElement>(null), row = useRef<HTMLUListElement>(null);
+  const [roll, setRoll] = useState(false);
+  useEffect(() => {
+    if (!box.current || !row.current || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => setRoll(!!row.current && !!box.current && row.current.scrollWidth / (roll ? 2 : 1) > box.current.clientWidth + 1));
+    ro.observe(box.current); ro.observe(row.current);
+    return () => ro.disconnect();
+  }, [pins.length, roll]);
+  const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('en-CA', { timeZone: 'America/Toronto', weekday: 'short', hour: 'numeric', minute: '2-digit' }) : '');
+  const item = (p: Pin, copy: boolean) => {
+    const src = imgOf(p.car?.photo, 320);
+    return (
+      <li key={`${p.id}${copy ? ':2' : ''}`} style={{ ['--c' as string]: colourOf(p) }} aria-hidden={copy || undefined}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- the listing photos come pre-sized */}
+        <span className="lm-film__ph">{src ? <img src={src} alt="" decoding="async" /> : <span>{makeInitial(p.car?.name)}</span>}</span>
+        <span className="lm-film__t"><b>{p.car?.name ?? 'Car'}</b><span>{p.who} · {p.type === 'on_rent' ? `back ${when(p.return_at)}` : `pickup ${when(p.pickup_at)}`}</span></span>
+      </li>
+    );
+  };
+  return (
+    <div className="lm-film" ref={box} aria-label="On the road" data-testid="lm-film">
+      <h2 className="lm-h">On the road <span>{pins.length}</span></h2>
+      {pins.length ? <div className="lm-film__win"><ul ref={row} className={`lm-film__row${roll ? ' is-rolling' : ''}`} style={{ ['--n' as string]: String(pins.length) }}>
+        {pins.map((p) => item(p, false))}{roll && pins.map((p) => item(p, true))}
+      </ul></div> : <p className="lm-quiet">No car on the road today yet.</p>}
+    </div>
   );
 }
 
@@ -233,7 +272,7 @@ function Score({ p }: { p: Pin }) {
 function Spotlight({ p, on }: { p: Pin; on: boolean }) {
   const src = imgOf(p.car?.photo, 960), reason = reasonOf(p.signals);
   return (
-    <article className={`lm-spot__card${on ? ' is-on' : ''}`} aria-hidden={!on} style={{ ['--c' as string]: colourOf(p) }} data-testid={on ? 'lm-spot-card' : undefined}>
+    <article className={`lm-spot__card${on ? ' is-on' : ''}${src ? ' has-photo' : ''}`} aria-hidden={!on} style={{ ['--c' as string]: colourOf(p) }} data-testid={on ? 'lm-spot-card' : undefined}>
       <div className="lm-spot__media">
         {/* eslint-disable-next-line @next/next/no-img-element -- the listing photos come pre-sized */}
         {src ? <img src={src} alt="" decoding="async" /> : <span className="lm-spot__car">{p.car?.name ?? TYPE[p.type].label}</span>}

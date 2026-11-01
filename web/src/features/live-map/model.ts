@@ -11,20 +11,22 @@ export interface LiveReason { kind?: string; label: string; why?: string; weight
 export interface Facts { pages: number; seconds: number; cars: number; visit: number; past: number; game: boolean; claimed: boolean; live_score: number | null; reasons: LiveReason[] }
 export interface RawPin {
   id: string; type: LeadType; types: LeadType[]; at: string; detail: string | null; booking_number: string | null; renter_id: string | null; session_id: string | null;
+  pickup_at?: string | null; return_at?: string | null;
   name: string | null; email: string | null; phone: string | null; city: string | null; lat: number | null; lng: number | null; precision: Precision;
   online: boolean | null; device: string | null; from_ad: boolean; facts: Facts; car: MapCar | null;
 }
 export interface FleetCar { vehicle_id: string; code: string | null; name: string; lat: number; lng: number; heading: number | null; speed: number | null; status: 'on_rent' | 'available' | 'in_service'; updated_at: string; photo: CarPhoto | null }
-export interface Kpi { active_now: number; requests_today: number; bookings_week: number; on_rent_now: number; collected_month_cents: number | null }
-export interface RawMap { at: string; days: number; cap: number; live_minutes: number; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: RawPin[]; fleet: FleetCar[] }
+export interface Kpi { active_now: number; requests_today: number; requests_yesterday?: number; bookings_week: number; on_rent_now: number; collected_month_cents: number | null }
+export interface RawMap { at: string; days: number; cap: number; live_minutes: number; hq?: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: RawPin[]; fleet: FleetCar[] }
 
 export interface Signal { label: string; points: number; live?: boolean }
 export interface Pin {
   id: string; type: LeadType; types: LeadType[]; at: string; detail: string | null; booking_number: string | null; renter_id: string | null; session_id: string | null;
+  pickup_at: string | null; return_at: string | null;
   who: string; anonymous: boolean; email: string | null; phone: string | null; city: string | null; lat: number | null; lng: number | null; precision: Precision;
   online: boolean; device: string | null; score: number; band: 'hot' | 'warm' | 'cold'; signals: Signal[]; car: MapCar | null; masked: boolean;
 }
-export interface MapView { at: string; days: number; cap: number; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: Pin[]; fleet: FleetCar[]; masked: boolean }
+export interface MapView { at: string; days: number; cap: number; hq: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: Pin[]; fleet: FleetCar[]; masked: boolean }
 
 /** Most advanced first; the legend's order. Colours are for a dark map (each has 4.5:1 or more against #0b1020). */
 export const TYPES: Array<{ type: LeadType; label: string; short: string; colour: string }> = [
@@ -67,6 +69,37 @@ export function reasonOf(signals: Signal[]): string {
   const steps = new Set(Object.values(TYPE_POINTS).map((x) => x![0]));
   return signals.filter((s) => !steps.has(s.label)).slice(0, 2).map((s) => s.label).join(' · ');
 }
+/** Who gets a photo pin: on rent, booked, or hot (score 60 or more), with a car to show; at most `max`, the most advanced and hottest first. */
+export function photoPins(pins: Pin[], max = 60): Set<string> {
+  const want = pins.filter((p) => !!p.car && (p.type === 'on_rent' || p.type === 'booking' || p.band === 'hot'));
+  const rank = (p: Pin) => (p.type === 'on_rent' ? 0 : p.type === 'booking' ? 1 : 2);
+  return new Set(want.sort((a, b) => rank(a) - rank(b) || b.score - a.score).slice(0, max).map((p) => p.id));
+}
+/** The make's initial for a car with no photo: "2024 Toyota Corolla" is T. */
+export function makeInitial(name: string | null | undefined): string {
+  const w = (name ?? '').trim().split(/\s+/).filter((x) => x && !/^\d{4}$/.test(x));
+  return (w[0]?.charAt(0) ?? '?').toUpperCase();
+}
+/** The cars on the road today: on rent now, or booked with pickup today (Toronto), earliest due first. */
+export function onTheRoad(pins: Pin[], now = Date.now()): Pin[] {
+  const day = (iso: string | number) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
+  const today = day(now);
+  return pins.filter((p) => p.type === 'on_rent' || (p.type === 'booking' && !!p.pickup_at && day(p.pickup_at) === today))
+    .sort((a, b) => (a.type === b.type ? 0 : a.type === 'on_rent' ? -1 : 1) || String(a.return_at ?? a.pickup_at).localeCompare(String(b.return_at ?? b.pickup_at)));
+}
+/** A gently curved arc from a to b (bowed to the left of the way, a fifth of its length), as points: at this scale a
+ * great circle is a straight line, so the bow is what makes it read as a route. */
+export function arc(a: [number, number], b: [number, number], n = 40): Array<[number, number]> {
+  const dx = b[0] - a[0], dy = b[1] - a[1];
+  const c: [number, number] = [(a[0] + b[0]) / 2 - dy * 0.2, (a[1] + b[1]) / 2 + dx * 0.2];
+  const out: Array<[number, number]> = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, u = 1 - t;
+    out.push([u * u * a[0] + 2 * u * t * c[0] + t * t * b[0], u * u * a[1] + 2 * u * t * c[1] + t * t * b[1]]);
+  }
+  return out;
+}
+
 /** $48.2K, $1.3M, $950: money read across the room. */
 export function compactMoney(cents: number): string {
   const d = cents / 100, a = Math.abs(d), sign = d < 0 ? '-' : '';
@@ -143,13 +176,15 @@ export function toView(raw: RawMap, details: boolean): MapView {
     const known = shortName(p.name);
     return {
       id: p.id, type: p.type, types: p.types ?? [p.type], at: p.at, detail: p.detail, booking_number: p.booking_number, renter_id: p.renter_id, session_id: p.session_id,
+      pickup_at: p.pickup_at ?? null, return_at: p.return_at ?? null,
       who: known ? (details ? (p.name ?? '').trim() : known) : visitorLabel(p.city), anonymous: !known,
       email: details ? p.email : null, phone: details ? p.phone : maskPhone(p.phone),
       city: p.city, lat: num(p.lat), lng: num(p.lng), precision: p.precision, online: !!p.online, device: p.device,
       score, band: bandOf(score), signals, car: p.car, masked: !details
     };
   });
-  return { at: raw.at, days: raw.days, cap: raw.cap, kpi: raw.kpi, totals: raw.totals ?? {}, pins, fleet: raw.fleet ?? [], masked: !details };
+  const hq = raw.hq && num(raw.hq.lat) !== null && num(raw.hq.lng) !== null ? { lat: num(raw.hq.lat)!, lng: num(raw.hq.lng)! } : null;
+  return { at: raw.at, days: raw.days, cap: raw.cap, hq, kpi: raw.kpi, totals: raw.totals ?? {}, pins, fleet: raw.fleet ?? [], masked: !details };
 }
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null);
 
