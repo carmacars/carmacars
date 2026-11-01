@@ -3,5 +3,4 @@
 // older than the database (waiting for its deploy) from a broken one. schema-marker.test.ts fails until this is the
 // highest migration number in ../supabase/migrations: raise it with each new migration.
 export const SCHEMA_MARKER = '0301';
-export const SCHEMA_MARKER = '0301';
 export const SCHEMA_HEADER = 'x-carmacars-schema';
