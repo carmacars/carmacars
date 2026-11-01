@@ -74,6 +74,8 @@ the card while it's hovered over".
   leads searched by the name; `model.adminHref`). × or Escape closes it; on a TV it closes by itself after 20 seconds
   and the map goes back to its frame (also 20 seconds after a count was opened). The TV's map now listens for clicks
   but still never pans or zooms by hand.
+- **Scrolling to the map** ("Show on the map" from the list) is smooth, or at once for someone who asked for less
+  motion (the hover check in CI measured the map while a long smooth scroll was still moving it).
 - **The map stays put on the page:** once a lead was shown on the map, a count opened or the map moved by hand, new
   pins arriving with the 30-second refresh no longer re-fit it (a TV still re-fits, and goes back to its frame when a
   card closes).

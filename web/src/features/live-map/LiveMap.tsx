@@ -24,6 +24,8 @@ import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, adminHref, carLabel, timeLine, w
 const inArea = (lng: number, lat: number) => inBounds(lng, lat, MAX_BOUNDS);
 /** Release 26: how long a card stays open on a TV ("Show contact" is remembered in contact.ts). */
 const CARD_MS = 20_000;
+/** Scrolling to the map: smooth, or at once for someone who asked for less motion. */
+const scrollMotion = (): ScrollBehavior => (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
 
 const HOVER_MS = 150;
 const GRACE_MS = 300;
@@ -213,7 +215,7 @@ export function LiveMap({ initial, tv, at, embedded = false }: { initial: MapVie
       const p = pins.find((x) => (d.session_id && x.session_id === d.session_id) || (d.renter_id && x.renter_id === d.renter_id) || (d.booking_number && x.booking_number === d.booking_number));
       if (!p || p.lat === null || p.lng === null || !inArea(p.lng, p.lat) || hidden.has(stageOf(p.type))) return;
       d.found = true;
-      boxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      boxRef.current?.scrollIntoView({ behavior: scrollMotion(), block: 'center' });
       engine.current?.focus(p.id);
     };
     window.addEventListener(FOCUS_EVENT, on);
@@ -316,7 +318,7 @@ export function LiveMap({ initial, tv, at, embedded = false }: { initial: MapVie
       {legend}
       {err && <p className="lm-err" role="status">Not refreshed: {err}. Trying again in 30 seconds.</p>}
       {!embedded && <LeadTable pins={pins.filter((p) => !hidden.has(stageOf(p.type)))} now={now} cap={view && view.pins.length >= view.cap ? view.cap : null}
-        onLocate={(id) => { boxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); engine.current?.focus(id); }} />}
+        onLocate={(id) => { boxRef.current?.scrollIntoView({ behavior: scrollMotion(), block: 'center' }); engine.current?.focus(id); }} />}
       <p className="lm-foot">Score: the points of the signals added up, at most 100 (60 or more is hot). Places are approximate: the visit&apos;s network (about 1 km), else the centre of the renter&apos;s home city or the visit&apos;s city; nothing is looked up. Refreshes every 30 seconds. Basemap: Natural Earth; boundaries: Statistics Canada via geoBoundaries (ODbL); the GTA&apos;s highways, arterial roads and ridges drawn by CarmaCars.</p>
     </div>
   );

@@ -127,6 +127,8 @@ test('Visitors: the map, Live now and Show contact on the page; the old addresse
     await page.keyboard.press('Escape');
     await expect(card).toHaveCount(0);
     if (!phone) {
+      // the page scrolled to the map: measure it once it is still
+      await expect.poll(async () => { const a = (await map.boundingBox())!.y; await page.waitForTimeout(250); return a === (await map.boundingBox())!.y; }).toBe(true);
       const box = (await map.boundingBox())!;
       const mid = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
       await page.mouse.move(mid.x, mid.y + 120);
@@ -181,6 +183,7 @@ test('Visitors: the map, Live now and Show contact on the page; the old addresse
       await expect(pop.getByTestId('lm-detail-name')).toHaveText('Visitor in Mississauga', { timeout: 15_000 });
       await fb.keyboard.press('Escape');
       await expect(pop).toHaveCount(0);
+      await expect.poll(async () => { const a = (await m2.boundingBox())!.y; await fb.waitForTimeout(250); return a === (await m2.boundingBox())!.y; }).toBe(true);
       const b2 = (await m2.boundingBox())!;
       await fb.mouse.click(b2.x + b2.width / 2, b2.y + b2.height / 2);
       await expect(pop).toHaveAttribute('data-pinned', '1');
