@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { OUT_OF_SCOPE, allowLines, deepOutOfScope, inCrawlScope } from './crawl-scope.ts';
-import { cpuGuard, isCrawler, shield } from './bot-shield.ts';
+import { isCrawler, shield } from './bot-shield.ts';
 
 // Release 23: the crawl scope (Worker CPU at 36 times its allowance from crawlers walking trillions of addresses).
 const landing = new Set(['/car-rental/toronto', '/car-rental/airport']);
@@ -39,14 +39,3 @@ test('edge, Full scope (the default): every public page is open to crawlers', ()
     assert.deepEqual(shield('GET', `https://carmacars.ca${p}`, bot), { kind: 'pass' }, p);
 });
 
-test('CPU guard: crawlers on catalog pages only, only while the flag is up', () => {
-  const bot = 'Googlebot/2.1 (+http://www.google.com/bot.html)';
-  assert.equal(cpuGuard('GET', '/cars/honda/civic', bot, true), true);
-  assert.equal(cpuGuard('GET', '/cars/honda/civic', bot, false), false);
-  assert.equal(cpuGuard('GET', '/cars/2021-honda-civic-abc', bot, true), false, 'a fleet car page');
-  assert.equal(cpuGuard('GET', '/', bot, true), false);
-  assert.equal(cpuGuard('GET', '/cars/honda/civic', 'Mozilla/5.0 (Macintosh) Chrome/130', true), false, 'a person');
-  // the Full scope's programmatic trees are held too
-  for (const p of ['/t/car-hire/toronto', '/buy/honda/civic', '/detailing/toronto', '/body-shop/toronto', '/places/toronto'])
-    assert.equal(cpuGuard('GET', p, bot, true), true, p);
-});

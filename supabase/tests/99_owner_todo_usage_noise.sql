@@ -120,3 +120,32 @@ select test.ok('the RentalCoverage link while it is not set', app.owner_steps() 
   = not coalesce((select app.coverage_affiliate_usable(a) from coverage_affiliate a limit 1), false));
 select test.ok('no secret value is ever in it', app.owner_steps()::text !~ 'BEGIN|PRIVATE KEY');
 select test.throws('service role only', $$set local role authenticated; select public.server_owner_steps()$$, 'permission denied');
+
+-- ================================================================ 9. the crawler guard (0324): on past US$40 projected, for the rest of the month
+create temp table on_cpu as select coalesce((app.usage_state('workers_cpu') ->> 'used')::numeric, 0) v;
+update program_settings set crawler_guard_month = null where id = (app.settings()).id;
+select app.usage_put('workers_cpu', app.today(), 'cloudflare', 0);
+select test.eq('under the line: off, and the tick says so', (app.crawler_guard_check() or (app.server_jobs_due() ->> 'cpu_guard')::boolean), false);
+select test.ok('robots.txt reads it', public.crawler_guard() = false);
+-- three billion CPU ms this month: far past US$40 projected
+select app.usage_put('workers_cpu', app.today(), 'cloudflare', 3000000000);
+select test.eq('past the line: on, and the Worker''s tick carries it', app.crawler_guard_check()::text || '/' || (app.server_jobs_due() ->> 'cpu_guard'), 'true/true');
+select test.ok('Admin > To do says so, with the line and the end of the month',
+  (select (v -> 'crawler_guard' ->> 'line_usd')::numeric = 40 and (v -> 'crawler_guard' ->> 'until')::date = (app.month_start(app.today()) + interval '1 month')::date
+     from (select app.admin_todo(test.id('on_admin')) v) x));
+select app.usage_put('workers_cpu', app.today(), 'cloudflare', 0);
+select test.ok('it stays on for the rest of the month when the CPU falls', app.crawler_guard_on() and app.crawler_guard_check());
+select test.eq('and is off next month', app.crawler_guard_on(app.local_midnight((app.month_start(app.today()) + interval '1 month')::date) + interval '1 hour'), false);
+update program_settings set crawler_guard_month = null where id = (app.settings()).id;
+select test.ok('the hourly usage job checks it', app.job_usage_refresh() ? 'crawler_guard');
+update program_settings set crawler_guard_month = null where id = (app.settings()).id;
+-- the CPU figure as it was (later suites start from it)
+select app.usage_put('workers_cpu', app.today(), 'cloudflare', (select v from on_cpu));
+
+-- ================================================================ 10. the greeting name (0324)
+select test.eq('no greeting name: the account''s name', public.my_roles(test.id('on_admin')) ->> 'greeting', (select full_name from users where id = test.id('on_admin')));
+select test.eq('saved on My profile', app.door(test.id('on_admin'), 'aal2', 'admin_do', 'my_greeting_save', '{"greeting_name": "  Abbas and Mahad "}') ->> 'greeting', 'Abbas and Mahad');
+select test.eq('the frame and the roles carry it', (public.admin_gate(test.id('on_admin')) ->> 'greeting') || '/' || (public.my_roles(test.id('on_admin')) ->> 'greeting'), 'Abbas and Mahad/Abbas and Mahad');
+select test.eq('emptied: the account''s name again', app.door(test.id('on_admin'), 'aal2', 'admin_do', 'my_greeting_save', '{"greeting_name": ""}') ->> 'greeting_name', null);
+select test.throws('at most 60 characters', format($$select app.my_greeting_save(%L, jsonb_build_object('greeting_name', repeat('x', 61)))$$, test.id('on_admin')), '60');
+select test.throws('Admins only through the door', $$select app.door(gen_random_uuid(), 'aal2', 'admin_read', 'my_profile', '{}')$$, '');

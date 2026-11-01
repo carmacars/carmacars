@@ -1,4 +1,4 @@
-# To do that fits a day, usage in money, and the causes of the CPU, storage and email overruns (0320, 0322, 0323)
+# To do that fits a day, usage in money, and the causes of the CPU, storage and email overruns (0320, 0322 to 0324)
 
 What the owner saw on November 1, 2026 on Admin > To do, on his phone: a red banner "Over the included allowance"
 (website CPU time 123%, about US$0.14 over; photo and document storage 103%, about US$0.005 over), a black banner
@@ -73,13 +73,22 @@ We cannot read production from here, so each cause below is from the code, with 
     render while it is under 3 days old and no page was rebuilt on demand since, with Last-Modified; a crawler asking
     "changed since?" (If-Modified-Since) gets 304 with no body (`crawlerCopy`, src/lib/edge/page-cache.ts). Every second
     visit of a page by any crawler, Google's mobile and desktop crawlers included, is then answered without a render.
-  - The search and answer crawlers that bring visitors (Google, Bing, DuckDuckGo, Apple, ChatGPT search and its user
-    fetches, Claude search and user, Perplexity, Amazon and Meta user fetches, Mistral, DuckAssist, Google's Vertex and
-    Deep Research) keep every public page, as the owner chose; their scope still follows Settings > Vehicle pages. Every
-    other crawler (training crawlers, the foreign search engines, open crawls, any crawler not named) reads the crawl
-    scope only (src/lib/edge/crawl-scope.ts: the fleet, landing pages, guides, the vehicle tree to the trim): robots.txt
-    says so in their groups, and the Worker answers a deep page 403 before the app loads, with no tag store read
-    (`keptToScope`, src/lib/edge/bot-shield.ts). Nothing leaves search.
+  - **Every crawler reaches every page (the owner's decision, 0324).** He accepts about US$20 to 25 a month of CPU above
+    the allowance for full search and AI coverage ("worth it. But try to do the caching stuff too so it doesn't get out of
+    hand"). robots.txt names every crawler with the search scope of Settings > Vehicle pages again, training crawlers
+    included (still at one page every 10 seconds where they honour Crawl-delay), and the Worker refuses none of them.
+    Training crawlers are answered from the saved copy and 304s like every crawler.
+  - **The guard so it cannot run away (0324).** Program settings `crawler_guard_usd` (US$40): when this month's projected
+    Worker CPU cost above the allowance passes it (`app.crawler_guard_check`, in the hourly usage job), every crawler that
+    is not a search or answer crawler (the training crawlers, the foreign search engines, the open crawls, any crawler not
+    named) keeps to the crawl scope (src/lib/edge/crawl-scope.ts: the fleet, the landing pages, the guides, the vehicle
+    tree to the trim) until the month ends (`crawler_guard_month`): robots.txt says so in their groups and the Worker
+    answers their deep pages 403 before the app loads (`keptToScope`, src/lib/edge/bot-shield.ts; the flag reaches the
+    Worker through the five-minute tick). Admin > To do shows a quiet note while it is on. Search and answer crawlers
+    (Google, Bing, DuckDuckGo, Apple, ChatGPT search and its user fetches, Claude search and user, Perplexity, Amazon and
+    Meta user fetches, Mistral, DuckAssist, Google's Vertex and Deep Research) are never limited by it.
+  - R23's guard is retired: from 70% of the included CPU time it answered every crawler, Google's included, 503 on the
+    catalog pages; with CPU at 135% on November 1 it was holding Google back. The crawler guard replaces it.
   - Staff screens ask at their pace while someone uses them and at most once a minute after two minutes untouched (a
     wall screen, a tab left open); any touch brings the pace back; hidden tabs never ask (src/lib/poll/poll.ts). The chat
     thread asks every 3 s (was 2), the phone inbox every 10 s (was 6), a phone thread every 5 s (was 4).
@@ -154,10 +163,12 @@ set `CF_EMAIL_BINDING`, deploy).
 - DB: `60_usage_guard_assistant.sql` (0323: no usage alert is emailed, each says why; the email still builds).
 - Unit: `web/src/features/guides/upkeep.test.ts` (the sections rewritten), `web/src/lib/edge/page-cache-stale.test.ts`
   (crawlers get the last good copy or a 304), `web/src/features/admin/todo/need.test.ts`, `web/src/lib/poll/poll.test.ts`, `web/src/lib/edge/bot-shield.test.ts`
-  (crawl scope), `web/src/features/usage/usage.test.ts` (the banner's words, the email steps),
+  (the crawler guard: never search crawlers), `web/src/features/usage/usage.test.ts` (the banner's words, the email steps),
   `web/src/lib/deploy-scripts.test.ts` (the backups kept).
-- E2E: `guided-actions.spec.ts` (a customer service task stays on its team's line), `release-23.spec.ts` (robots.txt: the
-  search crawlers' group keeps every page, GPTBot's the crawl scope), `legal-admin-redesign.spec.ts`.
+- DB: `99_owner_todo_usage_noise.sql` section 9 (the crawler guard: off under the line, on past it and in the Worker's
+  tick, on To do, kept for the rest of the month, off the next).
+- E2E: `guided-actions.spec.ts` (a customer service task stays on its team's line), `release-23.spec.ts` (robots.txt in
+  Full: Google's and GPTBot's groups both reach every page while the guard is off), `legal-admin-redesign.spec.ts`.
 
 ## Guides
 

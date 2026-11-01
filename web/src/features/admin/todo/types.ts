@@ -35,6 +35,8 @@ export interface Todo {
   /** 0320: how many lines need the Admin (app.todo_need; need.ts) */
   need?: number;
   teams?: TodoTeam[];
+  /** 0324: the month's crawler guard, while it is on */
+  crawler_guard?: { line_usd: number; until: string; projected_usd: number | null };
   staffed?: Record<'cs' | 'sales' | 'finance' | 'fleet', boolean>;
   pickups: Array<{ booking_number: string; at: string; vehicle: string; renter: string; ready: boolean }>;
   returns: Array<{ booking_number: string; at: string; vehicle: string; renter: string; late: boolean }>;

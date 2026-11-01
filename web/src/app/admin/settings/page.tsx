@@ -12,7 +12,7 @@ export default async function Settings() {
   const { read } = await page('/admin/settings');
   const s = await read<{ problems: Array<{ message: string; href?: string | null }> }>('settings');
   // setup that needs a key only the owner's accounts can give (Release 22): listed until it is done
-  if (!walletReady()) s.problems.push({ message: 'Add to Apple Wallet is hidden until CarmaCars has an Apple Pass Type ID certificate. In the Apple Developer account (Certificates, Identifiers & Profiles), create a Pass Type ID (pass.ca.carmacars.booking) and its certificate, then add WALLET_PASS_CERT, WALLET_PASS_KEY, WALLET_WWDR_CERT, WALLET_PASS_TYPE_ID and WALLET_TEAM_ID to the Worker\'s secrets. The button then shows on every confirmed booking.', href: null });
+  if (!walletReady()) s.problems.push({ message: 'Add to Apple Wallet is hidden until CarmaCars has an Apple Pass Type ID certificate. In the Apple Developer account (Certificates, Identifiers & Profiles), create a Pass Type ID (pass.ca.carmacars.booking) and its certificate, then add deploy_wallet_pass_cert, deploy_wallet_pass_key, deploy_wallet_wwdr_cert, deploy_wallet_pass_type_id and deploy_wallet_team_id to the vault of the live database (the company server); the next deploy passes them to the Worker and the button then shows on every confirmed booking.', href: null });
   return (
     <>
       <PageHead title="Settings" kicker="Changes reach the public site at once" purpose="Everything you can change without a developer. Press Ctrl+K and type a name to jump straight to one." />

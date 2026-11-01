@@ -4,7 +4,7 @@
 // key, the function missing, an error) runs both, as before. No imports: it runs in the Worker entry and in Node.
 
 export interface JobsDue { listing: boolean; seo: boolean; pdf: boolean; phone: boolean; turo: boolean; agreements: boolean; reviews: boolean; crm: boolean; deposits: boolean; ads: boolean; checked: boolean;
-  /** R23: the month's Worker CPU time is at 70% of the included allowance or more (crawlers get no catalog render, bot-shield.ts cpuGuard) */
+  /** 0324: the month's crawler guard is on (crawlers that are not search or answer crawlers keep to the crawl scope, bot-shield.ts keptToScope) */
   cpu_guard?: boolean;
   /** R23: the search scope is Core (crawlers kept to the crawl scope at the edge, bot-shield.ts shield) */
   search_core?: boolean }

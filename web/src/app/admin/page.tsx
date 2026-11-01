@@ -8,6 +8,7 @@ import { TodayBoard, boardTiles, type Dash } from '@/features/admin/today/TodayB
 import { Prompts } from '@/features/admin/todo/Prompts';
 import type { Todo } from '@/features/admin/todo/types';
 import { Teams } from '@/features/admin/todo/Teams';
+import { greetName } from '@/features/admin/today/greeting';
 import { needCount, needSentence, ownClear, ownLines } from '@/features/admin/todo/need';
 import { UsageBanner, UsageCards } from '@/features/usage/UsageCards';
 import { More } from '@/features/portal/Chrome';
@@ -49,7 +50,8 @@ export default async function AdminToDo() {
   return (
     <>
       <UsageBanner userId={user.id} />
-      <TodayBoard name={gate.name ?? null} tiles={boardTiles(dash, d, siteProblems)}
+      {d.crawler_guard && <p className="small muted ug-note" data-testid="crawler-guard-note">AI training crawlers are on the core pages only until {new Date(`${d.crawler_guard.until}T12:00:00Z`).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', timeZone: 'UTC' })}: this month&apos;s Worker CPU cost above the allowance is projected at about US${Number(d.crawler_guard.projected_usd ?? 0).toFixed(2)}, past the US${Number(d.crawler_guard.line_usd).toFixed(2)} of Program settings. Google, Bing and the AI search crawlers still read every page.</p>}
+      <TodayBoard name={greetName(gate)} tiles={boardTiles(dash, d, siteProblems)}
         lead={needSentence(need)}
         actions={<><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/overview">Overview</Link><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new">Add a rental</Link></>} />
       <div className="ad-home">

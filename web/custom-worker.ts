@@ -12,7 +12,7 @@ import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, clea
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, STALE_HEADER, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
 import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
-import { cpuGuard, cpuGuardResponse, isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
+import { isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
 import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
@@ -201,8 +201,8 @@ const worker = {
       .then((r: Response) => r.text()).catch(() => undefined));
     // only when the database has work for them (src/lib/edge/cron-gate.ts, 0076): an idle tick then never loads the app
     const due = await jobsToRun(env);
-    // R23: the month's Worker CPU time at 70% of the allowance or more (the database's usage figures): the flag the fetch handler reads
-    // for the crawler guard (bot-shield.ts cpuGuard), written only when it changes
+    // 0324: the month's crawler guard (the database: projected CPU cost above crawler_guard_usd, on until the month ends):
+    // the flag the fetch handler reads (bot-shield.ts keptToScope), written only when it changes
     if (due.checked) ctx.waitUntil((async () => {
       const want = due.cpu_guard ? 1 : 0;
       if ((await readNumber(env, CPU_GUARD_KEY)) !== want) await writeNumber(env, CPU_GUARD_KEY, want);
@@ -276,16 +276,16 @@ const worker = {
     if (isProbe(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });
     // 2026-10-30: SEO tools and scrapers, crawlers on the portals and on query-string views: answered here, before the
     // session refresh and the app (src/lib/edge/bot-shield.ts)
-    // R23: the search scope flag is read (one KV read, kept 30 s) only for a search crawler on a page outside the core crawl
-    // scope. 0320: any other crawler (training crawlers, the foreign search engines, unnamed bots) is kept to the crawl
-    // scope whatever the setting, with no read (bot-shield.ts keptToScope)
+    // R23: the search scope flag is read (one KV read, kept 30 s) only for a crawler on a page outside the core crawl scope.
+    // 0324: every crawler reaches every page (the owner's decision); while the month's crawler guard is on (CPU_GUARD_KEY,
+    // the database's projected CPU cost above crawler_guard_usd), a crawler that is not a search or answer crawler is kept
+    // to the crawl scope (bot-shield.ts keptToScope)
     const ua0 = request.headers.get('user-agent');
-    const core = await keptToScope(ua0, path, async () => (await readNumber(env, SEARCH_SCOPE_KEY)) === 1);
+    const core = await keptToScope(ua0, path, async () => (await readNumber(env, SEARCH_SCOPE_KEY)) === 1, async () => (await readNumber(env, CPU_GUARD_KEY)) === 1);
     const sh = shield(request.method, request.url, ua0, core);
     if (sh.kind !== 'pass') return shieldResponse(sh, securityHeaders());
-    // R23: from 70% of the month's included CPU time, crawlers get no catalog render (one KV read, kept 30 s)
-    { const ua = request.headers.get('user-agent');
-      if (cpuGuard(request.method, path, ua, true) && (await readNumber(env, CPU_GUARD_KEY)) === 1) return cpuGuardResponse(securityHeaders()); }
+    // 0324: R23's guard (every crawler, Google's too, 503 on the catalog from 70% of the included CPU time) is retired: the
+    // crawler guard above keeps only the crawlers that are not search or answer crawlers to the crawl scope
     if (path === '/api/t' && request.method === 'POST') { const t = await track(request, env, ctx); if (t) return t; }
     if (path === '/api/jobs/warm-up' && request.method === 'POST') return warmUp(request, env, ctx);
     // An Admin viewing as someone is read only: every write outside the Admin portal stops here

@@ -14143,6 +14143,8 @@ export type Database = {
           push_enabled: boolean;
           capture_followup_days: number;
           usage_banner_red_usd: number;
+          crawler_guard_usd: number;
+          crawler_guard_month: string | null;
         };
         Insert: {
           id?: string;
@@ -14687,6 +14689,8 @@ export type Database = {
           push_enabled?: boolean;
           capture_followup_days?: number;
           usage_banner_red_usd?: number;
+          crawler_guard_usd?: number;
+          crawler_guard_month?: string | null;
         };
         Update: {
           id?: string;
@@ -15231,6 +15235,8 @@ export type Database = {
           push_enabled?: boolean;
           capture_followup_days?: number;
           usage_banner_red_usd?: number;
+          crawler_guard_usd?: number;
+          crawler_guard_month?: string | null;
         };
         Relationships: [];
       };
@@ -20254,6 +20260,7 @@ export type Database = {
           notify_channel: string | null;
           notify_channel_at: string | null;
           notify_channel_by: string | null;
+          greeting_name: string | null;
         };
         Insert: {
           id?: string;
@@ -20273,6 +20280,7 @@ export type Database = {
           notify_channel?: string | null;
           notify_channel_at?: string | null;
           notify_channel_by?: string | null;
+          greeting_name?: string | null;
         };
         Update: {
           id?: string;
@@ -20292,6 +20300,7 @@ export type Database = {
           notify_channel?: string | null;
           notify_channel_at?: string | null;
           notify_channel_by?: string | null;
+          greeting_name?: string | null;
         };
         Relationships: [];
       };
@@ -24390,6 +24399,7 @@ export type Database = {
       chauffeur_services: { Args: never; Returns: Json };
       cookie_choice: { Args: { p_visitor_id: string }; Returns: Json };
       coverage_affiliate_public: { Args: never; Returns: Json };
+      crawler_guard: { Args: never; Returns: boolean };
       delivery_origin: { Args: never; Returns: Json };
       door: { Args: { p_user: string; p_aal: string; p_call: string; p_name: string; p?: Json }; Returns: Json };
       driver_sign_agreement: { Args: { p_signer: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: string };

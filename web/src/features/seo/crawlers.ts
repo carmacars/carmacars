@@ -38,12 +38,10 @@ export const CRAWL_DELAY_S = 10;
 export const BLOCKED_CRAWLERS = ['AhrefsBot', 'SemrushBot', 'MJ12bot', 'DotBot', 'PetalBot', 'Bytespider', 'DataForSeoBot', 'BLEXBot', 'serpstatbot',
   'MegaIndex.ru', 'SeekportBot', 'Barkrowler', 'ImagesiftBot', 'Timpibot', 'ZoominfoBot', 'AwarioBot', 'magpie-crawler', 'SiteAuditBot', 'trendictionbot', 'Sogou web spider'] as const;
 
-// 0320 (docs/changes/2026-11-06-owner-todo-usage-noise.md, Worker CPU over its allowance): the search and answer crawlers
-// that bring visitors keep every public page, as the owner chose (Settings > Vehicle pages decides their scope). Every
-// other crawler (the training crawlers, the foreign search engines, the open crawls, any crawler not named) reads the
-// crawl scope only (src/lib/edge/crawl-scope.ts: the fleet, the landing pages, the guides, the vehicle tree to the trim):
-// each of the millions of deeper pages is a fresh render no cache can absorb, and a training crawler at one page every
-// 10 seconds alone is about 260,000 renders, close to the month's whole included CPU time. Keep in step with
-// src/lib/edge/bot-shield.ts SEARCH_CRAWLER.
+// The search and answer crawlers that bring visitors (docs/changes/2026-11-06-owner-todo-usage-noise.md). 0324, the owner's
+// decision: every crawler reaches every page (about US$20 to 25 a month of CPU); the caching keeps it down (a crawler
+// gets a page's last good copy or a 304). While the month's crawler guard is on (projected CPU cost above
+// crawler_guard_usd, US$40), every crawler not named here keeps to the crawl scope (src/lib/edge/crawl-scope.ts) until the
+// month ends; these never do. Keep in step with src/lib/edge/bot-shield.ts SEARCH_CRAWLER.
 export const FULL_SCOPE_CRAWLERS = ['Googlebot', 'Googlebot-Image', 'Bingbot', 'DuckDuckBot', 'Applebot', 'OAI-SearchBot', 'ChatGPT-User', 'Claude-SearchBot', 'Claude-User',
   'PerplexityBot', 'Perplexity-User', 'Google-CloudVertexBot', 'Gemini-Deep-Research', 'Meta-ExternalFetcher', 'Amzn-SearchBot', 'Amzn-User', 'DuckAssistBot', 'MistralAI-User'] as const;
