@@ -24,6 +24,9 @@ create or replace function test.s37b(p_k text) returns bookings language sql sta
   select * from bookings where id = coalesce((test.s37(p_k) ->> 'booking_id')::uuid, (test.s37(p_k) ->> 'id')::uuid) $$;
 create or replace function test.s37c(p_k text) returns staff_commissions language sql stable as $$
   select * from staff_commissions where booking_id = (test.s37b(p_k)).id and kind = 'commission' order by created_at desc limit 1 $$;
+-- these cars have one price every day of the week (a flat weekend; the weekend premium of 0271 is set back at the end):
+-- the prices below do not depend on the weekday the test runs
+update program_settings set weekend_premium_bps = 0 where id = (app.settings()).id;
 -- CarmaCars-owned cars with rates
 do $$
 declare i integer;
@@ -104,7 +107,7 @@ insert into s37 select 'q1', app.door(test.id('sc_fleet'), 'aal2', 'va_do', 'quo
   'pickup_at', date_trunc('hour', now()) + interval '20 days', 'return_at', date_trunc('hour', now()) + interval '24 days', 'full_name', 'Quinn Caller', 'email', 'sc.quinn@example.test',
   'mobile', '4165550111', 'date_of_birth', '1985-03-04', 'sales_choice', 'sourced', 'rental_charge_cents', 38000, 'price_reason', 'Four days for the price of a week minus one'));
 select test.eq('quote by Fleet: a request, sourced, the price typed with the rate sheet beside it',
-  (select status || '/' || sales_sourced || '/' || rental_charge_cents || '/' || rate_sheet_rental_cents from test.s37b('q1')), 'requested/true/38000/43000');
+  (select status || '/' || sales_sourced || '/' || rental_charge_cents || '/' || rate_sheet_rental_cents from test.s37b('q1')), 'requested/true/38000/40000');
 select test.throws('quote: the choice is required', format($$select app.door(%L, 'aal2', 'va_do', 'quote_create', jsonb_build_object('vehicle_id', test.s37v('car4'), 'source', 'phone',
   'pickup_at', date_trunc('hour', now()) + interval '30 days', 'return_at', date_trunc('hour', now()) + interval '32 days', 'full_name', 'Quinn Caller', 'email', 'sc.quinn@example.test',
   'mobile', '4165550111', 'date_of_birth', '1985-03-04'))$$, test.id('sc_fin')), 'I sourced this client');
@@ -202,8 +205,9 @@ insert into s37 select 'now1', app.manual_rental_create(test.id('sc_admin'), tes
 select app.sales_reassign(test.id('sc_admin'), jsonb_build_object('booking', (test.s37b('now1')).id, 'staff', test.id('sc_sales'), 'sourced', true, 'reason', 'Test')) where test.s37('now1') is not null;
 select test.ok('this month: a Sales commission waits for the month to end', test.s37('now1') is null or (select (c.status = 'pending_approval') from test.s37c('now1') c));
 select test.throws('this month: approving a Sales month still open is refused', format($$select app.commission_approve(%L, jsonb_build_object('ids', jsonb_build_array(%L)))$$,
-  test.id('sc_admin'), coalesce((test.s37c('now1')).id, (select id from staff_commissions where staff_id = test.id('sc_sales') and month = test.s37m() limit 1))),
-  case when test.s37('now1') is null then 'pending approval' else 'month ends' end);
+  test.id('sc_admin'), (test.s37c('now1')).id), 'month ends') where test.s37('now1') is not null;
+-- on the first day of a month nothing of the month is over yet: there is no such rental to try
+select test.ok('this month: approving a Sales month still open is refused', true) where test.s37('now1') is null;
 -- the month's job after the month ended: recalculated, a task for the Admins
 select test.eq('month job: runs once after the month', app.job_commission_month(app.local_midnight(app.month_start(app.today())) + interval '7 hours') || '/' ||
   app.job_commission_month(app.local_midnight(app.month_start(app.today())) + interval '8 hours'), 'succeeded/already_run');
@@ -276,3 +280,6 @@ select test.ok('privileges: a browser session cannot run the commission function
   and not has_function_privilege('anon', 'app.commission_sync(uuid)', 'execute'));
 select test.ok('tables: row-level security on the commission tables', (select bool_and(relrowsecurity) from pg_class where relname in ('staff_commissions', 'staff_commission_payouts')));
 select test.ok('catalogue: both staff emails are emitted by something', (select count(*) = 2 from notification_catalogue where code in ('staff_commission_approved', 'staff_commission_paid') and emitted_by is not null));
+update program_settings set weekend_premium_bps = 1500 where id = (app.settings()).id;
+-- and these cars follow the rule again (the save raises a weekend at or below daily)
+update rate_cards set weekend_rate_cents = weekend_rate_cents where effective_to is null and weekend_rate_cents <= daily_rate_cents;

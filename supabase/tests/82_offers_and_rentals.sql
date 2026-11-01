@@ -21,6 +21,9 @@ create function test.ofb(p text) returns bookings language sql stable security d
   select * from public.bookings where id = coalesce((test.ofv(p) ->> 'booking_id')::uuid, (test.ofv(p) ->> 'id')::uuid) $$;
 create function test.ofu(p text) returns uuid language sql stable security definer as $$
   select r.user_id from public.renters r where r.id = (test.ofb(p)).renter_id $$;
+-- these cars have one price every day of the week (a flat weekend; the weekend premium of 0271 is set back at the end):
+-- the prices below do not depend on the weekday the test runs
+update program_settings set weekend_premium_bps = 0 where id = (app.settings()).id;
 do $$
 declare i integer;
 begin
@@ -168,7 +171,7 @@ select test.eq('given back: the payment succeeds, the task is done', (select sta
 
 -- ================================================================ 4. a rental added by hand: deposit, platform payout, calendar, paper
 insert into test.of select 'm1', app.door(test.id('of_admin'), 'aal2', 'ops_do', 'manual_rental_create', jsonb_build_object('vehicle_id', test.ofcar('car4'),
-  'pickup_at', date_trunc('hour', now()) + interval '2 days', 'return_at', date_trunc('hour', now()) + interval '5 days', 'source', 'turo', 'coverage_option', 1,
+  'pickup_at', date_trunc('hour', now()) + interval '3 days', 'return_at', date_trunc('hour', now()) + interval '6 days', 'source', 'turo', 'coverage_option', 1,
   'renter_id', test.id('renter:of_rita'), 'sales_choice', 'for_carmacars', 'payment', jsonb_build_object('mode', 'other_way', 'method', 'platform_payout', 'reference', 'TURO-998'),
   'deposit', jsonb_build_object('method', 'e_transfer', 'reference', 'DEP-55'), 'agreement', 'paper', 'blocks_calendar', false, 'blocks_calendar_reason', 'Turo trip, Turo calendar holds it'));
 select test.eq('Turo: confirmed, paid by platform payout, deposit by e-Transfer, on paper, not blocking',
@@ -237,3 +240,6 @@ select test.eq('Sales open a confirmed booking whose check-out is due (to check 
   app.door(test.id('of_sales'), 'aal2', 'va_read', 'booking', jsonb_build_object('number', (test.ofb('m3')).booking_number)) ->> 'status', 'confirmed');
 select test.throws('Sales do not open a confirmed booking whose check-out is days away',
   $$select app.door(test.id('of_sales'), 'aal2', 'va_read', 'booking', jsonb_build_object('number', (test.ofb('m1')).booking_number))$$, 'requests and offers only');
+update program_settings set weekend_premium_bps = 1500 where id = (app.settings()).id;
+-- and these cars follow the rule again (the save raises a weekend at or below daily)
+update rate_cards set weekend_rate_cents = weekend_rate_cents where effective_to is null and weekend_rate_cents <= daily_rate_cents;

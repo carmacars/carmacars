@@ -115,7 +115,8 @@ select test.sgb('hol', jsonb_build_array(test.ev('search', 2, jsonb_build_object
 select test.ok('dates over a holiday', test.sgwhy('hol', 'weekend_trip') like 'Dates over %', test.sgwhy('hol', 'weekend_trip'));
 -- late at night on a phone, looking at a car
 select public.track_ingest(jsonb_build_object('sid', test.sgsid('night'), 'vid', md5('sg-vid:night')::uuid, 'consent', 'analytics', 'device', 'phone', 'events', jsonb_build_array(test.ev('page_view', 1))), '{}');
-update visitor_sessions set last_seen_at = app.local_midnight(app.local_date(now())) + interval '23 hours 30 minutes' where id = test.sgsid('night');
+-- 11:30 pm on the clock (a day the clocks change has 23 or 25 hours: added to midnight it would be another time)
+update visitor_sessions set last_seen_at = (app.local_date(now())::timestamp + interval '23 hours 30 minutes') at time zone app.tz() where id = test.sgsid('night');
 select app.visitor_live_eval(test.sgsid('night'));
 select test.eq('on a phone late at night', test.sgwhy('night', 'late_night'), 'On a phone at 11:30 pm');
 update visitor_sessions set last_seen_at = app.local_midnight(app.local_date(now())) + interval '14 hours' where id = test.sgsid('night');

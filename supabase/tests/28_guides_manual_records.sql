@@ -207,8 +207,9 @@ select test.throws('processing: no payment by hand while a debit is processing',
 select test.eq('month: Finance sees the month''s payments by hand with the voided one marked, and the totals leave it out',
   (select (select count(*) from jsonb_array_elements(m -> 'rows') r where (r ->> 'id')::uuid = test.gmv('mp2') and r ->> 'voided_at' is not null) || '/' ||
           (coalesce((m -> 'totals' ->> 'cheque')::bigint, 0) = (select coalesce(sum(amount_cents), 0) from manual_payments where method = 'cheque' and voided_at is null
-                                                                  and date_trunc('month', received_on) = date_trunc('month', app.today())))
-     from (select test.gm_read('gm_fin', 'manual_payments_month', jsonb_build_object('month', app.today())) m) x), '1/true');
+                                                                  and date_trunc('month', received_on) = date_trunc('month', app.today() - 1)))
+     -- the month of the cheque (received yesterday: last month on the 1st)
+     from (select test.gm_read('gm_fin', 'manual_payments_month', jsonb_build_object('month', app.today() - 1)) m) x), '1/true');
 
 -- a renter's failed charge paid by e-Transfer
 select test.mk_renter('gm_rena');

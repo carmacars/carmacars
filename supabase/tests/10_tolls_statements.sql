@@ -462,18 +462,18 @@ select test.throws('S the Owner cannot see a draft statement', format('select ap
 select app.approve_owner_statement((select id from jst where legal_name = 'Tz Olga'), test.id('tz_admin'));
 select test.eq('S approved: the Owner now sees the breakdown',
   jsonb_array_length(app.owner_statement_breakdown((select id from jst where legal_name = 'Tz Olga'), test.id('tz_olga')) -> 'vehicles'), 3);
--- a later mileage charge on J1 after it was paid out becomes an Owner credit on the next statement
+-- a later mileage charge on J1 after it was paid out becomes an Owner credit on the next statement (the statement of the month it is billed in)
 select test.mk_line('J1', 'mileage_overage', 3500);
-select app.build_owner_statement(test.id('owner:tz_olga'), date '2026-10-01');
+select app.build_owner_statement(test.id('owner:tz_olga'), app.month_start(app.today()));
 select test.eq('S Owner Revenue billed after the payout becomes an Owner credit (65% of $35 = $22.75) on the next statement',
   (select string_agg(kind || ':' || amount_cents || ':' || status, ' ') from owner_credits where booking_id = test.id('booking:J1'))
-  || '/' || (select credits_cents || ':' || payout_cents from owner_statements where owner_id = test.id('owner:tz_olga') and statement_month = date '2026-10-01'),
+  || '/' || (select credits_cents || ':' || payout_cents from owner_statements where owner_id = test.id('owner:tz_olga') and statement_month = app.month_start(app.today())),
   'later_rental_revenue:2275:open/2275:2275');
 -- the October draft is withdrawn so the June correction below can take the mileage itself
-delete from owner_statement_lines where owner_statement_id = (select id from owner_statements where owner_id = test.id('owner:tz_olga') and statement_month = date '2026-10-01');
-delete from owner_statement_vehicles where owner_statement_id = (select id from owner_statements where owner_id = test.id('owner:tz_olga') and statement_month = date '2026-10-01');
-delete from tasks where related_table = 'owner_statements' and related_id = (select id from owner_statements where owner_id = test.id('owner:tz_olga') and statement_month = date '2026-10-01');
-delete from owner_statements where owner_id = test.id('owner:tz_olga') and statement_month = date '2026-10-01';
+delete from owner_statement_lines where owner_statement_id = (select id from owner_statements where owner_id = test.id('owner:tz_olga') and statement_month = app.month_start(app.today()));
+delete from owner_statement_vehicles where owner_statement_id = (select id from owner_statements where owner_id = test.id('owner:tz_olga') and statement_month = app.month_start(app.today()));
+delete from tasks where related_table = 'owner_statements' and related_id = (select id from owner_statements where owner_id = test.id('owner:tz_olga') and statement_month = app.month_start(app.today()));
+delete from owner_statements where owner_id = test.id('owner:tz_olga') and statement_month = app.month_start(app.today());
 -- reissue June as a corrected version before the payout is sent
 select app.reissue_owner_statement((select id from jst where legal_name = 'Tz Olga'), test.id('tz_admin'), 'promo was entered twice');
 select test.eq('S reissue: version 1 voided, version 2 drafted from the sources, payout cancelled, deduction open again',
