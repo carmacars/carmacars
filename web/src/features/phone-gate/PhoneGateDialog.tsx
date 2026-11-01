@@ -30,6 +30,8 @@ export function PhoneGateDialog({ kind, rules, onDone, onClose }: { kind: GateKi
     const d = ref.current;
     if (!d) return;
     if (!d.open) d.showModal();
+    // showModal moves the focus to the dialog's first control (React's autoFocus ran before it): the number field it is
+    d.querySelector<HTMLInputElement>('input[name="phone"], input[name="code"]')?.focus();
     const cancel = (e: Event) => { e.preventDefault(); closeRef.current(); };
     d.addEventListener('cancel', cancel);
     return () => { d.removeEventListener('cancel', cancel); if (d.open) d.close(); };
