@@ -354,8 +354,10 @@ test('view as matches the person\'s own sign-in: a Sales assistant and a custome
     await page.goto(url, { waitUntil: 'networkidle' });
     return page.evaluate(() => {
       const text = (sel: string) => Array.from(document.querySelectorAll(sel)).map((e) => (e as HTMLElement).innerText.replace(/\s+/g, ' ').trim());
-      for (const t of Array.from(document.querySelectorAll('[role="timer"], .pu-timer, .ad-wait, time'))) t.remove();
-      return { rail: text('.ad__rail').join(' | '), headings: text('.ad__main h1, .ad__main h2').join(' | '), tests: Array.from(document.querySelectorAll('.ad__main [data-testid]')).map((e) => e.getAttribute('data-testid')).sort().join(',') };
+      for (const t of Array.from(document.querySelectorAll('[role="timer"], .pu-timer, .ad-wait, time, [data-testid^="guide-banner"]'))) t.remove();
+      return { rail: text('.ad__rail').join(' | '), headings: text('.ad__main h1, .ad__main h2').join(' | '), tests: Array.from(document.querySelectorAll('.ad__main [data-testid]')).map((e) => e.getAttribute('data-testid')!)
+        // the guide's welcome banner shows once per person: their own visit above used it up
+        .filter((t) => !t.startsWith('guide-banner')).sort().join(',') };
     });
   };
   for (const [who, fn] of [[sales, 'va-sales'], [cs, 'va-cs']] as const) {
