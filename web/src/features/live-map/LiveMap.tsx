@@ -23,14 +23,14 @@ const imgOf = (p: CarPhoto | null | undefined, w = 640): string | null => {
 };
 const colourOf = (p: Pin) => STAGE[stageOf(p.type)].colour;
 
-export function LiveMap({ initial, tv }: { initial: MapView | null; tv: boolean }) {
+export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: boolean; /** the server's clock when the page was drawn */ at?: number }) {
   const [view, setView] = useState<MapView | null>(initial);
   const [err, setErr] = useState('');
   const [details, setDetails] = useState(false);
   const [hidden, setHidden] = useState<Set<Stage>>(new Set());
   const [layers, setLayers] = useState({ leads: true, fleet: true });
   const [float, setFloat] = useState<{ id: string; at: Spot; pinned: boolean } | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => at ?? Date.now());
   const [spot, setSpot] = useState(0);
   const [mode, setMode] = useState<'loading' | 'map' | 'nogl'>('loading');
   const [idle, setIdle] = useState(false);
