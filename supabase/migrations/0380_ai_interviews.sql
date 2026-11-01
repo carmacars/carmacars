@@ -21,7 +21,8 @@
 --    interviews job later; the scoring waits for its share.
 -- 5. Privacy: the interview is removed with the application's personal data (12 months after the decision, 0173): the
 --    transcripts, the scores' quotes and the audio files. The privacy policy names the recording and the AI summary.
--- 6. Admin: Hiring lists the interview's state and recommendation; the candidate page plays each answer beside its
+-- 6. Audit: the changes are logged, never the words (redact), so a removed interview leaves no copy.
+-- 7. Admin: Hiring lists the interview's state and recommendation; the candidate page plays each answer beside its
 --    transcript. admin_do 'hiring_ai_live_call', 'hiring_ai_new_link', 'hiring_ai_settings'.
 -- No applied migration is edited: app.hiring_emit (0211), app.hiring_application_read (0226), app.hiring_read (0226),
 -- app.job_hiring (0229), app.server_jobs_due (0263), public.server_hiring_apply (0173) and app.door (0283) are wrapped.
@@ -142,7 +143,9 @@ begin
   end loop;
 end $$;
 drop trigger if exists audit_ai_interviews on ai_interviews;
-create trigger audit_ai_interviews after insert or update or delete on ai_interviews for each row execute function app.audit_row();
+create trigger audit_ai_interviews after insert or update or delete on ai_interviews for each row execute function app.audit_row('redact');
+drop trigger if exists audit_ai_interview_answers on ai_interview_answers;
+create trigger audit_ai_interview_answers after insert or update or delete on ai_interview_answers for each row execute function app.audit_row('redact');
 
 -- ================================================================ 3. the AI budget: the tier and the label of each use
 create or replace function app.ai_tier(p_purpose text) returns text

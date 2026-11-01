@@ -210,6 +210,8 @@ select test.ok('the job removes it and marks it', public.server_ai_audio_purged(
 select test.ok('nothing left to remove', not exists (select 1 from ai_interview_answers w where w.interview_id = (select iv_id from aiv_gone) and w.audio_key is not null)
   and jsonb_array_length(public.server_ai_interviews_due(5) -> 'purge') = 0);
 
+select test.ok('the audit log keeps the changes, never the words', not exists (select 1 from audit_log l where l.entity_table in ('ai_interviews', 'ai_interview_answers')
+  and (l.after::text like '%k3x9%' or l.after::text like '%refund%' or l.before::text like '%refund%')));
 -- ================================================================ 10. privileges
 select test.ok('the interview functions are server only', not has_function_privilege('anon', 'public.server_ai_interview(text)', 'execute')
   and not has_function_privilege('authenticated', 'public.server_ai_interview_answer(text, jsonb)', 'execute')
