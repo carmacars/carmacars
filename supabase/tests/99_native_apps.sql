@@ -10,8 +10,9 @@ language sql as $$ select app.push_subscribe(p_user, jsonb_build_object('kind', 
   'platform', p_platform, 'portal', 'renter', 'device', 'CarmaCars app on iPhone')) $$;
 
 -- ================================================================== the app's device
+create temp table na_first as select test.na_app('one', test.id('na_rena')) as st;
 select test.eq('the app gives a token: one device of kind fcm, no browser keys, its platform',
-  (test.na_app('one', test.id('na_rena')) -> 'devices' -> 0 ->> 'kind')
+  (select st -> 'devices' -> 0 ->> 'kind' from na_first)
   || '/' || (select kind || '/' || platform || '/' || (p256dh is null and auth is null) || '/' || left(endpoint, 16) from push_subscriptions where user_id = test.id('na_rena')),
   'fcm/fcm/ios/true/fcm:na-token-one');
 select test.eq('the state of this device by its fcm: address', app.push_state(test.id('na_rena'), 'fcm:na-token-one-' || repeat('x', 40)) ->> 'this_device', 'true');
@@ -43,10 +44,11 @@ create temp table na_fcm as select d.value as d from jsonb_array_elements(app.se
 select test.eq('claimed with the Firebase account: the token without its prefix, the platform, urgent, the payload',
   (select (d ->> 'token' like 'na-token-one-%') || '/' || (d ->> 'endpoint' is null) || '/' || (d ->> 'platform') || '/' || (d ->> 'urgent') || '/' || (d -> 'payload' ->> 'url')
      from na_fcm where d -> 'payload' ->> 'code' = 'renter_late_return_first'), 'true/true/ios/true//account');
-select test.eq('the answers apply to app devices as to browsers (gone deletes the device)',
+select test.eq('the answers apply to app devices as to browsers',
   (app.server_push_result(jsonb_build_object('results', jsonb_build_array(
-     jsonb_build_object('id', (select d ->> 'id' from na_fcm where d -> 'payload' ->> 'code' = 'renter_late_return_first'), 'outcome', 'gone')))))::text
-  || '/' || (select count(*) from push_subscriptions where user_id = test.id('na_rena') and kind = 'fcm'), '{"gone": 1, "sent": 0, "retry": 0, "failed": 0}/0');
+     jsonb_build_object('id', (select d ->> 'id' from na_fcm where d -> 'payload' ->> 'code' = 'renter_late_return_first'), 'outcome', 'gone')))))::text,
+  '{"gone": 1, "sent": 0, "retry": 0, "failed": 0}');
+select test.eq('gone deletes the app device', (select count(*) from push_subscriptions where user_id = test.id('na_rena') and kind = 'fcm'), 0::bigint);
 
 select test.na_app('two', test.id('na_rena'));
 insert into notifications (id, user_id, code, title, url, dedupe_key) values (test.id('na_n2'), test.id('na_rena'), 'renter_late_return_final', 'Late', '/account', 'na:n2');
@@ -64,8 +66,8 @@ select test.eq('asked: an open request and a high Admin task for the renter, due
      from account_deletion_requests d join tasks t on t.id = d.task_id where d.user_id = test.id('na_ravi')), 'open/admin/account_deletion/high/true/true/true');
 select app.request_account_deletion(test.id('na_ravi'));
 select test.eq('asking again while open changes nothing', (select count(*) from account_deletion_requests where user_id = test.id('na_ravi')), 1::bigint);
-select test.eq('withdrawn: the request and its task close',
-  (app.withdraw_account_deletion(test.id('na_ravi')) -> 'request' ->> 'status') || '/' || (select t.status from account_deletion_requests d join tasks t on t.id = d.task_id where d.user_id = test.id('na_ravi')), 'withdrawn/cancelled');
+select test.eq('withdrawn: the request closes', app.withdraw_account_deletion(test.id('na_ravi')) -> 'request' ->> 'status', 'withdrawn');
+select test.eq('withdrawn: its task is cancelled', (select t.status from account_deletion_requests d join tasks t on t.id = d.task_id where d.user_id = test.id('na_ravi')), 'cancelled');
 select app.request_account_deletion(test.id('na_ravi'));
 update tasks set status = 'done', completed_at = now(), completed_by = test.id('na_admin')
  where id = (select task_id from account_deletion_requests where user_id = test.id('na_ravi') and status = 'open');

@@ -36,10 +36,10 @@ alter table push_subscriptions add constraint push_subscriptions_kind_check chec
 alter table push_subscriptions drop constraint if exists push_subscriptions_platform_check;
 alter table push_subscriptions add constraint push_subscriptions_platform_check check (platform is null or platform in ('ios', 'android'));
 alter table push_subscriptions drop constraint if exists push_subscriptions_shape_check;
-alter table push_subscriptions add constraint push_subscriptions_shape_check check (
+alter table push_subscriptions add constraint push_subscriptions_shape_check check (coalesce(
   (kind = 'web' and endpoint ~ '^https://[^\s]+$' and length(endpoint) <= 1000
      and p256dh ~ '^[A-Za-z0-9_-]{80,100}={0,2}$' and auth ~ '^[A-Za-z0-9_-]{16,32}={0,2}$')
-  or (kind = 'fcm' and endpoint ~ '^fcm:[A-Za-z0-9_:.-]{20,1000}$' and p256dh is null and auth is null));
+  or (kind = 'fcm' and endpoint ~ '^fcm:[A-Za-z0-9_:.-]+$' and length(endpoint) between 24 and 1004 and p256dh is null and auth is null), false));
 comment on column push_subscriptions.kind is 'Native apps (0390): web, a browser''s Web Push subscription (endpoint and keys); fcm, the App Store or Google Play app (endpoint fcm:<Firebase token>, no keys).';
 comment on column push_subscriptions.platform is 'Native apps (0390): ios or android for the app; null for a browser.';
 
@@ -57,7 +57,7 @@ begin
   if p_user is null or not exists (select 1 from users where id = p_user) then raise exception 'Sign in first.' using errcode = '42501'; end if;
   if v_kind = 'fcm' then
     v_token := btrim(coalesce(p ->> 'token', ''));
-    if v_token !~ '^[A-Za-z0-9_:.-]{20,1000}$' then raise exception 'This phone gave a push address we cannot use.' using errcode = '22023'; end if;
+    if v_token !~ '^[A-Za-z0-9_:.-]+$' or length(v_token) not between 20 and 1000 then raise exception 'This phone gave a push address we cannot use.' using errcode = '22023'; end if;
     v_endpoint := 'fcm:' || v_token;
   else
     v_endpoint := btrim(coalesce(p ->> 'endpoint', ''));
