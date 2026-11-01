@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'Hourly reminders job: booking status is on_rent and the return time is 24 hours away. Sent once per return time, so it is sent again after an extension moves the return. (Message template T6.)',
+  trigger: 'Reminders job (every 5 minutes): the booking is out (on rent, or confirmed with its pickup time passed and no handover recorded, migration 0430) and the return time is 24 hours away. Sent once per return time, so it is sent again after an extension moves the return. Not sent when the return is already inside the 3 hours of renter_return_soon. (Message template T6.)',
   timing: '24 hours before return',
   source: 'T6',
   subject: 'Your rental ends tomorrow at {{return_time}}',

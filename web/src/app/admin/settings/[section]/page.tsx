@@ -323,8 +323,16 @@ export default async function Section({ params, searchParams }: { params: Promis
     // text alerts (0096): the defaults and quiet hours, and the text of each notification
     const keys = ['sms_alerts_enabled', 'push_enabled', 'sms_default_with_phone', 'sms_default_phone_only', 'sms_quiet_hours', 'sms_quiet_from_hour', 'sms_quiet_until_hour', 'sms_stop_line', 'sms_generic_text', 'signin_phone_us_allowed'];
     const ch: Array<[string, string]> = [['both', 'Both'], ['text', 'Text'], ['email', 'Email']];
+    // the messages of a booking's start and end (0430): one switch per moment, all on
+    const moments = ['notify_pickup_soon', 'notify_pickup_soon_hours', 'notify_trip_started', 'notify_return_soon', 'notify_return_soon_hours', 'notify_return_due',
+      'notify_late_auto', 'notify_late_first_minutes', 'notify_renter_from_hour', 'notify_renter_until_hour', 'notify_pickup_unrecorded',
+      'notify_pickup_unrecorded_minutes', 'notify_pickup_unrecorded_admin_minutes', 'notify_not_back', 'notify_not_back_minutes'];
     return (<>{head}<TextAlertsSettings data={await door<SmsSettings>(user.id, 'admin_read', 'sms_settings')}
-      form={<SaveForm table="program_settings" rowKey="current" testId="program-sms" fields={fieldsFrom(s.program, keys, { sms_default_with_phone: ch, sms_default_phone_only: ch.slice(0, 2) })} />} /></>);
+      form={<SaveForm table="program_settings" rowKey="current" testId="program-sms" fields={fieldsFrom(s.program, keys, { sms_default_with_phone: ch, sms_default_phone_only: ch.slice(0, 2) })} />} />
+      <Card title="Booking start and end" testId="sms-moments">
+        <p className="small muted">What the renter gets, by email, text and phone alert: the day before pickup, about 2 hours before, &quot;you&apos;re all set&quot; if nobody recorded the pickup, the day before the return, about 3 hours before, at the return time, then T13 at 15 minutes and T14 at 2 hours late. A booking whose pickup was not recorded counts as out, so it gets all of them. Staff get the pickup not recorded and not back alerts. Each is sent once, and again only when the time changes.</p>
+        <SaveForm table="program_settings" rowKey="current" testId="program-moments" fields={fieldsFrom(s.program, moments)} />
+      </Card></>);
   }
   case 'card-reader': return (<>{head}<CardReaderAdmin s={await door<TerminalState>(user.id, 'ops_read', 'terminal_state')} /></>);
   case 'class-rules': return (<>{head}<ClassRules data={await door<ClassRulesData>(user.id, 'ops_read', 'class_rules')} /></>);

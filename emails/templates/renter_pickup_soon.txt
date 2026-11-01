@@ -1,0 +1,41 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Pickup soon]
+See you at {{pickup_time}} today
+
+Your {{vehicle_name}} is almost ready, {{first_name}}.
+
+When: {{pickup_time}}, {{pickup_date}}
+Where: {{pickup_place}}
+
+Bring these
+------------------------
+
+- Your original driver's licence
+- The physical card ending {{card_last4}}, in your name
+
+View pickup details:
+https://carmacars.ca/account/bookings/{{booking_number}}/pickup
+
+{{#if verification_pending}}
+IMPORTANT: Your documents are not complete
+Still missing: {{missing_items}}. Upload them now (https://carmacars.ca/account/bookings/{{booking_number}}/verify) so we can hand over the car on time.
+{{/if}}
+
+Running late or need to change the time? Call us at {{support_phone}} before your pickup time.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

@@ -241,6 +241,12 @@ test('phone sign-up offers Text first; an Admin sees and changes a renter\'s cha
     await expect(a.getByTestId('sms-templates')).toContainText('Booking received');
     await expect(a.getByTestId('sms-templates')).toContainText('one for every customer email');
     await expect(a.getByTestId('sms-templates')).toContainText('Additional driver: accept');
+    // 0430: the messages of a booking's start and end, each with its switch, all on, and their texts
+    await expect(a.getByTestId('sms-moments')).toContainText('Booking start and end');
+    await expect(a.getByTestId('sms-moments').getByLabel('Return soon: remind the renter shortly before the return, with the Extend link')).toBeChecked();
+    await expect(a.getByTestId('sms-moments').getByLabel('Not back: alert the field staff and the Admins (app, phone, text)')).toBeChecked();
+    await expect(a.getByTestId('sms-templates')).toContainText('Return in about 3 hours');
+    await expect(a.getByTestId('sms-templates')).toContainText('Pickup in about 2 hours');
     await check(a, 'settings text alerts');
     await a.goto('/admin', { waitUntil: 'networkidle' });
     await expect(a.getByTestId('sms-volume')).toContainText('Texts today');

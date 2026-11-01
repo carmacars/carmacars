@@ -1,0 +1,22 @@
+import { hero, p, small, h, rule, vehicle, keyfacts, figure, facts, price, compare, table, rows, button, link, notice, list, steps, when, each } from '../components.mjs';
+import { FROM } from '../brand.mjs';
+import { trip, places, bookingPrice } from '../snippets.mjs';
+
+export default {
+  code: 'renter_return_due',
+  audience: 'renter',
+  category: 'transactional',
+  from: FROM.bookings,
+  digest: false,
+  trigger: 'Reminders job (every 5 minutes, migration 0430): the return time of a booking that is out has come and no return is recorded. Sent once per return time, in the first 15 minutes (T13 follows at 15 minutes late). Only between 7 am and 10 pm Toronto time. Off with notify_return_due.',
+  timing: 'At the return time',
+  subject: 'Your booking ended at {{return_time}}',
+  preheader: 'Please return the {{vehicle_name}} now, or extend if you need more time.',
+  ref: 'Booking {{booking_number}}',
+  body: [
+    hero('Return time', 'Your booking ended at {{return_time}}', 'Please bring the {{vehicle_name}} back to {{return_place}} now, {{first_name}}. If you are on your way, thank you.'),
+    button('Need more time? Extend', '@booking_extend'),
+    p('Late fees start 30 minutes after the return time: {{late_fee_hourly}} per started hour, plus the rental charge for each extra day. To talk it through, call **{{support_phone}}**.'),
+  ],
+  sample: { late_fee_hourly: '$25' },
+};
