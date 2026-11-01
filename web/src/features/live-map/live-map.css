@@ -19,6 +19,14 @@
 /* ---------------------------------------------------------------- the map */
 .lm-map { position: relative; background: #0f131a; overflow: hidden; }
 .lm-map__note { position: absolute; inset: auto 1em 1em 1em; margin: 0; color: var(--quiet); }
+/* the Canvas 2D map (canvas.ts, Release 26): the canvas under its page elements, which sit at the top left and move by transform */
+.lm-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.lm-canvas__layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.lm-canvas__layer > * { pointer-events: auto; position: absolute; left: 0; top: 0; }
+.lm-hq--abs, .lm-car--abs { pointer-events: none; }
+.lm-map__slow { position: absolute; z-index: 2; right: 12px; bottom: 8px; margin: 0; padding: 3px 8px; border-radius: 6px; background: rgba(11, 15, 23, .72); color: #7d8aa3; font-size: 11px; pointer-events: none; }
+/* on a TV, in the bottom corner of the side panel, clear of the numbers and On the road */
+.lm--tv .lm-map__slow { position: fixed; top: auto; bottom: .8em; right: 1.6em; font-size: .7em; z-index: 3; background: none; }
 .lm .maplibregl-ctrl-attrib { background: rgba(11, 15, 23, .7) !important; color: #6b7891; font-size: 11px; }
 .lm .maplibregl-ctrl-attrib a { color: #8b98ae !important; }
 .lm .maplibregl-ctrl-attrib-button { filter: invert(1) opacity(.5); }
@@ -45,6 +53,11 @@
 .lm-ph span { color: var(--c); font-weight: 700; font-size: calc(var(--h, 44px) * .48); }
 .lm-ph--hot { box-shadow: 0 0 0 calc(var(--h, 44px) * .05) rgba(7, 9, 14, .9), 0 0 0 calc(var(--h, 44px) * .14) rgba(251, 113, 133, .55), 0 calc(var(--h, 44px) * .14) calc(var(--h, 44px) * .5) rgba(0, 0, 0, .55), 0 0 calc(var(--h, 44px) * .8) rgba(251, 113, 133, .35); }
 .lm-ph:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+/* the name along a photo card's foot (Release 26) */
+.lm-ph { position: relative; }
+.lm-ph__name { position: absolute; inset: auto 0 0 0; padding: calc(var(--h, 44px) * .22) calc(var(--h, 44px) * .12) calc(var(--h, 44px) * .06); color: #f1f5fb !important;
+  font-size: calc(var(--h, 44px) * .22) !important; font-weight: 600 !important; line-height: 1.1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: linear-gradient(transparent, rgba(7, 9, 14, .88) 55%); pointer-events: none; }
 /* home base: the brand mark with a soft pulse */
 .lm-hq { width: var(--s, 30px); height: var(--s, 30px); }
 .lm-hq__mark { position: absolute; inset: 0; border-radius: 9px; background: linear-gradient(135deg, #22d3ee, #a855f7); color: #0b0f17; font-weight: 800;
@@ -106,7 +119,7 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
 .lm-film__row { list-style: none; margin: 0; padding: 0; display: flex; gap: 1em; width: max-content; }
 .lm-film__row.is-rolling { animation: lm-roll calc(var(--n) * 6s) linear infinite; }
 @keyframes lm-roll { to { translate: -50% 0; } }
-.lm-film__row li { display: flex; gap: .7em; align-items: center; background: rgba(15, 21, 34, .82); border: 1px solid var(--line); border-top: 2px solid var(--c); border-radius: 10px; padding: .45em .9em .45em .45em; min-width: 16em; }
+.lm-film__row li { cursor: pointer; display: flex; gap: .7em; align-items: center; background: rgba(15, 21, 34, .82); border: 1px solid var(--line); border-top: 2px solid var(--c); border-radius: 10px; padding: .45em .9em .45em .45em; min-width: 16em; }
 .lm-film__ph { flex: none; width: 4.4em; height: 3em; border-radius: 6px; overflow: hidden; background: #1b2130; display: grid; place-items: center; color: var(--c); font-weight: 700; }
 .lm-film__ph img { width: 100%; height: 100%; object-fit: cover; }
 /* a booking with no car yet, or a car with nothing to show (Release 25): the neutral car, quiet, and the card's name in the quiet colour */
@@ -171,7 +184,36 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
 .lm-layers label { display: inline-flex; gap: 6px; align-items: center; background: rgba(11, 15, 23, .82); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: .85rem; min-height: 36px; }
 .lm--page > .lm-legend { padding: 8px 24px; border-bottom: 1px solid var(--line); }
 .lm--page > .lm-err { padding: 8px 24px; }
-.lm-float { position: absolute; z-index: 3; width: min(20rem, calc(100% - 16px)); filter: drop-shadow(0 12px 28px rgba(0, 0, 0, .5)); }
+.lm-float { position: absolute; z-index: 3; width: min(21rem, calc(100% - 16px)); max-height: calc(100% - 16px); overflow: auto; overscroll-behavior: contain; border-radius: 10px;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, .5)); }
+/* a card opened from a list (the TV's feed and On the road): docked at the map's top left, under the numbers */
+.lm-float--dock { left: 16px; top: 16px; }
+.lm--tv .lm-float { width: 22em; z-index: 4; font-size: .9em; }
+.lm--tv .lm-float--dock { left: 2em; top: 9em; }
+.lm--tv .lm-pop, .lm--tv .lm-pop__top, .lm--tv .lm-pop__who .lm-quiet, .lm--tv .lm-pop__car, .lm--tv .lm-chips li { font-size: 1em; }
+.lm-pop { border-top: 3px solid var(--c); }
+.lm-pop__x { margin: -6px -6px 0 0; min-width: 32px; min-height: 32px; border: 0; border-radius: 8px; background: none; color: var(--quiet); font-size: 1.4em; line-height: 1; cursor: pointer; }
+.lm-pop__x:hover, .lm-pop__x:focus-visible { background: rgba(255, 255, 255, .08); color: var(--text); }
+.lm-pop__who b { font-size: 1.15em; }
+.lm-pop__time { margin: 0; font-size: .85em; color: var(--quiet); }
+.lm-pop__noph { width: 72px; height: 48px; border-radius: 6px; background: #1b2130; display: grid; place-items: center; --c: var(--quiet); }
+.lm-pop__contact { margin: 0; font-size: .9em; overflow-wrap: anywhere; }
+.lm-pop__hint { margin: 0; font-size: .8em; }
+.lm-pop__acts { margin: 0; font-size: .85em; }
+/* Show contact: a switch (Release 26) */
+.lm-switch { display: inline-flex; align-items: center; gap: .55em; min-height: 44px; padding: 0 .2em; border: 0; background: none; color: var(--text); font: inherit; cursor: pointer; }
+.lm-switch__track { position: relative; width: 2.4em; height: 1.35em; border-radius: 999px; background: rgba(255, 255, 255, .14); transition: background .2s ease; flex: none; }
+.lm-switch__knob { position: absolute; top: .15em; left: .15em; width: 1.05em; height: 1.05em; border-radius: 50%; background: #e8eef8; transition: translate .2s ease; }
+.lm-switch.is-on .lm-switch__track { background: var(--accent); }
+.lm-switch.is-on .lm-switch__knob { translate: 1.05em 0; background: #0b0f17; }
+.lm-switch:focus-visible { outline: 3px solid #fff; outline-offset: 2px; border-radius: 8px; }
+.lm-rail { position: relative; }
+.lm-rail__acts { position: absolute; top: .75em; right: 1.4em; z-index: 1; }
+.lm--idle .lm-rail__acts { opacity: .5; }
+/* the TV's feed: each line opens its card */
+.lm-feed__list li { display: block; padding: 0; }
+.lm-feed__btn { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .7em; align-items: center; width: 100%; padding: .62em 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.lm-feed__btn:hover .lm-feed__t b, .lm-feed__btn:focus-visible .lm-feed__t b { text-decoration: underline; }
 .lm-pop { background: rgba(15, 21, 34, .97); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; }
 .lm-pop__top { display: flex; justify-content: space-between; gap: 8px; font-size: .85rem; }
 .lm-pop__who { display: flex; gap: 10px; align-items: center; }
@@ -220,3 +262,4 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
   .lm-spot__card { transition: none; }
   .lm-hq__pulse, .lm-film__row.is-rolling { animation: none; }
 }
+.lm-ph.lm-ph--abs { position: absolute; }

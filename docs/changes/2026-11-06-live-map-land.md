@@ -1,4 +1,4 @@
-# Live map: a real map of the land, Hamilton to Barrie (0311)
+# Live map: a real map of the land, clickable named leads, Show contact, and a map without WebGL (0311)
 
 Release 26. The owner, on the Release 25 TV view: "the map focuses more on the water than on the land and we're
 literally trying to display cars. It needs to look nicer." Then his exact spec: look like a real map (an outline of
@@ -61,6 +61,45 @@ Everything is served by the site itself: no new host, no change to the security 
   aside has a fine line in its stage colour back to a small dot on its spot. The same pins give the same layout every
   refresh. The labels' keep-out boxes follow the cards where they are drawn, in the cards' shape.
 
+## Clickable leads, names and Show contact
+
+The owner: "the leads on the map should be clickable and they should show names and there should be a toggle to show
+their phone numbers and emails too or hide that", and "when hovering a cursor over a lead, it should temporarily open
+the card while it's hovered over".
+
+- **Every lead opens its card:** the dots (game, unfinished form, form sent, request, booking, on rent, past renter, on
+  the site), the car cards, and on the TV the live feed and On the road. The card: the full name, the stage, the score
+  with every signal, the car last viewed with its photo, the city, minutes on the site or when last seen, the phone and
+  email when Show contact is on, and a link into Admin (the booking, else the renter, else Live visitors, else Renter
+  leads searched by the name; `model.adminHref`). × or Escape closes it; on a TV it closes by itself after 20 seconds
+  and the map goes back to its frame (also 20 seconds after a count was opened). The TV's map now listens for clicks
+  but still never pans or zooms by hand.
+- **Hover previews:** resting on a lead (or reaching a car card with Tab) shows its card after 150 ms, anchored to the
+  pin; leaving hides it after 300 ms, time enough to move onto the card. A click (a tap on a touch screen) pins it.
+- **Names:** the first name and last initial on the dots (beside each, real names before visitors, giving way when
+  there is no room) and along the foot of each car card; the full name in the card and the page's table; "Visitor in
+  Mississauga" for an anonymous visitor. Names are sent always (the TV included); `Show details` is gone.
+- **Show contact** (a switch above the map, and at the top of the TV's side panel): off by default, remembered per
+  device (`localStorage`, wrapped so a private window or blocked storage just keeps it for the visit). While it is off
+  the answer has no phone or email at all, not even the last digits (the earlier "ending 0142" is gone): the page is
+  drawn without them and `/api/staff/live-map` sends them only with `?contact=1`. Turning it off takes them out of the
+  page at once (`model.withoutContact`) and the next read has none. Who: Admins (two-step when required), the same
+  check as the renter and lead pages (`requireAdmin` there, `assertAdmin` here; `admin_read live_map` asserts the Admin
+  again in the database).
+
+## Without WebGL
+
+The owner's laptop showed "The map needs WebGL" and no map. Now the map always draws:
+
+- **`canvas.ts`** draws the same map with Canvas 2D from the same three files, projected with Web Mercator as MapLibre
+  does (a 512 px world at zoom 0, the same fit sums), so the framing, the land, the outlines, the glow, the ridges, the
+  lake, the roads and highways, the names, the dots (gathered into counts where they crowd), the car cards (moved apart
+  the same way), home base and its arcs, the cars, the hover and click cards and Show contact all match.
+- **Picked by itself:** WebGL when the browser has it and MapLibre starts; otherwise (no WebGL, Chrome's software
+  rendering blocklist, hardware acceleration off, or MapLibre failing to start) the Canvas map. The map says which in
+  `data-renderer="webgl|canvas"`. In the Canvas map a small note in the corner reads "Faster with hardware acceleration
+  on (Chrome Settings > System)". The old WebGL message shows only if both fail.
+
 ## Checked
 
 - Screenshots from the design harness (the real component and styles, fake data, example.test only) at 1920 by 1080
@@ -71,7 +110,14 @@ Everything is served by the site itself: no new host, no change to the security 
   `regions.geojson` (size, attribution, the six regions and their cities, Barrie outlined, the arterials and the owner's
   cities, the glow and the ridges).
 - End to end (`live-map.spec.ts`): at 1080p and 4K the zoom stays at or under the cap and the photo pins are clear of
-  each other and of the numbers and On the road; `regions.geojson` loads from the site.
+  each other and of the numbers and On the road; `regions.geojson` loads from the site. A lead opens its card from the
+  table's "Show on the map", from a hover (a preview, gone when the pointer leaves) and from a click on its dot (pinned),
+  and from the TV's live feed. Show contact: off by default, no phone or email in the page's HTML or the map's JSON;
+  on, they are asked for (`contact=1`), shown and remembered; off again, gone at once. With WebGL disabled in the
+  browser (`getContext('webgl')` returning nothing), the map draws in Canvas, shows its note, its dots open their cards
+  and nothing is logged as an error.
+- Unit: names and contact (`toView`, `withoutContact`, nothing of a phone or email in the JSON while off),
+  `adminHref`, the card's time line, the Mercator sums the Canvas map shares with MapLibre.
 
 ## Guides
 

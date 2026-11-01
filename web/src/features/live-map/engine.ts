@@ -11,6 +11,8 @@ import { CAR_SILHOUETTE, arc, separate, type Box } from './model';
 import { BASEMAP, FRAME_MAX_ZOOM, GLYPHS, HIGHWAYS, HOME_BOUNDS, MAPLIBRE_CSS, MAPLIBRE_JS, MAPLIBRE_WORKER, MAP_ATTRIBUTION, MAX_BOUNDS, REGIONS, type Bounds } from './config';
 
 export interface PinSpec { id: string; lng: number; lat: number; colour: string; stage: string; hot: boolean; live: boolean; fresh: boolean; label: string;
+  /** Release 26: the name on the pin (first name and last initial, or "Visitor in Toronto"); `known` puts real names first */
+  who: string; known: boolean;
   /** A photo pin (on rent, booked or hot): the car's thumbnail, else the make's initial in the ring; `route` draws its delivery arc from home base. */
   photo?: { src: string | null; initial: string; route: boolean } }
 export interface CarSpec { id: string; lng: number; lat: number; colour: string; heading: number | null; label: string; photo: string | null }
@@ -73,6 +75,8 @@ export class MapEngine {
   private pinsKey = '';
   private fitKey = '';
   private framed = false;
+  private lastFrame: [Bounds, Bounds, Pad] | null = null;
+  private back: ReturnType<typeof setTimeout> | undefined;
   private breath = 0;
   private ripple = 0;
   private dead = false;
@@ -88,7 +92,9 @@ export class MapEngine {
         const map = new ml.Map({
           container: this.box, style: this.style(), bounds: [[HOME_BOUNDS[0], HOME_BOUNDS[1]], [HOME_BOUNDS[2], HOME_BOUNDS[3]]],
           maxBounds: [[MAX_BOUNDS[0], MAX_BOUNDS[1]], [MAX_BOUNDS[2], MAX_BOUNDS[3]]], fitBoundsOptions: { padding: 24 * this.o.scale, maxZoom: FRAME_MAX_ZOOM },
-          attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false, minZoom: 5.5, maxZoom: 14, interactive: !this.o.tv, fadeDuration: 0
+          attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false, minZoom: 5.5, maxZoom: 14, fadeDuration: 0,
+          // Release 26: a TV's leads open their card on a click, so the map listens; it still never pans or zooms by hand
+          ...(this.o.tv ? { dragPan: false, scrollZoom: false, boxZoom: false, doubleClickZoom: false, keyboard: false, touchZoomRotate: false } : {})
         });
         map.addControl(new ml.AttributionControl({ compact: true, customAttribution: MAP_ATTRIBUTION }), 'bottom-right');
         // the credits start folded behind their (i) button (MapLibre opens them at first), so they never cover the map
@@ -121,7 +127,7 @@ export class MapEngine {
 
   destroy() {
     this.dead = true;
-    cancelAnimationFrame(this.breath); cancelAnimationFrame(this.ripple); cancelAnimationFrame(this.dash);
+    cancelAnimationFrame(this.breath); cancelAnimationFrame(this.ripple); cancelAnimationFrame(this.dash); clearTimeout(this.back);
     for (const c of this.cars.values()) cancelAnimationFrame(c.anim);
     this.map?.remove();
   }
@@ -136,6 +142,7 @@ export class MapEngine {
    * and every pin, config.frameBounds) instead, with that half size added. Only when something changed. */
   frame(home: Bounds, all: Bounds, pad: Pad) {
     if (!this.map) return;
+    this.lastFrame = [home, all, pad];
     const k = this.o.scale, half = this.pinSize(false).h / 2 + 6 * k;
     const w = this.box.clientWidth, h = this.box.clientHeight;
     const fit = (p: Pad): Pad => {
@@ -161,6 +168,14 @@ export class MapEngine {
     this.box.dataset.frame = use.b === home ? 'home' : 'pins';
     this.map.fitBounds([[use.b[0], use.b[1]], [use.b[2], use.b[3]]], { padding: use.p, duration: this.framed && !reduced() ? 2400 : 0, maxZoom: FRAME_MAX_ZOOM, essential: false });
     this.framed = true;
+  }
+
+  /** Back to the frame (after a card closes or a cluster was opened on a TV): the same view as before. */
+  reframe() {
+    if (!this.lastFrame || !this.map) return;
+    const [home, all, pad] = this.lastFrame;
+    this.fitKey = '';
+    this.frame(home, all, pad);
   }
 
   /** Shows one lead: the map moves to it (out of its cluster) and its card opens. */
@@ -263,6 +278,11 @@ export class MapEngine {
         { id: 'pin', type: 'circle', source: 'pins', filter: ['!', ['has', 'point_count']],
           paint: { 'circle-color': ['get', 'colour'], 'circle-radius': ['case', ['==', ['get', 'hot'], 1], 7 * k, 5.5 * k],
             'circle-stroke-color': '#07090e', 'circle-stroke-width': 1.5 * k } },
+        // the names by the dots (Release 26): small, beside the dot, real names first; a name that has no room waits
+        { id: 'pin-name', type: 'symbol', source: 'pins', filter: ['!', ['has', 'point_count']], minzoom: 7.5,
+          layout: { 'text-field': ['get', 'who'], 'text-font': ['noto-medium'], 'text-size': 11 * k, 'text-anchor': 'left', 'text-offset': [0.9, 0],
+            'symbol-sort-key': ['-', 1, ['get', 'known']], 'text-optional': true, 'text-padding': 2 * k, 'text-allow-overlap': false },
+          paint: { 'text-color': '#dbe4f3', 'text-halo-color': '#0b0e14', 'text-halo-width': 1.6 * k, 'text-opacity': ['case', ['==', ['get', 'known'], 1], 0.95, 0.6] } },
         // the labels, over the dots and under the clusters: a highway's number along its line (only closer in, and only where
         // nothing else is), then the towns and the cities, each on whichever side of its spot is free
         { id: 'hwy-label', type: 'symbol', source: 'hwy', minzoom: 8.6,
@@ -317,6 +337,8 @@ export class MapEngine {
       if (!f) return this.ev.select(null, null);
       if (f.properties?.cluster_id !== undefined) {
         void map.getSource('pins').getClusterExpansionZoom(f.properties.cluster_id).then((z: number) => map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.2, duration: 600 }));
+        // a TV goes back to its frame by itself after 20 seconds
+        if (this.o.tv) { clearTimeout(this.back); this.back = setTimeout(() => this.reframe(), 20_000); }
         return;
       }
       this.ev.select(String(f.properties.id), at(e));
@@ -352,7 +374,7 @@ export class MapEngine {
     this.box.dataset.arcs = String(routes.length);
     this.map.getSource('pins').setData({ type: 'FeatureCollection', features: dots.map((p) => ({
       type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-      properties: { id: p.id, colour: p.colour, stage: p.stage, hot: p.hot ? 1 : 0, live: p.live ? 1 : 0 }
+      properties: { id: p.id, colour: p.colour, stage: p.stage, hot: p.hot ? 1 : 0, live: p.live ? 1 : 0, who: p.who, known: p.known ? 1 : 0 }
     })) });
     // a new event since the last refresh: one ripple from its dot (none on the first load)
     const ids = new Set(this.lastPins.map((p) => p.id));
@@ -368,7 +390,7 @@ export class MapEngine {
     const seen = new Set<string>();
     for (const p of list) {
       seen.add(p.id);
-      const key = `${p.colour}|${p.photo!.src ?? p.photo!.initial}|${p.hot}`;
+      const key = `${p.colour}|${p.photo!.src ?? p.photo!.initial}|${p.hot}|${p.who}`;
       let v = this.photos.get(p.id);
       if (!v) {
         const el = document.createElement('div');
@@ -397,7 +419,10 @@ export class MapEngine {
         // the rose ring marks a hot lead still to win; a booked or rented car keeps its stage colour clean
         v.el.classList.toggle('lm-ph--hot', p.hot && !p.photo!.route);
         const ini = p.photo!.initial.replace(/[^A-Z0-9]/g, '');
-        v.el.innerHTML = p.photo!.src ? `<img alt="" src="${encodeURI(p.photo!.src)}" decoding="async">` : ini ? `<span aria-hidden="true">${ini}</span>` : `<span class="lm-ph__shape">${CAR_SILHOUETTE}</span>`;
+        v.el.innerHTML = (p.photo!.src ? `<img alt="" src="${encodeURI(p.photo!.src)}" decoding="async">` : ini ? `<span aria-hidden="true">${ini}</span>` : `<span class="lm-ph__shape">${CAR_SILHOUETTE}</span>`)
+          // the name along the card's foot (Release 26); text only, never markup from the data
+          + '<b class="lm-ph__name" aria-hidden="true"></b>';
+        v.el.querySelector('.lm-ph__name')!.textContent = p.who;
       }
     }
     for (const [id, v] of this.photos) if (!seen.has(id)) { v.marker.remove(); this.photos.delete(id); }

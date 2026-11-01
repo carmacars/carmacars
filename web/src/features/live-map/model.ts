@@ -1,5 +1,5 @@
 // The Live map (migration 0242): what the database's one read (admin_read live_map) returns, and what the website works
-// out from it: the score and its signals, the masked contact details, where each pin goes (spread a little when several
+// out from it: the score and its signals, the names, the contact details only when asked for (Release 26), where each pin goes (spread a little when several
 // share a spot, the same way on every refresh), the counts and the spotlight. No imports: unit tested in Node.
 
 export type LeadType = 'session' | 'game' | 'draft' | 'lead' | 'request' | 'booking' | 'on_rent' | 'previous';
@@ -24,9 +24,15 @@ export interface Pin {
   id: string; type: LeadType; types: LeadType[]; at: string; detail: string | null; booking_number: string | null; renter_id: string | null; session_id: string | null;
   pickup_at: string | null; return_at: string | null;
   who: string; anonymous: boolean; email: string | null; phone: string | null; city: string | null; lat: number | null; lng: number | null; precision: Precision;
-  online: boolean; device: string | null; score: number; band: 'hot' | 'warm' | 'cold'; signals: Signal[]; car: MapCar | null; masked: boolean;
+  online: boolean; device: string | null; score: number; band: 'hot' | 'warm' | 'cold'; signals: Signal[]; car: MapCar | null;
+  /** Release 26: the full name for the detail card (null for an anonymous visitor); `who` is the short label for pins and lists. */
+  name: string | null;
+  /** seconds on the site (the visit's), for the card's time line */
+  seconds: number | null;
 }
-export interface MapView { at: string; days: number; cap: number; hq: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: Pin[]; fleet: FleetCar[]; masked: boolean }
+export interface MapView { at: string; days: number; cap: number; hq: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: Pin[]; fleet: FleetCar[];
+  /** Release 26: phones and emails are in this answer ("Show contact" on); without it they are never sent. */
+  contact: boolean }
 
 /** Most advanced first; the legend's order. Colours are for a dark map (each has 4.5:1 or more against #0b1020). */
 export const TYPES: Array<{ type: LeadType; label: string; short: string; colour: string }> = [
@@ -176,28 +182,27 @@ export function shortName(name: string | null): string | null {
 export function visitorLabel(city: string | null): string {
   return city ? `Visitor in ${city}` : 'Visitor';
 }
-/** The last 4 digits only: "ending 0199". */
-export function maskPhone(phone: string | null): string | null {
-  const d = (phone ?? '').replace(/\D/g, '');
-  return d.length >= 4 ? `ending ${d.slice(-4)}` : null;
-}
-
-/** The view of one read: scored, and masked unless `details` (Admins on the normal page, after "Show details"). */
-export function toView(raw: RawMap, details: boolean): MapView {
+/**
+ * The view of one read, scored. Names always (Release 26, the owner: the leads "should show names"): the first name and
+ * last initial as `who` for pins and lists, the full name as `name` for the detail card, "Visitor in Mississauga" for an
+ * anonymous visitor. Phones and emails only with `contact` ("Show contact"); otherwise they are not in the answer at all,
+ * not even in part.
+ */
+export function toView(raw: RawMap, contact: boolean): MapView {
   const pins = (raw.pins ?? []).map((p): Pin => {
     const signals = signalsOf(p), score = scoreOf(signals);
     const known = shortName(p.name);
     return {
       id: p.id, type: p.type, types: p.types ?? [p.type], at: p.at, detail: p.detail, booking_number: p.booking_number, renter_id: p.renter_id, session_id: p.session_id,
       pickup_at: p.pickup_at ?? null, return_at: p.return_at ?? null,
-      who: known ? (details ? (p.name ?? '').trim() : known) : visitorLabel(p.city), anonymous: !known,
-      email: details ? p.email : null, phone: details ? p.phone : maskPhone(p.phone),
+      who: known ?? visitorLabel(p.city), anonymous: !known, name: known ? (p.name ?? '').trim().replace(/\s+/g, ' ') : null,
+      email: contact ? p.email || null : null, phone: contact ? p.phone || null : null,
       city: p.city, lat: num(p.lat), lng: num(p.lng), precision: p.precision, online: !!p.online, device: p.device,
-      score, band: bandOf(score), signals, car: p.car, masked: !details
+      score, band: bandOf(score), signals, car: p.car, seconds: num(p.facts?.seconds)
     };
   });
   const hq = raw.hq && num(raw.hq.lat) !== null && num(raw.hq.lng) !== null ? { lat: num(raw.hq.lat)!, lng: num(raw.hq.lng)! } : null;
-  return { at: raw.at, days: raw.days, cap: raw.cap, hq, kpi: raw.kpi, totals: raw.totals ?? {}, pins, fleet: raw.fleet ?? [], masked: !details };
+  return { at: raw.at, days: raw.days, cap: raw.cap, hq, kpi: raw.kpi, totals: raw.totals ?? {}, pins, fleet: raw.fleet ?? [], contact };
 }
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v !== '' && Number.isFinite(Number(v)) ? Number(v) : null);
 
@@ -325,3 +330,28 @@ export function separate(boxes: Box[], gap = 6, rounds = 120): Map<string, { x: 
   }
   return new Map(b.map((p) => [p.id, { x: p.x, y: p.y }]));
 }
+
+/** A view with the phones and emails taken out: the moment "Show contact" is turned off, before the next read. */
+export function withoutContact(v: MapView): MapView {
+  return { ...v, contact: false, pins: v.pins.map((p) => ({ ...p, email: null, phone: null })) };
+}
+
+/** Where the detail card's link goes in Admin: the booking, else the renter, else Live visitors (a visit), else the leads
+ * page searched by the name (a form or a game with no renter yet). */
+export function adminHref(p: Pick<Pin, 'booking_number' | 'renter_id' | 'session_id' | 'name' | 'type'>): { href: string; label: string } {
+  if (p.booking_number) return { href: `/admin/bookings/${encodeURIComponent(p.booking_number)}`, label: `Open booking ${p.booking_number}` };
+  if (p.renter_id) return { href: `/admin/renters/${encodeURIComponent(p.renter_id)}`, label: 'Open the renter' };
+  if (p.type === 'session' || (p.session_id && !p.name)) return { href: '/admin/live', label: 'Open Live visitors' };
+  return { href: p.name ? `/admin/leads?q=${encodeURIComponent(p.name)}` : '/admin/leads', label: 'Open in Renter leads' };
+}
+
+/** "12 min on the site", "on the site now", "seen 3h ago": the detail card's time line. */
+export function timeLine(p: Pick<Pin, 'online' | 'at' | 'seconds'>, now = Date.now()): string {
+  const on = p.seconds && p.seconds >= 60 ? `${Math.round(p.seconds / 60)} min on the site` : null;
+  if (p.online) return on ? `On the site now, ${on}` : 'On the site now';
+  return [on, `last seen ${shortAgo(p.at, now) === 'now' ? 'just now' : `${shortAgo(p.at, now)} ago`}`].filter(Boolean).join(', ');
+}
+
+/** Web Mercator, as MapLibre projects (0 to 1 across the world; the Canvas map, canvas.ts, multiplies by 512 x 2^zoom). */
+export const mx = (lng: number) => (lng + 180) / 360;
+export const my = (lat: number) => (1 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / Math.PI) / 2;

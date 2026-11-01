@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { CAR_SILHOUETTE, agoText, arc, separate, bandOf, carLabel, compactMoney, hash, makeInitial, onTheRoad, photoPins, maskPhone, reasonOf, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
+import { CAR_SILHOUETTE, agoText, arc, separate, bandOf, carLabel, compactMoney, hash, makeInitial, onTheRoad, photoPins, reasonOf, adminHref, timeLine, withoutContact, mx, my, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
 import { FRAME_MAX_ZOOM, TORONTO, HIGHWAYS, HOME_BOUNDS, MAP_ATTRIBUTION, MAX_BOUNDS, REGIONS, frameBounds, inBounds, roundGeo } from './config.ts';
 import { readFileSync } from 'node:fs';
 
@@ -29,25 +29,45 @@ describe('score and signals', () => {
   });
 });
 
-describe('masking', () => {
-  it('shows first name and last initial and the last 4 digits; no email; anonymous visitors by city', () => {
-    const v = toView(raw([pin({ name: 'maya van chen', email: 'maya@example.test', phone: '(647) 555-0199' }), pin({ id: 'b', city: null })]), false);
+describe('names and contact (Release 26)', () => {
+  it('names always: first name and last initial on pins, the full name for the card, anonymous visitors by city', () => {
+    const v = toView(raw([pin({ name: 'maya  van chen', email: 'maya@example.test', phone: '(647) 555-0199' }), pin({ id: 'b', city: null })]), false);
     const [m, b] = [v.pins[0]!, v.pins[1]!];
     assert.equal(m.who, 'Maya C.');
-    assert.equal(m.email, null);
-    assert.equal(m.phone, 'ending 0199');
+    assert.equal(m.name, 'maya van chen');
     assert.equal(b.who, 'Visitor');
+    assert.equal(b.name, null);
     assert.equal(toView(raw([pin()]), false).pins[0]?.who, 'Visitor in Mississauga');
-    assert.equal(v.masked, true);
   });
-  it('shows everything with details on', () => {
-    const p = toView(raw([pin({ name: 'Maya Chen', email: 'maya@example.test', phone: '6475550199' })]), true).pins[0]!;
-    assert.deepEqual([p.who, p.email, p.phone], ['Maya Chen', 'maya@example.test', '6475550199']);
+  it('without Show contact no phone or email is in the answer, not even the last digits', () => {
+    const v = toView(raw([pin({ name: 'Maya Chen', email: 'maya@example.test', phone: '6475550199' })]), false);
+    assert.equal(v.contact, false);
+    assert.deepEqual([v.pins[0]!.email, v.pins[0]!.phone], [null, null]);
+    const json = JSON.stringify(v);
+    assert.doesNotMatch(json, /example\.test|0199|555/);
+  });
+  it('with Show contact: the phone and email; and they leave at once when it is turned off', () => {
+    const v = toView(raw([pin({ name: 'Maya Chen', email: 'maya@example.test', phone: '6475550199' })]), true);
+    assert.deepEqual([v.contact, v.pins[0]!.email, v.pins[0]!.phone], [true, 'maya@example.test', '6475550199']);
+    const off = withoutContact(v);
+    assert.equal(off.contact, false);
+    assert.doesNotMatch(JSON.stringify(off), /example\.test|0199/);
   });
   it('helpers', () => {
     assert.equal(shortName('  ana  '), 'Ana');
     assert.equal(shortName(''), null);
-    assert.equal(maskPhone('12'), null);
+  });
+  it('the card links into Admin: the booking, else the renter, else Live visitors, else Renter leads', () => {
+    const base = { booking_number: null, renter_id: null, session_id: null, name: null, type: 'lead' as const };
+    assert.deepEqual(adminHref({ ...base, booking_number: 'CC-1042' }), { href: '/admin/bookings/CC-1042', label: 'Open booking CC-1042' });
+    assert.equal(adminHref({ ...base, renter_id: 'r1' }).href, '/admin/renters/r1');
+    assert.equal(adminHref({ ...base, type: 'session', session_id: 's1' }).href, '/admin/live');
+    assert.equal(adminHref({ ...base, name: 'Erin Example' }).href, '/admin/leads?q=Erin%20Example');
+  });
+  it('the card\'s time line', () => {
+    const now = Date.parse('2026-11-06T12:00:00Z');
+    assert.equal(timeLine({ online: true, at: '2026-11-06T11:59:00Z', seconds: 720 }, now), 'On the site now, 12 min on the site');
+    assert.equal(timeLine({ online: false, at: '2026-11-06T09:00:00Z', seconds: null }, now), 'last seen 3h ago');
   });
 });
 
@@ -264,5 +284,13 @@ describe('Release 26: the GTA\'s regions (web/public/live-map/regions.geojson)',
     assert.ok(glow.every((f) => f.properties.w! > 0 && f.properties.w! <= 1));
     assert.equal(Math.max(...glow.map((f) => f.properties.w!)), 1);
     assert.deepEqual(d.features.filter((f) => f.properties.k === 'ridge').map((f) => f.properties.name).sort(), ['Niagara Escarpment', 'Oak Ridges Moraine']);
+  });
+});
+
+describe('Release 26: the Canvas map projects as MapLibre does (Web Mercator, 512 px world)', () => {
+  it('the edges and the middle', () => {
+    assert.equal(mx(-180), 0); assert.equal(mx(180), 1); assert.equal(mx(0), 0.5);
+    assert.ok(Math.abs(my(0) - 0.5) < 1e-12);
+    assert.ok(my(43.65) < 0.5 && my(44.39) < my(43.26), 'north is up');
   });
 });

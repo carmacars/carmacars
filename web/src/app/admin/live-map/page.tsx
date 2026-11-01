@@ -7,7 +7,8 @@ import { LiveMap } from '@/features/live-map/LiveMap';
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Live map', path: '/admin/live-map', noindex: true, description: 'Leads, renters and visitors on a map of the Greater Toronto Area, for a TV or monitor.' });
 
-// Today > Live map (migration 0242). ?tv=1: full screen for a TV or monitor, personal details masked.
+// Today > Live map (migration 0242). ?tv=1: full screen for a TV or monitor. The page is drawn without phones and emails
+// (Release 26): the browser asks for them only when "Show contact" is on, so a TV left on never holds them.
 export default async function LiveMapPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ user }, sp] = await Promise.all([requireAdmin('/admin/live-map'), searchParams]);
   const tv = sp.tv === '1';
