@@ -98,23 +98,28 @@ export function location(extra: KitExtra | undefined, s: KitSettings): string {
 
 const lines = (xs: Array<string | null | undefined | false>) => xs.filter((x): x is string => !!x && x.trim() !== '').join('\n');
 
-/** The description in Marketplace style: short lines a phone shows whole, rates first, the next step last. */
+/** The description in Marketplace style: short lines a phone shows whole, rates first, the next step last. The owner's rule
+ * (November 1, 2026): no "rent", "rental" or "for rent"; the car is booked by the day, and the text says it is not for sale. */
 export function description(c: CarFacts, r: Rules, link: string | null): string {
-  const spec = [c.trim ? `${carName(c)} ${c.trim}` : carName(c), c.colour, c.seats ? `${c.seats} seats` : null, c.transmission].filter(Boolean).join(', ');
+  const full = c.trim ? `${carName(c)} ${c.trim}` : carName(c);
+  const spec = [c.colour, c.seats ? `${c.seats} seats` : null, c.transmission?.toLowerCase()].filter(Boolean).join(', ');
   const rates = [c.daily ? `${money(c.daily)} a day` : null, c.weekend && c.weekend !== c.daily ? `${money(c.weekend)} a day on weekends` : null,
     c.weekly ? `${money(c.weekly)} a week` : null, c.monthly ? `${money(c.monthly)} for 30 days` : null].filter(Boolean).join(', ');
   const age = ageWords(c, r);
   return lines([
-    `FOR RENT, not for sale: ${spec}.`,
+    `Book this ${full} by the day${c.daily ? `, from ${money(c.daily)}/day` : ''}.`,
+    'Daily and weekly bookings only, not for sale.',
+    spec ? `${spec.replace(/^./, (x) => x.toUpperCase())}.` : null,
+    c.free_this_weekend ? 'Free this weekend: drive it today.' : null,
     rates ? `${rates.replace(/^./, (x) => x.toUpperCase())}, plus HST.` : null,
     c.km ? `${c.km} km a day included${c.overage ? `, ${money(c.overage)} for each extra km` : ''}.` : null,
     c.delivery ? `Delivery across Ontario from ${money(c.delivery)} each way, or pick it up.` : 'Pick it up from us.',
     c.on_fleet_policy ? 'Liability coverage included.' : null,
     '',
-    `To rent: ${[age, 'a G2 or G licence', 'OPCF 27 on your own policy, a credit card with rental coverage, or our Protection Plan', c.no_credit_card ? null : 'a credit card in your name'].filter(Boolean).join('; ')}.`,
+    `To book: ${[age, 'a G2 or G licence', 'OPCF 27 on your own policy, a credit card with collision damage cover, or our Protection Plan', c.no_credit_card ? null : 'a credit card in your name'].filter(Boolean).join('; ')}.`,
     c.deposit ? `${money(c.deposit)} refundable deposit hold on pickup day.` : null,
     '',
-    link ? `See the calendar and request in 2 minutes: ${link}` : 'Request on carmacars.ca: search the car code below.',
+    link ? `See the calendar and book in 2 minutes: ${link}` : 'Book on carmacars.ca: search the car code below.',
     'Or message your phone number and we will call you.',
     c.car_code ? `Car code ${c.car_code}.` : null
   ]).replace(/\n{3,}/g, '\n\n').trim();
@@ -147,12 +152,12 @@ export function buildKit(c: CarFacts, r: Rules, extra: KitExtra | undefined, s: 
     { label: 'Body style', value: bodyStyle(c.body_style ?? c.class) },
     { label: 'Exterior colour', value: ext, note: ext === 'Other' ? `The car is ${c.colour}` : undefined },
     { label: 'Interior colour', value: '', note: 'Pick what the seat photos show' },
-    { label: 'Clean title', value: 'Leave unticked', note: 'A rental listing makes no title claim' },
+    { label: 'Clean title', value: 'Leave unticked', note: 'A booking listing makes no title claim' },
     { label: 'Vehicle condition', value: condition(c.year, todayIso) },
     { label: 'Fuel type', value: fuelType(c.fuel) },
     { label: 'Transmission', value: transmission(c.transmission) }
   ];
-  const title = `For rent: ${carName(c)}${price ? `, from $${price} a day` : ''}`;
+  const title = `Book this ${carName(c)} by the day${price ? `, from $${price}/day` : ''}`;
   const desc = description(c, r, link);
   const p = textProblem(desc);
   if (p) warnings.push(p);

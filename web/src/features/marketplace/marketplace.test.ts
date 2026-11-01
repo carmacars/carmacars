@@ -36,9 +36,12 @@ test('the kit fills the vehicle form in its order, from the car\'s record', () =
   assert.equal(k.link, 'https://carmacars.ca/cars/kia-k5-white?utm_source=fb_marketplace&utm_medium=marketplace&utm_campaign=CC-7F3A');
 });
 
-test('the description: rent not sale, rates, requirements, the link and the next step; no long dash', () => {
+test('the description: booked by the day, not for sale, rates, requirements, the link and the next step; no long dash', () => {
   const k = buildKit(car(), rules, {}, settings, SITE, '2026-11-01');
-  assert.match(k.description, /^FOR RENT, not for sale: 2024 Kia K5 GT-Line/);
+  assert.match(k.description, /^Book this 2024 Kia K5 GT-Line by the day, from \$75\/day\.\nDaily and weekly bookings only, not for sale\.\nPearl White, 5 seats, automatic\.\n/);
+  assert.match(k.description, /\nDaily and weekly bookings only, not for sale\.\n/);
+  assert.match(k.description, /Free this weekend: drive it today\./);
+  assert.equal(k.title, 'Book this 2024 Kia K5 by the day, from $75/day');
   assert.match(k.description, /\$75 a day, \$85 a day on weekends, \$450 a week, \$1,600 for 30 days, plus HST\./);
   assert.match(k.description, /250 km a day included, \$0\.25 for each extra km\./);
   assert.match(k.description, /Delivery across Ontario from \$75 each way/);
@@ -49,6 +52,15 @@ test('the description: rent not sale, rates, requirements, the link and the next
   assert.doesNotMatch(k.description, long);
   assert.doesNotMatch(k.descriptionNoLink, /https?:/);
   assert.equal(k.location, 'Toronto, Ontario');
+});
+
+test('no "rent", "rental" or "for rent" anywhere a buyer reads (the owner, November 1, 2026)', () => {
+  const c = car();
+  const k = buildKit(c, rules, {}, settings, SITE, '2026-11-01');
+  const texts = [k.title, k.description, k.descriptionNoLink, ...k.fields.map((f) => `${f.value} ${f.note ?? ''}`), ...replies(c, rules, k.link, '289-312-5991').map((r) => r.text)];
+  for (const t of texts) assert.doesNotMatch(t, /\brent(al|als|ed|ing)?\b/i, t);
+  assert.ok(texts.slice(1, 3).every((t) => /not for sale/.test(t)));
+  assert.match(replies(c, rules, k.link, null)[0]!.text, /not for sale/);
 });
 
 test('the ten best photos: the cover, then the shots buyers look for; never a sample', () => {

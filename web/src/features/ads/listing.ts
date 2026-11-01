@@ -120,7 +120,7 @@ export function writeListing(c: CarFacts, r: Rules, channel: AdChannel, site: st
   if (photos.some((p) => p.sample)) warnings.push('These are sample photos, not this car: take real photos before you post (an ad must show the car itself).');
   const code = c.car_code ? `Car code ${c.car_code} (quote it when you call or write).` : '';
   const tags = hashtags(c, spec.hashtags);
-  const title = titleFor(c, spec);
+  const title = channel === 'fb_marketplace' ? cut(`Book this ${carName(c)} by the day${c.daily ? `, from ${money(c.daily)}/day` : ''}`, spec.titleMax ?? 100) : titleFor(c, spec);
   let body: string;
   let bookingNote = '';
 
@@ -135,7 +135,7 @@ export function writeListing(c: CarFacts, r: Rules, channel: AdChannel, site: st
     bookingNote = `Button: Book, linked to ${link}`;
   } else {
     const lines = [
-      channel === 'fb_marketplace' ? 'For rent by the day, week or month (not for sale).' : 'For rent by the day, week or month.',
+      channel === 'fb_marketplace' ? 'Book it by the day or week. Daily and weekly bookings only, not for sale.' : 'For rent by the day, week or month.',
       join([describe(c), ratesSentence(c)]), kmSentence(c),
       c.delivery ? `Delivery from ${money(c.delivery)} each way, or pick it up yourself.` : 'Pick it up yourself.',
       c.on_fleet_policy ? 'Liability coverage included.' : '',
@@ -143,6 +143,8 @@ export function writeListing(c: CarFacts, r: Rules, channel: AdChannel, site: st
       `Book or check the calendar on CarmaCars: ${link}`, code];
     body = join(lines.map(sentence), '\n\n');
   }
+  // Facebook Marketplace (the owner, November 1, 2026): never "rent", "rental" or "for rent"; the car is booked by the day
+  if (channel === 'fb_marketplace') body = body.replace(/Rentals up to/g, 'Bookings up to').replace(/your credit card's rental coverage/g, 'your credit card\'s collision damage cover');
   if (body.length > spec.bodyMax) { body = body.slice(0, spec.bodyMax); warnings.push(`Shortened to the ${spec.bodyMax} characters ${spec.label} takes.`); }
   return {
     channel, title, body, priceLine: price, hashtags: tags, link, bookingNote, photos, warnings,

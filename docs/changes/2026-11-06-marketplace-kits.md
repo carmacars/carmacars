@@ -19,8 +19,9 @@ ZIP), and the booking request (`schema.ts`, `RequestWizard.tsx`, `server/actions
   - the vehicle form's fields in order: Car/Truck, location, year, make, model and trim, mileage (the highest odometer
     reading rounded up to the next thousand), the daily rate in whole dollars, body style, colours, condition, fuel and
     transmission;
-  - a description in Marketplace style, which says "for rent, not for sale" and gives the rates, km, delivery,
-    coverage, requirements, deposit, the tracked link and "message your phone number";
+  - a description in Marketplace style. It opens "Book this <car> by the day, from $X/day." and then "Daily and weekly
+    bookings only, not for sale.", says "Free this weekend: drive it today." when the car is free, and gives the rates,
+    km, delivery, coverage, requirements, deposit, the tracked link and "message your phone number";
   - a second version without the link;
   - the 10 best photos: the cover first, then the shots buyers look for, never a sample. **Download the photos (ZIP)**
     names them 01 to 10;
@@ -49,6 +50,17 @@ ZIP), and the booking request (`schema.ts`, `RequestWizard.tsx`, `server/actions
 - The **tiles** show live listings, what is left today, this week's chats and numbers, and the last 30 days'
   Marketplace requests and call-back leads.
 - Marketing now opens on Marketplace, which is the first tab and the first item in the menu.
+
+## 1b. No "rent" on Marketplace (the owner, November 1, 2026)
+
+Nothing a buyer reads on Marketplace says "rent", "rental" or "for rent". The kit title is "Book this <car> by the day,
+from $X/day", the description keeps the line "Daily and weekly bookings only, not for sale", the Price box is the price
+for one day, and the requirements say "To book" and "a credit card with collision damage cover". The replies say "book
+by the day or week (not for sale)" and "Longer bookings cost less a day", and the auto-reply text in the runbook was
+changed the same way. The Facebook Marketplace text on Listings (0167, `writeListing`) follows the same rule: its title
+and first line changed, and "Rentals up to" reads "Bookings up to". Kijiji, Craigslist and the other channels are
+unchanged. Unit tests check that no buyer-facing Marketplace text contains "rent" or "rental" and that each listing and
+the first reply say "not for sale".
 
 ## 2. "How did you hear about us?"
 

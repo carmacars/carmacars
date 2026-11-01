@@ -30,6 +30,14 @@ its deposit, kilometres, delivery fee or availability change, its live listing i
 3. Turn on Meta's auto-reply in each new listing (section 5). Claude does this while posting, but check the first one.
 4. Allow the Claude in Chrome extension on `facebook.com` and `carmacars.ca`.
 
+## Wording on Marketplace
+
+The owner's rule (November 1, 2026): nothing a buyer reads on Marketplace says "rent", "rental" or "for rent". Listings,
+replies and the auto-reply use plain booking words: "Book this car by the day from $89/day", "Available this week,
+daily and weekly", "Drive it today". Every listing keeps the line "Daily and weekly bookings only, not for sale", the
+Price box holds the price for one day, and the description says it is per day. Never write anything that suggests the
+car is for sale. The kits and the reply templates already follow this rule; a reply Claude writes itself follows it too.
+
 ## 1. A session
 
 The owner opens the laptop with Chrome running **twice a day**: about **10:30 am** (post and renew, then the inbox) and
@@ -123,7 +131,7 @@ Rules for replies:
   different price, a promise of a car on dates, a cash deal or a question about an accident, gets the **Send your number**
   reply and goes to the owner or customer service.
 - Never ask for or accept a licence photo, card number or payment in Messenger. Those go only through carmacars.ca.
-- Never share anyone's personal details, the owner's address, or the names of other renters.
+- Never share anyone's personal details, the owner's address, or the names of other customers.
 - Do not reply to spam, scams ("I'll send a courier", "pay by cheque", links to other sites) or abuse. Leave them unanswered
   and mention them to the owner.
 - Reply to one person at most twice without an answer. After that, stop.
@@ -135,13 +143,13 @@ The Admin page fills these in for each car (price, deposit, delivery, age and th
 
 | When | Reply |
 | --- | --- |
-| "Is this still available?" (first message) | Hi! Yes, the {car} is available to rent. Pick your dates and see the full price here: {link} Send your phone number and we will call you in a few minutes. |
-| Price: how much, best price, weekly, monthly | The {car} is {daily} a day, {weekend} a day on weekends, {weekly} a week, {monthly} for 30 days, plus HST, with {km} km a day included. Longer rentals cost less a day. Your exact total for your dates shows here before you send anything: {link} Send your phone number and we will call you in a few minutes. |
+| "Is this still available?" (first message) | Hi! Yes, the {car} is available to book by the day or week (not for sale). Pick your dates and see the full price here: {link} Send your phone number and we will call you in a few minutes. |
+| Price: how much, best price, weekly, monthly | The {car} is {daily} a day, {weekend} a day on weekends, {weekly} a week, {monthly} for 30 days, plus HST, with {km} km a day included. Longer bookings cost less a day. Your exact total for your dates shows here before you send anything: {link} Send your phone number and we will call you in a few minutes. |
 | Availability: is it free on my dates, today, this weekend | The live calendar for the {car} is here, and you can request your dates in 2 minutes (nothing is charged until we confirm): {link} Or send your number and your dates, and we will call you to book it. |
-| Requirements: age, G2, insurance, credit card | To rent: age {min age} or older, a G2 or G licence, and one coverage option: OPCF 27 on your own auto policy, a credit card that includes rental coverage, or our Protection Plan. A credit card in your name for the deposit. Request here and upload your licence: {link} Send your phone number and we will call you in a few minutes. |
+| Requirements: age, G2, insurance, credit card | To book: age {min age} or older, a G2 or G licence, and one coverage option: OPCF 27 on your own auto policy, a credit card with collision damage cover, or our Protection Plan. A credit card in your name for the deposit. Request here and upload your licence: {link} Send your phone number and we will call you in a few minutes. |
 | Deposit: how much, cash | The refundable deposit for the {car} is {deposit}, held on pickup day and returned after the trip once tolls and tickets are clear. Full details for your dates: {link} Send your phone number and we will call you in a few minutes. |
 | Delivery: can you deliver, where is it | Yes, we deliver across Ontario from {delivery} each way, or you can pick it up from us. Put your address in the request and the delivery price is in your total: {link} Send your phone number and we will call you in a few minutes. |
-| Send your number: anything else, a long chat, a haggler, someone ready to book | Easiest by phone. Send your number and one of our team will call you in a few minutes, or call or text us at {phone}. You can also book directly here: {link} |
+| Send your number: anything else, a long chat, a haggler, someone ready to book | Easiest by phone. Send your number and one of our team will call you in a few minutes, or call or text us at {phone}. You can also book it here: {link} |
 | Right after they send a number | Thank you! Someone from CarmaCars will call you shortly. To save time, you can start the request here: {link} |
 
 ## 5. Meta auto-replies (the owner)
@@ -158,7 +166,7 @@ To set it up, on each new listing (Claude does this while posting; check the fir
 2. Turn it **on** and open the drafted reply to edit it.
 3. Replace all of the draft with this text, putting the car's tracked link from the kit in place of the link:
 
-   > Hi! Yes, it's available to rent (not for sale). See the price for your dates and request it in 2 minutes: {link}
+   > Hi! Yes, it's available to book by the day or week. Daily and weekly bookings only, not for sale. See the price for your dates and book in 2 minutes: {link}
    > Or send your phone number and our team will call you shortly.
 
 4. Publish. For an older listing, open it, choose **Edit**, and set the same reply if the option is shown.
@@ -171,7 +179,7 @@ The auto-reply only answers the first "Is this available?" message. Every other 
   replies also carry `utm_content=reply`. A booking request from such a visit counts under Facebook Marketplace in
   **Admin > Marketing > Bookings by channel**.
 - **"How did you hear about us?"** is an optional question on the booking request (step 2, Driver). It counts after staff's
-  own source and a tracked visit. So a Marketplace renter who typed carmacars.ca by hand is still counted for Marketplace.
+  own source and a tracked visit. So a Marketplace customer who typed carmacars.ca by hand is still counted for Marketplace.
 - **Phone numbers** logged from the inbox are leads with source `fb_marketplace`. Each one gets a call-back task, and on a
   booking staff set **Came from: Facebook Marketplace**.
 - The Marketplace page's tiles show this week's chats and numbers, and the last 30 days' Marketplace requests and
@@ -181,8 +189,9 @@ The auto-reply only answers the first "Is this available?" message. Every other 
 
 - Keep to 3 to 5 new posts or renewals a day (the setting is under **Rotation settings**). Bursts of near-identical
   listings are what Facebook flags.
-- Meta's commerce rules are written for selling things. Facebook can remove rental listings in the Vehicles category, or
-  restrict an account that posts many of them. The description always says "for rent, not for sale". If a listing is
+- Meta's commerce rules are written for selling things. Facebook can remove listings in the Vehicles category that are not
+  sales, or restrict an account that posts many of them. The description always says "Daily and weekly bookings only, not
+  for sale". If a listing is
   removed, do not appeal or repost it: tell the owner.
 - Facebook's pages change. If a field or button described here is not where this playbook says it is, look for it by
   its label. If it is not there at all, stop and tell the owner instead of guessing.

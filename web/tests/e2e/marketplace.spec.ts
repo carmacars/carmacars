@@ -51,7 +51,8 @@ for (const phone of [false, true]) {
       await expect(fields).toContainText('Car/Truck');
       await expect(fields).toContainText('Toyota');
       await expect(fields).toContainText('89');
-      await expect(page.getByTestId('mp-description')).toHaveValue(/^FOR RENT, not for sale: 2023 Toyota/);
+      await expect(page.getByTestId('mp-description')).toHaveValue(/^Book this 2023 Toyota [^\n]* by the day, from \$89\/day\.\nDaily and weekly bookings only, not for sale\./);
+      expect(await page.getByTestId('mp-description').inputValue()).not.toMatch(/\brent(al)?\b/i);
       await expect(page.getByTestId('mp-description')).toHaveValue(/\$89 a day/);
       expect(await page.getByTestId('mp-description').inputValue()).not.toMatch(/—|18122211/);
       const link = await page.getByTestId('mp-link').inputValue();
