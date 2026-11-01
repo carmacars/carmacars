@@ -70,7 +70,7 @@ select test.pu_notice('owner_none', test.id('pu_owner'), 'owner_payment_received
 select test.eq('no device: nothing queued', (select count(*) from push_outbox where notification_id = test.id('pu_n:owner_none')), 0::bigint);
 select test.pu_notice('rita_pay', test.id('pu_rita'), 'renter_payment_receipt', 'https://elsewhere.example.test/x');
 select test.eq('a customer''s alert that is not urgent waits for the end of the text quiet hours; a foreign link opens the portal',
-  (select (send_after = app.sms_quiet_end(now())) || '/' || urgent || '/' || url from push_outbox where notification_id = test.id('pu_n:rita_pay')), 'true/false//');
+  (select (send_after = app.sms_quiet_end(created_at)) || '/' || urgent || '/' || url from push_outbox where notification_id = test.id('pu_n:rita_pay')), 'true/false//');
 select test.eq('push_path: our own links become paths', app.push_path((app.settings()).notify_base_url || '/account/trips/CC-1?x=1'), '/account/trips/CC-1?x=1');
 select test.eq('push_path: a protocol-relative link opens the portal', app.push_path('//evil.example.test/x'), '/');
 
