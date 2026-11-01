@@ -1,0 +1,3197 @@
+{
+ "batch": "2026-11-01",
+ "items": [
+  {
+   "kind": "car",
+   "id": "ace4d40c-35ee-40c9-862c-854eb3d93434",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Two seats, a fabric roof that folds away and a turbo V8 up front. A Mercedes for sunny Saturdays and long scenic drives.",
+    "highlights": [
+     "Power soft top",
+     "Backup camera",
+     "Parking assist",
+     "Push-button start",
+     "Bluetooth",
+     "Cruise control"
+    ],
+    "good_for": [
+     "Summer weekends for two",
+     "Birthdays and anniversaries",
+     "Scenic drives out of the city"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the AMG GT?",
+      "answer": "Two. It has 2 seats and 2 doors, so pack light."
+     },
+     {
+      "question": "What engine does it have?",
+      "answer": "A 4.0 L turbocharged V8 that runs on gas."
+     },
+     {
+      "question": "Is it a good choice in winter?",
+      "answer": "It is rear-wheel drive, so it is happiest on dry roads in the warmer months."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "420699ba-86d9-4507-ac06-ea090d145fee",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Compact outside, five seats inside, and adaptive cruise for the slow crawl into town. An easy first Mercedes to get used to.",
+    "highlights": [
+     "Adaptive cruise control",
+     "Automatic emergency braking",
+     "Backup camera",
+     "LED headlights",
+     "Push-button start",
+     "Bluetooth"
+    ],
+    "good_for": [
+     "Downtown errands and tight parking",
+     "Weekday commuting",
+     "A weekend away for two"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the A-Class sedan?",
+      "answer": "Five, with 4 doors so the back seat is easy to reach."
+     },
+     {
+      "question": "Does it have adaptive cruise control?",
+      "answer": "Yes. It also has automatic emergency braking and a backup camera."
+     },
+     {
+      "question": "What fuel does it take?",
+      "answer": "Gas. The engine is a 2.0 L turbocharged four-cylinder."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "ab64b0c3-8ecf-4f81-9919-bd03edf0f9f0",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A sloping roofline and a turbo engine paired with a dual-clutch automatic. The sporty small Mercedes that still seats five.",
+    "highlights": [
+     "Adaptive cruise control",
+     "Automatic emergency braking",
+     "Backup camera",
+     "Turbocharged engine",
+     "LED headlights",
+     "Bluetooth"
+    ],
+    "good_for": [
+     "Dinners out and date nights",
+     "Highway trips between cities",
+     "Everyday driving in the city"
+    ],
+    "faq": [
+     {
+      "question": "Is the CLA an automatic?",
+      "answer": "Yes, it has a dual-clutch automatic transmission."
+     },
+     {
+      "question": "How many seats does the CLA have?",
+      "answer": "It has 5 seats and 4 doors."
+     },
+     {
+      "question": "What is under the hood?",
+      "answer": "A 2.0 L turbocharged four-cylinder that runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "497bfd21-9941-4255-8a9b-427b01cfd55f",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Blind spot assist and forward collision alert for busy expressways, in a Mercedes sedan sized for everyday life.",
+    "highlights": [
+     "Blind spot assist",
+     "Forward collision alert",
+     "Automatic emergency braking",
+     "Backup camera",
+     "LED headlights",
+     "Bluetooth"
+    ],
+    "good_for": [
+     "Client meetings and work trips",
+     "Family visits around the GTA",
+     "Airport pickups"
+    ],
+    "faq": [
+     {
+      "question": "How many people can ride in the C300?",
+      "answer": "Five. It is a 4-door sedan with 5 seats."
+     },
+     {
+      "question": "Which driver aids does it have?",
+      "answer": "Blind spot assist, forward collision alert and automatic emergency braking, plus a backup camera."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, an automatic with a 2.0 L turbocharged engine that runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "443db7d7-8cc0-49a8-916a-510621e17047",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A big, square SUV with power to every wheel and a long list of driver aids. Room to stretch out on the drive to cottage country.",
+    "highlights": [
+     "Adaptive cruise control",
+     "Blind spot assist",
+     "Lane keeping assist",
+     "Rear cross traffic alert",
+     "Automatic emergency braking",
+     "Backup camera"
+    ],
+    "good_for": [
+     "Family road trips",
+     "Cottage weekends",
+     "Winter drives out of the city"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does this Palisade have?",
+      "answer": "This one has 5 seats and 5 doors."
+     },
+     {
+      "question": "Does it handle snow?",
+      "answer": "Yes. Power goes to every wheel, which helps on snowy and slushy roads."
+     },
+     {
+      "question": "What engine does it use?",
+      "answer": "A 3.5 L six-cylinder that runs on gas."
+     },
+     {
+      "question": "Which safety features are on board?",
+      "answer": "Blind spot assist, lane keeping assist, automatic emergency braking, rear cross traffic alert and forward collision alert."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "c6e13097-3b14-4d4d-a76a-85bf5577f46d",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A low daily rate and a full set of driver aids, from lane keeping assist to rear cross traffic alert. Simple, sensible transport.",
+    "highlights": [
+     "Blind spot assist",
+     "Lane keeping assist",
+     "Rear cross traffic alert",
+     "Automatic emergency braking",
+     "Backup camera",
+     "Bluetooth"
+    ],
+    "good_for": [
+     "Students and new drivers",
+     "Weekday commuting",
+     "A stand-in while your own car is off the road"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Elantra?",
+      "answer": "Five. It is a 4-door sedan."
+     },
+     {
+      "question": "What safety features does it have?",
+      "answer": "Blind spot assist, lane keeping assist, automatic emergency braking and rear cross traffic alert."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with a 2.0 L engine."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "7315bf3e-19fc-43e8-af36-5b7f0f6be139",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A midsize sedan with a turbo under the hood and adaptive cruise for long highway stretches. Plenty of room for the whole family.",
+    "highlights": [
+     "Adaptive cruise control",
+     "Blind spot assist",
+     "Lane keeping assist",
+     "Rear cross traffic alert",
+     "Backup camera",
+     "Turbocharged engine"
+    ],
+    "good_for": [
+     "Long highway drives",
+     "Family outings",
+     "Business trips with colleagues"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Sonata have?",
+      "answer": "5 seats and 4 doors."
+     },
+     {
+      "question": "How does it do in winter?",
+      "answer": "It is front-wheel drive, which suits most city winter days."
+     },
+     {
+      "question": "What engine does the N Line have?",
+      "answer": "A 2.5 L turbocharged engine that runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "47c81699-7bfb-46e3-87d3-4a08a2379757",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A long body, a V8 and four-wheel drive. The big GMC for moving a crowd and their gear in one trip.",
+    "highlights": [
+     "Four-wheel drive",
+     "Apple CarPlay and Android Auto",
+     "Roof rails",
+     "Bluetooth",
+     "Cruise control",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Large families and group trips",
+     "Hockey tournaments with gear",
+     "Ski weekends"
+    ],
+    "faq": [
+     {
+      "question": "What engine does the Yukon XL have?",
+      "answer": "A 5.3 L V8 that runs on gas."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "Four-wheel drive helps on snowy highways and unplowed side roads."
+     },
+     {
+      "question": "Can I stream music from my phone?",
+      "answer": "Yes, it has Bluetooth."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "603dd4c1-047e-4f0d-bd33-b1eda3431eb3",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Honda's easy-going compact sedan, with adaptive cruise, lane keeping assist and a light feel in city traffic.",
+    "highlights": [
+     "Adaptive cruise control",
+     "Lane keeping assist",
+     "Blind spot assist",
+     "Automatic emergency braking",
+     "Backup camera",
+     "Bluetooth"
+    ],
+    "good_for": [
+     "Daily commuting",
+     "Weekend errands",
+     "New drivers on a G2"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Civic?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Which driver aids does it have?",
+      "answer": "Adaptive cruise control, lane keeping assist, blind spot assist and automatic emergency braking."
+     },
+     {
+      "question": "Does it use gas?",
+      "answer": "Yes, it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "0a436b1e-06b8-4598-9f47-98e944bd46ee",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Seven seats with third-row seating, four-wheel drive and Cadillac comfort. The one to book when the whole party arrives together.",
+    "highlights": [
+     "Third-row seating",
+     "Four-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weddings and formal events",
+     "Group airport transfers",
+     "Family trips with grandparents"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Escalade?",
+      "answer": "Seven, thanks to third-row seating."
+     },
+     {
+      "question": "Is it a good winter vehicle?",
+      "answer": "It has four-wheel drive for snowy roads."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "0bd944b5-b802-4732-9e59-89a5dc036247",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "An Audi supercar with a folding roof, two seats and all-wheel drive. For the day you want the drive itself to be the plan.",
+    "highlights": [
+     "Power soft top",
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Milestone birthdays",
+     "Summer drives along the lake",
+     "Photo shoots and events"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the R8 Spyder have?",
+      "answer": "Two. It is a 2-door convertible."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has a dual-clutch automatic."
+     },
+     {
+      "question": "Does all-wheel drive help in the rain?",
+      "answer": "Yes. All-wheel drive gives it more grip on wet roads."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "0e7271e8-80b3-4b66-a78c-1119db4dd0a1",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A boxy AMG with a tall roof and all-wheel drive. Family practical during the week, more fun on the weekend drive north.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Young families",
+     "Weekend trips north",
+     "City driving with a sporty edge"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the GLB35?",
+      "answer": "Five. It has 5 seats and 4 doors."
+     },
+     {
+      "question": "What kind of gearbox does it have?",
+      "answer": "A dual-clutch automatic."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "All-wheel drive helps when the roads turn snowy."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "135bba8f-cd75-41a3-abf0-76b9f2cfa435",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A two-door E-Class built for long, quiet kilometres, with all-wheel drive and room for four. Grown-up style for a special weekend.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Anniversary weekends",
+     "Long drives for a couple",
+     "Evenings out in the city"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the E53 Coupe?",
+      "answer": "Four. It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps in rain and snow."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission and runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "144267bb-680e-43d5-b496-3d6ceac83145",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Four seats, a rear cabin made for being driven, and all-wheel drive underneath. Book it when the passenger matters more than the driver.",
+    "highlights": [
+     "Leather seats",
+     "Heated front seats",
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Chauffeured guests and VIPs",
+     "Weddings",
+     "Executive airport pickups"
+    ],
+    "faq": [
+     {
+      "question": "How many passengers fit in the Maybach S580?",
+      "answer": "It has 4 seats, so it suits a small group of passengers with room to stretch out."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, it has all-wheel drive for wet or snowy days."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "197dc5c0-398d-430b-b86a-f93f7483dd9f",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The AMG version of the GLC, with a regular upright roof, all-wheel drive and five seats. A practical SUV with some fire in it.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Weekend getaways",
+     "Family errands with some fun",
+     "Ski trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the GLC43?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Is it good on snowy roads?",
+      "answer": "All-wheel drive gives it good grip in snow and rain."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "1b1e8392-bec7-4618-8e0e-3e28f6a37cc0",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Roof down, four seats and that familiar Mustang shape. A fun summer car that still fits two friends in the back.",
+    "highlights": [
+     "Power soft top",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Summer road trips",
+     "Weekends with friends",
+     "Drives along the lakeshore"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Mustang Convertible?",
+      "answer": "Four. It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Can I drive it in winter?",
+      "answer": "It is rear-wheel drive, so it is best on dry roads in the warmer months."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "20768b2c-c7b8-4b7c-acc1-102404ba7dde",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A compact BMW SUV with M Competition muscle and all-wheel drive. Fits a weekend's bags and still feels quick on the on-ramp.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Weekend trips with friends",
+     "Winter drives",
+     "Drivers who want a sporty SUV"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the X3 M have?",
+      "answer": "5 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps in snow and heavy rain."
+     },
+     {
+      "question": "What fuel does it take?",
+      "answer": "Gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "281af42f-5f24-44f3-9b41-1865d82bcaef",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A business sedan with M Sport styling and all-wheel drive. Comfortable for the long drive to a meeting, smart when you arrive.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Business travel",
+     "Long highway drives",
+     "Client dinners"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the 530i?",
+      "answer": "Five. It is a 4-door sedan with 5 seats."
+     },
+     {
+      "question": "Does it handle winter well?",
+      "answer": "It has all-wheel drive for snowy and icy days."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission and runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "2860f117-e1df-4c6d-8f75-3309106effcc",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A mid-size AMG SUV with a regular roof, so the back seat and trunk keep their full height. All-wheel drive for every season.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Family trips",
+     "Cottage weekends",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the GLE53?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "All-wheel drive helps it keep its footing on snowy roads."
+     },
+     {
+      "question": "Does it connect to my phone?",
+      "answer": "Yes, it has Bluetooth."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "2b447b35-625b-4e0c-868a-b72cd4f15bf0",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "An Audi convertible with a soft top, four seats and all-wheel drive. Open air in July, a sure footing in a September rain.",
+    "highlights": [
+     "Power soft top",
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Summer weekends",
+     "Wine country day trips",
+     "Couples getaways"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the A5 Cabriolet?",
+      "answer": "Four. It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps on wet roads and on cool spring mornings."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "3003c462-580a-4bd0-862b-ee77dba73f8f",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "BMW's everyday sedan in M Sport dress, with all-wheel drive for whatever the week brings. Easy to park, nice to drive.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Commuting with some polish",
+     "Business trips",
+     "Weekend visits"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the 330i have?",
+      "answer": "5 seats and 4 doors."
+     },
+     {
+      "question": "Will it manage a snowy morning?",
+      "answer": "All-wheel drive helps on snowy and slushy streets."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "31dce377-665b-4a63-bd8b-27c702260af3",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A square-shouldered Mercedes SUV with all-wheel drive and a dual-clutch automatic. Sensible, roomy and easy to park at the mall.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Family errands",
+     "Weekend trips",
+     "Winter city driving"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the GLB250?",
+      "answer": "Five. It has 5 seats and 4 doors."
+     },
+     {
+      "question": "What gearbox does it use?",
+      "answer": "A dual-clutch automatic."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "Yes, all-wheel drive helps on snowy streets."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "32d509c4-d28b-4458-8981-6252d383f8ca",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A Rolls-Royce sedan with five seats, all-wheel drive and a calm, hushed cabin. For the day that should feel like an occasion.",
+    "highlights": [
+     "Leather seats",
+     "Heated front seats",
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Weddings",
+     "VIP and executive transport",
+     "Galas and formal evenings"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Ghost?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, for wet and wintry roads."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission and runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "389394e6-9cde-4b10-8b31-970e5b35d367",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Four doors, a sloping rear and the M440i badge. A coupe look that does not leave the back seat out.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Business trips",
+     "Weekend drives",
+     "Small families who like a sporty car"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the M440i Gran Coupe have?",
+      "answer": "5 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps in rain and snow."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, and it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "3f141d8c-e9ae-4bd9-b817-8f0f20f56085",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "An M4 Competition with all-wheel drive, so the fun does not end when the leaves fall. Two doors, four seats, plenty of character.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Weekend drives for enthusiasts",
+     "Special occasions",
+     "Fall road trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the M4?",
+      "answer": "Four. It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Can I drive it in winter?",
+      "answer": "It has all-wheel drive, which helps in snow and on wet roads."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "4067c332-8d2b-4263-be3f-23f12c7b40ca",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A Ferrari with a folding roof and four seats, built for touring as much as for speed. The Italian convertible for a long summer day.",
+    "highlights": [
+     "Leather seats",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Milestone celebrations",
+     "Summer touring",
+     "Photo shoots"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the California T have?",
+      "answer": "4 seats and 2 doors. The back seats suit short trips."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has a dual-clutch automatic."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "It is rear-wheel drive, so it is best kept for dry, warm days."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "4135f403-719c-4c12-b589-4c1bf0fce277",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The full-size S-Class with five seats and all-wheel drive. Quiet on the highway, generous in the back, ready for clients or family.",
+    "highlights": [
+     "Leather seats",
+     "Heated front seats",
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Executive travel",
+     "Airport pickups for guests",
+     "Long highway trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the S580?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, it handles wet and snowy roads well."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "41bbbd37-ff62-47cc-acb3-e7dd6f8b9373",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The boxy G-Class in AMG form, with four-wheel drive and a tall, upright seat. Easy to spot in any lot, at home in a snowstorm.",
+    "highlights": [
+     "Four-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Special occasions",
+     "Winter trips north",
+     "Music videos and photo shoots"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the G63?",
+      "answer": "Five. It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "Yes, it has four-wheel drive."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission and runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "426ec2c5-1e4c-4d27-b387-3b8e5c3555b4",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A sleek Infiniti coupe with four seats and all-wheel drive. Sporty looks for the weekend, steady grip for the drive home.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Date nights",
+     "Weekend drives",
+     "Young professionals"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Q60?",
+      "answer": "Four. It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps in snow and rain."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "43ac2392-e578-4e9a-84e7-7cf6a712adb1",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A compact Mercedes SUV with a turbo engine and a higher seat than a sedan. Easy to slot into tight downtown spaces.",
+    "highlights": [
+     "Backup camera",
+     "Turbocharged engine",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "City driving",
+     "Weekend errands",
+     "Small families"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the GLA250 have?",
+      "answer": "5 seats and 4 doors."
+     },
+     {
+      "question": "What engine does it have?",
+      "answer": "A 2.0 L turbocharged four-cylinder that runs on gas."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has a dual-clutch automatic."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "49e77105-a57f-4efb-97b4-e367370cdf49",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A 911 Turbo S with all-wheel drive and a dual-clutch automatic. Small back seats, big presence, and grip that does not quit in the rain.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Milestone birthdays",
+     "Enthusiast weekends",
+     "Special events"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the 911 Turbo S have?",
+      "answer": "4 seats and 2 doors. The back seats are best for short trips or bags."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has a dual-clutch automatic."
+     },
+     {
+      "question": "Does all-wheel drive help in poor weather?",
+      "answer": "Yes, it sends power to all four wheels for better grip."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "4d3affd5-4113-4a45-ad21-ca37ba3f8723",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Small enough to squeeze into a Queen West parking spot, with five seats and all-wheel drive for when the snow comes.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Downtown living",
+     "Commuting",
+     "Short trips with friends"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the A220?",
+      "answer": "Five. It has 4 doors."
+     },
+     {
+      "question": "What transmission does it have?",
+      "answer": "A dual-clutch automatic."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "All-wheel drive helps on snowy streets."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "4f5bda2f-c8e5-4cca-b23b-32047bfbdb63",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A low, smooth Range Rover with five seats and all-wheel drive. Calm on the highway, confident on a gravel cottage road.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Cottage weekends",
+     "Business trips",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Velar?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Can it handle snow?",
+      "answer": "All-wheel drive gives it grip in snow and slush."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, and it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "507f7aec-04d0-4943-bdfa-c85207f55f81",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The full-size Range Rover in its top Autobiography form. A commanding seat, all-wheel drive and a cabin made for long days.",
+    "highlights": [
+     "Leather seats",
+     "Heated front seats",
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Executive travel",
+     "Ski trips",
+     "Special occasions"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Range Rover Autobiography?",
+      "answer": "Five. It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "Yes, all-wheel drive helps on snowy and icy roads."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "54847b71-9c56-4f1c-bdf9-b97d3029bc7a",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A two-seat Porsche roadster with a folding fabric roof and a dual-clutch automatic. Light, nimble and made for back roads.",
+    "highlights": [
+     "Power soft top",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Summer weekends for two",
+     "Back road drives",
+     "Birthday surprises"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Boxster?",
+      "answer": "Two. It has 2 seats and 2 doors."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has a dual-clutch automatic."
+     },
+     {
+      "question": "Can I drive it in winter?",
+      "answer": "It is rear-wheel drive, so it suits dry weather best."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "56715cac-5b37-4489-8a03-51a7b92c2b39",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "An S-Class that puts comfort first, with five seats and all-wheel drive. Book it for clients, parents or a long trip to Montreal.",
+    "highlights": [
+     "Leather seats",
+     "Heated front seats",
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Client visits",
+     "Family celebrations",
+     "Long highway drives"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the S500?",
+      "answer": "Five. It has 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, for rain and snow."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission and runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "586e1a8c-8249-4115-8ef7-43c488904aeb",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The two-door M440i, with all-wheel drive and a long hood. A coupe for people who drive for the pleasure of it, in any season.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Weekend drives",
+     "Couples trips",
+     "Fall colour tours"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the M440i Coupe?",
+      "answer": "Four. It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps in rain and snow."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "5c021eee-4a9c-47f4-a4b0-b5d051a19e16",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A Maybach SUV with only four seats, so every passenger gets a big, comfortable chair. All-wheel drive for a snowy airport run.",
+    "highlights": [
+     "Leather seats",
+     "Heated front seats",
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "VIP transport",
+     "Weddings",
+     "Executive airport transfers"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Maybach GLS600?",
+      "answer": "Four. It has 4 seats and 4 doors."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "Yes, it has all-wheel drive."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "5d36c006-9781-4e0c-9003-4e89220096f8",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A good-looking BMW coupe with M Sport touches and all-wheel drive. Fun on a Sunday drive, calm on the commute.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Weekend outings",
+     "Commuting with style",
+     "Couples"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the 430i Coupe?",
+      "answer": "Four. It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Will it handle snow?",
+      "answer": "All-wheel drive helps on snowy roads."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "64da30f8-c017-44a5-bf8b-2633f5e89618",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "BMW's M coupe with all-wheel drive and room for four. Sharp enough for a track day look, easy enough for a dinner downtown.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Enthusiast weekends",
+     "Birthdays",
+     "Evenings out"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the M4 Competition have?",
+      "answer": "4 seats and 2 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps in rain and snow."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "748cfc6c-562d-4dee-9503-6c101f09dba2",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A Lamborghini you can take the family in: five seats, a real trunk and all-wheel drive. Exotic looks, everyday usefulness.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Special occasions",
+     "Winter trips with presence",
+     "Photo and video shoots"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Urus?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Can I drive it in winter?",
+      "answer": "Yes, it has all-wheel drive."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, and it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "8043b1ef-61d5-49b1-9e5e-c76ce4731f17",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A McLaren with two seats and a dual-clutch automatic. Pure sports car, for the drive you will talk about for weeks.",
+    "highlights": [
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Milestone birthdays",
+     "Enthusiast weekends",
+     "Photo shoots"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the 570S?",
+      "answer": "Two. It has 2 seats and 2 doors."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has a dual-clutch automatic."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "It is rear-wheel drive, so it is best on dry roads in warm weather."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "86e97b86-8fb5-4478-8403-1ac92842a88a",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A sloping roof on a tall AMG SUV, with five seats and all-wheel drive. For people who want SUV height with a sportier outline.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Weekend trips",
+     "Winter city driving",
+     "Drivers who like a sporty shape"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the GLE53 Coupe?",
+      "answer": "Five. It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, for snowy and wet roads."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "8d6dab08-89c5-4409-8161-40ce76e72b07",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The top C-Class, an AMG sedan with five seats and all-wheel drive. Serious pace with a back seat your friends can actually use.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Enthusiast weekends",
+     "Business trips with some fun",
+     "Evenings out"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the C63 S?",
+      "answer": "Five. It is a 4-door sedan."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "It has all-wheel drive for better grip in snow."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "924e000b-8055-4be0-ad94-1dc78cf6cb6e",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A C-Class with a fabric roof that folds away, four seats and all-wheel drive. Open air in summer, grip when it rains.",
+    "highlights": [
+     "Power soft top",
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Summer weekends",
+     "Wedding guests",
+     "Day trips to Niagara"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the C300 Cabriolet?",
+      "answer": "Four. It has 4 seats and 2 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps on wet roads."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, and it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "94570239-4cd1-4882-942a-dc710c2732f7",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "An AMG C-Class that dresses up nicely for a wedding and stays sure-footed on the drive home. Five seats, all-wheel drive.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Weddings and parties",
+     "Weekend drives",
+     "Business trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the C43?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "All-wheel drive helps when the roads get slippery."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "9987a4f7-51ee-447b-9ad1-8d522c256fd0",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A Range Rover with a low, clean profile and all-wheel drive. Looks right outside a downtown hotel and handles the trip north just as well.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Hotel stays and events downtown",
+     "Trips to Muskoka",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the Velar have?",
+      "answer": "5 seats and 4 doors."
+     },
+     {
+      "question": "Is it good on winter roads?",
+      "answer": "Yes, all-wheel drive helps in snow."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "9e8a853e-71e9-46f2-bac1-7090167aa74e",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Maserati's SUV: five seats, all-wheel drive and an Italian badge on the grille. Something different from the usual German choices.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Special weekends",
+     "Winter trips",
+     "Business dinners"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Levante?",
+      "answer": "Five. It has 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, for snow and rain."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, and it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "9fbdc79d-5eee-4743-a83e-e34493a1581f",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A Bentley SUV with five seats and all-wheel drive. Plush, quiet comfort that does not mind a snowy road to the ski hill.",
+    "highlights": [
+     "Leather seats",
+     "Heated front seats",
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "VIP transport",
+     "Ski weekends",
+     "Weddings"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Bentayga?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "Yes, it has all-wheel drive."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission and runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "a090059c-473b-494b-93d8-4f9252235536",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A comfortable C300 sedan with all-wheel drive. A Mercedes that does the morning commute and the family visit without fuss.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Commuting",
+     "Family visits",
+     "Business trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the C300?",
+      "answer": "Five. It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Is it good on icy mornings?",
+      "answer": "All-wheel drive gives it better grip in snow and ice."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, and it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "a4b2f404-85b4-459e-91b7-177d6ac60bad",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A two-seat Ferrari with a roof that folds away and a dual-clutch automatic. Book it for the drive you have wanted to make for years.",
+    "highlights": [
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Milestone celebrations",
+     "Summer weekends",
+     "Photo shoots"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the 488 Spider have?",
+      "answer": "Two. It has 2 seats and 2 doors."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has a dual-clutch automatic."
+     },
+     {
+      "question": "Can I drive it in winter?",
+      "answer": "It is rear-wheel drive, so warm, dry weather suits it best."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "a6593671-70ab-441a-a6cd-d11bc642f03d",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The V6 Range Rover Sport, with a high seat and all-wheel drive. Comfortable for families who want a premium SUV that is easy to live with.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Family trips",
+     "Cottage weekends",
+     "Winter commuting"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Range Rover Sport?",
+      "answer": "Five. It has 4 doors."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "Yes, all-wheel drive helps on snowy roads."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "a86df9d3-630b-43d1-8459-81e4ab6930c5",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The four-door AMG GT, with four seats and all-wheel drive. Sports car lines that let you bring two friends along.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Business trips with style",
+     "Nights out with friends",
+     "Special occasions"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the AMG GT 53?",
+      "answer": "Four. It has 4 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps in rain and snow."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, and it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "aa720579-8ee6-4aaf-9c5a-d0b3609889d8",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A roomy Chevrolet sedan with a small turbo engine and a smooth automatic. Plain, comfortable transport at a low daily rate.",
+    "highlights": [
+     "Backup camera",
+     "Push-button start",
+     "LED headlights",
+     "Automatic high beams",
+     "Bluetooth",
+     "Cruise control"
+    ],
+    "good_for": [
+     "Weekday commuting",
+     "Family errands",
+     "Budget trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Malibu?",
+      "answer": "Five. It is a 4-door sedan."
+     },
+     {
+      "question": "What engine does it have?",
+      "answer": "A 1.5 L turbocharged four-cylinder with a CVT automatic."
+     },
+     {
+      "question": "Does it use gas?",
+      "answer": "Yes."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "ac6fef69-3645-40f1-af6d-7bf6c931593a",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A sporty BMW SUV with a coupe-style roof and all-wheel drive. Five seats and an M40i badge for drivers who enjoy the drive.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Weekend drives",
+     "Winter trips",
+     "Small families"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the X4 M40i?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, for snow and rain."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "b6addcc3-925a-4915-b494-fce1acbd585c",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Porsche's family SUV, with five seats, all-wheel drive and room for the hockey bags. A sports car brand that fits real life.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Family weekends",
+     "Ski trips",
+     "Business travel"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Cayenne?",
+      "answer": "Five. It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "Yes, it has all-wheel drive."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, and it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "be771855-f3a9-4b90-8f2a-8c768f6abdf5",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "Seven seats, four-wheel drive and space behind the back row. The Suburban moves a team, a family or a wedding party in one trip.",
+    "highlights": [
+     "Third-row seating",
+     "Four-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Group trips",
+     "Sports teams",
+     "Airport runs with luggage"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Suburban?",
+      "answer": "Seven, with third-row seating."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "Four-wheel drive helps on snowy and icy roads."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "c529faba-3f8c-4e2c-a6e3-464fe9c4f56f",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A tidy, well-mannered Mercedes sedan with all-wheel drive. A good pick for a week of meetings or a month on the road.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Weekly and monthly rentals",
+     "Business travel",
+     "Everyday driving"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the C300 have?",
+      "answer": "5 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps in rain and snow."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "d11bcd10-104f-453a-991c-2bbda3c26adb",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A mid-size BMW SUV in M Sport trim, with five seats and all-wheel drive. Room for the family and their weekend bags.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Family road trips",
+     "Cottage weekends",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the X5?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "Yes, it has all-wheel drive."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "d222bd0f-6f46-49c0-9999-9a0efc865746",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "An understated AMG sedan that blends into traffic until you press the pedal. Five seats and all-wheel drive for daily use.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Daily driving with some spice",
+     "Business trips",
+     "Weekend getaways"
+    ],
+    "faq": [
+     {
+      "question": "How many people does the C43 seat?",
+      "answer": "Five. It has 4 doors."
+     },
+     {
+      "question": "Can I use it in winter?",
+      "answer": "Yes, all-wheel drive helps on snowy roads."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "d2562565-92dc-40d4-be17-8ab4457ce856",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The Macan S: a compact Porsche SUV with all-wheel drive that drives more like a hatchback than a truck. Easy to park, keen on a winding road.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Couples weekends",
+     "Winter city driving",
+     "Day trips to the Blue Mountains"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Macan S?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "What transmission does it have?",
+      "answer": "A dual-clutch automatic."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "Yes, it has all-wheel drive."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "d773701f-660b-4b84-aed7-a90d1d1598c7",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A coupe-roofed GLC with AMG styling, five seats and all-wheel drive. Turns a regular errand into a nicer drive.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Weekend outings",
+     "Winter driving",
+     "City errands with style"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the GLC43 Coupe?",
+      "answer": "Five. It has 4 doors."
+     },
+     {
+      "question": "Is the GLC43 Coupe automatic?",
+      "answer": "Yes, it has an automatic transmission and runs on gas."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, for wet and snowy roads."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "dd56ddc2-e895-48ff-a87b-448122c76b0e",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "An AMG E-Class sedan with five seats and all-wheel drive. Quiet and roomy for passengers, with a firm hand on the highway.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Business meetings",
+     "Long highway drives",
+     "Family visits"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the E43?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "All-wheel drive helps in snow and rain."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, and it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "df3bec9d-44eb-4715-a58c-8b44fa02ac16",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "America's two-seat sports car, with a dual-clutch automatic and a low, wide stance. Made for warm days and empty back roads.",
+    "highlights": [
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Summer weekends",
+     "Birthday surprises",
+     "Enthusiast drives"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Corvette?",
+      "answer": "Two. It has 2 seats and 2 doors."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has a dual-clutch automatic."
+     },
+     {
+      "question": "Can I drive it in winter?",
+      "answer": "It is rear-wheel drive, so it is best in dry weather."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "e1842ec2-7258-4a16-b7b9-8117bf0ecefc",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "An Audi sports sedan with five seats and all-wheel drive. Fast enough to enjoy, comfortable enough for the drive to Ottawa.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Business trips",
+     "Weekend drives",
+     "Winter commuting"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the S5?",
+      "answer": "Five. It has 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps in snow."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "e6989c4d-206f-4a38-afe3-10b960e60c16",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The long-wheelbase Escalade, with seven seats, third-row seating and extra length for luggage. Everyone sits comfortably and the bags still fit.",
+    "highlights": [
+     "Third-row seating",
+     "Four-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Airport runs with luggage",
+     "Wedding parties",
+     "Family trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Escalade ESV?",
+      "answer": "Seven, with third-row seating."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "Yes, it has four-wheel drive."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "e7519a31-a9ec-472e-a457-722b62c7c5a6",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A bright, sporty C43 with five seats and all-wheel drive. Fun on a dry Sunday, reliable grip on a wet Monday.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Weekend fun",
+     "Daily driving",
+     "Events and parties"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the C43 have?",
+      "answer": "5 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, for better grip in rain and snow."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "f1b6d16a-ec77-4d92-ab3d-ed5074dbe1c4",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The X6 M: a big BMW SUV with a fastback roof, five seats and all-wheel drive. Bold looks with real everyday space.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Special occasions",
+     "Winter trips",
+     "Weekend drives"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the X6 M?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "Yes, it has all-wheel drive."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "f43eccf0-4a99-4e6d-902f-716f4330433f",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A Cadillac sport sedan with a turbo engine, all-wheel drive and adaptive cruise. Comfortable and affordable for longer rentals.",
+    "highlights": [
+     "All-wheel drive",
+     "Adaptive cruise control",
+     "Turbocharged engine",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "Monthly rentals",
+     "Commuting",
+     "Highway trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the CTS?",
+      "answer": "Five. It has 4 doors."
+     },
+     {
+      "question": "What engine does it have?",
+      "answer": "A 2.0 L turbocharged four-cylinder that runs on gas."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "All-wheel drive helps on snowy roads."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "f4d9e21d-c218-490c-8889-37d3b75dc8c5",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A Range Rover Sport with the V8, all-wheel drive and a high seat. Strong and roomy, built for long trips north with the family.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Cottage trips",
+     "Ski weekends",
+     "Family road trips"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Range Rover Sport V8?",
+      "answer": "Five. It has 5 seats and 4 doors."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "Yes, it has all-wheel drive."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, and it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "f99a3016-00ce-41f5-9356-0bf214d7695b",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A pocket AMG sedan with five seats, all-wheel drive and a dual-clutch automatic. Easy to park, lively on the way home.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "City driving with some fun",
+     "Weekend outings",
+     "Winter commuting"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the A35?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "What transmission does it have?",
+      "answer": "A dual-clutch automatic."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, which helps in snow."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "fba03795-4245-4baf-9662-e4c67fcc2ea4",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The AMG S-Class, with five seats and all-wheel drive. Limousine comfort in the back and serious pace for the driver.",
+    "highlights": [
+     "Leather seats",
+     "Heated front seats",
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Automatic transmission"
+    ],
+    "good_for": [
+     "VIP transport",
+     "Business travel",
+     "Weddings"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the S63?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Is it good in winter?",
+      "answer": "Yes, it has all-wheel drive."
+     },
+     {
+      "question": "What fuel does it use?",
+      "answer": "Gas, with an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "fbeb9bad-5e3d-426b-ae7f-aa17d54760bb",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The M340i sedan with all-wheel drive and five seats. A quick BMW that still does the daily commute without complaint.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Commuting",
+     "Weekend drives",
+     "Small families"
+    ],
+    "faq": [
+     {
+      "question": "How many seats does the M340i have?",
+      "answer": "5 seats and 4 doors."
+     },
+     {
+      "question": "Does it have all-wheel drive?",
+      "answer": "Yes, for snow and rain."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, and it runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "fdad6b61-8795-46ea-8880-4fb34c0cf867",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "The M3 Competition sedan: a proper M car with four doors, five seats and all-wheel drive. Track day spirit with room for passengers.",
+    "highlights": [
+     "All-wheel drive",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control",
+     "Automatic transmission",
+     "Air conditioning"
+    ],
+    "good_for": [
+     "Enthusiast weekends",
+     "Special occasions",
+     "Nights out with friends"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the M3?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Can I drive it in winter?",
+      "answer": "Yes, all-wheel drive helps in snow."
+     },
+     {
+      "question": "Is it automatic?",
+      "answer": "Yes, it has an automatic transmission."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "2a9f138d-ab96-4818-a86b-f39205da9f76",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A seven-seat Mitsubishi SUV with four-wheel drive and a full set of driver aids. Room for the kids and grip for the winter.",
+    "highlights": [
+     "Third-row seating",
+     "Four-wheel drive",
+     "Blind spot assist",
+     "Automatic emergency braking",
+     "Rear cross traffic alert",
+     "Backup camera"
+    ],
+    "good_for": [
+     "Families with kids",
+     "Winter road trips",
+     "Carpools"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Outlander?",
+      "answer": "Seven, with third-row seating and 5 doors."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "Yes, it has four-wheel drive."
+     },
+     {
+      "question": "What engine does it have?",
+      "answer": "A 2.5 L four-cylinder that runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  },
+  {
+   "kind": "car",
+   "id": "02a9aa8a-fd4c-488a-a06f-6561fcdccce8",
+   "prompt_version": "car-copy-v2",
+   "copy": {
+    "intro": "A compact Hyundai SUV with four-wheel drive, lane keeping assist and an easy size for city parking. Sensible and simple for everyday trips.",
+    "highlights": [
+     "Four-wheel drive",
+     "Lane keeping assist",
+     "Forward collision alert",
+     "Backup camera",
+     "Bluetooth",
+     "Cruise control"
+    ],
+    "good_for": [
+     "Commuting",
+     "Weekend errands",
+     "Winter driving"
+    ],
+    "faq": [
+     {
+      "question": "How many people fit in the Tucson?",
+      "answer": "Five, with 4 doors."
+     },
+     {
+      "question": "Is it good in snow?",
+      "answer": "Yes, it has four-wheel drive."
+     },
+     {
+      "question": "What engine does it have?",
+      "answer": "A 2.4 L four-cylinder that runs on gas."
+     }
+    ],
+    "seo_title": "",
+    "meta_description": "",
+    "h1": "",
+    "pickup_delivery": "",
+    "included": [],
+    "requirements": [],
+    "alt_texts": {}
+   }
+  }
+ ]
+}
