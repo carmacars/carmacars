@@ -264,7 +264,7 @@ test('After tax saved on this device: a request\'s review changes nothing, and t
   const ahead = 400 + Math.floor(Math.random() * 200);
   const from = ymd(new Date(Date.now() + ahead * 86_400_000)); const to = ymd(new Date(Date.now() + (ahead + 3) * 86_400_000));
   const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
-    where l.status = 'published' and app.vehicle_bookable(v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable)
+    where l.status = 'published' and app.vehicle_bookable(v.id) and exists (select 1 from public_vehicle_listings pv where pv.vehicle_id = v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable)
       and exists (select 1 from public_vehicle_listings p where p.vehicle_id = v.id)
       and app.vehicle_is_available(v.id, ${`${from}T10:00:00-04:00`}::timestamptz - interval '1 day', ${`${to}T10:00:00-04:00`}::timestamptz + interval '1 day', null)
     order by random() limit 1`;
@@ -368,7 +368,7 @@ test('deposit link by text: the job texts the hold link before pickup; the Money
   const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
   const from = ymd(new Date(Date.now() + 2 * 86_400_000)); const to = ymd(new Date(Date.now() + 5 * 86_400_000));
   const [car] = await sql`select v.id from vehicles v join vehicle_listings l on l.vehicle_id = v.id
-    where l.status = 'published' and app.vehicle_bookable(v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable)
+    where l.status = 'published' and app.vehicle_bookable(v.id) and exists (select 1 from public_vehicle_listings pv where pv.vehicle_id = v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable)
       and exists (select 1 from public_vehicle_listings p where p.vehicle_id = v.id)
       and app.vehicle_is_available(v.id, ${`${from}T10:00:00-04:00`}::timestamptz - interval '1 day', ${`${to}T10:00:00-04:00`}::timestamptz + interval '1 day', null)
     order by random() limit 1`;

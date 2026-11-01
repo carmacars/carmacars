@@ -52,7 +52,7 @@ async function mkRenter(sql: Sql, email: string, name: string) {
 async function freeCar(sql: Sql, start: number, days: number, skip: string[] = []) {
   const from = new Date(Date.now() + start * 86_400_000); const to = new Date(from.getTime() + days * 86_400_000);
   const rows = await sql`select v.id, l.slug from vehicles v join vehicle_listings l on l.vehicle_id = v.id
-    where l.status = 'published' and app.vehicle_bookable(v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable) and not (l.slug = any(${skip}))
+    where l.status = 'published' and app.vehicle_bookable(v.id) and exists (select 1 from public_vehicle_listings pv where pv.vehicle_id = v.id) and v.partner_id is null and (not v.is_sample or v.sample_bookable) and not (l.slug = any(${skip}))
       and exists (select 1 from public_vehicle_listings p where p.vehicle_id = v.id)
       and not exists (select 1 from bookings b where b.vehicle_id = v.id and b.status in ('requested','offered','pending_payment','confirmed','on_rent','returned','closed')
                         and tstzrange(b.pickup_at - interval '1 day', b.return_at + interval '1 day') && tstzrange(${from.toISOString()}::timestamptz, ${to.toISOString()}::timestamptz))

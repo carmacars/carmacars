@@ -301,7 +301,8 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
   .popover-scrim { position: fixed; inset: 0; z-index: 74; background: rgb(0 0 0 / 0.6); }
 }
 @keyframes sheet-up { from { transform: translateY(100%); } }
-dialog.modal { border: 0; padding: 0; background: var(--white); color: var(--black); width: min(34rem, calc(100vw - 2rem)); max-height: min(44rem, calc(100dvh - 2rem)); border-radius: var(--r-3); box-shadow: var(--shadow-float); overflow: hidden; }
+/* a box opened from a dark band (the car page's top) keeps its own light colours (the band's tokens would make its links red-400 on white) */
+dialog.modal { --text: var(--black); --text-2: var(--grey-600); --line: var(--grey-200); --line-strong: var(--black); --accent-text: var(--red-600); border: 0; padding: 0; background: var(--white); color: var(--black); width: min(34rem, calc(100vw - 2rem)); max-height: min(44rem, calc(100dvh - 2rem)); border-radius: var(--r-3); box-shadow: var(--shadow-float); overflow: hidden; }
 dialog.modal::backdrop { background: rgb(0 0 0 / 0.62); }
 dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in var(--t-3) var(--ease); }
 @keyframes modal-in { from { opacity: 0; transform: translateY(12px) scale(0.985); } }
