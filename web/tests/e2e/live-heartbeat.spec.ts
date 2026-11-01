@@ -6,7 +6,7 @@ import { db, noOverflow } from './helpers';
 // Migration 0103 end to end, at 375 and 1440: a visitor who accepted analytics opens a car page and stays on it. Their
 // last page view is made 10 minutes old (longer than the 5-minute live window), so without the heartbeat they would be
 // gone; the page's heartbeat (lowered to 15 seconds here) brings them back on Admin > Live visitors, which refreshes by
-// itself, with no new event recorded. "Live now" and "Visitors today" are on the page. Closing the tab ends the visit.
+// itself, with no new event recorded. "Live now" and "Visitors today" are on the page (Today > Visitors since Release 26). Closing the tab ends the visit.
 const PW = 'correct horse battery';
 const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${salt.toString('base64')}$${scryptSync(pw, salt, 64).toString('base64')}`; };
@@ -74,8 +74,9 @@ test('Heartbeat: a visitor idle on one page longer than the live window still sh
     await signIn(page, email, '/admin');
     await page.goto('/admin/visitors', { waitUntil: 'networkidle' });
     await expect(page.getByTestId('live-visitors')).toBeVisible();
-    await expect(page.locator('.ad-tile').filter({ hasText: 'Live now' })).toBeVisible();
-    await expect(page.locator('.ad-tile').filter({ hasText: 'Visitors today' }).getByTestId('visitors-today')).toHaveText(/^\d+$/);
+    // Release 26: on Visitors, the counts are one line above Live now
+    await expect(page.getByTestId('lv-stats')).toContainText('live now');
+    await expect(page.getByTestId('lv-stats').getByTestId('visitors-today')).toHaveText(/^\d+$/);
     await expect(page.locator(`#lv-${sid}`)).toHaveCount(0);
 
     // the visitor's heartbeat (15 seconds here): one small request, answered at once

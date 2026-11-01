@@ -144,7 +144,7 @@ export function LiveVisitors({ initial, portal, inVisitors = false }: { initial:
                   <option value="">Any</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
               <label className="small lv-tool"><span>Source</span>
                 <select className="select lv-select" value={source} onChange={(e) => setSource(e.target.value)} data-testid="lv-source">
-                  <option value="">Any</option>{sources.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
+                  <option value="">Any</option>{sources.map((c) => <option key={c} value={c}>{c.length > 32 ? `${c.slice(0, 31)}…` : c}</option>)}</select></label>
             </>}
             {cfg.is_admin && portal === 'admin' && <Link prefetch={false} className="link small" href="/admin/live/signals" data-testid="signal-settings-link">Signal settings</Link>}
             <span className="small muted" aria-live="polite">Updated {clock(data.at)}</span>

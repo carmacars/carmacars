@@ -38,7 +38,12 @@
 .lv-row--vs { border-radius: 14px; padding: 14px 16px; grid-template-columns: 44px minmax(0, 1fr); column-gap: 14px; transition: box-shadow .15s ease, border-color .15s ease; }
 .lv-row--vs:hover { border-color: var(--grey-300); box-shadow: 0 10px 28px -20px rgb(0 0 0 / 0.45); }
 .lv-row--vs.lv-row--hot { box-shadow: inset 4px 0 0 var(--red-600); }
-.lv-row--vs > .lv-row__acts, .lv-row--vs > .lv-compose, .lv-row--vs > .lv-detail, .lv-row--vs > .lv-sug, .lv-row--vs > p { grid-column: 2 / -1; }
+/* a grid item is at least as wide as its widest word or button: let them shrink and wrap, and on a phone give the
+   actions, the suggestion and the forms the row's full width (under the icon too) */
+.lv-row--vs > * { min-width: 0; }
+.lv-row--vs .btn { white-space: normal; text-align: center; }
+.lv-row--vs > .lv-row__acts, .lv-row--vs > .lv-compose, .lv-row--vs > .lv-detail, .lv-row--vs > .lv-sug, .lv-row--vs > p { grid-column: 1 / -1; }
+@media (min-width: 48rem) { .lv-row--vs > .lv-row__acts, .lv-row--vs > .lv-compose, .lv-row--vs > .lv-detail, .lv-row--vs > .lv-sug, .lv-row--vs > p { grid-column: 2 / -1; } }
 @media (min-width: 64rem) {
   .lv-row--vs { grid-template-columns: 44px minmax(0, 1fr) auto; }
   .lv-row--vs > .lv-row__acts { grid-column: 3; grid-row: 1; justify-content: flex-end; }
@@ -65,6 +70,8 @@
   transition: box-shadow .15s ease, border-color .15s ease; }
 .vs-card:hover { border-color: var(--grey-300); box-shadow: 0 10px 28px -20px rgb(0 0 0 / 0.45); }
 .vs-card--booking, .vs-card--request { box-shadow: inset 4px 0 0 var(--red-600); }
+.vs-card > * { min-width: 0; }
+.vs-card .btn { white-space: normal; }
 .vs-card__main { min-width: 0; display: grid; gap: 4px; }
 .vs-card__main p { margin: 0; overflow-wrap: anywhere; }
 .vs-card__top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -92,3 +99,7 @@
   .vs-filters .field:nth-of-type(4), .vs-filters .field:nth-of-type(5) { grid-column: 1 / -1; }
 }
 .vs-hist { display: grid; gap: 18px; min-width: 0; }
+/* the Live now filters never wider than the screen (a long referrer in Source, a long city) */
+.vs .lv-tools { min-width: 0; max-width: 100%; }
+.vs .lv-tool { min-width: 0; max-width: 100%; }
+.vs .lv-select { max-width: min(16rem, 100%); text-overflow: ellipsis; }
