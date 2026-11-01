@@ -2,10 +2,13 @@
    portal's first page. Red, black and white; phone first. */
 
 .pa { gap: var(--s-4); }
-.pa__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-3); }
-.pa__headtext { display: grid; gap: var(--s-1); min-width: 0; }
-.pa__headtext p { margin: 0; max-width: 34rem; }
-.pa__head .badge { flex: none; margin-top: 0.15rem; }
+.pa__head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.pa__head .badge { flex: none; }
+.pa__lead { margin: calc(-1 * var(--s-2)) 0 0; max-width: 36rem; }
+.pa__legend { display: flex; align-items: center; gap: var(--s-2); }
+.pa__saved { font-size: var(--fs-xs); font-weight: 500; color: var(--grey-600); }
+.pa__saved::before { content: "\2713"; margin-right: 0.3em; color: var(--red-600); }
+@media (max-width: 639px) { .pa__action .btn--primary { flex: 1 1 100%; } }
 .pa__action { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
 .pa__action .muted { flex: 1 1 14rem; }
 
@@ -20,12 +23,17 @@
 .pa__topics { border: 0; margin: 0; padding: 0; display: grid; gap: var(--s-2); min-width: 0; }
 .pa__topics legend { padding: 0; margin-bottom: var(--s-2); }
 .pa__topics[disabled] .pa__opt { opacity: 0.7; }
-.pa__grid { display: grid; gap: var(--s-2); grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); }
-.pa__opt { padding: var(--s-3); gap: 0.15rem 0.7rem; }
-.pa__opt input { width: 20px; height: 20px; }
-.pa__opt input[type="checkbox"]::after { content: ""; width: 10px; height: 6px; border-radius: 0; background: none; border: solid var(--white); border-width: 0 0 2px 2px; transform: rotate(-45deg) scale(0); margin-top: -2px; }
-.pa__opt input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
-.pa__opt .option__body { font-size: var(--fs-xs); }
+.pa__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); column-gap: var(--s-5); border-top: 1px solid var(--grey-200); }
+/* each topic: the words on the left, a switch on the right (the checkbox, restyled) */
+.option.pa__opt { grid-template-columns: 1fr auto; gap: 0.1rem var(--s-3); align-items: center; padding: var(--s-3) 0; border: 0; border-bottom: 1px solid var(--grey-200); border-radius: 0; background: transparent; box-shadow: none; }
+.option.pa__opt:hover { border-color: var(--grey-200); }
+.option.pa__opt:has(input:checked) { box-shadow: none; border-color: var(--grey-200); }
+.pa__opt .option__title { grid-column: 1; grid-row: 1; }
+.pa__opt .option__body { grid-column: 1; grid-row: 2; font-size: var(--fs-xs); }
+.option.pa__opt input[type="checkbox"] { grid-column: 2; grid-row: 1 / span 2; position: relative; width: 44px; height: 26px; border-radius: 999px; border: 0; background: var(--grey-300); display: block; transition: background var(--t-1); }
+.option.pa__opt input[type="checkbox"]::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--white); box-shadow: 0 1px 2px rgb(0 0 0 / 0.25); transform: none; transition: transform var(--t-1) var(--ease); }
+.option.pa__opt input[type="checkbox"]:checked { background: var(--red-600); }
+.option.pa__opt input[type="checkbox"]:checked::after { transform: translateX(18px); }
 .pa__topics .hint { margin: 0; }
 
 .pa__devices { display: grid; gap: var(--s-2); }
@@ -38,13 +46,13 @@
 
 /* the invitation on a portal's first page */
 .pa-prompt { display: grid; grid-template-columns: auto 1fr; gap: var(--s-3); align-items: center; margin-block: var(--s-3); padding: var(--s-3) var(--s-4);
-  background: var(--white); border: 1px solid var(--grey-200); border-left: 4px solid var(--red-600); }
+  background: var(--white); border: 1px solid var(--grey-200); border-left: 4px solid var(--red-600); border-radius: var(--r-2); }
 .pa-prompt__icon { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--black); color: var(--white); display: grid; place-items: center; align-self: start; }
 .pa-prompt__text { min-width: 0; display: grid; gap: 0.15rem; }
 .pa-prompt__text p { margin: 0; }
 .pa-prompt__title { font-weight: 600; }
 .pa-prompt__error { color: var(--red-700); }
-.pa-prompt__actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.pa-prompt__actions { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .pa-prompt__actions .btn--primary { flex: 1 1 auto; }
 .pa-prompt--done { border-left-color: var(--black); }
 @media (min-width: 640px) {

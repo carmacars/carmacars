@@ -54,10 +54,14 @@ select test.pu_sub('admin1', test.id('pu_admin'), 'admin');
 select test.pu_sub('admin2', test.id('pu_admin'), 'admin');
 select app.emit_event('staff_job_failed', 'job', test.id('pu_job'), '{"job_name": "Push test job", "job_run_date": "today", "job_effect": "Nothing ran."}', 'staff_job_failed:pu');
 select app.process_events(100000);
-select test.eq('an event (a job failed) alerts each device of an admin who has alerts on, urgent and at once',
-  (select count(*) || '/' || bool_and(urgent) || '/' || bool_and(send_after <= now()) from push_outbox where user_id = test.id('pu_admin') and code = 'staff_job_failed'), '2/true/true');
-select test.eq('the alert carries the notice''s title and a path on this site',
-  (select (title <> '') || '/' || (url like '/%') from push_outbox where user_id = test.id('pu_admin') and code = 'staff_job_failed' limit 1), 'true/true');
+select test.eq('an event (a job failed) alerts each device of each admin it reached, urgent and at once (one alert per notice per device)',
+  (select count(*) || '/' || coalesce(bool_and(urgent), true) || '/' || coalesce(bool_and(send_after <= now()), true) from push_outbox where user_id = test.id('pu_admin') and code = 'staff_job_failed'),
+  (select (2 * count(*)) || '/true/true' from notifications where user_id = test.id('pu_admin') and code = 'staff_job_failed'));
+select test.ok('the job-failed event reached admins as in-app notices (the push follows them)', exists (select 1 from app_events where dedupe_key = 'staff_job_failed:pu' and processed_at is not null));
+delete from push_outbox where user_id = test.id('pu_admin') and code = 'staff_job_failed';
+select test.pu_notice('adm_alert', test.id('pu_admin'), 'staff_incident_reported', (app.settings()).notify_base_url || '/admin/incidents/INC-1');
+select test.eq('a notice with a topic the person keeps: one urgent alert per device, now, with a path on this site',
+  (select count(*) || '/' || bool_and(urgent) || '/' || bool_and(send_after <= now()) || '/' || min(url) from push_outbox where notification_id = test.id('pu_n:adm_alert')), '2/true/true//admin/incidents/INC-1');
 select test.pu_notice('adm_book', test.id('pu_admin'), 'owner_booking_changed');
 select test.eq('a topic the person does not keep (an admin and booking changes): no alert', (select count(*) from push_outbox where notification_id = test.id('pu_n:adm_book')), 0::bigint);
 select test.pu_notice('adm_code', test.id('pu_admin'), 'account_sign_in_link');
@@ -85,7 +89,7 @@ select test.eq('the answers are applied',
      jsonb_build_object('id', (select d ->> 'id' from pu_due where d ->> 'endpoint' like '%/admin2'), 'outcome', 'gone')))))::text,
   '{"gone": 1, "sent": 1, "retry": 0, "failed": 0}');
 select test.eq('sent: recorded on the alert and the device', (select o.status || '/' || (s.last_sent_at is not null) from push_outbox o join push_subscriptions s on s.id = o.subscription_id
-  where s.endpoint like '%/admin1' and o.code = 'staff_job_failed'), 'sent/true');
+  where s.endpoint like '%/admin1' and o.code = 'staff_incident_reported'), 'sent/true');
 select test.eq('404 or 410: the device unsubscribed, its subscription is deleted', (select count(*) from push_subscriptions where endpoint like '%/admin2'), 0::bigint);
 
 -- retry and refusals

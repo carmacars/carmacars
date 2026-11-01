@@ -377,12 +377,18 @@ language sql volatile security invoker set search_path = public, app as $$ selec
 alter table push_subscriptions enable row level security;
 alter table push_preferences enable row level security;
 alter table push_outbox enable row level security;
-drop policy if exists admin_read on push_subscriptions;
-create policy admin_read on push_subscriptions for select to authenticated using (app.is_admin());
-drop policy if exists admin_read on push_preferences;
-create policy admin_read on push_preferences for select to authenticated using (app.is_admin());
-drop policy if exists admin_read on push_outbox;
-create policy admin_read on push_outbox for select to authenticated using (app.is_admin());
+drop policy if exists admin_all on push_subscriptions;
+create policy admin_all on push_subscriptions for all to authenticated using (app.is_admin()) with check (app.is_admin());
+drop policy if exists admin_all on push_preferences;
+create policy admin_all on push_preferences for all to authenticated using (app.is_admin()) with check (app.is_admin());
+drop policy if exists admin_all on push_outbox;
+create policy admin_all on push_outbox for all to authenticated using (app.is_admin()) with check (app.is_admin());
+-- a device turned on or off and a choice of topics are in the audit log; the alerts queue is not (one row per alert)
+drop trigger if exists audit_push_subscriptions on push_subscriptions;
+-- a device added or removed, without its push address and keys (redact); each send's time stamp is not logged
+create trigger audit_push_subscriptions after insert or delete on push_subscriptions for each row execute function app.audit_row('redact');
+drop trigger if exists audit_push_preferences on push_preferences;
+create trigger audit_push_preferences after insert or update or delete on push_preferences for each row execute function app.audit_row();
 revoke all on push_subscriptions, push_preferences, push_outbox from anon, authenticated;
 grant select on push_subscriptions, push_preferences, push_outbox to authenticated;   -- admins only, by policy
 grant all on push_subscriptions, push_preferences, push_outbox to service_role;

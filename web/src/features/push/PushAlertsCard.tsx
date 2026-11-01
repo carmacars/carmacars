@@ -20,9 +20,9 @@ export function ShareIcon() {
 export function IosSteps() {
   return (
     <ol className="pa-steps" data-testid="push-ios-steps">
-      <li>Open carmacars.ca in Safari and tap <b>Share</b> <ShareIcon />.</li>
-      <li>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</li>
-      <li>Open CarmaCars from your Home Screen, sign in and turn alerts on here.</li>
+      <li><span>Open carmacars.ca in Safari and tap <b>Share</b> <ShareIcon />.</span></li>
+      <li><span>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</span></li>
+      <li><span>Open CarmaCars from your Home Screen, sign in and turn alerts on here.</span></li>
     </ol>
   );
 }
@@ -59,12 +59,10 @@ export function PushAlertsCard({ publicKey, portal, initial, className = 'pt-car
   return (
     <section className={`${className} pa`} aria-labelledby="pa-title" data-testid="push-card" data-status={d.status}>
       <div className="pa__head">
-        <div className="pa__headtext">
-          <h2 className="d4" id="pa-title">Phone alerts</h2>
-          <p className="small muted">Get an alert on this phone or computer the moment something needs you, even with CarmaCars closed.</p>
-        </div>
+        <h2 className="d4" id="pa-title">Phone alerts</h2>
         {d.status !== 'loading' && <span className={`badge ${on ? 'badge--red' : 'badge--outline'}`} data-testid="push-badge">{on ? 'On' : 'Off'} on this device</span>}
       </div>
+      <p className="small muted pa__lead">Get an alert on this phone or computer the moment something needs you, even with CarmaCars closed.</p>
 
       {d.status === 'loading' && <p className="small muted" aria-live="polite">Checking this browser…</p>}
 
@@ -95,13 +93,13 @@ export function PushAlertsCard({ publicKey, portal, initial, className = 'pt-car
       )}
 
       <fieldset className="pa__topics" disabled={pending} data-testid="push-topics">
-        <legend className="label">What to alert me about</legend>
+        <legend className="label pa__legend">What to alert me about{saved === 'Saved.' && <span className="pa__saved" role="status" data-testid="push-saved">Saved</span>}</legend>
         <div className="pa__grid">
           {shown.map((t) => {
             const w = topicLabel(state.role, t);
             return (
               <label className="option pa__opt" key={t}>
-                <input type="checkbox" checked={topics.includes(t)} onChange={(e) => toggle(t, e.target.checked)} data-testid={`push-topic-${t}`} />
+                <input type="checkbox" role="switch" checked={topics.includes(t)} onChange={(e) => toggle(t, e.target.checked)} data-testid={`push-topic-${t}`} />
                 <span className="option__title">{w.label}</span>
                 <span className="option__body">{w.hint}</span>
               </label>
@@ -125,7 +123,7 @@ export function PushAlertsCard({ publicKey, portal, initial, className = 'pt-car
         </div>
       )}
 
-      {(saved || d.error) && (
+      {((saved && saved !== 'Saved.') || d.error) && (
         <p className={d.error ? 'alert alert--error' : 'alert alert--ok'} role={d.error ? 'alert' : 'status'} data-testid="push-msg"><span>{d.error ?? saved}</span></p>
       )}
     </section>

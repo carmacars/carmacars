@@ -117,7 +117,7 @@ test('a renter is invited on Trips, turns alerts on, chooses what alerts and tur
     await expect(card.locator('input[type="checkbox"]:checked')).toHaveCount(7);
     await check(page, '/account/profile alerts on');
     await card.getByTestId('push-topic-payments').uncheck();
-    await expect(card.getByTestId('push-msg')).toHaveText('Saved.');
+    await expect(card.getByTestId('push-saved')).toHaveText('Saved');
     const [pref] = await sql`select topics from push_preferences where user_id = ${me.id}`;
     expect(pref!.topics).not.toContain('payments');
 
