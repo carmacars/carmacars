@@ -47,3 +47,25 @@ test('the answers: 403 with noindex, cached; 301 cached a day', () => {
   assert.equal(m.status, 301);
   assert.equal(m.headers.get('location'), 'https://carmacars.ca/cars');
 });
+
+// 0320: the search and answer crawlers keep every page (the owner's Full scope); every other crawler the crawl scope only
+import { isSearchCrawler, keptToScope } from './bot-shield.ts';
+import { FULL_SCOPE_CRAWLERS } from '../../features/seo/crawlers.ts';
+test('search crawlers keep the deep pages in Full; training and unnamed crawlers are kept to the crawl scope, with no flag read', async () => {
+  const deep = '/cars/bmw/x5/2021/xdrive40i/black';
+  let reads = 0;
+  const full = async () => { reads++; return false; };
+  assert.equal(await keptToScope(GOOGLE, deep, full), false);
+  assert.equal(await keptToScope('Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)', deep, full), false);
+  assert.equal(reads, 2);
+  assert.equal(await keptToScope('Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.2; +https://openai.com/gptbot)', deep, full), true);
+  assert.equal(await keptToScope('Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)', deep, full), true);
+  assert.equal(await keptToScope('Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com/bots)', deep, full), true);
+  assert.equal(await keptToScope('SomeNewBot/1.0', deep, full), true);
+  assert.equal(reads, 2, 'no flag read for a crawler kept to the scope anyway');
+  assert.equal(await keptToScope('Mozilla/5.0 (compatible; GPTBot/1.2)', '/cars/bmw/x5', full), false, 'inside the scope: open to all');
+  assert.equal(await keptToScope(CHROME, deep, full), false, 'people: every page');
+  assert.equal(await keptToScope(GOOGLE, deep, async () => true), true, 'Core: search crawlers too');
+  for (const b of FULL_SCOPE_CRAWLERS) assert.ok(isSearchCrawler(`Mozilla/5.0 (compatible; ${b}/1.0)`), b);
+  assert.equal(isSearchCrawler('Mozilla/5.0 (compatible; Applebot-Extended/1.0)'), false);
+});

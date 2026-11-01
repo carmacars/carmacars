@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { agoWords, clock, dayClock, EVENT_WORDS } from '../live/staff';
 import { phoneDo, phoneRead, CallBody, type PhoneInboxData, type PhoneThreadData, type PhoneThreadRow } from './client';
+import { poller } from '@/lib/poll/poll';
 
 // Live chat > Texts and calls (migration 0085): every number that called or texted the CarmaCars Quo line, newest first;
 // Unknown callers with Create lead and Link to a renter; the thread with calls and texts, the reply box (sent through
@@ -20,7 +21,9 @@ export function PhoneInbox({ initial, portal, openId, fn }: { initial: PhoneInbo
     try { setInbox(await phoneRead<PhoneInboxData>('phone_inbox', { view: v })); setErr(''); } catch (e) { setErr(e instanceof Error ? e.message : 'Could not refresh'); }
   }, [view]);
   useEffect(() => {
-    const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 6000);
+    // 0320: every 10 seconds while in use, once a minute when idle (lib/poll)
+    const due = poller(10_000);
+    const t = setInterval(() => { if (due()) void refresh(); }, 10_000);
     return () => clearInterval(t);
   }, [refresh]);
   const pick = (v: 'all' | 'unknown') => { setView(v); void refresh(v); };
@@ -72,7 +75,9 @@ function PhoneThread({ id, portal, fn, onChange }: { id: string; portal: 'admin'
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the first read of the thread; its state is set after the fetch
     void load();
     void phoneDo('phone_read', { id }).then(() => changed.current()).catch(() => undefined);
-    const i = setInterval(() => { if (document.visibilityState === 'visible') void load(); }, 4000);
+    // 0320: every 5 seconds in an open thread while in use, once a minute when idle
+    const due = poller(5000);
+    const i = setInterval(() => { if (due()) void load(); }, 5000);
     return () => clearInterval(i);
   }, [load, id]);
   const count = t?.items.length ?? 0;

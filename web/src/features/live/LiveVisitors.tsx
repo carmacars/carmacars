@@ -4,6 +4,7 @@ import './live.css';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ACTION_WORDS, agoWords, clock, EVENT_WORDS, GROUP_WORDS, liveDo, liveRead, STRENGTH_WORDS, type LiveCfg, type LiveData, type SessionDetail, type Signal, type Visitor } from './staff';
+import { poller } from '@/lib/poll/poll';
 
 // Admin > Today > Live visitors and the assistants' My work > Live visitors (migration 0060): who is on the site now,
 // what they look at, the buying signals, the most viewed cars; start a chat with a visitor. Refreshed every 15 seconds
@@ -28,7 +29,9 @@ export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: '
     try { setData(await liveRead<LiveData>('live_visitors')); setErr(''); } catch (e) { setErr(e instanceof Error ? e.message : 'Could not refresh'); }
   }, []);
   useEffect(() => {
-    const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, REFRESH_MS);
+    // 0320: once a minute when nobody touched the screen for two (lib/poll)
+    const due = poller(REFRESH_MS);
+    const t = setInterval(() => { if (due()) void refresh(); }, REFRESH_MS);
     const shown = () => { if (document.visibilityState === 'visible') void refresh(); };
     document.addEventListener('visibilitychange', shown);
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', shown); };

@@ -63,3 +63,25 @@ test('Cloudflare figures: requests and CPU of every Worker, neurons, R2; a part 
   assert.match(u.unavailable.workers_ai!, /not authorized/);
   assert.equal(seen.filter((x) => x === 'ai').length, 1, 'a refused part is asked once');
 });
+
+// 0320: the banner speaks in money; the email line says whether Cloudflare sends and links to the steps
+import { bannerLine, bannerTone, cfEmailSentence, CF_EMAIL_STEPS } from './model.ts';
+test('banner: red only when the database says so; the words name the projected cost', () => {
+  const r = { service: 'workers_cpu', label: 'Website CPU time (Cloudflare Worker)', share_bps: 12300, level: 100 as const, used_text: '36,899,350 CPU ms', included_text: '30,000,000 CPU ms',
+    overage_usd: 0.14, resets_at: null, tone: 'note' as const, projected_usd: 0.88 };
+  assert.equal(bannerTone(r), 'note');
+  assert.equal(bannerTone({ level: 100 }), 'red');
+  assert.equal(bannerLine(r), 'Website CPU time at 123% (36,899,350 CPU ms of 30,000,000 CPU ms), about US$0.88 above the allowance projected for this month');
+});
+test('email: Cloudflare not set up says so, with the four steps; sending says nothing', () => {
+  const c = { state: 'absent' as const, enabled: true, ok_at: null, failed_at: null, error: null, sent_month: 0, included: 3000 };
+  assert.match(cfEmailSentence(c)!, /not set up yet.*100 a day/);
+  assert.equal(cfEmailSentence({ ...c, state: 'ok' }), null);
+  assert.equal(CF_EMAIL_STEPS.length, 4);
+  assert.match(CF_EMAIL_STEPS[2], /CF_EMAIL_BINDING/);
+});
+test('the quiet note is short', async () => {
+  const { noteLine } = await import('./model.ts');
+  assert.equal(noteLine({ service: 'r2_storage', label: 'Photo and document storage (Cloudflare R2)', share_bps: 10300, level: 100, used_text: '', included_text: '', overage_usd: 0.005, resets_at: null, projected_usd: 0.01 }),
+    'Photo and document storage 103% used, about US$0.01 this month');
+});

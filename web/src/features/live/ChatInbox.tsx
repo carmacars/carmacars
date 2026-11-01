@@ -4,6 +4,7 @@ import './live.css';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { agoWords, clock, EVENT_WORDS, liveDo, liveRead, STATUS_WORDS, type ChatMsg, type Inbox, type Thread } from './staff';
+import { poller } from '@/lib/poll/poll';
 
 // Admin > Bookings > Live chat and the assistants' Live chat (migration 0060): every conversation, the assistant's or a
 // person's, with the visitor's visit beside it. Take over (the assistant stops), reply, hand back, close; typing and
@@ -32,7 +33,9 @@ export function ChatInbox({ initial, portal, openId }: { initial: Inbox; portal:
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not refresh'); }
   }, []);
   useEffect(() => {
-    const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 5000);
+    // 0320: every 5 seconds while in use, once a minute when nobody touched it for two (lib/poll)
+    const due = poller(5000);
+    const t = setInterval(() => { if (due()) void refresh(); }, 5000);
     return () => clearInterval(t);
   }, [refresh]);
   useEffect(() => { document.title = inbox.waiting ? `(${inbox.waiting}) Live chat | CarmaCars` : 'Live chat | CarmaCars'; }, [inbox.waiting]);
@@ -104,7 +107,9 @@ function ChatThread({ id, portal, onChange }: { id: string; portal: 'admin' | 'v
   }, [id]);
   useEffect(() => {
     void load();
-    const i = setInterval(() => { if (document.visibilityState === 'visible') void load(); }, 2000);
+    // 0320: every 3 seconds in an open conversation while in use, once a minute when idle
+    const due = poller(3000);
+    const i = setInterval(() => { if (due()) void load(); }, 3000);
     return () => clearInterval(i);
   }, [load]);
   useEffect(() => { log.current?.scrollTo({ top: log.current.scrollHeight }); }, [msgs.length, t?.chat.visitor_typing]);

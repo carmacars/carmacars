@@ -28,8 +28,20 @@ const QUERY_VIEW = /^\/(cars(\/.*)?|(car-rental|guides|rent|buy|detailing|body-s
 
 export type Shield = { kind: 'pass' } | { kind: 'refuse'; reason: 'blocked' | 'portal' | 'scope' } | { kind: 'redirect'; location: string };
 
+/** 0320: the search and answer crawlers that bring visitors (features/seo/crawlers.ts FULL_SCOPE_CRAWLERS): they read every
+ *  public page the search scope allows. Any other crawler reads the crawl scope only (crawl-scope.ts), whatever the scope. */
+export const SEARCH_CRAWLER = /Googlebot|Google-InspectionTool|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-CloudVertexBot|Gemini-Deep-Research|bingbot|BingPreview|msnbot|DuckDuckBot|DuckAssistBot|Applebot(?!-Extended)|OAI-SearchBot|ChatGPT-User|Claude-SearchBot|Claude-User|PerplexityBot|Perplexity-User|Meta-ExternalFetcher|Amzn-SearchBot|Amzn-User|MistralAI-User/i;
+export const isSearchCrawler = (ua: string | null | undefined): boolean => !!ua && SEARCH_CRAWLER.test(ua);
+
 /** Whether a user agent says it is a crawler (custom-worker.ts reads the search scope flag only for one). */
 export const isCrawler = (ua: string | null | undefined): boolean => !!ua && CRAWLER.test(ua);
+
+/** 0320: whether this crawler is kept to the crawl scope: every crawler that is not a search or answer crawler, and those
+ *  too when the search scope is Core (`coreFlag`, read from the tag store only when it matters). */
+export async function keptToScope(ua: string | null | undefined, path: string, coreFlag: () => Promise<boolean>): Promise<boolean> {
+  if (!isCrawler(ua) || !deepOutOfScope(path)) return false;
+  return !isSearchCrawler(ua) || (await coreFlag());
+}
 
 export function shield(method: string, url: string, ua: string | null | undefined, core = false): Shield {
   if (!ua || (method !== 'GET' && method !== 'HEAD')) return { kind: 'pass' };

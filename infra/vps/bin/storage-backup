@@ -2,7 +2,7 @@
 # Nightly copy of the uploaded files (Supabase Storage's volumes/storage) to the backup bucket (carmacars-storage-backup
 # .timer, 06:50 UTC). Neither wal-g nor the logical dump holds these files: this is their only copy off the server.
 #   s3://<bucket>/storage/current/...        the files as they are now (incremental: only new or changed files go up)
-#   s3://<bucket>/storage/trash/<YYYY-MM-DD>/ files deleted or replaced on the server that day, kept 30 days
+#   s3://<bucket>/storage/trash/<YYYY-MM-DD>/ files deleted or replaced on the server that day, kept 14 days (0320: was 30)
 #                                            (STORAGE_TRASH_DAYS), then removed
 # rclone in a throwaway container (pinned image), with the bucket's settings from /opt/carmacars/backup/walg.env
 # (bin/backup-configure). The files are encrypted (rclone crypt: contents and file names; folder names stay readable),
@@ -17,7 +17,7 @@ D="${CARMACARS_DIR:-/opt/carmacars}"
 E=$D/backup/walg.env
 SRC=$D/supabase/volumes/storage
 IMAGE="${RCLONE_IMAGE:-rclone/rclone:1.68.2}"
-TRASH_DAYS="${STORAGE_TRASH_DAYS:-30}"
+TRASH_DAYS="${STORAGE_TRASH_DAYS:-14}"
 [ -f "$E" ] || { echo "storage-backup: $E is missing (run the vps-backup workflow with mode configure); nothing to do"; exit 0; }
 set -a
 # shellcheck disable=SC1090

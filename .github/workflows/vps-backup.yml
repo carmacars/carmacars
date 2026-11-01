@@ -109,7 +109,7 @@ jobs:
           echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
       - name: The bucket's settings (repository secrets, else the vault)
         run: infra/vps/scripts/backup-env.sh
-      - name: Dump (through the SSH tunnel), encrypt, upload to the bucket, keep 30 days
+      - name: Dump (through the SSH tunnel), encrypt, upload to the bucket, keep 7 days and 4 Sundays
         run: |
           mkdir -p "$RUNNER_TEMP/backup"
           BACKUP_DIR="$RUNNER_TEMP/backup" scripts/backup/backup.sh | tee "$RUNNER_TEMP/backup.out"
@@ -138,6 +138,14 @@ jobs:
       - name: Remove the dump from the runner
         if: always()
         run: rm -rf "$RUNNER_TEMP/backup"
+      # 0320: the retention that keeps the bucket under 70% of R2's free 10 GB, every night (it was applied only by hand
+      # with vps-ops apply-retention, and the bucket passed 10 GB): wal-g's backups kept and the logical days set on the
+      # server, and what is beyond them deleted (never the newest two base backups, never live data)
+      - name: Keep the backup bucket under the free 10 GB (the retention plan, applied)
+        if: always()
+        run: |
+          infra/vps/scripts/backup-retention.sh apply > "$RUNNER_TEMP/retention.json" || { echo "::warning title=backup retention::the nightly retention did not apply; run vps-ops apply-retention"; exit 0; }
+          jq -r '"::notice title=backup bucket::\((.bucket_total_bytes / 1e9 * 100 | floor) / 100) GB of the free 10 GB (\(.pct_of_free)%); kept: \(.applied.walg_retain_full) wal-g backups, logical \(.applied.logical_keep_days) days and 4 Sundays; deleted now: \(.applied.base_backups_deleted) base backups, \(.applied.logical_folders_deleted) logical folders"' "$RUNNER_TEMP/retention.json"
 
   pitr-test:
     needs: gate

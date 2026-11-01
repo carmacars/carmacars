@@ -147,7 +147,11 @@ test('insurers: an adjuster added on a booking is saved with the insurer; the in
 test('public: robots.txt follows the search scope (Full by default, Core keeps crawlers in the crawl scope); /delivery shows the minimum and the delivery area', async ({ page }) => {
   const sql = db();
   const full = await (await page.request.get('/robots.txt')).text();
-  expect(full).not.toContain('Disallow: /t/');
+  // 0320: in Full the search crawlers' group keeps every page; the other crawlers read the crawl scope only
+  const google = full.split(/\n\s*\n/).find((g) => /^User-Agent: Googlebot$/mi.test(g)) ?? '';
+  expect(google).not.toContain('Disallow: /t/');
+  const gpt = full.split(/\n\s*\n/).find((g) => /^User-Agent: GPTBot$/mi.test(g)) ?? '';
+  expect(gpt).toContain('Disallow: /t/');
   await sql`update program_settings set search_scope = 'core' where id = (select id from app.settings())`;
   try {
     // the server keeps the scope a few minutes outside local runs: only check when it shows Core already

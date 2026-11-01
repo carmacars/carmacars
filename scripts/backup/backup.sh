@@ -10,8 +10,9 @@
 #      leaves the runner.
 #   3. Uploaded to the private Supabase Storage bucket `backups` under nightly/<stamp>/ (parts of 45 MB, the free
 #      plan's 50 MB file limit), with manifest.json (no data: table names, counts, sizes, checksums).
-#   4. Folders older than BACKUP_KEEP_DAYS (30; on the server's backend /opt/carmacars/backup/logical-keep-days when
-#      that file exists) are deleted.
+#   4. Kept: the last BACKUP_KEEP_DAYS days (7; on the server's backend /opt/carmacars/backup/logical-keep-days when
+#      that file exists) and each Sunday's of the last BACKUP_KEEP_WEEKS weeks (4) (scripts/backup/keep.sh, 0320: was
+#      30 days, which alone could fill the backup bucket); the other folders are deleted.
 #   5. The run is recorded in job_runs ('backup-nightly'); a failure shows on Admin > Today (no email).
 # Prints the stamp on the last line. BACKUP_DIR keeps the files (for the restore test in the same job).
 #
@@ -25,7 +26,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=../deploy/lib.sh
 source "$ROOT/scripts/deploy/lib.sh"
 
-KEEP_DAYS="${BACKUP_KEEP_DAYS:-30}"
+KEEP_DAYS="${BACKUP_KEEP_DAYS:-7}"
+KEEP_WEEKS="${BACKUP_KEEP_WEEKS:-4}"
+# shellcheck source=keep.sh
+source "$ROOT/scripts/backup/keep.sh"
+NOW_S=$(date -u +%s)
 PART_BYTES=$((45 * 1024 * 1024))
 OUT="${BACKUP_DIR:-$(mktemp -d)}"; mkdir -p "$OUT"; chmod 700 "$OUT"
 STAMP="$(date -u +%Y-%m-%dT%H%MZ)"
@@ -140,11 +145,10 @@ if [ "$DB_BACKEND" = vps ]; then
     "${S3[@]}" cp --only-show-errors "$OUT/$f" "$S3_BASE/$STAMP/$f" || fail "upload of $f to the backup bucket failed"
   done
   log "uploaded logical/nightly/$STAMP ($(jq -r '.parts | length' "$OUT/manifest.json") part(s), $enc_bytes bytes encrypted)"
-  cutoff=$(date -u -d "-$KEEP_DAYS days" +%Y-%m-%dT%H%MZ)
   folders=$("${S3[@]}" ls "$S3_BASE/" | awk '$1 == "PRE" {sub("/$", "", $2); print $2}')
   removed=0
   for d in $folders; do
-    [[ "$d" < "$cutoff" ]] || continue
+    ! logical_keep "$d" "$NOW_S" "$KEEP_DAYS" "$KEEP_WEEKS" || continue
     "${S3[@]}" rm --only-show-errors --recursive "$S3_BASE/$d/" && removed=$((removed + 1))
   done
   kept=$(( $(wc -w <<<"$folders") - removed ))
@@ -165,13 +169,12 @@ else
   done
   log "uploaded nightly/$STAMP ($(jq -r '.parts | length' "$OUT/manifest.json") part(s), $enc_bytes bytes encrypted)"
 
-  # ---------------------------------------------------------------- keep 30 days
-  cutoff=$(date -u -d "-$KEEP_DAYS days" +%Y-%m-%dT%H%MZ)
+  # ---------------------------------------------------------------- keep 7 days and 4 Sundays (keep.sh)
   folders=$(curl -sS -X POST "$ST/object/list/backups" "${H[@]}" -H 'content-type: application/json' \
     --data '{"prefix":"nightly/","limit":1000,"sortBy":{"column":"name","order":"asc"}}' | jq -r '.[] | select(.id == null) | .name')
   removed=0
   for d in $folders; do
-    [[ "$d" < "$cutoff" ]] || continue
+    ! logical_keep "$d" "$NOW_S" "$KEEP_DAYS" "$KEEP_WEEKS" || continue
     files=$(curl -sS -X POST "$ST/object/list/backups" "${H[@]}" -H 'content-type: application/json' \
       --data "$(jq -nc --arg p "nightly/$d/" '{prefix: $p, limit: 100}')" | jq -c --arg p "nightly/$d/" '[.[] | select(.id != null) | $p + .name]')
     [ "$files" != "[]" ] || continue

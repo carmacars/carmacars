@@ -12,8 +12,7 @@ import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, clea
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, STALE_HEADER, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
 import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
-import { cpuGuard, cpuGuardResponse, isCrawler, shield, shieldResponse } from './src/lib/edge/bot-shield';
-import { deepOutOfScope } from './src/lib/edge/crawl-scope';
+import { cpuGuard, cpuGuardResponse, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
 import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
@@ -277,9 +276,11 @@ const worker = {
     if (isProbe(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });
     // 2026-10-30: SEO tools and scrapers, crawlers on the portals and on query-string views: answered here, before the
     // session refresh and the app (src/lib/edge/bot-shield.ts)
-    // R23: the search scope flag is read (one KV read, kept 30 s) only for a crawler on a page outside the core crawl scope
+    // R23: the search scope flag is read (one KV read, kept 30 s) only for a search crawler on a page outside the core crawl
+    // scope. 0320: any other crawler (training crawlers, the foreign search engines, unnamed bots) is kept to the crawl
+    // scope whatever the setting, with no read (bot-shield.ts keptToScope)
     const ua0 = request.headers.get('user-agent');
-    const core = isCrawler(ua0) && deepOutOfScope(path) ? (await readNumber(env, SEARCH_SCOPE_KEY)) === 1 : false;
+    const core = await keptToScope(ua0, path, async () => (await readNumber(env, SEARCH_SCOPE_KEY)) === 1);
     const sh = shield(request.method, request.url, ua0, core);
     if (sh.kind !== 'pass') return shieldResponse(sh, securityHeaders());
     // R23: from 70% of the month's included CPU time, crawlers get no catalog render (one KV read, kept 30 s)

@@ -300,3 +300,10 @@
 @keyframes ad-pop { from { opacity: 0; transform: translateY(6px) scale(0.985); } }
 @keyframes ad-grow { from { transform: scaleX(0.2); opacity: 0; } }
 @keyframes ad-blink { 50% { opacity: 0.15; } }
+/* 0320: Admin > To do, Your teams: one quiet line per staff team, its count lines underneath */
+.ad-teams { list-style: none; margin: 0; padding: 0; display: grid; }
+.ad-teams__row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-3); padding: var(--s-2) 0; border-bottom: 1px solid var(--grey-100); }
+.ad-teams__row:last-child { border-bottom: 0; }
+.ad-teams__main { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.ad-teams__name { font-weight: 600; }
+.ad-teams .ad-sub { font-size: var(--fs-xs); color: var(--text-2); overflow-wrap: anywhere; }

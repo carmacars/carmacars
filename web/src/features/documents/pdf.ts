@@ -1,4 +1,5 @@
 import 'server-only';
+import { companyParty } from '@/lib/format';
 import { agreementPdf } from '@/features/agreement/pdf';
 import type { Block } from '@/features/agreement/model';
 import { hoursText } from '@/features/field-pay/model';
@@ -38,7 +39,7 @@ function header(f: F, to: Array<[string, string]>, ref: Array<[string, string]>)
   return [
     { t: 'title', text: f.title },
     { t: 'table', head: ['From', ''], kv: true, rows: [
-      ['Company', `${c.legal_name} (operating as ${c.brand})`], ...(c.address ? [['Address', c.address] as [string, string]] : []),
+      ['Company', companyParty(c.legal_name, c.brand)], ...(c.address ? [['Address', c.address] as [string, string]] : []),
       ...(c.hst_number ? [['HST number', c.hst_number] as [string, string]] : []), ['Contact', [c.email, c.phone].filter(Boolean).join(', ')]] },
     ...(to.length ? [{ t: 'table' as const, head: ['To', ''], kv: true, rows: to }] : []),
     { t: 'table', head: ['Reference', ''], kv: true, rows: ref }
@@ -236,7 +237,7 @@ function companyHead(f: F, extra: Array<[string, string]> = []): Block[] {
       ['Month', month(f.statement_month)], ['Status', !f.draft ? 'Final' : `Draft, version ${s(f.version)}`],
       ['Built', day(f.built_at)], ...(f.finalized_at ? [['Finalized', day(f.finalized_at)] as [string, string]] : []),
       ['Checks', f.ties_ok ? 'Every check ties' : `Not every check ties${f.tie_problems ? `: ${s(f.tie_problems)}` : ''}`], ...extra,
-      ['Company', `${c.legal_name} (operating as ${c.brand})`], ...(c.hst_number ? [['HST number', c.hst_number] as [string, string]] : [])] }
+      ['Company', companyParty(c.legal_name, c.brand)], ...(c.hst_number ? [['HST number', c.hst_number] as [string, string]] : [])] }
   ];
 }
 const MONEY_COLS = ['rental_revenue_cents', 'mileage_cents', 'kickbacks_cents', 'owner_revenue_cents', 'revenue_share_cents', 'owner_share_out_cents',

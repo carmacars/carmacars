@@ -1,7 +1,7 @@
 # Database backups and restore
 
-The live database is backed up every night, encrypted, kept 30 days, and a restore of each backup is tested the
-same night. Free: GitHub Actions minutes and the Supabase Storage space the files take (a few MB each).
+The live database is backed up every night, encrypted, kept 7 nights and the Sundays of 4 weeks,
+and a restore of each backup is tested the same night. Free: GitHub Actions minutes and the Supabase Storage space the files take (a few MB each).
 
 ## What runs, and where things are
 
@@ -12,7 +12,7 @@ same night. Free: GitHub Actions minutes and the Supabase Storage space the file
 | What is in a backup | `pg_dump` 17, custom format, of the schemas `public`, `app`, `auth` (sign-in accounts), `storage` (the file records, not the files) and `supabase_migrations` (the migration history). Taken through the session pooler in one snapshot; every table's row count is read in that same snapshot |
 | Files | Storage bucket `backups` (private), `nightly/<UTC stamp>/`: `carmacars-<stamp>.dump.age.part01` (and more parts above 45 MB, the free plan's 50 MB file limit), `manifest.json` (table names, row counts, sizes, checksums, versions; no data), `restore-report.json` (the restore test's result) |
 | Encryption | age. The job encrypts to the public key in the vault secret `backup_age_recipient`. Only the private key, vault secret `backup_age_identity`, decrypts. The plain dump never leaves the runner |
-| Kept | 30 days of folders; older ones are deleted by the nightly job |
+| Kept | the last 7 nights and each Sunday of the last 4 weeks (scripts/backup/keep.sh); the others are deleted by the nightly job |
 | Results | `job_runs` rows `backup-nightly`, `backup-restore-test` and `backup-check` (a failed row shows on Admin > Today; inserted, never updated, so no email is sent), the run's summary in the Actions tab |
 | Secrets | Only the three the deploy already uses: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD` |
 
@@ -150,3 +150,17 @@ small deltas. A crash restart replays up to 15 minutes of WAL instead of 5 (seco
    journal says so: `journalctl -u carmacars-walg-base -n 20`. `walg backup-list` shows names with `_D_` for deltas.
 5. A week later run vps-ops `backup-report` (WAL per day, full and delta counts, the projection), and
    `apply-retention` if the plan is lower than 7 / 30. `walg-restore-test` restores LATEST, delta chains included.
+
+## Retention since November 6, 2026 (0320): applied every night
+
+docs/changes/2026-11-06-owner-todo-usage-noise.md. The bucket passed 10 GB with the retention above applied only by hand.
+
+| What | Kept | Where |
+| --- | --- | --- |
+| wal-g base backups and WAL | the plan of `backup-retention.sh` (7 backups when they fit, then 5, 4, 3, 2), the WAL from the oldest kept | applied **every night** by vps-backup after the logical backup (`backup-retention.sh apply`); the run's annotation gives the bucket's size and what was deleted |
+| Logical nightly backups | the last 7 nights and each Sunday of the last 4 weeks (`BACKUP_KEEP_DAYS` 7, `BACKUP_KEEP_WEEKS` 4) | `scripts/backup/keep.sh`, used by `backup.sh` and `backup-retention.sh` (was 30 days) |
+| The Storage files' trash | 14 days (`STORAGE_TRASH_DAYS`) | `infra/vps/bin/storage-backup` (was 30) |
+
+Only backups are deleted, never live data, and never below two wal-g backups (`walg-base` refuses fewer). Less WAL at the
+source: the deploy writes only the email templates that changed, and the search snapshots, the place roots and the
+sitemap shape write nothing when nothing changed.

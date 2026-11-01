@@ -19,7 +19,7 @@ export default async function AdminAlerts() {
         {card ?? (
           <section className="pt-card stack" data-testid="push-off-setup">
             <h2 className="d4">Phone alerts are not set up yet</h2>
-            <p className="small">They need the two VAPID keys in the vault: <code>deploy_vapid_public_key</code> and <code>deploy_vapid_private_key</code>. The next deploy then turns the alerts cards on in every portal.</p>
+            <p className="small">They need the two VAPID keys in the vault of the live database, which is on the company&apos;s server now (not a Supabase project): open Studio through the server&apos;s SSH tunnel, SQL editor, and add <code>deploy_vapid_public_key</code> and <code>deploy_vapid_private_key</code> with <code>select vault.create_secret(&apos;value&apos;, &apos;name&apos;)</code>. The next deploy reads them there and turns the alerts cards on in every portal; until then each deploy lists this step.</p>
           </section>
         )}
         <p className="small muted">Emails and texts are unchanged. How customers are reached: <Link prefetch={false} className="link" href="/admin/settings/text-alerts">Settings &gt; Text alerts</Link>.</p>

@@ -96,7 +96,8 @@ secrets() {
     notice "Google reviews sync: no OAuth client (add deploy_google_reviews_client_id and deploy_google_reviews_client_secret to the vault)"
   fi
   # optional: phone and browser alerts (0300), the VAPID key pair; without it the alerts cards stay hidden. The owner makes
-  # the keys once (docs/changes/2026-11-05-push-alerts.md) and adds them to the vault; they are never in the repository.
+  # the keys once (docs/changes/2026-11-05-push-alerts.md) and adds them to the vault of the live database (since the
+  # move, the company server's: Studio through the SSH tunnel, infra/vps/CUTOVER.md); they are never in the repository.
   local vpub vpriv
   vpub=$(jq -r '[.[] | select(.name == "deploy_vapid_public_key")][0].v // empty' <<<"$rows")
   vpriv=$(jq -r '[.[] | select(.name == "deploy_vapid_private_key")][0].v // empty' <<<"$rows")
@@ -106,6 +107,20 @@ secrets() {
   else
     notice "Phone alerts: off and hidden (add deploy_vapid_public_key and deploy_vapid_private_key to the vault)"
   fi
+  # optional: Add to Apple Wallet (R24, docs/changes/2026-11-02-wallet-calendar.md), the five values of CarmaCars' own Pass
+  # Type ID certificate, from the same vault; without all five the button stays hidden and the route answers 404 (0320:
+  # the deploy never passed them to the Worker before)
+  local w wv wn=0 wpair
+  for wpair in pass_cert:WALLET_PASS_CERT pass_key:WALLET_PASS_KEY wwdr_cert:WALLET_WWDR_CERT pass_type_id:WALLET_PASS_TYPE_ID team_id:WALLET_TEAM_ID; do
+    w="deploy_wallet_${wpair%%:*}"
+    wv=$(jq -r --arg n "$w" '[.[] | select(.name == $n)][0].v // empty' <<<"$rows")
+    [ -n "$wv" ] || continue
+    # a certificate or key has several lines: each is masked
+    while IFS= read -r l; do [ ${#l} -ge 8 ] && mask "$l"; done <<<"$wv"
+    export_env "${wpair##*:}" "$wv"; wn=$((wn + 1))
+  done
+  if [ "$wn" = 5 ]; then notice "Apple Wallet: on (the five deploy_wallet_* values are in the vault)"
+  else notice "Apple Wallet: off and hidden ($wn of the five deploy_wallet_* values are in the vault)"; fi
   # session pooler (IPv4) for the seed script; on the server, Postgres through this job's SSH tunnel
   local dburl
   dburl=$(sb_db_url)

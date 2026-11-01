@@ -11,12 +11,13 @@
 #                                reads it), and backups beyond it deleted now (wal-g delete retain FULL, logical folders
 #                                older than the kept days)
 #
-# Retention ladder (the first that fits): wal-g backups kept 7 / logical days 30, 7/14, 5/14, 4/14, 3/14, 3/7, 2/7.
+# Retention ladder (the first that fits): wal-g backups kept 7 / logical days 7, 5/7, 4/7, 3/7, 2/7 (0320: the logical
+# backups also keep each Sunday's of the last 4 weeks, scripts/backup/keep.sh; before, 30 days were kept first).
 # wal-g takes a full backup once a week and a delta the other nights (WALG_DELTA_MAX_STEPS=6, bin/walg-base) and keeps
 # the newest WALG_RETAIN_FULL backups of either kind plus the full they start from ("retain FIND_FULL"); the field
 # names below keep "retain_full" so the workflow's summary reads the same.
 # Projection: newest full backup x 2 + newest delta x kept (a quarter of the full before the first delta) + WAL per
-# day x (kept + 7) + newest logical backup x (days + 1) + the Storage
+# day x (kept + 7) + newest logical backup x (days + 4 Sundays + 1) + the Storage
 # files (their copy in storage/current, or the server's volumes/storage before the first sync), all x 1.25 for growth,
 # + storage/trash (deleted files, 30 days) + anything else in the bucket.
 #
@@ -108,8 +109,8 @@ jq -n --slurpfile o "$W/objects.json" --slurpfile s "$W/server.json" --argjson f
   (($deltas | last | .bytes) // ($base1 / 4)) as $delta1 | (($wal | sum) / $span) as $walpd | (($logs | last | .bytes) // 0) as $log1 |
   ($other | sum) as $oth |
   ([($stc | sum), ($srv.storage_files_bytes // 0)] | max) as $files | ($stt | sum) as $trash |
-  def proj($n; $k): ((1.25 * ($base1 * 2 + $delta1 * $n + $walpd * ($n + 7) + $log1 * ($k + 1) + $files)) + $trash + $oth) | floor;
-  ([[7,30],[7,14],[5,14],[4,14],[3,14],[3,7],[2,7]] | map({walg_retain_full: .[0], logical_keep_days: .[1], projected_bytes: proj(.[0]; .[1])})) as $ladder |
+  def proj($n; $k): ((1.25 * ($base1 * 2 + $delta1 * $n + $walpd * ($n + 7) + $log1 * ($k + 5) + $files)) + $trash + $oth) | floor;
+  ([[7,7],[5,7],[4,7],[3,7],[2,7]] | map({walg_retain_full: .[0], logical_keep_days: .[1], projected_bytes: proj(.[0]; .[1])})) as $ladder |
   (($ladder | map(select(.projected_bytes <= $target)) | first) // ($ladder | last + {over_target: true})) as $plan |
   {bucket_total_bytes: ($all | sum), objects: ($all | length), free_tier_bytes: $free, target_bytes: $target,
    pct_of_free: ((($all | sum) * 1000 / $free | floor) / 10),
@@ -127,8 +128,8 @@ jq -n --slurpfile o "$W/objects.json" --slurpfile s "$W/server.json" --argjson f
    },
    retention: {walg_env_retain_full: $srv.walg_env_retain_full, walg_base_reads_walg_env: $srv.walg_base_reads_walg_env,
                walg_retain_in_effect: $srv.walg_base_retain_in_effect,
-               logical_keep_days_in_effect: ($srv.logical_keep_days_file // 30),
-               logical_cleanup: "scripts/backup/backup.sh deletes logical/nightly/<stamp>/ folders older than the kept days after each nightly upload"},
+               logical_keep_days_in_effect: ($srv.logical_keep_days_file // 7),
+               logical_cleanup: "scripts/backup/backup.sh keeps the kept days and the last 4 Sundays (scripts/backup/keep.sh) and deletes the other logical/nightly/<stamp>/ folders after each nightly upload"},
    server: ($srv | del(.backups)), walg_backups: ($wb | map({backup_name, time: (.start_time // .time), compressed_size, uncompressed_size})),
    ladder: $ladder, plan: $plan}' > "$W/report.json"
 
@@ -163,10 +164,12 @@ if [ "$have" -gt "$n" ]; then
     echo "backup-retention: a base backup is running; wal-g's retention applies when it finishes" >&2
   fi
 fi
-cutoff=$(date -u -d "-$k days" +%Y-%m-%dT%H%MZ)
+# shellcheck source=../../../scripts/backup/keep.sh
+. "$ROOT/scripts/backup/keep.sh"
+now_s=$(date -u +%s)
 deleted_logical=0
 for d in $("${S3[@]}" ls "s3://$BACKUP_S3_BUCKET/logical/nightly/" 2>/dev/null | awk '$1 == "PRE" {sub("/$", "", $2); print $2}'); do
-  [[ "$d" < "$cutoff" ]] || continue
+  ! logical_keep "$d" "$now_s" "$k" "${BACKUP_KEEP_WEEKS:-4}" || continue
   "${S3[@]}" rm --only-show-errors --recursive "s3://$BACKUP_S3_BUCKET/logical/nightly/$d/" >&2 && deleted_logical=$((deleted_logical + 1))
 done
 jq --argjson db "$deleted_base" --argjson dl "$deleted_logical" '. + {applied: {walg_retain_full: .plan.walg_retain_full,

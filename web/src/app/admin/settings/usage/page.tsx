@@ -7,6 +7,7 @@ import { UsageAllow } from '@/features/usage/UsageAllow';
 import { paidCost, share, shortLabel, usd, type ServiceState } from '@/features/usage/model';
 import { UsageChart } from '@/features/usage/UsageChart';
 import { AiByFeature, type AiUsage } from '@/features/usage/AiByFeature';
+import { EmailSetup } from '@/features/usage/UsageCards';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Usage', path: '/admin/settings/usage', noindex: true, description: 'Included allowances of every metered service, what is used, and paid usage.' });
@@ -19,7 +20,7 @@ const STATE: Record<string, string> = { ok: 'Within the allowance', warn: 'Near 
 // Settings > Usage (migration 0080): each metered service, what is used against what the plan includes, when it resets,
 // whether paid usage is allowed and up to how much, and the last 30 days.
 export default async function UsagePage() {
-  const { read } = await page('/admin/settings/usage');
+  const { read, user } = await page('/admin/settings/usage');
   const u = await read<Data>('usage');
   const bytes = (s: Row) => s.unit === 'bytes';
   return (
@@ -27,6 +28,8 @@ export default async function UsagePage() {
       <PageHead title="Usage" kicker={<Link prefetch={false} className="link" href="/admin/settings">Settings</Link>} />
       <p className="small muted" style={{ maxWidth: '52rem' }} data-testid="usage-intro">What the plans include and what is used. When an allowance runs out, AI and photo features pause with a short message until it resets, unless you allow paid usage up to an amount. The website, the portals, the database and storage are never paused: they alert at 80% and when used up, with the estimated cost.
         Alerts go to {u.alert_email} (once per service and period, never at night). Cloudflare figures: {u.cloudflare_at ? `last reported ${t(u.cloudflare_at)}` : 'not reported yet (the usage workflow sends them every hour)'}.</p>
+      {/* 0320: whether Cloudflare Email Service sends, and the steps when it does not */}
+      <EmailSetup userId={user.id} />
       {u.ai && <AiByFeature ai={u.ai} />}
       {u.services.map((s) => {
         const cost = paidCost(s);

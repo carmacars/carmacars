@@ -10,3 +10,7 @@
 .ug-chart__line { stroke: var(--black); stroke-width: 1; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
 .ad-fieldset { border: 0; padding: 0; margin: 0 0 var(--s-3); display: grid; gap: var(--s-2); }
 .ad-fieldset .row { gap: var(--s-2); align-items: center; }
+/* 0320: the banner's quiet note (cents billed by use) and the Cloudflare email line and steps */
+.ug-banner__cf { display: block; margin-top: var(--s-1, 0.25rem); }
+.ug-steps { margin: var(--s-2) 0 0; padding-left: 1.25rem; display: grid; gap: var(--s-1, 0.25rem); }
+.ug-note { padding: 0 var(--s-1, 0.25rem); margin: var(--s-1, 0.25rem) 0 var(--s-3); }

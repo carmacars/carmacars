@@ -14141,6 +14141,8 @@ export type Database = {
           ai_vision_permit_daily_per_person: number;
           field_renter_walkthrough: boolean;
           push_enabled: boolean;
+          capture_followup_days: number;
+          usage_banner_red_usd: number;
         };
         Insert: {
           id?: string;
@@ -14683,6 +14685,8 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          capture_followup_days?: number;
+          usage_banner_red_usd?: number;
         };
         Update: {
           id?: string;
@@ -15225,6 +15229,8 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          capture_followup_days?: number;
+          usage_banner_red_usd?: number;
         };
         Relationships: [];
       };
@@ -24692,6 +24698,7 @@ export type Database = {
       server_owner_review_correct: { Args: { p_by: string; p: Json }; Returns: Json };
       server_owner_schedule_change: { Args: { p_by: string; p_change: string }; Returns: Json };
       server_owner_schedule_changes: { Args: { p_by: string }; Returns: Json };
+      server_owner_steps: { Args: never; Returns: Json };
       server_partner_crm_done: { Args: { p: Json }; Returns: Json };
       server_partner_crm_due: { Args: never; Returns: Json };
       server_partner_crm_job: { Args: { p_conn: string; p_by?: string; p_kind?: string }; Returns: Json };

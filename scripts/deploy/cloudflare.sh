@@ -105,11 +105,14 @@ resources() {
   node "$ROOT/scripts/deploy/wrangler-config.mjs" --cache "$cache" --tag "$tag" --storage "$storage" ${kv_id:+--kv-id "$kv_id"} ${d1_id:+--d1-id "$d1_id"}
   export_env STORAGE_PROVIDER "$storage"
   export_env OPEN_NEXT_CACHE "$cache"
-  if [ "$storage" = supabase ]; then
-    export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "$SB_PUBLIC_URL/storage/v1/object/public/vehicle-public"
-  else
-    export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "${APP_URL:-https://$DOMAIN}/media"
-  fi
+  # the photos' address: the build variable NEXT_PUBLIC_VEHICLE_PHOTOS_URL when set (a CDN or another host), else the
+  # storage's own (0321: was always /media on R2; docs/changes/2026-11-06-audit-gaps.md); the annotation says which
+  local photos_url photos_from
+  if [ -n "${NEXT_PUBLIC_VEHICLE_PHOTOS_URL:-}" ]; then photos_url="${NEXT_PUBLIC_VEHICLE_PHOTOS_URL%/}"; photos_from="the build variable NEXT_PUBLIC_VEHICLE_PHOTOS_URL"
+  elif [ "$storage" = supabase ]; then photos_url="$SB_PUBLIC_URL/storage/v1/object/public/vehicle-public"; photos_from="Supabase Storage (the default without R2)"
+  else photos_url="${APP_URL:-https://$DOMAIN}/media"; photos_from="the default /media (the Worker's R2 binding)"; fi
+  export_env NEXT_PUBLIC_VEHICLE_PHOTOS_URL "$photos_url"
+  notice "Vehicle photos: $photos_url ($photos_from)"
   notice "Cache and storage: page cache $cache, tag cache $tag, files $storage"
 }
 
