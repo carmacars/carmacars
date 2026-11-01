@@ -3493,6 +3493,13 @@ export type Database = {
           closed_at: string | null;
           closed_by: string | null;
           created_at: string;
+          visitor_seen_at: string | null;
+          closed_reason: string | null;
+          status_before_close: string | null;
+          reopened_at: string | null;
+          followup_at: string | null;
+          followup_task_id: string | null;
+          alerted_msg_id: number;
         };
         Insert: {
           id?: string;
@@ -3530,6 +3537,13 @@ export type Database = {
           closed_at?: string | null;
           closed_by?: string | null;
           created_at?: string;
+          visitor_seen_at?: string | null;
+          closed_reason?: string | null;
+          status_before_close?: string | null;
+          reopened_at?: string | null;
+          followup_at?: string | null;
+          followup_task_id?: string | null;
+          alerted_msg_id?: number;
         };
         Update: {
           id?: string;
@@ -3567,6 +3581,13 @@ export type Database = {
           closed_at?: string | null;
           closed_by?: string | null;
           created_at?: string;
+          visitor_seen_at?: string | null;
+          closed_reason?: string | null;
+          status_before_close?: string | null;
+          reopened_at?: string | null;
+          followup_at?: string | null;
+          followup_task_id?: string | null;
+          alerted_msg_id?: number;
         };
         Relationships: [];
       };
@@ -14144,6 +14165,8 @@ export type Database = {
           ai_vision_permit_daily_per_person: number;
           field_renter_walkthrough: boolean;
           push_enabled: boolean;
+          chat_auto_close_minutes: number;
+          ai_live_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -14686,6 +14709,8 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          chat_auto_close_minutes?: number;
+          ai_live_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -15228,6 +15253,8 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          chat_auto_close_minutes?: number;
+          ai_live_bps?: number | null;
         };
         Relationships: [];
       };
@@ -24580,6 +24607,7 @@ export type Database = {
       server_chat_handoff: { Args: { p_token: string; p_reason: string; p_message?: string }; Returns: Json };
       server_chat_lead: { Args: { p_token: string; p: Json }; Returns: Json };
       server_chat_open: { Args: { p: Json; p_user?: string }; Returns: Json };
+      server_chat_staff_note: { Args: { p_token: string; p_note: string }; Returns: Json };
       server_chat_visitor_message: { Args: { p_token: string; p_body: string }; Returns: Json };
       server_colour_read_due: { Args: { p_limit?: number }; Returns: Json };
       server_colour_read_record: { Args: { p: Json }; Returns: Json };

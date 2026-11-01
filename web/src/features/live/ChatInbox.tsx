@@ -3,30 +3,29 @@ import { SkeletonLines } from '@/components/Skeleton';
 import './live.css';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { agoWords, clock, EVENT_WORDS, liveDo, liveRead, STATUS_WORDS, type ChatMsg, type Inbox, type Thread } from './staff';
+import { agoWords, aiPausedText, clock, closedWords, EVENT_WORDS, liveDo, liveRead, newWaitingMessages, seenFrom, STATUS_WORDS, type ChatMsg, type ChatRow, type Inbox, type Thread } from './staff';
 
 // Admin > Bookings > Live chat and the assistants' Live chat (migration 0060): every conversation, the assistant's or a
 // person's, with the visitor's visit beside it. Take over (the assistant stops), reply, hand back, close; typing and
 // unread counts; a waiting chat shows its minutes against the first reply target. The list refreshes every 5 seconds
-// and the open chat every 2.
+// and the open chat every 2. Since 0370: the count is the chats that need a reply (the menu's badge), a desktop alert
+// for each new visitor message waiting for staff, "AI replies paused: <reason>" when the assistant does not answer, and
+// follow-ups (the visitor left with a phone or email) apart from the live chats.
 export function ChatInbox({ initial, portal, openId }: { initial: Inbox; portal: 'admin' | 'va'; openId?: string }) {
   const [inbox, setInbox] = useState(initial);
-  const [sel, setSel] = useState<string | null>(openId ?? initial.open.find((c) => c.status === 'waiting')?.id ?? initial.open[0]?.id ?? null);
+  const [sel, setSel] = useState<string | null>(openId ?? initial.open.find((c) => c.needs_reply ?? c.status === 'waiting')?.id ?? initial.open[0]?.id ?? null);
   const [showClosed, setShowClosed] = useState(false);
   const [err, setErr] = useState('');
-  const seenWaiting = useRef(new Set(initial.open.filter((c) => c.status === 'waiting').map((c) => c.id)));
+  const seen = useRef(seenFrom(initial.open));
 
   const refresh = useCallback(async () => {
     try {
       const n = await liveRead<Inbox>('chat_inbox');
       setInbox(n); setErr('');
-      // a desktop alert for a chat that starts waiting (Notify me, this browser)
-      for (const c of n.open.filter((x) => x.status === 'waiting')) {
-        if (!seenWaiting.current.has(c.id)) {
-          seenWaiting.current.add(c.id);
-          if (n.prefs.desktop_alerts && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-            try { new Notification(`Live chat ${c.number} waits for you`, { body: `${c.who}: ${c.human_reason ?? 'asked for a person'}`, tag: c.id }); } catch { /* not allowed here */ }
-          }
+      // a desktop alert for each new visitor message that waits for staff (Notify me, this browser)
+      for (const c of newWaitingMessages(n.open, seen.current)) {
+        if (n.prefs.desktop_alerts && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+          try { new Notification(`Live chat ${c.number}: ${c.who}`, { body: c.last ?? c.human_reason ?? 'asked for a person', tag: `${c.id}:${c.last_visitor_id ?? 0}` }); } catch { /* not allowed here */ }
         }
       }
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not refresh'); }
@@ -38,13 +37,17 @@ export function ChatInbox({ initial, portal, openId }: { initial: Inbox; portal:
   useEffect(() => { document.title = inbox.waiting ? `(${inbox.waiting}) Live chat | CarmaCars` : 'Live chat | CarmaCars'; }, [inbox.waiting]);
 
   const list = showClosed ? inbox.closed : inbox.open;
+  const paused = aiPausedText(inbox.ai);
   return (
     <div className="lc" data-testid="chat-inbox">
       <div className="lc-top">
-        <p className="small">{inbox.waiting ? <b className="lc-wait">{inbox.waiting} waiting for a person</b> : 'Nobody is waiting.'} <span className="muted">{inbox.on_shift} on shift.</span>
-          {' '}<span className="muted">Assistant today: {Math.round(inbox.budget.chat_neurons)} of {inbox.budget.chat_cap} neurons{inbox.budget.ok ? '' : ' (off: chats wait for a person)'}.</span></p>
+        <p className="small" data-testid="chat-counts">{inbox.waiting ? <b className="lc-wait">{inbox.waiting} {inbox.waiting === 1 ? 'chat needs' : 'chats need'} a reply</b> : 'No chat needs a reply.'}
+          {inbox.followup ? <span className="muted"> {inbox.followup} to follow up by text or email.</span> : null} <span className="muted">{inbox.on_shift} on shift.</span>
+          {' '}<span className="muted">Assistant today: {Math.round(inbox.budget.chat_neurons).toLocaleString('en-US')} neurons{typeof inbox.budget.tier_room === 'number' ? `, ${Math.round(inbox.budget.tier_room).toLocaleString('en-US')} left in the live share` : ''}.</span></p>
         <Prefs prefs={inbox.prefs} onSaved={refresh} />
       </div>
+      {paused ? <p className="pt-note lc-paused" role="status" data-testid="chat-ai-paused">{paused}</p>
+        : <p className="small muted" data-testid="chat-ai-on">AI replies on: the assistant answers first and hands over when asked or unsure.</p>}
       {err && <p className="pt-note" role="alert">{err}</p>}
       <div className="lc-grid">
         <nav className="lc-list" aria-label="Conversations">
@@ -57,8 +60,8 @@ export function ChatInbox({ initial, portal, openId }: { initial: Inbox; portal:
               <li key={c.id}>
                 <button type="button" className={`lc-item${sel === c.id ? ' is-on' : ''}`} aria-current={sel === c.id ? 'true' : undefined} onClick={() => setSel(c.id)} data-testid="chat-item">
                   <span className="lc-item__top"><b>{c.who}</b>{c.unread > 0 && <span className="lc-unread" aria-label={`${c.unread} unread`}>{c.unread}</span>}</span>
-                  <span className="lc-item__meta"><span className={`ad-b ${c.status === 'waiting' ? 'ad-b--red' : c.status === 'human' ? 'ad-b--dark' : c.status === 'ai' ? 'ad-b--wait' : 'ad-b--light'}`}>{STATUS_WORDS[c.status]}</span>
-                    {c.status === 'waiting' && c.waiting_minutes !== null && <span className={`small ${c.waiting_minutes >= c.target_minutes ? 'lc-late' : 'muted'}`}>{c.waiting_minutes} min (target {c.target_minutes})</span>}
+                  <span className="lc-item__meta"><Badge c={c} />
+                    {c.status === 'waiting' && !c.followup_at && c.waiting_minutes !== null && <span className={`small ${c.waiting_minutes >= c.target_minutes ? 'lc-late' : 'muted'}`}>{c.waiting_minutes} min (target {c.target_minutes})</span>}
                     {c.assigned_name && <span className="small muted">{c.assigned_name}</span>}</span>
                   <span className="small muted lc-item__last">{c.visitor_typing ? 'typing' : c.last ?? ''}</span>
                   <span className="small muted" suppressHydrationWarning>{c.number} · {agoWords(c.last_message_at)}{c.online ? ' · on the site' : ''}</span>
@@ -69,6 +72,13 @@ export function ChatInbox({ initial, portal, openId }: { initial: Inbox; portal:
       </div>
     </div>
   );
+}
+
+function Badge({ c }: { c: ChatRow }) {
+  if (c.followup_at && c.status !== 'closed') return <span className="ad-b ad-b--wait" data-testid="chat-followup">Follow up by text/email</span>;
+  if (c.status === 'closed') return <span className="ad-b ad-b--light">{closedWords(c.closed_reason) ?? STATUS_WORDS.closed}</span>;
+  if (c.needs_reply) return <span className="ad-b ad-b--red" data-testid="chat-needs-reply">{c.status === 'waiting' ? STATUS_WORDS.waiting : 'Needs a reply'}</span>;
+  return <span className={`ad-b ${c.status === 'human' ? 'ad-b--dark' : 'ad-b--wait'}`}>{STATUS_WORDS[c.status]}</span>;
 }
 
 function Prefs({ prefs, onSaved }: { prefs: Inbox['prefs']; onSaved: () => void }) {
@@ -124,7 +134,7 @@ function ChatThread({ id, portal, onChange }: { id: string; portal: 'admin' | 'v
       <section className="lc-thread" aria-labelledby="lc-h" data-testid="chat-thread">
         <header className="lc-thread__head">
           <div><h2 className="d4" id="lc-h">{c.who} <span className="muted small">{c.number}</span></h2>
-            <p className="small muted" data-testid="thread-status">{STATUS_WORDS[c.status]}{c.assigned_name ? `: ${c.assigned_name}` : ''}{c.human_reason && c.status !== 'ai' ? ` · ${c.human_reason}` : ''}{c.offline ? ' · left after hours' : ''}</p></div>
+            <p className="small muted" data-testid="thread-status">{STATUS_WORDS[c.status]}{c.assigned_name ? `: ${c.assigned_name}` : ''}{c.human_reason && c.status !== 'ai' ? ` · ${c.human_reason}` : ''}{c.offline ? ' · left after hours' : ''}{c.followup_at && c.status !== 'closed' ? ' · Follow up by text/email' : ''}{closedWords(c.closed_reason) ? ` · ${closedWords(c.closed_reason)}` : ''}</p></div>
           <div className="lc-acts">
             {c.status !== 'closed' && !(c.status === 'human' && t.mine) && <button type="button" className="btn btn--primary btn--sm" disabled={busy} onClick={() => void act('chat_take')}>Take over</button>}
             {c.status === 'human' && <button type="button" className="btn btn--quiet btn--sm" disabled={busy} onClick={() => void act('chat_hand_back')}>Hand back to the assistant</button>}
@@ -133,7 +143,7 @@ function ChatThread({ id, portal, onChange }: { id: string; portal: 'admin' | 'v
           </div>
         </header>
         <div className="lc-log" ref={log} role="log" aria-live="polite" aria-label="Messages">
-          {msgs.map((m) => m.sender === 'system' ? <p key={m.id} className="ccw-sys lc-sys">{m.body}</p> : (
+          {msgs.map((m) => m.sender === 'system' ? <p key={m.id} className={`ccw-sys lc-sys${m.meta?.staff_only ? ' lc-sys--staff' : ''}`} data-staff-note={m.meta?.staff_only ? 'true' : undefined}>{m.meta?.staff_only ? <b>Staff note: </b> : null}{m.body}</p> : (
             <div key={m.id} className={`lc-msg lc-msg--${m.sender}`} data-sender={m.sender}>
               <span className="lc-msg__who">{m.sender === 'visitor' ? c.who : m.sender === 'ai' ? 'Assistant' : m.staff_name ?? m.name}{' '}<span className="muted">{clock(m.at)}</span></span>
               <p>{m.body}</p>

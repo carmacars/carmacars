@@ -27,8 +27,10 @@ create function test.ai(p_purpose text, p_n integer) returns void language sql a
   insert into provider_calls (provider, purpose, ok, units, unit) values ('workers-ai', p_purpose, true, p_n, 'neurons') $$;
 
 -- ================================================================ 1. the tiers of the day
-select test.eq('the defaults: 70% kept for the assistant, 10% for background, the release at 9 pm',
-  (select ai_assistant_reserve_bps || '/' || ai_background_bps || '/' || ai_release_hour || '/' || ai_assistant_cushion || '/' || assistant_daily_neurons from (select (app.settings()).*) s), '7000/1000/21/500/10000');
+select test.eq('the defaults (0370): 30% kept for the assistant, 50% for live features, 10% for background, the release at 9 pm',
+  (select ai_assistant_reserve_bps || '/' || ai_live_bps || '/' || ai_background_bps || '/' || ai_release_hour || '/' || ai_assistant_cushion || '/' || assistant_daily_neurons from (select (app.settings()).*) s), '3000/5000/1000/21/500/10000');
+-- this suite checks 0133's tiers: 70% for the assistant and live features sharing the rest (no live share of their own)
+update program_settings set ai_assistant_reserve_bps = 7000, ai_live_bps = null;
 select test.eq('a fresh day: the assistant may use all of it, live features 3,000, background 1,000',
   (select (b #>> '{room,assistant}') || '/' || (b #>> '{room,live}') || '/' || (b #>> '{room,background}') from (select app.ai_budget(test.noon()) b) x), '10000/3000/1000');
 select test.ai('seo_car', 900);
@@ -173,3 +175,6 @@ update seo_pages set locked = '{h1}', copy = copy || '{"h1": "Kept by a person"}
 select app.seo_batch_publish('{"items": [{"kind": "page", "id": "ab-place", "copy": {"h1": "Replaced", "intro": "Again."}}]}');
 select test.eq('a field a person locked is kept', (select copy ->> 'h1' from seo_pages where slug = 'ab-place'), 'Kept by a person');
 select test.eq('the publish is audited', exists (select 1 from audit_log where action = 'seo_batch_publish' and after ->> 'batch' = 't85'), true);
+
+-- back to the defaults (0370) for the suites after this one
+update program_settings set ai_assistant_reserve_bps = 3000, ai_live_bps = 5000;

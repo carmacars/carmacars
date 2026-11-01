@@ -156,9 +156,11 @@ test('Assistant: the day\'s free allowance used up says so and when it is back; 
   await page.getByTestId('usage-ai-shares').click();
   const form = page.getByTestId('usage-ai-shares-form');
   await form.getByLabel('Kept for the staff assistant (%)').fill('75');
+  // 0370: the three shares fit in 100% (live features have their own share, 50% by default)
+  await form.getByLabel('Live features: visitor chat, phone line, readers (%)').fill('15');
   await page.getByTestId('usage-ai-shares-submit').click();
   await expect(ai).toContainText('keeps 75% of the day', { timeout: 15_000 });
-  await sql`update program_settings set ai_assistant_reserve_bps = 7000`;
+  await sql`update program_settings set ai_assistant_reserve_bps = 3000, ai_live_bps = 5000`;
   await page.context().close();
   await neurons(sql, 'e2e_usage', 0);
   await sql.end();

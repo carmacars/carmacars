@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { amountsIn, centsIn, checkReply, escalationFor, percentsIn, tidy } from './guardrails.ts';
-import { runAgent, replyContext, type AgentDeps, type ChatFacts, type Step } from './agent.ts';
+import { CONTACT_ASK, runAgent, replyContext, type AgentDeps, type ChatFacts, type Step } from './agent.ts';
 
 // Live chat (migration 0060): the assistant's guardrails. The rule the owner set: no invented prices. Every amount
 // the visitor reads must come from the database (a quote or a search through the pricing functions, or the fleet's
@@ -95,7 +95,8 @@ describe('runAgent', () => {
     const calls: string[] = [];
     const r = await runAgent(deps([{ action: 'quote', car: 'toyota-corolla', pickup_date: '2026-11-02', return_date: '2026-11-04' },
       { action: 'reply', reply: 'The Corolla is free: $133.34 in total with HST, Deposit $500.00.' }], calls), { history: [], text: 'Corolla Nov 2 to 4?' });
-    assert.equal(r.reply, 'The Corolla is free: $133.34 in total with HST, Deposit $500.00.');
+    // 0370: the first answer to a visitor without a phone or email asks for one
+    assert.equal(r.reply, `The Corolla is free: $133.34 in total with HST, Deposit $500.00. ${CONTACT_ASK}`);
     assert.ok(calls.includes('QUOTE v-corolla'), 'the quote came from the pricing function');
     assert.match(calls.find((c) => c.includes('TOOL RESULTS'))!, /Total \$133\.34/);
     assert.equal(r.meta.quote_total_cents, 13334);

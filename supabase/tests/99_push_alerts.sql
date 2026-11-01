@@ -17,7 +17,7 @@ language sql as $$ insert into notifications (id, user_id, code, title, body, ur
   values (test.id('pu_n:' || p_label), p_user, p_code, 'Title ' || p_label, 'Body ' || p_label, p_url, 'pu:' || p_label) returning id $$;
 
 -- ================================================================== the catalogue
-select test.eq('every notice that may alert has a topic (93), and none of the sign-in links, codes or digests',
+select test.eq('every notice that may alert has a topic (93; 0370: the live chat message instead of the chat waiting email), and none of the sign-in links, codes or digests',
   (select count(*) filter (where push_topic is not null) || '/' || count(*) filter (where push_topic is not null and (code like 'account_%' or code like '%signing_code'
      or code like 'staff_digest_%' or code = 'renter_continue_request' or category = 'marketing')) from notification_catalogue), '93/0');
 select test.eq('the four the owner named alert: a new request, a payment, a handover, a message',

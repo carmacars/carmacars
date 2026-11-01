@@ -36,7 +36,7 @@ export interface Turn { sender: 'visitor' | 'ai' | 'staff' | 'system'; body: str
 export interface AgentInput { history: Turn[]; text: string; page?: string | null; car?: string | null; name?: string | null; email?: string | null; phone?: string | null }
 export interface AgentResult {
   reply?: string; handoff?: { reason: string; escalation?: Escalation }; neurons: number; model?: string; ok: boolean; error?: string;
-  meta: { tools: Array<{ name: string; args: Record<string, unknown>; ok: boolean }>; quote_total_cents?: number; refused?: string[]; car?: string; cents?: number[] };
+  meta: { tools: Array<{ name: string; args: Record<string, unknown>; ok: boolean }>; quote_total_cents?: number; refused?: string[]; car?: string; cents?: number[]; faq?: string };
 }
 
 export const STEP_SCHEMA = {
@@ -52,10 +52,42 @@ export const STEP_SCHEMA = {
 
 const pct = (bps?: number) => (typeof bps === 'number' ? `${bps / 100}%` : '');
 
+const lc = (s: string) => s.toLowerCase();
+/** The cars a message or the conversation names: by slug, car code, or make and model ("toyota corolla", "corolla"). */
+export function carsNamed(f: Pick<ChatFacts, 'fleet'>, text: string): FleetCar[] {
+  const t = lc(text);
+  const codes = new Set(codesIn(text).map((c) => carByCode(f, c)?.slug).filter(Boolean));
+  return f.fleet.filter((c) => {
+    if (codes.has(c.slug) || t.includes(c.slug.replace(/-/g, ' ')) || t.includes(c.slug)) return true;
+    const words = lc(c.name).replace(/^\d{4} /, '').split(' ');
+    const model = words[1];
+    return t.includes(words.slice(0, 2).join(' ')) || (!!model && model.length >= 4 && new RegExp(`\\b${model.replace(/[^a-z0-9]/g, '')}\\b`).test(t));
+  });
+}
+
+/** The cars the prompt lists (0370): the car on the visitor's page and the cars the conversation names first, then a
+ *  few others across classes, at most `max`. The whole fleet in every prompt cost about 250 neurons a step. */
+export function focusFleet(f: ChatFacts, focus: { car?: string | null; text?: string } = {}, max = 12): FleetCar[] {
+  const open = f.fleet.filter((x) => x.taking_requests !== false);
+  if (open.length <= max) return open;
+  const out: FleetCar[] = [];
+  const add = (c?: FleetCar) => { if (c && !out.includes(c) && out.length < max) out.push(c); };
+  add(open.find((c) => c.slug === focus.car));
+  for (const c of carsNamed({ fleet: open }, focus.text ?? '')) add(c);
+  // then the cheapest of each class, then the cheapest overall
+  const byPrice = [...open].sort((a, b) => a.daily_rate_cents - b.daily_rate_cents);
+  for (const cls of [...new Set(byPrice.map((c) => c.class))]) add(byPrice.find((c) => c.class === cls && !c.sample));
+  for (const c of byPrice) add(c);
+  return out;
+}
+
 /** The facts, written compactly (fewer tokens, fewer neurons). Every amount here may be repeated by the assistant. */
-export function factsText(f: ChatFacts): string {
+export function factsText(f: ChatFacts, focus?: { car?: string | null; text?: string }, max = 12): string {
   const r = f.rules, c = r.cancellation ?? {};
-  const cars = f.fleet.filter((x) => x.taking_requests !== false).map((x) =>
+  const listed = focus ? focusFleet(f, focus, max) : f.fleet.filter((x) => x.taking_requests !== false);
+  const open = f.fleet.filter((x) => x.taking_requests !== false);
+  const cheapest = open.length ? Math.min(...open.map((x) => x.daily_rate_cents)) : 0;
+  const cars = listed.map((x) =>
     `${x.slug}${x.code ? ` (car code ${x.code})` : ''} | ${x.name} | ${x.class}, ${x.seats} seats, ${x.transmission}, ${x.fuel} | from ${money(x.daily_rate_cents)} a day | Deposit ${money(x.deposit_cents)}${x.km_per_day ? ` | ${x.km_per_day} km a day included` : ''}${x.young_18_20 ? ' | drivers 18 to 20 allowed' : ''}${x.area ? ` | ${x.area}` : ''}${x.sample ? ' | EXAMPLE CAR (a sample, not a real car: never quote or promise it; take a request and say we will suggest a similar real car)' : ''}`).join('\n');
   const fees = Object.values(r.fees ?? {}).filter((x) => typeof x.amount_cents === 'number')
     .map((x) => `${x.label}: ${money(x.amount_cents!)}${x.unit === 'per_day' ? ' a day' : ''}${x.cap_cents ? `, up to ${money(x.cap_cents)}` : ''}`).join('; ');
@@ -70,8 +102,39 @@ export function factsText(f: ChatFacts): string {
     `Protection Plan: optional, offered with the booking; its price is in the offer. Call it only "the Protection Plan". Do not explain what it pays for: a person answers those questions.`,
     `Fees: ${fees}. Prices on the site and in quotes are before HST (${pct(r.hst_bps)}) unless the quote says the total.`,
     `Each car has a short car code (like CC-7F3A) shown on its page: a visitor may name a car by it.`,
-    `Cars (slug | name | details | price from | deposit):\n${cars}`
+    `Cars (slug | name | details | price from | deposit):\n${cars}`,
+    ...(listed.length < open.length ? [`These are ${listed.length} of our ${open.length} cars (from ${money(cheapest)} a day). For other cars or what is free on dates, call search_cars.`] : [])
   ].join('\n');
+}
+
+/** Common questions answered from the facts with no model call (0370: no neurons, the same answer every time). Only
+ *  for a short message about one topic with no dates and no car: anything more goes to the model. */
+export function faqReply(f: ChatFacts, text: string): { topic: string; reply: string } | null {
+  const t = lc(text.trim());
+  if (t.length > 160 || /\d{4}-\d{2}-\d{2}|\b(today|tomorrow|tonight|weekend|monday|tuesday|wednesday|thursday|friday|saturday|sunday|next week)\b/.test(t)) return null;
+  if (carsNamed(f, text).length || codesIn(text).length) return null;
+  const r = f.rules, c = r.cancellation ?? {};
+  const topics: Array<[string, RegExp, () => string]> = [
+    ['deposit', /\bdeposit\b/, () => `The deposit is a hold on your credit card, not a charge. Each car shows its deposit on its page, and the hold is released within ${r.deposit_release_days ?? 7} business days after the return when nothing is owed.`],
+    ['requirements', /\b(how old|age|young driver|under 2[15]|requirements?|licen[cs]e|what do i need)\b/, () => `You need to be ${r.standard_min_age ?? 21} or older (drivers 18 to 20 only on cars marked so), with a full Ontario licence (${(r.licences ?? ['G']).join(', ')}) and a credit card in your name. We check a licence photo and a selfie before pickup.`],
+    ['booking', /\b(how (do|can) i (book|rent|reserve)|how does (it|booking|renting) work|how to (book|rent))\b/, () => `Send a booking request on the car's page (Book this car). We check it and email you an offer, valid ${r.offer_hours ?? 24} hours. You approve it, sign online and pay by credit card; only then is the car booked.`],
+    ['cancellation', /\b(cancel|cancellation|refund policy)\b/, () => `Cancelling ${c.early_hours ?? 48} hours or more before pickup refunds ${pct(c.early_bps)}; ${c.late_hours ?? 24} to ${c.early_hours ?? 48} hours before, ${pct(c.mid_bps)}; under ${c.late_hours ?? 24} hours, ${pct(c.late_bps)}. A non-refundable booking is cheaper and is never refunded.`],
+    ['hours', /\b(opening hours|your hours|hours of operation|when are you open|what time do you (open|close))\b/, () => `Our hours: ${f.site.hours ?? 'see the Contact page'}. You can send a booking request on the site any time.`],
+    ['delivery', /\b(deliver|delivery|airport|drop off|pick ?up location|where do i pick)\b/, () => `Pick up at our location, or we deliver for a fee shown in your quote${(r.airports ?? []).length ? `, including ${(r.airports ?? []).map((a) => a.name).join(' and ')}` : ''}.`]
+  ];
+  const hits = topics.filter(([, re]) => re.test(t));
+  if (hits.length !== 1) return null;
+  return { topic: hits[0]![0], reply: hits[0]![2]() };
+}
+
+/** The question the assistant adds to its first answer when we have no phone or email yet (0370). */
+export const CONTACT_ASK = 'In case we get cut off, what is the best phone number or email to reach you?';
+const asksContact = (s: string) => /\b(phone|number|email|e-mail)\b/i.test(s);
+/** A reply with the contact question added, when it is the first answer and nothing asks it already. */
+export function withContactAsk(reply: string, input: Pick<AgentInput, 'email' | 'phone' | 'history'>): string {
+  if (input.email || input.phone || asksContact(reply)) return reply;
+  if (input.history.some((t) => t.sender === 'ai' && !(t.meta as { greeting?: boolean } | undefined)?.greeting)) return reply;
+  return `${reply} ${CONTACT_ASK}`;
 }
 
 export const SYSTEM = `You are the CarmaCars assistant in the live chat of carmacars.ca, a car rental company in Toronto.
@@ -131,6 +194,12 @@ export async function runAgent(deps: AgentDeps, input: AgentInput): Promise<Agen
   if (why) return { ok: true, neurons: 0, handoff: { reason: ESCALATION_WORDS[why], escalation: why }, meta };
 
   const f = deps.facts;
+  // a common question: answered from the facts, no model call
+  const faq = faqReply(f, input.text);
+  if (faq) {
+    const c = checkReply(faq.reply, replyContext(f, [], input.history));
+    if (c.ok) return { ok: true, neurons: 0, model: 'faq', reply: withContactAsk(c.text, input), meta: { ...meta, faq: faq.topic } };
+  }
   const notes: string[] = [];
   const toolValues: unknown[] = [];
   let neurons = 0;
@@ -143,7 +212,8 @@ export async function runAgent(deps: AgentDeps, input: AgentInput): Promise<Agen
     const c = carByCode(f, code);
     notes.push(c ? `The visitor wrote car code ${code}: that is ${c.slug} (${c.name}).` : `The visitor wrote car code ${code}: no car on the site has it. Ask them to check it.`);
   }
-  const base = `FACTS:\n${factsText(f)}\n\nThe visitor is on: ${input.page ?? 'the site'}${input.car ? ` (car ${input.car})` : ''}.${known ? ` Known: ${known}.` : ''}\n\nCONVERSATION:\n${transcript(history)}`;
+  const recent = [input.text, ...input.history.slice(-6).map((t) => t.body)].join(' ');
+  const base = `FACTS:\n${factsText(f, { car: input.car, text: recent })}\n\nThe visitor is on: ${input.page ?? 'the site'}${input.car ? ` (car ${input.car})` : ''}.${known ? ` Known: ${known}.` : ''}\n\nCONVERSATION:\n${transcript(history)}`;
 
   for (let i = 0; i < 3; i++) {
     const prompt = `${base}${notes.length ? `\n\nTOOL RESULTS:\n${notes.join('\n')}` : ''}\n\nNext step (one JSON object):`;
@@ -195,7 +265,7 @@ export async function runAgent(deps: AgentDeps, input: AgentInput): Promise<Agen
     const c = checkReply(s.reply ?? '', ctx);
     if (c.ok) {
       const cents = [...centsIn(toolValues)];
-      return { ok: true, neurons, model, reply: c.text, meta: { ...meta, ...(cents.length ? { cents } : {}) } };
+      return { ok: true, neurons, model, reply: withContactAsk(c.text, input), meta: { ...meta, ...(cents.length ? { cents } : {}) } };
     }
     meta.refused = [...(meta.refused ?? []), c.reason];
     if (lastQuote) {
