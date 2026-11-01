@@ -23,7 +23,9 @@ async function checkCalendar(page: Page, cal: ReturnType<Page['locator']>, label
     const tables = [...c.querySelectorAll('table')].map((t) => t.getBoundingClientRect());
     const firstRow = c.querySelector('tbody tr:nth-child(2)');
     return {
-      headOneLine: head.length === 3 && Math.max(...head.map((h) => h.top)) - Math.min(...head.map((h) => h.top)) < 12,
+      // the previous button, the month and the next button side by side: their middles on one line, left to right
+      headOneLine: head.length === 3 && Math.max(...head.map((h) => h.top + h.height / 2)) - Math.min(...head.map((h) => h.top + h.height / 2)) < 6
+        && head[0]!.right <= head[1]!.left && head[1]!.right <= head[2]!.left,
       numbered: days.length >= 28 && days.every((d) => /^\d{1,2}$/.test((d.textContent ?? '').trim())),
       inside: tables.every((t) => t.left >= r.left - 1 && t.right <= r.right + 1),
       perRow: firstRow ? firstRow.querySelectorAll('td').length : 0,
