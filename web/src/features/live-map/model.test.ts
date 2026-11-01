@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { agoText, bandOf, compactMoney, hash, maskPhone, reasonOf, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
+import { agoText, arc, bandOf, compactMoney, hash, makeInitial, onTheRoad, photoPins, maskPhone, reasonOf, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
 import { HOME_BOUNDS, MAX_BOUNDS, inBounds, roundGeo } from './config.ts';
 
 // The Live map (migration 0242): the score and its signals, the masking for the TV, the spread of pins that share a spot.
@@ -107,5 +107,27 @@ describe('the wall', () => {
     assert.deepEqual([compactMoney(4823500), compactMoney(123456789), compactMoney(95000), compactMoney(-250000)], ['$48.2K', '$1.2M', '$950', '-$2.5K']);
     const now = Date.parse('2026-11-04T15:00:00Z');
     assert.deepEqual(['2026-11-04T14:59:50Z', '2026-11-04T14:58:00Z', '2026-11-04T12:00:00Z', '2026-11-02T15:00:00Z'].map((x) => shortAgo(x, now)), ['now', '2m', '3h', '2d']);
+  });
+});
+
+describe('photo pins, the road and the arcs', () => {
+  it('on rent, booked and hot leads with a car get a photo pin, at most 60', () => {
+    const car = { id: 'c', code: null, name: '2024 Toyota Corolla', daily_cents: 6900, photo: null, how: 'viewed' };
+    const v = toView(raw([pin({ id: 'r', type: 'on_rent', car }), pin({ id: 'b', type: 'booking', car }), pin({ id: 'n', type: 'booking' }), pin({ id: 's', car })]), false);
+    assert.deepEqual([...photoPins(v.pins)].sort(), ['b', 'r']);
+    assert.equal(photoPins(v.pins, 1).size, 1);
+    assert.deepEqual([makeInitial('2024 Toyota Corolla'), makeInitial(''), makeInitial(null)], ['T', '?', '?']);
+  });
+  it('on the road: on rent now, and bookings picked up today', () => {
+    const now = Date.parse('2026-11-04T15:00:00Z');
+    const v = toView(raw([pin({ id: 'r', type: 'on_rent', return_at: '2026-11-06T15:00:00Z' }), pin({ id: 't', type: 'booking', pickup_at: '2026-11-04T20:00:00Z' }),
+      pin({ id: 'l', type: 'booking', pickup_at: '2026-11-09T20:00:00Z' })]), false);
+    assert.deepEqual(onTheRoad(v.pins, now).map((p) => p.id), ['r', 't']);
+  });
+  it('an arc runs from one end to the other, bowed', () => {
+    const a = arc([-79.4, 43.7], [-79.0, 43.9]);
+    assert.deepEqual([a[0], a[a.length - 1]], [[-79.4, 43.7], [-79.0, 43.9]]);
+    const mid = a[Math.floor(a.length / 2)]!;
+    assert.ok(Math.abs(mid[1] - 43.8) > 0.01);
   });
 });

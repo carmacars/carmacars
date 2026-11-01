@@ -34,11 +34,29 @@
 .lm-car__arrow::before { content: ''; position: absolute; left: 50%; top: 0; translate: -50% 0; border: .35em solid transparent; border-bottom: .55em solid var(--c); border-top: 0; }
 .lm-car--still .lm-car__arrow { display: none; }
 
+/* photo pins: the car in a ring of its stage colour, above the dots */
+.lm-ph { width: var(--s, 42px); height: var(--s, 42px); border-radius: 50%; overflow: hidden; background: #1b2130; border: 2px solid var(--c); cursor: pointer;
+  box-shadow: 0 0 0 2px rgba(10, 12, 18, .85), 0 0 .9em color-mix(in srgb, var(--c) 55%, transparent); display: grid; place-items: center; }
+.lm-ph img { width: 100%; height: 100%; object-fit: cover; }
+.lm-ph span { color: var(--c); font-weight: 700; font-size: calc(var(--s, 42px) * .42); }
+.lm-ph--hot { box-shadow: 0 0 0 2px rgba(10, 12, 18, .85), 0 0 0 5px rgba(251, 113, 133, .35), 0 0 1.2em color-mix(in srgb, var(--c) 60%, transparent); }
+.lm-ph:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+/* home base: the brand mark with a soft pulse */
+.lm-hq { width: var(--s, 30px); height: var(--s, 30px); }
+.lm-hq__mark { position: absolute; inset: 0; border-radius: 9px; background: linear-gradient(135deg, #22d3ee, #a855f7); color: #0b0f17; font-weight: 800;
+  display: grid; place-items: center; font-size: calc(var(--s, 30px) * .55); box-shadow: 0 0 0 2px rgba(10, 12, 18, .9), 0 0 1.2em rgba(34, 211, 238, .55); }
+.lm-hq__pulse { position: absolute; inset: -20%; border-radius: 14px; border: 2px solid rgba(34, 211, 238, .6); animation: lm-hq 3.2s ease-out infinite; }
+@keyframes lm-hq { from { scale: .9; opacity: .8; } to { scale: 1.9; opacity: 0; } }
+
 /* ---------------------------------------------------------------- the numbers */
 .lm-kpis { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; }
 .lm-kpis li { display: grid; gap: .15em; padding: 0 1.6em; border-left: 1px solid var(--line); }
 .lm-kpis li:first-child { border-left: 0; padding-left: 0; }
 .lm-kpi__v { font-size: 2.2rem; font-weight: 700; line-height: 1; letter-spacing: -.02em; }
+.lm-delta { font-size: .8rem; color: var(--quiet); white-space: nowrap; }
+.lm-delta.is-up { color: #34d399; }
+.lm-delta.is-down { color: #fb7185; }
+.lm--tv .lm-delta { font-size: 1em; }
 .lm-kpi__k { font-size: .8rem; color: var(--quiet); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
 
 /* ---------------------------------------------------------------- the stages */
@@ -58,7 +76,7 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
 .lm-tv__stage { position: relative; min-width: 0; overflow: hidden; }
 .lm-tv__stage .lm-map { position: absolute; inset: 0; }
 .lm-tv__top { position: absolute; inset: 0 0 auto 0; z-index: 2; display: flex; align-items: flex-start; gap: 3.2em; padding: 1.5em 2em 4em; pointer-events: none;
-  background: linear-gradient(var(--bg) 25%, rgba(11, 15, 23, .7) 60%, transparent); }
+  background: linear-gradient(#141317 25%, rgba(20, 19, 23, .7) 60%, transparent); }
 .lm-brand { display: grid; gap: .1em; font-size: 1.55em; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
 .lm-brand b { color: var(--accent); font-weight: 700; }
 .lm-clock { color: var(--quiet); font-weight: 500; }
@@ -66,13 +84,38 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
 .lm--tv .lm-kpis li { padding: 0 1.8em; }
 .lm--tv .lm-kpi__v { font-size: 3.2em; }
 .lm--tv .lm-kpi__k { font-size: 1em; letter-spacing: .06em; }
-.lm-tv__foot { position: absolute; inset: auto 0 0 0; z-index: 2; padding: 3em 2em 1.4em; pointer-events: none; background: linear-gradient(transparent, rgba(11, 15, 23, .85) 55%); }
-.lm-tv__foot .lm-legend { gap: .4em 2.4em; flex-wrap: nowrap; }
-.lm-tv__foot .lm-legend__note { color: #6b7891; }
+.lm-tv__foot { position: absolute; inset: auto 0 0 0; z-index: 2; padding: 2.4em 2em 1.2em; background: linear-gradient(transparent, rgba(20, 19, 23, .9) 35%); }
+/* the stages as small chips at the map's top left */
+.lm-tv__chips { position: absolute; top: 8.4em; left: 2em; z-index: 2; pointer-events: none; }
+.lm-tv__chips .lm-legend { flex-direction: column; align-items: flex-start; gap: .45em; }
+.lm-tv__chips .lm-legend__item { background: rgba(20, 19, 23, .72); border: 1px solid rgba(255, 255, 255, .07); border-radius: 999px; padding: .2em .8em .2em .6em; backdrop-filter: blur(4px); }
+.lm-tv__chips .lm-legend__note { color: #6b7891; padding-left: .6em; }
+/* On the road: a filmstrip of the cars on rent and picked up today */
+.lm-film { display: grid; gap: .6em; }
+.lm-film .lm-h span { color: var(--text); margin-left: .4em; letter-spacing: 0; }
+.lm-film__win { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #000 92%, transparent); mask-image: linear-gradient(90deg, #000 92%, transparent); }
+.lm-film__row { list-style: none; margin: 0; padding: 0; display: flex; gap: 1em; width: max-content; }
+.lm-film__row.is-rolling { animation: lm-roll calc(var(--n) * 6s) linear infinite; }
+@keyframes lm-roll { to { translate: -50% 0; } }
+.lm-film__row li { display: flex; gap: .7em; align-items: center; background: rgba(15, 21, 34, .82); border: 1px solid var(--line); border-top: 2px solid var(--c); border-radius: 10px; padding: .45em .9em .45em .45em; min-width: 16em; }
+.lm-film__ph { flex: none; width: 4.4em; height: 3em; border-radius: 6px; overflow: hidden; background: #1b2130; display: grid; place-items: center; color: var(--c); font-weight: 700; }
+.lm-film__ph img { width: 100%; height: 100%; object-fit: cover; }
+.lm-film__t { display: grid; min-width: 0; }
+.lm-film__t b { font-weight: 600; white-space: nowrap; }
+.lm-film__t span { color: var(--quiet); white-space: nowrap; }
 .lm-rail { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 2.2em; padding: 1.6em 1.6em 1.4em; background: var(--bg2); border-left: 1px solid var(--line); overflow: hidden; }
 .lm-spot, .lm-feed { display: grid; gap: .9em; min-height: 0; align-content: start; }
 .lm-spot__deck { position: relative; height: 28em; }
-.lm-spot__card { position: absolute; inset: 0; display: grid; grid-template-rows: 16em auto auto; gap: 1em; align-content: start; opacity: 0; transition: opacity 1.2s ease; }
+.lm-spot__card { position: absolute; inset: 0; display: grid; grid-template-rows: 16em auto auto; gap: 1em; align-content: start; opacity: 0; transition: opacity 1.2s ease; border-radius: 12px; overflow: hidden; }
+.lm-spot__card::before { content: ''; position: absolute; inset: 0 0 auto 0; height: .3em; background: var(--c); z-index: 2; }
+/* with a photo: the photo full bleed, a dark gradient, the words on top */
+.lm-spot__card.has-photo { grid-template-rows: 1fr auto auto; padding: 0 1.2em 1.2em; gap: .7em; }
+.lm-spot__card.has-photo .lm-spot__media { position: absolute; inset: 0; border: 0; border-radius: 0; }
+.lm-spot__card.has-photo .lm-spot__media::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 12, 18, .05) 30%, rgba(10, 12, 18, .78) 62%, rgba(10, 12, 18, .96)); }
+.lm-spot__card.has-photo .lm-spot__body, .lm-spot__card.has-photo .lm-spot__why { position: relative; z-index: 1; }
+.lm-spot__card.has-photo .lm-spot__body { grid-row: 2; }
+.lm-spot__card.has-photo .lm-spot__why { grid-row: 3; }
+.lm-spot__card.has-photo .lm-score::before { background: rgba(10, 12, 18, .9); }
 .lm-spot__card.is-on { opacity: 1; }
 .lm-spot__media { position: relative; border-radius: 10px; overflow: hidden; background: radial-gradient(120% 120% at 30% 20%, #18233a, #0d1320); border: 1px solid var(--line); display: grid; place-items: center; }
 .lm-spot__media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -159,4 +202,5 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
 @media (prefers-reduced-motion: reduce) {
   .lm-live, .lm-feed__list li, .lm-spot__card.is-on .lm-spot__media img { animation: none; }
   .lm-spot__card { transition: none; }
+  .lm-hq__pulse, .lm-film__row.is-rolling { animation: none; }
 }

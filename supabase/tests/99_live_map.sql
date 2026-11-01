@@ -126,7 +126,11 @@ select test.eq('KPI: on the site now, requests today, bookings confirmed this we
          (select count(*) from bookings where booked_at >= app.local_midnight(app.local_date(now())) and booking_type <> 'owner'),
          (select count(*) from bookings where confirmed_at >= app.local_midnight(date_trunc('week', app.local_date(now()))::date) and booking_type <> 'owner'),
          (select count(*) from bookings where status = 'on_rent' and booking_type <> 'owner')));
-select test.ok('KPI: money collected this month is a number', jsonb_typeof(test.lm() #> '{kpi,collected_month_cents}') = 'number');
+select test.ok('KPI: money collected this month and yesterday''s requests to the same hour are numbers',
+  jsonb_typeof(test.lm() #> '{kpi,collected_month_cents}') = 'number' and jsonb_typeof(test.lm() #> '{kpi,requests_yesterday}') = 'number');
+select test.eq('home base: the delivery origin of Program settings', coalesce(test.lm() ->> 'hq', 'none'), coalesce(app.delivery_origin()::text, 'none'));
+select test.eq('a booking''s pin has its pickup and return times', (select (p ->> 'return_at')::timestamptz from (select test.lmpin('renter_id', test.id('renter:lm_rita')::text) p) x),
+  (select return_at from bookings where booking_number = 'LM-1'));
 select test.eq('the fleet layer: a car without a tracker reporting is not on it', (select count(*) from jsonb_array_elements(test.lm() -> 'fleet') f where f ->> 'vehicle_id' = test.id('vehicle:lm_car1')::text), 0::bigint);
 insert into tracker_devices (id, serial_number, vehicle_id, status, installed_at) values (test.id('trk:lm'), 'LM-TRK-1', test.id('vehicle:lm_car1'), 'installed', now());
 insert into tracker_status (tracker_device_id, reported_at, latitude, longitude, speed_kmh, heading_deg) values (test.id('trk:lm'), now(), 43.70, -79.40, 52, 90);

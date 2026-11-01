@@ -103,6 +103,7 @@ test('Live map: pins, legend, cards and masking on the page; TV mode fills the s
       expect(rows, 'the live feed: one line per event, at most 6').toBeGreaterThanOrEqual(1);
       expect(rows).toBeLessThanOrEqual(6);
       await expect(tv.getByTestId('lm-kpis').locator('li')).toHaveCount(4);
+      await expect(tv.getByTestId('lm-film')).toBeVisible();
       // nothing personal beyond a first name and initial on the wall
       await expect(tv.getByTestId('live-map-tv')).not.toContainText('@example.test');
       await expect(tv.getByTestId('live-map-tv')).not.toContainText('0142');
