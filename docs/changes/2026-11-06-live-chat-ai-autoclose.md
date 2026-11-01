@@ -59,7 +59,8 @@ written in the same request, no cron or queue).
 - One alert per new visitor message waiting for staff (`staff_chat_message`, in-app and the phone alerts topic
   Messages): to the person on the chat, otherwise every Admin, customer service and Sales account, on shift or not.
   Someone replying, the chat closing or becoming a follow-up marks its alerts read, so their pushes are not sent late.
-  The desktop alert fires once per new waiting message. The "a chat waits" email is unchanged.
+  The desktop alert fires once per new waiting message. The "a chat waits" email is unchanged, but no longer also
+  sends a phone alert (the per-message alert does).
 
 ## 4. Auto-close
 
@@ -77,7 +78,8 @@ written in the same request, no cron or queue).
 - DB: `supabase/tests/99_live_chat_autoclose.sql` (the live share, the gate's reason and "AI replies paused", staff
   notes the visitor never sees, the counts, one alert per message and to the person on the chat, read on reply,
   auto-close, the follow-up and its task, reopening). `85_ai_budget_assistant_tools.sql` checks the new defaults and
-  keeps testing 0133's tiers; `07_notifications.sql` and `99_push_alerts.sql` count the new in-app notice.
+  keeps testing 0133's tiers; `07_notifications.sql` counts the new in-app notice; `99_push_alerts.sql` the topics (the chat message in, the
+  chat waiting email out).
 - Unit: `web/src/features/chat/reply-path.test.ts` (the reply path with the fake AI provider, the contact question,
   answers from the facts, the shorter context, escalation words, the small model's JSON and its 70B retry),
   `guardrails.test.ts`.

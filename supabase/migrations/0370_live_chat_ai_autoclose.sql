@@ -29,7 +29,7 @@
 -- 3. Alerts: one in-app notice (and the phone alert of the "messages" topic) for each new visitor message waiting for
 --    staff (staff_chat_message), to the person on the chat, else every Admin, customer service and Sales account; on
 --    or off shift. A notice is marked read once someone replies, the chat closes or becomes a follow-up, so its push
---    is not sent late. The email "a chat waits" stays as it was (opt-in, on shift).
+--    is not sent late. The email "a chat waits" stays as it was (opt-in, on shift), no longer a second phone alert.
 -- 4. Auto-close (app.job_chat_auto_close, every minute): a visitor gone for the window (no heartbeat, no chat poll,
 --    no message) with no phone or email: the chat closes, "Visitor left, no contact". With a phone or email (and at
 --    least one message): it stays open as a follow-up lead, out of the counts, with the task "Follow up by text/email"
@@ -283,6 +283,8 @@ values ('staff_chat_message', 'staff_va_cs', array['staff_va_sales', 'staff_admi
         '{{chat_message}}', false, 3, 'app.chat_alert (0370)', null, 'messages')
 on conflict (code) do update set audience = excluded.audience, also_sent_to = excluded.also_sent_to, subject = excluded.subject, preheader = excluded.preheader,
   has_email = excluded.has_email, emitted_by = excluded.emitted_by, push_topic = excluded.push_topic;
+-- the per-message alert is the phone alert now; "a chat waits" stays an email (and its bell notice), not a second push
+update notification_catalogue set push_topic = null where code = 'staff_chat_waiting';
 
 alter function app.notification_recipients(app_events, notification_catalogue) rename to notification_recipients_pre0370;
 create or replace function app.notification_recipients(p_event app_events, p_c notification_catalogue)
@@ -527,7 +529,7 @@ declare
   v jsonb := app.door_pre0370(p_user, p_aal, p_call, p_name, p);
 begin
   if p_name = 'chat_counts' and jsonb_typeof(v) = 'object' and app.live_staff_ok(p_user) then
-    v := v || app.chat_counts_now(p_user) || jsonb_build_object('ai', app.chat_ai_status() - 'budget');
+    v := v || app.chat_counts_now(p_user);
   end if;
   return v;
 end $$;
