@@ -8,9 +8,10 @@ const lead = (o: Partial<PipelineLead>): PipelineLead => ({ id: 'x', kind: 'owne
 
 test('every stage is a column, in order', () => {
   const s = byStage([lead({ stage: 'signed' }), lead({ stage: 'new' })]);
-  assert.equal(s.length, 7);
+  assert.equal(s.length, 8);
   assert.equal(s[0]!.leads.length, 1);
-  assert.equal(s[4]!.stage, 'signed');
+  assert.equal(s[3]!.stage, 'applied');
+  assert.equal(s[5]!.stage, 'signed');
 });
 test('the follow-up line', () => {
   assert.match(followupWords(lead({ followup_next_at: '2026-11-03T00:00:00Z', followup_step: 1 }), [0, 2, 5, 10], () => 'Nov 3'), /2 of 4 on Nov 3/);

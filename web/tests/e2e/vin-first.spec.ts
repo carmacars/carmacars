@@ -3,7 +3,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { expectedCheckDigit } from '../../src/features/vin/vin';
-import { acceptCookies, aiAllowanceLock, db, fillYmm, noOverflow, tapColour } from './helpers';
+import { acceptCookies, aiAllowanceLock, db, fillYmm, noOverflow, tapColour, applyStart } from './helpers';
 
 // Migration 0082 end to end, at 375 and 1440 pixels: a car added from its VIN alone at every entry point (Admin > Add a
 // car, Add a car for an owner by an Admin and by customer service, the owner's own application). The fake decoder
@@ -222,14 +222,11 @@ test('the owner\'s application: the VIN finds the car as the last character is t
   await sql`delete from app.rate_limit_hits`;
   await page.goto('/list-your-car/apply', { waitUntil: 'networkidle' });
   await acceptCookies(page);
+  await applyStart(page, { first: 'Vina', last: 'Applicant', phone: '647-555-0102', email: `vina.${tag()}@example.test` });
   await page.locator('label:has-text("An individual")').click();
-  await page.locator('#ap-first').fill('Vina');
-  await page.locator('#ap-last').fill('Applicant');
-  await page.locator('#ap-email').fill(`vina.${tag()}@example.test`);
   await page.locator('#ap-addr').fill('union');
   await page.getByRole('option', { name: /Union Station/ }).click();
   await page.locator('#ap-postal').fill('m5j 1e6');
-  await page.locator('#ap-phone').fill('647-555-0102');
   await page.locator('#ap-lic').fill('O1234-56789-01234');
   await page.locator('#ap-dob').fill('1985-05-05');
   await page.getByRole('button', { name: 'Continue to vehicles' }).click();

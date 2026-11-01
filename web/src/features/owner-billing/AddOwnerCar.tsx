@@ -15,7 +15,8 @@ import type { PermitRead } from '@/features/vehicles/permit-read';
 // flow: the owner (found, or new), the car (VIN first since 0082: decoded at once into one summary line, the class
 // inferred, the colour in one tap; the copy is written right after), the documents, who sourced the owner, how the owner signs, and
 // for an Admin the terms and first invoices (an assistant's go to an Admin as a proposal). The owner then gets one
-// email to review, correct and sign (or signs on paper).
+// email to review, correct and sign (or signs on paper). Sales (0340, `sales`): a new owner only, no terms or invoices (an
+// Admin's), always sourced by them and always an application for an Admin.
 type Owner = { id: string; legal_name: string; email: string | null; phone: string | null; cars?: number };
 type Facts = { admin: boolean; today: string; hst_bps: number; trackers_available: boolean; owner: (Owner & { has_account: boolean }) | null;
   terms: { insurance_fee_cents: number; tracker_fee_cents: number; revenue_share_bps: number; install_fee_cents: number; first_last_cents: number; sources: Record<string, string> } | null;
@@ -23,7 +24,7 @@ type Facts = { admin: boolean; today: string; hst_bps: number; trackers_availabl
 const DOCS: Array<[string, string, string]> = [['ownership_permit', 'Ownership permit', 'Both sides. A photo or a PDF.'], ['owner_insurance_proof', 'Insurance slip', 'The current pink slip.'],
   ['finance_party_permission', 'Lender or lessor information', 'The lender\'s permission or the loan or lease statement.']];
 
-export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' | '/staff' }) {
+export function AddOwnerCar({ initial, base, sales = false }: { initial: Facts; base: '/admin' | '/staff'; sales?: boolean }) {
   const a = useAct<{ application_id: string; application_number: string; owner_id: string; vehicle_id: string; approved: boolean; note: string | null; docs: number }>();
   const uid = `ac-${useId().replace(/[^\w-]/g, '')}`;
   const [facts, setFacts] = useState<Facts>(initial);
@@ -34,7 +35,7 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
   const [o, setO] = useState<Record<string, string>>({ owner_type: 'individual', province: 'ON' });
   const [v, setV] = useState<Record<string, string>>({ title_status: 'owned_outright', management_mode: 'managed' });
   const [car, setCar] = useState<VinValue>(emptyVin());
-  const [sourced, setSourced] = useState(false);
+  const [sourced, setSourced] = useState(sales);
   const [signing, setSigning] = useState<'email' | 'paper'>('email');
   const t0 = initial.terms ?? (initial.standard ? { ...initial.standard, first_last_cents: initial.standard.insurance_fee_cents * 2, sources: {} } : null);
   const [terms, setTerms] = useState<Record<string, string>>({ ins: dollars(t0?.insurance_fee_cents), trk: dollars(t0?.tracker_fee_cents), share: pctOf(t0?.revenue_share_bps), inst: dollars(t0?.install_fee_cents), fl: dollars(t0?.first_last_cents) });
@@ -89,12 +90,12 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
     if (carProblem) { setProblem(carProblem); return; }
     if (car.mode === 'vin' && car.facts?.taken) { setProblem(`This VIN is already in the fleet: ${car.facts.taken.name}.`); return; }
     const n = { ins: toCents(terms.ins!), trk: toCents(terms.trk!), inst: toCents(terms.inst!), fl: toCents(terms.fl!), share: Math.round(Number(terms.share) * 100) };
-    if ([n.ins, n.trk, n.inst, n.fl, n.share].some((x) => !Number.isFinite(x) || x < 0)) { setProblem('Enter every amount of the terms in dollars and cents.'); return; }
+    if (!sales && [n.ins, n.trk, n.inst, n.fl, n.share].some((x) => !Number.isFinite(x) || x < 0)) { setProblem('Enter every amount of the terms in dollars and cents.'); return; }
     const invoices: Array<Record<string, unknown>> = [];
     const pay = (x: Inv) => (x.action === 'paid' ? { payment: { method: x.method, received_on: x.on_date, reference: x.reference || undefined, amount_cents: x.paid ? toCents(x.paid) : undefined, note: x.method === 'other' ? x.reference : undefined } } : {});
     // the first and last month (0077): the Admin's choice; "No invoice" is a choice too; unticked, nothing is invoiced
     if (fl.on) invoices.push(fl.action === 'none' ? { type: 'first_last', action: 'none' } : { type: 'first_last', amount_cents: toCents(fl.amount), action: fl.action, ...pay(fl) });
-    if (reg.on) {
+    if (!sales && reg.on) {
       if (!(toCents(reg.amount) > 0)) { setProblem('Enter the registration fee.'); return; }
       invoices.push({ type: 'registration', amount_cents: toCents(reg.amount), hst: reg.hst, action: reg.action, title: 'Registration fee', ...pay(reg) });
     }
@@ -103,8 +104,8 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
       owner: isNew ? { ...o, email: (o.email ?? '').trim().toLowerCase(), first_name: (o.legal_name ?? '').trim().split(/\s+/)[0] } : undefined,
       vehicle: { ...v, ...vinPayload(car), plate: car.mode === 'plate' ? car.plate.toUpperCase().replace(/\s/g, '') : v.plate || undefined,
         odometer_km: v.odometer_km ? Number(v.odometer_km) : undefined, title_brand_clear: true },
-      sourced, signing,
-      plan: { terms: { management_mode: v.management_mode, insurance_fee_cents: n.ins, tracker_fee_cents: n.trk, revenue_share_bps: n.share, install_fee_cents: n.inst, first_last_cents: n.fl }, invoices }
+      sourced: sales || sourced, signing,
+      ...(sales ? { as_sales: true } : { plan: { terms: { management_mode: v.management_mode, insurance_fee_cents: n.ins, tracker_fee_cents: n.trk, revenue_share_bps: n.share, install_fee_cents: n.inst, first_last_cents: n.fl }, invoices } })
     };
     const fd = new FormData();
     fd.set('payload', JSON.stringify(payload));
@@ -120,7 +121,8 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
         <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
           {base === '/admin' && <><Link prefetch={false} className="btn btn--primary btn--sm" href={`/admin/applications/${r.application_id}`}>Open the application</Link>
             <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/owners/${r.owner_id}`}>Open the owner</Link></>}
-          <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/owners/add-car?owner=${r.owner_id}`} data-testid="addcar-another">Add another car for this owner</Link>
+          {sales ? <Link prefetch={false} className="btn btn--primary btn--sm" href="/staff/my-sales" data-testid="addcar-my-sales">Back to My sales</Link>
+            : <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/owners/add-car?owner=${r.owner_id}`} data-testid="addcar-another">Add another car for this owner</Link>}
         </div>
       </div>
     );
@@ -131,10 +133,10 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
         {owner && !isNew ? (
           <p data-testid="addcar-owner"><b>{owner.legal_name}</b>{owner.email ? ` · ${owner.email}` : ''}{owner.phone ? ` · ${owner.phone}` : ''} <button type="button" className="btn btn--quiet btn--sm" onClick={() => { setOwner(null); setHits([]); }}>Change</button></p>
         ) : (<>
-          <div className="row" role="radiogroup" aria-label="Owner" style={{ gap: 'var(--s-3)', flexWrap: 'wrap' }}>
+          {!sales && <div className="row" role="radiogroup" aria-label="Owner" style={{ gap: 'var(--s-3)', flexWrap: 'wrap' }}>
             <label className="check" htmlFor={`${uid}-find`}><input type="radio" id={`${uid}-find`} checked={!isNew} onChange={() => setIsNew(false)} /><span>An owner on file</span></label>
             <label className="check" htmlFor={`${uid}-new`}><input type="radio" id={`${uid}-new`} checked={isNew} onChange={() => setIsNew(true)} data-testid="addcar-new-owner" /><span>New owner</span></label>
-          </div>
+          </div>}
           {!isNew ? (
             <div className="stack">
               <div className="row" style={{ gap: 'var(--s-2)' }}><label className="vh" htmlFor={`${uid}-q`}>Name, email or phone</label>
@@ -182,7 +184,7 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
         </fieldset>
       </section>
 
-      <section className="pt-card stack" aria-labelledby={`${uid}-t`}><h2 className="d4" id={`${uid}-t`}>3. Terms and first invoice</h2>
+      {!sales && <section className="pt-card stack" aria-labelledby={`${uid}-t`}><h2 className="d4" id={`${uid}-t`}>3. Terms and first invoice</h2>
         {!facts.admin && <p className="small muted">An Admin checks these and approves; they are your proposal.</p>}
         {v.management_mode !== 'turo_only' && (<>
           <div className="ad-fields ob-terms">
@@ -196,13 +198,13 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
           <InvoiceChoice uid={`${uid}-rg`} label="Registration fee" v={reg} hstBps={facts.hst_bps} testId="addcar-inv-registration" set={setReg} />
           {fl.on && <p className="small muted">First and last total with HST: {money(toCents(fl.amount) + Math.round(toCents(fl.amount) * facts.hst_bps / 10000), { cents: true })}.</p>}
         </>)}
-      </section>
+      </section>}
 
-      <section className="pt-card stack" aria-labelledby={`${uid}-s`}><h2 className="d4" id={`${uid}-s`}>4. Who sourced the owner, and signing</h2>
-        <div className="row" role="radiogroup" aria-label="Who sourced the owner" style={{ gap: 'var(--s-3)', flexWrap: 'wrap' }}>
+      <section className="pt-card stack" aria-labelledby={`${uid}-s`}><h2 className="d4" id={`${uid}-s`}>{sales ? '3. Signing' : '4. Who sourced the owner, and signing'}</h2>
+        {sales ? <p className="small" data-testid="addcar-sourced-you">Sourced by you. Only an Admin can change it.</p> : <div className="row" role="radiogroup" aria-label="Who sourced the owner" style={{ gap: 'var(--s-3)', flexWrap: 'wrap' }}>
           <label className="check" htmlFor={`${uid}-src-c`}><input type="radio" id={`${uid}-src-c`} checked={!sourced} onChange={() => setSourced(false)} /><span>Entered for CarmaCars</span></label>
           <label className="check" htmlFor={`${uid}-src-me`}><input type="radio" id={`${uid}-src-me`} checked={sourced} onChange={() => setSourced(true)} data-testid="addcar-sourced" /><span>I sourced this owner</span></label>
-        </div>
+        </div>}
         <div className="row" role="radiogroup" aria-label="How the owner signs" style={{ gap: 'var(--s-3)', flexWrap: 'wrap' }}>
           <label className="check" htmlFor={`${uid}-sg-e`}><input type="radio" id={`${uid}-sg-e`} checked={signing === 'email'} onChange={() => setSigning('email')} /><span>Email the owner to review and sign (one email)</span></label>
           <label className="check" htmlFor={`${uid}-sg-p`}><input type="radio" id={`${uid}-sg-p`} checked={signing === 'paper'} onChange={() => setSigning('paper')} data-testid="addcar-paper" /><span>The owner signs on paper (no email now)</span></label>

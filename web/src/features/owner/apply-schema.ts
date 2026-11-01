@@ -22,7 +22,59 @@ export interface ApplyOwner {
 }
 export interface ApplyState { step: number; owner: ApplyOwner; vehicles: ApplyVehicle[]; active: number;
   /** "I'll add my car later" (0087): the account and the owner record now, the first car from the owner portal */
-  later?: boolean }
+  later?: boolean;
+  /** the signed invitation a salesperson sent, or their personal link (0340): the application is credited to them */
+  invite?: string;
+  /** 0344: the first step (name, mobile, email, the car) is done; until then the wizard shows it */
+  started?: boolean;
+  /** 0344: the car and estimate handed over by the owner earnings calculator */
+  calc?: CalcHandoff }
+
+/** What the owner earnings calculator hands to the application (0344): the car it priced and its monthly estimate. */
+export interface CalcHandoff { year?: number; make?: string; model?: string; vin?: string; estimate_cents?: number }
+
+/** The application's address with the calculator's car and estimate: /list-your-car/apply?year=2021&make=Toyota&model=RAV4&est=145000 */
+export function applyHref(c: CalcHandoff, base = '/list-your-car/apply'): string {
+  const q = new URLSearchParams();
+  if (c.vin) q.set('vin', c.vin);
+  if (c.year) q.set('year', String(c.year));
+  if (c.make) q.set('make', c.make);
+  if (c.model) q.set('model', c.model);
+  if (c.estimate_cents && Number.isFinite(c.estimate_cents)) q.set('est', String(Math.round(c.estimate_cents)));
+  const s = q.toString();
+  return s ? `${base}?${s}` : base;
+}
+
+/** The calculator's hand-off read from the address, checked (0344). Null when it carries no car. */
+export function readCalc(sp: Record<string, string | undefined>): CalcHandoff | null {
+  const year = Number(sp.year);
+  const c: CalcHandoff = {
+    ...(Number.isInteger(year) && year >= 1980 && year <= 2100 ? { year } : {}),
+    ...(sp.make && /^[\p{L}\p{N} .&'-]{1,40}$/u.test(sp.make) ? { make: sp.make.trim() } : {}),
+    ...(sp.model && /^[\p{L}\p{N} .&'/+-]{1,60}$/u.test(sp.model) ? { model: sp.model.trim() } : {}),
+    ...(sp.vin && /^[A-HJ-NPR-Z0-9]{17}$/i.test(sp.vin.trim()) ? { vin: sp.vin.trim().toUpperCase() } : {}),
+    ...(sp.est && /^\d{1,9}$/.test(sp.est) ? { estimate_cents: Number(sp.est) } : {})
+  };
+  return c.vin || (c.year && c.make && c.model) ? c : null;
+}
+
+/** The first step (0344): the name, a mobile, an email, and the car by its VIN or its year, make and model (or the car
+ *  later: the owner account can open without one, 0087). */
+export function startErrors(o: ApplyOwner, v: ApplyVehicle | undefined, by: 'vin' | 'ymm' | 'later'): Record<string, string> {
+  const e: Record<string, string> = {};
+  if (!o.first_name.trim()) e.first_name = 'Enter your first name.';
+  if (!o.last_name.trim()) e.last_name = 'Enter your last name.';
+  if (o.phone.replace(/\D/g, '').length < 10) e.phone = 'Enter your mobile number, for example 647-555-0142.';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(o.email.trim())) e.email = 'Enter your email address, for example name@example.com.';
+  if (by === 'later') return e;
+  if (by === 'vin') { if (!/^[A-HJ-NPR-Z0-9]{17}$/i.test(cleanVin(v?.vin ?? ''))) e.vin = 'Enter the 17-character VIN, or choose year, make and model instead.'; }
+  else {
+    if (!v?.year) e.year = 'Choose the year.';
+    if (!v?.make?.trim()) e.make = 'Choose the make.';
+    if (!v?.model?.trim()) e.model = 'Choose the model.';
+  }
+  return e;
+}
 
 export const blankVehicle = (key: string): ApplyVehicle => ({
   key, vin: '', year: '', make: '', model: '', trim: '', colour: '', fuel: '', plate: '', odometer_km: '', current_insurer: '', branded: '', damage: '', damage_details: '',

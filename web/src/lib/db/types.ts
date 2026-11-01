@@ -8868,6 +8868,7 @@ export type Database = {
           followup_stop_reason: string | null;
           replied_at: string | null;
           referred_by_owner_id: string | null;
+          sourced_by: string | null;
         };
         Insert: {
           id?: string;
@@ -8910,6 +8911,7 @@ export type Database = {
           followup_stop_reason?: string | null;
           replied_at?: string | null;
           referred_by_owner_id?: string | null;
+          sourced_by?: string | null;
         };
         Update: {
           id?: string;
@@ -8952,6 +8954,7 @@ export type Database = {
           followup_stop_reason?: string | null;
           replied_at?: string | null;
           referred_by_owner_id?: string | null;
+          sourced_by?: string | null;
         };
         Relationships: [];
       };
@@ -11130,6 +11133,90 @@ export type Database = {
         };
         Relationships: [];
       };
+      owner_recruit_requests: {
+        Row: {
+          id: string;
+          owner_id: string;
+          staff_id: string;
+          kind: string;
+          amount_cents: number | null;
+          rate_bps: number | null;
+          base: string | null;
+          months: number | null;
+          while_enrolled: boolean;
+          note: string | null;
+          status: string;
+          revisions: number;
+          a_kind: string | null;
+          a_amount_cents: number | null;
+          a_rate_bps: number | null;
+          a_base: string | null;
+          a_months: number | null;
+          a_while_enrolled: boolean | null;
+          admin_note: string | null;
+          changed: boolean;
+          decided_at: string | null;
+          decided_by: string | null;
+          starts_month: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          staff_id: string;
+          kind: string;
+          amount_cents?: number | null;
+          rate_bps?: number | null;
+          base?: string | null;
+          months?: number | null;
+          while_enrolled?: boolean;
+          note?: string | null;
+          status?: string;
+          revisions?: number;
+          a_kind?: string | null;
+          a_amount_cents?: number | null;
+          a_rate_bps?: number | null;
+          a_base?: string | null;
+          a_months?: number | null;
+          a_while_enrolled?: boolean | null;
+          admin_note?: string | null;
+          changed?: boolean;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          starts_month?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          staff_id?: string;
+          kind?: string;
+          amount_cents?: number | null;
+          rate_bps?: number | null;
+          base?: string | null;
+          months?: number | null;
+          while_enrolled?: boolean;
+          note?: string | null;
+          status?: string;
+          revisions?: number;
+          a_kind?: string | null;
+          a_amount_cents?: number | null;
+          a_rate_bps?: number | null;
+          a_base?: string | null;
+          a_months?: number | null;
+          a_while_enrolled?: boolean | null;
+          admin_note?: string | null;
+          changed?: boolean;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          starts_month?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       owner_referral_credits: {
         Row: {
           id: string;
@@ -11539,6 +11626,8 @@ export type Database = {
           fees_paid_from_set_by: string | null;
           added_alone_at: string | null;
           added_alone_by: string | null;
+          recruited_at: string | null;
+          recruited_via: string | null;
         };
         Insert: {
           id?: string;
@@ -11588,6 +11677,8 @@ export type Database = {
           fees_paid_from_set_by?: string | null;
           added_alone_at?: string | null;
           added_alone_by?: string | null;
+          recruited_at?: string | null;
+          recruited_via?: string | null;
         };
         Update: {
           id?: string;
@@ -11637,6 +11728,8 @@ export type Database = {
           fees_paid_from_set_by?: string | null;
           added_alone_at?: string | null;
           added_alone_by?: string | null;
+          recruited_at?: string | null;
+          recruited_via?: string | null;
         };
         Relationships: [];
       };
@@ -18409,6 +18502,7 @@ export type Database = {
           created_at: string;
           updated_at: string;
           work_mode: string | null;
+          owner_recruit_request_id: string | null;
         };
         Insert: {
           id?: string;
@@ -18437,6 +18531,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           work_mode?: string | null;
+          owner_recruit_request_id?: string | null;
         };
         Update: {
           id?: string;
@@ -18465,6 +18560,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           work_mode?: string | null;
+          owner_recruit_request_id?: string | null;
         };
         Relationships: [];
       };
@@ -24721,6 +24817,7 @@ export type Database = {
       server_owner_record_debit_setup: { Args: { p_by: string; p: Json }; Returns: Json };
       server_owner_review: { Args: { p_by: string }; Returns: Json };
       server_owner_review_correct: { Args: { p_by: string; p: Json }; Returns: Json };
+      server_owner_sales_credit: { Args: { p_application: string; p_staff: string; p_lead?: string }; Returns: Json };
       server_owner_schedule_change: { Args: { p_by: string; p_change: string }; Returns: Json };
       server_owner_schedule_changes: { Args: { p_by: string }; Returns: Json };
       server_partner_crm_done: { Args: { p: Json }; Returns: Json };

@@ -735,6 +735,9 @@ select test.eq('M sales: the leads (owner enquiries included) and may update the
   test.ofl_nonzero() || '/' || (select count(*) > 0 from leads where kind = 'owner_program')::text
   || '/' || test.affected($$update leads set status = 'contacted' where kind = 'owner_program' and email = 'lena@example.test'$$),
   'leads,listing_shot_types,onboarding_checklist_items,onboarding_situations,site_content_blocks,site_settings/true/1');
+-- 0342: an owner enquiry given to someone else (or nobody) is not theirs to see or change
+select test.eq('M sales: no owner enquiry that is not theirs', (select count(*) from leads where kind = 'owner_program' and assigned_to is distinct from test.id('ofl_sales')
+  and sourced_by is distinct from test.id('ofl_sales')), 0::bigint);
 select test.logout();
 select test.login(test.id('ofl_field'));
 select test.eq('M field: the settings and the intake they started',

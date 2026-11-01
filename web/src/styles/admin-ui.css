@@ -307,3 +307,5 @@
 .ad-teams__main { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 .ad-teams__name { font-weight: 600; }
 .ad-teams .ad-sub { font-size: var(--fs-xs); color: var(--text-2); overflow-wrap: anywhere; }
+/* a second line in a table cell (the reason, the owner brought in, 0340): under the value, quieter */
+td .ad-sub { display: block; font-size: var(--fs-2xs); color: var(--text-2); margin-top: 0.1rem; }

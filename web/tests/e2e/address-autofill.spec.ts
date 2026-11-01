@@ -1,6 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow } from './helpers';
+import { acceptCookies, db, noOverflow, applyStart } from './helpers';
 
 // Address autofill everywhere (2026-10-24): every address field of the site, one row each, typed into as a person
 // would (3 characters and more, after the pause) in the production build, with the maps module's local stand-in in
@@ -65,6 +65,7 @@ const ROWS: Row[] = [
   { name: 'chauffeur request: drop-off', who: 'public', path: '/chauffeur/request', field: (p) => p.locator('#ch-dropoff'), query: 'cn tower', option: /CN Tower/, filled: (p) => [[p.locator('#ch-dropoff'), /CN Tower/]] },
   { name: 'list your car: where the car is', who: 'public', path: '/list-your-car', field: (p) => p.locator('#ow-addr'), filled: (p) => [[p.locator('#ow-addr'), UNION]] },
   { name: 'owner application: address in parts', who: 'public', path: '/list-your-car/apply', field: (p) => p.locator('#ap-addr'),
+    open: async (p) => { await applyStart(p, { first: 'Ada', last: 'Address', phone: '647-555-0103', email: `ada.addr.${Date.now()}@example.test` }); },
     filled: (p) => [[p.locator('#ap-line1'), '65 Front Street West'], [p.locator('#ap-city'), 'Toronto'], [p.locator('#ap-prov'), 'ON'], [p.locator('#ap-postal'), 'M5J 1E6']] },
   { name: 'renter profile: home address in parts', who: 'renter', path: '/account/profile', field: (p) => p.getByTestId('pt-p-lookup'),
     filled: (p) => [[p.locator('#pt-p-address_line1'), '65 Front Street West'], [p.locator('#pt-p-city'), 'Toronto'], [p.locator('#pt-p-province'), 'ON'], [p.locator('#pt-p-postal_code'), 'M5J 1E6']] },

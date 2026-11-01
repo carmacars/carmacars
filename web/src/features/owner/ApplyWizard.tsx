@@ -10,12 +10,13 @@ import { ColourSwatches, YearMakeModel } from '@/features/vin/VinEntry';
 import { PermitScan } from '@/features/vehicles/PermitScan';
 import { carName, detailLine, vinMessage, vinState } from '@/features/vin/vin';
 import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
-import { blankVehicle, cleanVin, ownerErrors, planErrors, STEPS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle } from './apply-schema';
+import { blankVehicle, cleanVin, ownerErrors, planErrors, startErrors, STEPS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle } from './apply-schema';
 
 // The owner application (04-owner.md section 3, steps 1 to 3): about you once, then each vehicle,
 // then how each one will work (management mode, onboarding method, the registry estimate the owner
 // pays directly), then review and submit. Every change autosaves (form_drafts); a link by email
-// continues on another device. Built for a phone first.
+// continues on another device. Built for a phone first. Since 0344 it starts with the name, mobile and email and the car
+// (the VIN, or the year, make and model): what is typed there is saved at once and becomes an owner lead to follow up.
 export interface ProgramFacts {
   install_fee_cents: number; hst_bps: number; trackers_available: boolean;
   /** The payout day of Program settings in words (0051), for example "10th". */
@@ -73,6 +74,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
   const [done, setDone] = useState<SubmitResult | null>(null);
   const top = useRef<HTMLDivElement>(null);
   const first = useRef(true);
+  const [by, setBy] = useState<'vin' | 'ymm'>(initial.vehicles[0]?.vin || !(initial.vehicles[0]?.make) ? 'vin' : 'ymm');
 
   // autosave, 1.2 s after the last change
   useEffect(() => {
@@ -175,6 +177,18 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeVin, s.active]);
 
+  // the first step (0344): the car goes on the first vehicle; Continue checks the name, mobile, email and the car
+  const v0 = s.vehicles[0];
+  const setV0 = (p: Partial<ApplyVehicle>) => setS((x) => ({ ...x, vehicles: x.vehicles.length ? x.vehicles.map((v, k) => (k === 0 ? { ...v, ...p } : v)) : [{ ...blankVehicle(uid()), ...p }], active: x.vehicles.length ? x.active : 0 }));
+  const begin = (later = false) => {
+    const e = startErrors(o, v0, later ? 'later' : by);
+    setErrs(e);
+    if (Object.keys(e).length) { focusFirstError(); return; }
+    cap.capture({ name: [o.first_name, o.last_name].map((x) => x.trim()).filter(Boolean).join(' '), email: o.email, phone: o.phone });
+    setS((x) => ({ ...x, started: true, ...(by === 'vin' && v0 ? { vehicles: x.vehicles.map((v, k) => (k === 0 ? { ...v, vin: cleanVin(v.vin), decoded: false } : v)) } : {}) }));
+    go(0);
+  };
+
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setProblem(null);
@@ -230,23 +244,55 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     <div className="stack-lg">
       <div ref={top} tabIndex={-1} className="stack" style={{ outline: 'none' }}>
         <ol className="ow-progress" aria-label="Steps">
-          {STEPS.map((t, i) => <li key={t} className={i < s.step ? 'is-done' : i === s.step ? 'is-on' : ''} aria-current={i === s.step ? 'step' : undefined}>{i + 1}<span>. {t}</span></li>)}
+          {(['Start', ...STEPS] as string[]).map((t, i) => { const at = s.started ? s.step + 1 : 0; return <li key={t} className={i < at ? 'is-done' : i === at ? 'is-on' : ''} aria-current={i === at ? 'step' : undefined}><div>{i + 1}<span>. {t}</span></div></li>; })}
         </ol>
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h2 className="d3" style={{ margin: 0 }}>{STEPS[s.step]}</h2>
+          <h2 className="d3" style={{ margin: 0 }}>{s.started ? STEPS[s.step] : 'Start with you and your car'}</h2>
           <p className={`ow-saved${saved.state === 'saved' ? ' is-saved' : ''}`} role="status" aria-live="polite" data-testid="autosave">{savedText}</p>
         </div>
       </div>
 
-      {s.step === 0 && (
+      {!s.started && (() => {
+        return (
+          <section className="pt-card stack" aria-labelledby="ap-start-h" data-testid="apply-start"
+            onBlur={() => cap.capture({ name: [o.first_name, o.last_name].map((x) => x.trim()).filter(Boolean).join(' '), email: o.email, phone: o.phone })}>
+            <p className="muted" id="ap-start-h">So we can save your progress and send your quote. We keep your details private.</p>
+            {s.calc?.estimate_cents ? <p className="pt-note" data-testid="apply-calc">Your estimate: about {money(s.calc.estimate_cents)} a month{s.calc.make ? ` for your ${[s.calc.year, s.calc.make, s.calc.model].filter(Boolean).join(' ')}` : ''}. We confirm it with your terms.</p> : null}
+            <div className="field-row">
+              <Field id="ap-s-first" label="First name" err={errs.first_name}><input className="input" {...aria('ap-s-first', errs.first_name)} value={o.first_name} onChange={(e) => { setOwner({ first_name: e.target.value }); clearErr('first_name'); }} autoComplete="given-name" data-testid="apply-first" /></Field>
+              <Field id="ap-s-last" label="Last name" err={errs.last_name}><input className="input" {...aria('ap-s-last', errs.last_name)} value={o.last_name} onChange={(e) => { setOwner({ last_name: e.target.value }); clearErr('last_name'); }} autoComplete="family-name" data-testid="apply-last" /></Field>
+            </div>
+            <div className="field-row">
+              <Field id="ap-s-phone" label="Mobile" err={errs.phone}><input className="input" type="tel" inputMode="tel" {...aria('ap-s-phone', errs.phone)} value={o.phone} onChange={(e) => { setOwner({ phone: e.target.value }); clearErr('phone'); }} autoComplete="tel" data-testid="apply-phone" /></Field>
+              <Field id="ap-s-email" label="Email" err={errs.email}><input className="input" type="email" inputMode="email" {...aria('ap-s-email', errs.email)} value={o.email} onChange={(e) => { setOwner({ email: e.target.value }); setResumeEmail(e.target.value); clearErr('email'); }} autoComplete="email" readOnly={signedIn && !!o.email} data-testid="apply-email" /></Field>
+            </div>
+            <fieldset className="stack" style={{ border: 0, padding: 0, margin: 0 }}>
+              <legend className="label">Your car</legend>
+              <div className="seg" style={{ gridAutoFlow: 'column' }}>
+                <label><input type="radio" name="ap-by" checked={by === 'vin'} onChange={() => { setBy('vin'); setErrs({}); }} data-testid="apply-by-vin" />I have the VIN</label>
+                <label><input type="radio" name="ap-by" checked={by === 'ymm'} onChange={() => { setBy('ymm'); setErrs({}); }} data-testid="apply-by-ymm" />Year, make and model</label>
+              </div>
+              {by === 'vin' ? (
+                <Field id="ap-s-vin" label="VIN" err={errs.vin} hint="17 letters and digits, on the ownership permit and the driver's door frame.">
+                  <input className="input vin-input" {...aria('ap-s-vin', errs.vin, 'hint')} value={v0?.vin ?? ''} onChange={(e) => { setV0({ vin: e.target.value.toUpperCase(), decoded: false }); clearErr('vin'); }} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={24} data-testid="apply-start-vin" />
+                </Field>
+              ) : (
+                <YearMakeModel value={{ year: v0?.year ?? '', make: v0?.make ?? '', model: v0?.model ?? '' }} prefix="ap-s" errs={{ year: errs.year, make: errs.make, model: errs.model }}
+                  onChange={(x) => { setV0({ year: x.year ?? '', make: x.make ?? '', model: x.model ?? '' }); ['year', 'make', 'model'].forEach(clearErr); }} />
+              )}
+            </fieldset>
+            <CaptureNote reply={cap.reply} next="/list-your-car/apply" />
+            <div className="ow-actions"><span /><span className="row"><button className="btn btn--quiet" type="button" onClick={() => begin(true)} data-testid="apply-start-later">Add my car later</button><button className="btn btn--primary btn--lg" type="button" onClick={() => begin()} data-testid="apply-start-next">Continue</button></span></div>
+          </section>);
+      })()}
+
+      {s.started && s.step === 0 && (
         <section className="pt-card" aria-label="About you" onBlur={() => cap.capture({ name: [o.first_name, o.middle_name, o.last_name].map((x) => x.trim()).filter(Boolean).join(' '), email: o.email, phone: o.phone })}>
           {ownerOnFile && <p className="pt-note">You already have an owner account. These vehicles are added to it; details you change here update your record.</p>}
           <Choice name="ow_type" legend="I am enrolling as" value={o.owner_type} options={[['individual', 'An individual'], ['corporation', 'A corporation']] as const} onChange={(v) => { setOwner({ owner_type: v }); clearErr('owner_type'); }} err={errs.owner_type} />
-          <div className="field-row field-row--3">
-            <Field id="ap-first" label="First name" err={errs.first_name}><input className="input" {...aria('ap-first', errs.first_name)} value={o.first_name} onChange={(e) => { setOwner({ first_name: e.target.value }); clearErr('first_name'); }} autoComplete="given-name" /></Field>
-            <Field id="ap-middle" label="Middle name" optional><input className="input" id="ap-middle" value={o.middle_name} onChange={(e) => setOwner({ middle_name: e.target.value })} autoComplete="additional-name" /></Field>
-            <Field id="ap-last" label="Last name" err={errs.last_name}><input className="input" {...aria('ap-last', errs.last_name)} value={o.last_name} onChange={(e) => { setOwner({ last_name: e.target.value }); clearErr('last_name'); }} autoComplete="family-name" /></Field>
-          </div>
+          <p className="small" data-testid="apply-you">{[o.first_name, o.last_name].filter(Boolean).join(' ')} · {o.phone} · {o.email} <button type="button" className="link" onClick={() => setS((x) => ({ ...x, started: false }))}>Change</button></p>
+          {(errs.first_name || errs.last_name || errs.email || errs.phone) && <p className="error" role="alert">{errs.first_name || errs.last_name || errs.email || errs.phone}</p>}
+          <Field id="ap-middle" label="Middle name" optional><input className="input" id="ap-middle" value={o.middle_name} onChange={(e) => setOwner({ middle_name: e.target.value })} autoComplete="additional-name" /></Field>
           {o.owner_type === 'corporation' && (
             <>
               <div className="field-row">
@@ -273,10 +319,6 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
             <Field id="ap-prov" label="Province"><select className="select" id="ap-prov" value={o.province} onChange={(e) => setOwner({ province: e.target.value })} autoComplete="address-level1">{PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}</select></Field>
             <Field id="ap-postal" label="Postal code" err={errs.postal_code}><input className="input" {...aria('ap-postal', errs.postal_code)} value={o.postal_code} onChange={(e) => { setOwner({ postal_code: e.target.value.toUpperCase() }); clearErr('postal_code'); }} autoComplete="postal-code" /></Field>
           </div>
-          <div className="field-row">
-            <Field id="ap-email" label="Email" err={errs.email}><input className="input" type="email" {...aria('ap-email', errs.email)} value={o.email} onChange={(e) => { setOwner({ email: e.target.value }); setResumeEmail(e.target.value); clearErr('email'); }} autoComplete="email" readOnly={signedIn && !!o.email} /></Field>
-            <Field id="ap-phone" label="Mobile" err={errs.phone}><input className="input" type="tel" {...aria('ap-phone', errs.phone)} value={o.phone} onChange={(e) => { setOwner({ phone: e.target.value }); clearErr('phone'); }} autoComplete="tel" /></Field>
-          </div>
           <CaptureNote reply={cap.reply} next="/list-your-car/apply" />
           <SavedAsYouType />
           {o.owner_type === 'individual' && (
@@ -293,7 +335,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
         </section>
       )}
 
-      {s.step === 1 && (
+      {s.started && s.step === 1 && (
         <section className="stack-lg" aria-label="Your vehicles">
           {s.vehicles.length > 1 || s.active < 0 ? (
             <ul className="ow-vlist">{s.vehicles.map((v, i) => (
@@ -375,7 +417,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
         </section>
       )}
 
-      {s.step === 2 && (
+      {s.started && s.step === 2 && (
         <section className="stack-lg" aria-label="How it will work">
           {s.vehicles.map((v, i) => {
             const e = (k: string) => errs[`v${i}.${k}`]; const set = (p: Partial<ApplyVehicle>, k?: string) => { setVehicle(i, p); if (k) clearErr(`v${i}.${k}`); };
@@ -442,7 +484,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
         </section>
       )}
 
-      {s.step === 3 && (
+      {s.started && s.step === 3 && (
         <form className="stack-lg" noValidate onSubmit={submit} aria-label="Review and submit">
           <section className="pt-card" aria-label="You">
             <div className="pt-card__head"><h3 className="d4">{[o.first_name, o.middle_name, o.last_name].filter(Boolean).join(' ')}</h3><button type="button" className="btn btn--quiet btn--sm" onClick={() => go(0)}>Edit</button></div>
