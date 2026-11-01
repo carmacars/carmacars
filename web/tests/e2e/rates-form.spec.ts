@@ -120,7 +120,8 @@ test('post a car with its rates and kilometres in one pass: Add a car (three sup
       overage_cents_per_km ov, deposit_cents::int dep, km_uses_defaults def from rate_cards where vehicle_id = any(${[company, partnerCar, ...(ownerCar ? [ownerCar] : [])]}) and effective_to is null`;
   const by = Object.fromEntries(cards.map((c) => [c.vehicle_id as string, c]));
   expect(by[company]).toMatchObject({ d: 8900, we: 9900, wk: 50000, m: 180000, km: 200, ov: 35, dep: 50000, def: true });
-  expect(by[partnerCar]).toMatchObject({ d: 7000, we: 7000, wk: 42000, m: 154000, km: 300, ov: 40, def: false });
+  // 0271: a weekend rate left at the daily rate is raised to daily + 15%, rounded up to the dollar
+  expect(by[partnerCar]).toMatchObject({ d: 7000, we: 8100, wk: 42000, m: 154000, km: 300, ov: 40, def: false });
   if (ownerCar) expect(by[ownerCar]).toMatchObject({ d: 12000, km: 200, def: true });
 
   // the Rates tab: a car with no rates saves in one pass (the circular refusal of 0063)
@@ -140,7 +141,7 @@ test('post a car with its rates and kilometres in one pass: Add a car (three sup
   await page.getByTestId('rate-form-submit').click();
   await expect(page.getByTestId('rate-form-msg')).toHaveText('New rates saved.', { timeout: 15_000 });
   const [c1] = await sql`select daily_rate_cents::int d, weekend_rate_cents::int we, km_allowance_per_day km, overage_cents_per_km ov from rate_cards where vehicle_id = ${bareId} and effective_to is null`;
-  expect(c1).toMatchObject({ d: 7500, we: 7500, km: 200, ov: 35 });
+  expect(c1).toMatchObject({ d: 7500, we: 8700, km: 200, ov: 35 });
   // then custom kilometres on the same form
   await page.reload({ waitUntil: 'networkidle' });
   await page.getByTestId('rate-form-km-custom').check();

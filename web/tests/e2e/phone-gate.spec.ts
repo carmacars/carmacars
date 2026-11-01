@@ -100,7 +100,7 @@ test('the phone number box: crawlers see every photo; dates stay open; full avai
     const html = await bot.text();
     expect([...html.matchAll(/<li aria-label="\d+ of (\d+)"/g)].length, 'every photo in the server HTML').toBe(car.photos);
     const ld = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]!).join(' ');
-    expect(ld).toContain('"image"');
+    expect(ld, `the JSON-LD of the page (${ld.length} characters): ${ld.replace(/https?:\/\/[^"]+/g, 'URL').slice(0, 600)}`).toContain('"image"');
     expect(html).not.toContain('data-testid="phone-gate"');
 
     // ---------------------------------------------------------------- dates: picking them is open; the full availability asks

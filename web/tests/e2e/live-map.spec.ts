@@ -53,8 +53,11 @@ test('Live map: pins, legend, cards and masking on the page; TV mode fills the s
     await signIn(page, email);
     await page.goto('/admin/live-map', { waitUntil: 'networkidle' });
     await expect(page.getByRole('heading', { level: 1, name: 'Live map' })).toBeVisible();
+    // the menu is folded on a phone: open it as a phone user does
+    if (phone) await page.getByTestId('admin-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
     await expect(page.getByTestId('admin-nav').getByRole('link', { name: 'Live map' })).toHaveCount(1);
-    await expect(page.getByTestId('lm-kpis')).toContainText('On the site now');
+    if (phone) await page.getByTestId('admin-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
+    await expect(page.getByTestId('lm-kpis')).toContainText('On site now');
     // the legend counts each stage
     const legend = page.getByTestId('lm-legend');
     await expect(legend.getByRole('button')).toHaveCount(4);

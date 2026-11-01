@@ -19,10 +19,22 @@ test('an abandoned request leaves a lead and an account; the continue link signs
   const sql = db();
   const slug = info.project.name.startsWith('phone') ? 'toyota-corolla' : 'kia-forte';
   const email = `capture.${info.project.name}.${Date.now()}@example.test`;
-  const range = futureRange(120);
+  // dates the car is free for (no booking or block within a day: the turnaround), from 120 days ahead
+  let range = futureRange(120);
+  for (let off = 120; off < 240; off += 4) {
+    range = futureRange(off);
+    const [busy] = await sql`select (exists (select 1 from bookings b join vehicle_listings l using (vehicle_id) where l.slug = ${slug} and b.status in ('confirmed', 'on_rent')
+        and tstzrange(b.pickup_at - interval '1 day', b.return_at + interval '1 day') && tstzrange(${range.from}::date::timestamptz, ${range.to}::date::timestamptz + interval '1 day'))
+      or exists (select 1 from vehicle_calendar_blocks k join vehicle_listings l using (vehicle_id) where l.slug = ${slug} and k.removed_at is null
+        and k.starts_at < ${range.to}::date::timestamptz + interval '2 days' and (k.ends_at is null or k.ends_at > ${range.from}::date::timestamptz - interval '1 day'))) b`;
+    if (!busy!.b) break;
+  }
   await page.goto(`/book/${slug}?from=${range.from}&to=${range.to}&tf=10:00&tt=10:00`);
   await acceptCookies(page);
+  await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Continue to driver details' }).click();
+  // the first step took the request (any message it shows is the reason it did not)
+  expect((await page.locator('[data-step="1"] p.error').allInnerTexts()).filter((t) => t.trim()).join(' | '), 'the first step\'s messages').toBe('');
   await expect(page.getByRole('heading', { name: 'The driver' })).toBeVisible();
   await page.locator('#rq-first').fill('Casey');
   await page.locator('#rq-last').fill('Capture');

@@ -2,6 +2,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { monthOf } from '@/features/owner/Blocks';
+import { torontoToday } from '@/lib/dates';
 import { $, Badge, Card, PageHead, Table, Tabs, Tiles, t } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,9 @@ const nice = (k: string) => k.replace(/_cents$/, '').replace(/_/g, ' ');
 // CarmaCars' own monthly statements (11-statements-and-reports.md sections 3 and 4), with the reconciliation ties.
 export default async function Reports({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ read }, sp] = await Promise.all([page('/admin/reports'), searchParams]);
-  const now = new Date();
+  // the months are Toronto's (the statements' own months): at 8 p.m. on the last day of a month it is still that month
+  const [ty, tm] = torontoToday().split('-').map(Number);
+  const now = new Date(Date.UTC(ty!, tm! - 1, 1));
   const month = /^\d{4}-\d{2}$/.test(sp.month ?? '') ? `${sp.month}-01` : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 10);
   const [cs, sections] = await Promise.all([read<CS>('company_statement', { month }), read<Section[] | null>('company_sections', { month })]);
   const level = sp.level ?? 'total';

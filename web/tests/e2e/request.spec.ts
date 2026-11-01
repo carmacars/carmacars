@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { acceptCookies, db, noOverflow, watch } from './helpers';
+import { acceptCookies, db, noOverflow, phoneGatePassed, watch } from './helpers';
 
 // The request flow end to end: car page, dates, the four steps, send; then the database holds a
 // booking with status requested and the renter_request_received event, and the draft is closed.
@@ -128,6 +128,11 @@ test('car page: calendar shows the turnaround, estimate comes from the database,
   await acceptCookies(page);
   // the cookie choice refreshes the page: wait for it to settle before working the calendar
   await page.waitForLoadState('networkidle');
+  // 0280: the booked days show once this device gave a mobile number (the box is on by default)
+  await expect(page.getByTestId('see-full-availability')).toBeVisible();
+  await phoneGatePassed(page, test.info().project.use.baseURL!);
+  await page.reload({ waitUntil: 'networkidle' });
+  await expect(page.getByTestId('full-availability')).toContainText('Days already booked are crossed out.');
   // the day a booking ends is free from 2 hours after its return (the turnaround)
   const day = page.locator(`.cal [data-date="${bk!.d}"]`);
   await expect(async () => { await page.locator('#dates').scrollIntoViewIfNeeded({ timeout: 2_000 }); }).toPass({ timeout: 15_000 });

@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import postgres from 'postgres';
+import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -29,6 +30,14 @@ export async function noOverflow(page: Page) {
 export async function acceptCookies(page: Page) {
   const b = page.getByRole('button', { name: 'Necessary only' }).first();
   if (await b.isVisible().catch(() => false)) await b.click();
+}
+
+/** The phone number box (0280) passed the way a visitor's device remembers it: the visitor id cookie and the cc_pg pass
+ *  of that id (90 days), as the box sets them once a number is given. Call before the page loads. */
+export async function phoneGatePassed(page: Page, baseURL: string) {
+  const vid = randomUUID();
+  const exp = Math.floor(Date.now() / 1000) + 90 * 86400;
+  await page.context().addCookies([{ name: 'cc_vid', value: vid, url: baseURL }, { name: 'cc_pg', value: `${vid}.${exp}`, url: baseURL }]);
 }
 
 export const PUBLIC_PAGES = ['/', '/cars', '/cars/mercedes-benz-c300', '/cars/tesla-model-3', '/cars/toyota/corolla', '/cars/toyota/corolla/2023', '/cars/volkswagen/jetta/2020/sportline', '/how-it-works', '/requirements', '/delivery', '/faq', '/contact', '/terms', '/privacy', '/cancellation-policy', '/list-your-car', '/investors', '/sign-in', '/create-account', '/reset-password', '/update-password', '/book', '/book/mercedes-benz-c300', '/book/sent/R-000001'];

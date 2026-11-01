@@ -211,7 +211,7 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   const png = await page.screenshot({ clip: { x: 0, y: 0, width: 300, height: 200 } });
   for (const kind of ['licence_front', 'licence_back', 'selfie']) {
     const card = page.locator(`[data-testid^="upload-${kind}-"]`).first();
-    await card.locator('input[type="file"]').setInputFiles({ name: `${kind}.png`, mimeType: 'image/png', buffer: png });
+    await card.getByTestId(kind === 'selfie' ? 'upload-camera-selfie' : `upload-pick-${kind}`).setInputFiles({ name: `${kind}.png`, mimeType: 'image/png', buffer: png });
     await expect(card.getByText('In review')).toBeVisible({ timeout: 15_000 });
   }
   // coverage option 2 (0071): the card that paid, a credit card in the renter's name; the renter ticks its coverage
@@ -224,7 +224,7 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await page.getByTestId('upload-coverage_proof').locator('input[type="file"]').setInputFiles({ name: 'benefits.pdf', mimeType: 'application/pdf', buffer: proof });
   await expect(page.getByTestId('upload-coverage_proof').getByText('In review')).toBeVisible({ timeout: 15_000 });
   // a file that is not what it says is refused and deleted
-  await page.locator('[data-testid^="upload-selfie-"]').first().locator('input[type="file"]').setInputFiles({ name: 'x.png', mimeType: 'image/png', buffer: Buffer.from('not an image at all') });
+  await page.locator('[data-testid^="upload-selfie-"]').first().getByTestId('upload-camera-selfie').setInputFiles({ name: 'x.png', mimeType: 'image/png', buffer: Buffer.from('not an image at all') });
   await expect(page.locator('[data-testid^="upload-selfie-"]').first().locator('.error')).not.toBeEmpty();
   const ups = await sql`select u.kind, u.status, d.storage_bucket, d.retention::text from verification_uploads u join documents d on d.id = u.document_id where u.booking_id = ${bk!.id} and u.status = 'submitted' order by u.kind`;
   expect(ups.map((u) => `${u.kind}:${u.storage_bucket}`)).toEqual(['coverage_proof:documents', 'licence_back:identity', 'licence_front:identity', 'selfie:identity']);

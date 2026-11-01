@@ -381,7 +381,7 @@ test('the licence is uploaded from the request before the offer can be accepted'
   const png = await page.screenshot({ clip: { x: 0, y: 0, width: 300, height: 200 } });
   for (const kind of ['licence_front', 'licence_back', 'selfie']) {
     const card = page.locator(`[data-testid^="upload-${kind}-"]`).first();
-    await card.locator('input[type="file"]').setInputFiles({ name: `${kind}.png`, mimeType: 'image/png', buffer: png });
+    await card.getByTestId(kind === 'selfie' ? 'upload-camera-selfie' : `upload-pick-${kind}`).setInputFiles({ name: `${kind}.png`, mimeType: 'image/png', buffer: png });
     await expect(card.getByText('In review')).toBeVisible({ timeout: 15_000 });
   }
   await page.reload();
