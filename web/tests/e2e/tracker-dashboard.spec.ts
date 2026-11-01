@@ -44,7 +44,7 @@ test('Fleet tracking: signed ingest, pairing, the map and list, alerts, demo mod
     const copy = async (table: 'vehicles' | 'bookings', from: string, patch: Record<string, unknown>) => {
       const cols = (await sql`select column_name from information_schema.columns where table_schema = 'public' and table_name = ${table}
                                and is_generated = 'NEVER' and is_identity = 'NO' order by ordinal_position`).map((c) => `"${String(c.column_name)}"`).join(', ');
-      await sql.unsafe(`insert into ${table} (${cols}) select ${cols} from jsonb_populate_record(null::${table}, (select to_jsonb(x) from ${table} x where x.id = $1) || $2::jsonb)`,
+      await sql.unsafe(`insert into ${table} (${cols}) select ${cols} from jsonb_populate_record(null::${table}, (select to_jsonb(x) from ${table} x where x.id = $1) || ($2::text)::jsonb)`,
         [from, JSON.stringify(patch)]);
     };
     const [sample] = await sql`select v.id from vehicles v where v.is_sample and exists (select 1 from bookings b where b.vehicle_id = v.id) order by v.fleet_number limit 1`;
