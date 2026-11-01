@@ -163,7 +163,8 @@ test('the renter is walked through the rental step by step; field staff see how 
       source: 'phone', coverage_option: 1, renter_id: rn!.id as string, payment: { mode: 'other_way', method: 'cash' } })}) as r`;
     const booking = m!.r as { booking_id: string; booking_number: string };
     const [job] = await sql`insert into field_jobs (kind, vehicle_id, booking_id, scheduled_at, assigned_to, status, created_by)
-                            values ('handover', ${carId}, ${booking.booking_id}, ${pick.toISOString()}, ${field.id}, 'scheduled', ${admin.id}) returning id`;
+                            values ('handover', ${carId}, ${booking.booking_id}, ${new Date(Date.now() + 2 * 3600_000).toISOString()}, ${field.id}, 'scheduled', ${admin.id}) returning id`;
+    // field staff see a job only within 36 hours of its time (0031), so the handover job is set two hours out
 
     const rp = await page(browser, remail, '/account');
     await rp.goto(`/account/bookings/${encodeURIComponent(booking.booking_number)}`, { waitUntil: 'networkidle' });
