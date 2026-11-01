@@ -8,9 +8,10 @@ import { PORTAL_HOME, portalsFor, type PortalKey } from '@/server/portals';
 // Shared pieces of every portal's frame and refusal page: who is signed in, the portals that account has, and
 // Sign out (or Exit, while an Admin views as someone).
 
-/** Sign out, or, while an Admin views as someone, Exit (back to the Admin's own account). */
+/** Sign out. 0325: while an Admin views as someone the frame looks exactly as theirs (Sign out shown, and inert: it would
+ *  sign the Admin out); the way back is Exit on the red banner, the only thing view-as adds. */
 export async function SignOutOrExit({ className = 'btn btn--quiet btn--sm' }: { className?: string }) {
-  if (await viewAs()) return <form method="post" action="/api/view-as/exit"><button className={className} type="submit">Exit view</button></form>;
+  if (await viewAs()) return <button className={className} type="button" aria-disabled="true" title="Read only while viewing: use Exit on the red banner" data-testid="sign-out-viewing">Sign out</button>;
   return <form action={signOut}><button className={className} type="submit">Sign out</button></form>;
 }
 

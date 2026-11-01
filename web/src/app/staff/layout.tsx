@@ -10,7 +10,6 @@ import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { PushInvite } from '@/features/push/PushAlerts';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
-import { viewAs } from '@/server/view-as';
 import { switchFunction } from '@/server/actions/va';
 import { door, rolesOf } from '@/server/door';
 import { DoorProvider } from '@/features/admin/door';
@@ -25,7 +24,6 @@ import { HomeAddressCard, homeAddressOf } from '@/features/staff/HomeAddress';
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   const roles = user ? await rolesOf(user.id).catch(() => null) : null;
-  const viewing = await viewAs();
   const held = heldFunctions(roles?.functions?.length ? roles.functions : [...(roles?.va_functions ?? (roles?.va ? [roles.va] : [])), ...(roles?.field ? ['field'] : [])]);
   const office = !!roles?.va;
   const staff = office || !!roles?.field;
@@ -42,7 +40,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
       }
     }
     // the first sign-in (0059): the home address, asked on every page until it is in
-    needsAddress = !viewing && (await homeAddressOf(user.id, office ? 'va' : 'field')).missing;
+    // 0325: view-as shows the frame exactly as the person sees it (the card too while their address is missing)
+    needsAddress = (await homeAddressOf(user.id, office ? 'va' : 'field')).missing;
   }
   const portal = office ? 'va' : 'field';
   return (
@@ -51,9 +50,9 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         {staff && roles ? (
           <aside className="ad__rail">
             <div className="ad__who"><span className="muted">{office ? STAFF_FN_LABEL[roles.va!] : STAFF_FN_LABEL.field} · <b data-testid="account-email">{roles.name ?? user?.email}</b></span>
-              <span className="gd-frame-links"><Link prefetch={false} className="link" href={office ? '/staff/profile' : '/staff/field/profile'} data-testid="va-profile-link">Profile</Link>{!viewing && <AssistantPanel portal={portal} />}<GuideLink portal={portal} /><SignOutOrExit /></span></div>
+              <span className="gd-frame-links"><Link prefetch={false} className="link" href={office ? '/staff/profile' : '/staff/field/profile'} data-testid="va-profile-link">Profile</Link><AssistantPanel portal={portal} /><GuideLink portal={portal} /><SignOutOrExit /></span></div>
             <PortalSwitch current="va" />
-            {held.length > 1 && !viewing && (
+            {held.length > 1 && (
               <nav className="ad-fn" aria-label="Function" data-testid="fn-switch"><p className="small muted">Working as</p>
                 <ul className="ad-fn__list">{held.map((f) => (
                   <li key={f}>{f === 'field'

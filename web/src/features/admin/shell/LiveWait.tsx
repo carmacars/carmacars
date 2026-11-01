@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-// the same words as ago() in ../ui (kept here so this client file pulls in nothing else)
-const ago = (min: number) => (min < 60 ? `${min} min` : min < 1440 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${Math.floor(min / 1440)} d ${Math.floor((min % 1440) / 60)} h`);
+import { waitWords as ago } from '@/components/portal-ui/time';
+// 0324: the one humane format of waits everywhere (components/portal-ui/time.ts waitWords)
 
 /**
  * How long something has waited, kept current while the page is open (admin portal design, October 25, 2026): the

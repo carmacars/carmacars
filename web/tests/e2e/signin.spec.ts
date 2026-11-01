@@ -164,8 +164,9 @@ test('view as: an Admin opens each portal as one of its people, read only, recor
   await open('owner', owner, '/owner');
   await expect(page.getByTestId('view-as-banner')).toContainText(`Viewing as Olive Viewed (${owner.email}), read only.`);
   await expect(page.getByTestId('account-email')).toHaveText(owner.email);
-  await expect(page.getByRole('button', { name: 'Exit view' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Sign out' })).toHaveCount(0);
+  // 0325: the frame exactly as the owner sees it (Sign out shown, inert); Exit is on the red banner only
+  await expect(page.getByTestId('view-as-exit')).toBeVisible();
+  await expect(page.getByTestId('sign-out-viewing')).toHaveText('Sign out');
   // a write is refused: the save goes to the read-only page and nothing changes
   await page.goto('/owner/profile');
   await page.locator('#ow-pr-phone').fill('416-555-0199');
@@ -177,10 +178,10 @@ test('view as: an Admin opens each portal as one of its people, read only, recor
   const refused = await page.request.post('/owner/profile', { data: 'x', headers: { 'content-type': 'text/plain' } });
   expect(refused.status()).toBe(403);
   expect(await refused.text()).toMatch(/^Read only/);
-  // the staff portal in a function they cover; their switcher is not offered while viewing
+  // the staff portal in a function they cover; their switcher shows as they see it (0325), on the function viewed
   await open('va-fleet', va, '/staff');
   await expect(page.getByTestId('account-email')).toHaveText('Val Viewed');
-  await expect(page.getByTestId('fn-switch')).toHaveCount(0);
+  await expect(page.getByTestId('fn-switch')).toBeVisible();
   await expect(page.locator('.ad__who')).toContainText('Fleet');
   await open('field', field, '/staff/field');
   await expect(page.locator('h1').first()).toBeVisible();
@@ -335,5 +336,51 @@ test('links: an expired link and a password page without one offer a new link in
   expect((await sql`select count(*)::int n from audit_log where action = 'send_password_link' and entity_id = ${r.id}`)[0]!.n).toBe(1);
   expect((await sql`select count(*)::int n from local_auth.mailbox where to_email = ${r.email}`)[0]!.n).toBe(2);
   await page.context().close();
+  await sql.end();
+});
+
+// 0325: view-as renders exactly the person's portal: the same frame, menu, function and screens as their own sign-in,
+// plus only the red banner (with Exit). One Sales assistant and one customer service assistant with Fleet cover.
+test('view as matches the person\'s own sign-in: a Sales assistant and a customer service assistant', async ({ browser }, info) => {
+  test.setTimeout(240_000);
+  const phone = info.project.name.startsWith('phone');
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const admin = await mkPerson(sql, 'Ada Compare', ['admin']);
+  const sales = await mkPerson(sql, 'Sam Compare', ['va'], { va: 'sales' });
+  const cs = await mkPerson(sql, 'Cara Compare', ['va'], { va: 'cs', cover: ['fleet'] });
+  // what a screen shows, without the parts that tick (timers) or carry a per-request value
+  const snapshot = async (page: Page, url: string) => {
+    await page.goto(url, { waitUntil: 'networkidle' });
+    return page.evaluate(() => {
+      const text = (sel: string) => Array.from(document.querySelectorAll(sel)).map((e) => (e as HTMLElement).innerText.replace(/\s+/g, ' ').trim());
+      for (const t of Array.from(document.querySelectorAll('[role="timer"], .pu-timer, .ad-wait, time'))) t.remove();
+      return { rail: text('.ad__rail').join(' | '), headings: text('.ad__main h1, .ad__main h2').join(' | '), tests: Array.from(document.querySelectorAll('.ad__main [data-testid]')).map((e) => e.getAttribute('data-testid')).sort().join(',') };
+    });
+  };
+  for (const [who, fn] of [[sales, 'va-sales'], [cs, 'va-cs']] as const) {
+    const own = await newPage(browser, phone);
+    await signIn(own, who.email);
+    const urls = ['/staff', '/staff/tasks'];
+    const mine = [];
+    for (const u of urls) mine.push(await snapshot(own, u));
+    await own.context().close();
+    const page = await newPage(browser, phone);
+    await signIn(page, admin.email);
+    await page.goto(`/admin/portals?q=${encodeURIComponent(who.email)}`);
+    const form = page.getByTestId(`open-as-${fn}`);
+    await form.locator('select').selectOption(who.id);
+    await form.getByRole('button', { name: 'Open as this person' }).click();
+    await page.waitForURL((u) => u.pathname.startsWith('/staff'));
+    await expect(page.getByTestId('view-as-banner')).toContainText('read only');
+    for (const [i, u] of urls.entries()) {
+      const seen = await snapshot(page, u);
+      expect(seen.rail, `${who.email} ${u}: the frame and menu`).toBe(mine[i]!.rail);
+      expect(seen.headings, `${who.email} ${u}: the sections`).toBe(mine[i]!.headings);
+      expect(seen.tests, `${who.email} ${u}: the same pieces on the screen`).toBe(mine[i]!.tests);
+    }
+    await page.getByTestId('view-as-exit').click();
+    await page.context().close();
+  }
   await sql.end();
 });

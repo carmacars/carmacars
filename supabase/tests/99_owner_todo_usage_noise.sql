@@ -149,3 +149,30 @@ select test.eq('the frame and the roles carry it', (public.admin_gate(test.id('o
 select test.eq('emptied: the account''s name again', app.door(test.id('on_admin'), 'aal2', 'admin_do', 'my_greeting_save', '{"greeting_name": ""}') ->> 'greeting_name', null);
 select test.throws('at most 60 characters', format($$select app.my_greeting_save(%L, jsonb_build_object('greeting_name', repeat('x', 61)))$$, test.id('on_admin')), '60');
 select test.throws('Admins only through the door', $$select app.door(gen_random_uuid(), 'aal2', 'admin_read', 'my_profile', '{}')$$, '');
+
+-- ================================================================ 11. the staff queue (0325): one task per piece of work, closed with its booking
+select test.mk_vehicle('on_car', 'on_olive');
+select test.mk_renter('on_rita');
+select app.raise_task(p_type => 'visitor_follow_up', p_title => 'Call or message Rita: started a booking request for the car and stopped',
+  p_vehicle => test.id('vehicle:on_car'), p_renter => test.id('renter:on_rita'), p_queue => 'sales', p_dedupe => 'on:visit:1');
+select app.raise_task(p_type => 'visitor_follow_up', p_title => 'Call or message Rita: started a booking request for the car and stopped',
+  p_vehicle => test.id('vehicle:on_car'), p_renter => test.id('renter:on_rita'), p_queue => 'sales', p_dedupe => 'on:visit:2');
+select test.eq('the same follow-up from a second visit: one open task, the other merged',
+  (select count(*) filter (where status in ('open', 'in_progress', 'waiting')) || '/' || count(*) filter (where completion_note like 'Merged%')
+     from tasks where dedupe_key in ('on:visit:1', 'on:visit:2')), '1/1');
+-- an offer that expires soon, then accepted (the renter approved and the booking waits for payment)
+select test.mk_booking('ON-PAY', 'on_car', 'on_rita', to_char(now() at time zone 'America/Toronto' + interval '20 days', 'YYYY-MM-DD 10:00'),
+  to_char(now() at time zone 'America/Toronto' + interval '22 days', 'YYYY-MM-DD 10:00'), 'pending_payment');
+select app.raise_task(p_type => 'chase_offer', p_title => 'Booking ON-PAY: the offer expires soon', p_booking => test.id('booking:ON-PAY'), p_queue => 'sales', p_dedupe => 'on:chase');
+select app.raise_task(p_type => 'verify_renter', p_title => 'Check Rita''s licence for ON-PAY', p_booking => test.id('booking:ON-PAY'), p_queue => 'cs', p_dedupe => 'on:verify');
+select app.tasks_close_stale(now(), test.id('booking:ON-PAY'));
+select test.eq('the offer accepted: "expires soon" closes; the licence task stays (the booking is live)',
+  (select string_agg(task_type || '=' || status, ',' order by task_type) from tasks where dedupe_key in ('on:chase', 'on:verify')), 'chase_offer=done,verify_renter=open');
+update bookings set status = 'cancelled' where id = test.id('booking:ON-PAY');
+select test.eq('the booking cancelled: the licence task closes at once', (select status from tasks where dedupe_key = 'on:verify'), 'cancelled');
+-- a follow-up past the window
+select app.raise_task(p_type => 'visitor_follow_up', p_title => 'Reach out to Rita: viewing spree', p_renter => test.id('renter:on_rita'), p_queue => 'sales', p_dedupe => 'on:spree');
+update tasks set created_at = now() - interval '8 days' where dedupe_key = 'on:spree';
+select test.ok('the hourly hygiene closes a follow-up past 7 days', (app.job_task_hygiene() ->> 'follow_ups')::integer >= 1);
+select test.eq('and says why', (select status || '|' || left(completion_note, 33) from tasks where dedupe_key = 'on:spree'), 'cancelled|Closed by itself after 7 days: th');
+select test.ok('Licences to check: live bookings only', app.booking_live('confirmed') and app.booking_live('requested') and not app.booking_live('expired') and not app.booking_live('cancelled'));
