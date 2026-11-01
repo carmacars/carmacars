@@ -364,7 +364,7 @@ function Filmstrip({ pins, onOpen }: { pins: Pin[]; onOpen: (id: string) => void
     );
   };
   return (
-    <div className="lm-film" ref={box} aria-label="On the road" data-testid="lm-film">
+    <div className="lm-film" ref={box} role="region" aria-label="On the road" data-testid="lm-film">
       <h2 className="lm-h">On the road <span>{pins.length}</span></h2>
       {pins.length ? <div className="lm-film__win"><ul ref={row} className={`lm-film__row${roll ? ' is-rolling' : ''}`} style={{ ['--n' as string]: String(pins.length) }}>
         {pins.map((p) => item(p, false))}{roll && pins.map((p) => item(p, true))}
@@ -384,7 +384,7 @@ function Clock({ now }: { now: number }) {
 
 function Score({ p }: { p: Pin }) {
   // hot and warm are for leads; a renter's score shows plain (Release 26)
-  return <span className={`lm-score lm-score--${isLead(p) ? p.band : 'cold'}`} style={{ ['--p' as string]: String(p.score) }} aria-label={`Score ${p.score} of 100`}><span aria-hidden="true">{p.score}</span></span>;
+  return <span className={`lm-score lm-score--${isLead(p) ? p.band : 'cold'}`} style={{ ['--p' as string]: String(p.score) }} role="img" aria-label={`Score ${p.score} of 100`}><span aria-hidden="true">{p.score}</span></span>;
 }
 
 function Spotlight({ p, on }: { p: Pin; on: boolean }) {
