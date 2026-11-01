@@ -6,7 +6,7 @@ import { AskCommission, CopyLink, InviteOwner } from './SalesOwnersClient';
 // it) or start the application for them; the pipeline (invited, applied, approved, car live, first paid rental); and for
 // each owner the commission they ask for, which an Admin approves. Only their own owners, by name and car: no contact
 // details, terms or revenue of the owner.
-export type OwnerStage = 'invited' | 'lost' | 'applied' | 'declined' | 'approved' | 'car_live' | 'first_paid_rental';
+export type OwnerStage = 'invited' | 'lead' | 'lost' | 'applied' | 'declined' | 'approved' | 'car_live' | 'first_paid_rental';
 export interface OwnerRequest {
   id: string; status: 'pending' | 'approved' | 'declined'; kind: 'flat' | 'percent'; amount_cents: number | null; rate_bps: number | null; base: 'company_share' | 'car_revenue' | null;
   months: number | null; while_enrolled: boolean; note: string | null; asked: string; approved: string | null; changed: boolean; admin_note: string | null; decided_at: string | null;
@@ -15,10 +15,10 @@ export interface SalesOwnerRow { owner_id: string; name: string; since: string; 
   request: OwnerRequest | null; earned_cents: number; paid_cents: number }
 export interface SalesOwnersData {
   counts: Record<'invited' | 'applied' | 'approved' | 'car_live' | 'first_paid_rental', number>;
-  owners: SalesOwnerRow[]; invites: Array<{ lead_id: string; name: string; email: string; since: string; stage: 'invited' | 'lost' }>;
+  owners: SalesOwnerRow[]; invites: Array<{ lead_id: string; name: string; email: string; since: string; stage: 'invited' | 'lead' | 'lost' }>;
 }
 
-export const STAGE_LABEL: Record<OwnerStage, string> = { invited: 'Invited', lost: 'Closed', applied: 'Applied', declined: 'Application declined', approved: 'Approved', car_live: 'Car live', first_paid_rental: 'First paid rental' };
+export const STAGE_LABEL: Record<OwnerStage, string> = { invited: 'Invited', lead: 'Lead', lost: 'Closed', applied: 'Applied', declined: 'Application declined', approved: 'Approved', car_live: 'Car live', first_paid_rental: 'First paid rental' };
 const STEPS: Array<[keyof SalesOwnersData['counts'], string]> = [['invited', 'Invited'], ['applied', 'Applied'], ['approved', 'Approved'], ['car_live', 'Car live'], ['first_paid_rental', 'First paid rental']];
 
 const day = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' }).format(new Date(iso));
@@ -34,7 +34,7 @@ export function SalesOwners({ data, link }: { data: SalesOwnersData; link: strin
   const rows = [...data.invites.map((i) => ({ key: `l-${i.lead_id}`, invite: i, owner: null as SalesOwnerRow | null, since: i.since })),
     ...data.owners.map((o) => ({ key: `o-${o.owner_id}`, invite: null, owner: o, since: o.since }))].sort((a, b) => b.since.localeCompare(a.since));
   return (
-    <section className="pt-card ad-card so" aria-labelledby="so-title" data-testid="sales-owners">
+    <section className="pt-card ad-card so" id="owners" aria-labelledby="so-title" data-testid="sales-owners">
       <div className="pt-card__head"><h2 className="d4" id="so-title">Owners you bring in</h2></div>
       <p className="small muted so__lead">Invite a car owner or start their application. Each owner is credited to you; ask for your commission on each one and an Admin approves it.</p>
       <ol className="so-funnel" aria-label="Your owners by stage" data-testid="so-funnel">
@@ -51,8 +51,8 @@ export function SalesOwners({ data, link }: { data: SalesOwnersData; link: strin
             if (r.invite) return (
               <li key={r.key} className="so-row" data-testid="so-invite">
                 <div className="so-row__main"><b>{r.invite.name}</b><span className="small muted">{r.invite.email}</span></div>
-                <span className={`ad-pill${r.invite.stage === 'lost' ? ' ad-pill--red' : ''}`}>{r.invite.stage === 'lost' ? 'Closed' : 'Invited'}</span>
-                <div className="so-row__pay"><span className="small muted">Invitation sent {day(r.invite.since)}. Waiting for them to apply.</span></div>
+                <span className={`ad-pill${r.invite.stage === 'lost' ? ' ad-pill--red' : ''}`}>{STAGE_LABEL[r.invite.stage]}</span>
+                <div className="so-row__pay"><span className="small muted">{r.invite.stage === 'lead' ? `Your lead since ${day(r.invite.since)}. Not applied yet.` : `Invitation sent ${day(r.invite.since)}. Waiting for them to apply.`}</span></div>
               </li>);
             const o = r.owner!;
             const line = requestLine(o.request);

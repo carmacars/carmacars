@@ -3,6 +3,7 @@ select test.suite('99 owner pipeline');
 select test.mk_user('opl_admin', 'admin');
 select test.mk_user('opl_sales', 'va', 'sales');
 select test.mk_user('opl_fin', 'va', 'finance');
+select test.mk_user('opl_cs', 'va', 'cs');
 select test.mk_owner('opl_ref', 'OPLREF1');
 
 -- the website's owner form, with an owner's referral code
@@ -30,12 +31,13 @@ select app.job_owner_pipeline();
 select test.ok('a reply stops the follow-ups', exists (select 1 from leads l, opl where l.id = opl.id and l.followup_stop_reason = 'They replied' and l.replied_at is not null)
   and (select count(*) from notification_outbox o, opl where o.entity_id = opl.id) = 2);
 
--- a stage change stops them too; Sales moves a lead; Finance cannot
+-- a stage change stops them too; customer service moves a lead; Finance and Sales cannot (0342: Sales see only their own, on My sales)
 insert into leads (kind, name, email, source) values ('owner_program', 'Pat Prospect', 'pat.opl@example.test', 'web');
-select public.door(test.id('opl_sales'), 'aal2', 'va_do', 'owner_pipeline_save', jsonb_build_object('id', (select id from leads where email = 'pat.opl@example.test'), 'stage', 'call_booked', '_va', 'sales'));
-select test.ok('Sales moves a lead: the follow-ups stop', exists (select 1 from leads where email = 'pat.opl@example.test' and pipeline_stage = 'call_booked' and followup_stopped_at is not null and status = 'contacted'));
+select public.door(test.id('opl_cs'), 'aal2', 'va_do', 'owner_pipeline_save', jsonb_build_object('id', (select id from leads where email = 'pat.opl@example.test'), 'stage', 'call_booked', '_va', 'cs'));
+select test.ok('customer service moves a lead: the follow-ups stop', exists (select 1 from leads where email = 'pat.opl@example.test' and pipeline_stage = 'call_booked' and followup_stopped_at is not null and status = 'contacted'));
 select test.throws('Finance does not see the pipeline', format($s$select public.door(%L, 'aal2', 'va_read', 'owner_pipeline', '{"_va": "finance"}')$s$, test.id('opl_fin')));
-select test.ok('Sales reads the board', jsonb_array_length(public.door(test.id('opl_sales'), 'aal2', 'va_read', 'owner_pipeline', '{"_va": "sales"}') -> 'leads') >= 2);
+select test.ok('customer service reads the board', jsonb_array_length(public.door(test.id('opl_cs'), 'aal2', 'va_read', 'owner_pipeline', '{"_va": "cs"}') -> 'leads') >= 2);
+select test.throws('Sales does not see the whole pipeline (0342)', format($s$select public.door(%L, 'aal2', 'va_read', 'owner_pipeline', '{"_va": "sales"}')$s$, test.id('opl_sales')));
 
 -- a classified lead with no consent gets nothing
 insert into leads (kind, name, email, source, contact_kind) values ('owner_recruit', 'Kim Seller', 'kim.opl@example.test', 'classified', 'private_seller');

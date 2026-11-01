@@ -706,10 +706,12 @@ begin
              'paid_cents', coalesce((select sum(c.amount_cents) from staff_commissions c join owner_recruit_requests r on r.id = c.owner_recruit_request_id
                                        where r.owner_id = o.id and c.staff_id = v_staff and c.status = 'paid'), 0)) x
       from owners o where o.recruited_by = v_staff) q;
+  -- their invitations, and the open owner leads they added by hand or were given (the owner pipeline before 0342)
   select coalesce(jsonb_agg(jsonb_build_object('lead_id', l.id, 'name', l.name, 'email', l.email, 'since', l.created_at,
-                    'stage', case when l.pipeline_stage = 'lost' then 'lost' else 'invited' end) order by l.created_at desc), '[]'::jsonb) into v_invites
+                    'stage', case when l.pipeline_stage = 'lost' then 'lost' when l.sourced_by = v_staff then 'invited' else 'lead' end) order by l.created_at desc), '[]'::jsonb) into v_invites
     from leads l
-   where l.sourced_by = v_staff and l.kind = 'owner_program'
+   where (l.sourced_by = v_staff or (l.sourced_by is null and ((l.payload ->> 'added_by') = v_staff::text or l.assigned_to = v_staff))) and l.kind = 'owner_program'
+     and (l.sourced_by = v_staff or l.status in ('new', 'contacted', 'qualified'))
      and not exists (select 1 from owner_applications a where a.lead_id = l.id)
      and (l.owner_id is null or not exists (select 1 from owners o where o.id = l.owner_id and o.recruited_by = v_staff));
   return jsonb_build_object('staff_id', v_staff,

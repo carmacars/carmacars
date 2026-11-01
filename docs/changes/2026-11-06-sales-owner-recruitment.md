@@ -57,23 +57,59 @@ a percent for each owner they bring on". No amount is set anywhere by default: e
   invitations they sent), no terms, revenue or statements. Row security: their own requests and commissions only; no
   owner rows. Admins read anyone's (`admin_read sales_owners` with `staff`). Every write goes through the door and is
   checked in the database (Sales function, the owner theirs, Admin for decisions and reassignment).
-- **Unchanged:** the owner pipeline of 0217 (Owner pipeline for Sales and customer service) and the owner's own
-  application; an invited applicant sees nothing different.
+- **Unchanged:** the owner's own application; an invited applicant sees nothing different. (The owner pipeline: 0342 below.)
 - **The door:** `va_read sales_owners`; `va_do sales_owner_invite`, `sales_owner_commission_request`, and
   `staff_add_owner_car` / `staff_vehicle_document` from a Sales page (`as_sales`) or a person who is Sales only;
   `admin_read sales_owners`, `owner_recruit_requests`, `owner_sourced`; `admin_do owner_recruit_decide`,
   `owner_sourced_set`. An hourly job (`carmacars-owner-recruit`) re-checks every approved request; the triggers on
   bookings, payments, refunds, disputes, lines and splits do it at once.
 
-Files: `supabase/migrations/0340_sales_owner_recruitment.sql`, `0341_sales_owner_recruitment_guides.sql`
+## Sales see only their own owner leads (0342)
+
+The owner, viewing a salesperson's portal: "Darren sees an owner pipeline with shit I've never seen before". The owner
+pipeline (0217) and Owner leads (0031) showed every prospective owner, classified-ad leads included, with contact details,
+to anyone working as Sales.
+
+- The full owner pipeline is for Admins and customer service (a person who also works as customer service keeps it).
+  `/staff/owner-pipeline` sends anyone else to My sales (`#owners`); the Sales menu no longer lists it.
+- Sales see, of the owner leads, only the ones they invited (`sourced_by`), added (`payload.added_by`) or were given
+  (`assigned_to`: a website owner lead still goes to the least busy Sales person with its task). They are on My sales,
+  Owners you bring in. The Sales "Owner leads" screen is now **Buyer leads** (buyer leads only).
+- Enforced in the database: `va_read owner_pipeline` and `va_do owner_pipeline_*` refuse Sales; `va_read owner_leads`
+  returns only their leads and the applications of owners they brought in; `va_list leads` leaves out every other owner
+  lead; `va_do lead_update` refuses one; row security on `leads` (policies `sales_read`, `sales_update`) does the same.
+
+## Test accounts never get real leads, owners or tasks; leads nobody followed up (0343)
+
+On production two website owner leads (October 27 and 28) were assigned to the live verification's accounts ("Verify
+Invitation", "Verify Sales") and said "Follow-ups stopped: On file before the automatic follow-ups".
+
+- One rule for a test account (`app.staff_is_test`, widened; `app.email_is_test`): an address `verify-...@carmacars.ca`,
+  an address in `site_settings.admin_test_emails`, the invitation check's `...+verify-...@` addresses and the
+  `resend.dev` test inbox.
+- Never picked: a new owner lead given to a test account goes to the least busy real Sales person, or stays unassigned;
+  a test account is never "sourced by" on a real lead, owner or application, nor assigned a task about a real lead or
+  owner (triggers on `leads`, `owners`, `owner_applications`, `tasks`); the invitation credit refuses one. The
+  verification's own test leads and test owners keep their test accounts.
+- Clean-up on deploy (`app.clear_test_account_credit`): real leads, owners, applications and open tasks held by a test
+  account become unassigned.
+- The owner leads on file before the automatic follow-ups that nobody moved get an Admin To do task "Follow up now"
+  (high, once per lead; `app.owner_leads_follow_up_now`), and say "an Admin follows up (To do)".
+- Not changed: bookings credited to a test account (the verification's own bookings).
+
+Files: `supabase/migrations/0340_sales_owner_recruitment.sql`, `0341_sales_owner_recruitment_guides.sql`, `0342_sales_owner_leads_scope.sql`,
+`0343_test_accounts_never_credited.sql`
 (`supabase/seed/0341_gen_guides.mjs`), `web/src/features/sales/SalesOwners.tsx`, `SalesOwnersClient.tsx`,
 `web/src/server/actions/sales-owners.ts`, `web/src/app/staff/my-sales/page.tsx`, `web/src/app/staff/owners/add-car/page.tsx`,
 `web/src/features/owner-billing/AddOwnerCar.tsx`, `web/src/app/list-your-car/apply/page.tsx`, `web/src/server/actions/apply.ts`,
 `web/src/app/admin/money/commissions/page.tsx`, `web/src/app/admin/owners/[id]/page.tsx`, `web/src/features/sales/Commissions.tsx`.
-Tests: `supabase/tests/99_sales_owner_recruitment.sql`, `web/tests/e2e/r26-sales-owners.spec.ts`.
+Tests: `supabase/tests/99_sales_owner_recruitment.sql`, `99_test_accounts_never_credited.sql`, `99_owner_pipeline.sql`,
+`web/tests/e2e/r26-sales-owners.spec.ts`, `release-22.spec.ts`.
 
 ## Guides
 
 - `va/sales`: Owners you bring in; Ask for your commission on an owner.
 - `va/commissions`: the line for an owner you bring in.
 - `admin/owner-money`: Owner requests; Sourced by.
+- `admin/advertising-and-owner-recruitment`: the pipeline is customer service's; test accounts; Follow up now.
+- `va/your-workday`, `va/customer-service`, `va/quick-reference`: Buyer leads for Sales.

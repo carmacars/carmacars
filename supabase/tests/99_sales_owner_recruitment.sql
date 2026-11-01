@@ -152,11 +152,35 @@ select test.eq('Ana''s pipeline counts', (select (c ->> 'invited') || '/' || (c 
 select test.throws('another person''s pipeline: Admins only', format($$select app.door(%L, 'aal2', 'admin_read', 'sales_owners', jsonb_build_object('staff', %L))$$, test.id('sor_ana'), test.id('sor_ben')), '%admin%');
 select test.eq('Admin reads Ben''s pipeline', (select string_agg(e ->> 'name', ',') from jsonb_array_elements(app.door(test.id('sor_admin'), 'aal2', 'admin_read', 'sales_owners', jsonb_build_object('staff', test.id('sor_ben'))) -> 'owners') e), 'Sor Tom');
 select test.throws('customer service has no Sales owner list', format($$select app.door(%L, 'aal2', 'va_read', 'sales_owners', '{}')$$, test.id('sor_cs')), '%Sales staff only%');
+-- ================================================================ 7. owner leads: Sales see only their own (0342); customer service the whole pipeline
+insert into leads (kind, name, email, source) values ('owner_program', 'Wes Website', 'sor_web@example.test', 'web');
+insert into leads (kind, name, email, source, contact_kind) values ('owner_recruit', 'Cal Classified', 'sor_cal@example.test', 'classified', 'private_seller');
+insert into leads (kind, name, email, source, payload) values ('owner_program', 'Ada Added', 'sor_added@example.test', 'manual', jsonb_build_object('added_by', test.id('sor_ana')));
+insert into leads (kind, name, email, source) values ('buyer', 'Bo Buyer', 'sor_buyer@example.test', 'web');
+select test.throws('the owner pipeline: not for Sales', format($$select app.door(%L, 'aal2', 'va_read', 'owner_pipeline', '{"_va": "sales"}')$$, test.id('sor_ana')), '%Customer service%');
+select test.throws('the owner pipeline: Sales cannot add to it', format($$select app.door(%L, 'aal2', 'va_do', 'owner_pipeline_add', '{"name": "X", "email": "sor_x@example.test", "_va": "sales"}')$$, test.id('sor_ana')), '%Customer service%');
+select test.ok('the owner pipeline: customer service keeps every lead', (select count(*) from jsonb_array_elements(app.door(test.id('sor_cs'), 'aal2', 'va_read', 'owner_pipeline', '{"_va": "cs"}') -> 'leads') e
+  where e ->> 'email' in ('sor_web@example.test', 'sor_cal@example.test')) = 2);
+select test.eq('Owner leads (va_read): Sales get only their own leads', (select string_agg(e ->> 'email', ',' order by e ->> 'email')
+  from jsonb_array_elements(app.door(test.id('sor_ana'), 'aal2', 'va_read', 'owner_leads', '{"_va": "sales"}') -> 'leads') e), 'sor_added@example.test');
+select test.ok('Owner leads (va_read): only the applications of owners they brought in', not exists (select 1 from jsonb_array_elements(app.door(test.id('sor_ana'), 'aal2', 'va_read', 'owner_leads', '{"_va": "sales"}') -> 'applications') e
+  where e ->> 'owner_name' not in (select legal_name from owners where recruited_by = test.id('sor_ana'))));
+select test.ok('Owner leads (va_read): customer service sees them all', (select count(*) from jsonb_array_elements(app.door(test.id('sor_cs'), 'aal2', 'va_read', 'owner_leads', '{"_va": "cs"}') -> 'leads') e
+  where e ->> 'email' = 'sor_web@example.test') = 1);
+select test.eq('Leads list (va_list): no owner lead for Sales, buyers still listed', (select count(*) filter (where r ->> 'kind' in ('owner_program', 'owner_recruit')) || '/' || count(*) filter (where r ->> 'email' = 'sor_buyer@example.test')
+  from jsonb_array_elements(app.door(test.id('sor_ana'), 'aal2', 'va_list', 'leads', '{"_va": "sales", "limit": 500}') -> 'rows') r), '0/1');
+select test.eq('Leads list (va_list): asking for owner leads gives none', (app.door(test.id('sor_ana'), 'aal2', 'va_list', 'leads', '{"_va": "sales", "eq": {"kind": ["owner_program"]}}') ->> 'count')::int, 0);
+select test.throws('lead update: Sales cannot touch another owner lead', format($$select app.door(%L, 'aal2', 'va_do', 'lead_update', jsonb_build_object('id', (select id from leads where email = 'sor_web@example.test'), 'take', true, '_va', 'sales'))$$, test.id('sor_ana')), '%not found%');
+select test.ok('lead update: Sales update their own', (app.door(test.id('sor_ana'), 'aal2', 'va_do', 'lead_update', jsonb_build_object('id', (select id from leads where email = 'sor_added@example.test'), 'status', 'contacted', '_va', 'sales')) ->> 'id') is not null);
+select test.eq('My sales: the lead they added is there', (select string_agg(e ->> 'name' || ':' || (e ->> 'stage'), ',') from jsonb_array_elements(app.door(test.id('sor_ana'), 'aal2', 'va_read', 'sales_owners', '{}') -> 'invites') e), 'Ada Added:lead');
 select set_config('request.jwt.claim.sub', test.id('sor_ana')::text, false);
 set role authenticated;
 select test.eq('row security: Ana reads her own requests and commissions only, and no owner records',
   (select count(*) from owner_recruit_requests where staff_id <> test.id('sor_ana')) || '/' || (select count(*) from staff_commissions where staff_id <> test.id('sor_ana'))
   || '/' || ((select count(*) from owner_recruit_requests) > 0) || '/' || test.visible($$select 1 from owners where id = '$$ || test.id('owner:sor_tom') || $$'$$) , '0/0/true/' || '0');
+select test.eq('row security: Sales read the owner leads they invited or added, no other owner lead; other leads as before',
+  (select count(*) from leads where kind in ('owner_program', 'owner_recruit')) || '/' || (select count(*) from leads where email = 'sor_buyer@example.test'), '2/1');
+select test.eq('row security: Sales cannot update another owner lead', test.affected($$update leads set status = 'contacted' where email = 'sor_web@example.test'$$), 0::bigint);
 select test.throws('row security: a browser session writes no request', $$insert into owner_recruit_requests (owner_id, staff_id, kind, amount_cents) values ((select id from owners limit 1), app.uid(), 'flat', 100)$$);
 reset role;
 select set_config('request.jwt.claim.sub', '', false);

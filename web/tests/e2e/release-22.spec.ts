@@ -156,6 +156,8 @@ test('owner pipeline: Admin adds a lead and moves it; Sales sees the board; the 
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
   const admin = await mkUser(sql, 'admin');
+  // 0342: the full owner pipeline is customer service's; Sales see only their own owners, on My sales
+  const cs = await mkUser(sql, 'va', 'cs');
   const sales = await mkUser(sql, 'va', 'sales');
   const who = `Olive Owner ${tag()}`;
   const ap = await ctx(browser, phone);
@@ -185,11 +187,16 @@ test('owner pipeline: Admin adds a lead and moves it; Sales sees the board; the 
 
   const sp = await ctx(browser, phone);
   const serr = watch(sp);
-  await signIn(sp, sales.email, '/staff');
+  await signIn(sp, cs.email, '/staff');
   await sp.goto('/staff/owner-pipeline', { waitUntil: 'networkidle' });
   await expect(sp.getByTestId('op-col-call_booked')).toContainText(who);
   await expect(sp.getByTestId('op-credits')).toHaveCount(0);
   await check(sp, 'staff owner pipeline');
   expect(quiet(serr)).toEqual([]);
+  const sa = await ctx(browser, phone);
+  await signIn(sa, sales.email, '/staff');
+  await sa.goto('/staff/owner-pipeline', { waitUntil: 'networkidle' });
+  await sa.waitForURL('**/staff/my-sales**');
+  await expect(sa.getByText(who)).toHaveCount(0);
   await sql.end();
 });
