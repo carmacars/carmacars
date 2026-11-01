@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>200 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>78</span></a><a href="#owner">Owner <span>46</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>12</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>204 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>82</span></a><a href="#owner">Owner <span>46</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>12</span></a></nav>
 <main>
-<h2 id="renter">Renter (78)</h2>
+<h2 id="renter">Renter (82)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -107,7 +107,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_booking_reminder.html"><img loading="lazy" src="../shots/renter_booking_reminder.desktop.png" alt="Screenshot of renter_booking_reminder"></a><div class="b">
 <div class="code">renter_booking_reminder</div><div class="sub">Tomorrow: your 2024 Honda Civic Sport at 10:00 am</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Hourly reminders job: booking status is confirmed and the pickup time is 24 hours away. Sent once. (Message template T5.)</div>
+<div class="tr">Reminders job (every 5 minutes): booking status is confirmed and the pickup time is 24 hours away. Sent once per pickup time. Not sent when the pickup is already inside the 2 hours of renter_pickup_soon (migration 0430). (Message template T5.)</div>
 <div class="ln"><a href="../dist/renter_booking_reminder.html">HTML</a><a href="../dist/renter_booking_reminder.txt">Text</a><a href="../shots/renter_booking_reminder.desktop.png">Desktop</a><a href="../shots/renter_booking_reminder.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_breakdown_help.html"><img loading="lazy" src="../shots/renter_breakdown_help.desktop.png" alt="Screenshot of renter_breakdown_help"></a><div class="b">
@@ -293,13 +293,13 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_late_return_final.html"><img loading="lazy" src="../shots/renter_late_return_final.desktop.png" alt="Screenshot of renter_late_return_final"></a><div class="b">
 <div class="code">renter_late_return_final</div><div class="sub">Final notice: return the 2024 Honda Civic Sport by 1:05 pm today</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Late-returns job: the booking is 2 hours past its return time, still on_rent, with no paid extension. The deadline shown is 1 hour after this email is sent. (Message template T14.)</div>
+<div class="tr">Reminders job (every 5 minutes): the booking is 2 hours past its return time (late_admin_minutes), still out (on rent, or confirmed with no handover recorded, migration 0430), with no paid extension, and T13 went at least 30 minutes ago. Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. The deadline shown is 1 hour after this email is sent. (Message template T14.)</div>
 <div class="ln"><a href="../dist/renter_late_return_final.html">HTML</a><a href="../dist/renter_late_return_final.txt">Text</a><a href="../shots/renter_late_return_final.desktop.png">Desktop</a><a href="../shots/renter_late_return_final.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_late_return_first.html"><img loading="lazy" src="../shots/renter_late_return_first.desktop.png" alt="Screenshot of renter_late_return_first"></a><div class="b">
 <div class="code">renter_late_return_first</div><div class="sub">Your rental ended at 10:00 am. Please return the car now</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Late-returns job (every 5 minutes): the return time has passed, booking status is still on_rent and no paid extension covers the time. Sent once, at 0 minutes late. (Message template T13.)</div>
+<div class="tr">Reminders job (every 5 minutes): the return time has passed, the booking is still out (on rent, or confirmed with its pickup time passed and no handover recorded, migration 0430) and no paid extension covers the time. Sent once per return time, 15 minutes late (notify_late_first_minutes; renter_return_due goes at the return time). Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. (Message template T13.)</div>
 <div class="ln"><a href="../dist/renter_late_return_first.html">HTML</a><a href="../dist/renter_late_return_first.txt">Text</a><a href="../shots/renter_late_return_first.desktop.png">Desktop</a><a href="../shots/renter_late_return_first.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_named_to_authority.html"><img loading="lazy" src="../shots/renter_named_to_authority.desktop.png" alt="Screenshot of renter_named_to_authority"></a><div class="b">
@@ -349,6 +349,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">The pickup field job for a confirmed booking has an assigned staff member and the pickup is 3 hours away. Sent earlier, at once, if the job is assigned inside that window, and sent again if the place, time or staff member changes after sending.</div>
 <div class="ln"><a href="../dist/renter_pickup_details.html">HTML</a><a href="../dist/renter_pickup_details.txt">Text</a><a href="../shots/renter_pickup_details.desktop.png">Desktop</a><a href="../shots/renter_pickup_details.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_pickup_soon.html"><img loading="lazy" src="../shots/renter_pickup_soon.desktop.png" alt="Screenshot of renter_pickup_soon"></a><div class="b">
+<div class="code">renter_pickup_soon</div><div class="sub">See you at 2:00 pm today: your 2024 Honda Civic Sport</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Reminders job (every 5 minutes, migration 0430): a confirmed booking whose pickup is about 2 hours away (Program settings, notify_pickup_soon_hours) and not yet handed over. Sent once per pickup time, so again after the pickup moves. Only between 7 am and 10 pm Toronto time; an earlier pickup has the day-before reminder only. Off with notify_pickup_soon.</div>
+<div class="ln"><a href="../dist/renter_pickup_soon.html">HTML</a><a href="../dist/renter_pickup_soon.txt">Text</a><a href="../shots/renter_pickup_soon.desktop.png">Desktop</a><a href="../shots/renter_pickup_soon.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_promo_expiry_1d.html"><img loading="lazy" src="../shots/renter_promo_expiry_1d.desktop.png" alt="Screenshot of renter_promo_expiry_1d"></a><div class="b">
 <div class="code">renter_promo_expiry_1d</div><div class="sub">Your 15% off code ends tomorrow</div>
@@ -434,11 +440,23 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">The return field job of an on_rent booking has its place, time or assigned staff member changed after renter_return_reminder was sent, or is first assigned inside the last 24 hours before return.</div>
 <div class="ln"><a href="../dist/renter_return_details.html">HTML</a><a href="../dist/renter_return_details.txt">Text</a><a href="../shots/renter_return_details.desktop.png">Desktop</a><a href="../shots/renter_return_details.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/renter_return_due.html"><img loading="lazy" src="../shots/renter_return_due.desktop.png" alt="Screenshot of renter_return_due"></a><div class="b">
+<div class="code">renter_return_due</div><div class="sub">Your booking ended at 10:00 am</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Reminders job (every 5 minutes, migration 0430): the return time of a booking that is out has come and no return is recorded. Sent once per return time, in the first 15 minutes (T13 follows at 15 minutes late). Only between 7 am and 10 pm Toronto time. Off with notify_return_due.</div>
+<div class="ln"><a href="../dist/renter_return_due.html">HTML</a><a href="../dist/renter_return_due.txt">Text</a><a href="../shots/renter_return_due.desktop.png">Desktop</a><a href="../shots/renter_return_due.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/renter_return_reminder.html"><img loading="lazy" src="../shots/renter_return_reminder.desktop.png" alt="Screenshot of renter_return_reminder"></a><div class="b">
 <div class="code">renter_return_reminder</div><div class="sub">Your rental ends tomorrow at 10:00 am</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Hourly reminders job: booking status is on_rent and the return time is 24 hours away. Sent once per return time, so it is sent again after an extension moves the return. (Message template T6.)</div>
+<div class="tr">Reminders job (every 5 minutes): the booking is out (on rent, or confirmed with its pickup time passed and no handover recorded, migration 0430) and the return time is 24 hours away. Sent once per return time, so it is sent again after an extension moves the return. Not sent when the return is already inside the 3 hours of renter_return_soon. (Message template T6.)</div>
 <div class="ln"><a href="../dist/renter_return_reminder.html">HTML</a><a href="../dist/renter_return_reminder.txt">Text</a><a href="../shots/renter_return_reminder.desktop.png">Desktop</a><a href="../shots/renter_return_reminder.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_return_soon.html"><img loading="lazy" src="../shots/renter_return_soon.desktop.png" alt="Screenshot of renter_return_soon"></a><div class="b">
+<div class="code">renter_return_soon</div><div class="sub">Your rental ends at 5:00 pm</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Reminders job (every 5 minutes, migration 0430): a booking that is out (on rent, or confirmed with its pickup time passed and no handover recorded) has its return about 3 hours away (notify_return_soon_hours). Sent once per return time, so again after an extension moves it. Only between 7 am and 10 pm Toronto time. Off with notify_return_soon.</div>
+<div class="ln"><a href="../dist/renter_return_soon.html">HTML</a><a href="../dist/renter_return_soon.txt">Text</a><a href="../shots/renter_return_soon.desktop.png">Desktop</a><a href="../shots/renter_return_soon.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_review_ask.html"><img loading="lazy" src="../shots/renter_review_ask.desktop.png" alt="Screenshot of renter_review_ask"></a><div class="b">
 <div class="code">renter_review_ask</div><div class="sub">How was the 2024 Honda Civic Sport?</div>
@@ -487,6 +505,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">Review requests (migration 0138, app.job_review_requests every 10 minutes): booking status is on_rent, the rental is at least review_checkin_min_days long (2 by default) and review_checkin_after_hours (24 by default) have passed since the pickup, never in the last 6 hours before the return. Only from review_send_from_hour to review_send_until_hour Toronto time (9 am to 9 pm by default). A service message about the rental in progress: it asks for no review. Once per booking.</div>
 <div class="ln"><a href="../dist/renter_trip_checkin.html">HTML</a><a href="../dist/renter_trip_checkin.txt">Text</a><a href="../shots/renter_trip_checkin.desktop.png">Desktop</a><a href="../shots/renter_trip_checkin.phone.png">Phone</a></div>
+</div></div>
+<div class="c"><a class="th" href="../dist/renter_trip_started.html"><img loading="lazy" src="../shots/renter_trip_started.desktop.png" alt="Screenshot of renter_trip_started"></a><div class="b">
+<div class="code">renter_trip_started</div><div class="sub">You're all set with the 2024 Honda Civic Sport</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Reminders job (every 5 minutes, migration 0430): the pickup time of a confirmed booking passed 30 minutes ago (notify_pickup_unrecorded_minutes) and the handover was not recorded, so the rental-started email has not gone. The car is treated as out. Sent once per pickup time, never after renter_rental_started. Off with notify_trip_started.</div>
+<div class="ln"><a href="../dist/renter_trip_started.html">HTML</a><a href="../dist/renter_trip_started.txt">Text</a><a href="../shots/renter_trip_started.desktop.png">Desktop</a><a href="../shots/renter_trip_started.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_vehicle_disabled.html"><img loading="lazy" src="../shots/renter_vehicle_disabled.desktop.png" alt="Screenshot of renter_vehicle_disabled"></a><div class="b">
 <div class="code">renter_vehicle_disabled</div><div class="sub">Your rental has ended and the 2024 Honda Civic Sport will not restart</div>

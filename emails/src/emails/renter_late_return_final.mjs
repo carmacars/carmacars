@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'Late-returns job: the booking is 2 hours past its return time, still on_rent, with no paid extension. The deadline shown is 1 hour after this email is sent. (Message template T14.)',
+  trigger: 'Reminders job (every 5 minutes): the booking is 2 hours past its return time (late_admin_minutes), still out (on rent, or confirmed with no handover recorded, migration 0430), with no paid extension, and T13 went at least 30 minutes ago. Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. The deadline shown is 1 hour after this email is sent. (Message template T14.)',
   timing: '2 hours after the return time',
   source: 'T14',
   subject: 'Final notice: return the {{vehicle_name}} by {{final_deadline}}',

@@ -16,7 +16,7 @@ language sql as $$ select app.process_events(100000) $$;
 
 -- ================================================================== A. catalogue
 select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '200/6');
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '204/10');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -242,11 +242,15 @@ select test.eq('D 25 hours before the return: no reminder', test.ev('renter_retu
 select app.notify_reminders(test.at('2031-05-31 18:30'));
 select app.notify_reminders(test.at('2031-05-31 19:00'));
 select test.eq('D inside 24 hours: one return reminder', test.ev('renter_return_reminder', test.id('booking:NT-5')), 1::bigint);
+select app.notify_reminders(test.at('2031-06-01 15:30'));
+select test.eq('D about 3 hours before the return (0430): "your rental ends at 6:00 pm", once', test.ev('renter_return_soon', test.id('booking:NT-5')), 1::bigint);
 select app.notify_reminders(test.at('2031-06-01 18:01'));
 select app.notify_reminders(test.at('2031-06-01 18:06'));
-select test.eq('D at the return time: the first late notice to the renter and the 0-minute alert to fleet, once',
-  test.ev('renter_late_return_first', test.id('booking:NT-5')) || '/' || test.ev('staff_late_return_alert', test.id('booking:NT-5')) || '/'
-  || test.ev('renter_late_return_final', test.id('booking:NT-5')), '1/1/0');
+select test.eq('D at the return time: the return time notice to the renter (0430) and the 0-minute alert to fleet, once; T13 waits for 15 minutes',
+  test.ev('renter_return_due', test.id('booking:NT-5')) || '/' || test.ev('renter_late_return_first', test.id('booking:NT-5')) || '/'
+  || test.ev('staff_late_return_alert', test.id('booking:NT-5')) || '/' || test.ev('renter_late_return_final', test.id('booking:NT-5')), '1/0/1/0');
+select app.notify_reminders(test.at('2031-06-01 18:16'));
+select test.eq('D 15 minutes late: the first late notice to the renter (T13), once', test.ev('renter_late_return_first', test.id('booking:NT-5')), 1::bigint);
 select app.notify_reminders(test.at('2031-06-01 18:31'));
 select test.eq('D at 30 minutes: the second fleet alert', test.ev('staff_late_return_alert', test.id('booking:NT-5')), 2::bigint);
 select app.notify_reminders(test.at('2031-06-01 20:01'));
@@ -826,6 +830,8 @@ begin
      from job_applications a where a.email = 'nt.referred@example.test';
   perform app.hiring_day_delete(test.id('nt_admin'), jsonb_build_object('id', v_day ->> 'id'));
 end $$;
+-- "you're all set" when nobody recorded the pickup (0430; its timing is tested in 99_booking_moments)
+select app.ntf_emit('renter_trip_started', 'booking', test.id('booking:NT-5'), 'nt', jsonb_build_object('booking_id', test.id('booking:NT-5')));
 -- the rewards expiry reminder (0214)
 select app.emit_event('renter_rewards_expiring', 'renter', test.id('renter:nt_rita'), jsonb_build_object('renter_id', test.id('renter:nt_rita'), 'points_balance', '1,240',
   'points_value', '$12.40', 'expiry_date', 'Mon, Dec 7, 2026', 'rewards_url', 'https://carmacars.ca/account/rewards'), 'nt:rewards_expiring');

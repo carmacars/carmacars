@@ -1,0 +1,38 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Trip started]
+You're all set, {{first_name}}
+
+Enjoy the {{vehicle_name}}. Here is what to keep in mind for your trip.
+
+View my trip:
+https://carmacars.ca/account/bookings/{{booking_number}}
+
+Return by: {{return_date}}, {{return_time}}
+Return place: {{return_place}}
+
+- Bring the car back with the same fuel or charge, and all keys.
+- You have {{km_allowance}} included. Extra kilometres are {{overage_rate}} each.
+- Only drivers named on the agreement may drive.
+- Need more time? Ask to extend (https://carmacars.ca/account/bookings/{{booking_number}}/extend) before your return time.
+
+IMPORTANT: Breakdown or accident
+Call our 24-hour line at {{roadside_phone}}. If anyone is hurt, call 911 first.
+
+Your trip details are on your booking page any time.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}
