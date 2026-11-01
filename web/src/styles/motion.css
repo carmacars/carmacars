@@ -195,3 +195,77 @@
 .field--float:has(> .pw > .input:not(:placeholder-shown)) > .label,
 .field--float:has(> .pw > .input:autofill) > .label { transform: translateY(-0.72rem) scale(0.78); color: var(--black); font-weight: 600; }
 .field--float:has(> .pw) > .label { max-width: calc(100% - 5.5rem); }
+
+/* ---------- 2026-11-06: the car card's photos, card and button shine, gallery zoom, hero settle, booking feedback
+   (docs/changes/2026-11-06-stale-chunks-car-card-photos.md). Same rules as above: transform and opacity only, fixed
+   geometry (the progress segments never change size, so nothing shifts), nothing moves under reduced motion. ---------- */
+/* the deck: the car's other photos over the cover, filled on first hover by src/lib/card-photos.ts */
+.car-card__deck { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.car-card__deck > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.car-card__deck > img.is-on { opacity: 1; }
+.car-card__dots { position: absolute; z-index: 2; left: 0; right: 0; bottom: 12px; display: flex; justify-content: center; gap: 4px; opacity: 0; }
+.car-card.is-cycling .car-card__dots, .car-card.is-swiped .car-card__dots { opacity: 1; }
+.car-card__dots > i { position: relative; width: 16px; height: 3px; border-radius: 2px; overflow: hidden; background: rgb(255 255 255 / 0.42); box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.12); }
+.car-card__dots > i::after { content: ""; position: absolute; inset: 0; background: var(--white); transform: scaleX(0); transform-origin: left; }
+.car-card__dots > i.is-on::after, .car-card__dots > i.is-past::after { transform: none; }
+/* a card in a grid takes a sideways swipe for its photos; the page still scrolls and zooms */
+.fleet-grid .car-card { touch-action: pan-y pinch-zoom; }
+.gallery__track > li { overflow: hidden; }
+.nav-progress { box-shadow: 0 0 10px rgb(208 17 27 / 0.55); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .car-card__deck > img { transition: opacity 480ms var(--ease-out); }
+  .car-card__dots { transition: opacity var(--t-2) var(--ease); }
+  .car-card.is-cycling .car-card__dots > i.is-on::after { animation: seg-fill 900ms linear both; }
+
+  /* the shine: one soft band of light across the photo as the pointer arrives */
+  .car-card__deck::after { content: ""; position: absolute; z-index: 1; inset: 0; background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.14) 50%, transparent 62%); transform: translateX(-110%); }
+
+  @media (hover: hover) and (pointer: fine) {
+    .car-card:hover { transform: translateY(-3px); }
+    .car-card__media { transition: box-shadow var(--t-3) var(--ease); }
+    .car-card:hover .car-card__media { box-shadow: 0 22px 40px -28px rgb(0 0 0 / 0.6); }
+    .car-card:hover .car-card__deck::after { transform: translateX(110%); transition: transform 1100ms var(--ease-out); }
+    .car-card:active { transform: translateY(-1px) scale(0.99); }
+
+    /* the primary button: the same band of light on hover */
+    .btn--primary { background-image: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / 0.2) 50%, transparent 60%); background-size: 250% 100%; background-repeat: no-repeat; background-position: 130% 0;
+      transition: background-color var(--t-1), border-color var(--t-1), color var(--t-1), transform 160ms var(--ease-out), box-shadow var(--t-2) var(--ease); }
+    .btn--primary:hover:not([disabled]):not([aria-disabled="true"]) { background-position: -30% 0;
+      transition: background-color var(--t-1), border-color var(--t-1), color var(--t-1), background-position 900ms var(--ease-out), transform 160ms var(--ease-out), box-shadow var(--t-2) var(--ease); }
+
+    /* the car page's photo: a small zoom toward the pointer (Gallery sets --zx and --zy) */
+    .gallery__track > li > img { transform-origin: var(--zx, 50%) var(--zy, 50%); transition: scale 700ms var(--ease-out), transform-origin 260ms var(--ease-out); }
+    .gallery__track > li:hover > img { scale: 1.1; }
+  }
+
+  /* the home page photo settles in as the page opens (scale only: the LCP image is never faded) */
+  .hero__media img { animation: hero-settle 1.8s var(--ease-out) both; }
+  @supports (animation-timeline: scroll()) {
+    .hero__media img { animation: hero-out linear both, hero-settle 1.8s var(--ease-out) both; animation-timeline: scroll(root), auto; animation-range: 0 90vh, normal; }
+  }
+
+  /* booking: the days between the dates fill in, the price lines arrive in turn, a changing total runs in red */
+  .cal__day.is-in { animation: range-in 320ms var(--ease-out) backwards; }
+  .estimate__lines tbody tr { animation: line-in 380ms var(--ease-out) backwards; }
+  .estimate__lines tbody tr:nth-child(2) { animation-delay: 40ms; }
+  .estimate__lines tbody tr:nth-child(3) { animation-delay: 80ms; }
+  .estimate__lines tbody tr:nth-child(n + 4) { animation-delay: 120ms; }
+  .estimate__lines tfoot td b, .bookbar__price b { transition: color 360ms var(--ease); }
+  .estimate__lines tfoot td b[data-moving], .bookbar__price b[data-moving] { color: var(--red-600); }
+}
+
+/* the phone number box: a gentle rise with a small overshoot, the title a beat later */
+@media (prefers-reduced-motion: no-preference) {
+  dialog.pgate[open] { animation: pgate-in 420ms var(--ease-spring); }
+  dialog.pgate[open] .pgate__title { animation: pgate-title 520ms var(--ease-out) 80ms backwards; }
+  .pgate__field.is-ok .pgate__state { animation: pop-in 260ms var(--ease-spring); }
+  @media (max-width: 43.99rem) { dialog.pgate[open] { animation: sheet-up 380ms var(--ease-out); } }
+}
+@media (prefers-reduced-motion: reduce) { .pgate__spin { animation-duration: 1.6s; } }
+@keyframes pgate-in { from { opacity: 0; transform: translateY(18px) scale(0.96); } }
+@keyframes pgate-title { from { opacity: 0; transform: translateY(6px); } }
+@keyframes seg-fill { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes hero-settle { from { scale: 1.07; } }
+@keyframes range-in { from { background-color: transparent; } }
+@keyframes line-in { from { opacity: 0; transform: translateY(6px); } }

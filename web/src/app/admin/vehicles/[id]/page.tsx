@@ -98,6 +98,9 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
             <div className="ad-actions">
               {ls?.can_insure && <InsurerConfirm vehicleId={id} name={v.name} refresh={refresh} label="Insurer confirmed" testId="vehicle-insurer-confirm" />}
               {v.transitions.length > 0 && <Act action="vehicle_status" payload={P} label="Change status" fields={[{ name: 'status', label: 'New status', type: 'select', required: true, options: v.transitions.map((s) => [s, label(s)]) }]} refresh={refresh} />}
+              {/* 0352: the fleet page opens on Trending; a pinned car leads it (1 first), whatever its score */}
+              <Act action="fleet_pin" payload={{ vehicle_id: id }} label={v.listing?.pinned_rank ? `Pinned to the top (${String(v.listing.pinned_rank)})` : 'Pin to the top of /cars'} testId="vehicle-pin"
+                fields={[{ name: 'rank', label: 'Place at the top of the fleet page (1 first; empty to unpin)', type: 'number', value: v.listing?.pinned_rank ? String(v.listing.pinned_rank) : '' }]} refresh={refresh} />
               <Act action="vehicle_classes" payload={P} label="Classes" fields={[{ name: 'classes', label: 'Classes (comma separated codes)', type: 'list', value: v.classes, hint: classes.map((c) => c.code).join(', ') }]} refresh={refresh} />
             </div>
           </Card>

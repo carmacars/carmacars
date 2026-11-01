@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { cardPhotoCap } from '@/features/phone-gate/rules';
 import { Icon } from '@/components/Icon';
 import { AnswerBlock } from '@/components/AnswerBlock';
 import { CarCard } from '@/components/CarCard';
@@ -76,7 +77,7 @@ export default async function Home() {
           <Rail
             head={<div><h2 className="d1" id="h-fleet">Pick your car.</h2><p className="lead muted">{F('City cars, sedans, SUVs and something for the weekend, from {{minDaily}} a day. Every car shows its own calendar and its real rates.')}</p></div>}
             count={7} random={s.featured_mode === 'random'}
-            items={fleet.map((c) => ({ key: c.slug, featured: c.is_featured, node: <CarCard c={c} labels={labels} /> }))}
+            items={fleet.map((c) => ({ key: c.slug, featured: c.is_featured, node: <CarCard c={c} labels={labels} photosMax={cardPhotoCap(f.phone_gate)} /> }))}
             end={<Link href="/cars"><span className="d2">See every car</span><span className="link--go">Open the fleet <Icon name="arrow" /></span></Link>}
           />
         ) : (
@@ -103,7 +104,7 @@ export default async function Home() {
         <div className="wrap band__inner"><div className="band__copy stack">
           <h2 className="d1" id="h-deliv">Delivered to your door.</h2>
           <p className="lead">Home, office, hotel or the airport, anywhere. Tell us the address in your request, at any hour, and we price the trip in your offer.</p>
-          <dl className="band__facts"><div><dt>Each way</dt><dd className="num">{F('From {{delMin}}')}</dd></div><div><dt>Airports</dt><dd>{airportsShort}</dd></div></dl>
+          <dl className="band__facts"><div><dt>Each way</dt><dd className="num" data-count>{F('From {{delMin}}')}</dd></div><div><dt>Airports</dt><dd>{airportsShort}</dd></div></dl>
           <p className="small muted">Each car has its own delivery fee, shown on its page, plus the distance from our location. An airport surcharge may apply.</p>
           <p><Link className="btn btn--light" href="/delivery">How delivery works</Link></p>
         </div></div>

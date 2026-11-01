@@ -53,11 +53,25 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
     }); } };
     t.addEventListener('scroll', on, { passive: true }); return () => t.removeEventListener('scroll', on);
   }, [free]);
+  // 2026-11-06: a mouse over the photo zooms it a little toward the pointer (motion.css, fine pointers only); this only
+  // moves the zoom's origin, once a frame
+  const zr = useRef(0);
+  const zoomAt = (e: React.PointerEvent<HTMLUListElement>) => {
+    if (e.pointerType !== 'mouse' || zr.current) return;
+    const img = (e.target as Element).closest('li')?.querySelector('img'); if (!img) return;
+    const x = e.clientX, y = e.clientY;
+    zr.current = requestAnimationFrame(() => {
+      zr.current = 0; const r = img.getBoundingClientRect(); if (!r.width) return;
+      img.style.setProperty('--zx', `${Math.round(((x - r.left) / r.width) * 100)}%`);
+      img.style.setProperty('--zy', `${Math.round(((y - r.top) / r.height) * 100)}%`);
+    });
+  };
   const go = (i: number) => { if (gated.current.locked(i)) gated.current.open(i); else scrollTo(i); };
   if (!photos.length) return <div className="gallery"><div className="skeleton sk-img" /></div>;
   return (
     <div className="gallery" aria-roledescription="carousel" aria-label={`${name} photos`}>
       <ul className="gallery__track" tabIndex={0} aria-label="Photos. Use the arrow keys to move between them." ref={track}
+        onPointerMove={zoomAt}
         onKeyDown={(e) => { if (e.key === 'ArrowRight') { e.preventDefault(); go(cur + 1); } if (e.key === 'ArrowLeft') { e.preventDefault(); go(cur - 1); } }}>
         {photos.map((g, i) => (
           <li key={g.path} aria-label={`${i + 1} of ${photos.length}`}>

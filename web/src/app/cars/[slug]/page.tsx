@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { cardPhotoCap } from '@/features/phone-gate/rules';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { CarCard } from '@/components/CarCard';
@@ -164,7 +165,7 @@ export default async function CarPage({ params }: Params) {
             )}
             {(c.description ?? '').split(/\n{2,}/).filter(Boolean).map((x, i) => <p key={i} className="car-top__blurb">{x}</p>)}
             <dl className="keyspecs">
-              <div><dt>Seats</dt><dd className="num">{c.seats}</dd></div>
+              {c.seats ? <div><dt>Seats</dt><dd className="num">{c.seats}</dd></div> : null}
               <div><dt>Gearbox</dt><dd>{/^automatic/i.test(c.transmission ?? '') ? 'Auto' : c.transmission}</dd></div>
               <div><dt>{ev ? 'Power' : 'Fuel'}</dt><dd>{ev ? 'Electric' : c.fuel === 'gasoline' ? 'Gas' : FUEL_LABEL[c.fuel]}</dd></div>
               <div><dt>Km a day</dt><dd className="num">{c.km_allowance_per_day}</dd></div>
@@ -233,7 +234,7 @@ export default async function CarPage({ params }: Params) {
                 {c.trim && <tr><th scope="row">Trim</th><td>{c.trim}</td></tr>}
                 {c.body_style && <tr><th scope="row">Body</th><td>{c.body_style}</td></tr>}
                 {c.colour && <tr><th scope="row">Colour</th><td>{c.colour}</td></tr>}
-                <tr><th scope="row">Seats</th><td>{c.seats}</td></tr>
+                {c.seats ? <tr><th scope="row">Seats</th><td>{c.seats}</td></tr> : null}
                 {c.doors && <tr><th scope="row">Doors</th><td>{c.doors}</td></tr>}
               </tbody></table>
               <table className="spec c-6"><caption className="vh">Driving</caption><tbody>
@@ -325,7 +326,7 @@ export default async function CarPage({ params }: Params) {
         <div className="wrap">
           {landing.length > 0 && <nav className="car-landing" aria-label="Rent in your area or your way"><ul className="chips">{landing.map((l) => <li key={l.slug}><Link prefetch={false} className="chip" href={l.path}>{l.kind === 'location' ? `Car rental in ${l.name}` : `${l.name} in ${s.city}`}</Link></li>)}</ul></nav>}
           <div className="section-head"><h2 className="d2" id="h-sim">Similar cars</h2><Link className="link link--go" href={c.model_hub_path}>More {c.make} {c.model} <Icon name="arrow" /></Link> <Link className="link link--go" href="/cars">See every car <Icon name="arrow" /></Link></div>
-          <ul className="fleet-grid fleet-grid--3">{similar.map((x) => <li key={x.slug}><CarCard c={x} labels={labels} /></li>)}</ul>
+          <ul className="fleet-grid fleet-grid--3">{similar.map((x) => <li key={x.slug}><CarCard c={x} labels={labels} photosMax={cardPhotoCap(f.phone_gate)} /></li>)}</ul>
         </div>
       </section>
       {c.taking_requests && <BookBar name={name(c)} daily={c.daily_rate_cents} slug={c.slug} />}

@@ -10,14 +10,16 @@ export const GAMES: GameKind[] = ['wheel', 'scratch', 'blackjack', 'cups', 'plin
  *  car_pages; or seconds on the site; exit intent), the re-show after a close (page views since the close or seconds
  *  since the close, whichever first), the most shows in one visit and in one day in this browser
  *  (0094), and the offer in the request-to-book form. */
-export interface GameCfg { on: boolean; car_pages: number; seconds: number; exit: boolean; reshow_pages: number; reshow_seconds: number; per_visit: number; per_day?: number | null; booking: boolean }
+export interface GameCfg { on: boolean; car_pages: number; seconds: number; exit: boolean; reshow_pages: number; reshow_seconds: number; per_visit: number; per_day?: number | null; booking: boolean;
+  /** 0353: minutes away after which the next page starts a new visit (30) */
+  visit_gap?: number }
 /** A prize this browser already won and has not claimed (0100): shown as "Your 5% off is saved", never as a new win. */
 export interface SavedPrize { label: string; short: string; at: number }
 /** What this browser remembers (localStorage, the visitor's own device only): a claim (0172: when, and until when the
  *  games wait), a refusal from the server, the games shown in the current round, the code, the last game shown (0100), a
  *  prize won and not claimed yet (0100), and when a booking request was started or sent here (0100). dismissedAt is
  *  from 0069 and no longer read; claimed and never 'claimed' are from before 0172 and no longer stop a game. */
-export interface GameMemory { claimed?: boolean; claimedAt?: number; againAt?: number; never?: string; seen?: GameKind[]; last?: GameKind; dismissedAt?: number; code?: string; codeUntil?: string; day?: string; dayShows?: number;
+export interface GameMemory { claimed?: boolean; claimedAt?: number; againAt?: number; never?: string; /** when the server said never (2026-11-06: it is asked again a day later) */ neverAt?: number; seen?: GameKind[]; last?: GameKind; dismissedAt?: number; code?: string; codeUntil?: string; day?: string; dayShows?: number;
   won?: SavedPrize; requested?: number;
   /** 0176: the day (Toronto) this browser last pressed Play again on a saved prize (the server keeps the real limit) */
   againDay?: string }
@@ -25,7 +27,17 @@ export interface GameMemory { claimed?: boolean; claimedAt?: number; againAt?: n
  *  last one was closed (with the car pages seen by then), and (0172) whether a code was claimed in it. */
 export interface Visit { start: number; pages: number; cars: string[]; fromSearch: boolean; shows?: number; closedAt?: number; carsAtClose?: number; pagesAtClose?: number; claimed?: boolean;
   /** 0176: Play again on the saved prize was used in this visit (once a visit) */
-  again?: boolean }
+  again?: boolean;
+  /** 0353: the last page or check of this visit; 30 minutes (the setting) away and the next page starts a new visit */
+  lastAt?: number;
+  /** 0353: the saved prize's badge was hidden in this visit */
+  badgeClosed?: boolean }
+
+/** 0353: the visit still going, or null when the visitor has been away longer than the gap (a new visit starts). */
+export function liveVisit(v: Visit | null, now: number, gapMinutes = 30): Visit | null {
+  if (!v) return null;
+  return now - (v.lastAt ?? v.start) > Math.max(5, gapMinutes) * 60_000 ? null : v;
+}
 
 /** 0172: after a claim the games wait until the server's again_after (a day after the claim by default, the Admin
  *  setting game_replay_after_claim_days); then they come back on a later visit. A claim remembered from before 0172
@@ -112,10 +124,15 @@ export function isSearchReferrer(ref: string | null | undefined): boolean {
  *  card pops up again with that prize ("Your 5% off is still waiting"; the server returns the saved play), 0176: once a
  *  visit, as the small slide-in with Get my code and Play again, with the small badge between. 0172: a claim stops it for the rest of the visit and until the
  *  wait after it ends, then it comes back on a later visit. */
+/** How long the server's "known" or "signed in" answer is kept in this browser before it is asked again. */
+export const NEVER_RECHECK_MS = 86_400_000;
+
 export function ineligible(a: { cfg: GameCfg | null; mem: GameMemory; signedIn: boolean; path: string; visit?: Visit | null; now?: number; busy?: boolean; saved?: boolean }): string | null {
   if (a.signedIn) return 'signed_in';
   if (a.visit?.claimed || claimWait(a.mem, a.now ?? Date.now()) !== null) return 'claimed';
-  if (a.mem.never && a.mem.never !== 'claimed') return a.mem.never;
+  // 2026-11-06: the server's "known" or "signed in" holds for a day, then the server is asked again (it used to hold for
+  // good: a browser that once played while signed in, or before a sign-out, never saw a game again)
+  if (a.mem.never && a.mem.never !== 'claimed' && (a.now ?? Date.now()) - (a.mem.neverAt ?? 0) < NEVER_RECHECK_MS) return a.mem.never;
   if (excludedPath(a.path)) return 'page';
   if (a.busy) return 'in_progress';
   if (!a.cfg) return 'no_settings';

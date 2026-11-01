@@ -212,6 +212,7 @@
   #fleet-grid .car-card__specs li:nth-child(4) { display: none; }
   #fleet-grid .plate { font-size: 0.6875rem; left: 6px; bottom: 6px; }
   #fleet-grid .car-card__flag { right: auto; left: 6px; top: 6px; }
+  #fleet-grid .car-card__hot { left: 6px; top: 6px; padding: 2px 6px; letter-spacing: 0.06em; }
   .fleet-grid--skeleton > li { grid-template-columns: 42% 1fr; column-gap: var(--s-4); }
   .fleet-grid--skeleton .sk-img { grid-row: span 3; aspect-ratio: 4 / 3; }
 }

@@ -78,7 +78,8 @@ function describe(l: QuoteLine, t: LabelTokens): { k: string; note?: string } {
   }
 }
 
-function Tween({ cents }: { cents: number }) {
+/** A price that runs from its last value to the new one (and is marked data-moving meanwhile, for motion.css). */
+export function Tween({ cents, className }: { cents: number; className?: string }) {
   const [shown, setShown] = useState(cents);
   const from = useRef(cents);
   useEffect(() => {
@@ -88,7 +89,7 @@ function Tween({ cents }: { cents: number }) {
     const step = (now: number) => { const k = 1 - Math.pow(1 - Math.min(1, (now - t0) / 380), 3); setShown(Math.round(start + (cents - start) * k)); if (k < 1) raf = requestAnimationFrame(step); };
     raf = requestAnimationFrame(step); return () => cancelAnimationFrame(raf);
   }, [cents]);
-  return <b>{money(shown, { cents: true })}</b>;
+  return <b className={className} data-moving={shown !== cents || undefined}>{money(shown, { cents: true })}</b>;
 }
 
 export function Estimate({ q, error, loading, from, to, tf, tt, rates, hst, labels, problem, coverageChosen }: {

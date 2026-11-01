@@ -135,7 +135,9 @@ export const BROWSER_FUNCTIONS = new Set<FnName>([
   // the chat's greeting for a page (0100)
   'chat_greeting',
   // the request form's car when another one is chosen, and the real car for a sample car's dates (0102)
-  'booking_car', 'sample_car_match'
+  'booking_car', 'sample_car_match',
+  // the car card's photos on hover or swipe (src/lib/card-photos.ts)
+  'vehicle_photos_public'
 ]);
 
 export type { Json };

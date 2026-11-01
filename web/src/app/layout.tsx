@@ -9,6 +9,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CookieBanner } from '@/components/CookieBanner';
 import { Effects } from '@/components/Effects';
+import { CHUNK_GUARD_SCRIPT } from '@/lib/chunk-guard';
 import { ViewAsBanner } from '@/features/access/ViewAsBanner';
 import { SiteAssist } from '@/features/live/SiteAssist';
 import { JsonLd } from '@/components/JsonLd';
@@ -43,6 +44,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [s, w, links, hubs, roles] = await Promise.all([getSettings(), cookieWording(), getSeoLinks().catch(() => []), getHubLinks(), openRoles()]);
   return (
     <html lang="en-CA" className={`${interDisplay.variable} ${inter.variable}`}>
+      {/* the stale page guard: a script or stylesheet of an older build that fails to load reloads the page once (src/lib/chunk-guard.ts) */}
+      <head><script id="chunk-guard" dangerouslySetInnerHTML={{ __html: CHUNK_GUARD_SCRIPT }} /></head>
       <body>
         <ViewAsBanner />
         <CookieBanner w={w} />

@@ -272,6 +272,10 @@ const worker = {
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
     const path = new URL(request.url).pathname;
     if (path.startsWith('/media/')) return media(request, env, path, ctx);
+    // 2026-11-06: a build file the static assets do not have (a page from an older build than the 8 days the deploy keeps,
+    // scripts/deploy/keep-assets.mjs) is a plain 404 here, never the app's HTML 404 page (a stylesheet or script answered
+    // with HTML is what left the page half styled); the page's guard then reloads it once (src/lib/chunk-guard.ts)
+    if (path.startsWith('/_next/static/')) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', ...securityHeaders() } });
     // scanners asking for PHP, WordPress or dot files: answered before the app loads (a render costs a second of CPU
     // on a fresh isolate)
     if (isProbe(path)) return new Response('Not found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'public, max-age=3600', ...securityHeaders() } });

@@ -2,6 +2,7 @@
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { motionOK } from '@/lib/motion';
+import { cardPhotos } from '@/lib/card-photos';
 
 // The site's motion runtime (src/styles/motion.css, docs/changes/2026-10-21-motion.md). One listener set for the
 // whole app, no library:
@@ -11,10 +12,11 @@ import { motionOK } from '@/lib/motion';
 //   than the transition may wait, the new page settles in with a CSS entrance;
 // - scroll reveals: cards and sections that are still below the viewport rise in once, staggered;
 // - lazy images fade in from a blur when they arrive; numbers marked data-count count up when they come into view;
-// - a ripple from the pointer on buttons.
+// - a ripple from the pointer on buttons;
+// - the car cards' photos on hover and swipe (src/lib/card-photos.ts, 2026-11-06).
 // Nothing on screen at first paint is hidden or changed (no LCP or CLS cost), and nothing runs under
 // prefers-reduced-motion (the end-to-end tests run that way).
-const REVEAL = '.car-card, .section-head, .seq > li, .review, .twofacts > div, .band__copy, .how-full__step, .faq details, .pt-card, [data-reveal]';
+const REVEAL = '.car-card, .section-head, .seq > li, .review, .twofacts > div, .band__copy, .how-full__step, .faq details, .pt-card, .cover__opts > li, .hub-card, [data-reveal]';
 const WAIT_MS = 220; // the longest a View Transition holds the old page while the next one loads
 
 type DocVT = Document & { startViewTransition?: (cb: () => Promise<void>) => { finished: Promise<void>; ready: Promise<void> } };
@@ -158,6 +160,9 @@ export function Effects() {
     window.addEventListener('resize', net, { passive: true });
     return () => { if (ric) window.cancelIdleCallback(idle as number); else clearTimeout(idle as ReturnType<typeof setTimeout>); io.disconnect(); mo.disconnect(); cancelAnimationFrame(raf); cancelAnimationFrame(sraf); window.removeEventListener('scroll', net); window.removeEventListener('resize', net); };
   }, [path]);
+
+  // the car cards' photos: hover cycles them, a swipe moves through them (one listener set for every card)
+  useEffect(() => cardPhotos(), []);
 
   // ripple from the pointer on buttons
   useEffect(() => {

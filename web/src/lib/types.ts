@@ -23,6 +23,8 @@ export interface CarRow {
   insurance_included?: boolean; no_credit_card?: boolean;
   /** 0093: the model year is not confirmed yet; guideline rates (a partner's, confirmed after review) */
   year_approximate?: boolean; guideline_rates?: boolean;
+  /** 0352: the website's fleet read (public.fleet) in the Trending order: the place, pinned by an Admin, and the Hot badge */
+  trend_rank?: number; pinned?: boolean; hot?: boolean;
 }
 
 export interface CarPage extends CarRow {

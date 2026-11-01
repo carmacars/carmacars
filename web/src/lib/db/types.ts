@@ -14141,6 +14141,10 @@ export type Database = {
           ai_vision_permit_daily_per_person: number;
           field_renter_walkthrough: boolean;
           push_enabled: boolean;
+          fleet_trending_weights: Json;
+          fleet_trending_days: number;
+          fleet_hot_count: number;
+          game_visit_gap_minutes: number;
         };
         Insert: {
           id?: string;
@@ -14683,6 +14687,10 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          fleet_trending_weights?: Json;
+          fleet_trending_days?: number;
+          fleet_hot_count?: number;
+          game_visit_gap_minutes?: number;
         };
         Update: {
           id?: string;
@@ -15225,6 +15233,10 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          fleet_trending_weights?: Json;
+          fleet_trending_days?: number;
+          fleet_hot_count?: number;
+          game_visit_gap_minutes?: number;
         };
         Relationships: [];
       };
@@ -21159,6 +21171,7 @@ export type Database = {
           content_updated_at: string;
           publish_scheduled_by: string | null;
           publish_error: string | null;
+          pinned_rank: number | null;
         };
         Insert: {
           id?: string;
@@ -21198,6 +21211,7 @@ export type Database = {
           content_updated_at?: string;
           publish_scheduled_by?: string | null;
           publish_error?: string | null;
+          pinned_rank?: number | null;
         };
         Update: {
           id?: string;
@@ -21237,6 +21251,7 @@ export type Database = {
           content_updated_at?: string;
           publish_scheduled_by?: string | null;
           publish_error?: string | null;
+          pinned_rank?: number | null;
         };
         Relationships: [];
       };
