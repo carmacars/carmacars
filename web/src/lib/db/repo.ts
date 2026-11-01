@@ -137,7 +137,9 @@ export const BROWSER_FUNCTIONS = new Set<FnName>([
   // the request form's car when another one is chosen, and the real car for a sample car's dates (0102)
   'booking_car', 'sample_car_match',
   // the car card's photos on hover or swipe (src/lib/card-photos.ts)
-  'vehicle_photos_public'
+  'vehicle_photos_public',
+  // the earnings calculator at the start of the owner application (0354)
+  'owner_calc_data'
 ]);
 
 export type { Json };

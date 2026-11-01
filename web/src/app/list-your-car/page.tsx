@@ -1,4 +1,7 @@
 import { Crumbs } from '@/components/Crumbs';
+import { EarningsCalculator } from '@/features/owner/EarningsCalculator';
+import type { CalcData } from '@/features/owner/earnings';
+import { rpc } from '@/lib/db/repo';
 import { Faq } from '@/components/Faq';
 import { JsonLd } from '@/components/JsonLd';
 import { SlotPicture } from '@/components/Picture';
@@ -16,7 +19,9 @@ export async function generateMetadata() {
 }
 
 export default async function Owners() {
-  const [s, f, t, faq0, hero] = await Promise.all([getSettings(), getFacts(), getTokens(), faqItems('owners.faq'), slotPhoto('owners.hero')]);
+  const [s, f, t, faq0, hero, calc] = await Promise.all([getSettings(), getFacts(), getTokens(), faqItems('owners.faq'), slotPhoto('owners.hero'),
+    // 0354: the earnings calculator's numbers, with the page (cached with it; the browser does the maths)
+    (rpc('owner_calc_data', {}) as unknown as Promise<CalcData | null>).catch(() => null)]);
   const F = (x: string) => fill(x, t);
   const faq = faq0.map((q) => ({ question: F(q.question), answer: F(q.answer) }));
   return (
@@ -35,6 +40,7 @@ export default async function Owners() {
       <section className="facts on-dark" aria-label="Owner program at a glance"><div className="wrap"><dl className="facts__list">
         <div><dt>Payout</dt><dd>{F('{{payoutDay}} of each month')}</dd></div><div><dt>Minimum term</dt><dd>None</dd></div><div><dt>Notice to leave</dt><dd>{F('{{noticeDays}} days')}</dd></div><div><dt>Security deposit</dt><dd>None</dd></div><div><dt>Your own use</dt><dd>Free when not booked</dd></div>
       </dl></div></section>
+      <div className="section wrap" id="earnings"><EarningsCalculator data={calc} /></div>
       <section className="section" id="how" aria-labelledby="oh-how">
         <div className="wrap grid">
           <div className="c-5"><div className="how__sticky stack"><h2 className="d1" id="oh-how">From your driveway to its first rental</h2><p className="lead">Five steps. We prepare the government forms and come to the registry with you.</p></div></div>

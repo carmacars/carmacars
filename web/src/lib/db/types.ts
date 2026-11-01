@@ -14145,6 +14145,8 @@ export type Database = {
           fleet_trending_days: number;
           fleet_hot_count: number;
           game_visit_gap_minutes: number;
+          owner_calc_insurance_fee: number | null;
+          owner_calc_tracker_fee: number | null;
         };
         Insert: {
           id?: string;
@@ -14691,6 +14693,8 @@ export type Database = {
           fleet_trending_days?: number;
           fleet_hot_count?: number;
           game_visit_gap_minutes?: number;
+          owner_calc_insurance_fee?: number | null;
+          owner_calc_tracker_fee?: number | null;
         };
         Update: {
           id?: string;
@@ -15237,6 +15241,8 @@ export type Database = {
           fleet_trending_days?: number;
           fleet_hot_count?: number;
           game_visit_gap_minutes?: number;
+          owner_calc_insurance_fee?: number | null;
+          owner_calc_tracker_fee?: number | null;
         };
         Relationships: [];
       };
@@ -24444,6 +24450,7 @@ export type Database = {
       my_trip_photos: { Args: never; Returns: Json };
       my_unread_count: { Args: never; Returns: number };
       owner_book_own_vehicle: { Args: { p_by: string; p_vehicle: string; p_pickup: string; p_return: string; p_note?: string }; Returns: string };
+      owner_calc_data: { Args: never; Returns: Json };
       owner_form_ab_open: { Args: { p_by: string; p_code: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       owner_form_c_open: { Args: { p_by: string; p_vehicle: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       owner_form_official: { Args: { p_by: string; p_fill: string }; Returns: Json };

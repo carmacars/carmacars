@@ -102,6 +102,7 @@ const LABELS: Record<string, string> = {
   game_trigger_seconds: 'Discount games: or after this many seconds on the site, whichever first (0 is off)', game_exit_intent: 'Discount games: or when the mouse heads for the tabs (computers, off by default)',
   game_reshow_car_pages: 'Discount games: after a close, the next game on this page view after the close, any page (0 is off)',
   game_reshow_seconds: 'Discount games: or this many seconds after the close, whichever first (0 is off)',
+  owner_calc_insurance_fee: 'Earnings calculator on List your car: the monthly insurance fee shown (empty: "quoted in your agreement", and the estimate is before fees)', owner_calc_tracker_fee: 'Earnings calculator on List your car: the monthly tracker fee shown (empty: "quoted in your agreement")',
   fleet_trending_weights: 'Fleet page, Trending: the weight of each signal over the days (views, photos, quotes, requests, offers, bookings) and the boosts (premium, real_photos) and penalties (no_photos, not_bookable)', fleet_trending_days: 'Fleet page, Trending: the days of signals counted', fleet_hot_count: 'Fleet page, Trending: how many cars at the top carry the Hot badge (0: none)',
   game_max_per_visit: 'Discount games: most games shown in one visit (1: once a visit)', game_visit_gap_minutes: 'Discount games: minutes away before the next page is a new visit (the game comes back)', game_max_per_day: 'Discount games: most games shown in one day in one browser (0: no daily cap)', game_booking_offer: 'Discount games: offer the game in the request-to-book form (signed-in renters too)',
   game_dismiss_days: 'Discount games: a visitor keeps the same prize for (days)', game_replay_after_claim_days: 'Discount games: after claiming a code, play again after (days; 0: never again)', game_saved_again_days: 'Discount games: Play again on a prize not claimed, once every (days; 0: off)', game_task_min_cars: 'Discount games: Sales task when the visitor viewed this many cars (0: every claim)',
@@ -252,7 +253,8 @@ function fieldForBase(k: string, v: unknown, options?: Array<[string, string]>):
   if (k === 'field_pay_anchor' && (typeof v === 'string' || v === null)) return { name: k, label: nice(k), type: 'date', value: v, required: true };
   // an address column: the field with the address lookup (0130)
   if ((typeof v === 'string' || v === null) && /^(mailing_address|billing_address|street_address|business_street|home_address|company_address|address_line1)$/.test(k)) return { name: k, label: nice(k), type: 'address', value: v };
-  if (k.endsWith('_cents') && (typeof v === 'number' || v === null)) return { name: k, label: nice(k), type: 'money', value: v };
+  // 0354: the calculator's two fees are dollars a month (cents in the database), named as the owner asked
+  if ((k.endsWith('_cents') || k === 'owner_calc_insurance_fee' || k === 'owner_calc_tracker_fee') && (typeof v === 'number' || v === null)) return { name: k, label: nice(k), type: 'money', value: v };
   if (k.endsWith('_bps') && (typeof v === 'number' || v === null)) return { name: k, label: nice(k), type: 'percent', value: v };
   if (typeof v === 'number') return { name: k, label: nice(k), type: 'number', value: v };
   if (v !== null && typeof v === 'object') return { name: k, label: nice(k), type: 'json', value: v };

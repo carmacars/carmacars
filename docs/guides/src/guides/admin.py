@@ -897,6 +897,15 @@ def build():
     ], shot=S('admin/22-owner-forms-desktop', 0, 0, 1440, 470, pins=[(1, 420, 246), (2, 829, 246), (3, 1105, 246)]))
 
     # ---------------------------------------------------------------- 7
+    g.task('The earnings calculator on List your car', 'People who think of listing their car see what it could earn, near the top of List your car and, smaller, at the start of the application. '
+           'They pick the year, make and model (or type the VIN), the days rented a month (5 to 28, 18 at first) and their share (60% to 90%, 70% at first, "set in your agreement"). '
+           'The page shows the month and the year: the daily rate of cars like theirs on the site (the same make and model, else the class average, else the class\'s starting rate in Program settings) times the days, their share of it, less the monthly fees. '
+           '"Just cheaper insurance" shows the fleet policy\'s fee and what they would keep at only 5 days a month.')
+    g.steps([
+        f'{P("Settings", "Program")}: {B("Earnings calculator on List your car: the monthly insurance fee shown")} and {B("the monthly tracker fee shown")}, in dollars a month.',
+        'Leave either one empty and the page says "Insurance and tracker fees: quoted in your agreement" and shows the earnings "before fees". No amount is ever made up.',
+        'Set both and the page takes them off the month and the year. Each owner\'s real fees stay the ones in their agreement.',
+    ])
     g.chapter('Owner money',
               'Owner fee invoices are issued on the notice day and debited on the 15th. Invoices of any amount are made by hand, '
               'as drafts first. Statements are built, approved and issued each month, and payouts follow.',

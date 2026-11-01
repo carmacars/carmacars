@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { Crumbs } from '@/components/Crumbs';
+import { EarningsCalculator } from '@/features/owner/EarningsCalculator';
 import { pageMeta, type Trail } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { ApplyWizard, type ProgramFacts } from '@/features/owner/ApplyWizard';
@@ -61,6 +62,8 @@ export default async function Apply({ searchParams }: { searchParams: Promise<Re
           {draft && <p className="pt-note" data-testid="resumed">Welcome back. Your answers were saved{draft.data?.vehicles?.length ? `, with ${draft.data.vehicles.length} vehicle${draft.data.vehicles.length === 1 ? '' : 's'}` : ''}.</p>}
           {sp.expired && <p className="alert alert--error" role="alert"><span>That link has expired or was already used. Start here, or ask for a new link.</span></p>}
         </header>
+        {/* 0354: what the car could earn, before the questions (the numbers come from the database API in the browser) */}
+        <EarningsCalculator compact />
         <ApplyWizard initial={initial} facts={facts} signedIn={!!user} ownerOnFile={!!home} />
       </div>
     </div>

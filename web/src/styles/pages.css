@@ -573,3 +573,47 @@ code { font: 500 var(--fs-xs)/1.4 var(--font-text); color: var(--grey-600); font
 .cr-confirm { position: sticky; bottom: 0; padding: var(--s-3) 0; background: var(--bg); }
 .cr-confirm .btn { width: 100%; }
 @media (min-width: 640px) { .cr-confirm .btn { width: auto; } }
+
+/* ---------- the earnings calculator of List your car (0354) ---------- */
+.ecalc__in { display: grid; gap: var(--s-5); }
+.ecalc__inputs { min-width: 0; }
+.ecalc .ad-fields { display: grid; gap: var(--s-2) var(--s-3); grid-template-columns: 1fr 1.4fr; }
+.ecalc .ad-fields > :first-child { grid-column: 1; }
+.ecalc .ad-fields > :nth-child(2) { grid-column: 2; }
+.ecalc .ad-fields > :nth-child(3) { grid-column: 1 / -1; }
+.ecalc .ad-field .error:empty { display: none; }
+.ecalc__vin { gap: var(--s-2); flex-wrap: nowrap; }
+.ecalc__vin .input { flex: 1; min-width: 0; text-transform: uppercase; letter-spacing: 0.04em; }
+.ecalc__lab { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-3); }
+.ecalc__lab output { font: 700 1.125rem/1 var(--font-display); }
+.ecalc__slider .range { margin-top: 0.35rem; }
+.ecalc__ins { margin-top: var(--s-2); }
+.ecalc__out { position: relative; display: grid; align-content: start; gap: var(--s-3); padding: var(--s-5); background: var(--black); color: var(--white); border-radius: var(--r-3); overflow: hidden; }
+.ecalc__out::before { content: ""; position: absolute; right: -30%; top: -40%; width: 80%; aspect-ratio: 1; background: radial-gradient(closest-side, rgb(208 17 27 / 0.35), transparent); pointer-events: none; }
+.ecalc__out > * { position: relative; }
+.ecalc__kicker { font-size: var(--fs-xs); color: var(--grey-400); letter-spacing: 0.02em; }
+.ecalc__big { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.2rem 0.6rem; }
+.ecalc__big b { font: 800 clamp(2.75rem, 2rem + 3.5vw, 4.25rem)/0.95 var(--font-display); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.ecalc__big span, .ecalc__year span { color: var(--grey-400); font-size: var(--fs-sm); }
+.ecalc__big--wait { font: 700 1.75rem/1.1 var(--font-display); color: var(--grey-400); }
+.ecalc__wait { color: var(--grey-300); }
+.ecalc__year b { font: 700 1.5rem/1 var(--font-display); letter-spacing: -0.02em; color: var(--white); font-variant-numeric: tabular-nums; }
+.ecalc__lines { display: grid; gap: 0.35rem; padding-top: var(--s-3); border-top: 1px solid var(--grey-800); font-size: var(--fs-sm); }
+.ecalc__lines > div { display: flex; justify-content: space-between; gap: var(--s-3); }
+.ecalc__lines dt { color: var(--grey-400); }
+.ecalc__lines dd { text-align: right; }
+.ecalc__ins-box { display: grid; gap: 0.4rem; padding: var(--s-3); border: 1px solid var(--grey-800); border-left: 3px solid var(--red-600); border-radius: var(--r-2); font-size: var(--fs-sm); color: var(--grey-200); }
+.ecalc__note { color: var(--grey-500); }
+.ecalc--compact .ecalc__out { min-height: 0; }
+.ecalc--compact { padding: var(--s-4); border: 1px solid var(--grey-200); border-radius: var(--r-3); background: var(--white); }
+@media (min-width: 56rem) {
+  .ecalc__in { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: var(--s-7); align-items: start; }
+  .ecalc__out { padding: var(--s-6); position: sticky; top: calc(var(--header-h) + var(--s-5)); min-height: 20rem; }
+  .ecalc--compact .ecalc__in { gap: var(--s-5); }
+  .ecalc--compact .ecalc__out { padding: var(--s-5); position: static; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ecalc__big b, .ecalc__year b, .ecalc__lines b { transition: color 300ms var(--ease); }
+  .ecalc__big b[data-moving] { color: #fff2f2; }
+  .ecalc__ins-box { animation: drop-in 320ms var(--ease-out) backwards; }
+}
