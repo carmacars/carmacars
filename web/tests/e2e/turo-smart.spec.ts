@@ -104,11 +104,11 @@ test('Turo emails find their car by themselves: "Which car is this?" once, then 
   const [e1] = await sql`select id, candidates from turo_inbound_emails where message_id = ${`ts-${trip}-1@mail.turo.com`}`;
   expect((e1!.candidates as Array<{ vehicle_id: string }>).map((c) => c.vehicle_id).sort()).toEqual(cars.map((c) => c.id).sort());
 
-  // To do: "which car is this?" with its button to the pop-up
+  // To do: "which car is this?" on Fleet's line of Your teams (0320), its link to the pop-up
   await page.goto('/admin', { waitUntil: 'networkidle' });
   const todo = page.getByTestId('todo-turo_emails');
-  await expect(todo).toContainText('Turo emails: which car is this?');
-  await expect(todo.getByRole('link', { name: 'Choose the car' })).toHaveAttribute('href', /^\/admin\/calendar-sync\?pick=[0-9a-f-]{36}#turo-review$/);
+  await expect(todo).toContainText('turo emails: which car is this?');
+  await expect(todo.getByRole('link')).toHaveAttribute('href', /^\/admin\/calendar-sync\?pick=[0-9a-f-]{36}#turo-review$/);
   await check(page, 'admin to do with a Turo email to place');
 
   // the pop-up (opened by the link's pick=), best guesses first, one click

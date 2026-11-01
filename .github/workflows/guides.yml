@@ -80,8 +80,10 @@ jobs:
           T=$(printf '%s' 'carmacars-listing-worker-v1' | openssl dgst -sha256 -hmac "$L" | sed 's/^.* //')
           echo "::add-mask::$T"
           LAST=$(curl -sS https://carmacars.ca/api/jobs/guide-upkeep-run -H "Authorization: Bearer $T" | jq -r '.sha // empty')
-          if [ -n "$LAST" ] && git cat-file -e "$LAST^{commit}" 2>/dev/null && git diff --quiet "$LAST" HEAD -- web/src docs/guides/src; then
-            echo "::notice title=guides::nothing under web/src or docs/guides/src changed since ${LAST::7}: the guides are up to date"
+          if [ -n "$LAST" ] && git cat-file -e "$LAST^{commit}" 2>/dev/null && git diff --quiet "$LAST" HEAD -- ':(glob)web/src/**/*.tsx' ':(glob)web/src/**/*.css' docs/guides/src docs/guides/content; then
+            # 0321: only what can change a screen or a guide (pages and components, styles, the guide content); logic, tests,
+            # SQL and docs elsewhere never start the screenshots and the rewrites (the AI background share)
+            echo "::notice title=guides::no screen, style or guide changed since ${LAST::7}: the guides are up to date"
             echo "run=false" >> "$GITHUB_OUTPUT"
           else
             echo "::notice title=guides::changes since ${LAST:-the first run}: ${{ github.sha }}"

@@ -12,7 +12,7 @@ import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, clea
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, STALE_HEADER, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
 import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
-import { cpuGuard, cpuGuardResponse, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
+import { cpuGuard, cpuGuardResponse, isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
 import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
@@ -317,7 +317,9 @@ const worker = {
     const sKey = version ? staleKey(req) : null;
     const origin = () => handler.fetch(new Request(req), env, ctx) as Promise<Response>;
     const response: Response = version && (key || sKey)
-      ? await serveEdge(req, key, sKey, path, { cache: () => caches.open(EDGE_CACHE_NAME), env, version, origin, waitUntil: (p: Promise<unknown>) => ctx.waitUntil(p) })
+      ? await serveEdge(req, key, sKey, path, { cache: () => caches.open(EDGE_CACHE_NAME), env, version, origin, waitUntil: (p: Promise<unknown>) => ctx.waitUntil(p),
+          // 0321: a crawler gets the page's last good copy (under 3 days old) or a 304, never a render when one is kept
+          crawler: isCrawler(request.headers.get('user-agent')) ? { ifModifiedSince: request.headers.get('if-modified-since') } : undefined })
       : await origin();
     const type = response.headers.get('content-type') ?? '';
     const headers = new Headers(response.headers);

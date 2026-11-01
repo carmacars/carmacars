@@ -25,3 +25,36 @@ test('owner steps: every waiting feature in one annotation, the Cloudflare email
   const set = run('scripts/deploy/owner-steps.sh', ['--offline'], { OWNER_STEPS_JSON: '[]', CF_EMAIL_BINDING: '1' });
   assert.equal(set.trim(), '::notice title=owner steps::nothing is waiting on an owner step');
 });
+
+test('the email binding: 1, true, yes, on or EMAIL (any case) add it, once, and say so; anything else says why not', async () => {
+  const { mkdtempSync, writeFileSync, readFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const d = mkdtempSync(join(tmpdir(), 'wr-'));
+  const base = '{\n  "ai": { "binding": "AI" },\n  "vars": {}\n}\n';
+  for (const v of ['EMAIL', 'email', '1', 'true', 'Yes', 'on']) {
+    const f = join(d, `w-${v}.jsonc`); writeFileSync(f, base);
+    assert.match(run('scripts/deploy/email-binding.sh', [f, 'production', v]), /::notice title=email::EMAIL binding added/, v);
+    assert.match(readFileSync(f, 'utf8'), /"send_email": \[\{ "name": "EMAIL" \}\]/, v);
+    assert.match(run('scripts/deploy/email-binding.sh', [f, 'production', v]), /already in wrangler\.jsonc/, `${v} twice`);
+  }
+  for (const v of ['', '0', 'no', 'EMAILS']) {
+    const f = join(d, 'w-off.jsonc'); writeFileSync(f, base);
+    assert.match(run('scripts/deploy/email-binding.sh', [f, 'production', v]), /::warning title=email::EMAIL binding NOT added: the repository variable CF_EMAIL_BINDING is/, v);
+    assert.equal(readFileSync(f, 'utf8'), base, v);
+  }
+  const f = join(d, 'w-stg.jsonc'); writeFileSync(f, base);
+  assert.match(run('scripts/deploy/email-binding.sh', [f, 'staging', 'EMAIL']), /production only/);
+  // the owner-step list treats EMAIL as set
+  assert.equal(run('scripts/deploy/owner-steps.sh', ['--offline'], { OWNER_STEPS_JSON: '[]', CF_EMAIL_BINDING: 'EMAIL' }).trim(), '::notice title=owner steps::nothing is waiting on an owner step');
+});
+
+test('phone alert keys: made only when the vault has no pair; a P-256 pair in base64url, never the same twice', () => {
+  assert.equal(run('scripts/deploy/vapid.sh', ['need', '', '']).trim(), 'yes');
+  assert.equal(run('scripts/deploy/vapid.sh', ['need', 'BPub', '']).trim(), 'yes', 'one alone cannot sign');
+  assert.equal(run('scripts/deploy/vapid.sh', ['need', 'BPub', 'priv']).trim(), 'no', 'a stored pair is kept, never rotated');
+  const [pub, priv] = run('scripts/deploy/vapid.sh', ['make']).trim().split(' ');
+  assert.match(pub!, /^[A-Za-z0-9_-]{87}$/);
+  assert.equal(Buffer.from(pub!, 'base64url')[0], 4, 'an uncompressed point');
+  assert.match(priv!, /^[A-Za-z0-9_-]{43}$/);
+  assert.notEqual(run('scripts/deploy/vapid.sh', ['make']).trim(), `${pub} ${priv}`);
+});

@@ -189,7 +189,7 @@ test('owner money and paperwork: a payment received by e-Transfer and a paper si
   await pd.getByLabel('Reference').fill('ET-998877');
   await pd.getByRole('button', { name: 'Record payment' }).click();
   await expect.poll(async () => (await sql`select status::text s from owner_invoices where id = ${inv!.id}`)[0]!.s, { timeout: 20_000 }).toBe('paid');
-  await page.goto('/admin', { waitUntil: 'networkidle' });
+  await today(page);
   await expect(prompt(page, `invoice:${inv!.id}`)).toHaveCount(0);
   // the paper signature
   const paper = prompt(page, `paper:${o}`);

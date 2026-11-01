@@ -102,3 +102,11 @@ describe('a rewrite', () => {
     expect(labelOnlyRewrite(before, []).renamed).toEqual([]);
   });
 });
+
+import { rewriteTargets } from './upkeep.ts';
+it('0321: the sections that changed first; a failed one tried again at most once a run', () => {
+  const t = [{ id: 'r1', retryOnly: true }, { id: 'c1' }, { id: 'r2', retryOnly: true }, { id: 'c2' }];
+  assert.deepEqual(rewriteTargets(t, 15, 1).map((x) => x.id), ['c1', 'c2', 'r1']);
+  assert.deepEqual(rewriteTargets(t, 1, 1).map((x) => x.id), ['c1']);
+  assert.deepEqual(rewriteTargets(t, 15, 0).map((x) => x.id), ['c1', 'c2']);
+});

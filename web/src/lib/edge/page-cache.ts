@@ -313,8 +313,48 @@ export function refreshDue(key: string, now: number): boolean {
   return true;
 }
 
+// ------------------------------------------------------------------ crawlers (0321)
+// Cloudflare, November 1 to 2, 2026: 584,000 Worker invocations a day with 7.4% of them answered from a cache, CPU P90
+// 177 ms: crawlers asking for pages one by one. The fresh copy above belongs to one deployment (several a day empty it)
+// and to one data centre. A crawler (never a person, never a session) gets the page's last good copy instead of a render
+// while it is under CRAWLER_COPY_S (3 days) old and no page was rebuilt on demand since: crawlers read the server-rendered HTML,
+// and a page a few days old is what they would see between two visits anyway. A crawler asking "changed since?"
+// (If-Modified-Since) gets 304 when the copy is no newer, with no body and no render. Its Last-Modified says when the copy
+// was made.
+export const CRAWLER_COPY_S = 3 * 86_400;
+
+/** The last good copy for a crawler, or a 304, or null (render as usual). */
+export async function crawlerCopy(key: string, ifModifiedSince: string | null, d: EdgeDeps, maxAgeS = CRAWLER_COPY_S): Promise<Response | null> {
+  try {
+    const [hit, gen] = await Promise.all([(await d.cache()).match(key), readGeneration(d.env)]);
+    if (!hit) return null;
+    const stored = Number(hit.headers.get(STORED) ?? 0);
+    const now = d.now?.() ?? Date.now();
+    if (!stored || now - stored > maxAgeS * 1000 || gen === null || gen > stored) { void hit.body?.cancel().catch(() => undefined); return null; }
+    const lastModified = new Date(Math.floor(stored / 1000) * 1000).toUTCString();
+    const since = ifModifiedSince ? Date.parse(ifModifiedSince) : NaN;
+    if (Number.isFinite(since) && stored <= since + 999) {
+      void hit.body?.cancel().catch(() => undefined);
+      return new Response(null, { status: 304, headers: { 'last-modified': lastModified, [EDGE_HEADER]: 'CRAWLER-304' } });
+    }
+    const headers = new Headers(hit.headers);
+    const cc = headers.get(ORIGINAL_CC);
+    const vary = headers.get(ORIGINAL_VARY);
+    if (vary) headers.set('vary', vary);
+    for (const h of [ORIGINAL_CC, ORIGINAL_VARY, STORED, STALE_VERSION, 'age', 'cf-cache-status', 'etag']) headers.delete(h);
+    headers.set('cache-control', cc ?? 'no-cache');
+    headers.set('last-modified', lastModified);
+    headers.set(EDGE_HEADER, 'CRAWLER');
+    return new Response(hit.body, { status: 200, headers });
+  } catch {
+    return null;
+  }
+}
+
 export interface ServeDeps extends EdgeDeps {
   version: string;
+  /** 0321: a crawler (bot-shield.ts isCrawler) without a session: its last good copy first (crawlerCopy) */
+  crawler?: { ifModifiedSince: string | null };
   waitUntil(p: Promise<unknown>): void;
   /** OpenNext's answer for this request (called again for a background refresh) */
   origin(): Promise<Response>;
@@ -339,6 +379,7 @@ const failed = (status: number) => new Response(null, { status });
  */
 export async function serveEdge(req: EdgeRequestLike, key: string | null, sKey: string | null, pathname: string, d: ServeDeps): Promise<Response> {
   if (key) { const hit = await edgeMatch(key, d); if (hit) return hit; }
+  if (d.crawler && sKey && req.headers.get('rsc') !== '1') { const c = await crawlerCopy(sKey, d.crawler.ifModifiedSince, d); if (c) return c; }
   const keep = (r: Response) => { let out = key ? edgeKeep(key, pathname, r, d) : r; if (sKey) out = staleKeep(sKey, out, d); return out; };
   if (!sKey) return keep(await d.origin());
   const timer = d.timer ?? realTimer;

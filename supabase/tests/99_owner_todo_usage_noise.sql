@@ -82,6 +82,7 @@ select test.ok('emails at 98 of 100: still on the banner (they are held at 100),
 select app.usage_put('resend_day', app.today(), 'app', 0);
 
 -- ================================================================ 5. Cloudflare Email Service: absent, failing, sending
+create temp table on_cf as select cf_ok_at, cf_failed_at, cf_error from email_provider_state limit 1;
 update email_provider_state set cf_ok_at = null, cf_failed_at = now(), cf_error = 'no EMAIL binding on the Worker (Email Service not set up)';
 select test.eq('never sent, no binding: absent', app.cf_email_setup() ->> 'state', 'absent');
 update email_provider_state set cf_ok_at = now() - interval '2 hours', cf_failed_at = now() - interval '1 hour', cf_error = 'domain not verified';
@@ -89,6 +90,8 @@ select test.eq('sent before, refused since: failing', app.cf_email_setup() ->> '
 update email_provider_state set cf_ok_at = now(), cf_failed_at = null, cf_error = null;
 select test.eq('sending: ok', app.cf_email_setup() ->> 'state', 'ok');
 select test.eq('Admins read it through the door', app.door(test.id('on_admin'), 'aal2', 'ops_read', 'usage_email_setup', '{}') ->> 'state', 'ok');
+-- the provider state as it was (later suites start from it)
+update email_provider_state e set cf_ok_at = o.cf_ok_at, cf_failed_at = o.cf_failed_at, cf_error = o.cf_error from on_cf o;
 
 -- ================================================================ 6. unstaffed functions: the Admin's copy goes in the digest
 create temp table on_va as select user_id, is_active from staff_profiles where staff_type = 'va';

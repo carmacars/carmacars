@@ -19,7 +19,7 @@ used; Supabase Auth's sign-in emails stay on Resend; "held until midnight" appli
    (beta; request access if the page asks).
 2. Add the sending domain **carmacars.ca** and add the DNS records it shows (SPF include, DKIM). Keep Resend's records:
    both can sign for the domain. Check the From addresses the outbox uses (bookings@, hello@, ... on carmacars.ca).
-3. GitHub, the repository's **Settings > Secrets and variables > Actions > Variables**: add `CF_EMAIL_BINDING` = `1`.
+3. GitHub, the repository's **Settings > Secrets and variables > Actions > Variables**: add `CF_EMAIL_BINDING` = `1` (0321: `true`, `yes`, `on` or `EMAIL` work too).
    The next production deploy adds `"send_email": [{ "name": "EMAIL" }]` to the Worker (ci.yml) and says so in the run.
 4. After the deploy, Settings > Usage shows "Emails this month (Cloudflare)" counting up. If Cloudflare refuses, the
    reason is in `email_provider_state.cf_error` and the emails go through Resend.

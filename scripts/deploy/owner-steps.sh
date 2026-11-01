@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Every feature waiting on a step only the owner can take, with the exact step (0321, docs/changes/2026-11-06-audit-gaps.md):
 # one annotation on every production deploy, so no switch-on step is ever hidden. The database's part comes from
-# public.server_owner_steps() (Meta Page token, GoHighLevel tokens, the RentalCoverage link, the VAPID and Wallet values in
+# public.server_owner_steps() (Meta Page token, GoHighLevel tokens, the RentalCoverage link, the Wallet values in
 # the vault); this script adds the Cloudflare email binding (the repository variable CF_EMAIL_BINDING).
 #
 #   CF_EMAIL_BINDING=<vars.CF_EMAIL_BINDING> scripts/deploy/owner-steps.sh             (in the deploy job)
@@ -14,7 +14,9 @@ else
   rows=$("$HERE/sb.sh" sql "select public.server_owner_steps() as s" 2>/dev/null | jq -c '.[0].s // []' 2>/dev/null) || rows=''
   [ -n "$rows" ] || { echo "::warning title=owner steps::the database's list could not be read; Admin > Settings shows the Setup checklist"; rows='[]'; }
 fi
-if [ "${CF_EMAIL_BINDING:-}" != 1 ]; then
+# shellcheck source=email-binding.sh
+. "$HERE/email-binding.sh"
+if ! cf_email_on "${CF_EMAIL_BINDING:-}"; then
   rows=$(jq -c '. + [{key: "cf_email", feature: "Emails through Cloudflare Email Service (3,000 a month; until then Resend, 100 a day)",
     step: "Cloudflare dashboard > Compute (Workers) > Email Service: enable it and add the sending domain carmacars.ca with the DNS records it shows; then GitHub > the repository > Settings > Secrets and variables > Actions > Variables: CF_EMAIL_BINDING = 1; then deploy (Admin > Settings > Usage, Emails)"}]' <<<"$rows")
 fi

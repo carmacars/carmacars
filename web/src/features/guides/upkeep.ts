@@ -167,3 +167,11 @@ export function fakeRewrite(prompt: string): { body_md: string; summary: string 
   }
   return { body_md: out, summary: done.length ? `Renamed buttons: ${done.join('; ')}.` : 'No change needed.' };
 }
+
+/** 0321: the sections the run rewrites: those with a reason of this run first (a screenshot changed, a missing button,
+ *  a menu path), then at most `retryOnlyMax` whose only reason is that the last run could not rewrite them; `max` in all. */
+export function rewriteTargets<T extends { retryOnly?: boolean }>(targets: T[], max: number, retryOnlyMax = 1): T[] {
+  const fresh = targets.filter((t) => !t.retryOnly);
+  const retry = targets.filter((t) => t.retryOnly).slice(0, Math.max(0, retryOnlyMax));
+  return [...fresh, ...retry].slice(0, max);
+}

@@ -13,7 +13,7 @@ export function Teams({ teams }: { teams: TodoTeam[] }) {
           <span className="ad-teams__main">
             <Link prefetch={false} className="link ad-teams__name" href={tm.href}>{teamLine(tm)}</Link>
             {!tm.staffed && <span className="ad-sub">Nobody on this team yet: open the queue when you have a moment.</span>}
-            {tm.items.length > 0 && <span className="ad-sub">{tm.items.map((i, n) => <span key={i.key}>{n ? ' · ' : ''}<Link prefetch={false} className="link" href={i.href}>{i.count} {i.label.charAt(0).toLowerCase() + i.label.slice(1)}</Link></span>)}</span>}
+            {tm.items.length > 0 && <span className="ad-sub">{tm.items.map((i, n) => <span key={i.key} data-testid={`todo-${i.key}`}>{n ? ' · ' : ''}<Link prefetch={false} className="link" href={i.href}>{i.count} {i.label.charAt(0).toLowerCase() + i.label.slice(1)}</Link></span>)}</span>}
           </span>
           {tm.overdue > 0 && <span className="ad-pill ad-pill--red">{tm.overdue} overdue</span>}
         </li>))}

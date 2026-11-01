@@ -228,3 +228,35 @@ test('refreshDue: once a minute per page', () => {
   assert.equal(refreshDue('a', 1000 + REFRESH_EVERY_MS), true);
   assert.equal(busyPage().headers.get(STALE_HEADER), 'busy');
 });
+
+// 0321: a crawler gets the last good copy (under 3 days old) or a 304, never a render when one is kept
+test('crawlers: the last good copy instead of a render, a 304 when unchanged; people still reach the site', async () => {
+  const s = setup('v2');
+  const sk = staleKey(req(car))!;
+  // a person's visit keeps the last good copy
+  assert.equal((await serveEdge(req(car), null, sk, '/cars/vw-jetta-2020', s.d)).status, 200);
+  await s.settle();
+  assert.equal(s.calls(), 1);
+  // a crawler, after a deploy (another version): the copy, no render, with Last-Modified
+  const d3 = { ...s.d, version: 'v3', crawler: { ifModifiedSince: null } };
+  const r = await serveEdge(req(car), null, sk, '/cars/vw-jetta-2020', d3);
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('x-edge-cache'), 'CRAWLER');
+  assert.match(await r.text(), /car/);
+  assert.equal(s.calls(), 1, 'no render');
+  const lm = r.headers.get('last-modified')!;
+  // the same crawler asking "changed since?": 304, no body
+  const nm = await serveEdge(req(car), null, sk, '/cars/vw-jetta-2020', { ...d3, crawler: { ifModifiedSince: lm } });
+  assert.equal(nm.status, 304);
+  assert.equal(s.calls(), 1);
+  // an older date: the copy itself
+  assert.equal((await serveEdge(req(car), null, sk, '/cars/vw-jetta-2020', { ...d3, crawler: { ifModifiedSince: 'Mon, 01 Jan 2024 00:00:00 GMT' } })).status, 200);
+  // older than 3 days: rendered again
+  const later = { ...d3, now: () => Date.now() + 4 * 86_400_000 };
+  await serveEdge(req(car), null, sk, '/cars/vw-jetta-2020', later);
+  await s.settle();
+  assert.equal(s.calls(), 2, 'a copy older than 3 days is not served to crawlers');
+  // a person is never given the crawler copy
+  await serveEdge(req(car), null, sk, '/cars/vw-jetta-2020', { ...s.d, version: 'v3' });
+  assert.equal(s.calls(), 3);
+});

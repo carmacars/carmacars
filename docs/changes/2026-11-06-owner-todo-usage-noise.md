@@ -1,4 +1,4 @@
-# To do that fits a day, usage in money, and the causes of the CPU, storage and email overruns (0320, 0322)
+# To do that fits a day, usage in money, and the causes of the CPU, storage and email overruns (0320, 0322, 0323)
 
 What the owner saw on November 1, 2026 on Admin > To do, on his phone: a red banner "Over the included allowance"
 (website CPU time 123%, about US$0.14 over; photo and document storage 103%, about US$0.005 over), a black banner
@@ -45,6 +45,15 @@ We cannot read production from here, so each cause below is from the code, with 
   Nothing at all before the allowance is used up.
 - Unchanged: Workers AI, images and Claude (hard stops and pauses) and the email holds (Resend's 100 a day), which stay
   visible red and amber, because hitting 100 holds emails.
+- **No usage alert is emailed any more (0323).** Settings > Usage showed "Emails today at 80%" and "at 100%" emailed
+  almost every day, with the CPU and storage alerts, each one counting against the same 100 emails a day. Every usage
+  alert is now kept with "not emailed: usage alerts are in the app only" and shown on To do and Settings > Usage; the
+  texts to the Admins (once per figure and level a month, outside the quiet hours, none under the red line) stay.
+- **The CPU figure is real, not a period error.** Settings > Usage showed 40.37 million CPU ms on November 1 (135%) for
+  the month that resets December 1. The usage workflow adds up Cloudflare's per-invocation CPU time per Toronto day
+  (src/features/usage/cloudflare.ts, workersInvocationsAdaptive `cpuTimeUs`), and only November 1 counts in November:
+  about 366,000 requests by 13:10 at about 110 ms each. Cloudflare bills Workers Paid by its own billing period, so the
+  dashboard's figure can differ by a few days; the projection (`app.usage_money`) uses the calendar month.
 
 ## 3. Worker CPU over its allowance: the cause and the fix
 
@@ -56,7 +65,14 @@ We cannot read production from here, so each cause below is from the code, with 
   the server every few seconds all day (live chat inbox every 5 s, a chat every 2 s, the phone inbox every 6 s, a thread
   every 4 s, Live visitors every 15 s, the live map wall screen every 30 s): one VA with live chat open for a shift is over
   14,000 Worker invocations a day.
+- **Cloudflare's own figures (November 1 to 2):** 633,000 requests and 584,000 Worker invocations in 24 hours (1.6
+  million the day before), 7.4% answered from a cache, CPU P90 177 ms: crawler volume with almost no caching. The edge
+  copy belonged to one deployment, and several deploys a day emptied it.
 - **Now:**
+  - A crawler (never a person, never a session) gets the page's last good copy, which outlives a deploy, instead of a
+    render while it is under 3 days old and no page was rebuilt on demand since, with Last-Modified; a crawler asking
+    "changed since?" (If-Modified-Since) gets 304 with no body (`crawlerCopy`, src/lib/edge/page-cache.ts). Every second
+    visit of a page by any crawler, Google's mobile and desktop crawlers included, is then answered without a render.
   - The search and answer crawlers that bring visitors (Google, Bing, DuckDuckGo, Apple, ChatGPT search and its user
     fetches, Claude search and user, Perplexity, Amazon and Meta user fetches, Mistral, DuckAssist, Google's Vertex and
     Deep Research) keep every public page, as the owner chose; their scope still follows Settings > Vehicle pages. Every
@@ -71,6 +87,12 @@ We cannot read production from here, so each cause below is from the code, with 
     browsers and the CDN), the crawler guard at 70% of the month, the idle cron gate.
   - Not changed: the site check's page probes (4 pages every 5 minutes, about 1,150 Worker requests a day, a few percent of
     the CPU): slowing them would delay outage alerts.
+
+- **Guide upkeep spent the AI background share (663 neurons and 9 calls on November 1, 2,913 in a week).** It ran after
+  every deploy that touched anything under web/src, and every run tried again each section the last one could not
+  rewrite. Now it starts only when a page, a component, a style or the guide content changed (`*.tsx`, `*.css`,
+  docs/guides; .github/workflows/guides.yml), and a section whose only reason is an earlier failure is tried at most once
+  a run, after the sections that changed (`rewriteTargets`, src/features/guides/upkeep.ts; web/scripts/guide-upkeep.mjs).
 
 ## 4. R2 storage over 10 GB: the cause and the fix
 
@@ -96,9 +118,9 @@ We cannot read production from here, so each cause below is from the code, with 
 
 ## 5. Emails: the cause and the fix
 
-- **Likely cause (sure that the binding is absent; fairly sure about the volume):** Cloudflare Email Service never sent:
-  the deploy adds the Worker's `EMAIL` binding only with the repository variable `CF_EMAIL_BINDING=1`, and the deploy runs
-  do not say it was added, so every email went through Resend's 100 a day. The volume: while no real assistant holds a
+- **Cause (sure):** Cloudflare Email Service never sent. Cloudflare's side is set up (carmacars.ca enabled, DNS
+  configured), and the repository variable exists, but its value is `EMAIL`; the deploy added the Worker's `EMAIL`
+  binding only for `1`, and said nothing either way, so every email went through Resend's 100 a day. The volume: while no real assistant holds a
   function, 0078 sends each customer service, sales, finance and fleet email to the Admins too, **immediately** when the
   assistant would have had it immediately, so on a new business every staff email was one more email to each Admin; and
   the outbox tried Cloudflare first for every email and failed. The live verification's sign-ups (verify workflow, full)
@@ -112,14 +134,15 @@ We cannot read production from here, so each cause below is from the code, with 
   - Settings > Usage opens with an **Emails** card: whether Cloudflare Email Service sends (`app.cf_email_setup`: set up
     and sending, refused with its reason, or not set up) and, when it does not, the four exact steps. The emails banner
     says the same with a link to them.
-  - Every production deploy says whether the EMAIL binding was added and, when not, why.
+  - The deploy takes `1`, `true`, `yes`, `on` or `EMAIL` (any case) as on (scripts/deploy/email-binding.sh), so the
+    next production deploy adds the binding with the variable as it is, and says whether it was added and, when not, why.
 
-## Owner steps (Cloudflare email, once)
+## Owner steps (Cloudflare email)
 
-1. Cloudflare dashboard, the carmacars.ca account: Compute (Workers) > Email Service. Enable it.
-2. Add the sending domain carmacars.ca and every DNS record it shows (SPF include and DKIM). Keep Resend's records.
-3. GitHub, the carmacars repository: Settings > Secrets and variables > Actions > Variables: `CF_EMAIL_BINDING` = `1`.
-4. Run the next production deploy. It says "EMAIL binding added"; Settings > Usage then shows Cloudflare sending.
+Nothing more: Email Sending is enabled for carmacars.ca with its DNS, and `CF_EMAIL_BINDING` is `EMAIL`, which the deploy
+now takes as on. The next production deploy says "EMAIL binding added"; Settings > Usage then shows Cloudflare sending.
+On a new account the steps are the four on Settings > Usage (enable Email Service, add carmacars.ca and its DNS records,
+set `CF_EMAIL_BINDING`, deploy).
 
 ## Tests
 
@@ -128,7 +151,9 @@ We cannot read production from here, so each cause below is from the code, with 
   days and the people stay; the CPU banner is a note at a few cents and red past the line; the email banner stays with
   the Cloudflare state; the email setup states; a customer service email's Admin copy goes to the digest; a second
   snapshot run rewrites no rental term). `62_contact_capture.sql`: the follow-up is in Sales' queue.
-- Unit: `web/src/features/admin/todo/need.test.ts`, `web/src/lib/poll/poll.test.ts`, `web/src/lib/edge/bot-shield.test.ts`
+- DB: `60_usage_guard_assistant.sql` (0323: no usage alert is emailed, each says why; the email still builds).
+- Unit: `web/src/features/guides/upkeep.test.ts` (the sections rewritten), `web/src/lib/edge/page-cache-stale.test.ts`
+  (crawlers get the last good copy or a 304), `web/src/features/admin/todo/need.test.ts`, `web/src/lib/poll/poll.test.ts`, `web/src/lib/edge/bot-shield.test.ts`
   (crawl scope), `web/src/features/usage/usage.test.ts` (the banner's words, the email steps),
   `web/src/lib/deploy-scripts.test.ts` (the backups kept).
 - E2E: `guided-actions.spec.ts` (a customer service task stays on its team's line), `release-23.spec.ts` (robots.txt: the
@@ -138,5 +163,5 @@ We cannot read production from here, so each cause below is from the code, with 
 
 - `admin/getting-around-admin`: To do counts lines; Your teams; unstaffed teams' emails in the digest.
 - `admin/discount-games-and-leads`: unfinished forms are Sales' follow-up and close after 7 days.
-- `admin/usage-and-paid-usage`: the banner in money; the Emails card and its steps.
+- `admin/usage-and-paid-usage`: the banner in money; usage alerts in the app only; the Emails card and its steps.
 - `admin/email-backups-and-site-health`: the backups kept and the nightly retention.
