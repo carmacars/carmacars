@@ -2669,6 +2669,7 @@ export type Database = {
           placeholder_reason: string | null;
           placeholder_by: string | null;
           placeholder_at: string | null;
+          pay_every: string | null;
         };
         Insert: {
           id?: string;
@@ -2839,6 +2840,7 @@ export type Database = {
           placeholder_reason?: string | null;
           placeholder_by?: string | null;
           placeholder_at?: string | null;
+          pay_every?: string | null;
         };
         Update: {
           id?: string;
@@ -3009,6 +3011,7 @@ export type Database = {
           placeholder_reason?: string | null;
           placeholder_by?: string | null;
           placeholder_at?: string | null;
+          pay_every?: string | null;
         };
         Relationships: [];
       };

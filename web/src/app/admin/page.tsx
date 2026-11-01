@@ -50,7 +50,7 @@ export default async function AdminToDo() {
       <UsageBanner userId={user.id} />
       <TodayBoard name={gate.name ?? null} tiles={boardTiles(dash, d, siteProblems)}
         lead={need ? `${need} thing${need > 1 ? 's' : ''} need${need > 1 ? '' : 's'} you, most urgent first.` : 'Nothing needs you right now. New requests and anything that needs you show up here.'}
-        actions={<><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/overview">Overview</Link><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new">Add a rental</Link></>} />
+        actions={<><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings" data-testid="today-cars-now">Cars out now</Link><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/overview">Overview</Link><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new">Add a rental</Link></>} />
       <div className="ad-home">
         <div className="ad-home__main">
           <section className="pt-card ad-card ad-needs" aria-labelledby="todo-h" data-testid="todo-list">
