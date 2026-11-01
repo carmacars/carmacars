@@ -96,7 +96,9 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   const fin = await mkUser(sql, 'va', `Finn Finance ${tag()}`, 'finance');
   const field = await mkUser(sql, 'field', `Frankie Field ${tag()}`);
   const carId = await companyCar(sql, admin.id);
-  const days = 60 + Math.floor(Math.random() * 300);
+  // a Monday pickup: three weekdays at the daily rate (a weekend day costs more since 0271)
+  let days = 60 + Math.floor(Math.random() * 300);
+  while (new Date(Date.now() + days * 86_400_000).getDay() !== 1) days++;
 
   // customer service: a price typed by hand (30% under the rate sheet) and "I sourced this client"
   const page = await ctx(browser);
@@ -137,7 +139,7 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await fp.getByTestId('va-nav').getByRole('button', { name: 'Rentals' }).click();
   await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'Add a rental' })).toBeVisible();
   await fp.goto('/staff/bookings/new', { waitUntil: 'networkidle' });
-  await fillRental(fp, carId, days + 10);
+  await fillRental(fp, carId, days + 14);
   // a price typed tax included (0112; 2026-10-27: Amounts I type, After tax): the database backs out the HST ($339.00 is $300.00 and $39.00 HST)
   await fp.getByTestId('mr-tax-mode-after').click();
   await fp.getByTestId('mr-rental_charge').fill('339');
@@ -167,7 +169,7 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await dp.goto('/staff/field/rentals/new', { waitUntil: 'networkidle' });
   await expect(dp.getByTestId('mr-renter-q')).toHaveCount(0);
   await expect(dp.getByTestId('mr-paid-by').locator('option[value=\"e_transfer\"]')).toHaveCount(0);
-  await fillRental(dp, carId, days + 20, { field: true });
+  await fillRental(dp, carId, days + 21, { field: true });
   await expect(dp.getByTestId('mr-paid-by').locator('option[value=\"e_transfer\"]')).toHaveCount(0);
   await dp.getByTestId('choice-sourced').check();
   await check(dp, 'field add a rental');

@@ -5,14 +5,18 @@ import { fitScale, HEIC_UNREADABLE, QUALITIES, sourceKind, sourceProblem, TARGET
 // the image element is tried too), a PDF's first page drawn with pdf.js, made smaller when large, location data gone.
 async function decode(file: Blob): Promise<CanvasImageSource & { width: number; height: number }> {
   try { return await createImageBitmap(file); } catch { /* the image element below */ }
-  const url = URL.createObjectURL(file);
-  try {
-    const img = new Image();
-    img.decoding = 'async';
-    img.src = url;
-    await img.decode();
-    return Object.assign(img, { width: img.naturalWidth, height: img.naturalHeight });
-  } finally { setTimeout(() => URL.revokeObjectURL(url), 0); }
+  // a data: address, not a blob: one (the site's content policy lets images load from data:, and nothing connects)
+  const url = await new Promise<string>((ok, no) => {
+    const r = new FileReader();
+    r.onload = () => ok(String(r.result));
+    r.onerror = () => no(r.error ?? new Error('unreadable'));
+    r.readAsDataURL(file);
+  });
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = url;
+  await img.decode();
+  return Object.assign(img, { width: img.naturalWidth, height: img.naturalHeight });
 }
 
 function toJpeg(src: CanvasImageSource & { width: number; height: number }): Promise<Blob> {
