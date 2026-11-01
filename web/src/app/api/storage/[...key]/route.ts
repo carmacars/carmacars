@@ -2,6 +2,7 @@ import { env } from '@/lib/env';
 import { linkSecret } from '@/server/links';
 import { checkStorageUrl } from '@/integrations/storage/sign';
 import { PRIVATE_BUCKETS, type Bucket } from '@/integrations/storage/types';
+import { AUDIO_MIME } from '@/features/careers/ai-interview';
 
 // What a presigned R2 link does, for the local adapter and the R2-binding adapter (STORAGE_PROVIDER=local
 // or r2-binding). GET serves a private object, PUT stores an upload, each only with a valid unexpired
@@ -25,9 +26,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
   const { storage } = await import('@/integrations/storage');
   const body = await (await storage()).get(t.bucket, t.key);
   if (!body) return new Response('Not found', { status: 404 });
-  const type = t.key.endsWith('.pdf') ? 'application/pdf' : t.key.endsWith('.png') ? 'image/png' : t.key.endsWith('.jpg') ? 'image/jpeg' : 'application/octet-stream';
+  const type = t.key.endsWith('.pdf') ? 'application/pdf' : t.key.endsWith('.png') ? 'image/png' : t.key.endsWith('.jpg') ? 'image/jpeg'
+    : AUDIO_MIME[t.key.split('.').pop() ?? ''] ?? 'application/octet-stream';
   const fn = q.get('fn');
+  // 0380: the interview recordings play in the page: Safari asks for byte ranges before it plays audio
+  const range = type.startsWith('audio/') ? /^bytes=(\d*)-(\d*)$/.exec(req.headers.get('range') ?? '') : null;
+  if (range && (range[1] || range[2])) {
+    const size = body.byteLength;
+    const start = range[1] ? Number(range[1]) : Math.max(size - Number(range[2]), 0);
+    const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    if (start >= size || start > end) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}` } });
+    return new Response(body.slice(start, end + 1) as unknown as BodyInit, { status: 206, headers: {
+      'content-type': type, 'content-range': `bytes ${start}-${end}/${size}`, 'accept-ranges': 'bytes', 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
+  }
   return new Response(body as unknown as BodyInit, { headers: {
+    ...(type.startsWith('audio/') ? { 'accept-ranges': 'bytes' } : {}),
     'content-type': type, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff', 'content-security-policy': 'sandbox',
     ...(fn ? { 'content-disposition': `attachment; filename="${fn.replace(/[^\w.-]/g, '_')}"` } : {})
   } });

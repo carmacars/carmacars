@@ -216,6 +216,8 @@ const worker = {
     if (due.seo) run('/api/jobs/seo');
     // the phone line (migration 0085): booking texts that are due and the AI one-liners of calls
     if (due.phone) run('/api/jobs/phone');
+    // the AI interviews of remote applicants (migration 0380): transcripts left, the AI's scores, removed audio
+    if (due.interviews) run('/api/jobs/interviews');
     // phone and browser alerts (migration 0300): only with the VAPID keys, and only when an alert is due
     ctx.waitUntil(pushWaiting(env).then((w) => { if (w) run('/api/jobs/push'); }).catch(() => undefined));
     // the Google reviews sync of the review request program (migration 0138), every 6 hours while connected
