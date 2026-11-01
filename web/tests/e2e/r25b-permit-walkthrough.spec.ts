@@ -36,10 +36,10 @@ async function mkStaff(sql: Sql, kind: 'admin' | 'va' | 'field', name: string, f
   if (kind === 'field') await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, field_function) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'field', 'driver_detailer')`;
   return { id, email };
 }
-async function page(browser: Browser, email: string, expectPath: string) {
+async function page(browser: Browser, email: string, expectPath: string, next?: string) {
   const c = await browser.newContext({ viewport: isPhone() ? { width: 375, height: 812 } : { width: 1440, height: 900 }, hasTouch: isPhone(), baseURL: test.info().project.use.baseURL });
   const p = await c.newPage();
-  await p.goto('/sign-in', { waitUntil: 'networkidle' });
+  await p.goto(next ? `/sign-in?next=${encodeURIComponent(next)}` : '/sign-in', { waitUntil: 'networkidle' });
   await acceptCookies(p);
   await p.locator('input[type="email"]').fill(email);
   await p.locator('input[type="password"]').fill(PW);
@@ -119,8 +119,9 @@ test('a signed-in owner reads the permit in their own application', async ({ bro
     const id = randomUUID(); const email = `r25b.owner.${Date.now()}.${tag()}@example.test`;
     await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${email}, ${hash(PW)})`;
     await sql`select public.register_account(${id}, ${email}, 'Olive Permit', null)`;
-    const p = await page(browser, email, '/');
-    await p.goto('/list-your-car/apply', { waitUntil: 'networkidle' });
+    // sign in straight into the application; waiting for '/' would also match /sign-in itself and race the session
+    const p = await page(browser, email, '/list-your-car/apply', '/list-your-car/apply');
+    await p.waitForLoadState('networkidle');
     await p.locator('label:has-text("An individual")').click();
     await p.locator('#ap-first').fill('Olive');
     await p.locator('#ap-last').fill('Permit');
