@@ -1,12 +1,12 @@
 'use client';
 import './bookings-now.css';
 import Link from 'next/link';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { photoUrl } from '@/lib/photo';
+import { useCallback, useEffect, useState } from 'react';
+import { CarLine, Tile, Time, Who, Photo } from './parts';
 import { Act, type Field } from '@/features/admin/Act';
 import {
-  BILL_WORDS, KIND, billed, countdown, day, depositWords, filterOut, fuel, initial, km, money, nextPay, phoneHref, photoPath, planWords, when,
-  type BillFilter, type Board, type Car, type FreeCar, type OutFilter, type Rental, type Renter
+  BILL_WORDS, KIND, billed, countdown, day, depositWords, filterOut, fuel, km, money, nextPay, planWords, when,
+  type BillFilter, type Board, type FreeCar, type OutFilter, type Rental
 } from './model';
 
 // Bookings > Now (migration 0330): the owner's "literal most important thing" on one screen. The numbers at the top, then
@@ -167,53 +167,6 @@ export function BookingsNow({ initial: first, at, src, base }: { initial: Board 
       </div>
     </div>
   );
-}
-
-function Tile({ k, href, label, n, note, urgent }: { k: string; href: string; label: string; n: number; note: ReactNode; urgent?: boolean }) {
-  return (
-    <li><a className={`bn-tile${urgent ? ' is-urgent' : ''}${n === 0 ? ' is-zero' : ''}`} href={href} data-testid={`bn-tile-${k}`}>
-      <span className="bn-tile__label">{label}</span><b className="bn-tile__n">{n}</b><span className="bn-tile__note">{urgent && <span className="vh">Needs you: </span>}{note}</span>
-    </a></li>
-  );
-}
-
-function Photo({ car, size }: { car: Car; size: number }) {
-  const p = photoPath(car.photo, size * 2);
-  return p
-    // eslint-disable-next-line @next/next/no-img-element -- the listing photos come pre-sized (0149's variants)
-    ? <img className="bn-photo" src={photoUrl(p)} alt="" width={size} height={Math.round(size * 0.66)} loading="lazy" decoding="async" />
-    : <span className="bn-photo bn-photo--none" aria-hidden="true">{initial(car.name)}</span>;
-}
-
-function CarLine({ car, number, href, compact }: { car: Car; number: string; href: string | null; compact?: boolean }) {
-  const id = [car.code, car.plate].filter(Boolean).join(' · ');
-  return (
-    <span className={`bn-carline${compact ? ' is-compact' : ''}`}>
-      {!compact && <Photo car={car} size={56} />}
-      <span className="bn-carline__text">
-        <span className="bn-carline__name">{car.name}</span>
-        <span className="bn-carline__id">{id}{id ? ' · ' : ''}{href ? <Link prefetch={false} href={href} className="bn-link">{number}</Link> : number}</span>
-      </span>
-    </span>
-  );
-}
-
-function Who({ r }: { r: Renter | null }) {
-  if (!r) return <span className="bn-who muted">No renter</span>;
-  const tel = phoneHref(r.phone, 'tel'), sms = phoneHref(r.phone, 'sms');
-  return (
-    <span className="bn-who">
-      <span className="bn-who__name">{r.name}</span>
-      {(tel || sms) && <span className="bn-who__acts">
-        {tel && <a className="bn-icon" href={tel} aria-label={`Call ${r.name}`} title={`Call ${r.phone}`}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6.6 2.5 4.4 3.1c-.8.2-1.3 1-1.2 1.8.6 6.1 5.7 11.2 11.8 11.8.8.1 1.6-.4 1.8-1.2l.6-2.2-3.4-1.5-1.5 1.6a9 9 0 0 1-4.6-4.6l1.6-1.5z" /></svg></a>}
-        {sms && <a className="bn-icon" href={sms} aria-label={`Text ${r.name}`} title={`Text ${r.phone}`}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 4.5h13v9h-7l-4 3v-3h-2z" /></svg></a>}
-      </span>}
-    </span>
-  );
-}
-
-function Time({ big, small, late }: { big: string; small: string; late: boolean }) {
-  return <span className={`bn-time${late ? ' is-late' : ''}`}><b>{big}</b><span>{small}</span></span>;
 }
 
 function Tick({ ok, label, state }: { ok: boolean; label: string; state?: 'wait' | 'later' }) {

@@ -4,13 +4,14 @@ import { GroupNav, type NavGroup } from './GroupNav';
 // The admin portal's navigation (October 16, 2026: the owner found 31 links "super difficult to navigate"; October 23,
 // 2026: six groups, the long ones in labelled parts; October 25, 2026: Marketing, migration 0167): seven groups with plain
 // names, every page still two taps away. The
-// pages keep their addresses, so links in emails and bookmarks work.
+// pages keep their addresses, so links in emails and bookmarks work. Release 26 (the owner: "We need less pages not
+// more"): Bookings opens on Now (All bookings is its second tab), Chauffeur is a tab of Requests and offers, and Send an
+// offer and Add a rental are buttons on Bookings and Today.
 export const GROUPS: NavGroup[] = [
   { key: 'today', label: 'Today', links: [
     { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Staff tasks', key: 'k' }, { href: '/admin/live', label: 'Live visitors' }, { href: '/admin/live-map', label: 'Live map' }, { href: '/admin/live/history', label: 'Visitor history' }] },
   { key: 'bookings', label: 'Bookings', links: [
-    { href: '/admin/requests', label: 'Requests', key: 'r', section: 'Trips' }, { href: '/admin/bookings', label: 'Bookings', key: 'b' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
-    { href: '/admin/offers/new', label: 'Send an offer' }, { href: '/admin/bookings/new', label: 'Add a rental' }, { href: '/admin/chauffeur', label: 'Chauffeur' },
+    { href: '/admin/bookings', label: 'Bookings', key: 'b', section: 'Trips' }, { href: '/admin/requests', label: 'Requests and offers', key: 'r' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
     { href: '/admin/chat', label: 'Live chat', section: 'Customers' }, { href: '/admin/leads', label: 'Renter leads' }, { href: '/admin/reviews', label: 'Reviews' },
     { href: '/admin/damages', label: 'Damage', section: 'Problems' }, { href: '/admin/incidents', label: 'Incidents and claims' }] },
   { key: 'cars', label: 'Cars', links: [

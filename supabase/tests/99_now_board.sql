@@ -238,3 +238,29 @@ insert into bn select 'close', app.door(test.id('bn_admin'), 'aal2', 'ops_do', '
 select test.eq('close: the pickup and the return recorded at the booked times',
   (select status::text || '/' || (handed_over_at = pickup_at) || '/' || (checked_in_at = return_at) from bookings where id = test.id('booking:BN-STALE')), 'returned/true/true');
 select test.ok('close: no longer on the board', not exists (select 1 from jsonb_array_elements(app.fleet_board(test.bn_now()) -> 'stale') x where x ->> 'number' = 'BN-STALE'));
+
+-- ================================================================ 0332: the rows of Requests and offers, All bookings and the Calendar
+insert into bn select 'cards', app.door(test.id('bn_cs'), 'aal2', 'ops_read', 'booking_cards',
+  jsonb_build_object('_va', 'cs', 'ids', jsonb_build_array(test.id('booking:BN-WEEK'), test.id('booking:BN-INS'), 'not-a-uuid')));
+select test.eq('booking cards: the car, the mobile, the licence and the money of each row',
+  (select (x #>> '{car,code}' is not null) || '/' || (x ->> 'phone') || '/' || (x ->> 'licence') || '/' || (x #>> '{money,state}') || '/' || (x ->> 'bill_to')
+     from (select test.bn('cards') -> test.id('booking:BN-WEEK')::text x) z), 'true/647-555-0199/verified/upcoming/renter');
+select test.eq('booking cards: an insurer-billed rental says so', test.bn('cards') #>> array[test.id('booking:BN-INS')::text, 'money', 'state'], 'none');
+select test.throws('booking cards: not for field staff', format($$select app.door(%L, 'aal2', 'ops_read', 'booking_cards', '{"ids": []}')$$, test.id('bn_field')), 'office staff');
+select test.ok('car thumbs: field staff read the calendar''s car rows',
+  app.door(test.id('bn_field'), 'aal2', 'ops_read', 'car_thumbs', jsonb_build_object('ids', jsonb_build_array(test.id('vehicle:bn_week')))) ? test.id('vehicle:bn_week')::text);
+-- my bookings: a staff member's own (here: added by them)
+update bookings set created_by = test.id('bn_sales') where id = test.id('booking:BN-WEEK');
+insert into bn select 'mine', app.door(test.id('bn_sales'), 'aal2', 'ops_read', 'my_bookings', '{"_va": "sales"}');
+select test.ok('my bookings: Sales see the bookings they added, with how',
+  exists (select 1 from jsonb_array_elements(test.bn('mine')) x where x ->> 'booking_number' = 'BN-WEEK' and x ->> 'how' = 'added')
+  and not exists (select 1 from jsonb_array_elements(test.bn('mine')) x where x ->> 'booking_number' = 'BN-LATE'));
+select test.throws('my bookings: office staff only', format($$select app.door(%L, 'aal2', 'ops_read', 'my_bookings', '{}')$$, test.id('bn_field')), 'Office staff');
+-- an offer still out when its pickup time passes expires by itself
+select test.mk_vehicle('bn_offer', 'bn_olive');
+select test.mk_booking('BN-OFFER', 'bn_offer', 'bn_ivan', test.bnt(interval '-30 hours'), test.bnt(interval '3 days'), 'offered');
+update bookings set offer_expires_at = now() + interval '1 day' where id = test.id('booking:BN-OFFER');
+select app.expire_offers(now());
+select test.eq('offers: one still out past its pickup time expires', (select status::text from bookings where id = test.id('booking:BN-OFFER')), 'expired');
+select test.ok('offers: the expiry time is on its row for the quiet Expired filter',
+  (app.booking_cards(test.id('bn_admin'), jsonb_build_object('ids', jsonb_build_array(test.id('booking:BN-OFFER')))) #>> array[test.id('booking:BN-OFFER')::text, 'expired_at']) is not null);

@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import '@/features/bookings-now/bookings-now.css';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { money } from '@/lib/format';
@@ -7,6 +8,8 @@ import { when } from '@/features/agreement/model';
 import { useDoor } from './door';
 import { toLocalInput } from './Act';
 import { lane, rowHeight, stack, topOf } from './calendar-stack';
+import { photoUrl } from '@/lib/photo';
+import { photoPath, when as nowWords, type Car } from '@/features/bookings-now/model';
 
 // The master calendar (03-admin.md section 5): vehicles as rows, days as columns. Bookings are bars by
 // status (requests and offers hatched on the lower lane, non-blocking bookings outlined), blocks striped,
@@ -50,7 +53,21 @@ const text = (e: Entry) => e.type === 'block' ? `${(e.reason ?? '').replace(/_/g
   : e.type === 'booking' ? `${e.renter?.split(' ').pop() ?? ''} ${e.status === 'requested' ? 'request' : e.status === 'offered' ? 'offer' : e.status === 'pending_payment' ? 'signing and payment' : e.booking_number ?? ''}${e.placeholder ? ' placeholder' : e.blocks === false ? ' not blocking' : ''}${e.insurer ? ' insurer' : ''}`
   : e.type === 'turo_trip' ? 'Turo' : e.detail ?? e.type.replace(/_/g, ' ');
 
-export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicleLinks = true }: { initial: CalData; vehicleId?: string; defaultView?: string; vehicleLinks?: boolean }) {
+// Release 26 part 2 (the Now view's look): each car row starts with its photo, code and plate (cars, from car_thumbs,
+// 0332); the bars keep the Now colours (out red, booked black, requests and offers hatched, placeholders dashed, a red
+// ring and "!" where the dates are taken); the phone agenda is grouped by day; a bar opens a side panel.
+const dayHead = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(iso));
+const hm = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' }).format(new Date(iso)).replace(/\s?a\.m\./, ' am').replace(/\s?p\.m\./, ' pm');
+const WORDS: Record<string, string> = { requested: 'Request', offered: 'Offer', pending_payment: 'Waiting for payment', confirmed: 'Booked', on_rent: 'Out', returned: 'Returned', closed: 'Closed' };
+const kindOf = (e: Entry) => e.type === 'booking' ? (e.placeholder ? 'Placeholder' : WORDS[e.status ?? ''] ?? (e.status ?? '').replace(/_/g, ' ')) : e.type === 'block' ? 'Block' : e.type === 'turo_trip' ? 'Turo' : e.type.replace(/_/g, ' ');
+
+function Thumb({ car, label }: { car?: Car; label: string }) {
+  const p = photoPath(car?.photo, 96);
+  // eslint-disable-next-line @next/next/no-img-element -- the listing photos come pre-sized (0149's variants)
+  return p ? <img className="cal__thumb" src={photoUrl(p)} alt="" width={44} height={30} loading="lazy" decoding="async" /> : <span className="cal__thumb cal__thumb--none" aria-hidden="true">{(label.replace(/^\d{4}\s+/, '')[0] ?? '?').toUpperCase()}</span>;
+}
+
+export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicleLinks = true, cars = {}, initialAgenda = false }: { initial: CalData; vehicleId?: string; defaultView?: string; vehicleLinks?: boolean; cars?: Record<string, Car>; initialAgenda?: boolean }) {
   const { act: adminAct, preview: adminPreview, base: doorBase } = useDoor();
   const router = useRouter();
   const sp = useSearchParams();
@@ -60,7 +77,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
   const [onlyNonBlocking, setOnlyNonBlocking] = useState(sp.get('nb') === '1');
   const [onlyInsurer, setOnlyInsurer] = useState(sp.get('ins') === '1');
   const [supply, setSupply] = useState(sp.get('supply') ?? ''); // 0046: who supplies the car
-  const [agenda, setAgenda] = useState(false);
+  const [agenda, setAgenda] = useState(initialAgenda);
   const [sel, setSel] = useState<{ entry?: Entry; vehicle?: Veh; at?: number } | null>(null);
   const [move, setMove] = useState<Move | null>(null);
   const [confirm, setConfirm] = useState<{ move: Move; preview: Preview | null; error?: string } | null>(null);
@@ -161,7 +178,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
   const pos = (s: number, e: number) => ({ left: Math.max(0, (s - from) * pxPerMs), width: Math.max(6, (Math.min(e, from + days * DAY) - Math.max(s, from)) * pxPerMs) });
   // by calendar day, not 24 hours at a time: on the night the clocks go back 24 hours later is still the same date ("1 Nov" twice)
   const dayList = Array.from({ length: days }, (_, i) => { const d = new Date(from); d.setDate(d.getDate() + i); return d; });
-  const width = `calc(11rem + ${days * dw}px)`;
+  const width = `calc(14rem + ${days * dw}px)`;
 
   return (
     <div className="cal" data-testid="master-calendar">
@@ -190,21 +207,34 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
       </div>
       {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
       <div className="cal__legend" aria-hidden="true">
-        <span><i className="cal__item is-confirmed" /> confirmed</span><span><i className="cal__item is-on_rent" /> on rent</span><span><i className="cal__item is-requested" /> request</span>
+        <span><i className="cal__item is-on_rent" /> out</span><span><i className="cal__item is-confirmed" /> booked</span><span><i className="cal__item is-requested" /> request</span>
         <span><i className="cal__item is-offered" /> offer</span><span><i className="cal__item is-confirmed is-outline" /> not blocking</span><span><i className="cal__item is-confirmed is-placeholder" /> placeholder</span><span><i className="cal__item is-block" /> block</span>
         <span><i className="cal__item is-requested has-clash" /> dates taken</span><span><i className="cal__item" style={{ background: '#0f7b6c' }} /> Turo</span>
       </div>
       {agenda ? (
-        <ul className="cal__agenda" data-testid="cal-agenda">
-          {vehicles.flatMap((v) => v.entries.map((e) => ({ v, e }))).sort((a, b) => a.e.starts_at.localeCompare(b.e.starts_at)).map(({ v, e }) => (
-            <li key={`${e.type}${e.id}`}><button type="button" onClick={() => setSel({ entry: e })}><b>{when(e.starts_at)}</b>{e.ends_at ? ` to ${when(e.ends_at)}` : ''}<br />{v.label} {v.plate} · {text(e)}{e.clash?.length ? <><br /><b className="ad-late" data-testid="cal-agenda-clash">Dates taken: clashes with {e.clash.join(', ')}</b></> : null}</button></li>
-          ))}
-          {!vehicles.some((v) => v.entries.length) && <li>Nothing on the calendar for these dates.</li>}
-        </ul>
+        <div className="cal__agenda" data-testid="cal-agenda">
+          {(() => {
+            const items = vehicles.flatMap((v) => v.entries.map((e) => ({ v, e }))).sort((a, b) => a.e.starts_at.localeCompare(b.e.starts_at));
+            if (!items.length) return <p className="cal__none">Nothing on the calendar for these dates.</p>;
+            const groups: Array<[string, typeof items]> = [];
+            for (const it of items) { const k = dayHead(it.e.starts_at); const g = groups[groups.length - 1]; if (g && g[0] === k) g[1].push(it); else groups.push([k, [it]]); }
+            return groups.map(([k, rows]) => (
+              <section key={k} className="cal__aday"><h3>{k}</h3>
+                <ul>{rows.map(({ v, e }) => (
+                  <li key={`${e.type}${e.id}`}><button type="button" className="cal__acard" data-kind={e.type === 'booking' ? (e.placeholder ? 'placeholder' : e.status ?? '') : e.type} data-clash={e.clash?.length ? 'yes' : undefined} onClick={() => setSel({ entry: e })}>
+                    <span className="cal__atime"><b>{hm(e.starts_at)}</b>{e.ends_at ? <span>to {nowWords(e.ends_at, now)}</span> : null}</span>
+                    <Thumb car={cars[v.id]} label={v.label} />
+                    <span className="cal__abody"><b>{v.label}</b><span>{[cars[v.id]?.code, v.plate].filter(Boolean).join(' · ')}{e.renter ? ` · ${e.renter}` : ''}{e.booking_number ? ` · ${e.booking_number}` : ''}</span>
+                      {e.clash?.length ? <b className="ad-late" data-testid="cal-agenda-clash">Dates taken: clashes with {e.clash.join(', ')}</b> : null}</span>
+                    <span className={`cal__akind cal__item ${cls(e, now).replace('has-clash', '').replace('is-late', '')}`}>{kindOf(e)}</span>
+                  </button></li>))}</ul>
+              </section>));
+          })()}
+        </div>
       ) : (
         <div className="cal__grid" ref={grid} onPointerMove={onMoveP} onPointerUp={onUp} aria-label="Vehicles by day" role="region" tabIndex={0}>
           <div className="cal__inner" style={{ width, ['--dw' as string]: `${dw}px` }}>
-            <div className="cal__head" style={{ gridTemplateColumns: `11rem ${days * dw}px` }}>
+            <div className="cal__head" style={{ gridTemplateColumns: `14rem ${days * dw}px` }}>
               <div className="cal__corner">{vehicles.length} vehicles</div>
               <div className="cal__days" style={{ width: days * dw }}>
                 {dayList.map((d, i) => { const td = isoDay(d) === isoDay(torontoMidnight(new Date(now))); const we = d.getDay() === 0 || d.getDay() === 6; return (
@@ -213,12 +243,12 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
             </div>
             {vehicles.length === 0 && <p className="ad-empty">No vehicles match.</p>}
             {vehicles.map((v) => { const st = stack(v.entries, from + days * DAY); return (
-              <div key={v.id} className="cal__row" style={{ gridTemplateColumns: `11rem ${days * dw}px` }}>
-                <div className="cal__name">{vehicleLinks ? <Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.fleet_number ? `${v.fleet_number} ` : ''}{v.label}</Link> : <b>{v.fleet_number ? `${v.fleet_number} ` : ''}{v.label}</b>}<span>{v.plate ?? ''} · {v.status.replace(/_/g, ' ')}</span></div>
+              <div key={v.id} className="cal__row" style={{ gridTemplateColumns: `14rem ${days * dw}px` }}>
+                <div className="cal__name"><Thumb car={cars[v.id]} label={v.label} /><span className="cal__ntext">{vehicleLinks ? <Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.label}</Link> : <b>{v.label}</b>}<span>{[cars[v.id]?.code ?? v.fleet_number, v.plate].filter(Boolean).join(' · ')}{v.status !== 'available' ? ` · ${v.status.replace(/_/g, ' ')}` : ''}</span></span></div>
                 <div className={`cal__lane${move && (move.vehicle || vehicleOf(move.entry)) === v.id ? ' is-drop' : ''}`} data-vehicle={v.id} data-testid={`lane-${v.plate ?? v.id}`} data-rows={st.top + st.low}
                   style={st.top + st.low > 2 ? { height: rowHeight(st) } : undefined}
                   onDoubleClick={(ev) => { const r = (ev.currentTarget as HTMLElement).getBoundingClientRect(); setSel({ vehicle: v, at: snap(from + (ev.clientX - r.left) / pxPerMs) }); }}>
-                  {now >= from && now <= from + days * DAY && <span className="cal__now" style={{ left: (now - from) * pxPerMs }} />}
+                  {now >= from && now <= from + days * DAY && <span className="cal__now" style={{ left: (now - from) * pxPerMs }} aria-hidden="true" />}
                   {v.entries.map((e) => {
                     const s = new Date(e.starts_at).getTime(); const en = e.ends_at ? new Date(e.ends_at).getTime() : from + days * DAY;
                     const m = move && move.entry.id === e.id && move.entry.type === e.type ? move : null;

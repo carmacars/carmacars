@@ -18,7 +18,7 @@
 .bn-tile.is-urgent::before { content: ""; position: absolute; inset: 0 0 auto; height: 3px; background: var(--red-600); }
 .bn-tile.is-urgent .bn-tile__n, .bn-tile.is-urgent .bn-tile__note { color: var(--red-400); }
 @media (min-width: 40rem) { .bn-sum { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 72rem) { .bn-sum { grid-template-columns: repeat(6, minmax(0, 1fr)); } .bn-tile { min-height: 7rem; padding: var(--s-4); } }
+@media (min-width: 72rem) { .bn-sum { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); } .bn-tile { min-height: 7rem; padding: var(--s-4); } }
 
 .bn-live { margin: calc(var(--s-2) * -1) 0 0; display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-2xs); color: var(--text-2); }
 .bn-live__dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--red-600); box-shadow: 0 0 0 3px rgb(208 17 27 / 0.18); flex: none; }
@@ -194,3 +194,153 @@
 .bn-stale .bn-row { border-bottom-color: #F0D58C; }
 .bn-row--stale .btn { justify-self: start; grid-column: 2; }
 .bn-row--stale .bn-time { grid-row: span 4; }
+
+/* ---------------------------------------------------------------- shared: chips and countdowns (Release 26 part 2) */
+.bn-chip-s { display: inline-flex; align-items: center; gap: 4px; min-height: 1.4rem; padding: 0 0.55rem; border-radius: 999px; font-size: var(--fs-2xs); font-weight: 700; white-space: nowrap; background: var(--grey-100); color: var(--text); }
+.bn-chip-s--red { background: var(--red-600); color: var(--white); }
+.bn-chip-s--dark { background: var(--black); color: var(--white); }
+.bn-chip-s--amber { background: #FFF1CC; color: #5C4300; }
+.bn-chip-s--ok { background: #E7F3EA; color: #1F5F31; }
+.bn-cd { font-variant-numeric: tabular-nums; font-weight: 650; }
+.bn-cd.is-near { color: #8A5A00; }
+.bn-cd.is-over { color: var(--red-700); }
+
+/* ---------------------------------------------------------------- Requests and offers: one queue by urgency */
+.rq-list { display: grid; gap: var(--s-2); }
+.rq { position: relative; display: grid; gap: var(--s-3); grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "when money" "car car" "who who" "act act";
+  padding: var(--s-3); border: 1px solid var(--grey-200); border-radius: 14px; background: var(--white); }
+.rq.is-late { border-color: var(--red-600); box-shadow: inset 4px 0 0 var(--red-600); }
+.rq.is-new { box-shadow: inset 4px 0 0 var(--black); }
+.rq.is-expired { background: var(--grey-50); }
+.rq__when { grid-area: when; display: grid; gap: 2px; align-content: start; }
+.rq__wait { font-family: var(--font-display); font-size: 1.15rem; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.rq__wait .ad-wait { font-weight: 700; }
+.rq__promise { font-size: var(--fs-2xs); color: var(--text-2); }
+.rq__car { grid-area: car; display: grid; gap: 4px; min-width: 0; }
+.rq__dates { font-size: var(--fs-xs); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.rq__dates b { color: var(--text); font-weight: 650; }
+.rq__days { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 6px; background: var(--grey-100); color: var(--text); font-weight: 650; white-space: nowrap; }
+.rq__who { grid-area: who; display: grid; gap: var(--s-2); min-width: 0; }
+.rq__tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.rq__money { grid-area: money; display: grid; gap: 2px; justify-items: end; align-content: start; }
+.rq__money b { font-family: var(--font-display); font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.rq__act { grid-area: act; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.rq__claim { font-size: var(--fs-xs); color: var(--text-2); }
+.rq__btns { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-left: auto; }
+.rq__btns .btn { min-height: 40px; }
+@media (min-width: 64rem) {
+  .rq { grid-template-columns: 9rem minmax(14rem, 1.5fr) minmax(13rem, 1.3fr) 6rem minmax(13rem, 1.2fr); grid-template-areas: "when car who money act"; align-items: center; padding: var(--s-3) var(--s-4); }
+  .rq__money { justify-items: start; }
+  .rq__act { flex-direction: column; align-items: flex-start; }
+  .rq__btns { margin-left: 0; }
+}
+
+/* ---------------------------------------------------------------- All bookings: rows */
+.bk-rows { display: grid; gap: var(--s-2); }
+.bk-rows__head { display: none; }
+.bk-row { display: grid; gap: var(--s-2) var(--s-3); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "st st" "car car" "who who" "dates money" "bill bill";
+  padding: var(--s-3); border: 1px solid var(--grey-200); border-radius: 14px; background: var(--white); }
+.bk-row.is-late { border-color: var(--red-600); box-shadow: inset 4px 0 0 var(--red-600); }
+.bk-row__st { grid-area: st; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.bk-row__no { font-family: var(--font-display); font-weight: 700; font-size: var(--fs-sm); color: var(--text); text-decoration: underline; text-decoration-color: var(--grey-300); text-underline-offset: 3px; }
+.bk-row__no:hover { color: var(--red-700); }
+.bk-row__chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.bk-row__late { font-size: var(--fs-2xs); font-weight: 700; color: var(--red-700); }
+.bk-row__car { grid-area: car; min-width: 0; }
+.bk-row__who { grid-area: who; min-width: 0; }
+.bk-row__dates { grid-area: dates; display: grid; gap: 1px; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.bk-row__money { grid-area: money; display: grid; gap: 4px; justify-items: start; }
+.bk-row__bill { grid-area: bill; font-size: var(--fs-sm); display: flex; gap: var(--s-2); align-items: baseline; }
+.bk-row__bill .bn-k { display: inline; }
+@media (min-width: 64rem) {
+  .bk-rows { gap: 0; border: 1px solid var(--grey-200); border-radius: 14px; overflow: hidden; background: var(--white); }
+  .bk-rows__head, .bk-row { grid-template-columns: minmax(10rem, 1.1fr) minmax(14rem, 1.6fr) minmax(11rem, 1.2fr) minmax(10rem, 1fr) minmax(8rem, 0.8fr) 6rem; grid-template-areas: none; }
+  .bk-rows__head { display: grid; gap: var(--s-3); padding: var(--s-2) var(--s-4); background: var(--grey-50); border-bottom: 1px solid var(--grey-200); font-size: var(--fs-2xs); font-weight: 650; color: var(--text-2); }
+  .bk-row { grid-area: auto; align-items: center; padding: var(--s-3) var(--s-4); border: 0; border-bottom: 1px solid var(--grey-100); border-radius: 0; }
+  .bk-row > div { grid-area: auto; }
+  .bk-row .bn-k { display: none; }
+  .bk-row:last-child { border-bottom: 0; }
+  .bk-row.is-late { box-shadow: inset 4px 0 0 var(--red-600); border-color: var(--grey-100); }
+}
+
+/* the filter bar of All bookings and Requests */
+.bk-filters { display: grid; gap: var(--s-2); padding: var(--s-3); border: 1px solid var(--grey-200); border-radius: 14px; background: var(--grey-50); }
+.bk-filters__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.bk-filters__k { font-size: var(--fs-xs); font-weight: 650; color: var(--text-2); min-width: 3.5rem; }
+.bk-filters .ad-search { flex: 1 1 18rem; }
+.bk-filters .ad-filters, .bk-filters .ad-tabs { margin: 0; }
+.rq-later { padding: var(--s-3); border: 1px dashed var(--grey-300); border-radius: 12px; font-size: var(--fs-sm); color: var(--text-2); }
+.rq-later summary { cursor: pointer; font-weight: 650; color: var(--text); }
+.rq-later ul { margin: var(--s-2) 0 0; padding-left: var(--s-4); display: grid; gap: 4px; }
+
+/* ---------------------------------------------------------------- the Calendar in the Now view's look (Release 26 part 2) */
+.cal.cal { gap: var(--s-3); }
+.cal.cal .cal__bar { padding: var(--s-3); border: 1px solid var(--grey-200); border-radius: 14px; background: var(--grey-50); }
+.cal.cal .cal__bar .input, .cal.cal .cal__bar .select { border-radius: 10px; background: var(--white); min-height: 40px !important; font-size: var(--fs-sm); padding-block: 0; }
+.cal.cal .cal__bar .btn { min-height: 40px; }
+.cal.cal .cal__bar .check { font-size: var(--fs-sm); }
+.cal.cal .cal__grid { border-radius: 14px; border-color: var(--grey-200); }
+.cal.cal .cal__head { background: var(--white); border-bottom-color: var(--grey-200); }
+.cal.cal .cal__corner { display: grid; align-content: center; font-weight: 650; }
+.cal.cal .cal__days { height: 3rem; }
+.cal.cal .cal__day { padding-top: 0.4rem; font-size: 0.6875rem; border-left-color: var(--grey-100); }
+.cal.cal .cal__day b { font-family: var(--font-display); font-size: var(--fs-sm); }
+.cal.cal .cal__day.is-today { background: var(--black); color: var(--grey-400); }
+.cal.cal .cal__day.is-today b { color: var(--white); }
+.cal.cal .cal__name { display: flex; align-items: center; gap: var(--s-2); padding: 0.35rem 0.6rem; border-bottom-color: var(--grey-100); border-right-color: var(--grey-200); }
+.cal.cal .cal__ntext { display: grid; min-width: 0; line-height: 1.25; }
+.cal.cal .cal__ntext a, .cal.cal .cal__ntext b { font-size: var(--fs-xs); font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
+.cal.cal .cal__ntext a:hover { color: var(--red-700); }
+.cal.cal .cal__ntext span { font-size: 0.6875rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal__thumb { width: 44px; height: 30px; flex: none; border-radius: 6px; object-fit: cover; background: var(--grey-100); }
+.cal__thumb--none { display: inline-grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 0.8rem; color: var(--white); background: linear-gradient(135deg, var(--grey-800), var(--black)); }
+.cal.cal .cal__lane { height: 58px; border-bottom-color: var(--grey-100); background-image: repeating-linear-gradient(90deg, transparent 0 calc(var(--dw) - 1px), var(--grey-100) calc(var(--dw) - 1px) var(--dw)); }
+.cal.cal .cal__item { height: 22px; line-height: 20px; border-radius: 6px; font-size: 0.6875rem; font-weight: 650; padding: 0 6px; }
+.cal.cal .cal__item--low { top: 30px; }
+.cal.cal .cal__item.is-turo, .cal.cal .cal__item.is-move { height: 5px; border-radius: 3px; }
+.cal.cal .cal__item.is-job { border-radius: 999px; }
+.cal.cal .cal__item.has-clash::after { border-radius: 0 5px 5px 0; }
+.cal.cal .cal__now { width: 2px; background: var(--red-600); }
+.cal.cal .cal__legend { padding: 0 var(--s-1); }
+.cal.cal .cal__legend i { border-radius: 4px; height: 0.85rem; }
+/* the side panel: a drawer on the right on a desktop, a sheet from the bottom on a phone */
+.cal.cal .cal__panel { border-top: 0; border-radius: 18px 18px 0 0; box-shadow: 0 -12px 40px rgb(0 0 0 / 0.22); padding: var(--s-4); }
+@media (min-width: 64rem) {
+  .cal.cal .cal__panel { inset: 0 0 0 auto; width: min(26rem, 100vw); max-height: none; border-radius: 0; border-left: 1px solid var(--grey-200); box-shadow: -16px 0 40px rgb(0 0 0 / 0.18); padding: var(--s-5); }
+}
+/* the agenda: by day, one card per booking or block */
+.cal__agenda { display: grid; gap: var(--s-4); }
+.cal__none { margin: 0; padding: var(--s-4); border-radius: 12px; background: var(--grey-50); color: var(--text-2); font-size: var(--fs-sm); }
+.cal__aday h3 { margin: 0 0 var(--s-2); font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-2); }
+.cal__aday ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.cal__acard { width: 100%; display: grid; grid-template-columns: 5rem 44px minmax(0, 1fr); grid-template-areas: "time thumb body" "time kind kind"; gap: 4px var(--s-3); align-items: center;
+  padding: var(--s-3); border: 1px solid var(--grey-200); border-radius: 12px; background: var(--white); text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.cal__acard:hover { border-color: var(--black); }
+.cal__acard:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.cal__acard[data-kind="on_rent"] { background: linear-gradient(90deg, var(--red-600) 0 4px, var(--white) 4px); }
+.cal__acard[data-kind="confirmed"] { background: linear-gradient(90deg, var(--black) 0 4px, var(--white) 4px); }
+.cal__acard[data-clash] { border-color: var(--red-600); }
+.cal__atime { grid-area: time; align-self: start; display: grid; gap: 2px; font-size: 0.6875rem; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.cal__atime b { font-family: var(--font-display); font-size: var(--fs-sm); color: var(--text); }
+.cal__acard .cal__thumb { grid-area: thumb; }
+.cal__abody { grid-area: body; display: grid; gap: 2px; min-width: 0; font-size: var(--fs-xs); }
+.cal__abody > b { font-size: var(--fs-sm); }
+.cal__abody > span { color: var(--text-2); overflow-wrap: anywhere; }
+.cal.cal .cal__akind { grid-area: kind; position: relative; top: auto; left: auto; animation: none; justify-self: start; height: auto; line-height: 1.4; padding: 2px 8px; border-radius: 999px; font-size: 0.6875rem; width: auto; }
+@media (max-width: 40rem) {
+  .cal.cal .cal__bar { padding: var(--s-2); }
+  .cal.cal .cal__bar .row { width: 100%; }
+  .cal.cal .cal__bar .row > .input[type="search"] { flex: 1 1 100%; width: auto !important; }
+  .cal.cal .cal__legend { gap: var(--s-1) var(--s-3); }
+}
+/* phone: an odd last tile spans the row; filter chips scroll sideways in one line */
+@media (max-width: 39.99rem) {
+  .bn-sum > li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .rq-page .bn-bar .ad-filters, .bk-filters__row .ad-filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; max-width: 100%; padding-bottom: 2px; }
+  .rq-page .bn-bar .ad-filters a, .bk-filters__row .ad-filters a { flex: none; }
+  .bk-filters__row { flex-wrap: nowrap; }
+  .bk-filters__row .ad-filters { min-width: 0; }
+}
+.bn > *, .bk-filters > *, .bn-bar > * { min-width: 0; max-width: 100%; }
+.bn { grid-template-columns: minmax(0, 1fr); }
+.bk-filters { grid-template-columns: minmax(0, 1fr); }

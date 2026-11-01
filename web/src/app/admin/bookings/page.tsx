@@ -1,6 +1,6 @@
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
-import { $, Badge, BookingLink, Filters, MoreFilters, Search, Table, t } from '@/features/admin/ui';
+import { Filters, MoreFilters, Search } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import { UnfinishedRentals } from '@/features/supply/UnfinishedRentals';
 import type { DraftRow } from '@/server/actions/supply';
@@ -8,7 +8,8 @@ import { lateLabel } from '@/features/handover/late';
 import { redirect } from 'next/navigation';
 import { BookingsHead } from '@/features/bookings-now/BookingsTabs';
 import { BookingsNow } from '@/features/bookings-now/BookingsNow';
-import { bookingsNow } from '@/server/bookings-now';
+import { bookingCards, bookingsNow } from '@/server/bookings-now';
+import { BookingRows } from '@/features/bookings-now/BookingRows';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Bookings', path: '/admin/bookings', noindex: true, description: 'What is out, coming back, going out and owed now, and every booking.' });
@@ -68,28 +69,24 @@ export default async function Bookings({ searchParams }: { searchParams: Promise
   const ids = new Set(waitingRows.map((r) => r.id));
   const listed = [...waitingRows, ...rows.filter((r) => !ids.has(r.id))];
   const count = keep ? listed.length : res.count;
+  const cards = await bookingCards(user.id, listed.map((r) => r.id));
+  const at = new Date().getTime();
   return (
     <>
       <BookingsHead current="all" lead={`${count} found. Every booking, newest pickup first; open one for its trip, payments and documents.`} />
-      {/* a search sent from here opens All bookings again (the page moves ?q= there) */}
-      <Search action="/admin/bookings" value={sp.q} placeholder="Booking number, name, email, phone, plate or car code" />
+      <section className="bk-filters" aria-label="Find and filter">
+        {/* a search sent from here opens All bookings again (the page moves ?q= there) */}
+        <Search action="/admin/bookings" value={sp.q} placeholder="Booking number, name, email, phone, plate or car code" />
+        <div className="bk-filters__row"><span className="bk-filters__k">Status</span><Filters base="/admin/bookings?view=all" name="status" value={status} sp={sp} options={STATUSES} /></div>
+        <div className="bk-filters__row"><span className="bk-filters__k">Bill to</span><Filters base="/admin/bookings?view=all" name="bill" value={sp.bill ?? ''} sp={sp} options={BILL} /></div>
+        <MoreFilters active={!!(sp.supply || sp.added)}>
+          <Filters base="/admin/bookings?view=all" name="supply" value={sp.supply ?? ''} options={[['', 'Every car'], ['program_owner', 'Program owners\' cars'], ['company', 'CarmaCars-owned'], ['partner', 'Partners\' cars']]} sp={sp} />
+          <Filters base="/admin/bookings?view=all" name="added" value={sp.added ?? ''} options={[['', 'Every booking'], ['1', 'Added by hand']]} sp={sp} />
+        </MoreFilters>
+      </section>
       <UnfinishedRentals rows={drafts} base="/admin" />
-      <Filters base="/admin/bookings?view=all" name="status" value={status} sp={sp}
-        options={STATUSES} />
-      <div className="ad-filters" aria-label="Bill to"><span className="small muted">Bill to</span><Filters base="/admin/bookings?view=all" name="bill" value={sp.bill ?? ''} sp={sp} options={BILL} /></div>
       {waitingRows.length > 0 && <p className="small" data-testid="bookings-waiting-payment">{waitingRows.length === 1 ? '1 booking is' : `${waitingRows.length} bookings are`} waiting for payment: the renter accepted the offer and has not paid yet. They are listed first.</p>}
-      <MoreFilters active={!!(sp.supply || sp.added)}>
-        <Filters base="/admin/bookings?view=all" name="supply" value={sp.supply ?? ''} options={[['', 'Every car'], ['program_owner', 'Program owners\' cars'], ['company', 'CarmaCars-owned'], ['partner', 'Partners\' cars']]} sp={sp} />
-        <Filters base="/admin/bookings?view=all" name="added" value={sp.added ?? ''} options={[['', 'Every booking'], ['1', 'Added by hand']]} sp={sp} />
-      </MoreFilters>
-      <Table<Row> testId="bookings" caption="Bookings" rows={listed} cols={[
-        { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
-        { key: 'status', label: 'Status', render: (r) => { const late = lateLabel(r); return <>{r.status === 'pending_payment' ? <Badge s="pending_payment">{r.awaiting_signature ? 'Waiting for signature and payment' : 'Waiting for payment'}</Badge> : <Badge s={r.awaiting_signature ? 'awaiting_signature' : r.status} />}{late && <> <span className="ad-late small" data-testid="list-late">{late}</span></>}</>; } },
-        { key: 'vehicle_name', label: 'Car' }, { key: 'renter_name', label: 'Renter' },
-        { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) }, { key: 'return_at', label: 'Return', render: (r) => t(r.return_at) },
-        { key: 'total', label: 'Total', num: true, render: (r) => $(r.total_due_at_booking_cents) },
-        { key: 'bill_to', label: 'Bill to' }, { key: 'blocks_calendar', label: 'Blocks' }
-      ]} />
+      <BookingRows rows={listed.map((r) => ({ ...r, late: lateLabel(r) }))} cards={cards} base="/admin" at={at} empty={q ? `Nothing matches "${q}".` : 'No bookings with these filters.'} />
     </>
   );
 }
