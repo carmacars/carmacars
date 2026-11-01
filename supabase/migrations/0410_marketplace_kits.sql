@@ -262,7 +262,8 @@ begin
     marketplace_posts_per_day = coalesce(nullif(p ->> 'posts_per_day', '')::integer, marketplace_posts_per_day),
     marketplace_renew_days = coalesce(nullif(p ->> 'renew_days', '')::integer, marketplace_renew_days),
     marketplace_location = coalesce(nullif(btrim(coalesce(p ->> 'location', '')), ''), marketplace_location)
-  where true returning * into s;
+  where true;
+  select * into s from program_settings limit 1;
   insert into audit_log (actor_user_id, action, entity_table, after) values (p_by, 'marketplace_settings', 'program_settings', p);
   return jsonb_build_object('posts_per_day', s.marketplace_posts_per_day, 'renew_days', s.marketplace_renew_days, 'location', s.marketplace_location);
 end $$;
