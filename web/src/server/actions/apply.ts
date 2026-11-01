@@ -1,4 +1,5 @@
 'use server';
+import { readToken } from '@/server/links';
 import { cookies } from 'next/headers';
 import { env } from '@/lib/env';
 import { auth } from '@/lib/auth';
@@ -173,7 +174,13 @@ export async function submitApplication(state: ApplyState, password: string, tur
         date_of_birth: o.owner_type === 'individual' ? o.date_of_birth : null, referred_by: o.referred_by.trim() || null
       },
       vehicles: state.vehicles.map(vehiclePayload), ...(accountOnly ? { account_only: true } : {})
-    }, p_by: user.id }, SR)) as unknown as { application_number: string; vehicles: Array<{ declined: boolean }> };
+    }, p_by: user.id }, SR)) as unknown as { application_id: string; application_number: string; vehicles: Array<{ declined: boolean }> };
+    // a salesperson's invitation or personal link (0340): checked again here, then the database credits them (the first
+    // credit stands; it never fails the application)
+    if (state.invite && res.application_id) {
+      const t = await readToken<{ s?: string; l?: string }>('owner-invite', state.invite);
+      if (t?.s) await rpc('server_owner_sales_credit', { p_application: res.application_id, p_staff: t.s, p_lead: t.l ?? undefined }, SR).catch(() => null);
+    }
     (await cookies()).delete(DRAFT_COOKIE);
     if (confirmEmail || onRecord) await rememberEmail(user.email);
     if (!accountOnly) { const { afterCarAdded } = await import('@/server/car-added'); afterCarAdded(); }   // each car's copy at once (0082)

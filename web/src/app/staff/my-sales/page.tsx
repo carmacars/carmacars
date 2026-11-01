@@ -7,6 +7,9 @@ import { StatCard } from '@/components/portal-ui/StatCard';
 import { ProgressRing } from '@/components/portal-ui/ProgressRing';
 import { SalesBoard, type StaffSales } from '@/features/va/SalesBoard';
 import { pctBps } from '@/features/sales/Commissions';
+import { SalesOwners, type SalesOwnersData } from '@/features/sales/SalesOwners';
+import { signToken } from '@/server/links';
+import { env } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'My sales', path: '/staff/my-sales', noindex: true, description: 'Your commissions, quotes, offers, bookings and booked revenue.' });
@@ -14,12 +17,16 @@ export const metadata = pageMeta({ title: 'My sales', path: '/staff/my-sales', n
 // My sales (migrations 0057 and 0058; a hero with the month's progress since October 25, 2026): the signed-in assistant's
 // own commissions (Sales: the month's rental days against the target and the tier, as a ring with the tiers beside it),
 // quotes, offers, rentals added, bookings confirmed, conversion and booked revenue by week or month, the follow-ups due
-// and each deal. Every staff function.
+// and each deal. Every staff function. Sales also see the owners they bring in (0340): invite, start an application, the
+// pipeline and the commission they ask for on each owner.
 export default async function MySales({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ read, fn }, sp] = await Promise.all([vaPage('/staff/my-sales'), searchParams]);
+  const [{ read, fn, user }, sp] = await Promise.all([vaPage('/staff/my-sales'), searchParams]);
   const period = sp.period === 'month' ? 'month' : 'week';
-  const [s, fu] = await Promise.all([read<StaffSales>('my_sales', { period }),
-    read<{ done: number; open: number; booked: number; chats_handled: number }>('my_followups', { period }).catch(() => null)]);
+  const [s, fu, owners] = await Promise.all([read<StaffSales>('my_sales', { period }),
+    read<{ done: number; open: number; booked: number; chats_handled: number }>('my_followups', { period }).catch(() => null),
+    fn === 'sales' ? read<SalesOwnersData>('sales_owners').catch(() => null) : Promise.resolve(null)]);
+  // the salesperson's own owner link (a year; a new one each visit, every one of them valid until it runs out)
+  const ownerLink = owners ? `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}/list-your-car/apply?invite=${await signToken('owner-invite', { s: user.id }, 365 * 86400)}` : '';
   const m = s.commissions.month;
   const tot = s.commissions.totals;
   const now = s.periods[0];
@@ -50,6 +57,7 @@ export default async function MySales({ searchParams }: { searchParams: Promise<
               })}
             </ol>
           </div>) : undefined} />
+      {owners && <SalesOwners data={owners} link={ownerLink} />}
       {fu && (
         <section className="pt-card ad-card" aria-labelledby="ms-fu" data-testid="my-followups">
           <div className="pt-card__head"><h2 className="d4" id="ms-fu">Follow-ups and live chat this {period}</h2></div>

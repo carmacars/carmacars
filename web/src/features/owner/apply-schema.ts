@@ -22,7 +22,9 @@ export interface ApplyOwner {
 }
 export interface ApplyState { step: number; owner: ApplyOwner; vehicles: ApplyVehicle[]; active: number;
   /** "I'll add my car later" (0087): the account and the owner record now, the first car from the owner portal */
-  later?: boolean }
+  later?: boolean;
+  /** the signed invitation a salesperson sent, or their personal link (0340): the application is credited to them */
+  invite?: string }
 
 export const blankVehicle = (key: string): ApplyVehicle => ({
   key, vin: '', year: '', make: '', model: '', trim: '', colour: '', fuel: '', plate: '', odometer_km: '', current_insurer: '', branded: '', damage: '', damage_details: '',

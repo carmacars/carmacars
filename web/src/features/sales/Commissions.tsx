@@ -14,10 +14,12 @@ export interface MonthProgress {
 export interface MonthLine { month: string; label: string; work_mode: 'in_person' | 'remote'; tier_days: number; tier_bps: number; rate_bps: number; touches: number; min_touches: number;
   below_minimum: boolean; dropped: boolean; locked: boolean; line: string }
 export interface CommissionRow {
-  id: string; booking_number: string; kind: 'commission' | 'clawback' | 'adjustment'; month: string; month_label: string; rental_days: number; tier_days: number | null;
+  id: string; booking_number: string; kind: 'commission' | 'clawback' | 'adjustment' | 'owner_recruit'; month: string; month_label: string; rental_days: number; tier_days: number | null;
   base_cents: number; rate_bps: number; amount_cents: number; status: 'accruing' | 'pending_approval' | 'approved' | 'paid' | 'reversed' | 'void'; reason: string | null; note: string | null;
   scheme: string | null; earned_at: string | null; approved_at: string | null; paid_at: string | null; month_open: boolean; work_mode?: 'in_person' | 'remote' | null;
   paid: { method: string; reference: string | null; paid_on: string; pay_period: string | null } | null;
+  /** 0340: a commission for an owner brought in, and its clawbacks: what it is for */
+  what?: string; owner?: string;
 }
 export interface StaffCommissions {
   scheme: 'flat' | 'sales_tier' | 'override'; month: MonthProgress;
@@ -79,7 +81,7 @@ export function Commissions({ c, own, compact, rowAction }: { c: StaffCommission
           <li><span>Reversed</span><span>{$(tot.reversed)}</span></li>
         </ul>
         {c.rows.length ? <ul className="fd-shots" data-testid="commission-rows">{c.rows.map((r) => (
-          <li key={r.id}><span>{r.booking_number} · {r.month_label}</span><span>{$(r.amount_cents)} · {statusWords(r)}</span></li>))}</ul>
+          <li key={r.id}><span>{r.booking_number} · {r.month_label}{r.owner ? ` · owner ${r.owner}` : ''}</span><span>{$(r.amount_cents)} · {statusWords(r)}</span></li>))}</ul>
           : <p className="small muted">No commissions yet.</p>}
       </section>
     );
@@ -97,11 +99,11 @@ export function Commissions({ c, own, compact, rowAction }: { c: StaffCommission
       ]} /></div>
       <Table<CommissionRow & Record<string, unknown>> testId="commission-rows" caption="Commissions" rows={c.rows as Array<CommissionRow & Record<string, unknown>>} rowKey={(r) => r.id}
         empty={own ? 'No commissions yet. Mark a rental "I sourced this client" when you found the renter.' : 'No commissions yet.'} cols={[
-          { key: 'booking_number', label: 'Booking' },
+          { key: 'booking_number', label: 'Booking', className: 'wrap', render: (r) => <>{r.booking_number}{r.what ? <span className="ad-sub">{r.what}</span> : null}</> },
           { key: 'month_label', label: 'Month' },
           { key: 'rental_days', label: 'Days', num: true, render: (r) => (r.kind === 'commission' ? r.rental_days : '') },
-          { key: 'base_cents', label: 'Rental charge', num: true, render: (r) => $(r.base_cents) },
-          { key: 'rate_bps', label: 'Rate', num: true, render: (r) => <>{pctBps(r.rate_bps)}{r.work_mode ? <span className="ad-sub">{r.work_mode === 'remote' ? 'remote' : 'in person'}</span> : null}</> },
+          { key: 'base_cents', label: 'Rental charge', num: true, render: (r) => (r.scheme === 'recruit_flat' ? '' : $(r.base_cents)) },
+          { key: 'rate_bps', label: 'Rate', num: true, render: (r) => <>{r.scheme === 'recruit_flat' ? 'flat' : pctBps(r.rate_bps)}{r.work_mode ? <span className="ad-sub">{r.work_mode === 'remote' ? 'remote' : 'in person'}</span> : null}</> },
           { key: 'amount_cents', label: 'Commission', num: true, render: (r) => $(r.amount_cents) },
           { key: 'status', label: 'Status', className: 'wrap', render: (r) => <span data-testid={`commission-status-${r.booking_number}-${r.kind}`}>{statusWords(r)}{r.reason ? <span className="ad-sub">{r.reason}</span> : null}{r.note ? <span className="ad-sub">{r.note}</span> : null}</span> },
           ...(rowAction ? [{ key: 'act', label: 'Actions', render: (r: CommissionRow & Record<string, unknown>) => rowAction(r) }] : [])]} />
@@ -112,6 +114,7 @@ export function Commissions({ c, own, compact, rowAction }: { c: StaffCommission
         <li>A commission counts on a rental {own ? 'you' : 'they'} marked &quot;I sourced this client&quot;, or that an Admin credited. It is the rate on the rental charge before tax, after discounts, less refunds.</li>
         <li>It is earned when the rental is completed and paid in full. None is earned on a cancelled, refunded, unpaid or charged-back rental, or on {own ? 'your' : 'their'} own or household rental. {own ? 'Your' : 'Their'} home address must be in {own ? 'your' : 'their'} profile: until it is, a commission waits as not earned yet.</li>
         <li>An Admin approves each commission (a Sales month after it ends), then records the payment. A refund or chargeback after payment is taken off the next payment.</li>
+        <li>For an owner {own ? 'you bring' : 'they bring'} in, the commission is the one an Admin approved on the request: a flat amount at the owner&apos;s first paid rental, or a percent of each paid rental for the time approved. It is a CarmaCars expense and never changes the owner&apos;s revenue.</li>
       </ul>
     </Card>
   );

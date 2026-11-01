@@ -42,6 +42,8 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   const fees = await door<{ fees_paid_from: 'debit' | 'statement' } | null>(user.id, 'ops_read', 'owner_fees_paid_from', { owner: id }).catch(() => null);
   // 0205: the agreement set picked by the pay model (the flat-rate set flagged while it awaits the lawyer's OK)
   const set = await door<{ pay_model: string; variant: string | null; status: string | null; awaiting_lawyer: boolean } | null>(user.id, 'ops_read', 'owner_agreement_set', { owner: id }).catch(() => null);
+  // 0340: who sourced the owner (only an Admin changes it, with a reason)
+  const src = await door<{ staff_id: string | null; name: string | null; via: string | null; options: Array<{ id: string; name: string }> } | null>(user.id, 'admin_read', 'owner_sourced', { owner_id: id }).catch(() => null);
   if (!d) notFound();
   // the tabs of 0067: Overview (as before), Terms (negotiated per owner and car), Invoices (every invoice, drafts included)
   const tab = sp.tab === 'terms' || sp.tab === 'invoices' ? sp.tab : 'overview';
@@ -57,7 +59,11 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
           {fees && <Act ops action="owner_fees_paid_from" payload={{ owner: id }} label={`Fees: ${fees.fees_paid_from === 'statement' ? 'taken from revenue statement' : 'bank debit'}`} title="How fees are paid" testId="owner-fees-paid-from"
             submitLabel="Save" done="Saved." fields={[{ name: 'fees_paid_from', label: 'How fees are paid', type: 'select', required: true, value: fees.fees_paid_from,
               options: [['debit', 'Bank debit'], ['statement', 'Take from revenue statement']],
-              hint: 'Take from revenue statement: no debit; each invoice is paid from the next owner statement as far as the payout goes, the rest on the next one. Still owing 2 months after billing, it goes back to the bank debit and you get a task.' }]} />}</div></header>
+              hint: 'Take from revenue statement: no debit; each invoice is paid from the next owner statement as far as the payout goes, the rest on the next one. Still owing 2 months after billing, it goes back to the bank debit and you get a task.' }]} />}
+          {src && <Act action="owner_sourced_set" payload={{ owner_id: id }} label={`Sourced by: ${src.name ?? 'nobody'}`} title="Who sourced this owner" testId="owner-sourced-by" submitLabel="Save"
+            done="Saved." refresh={[`/admin/owners/${id}`, '/admin/money/commissions']} fields={[{ name: 'staff_id', label: 'Sourced by', type: 'select', value: src.staff_id ?? '',
+              options: [['', 'Nobody (CarmaCars)'], ...src.options.map((o): [string, string] => [o.id, o.name])], hint: 'Only an Admin changes this. A pending commission request of the person before is withdrawn; an approved one, with what it has not paid yet, goes to the new person.' },
+              { name: 'reason', label: 'Why', type: 'text', required: true }]} />}</div></header>
       <Tabs items={tabs} current={tab === 'overview' ? `/admin/owners/${id}` : `/admin/owners/${id}?tab=${tab}`} label="Owner" />
     </>
   );

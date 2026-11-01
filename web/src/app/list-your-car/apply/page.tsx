@@ -30,7 +30,7 @@ export default async function Apply({ searchParams }: { searchParams: Promise<Re
     rpc('server_owner_program_facts', {}, SR) as unknown as Promise<ProgramFacts>,
     loadDraft(),
     user ? ownerHome(user).catch(() => null) : Promise.resolve(null),
-    readToken<{ e: string; n: string }>('owner-invite', sp.invite ?? null)
+    readToken<{ e?: string; n?: string; s?: string; l?: string }>('owner-invite', sp.invite ?? null)
   ]);
   const owner = { ...blankOwner(), ...(draft?.data?.owner ?? {}) };
   if (home) {
@@ -41,13 +41,15 @@ export default async function Apply({ searchParams }: { searchParams: Promise<Re
       email: owner.email || o.email || '', phone: owner.phone || o.phone || '', hst_number: owner.hst_number || o.hst_number || '' });
   }
   if (!owner.email && user) owner.email = user.email;
-  if (invite) {
-    owner.email ||= invite.e;
+  if (invite?.e) owner.email ||= invite.e;
+  if (invite?.n) {
     const [first, ...rest] = invite.n.split(' ');
     owner.first_name ||= first ?? '';
     owner.last_name ||= rest.join(' ');
   }
-  const initial: ApplyState = { step: Math.min(3, Math.max(0, draft?.data?.step ?? 0)), owner, vehicles: draft?.data?.vehicles ?? [], active: draft?.data?.vehicles?.length ? -1 : 0 };
+  const initial: ApplyState = { step: Math.min(3, Math.max(0, draft?.data?.step ?? 0)), owner, vehicles: draft?.data?.vehicles ?? [], active: draft?.data?.vehicles?.length ? -1 : 0,
+    // a salesperson's invitation or personal link (0340) travels with the draft to the submit, which checks it again
+    ...(invite?.s ? { invite: sp.invite } : draft?.data?.invite ? { invite: draft.data.invite } : {}) };
   // a draft with no car starts at step 1: an owner whose account opened without a car (an autosave can land after the
   // account is open) comes back to add one, not to the review of the account they already have
   if (initial.step > 0 && !initial.vehicles.length) initial.step = 0;

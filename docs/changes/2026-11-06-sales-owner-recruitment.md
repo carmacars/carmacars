@@ -1,0 +1,79 @@
+# Sales bring in car owners, and ask for a commission on each (0340, 0341)
+
+The owner, November 1, 2026: "sales staff dont have a way to add vehicle owners and get commission on that, can u fix
+that". Then: "dont set any values for commission, set it so that the sales person has to request either a flat rate or
+a percent for each owner they bring on". No amount is set anywhere by default: each salesperson asks, an Admin decides.
+
+- **Where (no new page for Sales):** My sales, card **Owners you bring in** (Sales function only): the pipeline in five
+  figures (Invited, Applied, Approved, Car live, First paid rental), **Invite an owner**, **Start an application**,
+  **Copy my owner link**, and each owner with their cars, stage, request and what it has earned. "Start an application"
+  is the existing Add a car for an owner page, now open to Sales in a Sales form.
+- **Invite:** name, email, phone and "The owner asked me to send it" (required). It makes an owner lead credited to the
+  salesperson (`leads.sourced_by`), with no automatic follow-ups (the invitation is the one email), and sends a signed
+  link to the application (30 days; the lead and the salesperson in it). An owner already on file, or invited by another
+  salesperson in the last 90 days, is refused with "Ask an Admin". The personal link carries only the salesperson (a
+  year).
+- **Start it:** the same Add-a-car form with the permit photo reader of 0290, the owner new, no terms or invoices (the
+  Admin's), "Sourced by you. Only an Admin can change it.", and always an application for an Admin to approve with the
+  usual task. Its documents are filed as for customer service. The permit reader allows Sales 10 reads a day (the
+  applicant's count of 0290).
+- **Sourced by:** `owners.recruited_by` (0002), with `recruited_at` and `recruited_via` (invite, link, started,
+  staff_entry, admin, referral_code). The owner's cars follow the owner. Set once: the signed invitation or link (checked
+  again when the application is sent, `public.server_owner_sales_credit`), an application from an address the salesperson
+  invited before it came in (trigger on `owner_applications`, 90 days), Start it for a new owner, or an Admin. The first
+  credit stands; an owner already on file is never credited by an invitation. Customer service or fleet adding a car for
+  an owner already on file no longer makes them its sourcer (0067's rule stays for a new owner and for an Admin).
+  Browser sessions cannot write these columns (guard triggers). **Only an Admin reassigns**: the owner's page,
+  **Sourced by**, with a reason (`admin_do owner_sourced_set`). A waiting request of the person before is withdrawn; an
+  approved one and what it has not paid yet go to the new person; what was paid stays paid.
+- **The request (one per owner, `owner_recruit_requests`):** a flat amount (CA$, up to CA$10,000), or a percent of the
+  company's share of the owner's cars' rentals (the default) or of the cars' rental revenue, for a number of months (1 to
+  120, required) or for as long as the car is with us. A note for the Admin. Revised while it waits (counted); after a
+  decision only an Admin changes it. Each request or revision raises an Admin task.
+- **The Admin's decision:** Money > Staff commissions > **Owner requests**: **Approve** (as asked), **Change and approve**
+  (other terms, marked "changed"; the salesperson sees both), or **Decline**, each with an optional note. Nothing accrues
+  before approval.
+- **What it earns (staff commissions of kind `owner_recruit`):**
+  - a flat amount: once per owner, ever, at the owner's first paid rental (the first completed rental of any of their
+    cars, paid in full, not charged back); if that rental stops counting before it is paid, the commission moves to the
+    next one;
+  - a percent: on each completed, paid rental of the owner's cars that ends after the approval, from the month of the
+    first such rental, for the months approved (or with no end); the base is the booking split's company share, or the
+    rental charge counted as for Sales (before tax, after discounts, net of refunds); a rental without its split yet waits
+    as not earned yet.
+  - Then the usual flow: pending approval, approved by an Admin (Approve on the row or on the person), paid by hand with
+    the person's other commissions. A cancellation, a refund to nothing or a lost chargeback reverses it; after payment a
+    clawback comes off the next payment (or an adjustment when the base rose). An Admin may reverse one with a reason.
+    The salesperson's mode (in person or remote) is kept on each commission; there is no automatic remote reduction now
+    that the amounts are asked for, the Admin decides each one.
+- **Never:** on CarmaCars-owned or partner cars, a shareholder's cars or a shareholder owner (the request is refused),
+  or the salesperson's own cars.
+- **Owner revenue is unaffected.** It is a company expense, not a booking expense: `app.booking_staff_commission_cents`
+  (what is deducted before Owner Revenue) leaves these commissions and their clawbacks out, so the booking split, the
+  owner statement and the payout are unchanged. Admin > Staff commissions shows them as "Owner brought in: a CarmaCars
+  expense, never before Owner Revenue".
+- **What a salesperson sees:** only the owners they sourced (`va_read sales_owners`): the owner's name, the cars' names
+  and whether each is live, the stage, their request and their own commissions. No owner contact details (except the
+  invitations they sent), no terms, revenue or statements. Row security: their own requests and commissions only; no
+  owner rows. Admins read anyone's (`admin_read sales_owners` with `staff`). Every write goes through the door and is
+  checked in the database (Sales function, the owner theirs, Admin for decisions and reassignment).
+- **Unchanged:** the owner pipeline of 0217 (Owner pipeline for Sales and customer service) and the owner's own
+  application; an invited applicant sees nothing different.
+- **The door:** `va_read sales_owners`; `va_do sales_owner_invite`, `sales_owner_commission_request`, and
+  `staff_add_owner_car` / `staff_vehicle_document` from a Sales page (`as_sales`) or a person who is Sales only;
+  `admin_read sales_owners`, `owner_recruit_requests`, `owner_sourced`; `admin_do owner_recruit_decide`,
+  `owner_sourced_set`. An hourly job (`carmacars-owner-recruit`) re-checks every approved request; the triggers on
+  bookings, payments, refunds, disputes, lines and splits do it at once.
+
+Files: `supabase/migrations/0340_sales_owner_recruitment.sql`, `0341_sales_owner_recruitment_guides.sql`
+(`supabase/seed/0341_gen_guides.mjs`), `web/src/features/sales/SalesOwners.tsx`, `SalesOwnersClient.tsx`,
+`web/src/server/actions/sales-owners.ts`, `web/src/app/staff/my-sales/page.tsx`, `web/src/app/staff/owners/add-car/page.tsx`,
+`web/src/features/owner-billing/AddOwnerCar.tsx`, `web/src/app/list-your-car/apply/page.tsx`, `web/src/server/actions/apply.ts`,
+`web/src/app/admin/money/commissions/page.tsx`, `web/src/app/admin/owners/[id]/page.tsx`, `web/src/features/sales/Commissions.tsx`.
+Tests: `supabase/tests/99_sales_owner_recruitment.sql`, `web/tests/e2e/r26-sales-owners.spec.ts`.
+
+## Guides
+
+- `va/sales`: Owners you bring in; Ask for your commission on an owner.
+- `va/commissions`: the line for an owner you bring in.
+- `admin/owner-money`: Owner requests; Sourced by.

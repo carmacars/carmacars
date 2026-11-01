@@ -300,3 +300,5 @@
 @keyframes ad-pop { from { opacity: 0; transform: translateY(6px) scale(0.985); } }
 @keyframes ad-grow { from { transform: scaleX(0.2); opacity: 0; } }
 @keyframes ad-blink { 50% { opacity: 0.15; } }
+/* a second line in a table cell (the reason, the owner brought in, 0340): under the value, quieter */
+td .ad-sub { display: block; font-size: var(--fs-2xs); color: var(--text-2); margin-top: 0.1rem; }

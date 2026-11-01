@@ -237,3 +237,29 @@
   .va-lane--h0 .va-lane__verb, .va-lane--h0 .va-lane__foot { display: none; }
   .va-lane--h0 .va-lane__link { padding-bottom: var(--s-4); }
 }
+
+/* ---------------------------------------------------------------- My sales: owners you bring in (0340) */
+.so__lead { margin: 0 0 var(--s-4); max-width: 46rem; }
+.so-funnel { list-style: none; margin: 0 0 var(--s-4); padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: var(--pu-radius-sm, 10px); overflow: hidden; }
+.so-funnel li { display: grid; align-content: start; gap: 0.15rem; padding: var(--s-3); border-left: 1px solid var(--line); min-width: 0; }
+.so-funnel li:first-child { border-left: 0; }
+.so-funnel b { font-family: var(--font-display); font-size: var(--fs-d4); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.so-funnel span { font-size: var(--fs-2xs); color: var(--text-2); line-height: 1.25; }
+.so-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin-bottom: var(--s-4); }
+.so-done { color: var(--ad-ok, #1F7A3A); }
+.so-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.so-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s-2) var(--s-3); padding: var(--s-3) 0; border-bottom: 1px solid var(--line); }
+.so-row__main { display: grid; min-width: 0; }
+.so-row__main b, .so-row__main span { overflow-wrap: anywhere; }
+.so-row__pay { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s-2) var(--s-3); }
+.so-red { color: var(--red-700); }
+.so-kind { border: 0; margin: 0 0 var(--s-3); padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-4); }
+.so-dialog { width: min(32rem, calc(100vw - 2rem)); }
+@media (min-width: 48rem) {
+  .so-row { grid-template-columns: minmax(0, 1fr) 9.5rem minmax(0, 1.9fr); }
+  .so-row > .ad-pill { justify-self: start; }
+  .so-row__pay { grid-column: auto; display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+}
+@media (max-width: 30rem) {
+  .so-funnel li { padding: var(--s-2); }
+}
