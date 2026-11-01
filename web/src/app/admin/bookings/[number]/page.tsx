@@ -39,6 +39,8 @@ import type { Conversation } from '@/features/messages/email-choices';
 import { MoreActions, NextStepPanel } from '@/features/admin/NextStep';
 import { nextStep } from '@/features/admin/next-step';
 import { DateConflicts, PlaceholderBanner, type Overlap } from '@/features/admin/DateConflicts';
+import { PayPlanCard } from '@/features/bookings-now/PayPlanCard';
+import type { Pay } from '@/features/bookings-now/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -184,6 +186,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
         adjuster_email: b.insurer_adjuster_email, adjuster_phone: b.insurer_adjuster_phone, policy_number: (b.insurer_policy_number as string | null) ?? null,
         policy_province: (b.insurer_policy_province as string | null) ?? null, authorized_days: b.insurer_authorized_days, authorized_until: b.insurer_authorized_until,
         authorized_daily_rate_cents: b.insurer_authorized_daily_rate_cents, adjuster_id: ((b as Record<string, unknown>).insurer_adjuster_id as string | null) ?? null }} />}
+      {(tab === 'overview' || tab === 'money') && ['pending_payment', 'confirmed', 'on_rent', 'returned'].includes(b.status) && b.booking_type !== 'owner' && !b.placeholder?.on
+        && await door<Pay & { may_change?: boolean }>(user.id, 'ops_read', 'booking_pay_plan', { booking: b.booking_number }).then((pay) => <PayPlanCard booking={b.id} pay={pay} refresh={[base]} />).catch(() => null)}
       {(tab === 'overview' || tab === 'money') && b.billable_days > 27 && <BookingPeriods booking={b.booking_number} rows={await door<PeriodRow[]>(user.id, 'ops_read', 'booking_periods', { booking: b.booking_number }).catch(() => [] as PeriodRow[])} />}
       {(tab === 'overview' || tab === 'review') && renterForm && <RenterEdit x={renterForm} />}
       {(tab === 'overview' || tab === 'review') && renterForm?.may_edit && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: renterForm.renter_id }).catch(() => [] as DuplicateRow[])} />}
