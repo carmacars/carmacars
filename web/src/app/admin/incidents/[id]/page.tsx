@@ -20,7 +20,7 @@ export default async function Incident({ params }: { params: Promise<{ id: strin
   const id = String(i.id);
   const claims = await list('claims', { eq: { incident_id: id } });
   return (<>
-    <PageHead kicker={<Link prefetch={false} className="link" href="/admin/incidents">Incidents and claims</Link>} title={<>{String(i.incident_number)} <Badge s={String(i.status)} /></>}>
+    <PageHead kicker={<Link prefetch={false} className="link" href="/admin/damages?tab=incidents">Incidents</Link>} title={<>{String(i.incident_number)} <Badge s={String(i.status)} /></>}>
       {!claims.rows.length && <Act action="claim_open" payload={{ incident: id }} label="Open the claim" variant="primary" confirm="Open the claim from the costed damage; the path follows the deductible rule." refresh={[`/admin/incidents/${id}`]} />}
     </PageHead>
     <div className="ad-cols ad-cols--2">

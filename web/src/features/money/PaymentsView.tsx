@@ -20,7 +20,9 @@ export function PaymentsView({ l, base, bookingBase }: { l: Ledger; base: string
         purpose="Every payment and refund by day and method, the cash drawer against the count, and the refunds waiting for a decision.">
         <a className="btn btn--ghost btn--sm" href={`/api/payments/export?${q.toString()}`} data-testid="payments-export" download>Export CSV</a>
       </PageHead>
-      <form className="ad-filters pay-filters" method="get" action={base} data-testid="payments-filters">
+      {/* a base with its own query (Admin: /admin/money?tab=day) keeps it: a GET form drops the action's query */}
+      <form className="ad-filters pay-filters" method="get" action={base.split('?')[0]} data-testid="payments-filters">
+        {[...new URLSearchParams(base.split('?')[1] ?? '')].map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
         <label className="field"><span className="label">From</span><input className="input" type="date" name="from" defaultValue={l.from} data-testid="pay-from" /></label>
         <label className="field"><span className="label">To</span><input className="input" type="date" name="to" defaultValue={l.to} data-testid="pay-to" /></label>
         <fieldset className="pay-methods"><legend className="label">Methods (none ticked: all)</legend>

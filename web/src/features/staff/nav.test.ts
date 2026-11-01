@@ -51,3 +51,11 @@ test('held functions and the home page', () => {
 test('the academy is in the menu of every staff member, once (Release 21b)', () => {
   for (const fns of [['cs'], ['field'], ['sales', 'field'], ['cs', 'sales', 'fleet', 'finance', 'field']]) assert.equal(hrefs(fns).filter((p) => p === '/staff/academy').length, 1, fns.join());
 });
+
+test('Finance: the three money pages are one Money link, current on each of them (r27)', () => {
+  const fin = staffNav(['finance']).find((g) => g.key === 'finance')!;
+  const money = fin.links.find((l) => l.label === 'Money')!;
+  assert.equal(money.href, '/staff/money');
+  assert.deepEqual(money.also, ['/staff/money', '/staff/payments', '/staff/reconciliation']);
+  for (const p of ['/staff/payments', '/staff/reconciliation']) assert.ok(!fin.links.some((l) => l.href === p), p);
+});

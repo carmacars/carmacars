@@ -66,12 +66,18 @@ export function labelsOfCode(code) {
 }
 
 // ---------------------------------------------------------------- navigation
-function navFromGroups(code, constName) {
+function navFromGroups(code, constName, hubs = '') {
   const start = code.indexOf(constName);
   const body = code.slice(start);
   const groups = [];
-  for (const g of body.matchAll(/\{\s*key: '([^']+)', label: '([^']+)', links: \[([\s\S]*?)\]\s*\}/g)) {
-    groups.push({ group: g[2], links: [...g[3].matchAll(/label: '([^']+)'/g)].map((m) => m[1]) });
+  // a page group's link (r27, features/admin/hubs.ts): hub('key') is the group's name, then its tabs (each a page one tap
+  // under the menu link, so "Money > Field pay" still names a place)
+  const hub = (k) => {
+    const h = hubs.match(new RegExp(`\\{ key: '${k}', label: '([^']+)', tabs: \\[([\\s\\S]*?)\\] \\}`));
+    return h ? [h[1], ...[...h[2].matchAll(/label: '([^']+)'/g)].map((m) => m[1])] : [k];
+  };
+  for (const g of body.matchAll(/\{\s*key: '([^']+)', label: '([^']+)', links: \[([\s\S]*?)\]\s*\}\s*(?:,|\n\])/g)) {
+    groups.push({ group: g[2], links: [...new Set([...g[3].matchAll(/label: '([^']+)'|hub\('([^']+)'/g)].flatMap((m) => (m[1] ? [m[1]] : hub(m[2]))))] });
   }
   return groups;
 }
@@ -83,7 +89,15 @@ function navFromLinks(code, group) {
 }
 function nav() {
   const f = (p) => read(path.join(SRC, p));
-  const admin = navFromGroups(f('features/admin/AdminNav.tsx'), 'GROUPS');
+  const hubs = f('features/admin/hubs.ts');
+  const admin = navFromGroups(f('features/admin/AdminNav.tsx'), 'GROUPS', hubs);
+  // r27: the Settings menu is the Settings page, whose cards are every settings page ("Settings > Program" still names a
+  // place one tap away): their names, also without a trailing "settings", and the cards that are not settings pages
+  const settings = admin.find((g) => g.group === 'Settings');
+  if (settings) {
+    const cards = [...f('app/admin/settings/sections.ts').matchAll(/\['[a-z-]+', '((?:[^'\\]|\\.)+)'/g), ...f('features/admin/settings-index/groups.ts').matchAll(/href: '[^']+', title: '([^']+)'/g)].map((m) => m[1].replace(/\\'/g, "'"));
+    settings.links = [...new Set([...settings.links, ...cards, ...cards.map((c) => c.replace(/ settings$/, ''))])];
+  }
   // one staff portal since 0197: the groups of every function (src/features/staff/nav.ts); field work is its own group there
   const staff = navFromGroups(f('features/staff/nav.ts'), 'STAFF_GROUPS');
   const va = staff.filter((g) => g.group !== 'Field work');

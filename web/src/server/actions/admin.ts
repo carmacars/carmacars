@@ -12,7 +12,7 @@ const SR = { role: 'service_role' as const };
 type R<T = null> = ActionResult<T>;
 const fail = (e: unknown) => ({ ok: false as const, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message : 'Something went wrong.' });
 const invalid = (fieldErrors: Record<string, string>, message = 'Check the highlighted fields.') => ({ ok: false as const, code: 'invalid', message, fieldErrors });
-const refresh = (ownerId: string) => { revalidatePath(`/admin/owners/${ownerId}`); revalidatePath('/admin/owners'); revalidatePath('/admin/invoices'); };
+const refresh = (ownerId: string) => { revalidatePath(`/admin/owners/${ownerId}`); revalidatePath('/admin/owners'); revalidatePath('/admin/owner-money'); };
 const cents = (v: string) => Math.round(Number(String(v).replace(/[$,\s]/g, '')) * 100);
 
 export interface TermsInput { management_mode: string; onboarding_method: string; insurance: string; tracker: string; share: string; install: string; special_terms: string }
@@ -73,7 +73,7 @@ export async function issueTrackerInvoices(ownerId: string | null, vehicleIds: s
   try {
     const admin = await assertAdmin();
     const r = (await rpc('admin_issue_tracker_install_invoices', { p_admin: admin.id, p_owner: ownerId ?? undefined, p_vehicles: vehicleIds && vehicleIds.length ? vehicleIds : undefined }, SR)) as unknown as unknown[];
-    if (ownerId) refresh(ownerId); else revalidatePath('/admin/invoices');
+    if (ownerId) refresh(ownerId); else revalidatePath('/admin/owner-money');
     return { ok: true, data: { count: r.length } };
   } catch (e) { return fail(e); }
 }

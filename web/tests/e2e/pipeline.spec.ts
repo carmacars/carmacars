@@ -303,8 +303,8 @@ test('insurer: an invoice is emailed to the billing contact with a 7-day link, a
     const [ii] = await sql`insert into insurer_invoices (booking_id, insurer_id, claim_number, period_start, period_end, amount_cents, hst_cents, lines)
                            values (${b.booking}, ${ins!.id}, 'CL-E2E', current_date - 10, current_date - 7, 30000, 3900, ${sql.json([{ label: 'Rental, 3 days at $100.00', amount_cents: 30000 }])}) returning id, invoice_number`;
     const page = await ctx(browser, false);
-    await signIn(page, admin.email, '/admin', '/admin/insurer-invoices');
-    await page.goto('/admin/insurer-invoices');
+    await signIn(page, admin.email, '/admin', '/admin/insurers?tab=invoices');
+    await page.goto('/admin/insurers?tab=invoices');
     const row = page.getByTestId('insurer-invoices').locator('tr', { hasText: String(ii!.invoice_number) });
     await row.getByTestId('insurer-invoice-email').click();
     await check(page, 'insurer email confirm 1440');

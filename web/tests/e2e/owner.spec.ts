@@ -258,7 +258,7 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await check(admin, 'admin offline payment');
   await admin.locator(`li[data-invoice="${invoices[2]!.invoice_number}"]`).getByRole('button', { name: 'Record payment' }).click();
   await expect(admin.locator(`li[data-invoice="${invoices[2]!.invoice_number}"] [data-testid="admin-invoice-status"]`)).toHaveText('Paid', { timeout: 15_000 });
-  await admin.goto('/admin/invoices?status=paid', { waitUntil: 'networkidle' });
+  await admin.goto('/admin/owner-money?tab=invoices&status=paid', { waitUntil: 'networkidle' });
   await check(admin, 'admin invoices');
   await admin.goto('/admin/owners', { waitUntil: 'networkidle' });
   await check(admin, 'admin owners');

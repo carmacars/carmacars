@@ -139,7 +139,7 @@ export default async function PartnerCrm({ params }: { params: Promise<{ id: str
           <p className="small muted">{l.leads_enabled ? 'On.' : 'Off. Turn it on once they agree to receive renters\' contact details (they are the renter\'s rental company for their own cars).'} {pipelines.length ? '' : 'Press Test connection to list their pipelines.'}</p>
           <Table rows={d.leads} rowKey={(x) => `${String(x.created_at)}-${String(x.booking_number ?? x.lead_id)}`} empty="No leads yet." cols={[
             { key: 'direction', label: 'Way', render: (x) => (x.direction === 'to_partner' ? `To ${name}` : `From ${name}`) },
-            { key: 'booking_number', label: 'Booking or lead', render: (x) => (x.booking_number ? <Link prefetch={false} className="link" href={`/admin/bookings/${encodeURIComponent(String(x.booking_number))}`}>{String(x.booking_number)}</Link> : x.lead_id ? <Link prefetch={false} className="link" href="/admin/leads">Lead</Link> : '') },
+            { key: 'booking_number', label: 'Booking or lead', render: (x) => (x.booking_number ? <Link prefetch={false} className="link" href={`/admin/bookings/${encodeURIComponent(String(x.booking_number))}`}>{String(x.booking_number)}</Link> : x.lead_id ? <Link prefetch={false} className="link" href="/admin/renters?tab=leads">Lead</Link> : '') },
             { key: 'status', label: 'Status', render: (x) => <>{String(x.status)}{x.error ? <span className="ad-sub">{String(x.error)}</span> : null}</> },
             { key: 'created_at', label: 'When', render: (x) => t(x.created_at) }]} />
         </Card>

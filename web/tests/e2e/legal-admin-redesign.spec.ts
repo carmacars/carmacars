@@ -452,7 +452,7 @@ test('legal: Form C on screen with the witness, the co-owner\'s own page, the de
   // the debit policy, in words: the retry and the Late Fee only for insufficient funds
   const page = await ctx(browser);
   await signIn(page, admin.email, '/admin');
-  await page.goto('/admin/debits', { waitUntil: 'networkidle' });
+  await page.goto('/admin/owner-money?tab=debits', { waitUntil: 'networkidle' });
   await expect(page.locator('body')).toContainText(/insufficient funds/i);
   await check(page, 'owner debits');
   await page.context().close();

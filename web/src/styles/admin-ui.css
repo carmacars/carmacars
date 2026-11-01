@@ -300,3 +300,15 @@
 @keyframes ad-pop { from { opacity: 0; transform: translateY(6px) scale(0.985); } }
 @keyframes ad-grow { from { transform: scaleX(0.2); opacity: 0; } }
 @keyframes ad-blink { 50% { opacity: 0.15; } }
+
+/* ---------------------------------------------------------------- the Settings page in sections (r27, SettingsIndex.tsx) */
+.si { display: grid; gap: var(--s-6); }
+.si__bar { position: sticky; top: 0; z-index: 2; display: grid; gap: var(--s-2); padding: var(--s-3) 0; background: var(--ad-canvas, var(--white)); border-bottom: 1px solid var(--ad-line); }
+.si__q { width: 100%; max-width: 32rem; border-radius: 10px; background: var(--grey-50); }
+.si__jump { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.si__jump a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--s-3); border: 1px solid var(--grey-300); border-radius: 999px; color: var(--text); font-size: var(--fs-xs); font-weight: 600; text-decoration: none; }
+.si__jump a:hover { border-color: var(--black); }
+.si__sec { display: grid; gap: var(--s-3); scroll-margin-top: 9rem; }
+.si__head { display: grid; gap: 2px; padding-left: var(--s-3); border-left: 4px solid var(--red-600); }
+.si__head h2, .si__head p { margin: 0; }
+@media (max-width: 47.99rem) { .si__bar { position: static; } .si__jump a { min-height: 44px; } }

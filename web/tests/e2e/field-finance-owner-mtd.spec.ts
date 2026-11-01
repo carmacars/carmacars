@@ -283,7 +283,7 @@ test('Finance: Payments by day with the methods, totals, the cash drawer count, 
   // the Admin approves it in the same row
   const ap = await ctx(browser, phone);
   await signIn(ap, admin.email, '/admin');
-  await ap.goto('/admin/payments', { waitUntil: 'networkidle' });
+  await ap.goto('/admin/money?tab=day', { waitUntil: 'networkidle' });
   await expect(ap.getByTestId('refund-queue')).toBeVisible();
   await check(ap, 'Admin Payments by day');
   await ap.getByTestId('refund-queue').locator('tr', { hasText: money }).filter({ hasText: bk!.booking_number as string }).first().getByRole('button', { name: 'Approve' }).click();

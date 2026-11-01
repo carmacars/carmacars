@@ -2,15 +2,20 @@ import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Badge, PageHead, Search, Table, d } from '@/features/admin/ui';
+import { tabOf } from '@/features/admin/hubs';
+import { Leads } from './Leads';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Renters', path: '/admin/renters', noindex: true, description: 'Every renter.' });
+export const metadata = pageMeta({ title: 'Renters', path: '/admin/renters', noindex: true, description: 'Every renter, and the leads who are not renters yet.' });
 
 type Row = { id: string; legal_name: string; email: string | null; mobile: string | null; identity_status: string; is_blocked: boolean; created_at: string };
 
 // People > Renters (October 16, 2026): every renter, searchable by name, email or phone; their bookings are one click away.
+// r27: Renter leads is the Leads tab here (/admin/leads redirects).
 export default async function Renters({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ list }, sp] = await Promise.all([page('/admin/renters'), searchParams]);
+  const [ctx, sp] = await Promise.all([page('/admin/renters'), searchParams]);
+  if (tabOf(['renters', 'leads'] as const, sp.tab) === 'leads') return <Leads ctx={ctx} sp={sp} />;
+  const { list } = ctx;
   const res = await list<Row>('renters', { q: sp.q, order: 'created_at', limit: 200 });
   return (
     <>

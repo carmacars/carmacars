@@ -3,17 +3,24 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, BookingLink, Card, PageHead, Table, t, label } from '@/features/admin/ui';
+import { tabOf } from '@/features/admin/hubs';
+import { Incidents } from './Incidents';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Damage', path: '/admin/damages', noindex: true, description: 'Damage found after a rental.' });
+export const metadata = pageMeta({ title: 'Damage and claims', path: '/admin/damages', noindex: true, description: 'Damage found after a rental, incidents and insurance claims.' });
 type R = Record<string, unknown>;
 
-// Damage intake and its work queue (10-tolls-tickets-damages.md sections 4, 7 to 9).
-export default async function Damages() {
-  const { read, list } = await page('/admin/damages');
+// Bookings > Damage and claims (r27, "We need less pages not more"): damage intake and its work queue
+// (10-tolls-tickets-damages.md sections 4, 7 to 9), then the incidents and the claims, each a tab. /admin/incidents
+// redirects to its tab.
+export default async function Damages({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const [ctx, sp] = await Promise.all([page('/admin/damages'), searchParams]);
+  const tab = tabOf(['damage', 'incidents', 'claims'] as const, sp.tab);
+  if (tab !== 'damage') return <Incidents ctx={ctx} tab={tab} />;
+  const { read, list } = ctx;
   const [rows, vehicles] = await Promise.all([read<R[]>('damages'), list<{ id: string; make: string; model: string; plate: string | null }>('vehicles', { order: 'make', asc: true, limit: 500 })]);
   return (<>
-    <PageHead title="Damage">
+    <PageHead title="Damage" purpose="Damage found at a return or reported later: cost it, match it to a booking and charge it.">
       <Act action="damage_log" nest="damage" label="Log damage" variant="primary" go="/admin/damages/{id}" testId="damage-log" fields={[
         { name: 'vehicle_id', label: 'Vehicle', type: 'select', required: true, options: vehicles.rows.map((v) => [v.id, `${v.make} ${v.model} ${v.plate ?? ''}`]) },
         { name: 'found_at', label: 'Found', type: 'datetime', required: true, value: new Date().toISOString() }, { name: 'occurred_at', label: 'Happened (if known)', type: 'datetime' },
