@@ -5121,6 +5121,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      data_health_runs: {
+        Row: {
+          id: string;
+          ran_at: string;
+          issues: number;
+          checks: Json;
+          fixed: Json;
+          ran_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          ran_at?: string;
+          issues?: number;
+          checks?: Json;
+          fixed?: Json;
+          ran_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          ran_at?: string;
+          issues?: number;
+          checks?: Json;
+          fixed?: Json;
+          ran_by?: string | null;
+        };
+        Relationships: [];
+      };
       deck_settings: {
         Row: {
           id: boolean;
@@ -20251,6 +20278,7 @@ export type Database = {
           notify_channel: string | null;
           notify_channel_at: string | null;
           notify_channel_by: string | null;
+          is_test: boolean | null;
         };
         Insert: {
           id?: string;
@@ -20270,6 +20298,7 @@ export type Database = {
           notify_channel?: string | null;
           notify_channel_at?: string | null;
           notify_channel_by?: string | null;
+          is_test?: boolean | null;
         };
         Update: {
           id?: string;
@@ -20289,6 +20318,7 @@ export type Database = {
           notify_channel?: string | null;
           notify_channel_at?: string | null;
           notify_channel_by?: string | null;
+          is_test?: boolean | null;
         };
         Relationships: [];
       };
