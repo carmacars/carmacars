@@ -60,7 +60,7 @@ customer service, finance; `ops_do booking_pay_every`, in the booking history). 
   Returned, Closed, Cancelled, with **Bill to** beside them. `?status=on_rent` opens Out now; the other old `?status=`,
   `?q=`, `?supply=` and `?added=` links open All bookings with that filter. Requests, offers and bookings waiting for
   payment are under Requests and offers.
-- Tests: `supabase/tests/99_bookings_now.sql` (weekly and biweekly next payments, an overdue return first, an insurer
+- Tests: `supabase/tests/99_now_board.sql` (weekly and biweekly next payments, an overdue return first, an insurer
   billed rental, a placeholder left out, a backdated rental behind on its payments, a long rental on monthly periods, a
   pickup not recorded and Mark picked up, ended never closed and Close, Bill to, who reads what);
   `web/tests/e2e/bookings-now.spec.ts` at 375 and 1440 with axe; `web/src/features/bookings-now/model.test.ts`.

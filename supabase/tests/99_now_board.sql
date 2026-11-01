@@ -1,7 +1,7 @@
 -- 99: Bookings > Now (0330): out now, going out, coming back, money due and free cars in one read, with the payment plan
 -- of each rental. docs/changes/2026-11-06-bookings-now.md. Fixtures start with "bn" and use example.test only.
 -- The board is read at noon Toronto time today (app.fleet_board takes the time), so "today" and "tomorrow" never depend
--- on when the suite runs.
+-- on when the suite runs. It runs after 99_live_map (its file name sorts later): the Live map's suite counts every pin.
 select test.suite('99 bookings now');
 -- earlier suites switch the automatic field jobs on; the deposit is placed the morning of the pickup day (0261's default)
 update program_settings set field_jobs_auto = false, deposit_timing = 'pickup_day' where id = (app.settings()).id;
