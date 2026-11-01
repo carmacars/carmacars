@@ -111,6 +111,18 @@ test('Live map: pins, legend, cards and masking on the page; TV mode fills the s
       await expect(tv.getByTestId('live-map-tv')).not.toContainText('@example.test');
       await expect(tv.getByTestId('live-map-tv')).not.toContainText('0142');
       await noOverflow(tv);
+      // Release 26: the view fits the pins inside the room the header and filmstrip leave, never closer than a city, and
+      // no photo pin covers another or sits under the header or the filmstrip
+      await expect.poll(async () => tv.getByTestId('lm-map').getAttribute('data-zoom'), { timeout: 30_000 }).not.toBeNull();
+      expect(Number(await tv.getByTestId('lm-map').getAttribute('data-zoom'))).toBeLessThanOrEqual(9.6 + Math.log2(h / 1080) + 0.05);
+      const layout = await tv.evaluate(() => {
+        const ph = [...document.querySelectorAll('.lm-ph')].map((e) => e.getBoundingClientRect());
+        const top = document.querySelector('[data-testid="lm-kpis"]')!.getBoundingClientRect().bottom, foot = document.querySelector('.lm-film')!.getBoundingClientRect().top;
+        let overlaps = 0;
+        for (let i = 0; i < ph.length; i++) for (let j = i + 1; j < ph.length; j++) { const a = ph[i]!, c = ph[j]!; if (a.left < c.right - 1 && c.left < a.right - 1 && a.top < c.bottom - 1 && c.top < a.bottom - 1) overlaps++; }
+        return { overlaps, under: ph.filter((r) => r.top < top || r.bottom > foot).length };
+      });
+      expect(layout, 'photo pins clear of each other and of the header and filmstrip').toEqual({ overlaps: 0, under: 0 });
       // no scrollbars: the page cannot scroll and none takes room (the admin frame behind is clipped)
       const m = await tv.evaluate(() => ({ cw: document.documentElement.clientWidth, ch: document.documentElement.clientHeight, iw: window.innerWidth, ih: window.innerHeight,
         sw: document.documentElement.scrollWidth, html: getComputedStyle(document.documentElement).overflow, body: getComputedStyle(document.body).overflow }));
@@ -124,9 +136,12 @@ test('Live map: pins, legend, cards and masking on the page; TV mode fills the s
     // Release 25: the GTA's highways come from the site itself; a booking with no car shows "Car not assigned", never "Car ?"
     const tv = await ctx(browser, 1920, 1080);
     const hwy = tv.waitForResponse((r) => r.url().endsWith('/live-map/highways.geojson'), { timeout: 90_000 });
+    const regions = tv.waitForResponse((r) => r.url().endsWith('/live-map/regions.geojson'), { timeout: 90_000 });
     await signIn(tv, email);
     await tv.goto('/admin/live-map?tv=1', { waitUntil: 'networkidle' });
     expect((await hwy).status()).toBe(200);
+    // Release 26: the regions, the glow and the ridges come from the site itself too
+    expect((await regions).status()).toBe(200);
     await expect(tv.getByTestId('lm-map')).toHaveAttribute('data-mode', 'map', { timeout: 90_000 });
     await expect(tv.getByTestId('lm-map')).toHaveAttribute('data-blockers', /^\d+$/);
     await tv.route('**/api/staff/live-map*', async (route) => {

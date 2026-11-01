@@ -17,7 +17,7 @@
 .lm-online { color: var(--accent); font-weight: 600; }
 
 /* ---------------------------------------------------------------- the map */
-.lm-map { position: relative; background: var(--bg); overflow: hidden; }
+.lm-map { position: relative; background: #0f131a; overflow: hidden; }
 .lm-map__note { position: absolute; inset: auto 1em 1em 1em; margin: 0; color: var(--quiet); }
 .lm .maplibregl-ctrl-attrib { background: rgba(11, 15, 23, .7) !important; color: #6b7891; font-size: 11px; }
 .lm .maplibregl-ctrl-attrib a { color: #8b98ae !important; }
@@ -34,12 +34,16 @@
 .lm-car__arrow::before { content: ''; position: absolute; left: 50%; top: 0; translate: -50% 0; border: .35em solid transparent; border-bottom: .55em solid var(--c); border-top: 0; }
 .lm-car--still .lm-car__arrow { display: none; }
 
-/* photo pins: the car in a ring of its stage colour, above the dots */
-.lm-ph { width: var(--s, 42px); height: var(--s, 42px); border-radius: 50%; overflow: hidden; background: #1b2130; border: 2px solid var(--c); cursor: pointer;
-  box-shadow: 0 0 0 2px rgba(10, 12, 18, .85), 0 0 .9em color-mix(in srgb, var(--c) 55%, transparent); display: grid; place-items: center; }
+/* photo pins (Release 26): the car on a small landscape card framed in its stage colour, a dark keyline, a soft glow of
+   the same colour under it; a hot lead adds a rose ring. Above the dots, never clustered; moved aside with a leader
+   line when two would cover each other (engine.layout). */
+.lm-ph { width: var(--w, 66px); height: var(--h, 44px); border-radius: calc(var(--h, 44px) * .24); overflow: hidden; cursor: pointer; display: grid; place-items: center;
+  background: linear-gradient(180deg, #232b3b, #151b27); border: calc(var(--h, 44px) * .055) solid var(--c);
+  box-shadow: 0 0 0 calc(var(--h, 44px) * .05) rgba(7, 9, 14, .9), 0 calc(var(--h, 44px) * .14) calc(var(--h, 44px) * .5) rgba(0, 0, 0, .55), 0 0 calc(var(--h, 44px) * .6) color-mix(in srgb, var(--c) 45%, transparent);
+  transition: box-shadow .4s ease; }
 .lm-ph img { width: 100%; height: 100%; object-fit: cover; }
-.lm-ph span { color: var(--c); font-weight: 700; font-size: calc(var(--s, 42px) * .42); }
-.lm-ph--hot { box-shadow: 0 0 0 2px rgba(10, 12, 18, .85), 0 0 0 5px rgba(251, 113, 133, .35), 0 0 1.2em color-mix(in srgb, var(--c) 60%, transparent); }
+.lm-ph span { color: var(--c); font-weight: 700; font-size: calc(var(--h, 44px) * .48); }
+.lm-ph--hot { box-shadow: 0 0 0 calc(var(--h, 44px) * .05) rgba(7, 9, 14, .9), 0 0 0 calc(var(--h, 44px) * .14) rgba(251, 113, 133, .55), 0 calc(var(--h, 44px) * .14) calc(var(--h, 44px) * .5) rgba(0, 0, 0, .55), 0 0 calc(var(--h, 44px) * .8) rgba(251, 113, 133, .35); }
 .lm-ph:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 /* home base: the brand mark with a soft pulse */
 .lm-hq { width: var(--s, 30px); height: var(--s, 30px); }
@@ -75,8 +79,11 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
 .lm--idle, .lm--idle * { cursor: none !important; }
 .lm-tv__stage { position: relative; min-width: 0; overflow: hidden; }
 .lm-tv__stage .lm-map { position: absolute; inset: 0; }
-.lm-tv__top { position: absolute; inset: 0 0 auto 0; z-index: 2; display: flex; align-items: flex-start; gap: 3.2em; padding: 1.5em 2em 4em; pointer-events: none;
-  background: linear-gradient(#141317 25%, rgba(20, 19, 23, .7) 60%, transparent); }
+.lm-tv__top { position: absolute; inset: 0 0 auto 0; z-index: 2; display: grid; gap: 1.1em; padding: 1.5em 2em 3.4em; pointer-events: none;
+  background: linear-gradient(#0b0e14 30%, rgba(11, 14, 20, .82) 62%, transparent); }
+.lm-tv__row { display: flex; align-items: flex-start; gap: 3.2em; }
+/* a soft vignette: the edges fall away into the dark so the eye rests on the middle, where the pins are */
+.lm-tv__vignette { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(120% 95% at 50% 55%, transparent 58%, rgba(5, 7, 11, .6) 100%); }
 .lm-brand { display: grid; gap: .1em; font-size: 1.55em; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
 .lm-brand b { color: var(--accent); font-weight: 700; }
 .lm-clock { color: var(--quiet); font-weight: 500; }
@@ -84,11 +91,13 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
 .lm--tv .lm-kpis li { padding: 0 1.8em; }
 .lm--tv .lm-kpi__v { font-size: 3.2em; }
 .lm--tv .lm-kpi__k { font-size: 1em; letter-spacing: .06em; }
-.lm-tv__foot { position: absolute; inset: auto 0 0 0; z-index: 2; padding: 2.4em 2em 1.2em; background: linear-gradient(transparent, rgba(20, 19, 23, .9) 35%); }
-/* the stages as small chips at the map's top left */
-.lm-tv__chips { position: absolute; top: 8.4em; left: 2em; z-index: 2; pointer-events: none; }
-.lm-tv__chips .lm-legend { flex-direction: column; align-items: flex-start; gap: .45em; }
-.lm-tv__chips .lm-legend__item { background: rgba(20, 19, 23, .72); border: 1px solid rgba(255, 255, 255, .07); border-radius: 999px; padding: .2em .8em .2em .6em; backdrop-filter: blur(4px); }
+.lm-tv__foot { position: absolute; inset: auto 0 0 0; z-index: 2; padding: 2.4em 2em 1.2em; background: linear-gradient(transparent, rgba(11, 14, 20, .92) 40%); }
+/* the stages as one row of chips on On the road's title line (Release 26: out of the map, so no pin hides behind them
+   and the map keeps its height) */
+.lm-tv__foot { --chip-top: 2.4em; }
+.lm-tv__chips { position: absolute; top: calc(var(--chip-top) - .3em); right: 2em; pointer-events: none; }
+.lm-tv__chips .lm-legend { gap: .6em; flex-wrap: nowrap; }
+.lm-tv__chips .lm-legend__item { background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .08); border-radius: 999px; padding: .25em .9em .25em .7em; }
 .lm-tv__chips .lm-legend__note { color: #6b7891; padding-left: .6em; }
 /* On the road: a filmstrip of the cars on rent and picked up today */
 .lm-film { display: grid; gap: .6em; }

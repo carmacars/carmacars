@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { CAR_SILHOUETTE, agoText, arc, bandOf, carLabel, compactMoney, hash, makeInitial, onTheRoad, photoPins, maskPhone, reasonOf, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
-import { HIGHWAYS, HOME_BOUNDS, MAP_ATTRIBUTION, MAX_BOUNDS, inBounds, roundGeo } from './config.ts';
+import { CAR_SILHOUETTE, agoText, arc, separate, bandOf, carLabel, compactMoney, hash, makeInitial, onTheRoad, photoPins, maskPhone, reasonOf, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
+import { FRAME_MAX_ZOOM, TORONTO, HIGHWAYS, HOME_BOUNDS, MAP_ATTRIBUTION, MAX_BOUNDS, REGIONS, frameBounds, inBounds, roundGeo } from './config.ts';
 import { readFileSync } from 'node:fs';
 
 // The Live map (migration 0242): the score and its signals, the masking for the TV, the spread of pins that share a spot.
@@ -67,8 +67,9 @@ describe('positions', () => {
     const t = tally(v, (lng, lat) => inBounds(lng, lat, MAX_BOUNDS));
     assert.deepEqual([t.shown, t.none, t.outside, t.byType.session], [1, 1, 1, 3]);
   });
-  it('the first view takes in Kitchener, St. Catharines, Cobourg, Peterborough and Barrie, with Toronto inside', () => {
-    for (const [lng, lat] of [[-80.49, 43.45], [-79.25, 43.16], [-78.17, 43.96], [-78.32, 44.3], [-79.69, 44.39], [-79.38, 43.65]] as const) assert.ok(inBounds(lng, lat, HOME_BOUNDS));
+  it('the view (the owner\'s box, Release 26): Hamilton, Barrie and Toronto inside; St. Catharines, across the lake, not', () => {
+    for (const [lng, lat] of [[-79.87, 43.256], [-79.69, 44.389], [-79.38, 43.65], [-78.9, 43.9]] as const) assert.ok(inBounds(lng, lat, HOME_BOUNDS));
+    assert.ok(!inBounds(-79.25, 43.16, HOME_BOUNDS), 'St. Catharines is across the lake, out of the view');
   });
   it('the Worker rounds Cloudflare\'s position to 0.01 degree', () => {
     assert.deepEqual([roundGeo('43.65321'), roundGeo(-79.38712), roundGeo('x'), roundGeo(''), roundGeo(undefined), roundGeo('500')], [43.65, -79.39, null, null, null, null]);
@@ -179,5 +180,89 @@ describe('GTA highways (web/public/live-map/highways.geojson)', () => {
     for (const f of base.features.filter((x) => x.properties.k === 'road')) for (const l of f.geometry.coordinates) for (const [x, y] of l) {
       assert.ok(!(x! > -79.95 && x! < -78.75 && y! > 43.33 && y! < 44.12), `${x},${y}`);
     }
+  });
+});
+
+describe('Release 26: the land, not the lake', () => {
+  it('Hamilton is the furthest south, Barrie the furthest north, Toronto in the middle', () => {
+    const [w, south, e, n] = HOME_BOUNDS;
+    assert.ok(south > 43.2 && south <= 43.256, `Hamilton (43.256) at the bottom: ${south}`);
+    assert.ok(n >= 44.389 && n < 44.45, `Barrie (44.389) at the top: ${n}`);
+    assert.ok(Math.abs((w + e) / 2 - TORONTO[0]) < 0.01, 'centred on Toronto east to west');
+  });
+  it('widens only for a pin outside the box, and stays centred on Toronto; never closer than a city', () => {
+    assert.deepEqual(frameBounds([]), HOME_BOUNDS);
+    assert.deepEqual(frameBounds([{ lng: -79.38, lat: 43.65 }]), HOME_BOUNDS, 'a pin inside changes nothing');
+    const far = frameBounds([{ lng: -80.49, lat: 43.45 }, { lng: Number.NaN, lat: 43 }]);
+    assert.ok(Math.abs(far[0] - -80.49) < 1e-9);
+    assert.ok(Math.abs((far[0] + far[2]) / 2 - TORONTO[0]) < 1e-9, 'Kitchener widens both sides, Toronto stays in the middle');
+    assert.deepEqual([far[1], far[3]], [HOME_BOUNDS[1], HOME_BOUNDS[3]]);
+    assert.ok(FRAME_MAX_ZOOM >= 9 && FRAME_MAX_ZOOM <= 10.5);
+  });
+});
+
+describe('Release 26: photo pins make room for each other (separate)', () => {
+  const overlap = (a: { x: number; y: number }, b: { x: number; y: number }, w: number, h: number) => Math.abs(a.x - b.x) < w && Math.abs(a.y - b.y) < h;
+  it('a lone pin stays on its spot', () => {
+    assert.deepEqual(separate([{ id: 'a', x: 100, y: 100, w: 80, h: 54 }]).get('a'), { x: 100, y: 100 });
+  });
+  it('five cars on one spot by home base: a tidy block, none covering another or home base, which never moves', () => {
+    const boxes = [...'abcde'].map((id) => ({ id, x: 500, y: 300, w: 80, h: 54 }));
+    const at = separate([...boxes, { id: 'hq', x: 505, y: 302, w: 30, h: 30, fixed: true }], 8);
+    assert.deepEqual(at.get('hq'), { x: 505, y: 302 });
+    const ids = [...'abcde'];
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) assert.ok(!overlap(at.get(ids[i]!)!, at.get(ids[j]!)!, 80, 54), `${ids[i]} ${ids[j]}`);
+      assert.ok(!overlap(at.get(ids[i]!)!, at.get('hq')!, 55, 42), `${ids[i]} hq`);
+      // and they stay near their spot (a leader line, not across the map)
+      assert.ok(Math.hypot(at.get(ids[i]!)!.x - 500, at.get(ids[i]!)!.y - 300) < 260);
+    }
+  });
+  it('the same answer every refresh, whatever order the pins come in', () => {
+    const a = [{ id: 'x', x: 10, y: 10, w: 80, h: 54 }, { id: 'y', x: 20, y: 12, w: 80, h: 54 }, { id: 'z', x: 15, y: 30, w: 80, h: 54 }];
+    assert.deepEqual([...separate(a)].sort(), [...separate([...a].reverse())].sort());
+  });
+});
+
+describe('Release 26: the GTA\'s regions (web/public/live-map/regions.geojson)', () => {
+  type F = { properties: { k: string; region?: string; lvl?: string; name?: string; w?: number }; geometry: { type: string; coordinates: unknown } };
+  const raw = readFileSync(new URL(`../../../public${REGIONS}`, import.meta.url), 'utf8');
+  const d = JSON.parse(raw) as { attribution: string; features: F[] };
+  it('small, and says where it comes from (ODbL)', () => {
+    assert.ok(raw.length < 120_000, `${raw.length} bytes`);
+    assert.match(d.attribution, /Statistics Canada/);
+    assert.match(d.attribution, /ODbL/);
+    assert.match(MAP_ATTRIBUTION, /Statistics Canada/);
+  });
+  it('the five regions and Hamilton, with the big cities in the right one', () => {
+    const munis = d.features.filter((f) => f.properties.k === 'muni');
+    assert.deepEqual([...new Set(munis.map((f) => f.properties.region))].sort(), ['Durham', 'Halton', 'Hamilton', 'Peel', 'Toronto', 'York']);
+    const regionOf = (n: string) => munis.find((f) => f.properties.name === n)?.properties.region;
+    assert.equal(regionOf('Mississauga'), 'Peel');
+    assert.equal(regionOf('Markham'), 'York');
+    assert.equal(regionOf('Oshawa'), 'Durham');
+    assert.equal(regionOf('Oakville'), 'Halton');
+  });
+  it('every municipality outlined, the GTA\'s regions marked, lines inside southern Ontario', () => {
+    const borders = d.features.filter((f) => f.properties.k === 'border');
+    assert.deepEqual(borders.map((f) => f.properties.lvl).sort(), ['muni', 'region']);
+    for (const f of borders) for (const l of f.geometry.coordinates as number[][][]) for (const [x, y] of l) assert.ok(inBounds(x!, y!, MAX_BOUNDS), `${x},${y}`);
+    // Barrie (outside the GTA) is outlined too: a border passes within 6 km of it
+    const near = borders.some((f) => (f.geometry.coordinates as number[][][]).some((l) => l.some(([x, y]) => Math.hypot(x! + 79.69, y! - 44.389) < 0.06)));
+    assert.ok(near, 'Barrie outlined');
+  });
+  it('the arterials and the owner\'s cities are there, the roads inside the view', () => {
+    const arts = d.features.filter((f) => f.properties.k === 'arterial');
+    assert.ok(arts.length >= 20);
+    for (const n of ['Yonge Street', 'Eglinton Avenue', 'Steeles Avenue', 'Hurontario Street', 'Highway 7']) assert.ok(arts.some((f) => f.properties.name === n), n);
+    for (const f of arts) for (const [x, y] of f.geometry.coordinates as number[][]) assert.ok(inBounds(x!, y!, MAX_BOUNDS));
+    const towns = d.features.filter((f) => f.properties.k === 'town').map((f) => f.properties.name);
+    for (const n of ['Richmond Hill', 'Burlington', 'Pickering', 'Ajax', 'Whitby', 'Milton', 'Newmarket', 'Aurora']) assert.ok(towns.includes(n), n);
+  });
+  it('the glow is brightest in Toronto, and the two ridges are there', () => {
+    const glow = d.features.filter((f) => f.properties.k === 'glow');
+    assert.ok(glow.every((f) => f.properties.w! > 0 && f.properties.w! <= 1));
+    assert.equal(Math.max(...glow.map((f) => f.properties.w!)), 1);
+    assert.deepEqual(d.features.filter((f) => f.properties.k === 'ridge').map((f) => f.properties.name).sort(), ['Niagara Escarpment', 'Oak Ridges Moraine']);
   });
 });

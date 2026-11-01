@@ -273,3 +273,55 @@ export const PRECISION_WORDS: Record<Exclude<Precision, null>, string> = {
   visit: 'Approximate, from the visit (about 1 km)', home_city: 'Centre of their home city', visit_city: 'Centre of the visit\'s city'
 };
 export const CAR_HOW: Record<string, string> = { on_rent: 'Renting', booking: 'Booked', request: 'Requested', previous: 'Rented last', viewed: 'Last viewed' };
+
+export interface Box { id: string; x: number; y: number; w: number; h: number; /** home base: never moves, the others make room round it */ fixed?: boolean }
+/**
+ * Photo pins that would cover each other on screen move apart (Release 26): each overlapping pair is pushed apart along
+ * the axis that needs the least movement, a fixed box (home base) never moves, and the rest stay as close to their spot
+ * as they can, so a leader line shows where each one belongs. Pixels in, pixels out; the same input gives the same
+ * answer (pins at one spot fan out by id). `gap` is the clear space kept between two pins.
+ */
+export function separate(boxes: Box[], gap = 6, rounds = 120): Map<string, { x: number; y: number }> {
+  const b = [...boxes].sort((p, q) => (p.id < q.id ? -1 : p.id > q.id ? 1 : 0)).map((p) => ({ ...p }));
+  // pins on one spot (a city's middle, for home-city leads) first make a tidy block of rows centred on it, so they
+  // read as one group rather than a line pushed out in one direction
+  const done = new Set<number>();
+  for (let i = 0; i < b.length; i++) {
+    const p = b[i]!;
+    if (p.fixed || done.has(i)) continue;
+    const same = [i];
+    for (let j = i + 1; j < b.length; j++) { const q = b[j]!; if (!q.fixed && !done.has(j) && Math.hypot(q.x - p.x, q.y - p.y) < Math.min(p.w, p.h) * 0.5) same.push(j); }
+    if (same.length < 2) continue;
+    const cols = Math.ceil(Math.sqrt(same.length)), rows = Math.ceil(same.length / cols), cx = p.x, cy = p.y;
+    same.forEach((j, n) => {
+      const q = b[j]!, row = Math.floor(n / cols), inRow = Math.min(cols, same.length - row * cols), col = n % cols;
+      q.x = cx + (col - (inRow - 1) / 2) * (q.w + gap);
+      q.y = cy + (row - (rows - 1) / 2) * (q.h + gap);
+      done.add(j);
+    });
+  }
+  for (let r = 0; r < rounds; r++) {
+    let moved = false;
+    for (let i = 0; i < b.length; i++) for (let j = i + 1; j < b.length; j++) {
+      const p = b[i]!, q = b[j]!;
+      if (p.fixed && q.fixed) continue;
+      let dx = q.x - p.x, dy = q.y - p.y;
+      const ox = (p.w + q.w) / 2 + gap - Math.abs(dx), oy = (p.h + q.h) / 2 + gap - Math.abs(dy);
+      if (ox <= 0.01 || oy <= 0.01) continue;
+      moved = true;
+      // the same spot: fan out by order round the circle, so two, three or more spread evenly
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { const a = (hash(`${p.id}|${q.id}`) % 360) * (Math.PI / 180); dx = Math.cos(a); dy = Math.sin(a); }
+      const sp = p.fixed ? 0 : q.fixed ? 1 : 0.5, sq = 1 - sp;
+      // along the cheaper axis (relative to the two boxes' size on it)
+      if (ox / (p.w + q.w) < oy / (p.h + q.h)) {
+        const s = Math.sign(dx) || 1;
+        p.x -= s * ox * sp; q.x += s * ox * sq;
+      } else {
+        const s = Math.sign(dy) || 1;
+        p.y -= s * oy * sp; q.y += s * oy * sq;
+      }
+    }
+    if (!moved) break;
+  }
+  return new Map(b.map((p) => [p.id, { x: p.x, y: p.y }]));
+}

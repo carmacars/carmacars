@@ -13,16 +13,23 @@ export const MAPLIBRE_CSS = `${VENDOR}/maplibre-gl.css`;
 export const BASEMAP = '/live-map/basemap.geojson';
 /** The GTA's highways (401, 404, 410, 427, QEW, DVP, Gardiner, 400, 403, 407), simplified by hand (scripts/live-map/highways.mjs). */
 export const HIGHWAYS = '/live-map/highways.geojson';
+/** Release 26: the GTA's regions and municipalities (Statistics Canada via geoBoundaries, ODbL), the glow where people
+ * live, two ridges and the towns (scripts/live-map/regions.mjs). Drawn under the water, so the land carries the map. */
+export const REGIONS = '/live-map/regions.geojson';
 export const GLYPHS = '/live-map/fonts/{fontstack}/{range}.pbf';
-export const MAP_ATTRIBUTION = 'Basemap: Natural Earth. GTA highways: CarmaCars';
+export const MAP_ATTRIBUTION = 'Basemap: Natural Earth. Boundaries: Statistics Canada via geoBoundaries (ODbL). GTA highways, arterial roads and ridges: CarmaCars';
 
 /** [west, south, east, north]. */
 export type Bounds = [number, number, number, number];
-/** The first view: Kitchener-Waterloo and Guelph, Niagara (St. Catharines), Peterborough and Cobourg, Barrie and Lake Simcoe; Toronto in the middle. */
-export const HOME_BOUNDS: Bounds = [-80.62, 42.98, -78.0, 44.68];
+export const TORONTO: [number, number] = [-79.3832, 43.6532];
+/** The view (Release 26, the owner's box): Hamilton the furthest south, Barrie the furthest north, Toronto in the
+ * middle; the screen's width then takes in Kitchener to Oshawa and beyond. The map frames exactly this, inside the room
+ * the header and the filmstrip leave, and widens only for a pin outside it. */
+export const HOME_BOUNDS: Bounds = [TORONTO[0] - 0.5, 43.245, TORONTO[0] + 0.5, 44.395];
+/** The closest the map ever comes: a city, never a street. */
+export const FRAME_MAX_ZOOM = 9.6;
 /** The farthest the map zooms out or fits to: southern Ontario. A pin outside it is counted, not drawn. */
 export const MAX_BOUNDS: Bounds = [-83.6, 41.6, -74.3, 46.6];
-export const TORONTO: [number, number] = [-79.3832, 43.6532];
 
 /** Refresh every 30 seconds; the server keeps one answer 20 seconds. */
 export const REFRESH_MS = 30_000;
@@ -37,6 +44,18 @@ export function roundGeo(v: unknown): number | null {
   const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN;
   if (!Number.isFinite(n) || Math.abs(n) > 180) return null;
   return Math.round(n * 100) / 100;
+}
+
+/** The box that holds the view and every pin: `core` (the owner's box), widened for each pin outside it and kept centred
+ * on Toronto east to west (one far pin widens both sides, so Toronto stays in the middle); bad positions are skipped. */
+export function frameBounds(points: Array<{ lng: number; lat: number }>, core: Bounds = HOME_BOUNDS, centre = TORONTO[0]): Bounds {
+  const b: Bounds = [...core];
+  for (const p of points) {
+    if (!Number.isFinite(p.lng) || !Number.isFinite(p.lat)) continue;
+    b[0] = Math.min(b[0], p.lng); b[1] = Math.min(b[1], p.lat); b[2] = Math.max(b[2], p.lng); b[3] = Math.max(b[3], p.lat);
+  }
+  const half = Math.max(centre - b[0], b[2] - centre);
+  return [centre - half, b[1], centre + half, b[3]];
 }
 
 export function inBounds(lng: number, lat: number, b: Bounds): boolean {

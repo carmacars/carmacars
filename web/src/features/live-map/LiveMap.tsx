@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
-import { HOME_BOUNDS, MAX_BOUNDS, NEW_MS, REFRESH_MS, SPOTLIGHT_MS, inBounds, type Bounds } from './config';
-import { MapEngine, type CarSpec, type PinSpec, type Spot } from './engine';
+import { HOME_BOUNDS, MAX_BOUNDS, NEW_MS, REFRESH_MS, SPOTLIGHT_MS, frameBounds, inBounds } from './config';
+import { MapEngine, type CarSpec, type Pad, type PinSpec, type Spot } from './engine';
 import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, carLabel, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, spread, stageOf, tally, verbOf,
   type CarPhoto, type Kpi, type MapView, type Pin, type Stage } from './model';
 
@@ -22,6 +22,21 @@ const imgOf = (p: CarPhoto | null | undefined, w = 640): string | null => {
   return photoUrl(v?.path ?? p.path);
 };
 const colourOf = (p: Pin) => STAGE[stageOf(p.type)].colour;
+/** What the view keeps clear: on a TV the header (its words, not its fade) and the filmstrip; on the page the layer chips. */
+function padOf(box: HTMLElement | null, top: HTMLElement | null, foot: HTMLElement | null, tv: boolean): Pad {
+  const edge = tv ? 28 : 16;
+  if (!box) return { top: edge, right: edge, bottom: edge, left: edge };
+  const b = box.getBoundingClientRect();
+  const inner = (el: HTMLElement | null, end: 'bottom' | 'top') => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    return end === 'bottom' ? r.bottom - parseFloat(cs.paddingBottom || '0') : r.top + parseFloat(cs.paddingTop || '0');
+  };
+  const t = inner(top, 'bottom'), f = inner(foot, 'top');
+  // over On the road, room for one line of a city's name too (Hamilton's sits under its pin)
+  const line = foot ? 1.8 * parseFloat(getComputedStyle(foot).fontSize || '16') : 0;
+  return { top: Math.max(edge, t === null ? (tv ? edge : 56) : t - b.top + 8), right: edge, bottom: Math.max(edge, f === null ? edge : b.bottom - f + 8 + line), left: edge };
+}
 
 export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: boolean; /** the server's clock when the page was drawn */ at?: number }) {
   const [view, setView] = useState<MapView | null>(initial);
@@ -35,6 +50,9 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
   const [mode, setMode] = useState<'loading' | 'map' | 'nogl'>('loading');
   const [idle, setIdle] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLElement>(null);
+  const footRef = useRef<HTMLElement>(null);
+  const [size, setSize] = useState(0);
   const engine = useRef<MapEngine | null>(null);
   const first = useRef(true);
 
@@ -101,10 +119,17 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
       fresh: isNew(p.at, NEW_MS, now), label: `${TYPE[p.type].label}: ${p.who}${p.car ? `, ${p.car.name}` : ''}`,
       photo: withPhoto.has(p.id) ? { src: imgOf(p.car?.photo, 96), initial: carLabel(p.car).initial ?? '', route: p.type === 'on_rent' || p.type === 'booking' } : undefined
     })) : []);
-    const b: Bounds = [...HOME_BOUNDS];
-    for (const { at } of placed) { b[0] = Math.min(b[0], at.lng - 0.05); b[1] = Math.min(b[1], at.lat - 0.05); b[2] = Math.max(b[2], at.lng + 0.05); b[3] = Math.max(b[3], at.lat + 0.05); }
-    e.frame(b);
-  }, [placed, layers.leads, now, mode]);
+    // Release 26: Hamilton at the bottom, Barrie at the top, Toronto in the middle; wider only for a pin outside it, and
+    // always inside the room the header and the filmstrip leave
+    e.frame(HOME_BOUNDS, frameBounds(placed.map(({ at }) => at)), padOf(boxRef.current, tv ? topRef.current : null, tv ? footRef.current : null, tv));
+  }, [placed, layers.leads, now, mode, tv, size]);
+  // a new screen size frames again (a TV switched from 1080p to 4K, a window resized)
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const on = () => { clearTimeout(t); t = setTimeout(() => setSize((n) => n + 1), 250); };
+    window.addEventListener('resize', on);
+    return () => { window.removeEventListener('resize', on); clearTimeout(t); };
+  }, []);
 
   useEffect(() => { if (mode === 'map') engine.current?.setHq(view?.hq ?? null); }, [view?.hq, mode]);
 
@@ -153,12 +178,14 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
       <div className={`lm lm--tv${idle ? ' lm--idle' : ''}`} data-testid="live-map-tv">
         <section className="lm-tv__stage" aria-label="Map">
           {map}
-          <header className="lm-tv__top">
-            <div className="lm-brand"><span>CarmaCars <b>Live</b></span><Clock now={now} /></div>
-            <Kpis k={view?.kpi} />
+          <div className="lm-tv__vignette" aria-hidden="true" />
+          <header className="lm-tv__top" ref={topRef}>
+            <div className="lm-tv__row">
+              <div className="lm-brand"><span>CarmaCars <b>Live</b></span><Clock now={now} /></div>
+              <Kpis k={view?.kpi} />
+            </div>
           </header>
-          <div className="lm-tv__chips">{legend}</div>
-          <footer className="lm-tv__foot"><Filmstrip pins={onTheRoad(pins, now)} /></footer>
+          <footer className="lm-tv__foot" ref={footRef}><div className="lm-tv__chips">{legend}</div><Filmstrip pins={onTheRoad(pins, now)} /></footer>
         </section>
         <aside className="lm-rail">
           <section className="lm-spot" aria-label="Spotlight: the hottest lead" data-testid="lm-spotlight">
