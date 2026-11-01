@@ -6,12 +6,13 @@
 export type Escalation = 'person' | 'complaint' | 'damage' | 'payment' | 'legal' | 'insurance';
 
 const ESCALATE: Array<[Escalation, RegExp]> = [
-  ['person', /\b(human|real person|a person|an agent|live agent|representative|someone real|talk to (someone|somebody|staff|a person)|speak (to|with) (someone|somebody|a person|staff|a human|an agent|the manager)|call me|manager)\b/i],
+  // 0370: not "a person" or "manager" alone ("a car for a person under 25" is a question for the assistant)
+  ['person', /\b(human|real person|an agent|live agent|representative|someone real|(talk|chat) (to|with) (someone|somebody|staff|a person|a human|an agent|a manager|the manager)|speak (to|with) (someone|somebody|a person|staff|a human|an agent|a manager|the manager)|call me|your manager)\b/i],
   ['damage', /\b(accident|crash(ed)?|collision|damaged?|dent(ed)?|scratch(ed)?|broke down|breakdown|tow(ed)?|stolen|theft|police|injur(y|ed)|hit (a|another|my))\b/i],
   ['payment', /\b(was charged|been charged|double charged|charged twice|overcharg\w*|refunds?|chargeback|dispute|payment (failed|didn'?t go|declined|issue|problem)|card (was )?declined|charge on my card|my deposit (back|was|hasn'?t|has not))\b/i],
   ['complaint', /\b(complain\w*|terrible|awful|scam|ripped off|furious|angry|unacceptable|worst|disgusting|rude|never again|very disappointed)\b/i],
   ['insurance', /\b(insurance|insured|insurer|coverage|cover me|covered)\b/i],
-  ['legal', /\b(lawyer|legal|sue|lawsuit|court|liabilit(y|ies)|liable)\b/i]
+  ['legal', /\b(lawyer|legal (advice|action|question|issue|problem)|sue|lawsuit|court|liabilit(y|ies)|liable)\b/i]
 ];
 
 export const ESCALATION_WORDS: Record<Escalation, string> = {

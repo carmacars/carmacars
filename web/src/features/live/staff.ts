@@ -43,10 +43,33 @@ export interface ChatRow {
   started_by: string; assigned_to: string | null; assigned_name: string | null; human_requested_at: string | null; human_reason: string | null; first_human_reply_at: string | null;
   offline: boolean; page: string | null; car: string | null; last_message_at: string; created_at: string; closed_at: string | null; unread: number; last: string | null;
   visitor_typing: boolean; online: boolean; waiting_minutes: number | null; target_minutes: number; ai_replies: number; lead_id: string | null;
+  /** 0370: a person must answer (waiting, or the visitor wrote last); the visitor left with a phone or email (follow-up lead); why it closed */
+  needs_reply?: boolean; followup_at?: string | null; closed_reason?: string | null; has_contact?: boolean; last_seen_at?: string | null; last_visitor_id?: number | null;
 }
 export interface ChatMsg { id: number; at: string; sender: 'visitor' | 'ai' | 'staff' | 'system'; body: string; name?: string | null; staff_name?: string | null; meta?: Record<string, unknown> }
 export interface Inbox { at: string; on_shift: number; open: ChatRow[]; closed: ChatRow[]; prefs: { email_when_waiting: boolean; desktop_alerts: boolean };
-  budget: { chat_neurons: number; all_neurons: number; chat_cap: number; all_cap: number; ok: boolean; ai_enabled: boolean }; waiting: number; unread: number }
+  budget: { chat_neurons: number; all_neurons: number; chat_cap: number; all_cap: number; ok: boolean; ai_enabled: boolean; tier_room?: number; reason?: string | null }; waiting: number; unread: number;
+  /** 0370: AI replies on, or paused and why; the follow-up leads */
+  ai?: AiStatus; followup?: number }
+export interface AiStatus { on: boolean; reason: string | null; failing?: boolean }
+/** The line Live chat shows when the assistant does not answer (0370). */
+export const aiPausedText = (ai?: AiStatus | null) => (ai && !ai.on ? `AI replies paused: ${ai.reason ?? 'the assistant is not available'}` : null);
+/** Why a chat closed, in staff words (0370). */
+export const closedWords = (r?: string | null) => (r === 'visitor_left' ? 'Visitor left, no contact' : null);
+/** New visitor messages that wait for staff since the last look: one alert each (0370). Seed `seen` with the rows on
+ *  screen first (seenFrom), so a chat already waiting when the page opens does not alert again. */
+export function newWaitingMessages(rows: ChatRow[], seen: Map<string, number>): ChatRow[] {
+  const out: ChatRow[] = [];
+  for (const c of rows) {
+    const last = c.last_visitor_id ?? 0;
+    if (last > (seen.get(c.id) ?? 0)) {
+      seen.set(c.id, last);
+      if (c.needs_reply) out.push(c);
+    }
+  }
+  return out;
+}
+export const seenFrom = (rows: ChatRow[]) => new Map(rows.map((c) => [c.id, c.last_visitor_id ?? 0] as [string, number]));
 export interface Thread { chat: ChatRow; mine: boolean; messages: ChatMsg[]; session: SessionDetail | null;
   renter: { id: string; name: string; email: string | null; mobile: string | null; bookings: Array<{ number: string; status: string; pickup_at: string }> } | null }
 

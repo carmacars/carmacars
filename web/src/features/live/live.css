@@ -46,6 +46,8 @@
 .lc-msg--ai p { background: var(--grey-100); }
 .lc-msg__who { font-size: var(--fs-2xs); font-weight: 600; }
 .lc-sys { align-self: center; font-size: var(--fs-xs); color: var(--text-2); margin: 0; text-align: center; }
+.lc-sys--staff { color: var(--grey-800); background: var(--grey-50); border: 1px dashed var(--grey-300); border-radius: 6px; padding: 2px 8px; }
+.lc-paused { margin: 0 0 8px; }
 .lc-form { display: flex; gap: var(--s-2); align-items: flex-end; padding: var(--s-3); border-top: 1px solid var(--grey-200); }
 .lc-form textarea { flex: 1 1 auto; min-height: 44px; font-size: 16px; }
 .lc-side { background: var(--white); border: 1px solid var(--grey-200); padding: var(--s-3); display: grid; gap: var(--s-2); align-content: start; min-width: 0; overflow-wrap: anywhere; }

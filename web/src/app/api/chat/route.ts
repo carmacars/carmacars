@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import { currentUser } from '@/server/portal/data';
-import { answer, type VisitorMessageState } from '@/server/chat';
+import { answer, answerFailed, staffNote, type VisitorMessageState } from '@/server/chat';
+import { notAnsweredFor } from '@/features/chat/reply-path';
 import { PAUSE } from '@/features/usage/model';
 
 // Live chat (migration 0060), the visitor's side: open or continue a conversation, send a message (the assistant
@@ -39,18 +40,18 @@ export async function POST(req: Request) {
         const st = (await rpc('server_chat_visitor_message', { p_token: token, p_body: text }, SR)) as unknown as VisitorMessageState;
         if (!st.ok) return NextResponse.json(st, { headers: H });
         if (st.ai) {
+          // 0370: a failure is recorded and shown to staff (a note in the chat, "AI replies paused" in Live chat), never swallowed
           try { await answer(token, st, text); }
-          catch (e) {
-            console.error('chat assistant', e instanceof Error ? e.message.slice(0, 300) : e);
-            await rpc('server_chat_handoff', { p_token: token, p_reason: 'the assistant is not available' }, SR);
-          }
+          catch (e) { await answerFailed(token, st, e); }
         }
         else if (st.status === 'ai') {
-          // the day's AI allowance is used, or this chat had its share of AI replies: a person takes it
-          // the day's included AI usage is used (the usage guard, 0080): the visitor reads that the assistant rests, never an error
-          await rpc('server_chat_handoff', st.ai_reason === 'budget'
-            ? { p_token: token, p_reason: 'the assistant is off for today (daily included AI usage reached)', p_message: PAUSE.chat }
-            : { p_token: token, p_reason: 'a long conversation for the assistant' }, SR);
+          // the day's AI allowance is used, the assistant is off, or this chat had its share of AI replies: a person
+          // takes it; the visitor reads that the assistant rests, never an error (the usage guard, 0080); staff read why
+          const why = notAnsweredFor(st);
+          if (why) await staffNote(token, why.note);
+          await rpc('server_chat_handoff', why?.budget
+            ? { p_token: token, p_reason: why.reason, p_message: PAUSE.chat }
+            : { p_token: token, p_reason: why?.reason ?? 'a long conversation for the assistant' }, SR);
         }
         return NextResponse.json(await rpc('chat_poll', { p_token: token, p_after: Math.max(0, Number(b.after) || 0) }, SR), { headers: H });
       }

@@ -2,14 +2,14 @@ import { Card, t } from '@/features/admin/ui';
 import { Act } from '@/features/admin/Act';
 
 // Settings > Usage: Workers AI by feature (migration 0133). The day's free neurons are split in tiers: the staff
-// assistant keeps its reserve, live features (chat, phone, readers) share what is not reserved, background work gets a
-// small share and what is left after the release hour. Each feature's neurons today and over 7 days, the use Cloudflare
+// assistant keeps its reserve, live features (chat, phone, readers) have their own share (0370; empty: what is not
+// reserved), background work gets a small share and what is left after the release hour. Each feature's neurons today and over 7 days, the use Cloudflare
 // counts that the app did not record, each tier's room now, and the shares an Admin may change. A hard stop: never paid.
 export interface AiUsage {
   included: number; used: number; used_app: number; unmetered: number;
   tiers: { assistant: number; live: number; background: number };
   room: { assistant: number; live: number; background: number };
-  reserve: number; background_cap: number; cushion: number; late: boolean; reserve_bps: number; background_bps: number; release_hour: number | null; assistant_daily: number;
+  reserve: number; background_cap: number; cushion: number; late: boolean; reserve_bps: number; background_bps: number; live_bps?: number | null; live_cap?: number | null; release_hour: number | null; assistant_daily: number;
   resets_at: string; seo_writer?: boolean;
   features: Array<{ purpose: string; label: string; tier: 'assistant' | 'live' | 'background'; today: number; calls_today: number; failed_today: number; week: number; calls_week: number }>;
   days: Array<{ day: string; assistant: number; live: number; background: number; cloudflare: number | null }>;
@@ -25,7 +25,7 @@ export function AiByFeature({ ai }: { ai: AiUsage }) {
     <Card title="Workers AI by feature" id="usage-ai-features" testId="usage-ai-features"
       aside={<span className="small" data-testid="usage-ai-used">{n(ai.used)} of {n(ai.included)} neurons today</span>}>
       <p className="small" style={{ maxWidth: '52rem' }}>A hard stop at the free allowance, never paid. The staff assistant keeps {pct(ai.reserve_bps)} of the day ({n(ai.reserve)} neurons) for itself and may use anything the others leave.
-        Live features (visitor chat, the phone line, the toll reader, the plate finder) share the rest. Background work (search copy, listing copy, guide rewrites, Turo email reading) gets {pct(ai.background_bps)} ({n(ai.background_cap)} neurons)
+        Live features (visitor chat, the phone line, the toll reader, the plate finder) {ai.live_bps === null || ai.live_bps === undefined ? 'share the rest' : `have ${pct(ai.live_bps)} (${n(ai.live_cap)} neurons) that background work never uses`}. Background work (search copy, listing copy, guide rewrites, Turo email reading) gets {pct(ai.background_bps)} ({n(ai.background_cap)} neurons)
         {ai.release_hour !== null ? `, and from ${hour(ai.release_hour)} what is left of the day less ${n(ai.cushion)} kept for the assistant` : ''}. Resets {t(ai.resets_at)}.
         {ai.seo_writer === false ? ' Search copy is written by the daily Claude batch, not Workers AI (Program settings: search copy writer off).' : ''}</p>
       <dl className="pt-dl ad-kv" data-testid="usage-ai-room">
@@ -49,7 +49,8 @@ export function AiByFeature({ ai }: { ai: AiUsage }) {
       <div className="row">
         <Act action="ai_shares_save" label="Change the shares" title="Workers AI: the shares of the day" testId="usage-ai-shares" refresh={['/admin/settings/usage']} done="Saved."
           fields={[
-            { name: 'reserve_bps', label: 'Kept for the staff assistant (%)', type: 'percent', value: ai.reserve_bps, required: true, hint: 'Nothing else may use it before the release hour. 70 by default.' },
+            { name: 'reserve_bps', label: 'Kept for the staff assistant (%)', type: 'percent', value: ai.reserve_bps, required: true, hint: 'Nothing else may use it before the release hour. 30 by default.' },
+            { name: 'live_bps', label: 'Live features: visitor chat, phone line, readers (%)', type: 'percent', value: ai.live_bps ?? null, hint: 'Their own share; background work never uses it. 50 by default. Empty: what the assistant does not keep.' },
             { name: 'background_bps', label: 'Background work (%)', type: 'percent', value: ai.background_bps, required: true, hint: 'Search copy, listing copy, guide rewrites, Turo emails. 10 by default.' },
             { name: 'release_hour', label: 'Release hour (0 to 23, Toronto; empty: never)', type: 'number', min: 0, max: 23, value: ai.release_hour ?? '', hint: 'From this hour what is left goes to the others. 21 by default.' },
             { name: 'cushion', label: 'Always kept for the assistant after the release hour (neurons)', type: 'number', min: 0, value: ai.cushion, required: true }]} />
