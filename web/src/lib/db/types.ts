@@ -6342,6 +6342,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      finance_model_actuals: {
+        Row: {
+          month: string;
+          complete: boolean;
+          data: Json;
+          computed_at: string;
+        };
+        Insert: {
+          month: string;
+          complete: boolean;
+          data: Json;
+          computed_at?: string;
+        };
+        Update: {
+          month?: string;
+          complete?: boolean;
+          data?: Json;
+          computed_at?: string;
+        };
+        Relationships: [];
+      };
+      finance_model_settings: {
+        Row: {
+          id: boolean;
+          inputs: Json;
+          updated_at: string | null;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          inputs?: Json;
+          updated_at?: string | null;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          inputs?: Json;
+          updated_at?: string | null;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       fleet_counts: {
         Row: {
           id: string;
