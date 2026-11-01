@@ -15,25 +15,25 @@ select test.mk_renter('imd_renter');
 insert into insurers (id, name) values (test.id('imd_insurer'), 'Imd Example Insurance');
 
 -- A: three days across the month end (March 30 and 31 in March, April 1 in April), renter-billed, $300 of rental
-select test.mk_booking('IMD-1', 'imdV1', 'imd_renter', '2031-03-30 10:00', '2031-04-02 10:00', 'closed', 30000);
+select test.mk_booking('IMD-1', 'imdV1', 'imd_renter', '2047-03-30 10:00', '2047-04-02 10:00', 'closed', 30000);
 -- B: five days inside March, billed to an insurer, $500 of rental and a $75 delivery fee
-select test.mk_booking('IMD-2', 'imdV2', 'imd_renter', '2031-03-10 09:00', '2031-03-15 09:00', 'closed', 50000);
+select test.mk_booking('IMD-2', 'imdV2', 'imd_renter', '2047-03-10 09:00', '2047-03-15 09:00', 'closed', 50000);
 select test.mk_line('IMD-2', 'delivery', 7500);
 update bookings set bill_to = 'insurer', insurer_id = test.id('imd_insurer') where id = test.id('booking:IMD-2');
 -- C: a placeholder held for an insurer (confirmed, not blocking the calendar, never handed over): not revenue
-select test.mk_booking('IMD-3', 'imdV3', 'imd_renter', '2031-03-05 09:00', '2031-03-08 09:00', 'confirmed', 99900);
+select test.mk_booking('IMD-3', 'imdV3', 'imd_renter', '2047-03-05 09:00', '2047-03-08 09:00', 'confirmed', 99900);
 update bookings set blocks_calendar = false, blocks_calendar_changed_by = test.id('imd_admin'), blocks_calendar_changed_at = now(), blocks_calendar_reason = 'Held for an insurer'
  where id = test.id('booking:IMD-3');
 -- D: cancelled: not revenue
-select test.mk_booking('IMD-4', 'imdV4', 'imd_renter', '2031-03-20 09:00', '2031-03-22 09:00', 'cancelled', 88800);
+select test.mk_booking('IMD-4', 'imdV4', 'imd_renter', '2047-03-20 09:00', '2047-03-22 09:00', 'cancelled', 88800);
 insert into company_expenses (expense_on, category, description, amount_cents, created_by) values
-  (date '2031-03-03', 'software', 'Imd hosting', 10000, test.id('imd_admin')),
-  (date '2031-03-04', 'marketing', 'Imd ads', 4000, test.id('imd_admin')),
-  (date '2031-03-05', 'marketing', 'Imd voided', 999, test.id('imd_admin'));
+  (date '2047-03-03', 'software', 'Imd hosting', 10000, test.id('imd_admin')),
+  (date '2047-03-04', 'marketing', 'Imd ads', 4000, test.id('imd_admin')),
+  (date '2047-03-05', 'marketing', 'Imd voided', 999, test.id('imd_admin'));
 update company_expenses set voided_at = now(), void_reason = 'test' where description = 'Imd voided';
 
-create temp table imd_mar as select app.finance_model_month(date '2031-03-01') as v;
-create temp table imd_apr as select app.finance_model_month(date '2031-04-01') as v;
+create temp table imd_mar as select app.finance_model_month(date '2047-03-01') as v;
+create temp table imd_apr as select app.finance_model_month(date '2047-04-01') as v;
 
 select test.eq('accrual: the rental is spread by day, two of the three days of A in March ($200) and all of B ($500)',
   (select (v ->> 'rental_cents')::bigint from imd_mar), 70000::bigint);

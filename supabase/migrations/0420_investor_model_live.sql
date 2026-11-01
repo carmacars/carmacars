@@ -255,6 +255,9 @@ begin
     execute format('create policy admin_all on %I for all to authenticated using (app.is_admin()) with check (app.is_admin())', t);
   end loop;
 end $$;
+-- the assumptions an Admin saves are audited (the actuals are a summary the job recomputes from audited rows)
+drop trigger if exists audit_finance_model_settings on finance_model_settings;
+create trigger audit_finance_model_settings after insert or update or delete on finance_model_settings for each row execute function app.audit_row();
 -- an Admin's own session may read and change them (the policy decides); nobody else
 grant select on finance_model_actuals to authenticated;
 grant select, update on finance_model_settings to authenticated;
