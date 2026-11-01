@@ -198,7 +198,7 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
         {popup}
         <div className="lm-layers" role="group" aria-label="Layers">
           <label><input type="checkbox" checked={layers.leads} onChange={(e) => setLayers((l) => ({ ...l, leads: e.target.checked }))} /> Leads</label>
-          <label title={fleetCount ? undefined : 'Each car shows once its tracker reports'}><input type="checkbox" checked={layers.fleet && fleetCount > 0} disabled={!fleetCount} onChange={(e) => setLayers((l) => ({ ...l, fleet: e.target.checked }))} /> Fleet{fleetCount ? ` (${fleetCount})` : ': waiting for trackers'}</label>
+          <label title={fleetCount ? undefined : 'Each car shows once its tracker reports'}><input type="checkbox" checked={layers.fleet && fleetCount > 0} disabled={!fleetCount} onChange={(e) => setLayers((l) => ({ ...l, fleet: e.target.checked }))} /> Fleet{fleetCount ? ` (${fleetCount}${view?.fleet_demo ? ', demo' : ''})` : ': waiting for trackers'}</label>
         </div>
       </div>
       {legend}

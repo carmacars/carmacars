@@ -6,6 +6,9 @@ import { Badge, Card, PageHead, Table, t, label } from '@/features/admin/ui';
 import { CarBoard, DayTimeline } from '@/features/va/FleetDay';
 import { carBoard, type CalVehicle } from '@/features/va/carboard';
 import { requestNow } from '@/features/va/lanes';
+import { door } from '@/server/door';
+import { FleetTracking } from '@/features/tracking/FleetTracking';
+import type { Fleet } from '@/features/tracking/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Field jobs', path: '/staff/fleet', noindex: true, description: 'Field job scheduling and assignment.' });
@@ -19,10 +22,12 @@ const KIND: Record<string, string> = { handover: 'Handover', return_check_in: 'R
 // the person here. Handovers and returns with no job yet (only when automatic jobs are off or a job was cancelled), every job of the next three
 // days with who has it and whether they acknowledged, the expiry watch and the vehicle documents.
 export default async function Fleet() {
-  const { read } = await vaPage('/staff/fleet', ['fleet']);
+  const { read, user, aal } = await vaPage('/staff/fleet', ['fleet']);
   const now = requestNow();
   const [b, cal] = await Promise.all([read<Board>('fleet_board'),
     read<{ vehicles: CalVehicle[] }>('calendar', { from: new Date(now - 86_400_000).toISOString(), to: new Date(now + 2 * 86_400_000).toISOString() }).then((c) => c.vehicles).catch(() => [] as CalVehicle[])]);
+  // 0400: Fleet tracking (the same panel as Admin's, without the trackers and settings)
+  const tracking = await door<Fleet>(user.id, 'ops_read', 'tracker_fleet', {}, aal).catch(() => null);
   const staff = b.staff.map((s) => [s.id, s.name] as [string, string]);
   const R = ['/staff/fleet'];
   const late = (j: R) => !j.acknowledged_at && j.status === 'scheduled' && new Date(String(j.scheduled_at)).getTime() - now < 2 * 3600_000;
@@ -34,6 +39,7 @@ export default async function Fleet() {
         <DayTimeline jobs={b.jobs} now={now} />
         <CarBoard rows={carBoard(cal, now)} now={now} carHref={(id) => `/staff/vehicles/${id}`} />
       </div>
+      {tracking && <section id="tracking" aria-label="Fleet tracking" style={{ margin: '24px 0' }}><h2 className="h3">Fleet tracking</h2><FleetTracking initial={tracking} at={now} staff /></section>}
       <div className="stack">
         <Card title="Handovers and returns without a job" testId="unscheduled">
           <Table rows={b.unscheduled} rowKey={(r) => `${r.booking_id}-${r.leg}`} empty="Every handover and return has a job." cols={[

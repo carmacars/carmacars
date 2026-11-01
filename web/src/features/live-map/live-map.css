@@ -30,6 +30,8 @@
 .lm-car { --s: 2.2em; width: var(--s); height: var(--s); }
 .lm-car__body { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; background: var(--bg2); border: 2px solid var(--c); box-shadow: 0 0 .8em color-mix(in srgb, var(--c) 50%, transparent); }
 .lm-car__body img { width: 100%; height: 100%; object-fit: cover; }
+.lm-car__body { display: grid; place-items: center; }
+.lm-car__shape { width: 70%; height: 35%; color: #8b98ae; display: block; }
 .lm-car__arrow { position: absolute; inset: -.5em; rotate: var(--h); }
 .lm-car__arrow::before { content: ''; position: absolute; left: 50%; top: 0; translate: -50% 0; border: .35em solid transparent; border-bottom: .55em solid var(--c); border-top: 0; }
 .lm-car--still .lm-car__arrow { display: none; }

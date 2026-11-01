@@ -12,7 +12,8 @@ export interface PinSpec { id: string; lng: number; lat: number; colour: string;
   photo?: { src: string | null; initial: string; route: boolean } }
 export interface CarSpec { id: string; lng: number; lat: number; colour: string; heading: number | null; label: string; photo: string | null }
 export interface Spot { x: number; y: number; w: number; h: number; bw: number; bh: number }
-export interface EngineEvents { select(id: string | null, at: Spot | null): void; hover(id: string | null, at: Spot | null): void; moved(): void }
+export interface EngineEvents { select(id: string | null, at: Spot | null): void; hover(id: string | null, at: Spot | null): void; moved(): void;
+  /** Fleet tracking (0400): a car marker was pressed. */ car?(id: string): void }
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- MapLibre is loaded at run time from /vendor; its types are not installed */
 type Ml = any;
@@ -63,6 +64,9 @@ export class MapEngine {
   private seen: Set<string> | null = null;
   private lastPins: PinSpec[] = [];
   private lastCars: CarSpec[] = [];
+  private selCar: string | null = null;
+  private trail: Array<[number, number]> | null = null;
+  private zone: Array<[number, number]> | null = null;
   private pinsKey = '';
   private fitKey = '';
   private framed = false;
@@ -120,6 +124,17 @@ export class MapEngine {
   /** Home base (the delivery origin of Program settings): a branded marker with a soft pulse, and where the arcs start. */
   setHq(at: { lat: number; lng: number } | null) { this.hqAt = at ? [at.lng, at.lat] : null; if (this.map) { this.syncHq(); this.syncPins(true); } }
 
+  /** Fleet tracking (0400): a trip's route as a line under the cars (null: none). */
+  setTrail(path: Array<[number, number]> | null) { this.trail = path && path.length > 1 ? path : null; if (this.map) this.syncLines(); }
+  /** Fleet tracking (0400): the geofence, a ring of points (null: none). */
+  setZone(ring: Array<[number, number]> | null) { this.zone = ring; if (this.map) this.syncLines(); }
+  /** Fleet tracking (0400): the chosen car's ring stands out. */
+  selectCar(id: string | null) { this.selCar = id; for (const [k, v] of this.cars) v.el.classList.toggle('lm-car--sel', k === id); }
+  /** The map's box changed size (a layout that settles after the map started). */
+  resize() { this.map?.resize(); }
+  /** Moves the map to a point (a car or an alert). */
+  flyTo(lng: number, lat: number, zoom = 12) { this.map?.easeTo({ center: [lng, lat], zoom: Math.max(this.map.getZoom(), zoom), duration: 700 }); }
+
   /** Frames the area, widened to take in the pins drawn (never past southern Ontario); only when that changes. */
   frame(b: Bounds) {
     const key = b.map((x) => x.toFixed(2)).join(',');
@@ -152,7 +167,10 @@ export class MapEngine {
             progress: ['+', ['case', ['==', ['get', 'stage'], 'progress'], 1, 0]], site: ['+', ['case', ['==', ['get', 'stage'], 'site'], 1, 0]], past: ['+', ['case', ['==', ['get', 'stage'], 'past'], 1, 0]] } },
         ripples: { type: 'geojson', data: EMPTY },
         heat: { type: 'geojson', data: EMPTY },
-        arcs: { type: 'geojson', data: EMPTY, lineMetrics: true }
+        arcs: { type: 'geojson', data: EMPTY, lineMetrics: true },
+        // Fleet tracking (0400): a trip's route and the geofence
+        trail: { type: 'geojson', data: EMPTY },
+        zone: { type: 'geojson', data: EMPTY }
       },
       layers: [
         // land a warm charcoal; water deep blue, lighter and glowing along the shore (a gradient towards the coast)
@@ -173,6 +191,11 @@ export class MapEngine {
           paint: { 'line-color': ['match', ['get', 'kind'], 'parkway', '#7d6744', '#94744a'],
             'line-width': ['interpolate', ['linear'], ['zoom'], 7, ['match', ['get', 'kind'], 'parkway', 0.6 * k, 0.8 * k], 11, ['match', ['get', 'kind'], 'parkway', 1.2 * k, 1.6 * k]],
             'line-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.5, 10, 0.7] } },
+        // the geofence (Fleet tracking): a faint fill and a dashed edge; a trip's route: a cyan line with a soft glow
+        { id: 'zone-fill', type: 'fill', source: 'zone', paint: { 'fill-color': '#22d3ee', 'fill-opacity': 0.04 } },
+        { id: 'zone-edge', type: 'line', source: 'zone', paint: { 'line-color': '#22d3ee', 'line-width': 1.2 * k, 'line-opacity': 0.5, 'line-dasharray': [3, 3] } },
+        { id: 'trail-glow', type: 'line', source: 'trail', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#22d3ee', 'line-width': 8 * k, 'line-blur': 6 * k, 'line-opacity': 0.35 } },
+        { id: 'trail', type: 'line', source: 'trail', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#a5f3fc', 'line-width': 2.4 * k } },
         // where the leads crowd: a soft cyan to magenta glow under the dots
         { id: 'heat', type: 'heatmap', source: 'heat', maxzoom: 13, paint: {
           'heatmap-weight': ['get', 'w'], 'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.7, 11, 1.4],
@@ -250,7 +273,13 @@ export class MapEngine {
     return { x: p.x - 6, y: p.y - 6, w: 12, h: 12, bw: this.box.clientWidth, bh: this.box.clientHeight };
   }
 
-  private render() { this.syncHq(); this.syncPins(); this.syncCars(); }
+  private render() { this.syncHq(); this.syncPins(); this.syncCars(); this.syncLines(); }
+
+  private syncLines() {
+    this.map.getSource('trail')?.setData(this.trail ? { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: this.trail }, properties: {} }] } : EMPTY);
+    this.map.getSource('zone')?.setData(this.zone ? { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [this.zone] }, properties: {} }] } : EMPTY);
+    this.box.dataset.trail = String(this.trail?.length ?? 0);
+  }
 
   private syncPins(force = false) {
     const key = JSON.stringify([this.hqAt, this.lastPins.map((p) => [p.id, p.lng, p.lat, p.colour, p.hot, p.live, p.photo?.src ?? p.photo?.initial ?? ''])]);
@@ -392,7 +421,14 @@ export class MapEngine {
         const el = document.createElement('div');
         el.className = 'lm-car';
         el.setAttribute('role', 'img');
-        el.innerHTML = `<span class="lm-car__arrow" aria-hidden="true"></span><span class="lm-car__body" aria-hidden="true">${s.photo ? `<img alt="" src="${encodeURI(s.photo)}" decoding="async">` : ''}</span>`;
+        el.innerHTML = `<span class="lm-car__arrow" aria-hidden="true"></span><span class="lm-car__body" aria-hidden="true">${s.photo ? `<img alt="" src="${encodeURI(s.photo)}" decoding="async">` : `<span class="lm-car__shape">${CAR_SILHOUETTE}</span>`}</span>`;
+        // Fleet tracking (0400): a car can be chosen (a button then, for the keyboard too)
+        if (this.ev.car) {
+          const id = s.id;
+          el.setAttribute('role', 'button'); el.tabIndex = 0; el.classList.add('lm-car--pick');
+          el.addEventListener('click', (e) => { e.stopPropagation(); this.ev.car?.(id); });
+          el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.ev.car?.(id); } });
+        }
         const marker = new this.ml.Marker({ element: el, anchor: 'center' }).setLngLat([s.lng, s.lat]).addTo(this.map);
         v = { el, marker, lng: s.lng, lat: s.lat, anim: 0 };
         this.cars.set(s.id, v);
@@ -400,10 +436,12 @@ export class MapEngine {
       v.el.style.setProperty('--c', s.colour);
       v.el.style.setProperty('--h', `${s.heading ?? 0}deg`);
       v.el.classList.toggle('lm-car--still', s.heading === null);
+      v.el.classList.toggle('lm-car--sel', s.id === this.selCar);
       v.el.setAttribute('aria-label', s.label);
       if (v.lng !== s.lng || v.lat !== s.lat) this.glide(v, s.lng, s.lat);
     }
     for (const [id, v] of this.cars) if (!seen.has(id)) { cancelAnimationFrame(v.anim); v.marker.remove(); this.cars.delete(id); }
+    this.box.dataset.cars = String(this.lastCars.length);
     this.syncBlockers();
   }
 
