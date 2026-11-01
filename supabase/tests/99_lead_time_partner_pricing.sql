@@ -154,7 +154,7 @@ select test.ok('it is never a fee on the site', not ((app.public_site_facts() ->
 create function test.ltp_pm(p_sheet text) returns uuid language sql stable as $$
   select v.id from vehicles v join partners p on p.id = v.partner_id where p.business_name = '01 Motors' and v.partner_sheet_name = p_sheet $$;
 select test.eq('the partner: no markup, 10% discount, 20% kickback',
-  (select format('%s %s %s %s', p.markup_bps is null, p.discount_bps, p.commission_bps, p.payout_basis) from partners p where p.business_name = '01 Motors'), 't 1000 2000 partner_rate');
+  (select format('%s %s %s %s', p.markup_bps is null, coalesce(p.discount_bps, (app.settings()).partner_discount_bps), p.commission_bps, p.payout_basis) from partners p where p.business_name = '01 Motors'), 't 1000 2000 partner_rate');
 select test.eq('listed rates kept as given (C43 AMG Blue: $250 / $225 / $200)',
   (select format('%s %s %s', base_cents, multi_day_cents, long_term_cents) from partner_rates where vehicle_id = test.ltp_pm('Mercedes C43 AMG Blue')), '25000 22500 20000');
 select test.eq('our base = 90% of listed, to the dollar: daily $225, 3+ days $203 ($202.50 up), 7+ days $180 a day; the weekend rule gives $259',

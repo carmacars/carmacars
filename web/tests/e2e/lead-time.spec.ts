@@ -40,7 +40,7 @@ test('the car page estimate shows the lead-time line once dates are chosen', asy
   test.skip(!s?.lead_time_enabled, 'lead-time pricing is off in Program settings');
   const car = await freeCar([[2, 4], [20, 22]]);
   // our base rate is the listed rate less 10%, to the dollar
-  expect(car.daily_rate_cents).toBe(Math.round((car.base_cents * 9000) / 1_000_000) * 100);
+  expect(Number(car.daily_rate_cents)).toBe(Math.round((Number(car.base_cents) * 9000) / 1_000_000) * 100);
 
   // 2 days ahead at 10:00: 24 to 72 hours, +10%
   await page.goto(`/cars/${car.slug}?from=${day(2)}&to=${day(4)}&tf=10:00&tt=10:00`);
