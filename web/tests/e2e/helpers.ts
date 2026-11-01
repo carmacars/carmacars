@@ -267,3 +267,16 @@ export async function readyDocumentsEsign(sql: ReturnType<typeof db>, signerId: 
   await sql`select public.server_esign_step(${id}::uuid, 'signature', ${sql.json({ method: 'drawn', path })})`;
   return path;
 }
+
+/** The owner application's first step (0344): the name, mobile and email, then the car later (the tests that follow add
+ *  the car on the vehicles step). Nothing when the step is not shown (an owner on file). */
+export async function applyStart(page: Page, o: { first: string; last: string; phone: string; email?: string }) {
+  const start = page.getByTestId('apply-start');
+  if (!(await start.isVisible().catch(() => false))) return;
+  await start.getByTestId('apply-first').fill(o.first);
+  await start.getByTestId('apply-last').fill(o.last);
+  await start.getByTestId('apply-phone').fill(o.phone);
+  if (o.email && await start.getByTestId('apply-email').isEditable()) await start.getByTestId('apply-email').fill(o.email);
+  await start.getByTestId('apply-start-later').click();
+  await page.getByTestId('apply-you').waitFor();
+}

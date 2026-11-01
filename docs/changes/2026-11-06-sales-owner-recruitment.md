@@ -97,14 +97,45 @@ Invitation", "Verify Sales") and said "Follow-ups stopped: On file before the au
   (high, once per lead; `app.owner_leads_follow_up_now`), and say "an Admin follows up (To do)".
 - Not changed: bookings credited to a test account (the verification's own bookings).
 
+## Owner leads from the application as it is filled in (0344)
+
+The owner: "the owner leads should be farmed as well, with forms saving their info as they go so we can chase incomplete
+form fills as leads. they can either input their vin or their year make and model and they need to input their phone
+number and email and name".
+
+- **The first step** of `/list-your-car/apply` asks only the first and last name, the mobile and the email (all
+  required), with one line: "So we can save your progress and send your quote. We keep your details private." Then the
+  car: **I have the VIN** or **Year, make and model**. **Add my car later** keeps the account-only path of 0087. The
+  later steps no longer ask the name, mobile and email again (a line shows them, with Change). An owner on file skips it.
+- **Saved as they go:** the whole draft autosaves (form_drafts, 1.2 seconds after the last change, on every step, signed
+  in or not), and the contact capture of 0090 records the name, email and mobile as each becomes valid. That capture's
+  lead is now an **owner lead** in the owner pipeline: source "Website form, unfinished" (`pipeline_source`
+  `unfinished_form`), stage New, the car of the draft on it (and kept up to date as the draft changes). An open owner lead
+  with the same email or phone (last 10 digits) takes the capture instead of a second lead.
+- **Unfinished for 30 minutes** (`capture_continue_minutes`): the least busy real Sales person gets the lead and a task
+  "Unfinished owner application" in the Sales queue (it opens My sales), and the owner recruitment follow-ups start
+  (day 0, 2, 5 and 10). Consent and sending rules are those of 0217 and of contact capture: only what the person typed,
+  an inquiry counts for 6 months, the marketing class under the daily cap and the sending hours, the unsubscribe link,
+  stopped by a reply or "do not contact". Their words: "Finish your application to list <car>", with a link that opens
+  the saved draft on any device (a new one-time link in each email, valid for `form_resume_link_hours`). The capture's
+  own Admin task and "Continue your request" email are not sent for it: one chase.
+- **Sent:** the lead moves to the new stage **Applied** (between Call booked and Agreement sent, also a column on the
+  board and a choice in Move), takes the owner, and its follow-ups and task stop. 0217's stages that follow the owner's
+  records now include Applied.
+- **Calculator hand-off:** the application reads `?year=&make=&model=&vin=&est=` (est: the monthly estimate in cents),
+  fills the first car with it, shows "Your estimate: about CA$1,450 a month for your 2021 Toyota RAV4", and keeps it in the
+  draft (`calc`), so the lead carries the car they priced and the estimate (`payload.calculator`). The calculator builds
+  the address with `applyHref({ year, make, model, vin, estimate_cents })` from `web/src/features/owner/apply-schema.ts`.
+
 Files: `supabase/migrations/0340_sales_owner_recruitment.sql`, `0341_sales_owner_recruitment_guides.sql`, `0342_sales_owner_leads_scope.sql`,
-`0343_test_accounts_never_credited.sql`
+`0343_test_accounts_never_credited.sql`, `0344_owner_unfinished_applications.sql`
 (`supabase/seed/0341_gen_guides.mjs`), `web/src/features/sales/SalesOwners.tsx`, `SalesOwnersClient.tsx`,
 `web/src/server/actions/sales-owners.ts`, `web/src/app/staff/my-sales/page.tsx`, `web/src/app/staff/owners/add-car/page.tsx`,
 `web/src/features/owner-billing/AddOwnerCar.tsx`, `web/src/app/list-your-car/apply/page.tsx`, `web/src/server/actions/apply.ts`,
 `web/src/app/admin/money/commissions/page.tsx`, `web/src/app/admin/owners/[id]/page.tsx`, `web/src/features/sales/Commissions.tsx`.
-Tests: `supabase/tests/99_sales_owner_recruitment.sql`, `99_test_accounts_never_credited.sql`, `99_owner_pipeline.sql`,
-`web/tests/e2e/r26-sales-owners.spec.ts`, `release-22.spec.ts`.
+Tests: `supabase/tests/99_sales_owner_recruitment.sql`, `99_test_accounts_never_credited.sql`, `99_owner_unfinished_applications.sql`,
+`99_owner_pipeline.sql`, `web/tests/e2e/r26-sales-owners.spec.ts`, `r26-owner-start.spec.ts`, `release-22.spec.ts` (and the application
+specs that now pass the first step).
 
 ## Guides
 
@@ -113,3 +144,4 @@ Tests: `supabase/tests/99_sales_owner_recruitment.sql`, `99_test_accounts_never_
 - `admin/owner-money`: Owner requests; Sourced by.
 - `admin/advertising-and-owner-recruitment`: the pipeline is customer service's; test accounts; Follow up now.
 - `va/your-workday`, `va/customer-service`, `va/quick-reference`: Buyer leads for Sales.
+- `owner/apply-and-get-your-car-listed`: the first step and saving as you go.

@@ -29,6 +29,8 @@ export function taskHref(t: Task): string {
   if (t.task_type === 'listing_similarity') return '/staff/similar-cars';
   if (t.task_type === 'owner_form_review') return '/staff/owner-forms';
   if (t.task_type === 'account_link_review') return '/staff/renters';
+  // an unfinished owner application (0344): the lead is the Sales person's, on My sales
+  if (t.task_type === 'owner_unfinished_application') return '/staff/my-sales#owners';
   if (['owner_intake', 'check_owner_document', 'enquiry', 'lost_property'].includes(t.task_type)) return '/staff/leads';
   if (['turo_expiry', 'safety_certificate_window', 'plate_renewal', 'book_registry'].includes(t.task_type)) return '/staff/fleet#expiry';
   // maintenance (0089): the car's Maintenance with the record pop-up open

@@ -3,7 +3,7 @@ import { Crumbs } from '@/components/Crumbs';
 import { pageMeta, type Trail } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { ApplyWizard, type ProgramFacts } from '@/features/owner/ApplyWizard';
-import { blankOwner, DRAFT_COOKIE, type ApplyState } from '@/features/owner/apply-schema';
+import { blankOwner, blankVehicle, DRAFT_COOKIE, readCalc, type ApplyState } from '@/features/owner/apply-schema';
 import { currentUser } from '@/server/portal/data';
 import { ownerHome } from '@/server/owner/data';
 import { readToken } from '@/server/links';
@@ -50,6 +50,14 @@ export default async function Apply({ searchParams }: { searchParams: Promise<Re
   const initial: ApplyState = { step: Math.min(3, Math.max(0, draft?.data?.step ?? 0)), owner, vehicles: draft?.data?.vehicles ?? [], active: draft?.data?.vehicles?.length ? -1 : 0,
     // a salesperson's invitation or personal link (0340) travels with the draft to the submit, which checks it again
     ...(invite?.s ? { invite: sp.invite } : draft?.data?.invite ? { invite: draft.data.invite } : {}) };
+  // 0344: the first step asks the name, mobile, email and the car; an owner on file has done it. The owner earnings
+  // calculator hands over the car it priced and its estimate (?year=&make=&model=&vin=&est=): it fills the first car.
+  initial.started = draft?.data?.started ?? (!!home && !!owner.first_name && !!owner.phone && !!owner.email);
+  const calc = readCalc(sp);
+  if (calc) {
+    initial.calc = calc;
+    if (!initial.vehicles.length) initial.vehicles = [{ ...blankVehicle('calc'), vin: calc.vin ?? '', year: calc.year ? String(calc.year) : '', make: calc.make ?? '', model: calc.model ?? '' }];
+  } else if (draft?.data?.calc) initial.calc = draft.data.calc;
   // a draft with no car starts at step 1: an owner whose account opened without a car (an autosave can land after the
   // account is open) comes back to add one, not to the review of the account they already have
   if (initial.step > 0 && !initial.vehicles.length) initial.step = 0;

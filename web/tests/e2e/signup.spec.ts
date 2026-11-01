@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { createHmac, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { acceptCookies, db, noOverflow, tapColour, watch } from './helpers';
+import { acceptCookies, applyStart, db, noOverflow, tapColour, watch } from './helpers';
 
 // One confirmation email per sign-up (migration 0045, docs/changes/2026-10-16-one-confirmation-email.md), for every
 // path that makes an account: the create-account form, the owner application (with and without an invitation link),
@@ -110,20 +110,16 @@ for (const variant of ['plain', 'invitation'] as const) {
     const email = `signup.owner.${variant}.${info.project.name}.${Date.now()}@example.test`;
     await page.goto(variant === 'invitation' ? `/list-your-car/apply?invite=${inviteToken(email, 'Omar Applicant')}` : '/list-your-car/apply', { waitUntil: 'networkidle' });
     await acceptCookies(page);
-    await page.locator('label:has-text("An individual")').click();
     if (variant === 'invitation') {
-      // the invitation fills in the name and the address
-      await expect(page.locator('#ap-email')).toHaveValue(email);
-      await expect(page.locator('#ap-first')).toHaveValue('Omar');
-    } else {
-      await page.locator('#ap-first').fill('Omar');
-      await page.locator('#ap-last').fill('Applicant');
-      await page.locator('#ap-email').fill(email);
+      // the invitation fills in the name and the email on the first step (0344)
+      await expect(page.getByTestId('apply-email')).toHaveValue(email);
+      await expect(page.getByTestId('apply-first')).toHaveValue('Omar');
     }
+    await applyStart(page, { first: 'Omar', last: 'Applicant', phone: '647-555-0102', email });
+    await page.locator('label:has-text("An individual")').click();
     await page.locator('#ap-addr').fill('union');
     await page.getByRole('option', { name: /Union Station/ }).click();
     await page.locator('#ap-postal').fill('m5j 1e6');
-    await page.locator('#ap-phone').fill('647-555-0102');
     await page.locator('#ap-lic').fill('O1234-56789-01234');
     await page.locator('#ap-dob').fill('1985-05-05');
     await page.getByRole('button', { name: 'Continue to vehicles' }).click();

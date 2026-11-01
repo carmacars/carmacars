@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, fillYmm, noOverflow, tapColour, watch } from './helpers';
+import { acceptCookies, db, fillYmm, noOverflow, tapColour, watch, applyStart } from './helpers';
 
 // An owner account without a car (migration 0087), at 375 and 1440: the application with "I'll add my car later"
 // opens the account and the owner record with no car (an "Account only: no car yet" application, one follow-up task for
@@ -35,14 +35,11 @@ test('owner account without a car, then the first car from the owner portal', as
   // ---------------------------------------------------------------- 1. the account, no car
   await page.goto('/list-your-car/apply', { waitUntil: 'networkidle' });
   await acceptCookies(page);
+  await applyStart(page, { first: 'Nora', last: phone ? 'Phonenocar' : 'Desknocar', phone: '647-555-0177', email });
   await page.locator('label:has-text("An individual")').click();
-  await page.locator('#ap-first').fill('Nora');
-  await page.locator('#ap-last').fill(phone ? 'Phonenocar' : 'Desknocar');
   await page.locator('#ap-addr').fill('union');
   await page.getByRole('option', { name: /Union Station/ }).click();
   await page.locator('#ap-postal').fill('m5j 1e6');
-  await page.locator('#ap-email').fill(email);
-  await page.locator('#ap-phone').fill('647-555-0177');
   await page.locator('#ap-lic').fill('N1234-56789-01234');
   await page.locator('#ap-dob').fill('1986-06-06');
   await page.getByRole('button', { name: 'Continue to vehicles' }).click();

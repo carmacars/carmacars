@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, aiAllowanceLock, db, FIXTURE_JPEG, noOverflow } from './helpers';
+import { acceptCookies, aiAllowanceLock, db, FIXTURE_JPEG, noOverflow, applyStart } from './helpers';
 
 // Release 25b end to end, at 375 and 1440: the ownership permit read from a photo (0290) on Add a car for an owner,
 // Admin > Add a car, a car's Registration card and the owner's own application; and the rental walkthrough (0291) on the
@@ -122,14 +122,11 @@ test('a signed-in owner reads the permit in their own application', async ({ bro
     // sign in straight into the application; waiting for '/' would also match /sign-in itself and race the session
     const p = await page(browser, email, '/list-your-car/apply', '/list-your-car/apply');
     await p.waitForLoadState('networkidle');
+    await applyStart(p, { first: 'Olive', last: 'Permit', phone: '647-555-0102', email });
     await p.locator('label:has-text("An individual")').click();
-    await p.locator('#ap-first').fill('Olive');
-    await p.locator('#ap-last').fill('Permit');
-    if (await p.locator('#ap-email').isEditable()) await p.locator('#ap-email').fill(email);
     await p.locator('#ap-addr').fill('union');
     await p.getByRole('option', { name: /Union Station/ }).click();
     await p.locator('#ap-postal').fill('m5j 1e6');
-    await p.locator('#ap-phone').fill('647-555-0102');
     await p.locator('#ap-lic').fill('O1234-56789-01234');
     await p.locator('#ap-dob').fill('1985-05-05');
     await p.getByRole('button', { name: 'Continue to vehicles' }).click();
