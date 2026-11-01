@@ -139,7 +139,7 @@ test('Signal settings: an Admin changes a signal\'s points and saves; Live visit
   const admin = await mkUser(sql, 'admin');
   const page = await ctx(browser);
   await signIn(page, admin.email, '/admin');
-  await page.goto('/admin/live', { waitUntil: 'networkidle' });
+  await page.goto('/admin/visitors', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('live-visitors')).toBeVisible();
   await expect(page.getByTestId('hot-today')).toBeVisible();
   await check(page, 'admin live visitors');

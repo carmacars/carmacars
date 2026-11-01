@@ -2,11 +2,17 @@
 import './live-map.css';
 import Link from 'next/link';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { readContact, useContact, writeContact } from './contact';
+import { FOCUS_EVENT, type FocusAsk } from './focus';
 import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
-import { HOME_BOUNDS, MAX_BOUNDS, NEW_MS, REFRESH_MS, SPOTLIGHT_MS, inBounds, type Bounds } from './config';
-import { MapEngine, type CarSpec, type PinSpec, type Spot } from './engine';
-import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, carLabel, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, spread, stageOf, tally, verbOf,
+import { HOME_BOUNDS, MAX_BOUNDS, NEW_MS, REFRESH_MS, SPOTLIGHT_MS, frameBounds, inBounds } from './config';
+import { MapEngine, type CarSpec, type EngineEvents, type Pad, type PinSpec, type Spot } from './engine';
+import { CanvasMap, hasWebGL } from './canvas';
+
+/** What LiveMap asks of a renderer: MapLibre (engine.ts) or Canvas 2D (canvas.ts). */
+type Engine = Pick<MapEngine, 'start' | 'destroy' | 'setPins' | 'setCars' | 'setHq' | 'frame' | 'reframe' | 'focus'>;
+import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, adminHref, carLabel, timeLine, withoutContact, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, isLead, spread, stageOf, tally, verbOf,
   type CarPhoto, type Kpi, type MapView, type Pin, type Stage } from './model';
 
 // Today > Live map (migration 0242). The map is the hero: the site's own dark basemap with a glowing dot per lead (four
@@ -16,39 +22,77 @@ import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, carLabel, compactMoney, onTheRoa
 // Fresh data every 30 seconds, changed in place.
 
 const inArea = (lng: number, lat: number) => inBounds(lng, lat, MAX_BOUNDS);
+/** Release 26: how long a card stays open on a TV ("Show contact" is remembered in contact.ts). */
+const CARD_MS = 20_000;
+/** Scrolling to the map: smooth, or at once for someone who asked for less motion. */
+const scrollMotion = (): ScrollBehavior => (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
+
+const HOVER_MS = 150;
+const GRACE_MS = 300;
 const imgOf = (p: CarPhoto | null | undefined, w = 640): string | null => {
   if (!p?.path || p.sample) return null;
   const v = (p.variants ?? []).filter((x) => x?.path && x.width >= w).sort((a, b) => a.width - b.width)[0];
   return photoUrl(v?.path ?? p.path);
 };
 const colourOf = (p: Pin) => STAGE[stageOf(p.type)].colour;
+/** What the view keeps clear: on a TV the header (its words, not its fade) and the filmstrip; on the page the layer chips. */
+function padOf(box: HTMLElement | null, top: HTMLElement | null, foot: HTMLElement | null, tv: boolean): Pad {
+  const edge = tv ? 28 : 16;
+  if (!box) return { top: edge, right: edge, bottom: edge, left: edge };
+  const b = box.getBoundingClientRect();
+  const inner = (el: HTMLElement | null, end: 'bottom' | 'top') => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    return end === 'bottom' ? r.bottom - parseFloat(cs.paddingBottom || '0') : r.top + parseFloat(cs.paddingTop || '0');
+  };
+  const t = inner(top, 'bottom'), f = inner(foot, 'top');
+  // over On the road, room for one line of a city's name too (Hamilton's sits under its pin)
+  const line = foot ? 1.8 * parseFloat(getComputedStyle(foot).fontSize || '16') : 0;
+  return { top: Math.max(edge, t === null ? (tv ? edge : 56) : t - b.top + 8), right: edge, bottom: Math.max(edge, f === null ? edge : b.bottom - f + 8 + line), left: edge };
+}
 
-export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: boolean; /** the server's clock when the page was drawn */ at?: number }) {
+export function LiveMap({ initial, tv, at, embedded = false }: { initial: MapView | null; tv: boolean; /** the server's clock when the page was drawn */ at?: number;
+  /** Release 26: on the Visitors page, which has its own list (Live now and History) under the map: no table of leads here */
+  embedded?: boolean }) {
   const [view, setView] = useState<MapView | null>(initial);
   const [err, setErr] = useState('');
-  const [details, setDetails] = useState(false);
+  // Release 26: "Show contact" (phones and emails), hidden by default and remembered on this device
+  const contact = useContact();
+  const showContact = (on: boolean) => {
+    // off: the phones and emails leave the page at once, before the next read
+    if (!on) setView((v) => (v ? withoutContact(v) : v));
+    writeContact(on);
+  };
   const [hidden, setHidden] = useState<Set<Stage>>(new Set());
   const [layers, setLayers] = useState({ leads: true, fleet: true });
-  const [float, setFloat] = useState<{ id: string; at: Spot; pinned: boolean } | null>(null);
+  // the open detail card: at a pin's spot, or docked (from a list) when `at` is null
+  const [float, setFloat] = useState<{ id: string; at: Spot | null; pinned: boolean } | null>(null);
   const [now, setNow] = useState(() => at ?? Date.now());
   const [spot, setSpot] = useState(0);
   const [mode, setMode] = useState<'loading' | 'map' | 'nogl'>('loading');
+  const [renderer, setRenderer] = useState<'webgl' | 'canvas' | null>(null);
   const [idle, setIdle] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
-  const engine = useRef<MapEngine | null>(null);
+  const topRef = useRef<HTMLElement>(null);
+  const footRef = useRef<HTMLElement>(null);
+  const [size, setSize] = useState(0);
+  const engine = useRef<Engine | null>(null);
+  const hoverT = useRef<{ show?: ReturnType<typeof setTimeout>; hide?: ReturnType<typeof setTimeout> }>({});
+  useEffect(() => () => { clearTimeout(hoverT.current.show); clearTimeout(hoverT.current.hide); }, []);
   const first = useRef(true);
 
   // ---------------------------------------------------------------- data: every 30 seconds while the page is visible
   const refresh = useCallback(async () => {
     try {
-      const r = await fetch(`/api/staff/live-map${details ? '?details=1' : ''}`, { cache: 'no-store', credentials: 'same-origin' });
+      const r = await fetch(`/api/staff/live-map${contact ? '?contact=1' : ''}`, { cache: 'no-store', credentials: 'same-origin' });
       const j = (await r.json()) as MapView & { error?: string };
       if (!r.ok) throw new Error(j.error ?? 'Could not refresh');
-      setView(j); setErr('');
+      // an answer that left after the switch went off is not used with its contact details
+      setView(readContact() ? j : withoutContact(j)); setErr('');
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not refresh'); }
-  }, [details]);
+  }, [contact]);
   useEffect(() => {
-    // the first data came with the page; a later run (details turned on or off) asks at once
+    // the first data came with the page; a later run (Show contact turned on or off) asks at once
     if (!first.current || !initial) void refresh();
     first.current = false;
     const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, REFRESH_MS);
@@ -57,6 +101,16 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', shown); };
   }, [refresh, initial]);
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 10_000); return () => clearInterval(t); }, []);
+
+  // ---------------------------------------------------------------- the detail card: Escape closes it; on a TV it closes by itself after 20 seconds
+  const openId = float?.pinned ? float.id : null;
+  useEffect(() => {
+    if (!openId) return;
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { setFloat(null); if (tv) engine.current?.reframe(); } };
+    window.addEventListener('keydown', key);
+    const t = tv ? setTimeout(() => { setFloat(null); engine.current?.reframe(); }, CARD_MS) : undefined;
+    return () => { window.removeEventListener('keydown', key); clearTimeout(t); };
+  }, [openId, tv]);
 
   // ---------------------------------------------------------------- TV: full screen, no scrollbars, the pointer hides when still
   useEffect(() => {
@@ -74,14 +128,34 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
   useEffect(() => {
     if (!boxRef.current) return;
     const scale = tv ? Math.max(1, window.innerHeight / 1080) : 1;
-    const e = new MapEngine(boxRef.current, {
+    const box = boxRef.current, events: EngineEvents = {
       select: (id, at) => setFloat(id && at ? { id, at, pinned: true } : null),
-      hover: (id, at) => setFloat((f) => (f?.pinned ? f : id && at ? { id, at, pinned: false } : null)),
+      // Release 26: hovering (or focusing) a lead previews its card after 150 ms; leaving hides it after a short grace, so
+      // the pointer can move onto the card; a click pins it
+      hover: (id, at) => {
+        clearTimeout(hoverT.current.show); clearTimeout(hoverT.current.hide);
+        if (id && at) hoverT.current.show = setTimeout(() => setFloat((f) => (f?.pinned ? f : { id, at, pinned: false })), HOVER_MS);
+        else hoverT.current.hide = setTimeout(() => setFloat((f) => (f?.pinned ? f : null)), GRACE_MS);
+      },
       moved: () => setFloat((f) => (f?.pinned ? null : f))
-    }, { tv, scale });
+    };
+    // Release 26: WebGL (MapLibre) when the browser has it; otherwise, or when MapLibre cannot start, the same map in
+    // Canvas 2D (canvas.ts), so the map always draws
+    let dead = false, e: Engine = new MapEngine(box, events, { tv, scale });
     engine.current = e;
-    void e.start().then((m) => setMode(m));
-    return () => { e.destroy(); engine.current = null; };
+    void (async () => {
+      let m = hasWebGL() ? await e.start() : 'nogl';
+      if (dead) return;
+      if (m === 'map') { setRenderer('webgl'); setMode('map'); return; }
+      e.destroy();
+      e = new CanvasMap(box, events, { tv, scale });
+      engine.current = e;
+      m = await e.start();
+      if (dead) return;
+      setRenderer(m === 'map' ? 'canvas' : null);
+      setMode(m);
+    })();
+    return () => { dead = true; e.destroy(); engine.current = null; };
   }, [tv]);
 
   const pins = useMemo(() => view?.pins ?? [], [view]);
@@ -97,14 +171,21 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
     if (!e || mode !== 'map') return;
     const withPhoto = photoPins(placed.map(({ p }) => p));
     e.setPins(layers.leads ? placed.map(({ p, at }): PinSpec => ({
-      id: p.id, lng: at.lng, lat: at.lat, colour: colourOf(p), stage: stageOf(p.type), hot: p.band === 'hot', live: p.online,
-      fresh: isNew(p.at, NEW_MS, now), label: `${TYPE[p.type].label}: ${p.who}${p.car ? `, ${p.car.name}` : ''}`,
+      id: p.id, lng: at.lng, lat: at.lat, colour: colourOf(p), stage: stageOf(p.type), hot: p.band === 'hot' && isLead(p), live: p.online,
+      fresh: isNew(p.at, NEW_MS, now), label: `${TYPE[p.type].label}: ${p.who}${p.car ? `, ${p.car.name}` : ''}`, who: p.who, known: !p.anonymous,
       photo: withPhoto.has(p.id) ? { src: imgOf(p.car?.photo, 96), initial: carLabel(p.car).initial ?? '', route: p.type === 'on_rent' || p.type === 'booking' } : undefined
     })) : []);
-    const b: Bounds = [...HOME_BOUNDS];
-    for (const { at } of placed) { b[0] = Math.min(b[0], at.lng - 0.05); b[1] = Math.min(b[1], at.lat - 0.05); b[2] = Math.max(b[2], at.lng + 0.05); b[3] = Math.max(b[3], at.lat + 0.05); }
-    e.frame(b);
-  }, [placed, layers.leads, now, mode]);
+    // Release 26: Hamilton at the bottom, Barrie at the top, Toronto in the middle; wider only for a pin outside it, and
+    // always inside the room the header and the filmstrip leave
+    e.frame(HOME_BOUNDS, frameBounds(placed.map(({ at }) => at)), padOf(boxRef.current, tv ? topRef.current : null, tv ? footRef.current : null, tv));
+  }, [placed, layers.leads, now, mode, tv, size]);
+  // a new screen size frames again (a TV switched from 1080p to 4K, a window resized)
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const on = () => { clearTimeout(t); t = setTimeout(() => setSize((n) => n + 1), 250); };
+    window.addEventListener('resize', on);
+    return () => { window.removeEventListener('resize', on); clearTimeout(t); };
+  }, []);
 
   useEffect(() => { if (mode === 'map') engine.current?.setHq(view?.hq ?? null); }, [view?.hq, mode]);
 
@@ -126,6 +207,20 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
   }, [tv, spots.length]);
 
   const byId = useMemo(() => new Map(pins.map((p) => [p.id, p])), [pins]);
+  // Release 26: a row of the Visitors page's list asks the map for its lead (by the visit or the renter); the map
+  // brings it to the middle and opens its card, and says so (detail.found) so the row knows
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<FocusAsk>).detail;
+      const p = pins.find((x) => (d.session_id && x.session_id === d.session_id) || (d.renter_id && x.renter_id === d.renter_id) || (d.booking_number && x.booking_number === d.booking_number));
+      if (!p || p.lat === null || p.lng === null || !inArea(p.lng, p.lat) || hidden.has(stageOf(p.type))) return;
+      d.found = true;
+      boxRef.current?.scrollIntoView({ behavior: scrollMotion(), block: 'center' });
+      engine.current?.focus(p.id);
+    };
+    window.addEventListener(FOCUS_EVENT, on);
+    return () => window.removeEventListener(FOCUS_EVENT, on);
+  }, [pins, hidden]);
   const card = float ? byId.get(float.id) ?? null : null;
   const toggleStage = (s: Stage) => setHidden((h) => { const n = new Set(h); if (n.has(s)) n.delete(s); else n.add(s); return n; });
   const fleetCount = view?.fleet.length ?? 0;
@@ -141,11 +236,24 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
     </div>
   );
   const map = (
-    <div className="lm-map" ref={boxRef} role="region" aria-label="Map of the Greater Toronto Area with a dot per lead" data-testid="lm-map" data-mode={mode}>
+    <div className="lm-map" ref={boxRef} role="region" aria-label="Map of the Greater Toronto Area with a dot per lead" data-testid="lm-map" data-mode={mode} data-renderer={renderer ?? undefined}>
+      {renderer === 'canvas' && <p className="lm-map__slow" data-testid="lm-slow">Faster with hardware acceleration on (Chrome Settings &gt; System)</p>}
       {mode === 'nogl' && <p className="lm-map__note">The map needs WebGL, which this browser has turned off. The leads are listed {tv ? 'on the right' : 'below'}.</p>}
     </div>
   );
-  const popup = card && float && !tv ? <div className="lm-float" style={floatAt(float.at)} data-testid="lm-popup"><PinCard p={card} now={now} /></div> : null;
+  // closing a card: a TV goes back to its frame; on the page the map stays where the user put it
+  const close = useCallback(() => { setFloat(null); if (tv) engine.current?.reframe(); }, [tv]);
+  const popup = card && float ? (
+    <div className={`lm-float${float.at ? '' : ' lm-float--dock'}`} style={float.at ? floatAt(float.at) : undefined} data-testid="lm-popup" data-pinned={float.pinned ? '1' : '0'}
+      onMouseEnter={() => clearTimeout(hoverT.current.hide)}
+      onMouseLeave={() => { if (!float.pinned) hoverT.current.hide = setTimeout(() => setFloat((f) => (f?.pinned ? f : null)), GRACE_MS); }}>
+      <PinCard p={card} now={now} contact={!!view?.contact} onClose={float.pinned ? close : undefined} tv={tv} />
+    </div>) : null;
+  const contactSwitch = (
+    <button type="button" role="switch" aria-checked={contact} className={`lm-switch${contact ? ' is-on' : ''}`} onClick={() => showContact(!contact)} data-testid="lm-contact">
+      <span className="lm-switch__track" aria-hidden="true"><span className="lm-switch__knob" /></span>Show contact
+    </button>);
+  const openCard = (id: string) => setFloat({ id, at: null, pinned: true });
 
   if (tv) {
     const feed = [...pins].sort((a, b) => (b.at > a.at ? 1 : b.at < a.at ? -1 : 0)).slice(0, 6);
@@ -153,18 +261,22 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
       <div className={`lm lm--tv${idle ? ' lm--idle' : ''}`} data-testid="live-map-tv">
         <section className="lm-tv__stage" aria-label="Map">
           {map}
-          <header className="lm-tv__top">
-            <div className="lm-brand"><span>CarmaCars <b>Live</b></span><Clock now={now} /></div>
-            <Kpis k={view?.kpi} />
+          <div className="lm-tv__vignette" aria-hidden="true" />
+          {popup}
+          <header className="lm-tv__top" ref={topRef}>
+            <div className="lm-tv__row">
+              <div className="lm-brand"><span>CarmaCars <b>Live</b></span><Clock now={now} /></div>
+              <Kpis k={view?.kpi} />
+            </div>
           </header>
-          <div className="lm-tv__chips">{legend}</div>
-          <footer className="lm-tv__foot"><Filmstrip pins={onTheRoad(pins, now)} /></footer>
+          <footer className="lm-tv__foot" ref={footRef}><div className="lm-tv__chips">{legend}</div><Filmstrip pins={onTheRoad(pins, now)} onOpen={openCard} /></footer>
         </section>
         <aside className="lm-rail">
+          <div className="lm-rail__acts">{contactSwitch}</div>
           <section className="lm-spot" aria-label="Spotlight: the hottest lead" data-testid="lm-spotlight">
             <h2 className="lm-h">Hottest lead</h2>
             <div className="lm-spot__deck">
-              {spots.length ? spots.map((p, i) => <Spotlight key={p.id} p={p} on={i === spot % spots.length} />) : <p className="lm-quiet">No leads in the last 30 days yet.</p>}
+              {spots.length ? spots.map((p, i) => <Spotlight key={p.id} p={p} on={i === spot % spots.length} />) : <p className="lm-spot__empty" data-testid="lm-spot-empty">No hot leads right now</p>}
             </div>
           </section>
           <section className="lm-feed" aria-label="Live feed">
@@ -172,9 +284,11 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
             <ol className="lm-feed__list" data-testid="lm-cards">
               {feed.map((p) => (
                 <li key={`${p.id}:${p.at}`} style={{ ['--c' as string]: colourOf(p) }} data-testid="lm-feed-row">
-                  <span className="lm-dot" aria-hidden="true" />
-                  <span className="lm-feed__t"><b>{p.who}</b> · {verbOf(p)}{p.city && !p.anonymous ? ` · ${p.city}` : ''}</span>
-                  <span className="lm-feed__ago">{shortAgo(p.at, now)}</span>
+                  <button type="button" className="lm-feed__btn" onClick={() => openCard(p.id)}>
+                    <span className="lm-dot" aria-hidden="true" />
+                    <span className="lm-feed__t"><b>{p.who}</b> · {verbOf(p)}{p.city && !p.anonymous ? ` · ${p.city}` : ''}</span>
+                    <span className="lm-feed__ago">{shortAgo(p.at, now)}</span>
+                  </button>
                 </li>))}
             </ol>
           </section>
@@ -189,7 +303,7 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
       <div className="lm-head">
         <Kpis k={view?.kpi} />
         <div className="lm-head__acts">
-          <label className="lm-check"><input type="checkbox" checked={details} onChange={(e) => setDetails(e.target.checked)} data-testid="lm-details" /> Show details</label>
+          {contactSwitch}
           <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/live-map?tv=1" target="_blank" rel="noopener">Open TV mode</Link>
         </div>
       </div>
@@ -203,14 +317,17 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
       </div>
       {legend}
       {err && <p className="lm-err" role="status">Not refreshed: {err}. Trying again in 30 seconds.</p>}
-      <LeadTable pins={pins.filter((p) => !hidden.has(stageOf(p.type)))} now={now} cap={view && view.pins.length >= view.cap ? view.cap : null}
-        onLocate={(id) => { boxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); engine.current?.focus(id); }} />
-      <p className="lm-foot">Score: the points of the signals added up, at most 100 (60 or more is hot). Places are approximate: the visit&apos;s network (about 1 km), else the centre of the renter&apos;s home city or the visit&apos;s city; nothing is looked up. Refreshes every 30 seconds. Basemap: Natural Earth; the GTA&apos;s highways drawn by CarmaCars.</p>
+      {!embedded && <LeadTable pins={pins.filter((p) => !hidden.has(stageOf(p.type)))} now={now} cap={view && view.pins.length >= view.cap ? view.cap : null}
+        onLocate={(id) => { boxRef.current?.scrollIntoView({ behavior: scrollMotion(), block: 'center' }); engine.current?.focus(id); }} />}
+      <p className="lm-foot">Score: the points of the signals added up, at most 100 (60 or more is hot). Places are approximate: the visit&apos;s network (about 1 km), else the centre of the renter&apos;s home city or the visit&apos;s city; nothing is looked up. Refreshes every 30 seconds. Basemap: Natural Earth; boundaries: Statistics Canada via geoBoundaries (ODbL); the GTA&apos;s highways, arterial roads and ridges drawn by CarmaCars.</p>
     </div>
   );
 }
 
 function floatAt(s: Spot): React.CSSProperties {
+  // a card at a pin: beside it, on whichever side has room
+  // a narrow map (a phone): along the map's foot, the full width
+  if (s.bw < 560) return { left: 8, right: 8, bottom: 8, width: 'auto' };
   const x = s.x + s.w / 2, right = x > s.bw * 0.6, below = s.y < s.bh * 0.45;
   return { left: right ? undefined : Math.max(8, x + 16), right: right ? Math.max(8, s.bw - x + 16) : undefined, top: below ? Math.max(8, s.y) : undefined, bottom: below ? undefined : Math.max(8, s.bh - s.y - s.h) };
 }
@@ -231,7 +348,7 @@ function Kpis({ k }: { k: Kpi | undefined }) {
 }
 
 /** On the road (TV): the cars on rent now and those picked up today, photo, car, renter (masked), due back; scrolls when it overflows. */
-function Filmstrip({ pins }: { pins: Pin[] }) {
+function Filmstrip({ pins, onOpen }: { pins: Pin[]; onOpen: (id: string) => void }) {
   const box = useRef<HTMLDivElement>(null), row = useRef<HTMLUListElement>(null);
   const [roll, setRoll] = useState(false);
   useEffect(() => {
@@ -244,7 +361,9 @@ function Filmstrip({ pins }: { pins: Pin[] }) {
   const item = (p: Pin, copy: boolean) => {
     const src = imgOf(p.car?.photo, 320), car = carLabel(p.car);
     return (
-      <li key={`${p.id}${copy ? ':2' : ''}`} className={car.assigned ? undefined : 'is-unassigned'} style={{ ['--c' as string]: colourOf(p) }} aria-hidden={copy || undefined} data-testid={copy ? undefined : 'lm-film-card'}>
+      <li key={`${p.id}${copy ? ':2' : ''}`} className={car.assigned ? undefined : 'is-unassigned'} style={{ ['--c' as string]: colourOf(p) }} aria-hidden={copy || undefined} data-testid={copy ? undefined : 'lm-film-card'}
+        role={copy ? undefined : 'button'} tabIndex={copy ? -1 : 0} aria-label={copy ? undefined : `${car.name}, ${p.who}: open the card`}
+        onClick={() => onOpen(p.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(p.id); } }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- the listing photos come pre-sized */}
         <span className="lm-film__ph">{src ? <img src={src} alt="" decoding="async" /> : car.initial ? <span>{car.initial}</span> : <CarShape />}</span>
         <span className="lm-film__t"><b>{car.name}</b><span>{p.who} · {p.type === 'on_rent' ? `back ${when(p.return_at)}` : `pickup ${when(p.pickup_at)}`}</span></span>
@@ -252,7 +371,7 @@ function Filmstrip({ pins }: { pins: Pin[] }) {
     );
   };
   return (
-    <div className="lm-film" ref={box} aria-label="On the road" data-testid="lm-film">
+    <div className="lm-film" ref={box} role="region" aria-label="On the road" data-testid="lm-film">
       <h2 className="lm-h">On the road <span>{pins.length}</span></h2>
       {pins.length ? <div className="lm-film__win"><ul ref={row} className={`lm-film__row${roll ? ' is-rolling' : ''}`} style={{ ['--n' as string]: String(pins.length) }}>
         {pins.map((p) => item(p, false))}{roll && pins.map((p) => item(p, true))}
@@ -271,11 +390,13 @@ function Clock({ now }: { now: number }) {
 }
 
 function Score({ p }: { p: Pin }) {
-  return <span className={`lm-score lm-score--${p.band}`} style={{ ['--p' as string]: String(p.score) }} aria-label={`Score ${p.score} of 100`}><span aria-hidden="true">{p.score}</span></span>;
+  // hot and warm are for leads; a renter's score shows plain (Release 26)
+  return <span className={`lm-score lm-score--${isLead(p) ? p.band : 'cold'}`} style={{ ['--p' as string]: String(p.score) }} role="img" aria-label={`Score ${p.score} of 100`}><span aria-hidden="true">{p.score}</span></span>;
 }
 
 function Spotlight({ p, on }: { p: Pin; on: boolean }) {
-  const src = imgOf(p.car?.photo, 960), reason = reasonOf(p.signals);
+  // why they are the hottest lead: their three strongest signals
+  const src = imgOf(p.car?.photo, 960), why = [...p.signals].sort((a, b) => b.points - a.points).slice(0, 3);
   return (
     <article className={`lm-spot__card${on ? ' is-on' : ''}${src ? ' has-photo' : ''}`} aria-hidden={!on} style={{ ['--c' as string]: colourOf(p) }} data-testid={on ? 'lm-spot-card' : undefined}>
       <div className="lm-spot__media">
@@ -289,25 +410,38 @@ function Spotlight({ p, on }: { p: Pin; on: boolean }) {
           <span><span className="lm-stage">{TYPE[p.type].short}</span>{p.city && !p.anonymous ? ` · ${p.city}` : ''}{src && p.car ? ` · ${p.car.name}` : ''}</span>
         </div>
       </div>
-      {reason && <p className="lm-spot__why">{reason}</p>}
+      {why.length > 0 && <ul className="lm-chips lm-spot__why" aria-label="Why">{why.map((x, i) => <li key={i}><b>+{x.points}</b> {x.label}</li>)}</ul>}
     </article>
   );
 }
 
-function PinCard({ p, now }: { p: Pin; now: number }) {
-  const src = imgOf(p.car?.photo, 320), reason = reasonOf(p.signals);
+/** The detail card (Release 26): who (the full name), what they did, the score and every signal, the car with its photo,
+ * the city and the time, the phone and email when "Show contact" is on, and a link into Admin. */
+function PinCard({ p, now, contact, onClose, tv }: { p: Pin; now: number; contact: boolean; onClose?: () => void; tv: boolean }) {
+  const src = imgOf(p.car?.photo, 320), go = adminHref(p);
   return (
-    <article className="lm-pop" style={{ ['--c' as string]: colourOf(p) }}>
-      <div className="lm-pop__top"><span className="lm-stage"><span className="lm-dot" aria-hidden="true" />{TYPE[p.type].label}</span><span className="lm-quiet">{p.online ? 'on the site now' : shortAgo(p.at, now)}</span></div>
-      <div className="lm-pop__who"><Score p={p} /><span><b>{p.who}</b><span className="lm-quiet">{[p.detail, p.city && !p.anonymous ? p.city : null].filter(Boolean).join(' · ')}</span></span></div>
-      {reason && <p className="lm-pop__why">{reason}</p>}
+    <article className="lm-pop" style={{ ['--c' as string]: colourOf(p) }} aria-label={`${p.name ?? p.who}, ${TYPE[p.type].label}`} data-testid="lm-detail">
+      <div className="lm-pop__top">
+        <span className="lm-stage"><span className="lm-dot" aria-hidden="true" />{TYPE[p.type].label}</span>
+        {onClose && <button type="button" className="lm-pop__x" onClick={onClose} aria-label="Close">×</button>}
+      </div>
+      <div className="lm-pop__who"><Score p={p} /><span><b data-testid="lm-detail-name">{p.name ?? p.who}</b>
+        <span className="lm-quiet">{[p.detail, p.city && !p.anonymous ? p.city : null].filter(Boolean).join(' · ')}</span></span></div>
+      <p className="lm-pop__time">{timeLine(p, now)}</p>
+      {p.signals.length > 0 && <ul className="lm-chips" aria-label="Signals">{p.signals.slice(0, 6).map((x, i) => <li key={i}><b>+{x.points}</b> {x.label}</li>)}</ul>}
       {p.car && (
         <div className="lm-pop__car">
           {/* eslint-disable-next-line @next/next/no-img-element -- the listing photos come pre-sized */}
-          {src && <img src={src} alt="" width={96} height={64} decoding="async" />}
+          {src ? <img src={src} alt="" width={96} height={64} decoding="async" /> : <span className="lm-pop__noph"><CarShape /></span>}
           <span><span className="lm-quiet">{CAR_HOW[p.car.how] ?? 'Last viewed'}</span> {p.car.name}{p.car.daily_cents ? ` · ${money(p.car.daily_cents)}/day` : ''}</span>
         </div>
       )}
+      {contact ? (p.phone || p.email) && (
+        <p className="lm-pop__contact" data-testid="lm-detail-contact">
+          {p.phone && <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`}>{p.phone}</a>}{p.phone && p.email ? ' · ' : ''}{p.email && <a href={`mailto:${p.email}`}>{p.email}</a>}
+        </p>) : !p.anonymous && <p className="lm-pop__hint lm-quiet">Phone and email hidden. Turn on Show contact to see them.</p>}
+      {!tv && <p className="lm-pop__acts"><Link prefetch={false} href={go.href} data-testid="lm-detail-link">{go.label}</Link></p>}
+      {tv && <p className="lm-pop__acts lm-quiet">{go.label.replace(/^Open /, 'In Admin: ')}</p>}
     </article>
   );
 }
@@ -321,7 +455,7 @@ function LeadTable({ pins, now, cap, onLocate }: { pins: Pin[]; now: number; cap
     const val = (p: Pin): string | number => {
       switch (sort.k) {
         case 'stage': return STAGE_ORDER[stageOf(p.type)] * 10 + Object.keys(TYPE).indexOf(p.type);
-        case 'who': return p.who.toLowerCase();
+        case 'who': return (p.name ?? p.who).toLowerCase();
         case 'city': return (p.city ?? '~').toLowerCase();
         case 'score': return p.score;
         case 'reason': return reasonOf(p.signals).toLowerCase();
@@ -349,9 +483,9 @@ function LeadTable({ pins, now, cap, onLocate }: { pins: Pin[]; now: number; cap
               <Fragment key={p.id}>
                 <tr className={isOpen ? 'is-open' : undefined} style={{ ['--c' as string]: colourOf(p) }} data-testid="lm-card" data-type={p.type}>
                   <td><span className="lm-stage"><span className="lm-dot" aria-hidden="true" />{TYPE[p.type].short}</span></td>
-                  <td><button type="button" className="lm-row-btn" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : p.id)}>{p.who}</button></td>
+                  <td><button type="button" className="lm-row-btn" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : p.id)}>{p.name ?? p.who}</button></td>
                   <td className="lm-hide-s">{p.city ?? ''}</td>
-                  <td className="num"><span className={`lm-n lm-n--${p.band}`}>{p.score}</span></td>
+                  <td className="num"><span className={`lm-n lm-n--${isLead(p) ? p.band : 'cold'}`}>{p.score}</span></td>
                   <td className="lm-hide-m lm-quiet">{reasonOf(p.signals)}</td>
                   <td className="lm-hide-m">{p.car?.name ?? ''}</td>
                   <td className="num lm-quiet">{p.online ? <span className="lm-online">now</span> : shortAgo(p.at, now)}</td>

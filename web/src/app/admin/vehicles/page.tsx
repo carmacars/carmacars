@@ -57,7 +57,7 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
       {viewed.length > 0 && (
         <details className="pt-card ad-card" data-testid="most-viewed-cars"><summary className="link">Most viewed cars this week</summary>
           <ol className="lt-list">{viewed.map((c) => <li key={c.vehicle_id}><Link prefetch={false} className="link" href={`/admin/vehicles/${c.vehicle_id}`}>{c.car}</Link> <span className="small muted">{c.views_7d} views, {c.views_today} today, {c.requests_7d} requests{c.looking_now ? `, ${c.looking_now} looking now` : ''}</span></li>)}</ol>
-          <p className="small"><Link prefetch={false} className="link" href="/admin/live">Live visitors</Link></p>
+          <p className="small"><Link prefetch={false} className="link" href="/admin/visitors">Visitors</Link></p>
         </details>)}
       <Table<V> testId="vehicles" caption="Vehicles" rows={rows} empty="No vehicles yet. Press Add a car to add one, or approve an owner application." cols={[
         { key: 'fleet_number', label: 'No.' },

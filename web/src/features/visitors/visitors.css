@@ -1,0 +1,105 @@
+/* Today > Visitors (Release 26): the map on top, then one white panel with a black and red switch (Live now, History),
+   rows as roomy cards with an icon per kind of visit, chips instead of columns, and nothing that scrolls sideways. */
+.vs { display: grid; gap: var(--s-5, 24px); min-width: 0; }
+.vs-panel { background: var(--white); border: 1px solid var(--grey-200); border-radius: 16px; padding: clamp(14px, 2.4vw, 24px); display: grid; gap: var(--s-4, 16px); min-width: 0;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.02), 0 12px 32px -24px rgb(0 0 0 / 0.25); }
+.vs-panel__head { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between; }
+.vs-panel__links { display: flex; gap: 16px; flex-wrap: wrap; }
+.vs-tabs { display: inline-flex; padding: 4px; gap: 4px; background: var(--grey-100); border-radius: 999px; }
+.vs-tab { display: inline-flex; align-items: center; min-height: 40px; padding: 0 18px; border-radius: 999px; font-weight: 600; color: var(--grey-600); text-decoration: none; }
+.vs-tab:hover { color: var(--black); }
+.vs-tab.is-on { background: var(--black); color: var(--white); box-shadow: inset 0 -3px 0 var(--red-600); }
+.vs-tab:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.vs-h { margin: 4px 0 0; font-size: var(--fs-md, 1.05rem); display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.vs-h .muted { font-weight: 400; font-size: var(--fs-sm); }
+.vs-intro { margin: 0; max-width: 60rem; }
+.vs-empty { margin: 0; padding: 28px 16px; text-align: center; border: 1px dashed var(--grey-300); border-radius: 12px; color: var(--grey-600); }
+
+/* the icon of a visit: a round button that finds it on the map */
+.vs-av { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; border: 0; cursor: pointer; padding: 0;
+  background: var(--grey-100); color: var(--black); transition: transform .15s ease, box-shadow .15s ease; }
+.vs-av:hover { transform: scale(1.06); box-shadow: 0 0 0 3px var(--red-100); }
+.vs-av:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.vs-av--chat, .vs-av--booking { background: var(--red-600); color: var(--white); }
+.vs-av--form, .vs-av--request { background: var(--black); color: var(--white); }
+.vs-av--draft, .vs-av--contact, .vs-av--signup { background: var(--red-50); color: var(--red-700); }
+.vs-av--known { background: var(--white); color: var(--black); box-shadow: inset 0 0 0 2px var(--black); }
+.vs-av--bot { background: var(--grey-100); color: var(--grey-600); }
+.vs-kind { font-size: var(--fs-2xs, .72rem); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--red-700); }
+
+/* Live now: the rows of Live visitors, roomier, with the icon on the left; no frame inside the panel's frame */
+.vs .lv { gap: var(--s-4, 16px); }
+.vs .lv > .pt-card { border: 0; padding: 0; box-shadow: none; background: none; }
+.vs .lv .lv-cols > .pt-card, .vs .lv > .pt-card[data-testid='most-viewed'] { border: 0; border-radius: 14px; background: var(--grey-100); padding: 16px; box-shadow: none; }
+.vs-stats { margin: 0; display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: var(--fs-sm); color: var(--grey-600); }
+.vs-stats b { color: var(--black); font-size: 1.15rem; margin-right: 4px; }
+.vs-stats span:first-child b { color: var(--red-600); }
+.vs .lv-list { gap: 12px; }
+.lv-row--vs { border-radius: 14px; padding: 14px 16px; grid-template-columns: 44px minmax(0, 1fr); column-gap: 14px; transition: box-shadow .15s ease, border-color .15s ease; }
+.lv-row--vs:hover { border-color: var(--grey-300); box-shadow: 0 10px 28px -20px rgb(0 0 0 / 0.45); }
+.lv-row--vs.lv-row--hot { box-shadow: inset 4px 0 0 var(--red-600); }
+/* a grid item is at least as wide as its widest word or button: let them shrink and wrap, and on a phone give the
+   actions, the suggestion and the forms the row's full width (under the icon too) */
+.lv-row--vs > * { min-width: 0; }
+.lv-row--vs .btn { white-space: normal; text-align: center; }
+.lv-row--vs > .lv-row__acts, .lv-row--vs > .lv-compose, .lv-row--vs > .lv-detail, .lv-row--vs > .lv-sug, .lv-row--vs > p { grid-column: 1 / -1; }
+@media (min-width: 48rem) { .lv-row--vs > .lv-row__acts, .lv-row--vs > .lv-compose, .lv-row--vs > .lv-detail, .lv-row--vs > .lv-sug, .lv-row--vs > p { grid-column: 2 / -1; } }
+@media (min-width: 64rem) {
+  .lv-row--vs { grid-template-columns: 44px minmax(0, 1fr) auto; }
+  .lv-row--vs > .lv-row__acts { grid-column: 3; grid-row: 1; justify-content: flex-end; }
+  .lv-row--vs > .lv-compose, .lv-row--vs > .lv-detail, .lv-row--vs > .lv-sug, .lv-row--vs > p { grid-column: 2 / -1; }
+}
+.lv-row--vs .lv-who b { font-size: 1.05rem; }
+
+/* History: the filters in one row, the rest folded */
+.vs-filters { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); align-items: end; }
+.vs-filters .input, .vs-filters .select { min-height: 44px; }
+.vs-filters__go { display: flex; gap: 14px; align-items: center; grid-column: 1 / -1; }
+.vs-more { grid-column: 1 / -1; border-top: 1px solid var(--grey-200); padding-top: 8px; }
+.vs-more > summary, .vs-sum > summary { cursor: pointer; font-weight: 600; min-height: 40px; display: flex; align-items: center; gap: 8px; }
+.vs-more__in { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); align-items: end; padding-top: 8px; }
+.vs-more__checks { display: flex; flex-wrap: wrap; gap: 8px 20px; grid-column: 1 / -1; }
+.vs-more__checks label { display: inline-flex; gap: 8px; align-items: center; font-size: var(--fs-sm); min-height: 40px; }
+.vs-sum { border: 1px solid var(--grey-200); border-radius: 14px; padding: 6px 16px 16px; display: grid; gap: 12px; }
+.vs-sum > summary .muted { font-weight: 400; font-size: var(--fs-sm); }
+.vs-chart { min-width: 0; }
+
+/* History: a card a visit */
+.vs-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.vs-card { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 6px 14px; padding: 14px 16px; border: 1px solid var(--grey-200); border-radius: 14px; background: var(--white);
+  transition: box-shadow .15s ease, border-color .15s ease; }
+.vs-card:hover { border-color: var(--grey-300); box-shadow: 0 10px 28px -20px rgb(0 0 0 / 0.45); }
+.vs-card--booking, .vs-card--request { box-shadow: inset 4px 0 0 var(--red-600); }
+.vs-card > * { min-width: 0; }
+.vs-card .btn { white-space: normal; }
+.vs-card__main { min-width: 0; display: grid; gap: 4px; }
+.vs-card__main p { margin: 0; overflow-wrap: anywhere; }
+.vs-card__top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.vs-card__who { font-size: 1.05rem; }
+.vs-card__line { font-size: var(--fs-sm); }
+.vs-card__side { grid-column: 2; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+@media (min-width: 48rem) {
+  .vs-card { grid-template-columns: 44px minmax(0, 1fr) auto; }
+  .vs-card__side { grid-column: 3; grid-row: 1; flex-direction: column; align-items: flex-end; justify-content: space-between; }
+}
+.vs-loc { display: grid; justify-items: center; gap: 4px; align-content: start; }
+.vs-loc__none { font-size: var(--fs-2xs, .72rem); text-align: center; max-width: 5rem; }
+.vs-chip { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 999px; background: var(--grey-100); color: var(--black); font-size: var(--fs-2xs, .75rem); font-weight: 600; }
+.vs-chip--booking, .vs-chip--request { background: var(--red-600); color: var(--white); }
+.vs-chip--contact, .vs-chip--signup { background: var(--red-50); color: var(--red-700); }
+.vs-chip--dark, .vs-chip--known { background: var(--black); color: var(--white); }
+.vs-chip--bot { background: var(--grey-200); color: var(--grey-600); }
+.vs-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.vs .vh-more { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+@media (max-width: 39.99rem) {
+  .vs-panel { border-radius: 12px; }
+  .vs-tabs { width: 100%; }
+  .vs-tab { flex: 1; justify-content: center; }
+  .vs-filters, .vs-more__in { grid-template-columns: 1fr 1fr; }
+  .vs-filters .field:nth-of-type(4), .vs-filters .field:nth-of-type(5) { grid-column: 1 / -1; }
+}
+.vs-hist { display: grid; gap: 18px; min-width: 0; }
+/* the Live now filters never wider than the screen (a long referrer in Source, a long city) */
+.vs .lv-tools { min-width: 0; max-width: 100%; }
+.vs .lv-tool { min-width: 0; max-width: 100%; }
+.vs .lv-select { max-width: min(16rem, 100%); text-overflow: ellipsis; }

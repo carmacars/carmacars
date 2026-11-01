@@ -9,7 +9,7 @@ import { GroupNav, type NavGroup } from './GroupNav';
 // offer and Add a rental are buttons on Bookings and Today.
 export const GROUPS: NavGroup[] = [
   { key: 'today', label: 'Today', links: [
-    { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Staff tasks', key: 'k' }, { href: '/admin/live', label: 'Live visitors' }, { href: '/admin/live-map', label: 'Live map' }, { href: '/admin/live/history', label: 'Visitor history' }] },
+    { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Staff tasks', key: 'k' }, { href: '/admin/visitors', label: 'Visitors' }] },
   { key: 'bookings', label: 'Bookings', links: [
     { href: '/admin/bookings', label: 'Bookings', key: 'b', section: 'Trips' }, { href: '/admin/requests', label: 'Requests and offers', key: 'r' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
     { href: '/admin/chat', label: 'Live chat', section: 'Customers' }, { href: '/admin/leads', label: 'Renter leads' }, { href: '/admin/reviews', label: 'Reviews' },

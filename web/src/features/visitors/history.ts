@@ -72,11 +72,11 @@ export function historyParams(sp: Record<string, string | string[] | undefined>)
 
 /** The list's address with these filters (and a cursor, for the next page). */
 export function historyHref(f: Partial<Record<FilterKey, string>>, cursor?: string | null): string {
-  const q = new URLSearchParams();
+  // Release 26: History is a view of the Visitors page
+  const q = new URLSearchParams({ view: 'history' });
   for (const k of FILTER_KEYS) if (f[k]) q.set(k, f[k]!);
   if (cursor) q.set('cursor', cursor);
-  const s = q.toString();
-  return s ? `/admin/live/history?${s}` : '/admin/live/history';
+  return `/admin/visitors?${q}`;
 }
 
 export const CONVERSION_WORDS: Record<Conversion, string> = { request: 'Request sent', booking: 'Booking confirmed', signup: 'Account opened', contact: 'Contact details given' };

@@ -19,8 +19,8 @@ test('params: the cursor only when it has the shape the database gives', () => {
 });
 
 test('href: the filters in a fixed order, the cursor last', () => {
-  assert.equal(historyHref({}), '/admin/live/history');
-  assert.equal(historyHref({ device: 'phone', from: '2026-10-01' }, 'c|1'), '/admin/live/history?from=2026-10-01&device=phone&cursor=c%7C1');
+  assert.equal(historyHref({}), '/admin/visitors?view=history');
+  assert.equal(historyHref({ device: 'phone', from: '2026-10-01' }, 'c|1'), '/admin/visitors?view=history&from=2026-10-01&device=phone&cursor=c%7C1');
 });
 
 test('duration in words', () => {
