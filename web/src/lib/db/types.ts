@@ -2247,6 +2247,7 @@ export type Database = {
           owner_expense_cents: number;
           booking_share_override: boolean;
           flat_arrangement_id: string | null;
+          partner_kickback_cents: number;
         };
         Insert: {
           booking_id: string;
@@ -2289,6 +2290,7 @@ export type Database = {
           owner_expense_cents?: number;
           booking_share_override?: boolean;
           flat_arrangement_id?: string | null;
+          partner_kickback_cents?: number;
         };
         Update: {
           booking_id?: string;
@@ -2331,6 +2333,7 @@ export type Database = {
           owner_expense_cents?: number;
           booking_share_override?: boolean;
           flat_arrangement_id?: string | null;
+          partner_kickback_cents?: number;
         };
         Relationships: [];
       };
@@ -2669,6 +2672,11 @@ export type Database = {
           placeholder_reason: string | null;
           placeholder_by: string | null;
           placeholder_at: string | null;
+          lead_time_bps: number | null;
+          lead_time_hours: number | null;
+          lead_time_locked_at: string | null;
+          lead_time_source: string | null;
+          partner_discount_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -2839,6 +2847,11 @@ export type Database = {
           placeholder_reason?: string | null;
           placeholder_by?: string | null;
           placeholder_at?: string | null;
+          lead_time_bps?: number | null;
+          lead_time_hours?: number | null;
+          lead_time_locked_at?: string | null;
+          lead_time_source?: string | null;
+          partner_discount_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -3009,6 +3022,11 @@ export type Database = {
           placeholder_reason?: string | null;
           placeholder_by?: string | null;
           placeholder_at?: string | null;
+          lead_time_bps?: number | null;
+          lead_time_hours?: number | null;
+          lead_time_locked_at?: string | null;
+          lead_time_source?: string | null;
+          partner_discount_bps?: number | null;
         };
         Relationships: [];
       };
@@ -12126,6 +12144,7 @@ export type Database = {
           updated_at: string;
           markup_bps: number | null;
           payout_basis: string;
+          discount_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -12159,6 +12178,7 @@ export type Database = {
           updated_at?: string;
           markup_bps?: number | null;
           payout_basis?: string;
+          discount_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -12192,6 +12212,7 @@ export type Database = {
           updated_at?: string;
           markup_bps?: number | null;
           payout_basis?: string;
+          discount_bps?: number | null;
         };
         Relationships: [];
       };
@@ -14141,6 +14162,10 @@ export type Database = {
           ai_vision_permit_daily_per_person: number;
           field_renter_walkthrough: boolean;
           push_enabled: boolean;
+          lead_time_enabled: boolean;
+          lead_time_tiers: Json;
+          lead_time_insurer: boolean;
+          partner_discount_bps: number;
         };
         Insert: {
           id?: string;
@@ -14683,6 +14708,10 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          lead_time_enabled?: boolean;
+          lead_time_tiers?: Json;
+          lead_time_insurer?: boolean;
+          partner_discount_bps?: number;
         };
         Update: {
           id?: string;
@@ -15225,6 +15254,10 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          lead_time_enabled?: boolean;
+          lead_time_tiers?: Json;
+          lead_time_insurer?: boolean;
+          partner_discount_bps?: number;
         };
         Relationships: [];
       };
@@ -22597,6 +22630,9 @@ export type Database = {
           sticker_expires_on: string | null;
           id_pending: boolean;
           notes: string | null;
+          lead_time_mode: string;
+          lead_time_tiers: Json | null;
+          partner_discount_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -22667,6 +22703,9 @@ export type Database = {
           sticker_expires_on?: string | null;
           id_pending?: boolean;
           notes?: string | null;
+          lead_time_mode?: string;
+          lead_time_tiers?: Json | null;
+          partner_discount_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -22737,6 +22776,9 @@ export type Database = {
           sticker_expires_on?: string | null;
           id_pending?: boolean;
           notes?: string | null;
+          lead_time_mode?: string;
+          lead_time_tiers?: Json | null;
+          partner_discount_bps?: number | null;
         };
         Relationships: [];
       };

@@ -576,3 +576,29 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .oc-form .oc-leg, .oc-form .oc-sub { gap: var(--s-2); }
 .oc-form .oc-step > * { margin: 0; }
 .oc-form .oc-step > .oc-step__lead { margin-top: calc(-1 * var(--s-2)); }
+
+/* lead-time pricing (0360): the tiers as a small table, a card on a phone */
+.lt { max-width: 46rem; }
+.lt-switch { align-items: flex-start; }
+.lt-switch > span { display: grid; gap: 2px; }
+.lt-sub { font-weight: 400; }
+.lt-tiers { width: 100%; }
+.lt-tiers .lt-when { font-weight: 600; white-space: nowrap; vertical-align: middle; }
+.lt-tiers td { vertical-align: middle; }
+.lt-in { width: 7rem; min-height: 40px; font-variant-numeric: tabular-nums; }
+.lt-eg { white-space: nowrap; font-variant-numeric: tabular-nums; text-align: right; }
+.lt-rm { text-align: right; }
+.lt-table { display: grid; gap: var(--s-3); justify-items: start; }
+.lt-seg { max-width: 30rem; border: 0; margin: 0; }
+@media (max-width: 39.99rem) {
+  .lt-tiers thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .lt-tiers, .lt-tiers tbody { display: block; }
+  .lt-tiers tr { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2) var(--s-3); padding: var(--s-3) 0; border-bottom: 1px solid var(--line); }
+  .lt-tiers th, .lt-tiers td { padding: 0; border: 0; }
+  .lt-tiers .lt-when { grid-column: 1 / -1; }
+  .lt-tiers td[data-label]::before { content: attr(data-label); display: block; font-size: var(--fs-xs); color: var(--text-2); margin-bottom: 2px; }
+  .lt-tiers .lt-in { width: 100%; }
+  .lt-tiers .lt-eg { text-align: left; grid-column: 1; }
+  .lt-tiers .lt-rm { grid-column: 2; align-self: end; }
+  .lt-seg { max-width: none; }
+}

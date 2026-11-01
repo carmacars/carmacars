@@ -48,15 +48,15 @@ test('a partner car page shows its badges, tiers, guideline rates and the year n
   await expect(page.getByTestId('badge-no-credit-card')).toHaveText('No credit card needed: debit accepted');
   await expect(page.locator('.car-top .lead')).toContainText('Year confirmed when you book.');
   await expect(page.getByTestId('guideline-note')).toHaveText('Guideline rates; final price confirmed after review.');
-  // sheet $700 / $650 / $600 a day, plus 10%: $770, $715, $660
-  await expect(page.getByTestId('car-from-price')).toHaveText('$660');
+  // listed $700 / $650 / $600 a day, less 10% (0361): $630, $585, $540
+  await expect(page.getByTestId('car-from-price')).toHaveText('$540');
   const tiers = page.getByTestId('rates-tiers');
   await expect(tiers).toContainText('1 to 2 days');
-  await expect(tiers).toContainText('$770');
+  await expect(tiers).toContainText('$630');
   await expect(tiers).toContainText('3 to 6 days');
-  await expect(tiers).toContainText('$715');
+  await expect(tiers).toContainText('$585');
   await expect(tiers).toContainText('7 days or more');
-  await expect(tiers).toContainText('$660');
+  await expect(tiers).toContainText('$540');
   await expect(page.getByTestId('need-card')).toHaveText('No credit card needed: a credit or debit card in your name');
   await expect(page.getByTestId('need-insurance')).toContainText('no personal auto policy needed');
   await expect(page.getByTestId('coverage-included')).toBeVisible();
@@ -72,7 +72,7 @@ test('a partner car page shows its badges, tiers, guideline rates and the year n
   await page.goto(`/cars/${await slugOf('Audi A5 Conv')}`);
   await expect(page.getByTestId('car-perks')).toHaveCount(0);
   await expect(page.getByTestId('need-card')).toHaveText('A credit card in your name');
-  await expect(page.getByTestId('rates-tiers')).toContainText('$193');
+  await expect(page.getByTestId('rates-tiers')).toContainText('$158');
   expect(errors.filter((e) => !/favicon|Failed to load resource.*404/.test(e))).toEqual([]);
 });
 

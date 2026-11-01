@@ -53,8 +53,12 @@ export interface B {
   hst_bps?: number;
   /** 0191: the charges to the insurer, a rate a day each ({code: cents}) */
   insurer_fees?: Record<string, number>;
+  /** 0360: the lead-time adjustment locked on the booking (basis points; empty: none), from the request or set by staff */
+  lead_time_bps?: number | null; lead_time_source?: 'auto' | 'staff' | null;
 }
 type Opt = { id: string; name: string; plate: string | null; free: boolean; daily_rate_cents: number | null };
+/** 0360: a locked adjustment as the percentage typed (1000 is "10"; none is empty) */
+const leadPct = (bps: number | null | undefined) => (bps ? String(bps / 100) : '');
 
 // the Protection Plan the renter buys is one line (coverage_sold): one price on this screen (0129), never a second "coverage" field
 const COVERAGE_TYPES = ['coverage_sold', 'coverage', 'coverage_option', 'carmacars_coverage', 'coverage_daily'];
@@ -106,12 +110,12 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   const va = kind === 'va';
   const router = useRouter();
   const coverageLine = b.lines.find((l) => COVERAGE_TYPES.includes(l.charge_type));
-  const feeLines = b.lines.filter((l) => l.stage === 'booking' && !['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type) && !COVERAGE_TYPES.includes(l.charge_type)
+  const feeLines = b.lines.filter((l) => l.stage === 'booking' && !['rental_charge', 'lead_time', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type) && !COVERAGE_TYPES.includes(l.charge_type)
     && !isInsurerFee(l.charge_type));   // 0191: the charges to the insurer are a rate a day, below
   const start = useMemo(() => ({
     vehicle_id: b.vehicle_id, pickup_at: toLocalInput(b.pickup_at), return_at: toLocalInput(b.return_at), booking_type: b.booking_type,
     ...Object.fromEntries(MONEY_KEYS.map((k) => [k, dollars(b[k] as number | null)])),
-    rental_charge_cents: '', price_tax: b.price_tax === 'included' ? 'included' : 'plus', price_reason: '', staff_discount_reason: b.staff_discount_reason ?? '', km_allowance_per_day: String(b.km_allowance_per_day ?? ''),
+    rental_charge_cents: '', price_tax: b.price_tax === 'included' ? 'included' : 'plus', price_reason: '', lead_time_pct: leadPct(b.lead_time_bps), staff_discount_reason: b.staff_discount_reason ?? '', km_allowance_per_day: String(b.km_allowance_per_day ?? ''),
     pickup_kind: b.pickup_location_kind ?? (b.pickup_method === 'delivered' ? 'delivery' : 'our_location'), pickup_address: b.pickup_place ?? '', pickup_km: b.pickup_distance_km?.toString() ?? '',
     return_kind: b.return_location_kind ?? (b.return_method === 'picked_up' ? 'delivery' : 'our_location'), return_address: b.return_place ?? '', return_km: b.return_distance_km?.toString() ?? '',
     coverage: dollars(coverageLine?.amount_cents ?? null), promo_code: b.promo_code ?? '',
@@ -185,7 +189,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   const choices: LineChoices = { pickup_kind: String(v.pickup_kind), return_kind: String(v.return_kind), addons: addons.map((a) => a.code) };
   const feeLive = (l: Line) => lineLive(l.charge_type, choices);
   // a fee line the change makes (a delivery chosen now): its box too, empty (the automatic amount)
-  const newFeeLines = (preview?.booking.lines ?? []).filter((l) => l.stage === 'booking' && !['rental_charge', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type)
+  const newFeeLines = (preview?.booking.lines ?? []).filter((l) => l.stage === 'booking' && !['rental_charge', 'lead_time', 'non_refundable_discount', 'staff_discount', 'promo_discount', 'discount'].includes(l.charge_type)
     && !COVERAGE_TYPES.includes(l.charge_type) && !isInsurerFee(l.charge_type) && !feeLines.some((x) => x.charge_type === l.charge_type));
   const boxLines = [...feeLines, ...newFeeLines].filter(feeLive);
   // what differs from the booking as stored, in the database's words
@@ -204,6 +208,9 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     else if (String(v.rental_charge_cents).trim()) { const c = cents(String(v.rental_charge_cents)); ch.rental_charge_cents = c === null ? null : conv === 'after' ? Math.max(0, c + residual) : c; ch.price_tax = conv === 'after' ? 'included' : 'plus'; ch.price_reason = String(v.price_reason).trim() || null; }
     if (changed('staff_discount_reason') || changed('staff_discount_cents')) ch.staff_discount_reason = String(v.staff_discount_reason).trim() || null;
     if (changed('km_allowance_per_day')) ch.km_allowance_per_day = Number(v.km_allowance_per_day);
+    // 0360: the lead-time adjustment, a percentage of the rental charge (empty: the tier when the request came in)
+    const ltp: Record<string, unknown> = {};
+    if (changed('lead_time_pct')) { const t = String(v.lead_time_pct).trim().replace(/^\+/, '').replace('\u2212', '-'); Object.assign(ltp, t === '' ? { auto: true } : { bps: Math.round(Number(t) * 100) }); }
     for (const k of ['bill_to', 'insurer_id', 'insurer_claim_number', 'insurer_adjuster_name', 'insurer_adjuster_email', 'insurer_adjuster_phone', 'insurer_authorized_until']) if (changed(k)) ch[k] = String(v[k]).trim() || null;
     if (changed('insurer_authorized_days')) ch.insurer_authorized_days = v.insurer_authorized_days ? Number(v.insurer_authorized_days) : null;
     if (changed('dates_provisional')) ch.dates_provisional = v.dates_provisional;
@@ -216,6 +223,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     const lines: Record<string, number> = {};
     if (changed('coverage') && String(v.coverage).trim()) lines.coverage_sold = beforeOf('coverage') ?? 0;
     if (changed('promo_code')) p.promo_code = String(v.promo_code).trim();
+    if (Object.keys(ltp).length) p.lead_time = ltp;
     for (const l of boxLines.filter((x) => changed(`fee:${x.charge_type}`))) lines[l.charge_type] = beforeOf(`fee:${l.charge_type}`) ?? 0;
     if (Object.keys(lines).length) { p.line_overrides = lines; p.fee_reason = String(v.fee_reason).trim() || 'Changed on the review screen'; }
     if (changed('blocks_calendar')) { p.blocks_calendar = v.blocks_calendar; p.blocks_calendar_reason = String(v.blocks_reason).trim() || null; }
@@ -393,11 +401,12 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
           <F k="price_reason" l="Reason for the price" />
           <F k="deposit_cents" l="Deposit" money /></>}
           <S k="km_allowance_per_day" l="Kilometres a day" options={[...new Set([...kmChoices, b.km_allowance_per_day])].sort((a, z) => a - z).map((k) => [String(k), k === 0 ? 'Unlimited' : `${k} km`])} />
-          {!va && <details className="oc-disclose oc-more ad-field--wide" open={['overage_cents_per_km', 'staff_discount_cents', 'staff_discount_reason'].some(changed) || undefined} data-testid="review-more-price">
-            <summary>More options: discount and extra kilometres</summary>
+          {!va && <details className="oc-disclose oc-more ad-field--wide" open={['overage_cents_per_km', 'staff_discount_cents', 'staff_discount_reason', 'lead_time_pct'].some(changed) || undefined} data-testid="review-more-price">
+            <summary>More options: discount, lead-time pricing and extra kilometres</summary>
             <div className="ad-fields"><F k="overage_cents_per_km" l="Extra kilometre price" money />
               <F k="staff_discount_cents" l="Discount" money />
-              <F k="staff_discount_reason" l="Why the discount" /></div></details>}
+              <F k="staff_discount_reason" l="Why the discount" />
+              <F k="lead_time_pct" l="Lead-time pricing (%)" hint={`Of the rental charge: 10 for short notice, -5 for booked ahead, 0 for none. Empty: the tier when the request came in.${b.lead_time_source === 'staff' ? ' Set by staff now.' : ''} A price typed by hand replaces it.`} /></div></details>}
           <F k="coverage" l={`Protection Plan price${tw('coverage')}`} money hint={coverageLine ? 'What the renter pays for the Protection Plan' : 'Only when the renter chose the Protection Plan (option 3)'} />
           <F k="promo_code" l="Promo code" />
           {boxLines.map((l) => { const k = `fee:${l.charge_type}`; return <div key={l.id} className="ad-field" data-testid={`review-fee-${l.charge_type}`}>

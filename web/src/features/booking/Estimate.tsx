@@ -65,6 +65,8 @@ function describe(l: QuoteLine, t: LabelTokens): { k: string; note?: string } {
   switch (l.charge_type) {
     case 'rental_charge': return { k: 'Rental charge', note: `${String(d.rate_rule ?? '')}${d.capped ? ', capped' : ''}`.replace(/^./, (c) => c.toUpperCase()) };
     case 'non_refundable_discount': return { k: `Non-refundable booking, ${t.nonRef} off` };
+    // 0360: one plain line, "Short-notice pricing +10%" or "Booked ahead −5%" (the database words it)
+    case 'lead_time': return { k: l.description ?? l.label };
     case 'delivery': return { k: airport ? `Delivery to ${String(d.airport_name ?? 'the airport')}` : 'Delivery to you', note: distance && (airport ? `${distance}. An airport surcharge may apply` : distance) };
     case 'pickup': return { k: airport ? `Pickup at ${String(d.airport_name ?? 'the airport')} at the end` : 'Pickup from you at the end', note: distance };
     case 'young_driver_18_20': return { k: 'Young driver fee, ages 18 to 20', note: perDay && `${perDay} a day${cap}` };
