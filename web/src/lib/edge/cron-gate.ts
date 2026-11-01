@@ -33,3 +33,21 @@ export async function jobsToRun(env: Record<string, unknown>, f: typeof fetch = 
     return all;
   }
 }
+
+// Phone and browser alerts (migration 0300): asked only when the Worker has the VAPID keys, so a site without them makes
+// no extra call. Any doubt (an error, no answer) sends: the job asks the database again and does nothing when idle.
+export async function pushWaiting(env: Record<string, unknown>, f: typeof fetch = fetch): Promise<boolean> {
+  if (typeof env.VAPID_PUBLIC_KEY !== 'string' || !env.VAPID_PUBLIC_KEY || typeof env.VAPID_PRIVATE_KEY !== 'string' || !env.VAPID_PRIVATE_KEY) return false;
+  const url = env.NEXT_PUBLIC_SUPABASE_URL, key = env.SUPABASE_SERVICE_ROLE_KEY;
+  if (env.DATA_BACKEND !== 'supabase' || typeof url !== 'string' || typeof key !== 'string' || !url || !key) return true;
+  try {
+    const r = await f(`${url.replace(/\/$/, '')}/rest/v1/rpc/server_push_waiting`, {
+      method: 'POST', headers: { apikey: key, authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: '{}',
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!r.ok) return true;
+    return (await r.json()) !== false;
+  } catch {
+    return true;
+  }
+}

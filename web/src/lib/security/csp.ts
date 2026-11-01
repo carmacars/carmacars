@@ -47,6 +47,11 @@ export function cspHeader(nonce: string, o: CspOptions = {}): string {
     `connect-src ${connect}${turnstile}`,
     `frame-src${turnstile} ${STRIPE_JS} ${STRIPE_HOOKS}`,
     `frame-ancestors ${o.frameAncestors ?? "'none'"}`,
+    // phone alerts (migration 0300): the alerts service worker (/push-sw.js) and the web app manifest come from this
+    // origin only. Both were already allowed (worker-src falls back to script-src, manifest-src to default-src); naming
+    // them keeps a future script-src origin (Stripe, Turnstile) from ever running a worker here.
+    `worker-src 'self'`,
+    `manifest-src 'self'`,
     `form-action 'self'`,
     `base-uri 'none'`,
     `object-src 'none'`,

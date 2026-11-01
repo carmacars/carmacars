@@ -24,7 +24,10 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: s.seo.default_title ?? `${s.brand_name} | ${s.city} car rental`, template: `%s` },
     description: s.seo.default_description ?? undefined,
     applicationName: s.brand_name,
-    icons: { icon: s.favicon ? photoUrl(s.favicon) : '/favicon.svg' },
+    icons: { icon: s.favicon ? photoUrl(s.favicon) : '/favicon.svg', apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180' }] },
+    // installable on phones (migration 0300): the manifest, and iOS's Home Screen name and full-screen mode
+    manifest: '/manifest.webmanifest',
+    appleWebApp: { capable: true, title: s.brand_name, statusBarStyle: 'black' },
     openGraph: { siteName: s.brand_name, type: 'website', locale: 'en_CA' },
     twitter: { card: 'summary_large_image' },
     // Search Console and Bing Webmaster Tools (Admin > Settings > Site, 0061)

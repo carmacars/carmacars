@@ -7,6 +7,7 @@ import { money } from '@/lib/format';
 import { auth } from '@/lib/auth';
 import { notifyReach } from '@/server/sign-in-settings';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
+import { PushAlerts } from '@/features/push/PushAlerts';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile and notices', path: '/investor/profile', noindex: true, description: 'Contact details and notices.' });
@@ -32,6 +33,7 @@ export default async function Profile() {
         <p className="small">To update these, ask us; we confirm by phone.</p>
       </section>
       {nc && <NotifyChannelCard reach={nc} />}
+      <PushAlerts userId={user.id} portal="investor" />
       <Requests investments={h.investments.map((x) => ({ id: x.id, label: `${money(x.invested_amount_cents, { cents: true })} from ${x.investment_date}` }))} effective={eff} />
       <section className="pt-card" aria-labelledby="dc-t"><h2 className="d4" id="dc-t">Documents</h2>{docs.length ? <ul className="small">{docs.map((d) => <li key={d.id}>{d.title ?? d.kind.replace(/_/g, ' ')}</li>)}</ul> : <p className="small">No documents yet.</p>}</section>
       <section className="pt-card" aria-labelledby="ts-t" data-testid="two-step-offer"><h2 className="d4" id="ts-t">Two-step sign-in</h2>

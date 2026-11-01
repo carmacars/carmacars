@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { PushInvite } from '@/features/push/PushAlerts';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 import { viewAs } from '@/server/view-as';
 import { switchFunction } from '@/server/actions/va';
@@ -62,7 +63,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             <StaffNav functions={held} open={open} chat={chat} hot={hot} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}<DoorProvider kind="va">{children}</DoorProvider></div>
+        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} /> : null}<DoorProvider kind="va">{children}</DoorProvider></div>
       </div>
     </div>
   );

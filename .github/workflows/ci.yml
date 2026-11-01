@@ -392,7 +392,8 @@ jobs:
                  + (if env.GOOGLE_REVIEWS_CLIENT_SECRET then {GOOGLE_REVIEWS_CLIENT_ID: env.GOOGLE_REVIEWS_CLIENT_ID, GOOGLE_REVIEWS_CLIENT_SECRET: env.GOOGLE_REVIEWS_CLIENT_SECRET} else {} end)
                  + (if env.QUO_API_KEY then {QUO_API_KEY: env.QUO_API_KEY} else {} end)
                  + (if env.QUO_WEBHOOK_SECRET then {QUO_WEBHOOK_SECRET: env.QUO_WEBHOOK_SECRET} else {} end)
-                 + (if env.AUTH_SMS_HOOK_SECRET then {AUTH_SMS_HOOK_SECRET: env.AUTH_SMS_HOOK_SECRET} else {} end)' > "$f"
+                 + (if env.AUTH_SMS_HOOK_SECRET then {AUTH_SMS_HOOK_SECRET: env.AUTH_SMS_HOOK_SECRET} else {} end)
+                 + (if env.VAPID_PRIVATE_KEY then {VAPID_PUBLIC_KEY: env.VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY} else {} end)' > "$f"
           # R23 (0222): the Cloudflare Email Service binding, once the owner has set Email Service up for carmacars.ca and set
           # the repository variable CF_EMAIL_BINDING to 1 (docs/changes/2026-11-03-cloudflare-email.md); without it the
           # outbox sends through Resend as before

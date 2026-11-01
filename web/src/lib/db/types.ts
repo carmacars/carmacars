@@ -9649,6 +9649,7 @@ export type Database = {
           always_email: boolean;
           no_text: boolean;
           text_to_recipient: boolean;
+          push_topic: string | null;
         };
         Insert: {
           code: string;
@@ -9680,6 +9681,7 @@ export type Database = {
           always_email?: boolean;
           no_text?: boolean;
           text_to_recipient?: boolean;
+          push_topic?: string | null;
         };
         Update: {
           code?: string;
@@ -9711,6 +9713,7 @@ export type Database = {
           always_email?: boolean;
           no_text?: boolean;
           text_to_recipient?: boolean;
+          push_topic?: string | null;
         };
         Relationships: [];
       };
@@ -14080,6 +14083,7 @@ export type Database = {
           phone_gate_texts_per_number_day: number;
           phone_gate_texts_per_ip_day: number;
           phone_gate_texts_per_day: number;
+          push_enabled: boolean;
         };
         Insert: {
           id?: string;
@@ -14618,6 +14622,7 @@ export type Database = {
           phone_gate_texts_per_number_day?: number;
           phone_gate_texts_per_ip_day?: number;
           phone_gate_texts_per_day?: number;
+          push_enabled?: boolean;
         };
         Update: {
           id?: string;
@@ -15156,6 +15161,7 @@ export type Database = {
           phone_gate_texts_per_number_day?: number;
           phone_gate_texts_per_ip_day?: number;
           phone_gate_texts_per_day?: number;
+          push_enabled?: boolean;
         };
         Relationships: [];
       };
@@ -15330,6 +15336,123 @@ export type Database = {
           created_at?: string;
           units?: number | null;
           unit?: string | null;
+        };
+        Relationships: [];
+      };
+      push_outbox: {
+        Row: {
+          id: string;
+          subscription_id: string;
+          user_id: string;
+          notification_id: string | null;
+          code: string;
+          title: string;
+          body: string | null;
+          url: string;
+          urgent: boolean;
+          send_after: string;
+          status: string;
+          attempts: number;
+          locked_at: string | null;
+          sent_at: string | null;
+          last_error: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          subscription_id: string;
+          user_id: string;
+          notification_id?: string | null;
+          code: string;
+          title: string;
+          body?: string | null;
+          url?: string;
+          urgent?: boolean;
+          send_after?: string;
+          status?: string;
+          attempts?: number;
+          locked_at?: string | null;
+          sent_at?: string | null;
+          last_error?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          subscription_id?: string;
+          user_id?: string;
+          notification_id?: string | null;
+          code?: string;
+          title?: string;
+          body?: string | null;
+          url?: string;
+          urgent?: boolean;
+          send_after?: string;
+          status?: string;
+          attempts?: number;
+          locked_at?: string | null;
+          sent_at?: string | null;
+          last_error?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      push_preferences: {
+        Row: {
+          user_id: string;
+          topics: string[];
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          topics?: string[];
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          topics?: string[];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          portal: string | null;
+          device: string | null;
+          created_at: string;
+          last_sent_at: string | null;
+          refusals: number;
+          last_error: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          portal?: string | null;
+          device?: string | null;
+          created_at?: string;
+          last_sent_at?: string | null;
+          refusals?: number;
+          last_error?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          endpoint?: string;
+          p256dh?: string;
+          auth?: string;
+          portal?: string | null;
+          device?: string | null;
+          created_at?: string;
+          last_sent_at?: string | null;
+          refusals?: number;
+          last_error?: string | null;
         };
         Relationships: [];
       };
@@ -24557,6 +24680,14 @@ export type Database = {
       server_places_import_finish: { Args: { p_import: number; p_skipped?: Json }; Returns: Json };
       server_places_import_region_done: { Args: { p_import: number; p_region: string; p_counts: Json }; Returns: Json };
       server_places_stage_clear: { Args: never; Returns: undefined };
+      server_push_due: { Args: { p_limit?: number }; Returns: Json };
+      server_push_result: { Args: { p: Json }; Returns: Json };
+      server_push_set_topics: { Args: { p_user: string; p_topics: string[] }; Returns: Json };
+      server_push_state: { Args: { p_user: string; p_endpoint?: string }; Returns: Json };
+      server_push_subscribe: { Args: { p_user: string; p: Json }; Returns: Json };
+      server_push_test: { Args: { p_user: string }; Returns: Json };
+      server_push_unsubscribe: { Args: { p_user: string; p: Json }; Returns: Json };
+      server_push_waiting: { Args: never; Returns: boolean };
       server_quo_contact_done: { Args: { p: Json }; Returns: Json };
       server_quo_contacts_due: { Args: { p_limit?: number }; Returns: Json };
       server_quo_contacts_found: { Args: { p: Json }; Returns: Json };

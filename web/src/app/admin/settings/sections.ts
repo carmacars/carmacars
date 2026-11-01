@@ -27,7 +27,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['guides', 'Guides', 'The user guide of each portal: edit, screenshots, publish, PDF, who read it'],
   ['reviews', 'Reviews', 'Review requests by email and text: timings, sending hours, the hold while charges are open, the Google review link and the Google Business Profile connection'],
   ['quo-contacts', 'Quo contacts', 'Everyone on the site with a phone number as a contact in Quo, under the same name: up to date, waiting, errors, the last run, Sync everyone again'],
-  ['text-alerts', 'Text alerts', 'Email, text or both: the defaults, quiet hours, opt-outs and the text of each notification'],
+  ['text-alerts', 'Text alerts', 'Email, text or both: the defaults, quiet hours, opt-outs, the text of each notification, and phone alerts on or off'],
   ['email', 'Email aliases and reply-to', 'Sending addresses and where replies go'],
   ['staff', 'Staff and roles', 'Invite, set limits, end access'],
   ['insurers', 'Insurers', 'Insurance companies billed for bookings (their rates: Money > Insurer rates)'],

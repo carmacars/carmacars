@@ -5,6 +5,7 @@ import { InvestorNav } from '@/features/investor/InvestorNav';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { currentUser } from '@/server/portal/data';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { PushInvite } from '@/features/push/PushAlerts';
 import { door, rolesOf } from '@/server/door';
 
 // The investor area (07-investor.md): statements for existing investors only. Not linked from anywhere
@@ -25,6 +26,7 @@ export default async function InvestorLayout({ children }: { children: React.Rea
             <PortalSwitch current="investor" />
             <InvestorNav deck={deck} investor={investor} />
             {investor && <GuideBanner portal="investor" userId={user.id} />}
+            {investor && <PushInvite portal="investor" home="/investor" />}
           </div>
         )}
         <div className="iv-body">{children}</div>

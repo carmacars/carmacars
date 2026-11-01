@@ -157,6 +157,8 @@ If you sign in or verify your phone number with us, we text a one-time sign-in c
 
 If you choose to get our messages by text, we text you service messages about your bookings, account, payments and documents from our phone number, instead of or as well as email. Legal documents, statements and receipts are still emailed when we have your email address. You can reply STOP at any time to stop texts, and START to turn them back on; we then reach you by email. Message and data rates may apply.
 
+If you turn on alerts on a phone or computer, your browser gives us an address at its push service (Google, Apple, Mozilla or Microsoft) and two keys for that device. We use them only to send you alerts about your bookings, account, payments and documents, encrypted so the push service cannot read them, and we delete them when you turn alerts off or the device stops accepting them.
+
 ### 11. Marketing messages
 
 We send promotional emails and texts only if you opted in, or where Canada's anti-spam law otherwise allows. Every message identifies us and lets you unsubscribe. We act on an unsubscribe within 10 business days. Messages about your booking, payments or safety are not marketing and are always sent.
