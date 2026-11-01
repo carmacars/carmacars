@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { CARS, CHAUFFEUR, SHEET_CHAUFFEUR, SHEET_RENTALS, chauffeurCharge, chauffeurSplit, parseSheet, partnerSplit, rateCard, renterCents, rentalCharge } from './fleet-01-motors.ts';
+import { CARS, CHAUFFEUR, SHEET_CHAUFFEUR, SHEET_RENTALS, chauffeurCharge, chauffeurSplit, parseSheet, partnerSplit, rateCard, renterCents, rentalCharge, sellingCents } from './fleet-01-motors.ts';
 
 const text = readFileSync(new URL('./fixtures/01-motors-price-sheet.txt', import.meta.url), 'utf8');
 
@@ -37,40 +37,39 @@ test('the 12 cars with insurance included and no credit card needed', () => {
   assert.equal(CARS.find((c) => c.sheet === 'Mercedes S580 Maybach')!.included, false);
 });
 
-test('renter price: the sheet rate plus 10%, to the nearest dollar', () => {
-  assert.equal(renterCents(14000), 15400);
-  assert.equal(renterCents(17500), 19300);   // 192.50 rounds up
-  assert.equal(renterCents(22500), 24800);
-  assert.equal(renterCents(200000), 220000);
-  assert.equal(renterCents(10000, 1500), 11500);
+test('our price: the listed rate less 10%, to the nearest dollar (0361); the chauffeur keeps its 10% markup', () => {
+  assert.equal(sellingCents(14000), 12600);
+  assert.equal(sellingCents(22500), 20300);   // 202.50 rounds up
+  assert.equal(sellingCents(17500), 15800);   // 157.50 rounds up
+  assert.equal(sellingCents(200000), 180000);
+  assert.equal(sellingCents(10000, 1500), 8500);
+  assert.equal(renterCents(17500), 19300);
 });
 
-test('tiers: 1-2 days at the base rate, 3-6 at the multi-day rate, 7+ at the long-term rate a day', () => {
+test('tiers: 1-2 days at the base rate, 3-6 at the multi-day rate, 7+ at the long-term rate a day; the weekend rule', () => {
   const r = SHEET_RENTALS.find((x) => x.name === 'Mercedes C43 AMG Blue')!;
   const c = rateCard(r);
-  assert.deepEqual(c, { daily: 27500, weekend: 27500, multi: 24800, weekly: 22000 * 7, monthly: 22000 * 30 });
-  assert.deepEqual(rentalCharge(1, c), { tier: 'daily', cents: 27500 });
-  assert.deepEqual(rentalCharge(2, c), { tier: 'daily', cents: 55000 });
-  assert.deepEqual(rentalCharge(3, c), { tier: 'multi_day', cents: 3 * 24800 });
-  assert.deepEqual(rentalCharge(6, c), { tier: 'multi_day', cents: 6 * 24800 });
-  assert.deepEqual(rentalCharge(7, c), { tier: 'weekly', cents: 7 * 22000 });
-  assert.deepEqual(rentalCharge(12, c), { tier: 'weekly', cents: 12 * 22000 });
-  assert.deepEqual(rentalCharge(30, c), { tier: 'monthly', cents: 30 * 22000 });
+  assert.deepEqual(c, { daily: 22500, weekend: 25900, multi: 20300, weekly: 18000 * 7, monthly: 18000 * 30 });
+  assert.deepEqual(rentalCharge(1, c), { tier: 'daily', cents: 22500 });
+  assert.deepEqual(rentalCharge(3, c), { tier: 'multi_day', cents: 3 * 20300 });
+  assert.deepEqual(rentalCharge(6, c), { tier: 'multi_day', cents: 6 * 20300 });
+  assert.deepEqual(rentalCharge(7, c), { tier: 'weekly', cents: 7 * 18000 });
+  assert.deepEqual(rentalCharge(30, c), { tier: 'monthly', cents: 30 * 18000 });
   // without the multi-day rate the 0003 rules are unchanged
   assert.deepEqual(rentalCharge(3, { daily: 10000, weekly: 60000, monthly: 200000 }), { tier: 'daily', cents: 30000 });
-  // a 6-day rental never costs more than the week (the GLS600 Maybach: 6 x 1,320 is over 7 x 1,100)
+  // a 6-day rental never costs more than the week (the GLS600 Maybach: 6 x 1,080 is over 7 x 900)
   const gls = rateCard(SHEET_RENTALS.find((x) => x.name === 'Mercedes GLS600 Maybach')!);
-  assert.deepEqual(rentalCharge(6, gls), { tier: 'multi_day', cents: 7 * 110000 });
+  assert.deepEqual(rentalCharge(6, gls), { tier: 'multi_day', cents: 7 * 90000 });
 });
 
-test('commission and payout: the partner is owed 80% of the sheet; CarmaCars keeps the markup plus 20%', () => {
+test('the money: the partner is owed 80% of the listed rental; CarmaCars receives the 20% kickback', () => {
   const r = SHEET_RENTALS.find((x) => x.name === 'Mercedes C43 AMG Blue')!;
   const s = partnerSplit(3, r);
-  assert.deepEqual(s, { tier: 'multi_day', renter: 74400, sheet: 67500, cut: 13500, payout: 54000, markup: 6900, keep: 20400 });
-  assert.equal(s.payout + s.keep, s.renter);
-  const w = partnerSplit(7, r, { cutBps: 1500 });
-  assert.equal(w.sheet, 140000);
-  assert.equal(w.payout, 119000);
+  assert.deepEqual(s, { tier: 'multi_day', rental: 60900, listed: 67500, kickback: 13500, payable: 54000, keep: 6900 });
+  assert.equal(s.payable + s.keep, s.rental);
+  const w = partnerSplit(7, r, { kickbackBps: 1500 });
+  assert.equal(w.listed, 140000);
+  assert.equal(w.payable, 119000);
 });
 
 test('chauffeur: 2 hours at the 2-hour rate, 3 or more at the 3+ rate, at least 2', () => {

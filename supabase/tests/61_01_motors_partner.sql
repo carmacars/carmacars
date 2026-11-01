@@ -1,9 +1,9 @@
 -- 61: a partner's whole fleet and the chauffeur service (migration 0093). The import (the partner, 62 cars, 11
--- chauffeur vehicles, published, keyed so a second run adds nothing), the renter's rates from the sheet rates (10%
--- markup, nearest dollar) with the 3+ day tier in the quote, the 12 cars with insurance included and no credit card
+-- chauffeur vehicles, published, keyed so a second run adds nothing), our rates from the listed rates (10% discount,
+-- nearest dollar, since 0361; 0093 had a 10% markup) with the 3+ day tier in the quote, the 12 cars with insurance included and no credit card
 -- needed (coverage option 4 confirmed by itself, a debit card accepted at payment, the deposit and the ages kept), the
--- approximate year left out of the name and the public row, the split on the partner's rates (the sheet amount, the
--- 20% cut, the payout, the markup CarmaCars keeps) on a sample booking and its statement line, Admin's per-car and
+-- approximate year left out of the name and the public row, the split on the partner's rates (the listed amount, the
+-- 20% kickback, the payout, what CarmaCars keeps) on a sample booking and its statement line, Admin's per-car and
 -- per-partner pricing, and a chauffeur request with its quote. Fixtures start "pm".
 select test.suite('61 01 Motors partner');
 
@@ -20,8 +20,8 @@ create function test.pm_at(p_days integer, p_len integer) returns timestamptz la
   select (app.today() + p_days)::timestamp at time zone 'America/Toronto' + interval '10 hours' $$;
 
 -- ================================================================ 1. the import
-select test.eq('partner: 01 Motors, on the partner-rate basis, 20% commission, 10% markup, no portal sign-in',
-  (select format('%s %s %s %s %s', p.payout_basis, p.commission_bps, p.markup_bps, o.kind, o.user_id is null) from partners p join owners o on o.id = p.owner_id where p.business_name = '01 Motors'),
+select test.eq('partner: 01 Motors, on the partner-rate basis, 20% kickback, 10% discount (0361), no portal sign-in',
+  (select format('%s %s %s %s %s', p.payout_basis, p.commission_bps, p.discount_bps, o.kind, o.user_id is null) from partners p join owners o on o.id = p.owner_id where p.business_name = '01 Motors'),
   'partner_rate 2000 1000 partner t');
 select test.eq('cars: 62, each a partner car with its sheet rates, a fleet number and a car code, no VIN or plate invented',
   (select format('%s %s %s %s %s %s', count(*), count(r.vehicle_id), count(distinct v.fleet_number), count(v.car_code), count(v.vin), count(v.plate))
@@ -46,10 +46,10 @@ select test.eq('drivers 18 to 20 follow Program settings like every car (0087)',
   (select count(*) from vehicles where not allows_18_to_20 and partner_id = (select id from partners where business_name = '01 Motors')), 0::bigint);
 
 -- ================================================================ 2. the renter's rates and the 3+ day tier
-select test.eq('rate card: 1-2 days, 3+ days, 7+ days (a week, 30 days) at the sheet rate plus 10%, to the dollar',
+select test.eq('rate card: 1-2 days, 3+ days, 7+ days (a week, 30 days) at the listed rate less 10%, to the dollar; the weekend rule',
   (select format('%s %s %s %s %s', (rc).daily_rate_cents, (rc).weekend_rate_cents, (rc).multi_day_rate_cents, (rc).weekly_rate_cents, (rc).monthly_rate_cents)
-     from (select test.pm_rc('Mercedes C43 AMG Blue') rc) x), '27500 31700 24800 154000 660000');
-select test.eq('rounding: $175 becomes $193 (half a dollar up)', app.partner_renter_cents(17500, 1000), 19300::bigint);
+     from (select test.pm_rc('Mercedes C43 AMG Blue') rc) x), '22500 25900 20300 126000 540000');
+select test.eq('rounding: $225 less 10% becomes $203 (half a dollar up)', app.partner_selling_cents(22500, 1000), 20300::bigint);
 select test.eq('the engine: 3 to 6 days at the multi-day rate, capped at the week',
   (select string_agg(format('%s:%s:%s', d, r.rate_applied, r.rental_charge_cents), ' ' order by d)
      from generate_series(1, 8) d, public.calc_rental_charge(test.pm_at(10, 0), d, 27500, 27500, 154000, 660000, 'America/Toronto', 24800) r),
@@ -58,11 +58,11 @@ select test.eq('the engine: no multi-day rate, 0003''s rules', (select rental_ch
 select test.eq('the quote (car page and request) uses the 3+ day tier',
   (select format('%s %s', q ->> 'rental_charge_cents', q -> 'lines' -> 0 -> 'detail' ->> 'rate_rule')
      from (select app.quote_booking(test.pm_car('Mercedes C43 AMG Blue'), test.pm_at(20, 0), test.pm_at(23, 0)) q) x),
-  '74400 3 days at the 3+ day rate');
-select test.eq('the quote: 7 days at the 7+ day rate', (app.quote_booking(test.pm_car('Mercedes C43 AMG Blue'), test.pm_at(20, 0), test.pm_at(27, 0)) ->> 'rental_charge_cents'), '154000');
+  '60900 3 days at the 3+ day rate');
+select test.eq('the quote: 7 days at the 7+ day rate', (app.quote_booking(test.pm_car('Mercedes C43 AMG Blue'), test.pm_at(20, 0), test.pm_at(27, 0)) ->> 'rental_charge_cents'), '126000');
 select test.eq('the public row: the tiers, the flags, the year left out',
   (select format('%s %s %s %s %s %s', r ->> 'multi_day_rate_cents', r ->> 'long_term_rate_cents', r ->> 'insurance_included', r ->> 'no_credit_card', coalesce(r ->> 'year', 'none'), r ->> 'guideline_rates')
-     from (select app.public_listing_row(test.pm_car('Mercedes S580')) r) x), '63300 60500 true true none true');
+     from (select app.public_listing_row(test.pm_car('Mercedes S580')) r) x), '51800 49500 true true none true');
 select test.eq('approximate year: not in the name or the web address', (select app.vehicle_name(v.id) || ' /cars/' || l.slug from vehicles v join vehicle_listings l on l.vehicle_id = v.id where v.id = test.pm_car('Mercedes S580')),
   'Mercedes-Benz S-Class S580 /cars/mercedes-benz-s-class-s580');
 
@@ -70,18 +70,18 @@ select test.eq('approximate year: not in the name or the web address', (select a
 select test.throws('pricing: only an Admin', format('select app.partner_car_save(%L, %L)', test.id('pm_fleet'), jsonb_build_object('vehicle_id', test.pm_car('Audi S5'), 'base_cents', 24000)), 'Admin');
 select test.throws('pricing: the rate a day goes down with the length', format('select app.partner_car_save(%L, %L)', test.id('pm_admin'),
   jsonb_build_object('vehicle_id', test.pm_car('Audi S5'), 'base_cents', 20000, 'multi_day_cents', 25000, 'long_term_cents', 20000)), 'goes down');
-select app.partner_car_save(test.id('pm_admin'), jsonb_build_object('vehicle_id', test.pm_car('Audi S5'), 'base_cents', 24000, 'markup_bps', 1500, 'year', 2023));
-select test.eq('a negotiated rate and the car''s own markup: the renter''s rates follow; the year confirmed',
+select app.partner_car_save(test.id('pm_admin'), jsonb_build_object('vehicle_id', test.pm_car('Audi S5'), 'base_cents', 24000, 'discount_bps', 1500, 'year', 2023));
+select test.eq('a negotiated rate and the car''s own discount: our rates follow; the year confirmed',
   (select format('%s %s %s %s', (test.pm_rc('Audi S5')).daily_rate_cents, (test.pm_rc('Audi S5')).multi_day_rate_cents, v.year, v.year_approximate) from vehicles v where v.id = test.pm_car('Audi S5')),
-  '27600 23000 2023 f');
-select app.partner_pricing_save(test.id('pm_admin'), jsonb_build_object('id', (select id from partners where business_name = '01 Motors'), 'markup_bps', 1200));
-select test.eq('the partner''s markup: every car without its own follows', ((test.pm_rc('Mercedes A220')).daily_rate_cents), 15700::bigint);
-select app.partner_pricing_save(test.id('pm_admin'), jsonb_build_object('id', (select id from partners where business_name = '01 Motors'), 'markup_bps', null));
-select test.eq('back to Program settings (10%)', ((test.pm_rc('Mercedes A220')).daily_rate_cents), 15400::bigint);
-select test.eq('the partner page lists each car with its sheet and renter rates',
+  '20400 17000 2023 f');
+select app.partner_pricing_save(test.id('pm_admin'), jsonb_build_object('id', (select id from partners where business_name = '01 Motors'), 'discount_bps', 1200));
+select test.eq('the partner''s discount: every car without its own follows', ((test.pm_rc('Mercedes A220')).daily_rate_cents), 12300::bigint);
+select app.partner_pricing_save(test.id('pm_admin'), jsonb_build_object('id', (select id from partners where business_name = '01 Motors'), 'discount_bps', null));
+select test.eq('back to Program settings (10%)', ((test.pm_rc('Mercedes A220')).daily_rate_cents), 12600::bigint);
+select test.eq('the partner page lists each car with its listed and selling rates',
   (select format('%s %s %s', c ->> 'base_cents', c ->> 'renter_daily_cents', c ->> 'commission_effective_bps')
      from jsonb_array_elements(app.partner_detail(test.id('pm_admin'), (select id from partners where business_name = '01 Motors')) -> 'cars') c
-    where c ->> 'sheet_name' = 'Mercedes A220'), '14000 15400 2000');
+    where c ->> 'sheet_name' = 'Mercedes A220'), '14000 12600 2000');
 
 -- ================================================================ 4. a request on a car with insurance included: option 4, confirmed
 create temp table s61 (k text primary key, v jsonb);
@@ -99,7 +99,7 @@ select test.eq('request: coverage option 4, confirmed at once with its proof; th
   '4 t confirmed 4 t');
 select test.eq('request: the 3+ day rate snapshot and the partner basis on the booking',
   (select format('%s %s %s %s', b.multi_day_rate_cents, b.partner_sheet_rental_cents, b.partner_cut_bps, b.rental_charge_cents)
-     from bookings b where b.id = (select (v ->> 'booking_id')::uuid from s61 where k = 'req')), '63300 172500 2000 189900');
+     from bookings b where b.id = (select (v ->> 'booking_id')::uuid from s61 where k = 'req')), '51800 172500 2000 155400');
 select test.eq('readiness: coverage confirmed', (app.booking_readiness((select (v ->> 'booking_id')::uuid from s61 where k = 'req')) ->> 'coverage_confirmed'), 'true');
 select test.throws('option 4 is never changed by the renter', format('select app.set_coverage_option(%L, %L, 1)',
   (select (v ->> 'booking_id')::uuid from s61 where k = 'req'), (select id from users where email = 'pm.pat@example.test')), 'included');
@@ -129,9 +129,9 @@ values (test.id('booking:PM-1'), 'PM-1', 'standard', 'closed', test.pm_car('Merc
     74400, 0, 200, 600, 35, 100000, test.id('card:pm_rita'), 74400, public.calc_hst(74400), 74400 + public.calc_hst(74400));
 select test.mk_line('PM-1', 'rental_charge', 74400);
 select app.compute_booking_split(test.id('booking:PM-1'));
-select test.eq('booking: the sheet amount at the partner''s rates (3 x $225), the cut, the markup',
-  (select format('%s %s %s', partner_sheet_rental_cents, partner_cut_bps, partner_markup_bps) from bookings where id = test.id('booking:PM-1')), '67500 2000 1000');
-select test.eq('split: renter $744, sheet $675, CarmaCars 20% $135, partner $540, markup $69 (CarmaCars keeps $204)',
+select test.eq('booking: the listed amount at the partner''s rates (3 x $225), the kickback, the discount (0361)',
+  (select format('%s %s %s', partner_sheet_rental_cents, partner_cut_bps, partner_discount_bps) from bookings where id = test.id('booking:PM-1')), '67500 2000 1000');
+select test.eq('split: renter $744, listed $675, kickback 20% $135, partner $540, CarmaCars $69 above the listed (keeps $204)',
   (select format('%s %s %s %s %s %s %s', rental_charge_cents, partner_sheet_cents, owner_revenue_cents, company_share_cents, owner_payout_cents, partner_markup_cents,
                  rental_charge_cents - owner_payout_cents)
      from booking_splits where booking_id = test.id('booking:PM-1')), '74400 67500 67500 13500 54000 6900 20400');
@@ -147,8 +147,8 @@ delete from refund_allocations where refund_id = test.id('refund:PM-1');
 delete from refunds where id = test.id('refund:PM-1');
 select app.compute_booking_split(test.id('booking:PM-1'));
 insert into s61 select 'stmt', to_jsonb(app.build_owner_statement((select owner_id from partners where business_name = '01 Motors'), date '2026-09-01', test.id('pm_admin')));
-select test.eq('the statement: the partner sees the sheet amount, the 20% and the payout, never the renter''s price',
-  (select format('%s %s %s %s %s', l.rental_charge_cents, l.partner_sheet_cents, l.revenue_share_cents, l.amount_cents, l.description like '%sheet rate $675%')
+select test.eq('the statement: the partner sees the listed amount, the 20% kickback and the payout, never the renter''s price',
+  (select format('%s %s %s %s %s', l.rental_charge_cents, l.partner_sheet_cents, l.revenue_share_cents, l.amount_cents, l.description like '%listed rate $675%')
      from owner_statement_lines l
     where l.owner_statement_id = (select (v #>> '{}')::uuid from s61 where k = 'stmt')
       and l.booking_id = test.id('booking:PM-1')),

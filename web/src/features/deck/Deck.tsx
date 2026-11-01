@@ -182,7 +182,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
       <li><b>Owners&apos; cars, fully managed</b><span>Coverage under our fleet policy, and we run every rental: a management fee{shareRange ? ` (${shareRange} of rental revenue)` : ''} and a revenue share.</span></li>
       <li><b>Coverage for owners who manage their own cars</b><span>Their cars get coverage under our fleet policy for a monthly fee.</span></li>
       <li><b>Turo management for owners</b><span>We run the owner&apos;s Turo listing and trips for a management fee.</span></li>
-      <li><b>Brokering partner rental fleets</b><span>A commission on partner cars we rent out: a markup plus a cut of the partner&apos;s rates, including a chauffeur service.</span></li>
+      <li><b>Brokering partner rental fleets</b><span>A commission on partner cars we rent out: a kickback on the partner&apos;s listed rates plus our own fees, and a chauffeur service.</span></li>
       <li data-testid="deck-services"><b>Detailing</b><span>Interior and exterior, paint correction and ceramic coating, mobile detailing, window tint, PPF and wraps, priced per job. CarmaCars&apos; own revenue.</span></li>
       <li><b>Body shop</b><span>Collision repair, dents and scratches, painting and windshield repair, priced per job. CarmaCars&apos; own revenue, and each job is a customer who may need a rental car while theirs is with us.</span></li>
     </ol>

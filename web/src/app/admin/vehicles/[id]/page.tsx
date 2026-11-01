@@ -15,6 +15,8 @@ import { $, Badge, BookingLink, Card, Kv, PageHead, Table, Tabs, t, d, label } f
 import { TRACKER_SOON } from '@/integrations/tracker/types';
 import { DeleteCar } from '@/features/supply/DeleteCar';
 import { RateCardForm } from '@/features/rates/RateCardForm';
+import { CarLeadTime } from '@/features/rates/LeadTimeEditor';
+import type { Tier } from '@/features/rates/lead-time';
 import { door } from '@/server/door';
 import { adminOwners } from '@/server/admin/data';
 import { InsurerConfirm } from '@/features/admin/InsurerConfirm';
@@ -159,6 +161,9 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
                 <ul>{autoCardFields(v.rate_card).map((f) => <li key={f.key} data-testid={`auto-rate-${f.key}`}>{f.label}: {f.source}</li>)}</ul></div>)}
             <RateCardForm vehicleId={id} card={v.rate_card} refresh={refresh} />
           </Card>
+          <Card title="Lead-time pricing for this car" testId="vehicle-lead-time">
+            <CarLeadTime vehicleId={id} mode={(v.lead_time_mode as 'program' | 'off' | 'own' | undefined) ?? 'program'} tiers={(v.lead_time_tiers as Tier[] | null) ?? null}
+              programTiers={((v.lead_time_program as { tiers?: Tier[] } | undefined)?.tiers) ?? []} programOn={(v.lead_time_program as { enabled?: boolean } | undefined)?.enabled !== false} /></Card>
           <Card title="Rate history"><Table rows={v.rate_history} cols={[{ key: 'effective_from', label: 'From', render: (r) => t(r.effective_from) }, { key: 'effective_to', label: 'To', render: (r) => t(r.effective_to) },
             { key: 'daily_rate_cents', label: 'Daily (a day)', num: true, render: (r) => $(r.daily_rate_cents) }, { key: 'weekend_rate_cents', label: 'Weekend (a day)', num: true, render: (r) => $(r.weekend_rate_cents) }, { key: 'weekly_rate_cents', label: 'Weekly (7 days)', num: true, render: (r) => $(r.weekly_rate_cents) },
             { key: 'monthly_rate_cents', label: 'Monthly (30 days)', num: true, render: (r) => $(r.monthly_rate_cents) }, { key: 'km_allowance_per_day', label: 'Km a day', num: true }, { key: 'overage_cents_per_km', label: 'Extra km', num: true, render: (r) => $(r.overage_cents_per_km) }, { key: 'deposit_cents', label: 'Deposit', num: true, render: (r) => $(r.deposit_cents) }, { key: 'set_by_name', label: 'Set by' }]} /></Card>

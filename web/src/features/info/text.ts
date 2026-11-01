@@ -44,7 +44,9 @@ export const INFO: Record<string, string> = {
   above_terms: 'Above the signed terms: only an Admin, with a reason. The owner sees it on the booking and on the statement.',
   first_last_month: 'Paid before a car goes live: usually two months of the insurance fee, or the exact amount agreed.',
   // partners and referrals
-  markup_bps: 'Added on top of the partner\'s price before the renter sees it.',
+  markup_bps: 'Added on top of the partner\'s price before the client sees it (the chauffeur service).',
+  discount_bps: 'Taken off the partner\'s listed rate to make our base rate; then our own pricing rules apply.',
+  kickback_bps: 'What the partner pays CarmaCars back, a share of their listed rental (their rates times the days booked).',
   cut_bps: 'The partner\'s share of each rental of this car.',
   rate_kind: 'Flat: a fixed amount for each completed rental ($50 by default). Percent: a share of the rental charge after discounts (10% by default), never of add-ons, fees or taxes.',
   // staff and pay

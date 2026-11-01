@@ -186,29 +186,43 @@ export const CHAUFFEUR: ChauffeurVehicle[] = SHEET_CHAUFFEUR.map((r, i) => {
 });
 
 // ---------------------------------------------------------------- the money
+// 0361: a partner's cars are sold from its listed rates less the partner discount (10%), then our own rules; CarmaCars
+// receives a kickback of 20% of the listed rental and the partner is owed the rest. The chauffeur service keeps 0093's
+// markup on the partner's hourly rates.
 export const DEFAULT_MARKUP_BPS = 1000;
+export const DEFAULT_DISCOUNT_BPS = 1000;
 export const DEFAULT_CUT_BPS = 2000;
+export const DEFAULT_KICKBACK_BPS = DEFAULT_CUT_BPS;
+export const DEFAULT_WEEKEND_PREMIUM_BPS = 1500;
 
-/** The renter's price for a partner's sheet amount: marked up, rounded to the nearest dollar (half a dollar up), the
- *  same rule as app.partner_renter_cents. */
+/** The client's price for a partner's hourly chauffeur rate: marked up, rounded to the nearest dollar (half a dollar
+ *  up), the same rule as app.partner_renter_cents. */
 export function renterCents(sheetCents: number, markupBps = DEFAULT_MARKUP_BPS): number {
   return Math.round((sheetCents * (10000 + markupBps)) / 1_000_000) * 100;
 }
+/** Our selling rate for a partner's listed rate: less the discount, to the nearest dollar (half a dollar up), the same
+ *  rule as app.partner_selling_cents. */
+export function sellingCents(listedCents: number, discountBps = DEFAULT_DISCOUNT_BPS): number {
+  return Math.round((listedCents * (10000 - discountBps)) / 1_000_000) * 100;
+}
 /** A basis-point share of an amount, half a cent up (public.calc_bps). */
 export function bps(amountCents: number, b: number): number { return Math.round((amountCents * b) / 10000); }
+/** The weekend rule (0271): a weekend rate at or below the daily rate is the daily rate plus the premium, up to the dollar. */
+export const weekendFloor = (daily: number, premiumBps = DEFAULT_WEEKEND_PREMIUM_BPS) => Math.ceil((daily * (10000 + premiumBps)) / 10000 / 100) * 100;
 
-/** The renter's rate card for a sheet row: the 1-2 day rate is the daily and weekend rate, the 3+ day rate the
- *  multi-day rate, and the 7+ day rate the per-day rate of the weekly (7 days) and monthly (30 days) rates. */
-export function rateCard(r: Pick<SheetRental, 'base' | 'multi' | 'long'>, markupBps = DEFAULT_MARKUP_BPS) {
-  const daily = renterCents(r.base, markupBps), multi = renterCents(r.multi, markupBps), long = renterCents(r.long, markupBps);
-  return { daily, weekend: daily, multi, weekly: long * 7, monthly: long * 30 };
+/** Our rate card for a listed row: the 1-2 day rate less the discount is the daily rate, the weekend rate follows our
+ *  weekend rule, the 3+ day rate is the multi-day rate (never above the daily), and the 7+ day rate is the per-day rate
+ *  of the weekly (7 days) and monthly (30 days) rates. */
+export function rateCard(r: Pick<SheetRental, 'base' | 'multi' | 'long'>, discountBps = DEFAULT_DISCOUNT_BPS) {
+  const daily = sellingCents(r.base, discountBps), multi = Math.min(sellingCents(r.multi, discountBps), daily), long = sellingCents(r.long, discountBps);
+  return { daily, weekend: weekendFloor(daily), multi, weekly: long * 7, monthly: long * 30 };
 }
-/** The partner's own rates in the same shape (the sheet amounts the partner is paid on). */
+/** The partner's own rates in the same shape (the listed amounts the partner is paid on). */
 export const sheetCard = (r: Pick<SheetRental, 'base' | 'multi' | 'long'>) => ({ daily: r.base, weekend: r.base, multi: r.multi, weekly: r.long * 7, monthly: r.long * 30 });
 
-/** public.calc_rental_charge with the 3+ day tier (0093) for a car whose weekend rate is its daily rate: 1 or 2 days
- *  at the daily rate, 3 to 6 at the multi-day rate (never more than the daily rate would cost or the weekly rate), 7 to
- *  29 at the weekly rate by the day (never more than the monthly rate), 30 at the monthly rate. */
+/** public.calc_rental_charge with the 3+ day tier (0093), weekdays only (a weekend day is priced by the database): 1 or
+ *  2 days at the daily rate, 3 to 6 at the multi-day rate (never more than the daily rate would cost or the weekly rate),
+ *  7 to 29 at the weekly rate by the day (never more than the monthly rate), 30 at the monthly rate. */
 export function rentalCharge(days: number, c: { daily: number; multi?: number | null; weekly: number; monthly: number }): { tier: 'daily' | 'multi_day' | 'weekly' | 'monthly'; cents: number } {
   if (!Number.isInteger(days) || days < 1 || days > 30) throw new Error('A rental is 1 to 30 days');
   if (days <= 6) {
@@ -220,14 +234,15 @@ export function rentalCharge(days: number, c: { daily: number; multi?: number | 
   return { tier: 'monthly', cents: c.monthly };
 }
 
-/** What a rental of a partner car comes to on the partner-rate basis: the renter's rental charge, the sheet amount, the
- *  CarmaCars cut of the sheet, the partner's payout, and what CarmaCars keeps (the markup plus the cut). */
-export function partnerSplit(days: number, r: Pick<SheetRental, 'base' | 'multi' | 'long'>, o: { markupBps?: number; cutBps?: number } = {}) {
-  const renter = rentalCharge(days, rateCard(r, o.markupBps ?? DEFAULT_MARKUP_BPS));
-  const sheet = rentalCharge(days, sheetCard(r));
-  const cut = bps(sheet.cents, o.cutBps ?? DEFAULT_CUT_BPS);
-  const payout = sheet.cents - cut;
-  return { tier: renter.tier, renter: renter.cents, sheet: sheet.cents, cut, payout, markup: renter.cents - sheet.cents, keep: renter.cents - payout };
+/** A rental of a partner car (0361): our rental charge from the discounted rates (before lead-time pricing or a
+ *  discount), the listed rental, the kickback CarmaCars receives (of the listed rental), the amount payable to the
+ *  partner, and CarmaCars' part of the rental (our charge less the payable). Fees and taxes are CarmaCars' own. */
+export function partnerSplit(days: number, r: Pick<SheetRental, 'base' | 'multi' | 'long'>, o: { discountBps?: number; kickbackBps?: number } = {}) {
+  const ours = rentalCharge(days, rateCard(r, o.discountBps ?? DEFAULT_DISCOUNT_BPS));
+  const listed = rentalCharge(days, sheetCard(r));
+  const kickback = bps(listed.cents, o.kickbackBps ?? DEFAULT_KICKBACK_BPS);
+  const payable = listed.cents - kickback;
+  return { tier: ours.tier, rental: ours.cents, listed: listed.cents, kickback, payable, keep: ours.cents - payable };
 }
 
 /** A chauffeur booking: at least 2 hours; exactly 2 at the 2-hour rate, 3 or more at the 3+ hour rate, each per hour. */

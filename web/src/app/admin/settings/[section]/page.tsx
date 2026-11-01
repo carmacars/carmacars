@@ -33,6 +33,8 @@ import { googleKeys } from '@/server/reviews/google';
 import { SalesModesCard, type SalesModes } from '@/features/sales/SalesModesAdmin';
 import { StaffFunctions } from '@/features/staff/StaffFunctions';
 import { CardReaderAdmin, type TerminalState } from '@/features/terminal/CardReaderAdmin';
+import { LeadTimeSettings } from '@/features/rates/LeadTimeEditor';
+import type { Tier } from '@/features/rates/lead-time';
 import { profileFunctions as staffFns, STAFF_FN_LABEL } from '@/features/staff/nav';
 const googleKeysSet = () => googleKeys() !== null;
 
@@ -333,12 +335,16 @@ export default async function Section({ params, searchParams }: { params: Promis
     // turnaround_block_minutes always equals the turnaround (0042): one setting is shown; owner_debit_show_legal_name is no
     // longer used (0122: the payee is always the legal name alone)
     // staff_agreement_defaults has its own form below, by function (0057)
-    const keys = Object.keys(s.program).filter((k) => !['id', 'effective_from', 'created_by', 'created_at', 'turnaround_block_minutes', 'owner_debit_show_legal_name', 'staff_agreement_defaults'].includes(k)
+    // 0360: lead-time pricing has its own card (the tiers as a table); 0361: the partner markup is no longer used
+    const keys = Object.keys(s.program).filter((k) => !['id', 'effective_from', 'created_by', 'created_at', 'turnaround_block_minutes', 'owner_debit_show_legal_name', 'staff_agreement_defaults',
+      'lead_time_enabled', 'lead_time_tiers', 'lead_time_insurer', 'partner_markup_bps'].includes(k)
       // 0085's booking texts, replaced by Text alerts (0096: Settings > Text alerts)
       && !k.startsWith('phone_sms_'));
     const used = new Set<string>();
     return (<>{head}
       <p className="small muted">Saving writes a new dated row from today; the rows before it stay as they were. In force since {d(s.program.effective_from)}; {s.program_rows.length} dated rows.</p>
+      <Card title="Lead-time pricing" testId="lead-time-card"><LeadTimeSettings enabled={s.program.lead_time_enabled !== false} insurer={s.program.lead_time_insurer === true}
+        tiers={(s.program.lead_time_tiers ?? []) as Tier[]} /></Card>
       <Card title="Turnaround between trips" testId="turnaround-help"><p className="small">One time between trips, {String(s.program.turnaround_buffer_minutes)} minutes now (the owner&apos;s 2 hours by default). No trip may start sooner after another one ends, and a trip must end that long before the next one starts. After each trip the same time shows on the calendars as the cleaning block; it is not added on top. Removing a cleaning block frees that time for a new booking. A car can have its own turnaround under Vehicles, the car, Calendar. Change it under Booking requests and offers.</p></Card>
       {PROGRAM_GROUPS.map(([title, test]) => { const ks = keys.filter((k) => !used.has(k) && test(k)); ks.forEach((k) => used.add(k)); if (!ks.length) return null; return (
         <Card key={title} title={title}><details open={title === 'Booking requests and offers'}><summary className="link">{ks.length} settings</summary>

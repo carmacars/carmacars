@@ -173,10 +173,10 @@ create function test.pc_items(p_g63_base bigint, p_all boolean default true) ret
 create temp table pc_in1 as select public.server_partner_crm_done(jsonb_build_object('connection_id', test.pc_link(), 'kind', 'sync', 'ok', true, 'inbound', test.pc_items(110000))) r;
 select test.eq('inbound: their G63 matched by make, model and trim; a new car added; one without a rate waits; a block for their booking',
   (select r -> 'counts' -> 'inbound' from pc_in1), '{"gone": 0, "blocks": 1, "linked": 1, "review": 1, "created": 1}'::jsonb);
-select test.eq('matched: their rates are the car''s sheet rates now (the renter''s follow, 10% markup)',
+select test.eq('matched: their rates are the car''s listed rates now (ours follow, 10% discount, 0361)',
   (select format('%s %s', r.base_cents, rc.daily_rate_cents) from partner_rates r join vehicles v on v.id = r.vehicle_id
      join rate_cards rc on rc.vehicle_id = v.id and rc.effective_from <= now() and (rc.effective_to is null or rc.effective_to > now())
-    where v.partner_id = test.pc_partner() and v.partner_sheet_name = 'Mercedes G63 AMG'), '110000 121000');
+    where v.partner_id = test.pc_partner() and v.partner_sheet_name = 'Mercedes G63 AMG'), '110000 99000');
 select test.ok('their booked dates: a calendar block on their car, external', exists (select 1 from vehicle_calendar_blocks b join partner_crm_blocks k on k.block_id = b.id
   join vehicles v on v.id = b.vehicle_id where v.partner_sheet_name = 'Mercedes G63 AMG' and v.partner_id = test.pc_partner() and b.reason = 'external_booking' and b.source = 'external' and b.removed_at is null));
 select test.eq('added: their partner car, not on the site until reviewed, with its sheet rates and year',

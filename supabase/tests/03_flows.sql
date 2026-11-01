@@ -488,9 +488,9 @@ select test.throws('A the audit log cannot be deleted', 'delete from audit_log',
 -- ------------------------------------------------------------------ catalogue: every charge in the renter spec has a home
 select test.eq('CAT every catalogue charge is tagged owner revenue / company only / pass-through (the deposit is not revenue)',
   (select string_agg(code, ',') from fee_types where revenue_class is null), 'deposit');
-select test.eq('CAT owner revenue is exactly: rental charge, its discounts (non-refundable, promo code, staff), extra days, mileage overage',
+select test.eq('CAT owner revenue is exactly: rental charge, its lead-time adjustment (0360) and discounts (non-refundable, promo code, staff), extra days, mileage overage',
   (select string_agg(code, ',' order by code) from fee_types where revenue_class = 'owner_revenue'),
-  'late_return_extra_days,mileage_overage,non_refundable_discount,promo_discount,rental_charge,staff_discount');
+  'late_return_extra_days,lead_time,mileage_overage,non_refundable_discount,promo_discount,rental_charge,staff_discount');
 select test.eq('CAT pass-through amounts',
   (select string_agg(code, ',' order by code) from fee_types where revenue_class = 'pass_through'),
   'collection_cost,damage_at_cost,lost_key_cost,recovery_cost,roadside_callout,ticket_amount,toll_amount');
