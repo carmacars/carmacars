@@ -46,7 +46,7 @@ describe('the facts read from the code', () => {
     expect(facts.nav.admin.map((g: { group: string }) => g.group)).toEqual(['Today', 'Bookings', 'Cars', 'People', 'Marketing', 'Money', 'Settings']);
     expect(facts.nav.admin.find((g: { group: string }) => g.group === 'People').links).toContain('Applications');
     // r27 audit: Today first, then each role's own group (Live chat in customer service and Sales)
-    expect(facts.nav.va.map((g: { group: string }) => g.group)).toContain('Today');
+    expect(facts.nav.va.map((g: { group: string }) => g.group)).toContain('To do');
     expect(facts.nav.va.find((g: { group: string }) => g.group === 'Customer service').links).toContain('Live chat');
     expect(facts.nav.investor[0].links).toContain('Profile and notices');
     expect(facts.nav.owner[0].links).toContain('Documents');

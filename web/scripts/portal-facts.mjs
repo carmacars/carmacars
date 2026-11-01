@@ -76,8 +76,14 @@ function navFromGroups(code, constName, hubs = '') {
     const h = hubs.match(new RegExp(`\\{ key: '${k}', label: '([^']+)', tabs: \\[([\\s\\S]*?)\\] \\}`));
     return h ? [h[1], ...[...h[2].matchAll(/label: '([^']+)'/g)].map((m) => m[1])] : [k];
   };
+  // a section's link (r27, second cut): sec('key') names the section, its pages and their groups' tabs
+  const secOf = (k) => {
+    const x = hubs.match(new RegExp(`\\{ key: '${k}', label: '([^']+)', items: \\[([\\s\\S]*?)\\] \\}`));
+    if (!x) return [];
+    return [x[1], ...[...x[2].matchAll(/label: '([^']+)'|(?:^|[[,]\s*)'([a-z-]+)'/g)].flatMap((m) => (m[1] ? [m[1]] : hub(m[2])))];
+  };
   for (const g of body.matchAll(/\{\s*key: '([^']+)', label: '([^']+)', links: \[([\s\S]*?)\]\s*\}\s*(?:,|\n\])/g)) {
-    groups.push({ group: g[2], links: [...new Set([...g[3].matchAll(/label: '([^']+)'|hub\('([^']+)'/g)].flatMap((m) => (m[1] ? [m[1]] : hub(m[2]))))] });
+    groups.push({ group: g[2], links: [...new Set([...g[3].matchAll(/label: '([^']+)'|hub\('([^']+)'|sec\('([^']+)'(?:, '([^']+)')?/g)].flatMap((m) => (m[1] ? [m[1]] : m[2] ? hub(m[2]) : [...(m[4] && m[4].length > 2 ? [m[4]] : []), ...secOf(m[3])])))] });
   }
   return groups;
 }

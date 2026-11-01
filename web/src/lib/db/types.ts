@@ -24772,6 +24772,7 @@ export type Database = {
       server_review_google_sync_finish: { Args: { p: Json }; Returns: Json };
       server_review_helper: { Args: { p_token: string }; Returns: Json };
       server_review_helper_act: { Args: { p_token: string; p_act: string }; Returns: Json };
+      server_row_car_photos: { Args: { p_vehicles: string[] }; Returns: Json };
       server_schedule_change_attach: { Args: { p_change: string; p_path: string; p_sha256: string }; Returns: string };
       server_schedule_change_sign: { Args: { p_by: string; p: Json }; Returns: Json };
       server_schedule_change_signed_facts: { Args: { p_change: string }; Returns: Json };

@@ -81,9 +81,9 @@ test('Sales: adds a rental within its limits, and My sales credits it with its q
 
   const page = await ctx(browser);
   await signIn(page, sales.email, '/staff');
-  // the menu: Me has My numbers (Scorecard and My sales, r27) for Sales
+  // the menu: My sales is one of Sales' five (r27)
   if (isPhone()) await page.getByTestId('va-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
-  await expect(page.getByTestId('va-nav').getByRole('link', { name: 'My numbers' })).toBeVisible();
+  await expect(page.getByTestId('va-nav').getByRole('link', { name: 'My sales', exact: true })).toBeVisible();
 
   // Add a rental by hand within the limits: the rate-sheet price, no price typed by hand, no past rental, a payment link
   await page.goto('/staff/bookings/new', { waitUntil: 'networkidle' });

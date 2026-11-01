@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ADMIN_HUBS, STAFF_HUBS, hubLink, hubOf, movedTo, tabOf } from './hubs.ts';
+import { ADMIN_HUBS, ADMIN_SECTIONS, STAFF_HUBS, hubLink, hubOf, movedTo, placeOf, sectionLink, tabOf } from './hubs.ts';
 
 const at = (path: string, q = '') => { const x = hubOf(ADMIN_HUBS, path, q); return x ? `${x.hub.key}:${x.tab.label}` : null; };
 
@@ -53,4 +53,36 @@ test('tabOf: a known tab, else the first', () => {
   assert.equal(tabOf(k, 'z'), 'a');
   assert.equal(tabOf(k, undefined), 'a');
   assert.equal(tabOf(k, ['b', 'a']), 'b');
+});
+
+test('admin sections: one link each, opening on the page used most, current on every page in it', () => {
+  const l = (k: string) => sectionLink(ADMIN_SECTIONS, ADMIN_HUBS, k)!;
+  assert.equal(l('cars').href, '/admin/vehicles');
+  assert.equal(l('people').href, '/admin/owners');
+  assert.equal(l('money').href, '/admin/money?tab=day');
+  assert.equal(l('settings').href, '/admin/settings');
+  for (const p of ['/admin/maintenance', '/admin/similar-cars', '/admin/calendar-sync']) assert.ok(l('cars').also.includes(p), p);
+  for (const p of ['/admin/applications', '/admin/referral-partners', '/admin/hiring', '/admin/investors', '/admin/settings/staff']) assert.ok(l('people').also.includes(p), p);
+  for (const p of ['/admin/owner-money', '/admin/tolls', '/admin/expenses', '/admin/money/field-pay', '/admin/insurers']) assert.ok(l('money').also.includes(p), p);
+  assert.ok(l('settings').also.includes('/admin/logs'));
+  // every page group but Damage and claims is in a section
+  const inSec = new Set(ADMIN_SECTIONS.flatMap((x) => x.items.filter((i): i is string => typeof i === 'string')));
+  assert.deepEqual(ADMIN_HUBS.map((h) => h.key).filter((k) => !inSec.has(k)), ['problems']);
+});
+
+test('admin rows: the section with its current page, then the group\'s tabs', () => {
+  const p = placeOf(ADMIN_SECTIONS, ADMIN_HUBS, '/admin/owner-money', 'tab=debits');
+  assert.equal(p.section?.label, 'Money');
+  assert.equal(p.section?.current.label, 'Owner money');
+  assert.equal(p.hub?.tab.label, 'Debits');
+  const m = placeOf(ADMIN_SECTIONS, ADMIN_HUBS, '/admin/maintenance', '');
+  assert.equal(m.section?.current.label, 'Maintenance');
+  assert.equal(m.hub, null);
+  const s = placeOf(ADMIN_SECTIONS, ADMIN_HUBS, '/admin/settings/staff', '');
+  assert.equal(s.section?.label, 'People');
+  assert.equal(s.hub?.tab.label, 'Staff and roles');
+  const d = placeOf(ADMIN_SECTIONS, ADMIN_HUBS, '/admin/damages', 'tab=claims');
+  assert.equal(d.section, null);
+  assert.equal(d.hub?.tab.label, 'Claims');
+  assert.equal(placeOf(ADMIN_SECTIONS, ADMIN_HUBS, '/admin/bookings', '').section, null);
 });

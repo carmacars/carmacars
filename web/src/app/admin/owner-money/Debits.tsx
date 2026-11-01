@@ -3,6 +3,7 @@ import type { AdminPage } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, Card, d, Kv, PageHead, Table, Tiles, t } from '@/features/admin/ui';
 import { CarCell } from '@/features/admin/revamp/CarCell';
+import { carPhotos } from '@/server/car-photos';
 
 const ord = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'}`;
 
@@ -22,6 +23,7 @@ const inv = (r: R) => <Link prefetch={false} className="link" href={`/admin/owne
 // went to the bank and what came back, the run log, and the pauses. The schedule and the retry policy are Program settings.
 export async function Debits({ ctx: { read } }: { ctx: AdminPage }) {
   const x = await read<Debits>('owner_debits');
+  const photos = await carPhotos(x.upcoming);
   const s = x.settings;
   return (<>
     <PageHead title="Owner debits" purpose="The automatic monthly debit of owner invoices: what is scheduled, what went to the bank and what came back.">
@@ -50,7 +52,7 @@ export async function Debits({ ctx: { read } }: { ctx: AdminPage }) {
         { key: 'debit_on', label: 'Debit day', render: (r) => d(r.debit_on) },
         { key: 'owner_name', label: 'Owner', render: (r) => <Link prefetch={false} className="link" href={`/admin/owners/${String(r.owner_id)}`}>{String(r.owner_name)}</Link> },
         { key: 'invoice_number', label: 'Invoice', render: inv },
-        { key: 'vehicle_name', label: 'Vehicle', render: (r) => <CarCell name={r.vehicle_name} /> },
+        { key: 'vehicle_name', label: 'Vehicle', render: (r) => <CarCell name={r.vehicle_name} photo={photos[String(r.vehicle_id)]} /> },
         { key: 'attempt_no', label: 'Attempt', num: true },
         { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) },
         { key: 'bank_last4', label: 'Account', render: (r) => r.bank_last4 ? `ending ${String(r.bank_last4)}` : '' },

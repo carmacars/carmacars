@@ -135,9 +135,9 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await signIn(fp, fin.email, '/staff');
   // the menu has Add a rental and My sales for Finance (0058)
   if (isPhone()) await fp.getByTestId('va-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
-  await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'My numbers' })).toBeVisible();
-  await fp.getByTestId('va-nav').getByRole('button', { name: 'Rentals' }).click();
-  await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'Add a rental' })).toBeVisible();
+  // r27: My sales is under Me, Add a rental under Bookings (each one link with a row of its pages)
+  await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'Me', exact: true })).toBeVisible();
+  await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'Bookings', exact: true })).toBeVisible();
   await fp.goto('/staff/bookings/new', { waitUntil: 'networkidle' });
   await fillRental(fp, carId, days + 14);
   // a price typed tax included (0112; 2026-10-27: Amounts I type, After tax): the database backs out the HST ($339.00 is $300.00 and $39.00 HST)

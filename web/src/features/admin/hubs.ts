@@ -5,6 +5,10 @@
 // address). The first tab is where the menu link goes.
 export interface HubTab { href: string; label: string; /** staff portal: the functions that may open the page, space separated (the tab row shows a person only theirs) */ fns?: string }
 export interface Hub { key: string; label: string; tabs: HubTab[] }
+/** A section (r27, second cut, the owner: "i think u can reduce staff menu links even further, along with admin"): one menu
+ *  link for a whole area (Cars, People, Money...). Its items are page groups (by key) or single pages; on its pages a first
+ *  row shows the items and, when the item is a group, a second row its tabs. */
+export interface Section { key: string; label: string; items: Array<string | HubTab> }
 
 export const ADMIN_HUBS: Hub[] = [
   { key: 'payments', label: 'Payments', tabs: [
@@ -51,8 +55,7 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'listings', label: 'Listings', tabs: [{ href: '/staff/listings', label: 'Listings', fns: 'cs fleet' }, { href: '/staff/similar-cars', label: 'Similar cars', fns: 'cs fleet' }, { href: '/staff/calendar-sync', label: 'Calendar sync', fns: 'fleet' }] },
   { key: 'field-jobs', label: 'Field jobs', tabs: [{ href: '/staff/fleet', label: 'Jobs', fns: 'fleet' }, { href: '/staff/field-hours', label: 'Field hours', fns: 'fleet' }] },
   { key: 'checks', label: 'Checks', tabs: [{ href: '/staff/checks', label: 'Daily checks', fns: 'fleet' }, { href: '/staff/reviews', label: 'Photo reviews', fns: 'fleet' }] },
-  { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' }] },
-  { key: 'field-pay', label: 'My pay', tabs: [{ href: '/staff/field/hours', label: 'My hours', fns: 'field' }, { href: '/staff/field/sales', label: 'My sales', fns: 'field' }, { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }] }
+  { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' }] }
 ];
 
 /** A person's page groups: only the tabs of the functions they hold, and only groups left with a tab. */
@@ -104,4 +107,70 @@ export function movedTo(path: string, tab: string, sp: Record<string, string | s
     for (const x of Array.isArray(v) ? v : [v]) q.append(k, x);
   }
   return `${path}?${q.toString()}`;
+}
+
+
+// ---------------------------------------------------------------- sections (r27, second cut)
+export const ADMIN_SECTIONS: Section[] = [
+  { key: 'cars', label: 'Cars', items: ['vehicles', 'listings', { href: '/admin/maintenance', label: 'Maintenance' }] },
+  { key: 'people', label: 'People', items: ['owners', { href: '/admin/applications', label: 'Applications' }, 'partners', 'renters', 'team', { href: '/admin/investors', label: 'Investors' }] },
+  { key: 'marketing', label: 'Marketing', items: ['ads', 'recruit'] },
+  { key: 'money', label: 'Money', items: ['payments', 'owner-money', { href: '/admin/tolls', label: 'Tolls and tickets' }, 'company', 'insurers', 'staff-pay'] },
+  { key: 'settings', label: 'Settings', items: [{ href: '/admin/settings', label: 'Settings' }, 'logs'] }
+];
+
+// The staff portal's sections: what each role does less often ("More ..."), Bookings and Me. Single pages name their
+// functions like tabs do; a person sees only their items.
+const OFFICE = 'cs fleet finance sales';
+export const STAFF_SECTIONS: Section[] = [
+  { key: 'todo', label: 'To do', items: [{ href: '/staff', label: 'To do', fns: OFFICE }, { href: '/staff/today', label: 'Today at a glance', fns: OFFICE }] },
+  { key: 'cs', label: 'Customer service', items: ['renters', { href: '/staff/chauffeur', label: 'Chauffeur', fns: 'cs' }, 'owners', 'listings'] },
+  { key: 'sales', label: 'Sales', items: [{ href: '/staff/live', label: 'Live visitors', fns: 'sales' }, 'renters', 'owners', { href: '/staff/chauffeur', label: 'Chauffeur', fns: 'sales' }] },
+  { key: 'fleet', label: 'Fleet', items: ['field-jobs', 'checks', { href: '/staff/maintenance', label: 'Maintenance', fns: 'fleet' }, 'listings', { href: '/staff/addons', label: 'Add-ons', fns: 'fleet' }, 'owners', 'renters'] },
+  { key: 'finance', label: 'Finance', items: ['money', { href: '/staff/tolls', label: 'Tolls and tickets', fns: 'finance' }, { href: '/staff/turo', label: 'Turo trips', fns: 'finance' }, { href: '/staff/maintenance', label: 'Maintenance bills', fns: 'finance' }, 'renters'] },
+  { key: 'bookings', label: 'Bookings', items: [{ href: '/staff/bookings', label: 'Bookings', fns: OFFICE }, { href: '/staff/calendar', label: 'Calendar', fns: OFFICE }, { href: '/staff/cars', label: 'Find a car', fns: OFFICE },
+    { href: '/staff/bookings/new', label: 'Add a rental', fns: OFFICE }, { href: '/staff/quotes/new', label: 'New quote', fns: OFFICE }, { href: '/staff/card-coverage', label: 'Card coverage', fns: OFFICE }] },
+  { key: 'me', label: 'Me', items: ['numbers', { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }, { href: '/staff/field/profile', label: 'Profile', fns: 'field' }, { href: '/staff/academy', label: 'Academy', fns: `${OFFICE} field` }] }
+];
+
+const holds = (fns: string | undefined, held: readonly string[]) => !fns || fns.split(' ').some((f) => held.includes(f));
+
+/** A person's sections: their single pages and their (already filtered) page groups; sections left empty go. */
+export function sectionsFor(sections: Section[], hubs: Hub[], held: readonly string[], drop: (href: string) => boolean = () => false): Section[] {
+  const keys = new Set(hubs.map((h) => h.key));
+  return sections.map((s) => ({ ...s, items: s.items.filter((i) => (typeof i === 'string' ? keys.has(i) : holds(i.fns, held) && !drop(i.href))) })).filter((s) => s.items.length > 0);
+}
+
+export interface SectionItem { key: string; label: string; href: string; paths: string[]; hub: Hub | null }
+/** A section's items with their first page and every address under them. A group with one page shows that page's name. */
+export function sectionItems(s: Section, hubs: Hub[]): SectionItem[] {
+  return s.items.flatMap((i) => {
+    if (typeof i !== 'string') return [{ key: i.href, label: i.label, href: i.href, paths: [split(i.href)[0]!], hub: null }];
+    const h = hubs.find((x) => x.key === i);
+    if (!h || !h.tabs.length) return [];
+    return [{ key: h.key, label: h.tabs.length === 1 ? h.tabs[0]!.label : h.label, href: h.tabs[0]!.href, paths: [...new Set(h.tabs.map((t) => split(t.href)[0]!))], hub: h.tabs.length > 1 ? h : null }];
+  });
+}
+
+/** The menu link of a section: its first item (or the first not already a link of its own), its name, every address in it. */
+export function sectionLink(sections: Section[], hubs: Hub[], key: string, label?: string, skip: string[] = []): { href: string; label: string; also: string[] } | null {
+  const s = sections.find((x) => x.key === key);
+  if (!s) return null;
+  const items = sectionItems(s, hubs);
+  if (!items.length) return null;
+  // the first page of the section that is not a link of its own (a group's next tab when its first one is)
+  const pages = s.items.flatMap((i) => (typeof i === 'string' ? (hubs.find((h) => h.key === i)?.tabs ?? []).map((t) => t.href) : [i.href]));
+  const href = pages.find((h) => !skip.includes(h)) ?? items[0]!.href;
+  return { href, label: label ?? s.label, also: [...new Set(items.flatMap((i) => i.paths))] };
+}
+
+/** Where the page shown sits: its section (the first that holds it) with the current item, and its page group and tab. */
+export function placeOf(sections: Section[], hubs: Hub[], path: string, query: string): { section: { label: string; items: SectionItem[]; current: SectionItem } | null; hub: { hub: Hub; tab: HubTab } | null } {
+  const at = hubOf(hubs, path, query);
+  for (const s of sections) {
+    const items = sectionItems(s, hubs);
+    const current = (at ? items.find((i) => i.key === at.hub.key) : undefined) ?? items.find((i) => i.paths.includes(path));
+    if (current) return { section: items.length > 1 ? { label: s.label, items, current } : null, hub: at };
+  }
+  return { section: null, hub: at };
 }

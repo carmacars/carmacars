@@ -3,7 +3,8 @@
 The owner, November 1, 2026: "There's way too many tabs at the moment and information is spread out too much", "We need
 less pages not more", and "Look for other tabs and shit that can merged and revamped".
 
-The admin menu had 78 links in seven groups. It now has 34 in the same seven groups. Pages that showed the same records
+Then, the same day: "i think u can reduce staff menu links even further, along with admin". The admin menu had 78 links
+in seven groups. It now has 20 in the same seven groups: Cars, People, Marketing, Money and Settings are one link each. Pages that showed the same records
 from different angles are one page with tabs; separate tools on one subject are one menu link with a row of tabs on top.
 The areas other branches own this week (Requests, Bookings, Calendar, Send an offer, Add a rental, Chauffeur; Live
 visitors, Live map, Visitor history; To do, Overview, Staff tasks; Live chat; the pricing settings; My sales) are
@@ -36,18 +37,26 @@ unchanged, menu lines included.
   the cards as you type. My phone alerts and Logs are cards on it. Every settings page is in exactly one section (a unit
   test). Ctrl+K still reaches every settings page and now every tab of every group. Reviews no longer shows twice in the
   menu: the review settings are a card on Settings (Messages and reviews).
+- **Sections (second cut):** Cars, People, Marketing, Money and Settings are one menu link each (`ADMIN_SECTIONS`), opening
+  on the page used most (Vehicles, Owners, Ads, Payments by day, Settings). On their pages a first row shows the area's
+  pages (Money: Payments, Owner money, Tolls and tickets, Company accounts, Insurers, Staff pay) and, where the page is a
+  group, a second row its tabs (Owner money: Invoices, Debits, Statements, Payouts). A section's link carries its pages'
+  counts (Cars: listings to review; People: applications; Money: refunds, statements and tolls). Ctrl+K lists every
+  page and tab. Shortcuts: g v Cars, g o People, g m Money, g s Settings.
 - **Staff portal, every role audited** (the owner, the same day: "Lots of the tabs under admin and under each staff
-  account are redundant and can be merged to avoid confusion and to have a smoother workflow"): each role's shift was
-  mapped from its guide chapter and the Academy. The menu is now Today (To do, Today at a glance) / the role's own group,
-  always open, its most used pages first / Rentals / Me (My numbers: Scorecard and My sales; Academy). Pages showing the
-  same records are one link with a tab row (`STAFF_HUBS`): Money (To handle, By day, Reconciliation), Renters (Messages,
-  Find a renter, Review requests, Leads), Owners (Owner leads, Owner pipeline, Owner forms, Add a car), Listings
-  (Listings, Similar cars, Calendar sync), Field jobs (Jobs, Field hours), Checks (Daily checks, Photo reviews), My
-  numbers (Scorecard, My sales) and, for field staff, My pay (My hours, My sales, Referrals). Each tab names the
-  functions whose page it is, so a person sees only their tabs (a group with one page for them shows as that page's
-  name); every page keeps its address and its own check. Links: customer service 26 to 18, fleet 22 to 17, finance 18
-  to 15, sales 19 to 17, field 8 to 6. Taps for each role's five most frequent jobs from the To do home: customer
-  service 10 to 6, fleet 10 to 6, finance 10 to 7, sales 9 to 6, field 4 to 5 (My sales moved under My pay).
+  account are redundant and can be merged to avoid confusion and to have a smoother workflow", then "i think u can
+  reduce staff menu links even further"): each role's shift was mapped from its guide chapter and the Academy. Every
+  office role now has the same anchors and nine links: **To do** (Today at a glance is its second page), the role's
+  five most frequent jobs, **More ...** for the rest of its work, **Bookings** (Bookings, Calendar, Find a car, Add a
+  rental, New quote, Card coverage) and **Me** (My numbers: Scorecard and My sales; Academy). The role's group is always
+  open. Customer service: Requests, Live chat, Messages, Send an offer, Live visitors. Sales: Requests and offers, Send
+  an offer, New quote, Live chat, My sales. Fleet: Field jobs, Daily checks, Photo reviews, Maintenance, Listings.
+  Finance: Money to handle, Payments by day, Tolls and tickets, Reconciliation, Turo trips. Field staff: My jobs, My
+  hours, Report a problem, Add a rental, My sales, and Me (Referrals, Profile, Academy). Pages showing the same records
+  are page groups (`STAFF_HUBS`: Money, Renters, Owners, Listings, Field jobs, Checks, My numbers) inside the sections
+  (`STAFF_SECTIONS`); each page and tab names the functions it belongs to, so a person sees only theirs, and every page
+  keeps its address and its own check. Links: customer service 26 to 9, fleet 22 to 9, finance 18 to 9, sales 19 to 9,
+  field 8 to 6. Each role's five most frequent jobs are one tap from the menu.
 - **Revamp of the merged pages:** one heading per tab with a plain line on what it is for (Damage, Incidents, Claims,
   Emails, Blocked addresses, Changes, Data access, Owner debits, Insurer invoices, Renter leads); the second-level tab
   rows inside the old pages are gone (their tabs are the group's tabs now); the buttons that only linked to a sibling page
@@ -61,9 +70,12 @@ unchanged, menu lines included.
   band (Tiles, and the staff figures), white rounded cards, rows with room and a bold first column, status chips, one
   red button for the row's next action, filter chips, and every row a card on a phone. A car in a row shows a photo
   tile (`CarCell`: the photo when the row has one, else the make's letter on black): Damage, Incidents, Claims,
-  Expenses, Owner debits, Listings (admin and staff) and the staff Field jobs. New dark bands: Payments by day (admin
+  Expenses, Owner debits, Listings (admin and staff) and the staff Field jobs. The car's cover photo (approved, as on
+  its public page) comes from `server_row_car_photos` (migration 0430, service role only, `web/src/server/car-photos.ts`);
+  the letter shows only for a car without one. New dark bands: Payments by day (admin
   and Finance: received, refunded, net, refunds waiting, the cash drawer), Owner invoices, Owner statements, Payouts,
-  Insurer invoices, Damage and the email log. The pages other branches own (Bookings, Requests, Calendar, Visitors, To
+  Insurer invoices, Damage and the email log. A number or an amount in a band never wraps: its size follows the tile's
+  width (container units), so $123,456.78 fits a phone's half-width tile. The pages other branches own (Bookings, Requests, Calendar, Visitors, To
   do, Overview, Staff tasks, Live chat, My sales) are not in the list and keep their look; a unit test holds that.
 - **Access:** unchanged. Every admin page checks the Admin role and two-step sign-in itself; the merged pages do the
   same with the same check. The staff Money group holds only Finance pages.
@@ -78,10 +90,16 @@ unchanged, menu lines included.
 
 | | Before | After |
 | --- | --- | --- |
-| Admin menu links | 78 | 34 |
-| Admin menu links outside other branches' areas | 65 | 21 |
+| Admin menu links | 78 | 20 |
+| Admin menu links outside other branches' areas | 65 | 7 |
 | Admin list pages with their own content | 13 (the merged ones) | 6 |
-| Staff menu links: customer service, fleet, finance, sales, field | 26, 22, 18, 19, 8 | 18, 17, 15, 17, 6 |
+| Staff menu links: customer service, fleet, finance, sales, field | 26, 22, 18, 19, 8 | 9, 9, 9, 9, 6 |
+| Taps for each role's five most frequent jobs (desktop, from To do) | 10, 10, 10, 9, 4 | 5, 5, 5, 5, 4 |
+
+## Database
+
+- `0430_row_car_photos.sql`: `app.row_car_photos` and `public.server_row_car_photos` (service role only); test
+  `supabase/tests/99_row_car_photos.sql`. `SCHEMA_MARKER` 0430.
 
 ## Tests
 
@@ -105,6 +123,7 @@ unchanged, menu lines included.
   `admin/search-car-pages-landing-pages-and-guides`, `admin/settings`, `admin/email-backups-and-site-health`: the new
   places (Owner money, Payments, Insurers, Staff pay, Company accounts, Logs, Renters > Leads, Owners > Paid and signed,
   Partners > Referral partners, Owners > Add a car, Ads > Ad listings; Settings without "All settings").
-- `va/your-workday` (the menu of each role), `va/finance`, `va/sales`, `va/shared-tools`, `va/quick-reference`: the new staff menu, Today,
+- `va/your-workday` (the menu of each role), `va/finance`, `va/sales`, `va/shared-tools`, `va/live-visitors-and-live-chat`,
+  `va/texts-and-calls`, `va/discount-game-leads`, `va/academy`, `va/quick-reference`: the new staff menu, Today,
   Me and My numbers, the page groups.
-- `field/my-jobs`, `field/my-hours-and-pay`: My pay (My hours, My sales, Referrals).
+- `field/my-jobs`, `field/academy`: the field menu (five jobs and Me).

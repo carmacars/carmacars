@@ -109,10 +109,11 @@ test('admin: To do, the six groups, search, the keyboard, Admin access only for 
   const nav = page.getByTestId('admin-nav');
   for (const g of GROUPS) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
   await expect(nav.locator('.gn__head, .gn__single')).toHaveCount(GROUPS.length);
-  await nav.getByTestId('nav-group-people').click();
-  await expect(nav.getByRole('link', { name: /^Applications/ })).toBeVisible();
+  // r27: People is one link; its pages (Owners, Applications, Partners...) are a row on top
   await shot(page, 'menu');
-  await nav.getByRole('link', { name: /^Applications/ }).click();
+  await nav.getByRole('link', { name: /^People/ }).click();
+  await page.waitForURL(/\/admin\/owners/);
+  await page.getByTestId('section-bar').getByRole('link', { name: /^Applications/ }).click();
   await page.waitForURL(/\/admin\/applications/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Owner applications');
   if (isPhone()) await expect(page.getByTestId('nav-menu')).toContainText('People');
@@ -468,8 +469,8 @@ test('assistant: the grouped menu, To do first', async ({ browser }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('To do');
   await openMenu(page);
   const nav = page.getByTestId('va-nav');
-  // r27 audit: Today, the role's own group (always open), Rentals, Me
-  for (const g of ['Today', 'Customer service', 'Rentals', 'Me']) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
+  // r27 audit: To do, the role's own group (always open), Bookings, Me
+  for (const g of ['To do', 'Customer service', 'Bookings', 'Me']) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
   await nav.getByRole('link', { name: 'Requests', exact: true }).click();
   await page.waitForURL(/\/staff\/requests/);
   await check(page, 'assistant requests');

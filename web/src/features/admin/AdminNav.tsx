@@ -1,14 +1,17 @@
 import { Suspense } from 'react';
 import { GroupNav, type NavGroup, type NavLink } from './GroupNav';
-import { ADMIN_HUBS, hubLink } from './hubs';
+import { ADMIN_HUBS, ADMIN_SECTIONS, hubLink, sectionLink } from './hubs';
 
 // a page group's menu link (r27): its first tab, its name, its other addresses
 const hub = (k: string, key?: string): NavLink => ({ ...hubLink(ADMIN_HUBS, k), ...(key ? { key } : {}) });
+// a section's menu link (r27, second cut): one link for a whole area, its pages in a row on top
+const sec = (k: string, key?: string): NavLink => ({ ...sectionLink(ADMIN_SECTIONS, ADMIN_HUBS, k)!, ...(key ? { key } : {}) });
 
 // The admin portal's navigation (October 16, 2026: the owner found 31 links "super difficult to navigate"; October 23,
 // 2026: six groups, the long ones in labelled parts; October 25, 2026: Marketing, migration 0167): seven groups with plain
-// names, every page still two taps away. November 1, 2026 (r27, "We need less pages not more"): 78 links became 34; pages
-// on one subject are one link and one row of tabs (hubs.ts), and the Settings menu is the Settings page. Old addresses
+// names, every page still two taps away. November 1, 2026 (r27, "We need less pages not more", then "reduce ... even
+// further"): 78 links became 20. Cars, People, Marketing, Money and Settings are one link each: a row of their pages on
+// top, and a second row of tabs where a page is a group (hubs.ts). Ctrl+K reaches every page and tab. Old addresses
 // redirect to their tab, so links in emails and bookmarks work.
 export const GROUPS: NavGroup[] = [
   { key: 'today', label: 'Today', links: [
@@ -18,13 +21,11 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/offers/new', label: 'Send an offer' }, { href: '/admin/bookings/new', label: 'Add a rental' }, { href: '/admin/chauffeur', label: 'Chauffeur' },
     { href: '/admin/chat', label: 'Live chat', section: 'Customers' }, { href: '/admin/reviews', label: 'Reviews' },
     { ...hub('problems'), section: 'Problems' }] },
-  { key: 'cars', label: 'Cars', links: [hub('vehicles', 'v'), hub('listings', 'l'), { href: '/admin/maintenance', label: 'Maintenance' }] },
-  { key: 'people', label: 'People', links: [
-    { href: '/admin/applications', label: 'Applications', key: 'a' }, hub('owners', 'o'), hub('partners'), hub('renters'), hub('team'), { href: '/admin/investors', label: 'Investors' }] },
-  { key: 'marketing', label: 'Marketing', links: [hub('ads'), hub('recruit')] },
-  { key: 'money', label: 'Money', links: [
-    hub('payments', 'm'), hub('owner-money'), { href: '/admin/tolls', label: 'Tolls and tickets' }, hub('company'), hub('insurers'), hub('staff-pay')] },
-  { key: 'settings', label: 'Settings', links: [{ href: '/admin/settings', label: 'Settings', key: 's' }, hub('logs')] }
+  { key: 'cars', label: 'Cars', links: [sec('cars', 'v')] },
+  { key: 'people', label: 'People', links: [sec('people', 'o')] },
+  { key: 'marketing', label: 'Marketing', links: [sec('marketing')] },
+  { key: 'money', label: 'Money', links: [sec('money', 'm')] },
+  { key: 'settings', label: 'Settings', links: [sec('settings', 's')] }
 ];
 
 /** Every page the navigation reaches (kept for the crawl and the guide's quick reference). */

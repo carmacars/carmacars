@@ -6,6 +6,7 @@ import { $, Badge, BookingLink, Card, PageHead, Table, Tiles, t, label } from '@
 import { tabOf } from '@/features/admin/hubs';
 import { Incidents } from './Incidents';
 import { CarCell } from '@/features/admin/revamp/CarCell';
+import { carPhotos } from '@/server/car-photos';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Damage and claims', path: '/admin/damages', noindex: true, description: 'Damage found after a rental, incidents and insurance claims.' });
@@ -20,6 +21,7 @@ export default async function Damages({ searchParams }: { searchParams: Promise<
   if (tab !== 'damage') return <Incidents ctx={ctx} tab={tab} />;
   const { read, list } = ctx;
   const [rows, vehicles] = await Promise.all([read<R[]>('damages'), list<{ id: string; make: string; model: string; plate: string | null }>('vehicles', { order: 'make', asc: true, limit: 500 })]);
+  const photos = await carPhotos(rows);
   return (<>
     <PageHead title="Damage" purpose="Damage found at a return or reported later: cost it, match it to a booking and charge it.">
       <Act action="damage_log" nest="damage" label="Log damage" variant="primary" go="/admin/damages/{id}" testId="damage-log" fields={[
@@ -34,7 +36,7 @@ export default async function Damages({ searchParams }: { searchParams: Promise<
       ...[...new Set(rows.map((r) => String(r.bucket)))].slice(0, 4).map((b) => ({ k: label(b).replace(/^./, (c) => c.toUpperCase()), v: String(rows.filter((r) => r.bucket === b).length) })),
       { k: 'Older than 7 days', v: String(rows.filter((r) => Number(r.age_days) > 7).length), warn: rows.some((r) => Number(r.age_days) > 7) }]} />
     <Card title="Work queue"><Table<R> testId="damages" rows={rows} empty="No damage waiting. Damage found at a return or reported later shows up here to cost and charge." cols={[{ key: 'intake_number', label: 'Intake', render: (r) => <Link prefetch={false} className="link" href={`/admin/damages/${String(r.id)}`}>{String(r.intake_number)}</Link> },
-      { key: 'bucket', label: 'Queue', render: (r) => <Badge s="open">{label(r.bucket)}</Badge> }, { key: 'vehicle_name', label: 'Vehicle', render: (r) => <CarCell name={r.vehicle_name} /> }, { key: 'found_at', label: 'Found', render: (r) => t(r.found_at) }, { key: 'location', label: 'Where' },
+      { key: 'bucket', label: 'Queue', render: (r) => <Badge s="open">{label(r.bucket)}</Badge> }, { key: 'vehicle_name', label: 'Vehicle', render: (r) => <CarCell name={r.vehicle_name} photo={photos[String(r.vehicle_id)]} /> }, { key: 'found_at', label: 'Found', render: (r) => t(r.found_at) }, { key: 'location', label: 'Where' },
       { key: 'cost_cents', label: 'Cost', num: true, render: (r) => $(r.cost_cents) }, { key: 'matched', label: 'Matched', render: (r) => <>{label(r.matched_to)} {r.booking_number ? <BookingLink n={r.booking_number} /> : null}</> }, { key: 'age_days', label: 'Age (days)', num: true }]} /></Card>
   </>);
 }

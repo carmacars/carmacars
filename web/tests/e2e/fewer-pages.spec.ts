@@ -4,7 +4,7 @@ import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { acceptCookies, db, noOverflow } from './helpers';
 
-// Fewer pages (r27, docs/changes/2026-11-05-fewer-pages.md), at 375 and 1440: the admin menu's 34 links in seven groups,
+// Fewer pages (r27, docs/changes/2026-11-05-fewer-pages.md), at 375 and 1440: the admin menu's 20 links in seven groups,
 // every merged page and each of its tabs (axe, no overflow, the tab row with the current tab), every old address
 // redirecting to its tab with its query, the Settings page's sections, anchors and search, and the staff Finance Money link
 // with its tabs. Every page is checked with axe and for overflow.
@@ -74,7 +74,7 @@ const MOVED: Array<[string, string]> = [
 
 test.describe.configure({ mode: 'serial' });
 
-test('admin: 34 menu links, the merged pages and their tabs, the old addresses, Settings in sections', async ({ browser }) => {
+test('admin: 20 menu links, the merged pages and their tabs, the old addresses, Settings in sections', async ({ browser }) => {
   test.setTimeout(300_000);
   const sql = db();
   const admin = await mkUser(sql, 'admin', 'Fp Admin');
@@ -82,21 +82,23 @@ test('admin: 34 menu links, the merged pages and their tabs, the old addresses, 
   const page = await ctx.newPage();
   await signIn(page, admin.email, '/admin');
 
-  // the menu: seven groups, 34 links (every group opened)
+  // the menu (r27, second cut): seven groups, 20 links; Cars, People, Marketing, Money and Settings are one link each
   await page.goto('/admin/owner-money', { waitUntil: 'networkidle' });
   const nav = page.getByTestId('admin-nav');
   if (phone()) await page.getByTestId('nav-menu').click();
-  for (const g of ['today', 'bookings', 'cars', 'people', 'marketing', 'money', 'settings']) {
+  for (const g of ['today', 'bookings']) {
     const head = nav.getByTestId(`nav-group-${g}`);
     if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
   }
-  // 34 since r27 (other branches may shorten Today and Bookings further, never lengthen them)
-  expect(await nav.locator('.gn__links a').count()).toBeLessThanOrEqual(34);
-  for (const l of ['Payments', 'Owner money', 'Company accounts', 'Insurers', 'Staff pay', 'Damage and claims', 'Vehicles', 'Owners', 'Partners', 'Renters', 'Staff', 'Ads', 'Owner recruitment', 'Settings', 'Logs'])
+  // 20 since r27 (other branches may shorten Today and Bookings further, never lengthen them)
+  expect(await nav.locator('.gn__links a, a.gn__single').count()).toBeLessThanOrEqual(20);
+  for (const l of ['Cars', 'People', 'Marketing', 'Money', 'Settings', 'Damage and claims', 'Reviews'])
     await expect(nav.getByRole('link', { name: new RegExp(`^${l}\\s*\\d*$`) })).toHaveCount(1);
-  // Owner money is the current link of Money
-  await expect(nav.locator('a[aria-current="page"]')).toHaveText(/^Owner money/);
-  for (const gone of ['Owner invoices', 'Owner debits', 'Payments by day', 'Insurer invoices', 'Email log', 'Audit log', 'All settings', 'Renter leads']) await expect(nav.getByRole('link', { name: gone, exact: true })).toHaveCount(0);
+  // Money is current on Owner money; the rows on top: Money's pages, then Owner money's tabs
+  await expect(nav.locator('a[aria-current="page"]')).toHaveText(/^Money/);
+  await expect(page.getByTestId('section-bar')).toHaveAttribute('aria-label', 'Money');
+  await expect(page.getByTestId('section-bar').locator('a[aria-current="true"]')).toHaveText(/^Owner money/);
+  for (const gone of ['Owner invoices', 'Owner debits', 'Payments by day', 'Insurer invoices', 'Email log', 'Audit log', 'All settings', 'Renter leads', 'Vehicles', 'Owners', 'Applications']) await expect(nav.getByRole('link', { name: gone, exact: true })).toHaveCount(0);
   await page.screenshot({ path: `${SHOTS}/${test.info().project.name}-menu.png`, fullPage: !phone() });
   if (phone()) await page.getByTestId('nav-menu').click();
 
@@ -188,10 +190,11 @@ test('staff Finance: one Money link, its three tabs at their own addresses', asy
   await page.goto('/staff/money', { waitUntil: 'networkidle' });
   const nav = page.getByTestId('va-nav');
   if (phone()) await page.getByTestId('nav-menu').click();
-  const head = nav.getByTestId('nav-group-finance');
-  if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
-  await expect(nav.getByRole('link', { name: 'Money', exact: true })).toHaveAttribute('aria-current', 'page');
-  for (const gone of ['Payments by day', 'Reconciliation', 'Payments, deposits and refunds']) await expect(nav.getByRole('link', { name: gone, exact: true })).toHaveCount(0);
+  // the Finance group is always open, its five jobs first (r27, second cut)
+  await expect(nav.getByTestId('nav-group-finance')).toHaveAttribute('aria-expanded', 'true');
+  await expect(nav.getByRole('link', { name: 'Money to handle', exact: true })).toHaveAttribute('aria-current', 'page');
+  for (const l of ['Payments by day', 'Tolls and tickets', 'Reconciliation', 'Turo trips', 'More finance', 'Bookings', 'Me']) await expect(nav.getByRole('link', { name: l, exact: true })).toHaveCount(1);
+  await expect(nav.locator('.gn__links a, a.gn__single')).toHaveCount(9);
   if (phone()) await page.getByTestId('nav-menu').click();
   for (const [path, tab] of [['/staff/money', 'To handle'], ['/staff/payments', 'By day'], ['/staff/reconciliation', 'Reconciliation']] as const) {
     await page.goto(path, { waitUntil: 'networkidle' });
@@ -211,7 +214,7 @@ test('staff Finance: one Money link, its three tabs at their own addresses', asy
 });
 
 // the r27 audit: each role's own group is always open, its jobs one tap away; a page group shows only the role's tabs
-for (const [fn, links, hub] of [['cs', 18, ['/staff/messages', 'Renters', 'Messages']], ['fleet', 17, ['/staff/checks', 'Checks', 'Daily checks']]] as const) {
+for (const [fn, links, hub] of [['cs', 9, ['/staff/messages', 'Renters', 'Messages']], ['fleet', 9, ['/staff/checks', 'Checks', 'Daily checks']]] as const) {
   test(`staff ${fn}: a short menu, the role's group open, page groups with the role's tabs`, async ({ browser }) => {
     test.setTimeout(120_000);
     const sql = db();
@@ -226,8 +229,7 @@ for (const [fn, links, hub] of [['cs', 18, ['/staff/messages', 'Renters', 'Messa
     const nav = page.getByTestId('va-nav');
     if (phone()) await page.getByTestId('nav-menu').click();
     await expect(nav.getByTestId(`nav-group-${fn}`)).toHaveAttribute('aria-expanded', 'true');
-    for (const g of ['today', 'rentals', 'me']) { const h = nav.getByTestId(`nav-group-${g}`); if ((await h.getAttribute('aria-expanded')) !== 'true') await h.click(); }
-    await expect(nav.locator('.gn__links a')).toHaveCount(links);
+    await expect(nav.locator('.gn__links a, a.gn__single')).toHaveCount(links);
     await page.screenshot({ path: `${SHOTS}/${test.info().project.name}-staff-${fn}-menu.png`, fullPage: true });
     await ctx.close();
     await sql.end();

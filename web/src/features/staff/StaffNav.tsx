@@ -6,7 +6,7 @@ import { staffNav } from '@/features/staff/nav';
 export function StaffNav({ functions, open, chat = 0, hot = 0 }: { functions: readonly string[]; open: number; chat?: number; hot?: number }) {
   return (
     <Suspense fallback={<nav className="gn" aria-label="Staff" />}>
-      <GroupNav groups={staffNav(functions)} counts={{ '/staff': open, '/staff/chat': chat, '/staff/live': hot }} label="Staff" testId="va-nav" alwaysOpen={[...functions, 'me']} />
+      <GroupNav groups={staffNav(functions)} counts={{ '/staff': open, '/staff/chat': chat, '/staff/live': hot }} label="Staff" testId="va-nav" alwaysOpen={[...functions]} />
     </Suspense>
   );
 }

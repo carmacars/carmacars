@@ -594,3 +594,13 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
   .hub__name { padding-left: var(--s-2); }
   .hub__tabs a { min-height: 44px; }
 }
+/* two rows (r27, second cut): the section's pages, then the page group's tabs, quieter, under it */
+.hub-rows { display: grid; gap: var(--s-2); min-width: 0; max-width: 100%; margin: 0 0 var(--s-4); }
+.hub-rows > .hub { margin: 0; }
+.hub--section .hub__tabs a[aria-current="true"] { background: var(--black); color: var(--white); }
+.hub--sub { background: none; border: 0; padding: 0; }
+.hub--sub .hub__tabs { gap: var(--s-1); }
+.hub--sub .hub__tabs a { min-height: 36px; border: 1px solid var(--grey-300); border-radius: 999px; background: var(--white); color: var(--text); font-size: var(--fs-xs); }
+.hub--sub .hub__tabs a:hover { border-color: var(--black); }
+.hub--sub .hub__tabs a[aria-current="page"] { background: var(--white); color: var(--text); border-color: var(--red-600); box-shadow: inset 0 0 0 1px var(--red-600); }
+@media (max-width: 47.99rem) { .hub--sub { padding: 0; } .hub--sub .hub__tabs a { min-height: 44px; } }
