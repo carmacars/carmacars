@@ -118,15 +118,18 @@ test('the phone number box: crawlers see every photo; dates stay open; full avai
     await page.getByTestId('see-full-availability').click();
     const box = page.getByTestId('phone-gate');
     await expect(box).toBeVisible();
-    await expect(box).toContainText('Put your phone number in to see full availability');
+    // 2026-11-06: the owner's simpler box: a title with a wink, one line, the field and the X; no button, no deals box
+    await expect(box).toContainText('What’s your number? 😉');
+    await expect(box).toContainText('See the full calendar, every day.');
+    await expect(box.getByRole('button', { name: 'Continue' })).toHaveCount(0);
     await expect(box.getByLabel('Mobile number')).toBeFocused();
-    await expect(page.getByTestId('phone-gate-deals')).not.toBeChecked();
     await check(page, 'the box');
     const n = number();
     await page.getByTestId('phone-gate-number').pressSequentially(n);
     await expect(page.getByTestId('phone-gate-number')).toHaveValue(`(${n.slice(0, 3)}) ${n.slice(3, 6)}-${n.slice(6)}`);
-    await page.getByTestId('phone-gate-continue').click();
-    await expect(page.getByTestId('phone-gate-sent')).toBeVisible();
+    // sent by itself at the tenth digit
+    await expect(page.getByTestId('phone-gate-code')).toBeVisible();
+    await expect(box).toContainText(`We texted a code to`);
     await page.getByTestId('phone-gate-code').fill(await codeFor(sql, `+1${n}`));
     await expect(box).toBeHidden();
     await expect(page.getByTestId('full-availability')).toContainText('Days already booked are crossed out.');
@@ -152,7 +155,7 @@ test('the phone number box: crawlers see every photo; dates stay open; full avai
     await expect(g.locator('.gallery__count b')).toHaveText(new RegExp('^2 / '));
     await expect(g.getByTestId('phone-gate')).toBeHidden();
     await next.click();
-    await expect(g.getByTestId('phone-gate')).toContainText('Put your phone number in to see more photos');
+    await expect(g.getByTestId('phone-gate')).toContainText('See every photo of this car.');
     await check(g, 'the box on the gallery');
     await g.keyboard.press('Escape');
     await expect(g.getByTestId('phone-gate')).toBeHidden();
@@ -161,16 +164,14 @@ test('the phone number box: crawlers see every photo; dates stay open; full avai
     await next.click();
     const m = number();
     await g.getByTestId('phone-gate-number').fill(m);
-    await g.getByTestId('phone-gate-deals').check();
-    await g.getByTestId('phone-gate-continue').click();
     await g.getByTestId('phone-gate-code').fill('000000');
     await expect(g.getByText(/That code does not match/)).toBeVisible();
     await g.getByTestId('phone-gate-code').fill(await codeFor(sql, `+1${m}`));
     await expect(g.getByTestId('phone-gate')).toBeHidden();
     await expect(g.locator('.gallery__count b')).toHaveText(new RegExp(`^3 / ${car.photos}$`));
     const [mk] = await sql`select marketing_opt_in, marketing_text from phone_gate_contacts where phone = ${'+1' + m}`;
-    expect(mk?.marketing_opt_in).toBe(true);
-    expect(String(mk?.marketing_text)).toContain('Also text me deals');
+    // the box has no deals box any more: never a marketing opt-in from it
+    expect(mk?.marketing_opt_in).toBe(false);
     await noOverflow(g);
     await g.context().close();
     const [c] = await sql`select (sum(shown) >= 3 and sum(given) >= 2 and sum(closed) >= 1)::boolean ok from phone_gate_daily where day = (now() at time zone 'America/Toronto')::date and gate <> 'all'`;

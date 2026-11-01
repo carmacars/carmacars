@@ -605,7 +605,7 @@ def build():
           'Each value set this way says (Set automatically) on the car\'s Overview and Rates tab until you change it. The defaults come from Settings: Program and Fee defaults.', label='Good to know')
     g.tip('A VIN that does not add up (one character misread) shows a warning; you can still save it. A VIN the decoder cannot read asks only the year, make and model and never stops you: the details fill in when it is read later. The duplicate check runs as for every car: a VIN only once, a plate on one active car, and a likely twin waits for you in Similar cars before it is published.')
     g.para('The gearbox comes from the government\'s fuel economy data for the model when it has one gearbox for it, or from the VIN when the VIN states it. '
-           'Seats come from the VIN, or the usual number for the body (4 for a coupe or convertible, 5 for a sedan, SUV or hatchback). '
+           'Seats come from the VIN, else from the seat table for 3-row SUVs and minivans (a Yukon XL or a Palisade is 8, 7 with captain\'s chairs), else 4 for a coupe or convertible and 5 for a sedan or hatchback. An SUV or minivan with neither is left without seats and shows Seats missing in Vehicles: the 7+ seats filter cannot show it until you set them. '
            f'When either is not certain, Admin > Today shows {B("Confirm gearbox and seats")}: press the gearbox and the number of seats, then {B("Save")}. '
            f'A car whose VIN fits several trims shows {B("Pick the trim")} there: press the right one. Either way the title, description and search text are written again.')
     g.para(f'On a car\'s page, {B("Who supplies the car")} shows the supplier and the commission, and changes them. Vehicles filters by supply type.')
@@ -897,6 +897,15 @@ def build():
     ], shot=S('admin/22-owner-forms-desktop', 0, 0, 1440, 470, pins=[(1, 420, 246), (2, 829, 246), (3, 1105, 246)]))
 
     # ---------------------------------------------------------------- 7
+    g.task('The earnings calculator on List your car', 'People who think of listing their car see what it could earn, near the top of List your car and, smaller, at the start of the application. '
+           'They pick the year, make and model (or type the VIN), the days rented a month (5 to 28, 18 at first) and their share (60% to 90%, 70% at first, "set in your agreement"). '
+           'The page shows the month and the year: the daily rate of cars like theirs on the site (the same make and model, else the class average, else the class\'s starting rate in Program settings) times the days, their share of it, less the monthly fees. '
+           '"Just cheaper insurance" shows the fleet policy\'s fee and what they would keep at only 5 days a month.')
+    g.steps([
+        f'{P("Settings", "Program")}: {B("Earnings calculator on List your car: the monthly insurance fee shown")} and {B("the monthly tracker fee shown")}, in dollars a month.',
+        'Leave either one empty and the page says "Insurance and tracker fees: quoted in your agreement" and shows the earnings "before fees". No amount is ever made up.',
+        'Set both and the page takes them off the month and the year. Each owner\'s real fees stay the ones in their agreement.',
+    ])
     g.chapter('Owner money',
               'Owner fee invoices are issued on the notice day and debited on the 15th. Invoices of any amount are made by hand, '
               'as drafts first. Statements are built, approved and issued each month, and payouts follow.',
@@ -1193,7 +1202,7 @@ def build():
     g.task('What the visitor sees')
     g.bullets([
         'On the 2nd page view (any page) or after 30 seconds on the site, whichever first, or (on a computer) when the mouse heads for the tabs. A card slides in at the bottom; on a phone it is a sheet at the bottom, never a full-screen block, and it always closes.',
-        'Never for someone signed in, never on booking, pay, sign or sign-in pages, never on the first page of a visit from a search engine on a phone, never over the cookie banner; no new game for someone already known by email or with a booking request in progress. Closed, another game comes back on the 3rd page view after the close or 2 minutes later, at most 4 in a visit, and again on their next visit.',
+        'Never for someone signed in, never on booking, pay, sign or sign-in pages, never on the first page of a visit from a search engine on a phone, never over the cookie banner; no new game for someone already known by email or with a booking request in progress. Once a visit by default, and again on every new visit (a visit ends after 30 minutes away), also when they closed it without playing. Settings > Discount games has Preview the game, to see it any time, signed in or not.',
         'After claiming a code: no game for the rest of that visit. A day after their latest claim the game comes back on their next visit with the usual timings, a new game and a new draw, and they can win another code. The day counts for the browser, the email, the mobile number and (in the request-to-book form) the account; within it the game says when they can play again. A visitor known only through their own claim still gets it; one known through a booking request, the chat, a sign-in or as a renter does not.',
         f'Won and not claimed: a small badge "Your 5% off is saved" with {B("Get my code")} and {B("Play again")} stays on the pages. On a later visit, at the moment a first game would show, the prize pops up by itself once as a small slide-in at the bottom ("Your 5% off is still waiting", the same two buttons), never as a card over the page; closed, it does not come back in that visit. Until they claim it or the prize ends after 14 days.',
         f'{B("Play again")} on a prize not claimed: a new, different game with a new draw. They keep the better of the two prizes and the other is closed, so there is only ever one code to claim: the card says "You won 15% off" or "You keep your 5% off". Once a visit and once a day (a setting).',
@@ -1222,7 +1231,7 @@ def build():
     g.task('Settings', f'{P("Settings", "Discount games")}.')
     g.bullets([
         'On or off, the cap for percentage codes ($75), how long a code is good for (7 days), when it shows (2nd page view, 30 seconds, exit intent), the days a visitor keeps their prize (14: closing never draws a new one, and a prize not claimed pops up again until then), the days after a claim before the game comes back (1; 0 is one code per person ever), how often Play again works on a prize not claimed (once a day; 0 turns it off), and the cars viewed for a Sales task (3). The reminders before a code ends are under Promo codes.',
-        'After a visitor closes a game, the next card shows on their 3rd page view after the close (any page) or 2 minutes later, whichever first; at most 4 in one visit, no daily cap unless you set one. A prize waiting for them pops up once a visit only. All are settings. Never on booking, payment or signing pages; the request-to-book form has its own game.',
+        'At most one game a visit by default (a setting), and a visit ends after 30 minutes away (a setting): the next page brings the game again. With more than one a visit, the next card shows on their 3rd page view after a close (any page) or 2 minutes later, whichever first; no daily cap unless you set one. A prize waiting for them pops up once a visit only. All are settings. Never on booking, payment or signing pages; the request-to-book form has its own game.',
         f'Prizes and games: each prize with its percent, dollars or free days, a minimum rental length, its cap and its chance, or Play again (another go, at most one); each game\'s weight (0 turns it off). Press {B("Save prizes and games")}. Codes already sent keep their value.',
     ])
 

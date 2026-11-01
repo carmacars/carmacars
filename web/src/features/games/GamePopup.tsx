@@ -29,6 +29,17 @@ export interface GamePopupProps {
   /** 0176: opened by the badge's Play again: start the new game at once */
   start?: 'again';
   context?: 'site' | 'booking'; prefill?: { first: string; email: string; phone: string }; onClaimed?: (c: Claimed) => void; applied?: string;
+  /** 2026-11-06: the preview (?preview=game, Settings > Discount games > Preview the game): the card and a game played
+   *  through in this browser, with no play, no code and nothing remembered or recorded */
+  preview?: { game?: GameKind } | null;
+}
+
+/** The preview's play (no server): one of the games and a sample prize. */
+function previewPlay(game?: GameKind): Play {
+  const kinds = Object.keys(LOAD) as GameKind[];
+  const prizes: PrizeWord[] = [{ key: 'pct5', short: '5%', label: '5% off' }, { key: 'pct10', short: '10%', label: '10% off' }, { key: 'pct15', short: '15%', label: '15% off' }, { key: 'amt50', short: '$50', label: '$50 off' }];
+  return { ok: true, token: 'preview', game: game && LOAD[game] ? game : kinds[Math.floor(Math.random() * kinds.length)]!, prize: { ...prizes[1]!, min_days: null }, prizes,
+    terms: 'Preview: no code is made and nothing is recorded.', consent: '' };
 }
 export interface Play { ok: boolean; reason?: string; /** 0172: with reason claimed, when this person may play again */ again_after?: string; token: string; game: GameKind; prize: PrizeWord & { min_days: number | null; rare?: boolean }; prizes: PrizeWord[]; terms: string; consent: string; revealed?: boolean;
   /** 0171: the second game of a replay prize */
@@ -82,9 +93,9 @@ async function startPlay(p: Record<string, unknown>, booking: boolean): Promise<
   return (await r.json()) as Play;
 }
 
-export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = false, repop = false, start, context = 'site', prefill, onClaimed, applied }: GamePopupProps) {
+export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = false, repop = false, start, context = 'site', prefill, onClaimed, applied, preview = null }: GamePopupProps) {
   const booking = context === 'booking';
-  const [play, setPlay] = useState<Play | null>(null);
+  const [play, setPlay] = useState<Play | null>(() => (preview ? previewPlay(preview.game) : null));
   // 0176: the prize popping up again by itself starts small; the full card opens from Get my code or Play again
   const [slim, setSlim] = useState(slimAtFirst || repop);
   const [stage, setStage] = useState<'ready' | 'playing' | 'won' | 'claimed'>('ready');
@@ -108,6 +119,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
   useEffect(() => {
     let live = true;
     back.current = document.activeElement;
+    if (preview) return;
     const p = { vid: visitorId(), sid: sessionId(), device: device(), path, trigger: booking ? 'booking' : trigger, seen, ...(booking ? { context: 'booking' } : {}) };
     // one more try after a moment if the network dropped the first
     startPlay(p, booking).catch(() => new Promise<Play>((ok, ko) => setTimeout(() => startPlay(p, booking).then(ok, ko), 3000)))
@@ -116,7 +128,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
         if (!r?.ok) {
           // 0172: claimed: not until again_after (the server's wait after a claim); known or signed in: not on the site
           if (r?.reason === 'claimed') rememberClaim(r.again_after);
-          else if (r?.reason && !booking && ['known', 'signed_in'].includes(r.reason)) remember({ never: r.reason });
+          else if (r?.reason && !booking && ['known', 'signed_in'].includes(r.reason)) remember({ never: r.reason, neverAt: Date.now() });
           // 0170: the saved badge's prize is gone on the server (claimed, expired, games off): no badge that does nothing
           if (trigger === 'saved' && r?.reason !== 'limited') forgetSaved();
           onDone('failed'); return;
@@ -160,6 +172,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
   }
   function revealed() {
     setStage('won');
+    if (preview) return;
     // 0176: after Play again on a saved prize the browser keeps the prize the server kept
     if (play) rememberWon(play.keep ? play.keep.prize : play.prize);
     if (play) void browserRpc('game_reveal', { p_token: play.token }).catch(() => undefined);
@@ -205,6 +218,10 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
     const p = claimProblems(form);
     setErrors(p); setFailure('');
     if (Object.keys(p).length) { document.getElementById(`${id}-${Object.keys(p)[0]}`)?.focus(); return; }
+    if (preview) {
+      setClaimed({ code: 'PREVIEW', prize_label: play.prize.label, applies_to: 'off the rental charge', expires: 'never (a preview)', email: form.email.trim() });
+      setStage('claimed'); setTimeout(() => head.current?.focus(), 0); return;
+    }
     setBusy(true);
     let visit: Visit | null = null;
     try { visit = JSON.parse(sessionStorage.getItem('cc_game_visit') ?? 'null') as Visit | null; } catch { /* private mode */ }
@@ -263,10 +280,10 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
     </section>
   );
   return (
-    <section className={`ccg${booking ? ' ccg--booking' : ''}`} role="dialog" aria-modal="false" aria-labelledby={`${id}-h`} aria-describedby={`${id}-d`} data-testid="game" data-game={play.game} data-context={context} data-saved={saved ? 'true' : undefined}>
+    <section className={`ccg${booking ? ' ccg--booking' : ''}`} role="dialog" aria-modal="false" aria-labelledby={`${id}-h`} aria-describedby={`${id}-d`} data-testid="game" data-game={play.game} data-context={context} data-saved={saved ? 'true' : undefined} data-preview={preview ? 'true' : undefined}>
       <header className="ccg-head">
         <div>
-          <p className="ccg-kicker">{booking ? 'A discount on this booking' : 'CarmaCars giveaway'}</p>
+          <p className="ccg-kicker">{preview ? 'Preview of the giveaway' : booking ? 'A discount on this booking' : 'CarmaCars giveaway'}</p>
           <h2 className="ccg-title" id={`${id}-h`} ref={head} tabIndex={-1}>
             {stage === 'claimed' ? (booking ? 'Your discount is on' : 'Your code is ready') : stage === 'won' ? (kept ? keptWords(prize) : wonWords(play.prize, saved ? how : 'new')) : play.second ? `Your second go: ${g.title}` : g.title}
           </h2>
@@ -290,7 +307,7 @@ export function GamePopup({ trigger, path, seen, onDone, slim: slimAtFirst = fal
           {failure && <p className="ccg-err" role="alert">{failure}</p>}
           <p className="ccg-fine">{play.terms} <Link className="link" href="/terms#s14" target={booking ? '_blank' : undefined}>Terms</Link></p>
         </div>}
-        {stage === 'won' && !replay && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim" onBlur={() => cap.capture({ name: form.first, email: form.email, phone: form.phone })}>
+        {stage === 'won' && !replay && <form onSubmit={claim} noValidate className="ccg-form" data-testid="game-claim" onBlur={() => { if (!preview) cap.capture({ name: form.first, email: form.email, phone: form.phone }); }}>
           {play.prize.rare && !saved && !kept && <p className="ccg-rare" data-testid="game-rare">A rare prize</p>}
           {play.keep && <p className="ccg-pitch" data-testid="game-kept" data-kept={play.keep.from}>{kept ? `This game gave ${play.keep.other}, so you keep your ${prize.label}.` : `Better than your ${play.keep.other}: this prize replaces it.`}</p>}
           <p className={`ccg-prize${prize.rare ? ' ccg-holo' : ''}`} id={`${id}-d`} role="status"><strong>{prize.label}</strong> {/free day/.test(prize.label) ? 'on ' : ''}{booking ? 'this booking' : 'your rental'}{prize.min_days ? ` of ${prize.min_days} days or more` : ''}. {booking ? (account ? `We put the code on this booking and send it to ${account.email}.` : 'Where should we send your code? It goes on this booking at once.') : 'Tell us where to send your code.'}</p>

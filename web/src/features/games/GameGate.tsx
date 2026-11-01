@@ -3,24 +3,27 @@ import './games.css';
 import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react';
 import { usePathname } from 'next/navigation';
 import { browserRpc } from '@/lib/browser-rpc';
-import { addPage, addSeen, claimMemory, claimWait, closed, countShown, excludedPath, gameDay, shownToday, ineligible, isReplay, isSearchReferrer, mayPlayAgain, nextCheck, requestInProgress, savedPrize, savedWords, shown, trigger, type Fire, type GameCfg, type GameKind, type GameMemory, type PrizeWord, type Visit } from './rules';
+import { liveVisit, addPage, addSeen, claimMemory, claimWait, closed, countShown, excludedPath, gameDay, shownToday, ineligible, isReplay, isSearchReferrer, mayPlayAgain, nextCheck, requestInProgress, savedPrize, savedWords, shown, trigger, type Fire, type GameCfg, type GameKind, type GameMemory, type PrizeWord, type Visit } from './rules';
 import type { GamePopupProps } from './GamePopup';
 
 // Discount games (migrations 0069, 0081, 0094, 0100, 0171, 0172 and 0176): the watcher. Loaded after the page is idle (with the beacon and
 // the chat), it counts this visit's pages and time in the browser only (sessionStorage: nothing leaves the device for
-// this). 0100 (the owner's defaults, all Admin settings): the first game on the 2nd page view (any page) or after 30
+// this). 0353 (the owner, November 1, 2026): a visit ends after 30 minutes away (Program settings game_visit_gap_minutes),
+// at most one game a visit by default (game_max_per_visit 1, no daily cap), so the game comes back on every new visit,
+// also after a close without playing. 0100 (the owner's earlier defaults, all Admin settings): the first game on the 2nd page view (any page) or after 30
 // seconds, whichever first; after a close another game, never the one just shown, on the 3rd page view after the close
 // or 2 minutes later, whichever first; at most 4 a visit, no daily cap unless one is set; and again on later visits.
 // After a claim (0172) not again in that visit, and back on a later visit once the wait after it ends (a day by default,
 // the server's again_after); never once a booking request is in progress in this browser, and never as a new win once a
 // prize was won here: a small badge "Your 5% off is saved" with Get my code and Play again, and (0171, 0176) the prize
-// pops up again by itself once a visit (the first-show rules, never in the visit it was won, never again after a close)
+// pops up again by itself once a visit (the first-show rules, never in the visit it was won; 0353: closed, it comes back
+// on the next visit)
 // as the small slide-in "Your 5% off is still waiting" with Get my code and Play again (a new game; the better of the
 // two prizes is kept; once a visit and once a day, the server's game_saved_again_days). Never for a signed-in visitor (they get it in the request-to-book
 // form only), never on booking, pay, sign, sign-in or portal pages, never over the cookie banner. On the first page of
 // a phone visit from a search engine it waits for the second page, or comes 15 seconds later as a small slide-in. The
 // game's code is fetched in idle time once the visitor can get one, so it opens at once.
-const MEM = 'cc_game', VISIT = 'cc_game_visit', CFG = 'cc_game_cfg', BADGE_CLOSED = 'cc_game_saved_closed', REQUEST = 'cc.request.v2';
+const MEM = 'cc_game', VISIT = 'cc_game_visit', CFG = 'cc_game_cfg', REQUEST = 'cc.request.v2';
 const read = <T,>(s: Storage | undefined, k: string): T | null => { try { return JSON.parse(s?.getItem(k) ?? 'null') as T | null; } catch { return null; } };
 const write = (s: Storage | undefined, k: string, v: unknown) => { try { s?.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
 export const memory = (): GameMemory => { try { return read<GameMemory>(globalThis.localStorage, MEM) ?? {}; } catch { return {}; } };
@@ -62,8 +65,10 @@ const answeredCookies = () => /(^|;\s*)cc_cookie_choice=/.test(document.cookie);
 const phone = () => matchMedia('(max-width: 599px)').matches;
 // automated browsers (tests, the guides' screenshots, audits) never get a game unless a test asks for it
 export const automated = () => { try { return navigator.webdriver && localStorage.getItem('cc_games_e2e') !== '1'; } catch { return navigator.webdriver; } };
-const visitNow = () => read<Visit>(globalThis.sessionStorage, VISIT);
-const saveVisit = (v: Visit) => write(globalThis.sessionStorage, VISIT, v);
+// 0353: a visit ends after the setting's minutes away (30): the next page starts a new one, with its own games
+let gapMinutes = (() => { try { return (JSON.parse(sessionStorage.getItem('cc_game_cfg') ?? 'null') as { v?: GameCfg } | null)?.v?.visit_gap ?? 30; } catch { return 30; } })();
+const visitNow = () => liveVisit(read<Visit>(globalThis.sessionStorage, VISIT), Date.now(), gapMinutes);
+const saveVisit = (v: Visit) => write(globalThis.sessionStorage, VISIT, { ...v, lastAt: Date.now() });
 const idle = (f: () => void) => ('requestIdleCallback' in window ? requestIdleCallback(f, { timeout: 4000 }) : setTimeout(f, 1200));
 
 /** The settings (kept 30 minutes in this tab). An automated browser a test let play may set its own timings
@@ -100,14 +105,24 @@ export function GameGate() {
   const again = useRef<(exit?: boolean) => void>(() => undefined);
 
   const [badge, setBadge] = useState<{ label: string; again: boolean } | null>(null);
+  // 2026-11-06: the preview (?preview=game, and ?game=wheel for one game): the card on demand for anyone, signed in or
+  // not, with no play on the server, no code and nothing remembered (Settings > Discount games > Preview the game)
+  const [preview, setPreview] = useState<{ game?: GameKind } | null>(null);
+  const [PreviewPopup, setPreviewPopup] = useState<ComponentType<GamePopupProps> | null>(null);
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    if (q.get('preview') !== 'game') return;
+    const g = q.get('game') as GameKind | null;
+    void loadPopup().then((m) => { setPreviewPopup(() => m.GamePopup); setPreview({ game: g ?? undefined }); announce(true); }).catch(() => undefined);
+  }, []);
   const hasSaved = () => savedPrize(memory(), Date.now()) !== null;
-  const may = useCallback(() => !automated() && !ineligible({ cfg: cfg.current, mem: memory(), signedIn: signedIn(), path: pathRef.current, visit: visitNow(), now: Date.now(), busy: busy(), saved: hasSaved() }), []);
+  const may = useCallback(() => !/[?&]preview=game\b/.test(location.search) && !automated() && !ineligible({ cfg: cfg.current, mem: memory(), signedIn: signedIn(), path: pathRef.current, visit: visitNow(), now: Date.now(), busy: busy(), saved: hasSaved() }), []);
   // 0100: a prize won here and not claimed: the small badge between cards (closed: not again this visit), with Get my
   // code and (0176) Play again; the prize itself pops up again once a visit (the first-show rules)
   const showBadge = useCallback(() => {
     const p = savedPrize(memory(), Date.now());
     let hidden = false;
-    try { hidden = sessionStorage.getItem(BADGE_CLOSED) === '1'; } catch { /* private mode */ }
+    hidden = !!visitNow()?.badgeClosed;
     setBadge(p && !automated() && !signedIn() && !hidden && !excludedPath(pathRef.current) && cfg.current?.on !== false
       ? { label: p.label, again: mayPlayAgain(memory(), visitNow(), Date.now()) } : null);
   }, []);
@@ -162,6 +177,7 @@ export function GameGate() {
     (async () => {
       if (automated() || signedIn() || claimWait(memory(), Date.now()) !== null) return;
       cfg.current = await gameSettings();
+      if (cfg.current?.visit_gap) gapMinutes = cfg.current.visit_gap;
       if (live) showBadge();
       if (!live || !cfg.current || !may()) return;
       idle(() => { if (live && may()) void loadPopup().catch(() => undefined); });
@@ -177,7 +193,7 @@ export function GameGate() {
     announce(false);
     // the saved prize's card does not count as a game shown
     if (!wasSaved) { const v = visitNow(); if (v) saveVisit(closed(v, Date.now())); }
-    if (how === 'closed' && wasSaved) { try { sessionStorage.setItem(BADGE_CLOSED, '1'); } catch { /* private mode */ } }
+    if (how === 'closed' && wasSaved) { const o = visitNow(); if (o) saveVisit({ ...o, badgeClosed: true }); }
     showBadge();
     if (how !== 'claimed') check();
   }, [check, fired, showBadge]);
@@ -195,10 +211,11 @@ export function GameGate() {
     void loadPopup().then((m) => setPopup(() => m.GamePopup)).catch(() => { open.current = false; announce(false); showBadge(); });
   }, [showBadge]);
   const closeBadge = useCallback(() => {
-    try { sessionStorage.setItem(BADGE_CLOSED, '1'); } catch { /* private mode */ }
+    const o = visitNow(); if (o) saveVisit({ ...o, badgeClosed: true });
     setBadge(null);
   }, []);
 
+  if (preview && PreviewPopup) return <PreviewPopup trigger="pages" path={path} seen={[]} preview={preview} onDone={() => { setPreview(null); announce(false); }} />;
   if (Popup && fired && !excludedPath(path)) return <Popup trigger={fired.why} slim={fired.slim} repop={fired.repop} start={fired.why === 'saved' ? start : undefined} path={path} seen={memory().seen ?? []} onDone={done} />;
   if (badge) return badge.again ? (
     <section className="ccg ccg--saved ccg--two" role="region" aria-label="Your CarmaCars discount" data-testid="game-saved">

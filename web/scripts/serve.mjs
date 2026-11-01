@@ -128,9 +128,18 @@ async function sendResponse(req, res, out) {
   res.writeHead(out.status, h); res.end(body);
 }
 
+const STATIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.next', 'static');
+function staticFile(pathname) {
+  let rel; try { rel = decodeURIComponent(pathname.slice('/_next/static/'.length)); } catch { return false; }
+  if (!rel || rel.includes('..')) return false;
+  try { return fs.statSync(path.join(STATIC_DIR, rel)).isFile(); } catch { return false; }
+}
+
 http.createServer(async (req, res) => {
   if (localPublic(req, res)) return;
   const pathname = (req.url || '/').split('?')[0];
+  // as the Worker (custom-worker.ts, 2026-11-06): a build file this build does not have is a plain 404, never the HTML page
+  if (pathname.startsWith('/_next/static/') && !staticFile(pathname)) { res.writeHead(404, { ...security, 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store' }); res.end('Not found'); return; }
   if (pathname === '/__test/fault' && req.method === 'POST' && testing() && loopback(req)) { testFault(req, res); return; }
   // a public page or its RSC payload without a session: through the last good copy (0106)
   const webReq = { method: req.method, url: `http://${req.headers.host || 'localhost'}${req.url}`, headers: new Headers(Object.entries(req.headers).flatMap(([k, v]) => [].concat(v).map((x) => [k, String(x)]))) };

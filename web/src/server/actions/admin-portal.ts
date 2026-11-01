@@ -20,6 +20,8 @@ const PUBLIC: Record<string, string[]> = {
   vehicle_pages_trims: ['/'], vehicle_pages_popular: ['/'],
   // the stock photos (0149): hiding or showing one changes the pages that use it
   stock_photo: ['/'],
+  // 0352: a car pinned to the top of the fleet page
+  fleet_pin: ['/cars', '/'],
   rate_card: ['/cars/[slug]', '/cars', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]'],
   bulk_rate_apply: ['/cars/[slug]', '/cars', '/', '/cars/[slug]/[model]', '/cars/[slug]/[model]/[year]', '/cars/[slug]/[model]/[year]/[trim]'],
   vehicle_deposit: ['/cars/[slug]'],

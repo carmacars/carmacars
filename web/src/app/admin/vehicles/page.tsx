@@ -14,7 +14,7 @@ type Gate = { code: string; label: string; action: string; who: string | null };
 type NotPublic = { vehicle_id: string; name: string; status: string; gates: Gate[]; next: string | null; sample_photos: boolean };
 type V = { id: string; fleet_number: string | null; name: string; plate: string | null; owner_name: string | null; management_mode: string; status: string; listing_status: string | null;
   daily_rate_cents: number | null; next_booking: { booking_number: string; pickup_at: string } | null; tracker_seen: string | null; in_arrears: boolean; on_fleet_policy: boolean; class: string | null;
-  supply_type: string; supply_label: string; partner_id: string | null; retired_at: string | null; is_sample: boolean };
+  supply_type: string; supply_label: string; partner_id: string | null; retired_at: string | null; is_sample: boolean; seats?: number | null; seats_missing?: boolean };
 
 // The fleet (03-admin.md section 8.1).
 export default async function Vehicles({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
@@ -69,7 +69,7 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
         { key: 'daily', label: 'Daily', num: true, render: (v) => $(v.daily_rate_cents) },
         { key: 'next', label: 'Next booking', render: (v) => v.next_booking ? <><BookingLink n={v.next_booking.booking_number} /> {t(v.next_booking.pickup_at)}</> : null },
         { key: 'tracker_seen', label: 'Tracker seen', render: (v) => t(v.tracker_seen) },
-        { key: 'flags', label: 'Flags', render: (v) => <>{v.in_arrears && <span className="ad-flag ad-flag--red">arrears</span>}{v.on_fleet_policy && <span className="ad-flag">fleet policy</span>}</> }
+        { key: 'flags', label: 'Flags', render: (v) => <>{v.in_arrears && <span className="ad-flag ad-flag--red">arrears</span>}{v.on_fleet_policy && <span className="ad-flag">fleet policy</span>}{v.seats_missing && <span className="ad-flag ad-flag--red" data-testid="seats-missing" title="The seat count is not known: the 7+ seats filter cannot show it. Set the seats on the listing review, or confirm them on Today.">Seats missing</span>}</> }
       ]} />
     </>
   );

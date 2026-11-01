@@ -14,19 +14,19 @@ language sql as $$
 delete from app.rate_limit_hits where key like 'game-%' or key like 'chat-%';
 
 -- ================================================================ 1. settings
-select test.eq('live values: the 2nd page view or 30 seconds, exit intent on (0101); after a close the 3rd page view or 2 minutes; 4 a visit; no daily cap; the greeting after 45 seconds',
+select test.eq('live values: the 2nd page view or 30 seconds, exit intent on (0101); after a close the 3rd page view or 2 minutes; 0353: once a visit; no daily cap; the greeting after 45 seconds',
   (select format('%s/%s/%s %s/%s %s %s %s', game_trigger_car_pages, game_trigger_seconds, game_exit_intent, game_reshow_car_pages, game_reshow_seconds,
-                 game_max_per_visit, game_max_per_day, chat_greeting_seconds) from (select (app.settings()).*) s), '2/30/t 3/120 4 0 45');
+                 game_max_per_visit, game_max_per_day, chat_greeting_seconds) from (select (app.settings()).*) s), '2/30/t 3/120 1 0 45');
 select test.eq('every settings row moved, not only the current one',
   (select count(*) from program_settings where game_trigger_car_pages <> 2 or game_trigger_seconds <> 30 or game_reshow_car_pages <> 3 or game_reshow_seconds <> 120
-      or game_max_per_visit <> 4 or game_max_per_day <> 0 or not game_exit_intent or chat_greeting_seconds <> 45), 0::bigint);
+      or game_max_per_visit <> 1 or game_max_per_day <> 0 or not game_exit_intent or chat_greeting_seconds <> 45), 0::bigint);
 select test.eq('the column defaults are the owner''s too',
   (select string_agg(column_name || '=' || split_part(column_default, '::', 1), ' ' order by column_name) from information_schema.columns
     where table_name = 'program_settings' and column_name in ('game_trigger_car_pages', 'game_trigger_seconds', 'game_exit_intent', 'game_reshow_car_pages', 'game_reshow_seconds',
                                                          'game_max_per_visit', 'game_max_per_day', 'chat_greeting_seconds')),
-  'chat_greeting_seconds=45 game_exit_intent=true game_max_per_day=0 game_max_per_visit=4 game_reshow_car_pages=3 game_reshow_seconds=120 game_trigger_car_pages=2 game_trigger_seconds=30');
+  'chat_greeting_seconds=45 game_exit_intent=true game_max_per_day=0 game_max_per_visit=1 game_reshow_car_pages=3 game_reshow_seconds=120 game_trigger_car_pages=2 game_trigger_seconds=30');
 select test.eq('the browser''s settings', public.game_cfg() - 'on' - 'booking',
-  '{"exit": true, "seconds": 30, "car_pages": 2, "per_day": 0, "per_visit": 4, "reshow_pages": 3, "reshow_seconds": 120}'::jsonb);
+  '{"exit": true, "seconds": 30, "car_pages": 2, "per_day": 0, "per_visit": 1, "reshow_pages": 3, "reshow_seconds": 120, "visit_gap": 30}'::jsonb);
 select test.throws('a daily cap above 50 is refused', $$update program_settings set game_max_per_day = 51$$, 'check');
 select test.throws('a negative daily cap is refused', $$update program_settings set game_max_per_day = -1$$, 'check');
 select test.eq('the greeting''s words: 0060''s replaced, the car and service greeting new',

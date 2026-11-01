@@ -60,8 +60,8 @@ select test.eq('the short terms list the prizes and say the chances differ',
 select test.eq('the consent wording with the tokens filled from Site settings',
   (app.game_marketing_text() ->> 'text') = 'Yes, send me CarmaCars offers and news by email and text message. I can unsubscribe at any time. Sent by CarmaCars'
     || coalesce(', ' || nullif((select mailing_address from site_settings), ''), '') || ', ' || coalesce((select public_email from site_settings), '') || '.', true);
-select test.eq('the browser''s settings (0100, the owner''s defaults: the 2nd page view or 30 seconds, exit intent on (0101); after a close the 3rd page view or 2 minutes; 4 a visit; no daily cap)', public.game_cfg(),
-  '{"on": true, "exit": true, "booking": true, "seconds": 30, "car_pages": 2, "per_day": 0, "per_visit": 4, "reshow_pages": 3, "reshow_seconds": 120}'::jsonb);
+select test.eq('the browser''s settings (0100, the owner''s defaults: the 2nd page view or 30 seconds, exit intent on (0101); after a close the 3rd page view or 2 minutes; 0353: once a visit, a new visit after 30 minutes away; no daily cap)', public.game_cfg(),
+  '{"on": true, "exit": true, "booking": true, "seconds": 30, "car_pages": 2, "per_day": 0, "per_visit": 1, "reshow_pages": 3, "reshow_seconds": 120, "visit_gap": 30}'::jsonb);
 
 -- ================================================================ 2. who may play
 -- the plays below are claimed whatever they drew: without the replay prize (0171: it is never claimed; its own suite is

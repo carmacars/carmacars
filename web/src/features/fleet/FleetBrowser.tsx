@@ -8,7 +8,7 @@ import { browserRpc } from '@/lib/browser-rpc';
 import { shortDate, torontoInstant, torontoToday, validIso, validTime } from '@/lib/dates';
 import { money, plural } from '@/lib/format';
 import type { CarRow } from '@/lib/types';
-import type { GateRules } from '@/features/phone-gate/rules';
+import { cardPhotoCap, type GateRules } from '@/features/phone-gate/rules';
 import { usePhoneGate } from '@/features/phone-gate/usePhoneGate';
 
 // The fleet (docs/blueprint/01-public-site.md 4.2, prototype fleet page). The list of cars is in the
@@ -198,7 +198,7 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
             <div className="field fleet-bar__sort">
               <label className="label" htmlFor="fl-sort">Sort by</label>
               <select className="select" id="fl-sort" value={sort} onChange={(e) => setSort(e.target.value)}>
-                <option value="featured">Our order</option><option value="price-asc">Price, low to high</option><option value="price-desc">Price, high to low</option>
+                <option value="featured">Trending</option><option value="price-asc">Price, low to high</option><option value="price-desc">Price, high to low</option>
                 <option value="seats">Seats, most first</option><option value="name">Name, A to Z</option>
               </select>
             </div>
@@ -272,7 +272,7 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
             <ul className="fleet-grid" id="fleet-grid" hidden={!shown.length} aria-busy={loading || undefined}>
               {shown.map(({ c, busy, a }) => (
                 <li key={c.slug} className={busy ? 'is-booked' : undefined}>
-                  <CarCard c={c} labels={labels} tag="h2" href={carHref(c.slug)} booked={busy}
+                  <CarCard c={c} labels={labels} tag="h2" href={carHref(c.slug)} booked={busy} photosMax={cardPhotoCap(gate)}
                     price={a ? money(a.rental_charge_cents) : undefined} unit={a ? `${plural(a.billable_days, 'day')}, before HST` : undefined} />
                 </li>
               ))}

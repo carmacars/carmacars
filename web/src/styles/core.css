@@ -316,6 +316,33 @@ dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in 
   dialog.modal--sheet[open] { animation: sheet-up var(--t-3) var(--ease); }
 }
 
+/* the phone number box (0280; 2026-11-06 the owner's simpler box): a title with a wink, one line, one big field, the X */
+@media (min-width: 44rem) { dialog.pgate { width: min(26rem, calc(100vw - 2rem)); } }
+.pgate__x { position: absolute; right: var(--s-2); top: var(--s-2); z-index: 1; color: var(--black); }
+.pgate__x:focus-visible { outline: 2px solid var(--black); outline-offset: 2px; }
+.pgate__body { display: grid; gap: var(--s-3); padding: var(--s-6) var(--s-5) var(--s-4); }
+.pgate__title { font: 700 clamp(1.5rem, 1.2rem + 1.4vw, 1.75rem)/1.05 var(--font-display); letter-spacing: -0.025em; padding-right: 2.5rem; }
+@media (max-width: 43.99rem) { .pgate__body { padding-bottom: calc(var(--s-5) + env(safe-area-inset-bottom)); } }
+.pgate__why { color: var(--grey-700); font-size: var(--fs-sm); }
+.pgate__field { position: relative; margin-top: var(--s-2); }
+.pgate__input { display: block; width: 100%; height: 64px; padding: 0 3.25rem 0 1rem; border: 2px solid var(--grey-300); border-radius: var(--r-2); background: var(--white); color: var(--black);
+  font: 600 1.5rem/1 var(--font-display); letter-spacing: 0.01em; font-variant-numeric: tabular-nums; transition: border-color var(--t-1), box-shadow var(--t-1); }
+.pgate__input::placeholder { color: var(--grey-400); font-weight: 500; }
+.pgate__input:focus { outline: none; border-color: var(--black); box-shadow: 0 0 0 4px rgb(0 0 0 / 0.08); }
+.pgate__input:focus-visible { outline: none; border-color: var(--black); box-shadow: 0 0 0 4px rgb(208 17 27 / 0.18); }
+.pgate__input[aria-invalid="true"] { border-color: var(--red-600); }
+.pgate__input--code { letter-spacing: 0.3em; }
+.pgate__field.is-ok .pgate__input { border-color: var(--black); }
+.pgate__state { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: var(--fs-sm); font-weight: 600; color: var(--black); pointer-events: none; }
+.pgate__spin { display: block; width: 20px; height: 20px; border-radius: 50%; border: 2.5px solid var(--grey-300); border-top-color: var(--red-600); animation: pgate-spin 700ms linear infinite; }
+.pgate__err { min-height: 1.25em; font-size: var(--fs-sm); color: var(--red-600); font-weight: 500; }
+.pgate__err:empty { min-height: 0; margin-top: calc(var(--s-3) * -1); }
+.pgate__links { display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-4); font-size: var(--fs-sm); }
+.pgate__fine { font-size: var(--fs-2xs); color: var(--grey-600); }
+.pgate__fine a.link { color: var(--grey-600); text-decoration-color: var(--grey-300); }
+.pgate__fine a.link:hover { color: var(--black); }
+@keyframes pgate-spin { to { transform: rotate(360deg); } }
+
 /* ---------- toast ---------- */
 .toasts { position: fixed; z-index: 80; left: 50%; bottom: calc(var(--s-5) + var(--bar-h, 0px)); transform: translateX(-50%); display: grid; gap: var(--s-2); width: min(26rem, calc(100vw - 2rem)); pointer-events: none; }
 .toast { pointer-events: auto; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--s-3); padding: 0.85rem 0.6rem 0.85rem 1rem; background: var(--black); color: var(--white); border-radius: var(--r-3); border-left: 5px solid var(--red-600); font-size: var(--fs-sm); font-weight: 500; box-shadow: var(--shadow-float); animation: toast-in var(--t-3) var(--ease); }
@@ -362,6 +389,7 @@ dialog.modal[open] { display: flex; flex-direction: column; animation: modal-in 
 /* a sample photo (0054): a small honest caption on the photo */
 .car-card__sample { position: absolute; left: var(--s-2); bottom: var(--s-2); padding: 2px 8px; background: rgba(0, 0, 0, 0.45); color: rgba(255, 255, 255, 0.82); font-size: var(--fs-2xs); font-weight: 500; letter-spacing: 0.02em; }
 .car-card__example { position: absolute; right: var(--s-2); top: var(--s-2); padding: 2px 8px; background: rgba(255, 255, 255, 0.92); color: var(--grey-900, #111); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: 0.02em; border-radius: 2px; }
+.car-card__hot { position: absolute; z-index: 1; left: var(--s-2); top: var(--s-2); padding: 3px 9px 3px 8px; background: var(--red-600); color: var(--white); font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 2px; box-shadow: 0 6px 16px -8px rgb(208 17 27 / 0.9); }
 .car-card__body { display: grid; grid-template-columns: 1fr auto; gap: 0.15rem var(--s-4); padding: var(--s-4) 0 0; align-items: start; }
 .car-card__name { font: 700 1.3125rem/1.1 var(--font-display); letter-spacing: -0.02em; }
 .car-card__name a { text-decoration: none; color: inherit; }

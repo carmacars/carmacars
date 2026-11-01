@@ -377,6 +377,9 @@ jobs:
           } > .env.production
           # cf:build: the OpenNext build with the Worker size step and its budget check (scripts/worker-size.mjs)
           $RUN "Worker build" npm run -s cf:build
+          # 2026-11-06: the build files of the deploys of the last 8 days stay served next to this build's, so a page
+          # loaded before this deploy keeps its scripts and styles (scripts/deploy/keep-assets.mjs; never fails the deploy)
+          if [ "$DEPLOY_ENV" = production ]; then node ../scripts/deploy/keep-assets.mjs .open-next/assets https://carmacars.ca || true; fi
       - name: Deploy the Worker (with its secrets)
         working-directory: web
         run: |

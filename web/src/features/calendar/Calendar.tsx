@@ -23,7 +23,7 @@ let uidSeq = 0;
 
 export function Calendar({ months = 1, min, today, blocks = [], from = '', to = '', maxDays, legend = true, onChange }: CalendarProps) {
   const sel = { from, to };
-  const [focus, setFocus] = useState(from || min);
+  const [focusState, setFocus] = useState(from || min);
   const [view, setView] = useState((from || min).slice(0, 7));
   const [status, setStatus] = useState<{ msg: string; bad: boolean }>(() => {
     if (!from || !to) return { msg: '', bad: false };
@@ -47,8 +47,11 @@ export function Calendar({ months = 1, min, today, blocks = [], from = '', to = 
     return false;
   };
 
+  // 2026-11-06: a page left open past midnight into a new month kept showing the old month ("October 2026" on November 1,
+  // every day of it past): the first day that can be picked moves on, so the month shown and the focus move with it
+  const focus = focusState < min ? min : focusState;
   // keep the focused day inside the months shown
-  let shownView = view;
+  let shownView = view < min.slice(0, 7) ? min.slice(0, 7) : view;
   if (focus < `${shownView}-01`) shownView = focus.slice(0, 7);
   const last = ym(shownView, months - 1);
   if (focus.slice(0, 7) > last) shownView = ym(focus.slice(0, 7), -(months - 1));

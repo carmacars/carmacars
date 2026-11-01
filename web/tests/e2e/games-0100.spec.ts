@@ -35,7 +35,8 @@ async function visitor(browser: Browser, sql: Sql, o: { game?: string; prize?: o
   await c.addCookies([{ name: 'cc_vid', value: vid, url: test.info().project.use.baseURL! }]);
   const items: Record<string, string> = { ...(o.storage ?? {}) };
   if (o.games !== false) items.cc_games_e2e = '1';
-  if (o.cfg) items.cc_games_e2e_cfg = JSON.stringify(o.cfg);
+  // 0353: the live cap is one game a visit; the tests of a re-show within a visit keep 0100's 4 unless they say otherwise
+  if (o.cfg) items.cc_games_e2e_cfg = JSON.stringify({ per_visit: 4, ...o.cfg });
   if (o.greet) { items.cc_chat_greet_e2e = '1'; if (o.after) items.cc_chat_greet_e2e_after = String(o.after); }
   // once per browser (not on every page load): what a test sets is the browser's starting point
   await c.addInitScript((it) => { try { if (!sessionStorage.getItem('cc_e2e_seeded')) { for (const [k, v] of Object.entries(it)) localStorage.setItem(k, v); sessionStorage.setItem('cc_e2e_seeded', '1'); } } catch { /* none */ } }, items);
@@ -407,11 +408,11 @@ test('0172: a winner plays again on a later visit: no game for the rest of the v
   await sql.end();
 });
 
-test("the owner's timings as set live: the 2nd page view, then the 3rd page view after a close, 4 a visit, never the same game twice in a row", async ({ browser }) => {
+test("the owner's timings as set live (0353): the 2nd page view, once a visit, and again on the next visit after 30 minutes away", async ({ browser }) => {
   test.setTimeout(150_000);
   const sql = db();
   const live = await sql`select app.game_cfg() c`;
-  expect(live[0]!.c).toMatchObject({ car_pages: 2, seconds: 30, reshow_pages: 3, reshow_seconds: 120, per_visit: 4, per_day: 0, exit: true });
+  expect(live[0]!.c).toMatchObject({ car_pages: 2, seconds: 30, reshow_pages: 3, reshow_seconds: 120, per_visit: 1, per_day: 0, exit: true, visit_gap: 30 });
   const { page } = await visitor(browser, sql, {});
   await visit(page, '/faq');
   await answerCookies(page);
@@ -419,28 +420,21 @@ test("the owner's timings as set live: the 2nd page view, then the 3rd page view
   await expect(page.getByTestId('game')).toHaveCount(0);
   await visit(page, '/how-it-works');
   await expect(page.getByTestId('game')).toBeVisible({ timeout: 20_000 });
-  const games = [(await page.getByTestId('game').getAttribute('data-game'))!];
+  const first = (await page.getByTestId('game').getAttribute('data-game'))!;
   await axe(page, 'first game');
-  const pages = ['/delivery', '/requirements', '/cars', '/faq', '/how-it-works', '/delivery', '/requirements', '/cars', '/faq', '/how-it-works', '/delivery', '/requirements'];
-  let i = 0;
-  for (let shown = 1; shown < 4; shown++) {
-    await page.getByTestId('game-close').click();
-    await expect(page.getByTestId('game')).toHaveCount(0);
-    await visit(page, pages[i++]!);
-    await visit(page, pages[i++]!);
-    await page.waitForTimeout(1200);
-    await expect(page.getByTestId('game')).toHaveCount(0);
-    await visit(page, pages[i++]!);
-    await expect(page.getByTestId('game')).toBeVisible({ timeout: 20_000 });
-    games.push((await page.getByTestId('game').getAttribute('data-game'))!);
-  }
-  for (let k = 1; k < games.length; k++) expect(games[k]).not.toBe(games[k - 1]);
-  expect(new Set(games).size).toBe(4);
-  // the 4th was the last of this visit
+  // closed without playing: not again in this visit
   await page.getByTestId('game-close').click();
-  for (const p of pages.slice(i)) await visit(page, p);
-  await page.waitForTimeout(2000);
   await expect(page.getByTestId('game')).toHaveCount(0);
+  for (const p of ['/delivery', '/requirements', '/cars', '/faq']) await visit(page, p);
+  await page.waitForTimeout(2500);
+  await expect(page.getByTestId('game')).toHaveCount(0);
+  // 31 minutes away: the next page starts a new visit, and its 2nd page view brings a game (another one)
+  await page.evaluate(() => { const v = JSON.parse(sessionStorage.getItem('cc_game_visit') ?? '{}'); v.lastAt = Date.now() - 31 * 60_000; sessionStorage.setItem('cc_game_visit', JSON.stringify(v)); });
+  await page.goto('/delivery', { waitUntil: 'load' });
+  await page.waitForFunction(() => (JSON.parse(sessionStorage.getItem('cc_game_visit') ?? '{}').pages ?? 0) === 1, null, { timeout: 15_000 });
+  await visit(page, '/how-it-works');
+  await expect(page.getByTestId('game')).toBeVisible({ timeout: 20_000 });
+  expect(await page.getByTestId('game').getAttribute('data-game')).not.toBe(first);
   await page.context().close();
   await sql.end();
 });

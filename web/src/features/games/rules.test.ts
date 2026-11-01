@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { claimMemory, claimWait, CLAIM_RECHECK_DAYS, coinFlip, dieFace, isReplay, keptWords, mayPlayAgain, visitCap, nextGame, requestInProgress, reshowDue, savedPrize, savedWords, shortScale, slotStops, slotStrip, SAVED_DAYS, waitingWords, wonWords } from './rules.ts';
+import { claimMemory, claimWait, CLAIM_RECHECK_DAYS, NEVER_RECHECK_MS, coinFlip, dieFace, isReplay, keptWords, mayPlayAgain, visitCap, nextGame, requestInProgress, reshowDue, savedPrize, savedWords, shortScale, slotStops, slotStrip, SAVED_DAYS, waitingWords, wonWords } from './rules.ts';
 import { addPage, addSeen, countShown, gameDay, shownToday, expectedCost, packCards, prizeCost, tearProgress, TORN, type PrizeRow, bookingIneligible, bookingPath, carSlug, claimProblems, closed, cupSwaps, deck, excludedPath, GAMES, handValue, ineligible, isSearchReferrer, nextCheck, plinkoPath, plinkoSlots,
   SEARCH_LANDING_DELAY, settle, shown, trigger, unseen, wheelSlices, wheelStop, type GameCfg, type GameKind, type PrizeWord, type Visit } from './rules.ts';
 
@@ -37,7 +37,13 @@ describe('who may see a game on the site', () => {
     assert.equal(claimMemory(null, NOW).againAt, NOW + CLAIM_RECHECK_DAYS * 86_400_000);
     assert.equal(claimMemory('not a date', NOW).againAt, NOW + CLAIM_RECHECK_DAYS * 86_400_000);
   });
-  it('never a visitor the database knows (by email) or refused', () => assert.equal(ineligible({ ...base, mem: { never: 'known' } }), 'known'));
+  it('never a visitor the database knows (by email) or refused, for a day; then the server is asked again', () => {
+    assert.equal(ineligible({ ...base, mem: { never: 'known', neverAt: NOW - 1000 }, now: NOW }), 'known');
+    assert.equal(ineligible({ ...base, mem: { never: 'signed_in', neverAt: NOW - 1000 }, now: NOW }), 'signed_in');
+    assert.equal(ineligible({ ...base, mem: { never: 'known', neverAt: NOW - NEVER_RECHECK_MS - 1 }, now: NOW }), null);
+    // an answer kept before 2026-11-06 (no time) no longer stops the game for good
+    assert.equal(ineligible({ ...base, mem: { never: 'signed_in' }, now: NOW }), null);
+  });
   it('not when the games are off', () => assert.equal(ineligible({ ...base, cfg: { ...CFG, on: false } }), 'off'));
   it('no more 14-day wait after closing (0081): a close long ago or just now does not stop it', () => {
     assert.equal(ineligible({ ...base, mem: { dismissedAt: NOW - 1000 } }), null);

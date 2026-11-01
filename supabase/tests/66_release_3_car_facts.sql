@@ -47,8 +47,8 @@ select test.ok('decode: an older vPIC gearbox is never stored', (select transmis
 select test.eq('decode: the gearbox EPA settles is stored', (select transmission from vehicle_listings where vehicle_id = test.id('vehicle:cfjetta')), 'Automatic');
 select test.ok('decode: no seats from the decoder, the usual number for the body, marked to confirm',
   (select seats = 5 and spec_sources #>> '{seats,source}' = 'body_default' from vehicle_listings where vehicle_id = test.id('vehicle:cfforte')));
-select test.eq('the usual seats: coupe and convertible 4, sedan, SUV and hatchback 5', array[app.body_default_seats('Convertible/Cabriolet'), app.body_default_seats('Coupe'),
-  app.body_default_seats('Sedan/Saloon'), app.body_default_seats('Sport Utility Vehicle (SUV)/Multi-Purpose Vehicle (MPV)'), app.body_default_seats('Hatchback/Liftback/Notchback')], array[4, 4, 5, 5, 5]);
+select test.eq('the usual seats: coupe and convertible 4, sedan and hatchback 5, an SUV none (0350: a 3-row SUV is 7 or 8)', array[app.body_default_seats('Convertible/Cabriolet'), app.body_default_seats('Coupe'),
+  app.body_default_seats('Sedan/Saloon'), app.body_default_seats('Sport Utility Vehicle (SUV)/Multi-Purpose Vehicle (MPV)'), app.body_default_seats('Hatchback/Liftback/Notchback')], array[4, 4, 5, null, 5]);
 select test.ok('the add-a-car form gets the trims to choose from, and no older vPIC gearbox',
   (select app.vin_decode_json(d) -> 'trim_candidates' = '["FE", "LXS"]'::jsonb and app.vin_decode_json(d) ->> 'transmission' is null from vin_decodes d where d.vin = '3KPF24AD0ME000001'));
 select test.ok('Today: Confirm gearbox and seats for the car without them',
@@ -63,6 +63,6 @@ select app.vin_fill_missing(test.id('vehicle:cfforte'));
 select test.eq('confirmed: the decoder never changes them again', (select transmission from vehicle_listings where vehicle_id = test.id('vehicle:cfforte')), 'Automatic (CVT)');
 
 -- ---------------------------------------------------------------- 3. the games: sooner again after a close
-select test.eq('games: the re-show settings the browser reads (0100, the owner''s defaults: 3rd page view or 2 minutes, 4 a visit, no daily cap)', (select jsonb_build_object('p', c -> 'reshow_pages', 's', c -> 'reshow_seconds', 'v', c -> 'per_visit', 'd', c -> 'per_day') from app.game_cfg() c),
-  '{"p": 3, "s": 120, "v": 4, "d": 0}'::jsonb);
+select test.eq('games: the re-show settings the browser reads (0100, the owner''s defaults: 3rd page view or 2 minutes, 0353: once a visit, no daily cap)', (select jsonb_build_object('p', c -> 'reshow_pages', 's', c -> 'reshow_seconds', 'v', c -> 'per_visit', 'd', c -> 'per_day') from app.game_cfg() c),
+  '{"p": 3, "s": 120, "v": 1, "d": 0}'::jsonb);
 select test.throws('games: at most 50 a day', $$update program_settings set game_max_per_day = 51$$, 'check');

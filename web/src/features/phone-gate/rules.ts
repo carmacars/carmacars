@@ -13,6 +13,12 @@ export const GATE_TEXT: Record<GateKind, string> = {
   dates: 'Put your phone number in to see full availability',
   request: 'Put your phone number in to start your request'
 };
+/** The one line under "What's your number?" (2026-11-06): what the number opens. */
+export const GATE_WHY: Record<GateKind, string> = {
+  gallery: 'See every photo of this car.',
+  dates: 'See the full calendar, every day.',
+  request: 'Then your request takes a minute.'
+};
 export const DEALS_TEXT = 'Also text me deals from CarmaCars. Reply STOP to any text to stop them.';
 
 /** Is this box on? */
@@ -25,6 +31,13 @@ export function photoLocked(index: number, total: number, r: GateRules | null | 
   if (!gateOn(r, 'gallery')) return false;
   const free = Math.max(1, Math.floor(r!.free_photos || 6));
   return total > free && index >= free;
+}
+
+/** How many photos a car card may show on hover or swipe, the cover included (2026-11-06): 5, or fewer when the photo
+ *  box leaves fewer free. */
+export function cardPhotoCap(r: GateRules | null | undefined): number {
+  if (!gateOn(r, 'gallery')) return 5;
+  return Math.min(5, Math.max(1, Math.floor(r!.free_photos || 6)));
 }
 
 export type GateNumber = { ok: true; phone: string; country: 'CA' | 'US' } | { ok: false; message: string };

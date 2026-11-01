@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar } from '@/features/calendar/Calendar';
 import { TimeSelect } from '@/features/calendar/TimeSelect';
 import { blocksFromCalendar, clash, timeProblem, type Block } from '@/features/calendar/availability';
-import { Estimate, useQuote, type LabelTokens } from '@/features/booking/Estimate';
+import { Estimate, Tween, useQuote, type LabelTokens } from '@/features/booking/Estimate';
 import { browserRpc } from '@/lib/browser-rpc';
 import { addDays, shortDate, torontoMinutesNow, torontoToday, validIso, validTime } from '@/lib/dates';
 import { money } from '@/lib/format';
@@ -46,9 +46,23 @@ export function useBlocks(vehicleId: string | null) {
   return { blocks: useMemo(() => mine?.blocks ?? [], [mine]), failed: mine?.failed ?? false };
 }
 
+/** Today in Toronto, again when the tab comes back after midnight (2026-11-06: a car page left open overnight kept
+ *  yesterday as its first day, and its calendar the month before). */
+export function useToday() {
+  const [, bump] = useState(0);
+  const today = torontoToday();
+  useEffect(() => {
+    const on = () => { if (document.visibilityState === 'visible' && torontoToday() !== today) bump((n) => n + 1); };
+    document.addEventListener('visibilitychange', on); window.addEventListener('focus', on);
+    const t = window.setInterval(on, 60_000);
+    return () => { document.removeEventListener('visibilitychange', on); window.removeEventListener('focus', on); window.clearInterval(t); };
+  }, [today]);
+  return today;
+}
+
 export function CarBooking(p: CarBookingProps) {
   const sp = useSearchParams();
-  const today = torontoToday();
+  const today = useToday();
   const { blocks, failed } = useBlocks(p.vehicleId);
   const [from, setFrom] = useState(() => (validIso(sp.get('from')) && sp.get('from')! >= today ? sp.get('from')! : ''));
   const [to, setTo] = useState(() => (validIso(sp.get('to')) && from ? sp.get('to')! : ''));
@@ -186,7 +200,7 @@ export function BookBar({ name, daily, slug }: { name: string; daily: number; sl
       <div className="wrap bookbar__in">
         <div className="bookbar__car"><b>{name}</b></div>
         <div className="bookbar__price">
-          <b className="num">{ready ? money(state.total!, { cents: true }) : `From ${money(daily)}`}</b>
+          {ready ? <Tween className="num" cents={state.total!} /> : <b className="num">{`From ${money(daily)}`}</b>}
           <span className="xs muted">{ready ? `${state.days} ${state.days === 1 ? 'day' : 'days'}, ${shortDate(state.from).split(', ')[1]} to ${shortDate(state.to).split(', ')[1]}, with HST` : 'a day. Pick dates for a total'}</span>
         </div>
         <a className="btn btn--quiet btn--sm bookbar__dates" href="#dates">Change dates</a>
