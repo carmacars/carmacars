@@ -12,6 +12,8 @@ import { Effects } from '@/components/Effects';
 import { ViewAsBanner } from '@/features/access/ViewAsBanner';
 import { SiteAssist } from '@/features/live/SiteAssist';
 import { JsonLd } from '@/components/JsonLd';
+import { AppShellMount } from '@/features/app-shell/AppShellMount';
+import { SHELL_MARK_SCRIPT } from '@/lib/native/shell';
 import { businessLd, websiteLd } from '@/features/seo/business';
 import { getHubLinks, getSeoLinks } from '@/features/seo/data';
 import { cookieWording, getSettings, photoUrl, replyText, siteUrl } from '@/lib/site';
@@ -42,8 +44,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // settings and the cookie wording only: the frame runs on every page (docs/audit/2026-10-13-launch-audit.md section 9)
   const [s, w, links, hubs, roles] = await Promise.all([getSettings(), cookieWording(), getSeoLinks().catch(() => []), getHubLinks(), openRoles()]);
   return (
-    <html lang="en-CA" className={`${interDisplay.variable} ${inter.variable}`}>
+    <html lang="en-CA" className={`${interDisplay.variable} ${inter.variable}`} suppressHydrationWarning>
       <body>
+        {/* the store app (0390): <html data-shell="app"> before the first paint, so web-only parts never flash */}
+        <script dangerouslySetInnerHTML={{ __html: SHELL_MARK_SCRIPT }} />
         <ViewAsBanner />
         <CookieBanner w={w} />
         <Header s={s} />
@@ -53,6 +57,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <JsonLd graph={[websiteLd(s, siteUrl()), businessLd(s, siteUrl(), { lite: true })]} />
         <Effects />
         <SiteAssist />
+        <AppShellMount />
       </body>
     </html>
   );

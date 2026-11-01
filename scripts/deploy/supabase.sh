@@ -106,6 +106,19 @@ secrets() {
   else
     notice "Phone alerts: off and hidden (add deploy_vapid_public_key and deploy_vapid_private_key to the vault)"
   fi
+  # optional: alerts in the App Store and Google Play app (0390), the Firebase project's service account JSON (Firebase,
+  # Project settings, Service accounts, Generate new private key; docs/apps/publish.md). Passed on as one line of base64 so
+  # the whole value is masked in the logs. Without it the app's alerts card stays hidden; browser alerts are unaffected.
+  local fcm
+  fcm=$(jq -r '[.[] | select(.name == "deploy_fcm_service_account")][0].v // empty' <<<"$rows")
+  if [ -n "$fcm" ] && jq -e '.project_id and .client_email and .private_key' >/dev/null 2>&1 <<<"$fcm"; then
+    fcm=$(printf '%s' "$fcm" | base64 -w0); mask "$fcm"; export_env FCM_SERVICE_ACCOUNT "$fcm"
+    notice "App alerts: on (deploy_fcm_service_account is in the vault)"
+  elif [ -n "$fcm" ]; then
+    notice "App alerts: off (deploy_fcm_service_account is not a Firebase service account JSON)"
+  else
+    notice "App alerts: off (add deploy_fcm_service_account to the vault once the Firebase project exists)"
+  fi
   # session pooler (IPv4) for the seed script; on the server, Postgres through this job's SSH tunnel
   local dburl
   dburl=$(sb_db_url)

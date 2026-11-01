@@ -23,3 +23,15 @@ test('with the keys: the database decides; any doubt runs the job', async () => 
   assert.equal(await pushWaiting({ ...DB, ...KEYS }, answer('{}', 500)), true);
   assert.equal(await pushWaiting({ ...DB, ...KEYS }, (async () => { throw new Error('down'); }) as unknown as typeof fetch), true);
 });
+
+test('the store app (0390): the Firebase account alone runs the job, and the database is asked only about the kinds it can send', async () => {
+  let body = '';
+  const f = (async (_url: string, init?: RequestInit) => { body = String(init?.body); return new Response('true'); }) as unknown as typeof fetch;
+  assert.equal(await pushWaiting({ ...DB, FCM_SERVICE_ACCOUNT: '{"placeholder":true}' }, f), true);
+  assert.equal(body, '{"p_kinds":["fcm"]}');
+  await pushWaiting({ ...DB, ...KEYS, FCM_SERVICE_ACCOUNT: '{"placeholder":true}' }, f);
+  assert.equal(body, '{"p_kinds":["web","fcm"]}');
+  await pushWaiting({ ...DB, ...KEYS }, f);
+  assert.equal(body, '{"p_kinds":["web"]}');
+  assert.equal(await pushWaiting({ ...DB, FCM_SERVICE_ACCOUNT: '  ' }, never), false, 'a blank secret is no account');
+});

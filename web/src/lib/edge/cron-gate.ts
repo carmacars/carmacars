@@ -34,15 +34,22 @@ export async function jobsToRun(env: Record<string, unknown>, f: typeof fetch = 
   }
 }
 
-// Phone and browser alerts (migration 0300): asked only when the Worker has the VAPID keys, so a site without them makes
-// no extra call. Any doubt (an error, no answer) sends: the job asks the database again and does nothing when idle.
+// Phone and browser alerts (migration 0300): asked only when the Worker has the VAPID keys or (0390, the store app) the
+// Firebase service account, so a site without either makes no extra call; the database is asked only about the kinds
+// this Worker can send. Any doubt (an error, no answer) sends: the job asks the database again and does nothing when idle.
+export function pushKindsOf(env: Record<string, unknown>): string[] {
+  const has = (k: string) => typeof env[k] === 'string' && (env[k] as string).trim() !== '';
+  return [...(has('VAPID_PUBLIC_KEY') && has('VAPID_PRIVATE_KEY') ? ['web'] : []), ...(has('FCM_SERVICE_ACCOUNT') ? ['fcm'] : [])];
+}
+
 export async function pushWaiting(env: Record<string, unknown>, f: typeof fetch = fetch): Promise<boolean> {
-  if (typeof env.VAPID_PUBLIC_KEY !== 'string' || !env.VAPID_PUBLIC_KEY || typeof env.VAPID_PRIVATE_KEY !== 'string' || !env.VAPID_PRIVATE_KEY) return false;
+  const kinds = pushKindsOf(env);
+  if (!kinds.length) return false;
   const url = env.NEXT_PUBLIC_SUPABASE_URL, key = env.SUPABASE_SERVICE_ROLE_KEY;
   if (env.DATA_BACKEND !== 'supabase' || typeof url !== 'string' || typeof key !== 'string' || !url || !key) return true;
   try {
     const r = await f(`${url.replace(/\/$/, '')}/rest/v1/rpc/server_push_waiting`, {
-      method: 'POST', headers: { apikey: key, authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: '{}',
+      method: 'POST', headers: { apikey: key, authorization: `Bearer ${key}`, 'content-type': 'application/json' }, body: JSON.stringify({ p_kinds: kinds }),
       signal: AbortSignal.timeout(5000)
     });
     if (!r.ok) return true;

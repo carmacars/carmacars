@@ -4,29 +4,44 @@ import { DbError, rpc } from '@/lib/db/repo';
 import type { Json } from '@/lib/db/types';
 import type { ActionResult } from '@/features/forms/schemas';
 import { TOPICS, type PushState, type Topic } from '@/features/push/topics';
-import { pushConfig, runPushJob } from '@/server/push';
+import { nativePushConfig, pushConfig, runPushJob } from '@/server/push';
 
 // Phone and browser alerts (migration 0300): the signed-in person turns alerts on or off for this device, chooses the
 // topics and sends a test. The database keeps the device (its push address and keys) and decides what alerts it.
 const SR = { role: 'service_role' as const };
 const PORTALS = ['renter', 'owner', 'investor', 'staff', 'field', 'admin'] as const;
 
-async function signedIn() {
-  if (!(await pushConfig())) return { error: { ok: false as const, code: 'off', message: 'Alerts are not available yet.' } };
+// a browser needs the VAPID keys, the store app the Firebase service account (0390); either is enough for the topics
+async function signedIn(kind: 'web' | 'fcm' | 'any' = 'any') {
+  const on = kind === 'web' ? !!(await pushConfig()) : kind === 'fcm' ? nativePushConfig() !== null : !!(await pushConfig()) || nativePushConfig() !== null;
+  if (!on) return { error: { ok: false as const, code: 'off', message: 'Alerts are not available yet.' } };
   const user = await (await auth()).currentUser();
   return user ? { user } : { error: { ok: false as const, code: 'auth', message: 'Sign in first.' } };
 }
 const refused = (e: unknown) => ({ ok: false as const, code: 'refused', message: e instanceof DbError ? e.message : 'Not saved. Try again.' });
 
 export interface DeviceSubscription { endpoint: string; p256dh: string; auth: string; portal?: string; device?: string }
+/** The store app's device (0390): its Firebase token instead of a browser's address and keys. */
+export interface AppSubscription { kind: 'fcm'; token: string; platform: 'ios' | 'android'; portal?: string; device?: string }
 
-export async function subscribePush(sub: DeviceSubscription): Promise<ActionResult<PushState>> {
-  const s = await signedIn();
+export async function subscribePush(sub: DeviceSubscription | AppSubscription): Promise<ActionResult<PushState>> {
+  const app = (sub as AppSubscription)?.kind === 'fcm';
+  const s = await signedIn(app ? 'fcm' : 'web');
   if (s.error) return s.error;
-  if (typeof sub?.endpoint !== 'string' || typeof sub.p256dh !== 'string' || typeof sub.auth !== 'string') return { ok: false, code: 'invalid', message: 'This browser gave no push address.' };
-  const portal = PORTALS.includes(sub.portal as (typeof PORTALS)[number]) ? sub.portal : undefined;
+  const portal = PORTALS.includes(sub?.portal as (typeof PORTALS)[number]) ? sub.portal : undefined;
+  const device = typeof sub?.device === 'string' ? sub.device.slice(0, 60) : undefined;
+  if (app) {
+    const a = sub as AppSubscription;
+    if (typeof a.token !== 'string' || !a.token) return { ok: false, code: 'invalid', message: 'This phone gave no push address.' };
+    try {
+      const p = { kind: 'fcm', token: a.token, platform: a.platform === 'ios' || a.platform === 'android' ? a.platform : null, portal, device };
+      return { ok: true, data: (await rpc('server_push_subscribe', { p_user: s.user.id, p: p as unknown as Json }, SR)) as unknown as PushState };
+    } catch (e) { return refused(e); }
+  }
+  const w = sub as DeviceSubscription;
+  if (typeof w?.endpoint !== 'string' || typeof w.p256dh !== 'string' || typeof w.auth !== 'string') return { ok: false, code: 'invalid', message: 'This browser gave no push address.' };
   try {
-    const p = { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth, portal, device: typeof sub.device === 'string' ? sub.device.slice(0, 60) : undefined };
+    const p = { endpoint: w.endpoint, p256dh: w.p256dh, auth: w.auth, portal, device };
     return { ok: true, data: (await rpc('server_push_subscribe', { p_user: s.user.id, p: p as unknown as Json }, SR)) as unknown as PushState };
   } catch (e) { return refused(e); }
 }

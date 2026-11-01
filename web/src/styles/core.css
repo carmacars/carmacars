@@ -556,3 +556,12 @@ a[href^="tel:"] { white-space: nowrap; }
 .pscan__row.is-check .pscan__state { background: #fde7b0; color: #7a4b00; }
 .pscan__problems { margin: 0; padding: var(--s-3) var(--s-4) var(--s-3) 2.1rem; border-radius: var(--r-2); background: #fff8e6; border: 1px solid #f4d68a; font-size: var(--fs-sm); display: grid; gap: var(--s-1); grid-column: 1 / -1; }
 .field.is-from-permit .input, .field.is-from-permit .select { box-shadow: inset 3px 0 0 #1d6b34; }
+/* The store app (migration 0390): <html data-shell="app"> is set before the first paint inside the CarmaCars app
+   (lib/native/shell.ts). The site's long footer of place and make links and the giant wordmark are for search engines
+   and browsers; in the app the footer keeps its contact, company and legal links. .web-only and .app-only for the rest. */
+html[data-shell="app"] .site-footer .footer-browse,
+html[data-shell="app"] .site-footer .footer-mark,
+html[data-shell="app"] .web-only { display: none !important; }
+html:not([data-shell="app"]) .app-only { display: none !important; }
+html[data-shell="app"] { -webkit-tap-highlight-color: transparent; }
+html[data-shell="app"] body { overscroll-behavior-y: none; }

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ShareButton } from '@/features/app-shell/ShareButton';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { CarCard } from '@/components/CarCard';
@@ -152,7 +153,7 @@ export default async function CarPage({ params }: Params) {
         <div className="car-top__grid">
           <Gallery name={name(c)} photos={c.photos} gate={f.phone_gate ?? null} />
           <div className="car-top__info">
-            <p className="row"><span className="small muted">{classText}</span>{c.is_sample && <span className="badge badge--outline car-top__example" data-testid="example-car-badge">Example car</span>}</p>
+            <p className="row"><span className="small muted">{classText}</span>{c.is_sample && <span className="badge badge--outline car-top__example" data-testid="example-car-badge">Example car</span>}<ShareButton title={name(c)} path={c.canonical_path} /></p>
             {/* 0104: a partner car's trim and every twin's mark, so no two cars share a heading */}
             <h1 className="d1 car-top__name"><span>{c.make}</span> {c.model}{c.guideline_rates && c.trim ? ` ${c.trim}` : ''}{c.seo_mark ? ` (${c.seo_mark})` : ''}</h1>
             <p className="lead muted">{[c.year, c.trim].filter(Boolean).join(' ')}{c.colour ? `${c.year || c.trim ? ', ' : ''}${c.colour}` : ''}{c.year || c.trim || c.colour ? '. ' : ''}For rent in {s.city}.{c.year_approximate ? ' Year confirmed when you book.' : ''}</p>

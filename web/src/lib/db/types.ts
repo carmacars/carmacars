@@ -216,6 +216,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      account_deletion_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          status: string;
+          reason: string | null;
+          task_id: string | null;
+          requested_at: string;
+          closed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          status?: string;
+          reason?: string | null;
+          task_id?: string | null;
+          requested_at?: string;
+          closed_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          status?: string;
+          reason?: string | null;
+          task_id?: string | null;
+          requested_at?: string;
+          closed_at?: string | null;
+        };
+        Relationships: [];
+      };
       account_links: {
         Row: {
           id: string;
@@ -15482,40 +15512,46 @@ export type Database = {
           id: string;
           user_id: string;
           endpoint: string;
-          p256dh: string;
-          auth: string;
+          p256dh: string | null;
+          auth: string | null;
           portal: string | null;
           device: string | null;
           created_at: string;
           last_sent_at: string | null;
           refusals: number;
           last_error: string | null;
+          kind: string;
+          platform: string | null;
         };
         Insert: {
           id?: string;
           user_id: string;
           endpoint: string;
-          p256dh: string;
-          auth: string;
+          p256dh?: string | null;
+          auth?: string | null;
           portal?: string | null;
           device?: string | null;
           created_at?: string;
           last_sent_at?: string | null;
           refusals?: number;
           last_error?: string | null;
+          kind?: string;
+          platform?: string | null;
         };
         Update: {
           id?: string;
           user_id?: string;
           endpoint?: string;
-          p256dh?: string;
-          auth?: string;
+          p256dh?: string | null;
+          auth?: string | null;
           portal?: string | null;
           device?: string | null;
           created_at?: string;
           last_sent_at?: string | null;
           refusals?: number;
           last_error?: string | null;
+          kind?: string;
+          platform?: string | null;
         };
         Relationships: [];
       };
@@ -24513,6 +24549,7 @@ export type Database = {
       seo_links: { Args: never; Returns: Json };
       seo_page: { Args: { p_slug: string }; Returns: Json };
       seo_pages_public: { Args: never; Returns: Json };
+      server_account_deletion_state: { Args: { p_user: string }; Returns: Json };
       server_account_email_verified: { Args: { p_user: string; p_email: string }; Returns: Json };
       server_account_gate: { Args: { p_user: string; p_step: string }; Returns: Json };
       server_account_set_email: { Args: { p_user: string; p_email: string }; Returns: Json };
@@ -24747,14 +24784,14 @@ export type Database = {
       server_places_import_finish: { Args: { p_import: number; p_skipped?: Json }; Returns: Json };
       server_places_import_region_done: { Args: { p_import: number; p_region: string; p_counts: Json }; Returns: Json };
       server_places_stage_clear: { Args: never; Returns: undefined };
-      server_push_due: { Args: { p_limit?: number }; Returns: Json };
+      server_push_due: { Args: { p_limit?: number; p_kinds?: string[] }; Returns: Json };
       server_push_result: { Args: { p: Json }; Returns: Json };
       server_push_set_topics: { Args: { p_user: string; p_topics: string[] }; Returns: Json };
       server_push_state: { Args: { p_user: string; p_endpoint?: string }; Returns: Json };
       server_push_subscribe: { Args: { p_user: string; p: Json }; Returns: Json };
       server_push_test: { Args: { p_user: string }; Returns: Json };
       server_push_unsubscribe: { Args: { p_user: string; p: Json }; Returns: Json };
-      server_push_waiting: { Args: never; Returns: boolean };
+      server_push_waiting: { Args: { p_kinds?: string[] }; Returns: boolean };
       server_quo_contact_done: { Args: { p: Json }; Returns: Json };
       server_quo_contacts_due: { Args: { p_limit?: number }; Returns: Json };
       server_quo_contacts_found: { Args: { p: Json }; Returns: Json };
@@ -24766,6 +24803,7 @@ export type Database = {
       server_referral_partner_signup: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_renter_coverage: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_renter_handover_report: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_request_account_deletion: { Args: { p_user: string; p_reason?: string }; Returns: Json };
       server_request_notify_channel: { Args: { p_booking_number: string; p_channel: string; p_user?: string }; Returns: Json };
       server_resume_form_draft: { Args: { p_link_token: string; p_user?: string; p_device_label?: string }; Returns: Json };
       server_review_google_sync_begin: { Args: never; Returns: Json };
@@ -24818,6 +24856,7 @@ export type Database = {
       server_vin_lookup: { Args: { p_vin: string }; Returns: Json };
       server_webhook_event_claim: { Args: { p_provider: string; p_event_id: string; p_event_type?: string; p_booking?: string; p_summary?: Json }; Returns: Json };
       server_webhook_event_finish: { Args: { p_provider: string; p_event_id: string; p_result?: Json; p_error?: string }; Returns: undefined };
+      server_withdraw_account_deletion: { Args: { p_user: string }; Returns: Json };
       server_witnessed_form_facts: { Args: { p_by: string; p_code: string; p_vehicle?: string }; Returns: Json };
       set_notification_preference: { Args: { p_code: string; p_email: boolean; p_in_app: boolean }; Returns: undefined };
       shop_services_public: { Args: { p_vertical: string }; Returns: Json };
