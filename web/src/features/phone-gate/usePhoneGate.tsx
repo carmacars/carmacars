@@ -73,7 +73,8 @@ export function usePhoneGate(rules: GateRules | null | undefined) {
       count('shown', kind);
     } finally { busy.current = false; }
   }, [rules]);
-  const back = () => { const o = opener.current; if (o && document.contains(o)) o.focus({ preventScroll: true }); };
+  // the focus goes back once the box is gone: while the modal box is still open the page behind it is inert
+  const back = () => { const o = opener.current; requestAnimationFrame(() => { if (o && document.contains(o)) o.focus({ preventScroll: true }); }); };
   const dialog = open && rules ? (
     <PhoneGateDialog kind={open.kind} rules={rules}
       onDone={(phone) => { const go = open.go; remember(phone); setOpen(null); back(); go(); }}
