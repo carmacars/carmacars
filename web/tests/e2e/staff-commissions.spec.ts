@@ -135,7 +135,7 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await signIn(fp, fin.email, '/staff');
   // the menu has Add a rental and My sales for Finance (0058)
   if (isPhone()) await fp.getByTestId('va-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
-  await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'My sales' })).toBeVisible();
+  await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'My numbers' })).toBeVisible();
   await fp.getByTestId('va-nav').getByRole('button', { name: 'Rentals' }).click();
   await expect(fp.getByTestId('va-nav').getByRole('link', { name: 'Add a rental' })).toBeVisible();
   await fp.goto('/staff/bookings/new', { waitUntil: 'networkidle' });

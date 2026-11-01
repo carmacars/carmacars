@@ -2,9 +2,10 @@ import Link from 'next/link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, BookingLink, Card, PageHead, Table, t, label } from '@/features/admin/ui';
+import { $, Badge, BookingLink, Card, PageHead, Table, Tiles, t, label } from '@/features/admin/ui';
 import { tabOf } from '@/features/admin/hubs';
 import { Incidents } from './Incidents';
+import { CarCell } from '@/features/admin/revamp/CarCell';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Damage and claims', path: '/admin/damages', noindex: true, description: 'Damage found after a rental, incidents and insurance claims.' });
@@ -28,8 +29,12 @@ export default async function Damages({ searchParams }: { searchParams: Promise<
         { name: 'location', label: 'Where on the car', required: true }, { name: 'description', label: 'What it is', type: 'textarea', required: true },
         { name: 'cost_kind', label: 'Cost', type: 'select', options: [['estimate', 'Estimate'], ['invoice', 'Invoice']] }, { name: 'cost_cents', label: 'Amount', type: 'money' }, { name: 'shop_name', label: 'Shop' }]} />
     </PageHead>
+    {/* r27: the queue in numbers, as the Now view's dark band */}
+    <Tiles items={[{ k: 'In the queue', v: String(rows.length), sub: rows.length ? 'to cost, match or charge' : 'nothing waiting' },
+      ...[...new Set(rows.map((r) => String(r.bucket)))].slice(0, 4).map((b) => ({ k: label(b).replace(/^./, (c) => c.toUpperCase()), v: String(rows.filter((r) => r.bucket === b).length) })),
+      { k: 'Older than 7 days', v: String(rows.filter((r) => Number(r.age_days) > 7).length), warn: rows.some((r) => Number(r.age_days) > 7) }]} />
     <Card title="Work queue"><Table<R> testId="damages" rows={rows} empty="No damage waiting. Damage found at a return or reported later shows up here to cost and charge." cols={[{ key: 'intake_number', label: 'Intake', render: (r) => <Link prefetch={false} className="link" href={`/admin/damages/${String(r.id)}`}>{String(r.intake_number)}</Link> },
-      { key: 'bucket', label: 'Queue', render: (r) => <Badge s="open">{label(r.bucket)}</Badge> }, { key: 'vehicle_name', label: 'Vehicle' }, { key: 'found_at', label: 'Found', render: (r) => t(r.found_at) }, { key: 'location', label: 'Where' },
+      { key: 'bucket', label: 'Queue', render: (r) => <Badge s="open">{label(r.bucket)}</Badge> }, { key: 'vehicle_name', label: 'Vehicle', render: (r) => <CarCell name={r.vehicle_name} /> }, { key: 'found_at', label: 'Found', render: (r) => t(r.found_at) }, { key: 'location', label: 'Where' },
       { key: 'cost_cents', label: 'Cost', num: true, render: (r) => $(r.cost_cents) }, { key: 'matched', label: 'Matched', render: (r) => <>{label(r.matched_to)} {r.booking_number ? <BookingLink n={r.booking_number} /> : null}</> }, { key: 'age_days', label: 'Age (days)', num: true }]} /></Card>
   </>);
 }

@@ -20,14 +20,14 @@ async function check(page: Page, where: string) {
   const r = await new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => `${where} ${v.id}: ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(', ')}`)).toEqual([]);
 }
-async function mkUser(sql: Sql, kind: 'admin' | 'finance', name: string) {
+async function mkUser(sql: Sql, kind: 'admin' | 'finance' | 'cs' | 'fleet', name: string) {
   const id = randomUUID(); const email = `${kind}.fp.${Date.now()}.${randomBytes(3).toString('hex')}@example.test`;
   await sql`insert into local_auth.users (id, email, password_hash) values (${id}, ${email}, ${hash(PW)})`;
   await sql`insert into users (id, email, full_name) values (${id}, ${email}, ${name})`;
   if (kind === 'admin') await sql`insert into user_roles (user_id, role) values (${id}, 'admin')`;
   else {
     await sql`insert into user_roles (user_id, role) values (${id}, 'va')`;
-    await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function, single_limit_cents) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', 'finance', 0)`;
+    await sql`insert into staff_profiles (user_id, home_address, home_postal_code, staff_type, va_function, single_limit_cents) values (${id}, '1 Test Lane, Testville', 'X9X 9X9', 'va', ${kind}, 0)`;
   }
   return { id, email };
 }
@@ -107,6 +107,8 @@ test('admin: 34 menu links, the merged pages and their tabs, the old addresses, 
       expect(res?.status(), `${path}?tab=${key}`).toBe(200);
       await tabRow(page, group, label);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      // the revamped look (features/admin/revamp): on every page of the group
+      await expect(page.locator('[data-revamp]')).toHaveCount(1);
       await check(page, `${path}?tab=${key}`);
       if (i === 0) {
         await page.screenshot({ path: `${SHOTS}/${test.info().project.name}-${group.toLowerCase().replace(/\W+/g, '-')}.png`, fullPage: true });
@@ -131,6 +133,9 @@ test('admin: 34 menu links, the merged pages and their tabs, the old addresses, 
   await page.waitForURL((u) => u.pathname === '/admin/logs' && u.searchParams.get('tab') === 'changes' && u.searchParams.get('q') === 'bookings');
   await tabRow(page, 'Logs', 'Changes');
 
+  // pages other branches own keep their look
+  await page.goto('/admin/bookings', { waitUntil: 'networkidle' });
+  await expect(page.locator('[data-revamp]')).toHaveCount(0);
   // the old addresses: the page and the tab that now holds them, the query kept
   for (const [from, to] of MOVED) {
     await page.goto(from, { waitUntil: 'networkidle' });
@@ -191,9 +196,40 @@ test('staff Finance: one Money link, its three tabs at their own addresses', asy
   for (const [path, tab] of [['/staff/money', 'To handle'], ['/staff/payments', 'By day'], ['/staff/reconciliation', 'Reconciliation']] as const) {
     await page.goto(path, { waitUntil: 'networkidle' });
     await tabRow(page, 'Money', tab);
+    await expect(page.locator('[data-revamp]')).toHaveCount(1);
     await check(page, path);
   }
   await page.screenshot({ path: `${SHOTS}/${test.info().project.name}-staff-money.png`, fullPage: true });
+  // the dark band of the day's money, the same component as the Admin's By day
+  await page.goto('/staff/payments', { waitUntil: 'networkidle' });
+  await expect(page.locator('.rv .ad-tiles')).toBeVisible();
+  // the staff To do keeps its look (another branch's page)
+  await page.goto('/staff', { waitUntil: 'networkidle' });
+  await expect(page.locator('[data-revamp]')).toHaveCount(0);
   await ctx.close();
   await sql.end();
 });
+
+// the r27 audit: each role's own group is always open, its jobs one tap away; a page group shows only the role's tabs
+for (const [fn, links, hub] of [['cs', 18, ['/staff/messages', 'Renters', 'Messages']], ['fleet', 17, ['/staff/checks', 'Checks', 'Daily checks']]] as const) {
+  test(`staff ${fn}: a short menu, the role's group open, page groups with the role's tabs`, async ({ browser }) => {
+    test.setTimeout(120_000);
+    const sql = db();
+    const u = await mkUser(sql, fn, `Fp ${fn}`);
+    const ctx = await browser.newContext({ viewport: phone() ? { width: 375, height: 812 } : { width: 1440, height: 900 }, hasTouch: phone(), baseURL: test.info().project.use.baseURL });
+    const page = await ctx.newPage();
+    await signIn(page, u.email, '/staff');
+    await page.goto(hub[0], { waitUntil: 'networkidle' });
+    await tabRow(page, hub[1], hub[2]);
+    await expect(page.locator('[data-revamp]')).toHaveCount(1);
+    await check(page, hub[0]);
+    const nav = page.getByTestId('va-nav');
+    if (phone()) await page.getByTestId('nav-menu').click();
+    await expect(nav.getByTestId(`nav-group-${fn}`)).toHaveAttribute('aria-expanded', 'true');
+    for (const g of ['today', 'rentals', 'me']) { const h = nav.getByTestId(`nav-group-${g}`); if ((await h.getAttribute('aria-expanded')) !== 'true') await h.click(); }
+    await expect(nav.locator('.gn__links a')).toHaveCount(links);
+    await page.screenshot({ path: `${SHOTS}/${test.info().project.name}-staff-${fn}-menu.png`, fullPage: true });
+    await ctx.close();
+    await sql.end();
+  });
+}

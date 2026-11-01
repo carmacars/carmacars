@@ -36,12 +36,35 @@ unchanged, menu lines included.
   the cards as you type. My phone alerts and Logs are cards on it. Every settings page is in exactly one section (a unit
   test). Ctrl+K still reaches every settings page and now every tab of every group. Reviews no longer shows twice in the
   menu: the review settings are a card on Settings (Messages and reviews).
-- **Staff portal, Finance:** Payments by day, Payments, deposits and refunds, and Reconciliation are one **Money** link
-  with the tabs To handle, By day and Reconciliation. Each page keeps its address and its Finance check.
+- **Staff portal, every role audited** (the owner, the same day: "Lots of the tabs under admin and under each staff
+  account are redundant and can be merged to avoid confusion and to have a smoother workflow"): each role's shift was
+  mapped from its guide chapter and the Academy. The menu is now Today (To do, Today at a glance) / the role's own group,
+  always open, its most used pages first / Rentals / Me (My numbers: Scorecard and My sales; Academy). Pages showing the
+  same records are one link with a tab row (`STAFF_HUBS`): Money (To handle, By day, Reconciliation), Renters (Messages,
+  Find a renter, Review requests, Leads), Owners (Owner leads, Owner pipeline, Owner forms, Add a car), Listings
+  (Listings, Similar cars, Calendar sync), Field jobs (Jobs, Field hours), Checks (Daily checks, Photo reviews), My
+  numbers (Scorecard, My sales) and, for field staff, My pay (My hours, My sales, Referrals). Each tab names the
+  functions whose page it is, so a person sees only their tabs (a group with one page for them shows as that page's
+  name); every page keeps its address and its own check. Links: customer service 26 to 18, fleet 22 to 17, finance 18
+  to 15, sales 19 to 17, field 8 to 6. Taps for each role's five most frequent jobs from the To do home: customer
+  service 10 to 6, fleet 10 to 6, finance 10 to 7, sales 9 to 6, field 4 to 5 (My sales moved under My pay).
 - **Revamp of the merged pages:** one heading per tab with a plain line on what it is for (Damage, Incidents, Claims,
   Emails, Blocked addresses, Changes, Data access, Owner debits, Insurer invoices, Renter leads); the second-level tab
   rows inside the old pages are gone (their tabs are the group's tabs now); the buttons that only linked to a sibling page
   (Payments by day, Insurer invoices) are gone because the tab row does it. Tables still turn into cards on a phone.
+- **The revamped look, admin and staff alike** (the owner, the same day: "a lot of other admin portal stuff [needs a
+  revamp]. And this should edit the staff's corresponding versions of these portals too"): the Now view's design
+  language (Bookings > Now) on every page of Money, Settings, Problems, Cars, People, Marketing and Customers (Reviews,
+  Renter leads) and on their staff versions (Finance, Fleet, customer service, Sales and field pages). One shared
+  stylesheet and one list of pages (`web/src/features/admin/revamp/`, `RevampScope` in both portal frames) restyle the
+  shared pieces both portals already use (`features/admin/ui.tsx`), so admin and staff stay in sync: numbers in a dark
+  band (Tiles, and the staff figures), white rounded cards, rows with room and a bold first column, status chips, one
+  red button for the row's next action, filter chips, and every row a card on a phone. A car in a row shows a photo
+  tile (`CarCell`: the photo when the row has one, else the make's letter on black): Damage, Incidents, Claims,
+  Expenses, Owner debits, Listings (admin and staff) and the staff Field jobs. New dark bands: Payments by day (admin
+  and Finance: received, refunded, net, refunds waiting, the cash drawer), Owner invoices, Owner statements, Payouts,
+  Insurer invoices, Damage and the email log. The pages other branches own (Bookings, Requests, Calendar, Visitors, To
+  do, Overview, Staff tasks, Live chat, My sales) are not in the list and keep their look; a unit test holds that.
 - **Access:** unchanged. Every admin page checks the Admin role and two-step sign-in itself; the merged pages do the
   same with the same check. The staff Money group holds only Finance pages.
 - **Links:** the links inside the site (invoice and statement pages, booking insurer box, settings pages, the usage card,
@@ -58,16 +81,18 @@ unchanged, menu lines included.
 | Admin menu links | 78 | 34 |
 | Admin menu links outside other branches' areas | 65 | 21 |
 | Admin list pages with their own content | 13 (the merged ones) | 6 |
-| Staff Finance menu links | 7 | 5 |
+| Staff menu links: customer service, fleet, finance, sales, field | 26, 22, 18, 19, 8 | 18, 17, 15, 17, 6 |
 
 ## Tests
 
-- Unit: `web/src/features/admin/hubs.test.ts` (which tab a page shows, detail pages show none, one group per tab, the menu
+- Unit: `web/src/features/admin/revamp/scope.test.ts` (the revamped pages, never another branch's), `web/src/features/admin/hubs.test.ts` (which tab a page shows, detail pages show none, one group per tab, the menu
   link, old addresses with their query and old tab values), `web/src/features/admin/settings-index/groups.test.ts` (every
-  settings page in one section, the search), `web/src/features/staff/nav.test.ts` (Finance's Money link).
+  settings page in one section, the search), `web/src/features/staff/nav.test.ts` (each role's menu size, its group first, its top five jobs one tap away, a group shows only the role's tabs).
 - End to end: `web/tests/e2e/fewer-pages.spec.ts` at 375 and 1440: the admin menu's 34 links, each merged page and each
   tab with axe and no overflow, the tab row's current tab, every old address redirecting to its tab with its query, the
-  Settings search and anchors, the staff Finance Money link and its tabs. The specs that opened the old addresses open
+  Settings search and anchors, the staff Finance Money link and its tabs, the revamped look on each merged page (admin and
+  staff) and not on another branch's page, the customer service and fleet menus (their group open, the link count, a
+  group's tab row). The specs that opened the staff menu's old groups (Live, My work) use the new ones. The specs that opened the old addresses open
   the tabs now.
 
 ## Guides
@@ -80,4 +105,6 @@ unchanged, menu lines included.
   `admin/search-car-pages-landing-pages-and-guides`, `admin/settings`, `admin/email-backups-and-site-health`: the new
   places (Owner money, Payments, Insurers, Staff pay, Company accounts, Logs, Renters > Leads, Owners > Paid and signed,
   Partners > Referral partners, Owners > Add a car, Ads > Ad listings; Settings without "All settings").
-- `va/your-workday`, `va/finance`, `va/quick-reference`: Finance's Money link and its tabs.
+- `va/your-workday` (the menu of each role), `va/finance`, `va/sales`, `va/shared-tools`, `va/quick-reference`: the new staff menu, Today,
+  Me and My numbers, the page groups.
+- `field/my-jobs`, `field/my-hours-and-pay`: My pay (My hours, My sales, Referrals).

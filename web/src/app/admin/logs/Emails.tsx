@@ -1,6 +1,6 @@
 import type { AdminPage } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { Badge, BookingLink, Filters, PageHead, Search, Table, t } from '@/features/admin/ui';
+import { Badge, BookingLink, Filters, PageHead, Search, Table, Tiles, t } from '@/features/admin/ui';
 
 type R = Record<string, unknown>;
 
@@ -16,6 +16,9 @@ export async function Emails({ ctx: { list, read }, sp, tab }: { ctx: AdminPage;
   const [{ rows, count }, u] = await Promise.all([list('notification_outbox', { eq: sp.status ? { status: sp.status } : {}, q: sp.q, limit: 200 }),
     read<{ total: number; outbox: number; auth: number; cap: number; warn_at: number; held: number; failed_today: number }>('email_usage').catch(() => null)]);
   return (<><PageHead title="Emails" kicker={`${count} messages`} purpose="Every email the site sent or is waiting to send. Resend one, cancel one, or text it instead."><Search action="/admin/logs?tab=emails" value={sp.q} placeholder="Address or email code" /></PageHead>
+    {u && <Tiles items={[{ k: 'Sent today', v: `${u.total} of ${u.cap}`, sub: `${u.auth} sign-in emails`, warn: u.total >= u.warn_at },
+      { k: 'Held for the limit', v: String(u.held), href: '/admin/logs?tab=emails&status=delayed', warn: u.held > 0 }, { k: 'Failed today', v: String(u.failed_today), href: '/admin/logs?tab=emails&status=failed', warn: u.failed_today > 0 },
+      { k: 'In this list', v: String(count) }]} />}
     {u && <p className={`alert ${u.total >= u.warn_at ? 'alert--warn' : 'alert--info'}`} data-testid="email-usage"><span>Today: {u.total} of {u.cap} emails ({u.outbox} from this list, {u.auth} sign-in emails from Supabase). From {u.warn_at} the Admins get a notice; digests and marketing wait first, booking and sign-in emails go last. Held for the limit: {u.held}. Failed today: {u.failed_today}.</span></p>}
     <Filters base="/admin/logs?tab=emails" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['queued', 'Queued'], ['delayed', 'Held'], ['sent', 'Sent'], ['failed', 'Failed'], ['suppressed', 'Suppressed'], ['skipped', 'Skipped']]} />
     <Table<R> testId="outbox" rows={rows} empty="No emails match. Clear a filter, or search by address or booking." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'code', label: 'Email' }, { key: 'to_address', label: 'To' }, { key: 'booking_number', label: 'Booking', render: (r) => r.booking_number ? <BookingLink n={r.booking_number} /> : null },

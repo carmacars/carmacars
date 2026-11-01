@@ -28,7 +28,8 @@ export function currentLink(groups: NavGroup[], path: string, query: string): { 
   return { group: best.group, link: best.link };
 }
 
-export function GroupNav({ groups, counts = {}, label, testId }: { groups: NavGroup[]; counts?: Record<string, number>; label: string; testId?: string }) {
+// alwaysOpen (r27 audit): groups open on every page (a staff role's own group and Me), so the role's jobs are one tap away
+export function GroupNav({ groups, counts = {}, label, testId, alwaysOpen = [] }: { groups: NavGroup[]; counts?: Record<string, number>; label: string; testId?: string; alwaysOpen?: string[] }) {
   const path = usePathname();
   const sp = useSearchParams();
   const query = sp?.toString() ?? '';
@@ -62,7 +63,7 @@ export function GroupNav({ groups, counts = {}, label, testId }: { groups: NavGr
       <ul className={`gn__groups${menu ? ' is-open' : ''}`} id={`${testId ?? 'gn'}-groups`}>
         {groups.map((g) => {
           const isCur = cur?.key === g.key;
-          const expanded = open[g.key] ?? isCur;
+          const expanded = open[g.key] ?? (isCur || alwaysOpen.includes(g.key));
           const n = total(g);
           if (g.links.length === 1) {
             const l = g.links[0]!;

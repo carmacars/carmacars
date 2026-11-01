@@ -1,6 +1,6 @@
 import type { AdminPage } from '@/server/admin/api';
 import { door } from '@/server/door';
-import { Filters, PageHead, Search } from '@/features/admin/ui';
+import { Filters, PageHead, Search, Tiles } from '@/features/admin/ui';
 import { TrackerActions } from '@/features/admin/AdminForms';
 import { Act } from '@/features/admin/Act';
 import { InvoiceList, type InvoiceListData } from '@/features/owner-billing/InvoiceList';
@@ -15,7 +15,12 @@ export async function Invoices({ ctx: { user }, sp }: { ctx: AdminPage; sp: Reco
   const data = await door<InvoiceListData>(user.id, 'ops_read', 'owner_invoices_admin', { status, q: sp.q ?? '' });
   return (
     <>
-      <PageHead title="Owner invoices" />
+      <PageHead title="Owner invoices" purpose="What owners owe: every invoice, drafts and voids included. Open one to record a payment, void it or credit it." />
+      <Tiles items={[
+        { k: 'Open', v: String(data.counts.open), sub: 'waiting for payment', href: '/admin/owner-money?tab=invoices&status=open', warn: data.counts.open > 0 },
+        { k: 'Drafts', v: String(data.counts.draft), sub: 'not issued yet', href: '/admin/owner-money?tab=invoices&status=draft' },
+        { k: 'Paid', v: String(data.counts.paid), href: '/admin/owner-money?tab=invoices&status=paid' },
+        { k: 'Void', v: String(data.counts.void), href: '/admin/owner-money?tab=invoices&status=void' }]} />
       <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-3)', alignItems: 'center' }}>
         <Filters base="/admin/owner-money?tab=invoices" name="status" value={status} options={FILTERS} sp={sp} />
         <Search action="/admin/owner-money?tab=invoices" value={sp.q} placeholder="Invoice number or owner" />

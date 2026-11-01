@@ -468,8 +468,8 @@ test('assistant: the grouped menu, To do first', async ({ browser }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('To do');
   await openMenu(page);
   const nav = page.getByTestId('va-nav');
-  for (const g of ['My work', 'Live', 'Customer service', 'Rentals']) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
-  await nav.getByTestId('nav-group-cs').click();
+  // r27 audit: Today, the role's own group (always open), Rentals, Me
+  for (const g of ['Today', 'Customer service', 'Rentals', 'Me']) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
   await nav.getByRole('link', { name: 'Requests', exact: true }).click();
   await page.waitForURL(/\/staff\/requests/);
   await check(page, 'assistant requests');

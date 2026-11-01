@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { AdminPage } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, Filters, PageHead, Table, t, d } from '@/features/admin/ui';
+import { $, Badge, Filters, PageHead, Table, Tiles, t, d } from '@/features/admin/ui';
 
 type R = Record<string, unknown>;
 
@@ -10,7 +10,10 @@ export async function Payouts({ ctx: { list }, sp }: { ctx: AdminPage; sp: Recor
   const { rows } = await list('payouts', { eq: sp.status ? { status: sp.status } : {}, limit: 200 });
   const R = ['/admin/owner-money'];
   return (<>
-    <PageHead title="Payouts" />
+    <PageHead title="Payouts" purpose="Money going out to owners and investors: approve it, then record the transfer." />
+    <Tiles items={[{ k: 'Waiting for approval', v: String(rows.filter((r) => ['draft', 'pending_approval'].includes(String(r.status))).length), href: '/admin/owner-money?tab=payouts&status=pending_approval', warn: rows.some((r) => ['draft', 'pending_approval'].includes(String(r.status))) },
+      { k: 'Approved, to send', v: String(rows.filter((r) => r.status === 'approved').length), sub: $(rows.filter((r) => r.status === 'approved').reduce((n, r) => n + Number(r.amount_cents ?? 0), 0)), href: '/admin/owner-money?tab=payouts&status=approved' },
+      { k: 'Paid', v: String(rows.filter((r) => r.status === 'paid').length), href: '/admin/owner-money?tab=payouts&status=paid' }]} />
     <Filters base="/admin/owner-money?tab=payouts" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Waiting for approval'], ['approved', 'Approved'], ['paid', 'Paid'], ['cancelled', 'Cancelled']]} />
     <Table<R> testId="payouts" rows={rows} empty="No payouts yet. They are made when an owner statement is approved." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'payee', label: 'Payee', render: (r) => String(r.owner_name ?? r.investor_name ?? r.payee_type) }, { key: 'kind', label: 'Kind' },
       { key: 'statement', label: 'Statement', render: (r) => r.owner_statement_id ? <Link prefetch={false} className="link" href={`/admin/statements/${String(r.owner_statement_id)}`}>open</Link> : null },

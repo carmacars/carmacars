@@ -6,6 +6,7 @@ import { Badge, Card, PageHead, Table, t, label } from '@/features/admin/ui';
 import { CarBoard, DayTimeline } from '@/features/va/FleetDay';
 import { carBoard, type CalVehicle } from '@/features/va/carboard';
 import { requestNow } from '@/features/va/lanes';
+import { CarCell } from '@/features/admin/revamp/CarCell';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Field jobs', path: '/staff/fleet', noindex: true, description: 'Field job scheduling and assignment.' });
@@ -39,7 +40,7 @@ export default async function Fleet() {
           <Table rows={b.unscheduled} rowKey={(r) => `${r.booking_id}-${r.leg}`} empty="Every handover and return has a job." cols={[
             { key: 'at', label: 'When', render: (r) => t(r.at) }, { key: 'leg', label: 'Job', render: (r) => KIND[String(r.leg)] ?? label(r.leg) },
             { key: 'booking_number', label: 'Booking', render: (r) => <Link prefetch={false} className="link" href={`/staff/bookings/${encodeURIComponent(String(r.booking_number))}`}>{String(r.booking_number)}</Link> },
-            { key: 'vehicle_name', label: 'Car' }, { key: 'place', label: 'Place', className: 'wrap' },
+            { key: 'vehicle_name', label: 'Car', render: (r) => <CarCell name={r.vehicle_name} /> }, { key: 'place', label: 'Place', className: 'wrap' },
             { key: 'act', label: '', render: (r) => <Act action="field_job_create" payload={{ booking: r.booking_id, vehicle: r.vehicle_id, kind: r.leg }} label="Schedule" variant="primary" testId={`schedule-${String(r.booking_number)}-${String(r.leg)}`} fields={[
               { name: 'assigned_to', label: 'Assigned to', type: 'select', options: staff }, { name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: r.at },
               { name: 'place', label: 'Place', type: 'address', required: true, value: r.place ?? 'Our location' }, { name: 'instructions', label: 'Instructions', type: 'textarea' }]} refresh={R} done="Scheduled." /> }]} />
@@ -48,7 +49,7 @@ export default async function Fleet() {
           <Table rows={b.jobs} empty="No jobs." cols={[
             { key: 'scheduled_at', label: 'When', render: (r) => <span className={late(r) ? 'ad-late' : undefined}>{t(r.scheduled_at)}</span> },
             { key: 'kind', label: 'Kind', render: (r) => <>{label(r.kind)}{r.auto_created ? <span className="muted small"> · made from the booking</span> : null}</> },
-            { key: 'vehicle_name', label: 'Car' }, { key: 'booking_number', label: 'Booking' }, { key: 'place', label: 'Place', className: 'wrap' },
+            { key: 'vehicle_name', label: 'Car', render: (r) => <CarCell name={r.vehicle_name} /> }, { key: 'booking_number', label: 'Booking' }, { key: 'place', label: 'Place', className: 'wrap' },
             { key: 'assignee_name', label: 'Field staff', render: (r) => r.assignee_name ? <>{String(r.assignee_name)} {r.acknowledged_at ? <span className="muted small">acknowledged</span> : <span className="ad-flag ad-flag--red">not acknowledged</span>}</> : <span className="ad-flag ad-flag--red">nobody</span> },
             { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
             { key: 'act', label: '', render: (r) => ['done', 'cancelled'].includes(String(r.status)) ? null : <span className="ad-actions">
@@ -56,7 +57,7 @@ export default async function Fleet() {
               <Act action="field_job_reschedule" payload={{ id: r.id }} label="Move" fields={[{ name: 'scheduled_at', label: 'When', type: 'datetime', required: true, value: r.scheduled_at }, { name: 'place', label: 'Place', type: 'address', value: r.place ?? '' }]} refresh={R} />
               <Act action="field_job_cancel" payload={{ id: r.id }} label="Cancel" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={R} /></span> }]} />
         </Card>
-        <Card title="Expiry watch" id="expiry"><Table rows={b.expiry} empty="Nothing expiring." cols={[{ key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }, { key: 'title', label: 'What', className: 'wrap' }, { key: 'vehicle_name', label: 'Car' },
+        <Card title="Expiry watch" id="expiry"><Table rows={b.expiry} empty="Nothing expiring." cols={[{ key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }, { key: 'title', label: 'What', className: 'wrap' }, { key: 'vehicle_name', label: 'Car', render: (r) => <CarCell name={r.vehicle_name} /> },
           { key: 'act', label: '', render: (r) => <Link prefetch={false} className="link" href={`/staff/tasks/${String(r.id)}`}>Open</Link> }]} /></Card>
         <Card title="Vehicle documents"><Table rows={b.documents} empty="No vehicle documents." cols={[{ key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) }, { key: 'title', label: 'Title', className: 'wrap' },
           { key: 'vehicle_name', label: 'Car', render: (r) => <Link prefetch={false} className="link" href={`/staff/vehicles/${String(r.vehicle_id)}`}>{String(r.vehicle_name)}</Link> }]} /></Card>

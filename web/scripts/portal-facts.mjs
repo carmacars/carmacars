@@ -99,7 +99,8 @@ function nav() {
     settings.links = [...new Set([...settings.links, ...cards, ...cards.map((c) => c.replace(/ settings$/, ''))])];
   }
   // one staff portal since 0197: the groups of every function (src/features/staff/nav.ts); field work is its own group there
-  const staff = navFromGroups(f('features/staff/nav.ts'), 'STAFF_GROUPS');
+  const staffHubsCode = hubs.slice(hubs.indexOf('STAFF_HUBS'));
+  const staff = navFromGroups(f('features/staff/nav.ts'), 'STAFF_GROUPS', staffHubsCode);
   const va = staff.filter((g) => g.group !== 'Field work');
   const inv = fs.existsSync(path.join(SRC, 'features/investor/InvestorNav.tsx')) ? f('features/investor/InvestorNav.tsx') : '';
   return {

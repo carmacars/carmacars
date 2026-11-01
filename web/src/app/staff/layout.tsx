@@ -16,7 +16,9 @@ import { door, rolesOf } from '@/server/door';
 import { DoorProvider } from '@/features/admin/door';
 import { StaffNav } from '@/features/staff/StaffNav';
 import { HubBar } from '@/features/admin/HubBar';
-import { STAFF_HUBS } from '@/features/admin/hubs';
+import { staffHubs } from '@/features/staff/nav';
+import { RevampScope } from '@/features/admin/revamp/RevampScope';
+import { REVAMP_STAFF } from '@/features/admin/revamp/scope';
 import { heldFunctions, STAFF_FN_LABEL } from '@/features/staff/nav';
 import { HomeAddressCard, homeAddressOf } from '@/features/staff/HomeAddress';
 
@@ -65,7 +67,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             <StaffNav functions={held} open={open} chat={chat} hot={hot} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} /> : null}{staff ? <HubBar hubs={STAFF_HUBS} /> : null}<DoorProvider kind="va">{children}</DoorProvider></div>
+        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} /> : null}{staff ? <HubBar hubs={staffHubs(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{children}</RevampScope></DoorProvider></div>
       </div>
     </div>
   );

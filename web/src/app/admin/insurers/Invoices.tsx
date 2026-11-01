@@ -1,17 +1,22 @@
 import type { AdminPage } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, BookingLink, Filters, PageHead, Table, t, d } from '@/features/admin/ui';
+import { $, Badge, BookingLink, Filters, PageHead, Table, Tiles, t, d } from '@/features/admin/ui';
 
 type R = Record<string, unknown>;
+// days since a time (outside the component: the clock is read when the page is drawn on the server)
+const days = (iso: unknown) => typeof iso === 'string' ? Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000) : null;
 
 // Money > Insurers > Invoices (03-admin.md section 7.4; r27: a tab of Insurers, /admin/insurer-invoices redirects): drafted
 // from a booking, sent, paid or written off.
 export async function InsurerInvoices({ ctx: { list }, sp }: { ctx: AdminPage; sp: Record<string, string | undefined> }) {
   const { rows } = await list('insurer_invoices', { eq: sp.status ? { status: sp.status } : {}, limit: 200 });
-  const days = (iso: unknown) => typeof iso === 'string' ? Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000) : null;
   const R = ['/admin/insurers'];
   return (<>
     <PageHead title="Insurer invoices" purpose="Draft one from a booking billed to an insurer: the booking page, Draft insurer invoice." />
+    <Tiles items={[{ k: 'Outstanding', v: $(rows.filter((r) => ['sent', 'part_paid'].includes(String(r.status))).reduce((n, r) => n + Number(r.balance_cents ?? 0), 0)), sub: 'sent and not paid' },
+      { k: 'Drafts to send', v: String(rows.filter((r) => r.status === 'draft').length), href: '/admin/insurers?tab=invoices&status=draft', warn: rows.some((r) => r.status === 'draft') },
+      { k: 'Out over 30 days', v: String(rows.filter((r) => ['sent', 'part_paid'].includes(String(r.status)) && (days(r.sent_at) ?? 0) > 30).length), warn: rows.some((r) => ['sent', 'part_paid'].includes(String(r.status)) && (days(r.sent_at) ?? 0) > 30) },
+      { k: 'Paid', v: String(rows.filter((r) => r.status === 'paid').length) }]} />
     <Filters base="/admin/insurers?tab=invoices" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['draft', 'Draft'], ['sent', 'Sent'], ['part_paid', 'Part paid'], ['paid', 'Paid'], ['written_off', 'Written off']]} />
     <Table<R> testId="insurer-invoices" rows={rows} empty="No insurer invoices. They are made from a booking billed to an insurer, once it is returned." cols={[{ key: 'invoice_number', label: 'Invoice' }, { key: 'insurer_name', label: 'Insurer' }, { key: 'claim_number', label: 'Claim' }, { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
       { key: 'period', label: 'Period', render: (r) => `${d(r.period_start)} to ${d(r.period_end)}` }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'hst_cents', label: 'HST', num: true, render: (r) => $(r.hst_cents) }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) },

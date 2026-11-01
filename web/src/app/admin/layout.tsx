@@ -7,6 +7,8 @@ import { signOut } from '@/server/actions/auth';
 import { AdminNav, AdminSearch, GROUPS } from '@/features/admin/AdminNav';
 import { HubBar } from '@/features/admin/HubBar';
 import { ADMIN_HUBS } from '@/features/admin/hubs';
+import { RevampScope } from '@/features/admin/revamp/RevampScope';
+import { REVAMP_ADMIN } from '@/features/admin/revamp/scope';
 import { AdminCommand } from '@/features/admin/shell/AdminCommand';
 import { SECTIONS } from './settings/sections';
 import { adminGate } from '@/server/admin/data';
@@ -52,7 +54,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <AdminNav counts={counts} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{gate?.admin && user ? <GuideBanner portal="admin" userId={user.id} /> : null}{gate?.admin && user ? <PushInvite portal="admin" home="/admin" /> : null}{gate?.admin ? <HubBar hubs={ADMIN_HUBS} counts={{ '/admin/owner-money?tab=statements': counts['/admin/owner-money?tab=statements'] ?? 0, '/admin/money?tab=day': counts['/admin/money?tab=day'] ?? 0, '/admin/listings': counts['/admin/listings'] ?? 0 }} /> : null}{children}</div>
+        <div className="ad__main">{gate?.admin && user ? <GuideBanner portal="admin" userId={user.id} /> : null}{gate?.admin && user ? <PushInvite portal="admin" home="/admin" /> : null}{gate?.admin ? <HubBar hubs={ADMIN_HUBS} counts={{ '/admin/owner-money?tab=statements': counts['/admin/owner-money?tab=statements'] ?? 0, '/admin/money?tab=day': counts['/admin/money?tab=day'] ?? 0, '/admin/listings': counts['/admin/listings'] ?? 0 }} /> : null}<RevampScope list={REVAMP_ADMIN}>{children}</RevampScope></div>
       </div>
     </div>
   );

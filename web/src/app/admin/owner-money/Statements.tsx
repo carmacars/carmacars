@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { AdminPage } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { monthOf } from '@/features/owner/Blocks';
-import { $, Badge, Filters, PageHead, Table, d } from '@/features/admin/ui';
+import { $, Badge, Filters, PageHead, Table, Tiles, d } from '@/features/admin/ui';
 
 type R = Record<string, unknown>;
 const lastMonth = () => { const n = new Date(); return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() - 1, 1)).toISOString().slice(0, 10); };
@@ -15,6 +15,9 @@ export async function Statements({ ctx: { list }, sp }: { ctx: AdminPage; sp: Re
       <Act action="statements_build_all" label="Build all for a month" fields={[{ name: 'month', label: 'Month (first day)', type: 'date', required: true, value: lastMonth() }]} refresh={['/admin/owner-money']} />
       <Act action="statement_build" label="Build one" variant="primary" testId="statement-build" go="/admin/statements/{id}" fields={[{ name: 'owner', label: 'Owner', type: 'select', required: true, options: owners.rows.filter((o) => o.kind !== 'company').map((o) => [o.id, o.kind === 'partner' ? `${o.legal_name} (partner)` : o.legal_name]) }, { name: 'month', label: 'Month (first day)', type: 'date', required: true, value: lastMonth() }]} />
     </PageHead>
+    <Tiles items={[{ k: 'Drafts to approve', v: String(rows.filter((r) => r.status === 'draft').length), href: '/admin/owner-money?tab=statements&status=draft', warn: rows.some((r) => r.status === 'draft') },
+      { k: 'Approved', v: String(rows.filter((r) => r.status === 'approved').length), href: '/admin/owner-money?tab=statements&status=approved' },
+      { k: 'Paid', v: String(rows.filter((r) => r.status === 'paid').length), href: '/admin/owner-money?tab=statements&status=paid' }]} />
     <Filters base="/admin/owner-money?tab=statements" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['draft', 'Draft'], ['approved', 'Approved'], ['paid', 'Paid'], ['void', 'Void']]} />
     <Table<R> testId="statements" rows={rows} empty="No statements yet. Owner statements are drafted 5 days before the payout date, then wait here for your approval." cols={[{ key: 'statement_number', label: 'Statement', render: (r) => <Link prefetch={false} className="link" href={`/admin/statements/${String(r.id)}`}>{String(r.statement_number ?? 'draft')}</Link> },
       { key: 'owner_name', label: 'Owner' }, { key: 'statement_month', label: 'Month', render: (r) => monthOf(String(r.statement_month)) }, { key: 'version', label: 'v', num: true },

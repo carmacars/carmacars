@@ -3,7 +3,7 @@
 // A tab is either `?tab=<key>` on one address (pages that showed the same records from different angles, merged into one
 // page; the old addresses redirect there) or a page of its own (separate tools on one subject, grouped; each keeps its
 // address). The first tab is where the menu link goes.
-export interface HubTab { href: string; label: string }
+export interface HubTab { href: string; label: string; /** staff portal: the functions that may open the page, space separated (the tab row shows a person only theirs) */ fns?: string }
 export interface Hub { key: string; label: string; tabs: HubTab[] }
 
 export const ADMIN_HUBS: Hub[] = [
@@ -39,10 +39,26 @@ export const ADMIN_HUBS: Hub[] = [
   { key: 'recruit', label: 'Owner recruitment', tabs: [{ href: '/admin/marketing/recruit', label: 'Recruitment' }, { href: '/admin/marketing/owner-pipeline', label: 'Owner pipeline' }] }
 ];
 
-// Finance in the staff portal: the three money pages are one group (each page keeps its address and its finance check).
+// The staff portal's page groups (r27 audit, the owner: "Lots of the tabs under admin and under each staff account are
+// redundant and can be merged"). Each tab names the functions whose pages they are (as the menu showed them before), so a
+// person sees only the tabs they can open; each page keeps its address and its own check.
 export const STAFF_HUBS: Hub[] = [
-  { key: 'money', label: 'Money', tabs: [{ href: '/staff/money', label: 'To handle' }, { href: '/staff/payments', label: 'By day' }, { href: '/staff/reconciliation', label: 'Reconciliation' }] }
+  { key: 'money', label: 'Money', tabs: [{ href: '/staff/money', label: 'To handle', fns: 'finance' }, { href: '/staff/payments', label: 'By day', fns: 'finance' }, { href: '/staff/reconciliation', label: 'Reconciliation', fns: 'finance' }] },
+  { key: 'renters', label: 'Renters', tabs: [{ href: '/staff/messages', label: 'Messages', fns: 'cs' }, { href: '/staff/renters', label: 'Find a renter', fns: 'cs fleet finance' },
+    { href: '/staff/review-requests', label: 'Review requests', fns: 'cs' }, { href: '/staff/game-leads', label: 'Leads', fns: 'cs sales' }] },
+  { key: 'owners', label: 'Owners', tabs: [{ href: '/staff/leads', label: 'Owner leads', fns: 'cs sales' }, { href: '/staff/owner-pipeline', label: 'Owner pipeline', fns: 'cs sales' },
+    { href: '/staff/owner-forms', label: 'Owner forms', fns: 'cs' }, { href: '/staff/owners/add-car', label: 'Add a car', fns: 'cs fleet' }] },
+  { key: 'listings', label: 'Listings', tabs: [{ href: '/staff/listings', label: 'Listings', fns: 'cs fleet' }, { href: '/staff/similar-cars', label: 'Similar cars', fns: 'cs fleet' }, { href: '/staff/calendar-sync', label: 'Calendar sync', fns: 'fleet' }] },
+  { key: 'field-jobs', label: 'Field jobs', tabs: [{ href: '/staff/fleet', label: 'Jobs', fns: 'fleet' }, { href: '/staff/field-hours', label: 'Field hours', fns: 'fleet' }] },
+  { key: 'checks', label: 'Checks', tabs: [{ href: '/staff/checks', label: 'Daily checks', fns: 'fleet' }, { href: '/staff/reviews', label: 'Photo reviews', fns: 'fleet' }] },
+  { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' }] },
+  { key: 'field-pay', label: 'My pay', tabs: [{ href: '/staff/field/hours', label: 'My hours', fns: 'field' }, { href: '/staff/field/sales', label: 'My sales', fns: 'field' }, { href: '/staff/field/referrals', label: 'Referrals', fns: 'field' }] }
 ];
+
+/** A person's page groups: only the tabs of the functions they hold, and only groups left with a tab. */
+export function hubsFor(hubs: Hub[], fns: readonly string[]): Hub[] {
+  return hubs.map((h) => ({ ...h, tabs: h.tabs.filter((t) => !t.fns || t.fns.split(' ').some((f) => fns.includes(f))) })).filter((h) => h.tabs.length > 0);
+}
 
 const split = (href: string): [string, URLSearchParams] => { const [p = href, q = ''] = href.split('?'); return [p, new URLSearchParams(q)]; };
 

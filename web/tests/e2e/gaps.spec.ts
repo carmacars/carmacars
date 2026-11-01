@@ -309,8 +309,8 @@ test('gaps: find a renter, a Sales quote, and an assistant who covers two functi
   // one menu for every function held (0197): Daily checks is in the Fleet group
   await expect(page.locator('nav[aria-label="Staff"]')).toContainText('Fleet', { timeout: 15_000 });
   if (await page.getByTestId('nav-menu').isVisible()) await page.getByTestId('nav-menu').click();
-  await page.locator('nav[aria-label="Staff"]').getByTestId('nav-group-fleet').click();
-  await expect(page.locator('nav[aria-label="Staff"]')).toContainText('Daily checks');
+  // r27: a role's group is always open; Daily checks and Photo reviews are one link, Checks
+  await expect(page.locator('nav[aria-label="Staff"]').getByRole('link', { name: 'Checks', exact: true })).toBeVisible();
   await page.goto('/staff/checks'); await expect(page.getByTestId('check-opening')).toBeVisible();
   await page.getByTestId('fn-switch').getByRole('button', { name: 'Customer service' }).click();
   await expect(page.locator('nav[aria-label="Staff"]')).toContainText('Customer service', { timeout: 15_000 });
