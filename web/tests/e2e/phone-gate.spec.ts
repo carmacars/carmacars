@@ -125,8 +125,10 @@ test('the phone number box: crawlers see every photo; dates stay open; full avai
     await expect(box.getByLabel('Mobile number')).toBeFocused();
     await check(page, 'the box');
     const n = number();
-    await page.getByTestId('phone-gate-number').pressSequentially(n);
-    await expect(page.getByTestId('phone-gate-number')).toHaveValue(`(${n.slice(0, 3)}) ${n.slice(3, 6)}-${n.slice(6)}`);
+    // formatted as it is typed; the tenth digit sends it
+    await page.getByTestId('phone-gate-number').pressSequentially(n.slice(0, 9));
+    await expect(page.getByTestId('phone-gate-number')).toHaveValue(`(${n.slice(0, 3)}) ${n.slice(3, 6)}-${n.slice(6, 9)}`);
+    await page.getByTestId('phone-gate-number').press(n.slice(9));
     // sent by itself at the tenth digit
     await expect(page.getByTestId('phone-gate-code')).toBeVisible();
     await expect(box).toContainText(`We texted a code to`);

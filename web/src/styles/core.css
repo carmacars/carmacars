@@ -268,7 +268,10 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
 .cal__title { font: 600 1rem/1.2 var(--font-display); letter-spacing: -0.015em; }
 .cal__months { display: grid; gap: var(--s-5); }
 .cal--two .cal__months { grid-template-columns: 1fr; }
-@media (min-width: 44rem) { .cal--two .cal__months { grid-template-columns: 1fr 1fr; gap: var(--s-6); } }
+/* 2026-11-06: two months side by side only when the calendar itself has room for 44 px days (the request's form at
+   1024 to 1280 gave 31 px days next to its summary); otherwise one above the other */
+.cal--two { container-type: inline-size; }
+@container (min-width: 40rem) { .cal--two .cal__months { grid-template-columns: 1fr 1fr; gap: var(--s-6); } }
 .cal__month-name { font-weight: 600; font-size: var(--fs-sm); margin-bottom: var(--s-2); }
 .cal table { table-layout: fixed; }
 .cal th { font-size: var(--fs-2xs); font-weight: 500; color: var(--grey-600); padding: 0.3rem 0; text-align: center; }
