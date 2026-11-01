@@ -225,6 +225,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                     <span className="cal__atime"><b>{hm(e.starts_at)}</b>{e.ends_at ? <span>to {nowWords(e.ends_at, now)}</span> : null}</span>
                     <Thumb car={cars[v.id]} label={v.label} />
                     <span className="cal__abody"><b>{v.label}</b><span>{[cars[v.id]?.code, v.plate].filter(Boolean).join(' · ')}{e.renter ? ` · ${e.renter}` : ''}{e.booking_number ? ` · ${e.booking_number}` : ''}</span>
+                      {e.type !== 'booking' && <span>{text(e)}</span>}
                       {e.clash?.length ? <b className="ad-late" data-testid="cal-agenda-clash">Dates taken: clashes with {e.clash.join(', ')}</b> : null}</span>
                     <span className={`cal__akind cal__item ${cls(e, now).replace('has-clash', '').replace('is-late', '')}`}>{kindOf(e)}</span>
                   </button></li>))}</ul>
