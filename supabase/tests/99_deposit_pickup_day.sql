@@ -24,11 +24,12 @@ select test.mk_booking('CC-DPD3', 'DPDC', 'dpd_r', test.dpd_at(30 + 24 * 6), tes
 select test.mk_booking('CC-DPD4', 'DPDD', 'dpd_x', test.dpd_at(30), test.dpd_at(80), 'confirmed');
 select test.mk_booking('CC-DPD5', 'DPDE', 'dpd_r', test.dpd_at(30 + 24 * 12), test.dpd_at(80 + 24 * 12), 'confirmed');
 update bookings set deposit_pay_method = 'card', deposit_cents = 50000 where booking_number like 'CC-DPD%';
--- the pickup: soon, the same Toronto day (else a moment ago), with the hour at midnight so the test does not depend on the clock
+-- the pickup: soon and still ahead, the same Toronto day (20 minutes from now, or just before midnight when that is
+-- sooner), with the hour at midnight so the test does not depend on the clock (a pickup a moment ago needs no link)
 create function test.dpd_soon(p_number text) returns void language sql as $$
   update bookings b set pickup_at = x.at, return_at = x.at + (b.return_at - b.pickup_at), original_return_at = x.at + (b.return_at - b.pickup_at)
-    from (select case when (now() + interval '20 minutes') at time zone 'America/Toronto' < date_trunc('day', now() at time zone 'America/Toronto') + interval '1 day'
-                      then now() + interval '20 minutes' else now() - interval '1 minute' end as at) x
+    from (select least(now() + interval '20 minutes',
+                       (date_trunc('day', now() at time zone 'America/Toronto') + interval '1 day' - interval '1 second') at time zone 'America/Toronto') as at) x
    where b.booking_number = p_number $$;
 create function test.dpd_due(p_number text) returns boolean language sql as $$
   select exists (select 1 from jsonb_array_elements(public.server_deposit_autos_due()) x where x ->> 'booking_number' = p_number) $$;

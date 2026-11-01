@@ -293,6 +293,8 @@
   .ad-table--cards td.wrap, .ad-table--cards td:has(.ad-actions, .btn, form) { grid-column: 1 / -1; }
   .ad-table--cards td > *, .ad-table--cards td .btn { max-width: 100%; }
   .ad-table--cards td .btn { white-space: normal; height: auto; }
+  /* a long status ("Gave a mobile number in the phone number box") wraps inside its badge */
+  .ad-table--cards td .ad-b { white-space: normal; }
 }
 @media (max-width: 30rem) {
   .pt__nav { flex-wrap: wrap; column-gap: var(--s-4); row-gap: 0; overflow: visible; }
