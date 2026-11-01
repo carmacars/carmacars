@@ -351,7 +351,7 @@ end $$;
 -- rewritten only when they changed (an unchanged value is not written again).
 create or replace function app.place_roots_refresh() returns void
 language plpgsql security definer set search_path = public, app as $$
-declare v jsonb;
+declare v app.place_roots_cache.roots%type;
 begin
   perform set_config('statement_timeout', '120s', true);
   v := app.place_roots_live();
@@ -363,7 +363,9 @@ end $$;
 -- The sitemap shape (0110, 0194), twice an hour: only when it changed.
 create or replace function app.vehicle_sitemap_shape_refresh() returns void
 language plpgsql security definer set search_path = public, app as $$
-declare v jsonb; w jsonb;
+declare
+  v app.vehicle_sitemap_files_cache_state.shape%type;
+  w app.vehicle_sitemap_files_cache_state.shape_switches%type;
 begin
   perform set_config('statement_timeout', '120s', true);
   v := app.vehicle_sitemap_shape_live(); w := app.vehicle_sitemap_switches();
