@@ -93,7 +93,7 @@ export default async function AdminToDo() {
             {d.late > 0 && <p className="small"><Link prefetch={false} className="link" href="/admin/bookings?status=on_rent">{d.late} car{d.late > 1 ? 's' : ''} late now</Link></p>}
           </Card>
           {/* 0093: the chauffeur bookings confirmed for today */}
-          <Card title={`Chauffeur today (${d.chauffeur_today?.length ?? 0})`} testId="todo-chauffeur" aside={<Link prefetch={false} className="link small" href="/admin/chauffeur">Chauffeur</Link>}>
+          <Card title={`Chauffeur today (${d.chauffeur_today?.length ?? 0})`} testId="todo-chauffeur" aside={<Link prefetch={false} className="link small" href="/admin/requests?tab=chauffeur">Chauffeur</Link>}>
             {d.chauffeur_today?.length ? <ul className="ad-sched">{d.chauffeur_today.map((r) => (
               <li key={r.reference}><time className="ad-sched__time">{r.start_time}</time>
                 <span className="ad-sched__body"><span>{r.reference} {r.name}</span><span className="ad-sub">{r.vehicle}</span></span><span className="ad-pill">{r.hours} hours</span></li>))}</ul>

@@ -1,12 +1,11 @@
 import './bookings-now.css';
 import Link from 'next/link';
 
-// The Bookings section's tabs (the owner, Release 26: "There's way too many tabs at the moment and information is spread
-// out too much"): Now (what is out, coming back, going out, owed and free), Requests and offers (with Chauffeur), the
-// Calendar and All bookings (search and filters). Shown at the top of each, the same on every one.
-export type BookingsTab = 'now' | 'requests' | 'calendar' | 'all';
-export const BOOKINGS_TABS: Array<[BookingsTab, string, string]> = [
-  ['now', '/admin/bookings', 'Now'], ['requests', '/admin/requests', 'Requests and offers'], ['calendar', '/admin/calendar', 'Calendar'], ['all', '/admin/bookings?view=all', 'All bookings']];
+// Bookings' two tabs (the owner, Release 26: "There's way too many tabs at the moment and information is spread out too
+// much", "We need less pages not more"): Now (what is out, coming back, going out, owed and free) and All bookings (the
+// search and the list by status). Requests and offers and the Calendar are the menu's other two Trips pages.
+export type BookingsTab = 'now' | 'all';
+export const BOOKINGS_TABS: Array<[BookingsTab, string, string]> = [['now', '/admin/bookings', 'Now'], ['all', '/admin/bookings?view=all', 'All bookings']];
 
 export function BookingsTabs({ current, counts = {} }: { current: BookingsTab; counts?: Partial<Record<BookingsTab, number>> }) {
   return (

@@ -13,12 +13,14 @@ export const STATUSES = ['new', 'quoted', 'confirmed', 'completed', 'cancelled',
 // partner is owed. Staff check the vehicle and the driver with the partner, send the quote (by email or phone, noted
 // here), confirm it, and close it. The actions go through the staff door (ops_do).
 export function ChauffeurRequests({ data, base, status }: { data: ChauffeurData; base: string; status?: string }) {
-  const refresh = [base, '/admin', '/staff'];
+  // the base may carry its own query (Admin > Requests and offers > Chauffeur is /admin/requests?tab=chauffeur, Release 26)
+  const at = (q: string) => `${base}${base.includes('?') ? '&' : '?'}${q}`;
+  const refresh = [base.split('?')[0]!, '/admin', '/staff'];
   const vehicles: Array<[string, string]> = data.vehicles.map((v) => [v.id, v.name]);
   return (
     <>
-      <Tabs label="Status" current={status ? `${base}?status=${status}` : base}
-        items={[[base, 'All'], ...STATUSES.map((s): [string, string, number] => [`${base}?status=${s}`, s.charAt(0).toUpperCase() + s.slice(1), data.counts[s] ?? 0])]} />
+      <Tabs label="Status" current={status ? at(`status=${status}`) : base}
+        items={[[base, 'All'], ...STATUSES.map((s): [string, string, number] => [at(`status=${s}`), s.charAt(0).toUpperCase() + s.slice(1), data.counts[s] ?? 0])]} />
       <div className="ad-cols ad-cols--2">
         <Card title={`Chauffeur today (${data.today.length})`} testId="chauffeur-today">
           {data.today.length ? <ul className="ad-list">{data.today.map((r) => <li key={r.reference}><span>{r.start_time} {r.reference} {r.name}</span><span className="ad-sub">{r.vehicle}, {r.hours} hours</span></li>)}</ul>

@@ -84,7 +84,7 @@ export default async function Partner({ params }: { params: Promise<{ id: string
               { name: 'year', label: 'Model year', type: 'number', min: 1980, max: 2100, value: r.year },
               { name: 'year_approximate', label: 'Year not confirmed yet (the site says "Year confirmed when you book")', type: 'bool', value: r.year_approximate }]} /> }]} />
         </Card>
-        {p.chauffeur.length > 0 && <Card title={`Chauffeur vehicles (${p.chauffeur.length})`} testId="partner-chauffeur" aside={<Link prefetch={false} className="link small" href="/admin/chauffeur">Requests</Link>}>
+        {p.chauffeur.length > 0 && <Card title={`Chauffeur vehicles (${p.chauffeur.length})`} testId="partner-chauffeur" aside={<Link prefetch={false} className="link small" href="/admin/requests?tab=chauffeur">Requests</Link>}>
           <Table rows={p.chauffeur} cols={[{ key: 'name', label: 'Vehicle', render: (r) => <>{String(r.name)}<br /><span className="small muted">{r.kind === 'chauffeur_only' ? 'Chauffeur only' : `Also a rental: ${((r.rentals as Array<{ name: string }>) ?? []).map((x) => x.name).join(', ') || 'none on file'}`}{r.active ? '' : ' · off the site'}</span></> },
             { key: 'sheet_2h_cents', label: 'Sheet an hour (2, 3+)', num: true, render: (r) => `${$(r.sheet_2h_cents)}, ${$(r.sheet_3plus_cents)}` },
             { key: 'rate_2h_cents', label: 'Client an hour (2, 3+)', num: true, render: (r) => `${$(r.rate_2h_cents)}, ${$(r.rate_3plus_cents)}` },

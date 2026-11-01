@@ -65,9 +65,34 @@ customer service, finance; `ops_do booking_pay_every`, in the booking history). 
   pickup not recorded and Mark picked up, ended never closed and Close, Bill to, who reads what);
   `web/tests/e2e/bookings-now.spec.ts` at 375 and 1440 with axe; `web/src/features/bookings-now/model.test.ts`.
 
+## Fewer pages and tabs under Bookings
+
+The admin menu's Bookings group, before and after:
+
+| | Before | After |
+| --- | --- | --- |
+| Trips links in the menu | 6: Requests, Bookings, Calendar, Send an offer, Add a rental, Chauffeur | 3: Bookings, Requests and offers, Calendar |
+| Bookings group links in all | 11 | 8 (Customers and Problems unchanged) |
+| Trips pages | 6 (requests, bookings, calendar, chauffeur, offers/new, bookings/new) | 5 (Chauffeur is a tab of Requests and offers) |
+| Status tabs on the bookings list | 9 (All, Requested, Offered, Waiting for payment, Confirmed, On rent, Returned, Closed, Cancelled) | 6 (All, Out now, Booked, Returned, Closed, Cancelled) |
+| Tabs on Bookings | none (one list) | 2: Now, All bookings |
+
+- Send an offer and Add a rental are buttons at the top of Bookings (and Add a rental on To do); their pages and
+  addresses are unchanged.
+- `/admin/chauffeur` redirects to `/admin/requests?tab=chauffeur` (with its status filter); the To do card, the
+  partner page and the chauffeur task link there.
+- Requests, offers and bookings waiting for payment are on Requests and offers only; their old `?status=` links on
+  Bookings still list them.
+- Staff: Rentals > Find a booking is now Rentals > Bookings (Now for fleet and customer service, with the search);
+  field staff get Field work > Cars now.
+
 ## Guides
 
-- `admin/requests-offers-and-bookings`: Bookings now, payment plans, Mark picked up, All bookings.
+- `admin/requests-offers-and-bookings`: Bookings now, payment plans, Mark picked up, All bookings, Requests and offers.
+- `admin/getting-around-admin` and `admin/quick-reference`: the Bookings menu.
+- `admin/chauffeur-service`: Requests and offers > Chauffeur.
+- `admin/partners-company-cars-and-rentals-added-by-hand` and `admin/referral-partners-and-rentalcoverage`: Add a rental
+  is a button on Bookings.
 - `va/fleet`: Bookings now for fleet and customer service.
 - `va/shared-tools`: Rentals > Bookings (was Find a booking).
 - `field/my-jobs`: Cars now.

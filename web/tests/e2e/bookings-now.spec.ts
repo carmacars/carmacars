@@ -111,6 +111,10 @@ test('Bookings opens on Now: out, overdue first, coming back, going out, money d
     await expect(page).toHaveURL(/status=out/);
     await expect(page.getByTestId('bookings')).toContainText(unrec);
     await expect(page.getByTestId('bookings')).toContainText(late);
+    // fewer pages: Chauffeur is a tab of Requests and offers; the old address lands there
+    await page.goto('/admin/chauffeur', { waitUntil: 'networkidle' });
+    await expect(page).toHaveURL(/\/admin\/requests\?tab=chauffeur/);
+    await expect(page.getByTestId('chauffeur-requests')).toBeVisible();
     // the live refresh answers
     const r = await page.request.get('/api/staff/bookings-now');
     expect(r.status()).toBe(200);

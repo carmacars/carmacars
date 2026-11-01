@@ -3,12 +3,13 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
-import { $, ago, Badge, BookingLink, Filters, PageHead, Table, t } from '@/features/admin/ui';
+import { $, ago, Badge, BookingLink, Filters, PageHead, Table, Tabs, t } from '@/features/admin/ui';
+import { ChauffeurRequests, STATUSES as CH_STATUSES, type ChauffeurData } from '@/features/chauffeur/ChauffeurRequests';
 import { LiveWait } from '@/features/admin/shell/LiveWait';
 import type { ClaimInfo } from '@/features/offers/claim';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Requests', path: '/admin/requests', noindex: true, description: 'Booking requests, oldest first.' });
+export const metadata = pageMeta({ title: 'Requests and offers', path: '/admin/requests', noindex: true, description: 'Booking requests and offers, oldest first, and chauffeur requests.' });
 
 type Req = { id: string; booking_number: string; status: string; state: string; vehicle: string; renter: string; returning: boolean; pickup_at: string; return_at: string; days: number;
   total_cents: number; waiting_minutes: number; offer_expires_at: string | null; drivers: string[]; flags: string[]; assigned: string | null;
@@ -19,14 +20,27 @@ const STATES: Array<[string, string]> = [['', 'All'], ['new', 'New'], ['waiting_
 // The request inbox (03-admin.md section 3): oldest first until each is offered or declined.
 export default async function Requests({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [{ read, user }, sp] = await Promise.all([page('/admin/requests'), searchParams]);
+  // Release 26: Chauffeur is a tab here (was Bookings > Chauffeur, /admin/chauffeur, which now lands here)
+  if (sp.tab === 'chauffeur') {
+    const status = CH_STATUSES.includes(sp.status ?? '') ? sp.status! : undefined;
+    const data = await door<ChauffeurData>(user.id, 'ops_read', 'chauffeur_requests', status ? { status } : {});
+    return (
+      <>
+        <PageHead title="Requests and offers" kicker={`${data.counts.new ?? 0} chauffeur requests new`}><Link prefetch={false} className="btn btn--ghost btn--sm" href="/chauffeur">The public chauffeur page</Link></PageHead>
+        <RequestTabs current="chauffeur" />
+        <ChauffeurRequests data={data} base="/admin/requests?tab=chauffeur" status={status} />
+      </>
+    );
+  }
   // the first reply target (Program settings, 5 minutes by default; 0057) marks a request waiting too long
   const [all, target] = await Promise.all([read<Req[]>('requests'), door<{ minutes: number; words: string }>(user.id, 'ops_read', 'reply_target').catch(() => ({ minutes: 5, words: '5 minutes' }))]);
   const state = sp.state ?? '';
   const rows = all.filter((r) => !state || r.state === state);
   return (
     <>
-      <PageHead title="Requests" kicker={`${all.filter((r) => r.status === 'requested').length} waiting · first reply target ${target.words}`} purpose="Oldest first. Open a booking number to price it and send the offer; the clock turns red past the reply target.">
+      <PageHead title="Requests and offers" kicker={`${all.filter((r) => r.status === 'requested').length} waiting · first reply target ${target.words}`} purpose="Oldest first. Open a booking number to price it and send the offer; the clock turns red past the reply target.">
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/offers/new" data-testid="send-offer-link">Send an offer without a request</Link></PageHead>
+      <RequestTabs current="cars" />
       <Filters base="/admin/requests" name="state" value={state} options={STATES.map(([k, l]) => [k, `${l}${k ? ` (${all.filter((r) => r.state === k).length})` : ''}`])} sp={sp} />
       <Table<Req> testId="requests" caption="Booking requests" rows={rows} empty="No requests waiting. New booking requests from the website show up here to price and offer." cols={[
         // a request still waiting for its first answer keeps counting while the page is open, red past the reply target
@@ -49,4 +63,9 @@ export default async function Requests({ searchParams }: { searchParams: Promise
       ]} />
     </>
   );
+}
+
+function RequestTabs({ current }: { current: 'cars' | 'chauffeur' }) {
+  return <Tabs label="Requests and offers" current={current === 'cars' ? '/admin/requests' : '/admin/requests?tab=chauffeur'}
+    items={[['/admin/requests', 'Car rentals'], ['/admin/requests?tab=chauffeur', 'Chauffeur']]} />;
 }
