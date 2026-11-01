@@ -45,8 +45,9 @@ test('Bookings opens on Now: out, overdue first, coming back, going out, money d
     await sql`insert into bookings (booking_number, booking_type, status, vehicle_id, renter_id, booked_at, pickup_at, return_at, original_return_at, billable_days,
         daily_rate_cents, weekend_rate_cents, weekly_rate_cents, monthly_rate_cents, rate_applied, rental_charge_cents, km_allowance_per_day, km_allowance_total,
         overage_cents_per_km, deposit_cents, blocks_calendar, total_due_at_booking_cents, pay_every, handed_over_at, created_by)
-      values (${n}, 'standard', ${status}, ${car}, ${who}, now() - interval '30 days', now() + ${from}::interval, now() + ${to}::interval, now() + ${to}::interval, 7,
-        10000, 12000, 56000, 180000, 'daily', ${total}, 200, 1400, 25, 100000, true, ${total}, ${every}, ${status === 'on_rent' ? sql`now() + ${from}::interval` : null}, ${admin})`;
+      values (${n}, 'standard', ${status}, ${car}, ${who}, now() - interval '30 days', now() + ${from}::interval, now() + ${to}::interval, now() + ${to}::interval,
+        public.calc_billable_days(now() + ${from}::interval, now() + ${to}::interval),
+        10000, 12000, 56000, 180000, 'daily', ${total}, 200, 200 * public.calc_billable_days(now() + ${from}::interval, now() + ${to}::interval), 25, 100000, true, ${total}, ${every}, ${status === 'on_rent' ? sql`now() + ${from}::interval` : null}, ${admin})`;
   };
   const late = `BN-L${T}`, weekly = `BN-W${T}`, unrec = `BN-U${T}`, going = `BN-G${T}`;
   try {
