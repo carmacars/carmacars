@@ -526,3 +526,33 @@ a[href^="tel:"] { white-space: nowrap; }
 .vin-swatch__dot--other { background: conic-gradient(#d0111b, #f2c81f, #2f6b3a, #1f4fa3, #5d3b8a, #d0111b); }
 .vin-swatch.is-on { border-color: var(--black); box-shadow: inset 0 0 0 1px var(--black); font-weight: 600; }
 .vin-swatch:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* The ownership permit read from a photo (0290): one card above the car's fields, then what was read, field by field */
+.pscan { display: grid; gap: var(--s-3); padding: var(--s-4); border: 1px dashed var(--grey-300); border-radius: var(--r-3); background: var(--grey-50); }
+.pscan.is-read { border-style: solid; border-color: var(--grey-200); background: var(--white); }
+.pscan__head { display: flex; gap: var(--s-3); align-items: flex-start; }
+.pscan__icon { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--white); border: 1px solid var(--grey-200); color: var(--black); }
+.pscan.is-read .pscan__icon { background: var(--black); border-color: var(--black); color: var(--white); }
+.pscan__text { display: grid; gap: 2px; min-width: 0; }
+.pscan__title { margin: 0; font-weight: 600; font-size: var(--fs-body); }
+.pscan__sub { margin: 0; font-size: var(--fs-sm); color: var(--text-2); line-height: 1.45; max-width: 46rem; }
+.pscan__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.pscan__bar { height: 3px; border-radius: 3px; overflow: hidden; background: var(--grey-200); }
+.pscan__bar span { display: block; height: 100%; width: 40%; background: var(--black); animation: pscan-run 1.1s var(--ease-in-out) infinite; }
+@keyframes pscan-run { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+.pscan__err { margin: 0; font-size: var(--fs-sm); color: var(--red-700); }
+.pscan__result { display: grid; gap: var(--s-3); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 720px) { .pscan__result:has(.pscan__photo) { grid-template-columns: 9.5rem minmax(0, 1fr); align-items: start; } }
+.pscan__photo { width: 100%; max-width: 12rem; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--r-2); border: 1px solid var(--grey-200); background: var(--grey-100); }
+.pscan__list { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 1px; background: var(--grey-200); border: 1px solid var(--grey-200); border-radius: var(--r-2); overflow: hidden; }
+.pscan__row { display: grid; gap: 2px; padding: 0.55rem 0.7rem; background: var(--white); min-width: 0; }
+.pscan__row dt { font-size: var(--fs-2xs); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-2); }
+.pscan__row dd { margin: 0; display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-2); min-width: 0; }
+.pscan__val { font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pscan__row.is-missing .pscan__val { font-weight: 400; color: var(--grey-500); }
+.pscan__state { flex: none; font-size: var(--fs-2xs); font-weight: 600; padding: 1px 7px; border-radius: 999px; background: var(--grey-100); color: var(--grey-700); }
+.pscan__row.is-ok .pscan__state { background: #e7f4ea; color: #1d6b34; }
+.pscan__row.is-check { background: #fff8e6; }
+.pscan__row.is-check .pscan__state { background: #fde7b0; color: #7a4b00; }
+.pscan__problems { margin: 0; padding: var(--s-3) var(--s-4) var(--s-3) 2.1rem; border-radius: var(--r-2); background: #fff8e6; border: 1px solid #f4d68a; font-size: var(--fs-sm); display: grid; gap: var(--s-1); grid-column: 1 / -1; }
+.field.is-from-permit .input, .field.is-from-permit .select { box-shadow: inset 3px 0 0 #1d6b34; }

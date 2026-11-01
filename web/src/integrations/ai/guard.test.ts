@@ -44,7 +44,7 @@ import { estimateNeurons, roomCheck, tierOf, TASK_PURPOSE, type AiRoom } from '.
 
 test('every purpose has its tier, as app.ai_tier in the database', () => {
   assert.equal(tierOf('staff_assistant'), 'assistant');
-  for (const p of ['chat', 'phone_draft', 'phone_summary', 'toll_read', 'plate_detect', 'guide_review']) assert.equal(tierOf(p), 'live', p);
+  for (const p of ['chat', 'phone_draft', 'phone_summary', 'toll_read', 'plate_detect', 'guide_review', 'permit_read']) assert.equal(tierOf(p), 'live', p);
   for (const p of ['seo_car', 'seo_page', 'seo_article', 'draft_copy', 'guide_rewrite', 'turo_email', 'colour_read', 'something_new']) assert.equal(tierOf(p), 'background', p);
   assert.equal(TASK_PURPOSE.car_copy, 'seo_car');
   assert.equal(TASK_PURPOSE.listing_draft, 'draft_copy');

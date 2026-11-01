@@ -2,6 +2,8 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveRegistration, uploadVehicleDocument } from '@/server/actions/vehicle-registration';
+import { PermitScan } from './PermitScan';
+import type { PermitRead } from './permit-read';
 
 // A car's registration (migration 0237): the VIN (checked and decoded again), the year, the body style, the Ontario permit
 // number and the plate sticker expiry (a fleet task 30 and 7 days before it); and the car's documents, the ownership permit
@@ -21,6 +23,21 @@ export function Registration({ d }: { d: RegistrationData }) {
   const [ssc, setSsc] = useState({ number: '', issued_on: '', expires_on: '' });
   const [up, setUp] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, run] = useTransition();
+  // 0290: the permit photo read fills the empty fields (a different value is shown to check, not overwritten) and waits as the document to upload
+  const [fromPermit, setFromPermit] = useState<string | null>(null);
+  const permitRead = (r: PermitRead, photo: File) => {
+    const read: Partial<typeof f> = { vin: r.vin ?? undefined, year: r.year ? String(r.year) : undefined, body_type: r.body_words ?? r.body ?? undefined,
+      permit_number: r.permit_number ?? undefined, sticker_expires_on: r.sticker_expires_on ?? undefined };
+    const differ: string[] = [];
+    const n = { ...f };
+    for (const [k, val] of Object.entries(read) as Array<[keyof typeof f, string | undefined]>) {
+      if (!val) continue;
+      if (!n[k]) n[k] = val; else if (n[k].toUpperCase() !== val.toUpperCase()) differ.push(`${k === 'body_type' ? 'body style' : k.replace(/_/g, ' ')} ${val}`);
+    }
+    setF(n);
+    setKind('ownership_permit'); setFile(photo);
+    setFromPermit(differ.length ? `Filled the empty fields. The permit differs from what is saved: ${differ.join('; ')}. Change them if the permit is right.` : 'Filled from the permit. Check each field, then save; the photo is ready to upload as the ownership permit.');
+  };
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
   const field = (k: keyof typeof f, label: string, type = 'text', hint?: string) => (
     <div className="field ad-field"><label className="label" htmlFor={`reg-${k}`}>{label}</label>
@@ -28,6 +45,8 @@ export function Registration({ d }: { d: RegistrationData }) {
   return (
     <section className="pt-card ad-card stack" aria-labelledby="reg-h" data-testid="vehicle-registration">
       <div className="pt-card__head"><h2 className="d4" id="reg-h">Registration</h2></div>
+      <PermitScan prefix="reg-permit" onRead={permitRead} note="Take a photo of the vehicle portion of the permit: the VIN, year, body style, permit number and sticker expiry fill the empty fields for you to check." />
+      {fromPermit && <p className="small" role="status" data-testid="reg-permit-msg">{fromPermit}</p>}
       <div className="ad-fields">
         {field('vin', 'VIN', 'text', 'Checked (17 characters, the check digit, not on another car) and decoded again for the body style and trim.')}
         {field('year', 'Year', 'number')}

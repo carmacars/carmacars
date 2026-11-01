@@ -545,3 +545,60 @@ a.pu-trip:hover { border-color: var(--pu-hair-strong); box-shadow: var(--pu-shad
 .pu-photo--media .vp-photo__credit { position: absolute; z-index: 3; right: var(--s-2); top: var(--s-2); max-width: min(80%, 28rem); padding: 0.3rem 0.55rem; border-radius: 8px;
   background: rgb(0 0 0 / 0.72); color: var(--white); font-size: var(--fs-2xs); line-height: 1.35; }
 .pu-photo--media .vp-photo__credit a { color: inherit; text-decoration: underline; }
+
+/* ================================================================ the rental walkthrough (0291)
+   The progress and the four stages, the step to do now (ink, the one place with weight), then every step by stage. */
+.wk { display: grid; gap: var(--pu-gap); min-width: 0; }
+.wk-progress { background: var(--pu-card); border: 1px solid var(--pu-line); border-radius: var(--pu-radius); padding: var(--s-4) var(--s-5); display: grid; gap: var(--s-3); box-shadow: var(--pu-shadow-1); }
+.wk-progress__top { display: flex; justify-content: space-between; gap: var(--s-3); align-items: baseline; font-size: var(--fs-sm); }
+.wk-progress__top b { font-family: var(--pu-num); font-size: 1.05rem; letter-spacing: -0.01em; }
+.wk-progress__top span { color: var(--pu-muted); }
+.wk-progress__bar { height: 6px; border-radius: 6px; background: var(--grey-100); overflow: hidden; }
+.wk-progress__bar span { display: block; height: 100%; border-radius: 6px; background: var(--black); transition: width var(--t-3) var(--pu-ease); }
+.wk-stages { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-2); }
+.wk-stages li { display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-xs); color: var(--pu-muted); min-width: 0; }
+.wk-stages__n { flex: none; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--grey-300); font-size: var(--fs-2xs); font-weight: 700; color: var(--grey-600); background: var(--white); }
+.wk-stages__t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wk-stages li.is-past .wk-stages__n { background: var(--black); border-color: var(--black); color: var(--white); }
+.wk-stages li.is-now { color: var(--black); font-weight: 600; }
+.wk-stages li.is-now .wk-stages__n { border-color: var(--red-600); color: var(--red-600); box-shadow: 0 0 0 3px var(--red-50); }
+@media (max-width: 30rem) { .wk-stages__t { white-space: normal; line-height: 1.2; } .wk-stages li { align-items: flex-start; } }
+
+.wk-now { position: relative; overflow: hidden; background: var(--pu-ink); color: var(--pu-on-ink); border-radius: var(--pu-radius); padding: var(--pu-pad); display: grid; gap: var(--s-3); box-shadow: var(--pu-shadow-3); }
+.wk-now::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--red-600); }
+.wk-now__kicker { margin: 0; font-size: var(--fs-2xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pu-on-ink-2); }
+.wk-now__head { display: flex; align-items: center; gap: var(--s-3); }
+.wk-now__title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--fs-d3); letter-spacing: -0.02em; line-height: var(--lh-tight); }
+.wk-now__body { margin: 0; color: rgb(255 255 255 / 0.82); max-width: 60ch; }
+.wk-now .wk-points li { color: rgb(255 255 255 / 0.9); }
+.wk-now .wk-points li::before { background: var(--red-400); }
+.wk-now .btn--ghost { color: var(--white); border-color: rgb(255 255 255 / 0.4); background: transparent; }
+.wk-now .btn--primary { background: var(--white); color: var(--black); border-color: var(--white); }
+.wk-now--done::before { background: var(--pu-ok-on-ink); }
+.wk-ico { flex: none; display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--grey-100); color: var(--black); }
+.wk-ico--big { width: 44px; height: 44px; background: rgb(255 255 255 / 0.1); color: var(--white); }
+.wk-points { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s-2); max-width: 62ch; }
+.wk-points li { position: relative; padding-left: 1.1rem; }
+.wk-points li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 6px; height: 6px; border-radius: 50%; background: var(--black); }
+.wk-points--sm { font-size: var(--fs-sm); gap: var(--s-1); }
+.wk-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); padding-top: var(--s-1); }
+
+.wk-stage { background: var(--pu-card); border: 1px solid var(--pu-line); border-radius: var(--pu-radius); padding: var(--s-4) var(--s-5); display: grid; gap: var(--s-3); box-shadow: var(--pu-shadow-1); }
+.wk-stage__head { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); }
+.wk-stage__title { margin: 0; display: flex; align-items: center; gap: var(--s-2); font-family: var(--font-display); font-weight: 700; font-size: 1.125rem; letter-spacing: -0.01em; }
+.wk-stage.is-now .wk-stages__n { border-color: var(--red-600); color: var(--red-600); }
+.wk-stage__count { font-size: var(--fs-xs); color: var(--pu-muted); font-variant-numeric: tabular-nums; }
+.wk-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.wk-step { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-3); padding: var(--s-3) 0; border-top: 1px solid var(--pu-hair); }
+.wk-step:first-child { border-top: 0; padding-top: 0; }
+.wk-step:last-child { padding-bottom: 0; }
+.wk-step__main { display: grid; gap: var(--s-1); min-width: 0; padding-top: 0.4rem; }
+.wk-step__title { margin: 0; font-weight: 600; }
+.wk-step__body { margin: 0; font-size: var(--fs-sm); color: var(--pu-muted); max-width: 62ch; }
+.wk-step__see { margin: 0; font-size: var(--fs-xs); font-weight: 600; color: var(--red-600); }
+.wk-step.is-done .wk-ico { background: var(--black); color: var(--white); }
+.wk-step.is-done .wk-step__title { color: var(--grey-700); }
+.wk-step.is-done .wk-step__body, .wk-step.is-done .wk-points { display: none; }
+.wk-step.is-done .wk-actions:not(:has(a)) { display: none; }
+.wk-step.is-now .wk-ico { background: var(--red-50); color: var(--red-600); box-shadow: 0 0 0 2px var(--red-600); }
+.wk-foot { margin: 0; text-align: center; }

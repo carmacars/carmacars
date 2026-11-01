@@ -2478,6 +2478,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_walkthrough_steps: {
+        Row: {
+          booking_id: string;
+          step: string;
+          seen_at: string;
+          user_id: string | null;
+        };
+        Insert: {
+          booking_id: string;
+          step: string;
+          seen_at?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          booking_id?: string;
+          step?: string;
+          seen_at?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
       bookings: {
         Row: {
           id: string;
@@ -12834,6 +12855,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      permit_reads: {
+        Row: {
+          id: string;
+          user_id: string;
+          staff: boolean;
+          ok: boolean;
+          model: string | null;
+          fields_read: number;
+          error: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          staff: boolean;
+          ok: boolean;
+          model?: string | null;
+          fields_read?: number;
+          error?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          staff?: boolean;
+          ok?: boolean;
+          model?: string | null;
+          fields_read?: number;
+          error?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       phone_activity: {
         Row: {
           id: string;
@@ -14068,6 +14122,9 @@ export type Database = {
           phone_gate_texts_per_number_day: number;
           phone_gate_texts_per_ip_day: number;
           phone_gate_texts_per_day: number;
+          ai_vision_permit_enabled: boolean;
+          ai_vision_permit_daily_per_person: number;
+          field_renter_walkthrough: boolean;
         };
         Insert: {
           id?: string;
@@ -14606,6 +14663,9 @@ export type Database = {
           phone_gate_texts_per_number_day?: number;
           phone_gate_texts_per_ip_day?: number;
           phone_gate_texts_per_day?: number;
+          ai_vision_permit_enabled?: boolean;
+          ai_vision_permit_daily_per_person?: number;
+          field_renter_walkthrough?: boolean;
         };
         Update: {
           id?: string;
@@ -15144,6 +15204,9 @@ export type Database = {
           phone_gate_texts_per_number_day?: number;
           phone_gate_texts_per_ip_day?: number;
           phone_gate_texts_per_day?: number;
+          ai_vision_permit_enabled?: boolean;
+          ai_vision_permit_daily_per_person?: number;
+          field_renter_walkthrough?: boolean;
         };
         Relationships: [];
       };
@@ -24467,6 +24530,8 @@ export type Database = {
       server_my_sign_in: { Args: { p_user: string }; Returns: Json };
       server_my_signing_checklist: { Args: { p_by: string }; Returns: Json };
       server_my_unpaid_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_my_walkthrough: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_my_walkthrough_ack: { Args: { p_booking: string; p_by: string; p_step: string }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
       server_open_agreement_companion: { Args: { p_booking: string; p_by: string; p_template: string; p_storage_path: string; p_sha256: string }; Returns: string };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
@@ -24528,6 +24593,8 @@ export type Database = {
       server_period_charge_finish: { Args: { p_booking: string; p_seq: number; p_ok: boolean; p_error?: string; p_intent?: string; p_charge?: string }; Returns: Json };
       server_period_done: { Args: { p_booking: string; p_seq: number; p_ok: boolean; p_error?: string }; Returns: Json };
       server_periods_due: { Args: { p_limit?: number }; Returns: Json };
+      server_permit_read_gate: { Args: { p_by: string }; Returns: Json };
+      server_permit_read_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_phone_ai_log: { Args: { p: Json }; Returns: Json };
       server_phone_due: { Args: { p_limit?: number }; Returns: Json };
       server_phone_event: { Args: { p: Json }; Returns: Json };

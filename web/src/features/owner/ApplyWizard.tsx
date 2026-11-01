@@ -7,6 +7,7 @@ import { AddressInput } from '@/features/forms/AddressInput';
 import { Turnstile, freshTurnstileToken } from '@/features/forms/Turnstile';
 import { emailResumeLink, lookupVin, methodOptions, saveApplyDraft, submitApplication, type MethodOption, type SubmitResult } from '@/server/actions/apply';
 import { ColourSwatches, YearMakeModel } from '@/features/vin/VinEntry';
+import { PermitScan } from '@/features/vehicles/PermitScan';
 import { carName, detailLine, vinMessage, vinState } from '@/features/vin/vin';
 import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 import { blankVehicle, cleanVin, ownerErrors, planErrors, STEPS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle } from './apply-schema';
@@ -310,6 +311,12 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
             return (
               <div className="pt-card" data-testid="vehicle-editor">
                 <h3 className="d4">Vehicle {i + 1}{v.make ? `: ${vName(v)}` : ''}</h3>
+                {/* 0290: signed in, the permit photo fills the VIN, plate, colour, permit number and sticker expiry to check */}
+                {signedIn && <PermitScan prefix="apply-permit" onRead={(r) => {
+                  set({ ...(r.vin ? { vin: r.vin, decoded: false } : {}), ...(r.plate ? { plate: r.plate } : {}), ...(r.colour ? { colour: r.colour } : {}), ...(r.year && !r.vin ? { year: String(r.year) } : {}),
+                    ...(r.permit_number ? { permit_number: r.permit_number } : {}), ...(r.sticker_expires_on ? { sticker_expires_on: r.sticker_expires_on } : {}) }, 'vin');
+                  setVinMsg((m) => ({ ...m, [v.key]: '' }));
+                }} note="Take a photo of the vehicle portion of your Ontario permit, flat and in good light: the VIN, plate and colour fill in for you to check. Bring the permit itself to the handover." />}
                 <Field id={id('vin')} label="VIN" err={e('vin')} hint={vinMsg[v.key] || vinMessage(vinState(v.vin)) || 'On the ownership permit and the driver\'s door frame. Your car\'s details come from it.'}>
                   <div className="ow-vin"><input className="input vin-input" {...aria(id('vin'), e('vin'), 'hint')} value={v.vin} onChange={(ev) => { set({ vin: ev.target.value.toUpperCase(), ...(cleanVin(ev.target.value) !== cleanVin(v.vin) ? { decoded: false } : {}) }, 'vin'); setVinMsg((m) => ({ ...m, [v.key]: '' })); }} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={24} data-testid="apply-vin" /></div>
                 </Field>

@@ -350,3 +350,6 @@
 /* field work inside the staff portal (0197): the staff frame gives the page; the column keeps its phone-first look */
 .fd--in-staff { min-height: 0; border-radius: var(--r-2); }
 .fd--in-staff .fd__frame { padding-bottom: var(--s-6); }
+/* 0291: how much of the rental walkthrough the renter has read */
+.fd-walk { margin: 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-2); background: rgb(255 255 255 / 0.08); }
+.fd-walk.is-ok b { color: #5BD08A; }

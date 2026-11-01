@@ -3,7 +3,9 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supplyDo } from '@/server/actions/supply';
-import { uploadVehicleDocument } from '@/server/actions/vehicle-registration';
+import { saveRegistration, uploadVehicleDocument } from '@/server/actions/vehicle-registration';
+import { PermitScan } from '@/features/vehicles/PermitScan';
+import type { PermitRead } from '@/features/vehicles/permit-read';
 import { RateFields } from '@/features/rates/RateFields';
 import { ratePayload, ratesEmpty, type RateCheck } from '@/features/rates/rates';
 import { ColourSwatches, VinEntry, effectiveCar, emptyVin, vinPayload, vinProblem, type VinValue } from '@/features/vin/VinEntry';
@@ -39,6 +41,17 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
       <input className="input" id={`ac-${k}`} type={o.type ?? 'text'} inputMode={o.inputMode} value={v[k] ?? ''} onChange={set(k)} data-testid={`add-car-${k}`} aria-describedby={o.hint ? `ac-${k}-h` : undefined} />
       {o.hint && <p className="hint" id={`ac-${k}-h`}>{o.hint}</p>}</div>
   );
+  // 0290: the permit photo read: the VIN (or plate), colour, plate, permit number and sticker expiry, saved with the car;
+  // the photo attached as its ownership permit
+  const [permit, setPermit] = useState<{ permit_number: string; sticker_expires_on: string; photo: boolean }>({ permit_number: '', sticker_expires_on: '', photo: false });
+  const permitRead = (r: PermitRead, photo: File) => {
+    if (r.vin) setCar({ ...emptyVin(), class: car.class, classSource: car.classSource, mode: 'vin', vin: r.vin, colour: r.colour ?? car.colour });
+    else if (r.plate) setCar({ ...emptyVin(), mode: 'plate', plate: r.plate, colour: r.colour ?? car.colour, edits: r.year ? { year: String(r.year) } : {} });
+    else if (r.colour) setCar({ ...car, colour: r.colour });
+    if (r.vin && r.plate) setV((x) => ({ ...x, plate: r.plate! }));
+    setPermit({ permit_number: r.permit_number ?? '', sticker_expires_on: r.sticker_expires_on ?? '', photo: !docs.permit || permit.photo });
+    if (!docs.permit || permit.photo) setDocs((x) => ({ ...x, permit: photo }));
+  };
   const submit = () => start(async () => {
     setErr(null);
     const problem = vinProblem(car);
@@ -55,6 +68,10 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
     const r = await supplyDo<{ vehicle_id: string }>('vehicle_add', p, ['/admin/vehicles']);
     if (!r.ok) { setErr(r.message); return; }
     let docsFailed = false;
+    if (permit.permit_number || permit.sticker_expires_on) {
+      const g = await saveRegistration({ vehicle_id: r.data.vehicle_id, ...(permit.permit_number ? { permit_number: permit.permit_number } : {}), ...(permit.sticker_expires_on ? { sticker_expires_on: permit.sticker_expires_on } : {}) });
+      if (!g.ok) docsFailed = true;
+    }
     for (const [kind, file] of [['ownership_permit', docs.permit], ['safety_certificate', docs.ssc]] as Array<[string, File | null]>) {
       if (!file) continue;
       const form = new FormData(); form.set('vehicle', r.data.vehicle_id); form.set('kind', kind); form.set('file', file);
@@ -68,10 +85,18 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
   return (
     <form className="ad-form stack" noValidate data-testid="add-car" onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <fieldset className="stack"><legend className="d4">The car</legend>
+        <PermitScan prefix="add-car-permit" onRead={permitRead} />
         <VinEntry value={car} onChange={setCar} prefix="add-car" carHref={(id) => `/admin/vehicles/${id}`} />
         <ColourSwatches value={car.colour} onChange={(c) => setCar((x) => ({ ...x, colour: c }))} prefix="add-car" legend="Colour (optional)"
           hint="Not in the VIN. Leave it empty and it is read from the cover photo once there is one." />
         {car.mode === 'vin' && input('plate', 'Plate', { hint: 'Optional when the VIN is given.' })}
+        <div className="ad-fields">
+          <div className="field"><label className="label" htmlFor="ac-permit-number">Ontario permit number (optional)</label>
+            <input className="input" id="ac-permit-number" value={permit.permit_number} onChange={(e) => setPermit((x) => ({ ...x, permit_number: e.target.value.toUpperCase() }))} data-testid="add-car-permit_number" /></div>
+          <div className="field"><label className="label" htmlFor="ac-sticker">Plate sticker expires (optional)</label>
+            <input className="input" id="ac-sticker" type="date" value={permit.sticker_expires_on} onChange={(e) => setPermit((x) => ({ ...x, sticker_expires_on: e.target.value }))} data-testid="add-car-sticker_expires_on" />
+            <p className="hint">Fleet gets a task 30 and 7 days before.</p></div>
+        </div>
         {!more ? <button type="button" className="link vin-switch" onClick={() => setMore(true)} data-testid="add-car-more">Odometer and home area (optional)</button> : (
           <div className="ad-fields">{input('odometer_km', 'Odometer (km)', { inputMode: 'numeric' })}{input('home_location', 'Home area')}</div>)}
       </fieldset>
@@ -105,7 +130,8 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
         <p className="small muted">A photo or PDF of each. They are saved on the car (Records tab, Registration), and the ownership permit clears its item on the owner&apos;s checklist.</p>
         <div className="ad-fields">
           <div className="field ad-field"><label className="label" htmlFor="ac-doc-permit">Ownership permit</label>
-            <input className="input" id="ac-doc-permit" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => setDocs((x) => ({ ...x, permit: e.target.files?.[0] ?? null }))} data-testid="add-car-doc-permit" /></div>
+            <input className="input" id="ac-doc-permit" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => { setDocs((x) => ({ ...x, permit: e.target.files?.[0] ?? null })); setPermit((x) => ({ ...x, photo: false })); }} data-testid="add-car-doc-permit" />
+            {permit.photo && docs.permit && <p className="hint" data-testid="add-car-permit-attached"><b>The permit photo you read is attached. Choose a file to replace it.</b></p>}</div>
           <div className="field ad-field"><label className="label" htmlFor="ac-doc-ssc">Safety Standards Certificate</label>
             <input className="input" id="ac-doc-ssc" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => setDocs((x) => ({ ...x, ssc: e.target.files?.[0] ?? null }))} data-testid="add-car-doc-ssc" /></div>
           {docs.ssc && <>

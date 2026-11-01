@@ -8,6 +8,8 @@ import { ColourSwatches, VinEntry, emptyVin, vinPayload, vinProblem, type VinVal
 import { addCarFacts, pickOwner, staffAddOwnerCar } from '@/server/actions/owner-billing';
 import { InvoiceChoice, inv, type Inv } from './ApproveStep';
 import { dollars, pctOf, toCents } from './shared';
+import { PermitScan } from '@/features/vehicles/PermitScan';
+import type { PermitRead } from '@/features/vehicles/permit-read';
 
 // Add a car for an owner (migration 0067): Admin, customer service and fleet enter everything for the owner in one
 // flow: the owner (found, or new), the car (VIN first since 0082: decoded at once into one summary line, the class
@@ -40,6 +42,22 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
   const [reg, setReg] = useState<Inv>({ ...inv(initial.today, false, ''), title: 'Registration fee' });
   const [files, setFiles] = useState<Record<string, File | null>>({});
   const [problem, setProblem] = useState<string | null>(null);
+  // 0290: the fields filled from the permit photo, marked until a person changes them; the photo attached as the permit
+  const [fromPermit, setFromPermit] = useState<Set<string>>(new Set());
+  const [permitPhoto, setPermitPhoto] = useState(false);
+  const permitRead = (r: PermitRead, photo: File) => {
+    const filled = new Set<string>();
+    if (r.vin) { filled.add('vin'); setCar({ ...emptyVin(), class: car.class, classSource: car.classSource, mode: 'vin', vin: r.vin, colour: r.colour ?? car.colour }); }
+    else if (r.plate) setCar({ ...emptyVin(), mode: 'plate', plate: r.plate, colour: r.colour ?? car.colour, edits: r.year ? { year: String(r.year) } : {} });
+    else if (r.colour) setCar({ ...car, colour: r.colour });
+    const n = { ...v };
+    if (r.vin && r.plate) { n.plate = r.plate; filled.add('plate'); }
+    if (r.permit_number) { n.permit_number = r.permit_number; filled.add('permit_number'); }
+    if (r.sticker_expires_on) { n.sticker_expires_on = r.sticker_expires_on; filled.add('sticker_expires_on'); }
+    setV(n);
+    setFromPermit(filled);
+    if (!files.ownership_permit || permitPhoto) { setFiles({ ...files, ownership_permit: photo }); setPermitPhoto(true); }
+  };
 
   // a different owner: their negotiated terms (or their other cars') become the defaults
   useEffect(() => {
@@ -58,9 +76,9 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
   const f = (k: string, label: string, opts: { req?: boolean; type?: string; mode?: 'decimal' | 'numeric' | 'email' | 'tel'; obj?: 'o' | 'v'; hint?: string } = {}) => {
     const obj = opts.obj ?? 'v'; const val = obj === 'o' ? o : v; const set = obj === 'o' ? setO : setV;
     return (
-      <div className={`field${a.err(k) ? ' has-error' : ''}`}><label className="label" htmlFor={`${uid}-${k}`}>{label}{opts.req ? '' : ' (optional)'}</label>
+      <div className={`field${a.err(k) ? ' has-error' : ''}${obj === 'v' && fromPermit.has(k) ? ' is-from-permit' : ''}`}><label className="label" htmlFor={`${uid}-${k}`}>{label}{opts.req ? '' : ' (optional)'}</label>
         <input className="input" id={`${uid}-${k}`} type={opts.type ?? 'text'} inputMode={opts.mode === 'email' || opts.mode === 'tel' ? opts.mode : opts.mode} value={val[k] ?? ''}
-          onChange={(e) => set({ ...val, [k]: e.target.value })} data-testid={`addcar-${k}`} aria-describedby={`${uid}-${k}-e${opts.hint ? ` ${uid}-${k}-h` : ''}`} />
+          onChange={(e) => { set({ ...val, [k]: e.target.value }); if (fromPermit.has(k)) setFromPermit((x) => { const n = new Set(x); n.delete(k); return n; }); }} data-testid={`addcar-${k}`} aria-describedby={`${uid}-${k}-e${opts.hint ? ` ${uid}-${k}-h` : ''}`} />
         {opts.hint && <p className="hint" id={`${uid}-${k}-h`}>{opts.hint}</p>}
         <p className="error" role="alert" id={`${uid}-${k}-e`}>{a.err(k) ?? ''}</p></div>);
   };
@@ -139,11 +157,13 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
       </section>
 
       <section className="pt-card stack" aria-labelledby={`${uid}-c`}><h2 className="d4" id={`${uid}-c`}>2. The car</h2>
+        <PermitScan prefix="addcar-permit" onRead={permitRead} />
         <VinEntry value={car} onChange={setCar} prefix="addcar" allowNone carHref={base === '/admin' ? (id) => `/admin/vehicles/${id}` : undefined} err={a.err('vin')} />
         <ColourSwatches value={car.colour} onChange={(c) => setCar((x) => ({ ...x, colour: c }))} prefix="addcar" legend="Colour (optional)"
           hint="Not in the VIN. Leave it empty and it is read from the cover photo once there is one." />
         <div className="ad-fields ob-terms">
           {car.mode === 'vin' && f('plate', 'Plate')}{f('odometer_km', 'Odometer (km)', { mode: 'numeric' })}{f('current_insurer', 'Current insurer')}
+          {f('permit_number', 'Ontario permit number')}{f('sticker_expires_on', 'Plate sticker expires', { type: 'date', hint: 'Fleet gets a task 30 and 7 days before.' })}
           <div className="field"><label className="label" htmlFor={`${uid}-ts`}>It is</label>
             <select className="select" id={`${uid}-ts`} value={v.title_status} onChange={(e) => setV({ ...v, title_status: e.target.value })} data-testid="addcar-title_status"><option value="owned_outright">Owned outright</option><option value="financed">Financed</option><option value="leased">Leased</option></select></div>
           {v.title_status !== 'owned_outright' && f('finance_party_name', v.title_status === 'leased' ? 'Lease company' : 'Lender', { req: true })}
@@ -157,8 +177,8 @@ export function AddOwnerCar({ initial, base }: { initial: Facts; base: '/admin' 
         <fieldset className="stack"><legend className="label">Documents (optional)</legend>
           {DOCS.filter(([k]) => k !== 'finance_party_permission' || v.title_status !== 'owned_outright').map(([k, l, h]) => (
             <div key={k} className={`field${a.err(`doc_${k}`) ? ' has-error' : ''}`}><label className="label" htmlFor={`${uid}-d-${k}`}>{l}</label>
-              <input className="input" type="file" id={`${uid}-d-${k}`} accept="application/pdf,image/jpeg,image/png" onChange={(e) => setFiles({ ...files, [k]: e.target.files?.[0] ?? null })} data-testid={`addcar-doc-${k}`} aria-describedby={`${uid}-d-${k}-h`} />
-              <p className="hint" id={`${uid}-d-${k}-h`}>{h}</p><p className="error" role="alert">{a.err(`doc_${k}`) ?? ''}</p></div>))}
+              <input className="input" type="file" id={`${uid}-d-${k}`} accept="application/pdf,image/jpeg,image/png" onChange={(e) => { setFiles({ ...files, [k]: e.target.files?.[0] ?? null }); if (k === 'ownership_permit') setPermitPhoto(false); }} data-testid={`addcar-doc-${k}`} aria-describedby={`${uid}-d-${k}-h`} />
+              <p className="hint" id={`${uid}-d-${k}-h`}>{k === 'ownership_permit' && permitPhoto ? <b data-testid="addcar-permit-attached">The permit photo you read is attached. Choose a file to replace it.</b> : h}</p><p className="error" role="alert">{a.err(`doc_${k}`) ?? ''}</p></div>))}
         </fieldset>
       </section>
 
