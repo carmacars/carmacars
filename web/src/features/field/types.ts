@@ -35,6 +35,8 @@ export interface FieldJob {
   baseline_damages: FieldDamage[];
   move: null | { id: string; started_at: string };
   now: string;
+  /** 0291: how much of the rental walkthrough the renter has read (the steps to read, and every step) */
+  walkthrough?: { read: number; of: number; done: number; total: number; stage: string } | null;
   /** The checklist of a job of any other kind, or a re-shoot (migration 0033). */
   checklist?: JobChecklistData | null;
 }

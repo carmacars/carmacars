@@ -9,6 +9,8 @@ export interface ApplyVehicle {
   finance_party_name: string; finance_party_account: string; finance_permission: '' | 'attached' | 'not_obtained' | 'proceed';
   management_mode: '' | 'managed' | 'self_managed' | 'turo_only'; onboarding_method: string; owners_lien: '' | 'elect' | 'decline';
   new_corporation_name: string; decoded: boolean;
+  /** 0290: read from the permit photo: the Ontario permit number and the plate sticker expiry (YYYY-MM-DD) */
+  permit_number?: string; sticker_expires_on?: string;
   /** the decode's details in one line ("Sedan · 5 seats · Gas"), and whether the owner opened the fields to edit (0082) */
   details?: string; editing?: boolean;
 }
@@ -101,6 +103,7 @@ export function vehiclePayload(v: ApplyVehicle) {
     finance_permission: v.title_status === 'owned_outright' ? 'not_applicable' : v.finance_permission === 'attached' ? 'attached' : 'not_obtained',
     management_mode: v.management_mode || 'managed', onboarding_method: v.management_mode === 'turo_only' ? 'none' : v.onboarding_method || null,
     owners_lien: v.owners_lien === 'elect',
-    new_corporation: v.onboarding_method === 'lease_new_owner_corporation' ? { proposed_name: v.new_corporation_name.trim() } : null
+    new_corporation: v.onboarding_method === 'lease_new_owner_corporation' ? { proposed_name: v.new_corporation_name.trim() } : null,
+    ...(v.permit_number ? { permit_number: v.permit_number } : {}), ...(v.sticker_expires_on ? { sticker_expires_on: v.sticker_expires_on } : {})
   };
 }

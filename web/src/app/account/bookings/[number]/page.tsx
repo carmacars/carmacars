@@ -26,6 +26,7 @@ import { NextStepBox, TripHero, tripPhoto } from '@/features/portal/trip';
 import { moneyParts } from '@/features/portal/trip-model';
 import { CompleteDetails } from '@/features/portal/CompleteDetails';
 import { renterDetailsMissing } from '@/server/portal/renter-details';
+import { STAGES, type Walk } from '@/features/walkthrough/model';
 
 export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }) {
@@ -53,11 +54,13 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
     // the booking's messages, read as the signed-in renter (migration 0033)
     rpc('my_booking_messages', { p_number: b.booking_number }, { role: 'authenticated', userId: user.id }).then((x) => (x ?? []) as unknown as Msg[]).catch(() => [] as Msg[]),
     myTripPhotos(user), getFleet().catch(() => [])]);
-  const [sp, s, addons, report] = await Promise.all([searchParams, getSettings(),
+  const [sp, s, addons, report, walk] = await Promise.all([searchParams, getSettings(),
     // the add-ons on the booking and what may still be added (0066)
     b.booking_type === 'owner' ? Promise.resolve(null) : rpc('server_my_booking_addons', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as MyAddons).catch(() => null),
     // the kilometres driven, once the car is back (the photo report's reading, 0130)
-    b.checked_in_at ? rpc('server_renter_handover_report', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as HandoverReportData | null).catch(() => null) : Promise.resolve(null)]);
+    b.checked_in_at ? rpc('server_renter_handover_report', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as HandoverReportData | null).catch(() => null) : Promise.resolve(null),
+    // the rental walkthrough (0291): how far the renter is, for the card that opens it
+    rpc('server_my_walkthrough', { p_booking: b.id, p_by: user.id }, { role: 'service_role' }).then((x) => x as unknown as Walk | null).catch(() => null)]);
   const laterLines = new Set((addons?.items ?? []).filter((a) => a.after_booking).map((a) => a.line_item_id).filter(Boolean));
   const step = nextStep(b);
   // what is still owing after a change by our team (0132): the balance, with Pay
@@ -139,6 +142,13 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
 
       <div className="pt-split">
         <div className="pu-stack">
+          {walk?.enabled && b.status !== 'closed' && (
+            <PortalCard id="pt-walk" title="Your rental, step by step" testId="walk-card"
+              action={<Link prefetch={false} className="btn btn--primary btn--sm" href={bookingPath(b.booking_number, 'walkthrough')} data-testid="walk-open">{(walk.done ?? 0) > 0 ? 'Continue' : 'Start the walkthrough'}</Link>}>
+              <div className="pu-ringrow"><ProgressRing value={walk.done ?? 0} max={walk.total ?? 13} size={64} stroke={7} accent title={`${walk.done} of ${walk.total} steps done`} label={`${walk.done}/${walk.total}`} />
+                <span className="pu-ringrow__label"><b>{STAGES.find((x) => x.key === walk.stage)?.title ?? 'Before pickup'}</b>Pickup, the walk-around of the car, the road rules and the return, one step at a time.</span></div>
+            </PortalCard>
+          )}
           <PortalCard id="pt-act" title="Manage your trip" testId="trip-actions">
             <QuickActions label="Trip actions">
               {(['requested', 'offered', 'confirmed', 'pending_payment'].includes(b.status) || (b.status === 'on_rent' && b.added_mode === 'in_progress')) && <QuickAction href={bookingPath(b.booking_number, 'verify')} icon="id" title={['requested', 'offered'].includes(b.status) ? 'Your licence' : 'Licence and coverage'} note="Photos, selfie and proof of coverage" />}

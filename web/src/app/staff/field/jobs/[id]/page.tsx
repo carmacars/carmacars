@@ -62,6 +62,8 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
           {b.drivers.map((d) => <div key={d.name}><dt>{d.role === 'renter' ? 'Driver' : d.role.replace(/_/g, ' ')}</dt><dd>{d.name}: licence {d.licence_number ?? ''}, class {d.licence_class ?? ''}, expires {d.licence_expiry ?? ''}</dd></div>)}
         </dl></details>}
         {b?.unattended && <p className="small"><b>Unattended handover approved.</b></p>}
+        {j.walkthrough && j.report_kind !== 'ready' && <p className={`fd-walk small${j.walkthrough.read >= j.walkthrough.of ? ' is-ok' : ''}`} data-testid="job-walkthrough">
+          <b>Renter&apos;s walkthrough:</b> read {j.walkthrough.read} of {j.walkthrough.of} steps{j.walkthrough.read < j.walkthrough.of ? '. Walk them through the rest at the car: what to bring, the walk-around, the road rules and the return.' : '.'}</p>}
       </header>
       {b?.addons && b.addons.length > 0 && (
         <section className="fd-card fd-bring" aria-labelledby="addons-t" data-testid="job-addons">
