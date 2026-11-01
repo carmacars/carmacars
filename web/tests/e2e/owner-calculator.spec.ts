@@ -22,12 +22,12 @@ test('List your car: the month and the year from the car, the days and the share
   await expect(calc).toBeVisible();
   await expect(calc.getByTestId('ecalc-result')).toContainText('Pick your car');
   await pickCar(page);
-  await expect(page.getByTestId('ecalc-month')).toBeVisible();
+  await expect(page.getByTestId('ecalc-monthly')).toBeVisible();
   await expect(page.getByTestId('ecalc-days-out')).toHaveText('18 days');
   await expect(page.getByTestId('ecalc-share-out')).toHaveText('70%');
-  const at18 = await value(page, 'ecalc-month');
+  const at18 = await value(page, 'ecalc-monthly');
   expect(at18).toBeGreaterThan(0);
-  expect(await value(page, 'ecalc-year')).toBe(at18 * 12);
+  expect(await value(page, 'ecalc-yearly')).toBe(at18 * 12);
   // no fees set in Program settings: none made up
   await expect(page.getByTestId('ecalc-fees')).toHaveText('quoted in your agreement');
   await expect(page.getByTestId('ecalc-result')).toContainText('a month, before fees');
@@ -35,13 +35,13 @@ test('List your car: the month and the year from the car, the days and the share
   // 28 days: the month grows with the days (to the dollar, after rounding)
   await page.getByTestId('ecalc-days').fill('28');
   await expect(page.getByTestId('ecalc-days-out')).toHaveText('28 days');
-  await expect.poll(() => value(page, 'ecalc-month')).toBeGreaterThan(at18);
-  expect(Math.abs((await value(page, 'ecalc-month')) - Math.round((at18 * 28) / 18))).toBeLessThanOrEqual(2);
+  await expect.poll(() => value(page, 'ecalc-monthly')).toBeGreaterThan(at18);
+  expect(Math.abs((await value(page, 'ecalc-monthly')) - Math.round((at18 * 28) / 18))).toBeLessThanOrEqual(2);
   // 90% share
-  const before = await value(page, 'ecalc-month');
+  const before = await value(page, 'ecalc-monthly');
   await page.getByTestId('ecalc-share').fill('90');
   await expect(page.getByTestId('ecalc-share-out')).toHaveText('90%');
-  await expect.poll(() => value(page, 'ecalc-month')).toBeGreaterThan(before);
+  await expect.poll(() => value(page, 'ecalc-monthly')).toBeGreaterThan(before);
   // just cheaper insurance: the fleet policy's fee (quoted while not set) and the share at a few days a month
   await page.getByTestId('ecalc-insurance').check();
   await expect(page.getByTestId('ecalc-insurance-box')).toContainText('the insurance fee is quoted in your agreement');
@@ -60,7 +60,7 @@ test('the application starts with the compact calculator, its numbers read in th
   await expect(calc).toBeVisible();
   await expect(calc.getByTestId('ecalc-result')).toContainText('Pick your car', { timeout: 15_000 });
   await pickCar(page, calc);
-  await expect.poll(() => value(page, 'ecalc-month')).toBeGreaterThan(0);
+  await expect.poll(() => value(page, 'ecalc-monthly')).toBeGreaterThan(0);
   const r = await new AxeBuilder({ page: page as never }).include('.ecalc--compact').withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical').map((v) => v.id)).toEqual([]);
   await noOverflow(page);

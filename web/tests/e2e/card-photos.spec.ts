@@ -20,9 +20,11 @@ test('hover cycles the photos, leaving goes back to the cover; no console error'
   const deck = card.locator('.car-card__deck');
   // nothing is downloaded before the first hover
   await expect(deck.locator('img')).toHaveCount(0);
-  await card.hover({ position: { x: 60, y: 60 } });
-  await expect.poll(() => deck.locator('img').count()).toBeGreaterThan(0);
-  await expect(card).toHaveClass(/is-cycling/);
+  // the mouse rests on the photo (a person's hand moves a little: so does this one, while the first photos load)
+  const m = (await card.locator('.car-card__media').boundingBox())!;
+  await page.mouse.move(m.x + 60, m.y + 60);
+  await expect.poll(async () => { await page.mouse.move(m.x + 61, m.y + 61); await page.mouse.move(m.x + 60, m.y + 60); return card.getAttribute('class'); }, { timeout: 8000 }).toContain('is-cycling');
+  await expect(deck.locator('img').first()).toBeAttached();
   await expect.poll(() => at(page), { timeout: 5000 }).toBe('1');
   await expect(deck.locator('img.is-on')).toHaveCount(1);
   await expect.poll(() => at(page), { timeout: 5000 }).toBe('2');

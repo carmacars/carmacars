@@ -122,8 +122,8 @@ export function EarningsCalculator({ data: given = null, compact = false }: { da
           {data && chosen && !e && <><p className="ecalc__kicker">Your estimate</p><p className="ecalc__wait">We have no rate for this car yet. Apply and we quote it with you.</p></>}
           {e && rate && <>
             <p className="ecalc__kicker">{rate.label} · {dollars(rate.cents!)} a day{rate.source === 'model' ? `, the average of ${rate.n} like it` : rate.source === 'class' ? `, our ${rate.label.toLowerCase()} average` : ', our rate card'}</p>
-            <p className="ecalc__big"><Running cents={e.net} testId="ecalc-month" /> <span>a month{e.beforeFees ? ', before fees' : ''}</span></p>
-            <p className="ecalc__year"><Running cents={e.yearly} testId="ecalc-year" /> <span>a year</span></p>
+            <p className="ecalc__big"><Running cents={e.net} testId="ecalc-monthly" /> <span>a month{e.beforeFees ? ', before fees' : ''}</span></p>
+            <p className="ecalc__year"><Running cents={e.yearly} testId="ecalc-yearly" /> <span>a year</span></p>
             <dl className="ecalc__lines">
               <div><dt>Rental revenue</dt><dd className="num"><Running cents={e.revenue} /></dd></div>
               <div><dt>Your {share}% share</dt><dd className="num"><Running cents={e.share} /></dd></div>
