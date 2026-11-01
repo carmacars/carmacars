@@ -97,6 +97,17 @@ test('placeholder and real rental on one car: the booking pages and the calendar
     await expect(page.getByTestId('cal-clash')).toContainText(`Clashes with ${real}`);
     const text = await page.locator('body').innerText();
     expect(text.match(/[–—]/)?.[0], 'long dash').toBeUndefined();
+
+    // Add a rental > Placeholder: says what it is, and the calendar switch is off and cannot be turned on
+    await page.goto('/admin/bookings/new', { waitUntil: 'networkidle' });
+    await page.getByTestId('mr-preset-dummy').click();
+    await expect(page.getByTestId('mr-placeholder-note')).toContainText('never blocks the calendar');
+    await expect(page.getByTestId('mr-blocks')).not.toBeChecked();
+    await expect(page.getByTestId('mr-blocks')).toBeDisabled();
+    await page.getByTestId('mr-preset-phone').click();
+    await expect(page.getByTestId('mr-placeholder-note')).toHaveCount(0);
+    await expect(page.getByTestId('mr-blocks')).toBeChecked();
+    await noOverflow(page);
     expect(errors).toEqual([]);
   } finally {
     await sql`delete from bookings where vehicle_id = ${car}`.catch(() => undefined);
