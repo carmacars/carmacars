@@ -1,7 +1,9 @@
 'use client';
 import './live-map.css';
 import Link from 'next/link';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { readContact, useContact, writeContact } from './contact';
+import { FOCUS_EVENT, type FocusAsk } from './focus';
 import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
 import { HOME_BOUNDS, MAX_BOUNDS, NEW_MS, REFRESH_MS, SPOTLIGHT_MS, frameBounds, inBounds } from './config';
@@ -20,22 +22,9 @@ import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, adminHref, carLabel, timeLine, w
 // Fresh data every 30 seconds, changed in place.
 
 const inArea = (lng: number, lat: number) => inBounds(lng, lat, MAX_BOUNDS);
-/** Release 26: where this device remembers "Show contact" (on or off), and how long a card stays open on a TV. */
-const CONTACT_KEY = 'carmacars.live-map.contact';
-// this device's choice: localStorage when it works, else this visit only (a private window, blocked storage)
-let contactMemo: boolean | null = null;
-const contactSubs = new Set<() => void>();
-function readContact(): boolean {
-  if (contactMemo !== null) return contactMemo;
-  try { return localStorage.getItem(CONTACT_KEY) === '1'; } catch { return false; }
-}
-function writeContact(on: boolean) {
-  contactMemo = on;
-  try { localStorage.setItem(CONTACT_KEY, on ? '1' : '0'); } catch { /* this visit only */ }
-  for (const f of contactSubs) f();
-}
-function onContact(f: () => void) { contactSubs.add(f); return () => { contactSubs.delete(f); }; }
+/** Release 26: how long a card stays open on a TV ("Show contact" is remembered in contact.ts). */
 const CARD_MS = 20_000;
+
 const HOVER_MS = 150;
 const GRACE_MS = 300;
 const imgOf = (p: CarPhoto | null | undefined, w = 640): string | null => {
@@ -60,11 +49,13 @@ function padOf(box: HTMLElement | null, top: HTMLElement | null, foot: HTMLEleme
   return { top: Math.max(edge, t === null ? (tv ? edge : 56) : t - b.top + 8), right: edge, bottom: Math.max(edge, f === null ? edge : b.bottom - f + 8 + line), left: edge };
 }
 
-export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: boolean; /** the server's clock when the page was drawn */ at?: number }) {
+export function LiveMap({ initial, tv, at, embedded = false }: { initial: MapView | null; tv: boolean; /** the server's clock when the page was drawn */ at?: number;
+  /** Release 26: on the Visitors page, which has its own list (Live now and History) under the map: no table of leads here */
+  embedded?: boolean }) {
   const [view, setView] = useState<MapView | null>(initial);
   const [err, setErr] = useState('');
   // Release 26: "Show contact" (phones and emails), hidden by default and remembered on this device
-  const contact = useSyncExternalStore(onContact, readContact, () => false);
+  const contact = useContact();
   const showContact = (on: boolean) => {
     // off: the phones and emails leave the page at once, before the next read
     if (!on) setView((v) => (v ? withoutContact(v) : v));
@@ -214,6 +205,20 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
   }, [tv, spots.length]);
 
   const byId = useMemo(() => new Map(pins.map((p) => [p.id, p])), [pins]);
+  // Release 26: a row of the Visitors page's list asks the map for its lead (by the visit or the renter); the map
+  // brings it to the middle and opens its card, and says so (detail.found) so the row knows
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<FocusAsk>).detail;
+      const p = pins.find((x) => (d.session_id && x.session_id === d.session_id) || (d.renter_id && x.renter_id === d.renter_id) || (d.booking_number && x.booking_number === d.booking_number));
+      if (!p || p.lat === null || p.lng === null || !inArea(p.lng, p.lat) || hidden.has(stageOf(p.type))) return;
+      d.found = true;
+      boxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      engine.current?.focus(p.id);
+    };
+    window.addEventListener(FOCUS_EVENT, on);
+    return () => window.removeEventListener(FOCUS_EVENT, on);
+  }, [pins, hidden]);
   const card = float ? byId.get(float.id) ?? null : null;
   const toggleStage = (s: Stage) => setHidden((h) => { const n = new Set(h); if (n.has(s)) n.delete(s); else n.add(s); return n; });
   const fleetCount = view?.fleet.length ?? 0;
@@ -310,8 +315,8 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
       </div>
       {legend}
       {err && <p className="lm-err" role="status">Not refreshed: {err}. Trying again in 30 seconds.</p>}
-      <LeadTable pins={pins.filter((p) => !hidden.has(stageOf(p.type)))} now={now} cap={view && view.pins.length >= view.cap ? view.cap : null}
-        onLocate={(id) => { boxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); engine.current?.focus(id); }} />
+      {!embedded && <LeadTable pins={pins.filter((p) => !hidden.has(stageOf(p.type)))} now={now} cap={view && view.pins.length >= view.cap ? view.cap : null}
+        onLocate={(id) => { boxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); engine.current?.focus(id); }} />}
       <p className="lm-foot">Score: the points of the signals added up, at most 100 (60 or more is hot). Places are approximate: the visit&apos;s network (about 1 km), else the centre of the renter&apos;s home city or the visit&apos;s city; nothing is looked up. Refreshes every 30 seconds. Basemap: Natural Earth; boundaries: Statistics Canada via geoBoundaries (ODbL); the GTA&apos;s highways, arterial roads and ridges drawn by CarmaCars.</p>
     </div>
   );

@@ -61,7 +61,7 @@ describe('names and contact (Release 26)', () => {
     const base = { booking_number: null, renter_id: null, session_id: null, name: null, type: 'lead' as const };
     assert.deepEqual(adminHref({ ...base, booking_number: 'CC-1042' }), { href: '/admin/bookings/CC-1042', label: 'Open booking CC-1042' });
     assert.equal(adminHref({ ...base, renter_id: 'r1' }).href, '/admin/renters/r1');
-    assert.equal(adminHref({ ...base, type: 'session', session_id: 's1' }).href, '/admin/live');
+    assert.equal(adminHref({ ...base, type: 'session', session_id: 's1' }).href, '/admin/visitors');
     assert.equal(adminHref({ ...base, name: 'Erin Example' }).href, '/admin/leads?q=Erin%20Example');
   });
   it('the card\'s time line', () => {

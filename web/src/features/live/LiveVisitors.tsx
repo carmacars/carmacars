@@ -4,6 +4,9 @@ import './live.css';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ACTION_WORDS, agoWords, clock, EVENT_WORDS, GROUP_WORDS, liveDo, liveRead, STRENGTH_WORDS, type LiveCfg, type LiveData, type SessionDetail, type Signal, type Visitor } from './staff';
+import { useContact } from '@/features/live-map/contact';
+import { liveWithoutContact } from './contact';
+import { showOnMap } from '@/features/live-map/focus';
 
 // Admin > Today > Live visitors and the assistants' My work > Live visitors (migration 0060): who is on the site now,
 // what they look at, the buying signals, the most viewed cars; start a chat with a visitor. Refreshed every 15 seconds
@@ -16,8 +19,26 @@ const BAND_WORDS = { hot: 'Hot', warm: 'Warm', cold: 'Cold' } as const;
 const SEEN_KEY = 'cc_hot_seen';
 const REFRESH_MS = 15_000;
 
-export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: 'admin' | 'va' }) {
-  const [data, setData] = useState(initial);
+/** Release 26: what a live visit is, for its icon and its line (the same words as the map's lead types). */
+export function liveKind(v: Visitor): { key: 'chat' | 'form' | 'draft' | 'known' | 'visitor'; label: string } {
+  if (v.chat) return { key: 'chat', label: 'In a chat' };
+  if (v.captured?.done) return { key: 'form', label: 'Form sent' };
+  if (v.captured) return { key: 'draft', label: 'Unfinished form' };
+  if (v.known || v.renter_id) return { key: 'known', label: 'Known customer' };
+  return { key: 'visitor', label: 'On the site now' };
+}
+const sourceOf = (v: Visitor) => v.utm_source || v.referrer || (v.from_ad ? 'an ad' : 'direct');
+
+export function LiveVisitors({ initial, portal, inVisitors = false }: { initial: LiveData; portal: 'admin' | 'va';
+  /** Release 26: on the Visitors page, under the map: Show contact decides the phones and emails, rows find their lead on the map, filters */
+  inVisitors?: boolean }) {
+  const contactOn = useContact();
+  // off the Visitors page (the assistants' Live visitors) nothing changes: contact details as before
+  const contact = inVisitors ? contactOn : true;
+  const [raw, setData] = useState(initial);
+  const [kind, setKind] = useState('');
+  const [city, setCity] = useState('');
+  const [source, setSource] = useState('');
   const [err, setErr] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const [sort, setSort] = useState<'score' | 'recent'>('score');
@@ -25,8 +46,19 @@ export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: '
   const [alert, setAlert] = useState<Visitor | null>(null);
   const seen = useRef<Set<string> | null>(null);
   const refresh = useCallback(async () => {
-    try { setData(await liveRead<LiveData>('live_visitors')); setErr(''); } catch (e) { setErr(e instanceof Error ? e.message : 'Could not refresh'); }
-  }, []);
+    try {
+      const d = await liveRead<LiveData>('live_visitors', inVisitors ? { contact: contact ? '1' : '0' } : {});
+      setData(contact ? d : liveWithoutContact(d)); setErr('');
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Could not refresh'); }
+  }, [inVisitors, contact]);
+  // Show contact turned on or off: asked for again at once (and while it is off, the rows below never show what an
+  // earlier answer had: `shown` strips it)
+  useEffect(() => {
+    if (!inVisitors) return;
+    const t = setTimeout(() => void refresh(), 0);
+    return () => clearTimeout(t);
+  }, [inVisitors, contact, refresh]);
+  const data = useMemo(() => (contact ? raw : liveWithoutContact(raw)), [raw, contact]);
   useEffect(() => {
     const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, REFRESH_MS);
     const shown = () => { if (document.visibilityState === 'visible') void refresh(); };
@@ -56,9 +88,12 @@ export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: '
   }, [data, cfg.notify_hot, cfg.alerts, cfg.quiet]);
 
   const rows = useMemo(() => {
-    const list = only ? data.now.filter((v) => v.band === 'hot' || v.band === 'warm') : data.now;
+    const list = data.now.filter((v) => (!only || v.band === 'hot' || v.band === 'warm') && (!kind || liveKind(v).key === kind)
+      && (!city || v.city === city) && (!source || sourceOf(v) === source));
     return sort === 'recent' ? [...list].sort((a, b) => b.last_seen_at.localeCompare(a.last_seen_at)) : list;
-  }, [data.now, sort, only]);
+  }, [data.now, sort, only, kind, city, source]);
+  const cities = useMemo(() => [...new Set(data.now.map((v) => v.city).filter((c): c is string => !!c))].sort(), [data.now]);
+  const sources = useMemo(() => [...new Set(data.now.map(sourceOf))].sort(), [data.now]);
   const chatHref = portal === 'admin' ? '/admin/chat' : '/staff/chat';
   const known = data.now.filter((v) => v.known).length;
   const hotNow = data.now.filter((v) => v.band === 'hot').length;
@@ -66,13 +101,22 @@ export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: '
   const untracked = data.today.untracked ?? 0;
   return (
     <div className="lv" data-testid="live-visitors">
-      <div className="ad-tiles">
+      {inVisitors ? (
+        // Release 26: under the map, which has the big numbers already: one quiet line
+        <p className="vs-stats" data-testid="lv-stats">
+          <span><b data-testid="live-count">{data.now.length}</b> live now</span>
+          <span><b data-testid="visitors-today">{visitorsToday}</b> visitors today ({data.today.sessions} visit{data.today.sessions === 1 ? '' : 's'})</span>
+          <span><b data-testid="hot-count">{hotNow}</b> hot now</span>
+          <span><b>{known}</b> known customer{known === 1 ? '' : 's'} now</span>
+          <span><b>{data.today.chats}</b> chat{data.today.chats === 1 ? '' : 's'} today</span>
+        </p>
+      ) : <div className="ad-tiles">
         <div className="ad-tile"><span className="ad-tile__k">Live now</span><b className="ad-tile__v" data-testid="live-count">{data.now.length}</b><span className="ad-tile__s">on the site in the last {data.live_minutes} min</span></div>
         <div className="ad-tile"><span className="ad-tile__k">Visitors today</span><b className="ad-tile__v" data-testid="visitors-today">{visitorsToday}</b><span className="ad-tile__s">{data.today.sessions} visit{data.today.sessions === 1 ? '' : 's'}, {data.today.known} known, {data.today.hot ?? 0} hot</span></div>
         <div className="ad-tile"><span className="ad-tile__k">Hot now</span><b className="ad-tile__v" data-testid="hot-count">{hotNow}</b><span className="ad-tile__s">likelihood {cfg.hot} or more</span></div>
         <div className="ad-tile"><span className="ad-tile__k">Known customers now</span><b className="ad-tile__v">{known}</b></div>
         <div className="ad-tile"><span className="ad-tile__k">Chats today</span><b className="ad-tile__v">{data.today.chats}</b><Link prefetch={false} className="ad-tile__s link" href={chatHref}>Open Live chat</Link></div>
-      </div>
+      </div>}
       {!data.tracking ? <p className="pt-note" role="status" data-testid="live-untracked">Live visitors is off in Program settings: nothing is recorded, so nobody is counted here.</p>
         : untracked > 0 && <p className="small muted" data-testid="live-untracked">Not counted: {untracked} visitor{untracked === 1 ? '' : 's'} today chose necessary cookies only, so their visits are not recorded. Visitors who have not answered the cookie banner (where we ask first) are not counted either.</p>}
       {err && <p className="pt-note" role="alert">{err}</p>}
@@ -90,12 +134,25 @@ export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: '
               <select className="select lv-select" value={sort} onChange={(e) => setSort(e.target.value as 'score' | 'recent')} data-testid="lv-sort">
                 <option value="score">Booking likelihood</option><option value="recent">Most recent</option></select></label>
             <label className="check small"><input type="checkbox" checked={only} onChange={(e) => setOnly(e.target.checked)} /><span>Hot and warm only</span></label>
+            {inVisitors && <>
+              <label className="small lv-tool"><span>Type</span>
+                <select className="select lv-select" value={kind} onChange={(e) => setKind(e.target.value)} data-testid="lv-kind">
+                  <option value="">Everyone</option><option value="chat">In a chat</option><option value="form">Form sent</option><option value="draft">Unfinished form</option>
+                  <option value="known">Known customer</option><option value="visitor">Other visitors</option></select></label>
+              <label className="small lv-tool"><span>City</span>
+                <select className="select lv-select" value={city} onChange={(e) => setCity(e.target.value)} data-testid="lv-city">
+                  <option value="">Any</option>{cities.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
+              <label className="small lv-tool"><span>Source</span>
+                <select className="select lv-select" value={source} onChange={(e) => setSource(e.target.value)} data-testid="lv-source">
+                  <option value="">Any</option>{sources.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
+            </>}
             {cfg.is_admin && portal === 'admin' && <Link prefetch={false} className="link small" href="/admin/live/signals" data-testid="signal-settings-link">Signal settings</Link>}
             <span className="small muted" aria-live="polite">Updated {clock(data.at)}</span>
           </div></div>
-        {!rows.length ? <p className="small muted">{data.now.length ? 'No hot or warm visitor right now.' : 'Nobody right now. Visitors who accepted analytics, known customers on their booking pages and anyone in a chat appear here.'}</p> : (
+        {!rows.length ? <p className="small muted">{data.now.length ? (only && !kind && !city && !source ? 'No hot or warm visitor right now.' : 'Nobody matches these filters right now.') : 'Nobody right now. Visitors who accepted analytics, known customers on their booking pages and anyone in a chat appear here.'}</p> : (
           <ul className="lv-list">
-            {rows.map((v) => <VisitorRow key={v.id} v={v} cfg={cfg} portal={portal} open={open === v.id} onToggle={() => setOpen(open === v.id ? null : v.id)} onChat={refresh} />)}
+            {rows.map((v) => <VisitorRow key={v.id} v={v} cfg={cfg} portal={portal} open={open === v.id} onToggle={() => setOpen(open === v.id ? null : v.id)} onChat={refresh}
+              inVisitors={inVisitors} contact={contact} />)}
           </ul>)}
       </section>
       <div className="lv-cols">
@@ -131,7 +188,7 @@ export function LiveVisitors({ initial, portal }: { initial: LiveData; portal: '
 
 // 0190: staff name a visitor once they learn who it is. The name is kept for the browser (every later visit), shows on
 // Live visitors, Visitor history and Live chat, and is never shown to the visitor. A phone makes a Quo contact.
-function NameForm({ v, onDone }: { v: Visitor; onDone: (msg: string) => void }) {
+function NameForm({ v, onDone, contact = true }: { v: Visitor; onDone: (msg: string) => void; contact?: boolean }) {
   const l = v.label ?? null;
   const [name, setName] = useState(l?.name ?? '');
   const [phone, setPhone] = useState(l?.phone ?? '');
@@ -147,6 +204,9 @@ function NameForm({ v, onDone }: { v: Visitor; onDone: (msg: string) => void }) 
       onDone(remove ? 'Name removed.' : `Named ${name.trim()}. Every visit from this browser shows the name.`);
     } catch (e) { setErr(e instanceof Error ? e.message : 'That did not work'); } finally { setBusy(false); }
   };
+  // Release 26: with Show contact off the form has no phone or email to show, so a name with them waits for the switch
+  // (saving here would wipe them)
+  if (!contact && l) return <p className="lv-compose small" data-testid="name-form">Turn on <b>Show contact</b> above the map to change this name and its phone and email.</p>;
   return (
     <form className="lv-compose" data-testid="name-form" onSubmit={(e) => { e.preventDefault(); void send(false); }}>
       <p className="small muted">Only staff see this name. A phone number also saves them as a contact in Quo.</p>
@@ -177,7 +237,8 @@ function SignalBadge({ s }: { s: Signal }) {
   );
 }
 
-function VisitorRow({ v, cfg, portal, open, onToggle, onChat }: { v: Visitor; cfg: LiveCfg; portal: 'admin' | 'va'; open: boolean; onToggle: () => void; onChat: () => void }) {
+function VisitorRow({ v, cfg, portal, open, onToggle, onChat, inVisitors = false, contact = true }: { v: Visitor; cfg: LiveCfg; portal: 'admin' | 'va'; open: boolean; onToggle: () => void; onChat: () => void;
+  inVisitors?: boolean; contact?: boolean }) {
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [composing, setComposing] = useState(false);
   const [naming, setNaming] = useState(false);
@@ -187,9 +248,9 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat }: { v: Visitor; cf
   useEffect(() => {
     if (!open) return;
     let live = true;
-    void liveRead<SessionDetail>('live_session', { id: v.id }).then((d) => { if (live) setDetail(d); }).catch(() => undefined);
+    void liveRead<SessionDetail>('live_session', inVisitors ? { id: v.id, contact: contact ? '1' : '0' } : { id: v.id }).then((d) => { if (live) setDetail(d); }).catch(() => undefined);
     return () => { live = false; };
-  }, [open, v.id, v.last_seen_at]);
+  }, [open, v.id, v.last_seen_at, inVisitors, contact]);
   const chatHref = portal === 'admin' ? '/admin/chat' : '/staff/chat';
   const sug = v.suggested ?? null;
   const preview = (sug?.message ?? '').replaceAll('{staff}', cfg.me ?? '');
@@ -206,9 +267,14 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat }: { v: Visitor; cf
     catch (er) { setMsg(er instanceof Error ? er.message : 'That did not work'); } finally { setBusy(false); }
   };
   const band = v.band ?? null;
+  const k = liveKind(v);
+  const locate = () => { if (!showOnMap({ session_id: v.id, renter_id: v.renter_id })) setMsg('This visit has no place on the map.'); };
   return (
-    <li className={`lv-row${band ? ` lv-row--${band}` : ''}`} data-testid="live-row" id={`lv-${v.id}`}>
+    <li className={`lv-row${band ? ` lv-row--${band}` : ''}${inVisitors ? ' lv-row--vs' : ''}`} data-testid="live-row" id={`lv-${v.id}`} data-kind={k.key}>
+      {inVisitors && <button type="button" className={`vs-av vs-av--${k.key}`} onClick={locate} aria-label={`${v.who}: show on the map`} data-testid="lv-avatar">
+        <VsIcon kind={k.key} /></button>}
       <div className="lv-row__main">
+        {inVisitors && <span className="vs-kind">{k.label}</span>}
         <div className="lv-who">
           {typeof v.score === 'number' && band && (
             <span className={`lv-score lv-score--${band}`} data-testid="score" aria-label={`Booking likelihood ${v.score} of 100, ${BAND_WORDS[band].toLowerCase()}`}
@@ -239,8 +305,9 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat }: { v: Visitor; cf
           : <button type="button" className="btn btn--primary btn--sm" onClick={() => setComposing(!composing)} aria-expanded={composing}>Start a chat</button>}
         <button type="button" className="btn btn--quiet btn--sm" onClick={onToggle} aria-expanded={open}>{open ? 'Hide pages' : 'Pages'}</button>
         <button type="button" className="btn btn--quiet btn--sm" onClick={() => setNaming(!naming)} aria-expanded={naming} data-testid="act-name">{v.label ? 'Edit name' : 'Name'}</button>
+        {inVisitors && <button type="button" className="btn btn--quiet btn--sm" onClick={locate} data-testid="lv-locate">Show on the map</button>}
       </div>
-      {naming && <NameForm v={v} onDone={(m) => { setNaming(false); setMsg(m); onChat(); }} />}
+      {naming && <NameForm v={v} contact={contact} onDone={(m) => { setNaming(false); setMsg(m); onChat(); }} />}
       {sug && v.audience !== 'owner' && (
         <div className="lv-sug" data-testid="suggested">
           <p className="small"><b>Suggested:</b> {ACTION_WORDS[sug.action ?? 'chat']} <span className="muted">({sug.label}{sug.why && sug.why !== sug.label ? `: ${sug.why}` : ''})</span></p>
@@ -281,4 +348,21 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat }: { v: Visitor; cf
         </div>)}
     </li>
   );
+}
+
+/** Release 26: a small line icon per kind of visit (the Visitors page's rows); currentColor, no text. */
+export function VsIcon({ kind }: { kind: string }) {
+  const d: Record<string, string> = {
+    chat: 'M4 5h16v11H8l-4 4z',
+    form: 'M6 3h9l3 3v15H6zM9 11h6M9 15h6M9 7h3',
+    draft: 'M6 3h9l3 3v15H6zM9 11h4M14 15l3-3',
+    known: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4.5-6 8-6s7 2 8 6',
+    visitor: 'M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+    request: 'M5 4h14v16H5zM8 9h8M8 13h8M8 17h5',
+    booking: 'M4 6h16v14H4zM4 10h16M9 3v5M15 3v5',
+    signup: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4.5-6 8-6M18 15v6M15 18h6',
+    contact: 'M4 6h16v12H4zM4 7l8 6 8-6',
+    bot: 'M6 9h12v10H6zM12 5v4M9 13h.01M15 13h.01'
+  };
+  return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={d[kind] ?? d.visitor} /></svg>;
 }

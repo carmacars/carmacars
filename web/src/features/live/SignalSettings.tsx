@@ -32,7 +32,7 @@ export function SignalSettings({ initial }: { initial: SignalSettingsData }) {
   const w = initial.week;
   return (
     <div className="lv stack" data-testid="signal-settings">
-      <p className="small"><Link prefetch={false} className="link" href="/admin/live">Back to Live visitors</Link></p>
+      <p className="small"><Link prefetch={false} className="link" href="/admin/visitors">Back to Visitors</Link></p>
       <div className="ad-tiles">
         <div className="ad-tile"><span className="ad-tile__k">Hot visits, 7 days</span><b className="ad-tile__v">{w.hot}</b></div>
         <div className="ad-tile"><span className="ad-tile__k">Actions taken, 7 days</span><b className="ad-tile__v">{w.acted}</b></div>

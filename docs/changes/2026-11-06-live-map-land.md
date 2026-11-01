@@ -1,4 +1,4 @@
-# Live map: a real map of the land, clickable named leads, Show contact, and a map without WebGL (0311)
+# Visitors: one page for the live map, Live now and History; a real map of the land, clickable named leads, Show contact, and a map without WebGL (0311)
 
 Release 26. The owner, on the Release 25 TV view: "the map focuses more on the water than on the land and we're
 literally trying to display cars. It needs to look nicer." Then his exact spec: look like a real map (an outline of
@@ -100,6 +100,33 @@ three strongest signals); with no lead it says "No hot leads right now" and neve
 decides the hot lead's car card and rose ring, the hot glow under a dot, and the hot or warm colour of a score (a
 renter's score shows plain) on the map, the cards and the page's table.
 
+## One page: Visitors
+
+The owner: "The visitor history tab looks awful btw. And again u have redundant and ugly tabs. Like why is there live
+visitors, visitor history and live map all as separate tabs. U can merge all 3 into one and make the whole thing more
+appealing."
+
+- **Today > Visitors** (`/admin/visitors`) replaces Live visitors, Visitor history and Live map in the menu (one entry,
+  with the hot visitors' count the Live visitors entry had). The map on top, as it was, with its hover and click cards
+  and Show contact; under it one white panel with a black switch, **Live now** or **History**.
+- **Live now** is Live visitors (the same rows and every action: chat, the suggested message, the discount code, assign
+  to Sales, a similar free car, naming a visitor, the pages of the visit, hot visitors today, the signals of 24 hours,
+  the most viewed cars), with an icon per kind of visit (in a chat, form sent, unfinished form, known customer, on the
+  site), filters by type, city and source, and **Show on the map** (the icon too): the map brings the lead to its middle
+  and opens its card. The five tiles became one line (the map has the big numbers).
+- **History** is Visitor history as cards, not a table: an icon for what the visit led to, the name, chips (request,
+  booking, contact, visit number), where it came from, the pages, how long, the device and place, the time, "Open the
+  visit". The filters that matter in one row (dates, what it led to, city, source or campaign), the rest under "More
+  filters"; the totals, chart and top lists folded under "Totals and day by day". A visit's icon finds it on the map when
+  it is still there.
+- **Show contact** covers the list too: with it off, `/api/staff/live` (asked with `contact=0` by this page) and the page
+  as the server draws it carry no phone or email (what a visitor typed, a named visitor's phone and email, a visitor
+  known only by an email: `features/live/contact.ts`). Changing a named visitor's details waits for the switch, so the
+  form never saves blanks over them. The assistants' Live visitors (`/staff/live`) is unchanged.
+- **Old addresses:** `/admin/live` goes to Live now, `/admin/live/history` to History with its filters, `/admin/live-map`
+  to the page; `/admin/live-map?tv=1` stays TV mode (the TV's bookmark), opened by **Open TV mode**. A visit's own page
+  (`/admin/live/history/<id>`) and Signal settings stay where they were. Who may open each is unchanged: Admins.
+
 ## Without WebGL
 
 The owner's laptop showed "The map needs WebGL" and no map. Now the map always draws:
@@ -129,6 +156,11 @@ The owner's laptop showed "The map needs WebGL" and no map. Now the map always d
   on, they are asked for (`contact=1`), shown and remembered; off again, gone at once. With WebGL disabled in the
   browser (`getContext('webgl')` returning nothing), the map draws in Canvas, shows its note, its dots open their cards
   and nothing is logged as an error.
+- End to end: the old addresses land on Visitors (Live now, History with its filters); the menu has Visitors and none of
+  the three; Live now hides the phone and email of what Erin typed until Show contact, in the page and in the reads; a
+  row's "Show on the map" opens the lead's card (`live-map.spec.ts`); History's cards, filters and "More filters", and
+  the visit's page (`visitor-history.spec.ts`); Live chat's menu entry (`live-chat.spec.ts`).
+- Unit: Show contact off for live visits (`features/live/contact.test.ts`); History's addresses.
 - Unit: a renter (on rent, booked, or paying an accepted offer) is never the hottest lead, whatever the score; an
   empty spotlight with no leads; no hot-lead card for a renter.
 - Unit: names and contact (`toView`, `withoutContact`, nothing of a phone or email in the JSON while off),
@@ -136,5 +168,6 @@ The owner's laptop showed "The map needs WebGL" and no map. Now the map always d
 
 ## Guides
 
+- `admin/getting-around-admin`: the Today menu (Visitors).
 - `admin/live-visitors-and-live-chat`: Live map (the area, the outlines and roads, the photo cards, the stage chips).
   Published by migration 0311 (`supabase/seed/0311_gen_guides.mjs`).

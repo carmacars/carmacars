@@ -2,8 +2,9 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { acceptCookies, db, noOverflow } from './helpers';
-// The Live map (migration 0242) end to end: an Admin opens Today > Live map and sees the four numbers, the legend of the
-// four stages with its counts, a dot per lead on the map and a row per lead (masked until Show details); TV mode fills
+// The Live map (migration 0242) end to end, on Today > Visitors (Release 26: Live visitors, Visitor history and the
+// Live map in one page): the four numbers, the legend of the four stages with its counts, a dot per lead, Live now under
+// it with phones and emails only behind Show contact, a row finding its lead on the map, hover and click cards; TV mode fills
 // 1920x1080 and 3840x2160 with no scrollbars and no admin menu, with the spotlight and the live feed. The map, its basemap
 // and its font are the site's own files (no third-party network); WebGL comes from the browser's software renderer.
 // simplified map (the same pins); the test never depends on a third-party network. Fixtures are example.test only.
@@ -28,7 +29,7 @@ async function ctx(browser: Browser, w: number, h: number) {
 
 test.describe.configure({ mode: 'serial' });
 
-test('Live map: pins, legend, cards and masking on the page; TV mode fills the screen at 1080p and 4K', async ({ browser }, info) => {
+test('Visitors: the map, Live now and Show contact on the page; the old addresses land there; TV mode fills the screen at 1080p and 4K', async ({ browser }, info) => {
   test.setTimeout(180_000);
   const phone = info.project.name.startsWith('phone');
   const sql = db();
@@ -51,11 +52,22 @@ test('Live map: pins, legend, cards and masking on the page; TV mode fills the s
 
     const page = await ctx(browser, phone ? 375 : 1440, phone ? 812 : 900);
     await signIn(page, email);
+    // Release 26: Live visitors, Visitor history and the Live map are one page, Visitors; the old addresses land on it
     await page.goto('/admin/live-map', { waitUntil: 'networkidle' });
-    await expect(page.getByRole('heading', { level: 1, name: 'Live map' })).toBeVisible();
-    // the menu is folded on a phone: open it as a phone user does
+    await expect(page).toHaveURL(/\/admin\/visitors$/);
+    await page.goto('/admin/live', { waitUntil: 'networkidle' });
+    await expect(page).toHaveURL(/\/admin\/visitors$/);
+    await page.goto('/admin/live/history?city=Toronto', { waitUntil: 'networkidle' });
+    await expect(page).toHaveURL(/\/admin\/visitors\?view=history&city=Toronto/);
+    await expect(page.getByTestId('vs-tab-history')).toHaveAttribute('aria-current', 'page');
+    await page.goto('/admin/visitors', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { level: 1, name: 'Visitors' })).toBeVisible();
+    await expect(page.getByTestId('vs-tab-live')).toHaveAttribute('aria-current', 'page');
+    // one menu entry: Visitors (the menu is folded on a phone: open it as a phone user does)
     if (phone) await page.getByTestId('admin-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
-    await expect(page.getByTestId('admin-nav').getByRole('link', { name: 'Live map' })).toHaveCount(1);
+    const nav = page.getByTestId('admin-nav');
+    await expect(nav.getByRole('link', { name: 'Visitors', exact: true })).toHaveCount(1);
+    for (const old of ['Live map', 'Live visitors', 'Visitor history']) await expect(nav.getByRole('link', { name: old, exact: true })).toHaveCount(0);
     if (phone) await page.getByTestId('admin-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
     await expect(page.getByTestId('lm-kpis')).toContainText('On site now');
     // the legend counts each stage
@@ -67,52 +79,51 @@ test('Live map: pins, legend, cards and masking on the page; TV mode fills the s
     const map = page.getByTestId('lm-map');
     await expect(map).toHaveAttribute('data-mode', 'map', { timeout: 60_000 });
     await expect.poll(async () => Number(await map.getAttribute('data-pins'))).toBeGreaterThanOrEqual(3);
-    // the table: names always (Release 26), phones and emails only with Show contact; a row opens its signals
+    // Live now: the visitors on the site, with what they typed; phones and emails only with Show contact
     const erinEmail = `lm.erin.${t}@example.test`;
-    const erin = page.getByTestId('lm-card').filter({ hasText: `Erin Example${t}` }).first();
-    await expect(erin).toBeVisible();
-    await expect(page.getByTestId('lm-card').filter({ hasText: 'Visitor in Mississauga' }).first()).toBeVisible();
-    await erin.getByRole('button', { name: `Erin Example${t}` }).click();
-    const more = page.locator('.lm-more').first();
-    await expect(more).toContainText(/\+15 Form started/);
-    await expect(more).not.toContainText('0142');
-    await expect(more).not.toContainText('@example.test');
-    // Show contact off (the default): no phone or email anywhere in the page's HTML or the map's JSON
+    const erinRow = page.getByTestId('live-row').filter({ hasText: `Erin Example${t}` }).first();
+    await expect(erinRow).toBeVisible();
+    await expect(erinRow).not.toContainText('4165550142');
+    await expect(erinRow).not.toContainText('@example.test');
+    // Show contact off (the default): no phone or email anywhere in the page's HTML or in what the page reads
     const sw = page.getByTestId('lm-contact');
     await expect(sw).toHaveAttribute('aria-checked', 'false');
     expect(await page.content()).not.toContain(erinEmail);
     expect(await page.content()).not.toContain('4165550142');
-    const hidden = await (await page.request.get('/api/staff/live-map')).text();
-    expect(hidden).not.toContain(erinEmail);
-    expect(hidden).not.toContain('4165550142');
-    // on: asked for from the server, shown, and remembered on this device
+    for (const u of ['/api/staff/live-map', '/api/staff/live?what=live_visitors&contact=0']) {
+      const body = await (await page.request.get(u)).text();
+      expect(body, u).not.toContain(erinEmail);
+      expect(body, u).not.toContain('4165550142');
+    }
+    // on: asked for from the server, shown in the list, and remembered on this device
     const asked = page.waitForResponse((r) => r.url().includes('/api/staff/live-map?contact=1'));
+    const askedLive = page.waitForResponse((r) => r.url().includes('what=live_visitors') && r.url().includes('contact=1'));
     await sw.click();
     expect((await asked).status()).toBe(200);
+    expect((await askedLive).status()).toBe(200);
     await expect(sw).toHaveAttribute('aria-checked', 'true');
-    await expect(more).toContainText('4165550142');
-    await expect(more).toContainText(erinEmail);
+    await expect(erinRow).toContainText('4165550142');
+    await expect(erinRow).toContainText(erinEmail);
     expect(await page.evaluate(() => localStorage.getItem('carmacars.live-map.contact'))).toBe('1');
     // off again: gone at once, from the page and from its next read
     await sw.click();
     await expect(sw).toHaveAttribute('aria-checked', 'false');
-    await expect(more).not.toContainText('4165550142');
-    expect(await page.locator('.lm').innerHTML()).not.toContain(erinEmail);
+    await expect(erinRow).not.toContainText('4165550142');
+    expect(await page.getByTestId('visitors').innerHTML()).not.toContain(erinEmail);
     expect(await page.evaluate(() => localStorage.getItem('carmacars.live-map.contact'))).toBe('0');
-    // hiding a stage takes its dots off the map and its rows out of the table
+    // hiding a stage takes its dots off the map
     const before = Number(await map.getAttribute('data-pins'));
     await legend.locator('[data-stage="site"]').click();
     await expect.poll(async () => Number(await map.getAttribute('data-pins'))).toBeLessThan(before);
-    await expect(page.getByTestId('lm-card').filter({ hasText: 'Visitor in Mississauga' })).toHaveCount(0);
     await legend.locator('[data-stage="site"]').click();
-    // Release 26: a lead on the map opens its card. "Show on the map" brings the Mississauga visitor to the map's middle
-    // and opens it; then a hover previews it, and a click on the dot pins it
-    const mss = page.getByTestId('lm-card').filter({ hasText: 'Visitor in Mississauga' }).first();
-    await mss.getByRole('button', { name: 'Visitor in Mississauga' }).click();
-    await mss.locator('xpath=following-sibling::tr[1]').getByRole('button', { name: 'Show on the map' }).click();
+    await expect.poll(async () => Number(await map.getAttribute('data-pins'))).toBe(before);
+    // a row finds its lead: "Show on the map" brings the Mississauga visitor to the map's middle and opens its card;
+    // then a hover previews it, and a click on the dot pins it
+    const mss = page.getByTestId('live-row').filter({ hasText: 'Mississauga' }).first();
+    await mss.getByTestId('lv-locate').click();
     const card = page.getByTestId('lm-popup');
     await expect(card.getByTestId('lm-detail-name')).toHaveText('Visitor in Mississauga', { timeout: 15_000 });
-    await expect(card.getByTestId('lm-detail-link')).toHaveAttribute('href', '/admin/live');
+    await expect(card.getByTestId('lm-detail-link')).toHaveAttribute('href', '/admin/visitors');
     await page.keyboard.press('Escape');
     await expect(card).toHaveCount(0);
     if (!phone) {
@@ -158,16 +169,14 @@ test('Live map: pins, legend, cards and masking on the page; TV mode fills the s
       fb.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
       fb.on('pageerror', (e) => errors.push(String(e)));
       await signIn(fb, email);
-      await fb.goto('/admin/live-map', { waitUntil: 'networkidle' });
+      await fb.goto('/admin/visitors', { waitUntil: 'networkidle' });
       const m2 = fb.getByTestId('lm-map');
       await expect(m2).toHaveAttribute('data-mode', 'map', { timeout: 60_000 });
       await expect(m2).toHaveAttribute('data-renderer', 'canvas');
       await expect(fb.getByTestId('lm-slow')).toHaveText('Faster with hardware acceleration on (Chrome Settings > System)');
       await expect(fb.locator('.lm-map__note')).toHaveCount(0);
       await expect.poll(async () => Number(await m2.getAttribute('data-pins'))).toBeGreaterThanOrEqual(3);
-      const row = fb.getByTestId('lm-card').filter({ hasText: 'Visitor in Mississauga' }).first();
-      await row.getByRole('button', { name: 'Visitor in Mississauga' }).click();
-      await row.locator('xpath=following-sibling::tr[1]').getByRole('button', { name: 'Show on the map' }).click();
+      await fb.getByTestId('live-row').filter({ hasText: 'Mississauga' }).first().getByTestId('lv-locate').click();
       const pop = fb.getByTestId('lm-popup');
       await expect(pop.getByTestId('lm-detail-name')).toHaveText('Visitor in Mississauga', { timeout: 15_000 });
       await fb.keyboard.press('Escape');

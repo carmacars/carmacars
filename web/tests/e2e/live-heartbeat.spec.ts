@@ -72,7 +72,7 @@ test('Heartbeat: a visitor idle on one page longer than the live window still sh
     // Admin > Live visitors, open before the heartbeat: the visitor appears by itself (the page refreshes every 15 seconds)
     const page = await ctx(browser);
     await signIn(page, email, '/admin');
-    await page.goto('/admin/live', { waitUntil: 'networkidle' });
+    await page.goto('/admin/visitors', { waitUntil: 'networkidle' });
     await expect(page.getByTestId('live-visitors')).toBeVisible();
     await expect(page.locator('.ad-tile').filter({ hasText: 'Live now' })).toBeVisible();
     await expect(page.locator('.ad-tile').filter({ hasText: 'Visitors today' }).getByTestId('visitors-today')).toHaveText(/^\d+$/);

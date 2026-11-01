@@ -33,7 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     } catch { counts = {}; }
     // chats waiting for a person (0060)
     // and hot visitors on the site now (0086), from the same read
-    try { const c = await door<{ waiting: number; hot?: number }>(user.id, 'admin_read', 'chat_counts'); counts['/admin/chat'] = Number(c.waiting) || 0; counts['/admin/live'] = Number(c.hot) || 0; } catch { /* no count */ }
+    try { const c = await door<{ waiting: number; hot?: number }>(user.id, 'admin_read', 'chat_counts'); counts['/admin/chat'] = Number(c.waiting) || 0; counts['/admin/visitors'] = Number(c.hot) || 0; } catch { /* no count */ }
   }
   return (
     <div className="ad">

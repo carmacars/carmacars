@@ -193,7 +193,7 @@ test('Proactive chat: customer service starts a chat from Live visitors and the 
   await sql.end();
 });
 
-test('Admin: Live visitors and Live chat in the menu, a car shows its interest, the renter page has the visits', async ({ browser }) => {
+test('Admin: Visitors and Live chat in the menu, a car shows its interest, the renter page has the visits', async ({ browser }) => {
   test.setTimeout(120_000);
   const sql = db();
   const id = randomUUID(); const email = `admin.lc.${Date.now()}.${tag()}@example.test`;
@@ -203,8 +203,10 @@ test('Admin: Live visitors and Live chat in the menu, a car shows its interest, 
   const page = await ctx(browser);
   await signIn(page, email, '/admin');
   await openMenuIfPhone(page, 'admin-nav');
-  await expect(page.getByTestId('admin-nav').getByRole('link', { name: 'Live visitors' })).toBeAttached();
+  // Release 26: Live visitors is the Live now of Today > Visitors; the old address lands there
+  await expect(page.getByTestId('admin-nav').getByRole('link', { name: 'Visitors', exact: true })).toBeAttached();
   await page.goto('/admin/live', { waitUntil: 'networkidle' });
+  await expect(page).toHaveURL(/\/admin\/visitors$/);
   await expect(page.getByTestId('live-visitors')).toBeVisible();
   await check(page, 'admin live visitors');
   await page.goto('/admin/chat', { waitUntil: 'networkidle' });

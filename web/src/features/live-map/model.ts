@@ -355,7 +355,7 @@ export function withoutContact(v: MapView): MapView {
 export function adminHref(p: Pick<Pin, 'booking_number' | 'renter_id' | 'session_id' | 'name' | 'type'>): { href: string; label: string } {
   if (p.booking_number) return { href: `/admin/bookings/${encodeURIComponent(p.booking_number)}`, label: `Open booking ${p.booking_number}` };
   if (p.renter_id) return { href: `/admin/renters/${encodeURIComponent(p.renter_id)}`, label: 'Open the renter' };
-  if (p.type === 'session' || (p.session_id && !p.name)) return { href: '/admin/live', label: 'Open Live visitors' };
+  if (p.type === 'session' || (p.session_id && !p.name)) return { href: '/admin/visitors', label: 'Open in Visitors' };
   return { href: p.name ? `/admin/leads?q=${encodeURIComponent(p.name)}` : '/admin/leads', label: 'Open in Renter leads' };
 }
 

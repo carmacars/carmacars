@@ -5,7 +5,7 @@ import { db, noOverflow } from './helpers';
 
 // Migration 0118 end to end, at 375 and 1440: a visitor who accepted analytics views three pages and sends a booking
 // request; two hours later (the visit is made two hours old) the visitor job works out its summary and the day's
-// totals. An Admin finds it in Today > Visitor history: the daily chart and totals, the row with where it came from,
+// totals. An Admin finds it in Today > Visitors, History (Release 26): the daily chart and totals, the row with where it came from,
 // its pages and what it led to, the filters (device, "led to"), and the visit in full with the time on each page.
 // Customer service does not get the page.
 const PW = 'correct horse battery';
@@ -82,13 +82,16 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     expect(s!.summary_at, 'summarized by the job').not.toBeNull();
     expect(s!.conversions).toEqual(['request']);
 
-    // Admin > Today > Visitor history
+    // Admin > Today > Visitors, History
     const page = await ctx(browser);
     await signIn(page, adminEmail);
     const [u] = await sql`select utm ->> 'campaign' as c from visitor_sessions where id = ${sid}`;
     expect(u!.c, 'the visit keeps its campaign').toBe(camp);
+    // Release 26: Visitor history is the History of Today > Visitors; the old address keeps its filters
     await page.goto(`/admin/live/history?source=${camp}`, { waitUntil: 'networkidle' });
-    await expect(page.getByRole('heading', { level: 1, name: 'Visitor history' })).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/admin/visitors\\?view=history&source=${camp}`));
+    await expect(page.getByRole('heading', { level: 1, name: 'Visitors' })).toBeVisible();
+    await expect(page.getByTestId('vs-tab-history')).toHaveAttribute('aria-current', 'page');
     await expect(page.getByTestId('vh-intro')).toContainText('worked out 30 minutes after it ends');
     await expect(page.locator('.ad-tile').filter({ hasText: 'Visits' }).first()).toBeVisible();
     await expect(page.getByTestId('vh-chart')).toBeVisible();
@@ -103,7 +106,7 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     const [top] = await sql`select app.visitor_history_summary(${from}::date, ${to}::date) -> 'top' -> 'page' -> 0 ->> 'key' as key`;
     expect(top!.key).toBeTruthy();
     await expect(page.getByTestId('vh-top-pages')).toContainText(`(${top!.key})`);
-    const row = page.locator('[data-testid="vh-table"] tr').filter({ has: page.locator(`a[href="/admin/live/history/${sid}"]`) });
+    const row = page.getByTestId('vh-row').filter({ has: page.locator(`a[href="/admin/live/history/${sid}"]`) });
     await expect(row).toHaveCount(1);
     await expect(row).toContainText('Request sent');
     await expect(row).toContainText('Kingston');
@@ -112,6 +115,8 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     // the filters: its device keeps it, "a booking confirmed" does not
     const [dv] = await sql`select device from visitor_sessions where id = ${sid}`;
     const device = ({ phone: 'Phone', tablet: 'Tablet', desktop: 'Computer' } as Record<string, string>)[String(dv!.device)] ?? 'Computer';
+    // the less used filters are folded under "More filters"
+    await page.getByTestId('vh-filters').getByText('More filters').click();
     await page.getByTestId('vh-filters').getByLabel('Device').selectOption({ label: device });
     await page.getByTestId('vh-apply').click();
     await page.waitForURL(/device=/);

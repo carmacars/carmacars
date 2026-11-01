@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
+import type { LiveData, SessionDetail } from '@/features/live/staff';
+import { liveWithoutContact, visitorWithoutContact } from '@/features/live/contact';
 
 // Live visitors and Live chat for staff (migration 0060): the pages poll this every few seconds (short polling: one
 // small read through the door, no open connection), and every action goes the same way. Admins, customer service
@@ -31,8 +33,13 @@ export async function GET(req: Request) {
   if (!READS.has(what)) return NextResponse.json({ error: 'Unknown read' }, { status: 400, headers: H });
   const p: Record<string, unknown> = {};
   for (const k of ['id', 'after', 'vehicle_id', 'renter_id', 'booking_id', 'session_id']) { const v = u.searchParams.get(k); if (v) p[k] = v; }
+  // Release 26: the Visitors page asks with contact=0 while its "Show contact" is off: no phone or email leaves here
+  const hide = u.searchParams.get('contact') === '0';
   try {
-    return NextResponse.json(await door(w.user.id, w.admin ? 'admin_read' : 'va_read', what, p, w.aal), { headers: H });
+    const d = await door(w.user.id, w.admin ? 'admin_read' : 'va_read', what, p, w.aal);
+    if (hide && what === 'live_visitors') return NextResponse.json(liveWithoutContact(d as unknown as LiveData), { headers: H });
+    if (hide && what === 'live_session') return NextResponse.json(visitorWithoutContact(d as unknown as SessionDetail), { headers: H });
+    return NextResponse.json(d, { headers: H });
   } catch (e) { return NextResponse.json({ error: msg(e) }, { status: 403, headers: H }); }
 }
 

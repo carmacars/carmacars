@@ -23,7 +23,7 @@ export function CarInterest({ i }: { i: Interest | null }) {
         {i.days.map((x) => <span key={x.day} className="ci-bar" style={{ height: `${Math.max(2, Math.round((x.views / max) * 48))}px` }} title={`${x.day.slice(0, 10)}: ${x.views}`} />)}
       </div>
       {(i.compared?.length ?? 0) > 0 && <p className="small" data-testid="car-compared"><span className="muted">Most compared with: </span>{i.compared!.map((c) => `${c.car} (${c.sessions})`).join(', ')}</p>}
-      <p className="small muted">Views by visitors who accepted analytics. <Link prefetch={false} className="link" href="/admin/live">Live visitors</Link></p>
+      <p className="small muted">Views by visitors who accepted analytics. <Link prefetch={false} className="link" href="/admin/visitors">Visitors</Link></p>
     </div>
   );
 }
