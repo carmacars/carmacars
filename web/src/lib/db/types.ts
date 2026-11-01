@@ -2247,6 +2247,7 @@ export type Database = {
           owner_expense_cents: number;
           booking_share_override: boolean;
           flat_arrangement_id: string | null;
+          partner_kickback_cents: number;
         };
         Insert: {
           booking_id: string;
@@ -2289,6 +2290,7 @@ export type Database = {
           owner_expense_cents?: number;
           booking_share_override?: boolean;
           flat_arrangement_id?: string | null;
+          partner_kickback_cents?: number;
         };
         Update: {
           booking_id?: string;
@@ -2331,6 +2333,7 @@ export type Database = {
           owner_expense_cents?: number;
           booking_share_override?: boolean;
           flat_arrangement_id?: string | null;
+          partner_kickback_cents?: number;
         };
         Relationships: [];
       };
@@ -2670,6 +2673,11 @@ export type Database = {
           placeholder_by: string | null;
           placeholder_at: string | null;
           pay_every: string | null;
+          lead_time_bps: number | null;
+          lead_time_hours: number | null;
+          lead_time_locked_at: string | null;
+          lead_time_source: string | null;
+          partner_discount_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -2841,6 +2849,11 @@ export type Database = {
           placeholder_by?: string | null;
           placeholder_at?: string | null;
           pay_every?: string | null;
+          lead_time_bps?: number | null;
+          lead_time_hours?: number | null;
+          lead_time_locked_at?: string | null;
+          lead_time_source?: string | null;
+          partner_discount_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -3012,6 +3025,11 @@ export type Database = {
           placeholder_by?: string | null;
           placeholder_at?: string | null;
           pay_every?: string | null;
+          lead_time_bps?: number | null;
+          lead_time_hours?: number | null;
+          lead_time_locked_at?: string | null;
+          lead_time_source?: string | null;
+          partner_discount_bps?: number | null;
         };
         Relationships: [];
       };
@@ -12243,6 +12261,7 @@ export type Database = {
           updated_at: string;
           markup_bps: number | null;
           payout_basis: string;
+          discount_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -12276,6 +12295,7 @@ export type Database = {
           updated_at?: string;
           markup_bps?: number | null;
           payout_basis?: string;
+          discount_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -12309,6 +12329,7 @@ export type Database = {
           updated_at?: string;
           markup_bps?: number | null;
           payout_basis?: string;
+          discount_bps?: number | null;
         };
         Relationships: [];
       };
@@ -14258,6 +14279,20 @@ export type Database = {
           ai_vision_permit_daily_per_person: number;
           field_renter_walkthrough: boolean;
           push_enabled: boolean;
+          capture_followup_days: number;
+          usage_banner_red_usd: number;
+          crawler_guard_usd: number;
+          crawler_guard_month: string | null;
+          fleet_trending_weights: Json;
+          fleet_trending_days: number;
+          fleet_hot_count: number;
+          game_visit_gap_minutes: number;
+          owner_calc_insurance_fee: number | null;
+          owner_calc_tracker_fee: number | null;
+          lead_time_enabled: boolean;
+          lead_time_tiers: Json;
+          lead_time_insurer: boolean;
+          partner_discount_bps: number;
           chat_auto_close_minutes: number;
           ai_live_bps: number | null;
         };
@@ -14802,6 +14837,20 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          capture_followup_days?: number;
+          usage_banner_red_usd?: number;
+          crawler_guard_usd?: number;
+          crawler_guard_month?: string | null;
+          fleet_trending_weights?: Json;
+          fleet_trending_days?: number;
+          fleet_hot_count?: number;
+          game_visit_gap_minutes?: number;
+          owner_calc_insurance_fee?: number | null;
+          owner_calc_tracker_fee?: number | null;
+          lead_time_enabled?: boolean;
+          lead_time_tiers?: Json;
+          lead_time_insurer?: boolean;
+          partner_discount_bps?: number;
           chat_auto_close_minutes?: number;
           ai_live_bps?: number | null;
         };
@@ -15346,6 +15395,20 @@ export type Database = {
           ai_vision_permit_daily_per_person?: number;
           field_renter_walkthrough?: boolean;
           push_enabled?: boolean;
+          capture_followup_days?: number;
+          usage_banner_red_usd?: number;
+          crawler_guard_usd?: number;
+          crawler_guard_month?: string | null;
+          fleet_trending_weights?: Json;
+          fleet_trending_days?: number;
+          fleet_hot_count?: number;
+          game_visit_gap_minutes?: number;
+          owner_calc_insurance_fee?: number | null;
+          owner_calc_tracker_fee?: number | null;
+          lead_time_enabled?: boolean;
+          lead_time_tiers?: Json;
+          lead_time_insurer?: boolean;
+          partner_discount_bps?: number;
           chat_auto_close_minutes?: number;
           ai_live_bps?: number | null;
         };
@@ -20374,6 +20437,7 @@ export type Database = {
           notify_channel: string | null;
           notify_channel_at: string | null;
           notify_channel_by: string | null;
+          greeting_name: string | null;
         };
         Insert: {
           id?: string;
@@ -20393,6 +20457,7 @@ export type Database = {
           notify_channel?: string | null;
           notify_channel_at?: string | null;
           notify_channel_by?: string | null;
+          greeting_name?: string | null;
         };
         Update: {
           id?: string;
@@ -20412,6 +20477,7 @@ export type Database = {
           notify_channel?: string | null;
           notify_channel_at?: string | null;
           notify_channel_by?: string | null;
+          greeting_name?: string | null;
         };
         Relationships: [];
       };
@@ -21285,6 +21351,7 @@ export type Database = {
           content_updated_at: string;
           publish_scheduled_by: string | null;
           publish_error: string | null;
+          pinned_rank: number | null;
         };
         Insert: {
           id?: string;
@@ -21324,6 +21391,7 @@ export type Database = {
           content_updated_at?: string;
           publish_scheduled_by?: string | null;
           publish_error?: string | null;
+          pinned_rank?: number | null;
         };
         Update: {
           id?: string;
@@ -21363,6 +21431,7 @@ export type Database = {
           content_updated_at?: string;
           publish_scheduled_by?: string | null;
           publish_error?: string | null;
+          pinned_rank?: number | null;
         };
         Relationships: [];
       };
@@ -22723,6 +22792,9 @@ export type Database = {
           sticker_expires_on: string | null;
           id_pending: boolean;
           notes: string | null;
+          lead_time_mode: string;
+          lead_time_tiers: Json | null;
+          partner_discount_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -22793,6 +22865,9 @@ export type Database = {
           sticker_expires_on?: string | null;
           id_pending?: boolean;
           notes?: string | null;
+          lead_time_mode?: string;
+          lead_time_tiers?: Json | null;
+          partner_discount_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -22863,6 +22938,9 @@ export type Database = {
           sticker_expires_on?: string | null;
           id_pending?: boolean;
           notes?: string | null;
+          lead_time_mode?: string;
+          lead_time_tiers?: Json | null;
+          partner_discount_bps?: number | null;
         };
         Relationships: [];
       };
@@ -24510,6 +24588,7 @@ export type Database = {
       chauffeur_services: { Args: never; Returns: Json };
       cookie_choice: { Args: { p_visitor_id: string }; Returns: Json };
       coverage_affiliate_public: { Args: never; Returns: Json };
+      crawler_guard: { Args: never; Returns: boolean };
       delivery_origin: { Args: never; Returns: Json };
       door: { Args: { p_user: string; p_aal: string; p_call: string; p_name: string; p?: Json }; Returns: Json };
       driver_sign_agreement: { Args: { p_signer: string; p_consent_text: string; p_document_sha256: string; p_consents: Json; p_typed_name?: string; p_drawn_signature?: string; p_ip?: string; p_user_agent?: string }; Returns: string };
@@ -24555,6 +24634,7 @@ export type Database = {
       my_trip_photos: { Args: never; Returns: Json };
       my_unread_count: { Args: never; Returns: number };
       owner_book_own_vehicle: { Args: { p_by: string; p_vehicle: string; p_pickup: string; p_return: string; p_note?: string }; Returns: string };
+      owner_calc_data: { Args: never; Returns: Json };
       owner_form_ab_open: { Args: { p_by: string; p_code: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       owner_form_c_open: { Args: { p_by: string; p_vehicle: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       owner_form_official: { Args: { p_by: string; p_fill: string }; Returns: Json };
@@ -24820,6 +24900,7 @@ export type Database = {
       server_owner_sales_credit: { Args: { p_application: string; p_staff: string; p_lead?: string }; Returns: Json };
       server_owner_schedule_change: { Args: { p_by: string; p_change: string }; Returns: Json };
       server_owner_schedule_changes: { Args: { p_by: string }; Returns: Json };
+      server_owner_steps: { Args: never; Returns: Json };
       server_partner_crm_done: { Args: { p: Json }; Returns: Json };
       server_partner_crm_due: { Args: never; Returns: Json };
       server_partner_crm_job: { Args: { p_conn: string; p_by?: string; p_kind?: string }; Returns: Json };
