@@ -27,8 +27,9 @@ test('hover cycles the photos, leaving goes back to the cover; no console error'
   await expect(deck.locator('img.is-on')).toHaveCount(1);
   await expect.poll(() => at(page), { timeout: 5000 }).toBe('2');
   // the photos keep their box: the card is as tall as before
-  const h = await card.locator('.car-card__media').evaluate((m) => m.getBoundingClientRect().height);
-  expect(await card.locator('.car-card__deck img.is-on').evaluate((i) => Math.round(i.getBoundingClientRect().height))).toBe(Math.round(h));
+  // (layout boxes: the hover's small zoom is a transform and leaves them alone)
+  const h = await card.locator('.car-card__media').evaluate((m) => (m as HTMLElement).offsetHeight);
+  expect(await card.locator('.car-card__deck img.is-on').evaluate((i) => (i as HTMLElement).offsetHeight)).toBe(h);
   await page.mouse.move(2, 2);
   await expect.poll(() => at(page)).toBe('0');
   await expect(deck.locator('img.is-on')).toHaveCount(0);
