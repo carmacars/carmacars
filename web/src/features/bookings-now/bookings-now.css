@@ -344,3 +344,7 @@
 .bn > *, .bk-filters > *, .bn-bar > * { min-width: 0; max-width: 100%; }
 .bn { grid-template-columns: minmax(0, 1fr); }
 .bk-filters { grid-template-columns: minmax(0, 1fr); }
+/* markers with no words on the timeline (Turo trips, car moves, field jobs) keep no text; in the agenda they are plain chips */
+.cal.cal .cal__item.is-turo, .cal.cal .cal__item.is-move, .cal.cal .cal__item.is-job { font-size: 0; padding: 0; }
+.cal.cal .cal__akind.is-turo, .cal.cal .cal__akind.is-move, .cal.cal .cal__akind.is-job { font-size: 0.6875rem; padding: 2px 8px; height: auto; width: auto !important; bottom: auto;
+  background: var(--grey-100); border: 1px solid var(--grey-300); border-radius: 999px; color: var(--text); }
