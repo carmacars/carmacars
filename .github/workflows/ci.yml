@@ -320,6 +320,9 @@ jobs:
       - name: Secrets from the Supabase project (keys, vault)
         run: $RUN "Secrets" scripts/deploy/supabase.sh secrets
       - name: Cloudflare token, page cache and file storage (R2, KV, D1), Turnstile, DNS for the custom domains
+        env:
+          # 0321: the photos' address when set as a repository variable (a CDN or another host); else the storage's own
+          NEXT_PUBLIC_VEHICLE_PHOTOS_URL: ${{ vars.NEXT_PUBLIC_VEHICLE_PHOTOS_URL }}
         run: $RUN "Cloudflare" scripts/deploy/cloudflare.sh token resources subdomain turnstile dns images
       - name: Migrations (new ones only), Auth settings, Stripe webhook, outbox sender, owner debit, calendar sync, SMS hook secret
         run: $RUN "Supabase" scripts/deploy/supabase.sh migrate templates auth stripe outbox debit calsync smshook
@@ -396,20 +399,28 @@ jobs:
                  + (if env.QUO_API_KEY then {QUO_API_KEY: env.QUO_API_KEY} else {} end)
                  + (if env.QUO_WEBHOOK_SECRET then {QUO_WEBHOOK_SECRET: env.QUO_WEBHOOK_SECRET} else {} end)
                  + (if env.AUTH_SMS_HOOK_SECRET then {AUTH_SMS_HOOK_SECRET: env.AUTH_SMS_HOOK_SECRET} else {} end)
-                 + (if env.VAPID_PRIVATE_KEY then {VAPID_PUBLIC_KEY: env.VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY} else {} end)' > "$f"
+                 + (if env.VAPID_PRIVATE_KEY then {VAPID_PUBLIC_KEY: env.VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY} else {} end)
+                 + (if env.WALLET_PASS_CERT and env.WALLET_PASS_KEY and env.WALLET_WWDR_CERT and env.WALLET_PASS_TYPE_ID and env.WALLET_TEAM_ID
+                    then {WALLET_PASS_CERT: env.WALLET_PASS_CERT, WALLET_PASS_KEY: env.WALLET_PASS_KEY, WALLET_WWDR_CERT: env.WALLET_WWDR_CERT,
+                          WALLET_PASS_TYPE_ID: env.WALLET_PASS_TYPE_ID, WALLET_TEAM_ID: env.WALLET_TEAM_ID} else {} end)' > "$f"
           # R23 (0222): the Cloudflare Email Service binding, once the owner has set Email Service up for carmacars.ca and set
           # the repository variable CF_EMAIL_BINDING to 1 (docs/changes/2026-11-03-cloudflare-email.md); without it the
           # outbox sends through Resend as before
-          if [ "$DEPLOY_ENV" = production ] && [ "${{ vars.CF_EMAIL_BINDING }}" = 1 ]; then
-            sed -i '0,/"ai": { "binding": "AI" },/s//"ai": { "binding": "AI" },\n  "send_email": [{ "name": "EMAIL" }],/' wrangler.jsonc
-            grep -q '"send_email"' wrangler.jsonc && echo "::notice title=email::the Worker gets its EMAIL binding (Cloudflare Email Service)"
-          fi
+          # 0321: 1, true, yes, on or EMAIL (any case) turn it on; the annotation says whether it was added and why
+          ../scripts/deploy/email-binding.sh wrangler.jsonc "$DEPLOY_ENV" "${{ vars.CF_EMAIL_BINDING }}"
           if [ "$DEPLOY_ENV" = staging ]; then
             $RUN "Deploy" npx opennextjs-cloudflare deploy -- --env staging --secrets-file "$f"
           else
             $RUN "Deploy" npx opennextjs-cloudflare deploy -- --secrets-file "$f"
           fi
           rm -f "$f"
+      # 0321: every feature waiting on an owner step, with the exact step, on every production deploy (never hidden)
+      - name: Waiting on an owner step (Cloudflare email, Wallet certificate, Meta Page token, GoHighLevel tokens, RentalCoverage link)
+        if: inputs.environment == 'production'
+        continue-on-error: true
+        env:
+          CF_EMAIL_BINDING: ${{ vars.CF_EMAIL_BINDING }}
+        run: scripts/deploy/owner-steps.sh
       - name: Turo by email (Email Routing on in.carmacars.ca and its rule to the Worker; never the root domain's mail)
         if: inputs.environment == 'production'
         continue-on-error: true

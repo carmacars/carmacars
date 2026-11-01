@@ -48,9 +48,12 @@ async function onboardingCar(sql: Sql, ownerId: string, step = 'terms_set') {
   return { id, name: `2021 Volkswagen ${model}` };
 }
 const prompt = (page: Page, key: string) => page.getByTestId(`prompt-${key}`);
-// three or more lines of one kind of work are one line whose button opens the list (0104)
-async function openGroup(page: Page, group: string) { if (await page.getByTestId(`prompt-group:${group}`).count()) await page.getByTestId(`group:${group}-open`).click(); }
-async function today(page: Page) { await page.goto('/admin', { waitUntil: 'networkidle' }); await expect(page.getByTestId('todo-prompts')).toBeVisible(); }
+// 0320: past the first eight lines the rest are behind "N more, less urgent": opened so every line can be reached
+async function today(page: Page) {
+  await page.goto('/admin', { waitUntil: 'networkidle' }); await expect(page.getByTestId('todo-prompts')).toBeVisible();
+  const more = page.getByTestId('todo-prompts-more');
+  if (await more.count()) await more.evaluate((el) => { (el as HTMLDetailsElement).open = true; });
+}
 
 test('Insurer confirmed: from Today for one car, for several at once, and on the car checklist', async ({ page }) => {
   test.setTimeout(150_000);
@@ -186,7 +189,7 @@ test('owner money and paperwork: a payment received by e-Transfer and a paper si
   await pd.getByLabel('Reference').fill('ET-998877');
   await pd.getByRole('button', { name: 'Record payment' }).click();
   await expect.poll(async () => (await sql`select status::text s from owner_invoices where id = ${inv!.id}`)[0]!.s, { timeout: 20_000 }).toBe('paid');
-  await page.goto('/admin', { waitUntil: 'networkidle' });
+  await today(page);
   await expect(prompt(page, `invoice:${inv!.id}`)).toHaveCount(0);
   // the paper signature
   const paper = prompt(page, `paper:${o}`);
@@ -203,27 +206,18 @@ test('owner money and paperwork: a payment received by e-Transfer and a paper si
   await sql.end();
 });
 
-test('a chat waiting for a person opens the chat; an assistant task with nobody to do it comes to the Admin and closes from its pop-up', async ({ page }) => {
+test('a chat waiting for a person opens the chat; an assistant task stays on its team\'s line, not a prompt of the Admin', async ({ page }) => {
   test.setTimeout(120_000);
   const sql = db();
   const a = await admin(sql);
   const [c] = await sql`insert into chat_conversations (visitor_id, name, status, human_requested_at, human_reason) values (${randomUUID()}, ${`Gus ${tag()}`}, 'waiting', now(), 'price question') returning id, number`;
-  const staffed = (await sql`select app.va_function_staffed('cs') s`)[0]!.s as boolean;
   const [t] = await sql`select app.raise_task(p_type => 'check_owner_document', p_title => ${`Check an owner document ${tag()}`}, p_dedupe => ${`ga:${tag()}`}) id`;
   await signIn(page, a.email);
   await today(page);
   await expect(prompt(page, `chat:${c!.id}`)).toContainText(`asked for a person in live chat ${c!.number}: reply`);
-  if (!staffed) {
-    await openGroup(page, 'task:check_owner_document');
-    const line = prompt(page, `task:${t!.id}`);
-    await expect(line).toContainText('no assistant holds that function yet');
-    await line.getByTestId(`todo-act-task:${t!.id}`).click();
-    await check(page, 'task pop-up');
-    await page.getByTestId(`todo-act-task:${t!.id}-done`).click();
-    await page.getByTestId(`todo-act-task:${t!.id}-done-submit`).click();
-    await expect(prompt(page, `task:${t!.id}`)).toHaveCount(0, { timeout: 20_000 });
-    await today(page);   // the list of a group closes with the page
-  }
+  // 0320: a staff queue's task stays in its team's line on To do (one quiet line per team), never a prompt of the Admin's
+  await expect(prompt(page, `task:${t!.id}`)).toHaveCount(0);
+  await expect(page.getByTestId('todo-team-cs')).toBeVisible();
   await prompt(page, `chat:${c!.id}`).getByTestId(`todo-act-chat:${c!.id}`).click();
   await page.waitForURL((u) => u.pathname === '/admin/chat' && u.searchParams.get('id') === c!.id);
   await sql`update chat_conversations set status = 'closed' where id = ${c!.id}`;

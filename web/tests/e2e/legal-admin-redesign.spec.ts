@@ -249,6 +249,8 @@ test('sample photos: a listing without photos shows a captioned sample, staff se
     await check(page, 'sample photos settings');
     await page.goto('/admin', { waitUntil: 'networkidle' });
     // each real car showing sample photos is a To do prompt (0078); three or more are one line, "Add real photos (n cars)", whose list opens (0104)
+    // 0320: past the first eight lines the rest are behind "N more, less urgent"
+    if (await page.getByTestId('todo-prompts-more').count()) await page.getByTestId('todo-prompts-more').evaluate((el) => { (el as HTMLDetailsElement).open = true; });
     if (await page.getByTestId('prompt-group:photos').count()) await page.getByTestId('group:photos-open').click();
     await expect(page.getByTestId(`prompt-photos:${id}`)).toBeVisible();
     // a real photo approved: the sample is gone, nothing else to do

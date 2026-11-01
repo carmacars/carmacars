@@ -9,3 +9,12 @@ export function span(ms: number): string {
   return `${min} min`;
 }
 
+
+/** How long something has waited, one humane format everywhere (0324): "6 days", "1 day", "3 h", "12 min", "1 min". */
+export function waitWords(minutes: number): string {
+  const m = Math.max(1, Math.floor(minutes));
+  if (m >= 2880) return `${Math.floor(m / 1440)} days`;
+  if (m >= 1440) return '1 day';
+  if (m >= 60) return `${Math.floor(m / 60)} h`;
+  return `${m} min`;
+}

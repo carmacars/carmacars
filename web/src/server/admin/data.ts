@@ -10,7 +10,7 @@ import { realUser as currentUser } from '@/server/portal/data';
 // sessions, 0019's app.staff_two_step_ok). Every admin read and action goes through requireAdmin.
 const SR = { role: 'service_role' as const };
 
-export interface AdminGate { admin: boolean; staff: boolean; two_step_required: boolean; name: string | null }
+export interface AdminGate { admin: boolean; staff: boolean; two_step_required: boolean; name: string | null; /** 0324: the greeting name, else the account's name */ greeting?: string | null }
 
 // asked by the frame and by the page in the same render: once per request (React's cache)
 const gateOf = cache(async (userId: string) => (await rpc('admin_gate', { p_user: userId }, SR)) as unknown as AdminGate);

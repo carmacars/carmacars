@@ -7,6 +7,9 @@ import { BookingLink, Card, t } from '@/features/admin/ui';
 import { TodayBoard, boardTiles, type Dash } from '@/features/admin/today/TodayBoard';
 import { Prompts } from '@/features/admin/todo/Prompts';
 import type { Todo } from '@/features/admin/todo/types';
+import { Teams } from '@/features/admin/todo/Teams';
+import { greetName } from '@/features/admin/today/greeting';
+import { needCount, needSentence, ownClear, ownLines } from '@/features/admin/todo/need';
 import { UsageBanner, UsageCards } from '@/features/usage/UsageCards';
 import { More } from '@/features/portal/Chrome';
 
@@ -36,26 +39,26 @@ export default async function AdminToDo() {
     // the counts on the board (the same read as Overview); the page works without them
     read<Dash>('dashboard').catch(() => null)]);
   // the guided prompts (0078): each piece of work on its own line with its pop-up; the counts below are what has no
-  // prompt of its own (a count whose records each have a prompt is not repeated)
+  // prompt of its own. 0320: only the Admin's own lines; each staff team's work is one quiet line in Your teams, and the
+  // headline counts lines, never records (need.ts, app.todo_need)
   const prompts = d.prompts ?? [];
-  const covered = new Set(['applications', 'requests', 'changes', 'plates', 'samples', 'first_last_decide', 'signed_copy_failed']);
-  const rest = d.items.filter((i) => !covered.has(i.key));
-  const open = rest.filter((i) => i.count > 0);
-  const clear = rest.filter((i) => i.count === 0);
+  const open = ownLines(d.items);
+  const clear = ownClear(d.items);
   const time = (iso: string) => t(iso).split(', ').pop();
-  const need = prompts.length + open.reduce((n, i) => n + i.count, 0);
+  const need = needCount(d);
   const siteProblems = h ? h.checks.filter((c) => c.status === 'failing').length : 0;
   return (
     <>
       <UsageBanner userId={user.id} />
-      <TodayBoard name={gate.name ?? null} tiles={boardTiles(dash, d, siteProblems)}
-        lead={need ? `${need} thing${need > 1 ? 's' : ''} need${need > 1 ? '' : 's'} you, most urgent first.` : 'Nothing needs you right now. New requests and anything that needs you show up here.'}
+      {d.crawler_guard && <p className="small muted ug-note" data-testid="crawler-guard-note">AI training crawlers are on the core pages only until {new Date(`${d.crawler_guard.until}T12:00:00Z`).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', timeZone: 'UTC' })}: this month&apos;s Worker CPU cost above the allowance is projected at about US${Number(d.crawler_guard.projected_usd ?? 0).toFixed(2)}, past the US${Number(d.crawler_guard.line_usd).toFixed(2)} of Program settings. Google, Bing and the AI search crawlers still read every page.</p>}
+      <TodayBoard name={greetName(gate)} tiles={boardTiles(dash, d, siteProblems)}
+        lead={needSentence(need)}
         actions={<><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings" data-testid="today-cars-now">Cars out now</Link><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/overview">Overview</Link><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/bookings/new">Add a rental</Link></>} />
       <div className="ad-home">
         <div className="ad-home__main">
           <section className="pt-card ad-card ad-needs" aria-labelledby="todo-h" data-testid="todo-list">
             <div className="pt-card__head"><h2 className="d4" id="todo-h">Needs you</h2>{need > 0 && <span className="ad-needs__count" aria-hidden="true">{need}</span>}</div>
-            <Prompts prompts={prompts} />
+            <Prompts prompts={prompts} limit={8} />
             {open.length ? (
               <ol className="todo">{open.map((i) => (
                 <li key={i.key} className="todo__item" data-testid={`todo-${i.key}`}>
@@ -72,6 +75,7 @@ export default async function AdminToDo() {
             {clear.length > 0 && <details className="todo__clear"><summary className="small muted">{clear.length} more with nothing waiting</summary>
               <ul className="small muted">{clear.map((i) => <li key={i.key}><Link prefetch={false} className="link" href={i.href}>{i.label}</Link>: none</li>)}</ul></details>}
           </section>
+          {d.teams && d.teams.length > 0 && <Teams teams={d.teams} />}
           <HandoversToday userId={user.id} base="/admin" />
           <UsageCards userId={user.id} />
           {h && <SiteHealth h={h} />}

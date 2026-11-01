@@ -27,3 +27,6 @@
 .gd-list--inner { max-height: 70vh; overflow-y: auto; }
 .gd-item--inner { grid-template-columns: minmax(0, 1fr) auto; }
 .gd-item--inner .gd-title { font-weight: 400; }
+/* 0320: the less urgent lines past the first eight, one tap away */
+.gd-more { border-top: 1px solid var(--grey-100); padding-top: var(--s-2); }
+.gd-more > summary { cursor: pointer; padding: var(--s-2) 0; color: var(--text-2, #555); font-weight: 600; }

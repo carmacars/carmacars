@@ -109,10 +109,15 @@ delete from app_events where code = 'staff_usage_alert';
 update usage_alerts set emailed_at = null, email_note = null where email_note is distinct from 'covered by the 100% alert';
 select test.eq('never at night: 3 am in Toronto sends nothing', app.usage_send_alerts(app.local_midnight(app.today()) + interval '3 hours'), 0);
 update program_settings set usage_alert_max_emails = 2;
-select test.eq('in the day: at most the daily maximum', app.usage_send_alerts(app.local_midnight(app.today()) + interval '10 hours'), 2);
-select test.eq('the rest are shown on Admin > To do and say why', (select count(*) from usage_alerts where email_note like 'not emailed%'), 2::bigint);  -- 0221: the CPU time warns at 70% too
-select test.eq('one event per alert email', (select count(*) from app_events where code = 'staff_usage_alert'), 2::bigint);
+-- 0323: usage alerts are in the app only: none is emailed, each says so
+select test.eq('in the day: no usage alert is emailed (0323)', app.usage_send_alerts(app.local_midnight(app.today()) + interval '10 hours'), 0);
+select test.eq('each is shown on Admin > To do and says why', (select count(*) from usage_alerts where emailed_at is not null and email_note like 'not emailed%') > 0
+  and not exists (select 1 from usage_alerts where emailed_at is null), true);
+select test.eq('no alert email event', (select count(*) from app_events where code = 'staff_usage_alert'), 0::bigint);
 update program_settings set usage_alert_max_emails = 4;
+-- the email itself still builds (an Admin may send it by hand from the catalogue): its address and values
+select app.emit_event('staff_usage_alert', 'usage_alert', a.id, jsonb_build_object('service', a.service, 'level', a.level), 'staff_usage_alert:ug')
+  from (select * from usage_alerts order by created_at limit 1) a;
 select test.eq('to the alert address of Program settings',
   (select r.email from app_events e, notification_catalogue c, app.notification_recipients(e, c) r where e.code = 'staff_usage_alert' and c.code = 'staff_usage_alert' limit 1),
   lower((app.settings()).uptime_alert_email));

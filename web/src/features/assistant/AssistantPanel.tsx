@@ -19,7 +19,7 @@ const HINTS: Record<Portal, string[]> = {
   field: ['What needs doing today?', 'Who has the Tesla?', 'Is the Corolla free from 2026-11-02 to 2026-11-04?']
 };
 
-export function AssistantPanel({ portal }: { portal: Portal }) {
+export function AssistantPanel({ portal, greeting }: { portal: Portal; greeting?: string | null }) {
   const router = useRouter();
   const dlg = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
@@ -85,6 +85,7 @@ export function AssistantPanel({ portal }: { portal: Portal }) {
         <div className="as-panel__log" role="log" aria-live="polite" aria-label="Conversation" tabIndex={0} aria-busy={busy} data-testid="assistant-log">
           {!items.length && (
             <div className="as-empty small">
+              {greeting && <p data-testid="assistant-greeting"><b>Hi {greeting}.</b></p>}
               <p>Ask about today&apos;s work, bookings, cars, renters, owners and invoices. Changes come as a card for you to confirm; nothing runs until you do.</p>
               <ul className="as-hints">{HINTS[portal].map((h) => <li key={h}><button type="button" className="link" onClick={() => send(h)}>{h}</button></li>)}</ul>
             </div>)}

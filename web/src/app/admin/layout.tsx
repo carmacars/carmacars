@@ -14,6 +14,7 @@ import { PortalSwitch } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { PushInvite } from '@/features/push/PushAlerts';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
+import { greetName } from '@/features/admin/today/greeting';
 
 // Ctrl+K reaches every page of the menu and every settings page (the menu lists the common settings only)
 const JUMP = [...GROUPS, { key: 'settings-all', label: 'Settings', links: SECTIONS.map(([k, title]) => ({ href: `/admin/settings/${k}`, label: title })) }];
@@ -41,7 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {gate?.admin ? (
           <aside className="ad__rail">
             <div className="ad__who"><span className="muted">Admin · <b data-testid="account-email">{gate.name ?? user?.email}</b></span>
-              <span className="gd-frame-links"><AssistantPanel portal="admin" /><GuideLink portal="admin" /><form action={signOut}><button className="btn btn--quiet btn--sm" type="submit">Sign out</button></form></span></div>
+              <span className="gd-frame-links"><AssistantPanel portal="admin" greeting={greetName(gate)} /><GuideLink portal="admin" /><form action={signOut}><button className="btn btn--quiet btn--sm" type="submit">Sign out</button></form></span></div>
             <PortalSwitch current="admin" />
             <div className="ad__find"><AdminSearch /><AdminCommand groups={JUMP} /></div>
             <AdminNav counts={counts} />

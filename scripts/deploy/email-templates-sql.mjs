@@ -14,7 +14,9 @@ let n = 0;
 for (const e of cat.emails) {
   const h = join(root, 'emails', e.template_html), t = join(root, 'emails', e.template_text);
   if (!existsSync(h) || !existsSync(t)) throw new Error(`missing template files for ${e.code}`);
-  out.push(`update notification_catalogue set template_html = ${lit(readFileSync(h, 'utf8'))}, template_text = ${lit(readFileSync(t, 'utf8'))} where code = '${e.code}';`);
+  // 0320: only a template that changed is written (every deploy rewrote every template, a few MB of database log each time)
+  const html = lit(readFileSync(h, 'utf8')), text = lit(readFileSync(t, 'utf8'));
+  out.push(`update notification_catalogue set template_html = ${html}, template_text = ${text} where code = '${e.code}' and (template_html is distinct from ${html} or template_text is distinct from ${text});`);
   n++;
 }
 out.push(`select count(*) filter (where template_html like 'templates/%') as still_paths, count(*) as total from notification_catalogue;`);

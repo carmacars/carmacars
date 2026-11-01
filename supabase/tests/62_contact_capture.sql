@@ -166,8 +166,8 @@ update form_drafts set submitted_at = now() where id = test.id('cap-draft-a');
 select test.eq('a submitted draft closes its capture', (select done_at is not null from contact_captures where draft_id = test.id('cap-draft-a')), true);
 update contact_captures set last_at = now() - interval '45 minutes', first_at = now() - interval '50 minutes' where done_at is null;
 select test.ok('the job runs', app.job_capture() like 'emails %');
-select test.eq('the Admin To do for an unfinished form, once, with the name',
-  (select count(*) || '|' || min(t.title) || '|' || min(t.queue) from tasks t join contact_captures c on c.task_id = t.id where c.visitor_id = test.id('cap-vis-g')), '1|Unfinished request from Typo Person: follow up|admin');
+select test.eq('the follow-up of an unfinished form, once, with the name, in Sales'' queue (0320)',
+  (select count(*) || '|' || min(t.title) || '|' || min(t.queue) from tasks t join contact_captures c on c.task_id = t.id where c.visitor_id = test.id('cap-vis-g')), '1|Unfinished request from Typo Person: follow up|sales');
 select test.eq('Admin To do counts them', (select (i ->> 'count')::int > 0 from jsonb_array_elements(app.admin_todo(test.id('cap_admin')) -> 'items') i where i ->> 'key' = 'capture_follow_up'), true);
 select test.eq('the new account of the unfinished form gets its one email', (select count(*) from app_events where code = 'renter_continue_request' and entity_id = (test.capv('fixed') ->> 'user_id')::uuid), 1::bigint);
 select app.job_capture();

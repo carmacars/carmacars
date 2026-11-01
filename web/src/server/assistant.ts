@@ -8,6 +8,9 @@ import { ask, type AssistantModel, type Deps, type Details, type Out, type Turn 
 import { claudeModel, fakeModel, workersAiModel } from '@/features/assistant/models';
 import type { Portal, VaFn, Who } from '@/features/assistant/tools';
 import type { FieldList } from '@/features/field/types';
+import type { Todo } from '@/features/admin/todo/types';
+import { needCount, ownLines, teamLine } from '@/features/admin/todo/need';
+import { groupPrompts } from '@/features/admin/todo/group';
 
 // The staff assistant as the site runs it (migration 0080). Every read and every change goes through the door as the
 // signed-in person, with their session's assurance level: the database decides what they may see and do, exactly as
@@ -40,10 +43,16 @@ const time = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Amer
 /** What needs doing today, read the way each portal's home page reads it. */
 async function todo(userId: string, aal: 'aal1' | 'aal2' | null, who: Who, extra: Record<string, unknown>): Promise<Out[]> {
   if (who.portal === 'admin') {
-    const d = await door<{ items: Array<{ key: string; label: string; button: string; href: string; count: number }>; pickups: Array<{ booking_number: string; at: string; vehicle: string; renter: string }>; returns: Array<{ booking_number: string; at: string; vehicle: string; renter: string; late: boolean }> }>(userId, 'ops_read', 'admin_todo', {}, aal);
-    const open = d.items.filter((i) => i.count > 0);
+    const d = await door<Pick<Todo, 'items' | 'prompts' | 'need' | 'teams'> & { pickups: Array<{ booking_number: string; at: string; vehicle: string; renter: string }>; returns: Array<{ booking_number: string; at: string; vehicle: string; renter: string; late: boolean }> }>(userId, 'ops_read', 'admin_todo', {}, aal);
+    // 0320: the same count as the home page (lines, not records; a team's work on its own line, never counted)
+    const need = needCount(d);
+    const own = ownLines(d.items);
+    const lines = groupPrompts((d.prompts ?? []).filter((p) => !(p.kind === 'task' && p.from_queue)));
     return [
-      { type: 'results', title: open.length ? `${open.reduce((n, i) => n + i.count, 0)} things need you` : 'Nothing needs you right now', rows: open.map((i) => ({ title: `${i.count} · ${i.label}`, href: i.href })), empty: 'All clear.' },
+      { type: 'results', title: need ? `${need} thing${need === 1 ? '' : 's'} need${need === 1 ? 's' : ''} you` : 'Nothing needs you right now',
+        rows: [...lines.slice(0, 8).map((l) => ('one' in l ? { title: l.one.title, href: '/admin' } : { title: l.title, href: '/admin' })),
+          ...own.map((i) => ({ title: `${i.count} · ${i.label}`, href: i.href }))], empty: 'All clear.' },
+      ...((d.teams ?? []).some((tm) => tm.open > 0) ? [{ type: 'results' as const, title: 'Your teams', rows: (d.teams ?? []).filter((tm) => tm.open > 0).map((tm) => ({ title: teamLine(tm), href: tm.href })), empty: '' }] : []),
       { type: 'results', title: `Pickups ${d.pickups.length} and returns ${d.returns.length} today`, rows: [...d.pickups.map((p) => ({ title: `${time(p.at)} pickup ${p.booking_number}`, sub: `${p.renter} · ${p.vehicle}`, href: `/admin/bookings/${p.booking_number}` })),
         ...d.returns.map((p) => ({ title: `${time(p.at)} return ${p.booking_number}${p.late ? ' (late)' : ''}`, sub: `${p.renter} · ${p.vehicle}`, href: `/admin/bookings/${p.booking_number}` }))], empty: 'No pickups or returns today.' }
     ];

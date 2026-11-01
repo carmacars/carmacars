@@ -24,9 +24,19 @@ export interface Prompt {
   claim?: { name: string; mine: boolean; text: string } | null;
 }
 
+/** A count line (0054 and later); team: whose work it is (0320), absent for the Admin's own. */
+export interface TodoItem { key: string; label: string; button: string; href: string; count: number; team?: string }
+/** 0320: one line per staff team on Admin > To do (its open tasks and its count lines), never counted in "need you". */
+export interface TodoTeam { key: 'cs' | 'sales' | 'fleet' | 'finance'; label: string; href: string; staffed: boolean; open: number; overdue: number; items: TodoItem[] }
+
 export interface Todo {
-  items: Array<{ key: string; label: string; button: string; href: string; count: number }>;
+  items: TodoItem[];
   prompts?: Prompt[];
+  /** 0320: how many lines need the Admin (app.todo_need; need.ts) */
+  need?: number;
+  teams?: TodoTeam[];
+  /** 0324: the month's crawler guard, while it is on */
+  crawler_guard?: { line_usd: number; until: string; projected_usd: number | null };
   staffed?: Record<'cs' | 'sales' | 'finance' | 'fleet', boolean>;
   pickups: Array<{ booking_number: string; at: string; vehicle: string; renter: string; ready: boolean }>;
   returns: Array<{ booking_number: string; at: string; vehicle: string; renter: string; late: boolean }>;

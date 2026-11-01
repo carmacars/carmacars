@@ -39,7 +39,8 @@ export const $ = (c: unknown) => (c === null || c === undefined ? '' : money(Num
 export const t = (iso: unknown) => (typeof iso === 'string' ? when(iso) : '');
 export const d = (iso: unknown) => (typeof iso === 'string' ? when(iso.length === 10 ? `${iso}T12:00:00Z` : iso, false) : '');
 export const label = (s: unknown) => (typeof s === 'string' ? s.replace(/_/g, ' ') : '');
-export { waitWords as ago } from '@/lib/wait-words';
+/** 0324: waits in one humane format everywhere ("6 days", "3 h", "12 min") */
+export { waitWords as ago } from '@/components/portal-ui/time';
 
 const TONE: Record<string, string> = {
   requested: 'ad-b--wait', offered: 'ad-b--amber', pending_payment: 'ad-b--amber', confirmed: 'ad-b--dark', on_rent: 'ad-b--red',

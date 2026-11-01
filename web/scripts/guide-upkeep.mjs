@@ -27,7 +27,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { portalFacts, screenLabels } from './portal-facts.mjs';
-import { closestLabels, missingLabels, navPathProblems, sectionAddresses } from '../src/features/guides/upkeep.ts';
+import { closestLabels, missingLabels, navPathProblems, rewriteTargets, sectionAddresses } from '../src/features/guides/upkeep.ts';
 
 const WEB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ROOT = path.resolve(WEB, '..');
@@ -41,6 +41,7 @@ const BASE = (arg('--base', process.env.APP_URL ?? 'http://localhost:3000') ?? '
 const RUN = arg('--run', process.env.GITHUB_RUN_ID ?? `local-${new Date().toISOString().slice(0, 10)}`);
 const REWRITE = process.argv.includes('--rewrite');
 const MAX = Number(arg('--max', '15'));
+const RETRY_ONLY_MAX = Number(arg('--retry-max', '1'));
 
 function token() {
   let key = process.env.LINK_SIGNING_KEY;
@@ -133,10 +134,14 @@ if (REWRITE && APPLY) {
     if (!changed && !missing.length && !paths.length && !s.retry && !pending) continue;
     const reason = [changed ? 'A screenshot in this section changed' : '', missing.length ? `It names buttons the portals no longer show (${missing.slice(0, 3).join(', ')})` : '',
       paths.length ? `Its menu paths do not match the menu (${paths.slice(0, 3).join('; ')})` : '', pending ? 'A screenshot in this section changed since its text was last checked' : '', s.retry ? 'The last run could not rewrite it' : ''].filter(Boolean).join('; ');
-    targets.push({ s, missing, reason });
+    targets.push({ s, missing, reason, retryOnly: !changed && !missing.length && !paths.length && !pending });
   }
+  // 0321 (the AI background share): a section whose only reason is that the last run could not rewrite it is tried again
+  // at most RETRY_ONLY_MAX per run, after the others (each failed rewrite costs up to three calls; trying every one
+  // again after every deploy used the whole background share)
+  const picked = rewriteTargets(targets, MAX, RETRY_ONLY_MAX);
   let paused = false;
-  for (const { s, missing, reason } of targets.slice(0, MAX)) {
+  for (const { s, missing, reason } of picked) {
     // Workers AI paused for the day (the usage guard, 0104): no more calls this run; the next run takes them
     if (paused) { report.kept.push({ portal: s.portal, slug: s.slug, result: 'paused', summary: 'Workers AI is paused for today: the next run takes it', problems: [] }); continue; }
     const screen = [...new Set([...screenLabels(facts, sectionAddresses(s.body_md)).filter((l) => !l.startsWith('~')), ...navOf(s.portal).flatMap((g) => [g.group, ...g.links])])];

@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { readContact, useContact, writeContact } from './contact';
 import { FOCUS_EVENT, type FocusAsk } from './focus';
 import { money } from '@/lib/format';
+import { poller } from '@/lib/poll/poll';
 import { photoUrl } from '@/lib/photo';
 import { HOME_BOUNDS, MAX_BOUNDS, NEW_MS, REFRESH_MS, SPOTLIGHT_MS, frameBounds, inBounds } from './config';
 import { MapEngine, type CarSpec, type EngineEvents, type Pad, type PinSpec, type Spot } from './engine';
@@ -95,7 +96,9 @@ export function LiveMap({ initial, tv, at, embedded = false }: { initial: MapVie
     // the first data came with the page; a later run (Show contact turned on or off) asks at once
     if (!first.current || !initial) void refresh();
     first.current = false;
-    const t = setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, REFRESH_MS);
+    // 0320: a wall screen nobody touches asks once a minute (lib/poll); someone using it, every REFRESH_MS
+    const due = poller(REFRESH_MS);
+    const t = setInterval(() => { if (due()) void refresh(); }, REFRESH_MS);
     const shown = () => { if (document.visibilityState === 'visible') void refresh(); };
     document.addEventListener('visibilitychange', shown);
     return () => { clearInterval(t); document.removeEventListener('visibilitychange', shown); };

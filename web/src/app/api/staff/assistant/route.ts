@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     }
     const text = typeof b.text === 'string' ? b.text.slice(0, 1000) : '';
     const history = Array.isArray(b.history) ? b.history.filter((t) => t && (t.role === 'user' || t.role === 'assistant') && typeof t.text === 'string').slice(-6) : [];
-    const out = await runAssistant({ userId: user.id, aal, portal, fn, name: roles.name, text, history });
+    const out = await runAssistant({ userId: user.id, aal, portal, fn, name: roles.greeting ?? roles.name, text, history });
     return NextResponse.json({ out }, { headers: H });
   } catch (e) {
     return NextResponse.json({ out: [{ type: 'text', text: `The assistant could not do that: ${msg(e)}` }] }, { headers: H });

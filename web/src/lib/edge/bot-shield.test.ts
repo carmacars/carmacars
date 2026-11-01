@@ -47,3 +47,28 @@ test('the answers: 403 with noindex, cached; 301 cached a day', () => {
   assert.equal(m.status, 301);
   assert.equal(m.headers.get('location'), 'https://carmacars.ca/cars');
 });
+
+// 0324: every crawler reaches every page; while the month's crawler guard is on, the crawlers that are not search or
+// answer crawlers keep to the crawl scope; search and answer crawlers never do (only the Core search scope limits them)
+import { isSearchCrawler, keptToScope } from './bot-shield.ts';
+import { FULL_SCOPE_CRAWLERS } from '../../features/seo/crawlers.ts';
+test('the crawler guard: training and unnamed crawlers on deep pages only while it is on; search crawlers never', async () => {
+  const deep = '/cars/bmw/x5/2021/xdrive40i/black';
+  const GPT = 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.2; +https://openai.com/gptbot)';
+  const off = async () => false, on = async () => true;
+  assert.equal(await keptToScope(GPT, deep, off, off), false, 'guard off: every page');
+  assert.equal(await keptToScope('Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)', deep, off, off), false);
+  assert.equal(await keptToScope(GPT, deep, off, on), true, 'guard on: the crawl scope');
+  assert.equal(await keptToScope('SomeNewBot/1.0', deep, off, on), true);
+  assert.equal(await keptToScope(GOOGLE, deep, off, on), false, 'search crawlers are never limited by the guard');
+  assert.equal(await keptToScope('Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)', deep, off, on), false);
+  assert.equal(await keptToScope(GOOGLE, deep, on, on), true, 'Core: search crawlers too');
+  assert.equal(await keptToScope(GPT, '/cars/bmw/x5', off, on), false, 'inside the scope: open to all');
+  assert.equal(await keptToScope(CHROME, deep, on, on), false, 'people: every page');
+  let reads = 0;
+  await keptToScope(GOOGLE, deep, off, async () => { reads++; return true; });
+  assert.equal(reads, 0, 'the guard flag is not read for a search crawler');
+  for (const b of FULL_SCOPE_CRAWLERS) assert.ok(isSearchCrawler(`Mozilla/5.0 (compatible; ${b}/1.0)`), b);
+  assert.equal(isSearchCrawler('Mozilla/5.0 (compatible; Applebot-Extended/1.0)'), false);
+});
+

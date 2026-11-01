@@ -7,7 +7,7 @@
 // scripts/serve.mjs locally. No imports: it runs in the Worker entry and in Node.
 
 export const FLEET_SIG_KEY = 'carmacars/fleet-sig';
-/** R23: 1 while the month's Worker CPU time is at 70% of the included allowance or more (custom-worker.ts, bot-shield.ts cpuGuard). */
+/** 0324: 1 while the month's crawler guard is on (custom-worker.ts, bot-shield.ts keptToScope). */
 export const CPU_GUARD_KEY = 'carmacars/cpu-guard';
 /** R23: 1 while the search scope is Core (program_settings.search_scope; custom-worker.ts, bot-shield.ts shield). */
 export const SEARCH_SCOPE_KEY = 'carmacars/search-core';

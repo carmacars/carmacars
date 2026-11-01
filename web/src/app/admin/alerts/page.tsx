@@ -19,7 +19,7 @@ export default async function AdminAlerts() {
         {card ?? (
           <section className="pt-card stack" data-testid="push-off-setup">
             <h2 className="d4">Phone alerts are not set up yet</h2>
-            <p className="small">They need the two VAPID keys in the vault: <code>deploy_vapid_public_key</code> and <code>deploy_vapid_private_key</code>. The next deploy then turns the alerts cards on in every portal.</p>
+            <p className="small">The next deploy makes their two keys by itself and turns the alerts cards on in every portal. Nothing to do: if this stays after a deploy, the deploy&apos;s run says why.</p>
           </section>
         )}
         <p className="small muted">Emails and texts are unchanged. How customers are reached: <Link prefetch={false} className="link" href="/admin/settings/text-alerts">Settings &gt; Text alerts</Link>.</p>

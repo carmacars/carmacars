@@ -39,13 +39,12 @@ one more sender and nothing else.
 - **Pruning:** a push service answering 404 or 410 deletes the subscription; 429 and 5xx retry in 5 minutes (5 tries);
   other refusals are counted and the third in a row (a key change) deletes it. Alerts are kept 30 days. At most 10
   devices a person (the oldest goes). A browser that replaced its push address is re-sent the next time the card opens.
-- **Keys (owner, once):** the VAPID key pair lives only in the Supabase vault, as `deploy_vapid_public_key` and
-  `deploy_vapid_private_key`; the deploy passes them to the Worker as `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`. Until
-  both are there, alerts are off: no card, no invitation, no job call, and My phone alerts says what is missing. Make
-  them on any computer with Node 18 or later (prints both values; nothing is saved):
-  `node -e "const k=require('crypto').generateKeyPairSync('ec',{namedCurve:'prime256v1'}).privateKey.export({format:'jwk'});const b=s=>Buffer.from(s,'base64url');console.log('deploy_vapid_public_key='+Buffer.concat([Buffer.from([4]),b(k.x),b(k.y)]).toString('base64url'));console.log('deploy_vapid_private_key='+k.d)"`
-  then add each in Supabase, Project settings, Vault (or `select vault.create_secret('<value>', '<name>');`) and deploy.
-  Changing the keys later ends every subscription (people turn alerts on again).
+- **Keys (made by the deploy, 0321):** the VAPID key pair lives only in the vault of the live database, as
+  `deploy_vapid_public_key` and `deploy_vapid_private_key`; the deploy passes them to the Worker as `VAPID_PUBLIC_KEY` and
+  `VAPID_PRIVATE_KEY`. Since 0321 (the owner's approval of November 1, 2026) the deploy's "Secrets" step makes the pair
+  itself when the vault has none (scripts/deploy/vapid.sh, a P-256 pair made on the runner, masked, never printed),
+  stores it there and says "Phone alerts: keys created and stored". Every later deploy reads the stored pair and never
+  makes another: changing the keys would end every subscription (people turn alerts on again). Nothing for the owner to do.
 - **Off switch:** Settings > Text alerts, "Phone alerts" (`program_settings.push_enabled`, on).
 - **Privacy policy:** one paragraph after the text alerts paragraph: the push address and two keys of a device, used
   only for alerts, encrypted, deleted when alerts are turned off or the device stops accepting them.

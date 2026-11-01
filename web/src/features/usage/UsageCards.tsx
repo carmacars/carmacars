@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
 import { t } from '@/features/admin/ui';
-import { PAUSE, paidCost, share, shortLabel, usd, usedUpTitle, type ServiceState } from './model';
+import { CF_EMAIL_STEPS, CF_EMAIL_STEPS_HREF, PAUSE, bannerLine, bannerTone, cfEmailSentence, noteLine, paidCost, share, shortLabel, usd, usedUpTitle, type BannerRow, type CfEmail, type ServiceState } from './model';
 import { UsageAllow } from './UsageAllow';
 
 // The usage guard on Admin > To do (migration 0080): one quiet card at 80% of an included allowance, one card when it is
@@ -61,22 +61,49 @@ function UsageCard({ c }: { c: CardRow }) {
   );
 }
 
-// R23 (0221): the banner at the top of Admin > Today for every figure at its warning level or past it this period (red
-// at 100%, amber before), not dismissible: it goes when the figure resets or the allowance is raised. The Admins are
-// also texted (once per figure and level a month).
-type Banner = { service: string; label: string; share_bps: number; level: 70 | 80 | 100; used_text: string; included_text: string; overage_usd: number; resets_at: string | null };
+// R23 (0221): the banner at the top of Admin > Today for every figure at its warning level or past it this period. 0320:
+// in money. Red only for a hard stop or held emails at 100%, or a service billed by use whose projected cost this month
+// reaches the Program setting (US$5); a quiet note when it is only cents; the emails' line says whether Cloudflare sends.
 export async function UsageBanner({ userId }: { userId: string }) {
-  const rows = await door<Banner[]>(userId, 'ops_read', 'usage_banner').catch(() => null);
-  if (!rows?.length) return null;
-  const over = rows.filter((r) => r.level === 100);
-  const near = rows.filter((r) => r.level < 100);
-  const line = (r: Banner) => `${shortLabel(r.label)} at ${share(r.share_bps)} (${r.used_text} of ${r.included_text})${r.overage_usd > 0 ? `, about ${usd(r.overage_usd)} above the allowance so far` : ''}`;
+  const rows = await door<BannerRow[]>(userId, 'ops_read', 'usage_banner').catch(() => null);
+  return rows?.length ? <UsageBannerView rows={rows} /> : null;
+}
+
+/** The banner itself, from the rows (pure: the screenshot harness renders it too). */
+export function UsageBannerView({ rows }: { rows: BannerRow[] }) {
+  const red = rows.filter((r) => bannerTone(r) === 'red');
+  const amber = rows.filter((r) => bannerTone(r) === 'amber');
+  const note = rows.filter((r) => bannerTone(r) === 'note');
+  const cf = rows.find((r) => r.cf)?.cf;
+  const cfLine = cfEmailSentence(cf);
+  const emailRow = [...red, ...amber].some((r) => r.service === 'resend_day' || r.service === 'resend_month');
+  const settings = <Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link>;
+  const setup = cfLine && emailRow ? <span className="ug-banner__cf" data-testid="usage-banner-cf">{cfLine} <Link prefetch={false} className="link" href={CF_EMAIL_STEPS_HREF}>The 4 setup steps</Link></span> : null;
   return (
     <div className="stack" data-testid="usage-banner">
-      {over.length > 0 && <p className="alert alert--error" role="alert" data-testid="usage-banner-over"><span className="alert__title">Over the included allowance</span>
-        <span>{over.map(line).join('; ')}. <Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link></span></p>}
-      {near.length > 0 && <p className="alert alert--warn" role="status" data-testid="usage-banner-near"><span className="alert__title">Close to the included allowance</span>
-        <span>{near.map(line).join('; ')}. <Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link></span></p>}
+      {red.length > 0 && <p className="alert alert--error" role="alert" data-testid="usage-banner-over"><span className="alert__title">Over the included allowance</span>
+        <span>{red.map(bannerLine).join('; ')}. {settings}</span>{red.some((r) => r.service.startsWith('resend')) && setup}</p>}
+      {amber.length > 0 && <p className="alert alert--warn" role="status" data-testid="usage-banner-near"><span className="alert__title">Close to the included allowance</span>
+        <span>{amber.map(bannerLine).join('; ')}. {settings}</span>{!red.some((r) => r.service.startsWith('resend')) && setup}</p>}
+      {note.length > 0 && <p className="small muted ug-note" data-testid="usage-banner-note">Small costs above the allowance: {note.map(noteLine).join('; ')}. Under {usd(note[0]!.red_usd ?? 5)} a month, so no alert. {settings}</p>}
     </div>
+  );
+}
+
+/** Settings > Usage: whether Cloudflare Email Service sends the outbox, and the exact steps when it does not (0320). */
+export async function EmailSetup({ userId }: { userId: string }) {
+  const c = await door<CfEmail>(userId, 'ops_read', 'usage_email_setup').catch(() => null);
+  if (!c) return null;
+  const line = cfEmailSentence(c);
+  return (
+    <section id="email-setup" className={`pt-card ad-card${line ? ' ad-card--warn' : ''}`} aria-labelledby="email-setup-h" data-testid="usage-email-setup" data-state={c.state}>
+      <div className="pt-card__head"><h2 className="d4" id="email-setup-h">{line ? 'Emails: Cloudflare Email Service is not sending' : 'Emails: Cloudflare Email Service sends them'}</h2></div>
+      {line ? (
+        <>
+          <p className="small">{line} Until then a busy day holds emails once Resend&apos;s 100 are used.</p>
+          <ol className="small ug-steps">{CF_EMAIL_STEPS.map((s) => <li key={s}>{s}</li>)}</ol>
+        </>
+      ) : <p className="small">{c.sent_month.toLocaleString('en-US')} of {c.included.toLocaleString('en-US')} included this month. Resend takes over only if Cloudflare refuses or the month&apos;s emails are used.</p>}
+    </section>
   );
 }

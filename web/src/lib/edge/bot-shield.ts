@@ -28,8 +28,24 @@ const QUERY_VIEW = /^\/(cars(\/.*)?|(car-rental|guides|rent|buy|detailing|body-s
 
 export type Shield = { kind: 'pass' } | { kind: 'refuse'; reason: 'blocked' | 'portal' | 'scope' } | { kind: 'redirect'; location: string };
 
+/** 0320: the search and answer crawlers that bring visitors (features/seo/crawlers.ts FULL_SCOPE_CRAWLERS): they read every
+ *  public page the search scope allows. Any other crawler reads the crawl scope only (crawl-scope.ts), whatever the scope. */
+export const SEARCH_CRAWLER = /Googlebot|Google-InspectionTool|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-CloudVertexBot|Gemini-Deep-Research|bingbot|BingPreview|msnbot|DuckDuckBot|DuckAssistBot|Applebot(?!-Extended)|OAI-SearchBot|ChatGPT-User|Claude-SearchBot|Claude-User|PerplexityBot|Perplexity-User|Meta-ExternalFetcher|Amzn-SearchBot|Amzn-User|MistralAI-User/i;
+export const isSearchCrawler = (ua: string | null | undefined): boolean => !!ua && SEARCH_CRAWLER.test(ua);
+
 /** Whether a user agent says it is a crawler (custom-worker.ts reads the search scope flag only for one). */
 export const isCrawler = (ua: string | null | undefined): boolean => !!ua && CRAWLER.test(ua);
+
+/** Whether this crawler is kept to the crawl scope on a deep page: any crawler when the search scope is Core (`coreFlag`);
+ *  0324 (the owner's decision: every crawler reaches every page, about US$20 to 25 a month): a crawler that is not a
+ *  search or answer crawler only while the month's crawler guard is on (`guardFlag`, Program settings crawler_guard_usd,
+ *  US$40 of projected CPU above the allowance). Search and answer crawlers are never limited by the guard. Each flag is
+ *  read from the tag store only when it matters. */
+export async function keptToScope(ua: string | null | undefined, path: string, coreFlag: () => Promise<boolean>, guardFlag: () => Promise<boolean> = async () => false): Promise<boolean> {
+  if (!isCrawler(ua) || !deepOutOfScope(path)) return false;
+  if (!isSearchCrawler(ua) && (await guardFlag())) return true;
+  return coreFlag();
+}
 
 export function shield(method: string, url: string, ua: string | null | undefined, core = false): Shield {
   if (!ua || (method !== 'GET' && method !== 'HEAD')) return { kind: 'pass' };
@@ -55,16 +71,5 @@ export function shieldResponse(s: Exclude<Shield, { kind: 'pass' }>, headers: Re
     'content-type': 'text/plain; charset=utf-8', 'x-robots-tag': 'noindex', 'cache-control': `public, max-age=${s.reason === 'portal' ? 3600 : 86400}`, ...headers } });
 }
 
-/** R23: the hard guard while the month's Worker CPU time is at 70% of the included allowance or more (the owner's choice;
- *  the cron tick keeps the flag, custom-worker.ts), in either search scope: a crawler asking for a catalog, place, search
- *  term, for-sale, detailing or body shop page gets 503 with Retry-After a day (search engines come back later and keep
- *  what they indexed), never a render. People, the fleet's own car pages (/cars/<slug>), the home page and everything
- *  else are untouched. */
-const CATALOG = /^\/(cars\/[^/]+\/.+|car-rental\/.+|makes(\/.*)?|places(\/.*)?|guides\/.+|t\/.+|buy(\/.*)?|detailing\/.+|body-shop\/.+)$/;
-export function cpuGuard(method: string, path: string, ua: string | null | undefined, over: boolean): boolean {
-  return over && !!ua && (method === 'GET' || method === 'HEAD') && CRAWLER.test(ua) && CATALOG.test(path);
-}
-export function cpuGuardResponse(headers: Record<string, string>): Response {
-  return new Response('Busy for crawlers, try again tomorrow.', { status: 503, headers: {
-    'content-type': 'text/plain; charset=utf-8', 'retry-after': '86400', 'cache-control': 'no-store', ...headers } });
-}
+// 0324: R23's 503 for every crawler on the catalog from 70% of the included CPU time is retired (the owner's decision: search
+// and answer crawlers are never limited); the month's crawler guard (keptToScope) replaces it.

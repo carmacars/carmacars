@@ -15,7 +15,8 @@ export { boardTiles, type BoardTile, type Dash } from './board';
 const greeting = (name: string | null) => {
   const h = Number(new Intl.DateTimeFormat('en-CA', { hour: 'numeric', hourCycle: 'h23', timeZone: 'America/Toronto' }).format(new Date()));
   const part = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
-  return name ? `${part}, ${name.split(' ')[0]}` : part;
+  // 0324: the name as given (app/admin/page.tsx greetName: the greeting name whole, else the first name)
+  return name ? `${part}, ${name}` : part;
 };
 const dayWords = () => new Intl.DateTimeFormat('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Toronto' }).format(new Date());
 

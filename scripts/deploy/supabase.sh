@@ -95,17 +95,44 @@ secrets() {
   else
     notice "Google reviews sync: no OAuth client (add deploy_google_reviews_client_id and deploy_google_reviews_client_secret to the vault)"
   fi
-  # optional: phone and browser alerts (0300), the VAPID key pair; without it the alerts cards stay hidden. The owner makes
-  # the keys once (docs/changes/2026-11-05-push-alerts.md) and adds them to the vault; they are never in the repository.
-  local vpub vpriv
+  # phone and browser alerts (0300), the VAPID key pair, in the vault of the live database. 0321 (the owner's approval of
+  # November 1, 2026): when the vault has no pair, the deploy makes one here (scripts/deploy/vapid.sh) and stores it; a
+  # later deploy reads the stored pair and never makes another (a new pair would end every subscription). Never printed.
+  local vpub vpriv vpair
   vpub=$(jq -r '[.[] | select(.name == "deploy_vapid_public_key")][0].v // empty' <<<"$rows")
   vpriv=$(jq -r '[.[] | select(.name == "deploy_vapid_private_key")][0].v // empty' <<<"$rows")
+  # shellcheck source=vapid.sh
+  . "$HERE/vapid.sh"
+  if vapid_need "$vpub" "$vpriv"; then
+    vpair=$(vapid_make) || vpair=""
+    vpub="${vpair%% *}"; vpriv="${vpair##* }"
+    if [ -n "$vpair" ] && [ -n "$vpub" ] && [ -n "$vpriv" ] && [ "$vpub" != "$vpriv" ]; then
+      mask "$vpriv"; mask "$vpub"
+      vault_set deploy_vapid_public_key "$vpub" "Phone alerts: the VAPID public key (made by the deploy, 0321)"
+      vault_set deploy_vapid_private_key "$vpriv" "Phone alerts: the VAPID private key (made by the deploy, 0321)"
+      notice "Phone alerts: keys created and stored"
+    else
+      vpub=""; vpriv=""; warn "Phone alerts: the key pair could not be made on the runner; alerts stay off until the next deploy"
+    fi
+  fi
   if [ -n "$vpub" ] && [ -n "$vpriv" ]; then
     mask "$vpriv"; export_env VAPID_PUBLIC_KEY "$vpub"; export_env VAPID_PRIVATE_KEY "$vpriv"
-    notice "Phone alerts: on (deploy_vapid_public_key and deploy_vapid_private_key are in the vault)"
-  else
-    notice "Phone alerts: off and hidden (add deploy_vapid_public_key and deploy_vapid_private_key to the vault)"
+    notice "Phone alerts: on (the stored VAPID keys)"
   fi
+  # optional: Add to Apple Wallet (R24, docs/changes/2026-11-02-wallet-calendar.md), the five values of CarmaCars' own Pass
+  # Type ID certificate, from the same vault; without all five the button stays hidden and the route answers 404 (0320:
+  # the deploy never passed them to the Worker before)
+  local w wv wn=0 wpair
+  for wpair in pass_cert:WALLET_PASS_CERT pass_key:WALLET_PASS_KEY wwdr_cert:WALLET_WWDR_CERT pass_type_id:WALLET_PASS_TYPE_ID team_id:WALLET_TEAM_ID; do
+    w="deploy_wallet_${wpair%%:*}"
+    wv=$(jq -r --arg n "$w" '[.[] | select(.name == $n)][0].v // empty' <<<"$rows")
+    [ -n "$wv" ] || continue
+    # a certificate or key has several lines: each is masked
+    while IFS= read -r l; do [ ${#l} -ge 8 ] && mask "$l"; done <<<"$wv"
+    export_env "${wpair##*:}" "$wv"; wn=$((wn + 1))
+  done
+  if [ "$wn" = 5 ]; then notice "Apple Wallet: on (the five deploy_wallet_* values are in the vault)"
+  else notice "Apple Wallet: off and hidden ($wn of the five deploy_wallet_* values are in the vault)"; fi
   # session pooler (IPv4) for the seed script; on the server, Postgres through this job's SSH tunnel
   local dburl
   dburl=$(sb_db_url)

@@ -47,6 +47,12 @@ export async function coreScope(): Promise<boolean> {
   try { return (await memo('search_scope', () => rpc('search_scope', {}, SR))) === 'core'; } catch { return false; }
 }
 
+/** 0324: the month's crawler guard (Program settings crawler_guard_usd): crawlers that are not search or answer crawlers
+ *  keep to the crawl scope while it is on. */
+export async function crawlerGuard(): Promise<boolean> {
+  try { return (await memo('crawler_guard', () => rpc('crawler_guard', {}, SR))) === true; } catch { return false; }
+}
+
 /** R23: the landing pages' addresses (robots.txt allows them by name under /car-rental/, src/lib/edge/crawl-scope.ts). */
 export async function landingPaths(): Promise<string[]> {
   return (await rows()).filter((r) => r.kind === 'landing').map((r) => r.path);
