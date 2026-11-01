@@ -69,7 +69,8 @@ export function Registration({ d }: { d: RegistrationData }) {
         <div className="field ad-field"><label className="label" htmlFor="reg-doc-kind">Document</label>
           <select className="input" id="reg-doc-kind" value={kind} onChange={(e) => setKind(e.target.value)} data-testid="reg-doc-kind">{KINDS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
         <div className="field ad-field"><label className="label" htmlFor="reg-doc-file">Photo or PDF</label>
-          <input className="input" id="reg-doc-file" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} data-testid="reg-doc-file" /></div>
+          <input className="input" id="reg-doc-file" type="file" accept="image/jpeg,image/png,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} data-testid="reg-doc-file" />
+          {file?.name === 'ownership-permit.jpg' && kind === 'ownership_permit' && <p className="hint" data-testid="reg-permit-ready">The permit photo you read is ready: press Upload.</p>}</div>
         {kind === 'safety_certificate' && <>
           <div className="field ad-field"><label className="label" htmlFor="reg-ssc-number">Certificate number</label>
             <input className="input" id="reg-ssc-number" value={ssc.number} onChange={(e) => setSsc((x) => ({ ...x, number: e.target.value }))} data-testid="reg-ssc-number" /></div>

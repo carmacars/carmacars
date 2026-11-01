@@ -12,12 +12,19 @@ select test.mk_renter('pw_r');
 select test.mk_renter('pw_x');
 
 -- ================================================================ 1. the permit read: who, the settings, the count
+-- the gate is asked on a day of its own (no AI used that day by other suites), with the vision model on
+create function test.pw_now() returns timestamptz language sql as $$ select timestamp '2031-06-17 12:00' at time zone 'America/Toronto' $$;
+-- (program_settings may hold rows for later dates: every row is set, then put back)
+create temp table pw_vis as select id, ai_vision_enabled v, ai_vision_permit_enabled pv from program_settings;
+update program_settings set ai_vision_enabled = true, ai_vision_permit_enabled = true where id is not null;
+create temp table pw_us as select service, enabled, included from usage_services where service = 'workers_ai';
+update usage_services set enabled = true, included = greatest(coalesce(included, 0), 10000) where service = 'workers_ai';
 select test.ok('on by default, ten reads a day for an owner', (select ai_vision_permit_enabled and ai_vision_permit_daily_per_person = 10 from app.settings()));
-select test.eq('an Admin may read a permit, as staff', (select (g ->> 'allowed') || '/' || (g ->> 'staff') from (select app.permit_read_gate(test.id('pw_admin')) g) x), 'true/true');
-select test.eq('fleet may read a permit', app.permit_read_gate(test.id('pw_fleet')) ->> 'allowed', 'true');
-select test.eq('an owner may read a permit, not as staff', (select (g ->> 'allowed') || '/' || (g ->> 'staff') || '/' || (g ->> 'owner') from (select app.permit_read_gate(test.id('pw_o')) g) x), 'true/false/true');
+select test.eq('an Admin may read a permit, as staff', (select (g ->> 'allowed') || '/' || (g ->> 'staff') from (select app.permit_read_gate(test.id('pw_admin'), test.pw_now()) g) x), 'true/true');
+select test.eq('fleet may read a permit', (select (g ->> 'allowed') || coalesce(' ' || (g ->> 'reason'), '') from (select app.permit_read_gate(test.id('pw_fleet'), test.pw_now()) g) x), 'true');
+select test.eq('an owner may read a permit, not as staff', (select (g ->> 'allowed') || '/' || (g ->> 'staff') || '/' || (g ->> 'owner') from (select app.permit_read_gate(test.id('pw_o'), test.pw_now()) g) x), 'true/false/true');
 select test.throws('nobody signed in: refused', $$select app.permit_read_gate(null)$$, '%Sign in%');
-select test.ok('the gate names the model', (app.permit_read_gate(test.id('pw_admin')) ->> 'model') is not null);
+select test.ok('the gate names the model', (app.permit_read_gate(test.id('pw_admin'), test.pw_now()) ->> 'model') is not null);
 
 select app.permit_read_record(test.id('pw_o'), jsonb_build_object('model', 'fake-vision-v1', 'ok', true, 'neurons', 120, 'duration_ms', 900, 'fields_read', 9));
 select test.ok('a read is recorded: the neurons in provider_calls', exists (select 1 from provider_calls c where c.purpose = 'permit_read' and c.units = 120 and c.unit = 'neurons'));
@@ -25,14 +32,15 @@ select test.eq('a read is recorded: who and how many fields, never the values', 
 select test.ok('permit_reads keeps no plate, VIN or permit number', not exists (select 1 from information_schema.columns where table_name = 'permit_reads' and column_name in ('plate', 'vin', 'permit_number', 'value', 'data')));
 select test.eq('the readers'' share of the allowance, with its own label', app.ai_tier('permit_read') || '/' || app.ai_feature_label('permit_read'), 'live/Ownership permit reader');
 
-insert into permit_reads (user_id, staff, ok, fields_read) select test.id('pw_o'), false, true, 9 from generate_series(1, 9);
-select test.eq('an owner after ten reads today: refused, in words', (select (g ->> 'allowed') || '/' || (g ->> 'reason' like '%for today%')::text from (select app.permit_read_gate(test.id('pw_o')) g) x), 'false/true');
-insert into permit_reads (user_id, staff, ok, fields_read) select test.id('pw_fleet'), true, true, 9 from generate_series(1, 12);
-select test.eq('staff are not counted against the owner''s number', app.permit_read_gate(test.id('pw_fleet')) ->> 'allowed', 'true');
-select test.eq('yesterday''s reads do not count', (select app.permit_read_gate(test.id('pw_o'), now() + interval '1 day') ->> 'allowed'), 'true');
-update program_settings set ai_vision_permit_enabled = false where id = (app.settings()).id;
-select test.eq('turned off in Program settings: refused, type the details', (select (g ->> 'allowed') || '/' || (g ->> 'reason' like '%off in Program settings%')::text from (select app.permit_read_gate(test.id('pw_admin')) g) x), 'false/true');
-update program_settings set ai_vision_permit_enabled = true where id = (app.settings()).id;
+insert into permit_reads (user_id, staff, ok, fields_read, created_at) select test.id('pw_o'), false, true, 9, test.pw_now() - interval '1 hour' from generate_series(1, 10);
+select test.eq('an owner after ten reads today: refused, in words', (select (g ->> 'allowed') || '/' || (g ->> 'reason' like '%for today%')::text from (select app.permit_read_gate(test.id('pw_o'), test.pw_now()) g) x), 'false/true');
+insert into permit_reads (user_id, staff, ok, fields_read, created_at) select test.id('pw_fleet'), true, true, 9, test.pw_now() - interval '1 hour' from generate_series(1, 12);
+select test.eq('staff are not counted against the owner''s number', app.permit_read_gate(test.id('pw_fleet'), test.pw_now()) ->> 'allowed', 'true');
+select test.eq('yesterday''s reads do not count', (select app.permit_read_gate(test.id('pw_o'), test.pw_now() + interval '1 day') ->> 'allowed'), 'true');
+update program_settings set ai_vision_permit_enabled = false where id is not null;
+select test.eq('turned off in Program settings: refused, type the details', (select (g ->> 'allowed') || '/' || (g ->> 'reason' like '%off in Program settings%')::text from (select app.permit_read_gate(test.id('pw_admin'), test.pw_now()) g) x), 'false/true');
+update program_settings p set ai_vision_permit_enabled = x.pv, ai_vision_enabled = x.v from pw_vis x where p.id = x.id;
+update usage_services u set enabled = x.enabled, included = x.included from pw_us x where u.service = x.service;
 select test.ok('the gate and the record are server only', not has_function_privilege('authenticated', 'public.server_permit_read_gate(uuid)', 'execute')
   and not has_function_privilege('anon', 'public.server_permit_read_record(uuid, jsonb)', 'execute') and has_function_privilege('service_role', 'public.server_permit_read_gate(uuid)', 'execute'));
 
