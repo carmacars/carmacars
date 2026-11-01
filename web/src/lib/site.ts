@@ -1,4 +1,5 @@
 import 'server-only';
+import { hasAddress } from './car-address';
 import { deliveryArea, deliveryFrom } from './delivery';
 export { deliveryArea, deliveryFrom } from './delivery';
 import { cache } from 'react';
@@ -14,7 +15,9 @@ import { hours, list, money, ordinal, pct, plural } from '@/lib/format';
 export const getSettings = cache(async () => (await rpc('site_settings_public', {})) as unknown as SiteSettings);
 export const getFacts = cache(async () => (await rpc('site_facts', {})) as unknown as SiteFacts);
 export const getBlocks = cache(async () => (await rpc('site_content', {})) as unknown as ContentBlock[]);
-export const getFleet = cache(async () => (await rpc('fleet', { p_filters: {} })) as unknown as CarRow[]);
+// a car without an address is left out (0310: the database gives every published car one; this keeps the site's links
+// whole even if one slips through): the home page, Cars, Delivery, Requirements and the class pages all link /cars/<slug>
+export const getFleet = cache(async () => (((await rpc('fleet', { p_filters: {} })) ?? []) as unknown as CarRow[]).filter(hasAddress));
 export const getClasses = cache(async () => (await rpc('vehicle_classes', {})) as unknown as { code: string; label: string }[]);
 
 export async function block(key: string): Promise<ContentBlock | undefined> {
