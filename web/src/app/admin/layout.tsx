@@ -12,6 +12,7 @@ import { rpc } from '@/lib/db/repo';
 import { door } from '@/server/door';
 import { PortalSwitch } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { PushInvite } from '@/features/push/PushAlerts';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 
 // Ctrl+K reaches every page of the menu and every settings page (the menu lists the common settings only)
@@ -46,7 +47,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <AdminNav counts={counts} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{gate?.admin && user ? <GuideBanner portal="admin" userId={user.id} /> : null}{children}</div>
+        <div className="ad__main">{gate?.admin && user ? <GuideBanner portal="admin" userId={user.id} /> : null}{gate?.admin && user ? <PushInvite portal="admin" home="/admin" /> : null}{children}</div>
       </div>
     </div>
   );

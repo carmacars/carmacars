@@ -95,6 +95,17 @@ secrets() {
   else
     notice "Google reviews sync: no OAuth client (add deploy_google_reviews_client_id and deploy_google_reviews_client_secret to the vault)"
   fi
+  # optional: phone and browser alerts (0300), the VAPID key pair; without it the alerts cards stay hidden. The owner makes
+  # the keys once (docs/changes/2026-11-05-push-alerts.md) and adds them to the vault; they are never in the repository.
+  local vpub vpriv
+  vpub=$(jq -r '[.[] | select(.name == "deploy_vapid_public_key")][0].v // empty' <<<"$rows")
+  vpriv=$(jq -r '[.[] | select(.name == "deploy_vapid_private_key")][0].v // empty' <<<"$rows")
+  if [ -n "$vpub" ] && [ -n "$vpriv" ]; then
+    mask "$vpriv"; export_env VAPID_PUBLIC_KEY "$vpub"; export_env VAPID_PRIVATE_KEY "$vpriv"
+    notice "Phone alerts: on (deploy_vapid_public_key and deploy_vapid_private_key are in the vault)"
+  else
+    notice "Phone alerts: off and hidden (add deploy_vapid_public_key and deploy_vapid_private_key to the vault)"
+  fi
   # session pooler (IPv4) for the seed script; on the server, Postgres through this job's SSH tunnel
   local dburl
   dburl=$(sb_db_url)

@@ -6,6 +6,7 @@ import { currentUser } from '@/server/portal/data';
 import { viewAs } from '@/server/view-as';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { PushInvite } from '@/features/push/PushAlerts';
 
 // The renter portal shell (02-booking-and-renter.md section 7): phone-first tabs, then the page.
 // Each page checks the session itself (a page without one redirects to sign in).
@@ -26,6 +27,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
         <PortalSwitch current="account" />
         <PortalNav unread={unread || 0} />
         <GuideBanner portal="renter" userId={user.id} />
+        <PushInvite portal="renter" home="/account" />
       </div>
       <div className="wrap pt__body">{children}</div>
     </div>

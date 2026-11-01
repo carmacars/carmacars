@@ -317,7 +317,7 @@ export default async function Section({ params, searchParams }: { params: Promis
   }
   case 'text-alerts': {
     // text alerts (0096): the defaults and quiet hours, and the text of each notification
-    const keys = ['sms_alerts_enabled', 'sms_default_with_phone', 'sms_default_phone_only', 'sms_quiet_hours', 'sms_quiet_from_hour', 'sms_quiet_until_hour', 'sms_stop_line', 'sms_generic_text', 'signin_phone_us_allowed'];
+    const keys = ['sms_alerts_enabled', 'push_enabled', 'sms_default_with_phone', 'sms_default_phone_only', 'sms_quiet_hours', 'sms_quiet_from_hour', 'sms_quiet_until_hour', 'sms_stop_line', 'sms_generic_text', 'signin_phone_us_allowed'];
     const ch: Array<[string, string]> = [['both', 'Both'], ['text', 'Text'], ['email', 'Email']];
     return (<>{head}<TextAlertsSettings data={await door<SmsSettings>(user.id, 'admin_read', 'sms_settings')}
       form={<SaveForm table="program_settings" rowKey="current" testId="program-sms" fields={fieldsFrom(s.program, keys, { sms_default_with_phone: ch, sms_default_phone_only: ch.slice(0, 2) })} />} /></>);

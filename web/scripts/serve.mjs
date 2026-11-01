@@ -22,7 +22,7 @@ const embeddable = (p) => /^\/partner-widget\/[0-9a-f-]{36}$/.test(p);
 const csp = (nonce, framed = false) => [
   "default-src 'self'", `script-src 'self' 'nonce-${nonce}' https://challenges.cloudflare.com https://js.stripe.com`, "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:", "font-src 'self'", "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.r2.cloudflarestorage.com https://challenges.cloudflare.com",
-  'frame-src https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com', framed ? 'frame-ancestors https:' : "frame-ancestors 'none'", "form-action 'self'", "base-uri 'none'", "object-src 'none'"
+  'frame-src https://challenges.cloudflare.com https://js.stripe.com https://hooks.stripe.com', framed ? 'frame-ancestors https:' : "frame-ancestors 'none'", "worker-src 'self'", "manifest-src 'self'", "form-action 'self'", "base-uri 'none'", "object-src 'none'"
 ].join('; ');
 const security = {
   'x-content-type-options': 'nosniff', 'x-frame-options': 'DENY', 'referrer-policy': 'strict-origin-when-cross-origin',

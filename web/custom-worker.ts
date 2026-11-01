@@ -11,7 +11,7 @@ import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, emailLinkCookie, ipKey, isBeat, isBot, within } from './src/lib/track/shared';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, STALE_HEADER, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
-import { jobsToRun } from './src/lib/edge/cron-gate';
+import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
 import { cpuGuard, cpuGuardResponse, isCrawler, shield, shieldResponse } from './src/lib/edge/bot-shield';
 import { deepOutOfScope } from './src/lib/edge/crawl-scope';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
@@ -216,6 +216,8 @@ const worker = {
     if (due.seo) run('/api/jobs/seo');
     // the phone line (migration 0085): booking texts that are due and the AI one-liners of calls
     if (due.phone) run('/api/jobs/phone');
+    // phone and browser alerts (migration 0300): only with the VAPID keys, and only when an alert is due
+    ctx.waitUntil(pushWaiting(env).then((w) => { if (w) run('/api/jobs/push'); }).catch(() => undefined));
     // the Google reviews sync of the review request program (migration 0138), every 6 hours while connected
     if (due.reviews) run('/api/jobs/reviews');
     // the ads job (migration 0167): posted ads checked against the rates, the week's social drafts, Meta publishing when on

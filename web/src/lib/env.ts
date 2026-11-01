@@ -70,7 +70,17 @@ const schema = z.object({
   WALLET_PASS_KEY: z.string().optional(),
   WALLET_WWDR_CERT: z.string().optional(),
   WALLET_PASS_TYPE_ID: z.string().optional(),
-  WALLET_TEAM_ID: z.string().optional()
+  WALLET_TEAM_ID: z.string().optional(),
+  /** Phone and browser alerts (migration 0300): the VAPID key pair, URL-safe base64 (the public key the 65-byte P-256
+   *  point, the private key its 32-byte d), from the vault secrets deploy_vapid_public_key and deploy_vapid_private_key.
+   *  Both set and well formed: the alerts cards show and the push job sends. Otherwise alerts are off and hidden. */
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  /** Who the push services may contact about our pushes (a mailto: or https: URL). Unset: the site's address. */
+  VAPID_SUBJECT: z.string().optional(),
+  /** fake: alerts on without keys, with a key pair made in memory and pushes recorded as sent (local work and tests;
+   *  never in production). Unset: alerts only with the VAPID keys. */
+  PUSH_PROVIDER: z.enum(['fake']).optional()
 });
 
 export type ServerEnv = z.infer<typeof schema>;
