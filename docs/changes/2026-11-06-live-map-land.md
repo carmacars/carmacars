@@ -87,6 +87,16 @@ the card while it's hovered over".
   check as the renter and lead pages (`requireAdmin` there, `assertAdmin` here; `admin_read live_map` asserts the Admin
   again in the database).
 
+## Hottest lead: leads only
+
+The owner, on the TV's "Hottest lead" showing someone on rent: "that doesnt even make sense lol thats not a lead thats
+a rental". `model.isLead`: a game player, a form started or sent, a request, a visitor on the site, or a past renter back
+browsing; never someone on rent or with a confirmed booking to come (as their stage or any other of theirs), nor a
+request whose offer was accepted and is awaiting payment. The spotlight takes leads only, by score, and shows why (the
+three strongest signals); with no lead it says "No hot leads right now" and never falls back to a renter. The same rule
+decides the hot lead's car card and rose ring, the hot glow under a dot, and the hot or warm colour of a score (a
+renter's score shows plain) on the map, the cards and the page's table.
+
 ## Without WebGL
 
 The owner's laptop showed "The map needs WebGL" and no map. Now the map always draws:
@@ -116,6 +126,8 @@ The owner's laptop showed "The map needs WebGL" and no map. Now the map always d
   on, they are asked for (`contact=1`), shown and remembered; off again, gone at once. With WebGL disabled in the
   browser (`getContext('webgl')` returning nothing), the map draws in Canvas, shows its note, its dots open their cards
   and nothing is logged as an error.
+- Unit: a renter (on rent, booked, or paying an accepted offer) is never the hottest lead, whatever the score; an
+  empty spotlight with no leads; no hot-lead card for a renter.
 - Unit: names and contact (`toView`, `withoutContact`, nothing of a phone or email in the JSON while off),
   `adminHref`, the card's time line, the Mercator sums the Canvas map shares with MapLibre.
 

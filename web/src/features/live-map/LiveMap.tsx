@@ -10,7 +10,7 @@ import { CanvasMap, hasWebGL } from './canvas';
 
 /** What LiveMap asks of a renderer: MapLibre (engine.ts) or Canvas 2D (canvas.ts). */
 type Engine = Pick<MapEngine, 'start' | 'destroy' | 'setPins' | 'setCars' | 'setHq' | 'frame' | 'reframe' | 'focus'>;
-import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, adminHref, carLabel, timeLine, withoutContact, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, spread, stageOf, tally, verbOf,
+import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, adminHref, carLabel, timeLine, withoutContact, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, isLead, spread, stageOf, tally, verbOf,
   type CarPhoto, type Kpi, type MapView, type Pin, type Stage } from './model';
 
 // Today > Live map (migration 0242). The map is the hero: the site's own dark basemap with a glowing dot per lead (four
@@ -178,7 +178,7 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
     if (!e || mode !== 'map') return;
     const withPhoto = photoPins(placed.map(({ p }) => p));
     e.setPins(layers.leads ? placed.map(({ p, at }): PinSpec => ({
-      id: p.id, lng: at.lng, lat: at.lat, colour: colourOf(p), stage: stageOf(p.type), hot: p.band === 'hot', live: p.online,
+      id: p.id, lng: at.lng, lat: at.lat, colour: colourOf(p), stage: stageOf(p.type), hot: p.band === 'hot' && isLead(p), live: p.online,
       fresh: isNew(p.at, NEW_MS, now), label: `${TYPE[p.type].label}: ${p.who}${p.car ? `, ${p.car.name}` : ''}`, who: p.who, known: !p.anonymous,
       photo: withPhoto.has(p.id) ? { src: imgOf(p.car?.photo, 96), initial: carLabel(p.car).initial ?? '', route: p.type === 'on_rent' || p.type === 'booking' } : undefined
     })) : []);
@@ -269,7 +269,7 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
           <section className="lm-spot" aria-label="Spotlight: the hottest lead" data-testid="lm-spotlight">
             <h2 className="lm-h">Hottest lead</h2>
             <div className="lm-spot__deck">
-              {spots.length ? spots.map((p, i) => <Spotlight key={p.id} p={p} on={i === spot % spots.length} />) : <p className="lm-quiet">No leads in the last 30 days yet.</p>}
+              {spots.length ? spots.map((p, i) => <Spotlight key={p.id} p={p} on={i === spot % spots.length} />) : <p className="lm-spot__empty" data-testid="lm-spot-empty">No hot leads right now</p>}
             </div>
           </section>
           <section className="lm-feed" aria-label="Live feed">
@@ -383,11 +383,13 @@ function Clock({ now }: { now: number }) {
 }
 
 function Score({ p }: { p: Pin }) {
-  return <span className={`lm-score lm-score--${p.band}`} style={{ ['--p' as string]: String(p.score) }} aria-label={`Score ${p.score} of 100`}><span aria-hidden="true">{p.score}</span></span>;
+  // hot and warm are for leads; a renter's score shows plain (Release 26)
+  return <span className={`lm-score lm-score--${isLead(p) ? p.band : 'cold'}`} style={{ ['--p' as string]: String(p.score) }} aria-label={`Score ${p.score} of 100`}><span aria-hidden="true">{p.score}</span></span>;
 }
 
 function Spotlight({ p, on }: { p: Pin; on: boolean }) {
-  const src = imgOf(p.car?.photo, 960), reason = reasonOf(p.signals);
+  // why they are the hottest lead: their three strongest signals
+  const src = imgOf(p.car?.photo, 960), why = [...p.signals].sort((a, b) => b.points - a.points).slice(0, 3);
   return (
     <article className={`lm-spot__card${on ? ' is-on' : ''}${src ? ' has-photo' : ''}`} aria-hidden={!on} style={{ ['--c' as string]: colourOf(p) }} data-testid={on ? 'lm-spot-card' : undefined}>
       <div className="lm-spot__media">
@@ -401,7 +403,7 @@ function Spotlight({ p, on }: { p: Pin; on: boolean }) {
           <span><span className="lm-stage">{TYPE[p.type].short}</span>{p.city && !p.anonymous ? ` · ${p.city}` : ''}{src && p.car ? ` · ${p.car.name}` : ''}</span>
         </div>
       </div>
-      {reason && <p className="lm-spot__why">{reason}</p>}
+      {why.length > 0 && <ul className="lm-chips lm-spot__why" aria-label="Why">{why.map((x, i) => <li key={i}><b>+{x.points}</b> {x.label}</li>)}</ul>}
     </article>
   );
 }
@@ -476,7 +478,7 @@ function LeadTable({ pins, now, cap, onLocate }: { pins: Pin[]; now: number; cap
                   <td><span className="lm-stage"><span className="lm-dot" aria-hidden="true" />{TYPE[p.type].short}</span></td>
                   <td><button type="button" className="lm-row-btn" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : p.id)}>{p.name ?? p.who}</button></td>
                   <td className="lm-hide-s">{p.city ?? ''}</td>
-                  <td className="num"><span className={`lm-n lm-n--${p.band}`}>{p.score}</span></td>
+                  <td className="num"><span className={`lm-n lm-n--${isLead(p) ? p.band : 'cold'}`}>{p.score}</span></td>
                   <td className="lm-hide-m lm-quiet">{reasonOf(p.signals)}</td>
                   <td className="lm-hide-m">{p.car?.name ?? ''}</td>
                   <td className="num lm-quiet">{p.online ? <span className="lm-online">now</span> : shortAgo(p.at, now)}</td>

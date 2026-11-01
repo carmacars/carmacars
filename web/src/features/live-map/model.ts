@@ -75,9 +75,9 @@ export function reasonOf(signals: Signal[]): string {
   const steps = new Set(Object.values(TYPE_POINTS).map((x) => x![0]));
   return signals.filter((s) => !steps.has(s.label)).slice(0, 2).map((s) => s.label).join(' · ');
 }
-/** Who gets a photo pin: on rent, booked, or hot (score 60 or more), with a car to show; at most `max`, the most advanced and hottest first. */
+/** Who gets a photo pin: on rent, booked, or a hot lead (score 60 or more, isLead), with a car to show; at most `max`, the most advanced and hottest first. */
 export function photoPins(pins: Pin[], max = 60): Set<string> {
-  const want = pins.filter((p) => !!p.car && (p.type === 'on_rent' || p.type === 'booking' || p.band === 'hot'));
+  const want = pins.filter((p) => !!p.car && (p.type === 'on_rent' || p.type === 'booking' || (p.band === 'hot' && isLead(p))));
   const rank = (p: Pin) => (p.type === 'on_rent' ? 0 : p.type === 'booking' ? 1 : 2);
   return new Set(want.sort((a, b) => rank(a) - rank(b) || b.score - a.score).slice(0, max).map((p) => p.id));
 }
@@ -254,9 +254,23 @@ export function tally(v: MapView, inArea: (lng: number, lat: number) => boolean)
   return { byType, byStage, none, outside, shown: v.pins.length - none - outside };
 }
 
-/** The TV spotlight: the hottest leads first (a car photo first among equals), at most 8. */
+/**
+ * A lead, not a rental (Release 26, the owner on a renter in "Hottest lead": "that's not a lead, that's a rental"): a
+ * game player, a form started or sent, a request, a visitor on the site, or a past renter back browsing. Never someone
+ * on rent or with a confirmed booking still to come (as their stage or any of their others), nor a request whose offer
+ * they already accepted and are paying for ("Awaiting payment").
+ */
+export function isLead(p: Pick<Pin, 'type' | 'types' | 'detail'>): boolean {
+  if (p.type === 'on_rent' || p.type === 'booking') return false;
+  if ((p.types ?? []).some((t) => t === 'on_rent' || t === 'booking')) return false;
+  if (p.type === 'request' && /^Awaiting payment/i.test(p.detail ?? '')) return false;
+  return true;
+}
+
+/** The TV's "Hottest lead": leads only (isLead), the highest score first (a car photo first among equals), at most 8; none
+ * when nobody qualifies, never a renter instead. */
 export function spotlight(v: MapView, n = 8): Pin[] {
-  return [...v.pins].sort((a, b) => b.score - a.score || Number(realPhoto(b)) - Number(realPhoto(a)) || (b.at > a.at ? 1 : b.at < a.at ? -1 : 0)).slice(0, n);
+  return v.pins.filter((p) => isLead(p) && p.score > 0).sort((a, b) => b.score - a.score || Number(realPhoto(b)) - Number(realPhoto(a)) || (b.at > a.at ? 1 : b.at < a.at ? -1 : 0)).slice(0, n);
 }
 
 /** A listing photo of the car (not a sample drawing). */

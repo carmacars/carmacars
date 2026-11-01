@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { CAR_SILHOUETTE, agoText, arc, separate, bandOf, carLabel, compactMoney, hash, makeInitial, onTheRoad, photoPins, reasonOf, adminHref, timeLine, withoutContact, mx, my, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
+import { CAR_SILHOUETTE, agoText, arc, separate, bandOf, carLabel, compactMoney, hash, makeInitial, onTheRoad, photoPins, reasonOf, adminHref, isLead, timeLine, withoutContact, mx, my, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
 import { FRAME_MAX_ZOOM, TORONTO, HIGHWAYS, HOME_BOUNDS, MAP_ATTRIBUTION, MAX_BOUNDS, REGIONS, frameBounds, inBounds, roundGeo } from './config.ts';
 import { readFileSync } from 'node:fs';
 
@@ -97,6 +97,28 @@ describe('positions', () => {
 });
 
 describe('spotlight and time', () => {
+  it('a renter is never the hottest lead: not on rent, not booked, not paying for an accepted offer, whatever the score', () => {
+    const v = toView(raw([
+      pin({ id: 'rent', type: 'on_rent', types: ['on_rent'], online: true, facts: { pages: 40, seconds: 3600, cars: 9, visit: 9, past: 3, game: true, claimed: true, live_score: 100, reasons: [] } }),
+      pin({ id: 'booked', type: 'booking', types: ['booking'], online: true }),
+      pin({ id: 'mix', type: 'game', types: ['game', 'on_rent'], online: true }),
+      pin({ id: 'paying', type: 'request', types: ['request'], detail: 'Awaiting payment, pickup Nov 9', online: true }),
+      pin({ id: 'game', type: 'game', types: ['game'], online: false })]), false);
+    assert.ok(v.pins.find((p) => p.id === 'rent')!.score > v.pins.find((p) => p.id === 'game')!.score, 'the renter scores higher');
+    assert.deepEqual(spotlight(v).map((p) => p.id), ['game']);
+    assert.equal(isLead(v.pins.find((p) => p.id === 'rent')!), false);
+    assert.equal(isLead({ type: 'previous', types: ['previous', 'session'], detail: null }), true, 'a past renter back browsing is a lead');
+    assert.equal(isLead({ type: 'request', types: ['request'], detail: 'Offer sent, pickup Nov 9' }), true);
+  });
+  it('no lead at all: an empty spotlight, never a renter in its place', () => {
+    const v = toView(raw([pin({ id: 'rent', type: 'on_rent', types: ['on_rent'] }), pin({ id: 'booked', type: 'booking', types: ['booking'] })]), false);
+    assert.deepEqual(spotlight(v), []);
+  });
+  it('a hot renter gets no "hot lead" photo pin of its own; a hot lead does', () => {
+    const v = toView(raw([pin({ id: 'req', type: 'request', types: ['request', 'booking'], online: true, facts: { pages: 40, seconds: 3600, cars: 9, visit: 9, past: 0, game: true, claimed: true, live_score: 100, reasons: [] }, car: { id: 'c', code: null, name: 'Car', daily_cents: null, photo: null, how: 'viewed' } })]), false);
+    assert.equal(v.pins[0]!.band, 'hot');
+    assert.equal(photoPins(v.pins).has('req'), false);
+  });
   it('hottest first, at most n', () => {
     const v = toView(raw([pin({ id: 'cold', online: false }), pin({ id: 'hot', type: 'request' }), pin({ id: 'warm', type: 'lead' })]), false);
     assert.deepEqual(spotlight(v, 2).map((p) => p.id), ['hot', 'warm']);
