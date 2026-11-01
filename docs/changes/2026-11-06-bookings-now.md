@@ -86,13 +86,54 @@ The admin menu's Bookings group, before and after:
 - Staff: Rentals > Find a booking is now Rentals > Bookings (Now for fleet and customer service, with the search);
   field staff get Field work > Cars now.
 
+## Part 2: Requests and offers, All bookings and the Calendar in the same look, for Admin and staff (0332, 0333)
+
+The owner: "Requests still needs a revamp. And so does all booking and calendar ... And this should edit the staff's
+corresponding versions of these portals too". Then, viewing a salesperson's portal: "most his portal is broken with stuff
+that doesn't show up and important info that's missing and unable to see his bookings".
+
+The components are shared (`web/src/features/bookings-now`: `parts.tsx`, `RequestsQueue.tsx`, `BookingRows.tsx`), so the
+Admin and staff pages stay the same from now on. Each staff role keeps exactly its access: the database reads are the
+same ones, and the new reads open only to who already sees those lists.
+
+- **Requests and offers** (`/admin/requests`, `/staff/requests` for customer service and Sales): the counts on black,
+  then one queue by urgency (the longest wait first, then accepted but not paid, then offers out by expiry, then
+  expired). Each row: how long the renter has waited, the countdown to the 2 hours the site promises, the car with its
+  photo, the dates and days, the price, the renter with Call and Text, new or returning, the licence (verified, to
+  review, not uploaded), Insurer, the flags, who is answering it, and one button: **Send offer**, **Follow up** or
+  **Open** (Admins also **Decline** and **Reopen**, as before). The claim rules of 0177 are unchanged.
+  - An expired offer leaves the active queue 48 hours after it expired, or once its pickup time passed, for the quiet
+    **Expired** filter. An offer still out when its pickup time passes now expires by itself (`app.expire_offers`, run
+    by the offers job).
+  - Sales see only what they can answer now; a request still with customer service, or held by someone else, is folded
+    under "more not open to you yet" with the time it opens to them.
+- **All bookings** (`/admin/bookings?view=all`) and the staff search (`/staff/bookings`): one row per booking in place
+  of the table: the number, the status in plain words (Request, Offer out, Waiting for payment, Booked, Out, Returned,
+  Closed, Cancelled), placeholder and not blocking, late, the car with its photo, the renter with Call and Text, the
+  dates, the money (paid up, to pay, overdue, insurer billed) and Bill to. The search, status and Bill to filters sit in
+  one box above; on a phone the chips scroll sideways.
+- **My bookings** (`/staff/bookings`, every office function, Sales first): the bookings credited to them, offered by
+  them or added by them, from the offer to the return, with the commission (counting this month, waiting for approval,
+  approved, paid, reversed). `ops_read my_bookings`.
+- **The Calendar** (`/admin/calendar`, `/staff/calendar`, a car's Calendar tab): each row starts with the car's photo,
+  code and plate (`ops_read car_thumbs`); the bars in the Now colours with rounded ends; today is the black day; the
+  r25 clash ring and dashed placeholders stay. The phone agenda is grouped by day, one card per booking or block with
+  the car's photo, times and status. A bar opens a side panel on the right on a desktop, from the bottom on a phone.
+- **Cars now** for field staff uses the same components as Now.
+- **One wait format** everywhere (`web/src/lib/wait-words.ts`): "under a minute", "12 min", "3 h", "1 day", "18 days".
+  The screen-reader words and the clock now say the same thing.
+- `app.booking_cards` (`ops_read booking_cards`, Admins and office staff): the rows' car photo, renter mobile, licence,
+  money and Bill to for bookings the caller's list already shows.
+
 ## Guides
 
 - `admin/requests-offers-and-bookings`: Bookings now, payment plans, Mark picked up, All bookings, Requests and offers.
 - `admin/getting-around-admin` and `admin/quick-reference`: the Bookings menu.
 - `admin/chauffeur-service`: Requests and offers > Chauffeur.
+- `admin/calendars`: car photos, the agenda by day, the side panel.
+- `va/customer-service` and `va/sales`: the request queue, Sales seeing what they can answer, My bookings.
 - `admin/partners-company-cars-and-rentals-added-by-hand` and `admin/referral-partners-and-rentalcoverage`: Add a rental
   is a button on Bookings.
 - `va/fleet`: Bookings now for fleet and customer service.
-- `va/shared-tools`: Rentals > Bookings (was Find a booking).
+- `va/shared-tools`: Rentals > Bookings (was Find a booking) with My bookings; the calendar.
 - `field/my-jobs`: Cars now.
