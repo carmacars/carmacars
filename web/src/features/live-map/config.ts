@@ -11,8 +11,10 @@ export const MAPLIBRE_WORKER = `${VENDOR}/maplibre-gl-csp-worker.js`;
 export const MAPLIBRE_CSS = `${VENDOR}/maplibre-gl.css`;
 /** Water, the 400-series highways and the city labels (Natural Earth, public domain); Noto Sans for the labels (OFL). */
 export const BASEMAP = '/live-map/basemap.geojson';
+/** The GTA's highways (401, 404, 410, 427, QEW, DVP, Gardiner, 400, 403, 407), simplified by hand (scripts/live-map/highways.mjs). */
+export const HIGHWAYS = '/live-map/highways.geojson';
 export const GLYPHS = '/live-map/fonts/{fontstack}/{range}.pbf';
-export const MAP_ATTRIBUTION = 'Basemap: Natural Earth';
+export const MAP_ATTRIBUTION = 'Basemap: Natural Earth. GTA highways: CarmaCars';
 
 /** [west, south, east, north]. */
 export type Bounds = [number, number, number, number];

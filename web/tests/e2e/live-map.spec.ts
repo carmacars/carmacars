@@ -121,6 +121,28 @@ test('Live map: pins, legend, cards and masking on the page; TV mode fills the s
       expect(Math.round(box!.height)).toBe(h);
       await tv.context().close();
     }
+    // Release 25: the GTA's highways come from the site itself; a booking with no car shows "Car not assigned", never "Car ?"
+    const tv = await ctx(browser, 1920, 1080);
+    const hwy = tv.waitForResponse((r) => r.url().endsWith('/live-map/highways.geojson'), { timeout: 90_000 });
+    await signIn(tv, email);
+    await tv.goto('/admin/live-map?tv=1', { waitUntil: 'networkidle' });
+    expect((await hwy).status()).toBe(200);
+    await expect(tv.getByTestId('lm-map')).toHaveAttribute('data-mode', 'map', { timeout: 90_000 });
+    await expect(tv.getByTestId('lm-map')).toHaveAttribute('data-blockers', /^\d+$/);
+    await tv.route('**/api/staff/live-map*', async (route) => {
+      const r = await route.fetch();
+      const j = await r.json() as { pins: Array<Record<string, unknown>> };
+      j.pins.unshift({ ...(j.pins[0] ?? {}), id: 'lm-no-car', type: 'on_rent', types: ['on_rent'], at: new Date().toISOString(), who: 'Una U.', name: 'Una Unassigned',
+        booking_number: 'CC-00000', return_at: new Date(Date.now() + 86_400_000).toISOString(), pickup_at: new Date().toISOString(), car: null, lat: 43.7, lng: -79.4, signals: [] });
+      await route.fulfill({ response: r, json: j });
+    });
+    await tv.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    const film = tv.getByTestId('lm-film-card').filter({ hasText: 'Una U.' });
+    await expect(film).toContainText('Car not assigned');
+    await expect(film.locator('.lm-shape svg')).toBeVisible();
+    await expect(tv.getByTestId('lm-film')).not.toContainText('Car ?');
+    await noOverflow(tv);
+    await tv.context().close();
   } finally {
     await sql`delete from game_plays where visitor_id = any(${vids})`;
     await sql`delete from contact_captures where visitor_id = any(${vids})`;

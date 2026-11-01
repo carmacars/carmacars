@@ -38,6 +38,7 @@ import { BookingConversation } from '@/features/messages/BookingConversation';
 import type { Conversation } from '@/features/messages/email-choices';
 import { MoreActions, NextStepPanel } from '@/features/admin/NextStep';
 import { nextStep } from '@/features/admin/next-step';
+import { DateConflicts, PlaceholderBanner, type Overlap } from '@/features/admin/DateConflicts';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -52,7 +53,9 @@ const HOW: Record<string, string> = { quote: 'their quote', manual_rental: 'a re
 type Detail = B & R & {
   renter: { id: string; legal_name: string; email: string; mobile: string | null; identity_status: string; is_blocked: boolean; bookings: number } | null;
   offers: R[]; events: R[]; history: R[]; emails: R[]; payments: R[]; refunds: R[]; deposit: R | null; statements: R[]; documents: R[];
-  change_requests: R[]; extensions: R[]; info_requests: R[]; competing: R[]; tasks: R[]; drivers: R[]; available: boolean; readiness: R | null;
+  change_requests: R[]; extensions: R[]; info_requests: R[]; competing: Overlap[]; tasks: R[]; drivers: R[]; available: boolean; readiness: R | null;
+  /** 0283: a placeholder booking (insurance or a hold) */
+  placeholder?: { on: boolean; reason: string | null; at: string | null; by: string | null; shape: boolean };
   request_sent: R; current_offer_version: number | null; offer_expires_at: string | null; insurer_name: string | null; request_note: string | null;
 };
 
@@ -114,7 +117,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
     insurerBilled: b.bill_to !== 'renter' });
   return (
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && tab === 'review'}>
-      <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} />{b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {!b.blocks_calendar && <span className="ad-flag">not blocking</span>}</>}>
+      <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} />{b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>}</>}>
         {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
         <MoreActions>
         {b.status === 'requested' && <ClaimGate testId="claim-gate-head"><Act action="ask_info" payload={P} label="Ask the renter" fields={[{ name: 'question', label: 'Question', type: 'textarea', required: true }]} refresh={refresh} done="Question sent." />
@@ -125,7 +128,10 @@ export default async function Booking({ params, searchParams }: { params: Promis
         {b.status === 'offered' && <Act action="resend_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Send again, later expiry" fields={[{ name: 'expires_at', label: 'Open until', type: 'datetime', required: true }, { name: 'message', label: 'Message', type: 'textarea' }]} refresh={refresh} />}
         {b.status === 'offered' && <Act action="approve_offer_by_phone" payload={{ ...P, expected_version: b.current_offer_version }} label="Renter approved by phone" confirm="Record that the renter approved this offer on the phone. The history shows it was staff." refresh={refresh} />}
         {b.status === 'expired' && <Act action="reopen_expired" payload={P} label="Reopen" fields={[{ name: 'note', label: 'Note', type: 'text' }]} refresh={refresh} />}
-        {['confirmed', 'on_rent', 'requested', 'offered', 'pending_payment'].includes(b.status) && <Act action="blocks_calendar" payload={{ ...P, blocks: !b.blocks_calendar }} label={b.blocks_calendar ? 'Stop blocking the calendar' : 'Block the calendar'} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
+        {['confirmed', 'requested', 'offered', 'pending_payment', 'tentative'].includes(b.status) && !b.handed_over_at && (b.placeholder?.on
+          ? <Act action="booking_placeholder" payload={{ ...P, on: false }} label="Make it a real booking" fields={[{ name: 'reason', label: 'Why', type: 'text', required: true }]} refresh={refresh} testId="placeholder-off" />
+          : <Act action="booking_placeholder" payload={{ ...P, on: true }} label="Mark as a placeholder" confirm="A placeholder (for an insurer, or a hold) never blocks the calendar, is never handed over, sends the renter nothing and is never matched to a toll or ticket. The owner sees only that the car is unavailable." fields={[{ name: 'reason', label: 'What it is for', type: 'text', placeholder: 'Insurance or a hold' }]} refresh={refresh} testId="placeholder-on" />)}
+        {!b.placeholder?.on && ['confirmed', 'on_rent', 'requested', 'offered', 'pending_payment'].includes(b.status) && <Act action="blocks_calendar" payload={{ ...P, blocks: !b.blocks_calendar }} label={b.blocks_calendar ? 'Stop blocking the calendar' : 'Block the calendar'} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={refresh} />}
         {['confirmed', 'pending_payment'].includes(b.status) && <Act action="cancel_booking" payload={P} label="Cancel for the renter" variant="danger" fields={[
           { name: 'channel', label: 'Received by', type: 'select', required: true, options: [['email', 'Email'], ['portal', 'Portal'], ['phone', 'Phone']], value: 'email' },
           { name: 'at', label: 'Received at', type: 'datetime', required: true, value: new Date().toISOString() }, { name: 'note', label: 'Note', type: 'text' }]} refresh={refresh} />}
@@ -136,7 +142,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
         {insurerBilled && b.insurer_adjuster_email && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages&to=adjuster`} data-testid="email-adjuster-link">Email the adjuster</Link>}
         </MoreActions>
       </PageHead>
-      <NextStepPanel s={step} />
+      {b.placeholder?.on ? <PlaceholderBanner p={b.placeholder} items={b.competing} />
+        : <NextStepPanel s={step} />}
       <ClaimBanner />
       <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />
       {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} base={base} canHandover canSign
@@ -158,8 +165,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
                 ['Came from', came ? <MarketingSource key="mk" m={came} booking={b.booking_number} refresh={refresh} /> : ''],
               ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : '']]} />
             </Card>
-            <Card title="Competing for these dates" aside={<span className="small">{b.available ? 'car free' : <b className="ad-late">car not free</b>}</span>}>
-              {b.competing.length ? <ul className="ad-list">{b.competing.map((c) => <li key={String(c.id)}><Link prefetch={false} className="link" href={`/admin/bookings/${c.booking_number}`}>{String(c.booking_number)}</Link><Badge s={String(c.status)} /><span className="ad-sub">{t(c.pickup_at)} to {t(c.return_at)}</span></li>)}</ul> : <p className="small muted">No other request, offer or booking overlaps.</p>}
+            <Card title="Competing for these dates" testId="competing" aside={<span className="small">{b.available ? 'car free' : <b className="ad-late">car not free</b>}</span>}>
+              <DateConflicts items={b.competing} self={{ placeholder: !!b.placeholder?.on }} />
             </Card>
           </div>
           {['requested', 'offered', 'pending_payment', 'confirmed'].includes(b.status) && (await door<{ handover_note: string | null }>(user.id, 'ops_read', 'listing_state', { vehicle_id: b.vehicle_id }).catch(() => null))?.handover_note && <p className="alert alert--warn" role="note" data-testid="offer-policy-warning"><span className="alert__title">Car not on the fleet policy yet</span><span>Requests, offers and payment are fine; the car cannot be handed over until the insurer confirms it. When it does, press Insurer confirmed on <Link prefetch={false} className="link" href={`/admin/vehicles/${b.vehicle_id}?tab=listing`}>the car</Link> (or on Admin &gt; Today).</span></p>}
@@ -168,6 +175,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <ClaimGate testId="claim-gate-review" explain><BookingReview b={b} insurers={ins.rows} insurerRates={insurerCard?.rates ?? []} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={settings.program.offer_expiry_hours ?? 24} editable={['requested', 'offered', 'pending_payment'].includes(b.status)} /></ClaimGate>
         </>
       )}
+      {/* conflicting dates on this car (0284), once the booking is past the request */}
+      {tab === 'overview' && b.competing.length > 0 && <Card title="Also on this car for these dates" testId="date-conflicts-card"><DateConflicts items={b.competing} self={{ placeholder: !!b.placeholder?.on }} /></Card>}
       {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
       {(tab === 'overview' || tab === 'money') && insurerCard?.billed_to_insurer && <BookingInsurer x={insurerCard} />}
       {tab === 'overview' && b.booking_type !== 'owner' && !['cancelled', 'declined', 'expired'].includes(b.status) && <InsurerClaimEdit insurers={ins.rows} adjusters={await door<AdjusterOpt[]>(user.id, 'admin_read', 'insurer_adjusters', {}).catch(() => [] as AdjusterOpt[])} x={{

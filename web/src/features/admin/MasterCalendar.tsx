@@ -6,6 +6,7 @@ import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { useDoor } from './door';
 import { toLocalInput } from './Act';
+import { lane, rowHeight, stack, topOf } from './calendar-stack';
 
 // The master calendar (03-admin.md section 5): vehicles as rows, days as columns. Bookings are bars by
 // status (requests and offers hatched on the lower lane, non-blocking bookings outlined), blocks striped,
@@ -14,7 +15,9 @@ import { toLocalInput } from './Act';
 // (calendar_preview_change) and applies it on confirm (calendar_apply_change).
 export interface Entry { type: string; id: string; booking_id: string | null; booking_number: string | null; booking_type: string | null; status: string | null; state: string | null;
   starts_at: string; ends_at: string | null; blocks: boolean | null; blocking: boolean | null; bill_to: string | null; provisional: boolean | null; insurer: string | null;
-  renter: string | null; reason: string | null; note: string | null; assignee: string | null; detail: string | null }
+  renter: string | null; reason: string | null; note: string | null; assignee: string | null; detail: string | null;
+  /** 0283: a placeholder booking (insurance or a hold); 0284: the bars it collides with on this car */
+  placeholder?: boolean; clash?: string[] }
 export interface Veh { id: string; label: string; plate: string | null; fleet_number: string | null; status: string; class: string | null; owner: string | null; mode: string | null; supply_type?: string | null; entries: Entry[] }
 export interface CalData { from: string; to: string; now: string; vehicles: Veh[] }
 type Preview = { action: string; refusal: string | null; renter_must_approve: boolean; offer_must_be_resent: boolean; available: boolean; difference_cents: number | null;
@@ -36,14 +39,15 @@ function cls(e: Entry, now: number) {
   if (e.type === 'field_job') return 'is-job';
   if (e.type === 'vehicle_move') return 'is-move';
   const c = [`is-${e.status}`];
-  if (['confirmed', 'on_rent'].includes(e.status ?? '') && e.blocks === false) c.push('is-outline');
+  if (e.placeholder) c.push('is-placeholder');
+  else if (['confirmed', 'on_rent'].includes(e.status ?? '') && e.blocks === false) c.push('is-outline');
+  if (e.clash?.length) c.push('has-clash');
   if (e.booking_type === 'owner') c.push('is-owner');
   if (e.status === 'on_rent' && e.ends_at && new Date(e.ends_at).getTime() < now) c.push('is-late');
   return c.join(' ');
 }
-const lane = (e: Entry) => (e.type === 'block' || (['confirmed', 'on_rent', 'returned', 'closed'].includes(e.status ?? '') && e.blocks !== false) ? 'top' : 'low');
 const text = (e: Entry) => e.type === 'block' ? `${(e.reason ?? '').replace(/_/g, ' ')}${e.note ? `: ${e.note}` : ''}`
-  : e.type === 'booking' ? `${e.renter?.split(' ').pop() ?? ''} ${e.status === 'requested' ? 'request' : e.status === 'offered' ? 'offer' : e.status === 'pending_payment' ? 'signing and payment' : e.booking_number ?? ''}${e.blocks === false ? ' not blocking' : ''}${e.insurer ? ' insurer' : ''}`
+  : e.type === 'booking' ? `${e.renter?.split(' ').pop() ?? ''} ${e.status === 'requested' ? 'request' : e.status === 'offered' ? 'offer' : e.status === 'pending_payment' ? 'signing and payment' : e.booking_number ?? ''}${e.placeholder ? ' placeholder' : e.blocks === false ? ' not blocking' : ''}${e.insurer ? ' insurer' : ''}`
   : e.type === 'turo_trip' ? 'Turo' : e.detail ?? e.type.replace(/_/g, ' ');
 
 export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicleLinks = true }: { initial: CalData; vehicleId?: string; defaultView?: string; vehicleLinks?: boolean }) {
@@ -155,7 +159,8 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
   };
 
   const pos = (s: number, e: number) => ({ left: Math.max(0, (s - from) * pxPerMs), width: Math.max(6, (Math.min(e, from + days * DAY) - Math.max(s, from)) * pxPerMs) });
-  const dayList = Array.from({ length: days }, (_, i) => new Date(from + i * DAY));
+  // by calendar day, not 24 hours at a time: on the night the clocks go back 24 hours later is still the same date ("1 Nov" twice)
+  const dayList = Array.from({ length: days }, (_, i) => { const d = new Date(from); d.setDate(d.getDate() + i); return d; });
   const width = `calc(11rem + ${days * dw}px)`;
 
   return (
@@ -186,12 +191,13 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
       {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
       <div className="cal__legend" aria-hidden="true">
         <span><i className="cal__item is-confirmed" /> confirmed</span><span><i className="cal__item is-on_rent" /> on rent</span><span><i className="cal__item is-requested" /> request</span>
-        <span><i className="cal__item is-offered" /> offer</span><span><i className="cal__item is-confirmed is-outline" /> not blocking</span><span><i className="cal__item is-block" /> block</span><span><i className="cal__item" style={{ background: '#0f7b6c' }} /> Turo</span>
+        <span><i className="cal__item is-offered" /> offer</span><span><i className="cal__item is-confirmed is-outline" /> not blocking</span><span><i className="cal__item is-confirmed is-placeholder" /> placeholder</span><span><i className="cal__item is-block" /> block</span>
+        <span><i className="cal__item is-requested has-clash" /> dates taken</span><span><i className="cal__item" style={{ background: '#0f7b6c' }} /> Turo</span>
       </div>
       {agenda ? (
         <ul className="cal__agenda" data-testid="cal-agenda">
           {vehicles.flatMap((v) => v.entries.map((e) => ({ v, e }))).sort((a, b) => a.e.starts_at.localeCompare(b.e.starts_at)).map(({ v, e }) => (
-            <li key={`${e.type}${e.id}`}><button type="button" onClick={() => setSel({ entry: e })}><b>{when(e.starts_at)}</b>{e.ends_at ? ` to ${when(e.ends_at)}` : ''}<br />{v.label} {v.plate} · {text(e)}</button></li>
+            <li key={`${e.type}${e.id}`}><button type="button" onClick={() => setSel({ entry: e })}><b>{when(e.starts_at)}</b>{e.ends_at ? ` to ${when(e.ends_at)}` : ''}<br />{v.label} {v.plate} · {text(e)}{e.clash?.length ? <><br /><b className="ad-late" data-testid="cal-agenda-clash">Dates taken: clashes with {e.clash.join(', ')}</b></> : null}</button></li>
           ))}
           {!vehicles.some((v) => v.entries.length) && <li>Nothing on the calendar for these dates.</li>}
         </ul>
@@ -206,10 +212,11 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
               </div>
             </div>
             {vehicles.length === 0 && <p className="ad-empty">No vehicles match.</p>}
-            {vehicles.map((v) => (
+            {vehicles.map((v) => { const st = stack(v.entries, from + days * DAY); return (
               <div key={v.id} className="cal__row" style={{ gridTemplateColumns: `11rem ${days * dw}px` }}>
                 <div className="cal__name">{vehicleLinks ? <Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.fleet_number ? `${v.fleet_number} ` : ''}{v.label}</Link> : <b>{v.fleet_number ? `${v.fleet_number} ` : ''}{v.label}</b>}<span>{v.plate ?? ''} · {v.status.replace(/_/g, ' ')}</span></div>
-                <div className={`cal__lane${move && (move.vehicle || vehicleOf(move.entry)) === v.id ? ' is-drop' : ''}`} data-vehicle={v.id} data-testid={`lane-${v.plate ?? v.id}`}
+                <div className={`cal__lane${move && (move.vehicle || vehicleOf(move.entry)) === v.id ? ' is-drop' : ''}`} data-vehicle={v.id} data-testid={`lane-${v.plate ?? v.id}`} data-rows={st.top + st.low}
+                  style={st.top + st.low > 2 ? { height: rowHeight(st) } : undefined}
                   onDoubleClick={(ev) => { const r = (ev.currentTarget as HTMLElement).getBoundingClientRect(); setSel({ vehicle: v, at: snap(from + (ev.clientX - r.left) / pxPerMs) }); }}>
                   {now >= from && now <= from + days * DAY && <span className="cal__now" style={{ left: (now - from) * pxPerMs }} />}
                   {v.entries.map((e) => {
@@ -218,11 +225,14 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                     if (m && m.vehicle && m.vehicle !== v.id) return null;
                     const p = pos(m ? m.start : s, m ? m.end : (e.type === 'field_job' ? s + 3600_000 : en));
                     const canDrag = e.type === 'booking' && DRAGGABLE.includes(e.status ?? '');
+                    const bar = e.type === 'booking' || e.type === 'block';
+                    const clash = e.clash?.length ? `. Clashes with ${e.clash.join(', ')}` : '';
                     return (
                       <div key={`${e.type}${e.id}`} role="button" tabIndex={0} data-testid={e.booking_number ? `bar-${e.booking_number}` : `item-${e.type}`}
-                        className={`cal__item cal__item--${lane(e)} ${cls(e, now)}${m ? ' is-dragging' : ''}`} style={{ left: p.left, width: p.width }}
-                        title={`${text(e)} · ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}`}
-                        aria-label={`${text(e)}, ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${canDrag ? '. Arrow keys move, Shift and arrows resize, Enter confirms' : ''}`}
+                        className={`cal__item cal__item--${lane(e)} ${cls(e, now)}${m ? ' is-dragging' : ''}`} style={{ left: p.left, width: p.width, ...(bar ? { top: topOf(e, st) } : {}) }}
+                        data-clash={e.clash?.length ? e.clash.join(',') : undefined}
+                        title={`${text(e)} · ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${clash}`}
+                        aria-label={`${text(e)}, ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${clash}${canDrag ? '. Arrow keys move, Shift and arrows resize, Enter confirms' : ''}`}
                         onPointerDown={(ev) => onDown(ev, e, 'move')} onClick={() => { if (!canDrag) setSel({ entry: e }); }} onKeyDown={(ev) => onKey(ev, e)}>
                         {text(e)}
                         {canDrag && <span className="cal__grip" aria-hidden="true" onPointerDown={(ev) => onDown(ev, e, 'resize')} />}
@@ -231,7 +241,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                   {move && move.vehicle === v.id && (() => { const e = move.entry; const p = pos(move.start, move.end); return <div className={`cal__item cal__item--${lane(e)} ${cls(e, now)} is-dragging`} style={{ left: p.left, width: p.width }} aria-hidden="true">{text(e)}</div>; })()}
                 </div>
               </div>
-            ))}
+            ); })}
           </div>
         </div>
       )}
@@ -291,7 +301,8 @@ function SidePanel({ sel, vehicles, onClose, onDone }: { sel: { entry?: Entry; v
       {e && (
         <dl className="pt-dl small">
           <div><dt>From</dt><dd>{when(e.starts_at)}</dd></div><div><dt>To</dt><dd>{e.ends_at ? when(e.ends_at) : 'until further notice'}</dd></div>
-          {e.status && <div><dt>Status</dt><dd>{e.status.replace(/_/g, ' ')}{e.blocks === false ? ', not blocking' : ''}</dd></div>}
+          {e.status && <div><dt>Status</dt><dd>{e.status.replace(/_/g, ' ')}{e.placeholder ? ', placeholder (never blocks, never handed over, never matched to a toll)' : e.blocks === false ? ', not blocking' : ''}</dd></div>}
+          {!!e.clash?.length && <div><dt>Dates taken</dt><dd className="ad-late" data-testid="cal-clash">Clashes with {e.clash.join(', ')}{e.type === 'booking' && !['confirmed', 'on_rent'].includes(e.status ?? '') ? ': offer another car or other dates' : ''}</dd></div>}
           {e.renter && <div><dt>Renter</dt><dd>{e.renter}</dd></div>}
           {e.insurer && <div><dt>Insurer</dt><dd>{e.insurer}{e.provisional ? ', dates provisional' : ''}</dd></div>}
           {e.reason && <div><dt>Reason</dt><dd>{e.reason.replace(/_/g, ' ')}</dd></div>}

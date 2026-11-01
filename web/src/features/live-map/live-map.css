@@ -100,6 +100,13 @@ html.lm-tv-root .ad__rail, html.lm-tv-root [data-testid='guide-banner'] { displa
 .lm-film__row li { display: flex; gap: .7em; align-items: center; background: rgba(15, 21, 34, .82); border: 1px solid var(--line); border-top: 2px solid var(--c); border-radius: 10px; padding: .45em .9em .45em .45em; min-width: 16em; }
 .lm-film__ph { flex: none; width: 4.4em; height: 3em; border-radius: 6px; overflow: hidden; background: #1b2130; display: grid; place-items: center; color: var(--c); font-weight: 700; }
 .lm-film__ph img { width: 100%; height: 100%; object-fit: cover; }
+/* a booking with no car yet, or a car with nothing to show (Release 25): the neutral car, quiet, and the card's name in the quiet colour */
+.lm-shape { display: block; width: 78%; height: 78%; color: color-mix(in srgb, var(--c) 55%, var(--quiet)); }
+.lm-shape svg { display: block; }
+.lm-film__row li.is-unassigned { border-top-style: dashed; }
+.lm-film__row li.is-unassigned .lm-film__ph { background: repeating-linear-gradient(135deg, #1b2130 0 .5em, #182030 .5em 1em); }
+.lm-film__row li.is-unassigned .lm-film__t b { color: var(--quiet); font-weight: 500; }
+.lm-ph__shape { display: block; width: 70%; color: var(--c); }
 .lm-film__t { display: grid; min-width: 0; }
 .lm-film__t b { font-weight: 600; white-space: nowrap; }
 .lm-film__t span { color: var(--quiet); white-space: nowrap; }

@@ -80,6 +80,19 @@ export function makeInitial(name: string | null | undefined): string {
   const w = (name ?? '').trim().split(/\s+/).filter((x) => x && !/^\d{4}$/.test(x));
   return (w[0]?.charAt(0) ?? '?').toUpperCase();
 }
+/** A neutral car seen from the side (currentColor), for a card or pin with no photo and no make to show. */
+export const CAR_SILHOUETTE = '<svg viewBox="0 0 48 24" width="100%" height="100%" fill="currentColor" aria-hidden="true" focusable="false">'
+  + '<path d="M4 15.6c0-1.6 1.1-3 2.7-3.3l5.6-1.2 4.9-4.6a6 6 0 0 1 4.1-1.7h7.4c1.8 0 3.5.8 4.6 2.2l3.6 4.5 4.6.9a3.2 3.2 0 0 1 2.5 3.2V17a1.5 1.5 0 0 1-1.5 1.5h-2.1a4.6 4.6 0 0 0-9 0H16.6a4.6 4.6 0 0 0-9 0H5.5A1.5 1.5 0 0 1 4 17z" opacity=".55"/>'
+  + '<path d="M17.4 11.2l3.4-3.1a3.6 3.6 0 0 1 2.4-.9h3.1v4zm10.9 0v-4h.6c1.1 0 2.1.5 2.8 1.4l2.1 2.6z" opacity=".35"/>'
+  + '<circle cx="12.1" cy="18.6" r="3.3"/><circle cx="35.9" cy="18.6" r="3.3"/></svg>';
+/** What a card says about the car: its name, or "Car not assigned" for a booking with no car yet; the make's initial
+ * when there is a name to take it from, else null (draw CAR_SILHOUETTE). Never "Car ?". */
+export function carLabel(car: Pick<MapCar, 'name' | 'code'> | null | undefined): { name: string; assigned: boolean; initial: string | null } {
+  if (!car) return { name: 'Car not assigned', assigned: false, initial: null };
+  const name = (car.name ?? '').trim() || (car.code ? `Car ${car.code}` : 'Car');
+  const initial = makeInitial(car.name);
+  return { name, assigned: true, initial: initial === '?' ? null : initial };
+}
 /** The cars on the road today: on rent now, or booked with pickup today (Toronto), earliest due first. */
 export function onTheRoad(pins: Pin[], now = Date.now()): Pin[] {
   const day = (iso: string | number) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });

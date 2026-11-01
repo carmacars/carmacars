@@ -1,7 +1,8 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { agoText, arc, bandOf, compactMoney, hash, makeInitial, onTheRoad, photoPins, maskPhone, reasonOf, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
-import { HOME_BOUNDS, MAX_BOUNDS, inBounds, roundGeo } from './config.ts';
+import { CAR_SILHOUETTE, agoText, arc, bandOf, carLabel, compactMoney, hash, makeInitial, onTheRoad, photoPins, maskPhone, reasonOf, scoreOf, shortAgo, shortName, signalsOf, spotlight, spread, stageOf, tally, toView, verbOf, type RawMap, type RawPin } from './model.ts';
+import { HIGHWAYS, HOME_BOUNDS, MAP_ATTRIBUTION, MAX_BOUNDS, inBounds, roundGeo } from './config.ts';
+import { readFileSync } from 'node:fs';
 
 // The Live map (migration 0242): the score and its signals, the masking for the TV, the spread of pins that share a spot.
 const facts = { pages: 0, seconds: 0, cars: 0, visit: 1, past: 0, game: false, claimed: false, live_score: null, reasons: [] };
@@ -129,5 +130,54 @@ describe('photo pins, the road and the arcs', () => {
     assert.deepEqual([a[0], a[a.length - 1]], [[-79.4, 43.7], [-79.0, 43.9]]);
     const mid = a[Math.floor(a.length / 2)]!;
     assert.ok(Math.abs(mid[1] - 43.8) > 0.01);
+  });
+});
+
+// Release 25: a booking with no car yet gets a proper card, never "Car ?"; the GTA's highways are the site's own file.
+describe('car label (On the road, photo pins)', () => {
+  it('a booking with no car: "Car not assigned", the neutral car', () => {
+    assert.deepEqual(carLabel(null), { name: 'Car not assigned', assigned: false, initial: null });
+    assert.deepEqual(carLabel(undefined), { name: 'Car not assigned', assigned: false, initial: null });
+  });
+  it('a car: its name and the make\'s initial', () => {
+    assert.deepEqual(carLabel({ name: '2024 Toyota Corolla', code: 'CC-7F3A' }), { name: '2024 Toyota Corolla', assigned: true, initial: 'T' });
+  });
+  it('a car with no name: its code, and the neutral car instead of a question mark', () => {
+    assert.deepEqual(carLabel({ name: '', code: 'CC-7F3A' }), { name: 'Car CC-7F3A', assigned: true, initial: null });
+    assert.deepEqual(carLabel({ name: '  ', code: null }), { name: 'Car', assigned: true, initial: null });
+  });
+  it('the neutral car is a plain inline drawing in the card\'s colour', () => {
+    assert.match(CAR_SILHOUETTE, /^<svg [^>]*fill="currentColor"/);
+    assert.doesNotMatch(CAR_SILHOUETTE, /https?:\/\/|<script|on\w+=/);
+  });
+});
+
+describe('GTA highways (web/public/live-map/highways.geojson)', () => {
+  type Line = { properties: { ref: string; kind: string }; geometry: { type: string; coordinates: number[][] } };
+  const d = JSON.parse(readFileSync(new URL(`../../../public${HIGHWAYS}`, import.meta.url), 'utf8')) as { attribution: string; features: Line[] };
+  it('the seven asked for, and the 400, 403 and 407 so the area keeps them', () => {
+    assert.deepEqual(d.features.map((f) => f.properties.ref).sort(), ['400', '401', '403', '404', '407', '410', '427', 'DVP', 'Gardiner', 'QEW']);
+  });
+  it('lines inside southern Ontario, a few points each, saying who drew them', () => {
+    for (const f of d.features) {
+      assert.equal(f.geometry.type, 'LineString');
+      assert.ok(f.geometry.coordinates.length >= 5 && f.geometry.coordinates.length <= 80, f.properties.ref);
+      for (const [x, y] of f.geometry.coordinates) assert.ok(inBounds(x!, y!, MAX_BOUNDS), `${f.properties.ref} ${x},${y}`);
+    }
+    assert.match(d.attribution, /CarmaCars/);
+    assert.match(MAP_ATTRIBUTION, /Natural Earth/);
+    assert.match(MAP_ATTRIBUTION, /CarmaCars/);
+  });
+  it('the 401 runs west to east across the GTA, north of the lake at Yonge Street', () => {
+    const c = d.features.find((f) => f.properties.ref === '401')!.geometry.coordinates;
+    for (let i = 1; i < c.length; i++) assert.ok(c[i]![0]! > c[i - 1]![0]!, 'eastward');
+    const atYonge = c.find(([x]) => Math.abs(x! - -79.406) < 0.01)!;
+    assert.ok(atYonge[1]! > 43.73 && atYonge[1]! < 43.76);
+  });
+  it('the basemap draws no Natural Earth road inside the GTA, so no highway is drawn twice', () => {
+    const base = JSON.parse(readFileSync(new URL('../../../public/live-map/basemap.geojson', import.meta.url), 'utf8')) as { features: Array<{ properties: { k: string }; geometry: { coordinates: number[][][] } }> };
+    for (const f of base.features.filter((x) => x.properties.k === 'road')) for (const l of f.geometry.coordinates) for (const [x, y] of l) {
+      assert.ok(!(x! > -79.95 && x! < -78.75 && y! > 43.33 && y! < 44.12), `${x},${y}`);
+    }
   });
 });

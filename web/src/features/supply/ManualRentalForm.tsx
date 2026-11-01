@@ -101,6 +101,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   const [depositBy, setDepositBy] = useState<DepositPay>('card');
   const [agreement, setAgreement] = useState<'send' | 'paper'>('send');
   const [blocks, setBlocks] = useState(true);
+  // 0283: the Placeholder quick start (the source says so, so a draft opened again keeps it)
+  const placeholder = isAdmin && f.source === 'other' && (f.source_note ?? '').startsWith('Placeholder');
   // 0132: fee lines typed by hand ({key: dollars}), the rental paid in more than one part
   const [fees, setFees] = useState<Record<string, string>>({});
   const [parts, setParts] = useState<PayPart[]>([]);
@@ -332,9 +334,10 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     setQuote(null);
     if (k === 'phone' || k === 'walk_in') { setF((x) => ({ ...x, source: k })); setPaidBy(field ? 'link' : 'e_transfer'); setBlocks(true); }
     if (k === 'turo') { setF((x) => ({ ...x, source: 'turo' })); setPaidBy('platform_payout'); setBlocks(true); }
-    if (k === 'insurer') { setF((x) => ({ ...x, source: 'insurer' })); setPaidBy('insurer'); }
-    if (k === 'owner') { setF((x) => ({ ...x, source: 'other', source_note: 'The owner using their own car', rental_charge: '0', price_reason: 'Owner using their own car' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); }
-    if (k === 'dummy') { setOwnerChoice((x) => ({ ...x, visibility: 'never' })); setF((x) => ({ ...x, source: 'other', source_note: 'Placeholder booking (insurance or a hold)', rental_charge: '0', price_reason: 'Placeholder booking' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); }
+    if (k === 'insurer') { setF((x) => ({ ...x, source: 'insurer' })); setPaidBy('insurer'); setBlocks(true); }
+    if (k === 'owner') { setF((x) => ({ ...x, source: 'other', source_note: 'The owner using their own car', rental_charge: '0', price_reason: 'Owner using their own car' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); setBlocks(true); }
+    // 0283: a placeholder never blocks the calendar, is never handed over and is never matched to a toll or ticket
+    if (k === 'dummy') { setOwnerChoice((x) => ({ ...x, visibility: 'never' })); setF((x) => ({ ...x, source: 'other', source_note: 'Placeholder booking (insurance or a hold)', rental_charge: '0', price_reason: 'Placeholder booking', blocks_reason: 'Placeholder booking (insurance or a hold)' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); setBlocks(false); setAgreement('paper'); }
   };
 
   // a draft opened again: every field as it was left
@@ -429,7 +432,8 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
       deposit_cents: isAdmin ? cents(f.deposit ?? '') : undefined, clash_reason: isAdmin ? f.clash_reason || undefined : undefined,
       payment: { ...paymentOf(paidBy), reference: f.reference || undefined, received_on: f.received_on, amount_cents: cents(f.amount ?? ''), note: f.payment_note || undefined },
       ...(parts.length && offline ? { more_payments: parts.map((x) => ({ method: x.method, amount_cents: cents(x.amount), reference: x.reference.trim() || undefined, received_on: f.received_on })) } : {}),
-      deposit: { method: depositBy, reference: f.deposit_reference || undefined, received_on: f.deposit_received_on || f.received_on }, agreement, ...(blocks ? {} : { blocks_calendar: false, blocks_calendar_reason: f.blocks_reason }),
+      deposit: { method: depositBy, reference: f.deposit_reference || undefined, received_on: f.deposit_received_on || f.received_on }, agreement, ...(blocks && !placeholder ? {} : { blocks_calendar: false, blocks_calendar_reason: f.blocks_reason || 'Placeholder booking (insurance or a hold)' }),
+      ...(placeholder ? { placeholder: true, placeholder_reason: (f.placeholder_reason ?? '').trim() || undefined } : {}),
       ...(paidBy === 'insurer' ? { insurance: { insurer_id: f.insurer_id && f.insurer_id !== 'new' ? f.insurer_id : undefined, insurer_name: f.insurer_id === 'new' ? (f.insurer_name ?? '').trim() : undefined,
         claim_number: f.claim_number || undefined, adjuster_name: f.adjuster_name || undefined, adjuster_email: f.adjuster_email || undefined, adjuster_phone: f.adjuster_phone || undefined,
         authorized_days: f.authorized_days ? Number(f.authorized_days) : undefined, authorized_daily_rate_cents: cents(f.authorized_rate ?? ''), authorized_until: f.authorized_until || undefined, rate_reason: rateState.state === 'differs' ? (f.rate_reason ?? '').trim() || undefined : undefined,
@@ -503,6 +507,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
         {([['phone', 'Phone'], ['walk_in', 'Walk-in'], ['turo', 'Turo or another platform'], ['insurer', 'Insurance replacement'], ...(isAdmin ? [['owner', 'Owner using own car'], ['dummy', 'Placeholder']] : [])] as Array<[Parameters<typeof preset>[0], string]>).map(([k, l]) => (
           <button key={k} className={`btn btn--sm ${(k === f.source || (k === 'owner' && f.source_note?.startsWith('The owner')) || (k === 'dummy' && f.source_note?.startsWith('Placeholder'))) ? 'btn--primary' : 'btn--ghost'}`} type="button" onClick={() => preset(k)} data-testid={`mr-preset-${k}`}>{l}</button>))}
       </div>
+      {placeholder && <p className="pt-note small" data-testid="mr-placeholder-note"><b>Placeholder booking.</b> It never blocks the calendar, is never handed over, sends the renter nothing and is never matched to a toll or ticket: those go to the real rental. Enter the real rental as usual, even for the same days.</p>}
       <fieldset className="stack"><legend className="d4">1. The car and the dates</legend>
         <div className="ad-fields">
           <div className="field ad-field ad-field--wide"><label className="label" htmlFor={id('vehicle_id')}>Car</label>
@@ -724,9 +729,10 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
             <label className="check" htmlFor={id('agr-send')}><input type="radio" id={id('agr-send')} name="mr-agr" checked={agreement === 'send'} onChange={() => setAgreement('send')} data-testid="mr-agreement-send" /> <span>Send it to sign online</span></label>
             <label className="check" htmlFor={id('agr-paper')}><input type="radio" id={id('agr-paper')} name="mr-agr" checked={agreement === 'paper'} onChange={() => setAgreement('paper')} data-testid="mr-agreement-paper" /> <span>Already signed on paper (upload the scan on the booking)</span></label></div>
           <div className="field ad-field"><span className="label">The calendar</span>
-            <label className="check" htmlFor={id('blocks')}><input type="checkbox" id={id('blocks')} checked={blocks} onChange={(e) => setBlocks(e.target.checked)} data-testid="mr-blocks" /> <span>Blocks the car&apos;s calendar</span></label>
-            {!blocks && <p className="hint">For dates not known yet (an insurance replacement) or a trip another calendar holds.</p>}</div>
-          {!blocks && text('blocks_reason', 'Why it does not block the calendar', { wide: true })}
+            <label className="check" htmlFor={id('blocks')}><input type="checkbox" id={id('blocks')} checked={blocks && !placeholder} disabled={placeholder} onChange={(e) => setBlocks(e.target.checked)} data-testid="mr-blocks" /> <span>Blocks the car&apos;s calendar</span></label>
+            {placeholder ? <p className="hint">A placeholder never blocks the calendar.</p> : !blocks && <p className="hint">For dates not known yet (an insurance replacement) or a trip another calendar holds.</p>}</div>
+          {!blocks && !placeholder && text('blocks_reason', 'Why it does not block the calendar', { wide: true })}
+          {placeholder && text('placeholder_reason', 'What the placeholder is for', { wide: true, hint: 'For example: the insurer asked for a booking on file. Empty: insurance or a hold.' })}
         </div>
         <label className="check" htmlFor={id('dne')}><input id={id('dne')} type="checkbox" checked={flags.do_not_email} onChange={flag('do_not_email')} data-testid="mr-do-not-email" /> <span>Do not email the renter</span></label>
       </fieldset>

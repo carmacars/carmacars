@@ -123,6 +123,18 @@ a.ad-tile:hover { border-color: var(--black); }
 .ad-b--light { color: var(--text-2); }
 .ad-flag { display: inline-block; font-size: var(--fs-2xs); font-weight: 600; padding: 0.05rem 0.35rem; margin: 0 0.2rem 0.2rem 0; border: 1px solid var(--grey-300); background: var(--grey-50); }
 .ad-flag--red { border-color: var(--red-600); color: var(--red-700, #a1121a); }
+.ad-flag--ph { border-style: dashed; border-color: var(--grey-500); background: var(--white); color: var(--text-2); font-style: italic; }
+/* conflicting dates on one car (0284) and the placeholder banner (0283) */
+.ph-banner { border-left-style: dashed; border-left-color: var(--grey-500); background: var(--grey-50); margin-bottom: var(--s-4); }
+.ph-banner::before { background: var(--grey-500); }
+.dc-lead { margin: 0 0 var(--s-2); }
+.dc__what { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.15rem 0.5rem; }
+.dc__kind { display: inline-block; font-size: var(--fs-2xs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.05rem 0.4rem; border: 1px solid var(--grey-300); background: var(--grey-50); color: var(--text-2); }
+.dc__kind--booked, .dc__kind--block, .dc__kind--turo { border-color: var(--black); background: var(--black); color: var(--white); }
+.dc__kind--request { border-style: dashed; border-color: var(--grey-700); background: var(--white); color: var(--text); }
+.dc__kind--placeholder { border-style: dashed; border-color: var(--grey-500); background: var(--white); color: var(--text-2); font-style: italic; }
+.dc.is-holding .dc__kind { border-color: var(--red-600); background: var(--red-600); }
+.dc--placeholder { color: var(--text-2); }
 .ad-late { color: var(--red-700, #a1121a); font-weight: 700; }
 
 /* forms */
@@ -176,7 +188,9 @@ a.ad-tile:hover { border-color: var(--black); }
 .cal__grid:focus-visible { outline: 3px solid var(--red-600); }
 .cal__inner { position: relative; min-width: 100%; }
 .cal__head, .cal__row { display: grid; }
-.cal__head { position: sticky; top: 0; z-index: 3; background: var(--white); border-bottom: 1px solid var(--grey-300); }
+.cal__head { position: sticky; top: 0; z-index: 3; background: var(--white); border-bottom: 1px solid var(--grey-300);
+  /* the car page's date picker (core.css) also has a .cal__head: its gap and spread pushed the day headers off the bars */
+  justify-content: start; align-items: stretch; gap: 0; margin-bottom: 0; }
 .cal__corner, .cal__name { position: sticky; left: 0; z-index: 2; background: var(--white); border-right: 1px solid var(--grey-300); }
 .cal__corner { z-index: 4; font-size: var(--fs-2xs); padding: 0.3rem 0.5rem; color: var(--text-2); }
 .cal__days { position: relative; height: 2.6rem; }
@@ -204,9 +218,15 @@ a.ad-tile:hover { border-color: var(--black); }
 .cal__item.is-outline { background: var(--white); color: var(--text); border-width: 2px; }
 .cal__item.is-outline.is-on_rent { color: var(--red-700, #a1121a); border-color: var(--red-600); }
 .cal__item.is-block { background: repeating-linear-gradient(45deg, var(--grey-300) 0 3px, var(--grey-100) 3px 8px); border-color: var(--grey-500); color: var(--text); }
-.cal__item.is-turo { height: 6px; top: 44px; background: #0f7b6c; border-color: #0f7b6c; padding: 0; font-size: 0; }
-.cal__item.is-job { width: 14px !important; height: 14px; top: 34px; border-radius: 999px; background: var(--white); border-color: var(--black); padding: 0; font-size: 0; }
-.cal__item.is-move { height: 4px; top: 46px; background: var(--grey-700); border-color: var(--grey-700); padding: 0; font-size: 0; }
+.cal__item.is-turo { height: 6px; top: auto; bottom: 2px; background: #0f7b6c; border-color: #0f7b6c; padding: 0; font-size: 0; }
+.cal__item.is-job { width: 14px !important; height: 14px; top: auto; bottom: 4px; border-radius: 999px; background: var(--white); border-color: var(--black); padding: 0; font-size: 0; }
+.cal__item.is-move { height: 4px; top: auto; bottom: 2px; background: var(--grey-700); border-color: var(--grey-700); padding: 0; font-size: 0; }
+/* 0283, 0284: a placeholder is a dashed grey bar; a bar whose dates are taken has a red ring and a corner mark */
+.cal__item.is-placeholder { background: var(--white); color: var(--text-2); border: 1px dashed var(--grey-500); font-style: italic; }
+.cal__item.has-clash { box-shadow: 0 0 0 2px var(--red-600); padding-right: 14px; }
+.cal__item.has-clash::after { content: "!"; position: absolute; right: 0; top: 0; bottom: 0; width: 12px; display: grid; place-items: center; background: var(--red-600); color: var(--white); font-weight: 700; font-style: normal; }
+.cal__legend i.has-clash { position: relative; }
+.cal__legend i.has-clash::after { width: 8px; font-size: 0.5rem; }
 .cal__item.is-owner { box-shadow: inset 0 0 0 2px var(--white); }
 .cal__item.is-late { animation: cal-pulse 1.4s ease-in-out infinite; }
 @keyframes cal-pulse { 50% { box-shadow: 4px 0 0 0 var(--red-600); } }

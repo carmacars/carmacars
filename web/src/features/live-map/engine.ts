@@ -2,9 +2,10 @@
 // water, the major highways, a dozen city labels with collision handling) and the leads as small glowing dots, clustered
 // into a count where they crowd; a hot lead is larger with a soft halo, a visitor on the site breathes slowly, and a new
 // event sends one ripple out from its dot. The fleet's cars (once trackers report) are photo markers that glide to each
-// new position. Everything comes from this site (config.ts), so it draws the same offline.
-import { arc } from './model';
-import { BASEMAP, GLYPHS, HOME_BOUNDS, MAPLIBRE_CSS, MAPLIBRE_JS, MAPLIBRE_WORKER, MAP_ATTRIBUTION, MAX_BOUNDS, type Bounds } from './config';
+// new position. Release 25: the GTA's highways by hand (401, 404, 410, 427, QEW, DVP, Gardiner), and the city labels keep
+// clear of the photo pins, home base and the cars. Everything comes from this site (config.ts), so it draws the same offline.
+import { CAR_SILHOUETTE, arc } from './model';
+import { BASEMAP, GLYPHS, HIGHWAYS, HOME_BOUNDS, MAPLIBRE_CSS, MAPLIBRE_JS, MAPLIBRE_WORKER, MAP_ATTRIBUTION, MAX_BOUNDS, type Bounds } from './config';
 
 export interface PinSpec { id: string; lng: number; lat: number; colour: string; stage: string; hot: boolean; live: boolean; fresh: boolean; label: string;
   /** A photo pin (on rent, booked or hot): the car's thumbnail, else the make's initial in the ring; `route` draws its delivery arc from home base. */
@@ -44,6 +45,9 @@ export function loadMapLibre(): Promise<Ml | null> {
 }
 
 const EMPTY = { type: 'FeatureCollection', features: [] as unknown[] };
+/** A 4 px transparent square: scaled to each blocker's size (icon-size is a multiple of it). */
+const BLOCK_ICON = 'lm-block';
+const BLOCK_PX = 4;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export class MapEngine {
@@ -90,6 +94,7 @@ export class MapEngine {
         if (this.dead) { map.remove(); return 'nogl'; }
         if (ok) {
           this.ml = ml; this.map = map; this.mode = 'map';
+          if (!map.hasImage(BLOCK_ICON)) map.addImage(BLOCK_ICON, { width: BLOCK_PX, height: BLOCK_PX, data: new Uint8Array(BLOCK_PX * BLOCK_PX * 4) });
           this.wire();
           this.render();
           this.animate();
@@ -139,6 +144,9 @@ export class MapEngine {
       version: 8, glyphs: GLYPHS,
       sources: {
         base: { type: 'geojson', data: BASEMAP, attribution: '' },
+        hwy: { type: 'geojson', data: HIGHWAYS, attribution: '' },
+        // where the photo pins, home base and the fleet's cars sit: invisible, so the labels make room for them (Release 25)
+        blockers: { type: 'geojson', data: EMPTY },
         pins: { type: 'geojson', data: EMPTY, cluster: true, clusterRadius: 26 * k, clusterMaxZoom: 10,
           clusterProperties: { hot: ['max', ['get', 'hot']], live: ['max', ['get', 'live']], booked: ['+', ['case', ['==', ['get', 'stage'], 'booked'], 1, 0]],
             progress: ['+', ['case', ['==', ['get', 'stage'], 'progress'], 1, 0]], site: ['+', ['case', ['==', ['get', 'stage'], 'site'], 1, 0]], past: ['+', ['case', ['==', ['get', 'stage'], 'past'], 1, 0]] } },
@@ -158,6 +166,13 @@ export class MapEngine {
           paint: { 'line-color': '#f59e0b', 'line-width': 5 * k, 'line-blur': 4 * k, 'line-opacity': 0.09 } },
         { id: 'roads', type: 'line', source: 'base', filter: ['==', ['get', 'k'], 'road'], layout: { 'line-join': 'round', 'line-cap': 'round' },
           paint: { 'line-color': '#8a6a3a', 'line-width': ['interpolate', ['linear'], ['zoom'], 6, 0.6 * k, 10, 1.1 * k], 'line-opacity': 0.55 } },
+        // the GTA's highways (Release 25): the same faint amber; the parkways a little thinner and darker
+        { id: 'hwy-glow', type: 'line', source: 'hwy', layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: { 'line-color': '#f59e0b', 'line-width': ['interpolate', ['linear'], ['zoom'], 7, 4 * k, 11, 7 * k], 'line-blur': 4 * k, 'line-opacity': 0.08 } },
+        { id: 'hwy', type: 'line', source: 'hwy', layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: { 'line-color': ['match', ['get', 'kind'], 'parkway', '#7d6744', '#94744a'],
+            'line-width': ['interpolate', ['linear'], ['zoom'], 7, ['match', ['get', 'kind'], 'parkway', 0.6 * k, 0.8 * k], 11, ['match', ['get', 'kind'], 'parkway', 1.2 * k, 1.6 * k]],
+            'line-opacity': ['interpolate', ['linear'], ['zoom'], 7, 0.5, 10, 0.7] } },
         // where the leads crowd: a soft cyan to magenta glow under the dots
         { id: 'heat', type: 'heatmap', source: 'heat', maxzoom: 13, paint: {
           'heatmap-weight': ['get', 'w'], 'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 6, 0.7, 11, 1.4],
@@ -167,10 +182,6 @@ export class MapEngine {
         { id: 'arc', type: 'line', source: 'arcs', layout: { 'line-cap': 'round' }, paint: { 'line-width': 1.4 * k,
           'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(250,250,250,0.05)', 1, 'rgba(52,211,153,0.6)'] } },
         { id: 'arc-dash', type: 'line', source: 'arcs', layout: { 'line-cap': 'round' }, paint: { 'line-color': '#a7f3d0', 'line-width': 1.6 * k, 'line-opacity': 0.75, 'line-dasharray': [0, 4, 3] } },
-        { id: 'cities', type: 'symbol', source: 'base', filter: ['==', ['get', 'k'], 'city'],
-          layout: { 'text-field': ['get', 'name'], 'text-font': ['noto-medium'], 'text-size': ['match', ['get', 'rank'], 1, 18 * k, 16 * k], 'symbol-sort-key': ['get', 'rank'],
-            'text-anchor': 'left', 'text-offset': [1.4, 0], 'text-letter-spacing': 0.06, 'text-transform': 'uppercase', 'text-allow-overlap': false, 'text-padding': 6 * k },
-          paint: { 'text-color': '#5d6b84', 'text-halo-color': '#0b0f17', 'text-halo-width': 1.5 * k } },
         // the dots: a soft glow under each, the dot, and the clusters' counts
         { id: 'pin-glow', type: 'circle', source: 'pins', filter: ['!', ['has', 'point_count']],
           paint: { 'circle-color': ['get', 'colour'], 'circle-radius': ['case', ['==', ['get', 'hot'], 1], 16 * k, 10 * k], 'circle-blur': 1, 'circle-opacity': ['case', ['==', ['get', 'hot'], 1], 0.55, 0.35] } },
@@ -179,15 +190,33 @@ export class MapEngine {
         { id: 'pin', type: 'circle', source: 'pins', filter: ['!', ['has', 'point_count']],
           paint: { 'circle-color': ['get', 'colour'], 'circle-radius': ['case', ['==', ['get', 'hot'], 1], 7 * k, 5 * k],
             'circle-stroke-color': '#0b0f17', 'circle-stroke-width': 1.5 * k } },
+        // the labels, over the dots and under the clusters: a highway's number along its line (only closer in, and only where
+        // nothing else is), then the cities, each on whichever side of its spot is free of pins, clusters and other labels
+        { id: 'hwy-label', type: 'symbol', source: 'hwy', minzoom: 8.6,
+          layout: { 'symbol-placement': 'line', 'symbol-spacing': 420 * k, 'text-field': ['get', 'ref'], 'text-font': ['noto-medium'], 'text-size': 10 * k,
+            'text-letter-spacing': 0.08, 'text-padding': 8 * k, 'text-allow-overlap': false },
+          paint: { 'text-color': '#8a7656', 'text-halo-color': '#141317', 'text-halo-width': 2 * k, 'text-opacity': 0.85 } },
+        { id: 'cities', type: 'symbol', source: 'base', filter: ['==', ['get', 'k'], 'city'],
+          layout: { 'text-field': ['get', 'name'], 'text-font': ['noto-medium'], 'text-size': ['match', ['get', 'rank'], 1, 18 * k, 16 * k], 'symbol-sort-key': ['get', 'rank'],
+            'text-variable-anchor': ['left', 'right', 'top', 'bottom', 'top-left', 'bottom-left', 'top-right', 'bottom-right'], 'text-radial-offset': 1.9,
+            'text-justify': 'auto', 'text-letter-spacing': 0.06, 'text-transform': 'uppercase', 'text-allow-overlap': false, 'text-padding': 4 * k },
+          paint: { 'text-color': '#6b7a94', 'text-halo-color': '#0b0f17', 'text-halo-width': 2 * k } },
         { id: 'cluster-glow', type: 'circle', source: 'pins', filter: ['has', 'point_count'],
           paint: { 'circle-color': this.clusterColour(), 'circle-radius': ['step', ['get', 'point_count'], 22 * k, 10, 28 * k, 40, 34 * k], 'circle-blur': 1, 'circle-opacity': 0.35 } },
         { id: 'cluster', type: 'circle', source: 'pins', filter: ['has', 'point_count'],
           paint: { 'circle-color': '#0f1624', 'circle-radius': ['step', ['get', 'point_count'], 13 * k, 10, 16 * k, 40, 19 * k],
             'circle-stroke-color': this.clusterColour(), 'circle-stroke-width': 2 * k } },
         { id: 'cluster-n', type: 'symbol', source: 'pins', filter: ['has', 'point_count'],
-          layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['noto-medium'], 'text-size': 13 * k, 'text-allow-overlap': true, 'text-ignore-placement': true },
+          // always drawn, and the labels keep clear of the bubble (the padding is about the size of a small one)
+          layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['noto-medium'], 'text-size': 13 * k, 'text-allow-overlap': true, 'text-ignore-placement': false,
+            'text-padding': 10 * k },
           paint: { 'text-color': '#e8eef8' } },
-        { id: 'ripple', type: 'circle', source: 'ripples', paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-radius': 6 * k, 'circle-stroke-color': '#22d3ee', 'circle-stroke-width': 2 * k, 'circle-stroke-opacity': 0 } }
+        { id: 'ripple', type: 'circle', source: 'ripples', paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-radius': 6 * k, 'circle-stroke-color': '#22d3ee', 'circle-stroke-width': 2 * k, 'circle-stroke-opacity': 0 } },
+        // on top, so placed first: a transparent square the size of each photo pin, home base and car (drawn as page
+        // elements above the map, which the labels cannot see), so a city label moves to a free side or waits
+        { id: 'pin-block', type: 'symbol', source: 'blockers',
+          layout: { 'icon-image': BLOCK_ICON, 'icon-size': ['get', 's'], 'icon-allow-overlap': true, 'icon-ignore-placement': false, 'icon-padding': 2 * k },
+          paint: { 'icon-opacity': 0 } }
       ]
     };
   }
@@ -232,6 +261,7 @@ export class MapEngine {
     const dots = this.lastPins.filter((p) => !p.photo), photos = this.lastPins.filter((p) => p.photo);
     this.box.dataset.photos = String(photos.length);
     this.syncPhotos(photos);
+    this.syncBlockers();
     this.map.getSource('heat').setData({ type: 'FeatureCollection', features: this.lastPins.map((p) => ({
       type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: { w: p.hot ? 1 : 0.55 } })) });
     const hq = this.hqAt, routes = hq ? photos.filter((p) => p.photo?.route) : [];
@@ -279,7 +309,8 @@ export class MapEngine {
         v.el.style.setProperty('--c', p.colour);
         v.el.style.setProperty('--s', `${(p.hot && !p.photo!.route ? 36 : 42) * (this.o.tv ? 1 : 0.8) * k}px`);
         v.el.classList.toggle('lm-ph--hot', p.hot);
-        v.el.innerHTML = p.photo!.src ? `<img alt="" src="${encodeURI(p.photo!.src)}" decoding="async">` : `<span aria-hidden="true">${p.photo!.initial.replace(/[^A-Z0-9?]/g, '')}</span>`;
+        const ini = p.photo!.initial.replace(/[^A-Z0-9]/g, '');
+        v.el.innerHTML = p.photo!.src ? `<img alt="" src="${encodeURI(p.photo!.src)}" decoding="async">` : ini ? `<span aria-hidden="true">${ini}</span>` : `<span class="lm-ph__shape">${CAR_SILHOUETTE}</span>`;
       }
     }
     for (const [id, v] of this.photos) if (!seen.has(id)) { v.marker.remove(); this.photos.delete(id); }
@@ -297,6 +328,7 @@ export class MapEngine {
     el.style.setProperty('--s', `${30 * this.o.scale}px`);
     el.innerHTML = '<span class="lm-hq__pulse" aria-hidden="true"></span><span class="lm-hq__mark" aria-hidden="true">C</span>';
     this.hq = { marker: new this.ml.Marker({ element: el, anchor: 'center' }).setLngLat(at).addTo(this.map), key };
+    this.syncBlockers();
   }
 
   /** The dash travelling along the delivery arcs (MapLibre's dash sequence, about one step every 70 ms). */
@@ -372,6 +404,20 @@ export class MapEngine {
       if (v.lng !== s.lng || v.lat !== s.lat) this.glide(v, s.lng, s.lat);
     }
     for (const [id, v] of this.cars) if (!seen.has(id)) { cancelAnimationFrame(v.anim); v.marker.remove(); this.cars.delete(id); }
+    this.syncBlockers();
+  }
+
+  /** The labels' keep-out squares: every photo pin, home base and car, at its size on screen. */
+  private syncBlockers() {
+    const src = this.map?.getSource('blockers');
+    if (!src) return;
+    const k = this.o.scale, f: unknown[] = [];
+    const add = (lng: number, lat: number, px: number) => f.push({ type: 'Feature', geometry: { type: 'Point', coordinates: [lng, lat] }, properties: { s: px / BLOCK_PX } });
+    for (const p of this.lastPins) if (p.photo) add(p.lng, p.lat, (p.hot && !p.photo.route ? 36 : 42) * (this.o.tv ? 1 : 0.8) * k);
+    if (this.hqAt) add(this.hqAt[0], this.hqAt[1], 30 * k);
+    for (const c of this.lastCars) add(c.lng, c.lat, 34 * k);
+    src.setData({ type: 'FeatureCollection', features: f });
+    this.box.dataset.blockers = String(f.length);
   }
 
   /** A car moves smoothly to its new position over two seconds (at once with reduced motion). */

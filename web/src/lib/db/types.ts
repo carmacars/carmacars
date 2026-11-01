@@ -2644,6 +2644,10 @@ export type Database = {
           debit_allowed_reason: string | null;
           insurer_adjuster_id: string | null;
           debit_deposit_cents: number | null;
+          is_placeholder: boolean;
+          placeholder_reason: string | null;
+          placeholder_by: string | null;
+          placeholder_at: string | null;
         };
         Insert: {
           id?: string;
@@ -2810,6 +2814,10 @@ export type Database = {
           debit_allowed_reason?: string | null;
           insurer_adjuster_id?: string | null;
           debit_deposit_cents?: number | null;
+          is_placeholder?: boolean;
+          placeholder_reason?: string | null;
+          placeholder_by?: string | null;
+          placeholder_at?: string | null;
         };
         Update: {
           id?: string;
@@ -2976,6 +2984,10 @@ export type Database = {
           debit_allowed_reason?: string | null;
           insurer_adjuster_id?: string | null;
           debit_deposit_cents?: number | null;
+          is_placeholder?: boolean;
+          placeholder_reason?: string | null;
+          placeholder_by?: string | null;
+          placeholder_at?: string | null;
         };
         Relationships: [];
       };

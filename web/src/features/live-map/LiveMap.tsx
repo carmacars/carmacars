@@ -6,7 +6,7 @@ import { money } from '@/lib/format';
 import { photoUrl } from '@/lib/photo';
 import { HOME_BOUNDS, MAX_BOUNDS, NEW_MS, REFRESH_MS, SPOTLIGHT_MS, inBounds, type Bounds } from './config';
 import { MapEngine, type CarSpec, type PinSpec, type Spot } from './engine';
-import { CAR_HOW, FLEET_STATUS, compactMoney, makeInitial, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, spread, stageOf, tally, verbOf,
+import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, carLabel, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, spread, stageOf, tally, verbOf,
   type CarPhoto, type Kpi, type MapView, type Pin, type Stage } from './model';
 
 // Today > Live map (migration 0242). The map is the hero: the site's own dark basemap with a glowing dot per lead (four
@@ -99,7 +99,7 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
     e.setPins(layers.leads ? placed.map(({ p, at }): PinSpec => ({
       id: p.id, lng: at.lng, lat: at.lat, colour: colourOf(p), stage: stageOf(p.type), hot: p.band === 'hot', live: p.online,
       fresh: isNew(p.at, NEW_MS, now), label: `${TYPE[p.type].label}: ${p.who}${p.car ? `, ${p.car.name}` : ''}`,
-      photo: withPhoto.has(p.id) ? { src: imgOf(p.car?.photo, 96), initial: makeInitial(p.car?.name), route: p.type === 'on_rent' || p.type === 'booking' } : undefined
+      photo: withPhoto.has(p.id) ? { src: imgOf(p.car?.photo, 96), initial: carLabel(p.car).initial ?? '', route: p.type === 'on_rent' || p.type === 'booking' } : undefined
     })) : []);
     const b: Bounds = [...HOME_BOUNDS];
     for (const { at } of placed) { b[0] = Math.min(b[0], at.lng - 0.05); b[1] = Math.min(b[1], at.lat - 0.05); b[2] = Math.max(b[2], at.lng + 0.05); b[3] = Math.max(b[3], at.lat + 0.05); }
@@ -205,7 +205,7 @@ export function LiveMap({ initial, tv, at }: { initial: MapView | null; tv: bool
       {err && <p className="lm-err" role="status">Not refreshed: {err}. Trying again in 30 seconds.</p>}
       <LeadTable pins={pins.filter((p) => !hidden.has(stageOf(p.type)))} now={now} cap={view && view.pins.length >= view.cap ? view.cap : null}
         onLocate={(id) => { boxRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); engine.current?.focus(id); }} />
-      <p className="lm-foot">Score: the points of the signals added up, at most 100 (60 or more is hot). Places are approximate: the visit&apos;s network (about 1 km), else the centre of the renter&apos;s home city or the visit&apos;s city; nothing is looked up. Refreshes every 30 seconds. Basemap: Natural Earth.</p>
+      <p className="lm-foot">Score: the points of the signals added up, at most 100 (60 or more is hot). Places are approximate: the visit&apos;s network (about 1 km), else the centre of the renter&apos;s home city or the visit&apos;s city; nothing is looked up. Refreshes every 30 seconds. Basemap: Natural Earth; the GTA&apos;s highways drawn by CarmaCars.</p>
     </div>
   );
 }
@@ -242,12 +242,12 @@ function Filmstrip({ pins }: { pins: Pin[] }) {
   }, [pins.length, roll]);
   const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString('en-CA', { timeZone: 'America/Toronto', weekday: 'short', hour: 'numeric', minute: '2-digit' }) : '');
   const item = (p: Pin, copy: boolean) => {
-    const src = imgOf(p.car?.photo, 320);
+    const src = imgOf(p.car?.photo, 320), car = carLabel(p.car);
     return (
-      <li key={`${p.id}${copy ? ':2' : ''}`} style={{ ['--c' as string]: colourOf(p) }} aria-hidden={copy || undefined}>
+      <li key={`${p.id}${copy ? ':2' : ''}`} className={car.assigned ? undefined : 'is-unassigned'} style={{ ['--c' as string]: colourOf(p) }} aria-hidden={copy || undefined} data-testid={copy ? undefined : 'lm-film-card'}>
         {/* eslint-disable-next-line @next/next/no-img-element -- the listing photos come pre-sized */}
-        <span className="lm-film__ph">{src ? <img src={src} alt="" decoding="async" /> : <span>{makeInitial(p.car?.name)}</span>}</span>
-        <span className="lm-film__t"><b>{p.car?.name ?? 'Car'}</b><span>{p.who} · {p.type === 'on_rent' ? `back ${when(p.return_at)}` : `pickup ${when(p.pickup_at)}`}</span></span>
+        <span className="lm-film__ph">{src ? <img src={src} alt="" decoding="async" /> : car.initial ? <span>{car.initial}</span> : <CarShape />}</span>
+        <span className="lm-film__t"><b>{car.name}</b><span>{p.who} · {p.type === 'on_rent' ? `back ${when(p.return_at)}` : `pickup ${when(p.pickup_at)}`}</span></span>
       </li>
     );
   };
@@ -259,6 +259,11 @@ function Filmstrip({ pins }: { pins: Pin[] }) {
       </ul></div> : <p className="lm-quiet">No car on the road today yet.</p>}
     </div>
   );
+}
+
+/** The neutral car (model.ts), for a card with no photo and nothing to take an initial from. */
+function CarShape() {
+  return <span className="lm-shape" dangerouslySetInnerHTML={{ __html: CAR_SILHOUETTE }} />;
 }
 
 function Clock({ now }: { now: number }) {
@@ -275,7 +280,7 @@ function Spotlight({ p, on }: { p: Pin; on: boolean }) {
     <article className={`lm-spot__card${on ? ' is-on' : ''}${src ? ' has-photo' : ''}`} aria-hidden={!on} style={{ ['--c' as string]: colourOf(p) }} data-testid={on ? 'lm-spot-card' : undefined}>
       <div className="lm-spot__media">
         {/* eslint-disable-next-line @next/next/no-img-element -- the listing photos come pre-sized */}
-        {src ? <img src={src} alt="" decoding="async" /> : <span className="lm-spot__car">{p.car?.name ?? TYPE[p.type].label}</span>}
+        {src ? <img src={src} alt="" decoding="async" /> : <span className="lm-spot__car">{p.car ? carLabel(p.car).name : TYPE[p.type].label}</span>}
       </div>
       <div className="lm-spot__body">
         <Score p={p} />
