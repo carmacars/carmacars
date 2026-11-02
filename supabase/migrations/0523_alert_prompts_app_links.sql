@@ -12,6 +12,10 @@
 --    of its own store; never inside the app. public.app_links() reads them (anyone).
 -- 3. client_errors (0433) gets the admin policy every table has (04_rls) and joins the telemetry tables that keep no row
 --    audit (03_flows): a crash report is written by the server only and never changed.
+-- 4. Live map (found by the full test suite): while any placeholder booking (0283) was open, every pin without a booking
+--    (a visitor on the site, a lead, a game) disappeared, because 0283's filter compared their empty booking number with
+--    the placeholders' and a comparison with nothing is never true. Only the placeholders' own pins are left out now.
+--    0283's layer (renamed live_map_pre0400 by 0400) is replaced with the corrected filter.
 -- No applied migration is edited.
 
 -- ================================================================ 1. when to ask
@@ -66,6 +70,24 @@ drop policy if exists admin_all on client_errors;
 create policy admin_all on client_errors for all to authenticated using (app.is_admin()) with check (app.is_admin());
 revoke all on client_errors from anon, authenticated;
 grant all on client_errors to service_role;
+
+-- ================================================================ 4. live map: pins without a booking stay
+create or replace function app.live_map_pre0400(p_by uuid, p jsonb default '{}'::jsonb) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  v jsonb := app.live_map_pre0283(p_by, p);
+  v_day date := app.local_date(now());
+  v_ph text[] := array(select b.booking_number from bookings b where b.is_placeholder and b.status in ('requested', 'offered', 'tentative', 'pending_payment', 'confirmed', 'on_rent'));
+begin
+  if cardinality(v_ph) = 0 or v is null then return v; end if;
+  v := jsonb_set(v, '{pins}', coalesce((select jsonb_agg(x order by n) from jsonb_array_elements(v -> 'pins') with ordinality t(x, n)
+                                         where coalesce(x ->> 'booking_number', '') <> all (v_ph)), '[]'::jsonb));
+  v := jsonb_set(v, '{kpi,requests_today}', to_jsonb(greatest(0, coalesce((v #>> '{kpi,requests_today}')::integer, 0)
+         - (select count(*) from bookings b where b.is_placeholder and b.booked_at >= app.local_midnight(v_day) and b.booking_type <> 'owner')::integer)));
+  v := jsonb_set(v, '{kpi,bookings_week}', to_jsonb(greatest(0, coalesce((v #>> '{kpi,bookings_week}')::integer, 0)
+         - (select count(*) from bookings b where b.is_placeholder and b.confirmed_at >= app.local_midnight(date_trunc('week', v_day)::date) and b.booking_type <> 'owner')::integer)));
+  return v;
+end $$;
 
 -- ================================================================ privileges
 revoke all on function public.server_alerts_ask(uuid) from public, anon, authenticated;

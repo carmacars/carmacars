@@ -109,8 +109,10 @@ select test.eq('the inbox row says it needs a reply', (select (r ->> 'needs_repl
 select test.lc7_open('gone') as t \gset g_
 select app.server_chat_visitor_message(:'g_t', 'how much for a week');
 select app.server_chat_handoff(:'g_t', 'asked for a person');
-insert into pg_temp.s370 values ('w1', to_jsonb(test.lc7_waiting()));
+-- the job runs once before the count is taken: chats other suites left open earlier in the run are gone by the clock by
+-- now and close here, so the counts below move by this suite's chat alone, however long the run has taken
 select app.job_chat_auto_close();
+insert into pg_temp.s370 values ('w1', to_jsonb(test.lc7_waiting()));
 select test.eq('still here (seen now): the job leaves it', (test.lc7_conv(:'g_t')).status, 'waiting');
 select test.lc7_age(:'g_t');
 select app.job_chat_auto_close();

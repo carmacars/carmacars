@@ -110,7 +110,8 @@ select test.eq('the audit log keeps the names before and after',
 select test.eq('run again: nothing left to rename', app.car_model_family_backfill(), 0);
 
 -- ================================================================ Data health: a family we do not know
-update vehicles set model = 'Clase Cee', trim = null where id = test.id('vehicle:mf_car');
+-- a typo that sorts first (the card keeps the first 25 records, A to Z)
+update vehicles set model = 'Aklasse', trim = null where id = test.id('vehicle:mf_car');
 select test.ok('Data health lists the Mercedes-Benz car whose model is not a family we know, with its link',
   exists (select 1 from jsonb_array_elements(app.data_health() -> 'checks') c, jsonb_array_elements(c -> 'items') i
            where c ->> 'key' = 'model_family' and i ->> 'id' = test.id('vehicle:mf_car')::text and i ->> 'href' = '/admin/vehicles/' || test.id('vehicle:mf_car')));
