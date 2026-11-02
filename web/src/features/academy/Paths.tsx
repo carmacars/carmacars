@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pct, type PathRow } from './model';
 
 // The person's paths (Release 21b, item 9): each section with its state: passed, open, or waiting for the one before it.

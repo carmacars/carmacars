@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { usePathname } from 'next/navigation';
 
 // The owner portal's tabs (October 23, 2026: ten tabs became six, the owner's feedback "a lot of confusion and clutter"):

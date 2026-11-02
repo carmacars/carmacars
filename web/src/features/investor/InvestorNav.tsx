@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { usePathname } from 'next/navigation';
 
 // The investor portal's tabs (October 23, 2026: the same tabs as the renter and owner portals, instead of a row of

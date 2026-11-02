@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage, FN_LABEL } from '@/server/va';
 import { PageHead } from '@/features/admin/ui';

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pct } from '@/lib/format';
 
 // Interest in one car (migration 0060), on Admin > Cars > a car: views today and in 7 days, people looking now,

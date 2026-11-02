@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { signOut } from '@/server/actions/auth';
 import { currentUser } from '@/server/portal/data';
 import { rolesOf } from '@/server/door';

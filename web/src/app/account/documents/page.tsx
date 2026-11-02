@@ -1,7 +1,7 @@
 import { pageMeta } from '@/features/seo/meta';
 import { PageHeader } from '@/features/portal/Chrome';
 import { when } from '@/features/agreement/model';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { myBookings, myDocuments, requireUser } from '@/server/portal/data';
 
 export const dynamic = 'force-dynamic';

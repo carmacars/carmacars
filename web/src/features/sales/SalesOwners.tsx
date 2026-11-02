@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { $ } from '@/features/admin/ui';
 import { AskCommission, CopyLink, InviteOwner } from './SalesOwnersClient';
 

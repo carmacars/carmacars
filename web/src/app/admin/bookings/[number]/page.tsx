@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { BookingInsurer, type BookingInsurerData } from '@/features/insurers/BookingInsurer';
 import { InsurerClaimEdit, type AdjusterOpt } from '@/features/insurers/InsurerClaimEdit';
 import { StaffDocUpload } from '@/features/admin/StaffDocUpload';

@@ -1,10 +1,11 @@
-import Link from 'next/link';
+import { personPages, roleLabel } from '@/features/live-map/roles';
+import Link from '@/components/Link';
 import { Badge, Card, Table, t } from '@/features/admin/ui';
 
 // Contact capture (migration 0090), staff side: the name, email and phone typed into a form on the site, sent or not,
 // with the account's state. Only what the person typed; no marketing without their consent.
 export type CapturedRow = { id: string; form: string; name: string | null; email: string | null; phone: string | null; at: string; first_at: string; done: boolean;
-  done_reason: string | null; state: string | null; renter_id: string | null; lead_id: string | null; task_id: string | null; email_confirmed: boolean | null;
+  done_reason: string | null; state: string | null; renter_id: string | null; lead_id: string | null; task_id: string | null; email_confirmed: boolean | null; roles?: string[]; owner_id?: string | null;
   on_site: boolean; continue_sent: string | null };
 export interface CapturedData { open: number; rows: CapturedRow[] }
 
@@ -17,9 +18,9 @@ export function CapturedContacts({ d, renterBase }: { d: CapturedData; renterBas
         { key: 'name', label: 'Name', render: (r) => <span>{r.name ?? 'No name'}{r.on_site && <> <span className="ad-b ad-b--dark">On the site now</span></>}</span> },
         { key: 'email', label: 'Email', render: (r) => (r.email ? <span><a className="link" href={`mailto:${r.email}`}>{r.email}</a>{r.email_confirmed === false && <> <span className="ad-b ad-b--amber">Email not confirmed</span></>}</span> : '') },
         { key: 'phone', label: 'Phone', render: (r) => (r.phone ? <a className="link" href={`tel:${r.phone}`}>{r.phone}</a> : '') },
-        { key: 'form', label: 'Form' },
+        { key: 'form', label: 'Form', render: (r) => <span>{r.form}{roleLabel(r.roles) && <> <span className="ad-b ad-b--dark">{roleLabel(r.roles)}</span></>}</span> },
         { key: 'done', label: 'Status', render: (r) => <Badge s={r.done ? 'done' : 'open'}>{r.done ? (r.done_reason ?? 'Sent') : 'Not sent'}</Badge> },
-        { key: 'renter_id', label: '', render: (r) => (r.renter_id && renterBase ? <Link prefetch={false} className="link small" href={`${renterBase}/${r.renter_id}`}>Renter</Link> : '') }]} />
+        { key: 'renter_id', label: '', render: (r) => (renterBase ? <>{personPages(r).map((x) => <Link key={x.href} prefetch={false} className="link small" href={x.href.replace('/admin/renters', renterBase)}>{x.label.replace(' page', '')}</Link>)}</> : '') }]} />
     </Card>
   );
 }

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { PageHeader } from '@/features/portal/Chrome';
 import { day } from '@/features/owner/Blocks';

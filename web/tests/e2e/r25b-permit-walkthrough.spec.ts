@@ -76,7 +76,7 @@ test('the permit photo fills Add a car for an owner, Add a car and the Registrat
     await readPermit(p, 'addcar-permit');
     await expect(p.getByTestId('addcar-plate')).toHaveValue('ZZZZ123');
     await expect(p.getByTestId('addcar-permit_number')).toHaveValue('X0000001');
-    await expect(p.getByTestId('addcar-sticker_expires_on')).toHaveValue('2027-11-30');
+    await expect(p.getByTestId('addcar-sticker_expires_on')).toHaveAttribute('data-value', '2027-11-30');
     await expect(p.getByTestId('addcar-vin')).toHaveValue(/3FAKEPRM5RT000042/);
     await expect(p.getByTestId('addcar-colour-grey')).toBeChecked();
     await expect(p.getByTestId('addcar-permit-attached')).toBeVisible();
@@ -97,7 +97,7 @@ test('the permit photo fills Add a car for an owner, Add a car and the Registrat
     await p.goto(`/admin/vehicles/${carId}?tab=records`, { waitUntil: 'networkidle' });
     await readPermit(p, 'reg-permit');
     await expect(p.getByTestId('reg-permit_number')).toHaveValue('X0000001');
-    await expect(p.getByTestId('reg-sticker_expires_on')).toHaveValue('2027-11-30');
+    await expect(p.getByTestId('reg-sticker_expires_on')).toHaveAttribute('data-value', '2027-11-30');
     await expect(p.getByTestId('reg-year')).toHaveValue('2024');
     await expect(p.getByTestId('reg-permit-ready')).toBeVisible();
     await expect(p.getByTestId('reg-permit-msg')).toContainText('Check each field');

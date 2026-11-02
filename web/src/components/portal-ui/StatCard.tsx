@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { AnimatedNumber, type NumberFormat } from './AnimatedNumber';
 import { PortalIcon, type PortalIconName } from './icons';
 

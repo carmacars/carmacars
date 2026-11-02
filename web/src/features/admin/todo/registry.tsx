@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { Prompt } from './types';
 
 // The pop-up of a task on Admin > Today, by task type (migration 0078). A task the database raises for the Admin (or for

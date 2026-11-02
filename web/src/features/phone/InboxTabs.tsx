@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 
 // Live chat and Texts and calls share one page (migration 0085): two tabs.
 export function InboxTabs({ base, view, unread }: { base: string; view: 'chat' | 'phone'; unread?: number }) {

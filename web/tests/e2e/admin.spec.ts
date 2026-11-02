@@ -169,7 +169,7 @@ test('admin: master calendar, blocks, and a drag with the confirm', async ({ bro
   if (!phone) {
     await ap.getByLabel('Find a plate, fleet number, booking or surname').fill(String(veh!.plate));
     // the car may also carry the cleaning block after a trip (0040): pick the block made here
-    await ap.locator(`[data-vehicle="${car.id}"] .cal__item.is-block`).filter({ hasText: 'Brake service e2e' }).first().click();
+    await ap.locator(`[data-vehicle="${car.id}"] .mcal__item.is-block`).filter({ hasText: 'Brake service e2e' }).first().click();
   } else {
     await ap.getByTestId('cal-agenda').getByRole('button', { name: /Brake service e2e/ }).first().click();
   }

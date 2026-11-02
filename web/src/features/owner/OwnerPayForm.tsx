@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { fakeConfirmInvoiceCard, fakeConfirmInvoiceDebit, finalizeInvoicePayment, startInvoicePayment } from '@/server/actions/owner';
@@ -87,7 +88,7 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }
   const finish = async (intentId: string) => {
     setMsg({ kind: 'wait', text: method === 'acss_debit' ? 'Debit authorized. Recording it.' : 'Card approved. Recording your payment.' });
     const r = await finalizeInvoicePayment(number, intentId);
-    if (r.ok && r.data.ok && r.data.status === 'succeeded') { router.push(`/owner/invoices/${encodeURIComponent(number)}?paid=1`); router.refresh(); return; }
+    if (r.ok && r.data.ok && r.data.status === 'succeeded') { router.push(`/owner/invoices/${encodeURIComponent(number)}?paid=1`, scrollOption(`/owner/invoices/${encodeURIComponent(number)}?paid=1`)); router.refresh(); return; }
     if (r.ok && r.data.ok && r.data.status === 'pending') { router.refresh(); return; }
     setMsg({ kind: 'error', text: r.ok ? (r.data.ok ? r.data.message ?? 'The payment did not go through.' : r.data.message) : r.message });
     setBusy(false);

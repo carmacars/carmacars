@@ -16,6 +16,8 @@ export interface Visitor {
   score?: number | null; band?: 'hot' | 'warm' | 'cold' | null; reasons?: Reason[]; hot_at?: string | null; audience?: 'renter' | 'owner'; suggested?: Signal | null;
   others_on_car?: number | null; assigned?: { id: string; name: string; at: string } | null; last_action?: { action: string; at: string; by: string } | null;
   from_ad?: boolean; landing?: string | null; utm_medium?: string | null;
+  /** 0470: what the person is to us, from every record (owner, partner, investor, staff, renter), and their owners row */
+  roles?: string[]; owner_id?: string | null;
   /** What the visitor typed into a form (contact capture, 0090), sent or not. */
   captured?: { name: string | null; email: string | null; phone: string | null; form: string; at: string; done: boolean; renter_id: string | null; email_confirmed: boolean | null } | null;
   /** 0190: the name staff gave this browser (shown to staff only), with the phone, email and note they added */
@@ -25,7 +27,7 @@ export interface VisitEvent { at: string; kind: string; path: string | null; pag
 export interface SessionDetail extends Visitor { events: VisitEvent[]; visits: number; visits_7d: number }
 export interface CarRow { vehicle_id: string; car: string; views_today: number; views_7d: number; viewers_7d: number; requests_7d: number; looking_now: number; quotes_7d?: number; compared?: { vehicle_id: string; car: string; sessions: number } | null }
 export interface LiveCfg { hot: number; warm: number; notify_hot: boolean; discount: { enabled: boolean; percent: number; days: number; can: boolean }; is_admin: boolean; quiet: boolean; me: string | null; alerts: boolean }
-export interface HotRow { id: string; who: string; score: number; hot_at: string; reasons: Reason[]; online: boolean; renter_id: string | null; acted: boolean }
+export interface HotRow { id: string; who: string; score: number; hot_at: string; reasons: Reason[]; online: boolean; renter_id: string | null; acted: boolean; roles?: string[]; owner_id?: string | null }
 export interface LiveData { live_minutes: number; tracking: boolean; at: string; now: Visitor[]; signals: Signal[]; most_viewed: CarRow[];
   /** 0103: visitors (browsers) besides visits (sessions), and the browsers that chose necessary cookies only today */
   today: { sessions: number; known: number; chats: number; hot?: number; visitors?: number; untracked?: number };

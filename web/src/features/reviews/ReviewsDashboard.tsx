@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { Card, Table, Tiles, t } from '@/features/admin/ui';
 import { holdLine, type HoldItem } from './sequence';

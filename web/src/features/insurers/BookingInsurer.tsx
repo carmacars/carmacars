@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { $, Badge, Card, Kv, d } from '@/features/admin/ui';
 import { rateLine, rateSource, type SheetRate } from './rates';
 import { InsurerFeesCard, type InsurerFeeRow } from './InsurerFeesCard';

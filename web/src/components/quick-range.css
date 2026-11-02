@@ -1,0 +1,8 @@
+/* The quick range (and quick filter chips) control: a segmented row that scrolls sideways on a phone. */
+.qr { display: inline-flex; min-width: 0; max-width: 100%; overflow-x: auto; gap: 4px; padding: 4px; background: var(--grey-100); border-radius: 999px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.qr::-webkit-scrollbar { display: none; }
+.qr__b { flex: none; display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 0; border-radius: 999px; background: none; font: inherit; font-size: var(--fs-sm); font-weight: 600;
+  color: var(--grey-600); text-decoration: none; cursor: pointer; white-space: nowrap; }
+.qr__b:hover { color: var(--black); }
+.qr__b.is-on { background: var(--black); color: var(--white); box-shadow: inset 0 -2px 0 var(--red-600); }
+.qr__b:focus-visible { outline: 3px solid var(--red-600); outline-offset: 1px; }

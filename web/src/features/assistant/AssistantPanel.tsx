@@ -1,6 +1,6 @@
 'use client';
 import './assistant.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Out, Turn } from './agent';

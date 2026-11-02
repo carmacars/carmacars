@@ -1,6 +1,6 @@
 'use client';
 import { PasswordInput } from '@/features/forms/PasswordInput';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { money, pct } from '@/lib/format';
 import { AddressInput } from '@/features/forms/AddressInput';
@@ -11,6 +11,7 @@ import { PermitScan } from '@/features/vehicles/PermitScan';
 import { carName, detailLine, vinMessage, vinState } from '@/features/vin/vin';
 import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 import { blankVehicle, cleanVin, ownerErrors, planErrors, startErrors, STEPS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle } from './apply-schema';
+import { DateInput } from '@/components/DateInput';
 
 // The owner application (04-owner.md section 3, steps 1 to 3): about you once, then each vehicle,
 // then how each one will work (management mode, onboarding method, the registry estimate the owner
@@ -324,7 +325,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
           {o.owner_type === 'individual' && (
             <div className="field-row">
               <Field id="ap-lic" label="Driver's licence number" err={errs.licence_number} hint="It goes on the registry forms. Never saved in a draft: enter it again if you come back later."><input className="input" {...aria('ap-lic', errs.licence_number, 'hint')} value={o.licence_number} onChange={(e) => { setOwner({ licence_number: e.target.value.toUpperCase() }); clearErr('licence_number'); }} placeholder="A1234-12345-12345" autoComplete="off" /></Field>
-              <Field id="ap-dob" label="Date of birth" err={errs.date_of_birth}><input className="input" type="date" {...aria('ap-dob', errs.date_of_birth)} value={o.date_of_birth} onChange={(e) => { setOwner({ date_of_birth: e.target.value }); clearErr('date_of_birth'); }} autoComplete="bday" /></Field>
+              <Field id="ap-dob" label="Date of birth" err={errs.date_of_birth}><DateInput className="input" type="date" {...aria('ap-dob', errs.date_of_birth)} value={o.date_of_birth} onChange={(e) => { setOwner({ date_of_birth: e.target.value }); clearErr('date_of_birth'); }} autoComplete="bday" /></Field>
             </div>
           )}
           <div className="field-row">

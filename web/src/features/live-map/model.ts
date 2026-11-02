@@ -1,6 +1,7 @@
 // The Live map (migration 0242): what the database's one read (admin_read live_map) returns, and what the website works
 // out from it: the score and its signals, the names, the contact details only when asked for (Release 26), where each pin goes (spread a little when several
-// share a spot, the same way on every refresh), the counts and the spotlight. No imports: unit tested in Node.
+// share a spot, the same way on every refresh), the counts and the spotlight. Unit tested in Node (imports only roles.ts).
+import { cleanRoles, notRenterOnly } from './roles.ts';
 
 export type LeadType = 'session' | 'game' | 'draft' | 'lead' | 'request' | 'booking' | 'on_rent' | 'previous';
 export type Precision = 'visit' | 'home_city' | 'visit_city' | null;
@@ -14,6 +15,8 @@ export interface RawPin {
   pickup_at?: string | null; return_at?: string | null;
   name: string | null; email: string | null; phone: string | null; city: string | null; lat: number | null; lng: number | null; precision: Precision;
   online: boolean | null; device: string | null; from_ad: boolean; facts: Facts; car: MapCar | null;
+  /** 0470: what the person is to us (owner, renter, ...) and their owners row */
+  roles?: string[] | null; owner_id?: string | null;
 }
 export interface FleetCar { vehicle_id: string; code: string | null; name: string; lat: number; lng: number; heading: number | null; speed: number | null; status: 'on_rent' | 'available' | 'in_service'; updated_at: string; photo: CarPhoto | null }
 export interface Kpi { active_now: number; requests_today: number; requests_yesterday?: number; bookings_week: number; on_rent_now: number; collected_month_cents: number | null }
@@ -25,6 +28,7 @@ export interface Pin {
   pickup_at: string | null; return_at: string | null;
   who: string; anonymous: boolean; email: string | null; phone: string | null; city: string | null; lat: number | null; lng: number | null; precision: Precision;
   online: boolean; device: string | null; score: number; band: 'hot' | 'warm' | 'cold'; signals: Signal[]; car: MapCar | null;
+  roles: string[]; owner_id: string | null;
   /** Release 26: the full name for the detail card (null for an anonymous visitor); `who` is the short label for pins and lists. */
   name: string | null;
   /** seconds on the site (the visit's), for the card's time line */
@@ -198,7 +202,8 @@ export function toView(raw: RawMap, contact: boolean): MapView {
       who: known ?? visitorLabel(p.city), anonymous: !known, name: known ? (p.name ?? '').trim().replace(/\s+/g, ' ') : null,
       email: contact ? p.email || null : null, phone: contact ? p.phone || null : null,
       city: p.city, lat: num(p.lat), lng: num(p.lng), precision: p.precision, online: !!p.online, device: p.device,
-      score, band: bandOf(score), signals, car: p.car, seconds: num(p.facts?.seconds)
+      score, band: bandOf(score), signals, car: p.car, seconds: num(p.facts?.seconds),
+      roles: Array.isArray(p.roles) ? p.roles : [], owner_id: p.owner_id ?? null
     };
   });
   const hq = raw.hq && num(raw.hq.lat) !== null && num(raw.hq.lng) !== null ? { lat: num(raw.hq.lat)!, lng: num(raw.hq.lng)! } : null;
@@ -260,7 +265,9 @@ export function tally(v: MapView, inArea: (lng: number, lat: number) => boolean)
  * on rent or with a confirmed booking still to come (as their stage or any of their others), nor a request whose offer
  * they already accepted and are paying for ("Awaiting payment").
  */
-export function isLead(p: Pick<Pin, 'type' | 'types' | 'detail'>): boolean {
+export function isLead(p: Pick<Pin, 'type' | 'types' | 'detail'> & { roles?: string[] }): boolean {
+  // 0470: an owner, partner, investor or staff member who is not also a renter is not a renter lead
+  if (notRenterOnly(p.roles)) return false;
   if (p.type === 'on_rent' || p.type === 'booking') return false;
   if ((p.types ?? []).some((t) => t === 'on_rent' || t === 'booking')) return false;
   if (p.type === 'request' && /^Awaiting payment/i.test(p.detail ?? '')) return false;
@@ -352,11 +359,13 @@ export function withoutContact(v: MapView): MapView {
 
 /** Where the detail card's link goes in Admin: the booking, else the renter, else Live visitors (a visit), else the leads
  * page searched by the name (a form or a game with no renter yet). */
-export function adminHref(p: Pick<Pin, 'booking_number' | 'renter_id' | 'session_id' | 'name' | 'type'>): { href: string; label: string } {
+export function adminHref(p: Pick<Pin, 'booking_number' | 'renter_id' | 'session_id' | 'name' | 'type'> & { roles?: string[]; owner_id?: string | null }): { href: string; label: string } {
   if (p.booking_number) return { href: `/admin/bookings/${encodeURIComponent(p.booking_number)}`, label: `Open booking ${p.booking_number}` };
-  if (p.renter_id) return { href: `/admin/renters/${encodeURIComponent(p.renter_id)}`, label: 'Open the renter' };
+  // 0470: an owner (not also a renter) opens the owner's page, never "the renter"
+  if (p.owner_id && cleanRoles(p.roles).includes('owner') && !cleanRoles(p.roles).includes('renter')) return { href: `/admin/owners/${encodeURIComponent(p.owner_id)}`, label: 'Open the owner' };
+  if (p.renter_id && (!p.roles?.length || cleanRoles(p.roles).includes('renter'))) return { href: `/admin/renters/${encodeURIComponent(p.renter_id)}`, label: 'Open the renter' };
   if (p.type === 'session' || (p.session_id && !p.name)) return { href: '/admin/visitors', label: 'Open in Visitors' };
-  return { href: p.name ? `/admin/leads?q=${encodeURIComponent(p.name)}` : '/admin/leads', label: 'Open in Renter leads' };
+  return { href: p.name ? `/admin/leads?q=${encodeURIComponent(p.name)}` : '/admin/leads', label: p.roles?.length && notRenterOnly(p.roles) ? 'Open in Leads' : 'Open in Renter leads' };
 }
 
 /** "12 min on the site", "on the site now", "seen 3h ago": the detail card's time line. */
@@ -369,3 +378,83 @@ export function timeLine(p: Pick<Pin, 'online' | 'at' | 'seconds'>, now = Date.n
 /** Web Mercator, as MapLibre projects (0 to 1 across the world; the Canvas map, canvas.ts, multiplies by 512 x 2^zoom). */
 export const mx = (lng: number) => (lng + 180) / 360;
 export const my = (lat: number) => (1 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / Math.PI) / 2;
+
+// ---------------------------------------------------------------- clusters (Release 27)
+export interface ClusterIn { id: string; lng: number; lat: number; hot: boolean; score: number; colour: string }
+export interface Cluster { key: string; lng: number; lat: number; n: number; ids: string[]; colour: string; hot: boolean; top: string; score: number }
+/**
+ * Pins that crowd each other at this zoom (within `radius` screen pixels) become one count bubble, the same on the WebGL
+ * and the Canvas map: the hottest first take the others that sit near them, so the bubble's place is the middle of its
+ * members and its colour is its hottest member's. A lone pin stays a pin. The same input gives the same answer.
+ * `world` is the size of the world in pixels at this zoom (512 * 2^zoom).
+ */
+export function clusterPins(pts: ClusterIn[], world: number, radius: number): { singles: ClusterIn[]; clusters: Cluster[] } {
+  if (radius <= 0) return { singles: [...pts], clusters: [] };
+  const order = [...pts].sort((a, b) => Number(b.hot) - Number(a.hot) || b.score - a.score || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const px = (p: ClusterIn) => [mx(p.lng) * world, my(p.lat) * world] as const;
+  const grid = new Map<string, number[]>();
+  const cell = (x: number, y: number) => `${Math.floor(x / radius)},${Math.floor(y / radius)}`;
+  order.forEach((p, i) => { const [x, y] = px(p), k = cell(x, y); (grid.get(k) ?? grid.set(k, []).get(k)!).push(i); });
+  const taken = new Array<boolean>(order.length).fill(false);
+  const singles: ClusterIn[] = [], clusters: Cluster[] = [];
+  order.forEach((p, i) => {
+    if (taken[i]) return;
+    taken[i] = true;
+    const [x, y] = px(p), near: number[] = [];
+    const cx = Math.floor(x / radius), cy = Math.floor(y / radius);
+    for (let gx = cx - 1; gx <= cx + 1; gx++) for (let gy = cy - 1; gy <= cy + 1; gy++) for (const j of grid.get(`${gx},${gy}`) ?? []) {
+      if (taken[j]) continue;
+      const [qx, qy] = px(order[j]!);
+      if (Math.hypot(qx - x, qy - y) <= radius) near.push(j);
+    }
+    if (!near.length) { singles.push(p); return; }
+    near.forEach((j) => { taken[j] = true; });
+    const members = [p, ...near.map((j) => order[j]!)];
+    clusters.push({ key: members.map((m) => m.id).sort()[0]! + '+' + members.length, n: members.length, ids: members.map((m) => m.id),
+      lng: members.reduce((a, m) => a + m.lng, 0) / members.length, lat: members.reduce((a, m) => a + m.lat, 0) / members.length,
+      colour: p.colour, hot: members.some((m) => m.hot), top: p.id, score: p.score });
+  });
+  // bubbles (and pins) whose middles are still closer than the radius would draw on top of each other: join them, until none are
+  const d = (a: { lng: number; lat: number }, b: { lng: number; lat: number }) => Math.hypot((mx(a.lng) - mx(b.lng)) * world, (my(a.lat) - my(b.lat)) * world);
+  for (let again = true; again;) {
+    again = false;
+    clusters.sort((a, b) => b.n - a.n || (a.key < b.key ? -1 : 1));
+    for (let i = 0; i < clusters.length && !again; i++) {
+      const a = clusters[i]!;
+      for (let j = i + 1; j < clusters.length && !again; j++) {
+        const b = clusters[j]!;
+        if (d(a, b) > radius) continue;
+        const n = a.n + b.n, top = a.score >= b.score ? a : b;
+        clusters[i] = { key: [...a.ids, ...b.ids].sort()[0]! + '+' + n, n, ids: [...a.ids, ...b.ids], lng: (a.lng * a.n + b.lng * b.n) / n, lat: (a.lat * a.n + b.lat * b.n) / n,
+          colour: top.colour, hot: a.hot || b.hot, top: top.top, score: top.score };
+        clusters.splice(j, 1); again = true;
+      }
+      for (let j = 0; j < singles.length && !again; j++) {
+        const q = singles[j]!;
+        if (d(a, q) > radius) continue;
+        const n = a.n + 1, top = a.score >= q.score ? { colour: a.colour, top: a.top, score: a.score } : { colour: q.colour, top: q.id, score: q.score };
+        clusters[i] = { key: [...a.ids, q.id].sort()[0]! + '+' + n, n, ids: [...a.ids, q.id], lng: (a.lng * a.n + q.lng) / n, lat: (a.lat * a.n + q.lat) / n, hot: a.hot || q.hot, ...top };
+        singles.splice(j, 1); again = true;
+      }
+    }
+  }
+  return { singles, clusters };
+}
+/** The lowest zoom (in half steps, up to `max`) at which these pins no longer make one bubble, or null when they sit on one
+ * spot and never will (then the bubble opens as a ring of pins instead). */
+export function splitZoom(pts: ClusterIn[], from: number, max: number, radiusAt: (zoom: number) => number): number | null {
+  for (let z = Math.floor(from * 2) / 2 + 0.5; z <= max + 1e-9; z += 0.5) {
+    const r = clusterPins(pts, 512 * 2 ** z, radiusAt(z));
+    if (r.clusters.length === 0 || r.singles.length + r.clusters.length > 1) return z;
+  }
+  return null;
+}
+/** Where a bubble's members go when it is opened on the spot: on a circle round its middle (a spiral past 8), pixel offsets. */
+export function spiderOffsets(n: number, r0 = 34): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  for (let i = 0; i < n; i++) {
+    const ring = Math.floor(i / 8), inRing = Math.min(8, n - ring * 8), a = -Math.PI / 2 + (2 * Math.PI * (i % 8)) / inRing + ring * 0.35, r = r0 * (1 + ring * 0.8);
+    out.push([Math.cos(a) * r, Math.sin(a) * r]);
+  }
+  return out;
+}

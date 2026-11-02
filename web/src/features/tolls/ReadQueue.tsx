@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { $, Badge, Card, Table, t } from '@/features/admin/ui';
 
 // The notices read (migration 0042): those waiting for a check first, then the recent ones, and every line that

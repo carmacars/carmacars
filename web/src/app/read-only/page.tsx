@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 
 export const metadata = pageMeta({ title: 'Read only', path: '/read-only', noindex: true, description: 'Nothing can be changed while viewing as another person.' });

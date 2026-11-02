@@ -1,8 +1,12 @@
 import { pageMeta } from '@/features/seo/meta';
+import { QuickRange } from '@/components/QuickRange';
+import { torontoToday } from '@/lib/nav/range';
+import { GetForm } from '@/components/GetForm';
 import { page } from '@/server/admin/api';
 import { $, Card, PageHead, Table, Tiles } from '@/features/admin/ui';
 import { MarketingTabs } from '@/features/ads/MarketingTabs';
 import { ChannelChart, type ChannelRow } from '@/features/ads/ChannelChart';
+import { DateRangePicker } from '@/components/DateRangePicker';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Bookings by channel', path: '/admin/marketing/report', noindex: true, description: 'Requests, bookings, revenue and conversion by channel and month, first or last touch.' });
@@ -23,13 +27,13 @@ export default async function ChannelReport({ searchParams }: { searchParams: Pr
   return (<>
     <PageHead kicker="Marketing" title="Bookings by channel" purpose="Where requests and bookings came from, by month. Set the source on a booking by hand when the renter told you (a Kijiji reply, a walk-in)." />
     <MarketingTabs current="/admin/marketing/report" />
-    <form className="vh-filters" method="get" action="/admin/marketing/report" data-testid="ads-report-filters">
-      <div className="field"><label className="label" htmlFor="rp-from">From</label><input className="input" type="date" id="rp-from" name="from" defaultValue={r.from} /></div>
-      <div className="field"><label className="label" htmlFor="rp-to">To</label><input className="input" type="date" id="rp-to" name="to" defaultValue={r.to} /></div>
+    <GetForm className="vh-filters" action="/admin/marketing/report" data-testid="ads-report-filters">
+      <QuickRange base="/admin/marketing/report" keep={{ model: sp.model }} from={r.from} to={r.to} today={torontoToday()} customId="rp-from" />
+      <DateRangePicker id="rp-from" label="Dates" from={r.from} to={r.to} quick={false} />
       <div className="field"><label className="label" htmlFor="rp-model">Count each request under</label>
         <select className="select" id="rp-model" name="model" defaultValue={model}><option value="last">The last visit before the request</option><option value="first">The first visit</option></select></div>
       <div className="vh-filters__go"><button className="btn btn--primary btn--sm" type="submit">Show</button></div>
-    </form>
+    </GetForm>
     <Tiles items={[{ k: 'Requests', v: r.totals.requests }, { k: 'Bookings', v: r.totals.bookings }, { k: 'Conversion', v: pct(conv) }, { k: 'Revenue', v: $(r.totals.revenue_cents), sub: 'rental charge after discounts' },
       { k: 'Live ads', v: r.postings.live, sub: r.postings.needs_update ? `${r.postings.needs_update} to update` : undefined, href: '/admin/marketing/ads', warn: r.postings.needs_update > 0 }]} />
     <Card title="By channel" testId="ads-report-channels">

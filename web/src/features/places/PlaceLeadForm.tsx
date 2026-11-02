@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { submitPlaceLead } from '@/server/actions/leads';
 import { placeLeadSchema } from '@/features/forms/schemas';
 import { describedBy, Field } from '@/features/forms/Field';

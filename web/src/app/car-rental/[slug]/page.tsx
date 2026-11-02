@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { AnswerBlock } from '@/components/AnswerBlock';
 import { CarCard } from '@/components/CarCard';

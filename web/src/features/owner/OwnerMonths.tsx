@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useMemo, useState } from 'react';
 import { money, plural } from '@/lib/format';
 import { BarChart, MoneySummary, PuIcon } from '@/components/portal-ui';

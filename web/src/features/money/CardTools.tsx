@@ -3,6 +3,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { allowOtherCard, cancelOnReader, lookupStripePayment, pollReader, recordCardPayment, startOnReader, type ReaderState } from '@/server/actions/card-tools';
+import { DateInput } from '@/components/DateInput';
 
 // The card tools of a booking's money (Release 21): Record card payment (a card taken in the Stripe Dashboard or on a
 // reader, 0201), Charge on reader and Hold deposit on reader (the Stripe Terminal S700, 0202), and the same-card rule of
@@ -94,7 +95,7 @@ export function CardTools(x: CardToolsProps) {
                   setRec((s) => ({ ...s, last4: s.last4 || (v.last4 ?? ''), brand: v.brand ?? s.brand, amount: s.amount || ((v.status === 'requires_capture' ? v.capturable_cents : v.amount_cents) / 100).toFixed(2) }));
                 })}>Look up</button></span>
               {found && <span className="small" data-testid="ct-found">{found}</span>}</div>
-            {rec.covers !== 'deposit' && <div className="field ad-field"><label className="label" htmlFor="ct-on">Paid on</label><input className="input" id="ct-on" type="date" value={rec.received_on} max={today()} onChange={(e) => setRec({ ...rec, received_on: e.target.value })} /></div>}
+            {rec.covers !== 'deposit' && <div className="field ad-field"><label className="label" htmlFor="ct-on">Paid on</label><DateInput className="input" id="ct-on" type="date" value={rec.received_on} max={today()} onChange={(e) => setRec({ ...rec, received_on: e.target.value })} /></div>}
             <div className="field ad-field ad-field--wide"><label className="label" htmlFor="ct-note">Note (optional)</label><input className="input" id="ct-note" value={rec.note} onChange={(e) => setRec({ ...rec, note: e.target.value })} /></div>
           </div>
           {ruleApplies(rec.covers) && <label className="check" htmlFor="ct-same"><input type="checkbox" id="ct-same" checked={rec.same_card} onChange={(e) => setRec({ ...rec, same_card: e.target.checked })} data-testid="ct-same" /> <span>This is the same card as the coverage card ({cardWords(rule)})</span></label>}

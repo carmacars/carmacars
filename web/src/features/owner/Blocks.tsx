@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { money, pct } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { CarImage } from '@/components/Picture';

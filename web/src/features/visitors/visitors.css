@@ -64,42 +64,82 @@
 .vs-sum > summary .muted { font-weight: 400; font-size: var(--fs-sm); }
 .vs-chart { min-width: 0; }
 
-/* History: a card a visit */
-.vs-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-.vs-card { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 6px 14px; padding: 14px 16px; border: 1px solid var(--grey-200); border-radius: 14px; background: var(--white);
-  transition: box-shadow .15s ease, border-color .15s ease; }
-.vs-card:hover { border-color: var(--grey-300); box-shadow: 0 10px 28px -20px rgb(0 0 0 / 0.45); }
-.vs-card--booking, .vs-card--request { box-shadow: inset 4px 0 0 var(--red-600); }
-.vs-card > * { min-width: 0; }
-.vs-card .btn { white-space: normal; }
-.vs-card__main { min-width: 0; display: grid; gap: 4px; }
-.vs-card__main p { margin: 0; overflow-wrap: anywhere; }
-.vs-card__top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.vs-card__who { font-size: 1.05rem; }
-.vs-card__line { font-size: var(--fs-sm); }
-.vs-card__side { grid-column: 2; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
-@media (min-width: 48rem) {
-  .vs-card { grid-template-columns: 44px minmax(0, 1fr) auto; }
-  .vs-card__side { grid-column: 3; grid-row: 1; flex-direction: column; align-items: flex-end; justify-content: space-between; }
+/* History (Release 27): one compact row a visit, grouped by day; a black band a day, as the Now view's header */
+.vhf { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+.vhf__row { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: end; }
+.vhf__row .field { min-width: 0; flex: 1 1 8.5rem; }
+.vhf__row .input, .vhf__row .select { min-width: 0; width: 100%; }
+.vhf__row .field:nth-of-type(3) { flex-grow: 2; }
+.vhf__row .qr { flex: 0 1 auto; align-self: end; }
+.vhf__go { min-height: 44px; }
+.vh-sum { margin: 0; font-size: var(--fs-sm); color: var(--grey-600); line-height: 1.6; }
+.vh-sum b { color: var(--black); }
+.vh-search { display: flex; gap: 12px; align-items: center; }
+.vh-search .input { max-width: 26rem; min-height: 44px; }
+.vh-days { display: grid; gap: 18px; min-width: 0; }
+.vh-day { min-width: 0; border: 1px solid var(--grey-200); border-radius: 12px; overflow: hidden; background: var(--white); }
+.vh-day__h { margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 14px; background: var(--black); color: var(--white); font-size: var(--fs-sm); font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; box-shadow: inset 0 -3px 0 var(--red-600); }
+.vh-day__n { font-weight: 400; letter-spacing: 0; text-transform: none; opacity: .75; }
+.vh-list { list-style: none; margin: 0; padding: 0; }
+.vh-row { border-top: 1px solid var(--grey-200); }
+.vh-row:first-child { border-top: 0; }
+.vh-row.is-open { background: var(--grey-50, #fafafa); }
+.vh-row__main { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; align-items: center; column-gap: 12px; row-gap: 2px; padding: 10px 14px; min-height: 48px;
+  grid-template-columns: minmax(0, 1fr) auto auto 14px; grid-template-areas: 'who out dot chev' 'sub cars cars cars'; }
+.vh-row__main:hover { background: var(--grey-50, #fafafa); }
+.vh-row__main:focus-visible { outline: 3px solid var(--red-600); outline-offset: -3px; }
+.vh-row__main > * { min-width: 0; }
+.vh-sub { grid-area: sub; font-size: var(--fs-sm); color: var(--grey-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vh-t { display: none; grid-area: t; font-size: var(--fs-sm); color: var(--grey-600); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vh-who { grid-area: who; display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden; }
+.vh-who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vh-role { flex: none; font-size: var(--fs-2xs, .72rem); font-weight: 700; color: var(--red-700); white-space: nowrap; }
+.vh-city, .vh-src, .vh-pg, .vh-cars { font-size: var(--fs-sm); color: var(--grey-600); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vh-city, .vh-src, .vh-pg { display: none; }
+.vh-cars { grid-area: cars; display: inline-flex; gap: 3px; align-items: center; justify-content: flex-end; }
+.vh-cars img, .vh-cars__none { width: 28px; height: 20px; border-radius: 3px; object-fit: cover; background: var(--grey-200); flex: none; }
+.vh-cars__more { font-size: var(--fs-2xs, .72rem); font-weight: 700; color: var(--grey-600); }
+.vh-dot { grid-area: dot; width: 10px; height: 10px; border-radius: 50%; background: var(--grey-300); justify-self: center; }
+.vh-dot--hot { background: var(--red-600); } .vh-dot--warm { background: var(--black); } .vh-dot--none { background: transparent; box-shadow: inset 0 0 0 1.5px var(--grey-300); }
+.vh-out { grid-area: out; justify-self: end; display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 999px; background: var(--grey-100); color: var(--grey-600);
+  font-size: var(--fs-2xs, .75rem); font-weight: 700; white-space: nowrap; }
+.vh-out--booking, .vh-out--request { background: var(--red-600); color: var(--white); }
+.vh-out--contact, .vh-out--signup, .vh-out--chat { background: var(--black); color: var(--white); }
+.vh-out--bot { background: var(--grey-200); }
+.vh-chev { grid-area: chev; width: 8px; height: 8px; border-right: 2px solid var(--grey-600); border-bottom: 2px solid var(--grey-600); transform: rotate(45deg); transition: transform .15s ease; justify-self: center; }
+.is-open > .vh-row__main .vh-chev { transform: rotate(-135deg); }
+.vh-more { padding: 4px 14px 14px calc(14px + 3.6rem + 12px); display: grid; gap: 10px; min-width: 0; }
+.vh-more[hidden] { display: none; }
+.vh-facts { margin: 0; display: grid; gap: 4px 24px; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); font-size: var(--fs-sm); }
+.vh-facts div { min-width: 0; } .vh-facts dt { color: var(--grey-600); font-size: var(--fs-2xs, .72rem); text-transform: uppercase; letter-spacing: .06em; } .vh-facts dd { margin: 0; overflow-wrap: anywhere; }
+.vh-trail { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: var(--fs-sm); }
+.vh-trail li { display: grid; grid-template-columns: 4.2rem minmax(0, 1fr) minmax(0, 1.4fr); gap: 10px; padding: 3px 0; border-bottom: 1px dotted var(--grey-200); align-items: baseline; }
+.vh-trail time { color: var(--grey-600); font-variant-numeric: tabular-nums; } .vh-trail span { font-weight: 600; overflow-wrap: anywhere; } .vh-trail code { color: var(--grey-600); font-size: .85em; overflow-wrap: anywhere; }
+.vh-carnames, .vh-more p { margin: 0; }
+.vh-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.vh-pager { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+@media (min-width: 64rem) {
+  .vh-row__main { grid-template-columns: 3.6rem minmax(9rem, 1.7fr) minmax(5rem, 1fr) minmax(5rem, 1fr) 3.4rem 7.6rem 14px 7rem 14px; grid-template-areas: 't who city src pg cars dot out chev'; column-gap: 12px; }
+  .vh-t { display: block; } .vh-sub { display: none; }
+  .vh-city, .vh-src, .vh-pg { display: block; }
+  .vh-city { grid-area: city; } .vh-src { grid-area: src; } .vh-pg { grid-area: pg; text-align: right; }
+  .vh-cars { grid-area: cars; display: inline-flex; justify-content: flex-start; }
 }
-.vs-loc { display: grid; justify-items: center; gap: 4px; align-content: start; }
-.vs-loc__none { font-size: var(--fs-2xs, .72rem); text-align: center; max-width: 5rem; }
-.vs-chip { display: inline-flex; align-items: center; min-height: 24px; padding: 0 10px; border-radius: 999px; background: var(--grey-100); color: var(--black); font-size: var(--fs-2xs, .75rem); font-weight: 600; }
-.vs-chip--booking, .vs-chip--request { background: var(--red-600); color: var(--white); }
-.vs-chip--contact, .vs-chip--signup { background: var(--red-50); color: var(--red-700); }
-.vs-chip--dark, .vs-chip--known { background: var(--black); color: var(--white); }
-.vs-chip--bot { background: var(--grey-200); color: var(--grey-600); }
-.vs-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.vs .vh-more { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.vs .vh-more { display: grid; }
 @media (max-width: 39.99rem) {
   .vs-panel { border-radius: 12px; }
   .vs-tabs { width: 100%; }
   .vs-tab { flex: 1; justify-content: center; }
-  .vs-filters, .vs-more__in { grid-template-columns: 1fr 1fr; }
-  .vs-filters .field:nth-of-type(4), .vs-filters .field:nth-of-type(5) { grid-column: 1 / -1; }
+  .vs-more__in { grid-template-columns: 1fr 1fr; }
+  .vhf__row .qr { flex: 1 1 100%; }
+  .vh-more { padding-left: 14px; }
+  .vh-trail li { grid-template-columns: 3.6rem minmax(0, 1fr); } .vh-trail code { grid-column: 2; }
 }
 .vs-hist { display: grid; gap: 18px; min-width: 0; }
 /* the Live now filters never wider than the screen (a long referrer in Source, a long city) */
 .vs .lv-tools { min-width: 0; max-width: 100%; }
 .vs .lv-tool { min-width: 0; max-width: 100%; }
 .vs .lv-select { max-width: min(16rem, 100%); text-overflow: ellipsis; }
+
+.vs-about > summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; width: fit-content; }

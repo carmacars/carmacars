@@ -1,7 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { staffDo, uploadRentalForm, uploadRentalSignature } from '@/server/actions/staff-tools';
 
 // Admin > Settings > Forms (0127): the forms filled for every booking. Blind Spot's rental agreement is the second

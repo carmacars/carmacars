@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { getFleet, getSettings } from '@/lib/site';
 import { group, nextStep, bookingPath } from '@/features/portal/status';

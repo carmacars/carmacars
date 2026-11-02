@@ -2,7 +2,7 @@
 import { SkeletonLines } from '@/components/Skeleton';
 import '../live/live.css';
 import './phone.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { agoWords, clock, dayClock, EVENT_WORDS } from '../live/staff';
 import { phoneDo, phoneRead, CallBody, type PhoneInboxData, type PhoneThreadData, type PhoneThreadRow } from './client';

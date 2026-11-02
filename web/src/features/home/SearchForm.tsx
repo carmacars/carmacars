@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useState } from 'react';
 import { DateRange } from '@/features/calendar/DateRange';
 import { TimeSelect } from '@/features/calendar/TimeSelect';
@@ -20,7 +21,7 @@ export function SearchForm({ maxDays }: { maxDays: number }) {
       const q = new URLSearchParams();
       if (d.from) { q.set('from', d.from); q.set('to', d.to); q.set('tf', tf); q.set('tt', tt); }
       if (mode === 'delivery') q.set('mode', 'delivery');
-      router.push(`/cars${q.size ? '?' + q : ''}`);
+      router.push(`/cars${q.size ? '?' + q : ''}`, scrollOption(`/cars${q.size ? '?' + q : ''}`));
     }}>
       <div className={`field search__dates${err ? ' has-error' : ''}`}>
         <DateRange id="hs" from={d.from} to={d.to} min={today} today={today} maxDays={maxDays} onChange={(v) => { setD(v); setErr(''); }} />

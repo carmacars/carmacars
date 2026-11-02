@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
+import { GetForm } from '@/components/GetForm';
 import { $, Card, Table, label } from '@/features/admin/ui';
 import { conversion, type SalesFigures } from './SalesBoard';
 
@@ -12,13 +13,13 @@ const monthName = (ym: string) => new Intl.DateTimeFormat('en-CA', { month: 'lon
 export function TeamSales({ team }: { team: Team }) {
   return (
     <Card title={`Sales in ${team.label}`} testId="team-sales" aside={
-      <form className="row" action="/admin/overview" method="get" aria-label="Choose the month">
+      <GetForm className="row" action="/admin/overview" aria-label="Choose the month">
         <label className="vh" htmlFor="team-sales-month">Month</label>
         <select className="select" id="team-sales-month" name="sales_month" defaultValue={team.month} data-testid="team-sales-month">
           {team.months.map((m) => <option key={m} value={m}>{monthName(m)}</option>)}
         </select>
         <button className="btn btn--ghost btn--sm" type="submit">Show</button>
-      </form>}>
+      </GetForm>}>
       <Table<TeamRow & Record<string, unknown>> caption={`Sales in ${team.label}`} rows={team.rows as Array<TeamRow & Record<string, unknown>>} rowKey={(r) => r.staff_id}
         empty="No one in Sales yet, and no quotes, offers or rentals this month." cols={[
           { key: 'name', label: 'Staff member', render: (r) => <><Link prefetch={false} className="link" href={`/admin/staff/${r.staff_id}/sales`}>{r.name}</Link> <span className="muted small">{label(r.function)}</span></> },

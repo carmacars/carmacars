@@ -1,5 +1,6 @@
 'use client';
 import { useState, useTransition } from 'react';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { fieldAct } from '@/server/actions/field';
 import { FdIcon } from './icons';
@@ -16,7 +17,7 @@ export function StartChecklist({ job, status, label, testId }: { job: string; st
       if (status === 'scheduled') { const a = await fieldAct('acknowledge', { job }); if (!a.ok) { setErr(a.message); return; } }
       if (status === 'scheduled' || status === 'acknowledged') { const s = await fieldAct('start', { job }); if (!s.ok) { setErr(s.message); return; } }
     } catch { setErr('No connection. Try again when you have signal.'); return; }
-    router.push(`/staff/field/jobs/${job}`);
+    router.push(`/staff/field/jobs/${job}`, scrollOption(`/staff/field/jobs/${job}`));
   });
   return (
     <div className="fd-act">

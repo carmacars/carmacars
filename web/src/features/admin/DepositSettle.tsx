@@ -5,6 +5,7 @@ import { opsRead } from '@/server/actions/ops';
 import { addDamageCharge, keepWholeDeposit, settleDeposit, type SettleResult } from '@/server/actions/deposit';
 import { chargeSavedCard } from '@/server/actions/offers';
 import { depositMethod, depositStatus } from '@/features/money/deposit-words';
+import { DateInput } from '@/components/DateInput';
 
 // The guided Deposit settlement (migration 0020's app.settle_deposit, guarded by 0155): what is owed is taken from the
 // deposit first; tolls and tickets can take days to come in, so a settlement inside that window holds the deposit back
@@ -149,7 +150,7 @@ export function DepositSettle({ bookingId, bookingNumber, refresh = [] }: { book
               <div className="field ad-field ad-field--wide"><label className="label" htmlFor={`${id}-d`}>What it is (claim, toll or ticket)</label>
                 <input className="input" id={`${id}-d`} value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="Rear bumper scuff, estimate requested" /></div>
               <div className="field ad-field"><label className="label" htmlFor={`${id}-u`}>Hold until</label>
-                <input className="input" id={`${id}-u`} type="date" value={until} max={pv.hold_back_until_max ?? undefined} onChange={(e) => setUntil(e.target.value)} /></div>
+                <DateInput className="input" id={`${id}-u`} type="date" value={until} max={pv.hold_back_until_max ?? undefined} onChange={(e) => setUntil(e.target.value)} /></div>
             </>}
           </div>
           {needsNow && <label className="check" data-testid="deposit-release-now"><input type="checkbox" checked={releaseNow} onChange={(e) => setReleaseNow(e.target.checked)} /> <span>Release now anyway (a toll or ticket that comes in later is charged to the card on file)</span></label>}

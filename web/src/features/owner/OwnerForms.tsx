@@ -2,16 +2,17 @@
 import { useState } from 'react';
 import { AddressFields } from '@/features/forms/AddressFields';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useAct } from '@/features/portal/useAct';
 import { bookOwnCar, giveExitNotice, saveOwnerProfile, submitPayoutAccount, type OwnerProfileInput, type PayoutInput } from '@/server/actions/owner';
+import { TypedInput } from '@/components/DateInput';
 
 // Small owner forms: exit notice, payout details, contact details, booking my own car.
 function Input({ id, label, value, set, err, hint, ...props }: { id: string; label: string; value: string; set: (v: string) => void; err?: string; hint?: string } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value'>) {
   return (
     <div className={`field${err ? ' has-error' : ''}`}>
       <label className="label" htmlFor={id}>{label}</label>
-      <input className="input" id={id} value={value} onChange={(e) => set(e.target.value)} aria-invalid={!!err || undefined} aria-describedby={[hint ? `${id}-hint` : '', `${id}-err`].filter(Boolean).join(' ')} {...props} />
+      <TypedInput className="input" id={id} value={value} onChange={(e) => set(e.target.value)} aria-invalid={!!err || undefined} aria-describedby={[hint ? `${id}-hint` : '', `${id}-err`].filter(Boolean).join(' ')} {...props} />
       {hint && <p className="hint" id={`${id}-hint`}>{hint}</p>}
       <p className="error" role="alert" id={`${id}-err`}>{err ?? ''}</p>
     </div>

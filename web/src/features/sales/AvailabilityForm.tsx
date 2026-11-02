@@ -3,6 +3,7 @@ import { useId, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { vaAct } from '@/server/actions/va';
 import type { WeekBlocks } from './RemoteDuties';
+import { DateInput } from '@/components/DateInput';
 
 // A remote Sales rep's availability blocks for this week or next (migration 0174, va_do sales_availability_save), Toronto
 // time. Days already past keep their blocks; the database checks the week, the times and overlaps.
@@ -42,8 +43,8 @@ export function AvailabilityForm({ week, next, today }: { week: WeekBlocks; next
           <li key={i} className="va-block" data-testid={`availability-row-${i}`}>
             <label className="field"><span className="label">Day</span>
               <select className="input" value={r.day} onChange={(e) => set(i, { day: e.target.value })}>{days.map((x) => <option key={x} value={x}>{DAY(x)}</option>)}</select></label>
-            <label className="field"><span className="label">From</span><input className="input" type="time" step={900} value={r.from} onChange={(e) => set(i, { from: e.target.value })} /></label>
-            <label className="field"><span className="label">To</span><input className="input" type="time" step={900} value={r.to} onChange={(e) => set(i, { to: e.target.value })} /></label>
+            <label className="field"><span className="label">From</span><DateInput className="input" type="time" step={900} value={r.from} onChange={(e) => set(i, { from: e.target.value })} /></label>
+            <label className="field"><span className="label">To</span><DateInput className="input" type="time" step={900} value={r.to} onChange={(e) => set(i, { to: e.target.value })} /></label>
             <button type="button" className="btn btn--ghost btn--sm" onClick={() => setRows((x) => x.filter((_, j) => j !== i))} aria-label={`Remove the block on ${DAY(r.day)}`}>Remove</button>
           </li>))}
       </ul>

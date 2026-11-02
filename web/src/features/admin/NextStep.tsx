@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { NextStep } from './next-step';
 
 // The booking's next step (next-step.ts), under the status at the top of the Admin and staff booking pages: one

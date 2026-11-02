@@ -5,6 +5,7 @@ import { staffResendDriverLink } from '@/server/actions/ops40';
 import { CopyLink } from '@/features/portal/CopyLink';
 import { toLocalInput } from './Act';
 import { useDoor } from './door';
+import { DateInput } from '@/components/DateInput';
 
 // A change staff propose to a confirmed booking (migration 0040): new pickup or return, another car, or a new rental
 // charge, with the reason the renter reads. "Preview" asks the database for the new price and any problem; "Send to
@@ -49,8 +50,8 @@ export function ProposeChange({ booking, number, pickupAt, returnAt, vehicleId, 
   return (
     <form className="ad-form" noValidate onSubmit={(e) => { e.preventDefault(); preview(); }} data-testid="propose-change" aria-label={`Propose a change to booking ${number}`}>
       <div className="ad-fields">
-        <div className="field ad-field"><label className="label" htmlFor="pc-pickup">New pickup</label><input className="input" id="pc-pickup" type="datetime-local" value={pickup} onChange={(e) => { setPickup(e.target.value); setPrev(null); }} /></div>
-        <div className="field ad-field"><label className="label" htmlFor="pc-return">New return</label><input className="input" id="pc-return" type="datetime-local" value={ret} onChange={(e) => { setRet(e.target.value); setPrev(null); }} /></div>
+        <div className="field ad-field"><label className="label" htmlFor="pc-pickup">New pickup</label><DateInput className="input" id="pc-pickup" type="datetime-local" value={pickup} onChange={(e) => { setPickup(e.target.value); setPrev(null); }} /></div>
+        <div className="field ad-field"><label className="label" htmlFor="pc-return">New return</label><DateInput className="input" id="pc-return" type="datetime-local" value={ret} onChange={(e) => { setRet(e.target.value); setPrev(null); }} /></div>
         <div className="field ad-field"><label className="label" htmlFor="pc-car">Car</label>
           <select className="select" id="pc-car" value={car} onChange={(e) => { setCar(e.target.value); setPrev(null); }}>
             {!cars.some((c) => c.id === vehicleId) && <option value={vehicleId}>The booking&apos;s car</option>}

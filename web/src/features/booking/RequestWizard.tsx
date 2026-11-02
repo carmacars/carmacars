@@ -1,7 +1,8 @@
 'use client';
 import { InfoTip } from '@/components/InfoTip';
+import { scrollOption } from '@/lib/nav/same-page';
 import { AffiliateNote } from '@/features/coverage/AffiliateNote';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Calendar } from '@/features/calendar/Calendar';
@@ -258,7 +259,7 @@ export function RequestWizard(p: WizardProps) {
       sessionStorage.setItem('cc.lastRequest', JSON.stringify({ number: r.data.bookingNumber, car: car ? [car.year, car.name].filter(Boolean).join(' ') : '', from: d.from, to: d.to, tf: d.tf, tt: d.tt, deliver: far(d.pickupAt), total: q?.total_cents ?? r.data.totalCents, deposit: q?.deposit_cents ?? r.data.depositCents, days: q?.billable_days ?? null, email: d.email, first: d.first, coverage: d.coverage }));
       localStorage.removeItem(KEY);
     } catch { /* ignore */ }
-    router.push(`/book/sent/${encodeURIComponent(r.data.bookingNumber)}`);
+    router.push(`/book/sent/${encodeURIComponent(r.data.bookingNumber)}`, scrollOption(`/book/sent/${encodeURIComponent(r.data.bookingNumber)}`));
   }
 
   const err = (k: string) => errors[k];

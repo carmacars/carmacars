@@ -9,8 +9,11 @@ export default defineConfig([
   {
     rules: {
       // Server-only code (service role, database driver) must never reach a client bundle.
-      'no-restricted-imports': ['error', { paths: [{ name: 'postgres', message: 'Use src/lib/db/repo.ts.' }] }]
+      'no-restricted-imports': ['error', { paths: [{ name: 'postgres', message: 'Use src/lib/db/repo.ts.' },
+        // Release 27: the shared Link does not scroll to the top on a tab, filter or page change; next/link does
+        { name: 'next/link', message: "Import Link from '@/components/Link' (it keeps the scroll on same-page links)." }] }]
     }
   },
+  { files: ['src/components/Link.tsx'], rules: { 'no-restricted-imports': 'off' } },
   { files: ['src/lib/db/local.ts', 'src/lib/auth/local.ts', 'scripts/**', 'tests/**'], rules: { 'no-restricted-imports': 'off' } }
 ]);

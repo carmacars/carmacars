@@ -7,6 +7,7 @@ import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 import { checkDetails, detailFields, detailPayload, type RenterMissing } from './renter-details';
 import { useAct } from './useAct';
 import { InfoTip } from '@/components/InfoTip';
+import { TypedInput } from '@/components/DateInput';
 
 // the "i" of a blank (Release 21b)
 const TIP: Record<string, string> = { insurer_name: 'opcf27', policy_number: 'policy_number', policy_expiry: 'policy_expiry', card_issuer: 'card_coverage', card_last4: 'card_coverage' };
@@ -47,7 +48,7 @@ export function CompleteDetails({ number, missing, then }: { number: string; mis
               <span className="label-line"><label className="label" htmlFor={id}>{f.label}</label>{TIP[f.name] && <InfoTip k={TIP[f.name]} topic={f.label} />}</span>
               {f.input === 'insurer' ? <InsurerSelect id={id} value={v[f.name] ?? ''} onChange={(x) => setV((s) => ({ ...s, [f.name]: x }))} required testId="complete-insurer" />
                 : f.input === 'issuer' ? <select className="select" id={id} value={v[f.name] ?? ''} onChange={set(f.name)}>{PROVINCES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}<option value="OTHER">Another country</option></select>
-                : <input className="input" id={id} type={f.input === 'date' ? 'date' : f.input === 'tel' ? 'tel' : 'text'} inputMode={f.input === 'last4' ? 'numeric' : undefined} maxLength={f.input === 'last4' ? 4 : undefined}
+                : <TypedInput className="input" id={id} type={f.input === 'date' ? 'date' : f.input === 'tel' ? 'tel' : 'text'} inputMode={f.input === 'last4' ? 'numeric' : undefined} maxLength={f.input === 'last4' ? 4 : undefined}
                     autoComplete={f.name === 'date_of_birth' ? 'bday' : f.input === 'tel' ? 'tel' : 'off'} value={v[f.name] ?? ''} onChange={set(f.name)} aria-invalid={!!err(f.name) || undefined}
                     aria-describedby={`${f.hint ? `${id}-hint ` : ''}${id}-err`} data-testid={`complete-${f.name}`} />}
               {f.name === 'licence_issuer' && v.licence_issuer === 'OTHER' && <input className="input" aria-label="Country that issued the licence" placeholder="Country that issued the licence" value={v.licence_country ?? ''}

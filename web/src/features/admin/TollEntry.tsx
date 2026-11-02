@@ -1,5 +1,6 @@
 'use client';
 import { useId, useState, useTransition } from 'react';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { FieldInput, convert, type Field } from './Act';
 import { adminAct, uploadAdminDocument } from '@/server/actions/admin-portal';
@@ -39,7 +40,7 @@ export function TollEntry() {
       }
       const r = await adminAct<{ id: string }>('toll_log', { row: out }, ['/admin/tolls']);
       if (!r.ok) { setErr(r.message); return; }
-      router.push(`/admin/tolls/${r.data.id}`);
+      router.push(`/admin/tolls/${r.data.id}`, scrollOption(`/admin/tolls/${r.data.id}`));
     });
   };
   return (

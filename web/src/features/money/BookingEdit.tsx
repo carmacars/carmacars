@@ -10,6 +10,7 @@ import { BalanceActions } from './BalanceActions';
 import { Info } from '@/features/forms/Info';
 import { lineHelp } from '@/features/offers/help';
 import { AddressInput } from '@/features/forms/AddressInput';
+import { TypedInput } from '@/components/DateInput';
 
 // Edit a booking that is confirmed, on trip, returned or (an Admin) closed, directly (migration 0132): the pickup and the
 // return (extend or shorten), the car, the rental charge, each fee, the kilometres, the deposit and the note, in one form.
@@ -57,7 +58,7 @@ export function BookingEdit({ x, fees }: { x: EditForm; fees: Fees | null }) {
   });
   const text = (k: keyof typeof f, label: string, o: { type?: string; hint?: string; inputMode?: 'decimal' | 'numeric' } = {}) => (
     <div className="field ad-field"><label className="label" htmlFor={`be-${k}`}>{label}</label>
-      <input className="input" id={`be-${k}`} type={o.type ?? 'text'} inputMode={o.inputMode} value={f[k]} onChange={set(k)} data-testid={`be-${k}`} />{o.hint && <p className="hint">{o.hint}</p>}</div>);
+      <TypedInput className="input" id={`be-${k}`} type={o.type ?? 'text'} inputMode={o.inputMode} value={f[k]} onChange={set(k)} data-testid={`be-${k}`} />{o.hint && <p className="hint">{o.hint}</p>}</div>);
   return (
     <section className="pt-card ad-card stack" aria-labelledby="be-h" data-testid="booking-edit">
       <div className="pt-card__head"><h2 className="d4" id="be-h">Edit the booking</h2>

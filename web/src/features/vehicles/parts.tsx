@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { CarCard } from '@/components/CarCard';
 import { Crumbs } from '@/components/Crumbs';
 import { Faq } from '@/components/Faq';

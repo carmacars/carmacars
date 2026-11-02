@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Suspense } from 'react';
 import { AuthShell, AuthTabs } from '@/features/forms/AuthShell';
 import { ProviderButtons } from '@/features/forms/ProviderButtons';

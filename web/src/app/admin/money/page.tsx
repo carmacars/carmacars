@@ -1,7 +1,7 @@
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { $, Badge, BookingLink, Filters, PageHead, Table, Tabs, t, d } from '@/features/admin/ui';
 import { KIND_LABEL, METHOD_LABEL, PURPOSE_LABEL, cardLabel, friendly } from '@/features/money/ledger';
 

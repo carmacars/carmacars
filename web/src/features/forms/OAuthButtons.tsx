@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { JSX } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { OAUTH_PROVIDERS, oauthMessage, type OAuthProvider } from '@/lib/auth/oauth';
