@@ -473,7 +473,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'phone_gate_contacts', 'phone_gate_daily',
                             -- fleet tracking (0400): the position history and the trips, written by the ingest (telemetry; the alerts,
                             -- the settings and the devices are audited)
-                            'tracker_points', 'tracker_trips')
+                            'tracker_points', 'tracker_trips',
+                            -- data health (0441): each run of the nightly checks (the last 30 kept), written by the job; what its
+                            -- auto-fix changes is recorded in the audit log as data_health_fix
+                            'data_health_runs')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

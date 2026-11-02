@@ -117,7 +117,8 @@ update tasks set assigned_to = test.id('dh_gone') where dedupe_key = 'dh:gone';
 -- the same task twice; "offer expiring" for a car already out; a request's task when it is no longer a request
 select app.raise_task(p_type => 'maintenance_due', p_title => 'DH service', p_vehicle => test.id('vehicle:dh_g'), p_dedupe => 'dh:dup1');
 select app.raise_task(p_type => 'maintenance_due', p_title => 'DH service', p_vehicle => test.id('vehicle:dh_g'), p_dedupe => 'dh:dup2');
-update tasks set created_at = created_at + interval '1 minute' where dedupe_key = 'dh:dup2';
+-- since 0325 a second copy is merged at once; the check is for the copies already open (an older row, a hand-made one): reopen it
+update tasks set created_at = created_at + interval '1 minute', status = 'open', completion_note = null where dedupe_key = 'dh:dup2';
 select app.raise_task(p_type => 'chase_offer', p_title => 'DH offer expiring soon', p_booking => test.id('booking:DH-OUT'), p_dedupe => 'dh:out');
 
 -- an owner lead whose follow-up was stopped before anyone replied; an old "new" contact lead
