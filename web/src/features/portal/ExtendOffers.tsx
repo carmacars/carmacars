@@ -66,7 +66,7 @@ export function ExtendOffers({ data, children }: { data: ExtOffers; children?: R
             const save = x.available && x.save_pct > 0 && (x.regular_total_cents ?? 0) > (x.total_cents ?? 0);
             return (
               <label key={x.code} htmlFor={id} className="ext__opt" data-on={pick === x.code || undefined} data-off={!x.available || undefined} data-testid={`extend-opt-${x.code}`}>
-                <input type="radio" id={id} name="ext-option" value={x.code} checked={pick === x.code} disabled={!x.available || go.pending} onChange={() => setPick(x.code)} />
+                <input type="radio" id={id} name="ext-option" value={x.code} checked={pick === x.code} disabled={!x.available || go.pending || !!done} onChange={() => setPick(x.code)} />
                 <span className="ext__label">{x.label}</span>
                 <span className="ext__ret">Until {at(x.new_return_at)}</span>
                 {x.available ? (
