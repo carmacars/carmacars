@@ -277,14 +277,14 @@ select test.ex_rates('EX-LINK', 10000);
 select test.eq('pay link: no card on file, approved at once',
   (select r ->> 'status' from app.request_extension_option(test.id('booking:EX-LINK'), test.id('ex_ivan'), '1d') r), 'approved');
 select set_config('app.ex_link_ext', (select id::text from booking_extensions where booking_id = test.id('booking:EX-LINK') and status = 'approved'), false);
-select set_config('app.ex_link', (public.renter_extension_payreq(current_setting('app.ex_link_ext')::uuid, test.id('ex_ivan'), repeat('a', 64)) ->> 'id'), false);
+select set_config('app.ex_link', (public.renter_extension_payreq(current_setting('app.ex_link_ext')::uuid, test.id('ex_ivan'), encode(sha256('ex-link-a'::bytea), 'hex')) ->> 'id'), false);
 select test.eq('pay link: a charge for exactly the extension''s price',
   (select q.kind || '/' || q.covers || '/' || (q.amount_cents = e.total_cents)::text from payment_requests q join booking_extensions e on e.id = q.extension_id where q.id = current_setting('app.ex_link')::uuid),
   'charge/extension/true');
 select test.throws('pay link: only the booking''s renter',
-  format('select public.renter_extension_payreq(%L, %L, %L)', current_setting('app.ex_link_ext'), test.id('ex_rita'), repeat('b', 64)));
+  format('select public.renter_extension_payreq(%L, %L, %L)', current_setting('app.ex_link_ext'), test.id('ex_rita'), encode(sha256('ex-link-b'::bytea), 'hex')));
 -- a second link replaces the first
-select set_config('app.ex_link', (public.renter_extension_payreq(current_setting('app.ex_link_ext')::uuid, test.id('ex_ivan'), repeat('c', 64)) ->> 'id'), false);
+select set_config('app.ex_link', (public.renter_extension_payreq(current_setting('app.ex_link_ext')::uuid, test.id('ex_ivan'), encode(sha256('ex-link-c'::bytea), 'hex')) ->> 'id'), false);
 select test.eq('pay link: a new link closes the earlier one',
   (select count(*) from payment_requests where extension_id = current_setting('app.ex_link_ext')::uuid and status = 'open'), 1::bigint);
 update payment_requests set processor_intent_id = 'pi_test_ex_link' where id = current_setting('app.ex_link')::uuid;
@@ -292,7 +292,7 @@ update payment_requests set processor_intent_id = 'pi_test_ex_link' where id = c
 select test.eq('pay link: an amount that is not the price is refunded',
   (public.server_payreq_settle(current_setting('app.ex_link')::uuid, jsonb_build_object('id', 'pi_test_ex_link', 'status', 'succeeded', 'charge_id', 'ch_test_ex_link',
      'amount', (select total_cents + 1 from booking_extensions where id = current_setting('app.ex_link_ext')::uuid))) ->> 'refund'), 'true');
-select set_config('app.ex_link', (public.renter_extension_payreq(current_setting('app.ex_link_ext')::uuid, test.id('ex_ivan'), repeat('d', 64)) ->> 'id'), false);
+select set_config('app.ex_link', (public.renter_extension_payreq(current_setting('app.ex_link_ext')::uuid, test.id('ex_ivan'), encode(sha256('ex-link-d'::bytea), 'hex')) ->> 'id'), false);
 update payment_requests set processor_intent_id = 'pi_test_ex_link2' where id = current_setting('app.ex_link')::uuid;
 select test.eq('pay link: paid, the extension is confirmed',
   (public.server_payreq_settle(current_setting('app.ex_link')::uuid, jsonb_build_object('id', 'pi_test_ex_link2', 'status', 'succeeded', 'charge_id', 'ch_test_ex_link2',
@@ -304,4 +304,4 @@ select test.eq('pay link: the return moved a day and the link is paid',
 select test.eq('pay link: a repeat of the same payment changes nothing',
   (public.server_payreq_settle(current_setting('app.ex_link')::uuid, jsonb_build_object('id', 'pi_test_ex_link2', 'status', 'succeeded', 'amount', 1)) ->> 'repeat'), 'true');
 select test.throws('pay link: a confirmed extension has nothing to pay',
-  format('select public.renter_extension_payreq(%L, %L, %L)', current_setting('app.ex_link_ext'), test.id('ex_ivan'), repeat('e', 64)));
+  format('select public.renter_extension_payreq(%L, %L, %L)', current_setting('app.ex_link_ext'), test.id('ex_ivan'), encode(sha256('ex-link-e'::bytea), 'hex')));

@@ -44,6 +44,9 @@ test('renter Extend panel: six offers, the reason of a taken one, one tap to pay
     values (${number}, 'standard', 'on_rent', ${car.id}, ${r!.id}, now() - interval '5 days', now() - interval '2 days', now() + interval '5 hours', now() + interval '5 hours',
       public.calc_billable_days(now() - interval '2 days', now() + interval '5 hours'), 10000, 10000, 56000, 180000, 'daily', 30000, 200, 600, 25, 50000, true, 30000,
       now() - interval '2 days', ${pm!.id})`;
+  // the rental is paid (by card), so nothing is unpaid when the card on file is gone below
+  await sql`insert into payments (booking_id, renter_id, purpose, kind, method, amount_cents, status, processed_at)
+            select id, renter_id, 'booking_total', 'charge', 'card', 30000, 'succeeded', now() from bookings where booking_number = ${number}`;
   await sql`insert into bookings (booking_number, booking_type, status, vehicle_id, renter_id, booked_at, pickup_at, return_at, original_return_at, billable_days,
       daily_rate_cents, weekend_rate_cents, weekly_rate_cents, monthly_rate_cents, rate_applied, rental_charge_cents, km_allowance_per_day, km_allowance_total,
       overage_cents_per_km, deposit_cents, blocks_calendar, total_due_at_booking_cents)
