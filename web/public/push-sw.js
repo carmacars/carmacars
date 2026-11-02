@@ -8,23 +8,40 @@ self.addEventListener('push', (event) => {
   let d = {};
   try { d = event.data ? event.data.json() : {}; } catch { d = { body: event.data ? event.data.text() : '' }; }
   const title = typeof d.title === 'string' && d.title ? d.title : 'CarmaCars';
+  // 0466: buttons on staff alerts (Call, Send offer, Approve, Decline, Mark picked up, Snooze 30 min), two at most
+  const actions = Array.isArray(d.actions) ? d.actions.filter((a) => a && typeof a.action === 'string' && typeof a.title === 'string').slice(0, 2) : [];
   event.waitUntil(self.registration.showNotification(title, {
     body: typeof d.body === 'string' ? d.body : '',
     tag: typeof d.tag === 'string' ? d.tag : undefined,
-    data: { url: typeof d.url === 'string' ? d.url : '/' },
+    data: { url: typeof d.url === 'string' ? d.url : '/', nid: typeof d.nid === 'string' ? d.nid : null,
+            actions: actions.map((a) => ({ action: a.action, url: typeof a.url === 'string' ? a.url : null })) },
+    actions: actions.map((a) => ({ action: a.action, title: a.title })),
     icon: '/icons/icon-192.png',
     badge: '/icons/badge-96.png'
   }));
 });
 
+// a page of this site only (anything else opens the portal)
+function sameSite(href) {
+  try {
+    const u = new URL(href || '/', self.location.origin);
+    if (u.origin === self.location.origin) return u;
+  } catch { /* the portal */ }
+  return new URL('/', self.location.origin);
+}
+
 // a tap opens the page in a CarmaCars window already open, or a new one; only pages of this site
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  let url = new URL('/', self.location.origin);
-  try {
-    const u = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin);
-    if (u.origin === self.location.origin) url = u;
-  } catch { /* the portal */ }
+  const data = event.notification.data || {};
+  // Snooze 30 min: the site sends the alert again then (and holds its escalation); no window opens
+  if (event.action === 'snooze' && data.nid) {
+    event.waitUntil(fetch('/api/alerts/snooze', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id: data.nid, minutes: 30 }) }).catch(() => undefined));
+    return;
+  }
+  const button = event.action && Array.isArray(data.actions) ? data.actions.find((a) => a.action === event.action) : null;
+  const url = sameSite((button && button.url) || data.url);
   event.waitUntil((async () => {
     const open = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const c of open) {

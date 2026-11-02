@@ -18,6 +18,7 @@ import { LicenceNotice, licenceState, renterMissing } from '@/features/portal/Li
 import { door } from '@/server/door';
 import { bookingDriverLinks } from '@/server/portal/driver-links';
 import { DriverLink } from '@/features/portal/DriverLink';
+import { PushInvite } from '@/features/push/PushAlerts';
 import { PortalAddons, type MyAddons } from '@/features/addons/PortalAddons';
 import { renterPayBalance } from '@/server/actions/balance';
 import type { HandoverReportData } from '@/features/handover/types';
@@ -114,6 +115,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
       {sp.changed && <div className="pt-ok" role="status" data-testid="changed-panel"><h2 className="d3">Booking updated</h2><p>Your booking has the new details. The signed amendment is under Documents, and we emailed you a copy.</p></div>}
       {sp.declined && <div className="pt-ok" role="status" data-testid="declined-panel"><h2 className="d3">Change declined</h2><p>Your booking stays as it was. We let our team know.</p></div>}
       {sp.paid && b.status === 'on_rent' && b.added_live && !b.link_due && <div className="pt-ok" role="status" data-testid="paid-live-panel"><h2 className="d3">Paid, thank you</h2><p>Your card was charged {money(b.renter_due_at_booking_cents, { cents: true })} for your rental. Your signed agreement and receipt are below.</p></div>}
+      {b.status === 'confirmed' && <PushInvite portal="renter" home={`/account/bookings/${b.booking_number}`} moment={{ key: 'booked', title: 'Get your pickup reminders as alerts', text: 'Pickup details, return reminders and messages from us on this device, the moment they happen.' }} />}
       {sp.paid && b.status === 'confirmed' && <div className="pt-ok" role="status" data-testid="paid-panel"><h2 className="d3">Booking confirmed</h2><p>Your card was charged {money(card?.amount_cents ?? b.renter_due_at_booking_cents, { cents: true })} and the car is reserved for you. Your signed agreement and receipt are below.</p></div>}
 
       {detailsMissing.length > 0 && <CompleteDetails number={b.booking_number} missing={detailsMissing} />}

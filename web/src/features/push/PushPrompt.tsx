@@ -22,25 +22,29 @@ const WHAT: Record<PushRole, string> = {
   admin: 'New requests, payments, messages and urgent alerts, the moment they happen.'
 };
 export const SETTINGS: Record<PushRole, string> = {
-  renter: '/account/profile', owner: '/owner/account', investor: '/investor/profile', staff: '/staff/profile', field: '/staff/field/profile', admin: '/admin/alerts'
+  renter: '/account/profile', owner: '/owner/account', investor: '/investor/profile', staff: '/staff/profile', field: '/staff/field/profile', admin: '/admin/alerts?tab=settings'
 };
 
 const noop = () => () => undefined;
-function dismissed(): boolean {
-  try { const t = Number(localStorage.getItem(KEY)); return t > 0 && Date.now() - t < QUIET_DAYS * 86_400_000; } catch { return false; }
+function dismissed(key = KEY): boolean {
+  try { const t = Number(localStorage.getItem(key)); return t > 0 && Date.now() - t < QUIET_DAYS * 86_400_000; } catch { return false; }
 }
 
-export function PushPrompt({ publicKey, portal, home, native = false }: { publicKey: string | null; portal: PushRole; home: string | string[]; native?: boolean }) {
+/** A useful moment to ask (0466): a renter whose booking is confirmed, for example. Its own "Not now", its own words. */
+export interface PushMoment { key: string; title: string; text: string }
+
+export function PushPrompt({ publicKey, portal, home, native = false, moment }: { publicKey: string | null; portal: PushRole; home: string | string[]; native?: boolean; moment?: PushMoment }) {
+  const key = moment ? `${KEY}-${moment.key}` : KEY;
   const path = usePathname();
   const homes = Array.isArray(home) ? home : [home];
   // asked on this device in the last 30 days, or a test browser: no invitation (the server render never has one)
-  const quiet = useSyncExternalStore(noop, () => dismissed() || navigator.webdriver === true, () => true);
+  const quiet = useSyncExternalStore(noop, () => dismissed(key) || navigator.webdriver === true, () => true);
   const [closed, setHidden] = useState(false);
   const [done, setDone] = useState(false);
   const d = usePushDevice(publicKey, portal, null, { readState: false, native });
   if (!homes.includes(path) || quiet || closed || d.status === 'loading') return null;
   if (!done && !(d.status === 'ready' || d.status === 'ios_install')) return null;
-  const notNow = () => { try { localStorage.setItem(KEY, String(Date.now())); } catch { /* private mode */ } setHidden(true); };
+  const notNow = () => { try { localStorage.setItem(key, String(Date.now())); } catch { /* private mode */ } setHidden(true); };
 
   if (done) {
     return (
@@ -57,8 +61,8 @@ export function PushPrompt({ publicKey, portal, home, native = false }: { public
     <aside className="pa-prompt" aria-label="Phone alerts" data-testid="push-prompt">
       <span className="pa-prompt__icon" aria-hidden="true"><Bell /></span>
       <div className="pa-prompt__text">
-        <p className="pa-prompt__title">{ios ? 'Get CarmaCars alerts on your iPhone' : native ? 'Get alerts on this phone' : 'Get alerts on this device'}</p>
-        <p className="small">{ios ? <>Tap <b>Share</b> <ShareIcon /> then <b>Add to Home Screen</b>. Open CarmaCars from there to turn alerts on.</> : WHAT[portal]}</p>
+        <p className="pa-prompt__title">{ios ? 'Get CarmaCars alerts on your iPhone' : moment ? moment.title : native ? 'Get alerts on this phone' : 'Get alerts on this device'}</p>
+        <p className="small">{ios ? <>Tap <b>Share</b> <ShareIcon /> then <b>Add to Home Screen</b>. Open CarmaCars from there to turn alerts on.</> : moment ? moment.text : WHAT[portal]}</p>
         {d.error && <p className="small pa-prompt__error" role="alert">{d.error}</p>}
       </div>
       <div className="pa-prompt__actions">

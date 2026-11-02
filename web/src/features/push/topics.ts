@@ -1,13 +1,16 @@
-// Phone and browser alerts (migration 0300): the seven topics, their words for each portal, and the small browser facts
+// Phone and browser alerts (migration 0300): the nine topics, their words for each portal, and the small browser facts
 // the alerts card needs (which device this is, whether iOS needs the Home Screen first). No imports: shared by the
 // server, the card and the unit tests.
 
-export const TOPICS = ['requests', 'bookings', 'payments', 'handovers', 'messages', 'alerts', 'documents'] as const;
+export const TOPICS = ['requests', 'bookings', 'payments', 'handovers', 'messages', 'alerts', 'documents', 'leads', 'visitors'] as const;
 export type Topic = (typeof TOPICS)[number];
 export type PushRole = 'renter' | 'owner' | 'investor' | 'staff' | 'field' | 'admin';
 
 export interface PushDevice { id: string; device: string; portal: string | null; created_at: string; last_sent_at: string | null; this: boolean }
-export interface PushState { enabled: boolean; role: PushRole; topics: Topic[]; defaults: Topic[]; chosen: boolean; this_device: boolean | null; devices: PushDevice[] }
+export interface PushStore { ios: string | null; android: string | null }
+export interface PushState { store?: PushStore; enabled: boolean; role: PushRole; topics: Topic[]; defaults: Topic[]; chosen: boolean; this_device: boolean | null; devices: PushDevice[];
+  /** This device's own topics (0466); null or missing: it follows the person's choice. */
+  device_topics?: Topic[] | null }
 
 const COMMON: Record<Topic, [string, string]> = {
   requests: ['New requests and offers', 'A booking request comes in or an offer is ready.'],
@@ -16,7 +19,9 @@ const COMMON: Record<Topic, [string, string]> = {
   handovers: ['Pickups and returns', 'A handover is due, with the time and place.'],
   messages: ['Messages', 'A reply from us or a new message to answer.'],
   alerts: ['Urgent alerts', 'Late returns, incidents and anything that cannot wait.'],
-  documents: ['Documents and statements', 'Something to sign, upload or read.']
+  documents: ['Documents and statements', 'Something to sign, upload or read.'],
+  leads: ['New leads', 'A new lead, a request left unfinished or a new owner lead.'],
+  visitors: ['Hot visitors', 'A visitor on the site is ready to book.']
 };
 const BY_ROLE: Partial<Record<PushRole, Partial<Record<Topic, [string, string]>>>> = {
   renter: {
@@ -42,15 +47,15 @@ export function topicLabel(role: PushRole, t: Topic): { label: string; hint: str
 
 /** The topics a portal shows: every topic that can reach someone in it (an investor has no handovers or requests). */
 const SHOWN: Record<PushRole, Topic[]> = {
-  renter: [...TOPICS],
+  renter: ['requests', 'bookings', 'payments', 'handovers', 'messages', 'alerts', 'documents'],
   owner: ['requests', 'bookings', 'payments', 'alerts', 'documents'],
   investor: ['payments', 'documents', 'messages'],
-  staff: ['requests', 'bookings', 'payments', 'messages', 'alerts'],
+  staff: ['requests', 'bookings', 'payments', 'messages', 'alerts', 'leads', 'visitors'],
   field: ['handovers', 'payments'],
-  admin: ['requests', 'bookings', 'payments', 'messages', 'alerts']
+  admin: ['requests', 'bookings', 'payments', 'messages', 'alerts', 'leads', 'visitors']
 };
 export function topicsFor(role: PushRole): Topic[] {
-  return SHOWN[role] ?? [...TOPICS];
+  return SHOWN[role] ?? SHOWN.renter;
 }
 
 /** A short name for this device, so a person can tell their devices apart ("iPhone, Safari"). */
@@ -75,4 +80,12 @@ export function supportOf(b: { ua: string; maxTouchPoints?: number; standalone: 
   if (!b.hasPush || b.permission === 'none') return 'unsupported';
   if (b.permission === 'denied') return 'blocked';
   return 'ready';
+}
+
+/** The native app is in the stores (0463): a phone is asked to download it instead of turning on browser alerts. Inside the app (its user agent says so) the native prompt is used instead. */
+export function storeLink(ua: string, store: PushStore | undefined, maxTouchPoints = 0): { platform: 'ios' | 'android'; url: string } | null {
+  if (!store || /CarmaCarsApp/.test(ua)) return null;
+  if (isIos(ua, maxTouchPoints) && store.ios) return { platform: 'ios', url: store.ios };
+  if (/Android/.test(ua) && store.android) return { platform: 'android', url: store.android };
+  return null;
 }

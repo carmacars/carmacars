@@ -8,3 +8,9 @@ export async function requestMeta() {
   const ip = h.get('cf-connecting-ip') ?? h.get('x-forwarded-for')?.split(',')[0]?.trim() ?? h.get('x-real-ip') ?? null;
   return { ip: ip && /^[0-9a-f:.]+$/i.test(ip) ? ip : null, userAgent: (h.get('user-agent') ?? '').slice(0, 300), requestId: h.get('cf-ray') ?? crypto.randomUUID(), referer: h.get('referer') };
 }
+
+/** The country Cloudflare saw for this request (two letters), or null (locally, or a Tor exit: XX/T1). */
+export async function requestCountry(): Promise<string | null> {
+  const c = ((await headers()).get('cf-ipcountry') ?? '').toUpperCase();
+  return /^[A-Z]{2}$/.test(c) && c !== 'XX' ? c : null;
+}

@@ -476,7 +476,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'tracker_points', 'tracker_trips',
                             -- data health (0441): each run of the nightly checks (the last 30 kept), written by the job; what its
                             -- auto-fix changes is recorded in the audit log as data_health_fix
-                            'data_health_runs')
+                            'data_health_runs',
+                            -- sign-in security (0466): each password sign-in, written by the sign-in form only (a log, kept 90 days)
+                            'sign_in_events')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);
