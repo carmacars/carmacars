@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Crumbs } from '@/components/Crumbs';
 import { JsonLd } from '@/components/JsonLd';
 import { SlotPicture } from '@/components/Picture';

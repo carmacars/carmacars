@@ -1,0 +1,14 @@
+/* The shared date fields (Release 27). The calendar and popover themselves are the public booking ones (core.css). */
+.dp { position: relative; display: block; min-width: 0; }
+.dp__text { padding-right: 3rem; }
+.dp__btn { position: absolute; top: 0; right: 0; bottom: 0; width: 2.9rem; display: grid; place-items: center; color: var(--grey-700); border-radius: 0 var(--r-2) var(--r-2) 0; }
+.dp__btn svg { width: 18px; height: 18px; }
+.dp__btn:hover { color: var(--black); }
+.dp__btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--white), 0 0 0 6px var(--red-600); }
+.dp__pop { width: min(92vw, 22rem); }
+.dp__time { margin-top: var(--s-4); }
+.dp--range .dp__pop { width: min(92vw, 43rem); }
+.dpr { position: relative; min-width: 0; }
+.dpr__btn { width: 100%; }
+.dpr__chips { display: flex; margin-bottom: var(--s-4); }
+@media (max-width: 43.99rem) { .dp__pop { width: auto; } .dp--range .dp__pop { width: auto; } }

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { Card, PageHead, Search, Table } from '@/features/admin/ui';

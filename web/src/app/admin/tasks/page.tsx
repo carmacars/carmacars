@@ -1,6 +1,6 @@
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { adminTaskHref } from '@/features/va/tasks';
 import { Badge, BookingLink, Filters, PageHead, Table, t, label } from '@/features/admin/ui';

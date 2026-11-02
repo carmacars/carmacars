@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { day } from '@/features/owner/Blocks';
 import { ONBOARDING_STATUS } from '@/features/owner/types';

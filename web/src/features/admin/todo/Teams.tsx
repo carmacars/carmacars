@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Card } from '@/features/admin/ui';
 import { teamLine } from './need';
 import type { TodoTeam } from './types';

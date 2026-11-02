@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { CarCopyPanel, type CarCopyData } from '@/features/seo/CarCopyPanel';
 import '@/features/live/live.css';
 import { CarInterest, type Interest } from '@/features/live/CarInterest';

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { when } from '@/features/agreement/model';
 import { AddressLookup } from '@/features/forms/AddressFields';
 import { editRenter } from '@/server/actions/offers';
+import { TypedInput } from '@/components/DateInput';
 
 // Correct a renter's details (migration 0132), from the renter's page or any booking: the name, email, phone, date of
 // birth, home address (with the address lookup), licence and a staff note. A new email goes to the sign-in at once; the
@@ -42,7 +43,7 @@ export function RenterEdit({ x, startOpen = false }: { x: RenterForm; startOpen?
   });
   const input = (k: K, type = 'text') => (
     <div className="field ad-field" key={k}><label className="label" htmlFor={`re-${k}`}>{LABEL[k]}</label>
-      <input className="input" id={`re-${k}`} type={type} value={f[k]} onChange={(e) => setF((s) => ({ ...s, [k]: e.target.value }))} data-testid={`re-${k}`} /></div>);
+      <TypedInput className="input" id={`re-${k}`} type={type} value={f[k]} onChange={(e) => setF((s) => ({ ...s, [k]: e.target.value }))} data-testid={`re-${k}`} /></div>);
   return (
     <section className="pt-card ad-card stack" aria-labelledby="re-h" data-testid="renter-edit">
       <div className="pt-card__head"><h2 className="d4" id="re-h">Renter details</h2>

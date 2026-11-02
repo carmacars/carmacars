@@ -1,5 +1,5 @@
 import './bookings-now.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 
 // Bookings' two tabs (the owner, Release 26: "There's way too many tabs at the moment and information is spread out too
 // much", "We need less pages not more"): Now (what is out, coming back, going out, owed and free) and All bookings (the

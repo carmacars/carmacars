@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { staffDo, staffRead, uploadNotice } from '@/server/actions/staff-tools';
 import { useDoor } from '@/features/admin/door';
@@ -33,7 +34,7 @@ export function TollReader({ base }: { base: '/admin' | '/staff' }) {
     say('Saving what was read');
     const r = await staffDo<{ id: string }>('toll_read_save', { ...s, document_id: docId, file_name: file?.name ?? null, mime_type: file?.type || null });
     if (!r.ok) throw new Error(r.message);
-    router.push(`${base}/tolls/read/${r.data.id}`);
+    router.push(`${base}/tolls/read/${r.data.id}`, scrollOption(`${base}/tolls/read/${r.data.id}`));
   }
 
   async function vision(pages: Array<() => Promise<string>>, fallbackKind: Kind): Promise<Save> {

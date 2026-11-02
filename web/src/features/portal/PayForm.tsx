@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { fakeConfirmCard, finalizePayment, startPayment, type StartedPayment } from '@/server/actions/portal';
 import { money } from '@/lib/format';
@@ -56,7 +57,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
   const finish = async (intentId: string) => {
     setMsg({ kind: 'wait', text: 'Card approved. We are finalizing your booking.' });
     const r = await finalizePayment(number, intentId);
-    if (r.ok && r.data.ok) { router.push(`/account/bookings/${encodeURIComponent(number)}?paid=1`); return; }
+    if (r.ok && r.data.ok) { router.push(`/account/bookings/${encodeURIComponent(number)}?paid=1`, scrollOption(`/account/bookings/${encodeURIComponent(number)}?paid=1`)); return; }
     const text = r.ok ? (r.data as { message: string }).message : r.message;
     const reason = r.ok && !r.data.ok ? r.data.reason : '';
     setMsg({ kind: ['vehicle_taken', 'not_awaiting_payment', 'vehicle_not_bookable', 'offer_changed'].includes(reason) ? 'pushed' : 'error', text, coverage: reason === 'card_not_credit_coverage' });

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { money } from '@/lib/format';
 import { day, monthOf } from './Blocks';
 import type { OwnerMonthToDate } from './types';

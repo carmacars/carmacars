@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { CarLine, Chip, Who } from './parts';
 import { BILL_WORDS, money, when, type Car } from './model';
 import type { Card, Cards } from './cards';

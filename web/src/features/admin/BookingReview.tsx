@@ -20,6 +20,7 @@ import { DEPOSIT_PAY, RENTAL_PAY, describeRevision } from '@/features/offers/mod
 import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/insurers/rates';
 import { InsurerFeesFields } from '@/features/insurers/InsurerFeesFields';
 import { INSURER_FEES, insurerFeesPayload, insurerFeesRemoval, isInsurerFee, typedFrom } from '@/features/insurers/fees';
+import { TypedInput } from '@/components/DateInput';
 
 // Review and adjust a booking request (03-admin.md section 4.2). Staff change the booking itself; every
 // edit is priced by the database (adjust_booking and the pricing functions inside a rolled-back
@@ -72,7 +73,7 @@ const Ctx = createContext<CtxT>({ v: {}, set: () => () => {}, changed: () => fal
 const F = ({ k, l, type = 'text', hint, money: m }: { k: string; l: string; type?: string; hint?: string; money?: boolean }) => { const { v, set, changed, editable } = useContext(Ctx); return (
   <div className={`field ad-field${changed(k) ? ' ad-diff' : ''}`}>
     <span className="label-line"><label className="label" htmlFor={`rv-${k}`}>{l}{m ? ' ($)' : ''}</label>{TIP[k] && <Info text={infoText(TIP[k])!} label={`About ${l}`} />}</span>
-    <input className="input" id={`rv-${k}`} type={type} value={String(v[k] ?? '')} disabled={!editable} inputMode={m ? 'decimal' : undefined}
+    <TypedInput className="input" id={`rv-${k}`} type={type} value={String(v[k] ?? '')} disabled={!editable} inputMode={m ? 'decimal' : undefined}
       onChange={(e) => set(k)(e.target.value)} aria-describedby={hint ? `rv-${k}-h` : undefined} />
     {hint && <p className="hint" id={`rv-${k}-h`}>{hint}</p>}
   </div>

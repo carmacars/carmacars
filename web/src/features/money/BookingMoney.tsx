@@ -7,6 +7,7 @@ import { chargeSavedCard, holdAction, offersDo, startCardRequest } from '@/serve
 import { Table } from '@/features/admin/ui';
 import { CardTools, type CardRule } from './CardTools';
 import { depositAutoText, type DepositAuto } from './deposit-auto-text';
+import { DateInput } from '@/components/DateInput';
 
 // The money of a booking by part (migration 0129): what is open for the rental, the fees and later charges; the deposit
 // and how it was taken; the card on file. Record a payment received another way (e-Transfer, cash, cheque, bank
@@ -130,7 +131,7 @@ export function BookingMoney({ m }: { m: Money }) {
               <p className="hint" id="bm-amount-h">Empty: what is open for it</p></div>
             <div className="field ad-field"><label className="label" htmlFor="bm-ref">Reference{['e_transfer', 'cheque', 'bank_transfer'].includes(rec.method) ? '' : ' (optional)'}</label>
               <input className="input" id="bm-ref" value={rec.reference} onChange={(e) => setRec({ ...rec, reference: e.target.value })} data-testid="bm-ref" /></div>
-            <div className="field ad-field"><label className="label" htmlFor="bm-on">Received on</label><input className="input" id="bm-on" type="date" value={rec.received_on} max={today()} onChange={(e) => setRec({ ...rec, received_on: e.target.value })} /></div>
+            <div className="field ad-field"><label className="label" htmlFor="bm-on">Received on</label><DateInput className="input" id="bm-on" type="date" value={rec.received_on} max={today()} onChange={(e) => setRec({ ...rec, received_on: e.target.value })} /></div>
             <div className="field ad-field"><label className="label" htmlFor="bm-note">Note{rec.method === 'other' ? '' : ' (optional)'}</label><input className="input" id="bm-note" value={rec.note} onChange={(e) => setRec({ ...rec, note: e.target.value })} /></div>
           </div>
           <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="bm-record-save">{pending ? 'Saving' : 'Record it'}</button>

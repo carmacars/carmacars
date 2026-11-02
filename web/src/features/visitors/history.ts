@@ -9,6 +9,10 @@ export interface HistoryRow {
   landing_path: string | null; landing: string | null; exit_path: string | null; exit: string | null;
   page_views: number; cars_viewed: number; visit_number: number; returning: boolean; conversions: Conversion[]; has_contact: boolean;
   exclude_reason: 'bot' | 'staff' | null; summarized: boolean;
+  /** 0470: what the person is to us, the visit's score, up to 3 cars viewed (with their photos) of cars_n, the first pages, and whether a chat was opened */
+  roles?: string[]; owner_id?: string | null; score?: number | null;
+  cars?: Array<{ id: string; name: string; photo: { path: string; variants?: Array<{ width: number; path: string }> | null; alt?: string | null } | null }>; cars_n?: number;
+  trail?: Array<{ at: string; path: string | null; page: string | null }>; chat?: boolean;
 }
 export interface DayFigure { day: string; visits: number; visitors: number; converted: number; page_views: number }
 export interface TopRow { key: string; label?: string | null; n: number }
@@ -127,4 +131,41 @@ export function chartModel(days: DayFigure[], W = 600, H = 120) {
   const line = days.map((d, i) => `${(i * bw + bw / 2).toFixed(1)},${y(d.visitors).toFixed(1)}`).join(' ');
   const peak = days.reduce<DayFigure | null>((a, b) => (!a || b.visits > a.visits ? b : a), null);
   return { W, H, max, bars, line, peak };
+}
+
+/** The day a visit belongs to, in words: Today, Yesterday, then "Mon, Nov 3" (Toronto). */
+export function dayHeading(iso: string, now = Date.now()): string {
+  const day = (x: number | string) => new Date(x).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
+  const d = day(iso), today = day(now), yesterday = day(now - 86_400_000);
+  if (d === today) return 'Today';
+  if (d === yesterday) return 'Yesterday';
+  return new Date(iso).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Toronto' }).replace(',', '');
+}
+/** Rows in the order they came, grouped by their day (a day's heading once). */
+export function groupByDay<T extends { started_at: string }>(rows: T[], now = Date.now()): Array<{ heading: string; day: string; rows: T[] }> {
+  const out: Array<{ heading: string; day: string; rows: T[] }> = [];
+  for (const r of rows) {
+    const day = new Date(r.started_at).toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
+    const last = out[out.length - 1];
+    if (last && last.day === day) last.rows.push(r); else out.push({ heading: dayHeading(r.started_at, now), day, rows: [r] });
+  }
+  return out;
+}
+/** Short source for a row: Ad, Google, Direct, or the referring site. */
+export function shortSource(r: Pick<HistoryRow, 'source' | 'utm_source' | 'from_ad'>): string {
+  if (r.from_ad) return r.utm_source ? `Ad · ${r.utm_source}` : 'Ad';
+  if (r.utm_source) return r.utm_source;
+  if (r.source === 'direct') return 'Direct';
+  if (r.source === 'not recorded') return 'n/a';
+  return r.source.replace(/^www\./, '');
+}
+/** The outcome chip: the strongest conversion, else a chat, else "Left". */
+export function outcomeOf(r: Pick<HistoryRow, 'conversions' | 'chat' | 'exclude_reason'>): { key: string; label: string } {
+  if (r.exclude_reason) return { key: 'bot', label: r.exclude_reason === 'bot' ? 'Bot' : 'Staff' };
+  if (r.conversions.includes('booking')) return { key: 'booking', label: 'Booked' };
+  if (r.conversions.includes('request')) return { key: 'request', label: 'Request sent' };
+  if (r.conversions.includes('signup')) return { key: 'signup', label: 'Account' };
+  if (r.conversions.includes('contact')) return { key: 'contact', label: 'Lead' };
+  if (r.chat) return { key: 'chat', label: 'Chat' };
+  return { key: 'left', label: 'Left' };
 }

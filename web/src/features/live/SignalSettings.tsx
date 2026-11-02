@@ -1,6 +1,6 @@
 'use client';
 import './live.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useState } from 'react';
 import { ACTION_WORDS, GROUP_WORDS, liveDo, type SignalAction, type SignalConfig, type SignalRule, type SignalSettingsData } from './staff';
 

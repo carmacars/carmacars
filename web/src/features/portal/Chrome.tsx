@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { ReactNode } from 'react';
 
 // The portals' shared pieces since the cleanup of October 23, 2026 (the owner's feedback: "a lot of confusion and

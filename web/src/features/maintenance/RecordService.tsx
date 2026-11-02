@@ -3,6 +3,7 @@ import { useEffect, useId, useMemo, useRef, useState, useTransition } from 'reac
 import { useRouter } from 'next/navigation';
 import { maintCar, recordService } from '@/server/actions/maintenance';
 import { billingWords, hstOf, kmText, preselect, SEASON_LABEL, SEASONS, STATUS_LABEL, STATUS_TONE, type CarMaintenance, type Payer, type Season } from './model';
+import { DateInput } from '@/components/DateInput';
 
 type Extra = { expires_on?: string; tread_mm?: string; tire_set_id?: string; store_removed_at?: string; new_tires?: boolean; season?: Season; size?: string; brand?: string; made_on?: string };
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
@@ -118,7 +119,7 @@ export function RecordService({ vehicleId, car: given, label = 'Record a service
                   </label>
                   {picked.includes(i.code) && i.kind === 'expiry' && (
                     <div className="field mt-sub"><label className="label" htmlFor={`${idp}-${i.code}-x`}>New expiry date</label>
-                      <input className="input" id={`${idp}-${i.code}-x`} type="date" value={ex(i.code).expires_on ?? ''} onChange={(e) => setEx(i.code, { expires_on: e.target.value })} aria-describedby={`${idp}-${i.code}-xh`} />
+                      <DateInput className="input" id={`${idp}-${i.code}-x`} type="date" value={ex(i.code).expires_on ?? ''} onChange={(e) => setEx(i.code, { expires_on: e.target.value })} aria-describedby={`${idp}-${i.code}-xh`} />
                       <p className="hint" id={`${idp}-${i.code}-xh`}>Empty: {i.interval_months ?? 12} months from the service date.</p></div>
                   )}
                   {picked.includes(i.code) && i.kind === 'tires' && (
@@ -131,7 +132,7 @@ export function RecordService({ vehicleId, car: given, label = 'Record a service
                           <div className="field"><label className="label" htmlFor={`${idp}-nz`}>Size</label><input className="input" id={`${idp}-nz`} value={ex(i.code).size ?? ''} placeholder="225/45R17" onChange={(e) => setEx(i.code, { size: e.target.value })} /></div>
                           <div className="field"><label className="label" htmlFor={`${idp}-nb`}>Brand and model</label><input className="input" id={`${idp}-nb`} value={ex(i.code).brand ?? ''} onChange={(e) => setEx(i.code, { brand: e.target.value })} /></div>
                           <div className="field"><label className="label" htmlFor={`${idp}-nt2`}>Tread depth (mm)</label><input className="input" id={`${idp}-nt2`} inputMode="decimal" value={ex(i.code).tread_mm ?? ''} onChange={(e) => setEx(i.code, { tread_mm: e.target.value })} /></div>
-                          <div className="field"><label className="label" htmlFor={`${idp}-nm`}>Made (DOT date)</label><input className="input" id={`${idp}-nm`} type="date" value={ex(i.code).made_on ?? ''} onChange={(e) => setEx(i.code, { made_on: e.target.value })} /></div>
+                          <div className="field"><label className="label" htmlFor={`${idp}-nm`}>Made (DOT date)</label><DateInput className="input" id={`${idp}-nm`} type="date" value={ex(i.code).made_on ?? ''} onChange={(e) => setEx(i.code, { made_on: e.target.value })} /></div>
                         </div>
                       ) : (
                         <div className="field"><label className="label" htmlFor={`${idp}-tr`}>Tread depth measured (mm)</label><input className="input" id={`${idp}-tr`} inputMode="decimal" value={ex(i.code).tread_mm ?? ''} onChange={(e) => setEx(i.code, { tread_mm: e.target.value })} /></div>
@@ -153,7 +154,7 @@ export function RecordService({ vehicleId, car: given, label = 'Record a service
               </ul>
             </fieldset>
             <div className="ad-fields">
-              <div className="field"><label className="label" htmlFor={`${idp}-d`}>Date done</label><input className="input" id={`${idp}-d`} type="date" required max={car.today} value={f.done_on} onChange={(e) => setF({ ...f, done_on: e.target.value })} /></div>
+              <div className="field"><label className="label" htmlFor={`${idp}-d`}>Date done</label><DateInput className="input" id={`${idp}-d`} type="date" required max={car.today} value={f.done_on} onChange={(e) => setF({ ...f, done_on: e.target.value })} /></div>
               <div className="field"><label className="label" htmlFor={`${idp}-km`}>Odometer (km)</label><input className="input" id={`${idp}-km`} inputMode="numeric" value={f.odometer} onChange={(e) => setF({ ...f, odometer: e.target.value.replace(/[^\d]/g, '') })} aria-describedby={`${idp}-kmh`} data-testid={`${testId}-km`} />
                 <p className="hint" id={`${idp}-kmh`}>Now about {kmText(car.current_km) || 'unknown'}. Empty: the reading of that day.</p></div>
               <div className="field"><label className="label" htmlFor={`${idp}-shop`}>Shop</label><input className="input" id={`${idp}-shop`} value={f.shop} onChange={(e) => setF({ ...f, shop: e.target.value })} data-testid={`${testId}-shop`} /></div>

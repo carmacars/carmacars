@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { saveRegistration, uploadVehicleDocument } from '@/server/actions/vehicle-registration';
 import { PermitScan } from './PermitScan';
 import type { PermitRead } from './permit-read';
+import { DateInput, TypedInput } from '@/components/DateInput';
 
 // A car's registration (migration 0237): the VIN (checked and decoded again), the year, the body style, the Ontario permit
 // number and the plate sticker expiry (a fleet task 30 and 7 days before it); and the car's documents, the ownership permit
@@ -41,7 +42,7 @@ export function Registration({ d }: { d: RegistrationData }) {
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF((x) => ({ ...x, [k]: e.target.value }));
   const field = (k: keyof typeof f, label: string, type = 'text', hint?: string) => (
     <div className="field ad-field"><label className="label" htmlFor={`reg-${k}`}>{label}</label>
-      <input className="input" id={`reg-${k}`} type={type} value={f[k]} onChange={set(k)} data-testid={`reg-${k}`} />{hint && <p className="hint">{hint}</p>}</div>);
+      <TypedInput className="input" id={`reg-${k}`} type={type} value={f[k]} onChange={set(k)} data-testid={`reg-${k}`} />{hint && <p className="hint">{hint}</p>}</div>);
   return (
     <section className="pt-card ad-card stack" aria-labelledby="reg-h" data-testid="vehicle-registration">
       <div className="pt-card__head"><h2 className="d4" id="reg-h">Registration</h2></div>
@@ -75,9 +76,9 @@ export function Registration({ d }: { d: RegistrationData }) {
           <div className="field ad-field"><label className="label" htmlFor="reg-ssc-number">Certificate number</label>
             <input className="input" id="reg-ssc-number" value={ssc.number} onChange={(e) => setSsc((x) => ({ ...x, number: e.target.value }))} data-testid="reg-ssc-number" /></div>
           <div className="field ad-field"><label className="label" htmlFor="reg-ssc-issued">Issued on</label>
-            <input className="input" id="reg-ssc-issued" type="date" value={ssc.issued_on} onChange={(e) => setSsc((x) => ({ ...x, issued_on: e.target.value }))} data-testid="reg-ssc-issued" /></div>
+            <DateInput className="input" id="reg-ssc-issued" type="date" value={ssc.issued_on} onChange={(e) => setSsc((x) => ({ ...x, issued_on: e.target.value }))} data-testid="reg-ssc-issued" /></div>
           <div className="field ad-field"><label className="label" htmlFor="reg-ssc-expires">Expires on</label>
-            <input className="input" id="reg-ssc-expires" type="date" value={ssc.expires_on} onChange={(e) => setSsc((x) => ({ ...x, expires_on: e.target.value }))} data-testid="reg-ssc-expires" />
+            <DateInput className="input" id="reg-ssc-expires" type="date" value={ssc.expires_on} onChange={(e) => setSsc((x) => ({ ...x, expires_on: e.target.value }))} data-testid="reg-ssc-expires" />
             <p className="hint">Fleet gets a task 30 and 7 days before.</p></div>
         </>}
       </div>

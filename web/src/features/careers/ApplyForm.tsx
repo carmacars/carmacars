@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { submitApplication, type ApplyResult } from '@/server/actions/careers';
 import { describedBy, Field } from '@/features/forms/Field';

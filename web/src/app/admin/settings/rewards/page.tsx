@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
+import { GetForm } from '@/components/GetForm';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
@@ -63,10 +64,10 @@ export default async function RewardsAdmin({ searchParams }: { searchParams: Pro
         { key: 'booking_number', label: 'Booking' }, { key: 'review_name', label: 'Name on the review' }, { key: 'points', label: 'Points', num: true }, { key: 'act', label: '', render: reverse }]} />
     </Card>
     <Card title="A renter's points" testId="rw-renter">
-      <form method="get" className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <GetForm action="/admin/settings/rewards" className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div className="field"><label htmlFor="rw-q">Name, email or phone</label><input id="rw-q" name="q" defaultValue={sp.q ?? ''} /></div>
         <button className="btn btn--ghost btn--sm" type="submit">Find</button>
-      </form>
+      </GetForm>
       {a.matches && <ul className="linklist">{a.matches.length ? a.matches.map((m) => <li key={m.id}><Link prefetch={false} className="link" href={`/admin/settings/rewards?renter=${m.id}`}>{m.name}</Link> {m.email} ({m.balance} points)</li>) : <li>No renter found.</li>}</ul>}
       {a.renter && <div className="stack">
         <p><b>{a.renter.name}</b>: {a.renter.balance.toLocaleString('en-CA')} points, {a.renter.tier.name}, code {a.renter.referral_code}</p>

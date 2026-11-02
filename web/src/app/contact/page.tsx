@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Suspense } from 'react';
 import { PageHead } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';

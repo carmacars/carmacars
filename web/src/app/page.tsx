@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { cardPhotoCap } from '@/features/phone-gate/rules';
 import { Icon } from '@/components/Icon';
 import { AnswerBlock } from '@/components/AnswerBlock';

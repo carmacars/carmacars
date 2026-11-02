@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { $, Card, Table, d } from '@/features/admin/ui';
 
 // Payments recorded by hand in a month, to check against the bank account (migration 0044, app.manual_payments_month).

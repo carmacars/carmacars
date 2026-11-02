@@ -4,7 +4,7 @@ import '@/styles/admin.css';
 import '@/components/portal-ui/portal-ui.css';
 import '@/components/portal-ui/queue.css';
 import '@/styles/va.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';

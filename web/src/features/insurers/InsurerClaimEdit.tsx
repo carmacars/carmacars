@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDoor } from '@/features/admin/door';
+import { TypedInput } from '@/components/DateInput';
 
 // The insurer and adjuster on a booking at any status (migration 0183): an insurer replacement rental often starts as
 // an ordinary booking and the claim arrives after pickup. Switching who pays prices the booking again.
@@ -57,7 +58,7 @@ export function InsurerClaimEdit({ x, insurers, adjusters = [] }: { x: InsurerCl
   });
   const input = (k: K, l: string, type = 'text') => (
     <div className="field ad-field" key={k}><label className="label" htmlFor={`ic-${k}`}>{l}</label>
-      <input className="input" id={`ic-${k}`} type={type} value={f[k]} onChange={set(k)} data-testid={`ic-${k}`} /></div>);
+      <TypedInput className="input" id={`ic-${k}`} type={type} value={f[k]} onChange={set(k)} data-testid={`ic-${k}`} /></div>);
   const insurerName = insurers.find((i) => i.id === x.insurer_id)?.name;
   // a booking billed to the renter: only the way to start billing an insurer, no card
   if (x.bill_to === 'renter' && !open) {

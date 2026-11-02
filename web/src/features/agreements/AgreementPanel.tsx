@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Card } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import { when } from '@/features/agreement/model';

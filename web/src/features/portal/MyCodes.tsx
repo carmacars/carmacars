@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { PortalCard, PortalIcon } from '@/components/portal-ui';
 
 // The renter's discount codes (migration 0161): the ones issued to them (a game prize, a come-back offer, a code from staff),

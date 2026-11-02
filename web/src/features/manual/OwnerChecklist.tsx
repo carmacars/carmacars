@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { money } from '@/lib/format';
 import { ManualPaymentForm, PaperSignatureForm, type PaperDoc } from './ManualRecords';
 

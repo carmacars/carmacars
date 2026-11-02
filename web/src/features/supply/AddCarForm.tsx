@@ -1,7 +1,8 @@
 'use client';
 import { useState, useTransition } from 'react';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { supplyDo } from '@/server/actions/supply';
 import { saveRegistration, uploadVehicleDocument } from '@/server/actions/vehicle-registration';
 import { PermitScan } from '@/features/vehicles/PermitScan';
@@ -9,6 +10,7 @@ import type { PermitRead } from '@/features/vehicles/permit-read';
 import { RateFields } from '@/features/rates/RateFields';
 import { ratePayload, ratesEmpty, type RateCheck } from '@/features/rates/rates';
 import { ColourSwatches, VinEntry, effectiveCar, emptyVin, vinPayload, vinProblem, type VinValue } from '@/features/vin/VinEntry';
+import { DateInput, TypedInput } from '@/components/DateInput';
 
 // Admin > Vehicles > Add a car (migration 0046; VIN first since 0082): the VIN, decoded at once into one summary line
 // (year, make, model, trim, body, seats, doors, fuel, drive, gearbox, engine), the colour in one tap, the class
@@ -38,7 +40,7 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
   const set = (k: string) => (e: { target: { value: string } }) => setV((s) => ({ ...s, [k]: e.target.value }));
   const input = (k: string, label: string, o: { type?: string; hint?: string; required?: boolean; inputMode?: 'decimal' | 'numeric' } = {}) => (
     <div className="field ad-field"><label className="label" htmlFor={`ac-${k}`}>{label}{o.required ? '' : ' (optional)'}</label>
-      <input className="input" id={`ac-${k}`} type={o.type ?? 'text'} inputMode={o.inputMode} value={v[k] ?? ''} onChange={set(k)} data-testid={`add-car-${k}`} aria-describedby={o.hint ? `ac-${k}-h` : undefined} />
+      <TypedInput className="input" id={`ac-${k}`} type={o.type ?? 'text'} inputMode={o.inputMode} value={v[k] ?? ''} onChange={set(k)} data-testid={`add-car-${k}`} aria-describedby={o.hint ? `ac-${k}-h` : undefined} />
       {o.hint && <p className="hint" id={`ac-${k}-h`}>{o.hint}</p>}</div>
   );
   // 0290: the permit photo read: the VIN (or plate), colour, plate, permit number and sticker expiry, saved with the car;
@@ -79,7 +81,7 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
       const u = await uploadVehicleDocument(form);
       if (!u.ok) docsFailed = true;
     }
-    router.push(`/admin/vehicles/${r.data.vehicle_id}?added=1${docsFailed ? '&docs=failed&tab=records' : ''}`);
+    router.push(`/admin/vehicles/${r.data.vehicle_id}?added=1${docsFailed ? '&docs=failed&tab=records' : ''}`, scrollOption(`/admin/vehicles/${r.data.vehicle_id}?added=1${docsFailed ? '&docs=failed&tab=records' : ''}`));
   });
   const ec = effectiveCar(car);
   return (
@@ -94,7 +96,7 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
           <div className="field"><label className="label" htmlFor="ac-permit-number">Ontario permit number (optional)</label>
             <input className="input" id="ac-permit-number" value={permit.permit_number} onChange={(e) => setPermit((x) => ({ ...x, permit_number: e.target.value.toUpperCase() }))} data-testid="add-car-permit_number" /></div>
           <div className="field"><label className="label" htmlFor="ac-sticker">Plate sticker expires (optional)</label>
-            <input className="input" id="ac-sticker" type="date" value={permit.sticker_expires_on} onChange={(e) => setPermit((x) => ({ ...x, sticker_expires_on: e.target.value }))} data-testid="add-car-sticker_expires_on" />
+            <DateInput className="input" id="ac-sticker" type="date" value={permit.sticker_expires_on} onChange={(e) => setPermit((x) => ({ ...x, sticker_expires_on: e.target.value }))} data-testid="add-car-sticker_expires_on" />
             <p className="hint">Fleet gets a task 30 and 7 days before.</p></div>
         </div>
         {!more ? <button type="button" className="link vin-switch" onClick={() => setMore(true)} data-testid="add-car-more">Odometer and home area (optional)</button> : (
@@ -138,9 +140,9 @@ export function AddCarForm({ owners, partners, defaultCommission }: { owners: Op
             <div className="field ad-field"><label className="label" htmlFor="ac-ssc-number">Certificate number</label>
               <input className="input" id="ac-ssc-number" value={docs.number} onChange={(e) => setDocs((x) => ({ ...x, number: e.target.value }))} data-testid="add-car-ssc-number" /></div>
             <div className="field ad-field"><label className="label" htmlFor="ac-ssc-issued">Issued on</label>
-              <input className="input" id="ac-ssc-issued" type="date" value={docs.issued_on} onChange={(e) => setDocs((x) => ({ ...x, issued_on: e.target.value }))} data-testid="add-car-ssc-issued" /></div>
+              <DateInput className="input" id="ac-ssc-issued" type="date" value={docs.issued_on} onChange={(e) => setDocs((x) => ({ ...x, issued_on: e.target.value }))} data-testid="add-car-ssc-issued" /></div>
             <div className="field ad-field"><label className="label" htmlFor="ac-ssc-expires">Expires on</label>
-              <input className="input" id="ac-ssc-expires" type="date" value={docs.expires_on} onChange={(e) => setDocs((x) => ({ ...x, expires_on: e.target.value }))} data-testid="add-car-ssc-expires" />
+              <DateInput className="input" id="ac-ssc-expires" type="date" value={docs.expires_on} onChange={(e) => setDocs((x) => ({ ...x, expires_on: e.target.value }))} data-testid="add-car-ssc-expires" />
               <p className="hint">Fleet gets a task 30 and 7 days before.</p></div>
           </>}
         </div>

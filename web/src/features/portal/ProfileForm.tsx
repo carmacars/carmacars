@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { saveProfile, type ProfileInput } from '@/server/actions/portal';
 import { useAct } from './useAct';
 import { AddressFields } from '@/features/forms/AddressFields';
+import { TypedInput } from '@/components/DateInput';
 
 export function ProfileForm({ initial }: { initial: ProfileInput }) {
   const router = useRouter();
@@ -12,7 +13,7 @@ export function ProfileForm({ initial }: { initial: ProfileInput }) {
   const f = (k: keyof ProfileInput, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div className={`field${a.err(k) ? ' has-error' : ''}`}>
       <label className="label" htmlFor={`pt-p-${k}`}>{label}</label>
-      <input className="input" id={`pt-p-${k}`} value={v[k] ?? ''} onChange={(e) => setV({ ...v, [k]: e.target.value })} aria-invalid={!!a.err(k) || undefined} aria-describedby={`pt-p-${k}-err`} {...props} />
+      <TypedInput className="input" id={`pt-p-${k}`} value={v[k] ?? ''} onChange={(e) => setV({ ...v, [k]: e.target.value })} aria-invalid={!!a.err(k) || undefined} aria-describedby={`pt-p-${k}-err`} {...props} />
       <p className="error" role="alert" id={`pt-p-${k}-err`}>{a.err(k) ?? ''}</p>
     </div>
   );

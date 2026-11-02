@@ -1,7 +1,11 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
+import { QuickRange } from '@/components/QuickRange';
+import { torontoToday } from '@/lib/nav/range';
+import { GetForm } from '@/components/GetForm';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, Card, PageHead, Table, Tiles, d, t } from '@/features/admin/ui';
 import { CHANNELS, CHANNEL_LABEL, refundMaths, type Channel, type Ledger, type LedgerDay, type LedgerRow, type RefundItem } from './ledger';
+import { DateRangePicker } from '@/components/DateRangePicker';
 
 // Payments (0151), for an Admin and for Finance: a date range and the methods, the totals of each day by method, the cash
 // drawer expected against the count, every payment with friendly labels, and every refund requested anywhere with the
@@ -29,16 +33,16 @@ export function PaymentsView({ l, base, bookingBase }: { l: Ledger; base: string
         { k: 'Cash drawer', v: (() => { const off = l.days.filter((x) => x.cash_difference_cents); return off.length ? 'Off' : 'Balanced'; })(), sub: l.days.some((x) => x.cash_difference_cents) ? 'a count does not match' : 'every count matches', warn: l.days.some((x) => x.cash_difference_cents) }
       ]} />
       {/* a base with its own query (Admin: /admin/money?tab=day) keeps it: a GET form drops the action's query */}
-      <form className="ad-filters pay-filters" method="get" action={base.split('?')[0]} data-testid="payments-filters">
+      <GetForm className="ad-filters pay-filters" action={base.split('?')[0]} data-testid="payments-filters">
         {[...new URLSearchParams(base.split('?')[1] ?? '')].map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
-        <label className="field"><span className="label">From</span><input className="input" type="date" name="from" defaultValue={l.from} data-testid="pay-from" /></label>
-        <label className="field"><span className="label">To</span><input className="input" type="date" name="to" defaultValue={l.to} data-testid="pay-to" /></label>
+        <QuickRange base={base.split('?')[0]} keep={{ ...Object.fromEntries(new URLSearchParams(base.split('?')[1] ?? '')), ...Object.fromEntries(new URLSearchParams(q.toString())) }} from={l.from} to={l.to} today={torontoToday()} customId="pay-from-input" />
+        <DateRangePicker id="pay-from-input" label="Dates" from={l.from} to={l.to} quick={false} />
         <fieldset className="pay-methods"><legend className="label">Methods (none ticked: all)</legend>
           {CHANNELS.map((c) => <label key={c} className="check"><input type="checkbox" name="method" value={c} defaultChecked={l.methods.includes(c)} data-testid={`pay-m-${c}`} /> <span>{CHANNEL_LABEL[c]}</span></label>)}
         </fieldset>
         <div className="row"><button className="btn btn--primary btn--sm" type="submit" data-testid="pay-apply">Show</button>
           <Link prefetch={false} className="btn btn--quiet btn--sm" href={base}>Today</Link></div>
-      </form>
+      </GetForm>
 
       <Card title="Refunds waiting" testId="refund-queue" tone={l.refunds.some((r) => r.status === 'pending_approval') ? 'next' : undefined}>
         <Table<RefundItem & R> rows={l.refunds as Array<RefundItem & R>} empty="No refund waiting. A refund requested anywhere (a cancellation, a booking, Finance) shows here." cols={[

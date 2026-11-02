@@ -1,5 +1,5 @@
 import './usage.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
 import { t } from '@/features/admin/ui';

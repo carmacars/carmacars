@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import Link from 'next/link';
+import { scrollOption } from '@/lib/nav/same-page';
+import Link from '@/components/Link';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
@@ -16,6 +17,7 @@ import { lineHelp } from './help';
 import { addonsPayload, type AddonChoice, type AddonOption } from '@/features/addons/model';
 import { COVERAGE, DEPOSIT_PAY, PLACES, RENTAL_LINE, RENTAL_PAY, daysBetween, droppedByPrice, firstName, hasMobile, lineKey, liveFees, missing, missingFields, offerChannels, offerChoices, offerPayload, periodShares, typedRental, type MissingField, type OfferForm, type PlaceKind, type Role } from './model';
 import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults } from '@/features/supply/OwnerChoice';
+import { TypedInput } from '@/components/DateInput';
 
 // Send an offer without a request (migration 0129): one screen for an Admin, customer service and sales. The customer
 // found by name, phone or email (or added; one person, one record), the car with whether it is free, the dates, the
@@ -243,7 +245,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     const r = await offersDo<Sent & { booking_id: string }>('offer_create', draft ? { ...payload, ...o, draft: true } : { ...payload, ...o }, [`${base}/bookings`]);
     if (!r.ok) { setErr(r.message); return; }
     if (draftId) void draftClose(draftId, 'done');
-    if (draft) { router.push(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`); return; }
+    if (draft) { router.push(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`, scrollOption(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`)); return; }
     setSent(r.data);
   });
 
@@ -301,7 +303,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
   const id = (k: string) => `oc-${k}`;
   const text = (k: keyof OfferForm, l: string, o: { type?: string; hint?: string; inputMode?: 'decimal' | 'numeric' | 'tel' | 'email'; wide?: boolean; placeholder?: string; auto?: string; need?: MissingField['field']; info?: string } = {}) => (
     <div className={`field ad-field${o.wide ? ' ad-field--wide' : ''}`}><span className="label-line"><label className="label" htmlFor={id(k)}>{l}</label>{o.info && <Info text={o.info} label={`About ${l}`} />}</span>
-      <input className={`input${o.need && tried && needOf(o.need) ? ' is-invalid' : ''}`} id={id(k)} type={o.type ?? 'text'} inputMode={o.inputMode} placeholder={o.placeholder} autoComplete={o.auto ?? 'off'} value={String(f[k] ?? '')}
+      <TypedInput className={`input${o.need && tried && needOf(o.need) ? ' is-invalid' : ''}`} id={id(k)} type={o.type ?? 'text'} inputMode={o.inputMode} placeholder={o.placeholder} autoComplete={o.auto ?? 'off'} value={String(f[k] ?? '')}
         onChange={(e) => set(k)(e.target.value as never)} data-testid={`oc-${k}`} aria-describedby={o.hint ? `${id(k)}-h` : undefined} aria-invalid={o.need && tried && needOf(o.need) ? true : undefined} />
       {o.hint && <p className="hint" id={`${id(k)}-h`}>{o.hint}</p>}{o.need && needMsg(o.need)}</div>);
   const select = (k: keyof OfferForm, l: string, options: Array<[string, string]>, onPick?: (v: string) => void, info?: string) => (
@@ -346,7 +348,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     <div className="oc-flow" data-testid="offer-composer">
       <form className="pt-card ad-card ad-form ad-form--narrow oc-form" aria-label="The offer" noValidate onSubmit={(e) => { e.preventDefault(); send(); }}>
         <p className="small muted" role="status" aria-live="polite" data-testid="oc-draft-status">{savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}: finish it later from Unfinished rentals.` : 'Saved as a draft as you type.'}
-          {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); router.push(`${base}/offers/new`); })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
+          {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); router.push(`${base}/offers/new`, scrollOption(`${base}/offers/new`)); })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
 
         {step(++n, 'Who is renting and when', 'Find the renter (or add them), then set when they pick up and return the car.', <>
           {chosen ? (

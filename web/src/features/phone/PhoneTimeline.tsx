@@ -1,6 +1,6 @@
 'use client';
 import './phone.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { when } from '@/features/agreement/model';
 import { CallBody, type PhoneTimelineData } from './client';
 

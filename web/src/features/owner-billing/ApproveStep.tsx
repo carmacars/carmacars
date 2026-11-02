@@ -5,6 +5,7 @@ import { useAct } from '@/features/portal/useAct';
 import { money } from '@/lib/format';
 import { approveWithTerms, type ApproveCar } from '@/server/actions/owner-billing';
 import { SOURCE_LABEL, dollars, hstOf, pctOf, toCents } from './shared';
+import { DateInput } from '@/components/DateInput';
 
 // Approve, step "Terms and first invoice" (migration 0067): for each car the terms pre-filled from the negotiated
 // defaults (or the grid), edited to the cent; then which invoices to make, each sent now, kept as a draft or recorded
@@ -61,7 +62,7 @@ export function InvoiceChoice({ uid, label, v, set, hstBps, children, testId, al
             <div className="field"><label className="label" htmlFor={`${uid}-m`}>Paid by</label>
               <select className="select" id={`${uid}-m`} value={v.method} onChange={(e) => set({ ...v, method: e.target.value })} data-testid={`${testId}-method`}>{METHODS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
             <div className="field"><label className="label" htmlFor={`${uid}-d`}>Date received</label>
-              <input className="input" type="date" id={`${uid}-d`} value={v.on_date} onChange={(e) => set({ ...v, on_date: e.target.value })} data-testid={`${testId}-date`} /></div>
+              <DateInput className="input" type="date" id={`${uid}-d`} value={v.on_date} onChange={(e) => set({ ...v, on_date: e.target.value })} data-testid={`${testId}-date`} /></div>
             <div className="field"><label className="label" htmlFor={`${uid}-r`}>{v.method === 'cheque' ? 'Cheque number' : 'Reference'}{['cash', 'other'].includes(v.method) ? ' (optional)' : ''}</label>
               <input className="input" id={`${uid}-r`} value={v.reference} onChange={(e) => set({ ...v, reference: e.target.value })} data-testid={`${testId}-reference`} /></div>
             <div className="field"><label className="label" htmlFor={`${uid}-p`}>Amount received ($)</label>

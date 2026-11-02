@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 import { agreementFill, agreementOverride, agreementRegenerate, agreementResend, disputePackBuild, disputePackSubmit } from '@/server/actions/agreements';
+import { TypedInput } from '@/components/DateInput';
 
 export interface Missing { key: string; label: string; where: string; required: boolean; driver_id?: string }
 
@@ -48,7 +49,7 @@ export function MissingFields({ booking, missing, refresh, isAdmin, overrides }:
             ? <div key={f.name} className="field" style={{ margin: 0 }}><label className="label" htmlFor="fill-coverage-insurer-name">{f.label}{missing.find((m) => f.name.startsWith(m.key))?.required ? ' *' : ''}</label>
                 <InsurerSelect id="fill-coverage-insurer-name" value={vals[f.name] ?? ''} onChange={(x) => setVals((v) => ({ ...v, [f.name]: x }))} testId="fill-coverage-insurer-name" /></div>
             : <label key={f.name} className="field" style={{ margin: 0 }}><span className="label">{f.label}{missing.find((m) => f.name.startsWith(m.key))?.required ? ' *' : ''}</span>
-              <input className="input" type={f.type} value={vals[f.name] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [f.name]: e.target.value }))} data-testid={`fill-${f.name.replace(/[^a-z0-9]+/gi, '-')}`} /></label>
+              <TypedInput className="input" type={f.type} value={vals[f.name] ?? ''} onChange={(e) => setVals((v) => ({ ...v, [f.name]: e.target.value }))} data-testid={`fill-${f.name.replace(/[^a-z0-9]+/gi, '-')}`} /></label>
           )}
         </div>
         {missing.some((m) => m.where === 'settings') && <p className="xs muted">CarmaCars&apos; HST number: Program settings, Company HST number.</p>}
@@ -123,7 +124,7 @@ export function AgreementEditAll({ booking, current, refresh, isAdmin }: { booki
         <InsurerSelect id="edit-coverage-insurer-name" value={vals[name] ?? ''} disabled={disabled} onChange={(x) => setVals((v) => ({ ...v, [name]: x }))} testId="edit-coverage-insurer-name" /></div>
     : (
     <label key={name} className="field" style={{ margin: 0 }}><span className="label">{label}</span>
-      <input className="input" type={type} value={vals[name] ?? ''} disabled={disabled} onChange={(e) => setVals((v) => ({ ...v, [name]: e.target.value }))} data-testid={`edit-${name.replace(/[^a-z0-9]+/gi, '-')}`} /></label>);
+      <TypedInput className="input" type={type} value={vals[name] ?? ''} disabled={disabled} onChange={(e) => setVals((v) => ({ ...v, [name]: e.target.value }))} data-testid={`edit-${name.replace(/[^a-z0-9]+/gi, '-')}`} /></label>);
   const save = () => start(async () => {
     setMsg(null);
     const p: Record<string, unknown> = {}; const drivers: Record<string, Record<string, string>> = {};

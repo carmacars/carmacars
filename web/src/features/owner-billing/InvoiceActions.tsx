@@ -1,5 +1,6 @@
 'use client';
 import { useId, useState } from 'react';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
 import { creditNote, issueInvoice, resendInvoice, voidInvoice } from '@/server/actions/owner-billing';
@@ -32,7 +33,7 @@ export function InvoiceActions({ id, number, can, paths = [] }: { id: string; nu
         <form className="stack pt-sheet" noValidate aria-label={`Void ${number}`} onSubmit={(e) => { e.preventDefault(); a.run(() => voidInvoice(id, reason, reissue, all), (r) => {
           if (!r.ok) return; setMode('');
           const n = (r.data as { replacement_number?: string | null }).replacement_number;
-          if (n) router.push(`/admin/invoices/${n}?replaces=${number}`); else { setNote('Voided.'); router.refresh(); }
+          if (n) router.push(`/admin/invoices/${n}?replaces=${number}`, scrollOption(`/admin/invoices/${n}?replaces=${number}`)); else { setNote('Voided.'); router.refresh(); }
         }); }}>
           <div className={`field${a.err('reason') ? ' has-error' : ''}`}><label className="label" htmlFor={`${uid}-r`}>Reason (the owner reads it)</label>
             <textarea className="input" id={`${uid}-r`} rows={2} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="invoice-void-reason" aria-describedby={`${uid}-r-e`} />
@@ -42,7 +43,7 @@ export function InvoiceActions({ id, number, can, paths = [] }: { id: string; nu
           <div className="row"><button className="btn btn--primary btn--sm" type="submit" disabled={a.pending} data-testid="invoice-void-send">{a.pending ? 'Voiding' : 'Void the invoice'}</button></div>
         </form>)}
       {mode === 'credit' && (
-        <form className="stack pt-sheet" noValidate aria-label={`Credit note for ${number}`} onSubmit={(e) => { e.preventDefault(); a.run(() => creditNote(id, toCents(amount), reason, all), (r) => { if (r.ok) { setMode(''); router.push(`/admin/invoices/${(r.data as { invoice_number: string }).invoice_number}`); } }); }}>
+        <form className="stack pt-sheet" noValidate aria-label={`Credit note for ${number}`} onSubmit={(e) => { e.preventDefault(); a.run(() => creditNote(id, toCents(amount), reason, all), (r) => { if (r.ok) { setMode(''); router.push(`/admin/invoices/${(r.data as { invoice_number: string }).invoice_number}`, scrollOption(`/admin/invoices/${(r.data as { invoice_number: string }).invoice_number}`)); } }); }}>
           <div className="field-row">
             <div className={`field${a.err('amount') ? ' has-error' : ''}`}><label className="label" htmlFor={`${uid}-a`}>Amount to credit, before HST ($)</label>
               <input className="input" id={`${uid}-a`} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} aria-describedby={`${uid}-a-e`} />

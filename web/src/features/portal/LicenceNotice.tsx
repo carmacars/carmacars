@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { rpc } from '@/lib/db/repo';
 import { bookingPath } from '@/features/portal/status';
 import type { LicenceStatus } from '@/features/handover/types';

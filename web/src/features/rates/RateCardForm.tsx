@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { rateSave } from '@/server/actions/rates';
 import { RateFields, rateValuesFrom } from './RateFields';
 import { ratePayload, type RateCheck } from './rates';
+import { DateInput } from '@/components/DateInput';
 
 // A car's rates and kilometre terms, saved in one step (migration 0064): Admin > Vehicles > the car > Rates, and the
 // Fleet assistant's car page. A new rate card starts at the time chosen; bookings already made keep their rates.
@@ -29,7 +30,7 @@ export function RateCardForm({ vehicleId, card, refresh, testId = 'rate-form' }:
       <RateFields v={v} set={set} context={{ vehicle: vehicleId }} prefix={testId} delivery onCheck={setChk} />
       <div className="ad-fields">
         <div className="field ad-field"><label className="label" htmlFor={`${testId}-from`}>Effective from (empty: now)</label>
-          <input className="input" id={`${testId}-from`} type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} data-testid={`${testId}-from`} /></div>
+          <DateInput className="input" id={`${testId}-from`} type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} data-testid={`${testId}-from`} /></div>
       </div>
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid={`${testId}-msg`}><span>{msg.text}</span></p>}
       <div className="row"><button className="btn btn--primary" type="submit" disabled={pending} data-testid={`${testId}-submit`}>{pending ? 'Saving' : 'Save the rates'}</button></div>

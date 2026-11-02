@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { ReachCard } from '@/features/admin/ReachCard';
 import type { Reach } from '@/features/phone/alerts';
 import { notFound } from 'next/navigation';

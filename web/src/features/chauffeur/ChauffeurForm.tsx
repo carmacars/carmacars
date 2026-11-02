@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { useMemo, useState } from 'react';
 import { describedBy, Field } from '@/features/forms/Field';
@@ -8,6 +8,7 @@ import { useForm } from '@/features/forms/useForm';
 import { money } from '@/lib/format';
 import { submitChauffeur } from '@/server/actions/chauffeur';
 import { chauffeurPrice, chauffeurSchema, OCCASIONS, type ChauffeurVehicle } from './schema';
+import { DateInput } from '@/components/DateInput';
 
 const TIMES = Array.from({ length: 48 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
 const clock = (t: string) => { const [h, m] = t.split(':').map(Number); return `${((h! + 11) % 12) + 1}:${String(m).padStart(2, '0')} ${h! < 12 ? 'am' : 'pm'}`; };
@@ -45,7 +46,7 @@ export function ChauffeurForm({ vehicles, initial, today, hstBps }: { vehicles: 
         </select>
         {e.vehicle_id && <p className="error" id="ch-vehicle-err" role="alert">{e.vehicle_id}</p>}</div>
       <div className="field-row">
-        <Field id="ch-date" label="Date" error={e.date}><input className="input" id="ch-date" name="date" type="date" min={today} aria-invalid={!!e.date || undefined} aria-describedby={describedBy('ch-date', e.date)} onInput={() => clear('date')} /></Field>
+        <Field id="ch-date" label="Date" error={e.date}><DateInput className="input" id="ch-date" name="date" type="date" min={today} aria-invalid={!!e.date || undefined} aria-describedby={describedBy('ch-date', e.date)} onInput={() => clear('date')} /></Field>
         <Field id="ch-time" label="Start time" error={e.start_time}><select className="select" id="ch-time" name="start_time" defaultValue="18:00" aria-invalid={!!e.start_time || undefined}>{TIMES.map((t) => <option key={t} value={t}>{clock(t)}</option>)}</select></Field>
         <Field id="ch-hours" label="Hours" error={e.hours}><select className="select" id="ch-hours" name="hours" value={hours} onChange={(x) => setHours(Number(x.target.value))} aria-invalid={!!e.hours || undefined}>
           {Array.from({ length: 23 }, (_, i) => i + 2).map((h) => <option key={h} value={h}>{h} hours</option>)}</select></Field>

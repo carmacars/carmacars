@@ -1,6 +1,6 @@
 'use client';
 import { useState, useTransition, type ReactNode } from 'react';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useRouter } from 'next/navigation';
 import type { Consent } from '@/features/agreement/model';
 import type { Clause } from '@/features/agreement/extra';

@@ -9,6 +9,7 @@ import { siblingFill } from '@/features/forms/address-parts';
 import { adminToast } from './shell/toast';
 import { InfoTip } from '@/components/InfoTip';
 import { infoText } from '@/features/info/text';
+import { TypedInput } from '@/components/DateInput';
 
 // The admin portal's action controls. One button or one form per database action: fields are typed
 // (money in dollars becomes cents, a percentage becomes basis points, a local date and time becomes an
@@ -101,7 +102,7 @@ export function FieldInput({ f, value, set, err, idp, fill }: { f: Field; value:
       ) : f.type === 'textarea' || f.type === 'json' ? (
         <textarea className={`input ad-textarea${f.type === 'json' ? ' pt-mono' : ''}`} rows={f.type === 'json' ? 6 : 3} {...common} onChange={(e) => set(e.target.value)} />
       ) : (
-        <input className="input" {...common} onChange={(e) => set(e.target.value)}
+        <TypedInput className="input" {...common} onChange={(e) => set(e.target.value)}
           type={f.type === 'date' ? 'date' : f.type === 'datetime' ? 'datetime-local' : f.type === 'email' ? 'email' : f.type === 'tel' ? 'tel' : 'text'}
           inputMode={f.type === 'money' || f.type === 'percent' ? 'decimal' : f.type === 'number' ? 'numeric' : undefined} />
       )}

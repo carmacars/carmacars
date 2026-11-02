@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { ReactNode } from 'react';
 import { pct } from '@/lib/format';
 import { $, Badge, Card, Filters, Table, Tiles, d, t } from '@/features/admin/ui';
