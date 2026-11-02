@@ -57,7 +57,9 @@ update tasks set assigned_to = test.id('dh_tsales') where dedupe_key = 'dh:test'
 select test.eq('the verification''s own request can go to the verification''s account', (select assigned_to from tasks where dedupe_key = 'dh:test'), test.id('dh_tsales'));
 
 insert into leads (id, kind, name, email, assigned_to) values (test.id('lead:dh_owner'), 'owner_program', 'Dh Owen', 'dh_owen@example.test', test.id('dh_invite'));
-select test.eq('a real owner lead is never credited to the invitation''s test account', (select assigned_to from leads where id = test.id('lead:dh_owner')), null::uuid);
+-- (0343, Release 26: such a lead goes to the least busy real Sales person, or to nobody when there is none; never to a test account)
+select test.ok('a real owner lead is never credited to the invitation''s test account',
+  (select assigned_to is distinct from test.id('dh_invite') and (assigned_to is null or not app.staff_is_test(assigned_to)) from leads where id = test.id('lead:dh_owner')));
 insert into leads (id, kind, name, email) values (test.id('lead:dh_fake'), 'owner_program', 'Verify Lead', 'delivered@resend.dev');
 select test.eq('a lead from a test address is closed at once, no follow-up',
   (select status || '/' || closed_reason || '/' || (followup_next_at is null)::text from leads where id = test.id('lead:dh_fake')), 'closed/Test account/true');

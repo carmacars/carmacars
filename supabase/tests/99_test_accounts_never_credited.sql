@@ -41,6 +41,9 @@ insert into tasks (queue, task_type, title, owner_id, assigned_to) values ('sale
 select test.eq('a task about a real owner is never given to a test account', (select assigned_to from tasks where title = 'tac task'), null::uuid);
 
 -- 3. the clean-up of what is on file (written past the triggers, as before this release)
+-- (the fences of 0440 also keep such rows from being written: off for these statements too)
+alter table leads disable trigger z_fence_test_accounts;
+alter table tasks disable trigger a_fence_test_accounts;
 alter table leads disable trigger leads_no_test_staff;
 alter table owners disable trigger owners_no_test_staff;
 alter table tasks disable trigger tasks_no_test_staff;
@@ -50,6 +53,8 @@ update tasks set assigned_to = test.id('tac_vsales') where title = 'tac task';
 alter table leads enable trigger leads_no_test_staff;
 alter table owners enable trigger owners_no_test_staff;
 alter table tasks enable trigger tasks_no_test_staff;
+alter table leads enable trigger z_fence_test_accounts;
+alter table tasks enable trigger a_fence_test_accounts;
 select test.ok('clean-up: counted', (app.clear_test_account_credit() ->> 'leads')::int >= 1);
 select test.eq('clean-up: the real lead, owner and task are unassigned; the test lead keeps its account',
   (select coalesce(assigned_to::text, 'none') || '/' || coalesce(sourced_by::text, 'none') from leads where email = 'tac_pat@example.test') || '/'
