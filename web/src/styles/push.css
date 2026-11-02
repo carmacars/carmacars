@@ -60,3 +60,7 @@
   .pa-prompt__actions { grid-column: auto; flex-wrap: nowrap; }
   .pa-prompt__actions .btn--primary { flex: none; }
 }
+
+/* 0466: a different choice of topics on this device only */
+.pa__own { display: flex; align-items: center; gap: var(--s-2); min-height: 44px; }
+.pa__own input { width: 1.1rem; height: 1.1rem; accent-color: var(--red-600); }

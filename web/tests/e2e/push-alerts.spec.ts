@@ -163,7 +163,7 @@ test('an Admin has Settings > My phone alerts with the Admin topics', async ({ p
     const me = await mkPerson(sql, 'admin');
     await fakePush(page);
     await signIn(page, me.email, '/admin');
-    await page.goto('/admin/alerts', { waitUntil: 'networkidle' });
+    await page.goto('/admin/alerts?tab=settings', { waitUntil: 'networkidle' });
     const card = page.getByTestId('push-card');
     await expect(card).toHaveAttribute('data-status', 'ready');
     await expect(card.locator('input[type="checkbox"]')).toHaveCount(5);

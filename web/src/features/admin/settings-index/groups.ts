@@ -16,7 +16,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     keys: ['maintenance', 'partners'] },
   { id: 'team', title: 'Team and records', about: 'Staff, your own alerts, what the plans use, and the logs',
     keys: ['staff', 'profile', 'usage'],
-    extra: [{ href: '/admin/alerts', title: 'My phone alerts', about: 'Alerts on your phone or computer for new requests, payments, messages and urgent problems' },
+    extra: [{ href: '/admin/alerts', title: 'Alerts', about: 'Every alert for you, phone alerts, quiet hours, focus mode and which alerts staff get' },
       { href: '/admin/logs', title: 'Logs', about: 'Emails sent, blocked addresses, every change and every look at personal data' }] }
 ];
 

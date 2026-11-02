@@ -4,7 +4,8 @@ import { auth } from '@/lib/auth';
 import { rpc } from '@/lib/db/repo';
 import { verifyTurnstile } from '@/integrations/turnstile';
 import { fieldErrors, newPasswordSchema, resetSchema, signInSchema, signUpSchema, type ActionResult } from '@/features/forms/schemas';
-import { requestMeta } from '@/server/request';
+import { requestCountry, requestMeta } from '@/server/request';
+import { deviceLabel } from '@/features/push/topics';
 import { rolesOf } from '@/server/door';
 import { landingFor, safeNext } from '@/server/portals';
 import { afterSignIn, clearSessionCookies, rememberSignIn } from '@/server/after-sign-in';
@@ -22,6 +23,7 @@ export async function signIn(_: unknown, fd: FormData): Promise<ActionResult> {
   const p = signInSchema.safeParse(Object.fromEntries(fd));
   if (!p.success) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: fieldErrors(p.error) };
   const r = await (await auth()).signIn(p.data.email, p.data.password);
+  await signInEvent(p.data.email, r.ok ? r.user.id : null, r.ok);
   if (!r.ok) return { ok: false, code: r.code ?? 'auth', message: r.message };
   // a view-as left from an earlier session never carries over to a new sign-in
   await clearSessionCookies(false);
@@ -29,6 +31,15 @@ export async function signIn(_: unknown, fd: FormData): Promise<ActionResult> {
   // the sign-in service lets only confirmed addresses sign in: earlier requests with it are attached (migration 0040)
   await rpc('server_account_email_verified', { p_user: r.user.id, p_email: r.user.email }, { role: 'service_role' }).catch(() => undefined);
   redirect(await afterPassword(r.user.id, safeNext(fd.get('next'))));
+}
+
+// Sign-in security (migration 0466): each password sign-in, ok or not, with the browser and system and the country (no
+// address); an Admin on a new device or country, and a burst of failed sign-ins, alert the Admins. Never blocks a sign-in.
+async function signInEvent(email: string, userId: string | null, ok: boolean) {
+  try {
+    const m = await requestMeta();
+    await rpc('server_sign_in_event', { p: { email, user_id: userId, ok, device: deviceLabel(m.userAgent), country: await requestCountry() } }, { role: 'service_role' });
+  } catch { /* the sign-in goes on */ }
 }
 
 /** The "confirm your email" link again (from the sign-in form). Says the same whether or not the account exists. */

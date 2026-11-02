@@ -17,7 +17,8 @@
 --   7. Sign-in security: sign_in_events (kept 90 days). An Admin signing in from a new device or country, and a burst
 --      of failed sign-ins (5 on one address or 20 in all within 10 minutes), are urgent alerts.
 --   8. Deploy result: server_deploy_result, called by the deploy job (finished or failed).
---   9. The Alerts feed RPCs (server_alert_feed, _unread, _read, _snooze) and the settings (server_alert_prefs).
+--   9. The Alerts feed RPCs (server_alert_feed, _unread, _read, _snooze), the settings (server_alert_prefs) and the rule
+--      table for the Admins on Alerts > Settings (server_alert_rules, server_set_alert_rule: on or off, and the tier).
 -- No applied migration is edited.
 set local check_function_bodies = off;
 
@@ -76,7 +77,9 @@ create table staff_alert_prefs (
 );
 comment on table staff_alert_prefs is 'Staff alerts (0466): each person''s quiet hours (minutes of the day, Toronto) and focus mode (only urgent alerts reach the phone until focus_until). No row: 21:00 to 8:00 for the normal-tier alerts only.';
 alter table staff_alert_prefs enable row level security;
+create policy admin_all on staff_alert_prefs for all to authenticated using (app.is_admin()) with check (app.is_admin());
 create policy own_row on staff_alert_prefs for select to authenticated using (user_id = app.uid());
+create trigger audit_staff_alert_prefs after insert or update or delete on staff_alert_prefs for each row execute function app.audit_row();
 revoke all on staff_alert_prefs from anon, authenticated;
 grant select on staff_alert_prefs to authenticated;
 grant all on staff_alert_prefs to service_role;
@@ -94,6 +97,7 @@ create index sign_in_events_user_idx on sign_in_events (user_id, at desc);
 create index sign_in_events_fail_idx on sign_in_events (at desc) where not ok;
 comment on table sign_in_events is 'Sign-in security (0466): each password sign-in, ok or failed: the browser and system (no address, no IP) and the country the request came from. Kept 90 days. Only the server reads it.';
 alter table sign_in_events enable row level security;
+create policy admin_all on sign_in_events for select to authenticated using (app.is_admin());
 revoke all on sign_in_events from anon, authenticated;
 grant all on sign_in_events to service_role;
 
@@ -117,14 +121,14 @@ begin
       v_quiet := true;
       if r.tier = 'normal' then
         perform app.ntf_emit('staff_alert_normal', 'alert_group', null, 'alert_group:' || p_rule || ':' || floor(extract(epoch from now()) / (s.alert_burst_minutes * 60))::bigint,
-          jsonb_build_object('rule', p_rule, 'group_rule', 'alert_group', 'topic', r.topic, 'alert_title', format('%s or more alerts: %s', v_n + 1, r.label),
+          jsonb_build_object('rule', p_rule, 'kind', 'group:' || p_rule, 'group_rule', 'alert_group', 'topic', r.topic, 'alert_title', format('%s or more alerts: %s', v_n + 1, r.label),
                              'alert_body', format('In the last %s minutes. Open Alerts to see each one.', s.alert_burst_minutes),
                              'path_admin', '/admin/alerts', 'path_staff', '/staff/alerts', 'assigned_to', v_extra ->> 'assigned_to'));
       end if;
     end if;
   end if;
   return app.ntf_emit('staff_alert_' || r.tier, p_entity, p_id, p_rule || ':' || coalesce(p_disc, 'x'),
-    jsonb_build_object('rule', p_rule, 'topic', r.topic, 'alert_title', left(p_title, 140), 'alert_body', left(coalesce(p_body, ''), 240))
+    jsonb_build_object('rule', p_rule, 'kind', p_rule || ':' || coalesce(p_disc, 'x'), 'topic', r.topic, 'alert_title', left(p_title, 140), 'alert_body', left(coalesce(p_body, ''), 240))
     || v_extra || case when v_quiet then jsonb_build_object('_nopush', true) else '{}'::jsonb end);
 end $$;
 
@@ -187,11 +191,13 @@ declare
   v_staff boolean;
   pr staff_alert_prefs;
   v_person text[];
+  v_entity text;
+  v_entity_id uuid;
 begin
   if not coalesce(s.push_enabled, true) then return new; end if;
   if not exists (select 1 from push_subscriptions where user_id = new.user_id) then return new; end if;
   select c.push_topic into v_topic from notification_catalogue c where c.code = new.code;
-  select coalesce(e.payload, '{}'::jsonb) into v_payload from app_events e where e.id = new.event_id;
+  select coalesce(e.payload, '{}'::jsonb), e.entity, e.entity_id into v_payload, v_entity, v_entity_id from app_events e where e.id = new.event_id;
   v_payload := coalesce(v_payload, '{}'::jsonb);
   if new.code in ('staff_alert_urgent', 'staff_alert_normal') then v_topic := v_payload ->> 'topic'; end if;
   if v_topic is null then return new; end if;
@@ -206,6 +212,13 @@ begin
     v_role := app.push_role(new.user_id);
     v_staff := v_role in ('admin', 'staff', 'field');
     if v_staff then select * into pr from staff_alert_prefs where user_id = new.user_id; end if;
+    -- the Call button: the number of the lead, the unsent request or the booking's renter
+    if v_staff and coalesce(v_payload ->> 'call', '') = '' and v_entity_id is not null then
+      v_payload := v_payload || jsonb_build_object('call', nullif(regexp_replace(coalesce(case v_entity
+        when 'lead' then (select l.phone from leads l where l.id = v_entity_id)
+        when 'contact_capture' then (select c.phone from contact_captures c where c.id = v_entity_id)
+        when 'booking' then (select r.mobile from bookings b join renters r on r.id = b.renter_id where b.id = v_entity_id) end, ''), '[^0-9+]', '', 'g'), ''));
+    end if;
     -- focus mode: only urgent alerts reach the phone; the rest stay in the Alerts feed
     if v_staff and not v_urgent and pr.focus_until is not null and pr.focus_until > now() then return new; end if;
     if not v_urgent then
@@ -346,6 +359,31 @@ end $$;
 select pg_temp.copy_grants('app.push_state(uuid, text)'::regprocedure, 'app.push_state_pre0466(uuid, text)'::regprocedure);
 revoke all on function app.push_state_pre0466(uuid, text) from public, anon, authenticated;
 grant execute on function app.push_state_pre0466(uuid, text) to service_role;
+
+
+-- the rule table on Alerts > Settings (Admins only): each rule on or off, and its tier (the lead rules of 0460 keep theirs)
+create or replace function app.server_alert_rules(p_user uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+begin
+  if not app.user_is_admin(p_user) then raise exception 'Only an Admin sees the alert rules.' using errcode = '42501'; end if;
+  return coalesce((select jsonb_agg(jsonb_build_object('rule', r.rule, 'label', r.label, 'grp', r.grp, 'who', r.who, 'tier', r.tier, 'topic', r.topic,
+                     'enabled', r.enabled, 'fixed', r.fixed, 'hint', r.hint) order by r.sort, r.rule) from staff_alert_rules r), '[]'::jsonb);
+end $$;
+
+create or replace function app.server_set_alert_rule(p_user uuid, p_rule text, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  r staff_alert_rules;
+begin
+  if not app.user_is_admin(p_user) then raise exception 'Only an Admin changes the alert rules.' using errcode = '42501'; end if;
+  select * into r from staff_alert_rules where rule = p_rule;
+  if r.rule is null then raise exception 'No such alert.' using errcode = '22023'; end if;
+  if p ? 'tier' and (p ->> 'tier') not in ('urgent', 'normal', 'digest') then raise exception 'Urgent, normal or digest.' using errcode = '22023'; end if;
+  if p ? 'tier' and r.fixed and (p ->> 'tier') <> r.tier then raise exception 'The lead alerts keep their tier; switch them on or off.' using errcode = '22023'; end if;
+  update staff_alert_rules set enabled = coalesce((p ->> 'enabled')::boolean, enabled), tier = coalesce(p ->> 'tier', tier) where rule = p_rule
+  returning * into r;
+  return jsonb_build_object('rule', r.rule, 'enabled', r.enabled, 'tier', r.tier);
+end $$;
 
 -- ================================================================ 6. sign-in security and the deploy result
 create or replace function app.server_sign_in_event(p jsonb) returns void
@@ -528,6 +566,10 @@ create or replace function public.server_sign_in_event(p jsonb) returns void
 language sql set search_path = public, app as $$ select app.server_sign_in_event(p) $$;
 create or replace function public.server_deploy_result(p jsonb) returns bigint
 language sql set search_path = public, app as $$ select app.server_deploy_result(p) $$;
+create or replace function public.server_alert_rules(p_user uuid) returns jsonb
+language sql set search_path = public, app as $$ select app.server_alert_rules(p_user) $$;
+create or replace function public.server_set_alert_rule(p_user uuid, p_rule text, p jsonb) returns jsonb
+language sql set search_path = public, app as $$ select app.server_set_alert_rule(p_user, p_rule, p) $$;
 
 do $$
 declare
@@ -537,9 +579,9 @@ begin
     select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where (n.nspname = 'app' and p.proname = any (array['staff_alert', 'alert_actions', 'alert_quiet_end', 'alert_tier', 'server_alert_feed', 'server_alert_unread',
               'server_alert_read', 'server_alert_snooze', 'server_alert_prefs', 'server_set_alert_prefs', 'server_push_device_topics', 'server_sign_in_event',
-              'server_deploy_result', 'job_staff_alerts']))
+              'server_deploy_result', 'job_staff_alerts', 'server_alert_rules', 'server_set_alert_rule']))
         or (n.nspname = 'public' and p.proname = any (array['server_alert_feed', 'server_alert_unread', 'server_alert_read', 'server_alert_snooze', 'server_alert_prefs',
-              'server_set_alert_prefs', 'server_push_device_topics', 'server_sign_in_event', 'server_deploy_result']))
+              'server_set_alert_prefs', 'server_push_device_topics', 'server_sign_in_event', 'server_deploy_result', 'server_alert_rules', 'server_set_alert_rule']))
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

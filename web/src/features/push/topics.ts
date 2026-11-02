@@ -8,7 +8,9 @@ export type PushRole = 'renter' | 'owner' | 'investor' | 'staff' | 'field' | 'ad
 
 export interface PushDevice { id: string; device: string; portal: string | null; created_at: string; last_sent_at: string | null; this: boolean }
 export interface PushStore { ios: string | null; android: string | null }
-export interface PushState { store?: PushStore; enabled: boolean; role: PushRole; topics: Topic[]; defaults: Topic[]; chosen: boolean; this_device: boolean | null; devices: PushDevice[] }
+export interface PushState { store?: PushStore; enabled: boolean; role: PushRole; topics: Topic[]; defaults: Topic[]; chosen: boolean; this_device: boolean | null; devices: PushDevice[];
+  /** This device's own topics (0466); null or missing: it follows the person's choice. */
+  device_topics?: Topic[] | null }
 
 const COMMON: Record<Topic, [string, string]> = {
   requests: ['New requests and offers', 'A booking request comes in or an offer is ready.'],

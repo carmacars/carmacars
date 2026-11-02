@@ -3,7 +3,7 @@ import { nativePushConfig, pushCard, pushPublicKey } from '@/server/push';
 import { inAppShell } from '@/server/app-shell';
 import { viewAs } from '@/server/view-as';
 import { PushAlertsCard } from './PushAlertsCard';
-import { PushPrompt } from './PushPrompt';
+import { PushPrompt, type PushMoment } from './PushPrompt';
 import type { PushRole } from './topics';
 
 // Phone and browser alerts (migration 0300), for the server pages: nothing at all until the VAPID keys are set (or
@@ -17,9 +17,9 @@ export async function PushAlerts({ userId, portal, className }: { userId: string
   return <PushAlertsCard publicKey={card.publicKey} native={card.native} portal={portal} initial={card.state} className={className} />;
 }
 
-export async function PushInvite({ portal, home }: { portal: PushRole; home: string | string[] }) {
+export async function PushInvite({ portal, home, moment }: { portal: PushRole; home: string | string[]; moment?: PushMoment }) {
   if (await viewAs().catch(() => null)) return null;
-  if (await inAppShell()) return nativePushConfig() ? <PushPrompt publicKey={null} native portal={portal} home={home} /> : null;
+  if (await inAppShell()) return nativePushConfig() ? <PushPrompt publicKey={null} native portal={portal} home={home} moment={moment} /> : null;
   const key = await pushPublicKey().catch(() => null);
-  return key ? <PushPrompt publicKey={key} portal={portal} home={home} /> : null;
+  return key ? <PushPrompt publicKey={key} portal={portal} home={home} moment={moment} /> : null;
 }

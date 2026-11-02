@@ -321,6 +321,12 @@ select test.eq('grouping: six alerts in the feed, three pushed alone and one gro
   (select count(*) from push_outbox o join notifications n on n.id = o.notification_id where n.user_id = test.id('sta_admin') and n.title like 'Refund issued: sa burst%') || '/' ||
   (select count(*) from notifications where user_id = test.id('sta_admin') and title like '4 or more alerts: Refund issued%'), '6/3/1');
 update program_settings set alert_burst_count = 50;
+-- a lead's phone alert has the Call button (the lead's number)
+insert into leads (id, kind, name, phone, email, message, source) values (test.id('sta_lead'), 'contact', 'Sta Lead', '4165550177', 'sta_lead@example.test', 'Hi', 'web');
+select app.process_events(1000);
+select test.eq('buttons: a new lead calls the lead (the Call page of the site, the number in it)',
+  (select a ->> 'url' from push_outbox o join notifications n on n.id = o.notification_id, jsonb_array_elements(o.actions) a
+    where n.user_id = test.id('sta_admin') and n.code = 'staff_lead_new' and n.entity_id = test.id('sta_lead') and a ->> 'action' = 'call' limit 1), '/alerts/call?to=4165550177');
 -- sign-in security: an Admin's new device; a burst of failed sign-ins
 select app.server_sign_in_event(jsonb_build_object('user_id', test.id('sta_admin'), 'email', 'sta_admin@example.test', 'ok', true, 'device', 'Chrome on Mac', 'country', 'CA'));
 select app.server_sign_in_event(jsonb_build_object('user_id', test.id('sta_admin'), 'email', 'sta_admin@example.test', 'ok', true, 'device', 'Chrome on Mac', 'country', 'CA'));
@@ -365,3 +371,4 @@ delete from chat_messages where conversation_id = test.id('sta_chat');
 delete from chat_conversations where id = test.id('sta_chat');
 delete from email_suppressions where email like 'sta\_%@example.test' or email = 'verify-sa-unsub@carmacars.ca';
 delete from sms_opt_out_log where number = '+16475550198';
+delete from leads where id = test.id('sta_lead');

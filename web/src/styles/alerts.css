@@ -1,0 +1,65 @@
+/* The staff Alerts feed, its bell and the alert settings (migration 0466). Red, black and white; phone first. */
+
+/* the bell in the portal frame */
+.al-bell { position: relative; display: inline-grid; place-items: center; width: 44px; height: 44px; margin: -10px 0; border-radius: 50%; color: var(--text); }
+.al-bell:hover { background: var(--grey-100); }
+.al-bell:focus-visible { outline: 2px solid var(--red-600); outline-offset: 2px; }
+.al-bell__n { position: absolute; top: 4px; right: 2px; min-width: 1.15rem; height: 1.15rem; padding: 0 0.3rem; border-radius: 999px; background: var(--red-600); color: var(--white);
+  font-size: var(--fs-2xs); font-weight: 700; line-height: 1.15rem; text-align: center; }
+
+/* the feed */
+.al { display: grid; gap: var(--s-3); min-width: 0; }
+.al__bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+.al__right { display: flex; align-items: center; gap: var(--s-2); margin-left: auto; }
+.al__count { font-size: var(--fs-xs); font-weight: 600; color: var(--red-700); white-space: nowrap; }
+.al__filters { display: flex; gap: var(--s-1); }
+.al__chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--s-3); border: 1px solid var(--grey-300); border-radius: 999px; font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); text-decoration: none; }
+.al__chip:hover { border-color: var(--grey-600); color: var(--text); }
+.al__chip[aria-current="page"] { background: var(--black); border-color: var(--black); color: var(--white); }
+.al__msg { margin: 0; }
+.al__empty { margin: 0; padding: var(--s-5) var(--s-4); border: 1px dashed var(--grey-300); border-radius: var(--r-2); color: var(--text-2); text-align: center; }
+.al__list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--grey-200); }
+.al__item { display: grid; grid-template-columns: 0.6rem minmax(0, 1fr); gap: var(--s-1) var(--s-3); padding: var(--s-3) 0; border-bottom: 1px solid var(--grey-200); }
+.al__dot { width: 0.6rem; height: 0.6rem; margin-top: 0.45rem; border-radius: 50%; background: transparent; }
+.al__item.is-unread .al__dot { background: var(--black); }
+.al__item--urgent.is-unread .al__dot { background: var(--red-600); }
+.al__main { min-width: 0; display: grid; gap: 0.15rem; }
+.al__title { color: var(--text); font-weight: 500; text-decoration: none; overflow-wrap: anywhere; }
+.al__item.is-unread .al__title { font-weight: 650; }
+.al__title:hover { text-decoration: underline; }
+.al__body { margin: 0; font-size: var(--fs-sm); color: var(--text-2); overflow-wrap: anywhere; }
+.al__meta { margin: 0; display: flex; flex-wrap: wrap; gap: 0 var(--s-2); font-size: var(--fs-xs); color: var(--text-2); }
+.al__meta > * + *::before { content: "\00b7"; margin-right: var(--s-2); }
+.al__tier { font-weight: 600; }
+.al__tier--urgent { color: var(--red-700); }
+.al__acts { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+@media (max-width: 719px) { .al__acts .btn--quiet:first-child { padding-left: 0; } }
+@media (min-width: 720px) {
+  .al__item { grid-template-columns: 0.6rem minmax(0, 1fr) auto; align-items: start; }
+  .al__acts { grid-column: 3; justify-content: end; }
+}
+
+/* the settings */
+.as { gap: var(--s-4); }
+.as h2 { margin: 0; }
+.as__block { display: grid; gap: var(--s-2); }
+.as__switch { border-top: 1px solid var(--grey-200); }
+.as__times { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+.as__time { display: grid; gap: var(--s-1); flex: 1 1 8rem; max-width: 12rem; }
+.as__label { margin: 0; display: flex; align-items: center; gap: var(--s-2); }
+.as__block > .small { margin: 0; }
+.as__row { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.as__row .btn { min-height: 44px; }
+
+/* the Call page of a phone alert's button */
+.al-call { max-width: 28rem; margin: var(--s-6) auto; padding: 0 var(--s-4); display: grid; gap: var(--s-3); text-align: center; }
+.al-call .btn { min-height: 52px; font-size: 1.125rem; }
+
+/* the rule table (Admins) */
+.ar__group { border-top: 1px solid var(--grey-200); }
+.ar__group > summary { min-height: 44px; display: flex; align-items: center; gap: var(--s-2); cursor: pointer; }
+.ar__list { list-style: none; margin: 0; padding: 0; }
+.ar__row { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-1); padding-bottom: var(--s-2); border-bottom: 1px solid var(--grey-100); }
+.option.pa__opt.ar__switch { border: 0; padding-bottom: 0; }
+.ar__tier .input { max-width: 9rem; min-height: 40px; }
+@media (min-width: 640px) { .ar__row { grid-template-columns: minmax(0, 1fr) 9rem; align-items: center; } }

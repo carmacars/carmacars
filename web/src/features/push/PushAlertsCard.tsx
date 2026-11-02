@@ -2,6 +2,7 @@
 import '@/styles/push.css';
 import { useState, useTransition } from 'react';
 import { savePushTopics, sendTestPush } from '@/server/actions/push';
+import { saveDeviceTopics } from '@/server/actions/alerts';
 import { storeLink, topicLabel, topicsFor, type PushRole, type PushState, type Topic } from './topics';
 import { usePushDevice } from './usePushDevice';
 
@@ -33,6 +34,9 @@ export function PushAlertsCard({ publicKey, portal, initial, className = 'pt-car
   const d = usePushDevice(publicKey, portal, initial, { native });
   const state = d.state ?? initial;
   const [topics, setTopics] = useState<Topic[]>(state.topics);
+  // a device may keep its own choice (0466): on this device only, while alerts are on here
+  const [ownEdit, setOwn] = useState<Topic[] | null | undefined>(undefined);
+  const own = ownEdit === undefined ? (state.device_topics ?? null) : ownEdit;
   const [saved, setSaved] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const on = d.status === 'on';
@@ -41,7 +45,32 @@ export function PushAlertsCard({ publicKey, portal, initial, className = 'pt-car
   const shown = topicsFor(state.role);
   const others = state.devices.filter((x) => x.device && x.id && !(on && x.this));
 
+  const deviceOnly = on && !!d.endpoint && own !== null;
+  const setDeviceOnly = (yes: boolean) => {
+    const ep = d.endpoint;
+    if (!ep) return;
+    const was = own;
+    const next = yes ? [...topics] : null;
+    setOwn(next); setSaved(null);
+    start(async () => {
+      const r = await saveDeviceTopics(ep, next);
+      if (!r.ok) { setOwn(was); d.setError(r.message); return; }
+      d.setState(r.data); setSaved('Saved.');
+    });
+  };
   const toggle = (t: Topic, checked: boolean) => {
+    if (deviceOnly && d.endpoint) {
+      const ep = d.endpoint;
+      const was = own;
+      const next = checked ? [...(own ?? []), t] : (own ?? []).filter((x) => x !== t);
+      setOwn(next); setSaved(null);
+      start(async () => {
+        const r = await saveDeviceTopics(ep, next);
+        if (!r.ok) { setOwn(was); d.setError(r.message); return; }
+        d.setState(r.data); setSaved('Saved.');
+      });
+      return;
+    }
     const was = topics;
     const next = checked ? [...topics, t] : topics.filter((x) => x !== t);
     setTopics(next); setSaved(null);
@@ -112,14 +141,20 @@ export function PushAlertsCard({ publicKey, portal, initial, className = 'pt-car
             const w = topicLabel(state.role, t);
             return (
               <label className="option pa__opt" key={t}>
-                <input type="checkbox" role="switch" checked={topics.includes(t)} onChange={(e) => toggle(t, e.target.checked)} data-testid={`push-topic-${t}`} />
+                <input type="checkbox" role="switch" checked={(deviceOnly ? own ?? [] : topics).includes(t)} onChange={(e) => toggle(t, e.target.checked)} data-testid={`push-topic-${t}`} />
                 <span className="option__title">{w.label}</span>
                 <span className="option__body">{w.hint}</span>
               </label>
             );
           })}
         </div>
-        <p className="hint">{state.chosen ? 'Your choice applies to all your devices.' : 'Set for your role. Your choice applies to all your devices.'} Sign-in links and codes never come as alerts.</p>
+        {on && d.endpoint && (
+          <label className="pa__own small">
+            <input type="checkbox" checked={deviceOnly} onChange={(e) => setDeviceOnly(e.target.checked)} data-testid="push-device-only" />
+            <span>A different choice on this device only</span>
+          </label>
+        )}
+        <p className="hint">{deviceOnly ? 'This device keeps its own choice; your other devices keep theirs.' : state.chosen ? 'Your choice applies to all your devices.' : 'Set for your role. Your choice applies to all your devices.'} Sign-in links and codes never come as alerts.</p>
       </fieldset>
 
       {others.length > 0 && (

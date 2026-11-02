@@ -58,7 +58,7 @@ update notification_catalogue set push_topic = null where code = 'staff_data_hea
 update notification_catalogue c set push_topic = t.topic
   from (values ('owner_schedule_resign', 'documents'), ('owner_pad_confirmed', 'payments'), ('owner_registry_visit', 'documents'),
                ('owner_fee_change_cancelled', 'bookings'), ('renter_recovery_offer', 'requests'), ('renter_recovery_change', 'requests'),
-               ('renter_named_to_authority', 'alerts'), ('account_security_notice', 'alerts')) t(code, topic)
+               ('renter_named_to_authority', 'alerts')) t(code, topic)
  where c.code = t.code and c.push_topic is null and c.category <> 'marketing';
 
 -- ================================================================ 2. helpers

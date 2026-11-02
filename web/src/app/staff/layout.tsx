@@ -9,6 +9,7 @@ import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { PushInvite } from '@/features/push/PushAlerts';
+import { AlertsBell } from '@/features/alerts/AlertsBell';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 import { switchFunction } from '@/server/actions/va';
 import { door, rolesOf } from '@/server/door';
@@ -54,7 +55,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         {staff && roles ? (
           <aside className="ad__rail">
             <div className="ad__who"><span className="muted">{office ? STAFF_FN_LABEL[roles.va!] : STAFF_FN_LABEL.field} · <b data-testid="account-email">{roles.name ?? user?.email}</b></span>
-              <span className="gd-frame-links"><Link prefetch={false} className="link" href={office ? '/staff/profile' : '/staff/field/profile'} data-testid="va-profile-link">Profile</Link><AssistantPanel portal={portal} /><GuideLink portal={portal} /><SignOutOrExit /></span></div>
+              <span className="gd-frame-links">{user ? <AlertsBell userId={user.id} href="/staff/alerts" /> : null}<Link prefetch={false} className="link" href={office ? '/staff/profile' : '/staff/field/profile'} data-testid="va-profile-link">Profile</Link><AssistantPanel portal={portal} /><GuideLink portal={portal} /><SignOutOrExit /></span></div>
             <PortalSwitch current="va" />
             {held.length > 1 && (
               <nav className="ad-fn" aria-label="Function" data-testid="fn-switch"><p className="small muted">Working as</p>

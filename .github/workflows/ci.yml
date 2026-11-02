@@ -469,3 +469,15 @@ jobs:
         run: |
           gh workflow run gsc.yml -R "${{ github.repository }}" --ref "${{ github.ref_name }}" -f submit=true -f warm=3000 -f indexnow_rounds=10
           echo "::notice title=gsc::started the gsc workflow: the first 3,000 priority addresses fetched once, the sitemaps submitted, IndexNow batches sent"
+      # 0466: the Admins get a staff alert when a deploy finishes or fails (Alerts, and the phone; never fails the deploy).
+      # Runs only once the Secrets step gave this job the database address and its server key.
+      - name: Tell the Admins (staff alert deploy_result)
+        if: ${{ always() && inputs.deploy && env.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        continue-on-error: true
+        env:
+          RESULT: ${{ job.status }}
+          TARGET: ${{ inputs.environment }}
+        run: |
+          curl -s -o /dev/null --max-time 15 -X POST "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/rpc/server_deploy_result" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H 'content-type: application/json' \
+            -d "$(jq -n --arg s "$RESULT" --arg sha "$GITHUB_SHA" --arg e "$TARGET" '{p: {status: $s, sha: $sha, environment: $e}}')" || true
