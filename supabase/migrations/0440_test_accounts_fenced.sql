@@ -59,9 +59,12 @@ language sql stable security definer set search_path = public, app as $$
   select p is not null and coalesce((select u.is_test from users u where u.id = p), false)
 $$;
 
--- 0078's test: the verification's addresses only; now every test account (the invitation's leftover too)
+-- 0078's test: the verification's addresses only; now every test account (the invitation's leftover too). 0343 (Release 26,
+-- live) widened it to the addresses of site_settings.admin_test_emails and the invitation's "+verify-" form: kept here.
 create or replace function app.staff_is_test(p_user uuid) returns boolean
-language sql stable security definer set search_path = public, app as $$ select app.is_test_user(p_user) $$;
+language sql stable security definer set search_path = public, app as $$
+  select app.is_test_user(p_user) or coalesce((select app.email_is_test(u.email) from users u where u.id = p_user), false)
+$$;
 
 -- ================================================================ 2. a test account's owner record
 create or replace function app.owners_test_flag() returns trigger
