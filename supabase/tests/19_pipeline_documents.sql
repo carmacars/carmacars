@@ -91,7 +91,7 @@ select test.eq('worker: the decode comes first and the copy draft waits for it',
 select test.eq('worker: a decode job carries the VIN; a photo job carries the original, the backdrop rule and a file name',
   (select (x ->> 'vin') is not null from pd_c1, jsonb_array_elements(c -> 'jobs') x where x ->> 'kind' = 'decode_vin')
   || '/' || (select count(*) from pd_c1, jsonb_array_elements(c -> 'jobs') x where x ->> 'kind' = 'process_photo' and (x -> 'photo' ->> 'rebackground')::boolean
-              and x -> 'photo' ->> 'original_path' like 'vehicles/%' and x -> 'photo' ->> 'file_base' like '2023-mercedes-benz-eqe-pdv-%'),
+              and x -> 'photo' ->> 'original_path' like 'vehicles/%' and x -> 'photo' ->> 'file_base' like '2023-mercedes-benz-c-300-pdv-%'),
   'true/8');
 select public.server_listing_result((x ->> 'id')::uuid, test.pd_answer(x)) from pd_c1, jsonb_array_elements(c -> 'jobs') x;
 create temp table pd_c2 as select public.server_listing_claim('pd-worker', 100) c;
