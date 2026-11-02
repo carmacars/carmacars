@@ -6,6 +6,7 @@ import { money } from '@/lib/format';
 import { chooseFirstLast, saveTerms, type FirstLastAction, type TermsInput } from '@/server/actions/owner-billing';
 import { METHODS } from './ApproveStep';
 import { dollars, pctOf, toCents } from './shared';
+import { DateInput } from '@/components/DateInput';
 
 // Negotiated terms (migration 0067): the owner's default for their cars, and each car's own exact amounts, each with
 // the date they apply from. A car whose Vehicle Schedule is signed gets an updated schedule for the owner to sign
@@ -58,7 +59,7 @@ function FirstLastChoice({ c, paths, today }: { c: CarTerms; paths: string[]; to
             <p className="hint">Default 2 x the Insurance Fee; any exact amount.</p></div>}
           {action === 'paid' && <div className="field-row">
             <div className="field"><label className="label" htmlFor={`${uid}-m`}>Paid by</label><select className="select" id={`${uid}-m`} value={method} onChange={(e) => setMethod(e.target.value)}>{METHODS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
-            <div className="field"><label className="label" htmlFor={`${uid}-d`}>Date received</label><input className="input" type="date" id={`${uid}-d`} value={on} max={today} onChange={(e) => setOn(e.target.value)} /></div>
+            <div className="field"><label className="label" htmlFor={`${uid}-d`}>Date received</label><DateInput className="input" type="date" id={`${uid}-d`} value={on} max={today} onChange={(e) => setOn(e.target.value)} /></div>
             <div className="field"><label className="label" htmlFor={`${uid}-r`}>{method === 'cheque' ? 'Cheque number' : 'Reference'}{['cash', 'other'].includes(method) ? ' (optional)' : ''}</label><input className="input" id={`${uid}-r`} value={ref} onChange={(e) => setRef(e.target.value)} data-testid="first-last-reference" /></div>
           </div>}
           {a.res && !a.res.ok && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
@@ -105,7 +106,7 @@ function TermsForm({ base, scope, ownerId, vehicleId, today, paths, signed, test
             <input className="input" id={`${uid}-${k}`} inputMode="decimal" value={v[k] ?? ''} onChange={(e) => setV({ ...v, [k]: e.target.value })} data-testid={`terms-${k}`}
               placeholder={k === 'first_last_cents' ? '2 x the Insurance Fee' : scope === 'owner' ? 'Not negotiated' : ''} aria-describedby={kind === 'pct' ? undefined : `${uid}-hint`} /></div>))}
         <div className="field"><label className="label" htmlFor={`${uid}-from`}>Applies from</label>
-          <input className="input" id={`${uid}-from`} type="date" value={from} onChange={(e) => setFrom(e.target.value)} data-testid="terms-from" /></div>
+          <DateInput className="input" id={`${uid}-from`} type="date" value={from} onChange={(e) => setFrom(e.target.value)} data-testid="terms-from" /></div>
       </div>
       <p className="hint" id={`${uid}-hint`}>{scope === 'owner' ? 'Leave a field empty to keep the standard grid for it. These apply to the owner\'s cars whose terms are set from that date.' : 'Exact amounts to the cent. The first and last month amount, when empty, is 2 x the Insurance Fee.'}</p>
       <fieldset className="stack"><legend className="label">One-off fees agreed (optional)</legend>

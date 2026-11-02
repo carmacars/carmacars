@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { InfoTip } from '@/components/InfoTip';
 import type { ReactNode } from 'react';
 import { money } from '@/lib/format';

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { PortalIcon, type PortalIconName } from '@/components/portal-ui/icons';
 import { walkthroughGotIt } from '@/server/actions/walkthrough';
 import { STAGES, walkView, type Facts, type View, type Walk } from './model';

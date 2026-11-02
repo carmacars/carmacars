@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { LiveWait } from '@/features/admin/shell/LiveWait';
 import { Filters } from '@/features/admin/ui';

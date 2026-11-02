@@ -1,7 +1,9 @@
 'use client';
 import { useId, useState, useTransition } from 'react';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { addOwner } from '@/server/actions/owner-billing';
+import { TypedInput } from '@/components/DateInput';
 
 // Owners > Add an owner (0264): on file without a car, with the owner's default terms if agreed. Nothing is emailed
 // unless "Invite the owner now" is ticked.
@@ -19,7 +21,7 @@ export function AddOwnerForm() {
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.value });
   const field = (k: keyof typeof f, label: string, opts: { type?: string; hint?: string; mode?: 'email' | 'tel' | 'decimal' } = {}) => (
     <div className={`field${err[k] ? ' has-error' : ''}`}><label className="label" htmlFor={`${uid}-${k}`}>{label}</label>
-      <input className="input" id={`${uid}-${k}`} type={opts.type ?? 'text'} inputMode={opts.mode} value={f[k]} onChange={set(k)} data-testid={`addowner-${k}`} />
+      <TypedInput className="input" id={`${uid}-${k}`} type={opts.type ?? 'text'} inputMode={opts.mode} value={f[k]} onChange={set(k)} data-testid={`addowner-${k}`} />
       {opts.hint && <p className="hint">{opts.hint}</p>}<p className="error" role="alert">{err[k] ?? ''}</p></div>);
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +31,7 @@ export function AddOwnerForm() {
         corporation_name: f.corporation_name || undefined, terms: { insurance_fee_cents: cents(f.ins), tracker_fee_cents: cents(f.trk), revenue_share_bps: bps(f.share) }, invite });
       if (!r.ok) { setErr(r.fieldErrors ?? {}); setMsg({ ok: false, text: r.message }); return; }
       setMsg({ ok: true, text: r.data.note ?? 'Added. Nothing was emailed: invite the owner when ready.' });
-      router.push(`/admin/owners/${r.data.owner_id}`);
+      router.push(`/admin/owners/${r.data.owner_id}`, scrollOption(`/admin/owners/${r.data.owner_id}`));
     });
   };
   return (

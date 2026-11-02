@@ -5,7 +5,7 @@ import { phoneCountry, toE164 } from '../auth/phone.ts';
 export type GateKind = 'gallery' | 'dates' | 'request';
 /** public.site_facts().phone_gate: the Admin settings (Settings, Phone number box). */
 export interface GateRules { gallery: boolean; free_photos: number; dates: boolean; request: boolean; verify: boolean; allow_unverified: boolean; us_texts: boolean }
-export const GATE_OFF: GateRules = { gallery: false, free_photos: 6, dates: false, request: false, verify: false, allow_unverified: false, us_texts: false };
+export const GATE_OFF: GateRules = { gallery: false, free_photos: 4, dates: false, request: false, verify: false, allow_unverified: false, us_texts: false };
 
 /** The line in the box, by what it opens (the owner's words). */
 export const GATE_TEXT: Record<GateKind, string> = {
@@ -29,15 +29,15 @@ export function gateOn(r: GateRules | null | undefined, kind: GateKind): boolean
 /** Does tapping photo `index` (0-based) of `total` need the number? Never on a car with only the free photos. */
 export function photoLocked(index: number, total: number, r: GateRules | null | undefined): boolean {
   if (!gateOn(r, 'gallery')) return false;
-  const free = Math.max(1, Math.floor(r!.free_photos || 6));
+  const free = Math.max(1, Math.floor(r!.free_photos || 4));
   return total > free && index >= free;
 }
 
 /** How many photos a car card may show on hover or swipe, the cover included (2026-11-06): 5, or fewer when the photo
- *  box leaves fewer free. */
+ *  box leaves fewer free (4 by default since migration 0490). */
 export function cardPhotoCap(r: GateRules | null | undefined): number {
   if (!gateOn(r, 'gallery')) return 5;
-  return Math.min(5, Math.max(1, Math.floor(r!.free_photos || 6)));
+  return Math.min(5, Math.max(1, Math.floor(r!.free_photos || 4)));
 }
 
 export type GateNumber = { ok: true; phone: string; country: 'CA' | 'US' } | { ok: false; message: string };

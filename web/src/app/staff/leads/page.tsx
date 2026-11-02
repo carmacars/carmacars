@@ -1,7 +1,7 @@
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Badge, Card, PageHead, Table, t, label } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';

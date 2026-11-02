@@ -1,10 +1,12 @@
 'use client';
 import { useId, useState } from 'react';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
 import { money } from '@/lib/format';
 import { issueInvoice, saveDraft, type LineInput } from '@/server/actions/owner-billing';
 import { dollars, hstOf, toCents } from './shared';
+import { DateInput } from '@/components/DateInput';
 
 // A draft owner invoice, line by line (migration 0067): description, quantity, unit amount to the cent, HST on or off
 // per line, a note per line; the title, due date and notes of the invoice. Saved as a draft, or saved and issued.
@@ -42,7 +44,7 @@ export function InvoiceEditor({ draft, cars, applicationId, hstBps, paths = [], 
         const x = await issueInvoice(r.data.id, paths);
         if (!x.ok) { setMsg(x.message); return; }
       }
-      if (!stay) router.push(`/admin/invoices/${r.data.invoice_number}${issue ? '?issued=1' : '?saved=1'}`);
+      if (!stay) router.push(`/admin/invoices/${r.data.invoice_number}${issue ? '?issued=1' : '?saved=1'}`, scrollOption(`/admin/invoices/${r.data.invoice_number}${issue ? '?issued=1' : '?saved=1'}`));
       else router.refresh();
     });
   };
@@ -64,7 +66,7 @@ export function InvoiceEditor({ draft, cars, applicationId, hstBps, paths = [], 
         <div className="field"><label className="label" htmlFor={`${uid}-title`}>Title (optional)</label>
           <input className="input" id={`${uid}-title`} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="For example: Registration fee" data-testid="invoice-title" /></div>
         <div className="field"><label className="label" htmlFor={`${uid}-due`}>Due date (optional)</label>
-          <input className="input" id={`${uid}-due`} type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-describedby={`${uid}-due-h`} data-testid="invoice-due" />
+          <DateInput className="input" id={`${uid}-due`} type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-describedby={`${uid}-due-h`} data-testid="invoice-due" />
           <p className="hint" id={`${uid}-due-h`}>Empty: 7 days after it is issued (Program settings).</p></div>
       </div>
       <fieldset className="stack"><legend className="label">Lines</legend>

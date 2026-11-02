@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { fakeConfirmAddonCard, finalizeAddonPayment, startAddonPayment, type StartedAddonPayment } from '@/server/actions/addon-pay';
 import { money } from '@/lib/format';
@@ -54,7 +55,7 @@ export function AddonPayForm({ number, amountCents }: { number: string; amountCe
   const finish = async (intentId: string) => {
     setMsg({ kind: 'wait', text: 'Card approved. We are recording your payment.' });
     const r = await finalizeAddonPayment(number, intentId);
-    if (r.ok && r.data.ok) { router.push(`${back}?addons_paid=1`); return; }
+    if (r.ok && r.data.ok) { router.push(`${back}?addons_paid=1`, scrollOption(`${back}?addons_paid=1`)); return; }
     setMsg({ kind: 'error', text: r.ok ? (r.data as { message: string }).message : r.message });
     setBusy(false);
   };

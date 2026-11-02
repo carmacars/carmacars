@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useEffect, useId, useRef, useState } from 'react';
 import { vinClassHint, vinClassOptions, vinFacts, vinModels } from '@/server/actions/vin';
 import { COLOURS, FUEL_WORDS, MAKES, carName, cleanVin, detailLine, vinMessage, vinState, yearChoices } from './vin';

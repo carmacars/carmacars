@@ -47,17 +47,22 @@ begin
     'year', 2024, 'make', 'Kia', 'model', 'K5', 'class', 'standard', 'fuel', 'gasoline', 'body_type', 'sedan',
     'rates', jsonb_build_object('daily', 10000, 'weekend', 10000, 'weekly', 70000, 'monthly', 300000, 'deposit', 30000)));
 end $$;
+-- Where a rental's days start: a pickup less than two weeks ahead is counted from this hour (the add-on notice, its portal
+-- cutoff and the cancellation tiers count hours from now); a later one from a Friday, so that a rental that starts 30 or 31
+-- days on does not price a weekend day (the weekend rate counts Fridays and Saturdays).
+create or replace function test.b43(p_from interval) returns timestamptz language sql stable as $$
+  select case when p_from < interval '14 days' then date_trunc('hour', now()) else test.base(5) end $$;
 create or replace function test.s43v(p text) returns uuid language sql stable as $$ select (test.s43(p) ->> 'vehicle_id')::uuid $$;
 -- a rental added by hand by an Admin, paid another way (confirmed and paid at once)
 create or replace function test.s43r(p_vehicle uuid, p_from interval, p_to interval, p jsonb default '{}'::jsonb, p_renter text default 'ao_rita') returns jsonb language sql as $$
-  select jsonb_build_object('vehicle_id', p_vehicle, 'pickup_at', date_trunc('hour', now()) + p_from, 'return_at', date_trunc('hour', now()) + p_to,
+  select jsonb_build_object('vehicle_id', p_vehicle, 'pickup_at', test.b43(p_from) + p_from, 'return_at', test.b43(p_from) + p_to,
                             'source', 'phone', 'coverage_option', 1, 'renter_id', test.id('renter:' || p_renter),
                             'payment', jsonb_build_object('mode', 'other_way', 'method', 'cash')) || p $$;
 create or replace function test.s43req(p_key text, p_vehicle uuid, p_from interval, p_to interval, p_addons jsonb) returns jsonb language sql as $$
-  select test.ba_req(p_key, 'ao.' || p_key || '@example.test', 'none', date_trunc('hour', now()) + p_from, date_trunc('hour', now()) + p_to,
+  select test.ba_req(p_key, 'ao.' || p_key || '@example.test', 'none', test.b43(p_from) + p_from, test.b43(p_from) + p_to,
                      jsonb_build_object('vehicle_id', p_vehicle, 'addons', p_addons)) $$;
 create or replace function test.s43q(p_vehicle uuid, p_from interval, p_to interval, p_addons jsonb, p_channel text default null) returns jsonb language sql as $$
-  select app.price_quote(p_vehicle, date_trunc('hour', now()) + p_from, date_trunc('hour', now()) + p_to,
+  select app.price_quote(p_vehicle, test.b43(p_from) + p_from, test.b43(p_from) + p_to,
                          jsonb_build_object('addons', p_addons) || case when p_channel is null then '{}'::jsonb else jsonb_build_object('addon_channel', p_channel) end) $$;
 create or replace function test.s43ql(q jsonb) returns text language sql immutable as $$
   select string_agg((l ->> 'description') || '=' || (l ->> 'amount_cents'), ' | ' order by o)
@@ -130,7 +135,7 @@ select test.eq('months: winter tires are offered October to April only',
       app.local_midnight(make_date(extract(year from now())::integer + 1, 7, 13)) + interval '10 hours', '{"addons": [{"code": "winter_tire"}]}')), 'offered')),
   'offered/addon_not_for_car');
 select test.eq('old extras: {"baby_seats": 1} in a quote is the catalogue''s baby seat at its price',
-  test.s43ql(app.price_quote(test.s43v('std'), date_trunc('hour', now()) + interval '5 days', date_trunc('hour', now()) + interval '8 days', '{"extras": {"baby_seats": 1}}')),
+  test.s43ql(app.price_quote(test.s43v('std'), test.base(5) + interval '5 days', test.base(5) + interval '8 days', '{"extras": {"baby_seats": 1}}')),
   'Baby seat (rear-facing), 3 days=4500');
 update addons set active = false where code = 'umbrella';
 select test.eq('inactive: an add-on turned off is not offered', test.s43qp(test.s43q(test.s43v('std'), interval '5 days', interval '8 days', '[{"code": "umbrella"}]'::jsonb)), 'addon_inactive');
@@ -160,7 +165,7 @@ select test.throws('stock: a rental over the same dates with a baby seat is refu
   'none left for these dates');
 select test.eq('stock: the catalogue counts what is left for dates (child seats untouched)',
   (select string_agg((x ->> 'code') || '=' || coalesce(x ->> 'available', '-'), ' ' order by x ->> 'code')
-     from jsonb_array_elements(app.addons_for_car(test.s43v('std2'), date_trunc('hour', now()) + interval '31 days', date_trunc('hour', now()) + interval '32 days')) x
+     from jsonb_array_elements(app.addons_for_car(test.s43v('std2'), test.base(5) + interval '31 days', test.base(5) + interval '32 days')) x
     where x ->> 'code' in ('baby_seat', 'child_seat', 'flowers')), 'baby_seat=0 child_seat=2 flowers=-');
 update addons set stock_count = 3 where code = 'baby_seat';
 select test.ok('stock: Fleet adds a seat, and one is free again',

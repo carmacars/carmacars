@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { JsonLd } from '@/components/JsonLd';
 import { Crumbs } from '@/components/Crumbs';
 import { breadcrumbLd, seoMeta, type Trail } from '@/features/seo/meta';

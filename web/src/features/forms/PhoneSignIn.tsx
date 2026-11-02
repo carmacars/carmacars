@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { requestPhoneCode, savePhoneName, verifyPhoneCode } from '@/server/actions/phone-auth';
 import { ChannelChoice } from '@/features/portal/NotifyChannel';

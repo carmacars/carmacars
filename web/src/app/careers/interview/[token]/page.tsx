@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { Interview } from '@/features/careers/Interview';
 import { interviewView } from '@/server/interviews';

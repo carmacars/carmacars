@@ -14,6 +14,7 @@ import './car-terms.css';
 // a higher management fee). History lists every period and every change, with the notice and Cancel for what has not
 // started. The same component serves the owner page (every car) and the car page (one car).
 import { fmtDay, m, payLine, pc, sinceLine, stateLine, STATUS_TEXT, type CarTermsData, type CarTermsRow } from './terms-shared';
+import { DateInput } from '@/components/DateInput';
 export type { CarTermsData, CarTermsRow } from './terms-shared';
 
 type Vals = { ins: string; trk: string; share: string; inst: string; mode: string; method: string };
@@ -53,7 +54,7 @@ function History({ c, today, paths }: { c: CarTermsRow; today: string; paths: st
               {x.status === 'awaiting_signature' && (
                 <span className="row ct-inline">
                   <label className="vh" htmlFor={`${uid}-p-${x.id}`}>Signed on paper on</label>
-                  <input className="input input--sm" type="date" id={`${uid}-p-${x.id}`} value={paper} max={today} onChange={(e) => setPaper(e.target.value)} />
+                  <DateInput className="input input--sm" type="date" id={`${uid}-p-${x.id}`} value={paper} max={today} onChange={(e) => setPaper(e.target.value)} />
                   <button type="button" className="btn btn--ghost btn--sm" disabled={a.pending} data-testid="car-terms-paper"
                     onClick={() => a.run(() => scheduleChange({ change_id: x.id, do: 'paper', signed_on: paper }, paths), (r) => { if (r.ok) router.refresh(); })}>Record signed on paper</button>
                 </span>)}
@@ -109,7 +110,7 @@ function ModeChange({ c, data, paths, onClose }: { c: CarTermsRow; data: CarTerm
         {mode === 'managed' && <div className="field"><label className="label" htmlFor={`${uid}-share`}>Management fee (Revenue Share, %)</label>
           <input className="input" id={`${uid}-share`} inputMode="decimal" value={share} placeholder="the standard share" onChange={(e) => { setShare(e.target.value); setPlan(null); }} data-testid="car-mode-share" /></div>}
         <div className="field"><label className="label" htmlFor={`${uid}-from`}>From</label>
-          <input className="input" type="date" id={`${uid}-from`} value={from} min={data.today} onChange={(e) => { setFrom(e.target.value); setPlan(null); }} data-testid="car-mode-from" /></div>
+          <DateInput className="input" type="date" id={`${uid}-from`} value={from} min={data.today} onChange={(e) => { setFrom(e.target.value); setPlan(null); }} data-testid="car-mode-from" /></div>
       </div>
       <div className="field"><label className="check" htmlFor={`${uid}-asked`}><input id={`${uid}-asked`} type="checkbox" checked={asked} onChange={(e) => { setAsked(e.target.checked); setPlan(null); }} data-testid="car-mode-asked" /> <span>The owner asked for this</span></label></div>
       <div className="field"><label className="label" htmlFor={`${uid}-why`}>Reason (the owner reads it)</label>
@@ -163,9 +164,9 @@ function PayPanel({ c, data, paths, onClose }: { c: CarTermsRow; data: CarTermsD
         {kind === 'flat_monthly' && <div className="field"><label className="label" htmlFor={`${uid}-amt`}>Amount a month ($)</label>
           <input className="input" id={`${uid}-amt`} inputMode="decimal" value={amount} placeholder="900.00" onChange={(e) => change(() => setAmount(e.target.value))} data-testid="car-pay-amount" /></div>}
         <div className="field"><label className="label" htmlFor={`${uid}-from`}>From</label>
-          <input className="input" type="date" id={`${uid}-from`} value={from} min={earliest} onChange={(e) => change(() => setFrom(e.target.value))} data-testid="car-pay-from" /></div>
+          <DateInput className="input" type="date" id={`${uid}-from`} value={from} min={earliest} onChange={(e) => change(() => setFrom(e.target.value))} data-testid="car-pay-from" /></div>
         {kind === 'flat_monthly' && <div className="field"><label className="label" htmlFor={`${uid}-until`}>Last day (optional)</label>
-          <input className="input" type="date" id={`${uid}-until`} value={until} min={from} onChange={(e) => change(() => setUntil(e.target.value))} data-testid="car-pay-until" /></div>}
+          <DateInput className="input" type="date" id={`${uid}-until`} value={until} min={from} onChange={(e) => change(() => setUntil(e.target.value))} data-testid="car-pay-until" /></div>}
       </div>
       {earliest && <p className="hint">The owner statement before {fmtDay(earliest)} is approved: a change starts on {fmtDay(earliest)} at the earliest.</p>}
       <div className="field"><label className="label" htmlFor={`${uid}-why`}>Reason (kept in the history)</label>
@@ -274,9 +275,9 @@ function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: st
               {plan && c.state === 'signed' && (lowerAny || higher) && (
                 <div className="field-row">
                   {lowerAny && c.enrolled && <div className="field"><label className="label" htmlFor={`${uid}-lower`}>Lower amounts from</label>
-                    <input className="input" type="date" id={`${uid}-lower`} value={lower} min={data.today} onChange={(e) => { setLower(e.target.value); review({ lower_from: e.target.value }); }} data-testid="car-terms-lower-from" /></div>}
+                    <DateInput className="input" type="date" id={`${uid}-lower`} value={lower} min={data.today} onChange={(e) => { setLower(e.target.value); review({ lower_from: e.target.value }); }} data-testid="car-terms-lower-from" /></div>}
                   {higher && c.enrolled && <div className="field"><label className="label" htmlFor={`${uid}-raise`}>Higher amounts from</label>
-                    <input className="input" type="date" id={`${uid}-raise`} value={raise} min={data.earliest_raise} onChange={(e) => { setRaise(e.target.value); review({ raise_from: e.target.value }); }} data-testid="car-terms-raise-from" />
+                    <DateInput className="input" type="date" id={`${uid}-raise`} value={raise} min={data.earliest_raise} onChange={(e) => { setRaise(e.target.value); review({ raise_from: e.target.value }); }} data-testid="car-terms-raise-from" />
                     <p className="hint">{data.notice_days} days&apos; notice: {fmtDay(data.earliest_raise)} at the earliest.</p></div>}
                   {higher && <div className="field"><label className="label" htmlFor={`${uid}-why`}>Reason (the owner reads it)</label>
                     <input className="input" id={`${uid}-why`} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="car-terms-reason" /></div>}

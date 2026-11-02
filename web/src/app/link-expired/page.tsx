@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { AuthShell } from '@/features/forms/AuthShell';
 import { ResendConfirmForm, ResetForm } from '@/features/forms/AuthForms';
 import { pageMeta } from '@/features/seo/meta';

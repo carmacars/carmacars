@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
@@ -253,7 +253,7 @@ export default async function Section({ params, searchParams }: { params: Promis
     const keys = ['phone_gate_gallery', 'phone_gate_free_photos', 'phone_gate_dates', 'phone_gate_request', 'phone_gate_verify', 'phone_gate_allow_unverified',
       'phone_gate_texts_per_number_day', 'phone_gate_texts_per_ip_day', 'phone_gate_texts_per_day'];
     return (<>{head}
-      <p className="small muted">A visitor who has not given a mobile number on this device is asked for one before more than the first {String(s.program.phone_gate_free_photos ?? 6)} photos of a car, and before the full availability (the booked days on a car&apos;s calendar, and the cars booked for the chosen dates). Picking dates and seeing whether that car is free stays open, and search engines see every photo. Signed-in renters with a verified mobile, and devices that gave a number in the last 90 days, never see it. Numbers given are under <Link prefetch={false} className="link" href="/admin/renters?tab=leads">People &gt; Renters &gt; Leads</Link> and on Live visitors.</p>
+      <p className="small muted">A visitor who has not given a mobile number on this device is asked for one before more than the first {String(s.program.phone_gate_free_photos ?? 4)} photos of a car, and before the full availability (the booked days on a car&apos;s calendar, and the cars booked for the chosen dates). Picking dates and seeing whether that car is free stays open, and search engines see every photo. Signed-in renters with a verified mobile, and devices that gave a number in the last 90 days, never see it. Numbers given are under <Link prefetch={false} className="link" href="/admin/renters?tab=leads">People &gt; Renters &gt; Leads</Link> and on Live visitors.</p>
       <Card title="Each box, one press"><GateSwitches r={g.rules} /></Card>
       <GateReport g={g} />
       <Card title="All the settings" testId="gate-settings"><SaveForm table="program_settings" rowKey="current" testId="program-phone-gate" fields={fieldsFrom(s.program, keys)} /></Card>

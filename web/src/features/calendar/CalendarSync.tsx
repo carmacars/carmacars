@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { calendarAct, calendarSyncNow } from '@/server/actions/calendar-sync';

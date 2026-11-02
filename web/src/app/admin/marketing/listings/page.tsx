@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
+import { GetForm } from '@/components/GetForm';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
@@ -32,7 +33,7 @@ export default async function Listings({ searchParams }: { searchParams: Promise
     <PageHead kicker="Marketing" title="Listings" purpose="The text of an ad for each car and channel, ready to paste, with the tracked link and the photo order. Record where you posted it." />
     <MarketingTabs current="/admin/marketing/listings" />
     <Card title="Car and channel" testId="ads-pick">
-      <form className="ad-row" method="get" action="/admin/marketing/listings" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-end' }}>
+      <GetForm className="ad-row" action="/admin/marketing/listings" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-end' }}>
         <div className="field"><label className="label" htmlFor="ads-car">Car</label>
           <select className="select" id="ads-car" name="car" defaultValue={car?.vehicle_id} data-testid="ads-car">
             {data.cars.map((c) => <option key={c.vehicle_id} value={c.vehicle_id}>{c.name}{c.car_code ? ` (${c.car_code})` : ''}{c.taking ? '' : ': not taking requests'}</option>)}
@@ -42,7 +43,7 @@ export default async function Listings({ searchParams }: { searchParams: Promise
             {CHANNELS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
           </select></div>
         <button className="btn btn--primary btn--sm" type="submit" data-testid="ads-show">Write it</button>
-      </form>
+      </GetForm>
       {!car && <p className="small muted">No car has a listing yet. Publish a car first (Cars &gt; Listings).</p>}
     </Card>
     {car && l && (<>

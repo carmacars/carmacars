@@ -17,7 +17,7 @@ insert into s99c select 'car', app.vehicle_add(test.id('r24c_admin'), jsonb_buil
 create or replace function test.s99cp(p jsonb, p_renter text default 'r24c_rita') returns jsonb language sql as $$
   select app.door(test.id('r24c_admin'), 'aal2', 'ops_read', 'offer_preview', jsonb_build_object(
     'vehicle_id', test.s99c('car') ->> 'vehicle_id', 'renter_id', test.id('renter:' || p_renter),
-    'pickup_at', date_trunc('hour', now()) + interval '10 days', 'return_at', date_trunc('hour', now()) + interval '12 days',
+    'pickup_at', test.base(4) + interval '10 days', 'return_at', test.base(4) + interval '12 days',
     'source', 'phone', 'coverage_option', 1, 'rental_pay_method', 'card', 'deposit_pay_method', 'card', 'fee_reason', 'test',
     'pickup_location', jsonb_build_object('kind', 'our_location'), 'return_location', jsonb_build_object('kind', 'our_location')) || p) $$;
 create or replace function test.s99cl(q jsonb) returns text language sql stable as $$
@@ -59,7 +59,7 @@ select test.eq('line_overrides_live: a spec that does not say keeps everything',
 -- ================================================================ 4. a booking: the fee set by hand goes with its choice
 insert into s99c select 'made', app.door(test.id('r24c_admin'), 'aal2', 'ops_do', 'offer_create', jsonb_build_object(
   'vehicle_id', test.s99c('car') ->> 'vehicle_id', 'renter_id', test.id('renter:r24c_rita'),
-  'pickup_at', date_trunc('hour', now()) + interval '20 days', 'return_at', date_trunc('hour', now()) + interval '22 days',
+  'pickup_at', test.base(4) + interval '20 days', 'return_at', test.base(4) + interval '22 days',
   'source', 'phone', 'coverage_option', 3, 'rental_pay_method', 'card', 'deposit_pay_method', 'card', 'notify', false, 'draft', true,
   'pickup_location', jsonb_build_object('kind', 'delivery', 'address', '1 Test Street, Toronto', 'distance_km', 12),
   'return_location', jsonb_build_object('kind', 'our_location'),

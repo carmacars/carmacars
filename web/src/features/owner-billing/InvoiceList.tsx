@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { money } from '@/lib/format';
 import { Badge, d } from '@/features/admin/ui';
 import { INVOICE_BADGE, KIND_LABEL, statusText } from './shared';

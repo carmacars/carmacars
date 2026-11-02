@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import '@/features/bookings-now/bookings-now.css';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -10,6 +10,7 @@ import { toLocalInput } from './Act';
 import { lane, rowHeight, stack, topOf } from './calendar-stack';
 import { photoUrl } from '@/lib/photo';
 import { photoPath, when as nowWords, type Car } from '@/features/bookings-now/model';
+import { DateInput } from '@/components/DateInput';
 
 // The master calendar (03-admin.md section 5): vehicles as rows, days as columns. Bookings are bars by
 // status (requests and offers hatched on the lower lane, non-blocking bookings outlined), blocks striped,
@@ -64,7 +65,7 @@ const kindOf = (e: Entry) => e.type === 'booking' ? (e.placeholder ? 'Placeholde
 function Thumb({ car, label }: { car?: Car; label: string }) {
   const p = photoPath(car?.photo, 96);
   // eslint-disable-next-line @next/next/no-img-element -- the listing photos come pre-sized (0149's variants)
-  return p ? <img className="cal__thumb" src={photoUrl(p)} alt="" width={44} height={30} loading="lazy" decoding="async" /> : <span className="cal__thumb cal__thumb--none" aria-hidden="true">{(label.replace(/^\d{4}\s+/, '')[0] ?? '?').toUpperCase()}</span>;
+  return p ? <img className="mcal__thumb" src={photoUrl(p)} alt="" width={44} height={30} loading="lazy" decoding="async" /> : <span className="mcal__thumb mcal__thumb--none" aria-hidden="true">{(label.replace(/^\d{4}\s+/, '')[0] ?? '?').toUpperCase()}</span>;
 }
 
 export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicleLinks = true, cars = {}, initialAgenda = false }: { initial: CalData; vehicleId?: string; defaultView?: string; vehicleLinks?: boolean; cars?: Record<string, Car>; initialAgenda?: boolean }) {
@@ -181,14 +182,14 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
   const width = `calc(14rem + ${days * dw}px)`;
 
   return (
-    <div className="cal" data-testid="master-calendar">
-      <div className="cal__bar">
+    <div className="mcal" data-testid="master-calendar">
+      <div className="mcal__bar">
         <div className="row">
           <button className="btn btn--ghost btn--sm" type="button" onClick={() => shift(-Math.max(1, Math.floor(days / 2)))} aria-label="Earlier">←</button>
           <button className="btn btn--ghost btn--sm" type="button" onClick={() => load(new Date())}>Today</button>
           <button className="btn btn--ghost btn--sm" type="button" onClick={() => shift(Math.max(1, Math.floor(days / 2)))} aria-label="Later">→</button>
           <label className="vh" htmlFor="cal-start">Start date</label>
-          <input className="input" style={{ minHeight: 36, width: '10rem' }} id="cal-start" type="date" value={isoDay(new Date(from))} onChange={(e) => e.target.value && load(new Date(`${e.target.value}T12:00:00`))} />
+          <DateInput className="input" style={{ minHeight: 36, width: '10rem' }} id="cal-start" type="date" value={isoDay(new Date(from))} onChange={(e) => e.target.value && load(new Date(`${e.target.value}T12:00:00`))} />
           <label className="vh" htmlFor="cal-view">View</label>
           <select className="select" style={{ minHeight: 36, width: 'auto' }} id="cal-view" value={view} onChange={(e) => { setView(e.target.value); load(new Date(from), e.target.value); }}>
             {Object.entries(VIEWS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
@@ -206,50 +207,50 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
         </div>
       </div>
       {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
-      <div className="cal__legend" aria-hidden="true">
-        <span><i className="cal__item is-on_rent" /> out</span><span><i className="cal__item is-confirmed" /> booked</span><span><i className="cal__item is-requested" /> request</span>
-        <span><i className="cal__item is-offered" /> offer</span><span><i className="cal__item is-confirmed is-outline" /> not blocking</span><span><i className="cal__item is-confirmed is-placeholder" /> placeholder</span><span><i className="cal__item is-block" /> block</span>
-        <span><i className="cal__item is-requested has-clash" /> dates taken</span><span><i className="cal__item" style={{ background: '#0f7b6c' }} /> Turo</span>
+      <div className="mcal__legend" aria-hidden="true">
+        <span><i className="mcal__item is-on_rent" /> out</span><span><i className="mcal__item is-confirmed" /> booked</span><span><i className="mcal__item is-requested" /> request</span>
+        <span><i className="mcal__item is-offered" /> offer</span><span><i className="mcal__item is-confirmed is-outline" /> not blocking</span><span><i className="mcal__item is-confirmed is-placeholder" /> placeholder</span><span><i className="mcal__item is-block" /> block</span>
+        <span><i className="mcal__item is-requested has-clash" /> dates taken</span><span><i className="mcal__item" style={{ background: '#0f7b6c' }} /> Turo</span>
       </div>
       {agenda ? (
-        <div className="cal__agenda" data-testid="cal-agenda">
+        <div className="mcal__agenda" data-testid="cal-agenda">
           {(() => {
             const items = vehicles.flatMap((v) => v.entries.map((e) => ({ v, e }))).sort((a, b) => a.e.starts_at.localeCompare(b.e.starts_at));
-            if (!items.length) return <p className="cal__none">Nothing on the calendar for these dates.</p>;
+            if (!items.length) return <p className="mcal__none">Nothing on the calendar for these dates.</p>;
             const groups: Array<[string, typeof items]> = [];
             for (const it of items) { const k = dayHead(it.e.starts_at); const g = groups[groups.length - 1]; if (g && g[0] === k) g[1].push(it); else groups.push([k, [it]]); }
             return groups.map(([k, rows]) => (
-              <section key={k} className="cal__aday"><h3>{k}</h3>
+              <section key={k} className="mcal__aday"><h3>{k}</h3>
                 <ul>{rows.map(({ v, e }) => (
-                  <li key={`${e.type}${e.id}`}><button type="button" className="cal__acard" data-kind={e.type === 'booking' ? (e.placeholder ? 'placeholder' : e.status ?? '') : e.type} data-clash={e.clash?.length ? 'yes' : undefined} onClick={() => setSel({ entry: e })}>
-                    <span className="cal__atime"><b>{hm(e.starts_at)}</b>{e.ends_at ? <span>to {nowWords(e.ends_at, now)}</span> : null}</span>
+                  <li key={`${e.type}${e.id}`}><button type="button" className="mcal__acard" data-kind={e.type === 'booking' ? (e.placeholder ? 'placeholder' : e.status ?? '') : e.type} data-clash={e.clash?.length ? 'yes' : undefined} onClick={() => setSel({ entry: e })}>
+                    <span className="mcal__atime"><b>{hm(e.starts_at)}</b>{e.ends_at ? <span>to {nowWords(e.ends_at, now)}</span> : null}</span>
                     <Thumb car={cars[v.id]} label={v.label} />
-                    <span className="cal__abody"><b>{v.label}</b><span>{[cars[v.id]?.code, v.plate].filter(Boolean).join(' · ')}{e.renter ? ` · ${e.renter}` : ''}{e.booking_number ? ` · ${e.booking_number}` : ''}</span>
+                    <span className="mcal__abody"><b>{v.label}</b><span>{[cars[v.id]?.code, v.plate].filter(Boolean).join(' · ')}{e.renter ? ` · ${e.renter}` : ''}{e.booking_number ? ` · ${e.booking_number}` : ''}</span>
                       {e.type !== 'booking' && <span>{text(e)}</span>}
                       {e.clash?.length ? <b className="ad-late" data-testid="cal-agenda-clash">Dates taken: clashes with {e.clash.join(', ')}</b> : null}</span>
-                    <span className={`cal__akind cal__item ${cls(e, now).replace('has-clash', '').replace('is-late', '')}`}>{kindOf(e)}</span>
+                    <span className={`mcal__akind mcal__item ${cls(e, now).replace('has-clash', '').replace('is-late', '')}`}>{kindOf(e)}</span>
                   </button></li>))}</ul>
               </section>));
           })()}
         </div>
       ) : (
-        <div className="cal__grid" ref={grid} onPointerMove={onMoveP} onPointerUp={onUp} aria-label="Vehicles by day" role="region" tabIndex={0}>
-          <div className="cal__inner" style={{ width, ['--dw' as string]: `${dw}px` }}>
-            <div className="cal__head" style={{ gridTemplateColumns: `14rem ${days * dw}px` }}>
-              <div className="cal__corner">{vehicles.length} vehicles</div>
-              <div className="cal__days" style={{ width: days * dw }}>
+        <div className="mcal__grid" ref={grid} onPointerMove={onMoveP} onPointerUp={onUp} aria-label="Vehicles by day" role="region" tabIndex={0}>
+          <div className="mcal__inner" style={{ width, ['--dw' as string]: `${dw}px` }}>
+            <div className="mcal__head" style={{ gridTemplateColumns: `14rem ${days * dw}px` }}>
+              <div className="mcal__corner">{vehicles.length} vehicles</div>
+              <div className="mcal__days" style={{ width: days * dw }}>
                 {dayList.map((d, i) => { const td = isoDay(d) === isoDay(torontoMidnight(new Date(now))); const we = d.getDay() === 0 || d.getDay() === 6; return (
-                  <div key={d.toISOString()} className={`cal__day${td ? ' is-today' : ''}${we ? ' is-weekend' : ''}`} style={{ left: i * dw, width: dw }}><b>{d.getDate()}</b>{new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: dw > 60 ? 'short' : undefined }).format(d)}</div>); })}
+                  <div key={d.toISOString()} className={`mcal__day${td ? ' is-today' : ''}${we ? ' is-weekend' : ''}`} style={{ left: i * dw, width: dw }}><b>{d.getDate()}</b>{new Intl.DateTimeFormat('en-CA', { weekday: 'short', month: dw > 60 ? 'short' : undefined }).format(d)}</div>); })}
               </div>
             </div>
             {vehicles.length === 0 && <p className="ad-empty">No vehicles match.</p>}
             {vehicles.map((v) => { const st = stack(v.entries, from + days * DAY); return (
-              <div key={v.id} className="cal__row" style={{ gridTemplateColumns: `14rem ${days * dw}px` }}>
-                <div className="cal__name"><Thumb car={cars[v.id]} label={v.label} /><span className="cal__ntext">{vehicleLinks ? <Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.label}</Link> : <b>{v.label}</b>}<span>{[cars[v.id]?.code ?? v.fleet_number, v.plate].filter(Boolean).join(' · ')}{v.status !== 'available' ? ` · ${v.status.replace(/_/g, ' ')}` : ''}</span></span></div>
-                <div className={`cal__lane${move && (move.vehicle || vehicleOf(move.entry)) === v.id ? ' is-drop' : ''}`} data-vehicle={v.id} data-testid={`lane-${v.plate ?? v.id}`} data-rows={st.top + st.low}
+              <div key={v.id} className="mcal__row" style={{ gridTemplateColumns: `14rem ${days * dw}px` }}>
+                <div className="mcal__name"><Thumb car={cars[v.id]} label={v.label} /><span className="mcal__ntext">{vehicleLinks ? <Link prefetch={false} href={`${doorBase}/vehicles/${v.id}`}>{v.label}</Link> : <b>{v.label}</b>}<span>{[cars[v.id]?.code ?? v.fleet_number, v.plate].filter(Boolean).join(' · ')}{v.status !== 'available' ? ` · ${v.status.replace(/_/g, ' ')}` : ''}</span></span></div>
+                <div className={`mcal__lane${move && (move.vehicle || vehicleOf(move.entry)) === v.id ? ' is-drop' : ''}`} data-vehicle={v.id} data-testid={`lane-${v.plate ?? v.id}`} data-rows={st.top + st.low}
                   style={st.top + st.low > 2 ? { height: rowHeight(st) } : undefined}
                   onDoubleClick={(ev) => { const r = (ev.currentTarget as HTMLElement).getBoundingClientRect(); setSel({ vehicle: v, at: snap(from + (ev.clientX - r.left) / pxPerMs) }); }}>
-                  {now >= from && now <= from + days * DAY && <span className="cal__now" style={{ left: (now - from) * pxPerMs }} aria-hidden="true" />}
+                  {now >= from && now <= from + days * DAY && <span className="mcal__now" style={{ left: (now - from) * pxPerMs }} aria-hidden="true" />}
                   {v.entries.map((e) => {
                     const s = new Date(e.starts_at).getTime(); const en = e.ends_at ? new Date(e.ends_at).getTime() : from + days * DAY;
                     const m = move && move.entry.id === e.id && move.entry.type === e.type ? move : null;
@@ -260,16 +261,16 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
                     const clash = e.clash?.length ? `. Clashes with ${e.clash.join(', ')}` : '';
                     return (
                       <div key={`${e.type}${e.id}`} role="button" tabIndex={0} data-testid={e.booking_number ? `bar-${e.booking_number}` : `item-${e.type}`}
-                        className={`cal__item cal__item--${lane(e)} ${cls(e, now)}${m ? ' is-dragging' : ''}`} style={{ left: p.left, width: p.width, ...(bar ? { top: topOf(e, st) } : {}) }}
+                        className={`mcal__item mcal__item--${lane(e)} ${cls(e, now)}${m ? ' is-dragging' : ''}`} style={{ left: p.left, width: p.width, ...(bar ? { top: topOf(e, st) } : {}) }}
                         data-clash={e.clash?.length ? e.clash.join(',') : undefined}
                         title={`${text(e)} · ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${clash}`}
                         aria-label={`${text(e)}, ${when(e.starts_at)}${e.ends_at ? ` to ${when(e.ends_at)}` : ''}${clash}${canDrag ? '. Arrow keys move, Shift and arrows resize, Enter confirms' : ''}`}
                         onPointerDown={(ev) => onDown(ev, e, 'move')} onClick={() => { if (!canDrag) setSel({ entry: e }); }} onKeyDown={(ev) => onKey(ev, e)}>
                         {text(e)}
-                        {canDrag && <span className="cal__grip" aria-hidden="true" onPointerDown={(ev) => onDown(ev, e, 'resize')} />}
+                        {canDrag && <span className="mcal__grip" aria-hidden="true" onPointerDown={(ev) => onDown(ev, e, 'resize')} />}
                       </div>);
                   })}
-                  {move && move.vehicle === v.id && (() => { const e = move.entry; const p = pos(move.start, move.end); return <div className={`cal__item cal__item--${lane(e)} ${cls(e, now)} is-dragging`} style={{ left: p.left, width: p.width }} aria-hidden="true">{text(e)}</div>; })()}
+                  {move && move.vehicle === v.id && (() => { const e = move.entry; const p = pos(move.start, move.end); return <div className={`mcal__item mcal__item--${lane(e)} ${cls(e, now)} is-dragging`} style={{ left: p.left, width: p.width }} aria-hidden="true">{text(e)}</div>; })()}
                 </div>
               </div>
             ); })}
@@ -278,7 +279,7 @@ export function MasterCalendar({ initial, vehicleId, defaultView = 'two', vehicl
       )}
 
       {confirm && (
-        <div className="cal__panel" role="dialog" aria-modal="true" aria-labelledby="cal-confirm-t" data-testid="cal-confirm">
+        <div className="mcal__panel" role="dialog" aria-modal="true" aria-labelledby="cal-confirm-t" data-testid="cal-confirm">
           <h2 className="d4" id="cal-confirm-t">Move {confirm.move.entry.booking_number}?</h2>
           {!confirm.preview && !confirm.error && <p className="small">Checking with the database.</p>}
           {confirm.error && <p className="alert alert--error" role="alert"><span>{confirm.error}</span></p>}
@@ -327,7 +328,7 @@ function SidePanel({ sel, vehicles, onClose, onDone }: { sel: { entry?: Entry; v
   });
   const blockBody = (force = false) => ({ vehicle: f.vehicle, reason: f.reason, starts_at: new Date(f.starts_at).toISOString(), ends_at: f.ends_at ? new Date(f.ends_at).toISOString() : null, note: f.note, force });
   return (
-    <div className="cal__panel" role="dialog" aria-labelledby="cal-side-t" data-testid="cal-panel">
+    <div className="mcal__panel" role="dialog" aria-labelledby="cal-side-t" data-testid="cal-panel">
       <div className="row" style={{ justifyContent: 'space-between' }}><h2 className="d4" id="cal-side-t">{e ? (e.type === 'booking' ? e.booking_number : e.type === 'block' ? 'Calendar block' : e.type.replace(/_/g, ' ')) : 'New block'}</h2><button className="btn btn--quiet btn--sm" type="button" onClick={onClose}>Close</button></div>
       {e && (
         <dl className="pt-dl small">
@@ -357,8 +358,8 @@ function SidePanel({ sel, vehicles, onClose, onDone }: { sel: { entry?: Entry; v
         <form className="ad-form" data-testid="block-form" onSubmit={(ev) => { ev.preventDefault(); run('block_create', blockBody()); }}>
           <div className="field"><label className="label" htmlFor="bk-v">Vehicle</label><select className="select" id="bk-v" value={f.vehicle} onChange={(x) => setF({ ...f, vehicle: x.target.value })}>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.label} {v.plate ?? ''}</option>)}</select></div>
           <div className="field"><label className="label" htmlFor="bk-r">Reason</label><select className="select" id="bk-r" value={f.reason} onChange={(x) => setF({ ...f, reason: x.target.value })}>{REASONS.map(([a, b]) => <option key={a} value={a}>{b}</option>)}</select></div>
-          <div className="field"><label className="label" htmlFor="bk-s">From</label><input className="input" id="bk-s" type="datetime-local" value={f.starts_at} onChange={(x) => setF({ ...f, starts_at: x.target.value })} required /></div>
-          <div className="field"><label className="label" htmlFor="bk-e">To (empty: until further notice)</label><input className="input" id="bk-e" type="datetime-local" value={f.ends_at} onChange={(x) => setF({ ...f, ends_at: x.target.value })} /></div>
+          <div className="field"><label className="label" htmlFor="bk-s">From</label><DateInput className="input" id="bk-s" type="datetime-local" value={f.starts_at} onChange={(x) => setF({ ...f, starts_at: x.target.value })} required /></div>
+          <div className="field"><label className="label" htmlFor="bk-e">To (empty: until further notice)</label><DateInput className="input" id="bk-e" type="datetime-local" value={f.ends_at} onChange={(x) => setF({ ...f, ends_at: x.target.value })} /></div>
           <div className="field"><label className="label" htmlFor="bk-n">Note{f.reason === 'admin' ? ' (required)' : ''}</label><input className="input" id="bk-n" value={f.note} onChange={(x) => setF({ ...f, note: x.target.value })} /></div>
           {conflicts && <div className="ow-warn small"><b>Confirmed bookings in this range:</b> {conflicts.map((c) => c.booking_number).join(', ')}. Creating anyway raises an urgent fleet task for each.
             <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={() => run('block_create', blockBody(true))}>Create anyway</button></div>}

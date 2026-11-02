@@ -16,7 +16,7 @@ import { adminRead } from '@/server/admin/api';
 import { $, Badge, Card, Table, t as at } from '@/features/admin/ui';
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
 import type { PhoneTimelineData } from '@/features/phone/client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Cosigners, type CosignerRow } from '@/features/admin/LegalActions';
 import { door } from '@/server/door';
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureList, type ManualRow, type PaperRow } from '@/features/manual/ManualRecords';

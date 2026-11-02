@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { Trail } from '@/features/seo/meta';
 
 export function Crumbs({ trail }: { trail: Trail }) {

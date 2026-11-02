@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 
 // What the sign page shows when something on the server failed (logged): never a crashed page.
 export function SignTrouble({ retry }: { retry?: React.ReactNode }) {

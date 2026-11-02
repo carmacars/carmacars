@@ -6,6 +6,7 @@ import { clock, timeSlots, torontoInstant } from '@/lib/dates';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { useAct } from './useAct';
+import { DateInput } from '@/components/DateInput';
 
 // Cancel (type to confirm), extend (preview, request, pay once approved) and change dates (preview,
 // request). Every number shown comes from the database's preview functions.
@@ -29,7 +30,7 @@ function DateTime({ id, label, date, time, onDate, onTime, min }: { id: string; 
   return (
     <fieldset className="field-row" style={{ border: 0, padding: 0, margin: 0 }}>
       <legend className="label" style={{ marginBottom: 'var(--s-2)' }}>{label}</legend>
-      <div className="field"><label className="label small" htmlFor={`${id}-d`}>Date</label><input className="input" type="date" id={`${id}-d`} value={date} min={min} onChange={(e) => onDate(e.target.value)} /></div>
+      <div className="field"><label className="label small" htmlFor={`${id}-d`}>Date</label><DateInput className="input" type="date" id={`${id}-d`} value={date} min={min} onChange={(e) => onDate(e.target.value)} /></div>
       <div className="field"><label className="label small" htmlFor={`${id}-t`}>Time</label>
         <select className="select" id={`${id}-t`} value={time} onChange={(e) => onTime(e.target.value)}>{timeSlots().map((t) => <option key={t} value={t}>{clock(t)}</option>)}</select></div>
     </fieldset>

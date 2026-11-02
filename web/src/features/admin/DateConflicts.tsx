@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Badge, t } from './ui';
 
 // Conflicting dates on one car (0284): what else is on this booking's car for overlapping dates, each with what it is,

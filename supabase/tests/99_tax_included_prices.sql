@@ -20,7 +20,7 @@ begin
 end $$;
 create or replace function test.s99v(p text) returns uuid language sql stable as $$ select (test.s99t(p) ->> 'vehicle_id')::uuid $$;
 create or replace function test.s99r(p_vehicle uuid, p jsonb default '{}'::jsonb) returns jsonb language sql as $$
-  select jsonb_build_object('vehicle_id', p_vehicle, 'pickup_at', date_trunc('hour', now()) + interval '10 days', 'return_at', date_trunc('hour', now()) + interval '12 days',
+  select jsonb_build_object('vehicle_id', p_vehicle, 'pickup_at', test.base(4) + interval '10 days', 'return_at', test.base(4) + interval '12 days',
                             'source', 'phone', 'coverage_option', 1, 'renter_id', test.id('renter:ti_rita'), 'sales_choice', 'for_carmacars',
                             'payment', jsonb_build_object('mode', 'link')) || p $$;
 create or replace function test.s99q(p jsonb) returns jsonb language sql as $$
@@ -62,5 +62,5 @@ insert into s99t select 'q_none', test.s99q(test.s99r(test.s99v('car4')));
 select test.eq('nothing typed: the rate sheet ($200.00 + $26.00 HST)', test.s99line(test.s99t('q_none'), 'rental_charge') || ' ' || (test.s99t('q_none') ->> 'rate_sheet_cents'), '20000/2600 20000');
 select set_config('app.staff_pricing', '', false);
 select test.eq('a visitor''s quote never takes the staff-only rental charge',
-  (app.price_quote(test.s99v('car4'), date_trunc('hour', now()) + interval '10 days', date_trunc('hour', now()) + interval '12 days',
+  (app.price_quote(test.s99v('car4'), test.base(4) + interval '10 days', test.base(4) + interval '12 days',
      '{"staff_rental_charge_cents": 100, "staff_price_tax": "plus"}'::jsonb) ->> 'rental_charge_cents')::bigint, 20000::bigint);

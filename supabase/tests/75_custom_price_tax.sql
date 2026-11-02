@@ -27,7 +27,8 @@ begin
 end $$;
 create or replace function test.s75v(p text) returns uuid language sql stable as $$ select (test.s75(p) ->> 'vehicle_id')::uuid $$;
 create or replace function test.s75r(p_vehicle uuid, p_from interval, p_to interval, p jsonb default '{}'::jsonb) returns jsonb language sql as $$
-  select jsonb_build_object('vehicle_id', p_vehicle, 'pickup_at', date_trunc('hour', now()) + p_from, 'return_at', date_trunc('hour', now()) + p_to,
+  -- from a Thursday: a two-day rental never starts on a Friday or Saturday (the plain daily rate), a five-day one has both
+  select jsonb_build_object('vehicle_id', p_vehicle, 'pickup_at', test.base(4) + p_from, 'return_at', test.base(4) + p_to,
                             'source', 'phone', 'coverage_option', 1, 'renter_id', test.id('renter:pt_rita'), 'sales_choice', 'for_carmacars',
                             'payment', jsonb_build_object('mode', 'link')) || p $$;
 
@@ -110,7 +111,7 @@ select test.throws('a bad choice is refused', format($$select app.door(%L, 'aal2
 
 -- ================================================================ 3. a quote, the review screen, the offer
 insert into s75 select 'q', app.door(test.id('pt_cs'), 'aal2', 'va_do', 'quote_create', jsonb_build_object('vehicle_id', test.s75v('car4'), 'source', 'phone',
-  'pickup_at', date_trunc('hour', now()) + interval '40 days', 'return_at', date_trunc('hour', now()) + interval '44 days', 'full_name', 'Paula Taxpayer', 'email', 'pt.paula@example.test',
+  'pickup_at', test.base(4) + interval '40 days', 'return_at', test.base(4) + interval '44 days', 'full_name', 'Paula Taxpayer', 'email', 'pt.paula@example.test',
   'mobile', '4165550175', 'date_of_birth', '1985-03-04', 'sales_choice', 'for_carmacars', 'rental_charge_cents', 34000, 'price_reason', 'Four days, all in', 'price_tax', 'included'));
 select test.eq('quote tax included $340.00: a request with $300.88 before tax and $39.12 HST',
   (select status || '/' || price_tax || '/' || rental_charge_cents || '/' || hst_at_booking_cents || '/' || total_due_at_booking_cents from test.s75b('q')) || ' ' || test.s75l('q'),
@@ -145,7 +146,7 @@ select test.eq('the renter''s booking page reads the same line', (select count(*
 -- the dates change: back to the rate sheet, the words go
 select app.withdraw_offer((test.s75b('q')).id, test.id('pt_admin'), 'dates change');
 select app.door(test.id('pt_cs'), 'aal2', 'va_do', 'booking_save', jsonb_build_object('booking', (test.s75b('q')).id,
-  'changes', jsonb_build_object('return_at', date_trunc('hour', now()) + interval '45 days')));
+  'changes', jsonb_build_object('return_at', test.base(4) + interval '45 days')));
 select test.eq('new dates: the rate sheet again (five days $530.00 plus tax, the weekend day above the daily rate), no choice, no words',
   (select coalesce(price_tax, 'none') || '/' || coalesce(price_with_tax_cents::text, 'none') || '/' || (custom_price_at is null) || '/' || total_due_at_booking_cents from test.s75b('q')) || ' ' || test.s75l('q'),
   'none/none/true/59890 53000/6890/Rental charge (daily, weekend, weekly or monthly rate)');

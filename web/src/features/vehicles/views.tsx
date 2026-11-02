@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { Metadata } from 'next';
 import { JsonLd } from '@/components/JsonLd';
 import { breadcrumbLd, faqLd, type Trail } from '@/features/seo/meta';

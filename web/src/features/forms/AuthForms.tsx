@@ -1,6 +1,6 @@
 'use client';
 import { PasswordInput } from './PasswordInput';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from 'react';
 import { requestReset, resendConfirmation, signIn, signUp, updatePassword } from '@/server/actions/auth';

@@ -137,7 +137,7 @@ test('Bookings opens on Now: out, overdue first, coming back, going out, money d
     // the Calendar: each car's row starts with its photo or initial
     await page.goto(`/admin/calendar?q=${encodeURIComponent(`BN0${T}`.slice(0, 8))}`, { waitUntil: 'networkidle' });
     if (info.project.name.startsWith('phone')) await expect(page.getByTestId('cal-agenda')).toBeVisible();
-    else await expect(page.locator('.cal__name .cal__thumb').first()).toBeVisible();
+    else await expect(page.locator('.mcal__name .mcal__thumb').first()).toBeVisible();
     await noOverflow(page);
     // the live refresh answers
     const r = await page.request.get('/api/staff/bookings-now');

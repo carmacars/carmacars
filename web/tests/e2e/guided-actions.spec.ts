@@ -73,7 +73,7 @@ test('Insurer confirmed: from Today for one car, for several at once, and on the
   // one car: the pop-up, pre-filled with today's date
   await line.getByTestId(`todo-act-insurer:${one.id}`).click();
   const form = page.getByTestId(`todo-act-insurer:${one.id}-form`);
-  await expect(form.locator('input[type="date"]')).toHaveValue(/\d{4}-\d{2}-\d{2}/);
+  await expect(form.locator('input.dp__text')).toHaveAttribute('data-value', /\d{4}-\d{2}-\d{2}/);
   await check(page, 'Insurer confirmed pop-up');
   await form.getByRole('textbox', { name: /Reference/ }).fill('Broker email');
   await page.getByTestId(`todo-act-insurer:${one.id}-submit`).click();

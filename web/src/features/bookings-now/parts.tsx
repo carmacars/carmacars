@@ -1,5 +1,5 @@
 import './bookings-now.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { ReactNode } from 'react';
 import { photoUrl } from '@/lib/photo';
 import { initial, phoneHref, photoPath, type Car, type Renter } from './model';

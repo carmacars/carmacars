@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useEffect, useId, useRef, useState, useTransition, type KeyboardEvent } from 'react';
 import { cleanCode } from '@/features/auth/phone';
 import { phoneGateSave, phoneGateSendCode } from '@/server/actions/phone-gate';

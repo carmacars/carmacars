@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { DocumentReview } from '@/features/admin/DocumentReview';
 import { InsurerBulk, InsurerConfirm } from '@/features/admin/InsurerConfirm';

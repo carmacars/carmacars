@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { when } from '@/features/agreement/model';
 
 // The renter's visits on the site (migration 0060), on the booking page and the renter page: when they viewed the

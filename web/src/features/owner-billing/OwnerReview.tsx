@@ -2,7 +2,7 @@
 import { useId, useState } from 'react';
 import { AddressLookup } from '@/features/forms/AddressFields';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useAct } from '@/features/portal/useAct';
 import { money } from '@/lib/format';
 import { ownerCorrect, signScheduleChange } from '@/server/actions/owner-billing';

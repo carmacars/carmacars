@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useId, useState } from 'react';
 import { AddressLookup } from '@/features/forms/AddressFields';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useAct } from '@/features/portal/useAct';
 import { money } from '@/lib/format';
 import { ColourSwatches, VinEntry, emptyVin, vinPayload, vinProblem, type VinValue } from '@/features/vin/VinEntry';
@@ -10,6 +10,7 @@ import { InvoiceChoice, inv, type Inv } from './ApproveStep';
 import { dollars, pctOf, toCents } from './shared';
 import { PermitScan } from '@/features/vehicles/PermitScan';
 import type { PermitRead } from '@/features/vehicles/permit-read';
+import { TypedInput } from '@/components/DateInput';
 
 // Add a car for an owner (migration 0067): Admin, customer service and fleet enter everything for the owner in one
 // flow: the owner (found, or new), the car (VIN first since 0082: decoded at once into one summary line, the class
@@ -78,7 +79,7 @@ export function AddOwnerCar({ initial, base, sales = false }: { initial: Facts; 
     const obj = opts.obj ?? 'v'; const val = obj === 'o' ? o : v; const set = obj === 'o' ? setO : setV;
     return (
       <div className={`field${a.err(k) ? ' has-error' : ''}${obj === 'v' && fromPermit.has(k) ? ' is-from-permit' : ''}`}><label className="label" htmlFor={`${uid}-${k}`}>{label}{opts.req ? '' : ' (optional)'}</label>
-        <input className="input" id={`${uid}-${k}`} type={opts.type ?? 'text'} inputMode={opts.mode === 'email' || opts.mode === 'tel' ? opts.mode : opts.mode} value={val[k] ?? ''}
+        <TypedInput className="input" id={`${uid}-${k}`} type={opts.type ?? 'text'} inputMode={opts.mode === 'email' || opts.mode === 'tel' ? opts.mode : opts.mode} value={val[k] ?? ''}
           onChange={(e) => { set({ ...val, [k]: e.target.value }); if (fromPermit.has(k)) setFromPermit((x) => { const n = new Set(x); n.delete(k); return n; }); }} data-testid={`addcar-${k}`} aria-describedby={`${uid}-${k}-e${opts.hint ? ` ${uid}-${k}-h` : ''}`} />
         {opts.hint && <p className="hint" id={`${uid}-${k}-h`}>{opts.hint}</p>}
         <p className="error" role="alert" id={`${uid}-${k}-e`}>{a.err(k) ?? ''}</p></div>);

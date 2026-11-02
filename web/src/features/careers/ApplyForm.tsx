@@ -1,7 +1,8 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { submitApplication, type ApplyResult } from '@/server/actions/careers';
+import { DateInput } from '@/components/DateInput';
 import { describedBy, Field } from '@/features/forms/Field';
 import { Turnstile } from '@/features/forms/Turnstile';
 import { OUTCOME_WORDS, payOver, type Question, type RolePublic } from './model';
@@ -163,8 +164,11 @@ function QuestionField({ q, n, value, error, onChange, onBlur }: { q: Question; 
     <Field id={id} label={label} optional={!q.required} error={error} hint={q.hint}>
       {q.type === 'para'
         ? <textarea className="textarea" id={id} rows={4} maxLength={2000} value={v} onChange={(e) => onChange(e.target.value)} aria-invalid={!!error || undefined} aria-describedby={describedBy(id, error, !!q.hint)} data-testid={`q-${q.key}`} />
-        : <input className="input" id={id} type={q.type === 'date' ? 'date' : 'text'} maxLength={300} placeholder={q.placeholder} value={v} onChange={(e) => onChange(e.target.value)} onBlur={onBlur}
-            aria-invalid={!!error || undefined} aria-describedby={describedBy(id, error, !!q.hint)} data-testid={`q-${q.key}`} />}
+        : q.type === 'date'
+          ? <DateInput className="input" id={id} value={v} onChange={(e) => onChange(e.target.value)} onBlur={onBlur}
+              aria-invalid={!!error || undefined} aria-describedby={describedBy(id, error, !!q.hint)} data-testid={`q-${q.key}`} />
+          : <input className="input" id={id} type="text" maxLength={300} placeholder={q.placeholder} value={v} onChange={(e) => onChange(e.target.value)} onBlur={onBlur}
+              aria-invalid={!!error || undefined} aria-describedby={describedBy(id, error, !!q.hint)} data-testid={`q-${q.key}`} />}
     </Field>
   );
 }

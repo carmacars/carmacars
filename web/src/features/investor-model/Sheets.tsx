@@ -1,5 +1,6 @@
 'use client';
 import { useId, useMemo, useState } from 'react';
+import { DateInput } from '@/components/DateInput';
 import { money } from '@/lib/format';
 import { BLANK_CAR, CAR_DEFAULTS, carPayoutSchedule, fundCars, investmentCalc, type CarInputs } from './calc';
 import { longDate, monthLabel } from '../deck/returns';
@@ -33,7 +34,7 @@ export function InvestmentCalculator({ amount, start, rate, lockupMonths, reinve
           </div>
           <div className="field">
             <label className="label" htmlFor={`${id}-d`}>Start date (funds received)</label>
-            <input className="input" id={`${id}-d`} type="date" value={date} onChange={(e) => setDate(e.target.value)} data-testid="calc-start" />
+            <DateInput className="input" id={`${id}-d`} value={date} onChange={(e) => setDate(e.target.value)} data-testid="calc-start" />
           </div>
           <div className="field">
             <label className="label" htmlFor={`${id}-r`}>Annual return (%)</label>

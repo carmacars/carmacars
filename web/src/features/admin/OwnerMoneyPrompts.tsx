@@ -3,6 +3,7 @@ import { useId, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { guidedAct } from '@/server/actions/guided';
 import type { Prompt, Terms } from '@/features/admin/todo/types';
+import { DateInput } from '@/components/DateInput';
 
 // Two prompts of Admin > Today about owners (migration 0078): the first and last month an owner really paid after their
 // invoices were voided (recorded as paid per car, so the two prepaid months count), and the terms agreed with an owner
@@ -94,7 +95,7 @@ export function FirstLastPaid({ p }: { p: Prompt }) {
             <div className="field ad-field"><label className="label" htmlFor={`${idp}-m`}>Paid by</label>
               <select className="select" id={`${idp}-m`} value={method} onChange={(e) => setMethod(e.target.value)}>{METHODS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
             <div className="field ad-field"><label className="label" htmlFor={`${idp}-on`}>Date received</label>
-              <input className="input" id={`${idp}-on`} type="date" value={on} max={today()} onChange={(e) => setOn(e.target.value)} /></div>
+              <DateInput className="input" id={`${idp}-on`} type="date" value={on} max={today()} onChange={(e) => setOn(e.target.value)} /></div>
             <div className="field ad-field"><label className="label" htmlFor={`${idp}-r`}>{method === 'cheque' ? 'Cheque number' : 'Reference'}</label>
               <input className="input" id={`${idp}-r`} value={ref} onChange={(e) => setRef(e.target.value)} /></div>
             <div className="field ad-field"><label className="label" htmlFor={`${idp}-n`}>Note (optional)</label>

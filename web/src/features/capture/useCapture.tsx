@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useCallback, useEffect, useRef, useState, type FocusEvent } from 'react';
 import { visitorId } from '@/features/live/beacon';
 import { captureNote, cleanFields, type CaptureFields, type CaptureForm, type CaptureReply } from './fields';

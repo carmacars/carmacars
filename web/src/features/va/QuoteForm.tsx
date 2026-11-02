@@ -1,9 +1,11 @@
 'use client';
 import { useState, useTransition } from 'react';
+import { scrollOption } from '@/lib/nav/same-page';
 import { useRouter } from 'next/navigation';
 import { vaAct } from '@/server/actions/va';
 import { SourcedChoice, type Choice } from '@/features/sales/SourcedChoice';
 import { PRICE_TAX_OPTIONS } from '@/features/sales/priceTax';
+import { DateInput } from '@/components/DateInput';
 
 // A quote from a phone, email or WhatsApp lead (05-va.md section 5, /va/sales/quotes/new): the staff request
 // form. It becomes a request (the database prices it and checks the car, the ages and the licence), then
@@ -28,18 +30,18 @@ export function QuoteForm({ vehicles, minNotice }: { vehicles: Array<{ id: strin
         rental_charge_cents: price ? Math.round(Number(price) * 100) : null, price_tax: price ? String(fd.get('price_tax') ?? 'plus') : null,
         price_reason: String(fd.get('price_reason') ?? '').trim() || null });
       if (!r.ok) { setErr(r.message); return; }
-      router.push(`/staff/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`);
+      router.push(`/staff/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`, scrollOption(`/staff/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`));
     }); }}>
       <div className="field"><label className="label" htmlFor="q-car">Car</label><select className="select" id="q-car" name="vehicle_id" required defaultValue="">
         <option value="" disabled>Choose the car</option>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}</select></div>
-      <div className="field"><label className="label" htmlFor="q-from">Pickup</label><input className="input" id="q-from" name="pickup_at" type="datetime-local" required aria-describedby="q-from-hint" />
+      <div className="field"><label className="label" htmlFor="q-from">Pickup</label><DateInput className="input" id="q-from" name="pickup_at" type="datetime-local" required aria-describedby="q-from-hint" />
         <p className="hint" id="q-from-hint">At least {Math.round(minNotice / 60)} hours from now.</p></div>
-      <div className="field"><label className="label" htmlFor="q-to">Return</label><input className="input" id="q-to" name="return_at" type="datetime-local" required /></div>
+      <div className="field"><label className="label" htmlFor="q-to">Return</label><DateInput className="input" id="q-to" name="return_at" type="datetime-local" required /></div>
       <div className="field"><label className="label" htmlFor="q-src">Lead came by</label><select className="select" id="q-src" name="source" defaultValue="phone"><option value="phone">Phone</option><option value="email">Email</option><option value="whatsapp">WhatsApp</option></select></div>
       <div className="field"><label className="label" htmlFor="q-name">Full legal name</label><input className="input" id="q-name" name="full_name" required autoComplete="off" /></div>
       <div className="field"><label className="label" htmlFor="q-email">Email</label><input className="input" id="q-email" name="email" type="email" required autoComplete="off" /></div>
       <div className="field"><label className="label" htmlFor="q-mobile">Mobile</label><input className="input" id="q-mobile" name="mobile" type="tel" required autoComplete="off" /></div>
-      <div className="field"><label className="label" htmlFor="q-dob">Date of birth</label><input className="input" id="q-dob" name="date_of_birth" type="date" required /></div>
+      <div className="field"><label className="label" htmlFor="q-dob">Date of birth</label><DateInput className="input" id="q-dob" name="date_of_birth" type="date" required /></div>
       <div className="field"><label className="label" htmlFor="q-class">Licence class</label><select className="select" id="q-class" name="licence_class" defaultValue="G"><option value="G">G</option><option value="G2">G2</option></select></div>
       <div className="field"><label className="label" htmlFor="q-cov">How damage to the car is covered</label><select className="select" id="q-cov" name="coverage_option" defaultValue=""><option value="">Not chosen yet</option><option value="1">Option 1: their own policy</option><option value="2">Option 2: their credit card</option><option value="3">Option 3: the Protection Plan</option></select></div>
       <div className="field"><label className="label" htmlFor="q-price">Rental charge typed by hand ($, optional)</label><input className="input" id="q-price" name="rental_charge" inputMode="decimal" autoComplete="off" aria-describedby="q-price-hint" data-testid="quote-price" />

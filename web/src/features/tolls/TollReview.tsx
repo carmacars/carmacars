@@ -1,11 +1,12 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { staffDo } from '@/server/actions/staff-tools';
 import { KINDS, type Box } from './parse';
 import { SourceView } from './SourceView';
+import { TypedInput } from '@/components/DateInput';
 
 // Check what was read from a notice (migration 0042): each line beside the file, corrected where it was misread,
 // marked checked or left out with a reason; then "Confirm and import": the lines go through the toll import of
@@ -87,7 +88,7 @@ export function TollReview({ read, base }: { read: Read; base: '/admin' | '/staf
     const id = `rl-${l.line_no}-${k}`;
     return (
       <div className="field tr-f"><label className="label" htmlFor={id}>{label}</label>
-        <input className="input" id={id} value={String(d[k])} disabled={!editable(l) || pending} data-testid={`line-${l.line_no}-${k}`}
+        <TypedInput className="input" id={id} value={String(d[k])} disabled={!editable(l) || pending} data-testid={`line-${l.line_no}-${k}`}
           onFocus={() => setFocus(l.id)} onChange={(e) => setDrafts({ ...drafts, [l.id]: { ...d, [k]: e.target.value } })} {...props} /></div>
     );
   };

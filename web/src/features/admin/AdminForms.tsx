@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
 import { approveVehicleTerms, issueTrackerInvoices, recordTrackerInstalled, issueUpfrontInvoices, sendOwnerLink, setVehicleTerms, type TermsInput } from '@/server/actions/admin';
+import { TypedInput } from '@/components/DateInput';
 
 // The admin forms of the owner billing flow. Terms start from the standard grid; anything off the
 // grid is the Admin's decision and is recorded as such by the database.
@@ -10,7 +11,7 @@ function F({ id, label, value, set, err, hint, ...props }: { id: string; label: 
   return (
     <div className={`field${err ? ' has-error' : ''}`}>
       <label className="label" htmlFor={id}>{label}</label>
-      <input className="input" id={id} value={value} onChange={(e) => set(e.target.value)} aria-invalid={!!err || undefined} aria-describedby={`${id}-err${hint ? ` ${id}-hint` : ''}`} {...props} />
+      <TypedInput className="input" id={id} value={value} onChange={(e) => set(e.target.value)} aria-invalid={!!err || undefined} aria-describedby={`${id}-err${hint ? ` ${id}-hint` : ''}`} {...props} />
       {hint && <p className="hint" id={`${id}-hint`}>{hint}</p>}
       <p className="error" role="alert" id={`${id}-err`}>{err ?? ''}</p>
     </div>

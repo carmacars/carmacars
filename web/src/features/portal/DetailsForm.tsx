@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { saveDetails, type DetailsInput } from '@/server/actions/portal';
 import { useAct } from './useAct';
 import { AddressFields } from '@/features/forms/AddressFields';
+import { TypedInput } from '@/components/DateInput';
 
 const PROVINCES: [string, string][] = [['ON', 'Ontario'], ['QC', 'Quebec'], ['BC', 'British Columbia'], ['AB', 'Alberta'], ['MB', 'Manitoba'], ['SK', 'Saskatchewan'], ['NS', 'Nova Scotia'], ['NB', 'New Brunswick'], ['NL', 'Newfoundland and Labrador'], ['PE', 'Prince Edward Island'], ['YT', 'Yukon'], ['NT', 'Northwest Territories'], ['NU', 'Nunavut']];
 
@@ -17,7 +18,7 @@ export function DetailsForm({ number, initial }: { number: string; initial: Part
   const f = (k: keyof DetailsInput, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}, hint?: string) => (
     <div className={`field${a.err(k) ? ' has-error' : ''}`}>
       <label className="label" htmlFor={`pt-d-${k}`}>{label}</label>
-      <input className="input" id={`pt-d-${k}`} value={v[k] ?? ''} onChange={set(k)} aria-invalid={!!a.err(k) || undefined} aria-describedby={`${hint ? `pt-d-${k}-hint ` : ''}pt-d-${k}-err`} {...props} />
+      <TypedInput className="input" id={`pt-d-${k}`} value={v[k] ?? ''} onChange={set(k)} aria-invalid={!!a.err(k) || undefined} aria-describedby={`${hint ? `pt-d-${k}-hint ` : ''}pt-d-${k}-err`} {...props} />
       {hint && <p className="hint" id={`pt-d-${k}-hint`}>{hint}</p>}
       <p className="error" role="alert" id={`pt-d-${k}-err`}>{a.err(k) ?? ''}</p>
     </div>
