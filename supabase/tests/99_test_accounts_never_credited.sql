@@ -5,8 +5,8 @@
 select test.suite('99 test accounts never credited');
 
 -- the verification accounts: an address verify-...@carmacars.ca, and the invitation check's address at the test inbox
-insert into users (id, email, full_name) values (test.id('tac_vsales'), 'verify-va-sales@carmacars.ca', 'Verify Sales'),
-                                                (test.id('tac_vinvite'), 'delivered+verify-invite-1@resend.dev', 'Verify Invitation');
+insert into users (id, email, full_name) values (test.id('tac_vsales'), 'verify-tac-sales@carmacars.ca', 'Verify Sales'),
+                                                (test.id('tac_vinvite'), 'delivered+verify-tac-invite-1@resend.dev', 'Verify Invitation');
 insert into user_roles (user_id, role) values (test.id('tac_vsales'), 'va'), (test.id('tac_vinvite'), 'va');
 insert into staff_profiles (user_id, staff_type, va_function) values (test.id('tac_vsales'), 'va', 'sales'), (test.id('tac_vinvite'), 'va', 'sales');
 select test.mk_user('tac_admin', 'admin');

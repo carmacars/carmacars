@@ -24,6 +24,17 @@ select app.save_form_draft('owner_application', (select data from form_drafts wh
   || jsonb_build_object('vehicles', jsonb_build_array(jsonb_build_object('key', 'a', 'vin', '2T3P1RFV5MC000001', 'year', '2021', 'make', 'Toyota', 'model', 'RAV4 XLE'))), '1', 1, null, test.ouf('d1') ->> 'token');
 select test.eq('autosave lead: the car typed later is on the lead', (test.ouf_lead('ouf_nina@example.test')).vehicle_text, '2021 Toyota RAV4 XLE');
 
+-- the browser order: the name, mobile and email captured before the first autosave; the draft saved after takes the capture
+select app.capture_contact(jsonb_build_object('visitor_id', gen_random_uuid(), 'form', 'owner_application', 'name', 'Lea First', 'email', 'ouf_lea@example.test', 'phone', '416-555-0179'));
+select test.eq('capture first: a lead with no car yet', coalesce((test.ouf_lead('ouf_lea@example.test')).vehicle_text, 'none'), 'none');
+insert into ouf select 'd3', app.save_form_draft('owner_application', jsonb_build_object('step', 0,
+  'owner', jsonb_build_object('first_name', 'Lea', 'last_name', 'First', 'email', 'ouf_lea@example.test', 'phone', '416-555-0179'),
+  'vehicles', jsonb_build_array(jsonb_build_object('key', 'a', 'year', '2021', 'make', 'Toyota', 'model', 'RAV4')),
+  'calc', jsonb_build_object('year', 2021, 'make', 'Toyota', 'model', 'RAV4', 'estimate_cents', 145000)), '0');
+select test.eq('then the draft: the lead has the car, the estimate and the draft',
+  (select l.vehicle_text || '/' || (l.payload #>> '{calculator,estimate_cents}') || '/' || (l.payload ->> 'draft_id') from leads l where l.email = 'ouf_lea@example.test'),
+  '2021 Toyota RAV4/145000/' || (test.ouf('d3') ->> 'draft_id'));
+
 -- dedupe: an owner lead with the same phone (written another way) is open; a second capture joins it
 insert into leads (kind, name, email, phone, source) values ('owner_program', 'Omar Older', 'ouf_omar@example.test', '(647) 555-0168', 'web');
 insert into ouf select 'd2', app.save_form_draft('owner_application', jsonb_build_object('step', 0, 'owner', jsonb_build_object('first_name', 'Omar')), '0');

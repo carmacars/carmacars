@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { createHmac, randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { acceptCookies, db, fillYmm, noOverflow, strongSign, tapColour, watch } from './helpers';
+import { acceptCookies, applyStart, db, fillYmm, noOverflow, strongSign, tapColour, watch } from './helpers';
 
 // The owner billing path end to end, at 375 and 1440: an owner applies with three vehicles (the
 // wizard, a VIN decoded, autosave), an Admin sets the terms on the standard grid and issues the three
@@ -68,18 +68,16 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   await page.getByRole('link', { name: 'Apply to list your car' }).first().click();
   await page.waitForURL(/\/list-your-car\/apply$/);
   await check(page, 'apply step 1');
-  await page.getByRole('button', { name: 'Continue to vehicles' }).click();
-  await expect(page.locator('#ap-first-err')).toContainText('first name');
+  // the first step (0344): the name, mobile and email are needed before anything else
+  await page.getByTestId('apply-start-next').click();
+  await expect(page.locator('#ap-s-first-err')).toContainText('first name');
+  await applyStart(page, { first: 'Olivia', last, phone: '647-555-0101', email });
   await page.locator('label:has-text("An individual")').click();
-  await page.locator('#ap-first').fill('Olivia');
-  await page.locator('#ap-last').fill(last);
   await page.locator('#ap-addr').fill('union');
   await page.getByRole('option', { name: /Union Station/ }).click();
   await expect(page.locator('#ap-line1')).toHaveValue('65 Front Street West');
   await expect(page.locator('#ap-city')).toHaveValue('Toronto');
   await page.locator('#ap-postal').fill('m5j 1e6');
-  await page.locator('#ap-email').fill(email);
-  await page.locator('#ap-phone').fill('647-555-0101');
   await page.locator('#ap-lic').fill('O1234-56789-01234');
   await page.locator('#ap-dob').fill('1985-05-05');
   await expect(page.getByTestId('autosave')).toContainText('Saved', { timeout: 10_000 });
