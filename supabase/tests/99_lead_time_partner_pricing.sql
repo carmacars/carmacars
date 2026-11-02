@@ -70,10 +70,10 @@ select test.eq('a promo code: worked out on the rental charge from the rates; th
      from (select app.quote_booking(test.id('vehicle:ltp_car'), now() + interval '30 hours', now() + interval '78 hours', '{"promo_code": "LTPTEN"}') q) x),
   '-2000 2000');
 -- ================================================================ 3. turned off globally and per car
-update program_settings set lead_time_enabled = false where effective_from = (select max(effective_from) from program_settings where effective_from <= now());
+update program_settings set lead_time_enabled = false;
 select test.eq('off in Program settings: no line on any car', (select count(*) from jsonb_array_elements(app.quote_booking(test.id('vehicle:ltp_car'), now() + interval '30 hours', now() + interval '78 hours') -> 'lines') l
   where l ->> 'charge_type' = 'lead_time'), 0::bigint);
-update program_settings set lead_time_enabled = true where effective_from = (select max(effective_from) from program_settings where effective_from <= now());
+update program_settings set lead_time_enabled = true;
 select app.vehicle_lead_time_save(test.id('ltp_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:ltp_car2'), 'mode', 'off'));
 select test.eq('off for one car: that car has no line, the other still has', format('%s %s',
   (select count(*) from jsonb_array_elements(app.quote_booking(test.id('vehicle:ltp_car2'), now() + interval '30 hours', now() + interval '78 hours') -> 'lines') l where l ->> 'charge_type' = 'lead_time'),
@@ -97,13 +97,13 @@ select test.eq('the booking''s lines: the rental charge and "Short-notice pricin
      from test.ltp_b() b join booking_line_items li on li.booking_id = b.id and li.charge_type = 'lead_time' and li.voided_at is null), 'Short-notice pricing +10% 2000 22000');
 select app.send_offer((test.ltp_b()).id, test.id('ltp_cs'));
 -- the tiers change after the offer went out: the offer and the booking keep their price
-update program_settings set lead_time_tiers = '[{"from_hours": 0, "bps": 3000}]' where effective_from = (select max(effective_from) from program_settings where effective_from <= now());
+update program_settings set lead_time_tiers = '[{"from_hours": 0, "bps": 3000}]';
 select app.sync_booking_price((test.ltp_b()).id);
 select test.eq('after the offer: the tiers changed, the price is worked out again and the percentage stays locked',
   (select format('%s %s %s', b.status, b.lead_time_bps, (select li.amount_cents from booking_line_items li where li.booking_id = b.id and li.charge_type = 'lead_time' and li.voided_at is null))
      from test.ltp_b() b), 'offered 1000 2000');
 update program_settings set lead_time_tiers = '[{"from_hours": 0, "bps": 1500}, {"from_hours": 24, "bps": 1000}, {"from_hours": 72, "bps": 0}, {"from_hours": 336, "bps": -500}]'
- where effective_from = (select max(effective_from) from program_settings where effective_from <= now());
+;
 select test.ok('the offer version shows the line', exists (select 1 from booking_offers o where o.booking_id = (test.ltp_b()).id and o::text like '%Short-notice pricing +10%%'));
 
 -- ================================================================ 5. staff override it
@@ -130,12 +130,12 @@ select test.eq('billed to an insurer: not adjusted (Program settings, by default
   (select count(*) from jsonb_array_elements(app.price_lines(jsonb_build_object('pickup_at', now() + interval '30 hours', 'return_at', now() + interval '78 hours',
      'daily_rate_cents', 10000, 'weekend_rate_cents', 12000, 'weekly_rate_cents', 56000, 'monthly_rate_cents', 180000, 'hst_bps', 1300,
      'lead_time_bps', 1000, 'insurer_billed', true)) -> 'lines') l where l ->> 'charge_type' = 'lead_time'), 0::bigint);
-update program_settings set lead_time_insurer = true where effective_from = (select max(effective_from) from program_settings where effective_from <= now());
+update program_settings set lead_time_insurer = true;
 select test.eq('with the setting on, an insurer booking is adjusted too',
   (select count(*) from jsonb_array_elements(app.price_lines(jsonb_build_object('pickup_at', now() + interval '30 hours', 'return_at', now() + interval '78 hours',
      'daily_rate_cents', 10000, 'weekend_rate_cents', 12000, 'weekly_rate_cents', 56000, 'monthly_rate_cents', 180000, 'hst_bps', 1300,
      'lead_time_bps', 1000, 'insurer_billed', true)) -> 'lines') l where l ->> 'charge_type' = 'lead_time'), 1::bigint);
-update program_settings set lead_time_insurer = false where effective_from = (select max(effective_from) from program_settings where effective_from <= now());
+update program_settings set lead_time_insurer = false;
 select test.eq('an Owner Booking is never adjusted', (app.price_lines(jsonb_build_object('pickup_at', now() + interval '30 hours', 'return_at', now() + interval '78 hours',
   'booking_type', 'owner', 'lead_time_bps', 1000)) ->> 'lead_time_cents'), '0');
 

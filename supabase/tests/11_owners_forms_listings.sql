@@ -730,11 +730,8 @@ select test.login(test.id('ofl_fin'));
 select test.eq('M finance: applications, form fills, term changes and provider costs',
   test.ofl_nonzero(), 'government_form_fills,listing_shot_types,onboarding_checklist_items,onboarding_situations,owner_applications,provider_calls,site_content_blocks,site_settings,vehicle_term_changes');
 select test.logout();
--- 0342: Sales see an owner enquiry given to them (a website lead goes to the least busy Sales person: in the whole
--- suite that may be someone else, so this one is given to them here)
-update leads set assigned_to = test.id('ofl_sales') where email = 'lena@example.test';
 select test.login(test.id('ofl_sales'));
-select test.eq('M sales: the leads (the owner enquiries given to them included) and may update them; nothing of onboarding',
+select test.eq('M sales: the leads (owner enquiries included) and may update them; nothing of onboarding',
   test.ofl_nonzero() || '/' || (select count(*) > 0 from leads where kind = 'owner_program')::text
   || '/' || test.affected($$update leads set status = 'contacted' where kind = 'owner_program' and email = 'lena@example.test'$$),
   'leads,listing_shot_types,onboarding_checklist_items,onboarding_situations,site_content_blocks,site_settings/true/1');
