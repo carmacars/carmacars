@@ -74,6 +74,9 @@ create temp table s99lm as select app.door(test.id('lm_admin'), 'aal2', 'admin_r
   test.id('renter:lm_rita'), test.id('renter:lm_omar'), test.id('renter:lm_paula'), test.id('renter:lm_quinn'),
   test.lmvid('lena'), test.lmvid('dora'), test.lmvid('anon'), test.lmvid('junk')))) as v;
 create temp table s99lm_all as select app.door(test.id('lm_admin'), 'aal2', 'admin_read', 'live_map') as v;
+-- the visitors on the site, counted at the same moment (a session near the end of the live window must not count on one side only)
+create temp table s99lm_active as select count(*) as n from visitor_sessions
+ where last_seen_at > now() - make_interval(mins => (app.settings()).visitor_live_minutes) and ended_at is null and exclude_reason is null;
 create or replace function test.lm() returns jsonb language sql stable as $$ select v from pg_temp.s99lm $$;
 create or replace function test.lmpin(p_where text, p_val text) returns jsonb language sql stable as $$
   select x from jsonb_array_elements(test.lm() -> 'pins') x where x ->> p_where = p_val limit 1 $$;
@@ -122,7 +125,7 @@ select test.eq('the cap: limit 2 keeps the current ones first (on rent or booked
 -- ================================================================ 4. the tiles and the fleet layer
 select test.eq('KPI: on the site now, requests today, bookings confirmed this week, on rent now',
   (select format('%s %s %s %s', k ->> 'active_now', k ->> 'requests_today', k ->> 'bookings_week', k ->> 'on_rent_now') from (select (select v from pg_temp.s99lm_all) -> 'kpi' k) x),
-  format('%s %s %s %s', (select count(*) from visitor_sessions where last_seen_at > now() - make_interval(mins => (app.settings()).visitor_live_minutes) and ended_at is null and exclude_reason is null),
+  format('%s %s %s %s', (select n from pg_temp.s99lm_active),
          (select count(*) from bookings where booked_at >= app.local_midnight(app.local_date(now())) and booking_type <> 'owner'),
          (select count(*) from bookings where confirmed_at >= app.local_midnight(date_trunc('week', app.local_date(now()))::date) and booking_type <> 'owner'),
          (select count(*) from bookings where status = 'on_rent' and booking_type <> 'owner')));
