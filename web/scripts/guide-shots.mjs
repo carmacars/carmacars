@@ -458,7 +458,7 @@ async function renterStory(browser, ids) {
     await t`update bookings set pickup_at = ${past.from + 'T10:00:00-04:00'}::timestamptz, return_at = ${past.to + 'T10:00:00-04:00'}::timestamptz, status = 'closed' where id = ${old.booking_id}`;
   });
   await both(P, 'renter', 'trips', '/account', 'Trips: the next step, then current, upcoming and past trips.');
-  await both(P, 'renter', 'extend', `/account/bookings/${number}/extend`, 'Ask for more days: See the price, then request; paid before the current return time.');
+  await both(P, 'renter', 'extend', `/account/bookings/${number}/extend`, 'Extend: six options with the new return and the price; one tap pays with the card on file.');
   await both(P, 'renter', 'change', `/account/bookings/${number}/change`, 'Ask to change dates: the price difference is shown before you ask.');
   await both(P, 'renter', 'cancel', `/account/bookings/${number}/cancel`, 'Cancel: the refund by the cancellation table, then type to confirm and Cancel booking.');
   await both(P, 'renter', 'review', `/account/bookings/${old.booking_number}/review`, 'After a trip: stars, an optional review, and whether it may be shown on the site.');

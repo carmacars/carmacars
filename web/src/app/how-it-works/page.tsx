@@ -47,7 +47,7 @@ export default async function How() {
           <h2 className="d1" id="hw-ret">Bringing it back</h2>
           <p className="lead">Return the car on time, with the same fuel or charge, and all the keys. We inspect it with you and compare it with the pickup photos.</p>
           <dl className="band__facts"><div><dt>Deposit released</dt><dd>{F('Within {{releaseDays}}')}</dd></div><div><dt>Grace period</dt><dd>{t.grace}</dd></div></dl>
-          <p className="small muted">Need it longer? Ask before your return time. An extension has to be confirmed in writing and paid before then.</p>
+          <p className="small muted">Need it longer? Extend in your booking: 1 hour to 1 month, at a discount, approved at once when the car is free.</p>
         </div></div>
       </section>
       <section className="section" aria-labelledby="hw-after">

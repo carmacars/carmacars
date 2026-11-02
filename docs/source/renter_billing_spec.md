@@ -23,7 +23,7 @@ All amounts are before HST (13%). Change: D = admin default, V = per vehicle, B 
 | Baby seat | $12 per day, max $70 per rental, per seat | D, B | Booking | Yes | Tiers | Company* |
 | Coverage sold (Option 3) | [●] (price not set) | D, V, B | Booking | Yes | Tiers | Company |
 | Mileage overage | $0.35 per km; $0.75 to $1.50 luxury and exotic | D, V, B | Check-in | Yes | No | Owner Revenue |
-| Late return | Once over 30 minutes late: $25 per started hour from the return time, max 1.5 × daily rate per 24 hours, plus the rental charge for each extra billable day | D, B | Check-in | Yes | No | Fee: Company. Extra days: Owner Revenue |
+| Late return | Once over 30 minutes late: 17.5% of the booking's daily rate per started hour from the return time (at least $25; bookings made before November 7, 2026 keep $25), max 1.5 × daily rate per 24 hours, plus the rental charge for each extra billable day | D, B | Check-in | Yes | No | Fee: Company. Extra days: Owner Revenue |
 | Fuel or recharging | Pump price + 25%, or $10 per 10% of battery; plus $25 service fee | D, B | Check-in | Yes | No | Company |
 | Cleaning | $75; $250 heavy soiling or odour | D, B | Check-in | Yes | No | Company |
 | Pet cleaning | $150 | D, B | Check-in | Yes | No | Company |
@@ -123,7 +123,7 @@ Examples: rental charge $600 + HST $78 = $678 paid.
 
 | Event | Rule |
 | --- | --- |
-| Extension | Valid only when confirmed in writing and paid before the return time. Total length stays at 30 days or less. Recompute the rental charge for the new total length at the booking's stored rates and charge the difference, plus per-day fees up to their caps and HST |
+| Extension | Valid only when confirmed in writing and paid: before the return time, or after it while the car is still out (priced from the original return time; late charges owed until it is paid). Total length within the maximum. 1 or 3 hours: the booking's hourly late fee for those hours less 10%, never more than the 1 day option. 1 day, 3 days, 1 week, 1 month: the rate card's tier for the added days at the booking's stored rates less 5%, plus per-day fees up to their caps and HST. Approved at once when the car is free with the 90 minute buffer, nothing is unpaid or a card is on file, and every licence is valid to the new return. Insurer-billed bookings and cars with offers off: the whole booking repriced at its new length, approved by staff |
 | Mileage allowance | Vehicle allowance per day × billable days |
 | Early return | No refund. An unused extension is an early return |
 | Renewal | New booking and agreement made before the current rental ends, linked to the earlier one, at current rates. Per-rental fee caps restart. CarmaCars may refuse |

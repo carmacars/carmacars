@@ -109,7 +109,9 @@ Mileage allowance = allowance per day × days.
 
 ## 6. Extension and monthly renewal
 
-**Trigger:** renter asks to keep the car · **Owner:** CS (Finance takes payment) · **Time limit:** confirmed in writing and paid before the current return time
+**Trigger:** renter asks to keep the car · **Owner:** CS (Finance takes payment) · **Time limit:** confirmed in writing and paid before the current return time, or after it while the car is still out
+
+Most extensions need no one: the renter picks 1 hour, 3 hours, 1 day, 3 days, 1 week or 1 month in their booking, it is approved at once when the car is free (with the 90 minute buffer), every licence is valid and nothing is unpaid without a card, and they pay with the card on file. The rest come to CS as a request:
 
 1. Check the calendar, unpaid charges, and coverage proof to the new return date.
 2. Total length stays at 30 days or less: reprice the whole booking at its new length (procedure 1), take the difference, send T11 (the written confirmation), update the Bookings log and calendar. Total now over 7 days: capture the card hold as a charged Deposit.
@@ -149,7 +151,7 @@ Mileage allowance = allowance per day × days.
 | Time after return time | Action |
 | --- | --- |
 | 0 | Call. Send T13. Check the Tracker. Offer a paid extension (procedure 6). |
-| 30 minutes | Charge the rental charge for each extra day, plus the late return fee counted from the return time: $25 an hour, max 1.5 × daily rate per 24 hours. |
+| 30 minutes | Charge the rental charge for each extra day, plus the late return fee counted from the return time: 17.5% of the daily rate an hour, at least $25 (bookings made before November 7, 2026: $25), max 1.5 × daily rate per 24 hours. |
 | 2 hours | Call twice. Send T14: 1 hour to return or pay. Tell Admin. |
 | 1 hour after T14 | Only an Admin approves disabling. Fleet disables only when the Tracker shows the car stationary, ignition off. Never while moving. Send T15. |
 | 24 hours, renter unreachable | Admin may report the car stolen. Fleet gives police the Tracker location; tell the Owner. |
@@ -416,7 +418,7 @@ Never name the coverage provider.
 | T10 | Declined payment | Card ending [last four] declined for $[amount], booking [no.]. A $40 fee applies. Pay within 24 hours: [link]. |
 | T11 | Extension confirmed | Extension confirmed, booking [no.]. New return: [date, time, place]. Booking repriced to $[total]; paid today $[amount]. Other terms unchanged. |
 | T12 | Cancellation | Booking [no.] cancelled, received [date, time]. Refund [ ]% of $[paid] = $[amount]. Any deposit is returned in full. Refunds arrive within 10 business days. |
-| T13 | Late, first | Your rental ended at [time]. Return [car] now or call [number] to extend. You owe the rental charge for each extra day plus a late fee of $25 an hour. |
+| T13 | Late, first | Your rental ended at [time]. Return [car] now or call [number] to extend. You owe the rental charge for each extra day plus the late fee in your agreement for each started hour. Extending in your booking costs less. |
 | T14 | Late, final | [Car] is 2 hours overdue. Return it or pay for an extension by [time]. After that we may end the rental, disable the car once parked, and recover it. |
 | T15 | Car disabled | Your rental has ended and [car] will not restart. If anyone is unsafe where it is parked, call [number] and we will re-enable it. |
 | T16 | Accident | If anyone is hurt call 911. Report to police where required. Get the other party's details, take photos, do not admit fault. Send us a written report, photos and all keys within 48 hours. |

@@ -16,7 +16,7 @@ Return place: {{return_place}}
 - Bring the car back with the same fuel or charge, and all keys.
 - You have {{km_allowance}} included. Extra kilometres are {{overage_rate}} each.
 - Only drivers named on the agreement may drive.
-- Need more time? Ask to extend (https://carmacars.ca/account/bookings/{{booking_number}}/extend) before your return time.
+- Need more time? Extend in your booking (https://carmacars.ca/account/bookings/{{booking_number}}/extend): it is approved at once when the car is free.
 
 IMPORTANT: Breakdown or accident
 Call our 24-hour line at {{roadside_phone}}. If anyone is hurt, call 911 first.

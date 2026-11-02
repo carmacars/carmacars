@@ -30,7 +30,7 @@ export default {
     notice('alert', 'Breakdown or accident', 'Call our 24-hour line at **{{roadside_phone}}**. If anyone is hurt, call 911 first. Tell us about any accident within 24 hours.'),
     list(
       'Return the car with the same fuel or charge, and all keys.',
-      'To keep the car longer, [ask for an extension](@booking_extend) before your return time.',
+      'To keep the car longer, [extend in your booking](@booking_extend): it costs less than returning late.',
       'Only drivers named on the agreement may drive.',
     ),
   ],
