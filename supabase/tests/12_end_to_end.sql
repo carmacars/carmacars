@@ -191,6 +191,7 @@ select test.eq('F the listing pipeline publishes the car an Admin started', (sel
 
 -- ================================================================== X. the notification layer: one email per recipient per action
 select app.process_events(100000);
+select app.process_events(100000);   -- the mirror of sent notices (0462) is made from the first pass's outbox rows
 select test.eq('X every event of the flows is processed',
   (select count(*) from app_events where id > (select ev from test.e2_base) and processed_at is null), 0::bigint);
 select test.eq('X no two events of the flows describe the same thing: one event per code, entity and kind (one emitter each; identity and coverage reviews are two actions)',

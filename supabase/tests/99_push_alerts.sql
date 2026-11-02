@@ -17,16 +17,16 @@ language sql as $$ insert into notifications (id, user_id, code, title, body, ur
   values (test.id('pu_n:' || p_label), p_user, p_code, 'Title ' || p_label, 'Body ' || p_label, p_url, 'pu:' || p_label) returning id $$;
 
 -- ================================================================== the catalogue
-select test.eq('every notice that may alert has a topic (101), and none of the sign-in links, codes or digests',
+select test.eq('every notice that may alert has a topic (136), and none of the sign-in links, codes or digests',
   (select count(*) filter (where push_topic is not null) || '/' || count(*) filter (where push_topic is not null and (code like 'account_%' or code like '%signing_code'
-     or code like 'staff_digest_%' or code = 'renter_continue_request' or category = 'marketing')) from notification_catalogue), '101/0');
+     or code like 'staff_digest_%' or code = 'renter_continue_request' or category = 'marketing')) from notification_catalogue), '136/0');
 select test.eq('the four the owner named alert: a new request, a payment, a handover, a message',
   (select string_agg(push_topic, ',' order by code) from notification_catalogue where code in ('staff_booking_request_new', 'owner_payment_received', 'renter_pickup_details', 'renter_staff_message')),
   'payments,handovers,messages,requests');
 
 -- ================================================================== defaults per portal
-select test.eq('defaults: admin', array_to_string(app.push_topics(test.id('pu_admin')), ','), 'requests,payments,messages,alerts');
-select test.eq('defaults: staff', array_to_string(app.push_topics(test.id('pu_cs')), ','), 'requests,bookings,messages,alerts');
+select test.eq('defaults: admin', array_to_string(app.push_topics(test.id('pu_admin')), ','), 'requests,bookings,payments,handovers,messages,alerts,documents,leads,visitors');
+select test.eq('defaults: staff (customer service and Sales also get leads and visitors, 0460)', array_to_string(app.push_topics(test.id('pu_cs')), ','), 'requests,bookings,messages,alerts,leads,visitors');
 select test.eq('defaults: field (their jobs and pay)', array_to_string(app.push_topics(test.id('pu_field')), ','), 'handovers,payments');
 select test.eq('defaults: owner', array_to_string(app.push_topics(test.id('pu_owner')), ','), 'requests,bookings,payments,alerts,documents');
 select test.eq('defaults: renter (everything)', array_length(app.push_topics(test.id('pu_rita')), 1), 7);
@@ -62,6 +62,7 @@ delete from push_outbox where user_id = test.id('pu_admin') and code = 'staff_jo
 select test.pu_notice('adm_alert', test.id('pu_admin'), 'staff_incident_reported', (app.settings()).notify_base_url || '/admin/incidents/INC-1');
 select test.eq('a notice with a topic the person keeps: one urgent alert per device, now, with a path on this site',
   (select count(*) || '/' || bool_and(urgent) || '/' || bool_and(send_after <= now()) || '/' || min(url) from push_outbox where notification_id = test.id('pu_n:adm_alert')), '2/true/true//admin/incidents/INC-1');
+select app.push_set_topics(test.id('pu_admin'), array['requests', 'payments', 'messages', 'alerts']);   -- Admins keep every topic by default (0462): this one dropped booking changes
 select test.pu_notice('adm_book', test.id('pu_admin'), 'owner_booking_changed');
 select test.eq('a topic the person does not keep (an admin and booking changes): no alert', (select count(*) from push_outbox where notification_id = test.id('pu_n:adm_book')), 0::bigint);
 select test.pu_notice('adm_code', test.id('pu_admin'), 'account_sign_in_link');

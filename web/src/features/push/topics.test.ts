@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { deviceLabel, isIos, supportOf, topicLabel, topicsFor, TOPICS } from './topics.ts';
+import { deviceLabel, isIos, storeLink, supportOf, topicLabel, topicsFor, TOPICS } from './topics.ts';
 
 // Phone and browser alerts (migration 0300): the card's words and the browser facts it reads.
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
@@ -32,6 +32,20 @@ test('each portal words the topics for its people, and shows only the ones that 
   assert.equal(topicLabel('admin', 'requests').label, 'New requests and offers');
   assert.equal(topicLabel('field', 'handovers').label, 'My jobs');
   assert.deepEqual(topicsFor('investor'), ['payments', 'documents', 'messages']);
-  assert.equal(topicsFor('renter').length, TOPICS.length);
+  assert.equal(topicsFor('renter').length, 7, 'renters never see the staff topics');
+  assert.deepEqual(topicsFor('admin').slice(-2), ['leads', 'visitors']);
+  assert.deepEqual(topicsFor('staff').slice(-2), ['leads', 'visitors']);
+  assert.ok(!topicsFor('field').includes('leads') && !topicsFor('owner').includes('visitors'));
+  assert.equal(topicLabel('admin', 'leads').label, 'New leads');
   for (const t of TOPICS) assert.ok(!/[–—]/.test(topicLabel('renter', t).label + topicLabel('renter', t).hint), 'no long dashes');
+});
+
+test('the download prompt replaces browser alerts on phones once the app is published; desktop and the app itself are unchanged', () => {
+  const store = { ios: 'https://apps.example.test/ios', android: 'https://play.example.test/app' };
+  assert.equal(storeLink(IPHONE, store)?.url, store.ios);
+  assert.equal(storeLink(ANDROID, store)?.platform, 'android');
+  assert.equal(storeLink(WIN_EDGE, store), null, 'desktop keeps browser alerts');
+  assert.equal(storeLink(IPHONE, { ios: null, android: store.android }), null, 'empty until published');
+  assert.equal(storeLink(IPHONE + ' CarmaCarsApp/1.0', store), null, 'inside the app the native prompt is used');
+  assert.equal(storeLink(IPHONE, undefined), null);
 });

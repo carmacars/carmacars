@@ -14310,6 +14310,18 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes: number;
           notify_not_back: boolean;
           notify_not_back_minutes: number;
+          notify_lead_new: boolean;
+          notify_request_unfinished: boolean;
+          notify_owner_lead_new: boolean;
+          notify_hot_visitor: boolean;
+          notify_lead_burst_count: number;
+          notify_lead_burst_minutes: number;
+          alert_money_threshold_cents: number;
+          alert_escalate_enabled: boolean;
+          alert_escalate_minutes: number;
+          alert_brief_enabled: boolean;
+          app_store_url: string | null;
+          play_store_url: string | null;
         };
         Insert: {
           id?: string;
@@ -14883,6 +14895,18 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes?: number;
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
+          notify_lead_new?: boolean;
+          notify_request_unfinished?: boolean;
+          notify_owner_lead_new?: boolean;
+          notify_hot_visitor?: boolean;
+          notify_lead_burst_count?: number;
+          notify_lead_burst_minutes?: number;
+          alert_money_threshold_cents?: number;
+          alert_escalate_enabled?: boolean;
+          alert_escalate_minutes?: number;
+          alert_brief_enabled?: boolean;
+          app_store_url?: string | null;
+          play_store_url?: string | null;
         };
         Update: {
           id?: string;
@@ -15456,6 +15480,18 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes?: number;
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
+          notify_lead_new?: boolean;
+          notify_request_unfinished?: boolean;
+          notify_owner_lead_new?: boolean;
+          notify_hot_visitor?: boolean;
+          notify_lead_burst_count?: number;
+          notify_lead_burst_minutes?: number;
+          alert_money_threshold_cents?: number;
+          alert_escalate_enabled?: boolean;
+          alert_escalate_minutes?: number;
+          alert_brief_enabled?: boolean;
+          app_store_url?: string | null;
+          play_store_url?: string | null;
         };
         Relationships: [];
       };
@@ -18539,6 +18575,51 @@ export type Database = {
           publish_attempts?: number;
           created_by?: string | null;
           created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_alert_rules: {
+        Row: {
+          rule: string;
+          label: string;
+          grp: string;
+          who: string[];
+          tier: string;
+          topic: string;
+          enabled: boolean;
+          wired: boolean;
+          fixed: boolean;
+          hint: string | null;
+          sort: number;
+          updated_at: string;
+        };
+        Insert: {
+          rule: string;
+          label: string;
+          grp: string;
+          who?: string[];
+          tier?: string;
+          topic?: string;
+          enabled?: boolean;
+          wired?: boolean;
+          fixed?: boolean;
+          hint?: string | null;
+          sort?: number;
+          updated_at?: string;
+        };
+        Update: {
+          rule?: string;
+          label?: string;
+          grp?: string;
+          who?: string[];
+          tier?: string;
+          topic?: string;
+          enabled?: boolean;
+          wired?: boolean;
+          fixed?: boolean;
+          hint?: string | null;
+          sort?: number;
           updated_at?: string;
         };
         Relationships: [];

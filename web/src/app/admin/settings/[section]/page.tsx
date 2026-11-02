@@ -327,11 +327,18 @@ export default async function Section({ params, searchParams }: { params: Promis
     const moments = ['notify_pickup_soon', 'notify_pickup_soon_hours', 'notify_trip_started', 'notify_return_soon', 'notify_return_soon_hours', 'notify_return_due',
       'notify_late_auto', 'notify_late_first_minutes', 'notify_renter_from_hour', 'notify_renter_until_hour', 'notify_pickup_unrecorded',
       'notify_pickup_unrecorded_minutes', 'notify_pickup_unrecorded_admin_minutes', 'notify_not_back', 'notify_not_back_minutes'];
+    // staff alerts for leads and visitors (0460): in the app and on the phone, one switch each, all on
+    const leadAlerts = ['notify_lead_new', 'notify_request_unfinished', 'notify_owner_lead_new', 'notify_hot_visitor', 'notify_lead_burst_count', 'notify_lead_burst_minutes',
+      'alert_money_threshold_cents', 'alert_escalate_enabled', 'alert_escalate_minutes', 'alert_brief_enabled', 'app_store_url', 'play_store_url'];
     return (<>{head}<TextAlertsSettings data={await door<SmsSettings>(user.id, 'admin_read', 'sms_settings')}
       form={<SaveForm table="program_settings" rowKey="current" testId="program-sms" fields={fieldsFrom(s.program, keys, { sms_default_with_phone: ch, sms_default_phone_only: ch.slice(0, 2) })} />} />
       <Card title="Booking start and end" testId="sms-moments">
         <p className="small muted">What the renter gets, by email, text and phone alert: the day before pickup, about 2 hours before, &quot;you&apos;re all set&quot; if nobody recorded the pickup, the day before the return, about 3 hours before, at the return time, then T13 at 15 minutes and T14 at 2 hours late. A booking whose pickup was not recorded counts as out, so it gets all of them. Staff get the pickup not recorded and not back alerts. Each is sent once, and again only when the time changes.</p>
         <SaveForm table="program_settings" rowKey="current" testId="program-moments" fields={fieldsFrom(s.program, moments)} />
+      </Card>
+      <Card title="Staff alerts for leads and visitors" testId="sms-lead-alerts">
+        <p className="small muted">In the app and on the phone (never email, never text): a new renter lead, a request typed and not sent, a new owner lead and a visitor turning Hot. The Admins always get them; so does the person a lead is assigned to, else customer service and Sales on duty. Each person turns the Leads and Visitors topics on or off per device on their alerts card. More than the number below in the window become one &quot;N new leads&quot; alert.</p>
+        <SaveForm table="program_settings" rowKey="current" testId="program-lead-alerts" fields={fieldsFrom(s.program, leadAlerts)} />
       </Card></>);
   }
   case 'card-reader': return (<>{head}<CardReaderAdmin s={await door<TerminalState>(user.id, 'ops_read', 'terminal_state')} /></>);
