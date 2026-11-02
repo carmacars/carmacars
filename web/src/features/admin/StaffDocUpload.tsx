@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { staffDocumentUpload, staffLicenceUpload } from '@/server/actions/sign-now';
 import { InsurerSelect } from '@/features/insurers/InsurerSelect';
+import { DateInput } from '@/components/DateInput';
 
 // Staff upload a renter's documents from the booking (migration 0183): the licence (front or back, per driver), the
 // insurance policy or pink card, an insurer's authorization or claim letter, or any other document. Photos or PDFs.
@@ -56,7 +57,7 @@ export function StaffDocUpload({ bookingId, drivers }: { bookingId: string; driv
           <div className="field ad-field"><label className="label" htmlFor="sdu-pol">Policy number (optional)</label>
             <input className="input" id="sdu-pol" value={f.policy_number} onChange={(e) => setF((s) => ({ ...s, policy_number: e.target.value }))} /></div>
           <div className="field ad-field"><label className="label" htmlFor="sdu-exp">Policy expiry (optional)</label>
-            <input className="input" id="sdu-exp" type="date" value={f.policy_expiry} onChange={(e) => setF((s) => ({ ...s, policy_expiry: e.target.value }))} /></div></>}
+            <DateInput className="input" id="sdu-exp" type="date" value={f.policy_expiry} onChange={(e) => setF((s) => ({ ...s, policy_expiry: e.target.value }))} /></div></>}
         {(kind === 'insurer_document' || kind === 'other') && <div className="field ad-field"><label className="label" htmlFor="sdu-title">Name (optional)</label>
           <input className="input" id="sdu-title" value={f.title} onChange={(e) => setF((s) => ({ ...s, title: e.target.value }))} /></div>}
         <div className="field ad-field"><label className="label" htmlFor="sdu-file">File (photo or PDF, up to 15 MB)</label>

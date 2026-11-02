@@ -371,13 +371,13 @@ test('forms: an Admin maps an official fillable PDF; the owner downloads it fill
     await expect(desk.getByRole('status').filter({ hasText: 'Checked and in use' })).toBeVisible({ timeout: 20_000 });
     const [fill] = await sql`select id, mode, status, field_values ->> 'postal_code' as postal from government_form_fills where vehicle_id = ${car} and form_code = 'SR-LV-012' and superseded_at is null`;
     expect([fill!.mode, fill!.status, fill!.postal]).toEqual(['pdf', 'ready', 'M5V 1A1']);
-    // the one turnaround, explained; the tracker, coming soon
+    // the one turnaround, explained; the tracker card links Fleet tracking (0400)
     await desk.goto('/admin/settings/program', { waitUntil: 'networkidle' });
     await expect(desk.getByTestId('turnaround-help')).toContainText('not added on top');
     await expect(desk.getByLabel('Turnaround between trips (minutes)')).toBeVisible();
     await expect(desk.getByText('Turnaround block minutes')).toHaveCount(0);
     await desk.goto(`/admin/vehicles/${car}?tab=records`, { waitUntil: 'networkidle' });
-    await expect(desk.getByTestId('tracker-coming-soon')).toContainText('Coming soon');
+    await expect(desk.getByTestId('tracker-link').getByRole('link', { name: 'Fleet tracking' })).toBeVisible();
     expect(clean(errors)).toEqual([]);
     await desk.context().close();
 

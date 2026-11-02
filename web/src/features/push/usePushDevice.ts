@@ -1,10 +1,13 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import { pushStateFor, subscribePush, unsubscribePush } from '@/server/actions/push';
+import { call, has, haptic, platform } from '@/lib/native/bridge';
 import { deviceLabel, supportOf, type PushRole, type PushState, type Support } from './topics';
 
 // This browser and alerts (migration 0300): can it show them, is it on, and turning it on or off. The service worker
 // (public/push-sw.js) is registered only when a person turns alerts on; it shows alerts and caches nothing.
+// In the store app (migration 0390, native = true) the same card uses the phone's own alerts instead: Firebase Cloud
+// Messaging (@capacitor-firebase/messaging) asks the permission and gives a token, kept as the device 'fcm:<token>'.
 const LAST = 'cc-push-endpoint';
 const store = {
   get: () => { try { return localStorage.getItem(LAST); } catch { return null; } },
@@ -39,13 +42,40 @@ async function currentSubscription(): Promise<PushSubscription | null> {
 
 export type DeviceStatus = 'loading' | Support | 'on';
 
-export function usePushDevice(publicKey: string, portal: PushRole, initial?: PushState | null, opts: { readState?: boolean } = {}) {
+// ---------------------------------------------------------------- the store app (0390)
+const FCM = 'FirebaseMessaging';
+type Receive = 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale';
+async function appToken(): Promise<string | null> {
+  try { return (await call<{ token?: string }>(FCM, 'getToken')).token || null; } catch { return null; }
+}
+/** This phone's alerts in the app: unsupported (an app without the plugin), blocked, ready or granted with its token. */
+async function appSupport(): Promise<{ support: Support; granted: boolean }> {
+  if (!has(FCM)) return { support: 'unsupported', granted: false };
+  try {
+    const p = (await call<{ receive: Receive }>(FCM, 'checkPermissions')).receive;
+    return p === 'denied' ? { support: 'blocked', granted: false } : { support: 'ready', granted: p === 'granted' };
+  } catch { return { support: 'unsupported', granted: false }; }
+}
+export function appDeviceLabel(): string {
+  return platform() === 'ios' ? 'CarmaCars app on iPhone' : platform() === 'android' ? 'CarmaCars app on Android' : 'CarmaCars app';
+}
+/** Sends the app's current token when alerts were on and Firebase replaced it (the shell's tokenReceived). */
+export async function refreshAppToken(token: string, portal?: PushRole): Promise<void> {
+  const last = store.get();
+  if (!last?.startsWith('fcm:') || last === `fcm:${token}`) return;
+  const p = platform();
+  const r = await subscribePush({ kind: 'fcm', token, platform: p ?? 'android', portal, device: appDeviceLabel() });
+  if (r.ok) store.set(`fcm:${token}`);
+}
+
+export function usePushDevice(publicKey: string | null, portal: PushRole, initial?: PushState | null, opts: { readState?: boolean; native?: boolean } = {}) {
   const [status, setStatus] = useState<DeviceStatus>('loading');
   const [state, setState] = useState<PushState | null>(initial ?? null);
   const [endpoint, setEndpoint] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const readState = opts.readState !== false;
+  const native = opts.native === true;
 
   const send = useCallback(async (sub: PushSubscription) => {
     const j = sub.toJSON();
@@ -55,7 +85,39 @@ export function usePushDevice(publicKey: string, portal: PushRole, initial?: Pus
     setState(r.data); setEndpoint(sub.endpoint); setStatus('on');
   }, [portal]);
 
+  const appSend = useCallback(async (token: string) => {
+    const r = await subscribePush({ kind: 'fcm', token, platform: platform() ?? 'android', portal, device: appDeviceLabel() });
+    if (!r.ok) throw new Error(r.message);
+    const ep = `fcm:${token}`;
+    store.set(ep);
+    setState(r.data); setEndpoint(ep); setStatus('on');
+  }, [portal]);
+
   useEffect(() => {
+    if (!native) return;
+    let live = true;
+    (async () => {
+      const { support, granted } = await appSupport();
+      if (!live) return;
+      if (support !== 'ready' || !granted) { setStatus(support); return; }
+      const token = await appToken();
+      if (!token) { if (live) setStatus('ready'); return; }
+      const ep = `fcm:${token}`;
+      if (!readState) { if (live) { setEndpoint(ep); setStatus(store.get() === ep ? 'on' : 'ready'); } return; }
+      const r = await pushStateFor(ep);
+      if (!live) return;
+      if (r.ok && r.data.this_device) { setState(r.data); setEndpoint(ep); setStatus('on'); return; }
+      // Firebase replaced the token since alerts were turned on here: send the new one
+      const last = store.get();
+      if (last?.startsWith('fcm:') && last !== ep) { await appSend(token).catch(() => setStatus('ready')); return; }
+      if (r.ok) setState(r.data);
+      setStatus('ready');
+    })();
+    return () => { live = false; };
+  }, [native, readState, appSend]);
+
+  useEffect(() => {
+    if (native) return;
     let live = true;
     (async () => {
       const support = browserSupport();
@@ -74,10 +136,27 @@ export function usePushDevice(publicKey: string, portal: PushRole, initial?: Pus
       setStatus('ready');
     })();
     return () => { live = false; };
-  }, [readState, send]);
+  }, [native, readState, send]);
 
   const turnOn = useCallback(async () => {
     setBusy(true); setError(null);
+    if (native) {
+      try {
+        const p = (await call<{ receive: Receive }>(FCM, 'requestPermissions')).receive;
+        if (p !== 'granted') { setStatus(p === 'denied' ? 'blocked' : 'ready'); return false; }
+        // Android: the alerts channel (high importance: a banner and the sound); iOS has none
+        if (platform() === 'android') await call(FCM, 'createChannel', { id: 'alerts', name: 'CarmaCars alerts', description: 'Bookings, payments, pickups and messages', importance: 4, visibility: 1, vibration: true }).catch(() => undefined);
+        const token = await appToken();
+        if (!token) throw new Error('The phone did not give a push address. Check the connection and try again.');
+        await appSend(token);
+        haptic('success');
+        return true;
+      } catch (e) {
+        setError(e instanceof Error && e.message ? e.message : 'The app could not turn alerts on. Try again.');
+        return false;
+      } finally { setBusy(false); }
+    }
+    if (!publicKey) { setBusy(false); setStatus('unsupported'); return false; }
     try {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') { setStatus(permission === 'denied' ? 'blocked' : 'ready'); return false; }
@@ -94,10 +173,20 @@ export function usePushDevice(publicKey: string, portal: PushRole, initial?: Pus
       setError(e instanceof Error && e.message && !/^[A-Z][a-z]+Error/.test(e.name) ? e.message : 'This browser could not turn alerts on. Try again, or use another browser.');
       return false;
     } finally { setBusy(false); }
-  }, [publicKey, send]);
+  }, [native, publicKey, send, appSend]);
 
   const turnOff = useCallback(async () => {
     setBusy(true); setError(null);
+    if (native) {
+      try {
+        const ep = endpoint ?? store.get();
+        await call(FCM, 'deleteToken').catch(() => undefined);
+        store.set(null);
+        if (ep) { const r = await unsubscribePush({ endpoint: ep }); if (r.ok) setState(r.data); }
+        setEndpoint(null); setStatus('ready');
+      } finally { setBusy(false); }
+      return;
+    }
     try {
       const sub = await currentSubscription().catch(() => null);
       const ep = sub?.endpoint ?? endpoint;
@@ -106,7 +195,7 @@ export function usePushDevice(publicKey: string, portal: PushRole, initial?: Pus
       if (ep) { const r = await unsubscribePush({ endpoint: ep }); if (r.ok) setState(r.data); }
       setEndpoint(null); setStatus('ready');
     } finally { setBusy(false); }
-  }, [endpoint]);
+  }, [native, endpoint]);
 
   const removeDevice = useCallback(async (id: string) => {
     setBusy(true); setError(null);

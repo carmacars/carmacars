@@ -62,7 +62,10 @@ test('classified text: the spec\'s template, facts only', () => {
   assert.doesNotMatch(b, /credit card in your name/);
   assert.doesNotMatch(b, /Liability coverage included/);
   assert.match(b, /Pick it up yourself\./);
-  assert.match(writeListing(car(), rules, 'fb_marketplace', SITE).body, /^For rent by the day, week or month \(not for sale\)\./);
+  const fb = writeListing(car(), rules, 'fb_marketplace', SITE);
+  assert.match(fb.body, /^Book it by the day or week\. Daily and weekly bookings only, not for sale\./);
+  assert.equal(fb.title, 'Book this 2024 Kia K5 by the day, from $75/day');
+  assert.doesNotMatch(`${fb.title} ${fb.body}`, /\brent(al|als)?\b/i);
 });
 
 test('a title too long for the channel falls back to a shorter wording, never past the limit', () => {

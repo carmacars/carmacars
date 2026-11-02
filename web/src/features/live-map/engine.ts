@@ -7,17 +7,20 @@
 // live, the ridges, a quiet lake), the view fits the pins inside the room the TV's header and filmstrip leave, and photo
 // pins that would cover each other fan out with a fine line back to their spot. Everything comes from this site
 // (config.ts), so it draws the same offline.
-import { CAR_SILHOUETTE, arc, separate, type Box } from './model';
+import { CAR_SILHOUETTE, arc, clusterPins, separate, spiderOffsets, splitZoom, type Box, type Cluster, type ClusterIn } from './model';
 import { BASEMAP, FRAME_MAX_ZOOM, GLYPHS, HIGHWAYS, HOME_BOUNDS, MAPLIBRE_CSS, MAPLIBRE_JS, MAPLIBRE_WORKER, MAP_ATTRIBUTION, MAX_BOUNDS, REGIONS, type Bounds } from './config';
 
 export interface PinSpec { id: string; lng: number; lat: number; colour: string; stage: string; hot: boolean; live: boolean; fresh: boolean; label: string;
   /** Release 26: the name on the pin (first name and last initial, or "Visitor in Toronto"); `known` puts real names first */
   who: string; known: boolean;
+  /** Release 27: a lead (not someone renting) and its score: names show only for leads and hot visitors; a bubble takes the hottest member's colour */
+  lead: boolean; score: number;
   /** A photo pin (on rent, booked or hot): the car's thumbnail, else the make's initial in the ring; `route` draws its delivery arc from home base. */
   photo?: { src: string | null; initial: string; route: boolean } }
 export interface CarSpec { id: string; lng: number; lat: number; colour: string; heading: number | null; label: string; photo: string | null }
 export interface Spot { x: number; y: number; w: number; h: number; bw: number; bh: number }
-export interface EngineEvents { select(id: string | null, at: Spot | null): void; hover(id: string | null, at: Spot | null): void; moved(): void }
+export interface EngineEvents { select(id: string | null, at: Spot | null): void; hover(id: string | null, at: Spot | null): void; moved(): void;
+  /** Fleet tracking (0400): a car marker was pressed. */ car?(id: string): void }
 /** Pixels the view keeps clear on each side (what sits over the map: the TV's header and filmstrip, the page's layer chips). */
 export interface Pad { top: number; right: number; bottom: number; left: number }
 
@@ -57,6 +60,10 @@ const BLOCK_ICON = 'lm-block';
 const BLOCK_PX = 4;
 /** The same for a photo pin's landscape card (6 by 4 px, the card's shape), so a city label can sit just under it. */
 const BLOCK_CARD = 'lm-block-card';
+/** Names by the dots show from this zoom (about city level) up. */
+export const NAME_ZOOM = 10.5;
+/** The pixels within which pins gather into a count, and the zoom from which they never do. */
+export const CLUSTER_UNTIL = 12.5;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export class MapEngine {
@@ -71,7 +78,13 @@ export class MapEngine {
   private where = new Map<string, [number, number]>();
   private seen: Set<string> | null = null;
   private lastPins: PinSpec[] = [];
+  /** Release 27: the bubbles drawn now (by key), and the bubble opened on the spot (its members round its middle) */
+  private bubbles = new Map<string, Cluster>();
+  private spider: { ids: string[]; at: [number, number]; zoom: number } | null = null;
   private lastCars: CarSpec[] = [];
+  private selCar: string | null = null;
+  private trail: Array<[number, number]> | null = null;
+  private zone: Array<[number, number]> | null = null;
   private pinsKey = '';
   private fitKey = '';
   private framed = false;
@@ -138,6 +151,17 @@ export class MapEngine {
   setCars(c: CarSpec[]) { this.lastCars = c; if (this.map) this.syncCars(); }
   /** Home base (the delivery origin of Program settings): a branded marker with a soft pulse, and where the arcs start. */
   setHq(at: { lat: number; lng: number } | null) { this.hqAt = at ? [at.lng, at.lat] : null; if (this.map) { this.syncHq(); this.syncPins(true); } }
+
+  /** Fleet tracking (0400): a trip's route as a line under the cars (null: none). */
+  setTrail(path: Array<[number, number]> | null) { this.trail = path && path.length > 1 ? path : null; if (this.map) this.syncLines(); }
+  /** Fleet tracking (0400): the geofence, a ring of points (null: none). */
+  setZone(ring: Array<[number, number]> | null) { this.zone = ring; if (this.map) this.syncLines(); }
+  /** Fleet tracking (0400): the chosen car's ring stands out. */
+  selectCar(id: string | null) { this.selCar = id; for (const [k, v] of this.cars) v.el.classList.toggle('lm-car--sel', k === id); }
+  /** The map's box changed size (a layout that settles after the map started). */
+  resize() { this.map?.resize(); }
+  /** Moves the map to a point (a car or an alert). */
+  flyTo(lng: number, lat: number, zoom = 12) { this.map?.easeTo({ center: [lng, lat], zoom: Math.max(this.map.getZoom(), zoom), duration: 700 }); }
 
   /** Frames `home` (the owner's box) edge to edge inside what `pad` leaves clear, never closer than a city
    * (FRAME_MAX_ZOOM). When a pin would then sit under the UI (a photo pin's half size counts), it frames `all` (the box
@@ -208,12 +232,16 @@ export class MapEngine {
         blockers: { type: 'geojson', data: EMPTY },
         // a photo pin moved aside to make room: a fine line back to its spot (Release 26)
         leaders: { type: 'geojson', data: EMPTY },
-        pins: { type: 'geojson', data: EMPTY, cluster: true, clusterRadius: 26 * k, clusterMaxZoom: 10,
-          clusterProperties: { hot: ['max', ['get', 'hot']], live: ['max', ['get', 'live']], booked: ['+', ['case', ['==', ['get', 'stage'], 'booked'], 1, 0]],
-            progress: ['+', ['case', ['==', ['get', 'stage'], 'progress'], 1, 0]], site: ['+', ['case', ['==', ['get', 'stage'], 'site'], 1, 0]], past: ['+', ['case', ['==', ['get', 'stage'], 'past'], 1, 0]] } },
+        // Release 27: the pins are clustered by model.clusterPins (the same on the Canvas map), so this source holds the lone pins
+        pins: { type: 'geojson', data: EMPTY },
+        clusters: { type: 'geojson', data: EMPTY },
+        spider: { type: 'geojson', data: EMPTY },
         ripples: { type: 'geojson', data: EMPTY },
         heat: { type: 'geojson', data: EMPTY },
-        arcs: { type: 'geojson', data: EMPTY, lineMetrics: true }
+        arcs: { type: 'geojson', data: EMPTY, lineMetrics: true },
+        // Fleet tracking (0400): a trip's route and the geofence
+        trail: { type: 'geojson', data: EMPTY },
+        zone: { type: 'geojson', data: EMPTY }
       },
       layers: [
         // the land round the GTA: a deep slate; the GTA's municipalities a shade lighter, so the region reads at a glance
@@ -266,6 +294,11 @@ export class MapEngine {
           layout: { 'symbol-placement': 'line', 'symbol-spacing': 900 * k, 'text-field': ['upcase', ['get', 'name']], 'text-font': ['noto-regular'], 'text-size': 10 * k,
             'text-letter-spacing': 0.45, 'text-offset': [0, -1.2], 'text-padding': 10 * k, 'text-max-angle': 25 },
           paint: { 'text-color': '#56637d', 'text-opacity': 0.7 } },
+        // the geofence (Fleet tracking): a faint fill and a dashed edge; a trip's route: a cyan line with a soft glow
+        { id: 'zone-fill', type: 'fill', source: 'zone', paint: { 'fill-color': '#22d3ee', 'fill-opacity': 0.04 } },
+        { id: 'zone-edge', type: 'line', source: 'zone', paint: { 'line-color': '#22d3ee', 'line-width': 1.2 * k, 'line-opacity': 0.5, 'line-dasharray': [3, 3] } },
+        { id: 'trail-glow', type: 'line', source: 'trail', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#22d3ee', 'line-width': 8 * k, 'line-blur': 6 * k, 'line-opacity': 0.35 } },
+        { id: 'trail', type: 'line', source: 'trail', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#a5f3fc', 'line-width': 2.4 * k } },
         // the delivery arcs from home base: a faint gradient line, and a dash travelling along it
         { id: 'arc', type: 'line', source: 'arcs', layout: { 'line-cap': 'round' }, paint: { 'line-width': 1.4 * k,
           'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(250,250,250,0.05)', 1, 'rgba(52,211,153,0.6)'] } },
@@ -275,19 +308,22 @@ export class MapEngine {
           paint: { 'line-color': ['get', 'colour'], 'line-width': 1.2 * k, 'line-opacity': 0.55 } },
         { id: 'leader-dot', type: 'circle', source: 'leaders', filter: ['==', ['geometry-type'], 'Point'],
           paint: { 'circle-color': ['get', 'colour'], 'circle-radius': 3 * k, 'circle-stroke-color': '#07090e', 'circle-stroke-width': 1.2 * k } },
-        // the dots: a soft glow under each, the dot, and the clusters' counts
-        { id: 'pin-glow', type: 'circle', source: 'pins', filter: ['!', ['has', 'point_count']],
-          paint: { 'circle-color': ['get', 'colour'], 'circle-radius': ['case', ['==', ['get', 'hot'], 1], 16 * k, 11 * k], 'circle-blur': 1, 'circle-opacity': ['case', ['==', ['get', 'hot'], 1], 0.55, 0.4] } },
-        { id: 'pin-breath', type: 'circle', source: 'pins', filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'live'], 1]],
+        // the dots: a soft glow under each, the dot (a little smaller at city zoom, Release 27)
+        { id: 'spider-line', type: 'line', source: 'spider', paint: { 'line-color': '#8b98ae', 'line-width': 1 * k, 'line-opacity': 0.6 } },
+        { id: 'pin-glow', type: 'circle', source: 'pins',
+          paint: { 'circle-color': ['get', 'colour'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['case', ['==', ['get', 'hot'], 1], 11 * k, 7.5 * k], 12, ['case', ['==', ['get', 'hot'], 1], 16 * k, 11 * k]],
+            'circle-blur': 1, 'circle-opacity': ['case', ['==', ['get', 'hot'], 1], 0.55, 0.4] } },
+        { id: 'pin-breath', type: 'circle', source: 'pins', filter: ['==', ['get', 'live'], 1],
           paint: { 'circle-color': '#22d3ee', 'circle-radius': 9 * k, 'circle-blur': 0.9, 'circle-opacity': 0.3 } },
-        { id: 'pin', type: 'circle', source: 'pins', filter: ['!', ['has', 'point_count']],
-          paint: { 'circle-color': ['get', 'colour'], 'circle-radius': ['case', ['==', ['get', 'hot'], 1], 7 * k, 5.5 * k],
+        { id: 'pin', type: 'circle', source: 'pins',
+          paint: { 'circle-color': ['get', 'colour'],
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['case', ['==', ['get', 'hot'], 1], 5.2 * k, 4 * k], 12, ['case', ['==', ['get', 'hot'], 1], 7 * k, 5.5 * k]],
             'circle-stroke-color': '#07090e', 'circle-stroke-width': 1.5 * k } },
-        // the names by the dots (Release 26): small, beside the dot, real names first; a name that has no room waits
-        { id: 'pin-name', type: 'symbol', source: 'pins', filter: ['!', ['has', 'point_count']], minzoom: 7.5,
+        // the names by the dots (Release 27): only for leads and hot visitors, from city zoom up, the hottest first, a name with no room waits
+        { id: 'pin-name', type: 'symbol', source: 'pins', filter: ['==', ['get', 'named'], 1], minzoom: NAME_ZOOM,
           layout: { 'text-field': ['get', 'who'], 'text-font': ['noto-medium'], 'text-size': 11 * k, 'text-anchor': 'left', 'text-offset': [0.9, 0],
-            'symbol-sort-key': ['-', 1, ['get', 'known']], 'text-optional': true, 'text-padding': 2 * k, 'text-allow-overlap': false },
-          paint: { 'text-color': '#dbe4f3', 'text-halo-color': '#0b0e14', 'text-halo-width': 1.6 * k, 'text-opacity': ['case', ['==', ['get', 'known'], 1], 0.95, 0.6] } },
+            'symbol-sort-key': ['-', 3, ['+', ['*', ['get', 'hot'], 2], ['get', 'known']]], 'text-optional': true, 'text-padding': 4 * k, 'text-allow-overlap': false },
+          paint: { 'text-color': '#dbe4f3', 'text-halo-color': '#0b0e14', 'text-halo-width': 1.6 * k, 'text-opacity': ['case', ['==', ['get', 'known'], 1], 0.95, 0.7] } },
         // the labels, over the dots and under the clusters: a highway's number along its line (only closer in, and only where
         // nothing else is), then the towns and the cities, each on whichever side of its spot is free
         { id: 'hwy-label', type: 'symbol', source: 'hwy', minzoom: 8.6,
@@ -307,14 +343,14 @@ export class MapEngine {
             'text-variable-anchor': ['top', 'bottom', 'left', 'right', 'center'], 'text-radial-offset': this.o.tv ? 2.6 : 2.2, 'text-letter-spacing': 0.16, 'text-transform': 'uppercase',
             'text-allow-overlap': false, 'text-padding': 4 * k },
           paint: { 'text-color': ['match', ['get', 'rank'], 3, '#8f9cb3', '#647189'], 'text-halo-color': '#0b0e14', 'text-halo-width': 1.4 * k } },
-        { id: 'cluster-glow', type: 'circle', source: 'pins', filter: ['has', 'point_count'],
-          paint: { 'circle-color': this.clusterColour(), 'circle-radius': ['step', ['get', 'point_count'], 22 * k, 10, 28 * k, 40, 34 * k], 'circle-blur': 1, 'circle-opacity': 0.35 } },
-        { id: 'cluster', type: 'circle', source: 'pins', filter: ['has', 'point_count'],
-          paint: { 'circle-color': '#0f1624', 'circle-radius': ['step', ['get', 'point_count'], 13 * k, 10, 16 * k, 40, 19 * k],
-            'circle-stroke-color': this.clusterColour(), 'circle-stroke-width': 2 * k } },
-        { id: 'cluster-n', type: 'symbol', source: 'pins', filter: ['has', 'point_count'],
+        { id: 'cluster-glow', type: 'circle', source: 'clusters',
+          paint: { 'circle-color': ['get', 'colour'], 'circle-radius': ['step', ['get', 'n'], 22 * k, 10, 28 * k, 40, 34 * k], 'circle-blur': 1, 'circle-opacity': ['case', ['==', ['get', 'hot'], 1], 0.55, 0.35] } },
+        { id: 'cluster', type: 'circle', source: 'clusters',
+          paint: { 'circle-color': '#0f1624', 'circle-radius': ['step', ['get', 'n'], 13 * k, 10, 16 * k, 40, 19 * k],
+            'circle-stroke-color': ['get', 'colour'], 'circle-stroke-width': ['case', ['==', ['get', 'hot'], 1], 3 * k, 2 * k] } },
+        { id: 'cluster-n', type: 'symbol', source: 'clusters',
           // always drawn, and the labels keep clear of the bubble (the padding is about the size of a small one)
-          layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-font': ['noto-medium'], 'text-size': 13 * k, 'text-allow-overlap': true, 'text-ignore-placement': false,
+          layout: { 'text-field': ['get', 'label'], 'text-font': ['noto-medium'], 'text-size': 13 * k, 'text-allow-overlap': true, 'text-ignore-placement': false,
             'text-padding': 10 * k },
           paint: { 'text-color': '#e8eef8' } },
         { id: 'ripple', type: 'circle', source: 'ripples', paint: { 'circle-color': 'rgba(0,0,0,0)', 'circle-radius': 6 * k, 'circle-stroke-color': '#22d3ee', 'circle-stroke-width': 2 * k, 'circle-stroke-opacity': 0 } },
@@ -326,11 +362,6 @@ export class MapEngine {
       ]
     };
   }
-  /** A cluster takes the colour of its most advanced stage present. */
-  private clusterColour() {
-    return ['case', ['>', ['get', 'booked'], 0], '#34d399', ['>', ['get', 'progress'], 0], '#fbbf24', ['>', ['get', 'site'], 0], '#22d3ee', '#94a3b8'];
-  }
-
   // ---------------------------------------------------------------- pointer: a dot's card, a cluster opens
   private wire() {
     const map = this.map;
@@ -339,19 +370,15 @@ export class MapEngine {
     map.on('mouseleave', 'pin', () => { map.getCanvas().style.cursor = ''; this.ev.hover(null, null); });
     map.on('click', (e: any) => {
       const f = map.queryRenderedFeatures(e.point, { layers: ['pin', 'cluster'] })[0];
-      if (!f) return this.ev.select(null, null);
-      if (f.properties?.cluster_id !== undefined) {
-        this.held = true;
-        void map.getSource('pins').getClusterExpansionZoom(f.properties.cluster_id).then((z: number) => map.easeTo({ center: f.geometry.coordinates, zoom: z + 0.2, duration: 600 }));
-        // a TV goes back to its frame by itself after 20 seconds
-        if (this.o.tv) { clearTimeout(this.back); this.back = setTimeout(() => this.reframe(), 20_000); }
-        return;
-      }
+      if (!f) { if (this.spider) { this.spider = null; this.syncPins(true); } return this.ev.select(null, null); }
+      if (f.properties?.cluster === 1) { this.open(String(f.properties.key)); return; }
       this.ev.select(String(f.properties.id), at(e));
     });
     map.on('mouseenter', 'cluster', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'cluster', () => { map.getCanvas().style.cursor = ''; });
     map.on('movestart', (e: any) => { if (e?.originalEvent) this.held = true; this.ev.moved(); });
+    // the bubbles regroup when the zoom settles (a bubble splits as you zoom in)
+    map.on('zoomend', () => this.syncPins());
     map.on('moveend', () => this.layout());
     map.on('resize', () => this.layout());
   }
@@ -361,16 +388,65 @@ export class MapEngine {
     return { x: p.x - 6, y: p.y - 6, w: 12, h: 12, bw: this.box.clientWidth, bh: this.box.clientHeight };
   }
 
-  private render() { this.syncHq(); this.syncPins(); this.syncCars(); }
+  private render() { this.syncHq(); this.syncPins(); this.syncCars(); this.syncLines(); }
+
+  private syncLines() {
+    this.map.getSource('trail')?.setData(this.trail ? { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: this.trail }, properties: {} }] } : EMPTY);
+    this.map.getSource('zone')?.setData(this.zone ? { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [this.zone] }, properties: {} }] } : EMPTY);
+    this.box.dataset.trail = String(this.trail?.length ?? 0);
+  }
+
+  /** The pixels within which pins gather into a bubble at this zoom (none from CLUSTER_UNTIL up). */
+  private radiusAt = (z: number) => (z >= CLUSTER_UNTIL ? 0 : (z < 10 ? 36 : 30) * this.o.scale);
+
+  /** A bubble was pressed: zoom in to where it splits; when it will not (its pins sit on one spot) open it as a ring. */
+  private open(key: string) {
+    const c = this.bubbles.get(key);
+    if (!c) return;
+    this.held = true;
+    const members: ClusterIn[] = c.ids.map((id) => this.lastPins.find((p) => p.id === id)).filter((p): p is PinSpec => !!p)
+      .map((p) => ({ id: p.id, lng: p.lng, lat: p.lat, hot: p.hot, score: p.score, colour: p.colour }));
+    const z = splitZoom(members, this.map.getZoom(), 14, this.radiusAt);
+    if (z === null || z > 14) {
+      this.spider = { ids: c.ids, at: [c.lng, c.lat], zoom: this.map.getZoom() };
+      this.syncPins(true);
+    } else {
+      this.spider = null;
+      this.map.easeTo({ center: [c.lng, c.lat], zoom: Math.min(14, z + 0.2), duration: reduced() ? 0 : 600 });
+    }
+    // a TV goes back to its frame by itself after 20 seconds
+    if (this.o.tv) { clearTimeout(this.back); this.back = setTimeout(() => { this.spider = null; this.reframe(); }, 20_000); }
+  }
 
   private syncPins(force = false) {
-    const key = JSON.stringify([this.hqAt, this.lastPins.map((p) => [p.id, p.lng, p.lat, p.colour, p.hot, p.live, p.photo?.src ?? p.photo?.initial ?? ''])]);
+    const zoom = this.map.getZoom();
+    if (this.spider && Math.abs(this.spider.zoom - zoom) > 0.4) this.spider = null;
+    const key = JSON.stringify([this.hqAt, Math.round(zoom * 20), this.spider?.ids.length ?? 0, this.lastPins.map((p) => [p.id, p.lng, p.lat, p.colour, p.hot, p.live, p.lead, p.photo?.src ?? p.photo?.initial ?? ''])]);
     this.where = new Map(this.lastPins.map((p) => [p.id, [p.lng, p.lat] as [number, number]]));
     this.box.dataset.pins = String(this.lastPins.length);
     if (key === this.pinsKey && !force) return;
     this.pinsKey = key;
-    const dots = this.lastPins.filter((p) => !p.photo), photos = this.lastPins.filter((p) => p.photo);
+    // who is alone and who is in a bubble at this zoom; a bubble opened on the spot shows its members round its middle
+    const open = new Set(this.spider?.ids ?? []);
+    const grouped = clusterPins(this.lastPins.filter((p) => !open.has(p.id)).map((p): ClusterIn => ({ id: p.id, lng: p.lng, lat: p.lat, hot: p.hot, score: p.score, colour: p.colour })),
+      512 * 2 ** zoom, this.radiusAt(zoom));
+    const alone = new Set(grouped.singles.map((s) => s.id));
+    const at = new Map<string, [number, number]>();
+    const lines: unknown[] = [];
+    if (this.spider) {
+      const centre = this.map.project(this.spider.at), offs = spiderOffsets(this.spider.ids.length, 30 * this.o.scale);
+      this.spider.ids.forEach((id, i) => {
+        const o = offs[i]!, ll = this.map.unproject([centre.x + o[0], centre.y + o[1]]);
+        at.set(id, [ll.lng, ll.lat]); alone.add(id);
+        lines.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [this.spider!.at, [ll.lng, ll.lat]] }, properties: {} });
+      });
+    }
+    this.bubbles = new Map(grouped.clusters.map((c) => [c.key, c]));
+    const pos = (p: PinSpec): [number, number] => at.get(p.id) ?? [p.lng, p.lat];
+    const lone = this.lastPins.filter((p) => alone.has(p.id)).map((p) => ({ ...p, lng: pos(p)[0], lat: pos(p)[1] }));
+    const dots = lone.filter((p) => !p.photo), photos = lone.filter((p) => p.photo);
     this.box.dataset.photos = String(photos.length);
+    this.box.dataset.clusters = String(grouped.clusters.length);
     this.syncPhotos(photos);
     this.map.getSource('heat').setData({ type: 'FeatureCollection', features: this.lastPins.map((p) => ({
       type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] }, properties: { w: p.hot ? 1 : 0.55 } })) });
@@ -380,12 +456,15 @@ export class MapEngine {
     this.box.dataset.arcs = String(routes.length);
     this.map.getSource('pins').setData({ type: 'FeatureCollection', features: dots.map((p) => ({
       type: 'Feature', geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
-      properties: { id: p.id, colour: p.colour, stage: p.stage, hot: p.hot ? 1 : 0, live: p.live ? 1 : 0, who: p.who, known: p.known ? 1 : 0 }
+      properties: { id: p.id, colour: p.colour, stage: p.stage, hot: p.hot ? 1 : 0, live: p.live ? 1 : 0, who: p.who, known: p.known ? 1 : 0, named: p.hot || (p.lead && p.known) ? 1 : 0 }
     })) });
+    this.map.getSource('clusters').setData({ type: 'FeatureCollection', features: grouped.clusters.map((c) => ({
+      type: 'Feature', geometry: { type: 'Point', coordinates: [c.lng, c.lat] }, properties: { key: c.key, cluster: 1, n: c.n, label: c.n > 99 ? '99+' : String(c.n), colour: c.colour, hot: c.hot ? 1 : 0 } })) });
+    this.map.getSource('spider').setData({ type: 'FeatureCollection', features: lines });
     // a new event since the last refresh: one ripple from its dot (none on the first load)
     const ids = new Set(this.lastPins.map((p) => p.id));
     if (this.seen) {
-      const fresh = this.lastPins.filter((p) => p.fresh && !this.seen!.has(p.id));
+      const fresh = lone.filter((p) => p.fresh && !this.seen!.has(p.id));
       if (fresh.length) this.rippleOut(fresh);
     }
     this.seen = ids;
@@ -396,7 +475,7 @@ export class MapEngine {
     const seen = new Set<string>();
     for (const p of list) {
       seen.add(p.id);
-      const key = `${p.colour}|${p.photo!.src ?? p.photo!.initial}|${p.hot}|${p.who}`;
+      const sz0 = this.pinSize(p.hot && !p.photo!.route), key = `${p.colour}|${p.photo!.src ?? p.photo!.initial}|${p.hot}|${p.who}|${sz0.w}`;
       let v = this.photos.get(p.id);
       if (!v) {
         const el = document.createElement('div');
@@ -438,7 +517,9 @@ export class MapEngine {
   /** A photo pin's size on screen: a small landscape card (the car is wider than tall); a hot lead's car a little smaller. */
   private pinSize(small: boolean) {
     // a phone's map is small: smaller cards, so the pins do not cover the area they sit in
-    const k = this.o.scale * (this.o.tv ? 1 : this.box.clientWidth < 560 ? 0.6 : 0.8), w = (small ? 66 : 80) * k;
+    // Release 27: a little smaller at city zoom, full size once you are close
+    const z = this.map ? this.map.getZoom() : 10, zoomK = z < 10 ? 0.78 : z < 11.5 ? 0.9 : 1;
+    const k = this.o.scale * (this.o.tv ? 1 : this.box.clientWidth < 560 ? 0.6 : 0.8) * zoomK, w = (small ? 66 : 80) * k;
     return { w, h: Math.round(w * 0.66) };
   }
 
@@ -548,7 +629,14 @@ export class MapEngine {
         const el = document.createElement('div');
         el.className = 'lm-car';
         el.setAttribute('role', 'img');
-        el.innerHTML = `<span class="lm-car__arrow" aria-hidden="true"></span><span class="lm-car__body" aria-hidden="true">${s.photo ? `<img alt="" src="${encodeURI(s.photo)}" decoding="async">` : ''}</span>`;
+        el.innerHTML = `<span class="lm-car__arrow" aria-hidden="true"></span><span class="lm-car__body" aria-hidden="true">${s.photo ? `<img alt="" src="${encodeURI(s.photo)}" decoding="async">` : `<span class="lm-car__shape">${CAR_SILHOUETTE}</span>`}</span>`;
+        // Fleet tracking (0400): a car can be chosen (a button then, for the keyboard too)
+        if (this.ev.car) {
+          const id = s.id;
+          el.setAttribute('role', 'button'); el.tabIndex = 0; el.classList.add('lm-car--pick');
+          el.addEventListener('click', (e) => { e.stopPropagation(); this.ev.car?.(id); });
+          el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.ev.car?.(id); } });
+        }
         const marker = new this.ml.Marker({ element: el, anchor: 'center' }).setLngLat([s.lng, s.lat]).addTo(this.map);
         v = { el, marker, lng: s.lng, lat: s.lat, anim: 0 };
         this.cars.set(s.id, v);
@@ -556,11 +644,13 @@ export class MapEngine {
       v.el.style.setProperty('--c', s.colour);
       v.el.style.setProperty('--h', `${s.heading ?? 0}deg`);
       v.el.classList.toggle('lm-car--still', s.heading === null);
+      v.el.classList.toggle('lm-car--sel', s.id === this.selCar);
       v.el.setAttribute('aria-label', s.label);
       if (v.lng !== s.lng || v.lat !== s.lat) this.glide(v, s.lng, s.lat);
     }
     for (const [id, v] of this.cars) if (!seen.has(id)) { cancelAnimationFrame(v.anim); v.marker.remove(); this.cars.delete(id); }
     this.layout();
+    this.box.dataset.cars = String(this.lastCars.length);
   }
 
   /** The labels' keep-out squares: every photo pin (where it is drawn, once moved aside), home base and car, at its size on screen. */

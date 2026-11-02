@@ -201,7 +201,7 @@ test('manual payment: an Admin records an e-Transfer in part and a cheque for th
   await op.reload({ waitUntil: 'networkidle' });
   await expect(op.getByTestId('invoice-status')).toHaveText('Partly paid');
   await check(op, 'owner invoice after the void');
-  await ap.goto('/admin/reconciliation', { waitUntil: 'networkidle' });
+  await ap.goto('/admin/money?tab=reconciliation', { waitUntil: 'networkidle' });
   await expect(ap.getByTestId('manual-month')).toContainText('CA9XKT2');
   await check(ap, 'admin reconciliation');
   await ap.context().close(); await op.context().close();

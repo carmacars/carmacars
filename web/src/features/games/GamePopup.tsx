@@ -1,6 +1,6 @@
 'use client';
 import './games.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { lazy, Suspense, useEffect, useId, useRef, useState, type ComponentType } from 'react';
 import { browserRpc } from '@/lib/browser-rpc';
 import { sessionId, visitorId } from '@/features/live/beacon';

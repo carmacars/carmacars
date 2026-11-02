@@ -15,16 +15,22 @@ export interface CalendarProps {
   to?: string;
   maxDays: number;
   legend?: boolean;
+  /** Release 27 (the shared date pickers): the last day that can be picked, one date instead of a range, and no status line */
+  max?: string;
+  single?: boolean;
+  bare?: boolean;
+  /** the day the first month opens on when nothing is picked yet (default: min) */
+  start?: string;
   onChange?: (v: { from: string; to: string }) => void;
 }
 
 const ym = (s: string, n: number) => { let y = +s.slice(0, 4); let m = +s.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; return `${y}-${String(m + 1).padStart(2, '0')}`; };
 let uidSeq = 0;
 
-export function Calendar({ months = 1, min, today, blocks = [], from = '', to = '', maxDays, legend = true, onChange }: CalendarProps) {
+export function Calendar({ months = 1, min, today, blocks = [], from = '', to = '', maxDays, legend = true, max = '', single = false, bare = false, start = '', onChange }: CalendarProps) {
   const sel = { from, to };
-  const [focusState, setFocus] = useState(from || min);
-  const [view, setView] = useState((from || min).slice(0, 7));
+  const [focusState, setFocus] = useState(from || start || min);
+  const [view, setView] = useState((from || start || min).slice(0, 7));
   const [status, setStatus] = useState<{ msg: string; bad: boolean }>(() => {
     if (!from || !to) return { msg: '', bad: false };
     const n = Math.max(1, diffDays(from, to));
@@ -64,7 +70,9 @@ export function Calendar({ months = 1, min, today, blocks = [], from = '', to = 
 
   const say = (msg: string, bad = false) => setStatus({ msg, bad });
   function pick(iso: string) {
-    if (iso < min) return say('That date has passed.', true);
+    if (iso < min) return say(single ? 'That date is not available.' : 'That date has passed.', true);
+    if (max && iso > max) return say('That date is too far ahead.', true);
+    if (single) { setFocus(iso); setView(iso.slice(0, 7)); wantFocus.current = true; onChange?.({ from: iso, to: iso }); return; }
     if (isBooked(iso)) return say(`${shortDate(iso)} is not available for this car.`, true);
     let next = sel;
     if (!sel.from || sel.to || iso < sel.from) {
@@ -91,7 +99,7 @@ export function Calendar({ months = 1, min, today, blocks = [], from = '', to = 
     if (e.key in steps) next = addDays(d, steps[e.key]!);
     else if (e.key === 'Home') next = addDays(d, -dow(d));
     else if (e.key === 'End') next = addDays(d, 6 - dow(d));
-    if (next) { e.preventDefault(); if (next < min) next = min; setFocus(next); setView(next.slice(0, 7)); wantFocus.current = true; }
+    if (next) { e.preventDefault(); if (next < min) next = min; if (max && next > max) next = max; setFocus(next); setView(next.slice(0, 7)); wantFocus.current = true; }
   }
 
   const monthsList = Array.from({ length: months }, (_, i) => ym(shownView, i));
@@ -107,7 +115,7 @@ export function Calendar({ months = 1, min, today, blocks = [], from = '', to = 
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4l-6 6 6 6" fill="none" stroke="currentColor" strokeWidth="2" /></svg>
         </button>
         <div className="cal__title" id={uid} aria-live="polite">{title}</div>
-        <button type="button" className="icon-btn" aria-label="Next month"
+        <button type="button" className="icon-btn" aria-label="Next month" disabled={!!max && last >= max.slice(0, 7)}
           onClick={() => { const v = ym(shownView, 1); setView(v); setFocus(`${v}-01`); }}>
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" /></svg>
         </button>
@@ -130,13 +138,14 @@ export function Calendar({ months = 1, min, today, blocks = [], from = '', to = 
                     if (!iso) return <td key={ci}></td>;
                     const cls = ['cal__day']; let dis = false; let label = longDate(iso);
                     const part = partOf(iso);
-                    if (iso < min) { cls.push('is-past'); dis = true; label += ', in the past'; }
+                    if (iso < min) { cls.push('is-past'); dis = true; label += single ? ', not available' : ', in the past'; }
+                    else if (max && iso > max) { cls.push('is-past'); dis = true; label += ', not available'; }
                     else if (isBooked(iso)) { cls.push('is-booked'); dis = true; label += ', not available'; }
                     else if (part) { cls.push('is-part'); label += ', partly available, ' + partText(part); }
                     if (iso === today) cls.push('is-today');
                     const isStart = !!sel.from && iso === sel.from; const isEnd = !!sel.to && iso === sel.to;
-                    if (isStart) { cls.push('is-start'); label += ', pickup date'; }
-                    if (isEnd) { cls.push('is-end'); label += ', return date'; }
+                    if (isStart) { cls.push('is-start'); label += single ? ', selected' : ', pickup date'; }
+                    if (isEnd) { cls.push('is-end'); if (!single) label += ', return date'; }
                     if (sel.from && sel.to && iso > sel.from && iso < sel.to) cls.push('is-in');
                     const tab = focusInView ? iso === focus : mi === 0 && iso === firstFree;
                     return (
@@ -154,8 +163,8 @@ export function Calendar({ months = 1, min, today, blocks = [], from = '', to = 
           );
         })}
       </div>
-      <p className={`cal__status${status.bad ? ' red strong' : ''}`} role="status" aria-live="polite">{status.msg}</p>
-      {legend && (
+      {!bare && <p className={`cal__status${status.bad ? ' red strong' : ''}`} role="status" aria-live="polite">{status.msg}</p>}
+      {legend && !bare && (
         <div className="cal__legend" aria-hidden="true">
           <span><i className="k-sel"></i>Your dates</span><span><i className="k-booked"></i>Not available</span>
           <span><i className="k-part"></i>Part of the day</span><span><i className="k-open"></i>Available</span>

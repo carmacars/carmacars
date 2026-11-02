@@ -3,7 +3,7 @@ import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
 import { door } from '@/server/door';
 import { ManualMonth, type ManualMonthData } from '@/features/manual/ManualMonth';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { $, Badge, Card, PageHead, Table, d, t } from '@/features/admin/ui';
 import { KIND_LABEL, friendly } from '@/features/money/ledger';
 
@@ -20,7 +20,6 @@ export default async function VaReconciliation({ searchParams }: { searchParams:
     door<ManualMonthData>(user.id, 'ops_read', 'manual_payments_month', { month }, aal).catch(() => null)]);
   const RF = ['/staff/reconciliation'];
   return (<>
-    <p className="small"><Link prefetch={false} className="link" href="/staff/payments" data-testid="to-payments-by-day">Payments by day</Link>: every payment of a day by method (card, e-Transfer, cash, cheque, platform, insurer), the cash drawer and the refunds to decide, with an export.</p>
     <PageHead title="Payout reconciliation"><Act action="reconcile_record" label="Record a processor payout" variant="primary" testId="reconcile-record" refresh={RF}
       fields={[{ name: 'payout_ref', label: 'Payout reference', required: true }, { name: 'paid_on', label: 'Paid on', type: 'date', required: true }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'items', label: 'Items (from the processor report)', type: 'json', value: [] }]} done="Payout recorded." /></PageHead>
     {rows.length ? rows.map((r) => (

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage, FN_LABEL } from '@/server/va';
 import { PageHead } from '@/features/admin/ui';
@@ -7,6 +7,7 @@ import { SignInSettings } from '@/features/portal/SignInSettings';
 import { notifyReach, signInState } from '@/server/sign-in-settings';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
+import { AppProfile } from '@/features/app-shell/AppProfile';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile', path: '/staff/profile', noindex: true, description: 'Your details, your home address and sign-in.' });
@@ -26,6 +27,7 @@ export default async function VaProfile() {
         {si && <SignInSettings state={si} className="pt-card stack" />}
         {nc && <NotifyChannelCard reach={nc} className="pt-card stack" />}
         <PushAlerts userId={user.id} portal="staff" className="pt-card stack" />
+        <AppProfile userId={user.id} lock className="pt-card stack" />
         <section className="pt-card stack" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>
           <p className="row"><Link prefetch={false} className="btn btn--ghost btn--sm" href="/two-step/setup?next=/staff/profile">Set up two-step sign-in</Link>
             <Link prefetch={false} className="btn btn--ghost btn--sm" href="/reset-password">Change my password</Link></p></section>

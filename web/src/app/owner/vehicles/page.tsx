@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { PageHeader } from '@/features/portal/Chrome';
 import { VehicleCard } from '@/features/owner/Blocks';
@@ -7,22 +7,41 @@ import { carThisMonth, upcoming } from '@/features/owner/insights';
 import { rpc } from '@/lib/db/repo';
 import { OwnerTermsSummary } from '@/features/owner-billing/OwnerTerms';
 import type { CarTermsData } from '@/features/owner-billing/terms-shared';
+import { PortalTabs } from '@/features/portal-nav/PortalTabs';
+import { tabOf } from '@/features/portal-nav/tabs';
+import { OWNER_CARS_TABS } from '@/features/owner/menu';
+import { BookingsTab } from './BookingsTab';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Vehicles', path: '/owner/vehicles', noindex: true, description: 'Your vehicles with CarmaCars.' });
+export const metadata = pageMeta({ title: 'Cars', path: '/owner/vehicles', noindex: true, description: 'Your cars with CarmaCars and the bookings on them.' });
 
-export default async function OwnerVehicles() {
-  const { user, home } = await requireOwner('/owner/vehicles');
+// Cars (r27 portals: Vehicles and Bookings were two menu links about the same cars). Your cars: where each is right now,
+// this month so far, terms and what each still needs; Bookings: what is coming up, every booking, the calendar and booking
+// your own car. /owner/bookings redirects to its tab with its query (?vehicle= for "Book it for myself").
+export default async function OwnerCars({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const [ctx, sp] = await Promise.all([requireOwner('/owner/vehicles'), searchParams]);
+  const { user, home } = ctx;
+  const tab = tabOf(OWNER_CARS_TABS, sp.tab);
+  const add = home.kind !== 'partner' ? <Link prefetch={false} className="btn btn--primary btn--sm" href="/list-your-car/apply">Add a vehicle</Link> : undefined;
+  if (tab.key === 'bookings') {
+    return (
+      <>
+        <PageHeader title="Cars" purpose="Every booking on your vehicles, and your own bookings of them." />
+        <PortalTabs label="Cars" tabs={OWNER_CARS_TABS} current={tab.key} />
+        <BookingsTab {...ctx} vehicle={sp.vehicle} />
+      </>
+    );
+  }
   // each car's terms and since when (0135)
   const terms = (await rpc('server_owner_car_terms', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as CarTermsData | null;
   const { months, live, photo, bookings } = await ownerView(user, home);
   const nextOf = (id: string) => upcoming(bookings.filter((b) => b.vehicle_id === id), new Date(), 1)[0] ?? null;
   return (
     <>
-      <PageHeader title="Vehicles" purpose="Your cars with CarmaCars: where each is right now, this month so far, terms and what each still needs. Open one for its months and bookings."
-        action={<Link prefetch={false} className="btn btn--primary btn--sm" href="/list-your-car/apply">Add a vehicle</Link>} />
+      <PageHeader title="Cars" purpose="Where each car is right now, this month so far, its terms and what it still needs. Open one for its months and bookings." action={add} />
+      <PortalTabs label="Cars" tabs={OWNER_CARS_TABS} current={tab.key} />
       {home.vehicles.length ? <ul className="ow-cars">{home.vehicles.map((v) => <VehicleCard key={v.vehicle_id} v={v} compact trackers={home.trackers_available} photo={photo[v.vehicle_id]} live={live[v.vehicle_id]} month={carThisMonth(months, v.vehicle_id)} next={nextOf(v.vehicle_id)} />)}</ul>
-        : <div className="pt-empty"><p className="d4">No vehicles yet</p><Link prefetch={false} className="btn btn--primary" href="/list-your-car/apply">Add your first vehicle</Link></div>}
+        : <div className="pt-empty"><p className="d4">No vehicles yet</p>{home.kind === 'partner' ? <p className="muted">CarmaCars adds your cars once we agree which ones join.</p> : <Link prefetch={false} className="btn btn--primary" href="/list-your-car/apply">Add your first vehicle</Link>}</div>}
       {terms && <OwnerTermsSummary data={terms} />}
     </>
   );

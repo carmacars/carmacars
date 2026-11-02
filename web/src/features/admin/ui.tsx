@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { ReactNode } from 'react';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
@@ -123,7 +123,9 @@ export function Filters({ base, name, value, options, sp }: { base: string; name
 
 export function Search({ action, value, placeholder = 'Search' }: { action: string; value?: string; placeholder?: string }) {
   return (
-    <form className="ad-search" action={action} role="search">
+    // an action with its own query (a merged page's tab, r27) keeps it: a GET form drops the action's query
+    <form className="ad-search" action={action.split('?')[0]} role="search">
+      {[...new URLSearchParams(action.split('?')[1] ?? '')].map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
       <label className="vh" htmlFor="ad-q">{placeholder}</label>
       <input className="input" id="ad-q" name="q" type="search" defaultValue={value} placeholder={placeholder} data-shortcut="/" />
       <button className="btn btn--ghost btn--sm" type="submit">Search</button>

@@ -70,7 +70,7 @@ select test.ok('Paid and signed lists owners in the owner program only',
 
 -- ================================================================ 2. rentals added by hand
 create or replace function test.smr(p_vehicle uuid, p_from interval, p_to interval, p jsonb default '{}'::jsonb) returns jsonb language sql as $$
-  select jsonb_build_object('vehicle_id', p_vehicle, 'pickup_at', date_trunc('hour', now()) + p_from, 'return_at', date_trunc('hour', now()) + p_to,
+  select jsonb_build_object('vehicle_id', p_vehicle, 'pickup_at', test.base() + p_from, 'return_at', test.base() + p_to,
                             'source', 'phone', 'coverage_option', 1, 'renter_id', test.id('renter:sm_rita')) || p
 $$;
 -- paid another way, by an Admin, on the company car

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
 import { requireAdmin } from '@/server/admin/data';
@@ -10,7 +10,7 @@ import { FN_NAME } from '@/server/portals';
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Portals and sign-in', path: '/admin/portals', noindex: true, description: 'Every portal, who can sign in to it, and view as.' });
 
-interface Person { id: string; email: string; name: string; status: string; portals: { admin: boolean; va_functions: string[]; field: boolean; owner: boolean; investor: boolean; renter: boolean } }
+interface Person { id: string; email: string; name: string; status: string; /** a test account (0440): the live verification's, never given real work */ test?: boolean; portals: { admin: boolean; va_functions: string[]; field: boolean; owner: boolean; investor: boolean; renter: boolean } }
 interface People { limit: number; people: Person[]; owners_without_account: Array<{ id: string; name: string; email: string | null }>; investors_without_account: Array<{ id: string; name: string; email: string | null }> }
 
 // Admin > Portals: each portal with its real sign-in and "Open as" one of its people (read only, with the red
@@ -29,7 +29,7 @@ export default async function Portals({ searchParams }: { searchParams: Promise<
     { key: 'investor', title: 'Investor portal', home: '/investor', portal: 'investor', people: who((p) => p.portals.investor) },
     { key: 'account', title: 'Renter portal (My rentals)', home: '/account', portal: 'account', people: who((p) => p.portals.renter) }
   ];
-  const badges = (p: Person) => [p.portals.admin && 'Admin', ...p.portals.va_functions.map((f) => `Staff: ${FN_NAME[f] ?? f}`), p.portals.field && 'Staff: Field work', p.portals.owner && 'Owner', p.portals.investor && 'Investor', p.portals.renter && 'Renter'].filter(Boolean) as string[];
+  const badges = (p: Person) => [p.test && 'Test account', p.portals.admin && 'Admin', ...p.portals.va_functions.map((f) => `Staff: ${FN_NAME[f] ?? f}`), p.portals.field && 'Staff: Field work', p.portals.owner && 'Owner', p.portals.investor && 'Investor', p.portals.renter && 'Renter'].filter(Boolean) as string[];
   return (<>
     <PageHead title="Portals and sign-in" kicker="People" />
     {error && <p className="alert alert--error" role="alert" data-testid="portals-error"><span>{error}</span></p>}

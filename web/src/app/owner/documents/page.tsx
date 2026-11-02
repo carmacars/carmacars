@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { PageHeader } from '@/features/portal/Chrome';
 import { day } from '@/features/owner/Blocks';
@@ -26,6 +26,13 @@ export default async function OwnerDocuments() {
       <PageHeader title="Documents" purpose="Your signed agreements and schedules, and the values for each vehicle's registry forms." />
       <div className="pt-split">
         <div className="stack-lg">
+        {home.kind === 'partner' && (
+          <section className="pt-card pt-card--next" aria-labelledby="ow-pa" data-testid="owner-partner-agreement">
+            <h2 className="d4" id="ow-pa">Your partner agreement</h2>
+            <p className="small">Your cars, our commission and how we pay you. Read it and sign on screen; the signed copy is listed below once it is countersigned.</p>
+            <p><Link prefetch={false} className="btn btn--primary btn--sm" href="/owner/partner-agreement" data-testid="partner-agreement-link">Partner agreement</Link></p>
+          </section>
+        )}
         {screen.length > 0 && <section className="stack" aria-labelledby="ow-ab"><h2 className="pt-section-title" id="ow-ab">Forms to sign on screen</h2>
           <DocumentList testId="owner-screen-forms" label="Forms to sign on screen">{screen.map((f) => (
             <DocumentRow key={f.code} href={`/owner/documents/screen/${f.code.toLowerCase()}`} badge="SIGN" accent={f.status !== 'signed'} title={f.title}

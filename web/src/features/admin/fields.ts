@@ -67,6 +67,8 @@ const LABELS: Record<string, string> = {
   sales_remote_cover_hours: 'Remote Sales: peak hours to cover each week (Thursday to Sunday afternoons)', sales_remote_reply_minutes: 'Remote Sales: reply target on chats, texts and calls assigned on their shift (minutes)',
   sales_remote_peak_from_hour: 'Remote Sales: the peak hours start (Toronto hour, 12 is noon)', sales_remote_peak_until_hour: 'Remote Sales: the peak hours end (Toronto hour, 18 is 6 pm)',
   custom_price_floor_daily_cents: 'Price typed by hand: floor a day (empty: no floor)', custom_price_max_discount_bps: 'Price typed by hand: flag a discount from the rate sheet above',
+  marketplace_posts_per_day: 'Facebook Marketplace: new posts and renewals a day (3 to 5 avoids spam flags)', marketplace_renew_days: 'Facebook Marketplace: renew a listing after this many days',
+  marketplace_location: 'Facebook Marketplace: the listing\'s location when a car has no home area',
   ads_rate_change_bps: 'Advertising: a rate change of at least this share opens a task to update each posted ad of the car', ads_social_drafts_enabled: 'Advertising: write the week\'s Facebook Page and Instagram drafts from the fleet (approval needed; nothing posts by itself)',
   recruit_outreach_enabled: 'Owner recruitment: emails and texts may be sent (each still needs consent in the log)',
   referral_partner_flat_cents: 'Referral partners: the flat kickback a new partner starts with, per completed rental', referral_partner_percent_bps: 'Referral partners: the share of the rental charge a new partner starts with when a percentage is chosen',

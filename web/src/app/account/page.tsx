@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { getFleet, getSettings } from '@/lib/site';
 import { group, nextStep, bookingPath } from '@/features/portal/status';
@@ -10,7 +10,10 @@ import { when } from '@/features/agreement/model';
 import { LinkedNotice } from '@/features/portal/LinkedNotice';
 import { More, PageHeader } from '@/features/portal/Chrome';
 import { MyCodes, type MyCode } from '@/features/portal/MyCodes';
-import { NextStepBox, PastTripCard, TripCard, TripHero, tripPhoto } from '@/features/portal/trip';
+import { PastTripCard, TripCard, TripHero, ourAddress, tripPhoto } from '@/features/portal/trip';
+import { placeText } from '@/features/portal/Blocks';
+import { renterNow } from '@/features/portal/now';
+import { NowPanel } from '@/features/portal-nav/NowPanel';
 import { EmptyState, PortalIcon } from '@/components/portal-ui';
 
 type Links = { verified: boolean; new: Array<{ kind: string; detail: string | null; booking_number: string | null }>; driver_trips: Array<{ booking_number: string; status: string; pickup_at: string; return_at: string; vehicle_name: string; accepted: boolean }> };
@@ -18,8 +21,9 @@ type Links = { verified: boolean; new: Array<{ kind: string; detail: string | nu
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Your trips', path: '/account', noindex: true, description: 'Your CarmaCars bookings, offers, agreements and payments.' });
 
-// The portal's front door (redesign of October 24, 2026): the nearest trip as a hero with the car's photo, its clock and
-// the one next thing to do, then the other current and upcoming trips, then past trips with "Book again".
+// The portal's front door (r27 portals): what to do now first (one sentence with the car, the time and the place, the
+// one button, then Pay a balance, Extend, Message, Call), then the nearest trip with the car's photo and its clock, the
+// other current and upcoming trips, then past trips with "Book again".
 export default async function Account({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   // a browser that started a request without a sign-in (0090) sees what it made there; everything else needs the sign-in
   if (!(await currentUser()) && (await pendingToken())) redirect('/my-request');
@@ -35,6 +39,12 @@ export default async function Account({ searchParams }: { searchParams: Promise<
   const { current, upcoming, past, nearest } = group(list);
   const full = nearest ? await findBooking(user, nearest.booking_number) : null;
   const step = full ? nextStep(full) : null;
+  // what is still owing on the nearest trip after a change or a charge (tolls, damage, a late return: 0132), with Pay
+  const balance = full && ['confirmed', 'on_rent', 'returned'].includes(full.status) && !full.link_due
+    ? Number(((await rpc('renter_balance', { p_booking: full.id, p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { balance_cents?: number } | null)?.balance_cents ?? 0) : 0;
+  const addr = ourAddress(settings);
+  const now = full && step ? renterNow(full, step, { pickupPlace: placeText(full.pickup_place ?? addr, full.pickup_method, true), returnPlace: placeText(full.return_place ?? addr, full.return_method, false), balanceCents: balance }) : null;
+  const phone = settings?.phone_display ?? settings?.phone ?? null;
   const others = [...current, ...upcoming].filter((b) => b.id !== nearest?.id);
   return (
     <>
@@ -49,10 +59,9 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         </EmptyState>
       ) : (
         <div className="pu-home">
-          {full && step && (
-            <TripHero b={full} photo={photo(full)} titleAs="h2" settings={settings} href={bookingPath(full.booking_number)}
-              next={<NextStepBox step={step} kicker={`Next step · ${full.booking_number}`} testId="next-step" calm={!step.urgent} />} />
-          )}
+          {now && <NowPanel testId="next-step" titleId="now-renter" kicker={now.kicker} headline={now.headline} detail={now.detail} urgent={now.urgent} actions={now.actions}
+            extra={phone && ['confirmed', 'on_rent'].includes(full!.status) ? <a className="btn now__btn" href={`tel:${settings?.phone ?? phone}`} data-testid="now-call">Call us</a> : null} />}
+          {full && <TripHero b={full} photo={photo(full)} titleAs="h2" settings={settings} href={bookingPath(full.booking_number)} />}
           {others.length > 0 && (
             <section className="stack" aria-labelledby="pt-more-trips">
               <h2 className="pu-section-title" id="pt-more-trips">{current.length + upcoming.length > 1 && current.some((b) => b.id !== nearest?.id) ? 'Current and upcoming' : 'Upcoming'}</h2>

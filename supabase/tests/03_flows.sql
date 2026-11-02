@@ -392,6 +392,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'indexnow_queue',
                             -- phone alerts (0300): the queue of alerts, one row per alert and device (the devices and choices are audited)
                             'push_outbox',
+                            -- the company model's actuals (0420): a summary the hourly job recomputes from audited rows (bookings, payments,
+                            -- payouts, expenses); the assumptions an Admin saves are audited
+                            'finance_model_actuals',
                             -- Turo by email (0063): the inbound log and the trips written by the email reader; every change by staff (the
                             -- listing, a trip added or cancelled, a review handled, Done on Turo) is written to audit_log by the functions
                             'turo_vehicle_links', 'turo_inbound_emails', 'turo_calendar_trips', 'turo_blocked_bookings',
@@ -467,7 +470,13 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'academy_lesson_views', 'academy_attempts', 'academy_path_sections',
                             -- the phone number box (0280): a number given (written only by the box, like contact_captures; the switches
                             -- are settings rows) and the per-day counts written on every box shown
-                            'phone_gate_contacts', 'phone_gate_daily')
+                            'phone_gate_contacts', 'phone_gate_daily',
+                            -- fleet tracking (0400): the position history and the trips, written by the ingest (telemetry; the alerts,
+                            -- the settings and the devices are audited)
+                            'tracker_points', 'tracker_trips',
+                            -- data health (0441): each run of the nightly checks (the last 30 kept), written by the job; what its
+                            -- auto-fix changes is recorded in the audit log as data_health_fix
+                            'data_health_runs')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

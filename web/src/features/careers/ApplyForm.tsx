@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { submitApplication, type ApplyResult } from '@/server/actions/careers';
 import { describedBy, Field } from '@/features/forms/Field';
@@ -86,12 +86,14 @@ export function ApplyForm({ role, src, utm, prefill, refToken }: { role: RolePub
   }
 
   if (done) {
-    const w = OUTCOME_WORDS[done.outcome] ?? OUTCOME_WORDS.received!;
+    const w = (done.outcome === 'invited' && done.ai_interview ? OUTCOME_WORDS.interview : OUTCOME_WORDS[done.outcome]) ?? OUTCOME_WORDS.received!;
     return (
       <section className="stack-lg cr-done" id="apply-done" tabIndex={-1} aria-labelledby="apply-done-h" data-testid="apply-done" data-outcome={done.outcome}>
         <h2 className="d2" id="apply-done-h">{w.h}</h2>
         <p className="lead">{w.p}</p>
-        {done.outcome === 'invited' && done.token && <p><Link prefetch={false} className="btn btn--primary btn--lg" href={`/careers/book/${done.token}`} data-testid="apply-book">Book my interview call</Link></p>}
+        {done.outcome === 'invited' && done.token && (done.ai_interview
+          ? <p><Link prefetch={false} className="btn btn--primary btn--lg" href={`/careers/interview/${done.token}`} data-testid="apply-interview">Start my interview</Link></p>
+          : <p><Link prefetch={false} className="btn btn--primary btn--lg" href={`/careers/book/${done.token}`} data-testid="apply-book">Book my interview call</Link></p>)}
         {done.outcome === 'referred' && done.other_role && <p><Link prefetch={false} className="btn btn--primary btn--lg" href={`/careers/${done.other_role}/apply?src=referral${done.token ? `&ref=${done.token}` : ''}`} data-testid="apply-referred">Apply for {done.other_title ?? 'the other role'}</Link></p>}
         <p className="small muted">We also sent this to {d.email}. Not there? Check your spam folder.</p>
         <p><Link prefetch={false} className="link" href="/careers">See all open roles</Link></p>

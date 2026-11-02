@@ -5,9 +5,9 @@
 // ridges, the lake, the borders, the arterials and highways, the names, the dots (gathered into a count where they
 // crowd), the photo cards (moved apart with a leader line, model.separate), home base and its arcs, and the fleet's cars.
 // Same events as engine.ts (hover after a pointer rests, click to pin, a count zooms in), no WebGL and no MapLibre.
-import { CAR_SILHOUETTE, arc, mx, my, separate, type Box } from './model';
+import { CAR_SILHOUETTE, arc, clusterPins, mx, my, separate, spiderOffsets, splitZoom, type Box, type Cluster, type ClusterIn } from './model';
 import { BASEMAP, FRAME_MAX_ZOOM, HIGHWAYS, REGIONS, type Bounds } from './config';
-import type { CarSpec, EngineEvents, Pad, PinSpec, Spot } from './engine';
+import { CLUSTER_UNTIL, NAME_ZOOM, type CarSpec, type EngineEvents, type Pad, type PinSpec, type Spot } from './engine';
 
 type Pt = [number, number];
 type Geo = { type: string; coordinates: unknown };
@@ -38,7 +38,11 @@ export class CanvasMap {
   private carEls = new Map<string, HTMLDivElement>();
   private hqEl: HTMLDivElement | null = null;
   private placed = new Map<string, { x: number; y: number }>();
-  private hits: Array<{ id: string | null; x: number; y: number; r: number; n?: number }> = [];
+  private hits: Array<{ id: string | null; x: number; y: number; r: number; n?: number; key?: string }> = [];
+  /** Release 27: the bubbles drawn now, the pins that are alone, and a bubble opened on the spot (as engine.ts) */
+  private bubbles = new Map<string, Cluster>();
+  private lone: PinSpec[] = [];
+  private spider: { ids: string[]; at: [number, number]; zoom: number } | null = null;
   private hovered: string | null = null;
   private lastFrame: [Bounds, Bounds, Pad] | null = null;
   private fitKey = '';
@@ -142,7 +146,8 @@ export class CanvasMap {
   }
 
   private card(small: boolean) {
-    const k = this.o.scale * (this.o.tv ? 1 : this.box.clientWidth < 560 ? 0.6 : 0.8), w = (small ? 66 : 80) * k;
+    const zoomK = this.cam.z < 10 ? 0.78 : this.cam.z < 11.5 ? 0.9 : 1;
+    const k = this.o.scale * (this.o.tv ? 1 : this.box.clientWidth < 560 ? 0.6 : 0.8) * zoomK, w = (small ? 66 : 80) * k;
     return { w, h: Math.round(w * 0.66) };
   }
   private spot(x: number, y: number, w: number, h: number): Spot {
@@ -167,19 +172,26 @@ export class CanvasMap {
     });
     this.canvas.addEventListener('mouseleave', () => { if (this.hovered) { this.hovered = null; this.ev.hover(null, null); } });
     this.canvas.addEventListener('click', (e) => {
-      const { best, x, y } = hit(e);
-      if (!best) return this.ev.select(null, null);
+      const { best } = hit(e);
+      if (!best) { if (this.spider) { this.spider = null; this.draw(); } return this.ev.select(null, null); }
       if (best.id) return this.ev.select(best.id, this.spot(best.x, best.y, 12, 12));
-      // a count: zoom in on it (a TV goes back to its frame after 20 seconds)
-      const [lng, lat] = this.unproject(x, y);
+      // a bubble: zoom in to where it splits, or open it as a ring when its pins share a spot (a TV goes back to its frame after 20 seconds)
+      const c = best.key ? this.bubbles.get(best.key) : undefined;
+      if (!c) return;
       this.held = true;
-      this.cam = { x: mx(lng), y: my(lat), z: Math.min(this.cam.z + 1.6, 12) };
+      const members: ClusterIn[] = c.ids.map((id) => this.pins.find((p) => p.id === id)).filter((p): p is PinSpec => !!p)
+        .map((p) => ({ id: p.id, lng: p.lng, lat: p.lat, hot: p.hot, score: p.score, colour: p.colour }));
+      const z = splitZoom(members, this.cam.z, 14, this.radiusAt);
+      if (z === null) this.spider = { ids: c.ids, at: [c.lng, c.lat], zoom: this.cam.z };
+      else { this.spider = null; this.cam = { x: mx(c.lng), y: my(c.lat), z: Math.min(14, z + 0.2) }; }
       this.fitKey = '';
       this.ev.moved();
       this.draw();
-      if (this.o.tv) { clearTimeout(this.back); this.back = setTimeout(() => this.reframe(), 20_000); }
+      if (this.o.tv) { clearTimeout(this.back); this.back = setTimeout(() => { this.spider = null; this.reframe(); }, 20_000); }
     });
   }
+
+  private radiusAt = (z: number) => (z >= CLUSTER_UNTIL ? 0 : (z < 10 ? 36 : 30) * this.o.scale);
 
   // ---------------------------------------------------------------- drawing
   private draw() {
@@ -251,7 +263,22 @@ export class CanvasMap {
     for (const f of hwy) stroke(lines(f.geometry), f.properties.kind === 'parkway' ? '#7a6646' : '#9a7a4e', lerpZ(z, f.properties.kind === 'parkway' ? 0.7 : 1, f.properties.kind === 'parkway' ? 1.3 : 1.8) * k, 0.7);
 
     // home base's delivery arcs
-    if (this.hq) for (const p of this.pins.filter((x) => x.photo?.route)) stroke([arc(this.hq, [p.lng, p.lat])], '#a7f3d0', 1.4 * k, 0.45, [3 * k, 4 * k]);
+    if (this.hq) for (const p of this.lone.filter((x) => x.photo?.route)) stroke([arc(this.hq, [p.lng, p.lat])], '#a7f3d0', 1.4 * k, 0.45, [3 * k, 4 * k]);
+
+    // Release 27: who is alone and who is in a bubble at this zoom (model.clusterPins, as the WebGL map); a bubble opened on the
+    // spot shows its members round its middle
+    if (this.spider && Math.abs(this.spider.zoom - z) > 0.4) this.spider = null;
+    const open = new Set(this.spider?.ids ?? []);
+    const grouped = clusterPins(this.pins.filter((p) => !open.has(p.id)).map((p): ClusterIn => ({ id: p.id, lng: p.lng, lat: p.lat, hot: p.hot, score: p.score, colour: p.colour })), 512 * 2 ** z, this.radiusAt(z));
+    const alone = new Set(grouped.singles.map((q) => q.id)), moved = new Map<string, Pt>(), webs: Array<[Pt, Pt]> = [];
+    if (this.spider) {
+      const [cx0, cy0] = P(this.spider.at), offs = spiderOffsets(this.spider.ids.length, 30 * k);
+      this.spider.ids.forEach((id, i) => { const o = offs[i]!, ll = this.unproject(cx0 + o[0], cy0 + o[1]); moved.set(id, ll); alone.add(id); webs.push([this.spider!.at, ll]); });
+    }
+    this.bubbles = new Map(grouped.clusters.map((q) => [q.key, q]));
+    this.lone = this.pins.filter((q) => alone.has(q.id)).map((q) => { const m = moved.get(q.id); return m ? { ...q, lng: m[0], lat: m[1] } : q; });
+    for (const [a, b] of webs) stroke([[a, b]], '#8b98ae', 1 * k, 0.6);
+    this.box.dataset.clusters = String(grouped.clusters.length);
 
     // the photo cards, home base and the cars as page elements; the cards moved apart as on the WebGL map
     // what sits over the map (the TV's numbers and On the road) is out of bounds for the names too
@@ -262,7 +289,7 @@ export class CanvasMap {
     this.syncHq(taken);
     this.syncCars(taken);
     for (const [id, at] of this.placed) {
-      const p = this.pins.find((x) => x.id === id);
+      const p = this.lone.find((x) => x.id === id);
       if (!p) continue;
       const [x, y] = P([p.lng, p.lat]);
       if (Math.hypot(at.x - x, at.y - y) > 2) {
@@ -271,36 +298,31 @@ export class CanvasMap {
       }
     }
 
-    // the dots, gathered into a count where they crowd (as MapLibre's clusters, 26 px)
+    // the lone dots and the bubbles (Release 27: a bubble takes its hottest member's colour; names only for leads and hot visitors)
     this.hits = [];
-    const dots = this.pins.filter((p) => !p.photo).map((p) => ({ p, at: P([p.lng, p.lat]) }));
-    const groups: Array<{ x: number; y: number; items: typeof dots }> = [];
-    const R = 26 * k;
-    for (const d of dots) {
-      if (d.at[0] < -40 || d.at[1] < -40 || d.at[0] > w + 40 || d.at[1] > h + 40) continue;
-      const g = z < 10 ? groups.find((q) => Math.hypot(q.x - d.at[0], q.y - d.at[1]) < R) : undefined;
-      if (g) g.items.push(d); else groups.push({ x: d.at[0], y: d.at[1], items: [d] });
+    const names: Array<{ x: number; y: number; who: string; known: boolean; hot: boolean }> = [];
+    const zf = Math.max(0, Math.min(1, (z - 8) / 4));
+    for (const p of this.lone.filter((q) => !q.photo)) {
+      const [x, y] = P([p.lng, p.lat]);
+      if (x < -40 || y < -40 || x > w + 40 || y > h + 40) continue;
+      const r = (p.hot ? 5.2 + 1.8 * zf : 4 + 1.5 * zf) * k;
+      c.save(); c.shadowColor = p.colour; c.shadowBlur = (p.hot ? 16 : 11) * k;
+      c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fillStyle = p.colour; c.fill(); c.restore();
+      c.lineWidth = 1.5 * k; c.strokeStyle = '#07090e'; c.stroke();
+      this.hits.push({ id: p.id, x, y, r: r + 6 * k });
+      if (z >= NAME_ZOOM && (p.hot || (p.lead && p.known))) names.push({ x: x + r + 5 * k, y, who: p.who, known: p.known, hot: p.hot });
     }
-    const names: Array<{ x: number; y: number; who: string; known: boolean }> = [];
-    for (const g of groups) {
-      if (g.items.length === 1) {
-        const { p } = g.items[0]!, r = (p.hot ? 7 : 5.5) * k;
-        c.save(); c.shadowColor = p.colour; c.shadowBlur = (p.hot ? 16 : 11) * k;
-        c.beginPath(); c.arc(g.x, g.y, r, 0, Math.PI * 2); c.fillStyle = p.colour; c.fill(); c.restore();
-        c.lineWidth = 1.5 * k; c.strokeStyle = '#07090e'; c.stroke();
-        this.hits.push({ id: p.id, x: g.x, y: g.y, r: r + 6 * k });
-        if (z >= 7.5) names.push({ x: g.x + r + 5 * k, y: g.y, who: p.who, known: p.known });
-      } else {
-        const n = g.items.length, colour = (['booked', 'progress', 'site', 'past'].map((s) => g.items.find((i) => i.p.stage === s)?.p.colour).find(Boolean)) ?? '#94a3b8';
-        const r = (n >= 40 ? 19 : n >= 10 ? 16 : 13) * k;
-        c.save(); c.shadowColor = colour; c.shadowBlur = 18 * k;
-        c.beginPath(); c.arc(g.x, g.y, r, 0, Math.PI * 2); c.fillStyle = '#0f1624'; c.fill(); c.restore();
-        c.lineWidth = 2 * k; c.strokeStyle = colour; c.stroke();
-        c.fillStyle = '#e8eef8'; c.font = `600 ${13 * k}px Inter, system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.fillText(String(n), g.x, g.y + 0.5 * k);
-        this.hits.push({ id: null, x: g.x, y: g.y, r, n });
-        taken.push([g.x - r, g.y - r, g.x + r, g.y + r]);
-      }
+    for (const g of grouped.clusters) {
+      const [x, y] = P([g.lng, g.lat]);
+      if (x < -40 || y < -40 || x > w + 40 || y > h + 40) continue;
+      const n = g.n, r = (n >= 40 ? 19 : n >= 10 ? 16 : 13) * k;
+      c.save(); c.shadowColor = g.colour; c.shadowBlur = (g.hot ? 26 : 18) * k;
+      c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fillStyle = '#0f1624'; c.fill(); c.restore();
+      c.lineWidth = (g.hot ? 3 : 2) * k; c.strokeStyle = g.colour; c.stroke();
+      c.fillStyle = '#e8eef8'; c.font = `600 ${13 * k}px Inter, system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(n > 99 ? '99+' : String(n), x, y + 0.5 * k);
+      this.hits.push({ id: null, x, y, r, n, key: g.key });
+      taken.push([x - r, y - r, x + r, y + r]);
     }
     for (const d of this.hits) if (d.id) taken.push([d.x - 7 * k, d.y - 7 * k, d.x + 7 * k, d.y + 7 * k]);
 
@@ -335,7 +357,7 @@ export class CanvasMap {
       label(String(f.properties.name).toUpperCase(), x, y, (big ? 12 : 10.5) * k, big ? '#8f9cb3' : '#647189', 0.16, big ? 600 : 400, (this.o.tv ? 2.6 : 2.2) * 11 * k * 0.5, [...around, 'center']);
     }
     for (const f of of(land, 'k', 'region')) { const [x, y] = P(f.geometry.coordinates as Pt); label(String(f.properties.name).toUpperCase(), x, y, 13 * k, '#4d5b78', 0.5, 600, 0, ['center'], 0.75); }
-    for (const n of names.sort((a, b) => Number(b.known) - Number(a.known))) label(n.who, n.x, n.y, 11 * k, '#dbe4f3', 0, 600, 0, ['left'], n.known ? 0.95 : 0.6);
+    for (const n of names.sort((a, b) => Number(b.hot) - Number(a.hot) || Number(b.known) - Number(a.known))) label(n.who, n.x, n.y, 11 * k, '#dbe4f3', 0, 600, 0, ['left'], n.known ? 0.95 : 0.7);
 
     this.box.dataset.zoom = z.toFixed(2);
   }
@@ -343,7 +365,7 @@ export class CanvasMap {
   /** The photo cards: placed, then moved apart (model.separate), with home base fixed. */
   private syncPhotos(taken: Array<[number, number, number, number]>) {
     const seen = new Set<string>(), boxes: Box[] = [];
-    for (const p of this.pins.filter((x) => x.photo)) {
+    for (const p of this.lone.filter((x) => x.photo)) {
       seen.add(p.id);
       const sz = this.card(p.hot && !p.photo!.route), key = `${p.colour}|${p.photo!.src ?? p.photo!.initial}|${p.hot}|${p.who}|${sz.w}`;
       let v = this.photos.get(p.id);

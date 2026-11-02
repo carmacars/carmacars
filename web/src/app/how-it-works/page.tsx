@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { CtaBand, PageHead } from '@/components/Blocks';
 import { JsonLd } from '@/components/JsonLd';
 import { SlotPicture } from '@/components/Picture';

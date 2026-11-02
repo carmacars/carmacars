@@ -1,6 +1,6 @@
 'use client';
 import './bookings-now.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useCallback, useEffect, useState } from 'react';
 import { CarLine, Tile, Time, Who, Photo } from './parts';
 import { Act, type Field } from '@/features/admin/Act';

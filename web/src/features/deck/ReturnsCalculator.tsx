@@ -3,6 +3,7 @@ import { useId, useMemo, useState } from 'react';
 import { money } from '@/lib/format';
 import { computeReturns, longDate, monthLabel, shortMonth } from './returns';
 import { LineChart } from './Charts';
+import { DateInput } from '@/components/DateInput';
 
 // The return calculator (the owner's request of October 21, 2026): the Investment Agreement's rules (./returns.ts),
 // in the browser. Amount (at least the minimum), paid monthly or reinvested (or reinvested, then paid), 1 to 10 years.
@@ -64,7 +65,7 @@ export function ReturnsCalculator({ yearlyBps, minCents, lockupMonths, paymentDa
         </div>}
         <div className="field">
           <label className="label" htmlFor={`${id}-d`}>Investment Date</label>
-          <input className="input" id={`${id}-d`} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <DateInput className="input" id={`${id}-d`} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
       </form>
       <p className="dk-note" id={`${id}-rules`}>At {(yearlyBps / 100).toFixed(yearlyBps % 100 ? 2 : 0)}% a year. No Return for the {lockupMonths}-month lockup. Then each month earns one twelfth of the yearly percentage on the Invested Amount, by days for a part month, paid on the {paymentDay}th of the next month or added to the Invested Amount at month end. Illustration only.</p>

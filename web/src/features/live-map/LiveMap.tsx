@@ -1,6 +1,6 @@
 'use client';
 import './live-map.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { readContact, useContact, writeContact } from './contact';
 import { FOCUS_EVENT, type FocusAsk } from './focus';
@@ -13,6 +13,7 @@ import { CanvasMap, hasWebGL } from './canvas';
 
 /** What LiveMap asks of a renderer: MapLibre (engine.ts) or Canvas 2D (canvas.ts). */
 type Engine = Pick<MapEngine, 'start' | 'destroy' | 'setPins' | 'setCars' | 'setHq' | 'frame' | 'reframe' | 'focus'>;
+import { roleLabel } from './roles';
 import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, adminHref, carLabel, timeLine, withoutContact, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, isLead, spread, stageOf, tally, verbOf,
   type CarPhoto, type Kpi, type MapView, type Pin, type Stage } from './model';
 
@@ -175,7 +176,7 @@ export function LiveMap({ initial, tv, at, embedded = false }: { initial: MapVie
     const withPhoto = photoPins(placed.map(({ p }) => p));
     e.setPins(layers.leads ? placed.map(({ p, at }): PinSpec => ({
       id: p.id, lng: at.lng, lat: at.lat, colour: colourOf(p), stage: stageOf(p.type), hot: p.band === 'hot' && isLead(p), live: p.online,
-      fresh: isNew(p.at, NEW_MS, now), label: `${TYPE[p.type].label}: ${p.who}${p.car ? `, ${p.car.name}` : ''}`, who: p.who, known: !p.anonymous,
+      fresh: isNew(p.at, NEW_MS, now), label: `${TYPE[p.type].label}: ${p.who}${p.car ? `, ${p.car.name}` : ''}`, who: p.who, known: !p.anonymous, lead: isLead(p), score: p.score,
       photo: withPhoto.has(p.id) ? { src: imgOf(p.car?.photo, 96), initial: carLabel(p.car).initial ?? '', route: p.type === 'on_rent' || p.type === 'booking' } : undefined
     })) : []);
     // Release 26: Hamilton at the bottom, Barrie at the top, Toronto in the middle; wider only for a pin outside it, and
@@ -315,7 +316,7 @@ export function LiveMap({ initial, tv, at, embedded = false }: { initial: MapVie
         {popup}
         <div className="lm-layers" role="group" aria-label="Layers">
           <label><input type="checkbox" checked={layers.leads} onChange={(e) => setLayers((l) => ({ ...l, leads: e.target.checked }))} /> Leads</label>
-          <label title={fleetCount ? undefined : 'Each car shows once its tracker reports'}><input type="checkbox" checked={layers.fleet && fleetCount > 0} disabled={!fleetCount} onChange={(e) => setLayers((l) => ({ ...l, fleet: e.target.checked }))} /> Fleet{fleetCount ? ` (${fleetCount})` : ': waiting for trackers'}</label>
+          <label title={fleetCount ? undefined : 'Each car shows once its tracker reports'}><input type="checkbox" checked={layers.fleet && fleetCount > 0} disabled={!fleetCount} onChange={(e) => setLayers((l) => ({ ...l, fleet: e.target.checked }))} /> Fleet{fleetCount ? ` (${fleetCount}${view?.fleet_demo ? ', demo' : ''})` : ': waiting for trackers'}</label>
         </div>
       </div>
       {legend}
@@ -429,7 +430,7 @@ function PinCard({ p, now, contact, onClose, tv }: { p: Pin; now: number; contac
         {onClose && <button type="button" className="lm-pop__x" onClick={onClose} aria-label="Close">×</button>}
       </div>
       <div className="lm-pop__who"><Score p={p} /><span><b data-testid="lm-detail-name">{p.name ?? p.who}</b>
-        <span className="lm-quiet">{[p.detail, p.city && !p.anonymous ? p.city : null].filter(Boolean).join(' · ')}</span></span></div>
+        <span className="lm-quiet">{[roleLabel(p.roles), p.detail, p.city && !p.anonymous ? p.city : null].filter(Boolean).join(' · ')}</span></span></div>
       <p className="lm-pop__time">{timeLine(p, now)}</p>
       {p.signals.length > 0 && <ul className="lm-chips" aria-label="Signals">{p.signals.slice(0, 6).map((x, i) => <li key={i}><b>+{x.points}</b> {x.label}</li>)}</ul>}
       {p.car && (
@@ -481,7 +482,7 @@ function LeadTable({ pins, now, cap, onLocate }: { pins: Pin[]; now: number; cap
         <thead><tr>{head('stage', 'Stage')}{head('who', 'Name')}{head('city', 'City', 'lm-hide-s')}{head('score', 'Score', 'num')}{head('reason', 'Top reason', 'lm-hide-m')}{head('car', 'Car', 'lm-hide-m')}{head('at', 'Last seen', 'num')}</tr></thead>
         <tbody>
           {rows.map((p) => {
-            const isOpen = open === p.id, href = p.booking_number ? `/admin/bookings/${encodeURIComponent(p.booking_number)}` : p.renter_id ? `/admin/renters/${p.renter_id}` : null;
+            const isOpen = open === p.id, href = p.booking_number ? `/admin/bookings/${encodeURIComponent(p.booking_number)}` : p.owner_id && p.roles.includes('owner') && !p.roles.includes('renter') ? `/admin/owners/${p.owner_id}` : p.renter_id ? `/admin/renters/${p.renter_id}` : null;
             return (
               <Fragment key={p.id}>
                 <tr className={isOpen ? 'is-open' : undefined} style={{ ['--c' as string]: colourOf(p) }} data-testid="lm-card" data-type={p.type}>
@@ -500,7 +501,7 @@ function LeadTable({ pins, now, cap, onLocate }: { pins: Pin[]; now: number; cap
                       <ul className="lm-chips" aria-label="Signals">{p.signals.map((s, i) => <li key={i}><b>+{s.points}</b> {s.label}</li>)}</ul>
                       <p className="lm-quiet">{p.car ? `${CAR_HOW[p.car.how] ?? 'Last viewed'}: ${p.car.name}${p.car.daily_cents ? `, ${money(p.car.daily_cents)}/day` : ''}. ` : ''}{p.precision ? PRECISION_WORDS[p.precision] : 'No location'}.</p>
                       <p className="lm-more__acts">
-                        {href && <Link prefetch={false} href={href}>{p.booking_number ? `Open ${p.booking_number}` : 'Open the renter'}</Link>}
+                        {href && <Link prefetch={false} href={href}>{p.booking_number ? `Open ${p.booking_number}` : href.startsWith('/admin/owners') ? 'Open the owner' : 'Open the renter'}</Link>}
                         {p.lat !== null && p.lng !== null && inArea(p.lng, p.lat) && <button type="button" className="lm-link" onClick={() => onLocate(p.id)}>Show on the map</button>}
                       </p>
                     </div>

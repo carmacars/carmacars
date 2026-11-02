@@ -323,7 +323,7 @@ test('email limit: an Admin texts a held email instead; sign-in opens on the pho
     const page = await ctx(browser, phone);
     const errors = watch(page);
     await signIn(page, admin.email, '/admin');
-    await page.goto(`/admin/messages?status=delayed&q=${encodeURIComponent(`lim.${k}`)}`, { waitUntil: 'networkidle' });
+    await page.goto(`/admin/logs?tab=emails&status=delayed&q=${encodeURIComponent(`lim.${k}`)}`, { waitUntil: 'networkidle' });
     await page.getByTestId(`outbox-text-${o!.id}`).click();
     await page.getByTestId(`outbox-text-${o!.id}-submit`).click();
     await expect(page.getByTestId(`outbox-texted-${o!.id}`)).toBeVisible({ timeout: 15_000 });

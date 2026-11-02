@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Act, type Field } from '@/features/admin/Act';
 import { Card } from '@/features/admin/ui';
 import { door } from '@/server/door';

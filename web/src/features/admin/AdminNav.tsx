@@ -1,42 +1,32 @@
 import { Suspense } from 'react';
-import { GroupNav, type NavGroup } from './GroupNav';
+import { GroupNav, type NavGroup, type NavLink } from './GroupNav';
+import { ADMIN_HUBS, ADMIN_SECTIONS, hubLink, sectionLink } from './hubs';
+
+// a page group's menu link (r27): its first tab, its name, its other addresses
+const hub = (k: string, key?: string): NavLink => ({ ...hubLink(ADMIN_HUBS, k), ...(key ? { key } : {}) });
+// a section's menu link (r27, second cut): one link for a whole area, its pages in a row on top
+const sec = (k: string, key?: string): NavLink => ({ ...sectionLink(ADMIN_SECTIONS, ADMIN_HUBS, k)!, ...(key ? { key } : {}) });
 
 // The admin portal's navigation (October 16, 2026: the owner found 31 links "super difficult to navigate"; October 23,
 // 2026: six groups, the long ones in labelled parts; October 25, 2026: Marketing, migration 0167): seven groups with plain
-// names, every page still two taps away. The
-// pages keep their addresses, so links in emails and bookmarks work. Release 26 (the owner: "We need less pages not
-// more"): Bookings opens on Now (All bookings is its second tab), Chauffeur is a tab of Requests and offers, and Send an
-// offer and Add a rental are buttons on Bookings and Today.
+// names, every page still two taps away. November 1, 2026 (r27, "We need less pages not more", then "reduce ... even
+// further"): 78 links became 20. Cars, People, Marketing, Money and Settings are one link each: a row of their pages on
+// top, and a second row of tabs where a page is a group (hubs.ts). Ctrl+K reaches every page and tab. Old addresses
+// redirect to their tab, so links in emails and bookmarks work. Release 26 (the owner: "We need less pages not
+// more"): Bookings opens on Now, Chauffeur is a tab of Requests and offers, and Send an offer and Add a rental are
+// buttons on Bookings and Today.
 export const GROUPS: NavGroup[] = [
   { key: 'today', label: 'Today', links: [
     { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Staff tasks', key: 'k' }, { href: '/admin/visitors', label: 'Visitors' }] },
   { key: 'bookings', label: 'Bookings', links: [
     { href: '/admin/bookings', label: 'Bookings', key: 'b', section: 'Trips' }, { href: '/admin/requests', label: 'Requests and offers', key: 'r' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
-    { href: '/admin/chat', label: 'Live chat', section: 'Customers' }, { href: '/admin/leads', label: 'Renter leads' }, { href: '/admin/reviews', label: 'Reviews' },
-    { href: '/admin/damages', label: 'Damage', section: 'Problems' }, { href: '/admin/incidents', label: 'Incidents and claims' }] },
-  { key: 'cars', label: 'Cars', links: [
-    { href: '/admin/vehicles', label: 'Vehicles', key: 'v' }, { href: '/admin/listings', label: 'Listings', key: 'l' }, { href: '/admin/maintenance', label: 'Maintenance' },
-    { href: '/admin/vehicles/bulk-rates', label: 'Rates for many cars' }, { href: '/admin/calendar-sync', label: 'Calendar sync' }, { href: '/admin/similar-cars', label: 'Similar cars' },
-    { href: '/admin/vehicles/samples', label: 'Retire or delete' }] },
-  { key: 'people', label: 'People', links: [
-    { href: '/admin/applications', label: 'Applications', key: 'a', section: 'Owners and partners' }, { href: '/admin/owners', label: 'Owners', key: 'o' }, { href: '/admin/owners/add-car', label: 'Add a car for an owner' },
-    { href: '/admin/partners', label: 'Partners' }, { href: '/admin/referral-partners', label: 'Referral partners' }, { href: '/admin/owner-forms', label: 'Owner forms' }, { href: '/admin/owners?view=checklist', label: 'Paid and signed' },
-    { href: '/admin/renters', label: 'Renters', section: 'Renters, staff and investors' }, { href: '/admin/settings/staff', label: 'Staff' }, { href: '/admin/academy', label: 'Academy' }, { href: '/admin/hiring', label: 'Hiring' }, { href: '/admin/investors', label: 'Investors' },
-    { href: '/admin/portals', label: 'Portals and view as' }] },
-  { key: 'marketing', label: 'Marketing', links: [
-    { href: '/admin/marketing/listings', label: 'Listings', section: 'Ads' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' }, { href: '/admin/marketing/channels', label: 'Listing channels' },
-    { href: '/admin/marketing/report', label: 'Bookings by channel', section: 'Results' }, { href: '/admin/marketing/recruit', label: 'Owner recruitment', section: 'Owners' }, { href: '/admin/marketing/owner-pipeline', label: 'Owner pipeline' }] },
-  { key: 'money', label: 'Money', links: [
-    { href: '/admin/invoices', label: 'Owner invoices', section: 'Owners' }, { href: '/admin/debits', label: 'Owner debits' }, { href: '/admin/statements', label: 'Owner statements' }, { href: '/admin/payouts', label: 'Payouts' },
-    { href: '/admin/payments', label: 'Payments by day', section: 'Renters' }, { href: '/admin/money', label: 'Payments and refunds', key: 'm' }, { href: '/admin/tolls', label: 'Tolls and tickets' },
-    { href: '/admin/reports', label: 'Company statements', section: 'Company' }, { href: '/admin/reconciliation', label: 'Reconciliation' }, { href: '/admin/expenses', label: 'Expenses' },
-    { href: '/admin/insurers', label: 'Insurer rates' }, { href: '/admin/insurer-invoices', label: 'Insurer invoices' }, { href: '/admin/money/commissions', label: 'Staff commissions' }, { href: '/admin/money/field-pay', label: 'Field pay' }] },
-  { key: 'settings', label: 'Settings', links: [
-    { href: '/admin/settings', label: 'All settings', key: 's' },
-    { href: '/admin/settings/site', label: 'Site', section: 'Website' }, { href: '/admin/settings/vehicle-pages', label: 'Vehicle pages' }, { href: '/admin/settings/sample-photos', label: 'Sample photos' },
-    { href: '/admin/settings/addons', label: 'Add-ons' }, { href: '/admin/settings/discount-games', label: 'Discount games' }, { href: '/admin/settings/rewards', label: 'Rewards' }, { href: '/admin/settings/guides', label: 'Guides' },
-    { href: '/admin/settings/program', label: 'Program', section: 'Rules' }, { href: '/admin/settings/forms', label: 'Forms' }, { href: '/admin/settings/card-coverage', label: 'Card coverage' }, { href: '/admin/settings/card-reader', label: 'Card reader' }, { href: '/admin/settings/coverage-affiliate', label: 'RentalCoverage affiliate' }, { href: '/admin/settings/meta-publishing', label: 'Meta publishing' }, { href: '/admin/settings/reviews', label: 'Reviews' }, { href: '/admin/settings/maintenance', label: 'Maintenance' }, { href: '/admin/settings/email', label: 'Emails' }, { href: '/admin/alerts', label: 'My phone alerts' },
-    { href: '/admin/messages', label: 'Email log', section: 'Records' }, { href: '/admin/audit', label: 'Audit log' }] }
+    { href: '/admin/chat', label: 'Live chat', section: 'Customers' }, { href: '/admin/reviews', label: 'Reviews' },
+    { ...hub('problems'), section: 'Problems' }] },
+  { key: 'cars', label: 'Cars', links: [sec('cars', 'v')] },
+  { key: 'people', label: 'People', links: [sec('people', 'o')] },
+  { key: 'marketing', label: 'Marketing', links: [sec('marketing')] },
+  { key: 'money', label: 'Money', links: [sec('money', 'm')] },
+  { key: 'settings', label: 'Settings', links: [sec('settings', 's')] }
 ];
 
 /** Every page the navigation reaches (kept for the crawl and the guide's quick reference). */

@@ -1,7 +1,9 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
+import { redirect } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { BookingPicker } from '@/features/careers/BookingPicker';
 import { bookingView } from '@/server/careers';
+import { interviewView } from '@/server/interviews';
 
 // The candidate's booking page (migration 0173): their personal link from the invitation. Pick, move or cancel the interview call.
 export const dynamic = 'force-dynamic';
@@ -9,6 +11,9 @@ export const metadata = pageMeta({ title: 'Book your interview call | CarmaCars'
   description: 'Pick a time for your interview call with CarmaCars, or move or cancel the call you booked. Times are shown in Toronto time.' });
 export default async function Book({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+  // 0380: a remote assistant with an open AI interview takes it instead of booking a call
+  const iv = await interviewView(token);
+  if (iv && iv.ok && (iv.state === 'sent' || iv.state === 'started')) redirect(`/careers/interview/${token}`);
   const v = await bookingView(token);
   return (
     <div className="p-careers">

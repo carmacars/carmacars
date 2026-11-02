@@ -169,7 +169,7 @@ test('admin: master calendar, blocks, and a drag with the confirm', async ({ bro
   if (!phone) {
     await ap.getByLabel('Find a plate, fleet number, booking or surname').fill(String(veh!.plate));
     // the car may also carry the cleaning block after a trip (0040): pick the block made here
-    await ap.locator(`[data-vehicle="${car.id}"] .cal__item.is-block`).filter({ hasText: 'Brake service e2e' }).first().click();
+    await ap.locator(`[data-vehicle="${car.id}"] .mcal__item.is-block`).filter({ hasText: 'Brake service e2e' }).first().click();
   } else {
     await ap.getByTestId('cal-agenda').getByRole('button', { name: /Brake service e2e/ }).first().click();
   }
@@ -341,7 +341,7 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
       and exists (select 1 from vehicles v where v.owner_id = o.id and v.enrollment_date is not null and v.enrollment_date < m.month + interval '1 month')
       and not exists (select 1 from owner_statements s where s.owner_id = o.id and s.status <> 'draft' and s.statement_month = m.month)
     order by m.month desc limit 1`;
-  await ap.goto('/admin/statements', { waitUntil: 'networkidle' });
+  await ap.goto('/admin/owner-money?tab=statements', { waitUntil: 'networkidle' });
   await check(ap, 'statements');
   let owner = ow?.id as string | undefined; let month = ow?.month as string | undefined;
   if (ow) {
@@ -372,8 +372,10 @@ test('admin: rates, site settings, listing review, tolls, statements', async ({ 
   await expect(ap.getByTestId('company-ties')).toContainText('The ties pass');
 
   // every other admin screen opens and passes axe
-  for (const p of ['/admin/bookings', '/admin/listings', '/admin/vehicles/bulk-rates', '/admin/money', '/admin/money?tab=refunds', '/admin/insurer-invoices', '/admin/invoices', '/admin/payouts', '/admin/expenses',
-    '/admin/reconciliation', '/admin/damages', '/admin/incidents', '/admin/tasks', '/admin/owners', '/admin/investors', '/admin/reviews', '/admin/messages', '/admin/audit', '/admin/settings']) {
+  // r27: the merged pages by their tabs (the old addresses redirect: checked below)
+  for (const p of ['/admin/bookings', '/admin/listings', '/admin/vehicles/bulk-rates', '/admin/money', '/admin/money?tab=payments', '/admin/money?tab=refunds', '/admin/money?tab=deposits', '/admin/money?tab=disputes', '/admin/money?tab=reconciliation',
+    '/admin/insurers?tab=invoices', '/admin/owner-money', '/admin/owner-money?tab=debits', '/admin/owner-money?tab=payouts', '/admin/expenses',
+    '/admin/damages', '/admin/damages?tab=incidents', '/admin/damages?tab=claims', '/admin/tasks', '/admin/owners', '/admin/investors', '/admin/reviews', '/admin/logs', '/admin/logs?tab=blocked', '/admin/logs?tab=changes', '/admin/logs?tab=access', '/admin/settings']) {
     const res = await ap.goto(p, { waitUntil: 'networkidle' });
     expect(res?.status(), p).toBe(200);
     await check(ap, p);

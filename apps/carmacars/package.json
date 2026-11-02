@@ -1,0 +1,40 @@
+{
+  "name": "carmacars-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The CarmaCars App Store and Google Play app: a Capacitor shell around carmacars.ca with push, camera, Face ID and fingerprint unlock, deep links and an offline screen (docs/decisions/0002-native-apps-plan.md, docs/apps/publish.md).",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "node scripts/check-app.mjs",
+    "typecheck": "tsc --noEmit -p .",
+    "assets:render": "node scripts/gen-assets.mjs",
+    "assets:native": "capacitor-assets generate --iconBackgroundColor '#000000' --iconBackgroundColorDark '#000000' --splashBackgroundColor '#000000' --splashBackgroundColorDark '#000000'",
+    "native:add": "cap add ios && cap add android",
+    "native:setup": "node scripts/native-setup.mjs",
+    "sync": "cap sync"
+  },
+  "dependencies": {
+    "@aparajita/capacitor-biometric-auth": "^10.0.0",
+    "@capacitor-firebase/messaging": "^8.6.0",
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/camera": "^8.2.6",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.6.0",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "@capacitor/cli": "^8.6.0",
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3"
+  }
+}

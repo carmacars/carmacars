@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { HandoversToday } from '@/features/handover/HandoversToday';
@@ -12,6 +12,7 @@ import { greetName } from '@/features/admin/today/greeting';
 import { needCount, needSentence, ownClear, ownLines } from '@/features/admin/todo/need';
 import { UsageBanner, UsageCards } from '@/features/usage/UsageCards';
 import { More } from '@/features/portal/Chrome';
+import { DataHealthCard } from '@/features/admin/data-health/DataHealthCard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/admin', noindex: true, description: 'What needs an Admin now, in order.' });
@@ -78,6 +79,7 @@ export default async function AdminToDo() {
           {d.teams && d.teams.length > 0 && <Teams teams={d.teams} />}
           <HandoversToday userId={user.id} base="/admin" />
           <UsageCards userId={user.id} />
+          <DataHealthCard userId={user.id} />
           {h && <SiteHealth h={h} />}
         </div>
         <div className="ad-home__side">

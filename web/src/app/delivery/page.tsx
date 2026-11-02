@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Crumbs } from '@/components/Crumbs';
 import { AnswerBlock } from '@/components/AnswerBlock';
 import { CtaBand } from '@/components/Blocks';

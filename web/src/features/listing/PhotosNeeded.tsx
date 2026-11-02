@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { listingFromHandover } from '@/server/actions/listing';

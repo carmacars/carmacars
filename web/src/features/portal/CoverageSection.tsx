@@ -5,6 +5,7 @@ import { UploadCard } from './UploadCard';
 import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 import { confirmCardCoverage, requestProtectionPlan, setCoverageOption } from '@/server/actions/portal';
 import type { RenterCoverage } from '@/features/coverage/types';
+import { TypedInput } from '@/components/DateInput';
 
 // Coverage for damage to the car (migration 0071), on the booking's verification page:
 //   option 1, OPCF 27: insurer, policy number, expiry after the return date, and the policy or endorsement as a PDF or
@@ -27,7 +28,7 @@ export function CoverageSection({ number, c }: { number: string; c: RenterCovera
   const pages = p?.pages ?? [];
   const field = (k: string, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div className="field"><label className="label" htmlFor={`pt-cov-${k}`}>{label}</label>
-      <input className="input" id={`pt-cov-${k}`} value={d[k] ?? ''} onChange={(e) => setD({ ...d, [k]: e.target.value })} required {...props} /></div>);
+      <TypedInput className="input" id={`pt-cov-${k}`} value={d[k] ?? ''} onChange={(e) => setD({ ...d, [k]: e.target.value })} required {...props} /></div>);
   const details1Ok = !!(d.insurer_name?.trim() && d.policy_number?.trim() && d.policy_expiry && d.policy_expiry >= c.min_policy_expiry);
   return (
     <div className="stack" data-testid="coverage-section">

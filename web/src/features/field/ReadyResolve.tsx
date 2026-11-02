@@ -2,7 +2,7 @@
 import { toStandardImage } from '@/features/uploads/standard-image';
 import { PHOTO_ACCEPT } from '@/features/uploads/formats';
 import { useState, useTransition } from 'react';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useRouter } from 'next/navigation';
 import { fieldAct } from '@/server/actions/field';
 import { fieldPaperScan } from '@/server/actions/field-paper';
@@ -11,6 +11,7 @@ import { startCardRequest } from '@/server/actions/offers';
 import { preparePhoto } from './queue';
 import { ID_PHOTO } from '@/lib/image-shrink';
 import type { FieldJob, Resolve } from './types';
+import { DateInput } from '@/components/DateInput';
 
 // The ready check resolved on the spot (0151): each line that is not ready says what field staff can do about it here,
 // instead of only "Stop". The database decides every step again (app.field_resolve) and records who did what.
@@ -122,7 +123,7 @@ function DriverCheck({ j, r, d }: { j: FieldJob; r: Resolve; d: Resolve['drivers
       </fieldset>
       {needExpiry && <div className="stack">
         <label className="field"><span className="label">Licence number (from the card)</span><input className="input" autoCapitalize="characters" value={num} onChange={(e) => setNum(e.target.value)} data-testid={`fix-number-${d.role}`} /></label>
-        <label className="field"><span className="label">Expiry date</span><input className="input" type="date" value={exp} onChange={(e) => setExp(e.target.value)} data-testid={`fix-expiry-${d.role}`} /></label>
+        <label className="field"><span className="label">Expiry date</span><DateInput className="input" type="date" value={exp} onChange={(e) => setExp(e.target.value)} data-testid={`fix-expiry-${d.role}`} /></label>
       </div>}
       <button type="button" className="btn btn--primary fd-wide" disabled={pending || up || !allPhotos || !(c.name && c.photo && c.expiry && c.class) || (needExpiry && !exp)}
         onClick={confirm} data-testid={`fix-identity-confirm-${d.role}`}>{pending ? 'Saving' : 'The licence checks out'}</button>

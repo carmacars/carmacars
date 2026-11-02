@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 
 // What is signed and what is left, at the top of a signing page (migration 0049): "2 of 3 signed", then each document
 // with its state and, for what is not signed here, where it is done.

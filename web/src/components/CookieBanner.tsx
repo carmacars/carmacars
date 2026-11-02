@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useEffect, useRef, useState } from 'react';
 import type { CookieWording } from '@/lib/types';
 import { browserRpc } from '@/lib/browser-rpc';

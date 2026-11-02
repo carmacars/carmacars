@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { SiteSettings } from '@/lib/types';
 import { Wordmark } from './Wordmark';
 import { AccountLink, MenuButton, NavLink, PublicOnly } from './HeaderClient';

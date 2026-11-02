@@ -96,6 +96,9 @@ jobs:
       - name: Each change record names the guide chapters it changed (or "No guide change" and why)
         working-directory: .
         run: node scripts/check-change-guides.mjs
+      - name: Store app config and listing text (no install, about a second)
+        working-directory: apps/carmacars
+        run: node scripts/check-app.mjs
       - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
@@ -373,6 +376,9 @@ jobs:
             echo "STORAGE_PROVIDER=$STORAGE_PROVIDER"
             echo "R2_BUCKET_PREFIX=carmacars-$([ "$DEPLOY_ENV" = staging ] && echo staging || echo prod)-"
             echo "MAPS_PROVIDER=${MAPS_PROVIDER:-fake}"
+            # the store app's universal links and app links files (0390): public ids, repository variables (docs/apps/publish.md)
+            if [ -n "${{ vars.APP_APPLE_TEAM_ID }}" ]; then echo "APP_APPLE_TEAM_ID=${{ vars.APP_APPLE_TEAM_ID }}"; fi
+            if [ -n "${{ vars.APP_ANDROID_CERT_SHA256 }}" ]; then echo "APP_ANDROID_CERT_SHA256=${{ vars.APP_ANDROID_CERT_SHA256 }}"; fi
             echo "VIN_DECODER=vpic"
             echo "LLM_PROVIDER=workers-ai"
             echo "PHOTO_PROVIDER=cloudflare"
@@ -402,7 +408,8 @@ jobs:
                  + (if env.VAPID_PRIVATE_KEY then {VAPID_PUBLIC_KEY: env.VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY: env.VAPID_PRIVATE_KEY} else {} end)
                  + (if env.WALLET_PASS_CERT and env.WALLET_PASS_KEY and env.WALLET_WWDR_CERT and env.WALLET_PASS_TYPE_ID and env.WALLET_TEAM_ID
                     then {WALLET_PASS_CERT: env.WALLET_PASS_CERT, WALLET_PASS_KEY: env.WALLET_PASS_KEY, WALLET_WWDR_CERT: env.WALLET_WWDR_CERT,
-                          WALLET_PASS_TYPE_ID: env.WALLET_PASS_TYPE_ID, WALLET_TEAM_ID: env.WALLET_TEAM_ID} else {} end)' > "$f"
+                          WALLET_PASS_TYPE_ID: env.WALLET_PASS_TYPE_ID, WALLET_TEAM_ID: env.WALLET_TEAM_ID} else {} end)
+                 + (if env.FCM_SERVICE_ACCOUNT then {FCM_SERVICE_ACCOUNT: env.FCM_SERVICE_ACCOUNT} else {} end)' > "$f"
           # R23 (0222): the Cloudflare Email Service binding, once the owner has set Email Service up for carmacars.ca and set
           # the repository variable CF_EMAIL_BINDING to 1 (docs/changes/2026-11-03-cloudflare-email.md); without it the
           # outbox sends through Resend as before

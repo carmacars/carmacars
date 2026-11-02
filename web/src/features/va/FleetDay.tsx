@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { PuIcon } from '@/components/portal-ui/icons';
 import { STATE_WORDS, CAR_STATES, countStates, torontoDay, type CarRow, type CarState } from './carboard';
 

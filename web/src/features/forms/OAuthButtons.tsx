@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { JSX } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { OAUTH_PROVIDERS, oauthMessage, type OAuthProvider } from '@/lib/auth/oauth';
@@ -34,7 +34,8 @@ function FacebookLogo() {
 const LOGO: Partial<Record<OAuthProvider, () => JSX.Element>> = { google: GoogleG, microsoft: MicrosoftLogo, facebook: FacebookLogo };
 
 /** "Continue with Google" (and the other providers switched on), then "or" above the email form. Plain links: the
- *  flow starts at /auth/oauth (src/app/auth/oauth/route.ts). */
+ *  flow starts at /auth/oauth (src/app/auth/oauth/route.ts). Not in the store app (0390, web-only): Google refuses its
+ *  sign-in inside an app's web view, so the app signs in by email, phone or a saved password. */
 export function OAuthButtons({ providers, intent, next, minAge }: { providers: OAuthProvider[]; intent: 'signin' | 'signup'; next?: string; minAge?: string }) {
   const sp = useSearchParams();
   const n = next ?? sp.get('next') ?? '';
@@ -42,7 +43,7 @@ export function OAuthButtons({ providers, intent, next, minAge }: { providers: O
   if (!providers.length && !msg) return null;
   const href = (p: OAuthProvider) => `/auth/oauth?${new URLSearchParams({ provider: p, intent, ...(n ? { next: n } : {}) })}`;
   return (
-    <div className="oauth stack" data-testid="oauth">
+    <div className="oauth stack web-only" data-testid="oauth">
       {msg && <p className="alert alert--error" role="alert" data-testid="oauth-error"><span>{msg}</span></p>}
       {providers.map((p) => {
         const Logo = LOGO[p];

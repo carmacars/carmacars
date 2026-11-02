@@ -1,13 +1,15 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { $, Card, PageHead, Table, d } from '@/features/admin/ui';
 import { rateFields, removeFields } from '@/features/insurers/fields';
 import { rateLine, type SheetRate } from '@/features/insurers/rates';
+import { tabOf } from '@/features/admin/hubs';
+import { InsurerInvoices } from './Invoices';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Insurer rates', path: '/admin/insurers', noindex: true, description: 'What each insurer pays a day for a replacement car of each class.' });
+export const metadata = pageMeta({ title: 'Insurers', path: '/admin/insurers', noindex: true, description: 'What each insurer pays a day for a replacement car of each class, and the invoices sent to insurers.' });
 
 type Rate = SheetRate & { id: string; effective_from: string };
 type Ins = { id: string; name: string; is_active: boolean; rates: Record<string, { now: Rate | null; next: Rate | null }>; open_bookings: number; billed_cents: number; outstanding_cents: number };
@@ -17,9 +19,12 @@ type Sheet = { today: string; classes: Array<{ code: string; label: string }>; i
 
 // The insurance-replacement rate sheet (migration 0163): one row per insurer, one column per car class. Each cell is the
 // rate today (with the next one already saved); Set or Change adds a rate from a date, the earlier one stays in the
-// insurer's history. On a phone each insurer is a card with its classes.
-export default async function InsurerRates() {
-  const { read } = await page('/admin/insurers');
+// insurer's history. On a phone each insurer is a card with its classes. r27: Money > Insurers, two tabs: Rates (this) and
+// Invoices (was /admin/insurer-invoices, which redirects here).
+export default async function Insurers({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const [ctx, sp] = await Promise.all([page('/admin/insurers'), searchParams]);
+  if (tabOf(['rates', 'invoices'] as const, sp.tab) === 'invoices') return <InsurerInvoices ctx={ctx} sp={sp} />;
+  const { read } = ctx;
   const s = await read<Sheet>('insurer_rate_sheet');
   const R = ['/admin/insurers'];
   const cell = (i: Ins, c: { code: string; label: string }) => {
@@ -43,7 +48,6 @@ export default async function InsurerRates() {
   return (<>
     <PageHead title="Insurer rates" kicker="Insurance replacements" purpose="What each insurer pays a day for a replacement car of each class. A booking billed to an insurer takes its rate from here.">
       <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/settings/insurers">Insurers&apos; contacts</Link>
-      <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/insurer-invoices">Insurer invoices</Link>
     </PageHead>
     <Card title="Rate sheet" testId="ir-sheet" aside={<span className="small muted">today {d(s.today)}</span>}>
       <p className="small">A change is saved from a date and never overwrites the rate before it: open an insurer for its history. A car takes the rate of its pricing class, else of its other classes in the list&apos;s order.</p>

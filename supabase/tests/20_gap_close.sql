@@ -97,7 +97,7 @@ select test.eq('messages: a reply while the car is out reaches customer service 
 
 -- ---------------------------------------------------------------- 3. the statement emails: PDF first, then the email
 insert into owner_statements (id, statement_number, owner_id, statement_month, payout_date, status, owner_revenue_cents, revenue_share_cents, payout_cents, approved_by, approved_at)
-values (test.id('gc_st'), 'OS-GC-1', test.id('owner:gc_o'), date_trunc('month', app.today() - 32)::date, app.today(), 'approved', 65000, 35000, 60000, test.id('gc_admin'), now()),
+values (test.id('gc_st'), 'OS-GC-1', test.id('owner:gc_o'), date_trunc('month', app.today() - 40)::date, app.today(), 'approved', 65000, 35000, 60000, test.id('gc_admin'), now()),
        (test.id('gc_st_old'), 'OS-GC-0', test.id('owner:gc_o'), date_trunc('month', app.today() - 120)::date, app.today() - 90, 'approved', 1000, 1000, 1000, test.id('gc_admin'), now());
 select test.eq('statements: an approved owner statement is due on its payout date; an old one is never mailed late',
   (select string_agg(x ->> 'key', ',') from jsonb_array_elements(public.server_statement_mail_due()) x

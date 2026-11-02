@@ -20,7 +20,6 @@
 .vh-tops li { display: flex; justify-content: space-between; gap: var(--s-3); min-width: 0; }
 .vh-tops li span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vh-tags { display: flex; flex-wrap: wrap; gap: 0.25rem; }
-.vh-more { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; margin: var(--s-3) 0; }
 .vh-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .vh-timeline li { display: grid; grid-template-columns: 6.5rem 1fr auto; gap: var(--s-3); padding: var(--s-2) 0; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
 .vh-timeline li.is-page { font-weight: 600; }

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { liveMap } from '@/server/admin/live-map';
@@ -46,7 +46,7 @@ export default async function Visitors({ searchParams }: { searchParams: Promise
               {view === 'history' && <Link prefetch={false} className="link" href="/admin/live/signals">Signal settings</Link>}
             </div>
           </div>
-          {view === 'live' && live ? <LiveVisitors initial={live} portal="admin" inVisitors /> : hist ? <HistoryList d={hist} sp={sp} /> : null}
+          {view === 'live' && live ? <LiveVisitors initial={live} portal="admin" inVisitors /> : hist ? <HistoryList d={hist} sp={sp} now={at} /> : null}
         </section>
       </div>
     </>

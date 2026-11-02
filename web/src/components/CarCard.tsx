@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { CarRow } from '@/lib/types';
 import { money, FUEL_LABEL } from '@/lib/format';
 import { CarImage } from './Picture';

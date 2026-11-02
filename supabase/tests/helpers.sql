@@ -303,6 +303,9 @@ delete from field_jobs j where j.auto_created and j.auto_at is not null and j.st
 alter table program_settings alter column esign_strict set default false;
 alter table program_settings alter column agreement_claim_check set default false;
 update program_settings set esign_strict = false, agreement_claim_check = false;
+-- A fixed point for rentals whose price depends on the weekday (the weekend rate, the weekly tiers): next Monday 14:00 UTC
+-- (9 or 10 am Toronto), always between 0 and 7 days ahead, so a suite that adds days to it prices the same on any date.
+create or replace function test.base() returns timestamptz language sql stable as $$ select date_trunc('week', now()) + interval '7 days 14 hours' $$;
 -- Lead-time pricing (0360, on by default) is off for the earlier suites: their prices were written before a request's
 -- price depended on how far ahead it is made. 99_lead_time_partner_pricing.sql switches it on, tests it and switches it
 -- off again.

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { adminOwners } from '@/server/admin/data';
@@ -21,7 +21,7 @@ export default async function NewInvoice({ searchParams }: { searchParams: Promi
     const owners = await adminOwners(user);
     return (
       <>
-        <PageHead kicker={<Link prefetch={false} className="link" href="/admin/invoices">Owner invoices</Link>} title="New invoice" />
+        <PageHead kicker={<Link prefetch={false} className="link" href="/admin/owner-money?tab=invoices">Owner invoices</Link>} title="New invoice" />
         <p>Choose the owner.</p>
         <ul className="ad-list" data-testid="invoice-new-owners">{owners.map((o) => <li key={o.owner_id}><Link prefetch={false} className="link" href={`/admin/invoices/new?owner=${o.owner_id}`}>{o.legal_name}</Link><span className="small">{o.vehicles} car{o.vehicles === 1 ? '' : 's'}</span></li>)}</ul>
       </>

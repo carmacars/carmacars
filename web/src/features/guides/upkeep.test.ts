@@ -45,9 +45,10 @@ describe('the facts read from the code', () => {
   it('has the seven admin groups and the assistant groups', () => {
     expect(facts.nav.admin.map((g: { group: string }) => g.group)).toEqual(['Today', 'Bookings', 'Cars', 'People', 'Marketing', 'Money', 'Settings']);
     expect(facts.nav.admin.find((g: { group: string }) => g.group === 'People').links).toContain('Applications');
-    expect(facts.nav.va.map((g: { group: string }) => g.group)).toContain('My work');
-    expect(facts.nav.va.find((g: { group: string }) => g.group === 'Live').links).toContain('Live chat');
-    expect(facts.nav.investor[0].links).toContain('Profile and notices');
+    // r27 audit: Today first, then each role's own group (Live chat in customer service and Sales)
+    expect(facts.nav.va.map((g: { group: string }) => g.group)).toContain('To do');
+    expect(facts.nav.va.find((g: { group: string }) => g.group === 'Customer service').links).toContain('Live chat');
+    expect(facts.nav.investor[0].links).toContain('Account');
     expect(facts.nav.owner[0].links).toContain('Documents');
   });
   it('knows the labels of a page from its code', () => {

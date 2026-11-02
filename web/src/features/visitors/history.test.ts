@@ -1,4 +1,4 @@
-import { test } from 'node:test';
+import { describe, it, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chartModel, duration, historyFilters, historyHref, historyParams, pct, place, sourceWords, topSourceWords } from './history.ts';
 
@@ -60,4 +60,26 @@ test('chart: a bar per day scaled to the busiest, conversions inside, the visito
   assert.equal(m.line.split(' ').length, 2);
   assert.equal(m.peak?.day, '2026-10-01');
   assert.equal(chartModel([]).peak, null);
+});
+
+import { dayHeading, groupByDay, outcomeOf, shortSource } from './history.ts';
+describe('History list (Release 27): days, short source, outcome', () => {
+  const now = Date.parse('2026-11-07T18:00:00Z');
+  it('headings: Today, Yesterday, then the date', () => {
+    assert.equal(dayHeading('2026-11-07T15:00:00Z', now), 'Today');
+    assert.equal(dayHeading('2026-11-06T15:00:00Z', now), 'Yesterday');
+    assert.equal(dayHeading('2026-11-03T15:00:00Z', now), 'Tue Nov 3');
+  });
+  it('groups rows by day, newest first, one heading a day', () => {
+    const g = groupByDay([{ started_at: '2026-11-07T15:00:00Z' }, { started_at: '2026-11-07T14:00:00Z' }, { started_at: '2026-11-06T15:00:00Z' }], now);
+    assert.deepEqual(g.map((x) => [x.heading, x.rows.length]), [['Today', 2], ['Yesterday', 1]]);
+  });
+  it('short sources and outcomes', () => {
+    assert.equal(shortSource({ source: 'google.example.test', utm_source: null, from_ad: false }), 'google.example.test');
+    assert.equal(shortSource({ source: 'direct', utm_source: null, from_ad: false }), 'Direct');
+    assert.equal(shortSource({ source: 'x', utm_source: 'google', from_ad: true }), 'Ad · google');
+    assert.equal(outcomeOf({ conversions: ['contact', 'request'], chat: true, exclude_reason: null }).label, 'Request sent');
+    assert.equal(outcomeOf({ conversions: [], chat: true, exclude_reason: null }).label, 'Chat');
+    assert.equal(outcomeOf({ conversions: [], chat: false, exclude_reason: null }).label, 'Left');
+  });
 });

@@ -280,3 +280,38 @@ export async function applyStart(page: Page, o: { first: string; last: string; p
   await start.getByTestId('apply-start-later').click();
   await page.getByTestId('apply-you').waitFor();
 }
+
+/** Sets a date field (Release 27's shared DateInput: the calendar in a popover, a text box that takes a typed date) by its label.
+ * `date` is YYYY-MM-DD, or YYYY-MM-DDTHH:MM for a date and time. With `calendar`, the day is clicked in the open calendar instead. */
+export async function pickDate(page: Page, label: string | RegExp, date: string, opts: { calendar?: boolean; scope?: Page | Locator } = {}) {
+  const scope = opts.scope ?? page;
+  const field = scope.getByLabel(label, { exact: typeof label === 'string' }).first();
+  if (!opts.calendar) { await field.fill(date); await field.blur(); return; }
+  const [day, time] = date.split('T');
+  await field.locator('xpath=ancestor::div[contains(@class,"dp")][1]').getByRole('button', { name: 'Open calendar' }).click();
+  const pop = page.getByRole('dialog', { name: 'Choose a date' }).filter({ visible: true });
+  await clickDay(pop, day!);
+  if (time) { await pop.getByLabel('Time').selectOption(time); await pop.getByRole('button', { name: 'Done' }).click(); }
+}
+
+/** Moves a calendar to the month of `day` (YYYY-MM-DD) and presses it. */
+async function clickDay(pop: Locator, day: string) {
+  const cell = pop.locator(`[data-date="${day}"]`);
+  const want = Number(day.slice(0, 4)) * 12 + Number(day.slice(5, 7));
+  for (let i = 0; i < 120 && !(await cell.count()); i++) {
+    const shown = await pop.locator('.cal__title').first().innerText();
+    const d = new Date(`${shown} 1 12:00 UTC`);
+    const have = d.getUTCFullYear() * 12 + d.getUTCMonth() + 1;
+    await pop.getByRole('button', { name: want < have ? 'Previous month' : 'Next month' }).first().click();
+  }
+  await cell.first().click();
+}
+
+/** Sets a DateRangePicker by its quick range (`today`, `7`, `30`, `90`) or by two days picked in its calendar. */
+export async function pickRange(page: Page, label: string, to: { quick: string } | { from: string; to: string }) {
+  await page.getByRole('button', { name: new RegExp(label) }).click();
+  const pop = page.getByRole('dialog', { name: new RegExp(`Choose ${label.toLowerCase()}`) }).filter({ visible: true });
+  if ('quick' in to) { await pop.getByTestId(`dpr-${to.quick}`).click(); return; }
+  await clickDay(pop, to.from);
+  await clickDay(pop, to.to);
+}

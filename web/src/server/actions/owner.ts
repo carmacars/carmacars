@@ -84,7 +84,7 @@ export async function finalizeInvoicePayment(number: string, intentId: string): 
   try {
     const { user } = await ownIntent(number, intentId);
     const r = await settleInvoiceIntent(intentId, user.id);
-    revalidatePath(`/owner/invoices/${number}`); revalidatePath('/owner/invoices'); revalidatePath('/owner');
+    revalidatePath(`/owner/invoices/${number}`); revalidatePath('/owner/money'); revalidatePath('/owner');
     return { ok: true, data: r };
   } catch (e) { return fail(dbMessage(e)); }
 }
@@ -114,7 +114,7 @@ export async function completeDebitSetup(setupId: string): Promise<R<{ active: b
   try {
     const { user } = await owner();
     const r = await finishDebitSetup(user.id, setupId);
-    revalidatePath('/owner/banking'); revalidatePath('/owner');
+    revalidatePath('/owner/account'); revalidatePath('/owner');
     return r.ok ? { ok: true, data: { active: r.active } } : fail(r.message ?? 'The bank setup did not finish.');
   } catch (e) { return fail(dbMessage(e)); }
 }
@@ -146,7 +146,7 @@ export async function submitPayoutAccount(p: PayoutInput): Promise<R> {
       ? { method: 'bank_transfer', account_holder: p.account_holder?.trim() || null, institution_no: p.institution_no, transit_no: p.transit_no,
           account_no: await encryptField(account), account_last4: account.slice(-4), key_version: PAYOUT_KEY_VERSION }
       : { method: 'e_transfer', e_transfer_email: p.e_transfer_email?.trim() } }, SR);
-    revalidatePath('/owner/banking');
+    revalidatePath('/owner/account');
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
 }
@@ -164,7 +164,7 @@ export async function saveOwnerProfile(p: OwnerProfileInput): Promise<R> {
   try {
     const { user } = await owner();
     await rpc('owner_save_profile', { p_by: user.id, p: { ...p, phone, hst_number: p.hst_number?.replace(/\s/g, '') || null } }, SR);
-    revalidatePath('/owner/profile');
+    revalidatePath('/owner/account');
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
 }
@@ -201,7 +201,7 @@ export async function bookOwnCar(vehicleId: string, pickup: string, ret: string,
     const id = (await rpc('owner_book_own_vehicle', { p_by: user.id, p_vehicle: vehicleId, p_pickup: a.toISOString(), p_return: b.toISOString(), p_note: note.trim().slice(0, 500) || undefined }, SR)) as unknown as string;
     // the Owner Booking is the owner's own booking as a renter: it is followed in /account like any other
     const rows = ((await rpc('my_bookings', {}, { role: 'authenticated', userId: user.id })) ?? []) as unknown as Array<{ id: string; booking_number: string }>;
-    revalidatePath('/owner/bookings');
+    revalidatePath('/owner/vehicles');
     return { ok: true, data: { bookingNumber: rows.find((x) => x.id === id)?.booking_number ?? '' } };
   } catch (e) { return fail(dbMessage(e)); }
 }

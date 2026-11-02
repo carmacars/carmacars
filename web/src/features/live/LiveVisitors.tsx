@@ -1,12 +1,13 @@
 'use client';
 import { SkeletonLines } from '@/components/Skeleton';
 import './live.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ACTION_WORDS, agoWords, clock, EVENT_WORDS, GROUP_WORDS, liveDo, liveRead, STRENGTH_WORDS, type LiveCfg, type LiveData, type SessionDetail, type Signal, type Visitor } from './staff';
 import { useContact } from '@/features/live-map/contact';
 import { liveWithoutContact } from './contact';
 import { showOnMap } from '@/features/live-map/focus';
+import { personPages, roleLabel } from '@/features/live-map/roles';
 import { poller } from '@/lib/poll/poll';
 
 // Admin > Today > Live visitors and the assistants' My work > Live visitors (migration 0060): who is on the site now,
@@ -25,7 +26,7 @@ export function liveKind(v: Visitor): { key: 'chat' | 'form' | 'draft' | 'known'
   if (v.chat) return { key: 'chat', label: 'In a chat' };
   if (v.captured?.done) return { key: 'form', label: 'Form sent' };
   if (v.captured) return { key: 'draft', label: 'Unfinished form' };
-  if (v.known || v.renter_id) return { key: 'known', label: 'Known customer' };
+  if (v.known || v.renter_id || v.roles?.length) return { key: 'known', label: roleLabel(v.roles) ?? 'Known customer' };
   return { key: 'visitor', label: 'On the site now' };
 }
 const sourceOf = (v: Visitor) => v.utm_source || v.referrer || (v.from_ad ? 'an ad' : 'direct');
@@ -163,7 +164,7 @@ export function LiveVisitors({ initial, portal, inVisitors = false }: { initial:
           <div className="pt-card__head"><h2 className="d4" id="lv-hot">Hot visitors today</h2></div>
           {!data.hot?.length ? <p className="small muted">No hot visitor yet today.</p> : (
             <ul className="lv-sigs">{data.hot.map((h) => (
-              <li key={h.id}><span className="lv-score lv-score--hot" aria-label={`Likelihood ${h.score}`}>{h.score}</span> <span className="small">{h.renter_id && portal === 'admin' ? <Link prefetch={false} className="link" href={`/admin/renters/${h.renter_id}`}>{h.who}</Link> : h.who}</span>
+              <li key={h.id}><span className="lv-score lv-score--hot" aria-label={`Likelihood ${h.score}`}>{h.score}</span> <span className="small">{portal === 'admin' && personPages(h)[0] ? <Link prefetch={false} className="link" href={personPages(h)[0]!.href}>{h.who}</Link> : h.who}</span>
                 {' '}<span className="small muted" suppressHydrationWarning>{agoWords(h.hot_at)}{h.online ? ', on the site now' : ''}{h.acted ? ', acted on' : ''}</span>
                 <br /><span className="small muted">{h.reasons.map((r) => r.label).join(', ')}</span></li>))}</ul>)}
         </section>
@@ -282,10 +283,10 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat, inVisitors = false
           {typeof v.score === 'number' && band && (
             <span className={`lv-score lv-score--${band}`} data-testid="score" aria-label={`Booking likelihood ${v.score} of 100, ${BAND_WORDS[band].toLowerCase()}`}
               title={`Booking likelihood: ${v.score} of 100`}>{v.score}<span className="lv-score__w" aria-hidden="true">{BAND_WORDS[band]}</span></span>)}
-          <b data-testid="live-who">{v.who}</b>{v.known && <span className="ad-b ad-b--dark">Known</span>}
-          {v.label && <span className="ad-b" title={v.label.by ? `Named by ${v.label.by}` : undefined}>{v.label.source === 'renter' ? 'Booked' : 'Named'}</span>}
+          <b data-testid="live-who">{v.who}</b>{v.known && <span className="ad-b ad-b--dark">{roleLabel(v.roles) ?? 'Known'}</span>}
+          {v.label && <span className="ad-b" title={v.label.by ? `Named by ${v.label.by}` : undefined}>{v.label.source === 'renter' && (!v.roles?.length || v.roles.includes('renter')) ? 'Booked' : 'Named'}</span>}
           {v.audience === 'owner' && <span className="ad-b">Owner</span>}
-          {v.renter_id && portal === 'admin' && <Link prefetch={false} className="link small" href={`/admin/renters/${v.renter_id}`}>Renter page</Link>}
+          {portal === 'admin' && personPages(v).map((x) => <Link key={x.href} prefetch={false} className="link small" href={x.href}>{x.label}</Link>)}
           {v.assigned && <span className="ad-b" data-testid="assigned">With {v.assigned.name.split(' ')[0]}</span>}
           {v.last_action && <span className="small muted" suppressHydrationWarning>{ACTION_WORDS[v.last_action.action as keyof typeof ACTION_WORDS]?.replace('Invite to chat', 'Invited') ?? v.last_action.action} by {v.last_action.by}, {agoWords(v.last_action.at)}</span>}
         </div>
@@ -297,7 +298,7 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat, inVisitors = false
         {v.captured && <p className="small" data-testid="live-captured"><span className="muted">Typed into the {v.captured.form}{v.captured.done ? '' : ', not sent'}: </span>
           {[v.captured.name, v.captured.email, v.captured.phone].filter(Boolean).join(', ')}
           {v.captured.email && v.captured.email_confirmed === false && <> <span className="ad-b ad-b--amber">Email not confirmed</span></>}
-          {v.captured.renter_id && portal === 'admin' && !v.renter_id && <> <Link prefetch={false} className="link small" href={`/admin/renters/${v.captured.renter_id}`}>Renter page</Link></>}</p>}
+          {v.captured.renter_id && portal === 'admin' && !v.renter_id && !v.roles?.length && <> <Link prefetch={false} className="link small" href={`/admin/renters/${v.captured.renter_id}`}>Renter page</Link></>}</p>}
         {v.label && (v.label.phone || v.label.email || v.label.note) && (
           <p className="small" data-testid="live-label"><span className="muted">{v.label.by ? `Named by ${v.label.by}` : 'Named'}: </span>
             {[v.label.phone, v.label.email, v.label.note].filter(Boolean).join(' · ')}</p>)}

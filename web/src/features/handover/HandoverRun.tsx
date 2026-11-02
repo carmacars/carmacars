@@ -1,5 +1,5 @@
 import '@/styles/field.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { door } from '@/server/door';
 import { Checklist } from '@/features/field/Checklist';

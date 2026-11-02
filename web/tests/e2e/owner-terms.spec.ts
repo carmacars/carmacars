@@ -210,7 +210,7 @@ test('a registration fee invoice of an exact amount from the owner page; void an
   await page.getByTestId('manual-payment-form').getByRole('button', { name: 'Record payment' }).click();
   await expect.poll(async () => (await inv(sql, `invoice_number = '${fixed}'`, app.ownerId))[0]!.status, { timeout: 20_000 }).toBe('paid');
   await expect(page.getByTestId('invoice-payments')).toContainText('Receipt');
-  await page.goto('/admin/invoices?status=void', { waitUntil: 'networkidle' });
+  await page.goto('/admin/owner-money?tab=invoices&status=void', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('admin-invoices')).toContainText(number);
   await check(page, 'money owner invoices');
   await op.context().close();

@@ -1,5 +1,6 @@
 import type { GenerateRequest, GenerateResult, TextGenerator } from '../llm/types.ts';
 import type { VisionModel, VisionRequest, VisionResult } from '../vision/types.ts';
+import type { Transcriber, TranscribeRequest, TranscribeResult } from '../transcribe/types.ts';
 
 // The usage guard (migration 0080) in front of every Workers AI call (0104), by feature since 0133. The audit of October 22
 // found the guide rewrite still calling the model for hours after Workers AI was paused for the day; the car copy, the
@@ -20,13 +21,14 @@ export type Tier = 'assistant' | 'live' | 'background';
 /** The tier of a purpose, as app.ai_tier (migration 0133) has it. */
 export function tierOf(purpose: string): Tier {
   if (purpose === 'staff_assistant') return 'assistant';
-  if (['chat', 'phone_draft', 'phone_summary', 'toll_read', 'plate_detect', 'guide_review', 'permit_read'].includes(purpose)) return 'live';
+  if (['chat', 'phone_draft', 'phone_summary', 'toll_read', 'plate_detect', 'guide_review', 'permit_read', 'interview_transcribe', 'interview_followup'].includes(purpose)) return 'live';
   return 'background';
 }
 /** The purpose each text task is recorded with in provider_calls. */
 export const TASK_PURPOSE: Record<GenerateRequest['task'], string> = {
   listing_draft: 'draft_copy', guide_rewrite: 'guide_rewrite', chat: 'chat', car_copy: 'seo_car', seo_page: 'seo_page', article: 'seo_article',
-  turo_email: 'turo_email', phone_draft: 'phone_draft', phone_summary: 'phone_summary'
+  turo_email: 'turo_email', phone_draft: 'phone_draft', phone_summary: 'phone_summary',
+  interview_followup: 'interview_followup', interview_score: 'interview_score'
 };
 
 /** About what a call costs before it is made: the prompt (4 characters a token) and half the output it may write, at
@@ -59,6 +61,20 @@ export function guardVision(model: VisionModel, paused: PausedCheck, spent?: (pu
       if (await paused({ purpose: req.purpose, estimate })) return { ok: false, reason: 'quota', message: (await paused()) ? PAUSED_MESSAGE : SHARE_MESSAGE, tried: [] };
       const r = await model.read(req, models);
       if (r.usage?.neurons) spent?.(req.purpose, r.usage.neurons);
+      return r;
+    }
+  };
+}
+
+/** 0380: the interviews' speech to text, live work: about 47 neurons a minute of audio must fit the live share. */
+export function guardTranscriber(t: Transcriber, paused: PausedCheck, spent?: (purpose: string, neurons: number) => void): Transcriber {
+  return {
+    name: t.name,
+    async transcribe(req: TranscribeRequest): Promise<TranscribeResult> {
+      const estimate = Math.ceil((Math.max(req.seconds, 1) / 60) * 47);
+      if (await paused({ purpose: 'interview_transcribe', estimate })) return { ok: false, reason: 'quota', message: (await paused()) ? PAUSED_MESSAGE : SHARE_MESSAGE };
+      const r = await t.transcribe(req);
+      if (r.neurons) spent?.('interview_transcribe', r.neurons);
       return r;
     }
   };

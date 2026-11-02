@@ -55,7 +55,7 @@ export async function countersignInvestment(investorId: string, agreementId: str
     const { user, aal } = await me();
     await door(user.id, 'ops_do', 'investment_countersign', { agreement_id: agreementId }, aal);
     revalidatePath(`/admin/investors/${investorId}`);
-    revalidatePath('/investor/sign');
+    revalidatePath('/investor/sign'); revalidatePath('/investor/documents');
     return { ok: true, data: null };
   } catch (e) { return fail(e); }
 }

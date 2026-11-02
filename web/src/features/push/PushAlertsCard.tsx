@@ -29,8 +29,8 @@ export function IosSteps() {
 
 const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Toronto' });
 
-export function PushAlertsCard({ publicKey, portal, initial, className = 'pt-card' }: { publicKey: string; portal: PushRole; initial: PushState; className?: string }) {
-  const d = usePushDevice(publicKey, portal, initial);
+export function PushAlertsCard({ publicKey, portal, initial, className = 'pt-card', native = false }: { publicKey: string | null; portal: PushRole; initial: PushState; className?: string; native?: boolean }) {
+  const d = usePushDevice(publicKey, portal, initial, { native });
   const state = d.state ?? initial;
   const [topics, setTopics] = useState<Topic[]>(state.topics);
   const [saved, setSaved] = useState<string | null>(null);
@@ -64,9 +64,9 @@ export function PushAlertsCard({ publicKey, portal, initial, className = 'pt-car
         <h2 className="d4" id="pa-title">Phone alerts</h2>
         {d.status !== 'loading' && <span className={`badge ${on ? 'badge--red' : 'badge--outline'}`} data-testid="push-badge">{on ? 'On' : 'Off'} on this device</span>}
       </div>
-      <p className="small muted pa__lead">Get an alert on this phone or computer the moment something needs you, even with CarmaCars closed.</p>
+      <p className="small muted pa__lead">{native ? 'Get an alert on this phone the moment something needs you, even with the app closed.' : 'Get an alert on this phone or computer the moment something needs you, even with CarmaCars closed.'}</p>
 
-      {d.status === 'loading' && <p className="small muted" aria-live="polite">Checking this browser…</p>}
+      {d.status === 'loading' && <p className="small muted" aria-live="polite">{native ? 'Checking this phone…' : 'Checking this browser…'}</p>}
 
       {app && (
         <div className="pa__callout" data-testid="push-app">
@@ -83,15 +83,19 @@ export function PushAlertsCard({ publicKey, portal, initial, className = 'pt-car
         </div>
       )}
       {d.status === 'blocked' && (
-        <p className="pt-note" data-testid="push-blocked">Alerts are blocked for this site. Allow notifications for carmacars.ca in your browser&apos;s site settings, then reload this page.</p>
+        <p className="pt-note" data-testid="push-blocked">{native
+          ? <>Notifications are off for CarmaCars on this phone. Open your phone&apos;s <b>Settings</b>, then <b>Notifications</b>, then <b>CarmaCars</b>, and allow them.</>
+          : <>Alerts are blocked for this site. Allow notifications for carmacars.ca in your browser&apos;s site settings, then reload this page.</>}</p>
       )}
       {d.status === 'unsupported' && (
-        <p className="pt-note" data-testid="push-unsupported">This browser cannot show alerts. Use Chrome, Edge, Firefox or Safari, or add CarmaCars to your Home Screen.</p>
+        <p className="pt-note" data-testid="push-unsupported">{native
+          ? 'This version of the app cannot show alerts. Update CarmaCars from the App Store or Google Play.'
+          : 'This browser cannot show alerts. Use Chrome, Edge, Firefox or Safari, or add CarmaCars to your Home Screen.'}</p>
       )}
       {!app && d.status === 'ready' && (
         <div className="pa__action">
           <button type="button" className="btn btn--primary" onClick={() => void d.turnOn()} disabled={d.busy} data-testid="push-on">{d.busy ? 'Turning on…' : 'Turn on alerts'}</button>
-          <span className="small muted">Your browser asks once. You can turn them off at any time.</span>
+          <span className="small muted">{native ? 'Your phone asks once.' : 'Your browser asks once.'} You can turn them off at any time.</span>
         </div>
       )}
       {on && (

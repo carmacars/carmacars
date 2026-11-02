@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { Card, Table, t } from '@/features/admin/ui';
 import { hoursText } from './model';

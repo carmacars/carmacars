@@ -34,85 +34,88 @@ All defaults on; every group of `staff_alert_rules` below goes to the Admins. Bu
 
 | Alert | Rule | Who | Tier | Topic | Exists |
 | --- | --- | --- | --- | --- | --- |
-| New renter lead | `staff_lead_new` | admin, assigned, unassigned_on_duty:cs, unassigned_on_duty:sales | urgent | leads | new (0460/0462) |
-| Request typed and not sent | `staff_request_unfinished` | admin, assigned, unassigned_on_duty:cs, unassigned_on_duty:sales | urgent | leads | new (0460/0462) |
-| New owner lead | `staff_owner_lead_new` | admin, assigned | urgent | leads | new (0460/0462) |
-| Visitor turned Hot | `staff_hot_visitor` | admin, on_duty:cs, on_duty:sales | urgent | visitors | new (0460/0462) |
-| Sent: late return notice (T13) | `sent:renter_late_return_first` | admin | urgent | alerts | new (0460/0462) |
-| Sent: final late return notice (T14) | `sent:renter_late_return_final` | admin | urgent | alerts | new (0460/0462) |
-| Sent: return time notice | `sent:renter_return_due` | admin | urgent | alerts | new (0460/0462) |
-| Sent: balance overdue | `sent:renter_balance_overdue` | admin | normal | payments | new (0460/0462) |
-| Sent: payment failed | `sent:renter_payment_failed` | admin | normal | payments | new (0460/0462) |
-| Sent: payment link | `sent:renter_recovery_pay` | admin | normal | payments | new (0460/0462) |
-| Sent: owner debit failed or refused | `sent:owner_debit_returned` | admin | urgent | alerts | new (0460/0462) |
-| Sent: owner statement | `sent:owner_statement_ready` | admin | digest | payments | new (0460/0462) |
-| Sent: owner payout | `sent:owner_payout_sent` | admin | digest | payments | new (0460/0462) |
-| Sent: investor payout | `sent:investor_return_paid` | admin | digest | payments | new (0460/0462) |
-| Sent: offer to renter | `sent:renter_offer_ready` | admin | digest | requests | new (0460/0462) |
-| Sent: agreement to sign (renter) | `sent:renter_agreement_ready` | admin | digest | documents | new (0460/0462) |
-| Sent: agreement to sign (owner) | `sent:owner_agreement_ready` | admin | digest | documents | new (0460/0462) |
-| Payment received over the threshold | `payment_received` | admin | normal | payments | new (0460/0462) |
-| Refund issued | `refund_issued` | admin | normal | payments | new (0460/0462) |
-| Daily cash summary, 9 pm | `cash_summary` | admin | digest | payments | new (0460/0462) |
+| New renter lead | `staff_lead_new` | admin, assigned, unassigned_on_duty:cs, unassigned_on_duty:sales | urgent | leads | yes (0460-0464) |
+| Request typed and not sent | `staff_request_unfinished` | admin, assigned, unassigned_on_duty:cs, unassigned_on_duty:sales | urgent | leads | yes (0460-0464) |
+| New owner lead | `staff_owner_lead_new` | admin, assigned | urgent | leads | yes (0460-0464) |
+| Visitor turned Hot | `staff_hot_visitor` | admin, on_duty:cs, on_duty:sales | urgent | visitors | yes (0460-0464) |
+| Sent: late return notice (T13) | `sent:renter_late_return_first` | admin | urgent | alerts | yes (0460-0464) |
+| Sent: final late return notice (T14) | `sent:renter_late_return_final` | admin | urgent | alerts | yes (0460-0464) |
+| Sent: return time notice | `sent:renter_return_due` | admin | urgent | alerts | yes (0460-0464) |
+| Sent: balance overdue | `sent:renter_balance_overdue` | admin | normal | payments | yes (0460-0464) |
+| Sent: payment failed | `sent:renter_payment_failed` | admin | normal | payments | yes (0460-0464) |
+| Sent: payment link | `sent:renter_recovery_pay` | admin | normal | payments | yes (0460-0464) |
+| Sent: owner debit failed or refused | `sent:owner_debit_returned` | admin | urgent | alerts | yes (0460-0464) |
+| Sent: owner statement | `sent:owner_statement_ready` | admin | digest | payments | yes (0460-0464) |
+| Sent: owner payout | `sent:owner_payout_sent` | admin | digest | payments | yes (0460-0464) |
+| Sent: investor payout | `sent:investor_return_paid` | admin | digest | payments | yes (0460-0464) |
+| Sent: offer to renter | `sent:renter_offer_ready` | admin | digest | requests | yes (0460-0464) |
+| Sent: agreement to sign (renter) | `sent:renter_agreement_ready` | admin | digest | documents | yes (0460-0464) |
+| Sent: agreement to sign (owner) | `sent:owner_agreement_ready` | admin | digest | documents | yes (0460-0464) |
+| Payment received over the threshold | `payment_received` | admin | normal | payments | yes (0460-0464) |
+| Refund issued | `refund_issued` | admin | normal | payments | yes (0460-0464) |
+| Daily cash summary, 9 pm | `cash_summary` | admin | digest | payments | yes (0460-0464) |
 | Deposit hold failed | `deposit_hold_failed` | admin | urgent | alerts | TODO: not wired yet |
 | Card declined at pickup | `card_declined_pickup` | admin, on_duty:fleet | urgent | alerts | TODO: not wired yet |
 | Investor money received | `investor_money_in` | admin | normal | payments | TODO: not wired yet |
-| Booking paid and confirmed | `booking_confirmed` | admin | normal | bookings | new (0460/0462) |
-| Offer sent to the renter | `offer_sent` | admin | digest | requests | new (0460/0462) |
-| Offer expires within the hour | `offer_expiring` | admin, on_duty:sales | normal | requests | new (0460/0462) |
-| Car going out (pickup recorded) | `booking_out` | admin, on_duty:fleet | normal | bookings | new (0460/0462) |
-| Car back (return recorded) | `booking_back` | admin, on_duty:fleet | normal | bookings | new (0460/0462) |
-| Booking closed | `booking_closed` | admin | digest | bookings | new (0460/0462) |
-| No-show | `booking_no_show` | admin, on_duty:fleet | urgent | alerts | new (0460/0462) |
+| Booking paid and confirmed | `booking_confirmed` | admin | normal | bookings | yes (0460-0464) |
+| Offer sent to the renter | `offer_sent` | admin | digest | requests | yes (0460-0464) |
+| Offer expires within the hour | `offer_expiring` | admin, on_duty:sales | normal | requests | yes (0460-0464) |
+| Car going out (pickup recorded) | `booking_out` | admin, on_duty:fleet | normal | bookings | yes (0460-0464) |
+| Car back (return recorded) | `booking_back` | admin, on_duty:fleet | normal | bookings | yes (0460-0464) |
+| Booking closed | `booking_closed` | admin | digest | bookings | yes (0460-0464) |
+| No-show | `booking_no_show` | admin, on_duty:fleet | urgent | alerts | yes (0460-0464) |
 | Offer viewed by the renter | `offer_viewed` | admin | digest | requests | TODO: not wired yet |
 | Offer accepted | `offer_accepted` | admin | normal | requests | TODO: not wired yet |
 | Extension asked or paid | `extension_paid` | admin | normal | bookings | TODO: not wired yet |
 | Date change asked or approved | `date_change` | admin | normal | bookings | TODO: not wired yet |
 | Deposit released | `deposit_released` | admin | digest | payments | TODO: not wired yet |
 | Insurer booking without claim number at pickup | `insurer_claim_missing` | admin, on_duty:cs | normal | alerts | TODO: not wired yet |
-| Field job assigned | `job_assigned` | admin, assigned | normal | handovers | new (0460/0462) |
-| Field job started | `job_started` | admin | normal | handovers | new (0460/0462) |
-| Field job finished | `job_done` | admin | digest | handovers | new (0460/0462) |
-| Field job running late | `job_late` | admin, assigned | urgent | alerts | new (0460/0462) |
+| Field job assigned | `job_assigned` | admin, assigned | normal | handovers | yes (0460-0464) |
+| Field job started | `job_started` | admin | normal | handovers | yes (0460-0464) |
+| Field job finished | `job_done` | admin | digest | handovers | yes (0460-0464) |
+| Field job running late | `job_late` | admin, assigned | urgent | alerts | yes (0460-0464) |
 | Handover checklist incomplete | `handover_checklist_incomplete` | admin | normal | handovers | TODO: not wired yet |
 | Fuel or km off at return | `return_fuel_km` | admin | normal | handovers | TODO: not wired yet |
-| Review of 3 stars or less | `review_low` | admin, on_duty:cs | urgent | messages | new (0460/0462) |
-| New review | `review_new` | admin | normal | messages | new (0460/0462) |
-| 5-star review | `review_five` | admin | normal | messages | new (0460/0462) |
+| Review of 3 stars or less | `review_low` | admin, on_duty:cs | urgent | messages | yes (0460-0464) |
+| New review | `review_new` | admin | normal | messages | yes (0460-0464) |
+| 5-star review | `review_five` | admin | normal | messages | yes (0460-0464) |
 | Complaint words in chat or email | `complaint_keyword` | admin, on_duty:cs | normal | messages | TODO: not wired yet |
-| Asked to delete their account | `account_delete_request` | admin | normal | messages | TODO: not wired yet |
+| Asked to delete their account | `account_delete_request` | admin | urgent | alerts | yes (0460-0464) |
 | Opt-out or unsubscribe | `opt_out` | admin | digest | messages | TODO: not wired yet |
-| Toll or ticket received | `toll_received` | admin | digest | alerts | new (0460/0462) |
+| Toll or ticket received | `toll_received` | admin | digest | alerts | yes (0460-0464) |
 | Licence uploaded, needs review | `licence_review` | admin, on_duty:cs | normal | documents | TODO: not wired yet |
 | Agreement signed | `agreement_signed` | admin | digest | documents | TODO: not wired yet |
 | Agreement unsigned 2 hours before pickup | `agreement_unsigned_pickup` | admin, on_duty:cs | urgent | alerts | TODO: not wired yet |
 | Insurance proof missing 24 hours before pickup | `insurance_missing` | admin, on_duty:cs | normal | documents | TODO: not wired yet |
-| Tracker offline over 2 hours on rent | `tracker_offline` | admin, on_duty:fleet | urgent | alerts | TODO: not wired yet |
-| Geofence exit, speeding, after-hours movement | `geofence_exit` | admin, on_duty:fleet | urgent | alerts | TODO: not wired yet |
+| Tracker offline | `tracker_offline` | admin, on_duty:fleet | urgent | alerts | yes (0460-0464) |
+| Left the zone or Ontario | `tracker_zone` | admin, on_duty:fleet | urgent | alerts | yes (0460-0464) |
 | Car due for service or inspection within 7 days | `maintenance_due` | admin | digest | alerts | TODO: not wired yet |
+| Speeding | `tracker_speeding` | admin, on_duty:fleet | urgent | alerts | yes (0460-0464) |
 | Car unpublished or blocked unexpectedly | `car_unpublished` | admin | normal | alerts | TODO: not wired yet |
+| Still driving after the return time | `tracker_afterhours` | admin, on_duty:fleet | urgent | alerts | yes (0460-0464) |
+| Tracker battery low or unplugged | `tracker_battery` | admin, on_duty:fleet | urgent | alerts | yes (0460-0464) |
 | Owner gave notice or asked to leave | `owner_notice` | admin | urgent | alerts | TODO: not wired yet |
 | Owner changed banking | `owner_banking_changed` | admin | urgent | alerts | TODO: not wired yet |
 | Investor signed or invested | `investor_invested` | admin | normal | payments | TODO: not wired yet |
-| Usage over 80% of an allowance | `usage_80` | admin | normal | alerts | new (0460/0462) |
-| New job application | `application_new` | admin | normal | requests | new (0460/0462) |
+| Usage over 80% of an allowance | `usage_80` | admin | normal | alerts | yes (0460-0464) |
+| New job application | `application_new` | admin | normal | requests | yes (0460-0464) |
 | Admin sign-in from a new device or country | `admin_new_device` | admin | urgent | alerts | TODO: not wired yet |
 | Burst of failed sign-ins | `failed_sign_ins` | admin | urgent | alerts | TODO: not wired yet |
 | Deploy finished or failed | `deploy_result` | admin | normal | alerts | TODO: not wired yet |
-| Data health found new problems | `data_health` | admin | digest | alerts | TODO: not wired yet |
-| AI interview finished | `interview_finished` | admin | normal | requests | TODO: not wired yet |
-| Academy lesson, quiz or certification | `academy_progress` | admin | digest | alerts | TODO: not wired yet |
+| Data health found new problems | `data_health` | admin | digest | alerts | yes (0460-0464) |
+| AI interview finished | `interview_finished` | admin | normal | requests | yes (0460-0464) |
+| Academy lesson, quiz or certification | `academy_progress` | admin | digest | alerts | yes (0460-0464) |
 | Staff has not touched their queue in 2 hours | `staff_idle` | admin | normal | alerts | TODO: not wired yet |
 | First booking of a newly listed car | `win_first_booking` | admin | normal | bookings | TODO: not wired yet |
 | Record day or week of revenue | `win_record_day` | admin | normal | payments | TODO: not wired yet |
 | Owner car earned its first payout | `win_first_payout` | admin | digest | payments | TODO: not wired yet |
 | Monthly totals on the 1st | `win_month_totals` | admin | digest | payments | TODO: not wired yet |
-| Morning brief (Admin), 8 am | `morning_brief_admin` | admin | normal | alerts | new (0460/0462) |
-| Morning brief (your own), 8 am | `morning_brief_staff` | assigned | normal | alerts | new (0460/0462) |
-| Evening wrap (Admin), 9 pm | `evening_wrap` | admin | urgent | payments | new (0460/0462) |
-| Urgent alert nobody opened | `escalation` | admin | urgent | alerts | new (0460/0462) |
+| Morning brief (Admin), 8 am | `morning_brief_admin` | admin | normal | alerts | yes (0460-0464) |
+| Morning brief (your own), 8 am | `morning_brief_staff` | assigned | normal | alerts | yes (0460-0464) |
+| Evening wrap (Admin), 9 pm | `evening_wrap` | admin | urgent | payments | yes (0460-0464) |
+| Urgent alert nobody opened | `escalation` | admin | urgent | alerts | yes (0460-0464) |
 
-Other Admin alerts that exist today as catalogue codes (`staff_*`, in app, email or digest): `staff_alert_digest`, `staff_alert_normal`, `staff_alert_urgent`, `staff_approval_needed`, `staff_deposit_link_not_sent`, `staff_digest_eod_admin`, `staff_digest_morning_admin`, `staff_disable_approval_needed`, `staff_dispute_opened`, `staff_email_cap_reached`, `staff_email_cap_warning`, `staff_email_failed`, `staff_fleet_count_warning`, `staff_hot_visitor`, `staff_incident_reported`, `staff_job_failed`, `staff_lead_new`, `staff_monthly_statements_pdfs`, `staff_monthly_statements_ready`, `staff_not_back_admin`, `staff_owner_debit_exception`, `staff_owner_debit_run`, `staff_owner_lead_new`, `staff_payouts_due`, `staff_pickup_unrecorded_admin`, `staff_request_unfinished`, `staff_site_alert`, `staff_site_recovered`, `staff_statements_ready_for_approval`, `staff_usage_alert`, `staff_weekly_summary`.
+Other Admin alerts that exist today as catalogue codes (`staff_*`, in app, email or digest): `staff_alert_digest`, `staff_alert_normal`, `staff_alert_urgent`, `staff_approval_needed`, `staff_data_health`, `staff_deposit_link_not_sent`, `staff_digest_eod_admin`, `staff_digest_morning_admin`, `staff_disable_approval_needed`, `staff_dispute_opened`, `staff_email_cap_reached`, `staff_email_cap_warning`, `staff_email_failed`, `staff_fleet_count_warning`, `staff_hot_visitor`, `staff_incident_reported`, `staff_job_failed`, `staff_lead_new`, `staff_monthly_statements_pdfs`, `staff_monthly_statements_ready`, `staff_not_back_admin`, `staff_owner_debit_exception`, `staff_owner_debit_run`, `staff_owner_lead_new`, `staff_payouts_due`, `staff_pickup_unrecorded_admin`, `staff_request_unfinished`, `staff_site_alert`, `staff_site_recovered`, `staff_statements_ready_for_approval`, `staff_tracker_alert`, `staff_usage_alert`, `staff_weekly_summary`.
 
 ## Customer service (VA)
 
@@ -130,7 +133,7 @@ Catalogue codes today: `staff_commission_approved`, `staff_commission_paid`, `st
 
 On by default: requests, bookings, messages, alerts (handovers can be switched on). Gets: car going out and back, no-show, pickup not recorded (`staff_pickup_unrecorded`), not back, field jobs late (urgent), tracker alerts (TODO, r27-tracker), maintenance due (digest, TODO), calendar conflicts. Morning brief for their own work (pickups, returns, overdue). Buttons: Open, Mark picked up (TODO).
 
-Catalogue codes today: `staff_breakdown_reported`, `staff_calendar_conflict`, `staff_calendar_feed_failing`, `staff_digest_eod_va_fleet`, `staff_digest_morning_va_fleet`, `staff_exit_notice_received`, `staff_expiry_watch`, `staff_late_return_alert`, `staff_listing_ready_for_review`, `staff_listing_similarity`, `staff_pickup_unrecorded`.
+Catalogue codes today: `staff_breakdown_reported`, `staff_calendar_conflict`, `staff_calendar_feed_failing`, `staff_digest_eod_va_fleet`, `staff_digest_morning_va_fleet`, `staff_exit_notice_received`, `staff_expiry_watch`, `staff_late_return_alert`, `staff_listing_ready_for_review`, `staff_listing_similarity`, `staff_pickup_unrecorded`, `staff_tracker_alert_fleet`.
 
 ## Finance (VA)
 
@@ -313,6 +316,7 @@ Applicants have no account, so no push today. Emails exist (below). TODO: push i
 
 | Code | When | Email | Text | Topic | Tier | Phone default | Buttons |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| `applicant_ai_interview` | Immediate | yes | no | none | none | - | - |
 | `applicant_booked` | Immediate | yes | no | none | none | - | - |
 | `applicant_cancelled` | Immediate | yes | no | none | none | - | - |
 | `applicant_confirm` | 24 hours before the call | yes | no | none | none | - | - |
@@ -348,6 +352,11 @@ Applicants have no account, so no push today. Emails exist (below). TODO: push i
 4. Escalation to the next person on duty before the Admins (today: unopened urgent alert goes to the Admins).
 5. An Alerts inbox filter by topic and tier (the bell list shows them all; the notifications UI can filter by `code`).
 6. A rules editor in Settings (rows are editable by an Admin through the assistant or SQL; `enabled` is honoured at once).
-7. Wiring of every row marked TODO above; the ones that need other branches: tracker (r27-tracker), data health (r27-health),
-   interviews (r27-interviews), live sheets (r27-invsheets).
+7. Wiring of every row marked TODO above. Done in 0464 now that r27 is merged: tracker alerts (offline, zone or Ontario, speeding,
+   after the return time, battery or unplugged: the notices of 0400, their rule switches work and their words reach the phone), the AI
+   interview scored (0380), the nightly data health notice on the phone (0441), account deletion requests (0390), the academy quizzes (a digest line). Still TODO with no
+   data source today: the live sheets (investor month closed: the sheets of r27-invsheets keep no closing event), sign-in security
+   (new device or country, failed sign-ins: no table records them), deploy result (the build runs outside the database),
+   maintenance dates (not stored), complaint words (no scanner), and the other rows above marked TODO whose events are not yet
+   recorded in the database.
 8. Text alerts for staff leads: not built (no opt-in pattern for staff, and volume).

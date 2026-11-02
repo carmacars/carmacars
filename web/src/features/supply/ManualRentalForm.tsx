@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { AddressInput } from '@/features/forms/AddressInput';
 import { AddressLookup } from '@/features/forms/AddressFields';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { createManualRental, deliveryDistance, draftClose, draftSave, supplyRead, type ManualRentalResult } from '@/server/actions/supply';
 import { OwnerChoice, ownerChoiceInitial, ownerChoicePayload, type OwnerDefaults } from './OwnerChoice';
 import { money } from '@/lib/format';
@@ -20,6 +20,7 @@ import { prefillRate, rateCheck, rateLine, type SheetRate } from '@/features/ins
 import { InsurerFeesFields } from '@/features/insurers/InsurerFeesFields';
 import { INSURER_FEES, insurerFeesPayload, isInsurerFee, rateProblem } from '@/features/insurers/fees';
 import { DEPOSIT_PAY, PART_METHODS, RENTAL_LINE, RENTAL_PAID_BY, droppedByPrice, feeOverrides, lineKey, lineLive, liveFees, needsReference, paidSoFar, paymentOf, periodShares, youngBand, type DepositPay, type LineChoices, type PayPart, type RentalPaidBy } from '@/features/offers/model';
+import { TypedInput } from '@/components/DateInput';
 
 // Add a rental by hand (migration 0046): Admin > Bookings > Add a rental, the same screen for every assistant function
 // and for field staff (0058). The database decides what each may do (staff: the rate sheet or a price typed with its
@@ -196,7 +197,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   const rateState = rateCheck(cents(f.authorized_rate ?? ''), insurerSheet, insurerName || undefined);
   const text = (k: string, label: string, o: { type?: string; hint?: string; inputMode?: 'decimal' | 'numeric' | 'tel' | 'email'; wide?: boolean } = {}) => (
     <div className={`field ad-field${o.wide ? ' ad-field--wide' : ''}`}><label className="label" htmlFor={id(k)}>{label}</label>
-      <input className="input" id={id(k)} type={o.type ?? 'text'} inputMode={o.inputMode} value={f[k] ?? ''} onChange={set(k)} data-testid={`mr-${k}`} aria-describedby={o.hint ? `${id(k)}-h` : undefined} />
+      <TypedInput className="input" id={id(k)} type={o.type ?? 'text'} inputMode={o.inputMode} value={f[k] ?? ''} onChange={set(k)} data-testid={`mr-${k}`} aria-describedby={o.hint ? `${id(k)}-h` : undefined} />
       {o.hint && <p className="hint" id={`${id(k)}-h`}>{o.hint}</p>}</div>);
   // a place or an address, with the address lookup (0130): the suggestion fills it, typing works too
   const addr = (k: string, label: string) => (
@@ -565,7 +566,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
             <div className="ad-fields" key={i}>
               {(['full_name', 'date_of_birth', 'email'] as const).map((k) => (
                 <div className="field ad-field" key={k}><label className="label" htmlFor={`mr-d${i}-${k}`}>{k === 'full_name' ? 'Name' : k === 'date_of_birth' ? 'Date of birth' : 'Email'}</label>
-                  <input className="input" id={`mr-d${i}-${k}`} type={k === 'date_of_birth' ? 'date' : k === 'email' ? 'email' : 'text'} value={d[k]} onChange={(e) => setDrivers((s) => s.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)))} /></div>))}
+                  <TypedInput className="input" id={`mr-d${i}-${k}`} type={k === 'date_of_birth' ? 'date' : k === 'email' ? 'email' : 'text'} value={d[k]} onChange={(e) => setDrivers((s) => s.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)))} /></div>))}
               <button className="btn btn--quiet btn--sm" type="button" onClick={() => setDrivers((s) => s.filter((_, j) => j !== i))}>Remove</button>
             </div>))}
           <p><button className="btn btn--ghost btn--sm" type="button" onClick={() => setDrivers((s) => [...s, { full_name: '', date_of_birth: '', email: '' }])}>Add a driver</button></p>

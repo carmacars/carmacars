@@ -16,7 +16,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ year: st
   const { year } = await params;
   if (!/^20\d\d$/.test(year)) return new Response('Not found', { status: 404 });
   const user = await currentUser();
-  if (!user) return Response.redirect(new URL(`/sign-in?next=/investor/statements`, req.url), 302);
+  if (!user) return Response.redirect(new URL(`/sign-in?next=/investor/documents`, req.url), 302);
   if (!(await rolesOf(user.id)).investor) return new Response('Not found', { status: 404 });
   const [rows, home] = await Promise.all([door<Row[]>(user.id, 'investor_read', 'statements'), door<{ investor: { id: string } }>(user.id, 'investor_read', 'home')]);
   const mine = rows.filter((r) => r.return_month.startsWith(year)).sort((a, b) => a.return_month.localeCompare(b.return_month));

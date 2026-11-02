@@ -1,8 +1,8 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, BookingLink, Card, Filters, MoreFilters, PageHead, Search, Table, t } from '@/features/admin/ui';
+import { $, Badge, BookingLink, Card, Filters, MoreFilters, PageHead, Search, Table, Tabs, t } from '@/features/admin/ui';
 import { SampleCarsToggle } from '@/features/supply/SampleCarsToggle';
 import { door } from '@/server/door';
 import '@/features/live/live.css';
@@ -38,6 +38,8 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
         {samples && <SampleCarsToggle publicCount={samples.public} compact />}
         <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'text' }, { name: 'notes', label: 'Notes', type: 'text' }]} go="/admin/listings/{intake_id}" />
       </PageHead>
+      {/* 0400: the list and Fleet tracking are the two views of Cars */}
+      <Tabs label="Cars" current="/admin/vehicles" items={[['/admin/vehicles', 'Vehicles'], ['/admin/vehicles/tracking', 'Fleet tracking']]} />
       <Filters base="/admin/vehicles" name="status" value={sp.status ?? ''} options={[['', 'All'], ...statuses.map((x) => [x, x.replace(/_/g, ' ')] as [string, string])]} sp={sp} />
       {sp.deleted && <p className="alert alert--ok" role="status"><span>The car was deleted.</span></p>}
       {/* who supplies it, retired cars and the mode fold behind More filters (open by itself while one is in use) */}

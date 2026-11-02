@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useRouter } from 'next/navigation';
 import { SignaturePad } from '@/features/portal/SignaturePad';
 import { fieldAct } from '@/server/actions/field';

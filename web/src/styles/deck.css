@@ -97,6 +97,13 @@
 .dk-shot--desktop img { object-fit: cover; object-position: top left; max-height: 30rem; }
 .dk-shot--phone { flex: 0 1 12rem; border-radius: 14px; }
 .dk-shot--phone img { object-fit: cover; object-position: top; max-height: 26rem; }
+/* a feature with no screen: how it works, as numbered steps on a dark panel (2026-11-01) */
+.dk-how { background: var(--black); color: var(--white); border-radius: var(--r-2); padding: var(--s-4) var(--s-5); display: grid; align-content: center; gap: var(--s-3); }
+.dk-how__k { font: 600 var(--fs-2xs)/1.2 var(--font-text); letter-spacing: 0.12em; text-transform: uppercase; color: var(--red-400); margin: 0; }
+.dk-how__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); counter-reset: dkhow; }
+.dk-how__list li { counter-increment: dkhow; display: grid; grid-template-columns: 2.4em minmax(0, 1fr); align-items: baseline; gap: var(--s-2); font-size: var(--fs-body); line-height: 1.4; padding-bottom: var(--s-3); border-bottom: 1px solid rgb(255 255 255 / 0.14); }
+.dk-how__list li:last-child { border-bottom: 0; padding-bottom: 0; }
+.dk-how__list li::before { content: counter(dkhow, decimal-leading-zero); font: 800 1.6em/1 var(--font-display); color: var(--red-400); }
 .dk-noshot { display: grid; place-items: center; min-height: 10rem; border: 2px dashed var(--line); border-radius: var(--r-2); color: var(--text-2); font-size: var(--fs-sm); padding: var(--s-4); text-align: center; }
 
 /* charts */
@@ -144,6 +151,10 @@
   .dk-feature { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 3cqi; height: 100%; }
   .dk-feature__words p { font-size: 1.3cqi; }
   .dk-feature__label { font-size: 0.85cqi; }
+  .dk-how { padding: 2.4cqi 2.8cqi; gap: 1.4cqi; align-self: stretch; margin-bottom: 1cqi; }
+  .dk-how__k { font-size: 0.9cqi; }
+  .dk-how__list { gap: 1.2cqi; }
+  .dk-how__list li { font-size: 1.55cqi; padding-bottom: 1.2cqi; gap: 1cqi; }
   .dk-shot--desktop, .dk-shot--desktop img { max-height: 33cqi; }
   .dk-shot--phone { flex-basis: 15cqi; }
   .dk-shot--phone img { max-height: 33cqi; }

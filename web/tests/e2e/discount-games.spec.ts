@@ -495,7 +495,7 @@ test('Admin: Bookings > Leads shows the claims and the report; Settings > Discou
   await page.locator('input[type="password"]').fill(PW);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL((u) => u.pathname.startsWith('/admin'), { timeout: 20_000 });
-  await page.goto('/admin/leads', { waitUntil: 'networkidle' });
+  await page.goto('/admin/renters?tab=leads', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('game-leads')).toContainText('WIN-');
   await expect(page.getByText(/Plays, 30 days/)).toBeVisible();
   await noOverflow(page);

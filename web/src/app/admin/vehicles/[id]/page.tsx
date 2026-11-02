@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { CarCopyPanel, type CarCopyData } from '@/features/seo/CarCopyPanel';
 import '@/features/live/live.css';
 import { CarInterest, type Interest } from '@/features/live/CarInterest';
@@ -12,7 +12,6 @@ import { MasterCalendar, type CalData } from '@/features/admin/MasterCalendar';
 import { rangeFrom } from '@/features/admin/range';
 import { $, Badge, BookingLink, Card, Kv, PageHead, Table, Tabs, t, d, label } from '@/features/admin/ui';
 
-import { TRACKER_SOON } from '@/integrations/tracker/types';
 import { DeleteCar } from '@/features/supply/DeleteCar';
 import { RateCardForm } from '@/features/rates/RateCardForm';
 import { CarLeadTime } from '@/features/rates/LeadTimeEditor';
@@ -219,8 +218,11 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
           {carTerms ? <div className="ad-span-2"><CarTermsTable data={carTerms} paths={refresh} title={`Owner terms${v.owner ? `: ${v.owner.legal_name}` : ''}`} testId="vehicle-terms" />
             {v.owner && <p className="small"><Link prefetch={false} className="link" href={`/admin/owners/${v.owner.id}`}>Every car of this owner</Link></p>}</div>
             : <Card title="Terms"><Kv rows={[['Supplied by', v.supply_type === 'partner' ? v.partner?.business_name ?? '' : v.supply_type === 'program_owner' ? v.owner?.legal_name ?? '' : 'CarmaCars'], ['Schedule', v.schedule ? String(v.schedule.schedule_number ?? '') : 'none'], ['Insurance Fee', $(v.terms?.insurance_fee_cents)], ['Tracker Fee', $(v.terms?.tracker_fee_cents)], ['Management fee (Revenue Share)', v.terms?.revenue_share_bps !== undefined ? `${Number(v.terms?.revenue_share_bps) / 100}%` : '']]} /></Card>}
-          <Card title="Tracker">{v.tracker ? <Kv rows={[['Device', String(v.tracker.device.serial_number ?? '')], ['Last seen', t(v.tracker.device.last_seen_at)], ['Speed', v.tracker.status ? `${String(v.tracker.status.speed_kmh)} km/h` : ''], ['Ignition', v.tracker.status ? (v.tracker.status.ignition_on ? 'on' : 'off') : ''], ['Locked', v.tracker.status ? String(v.tracker.status.locked) : '']]} /> : <p className="small muted">No tracker installed.</p>}
-            <p className="small" data-testid="tracker-coming-soon"><b>Coming soon:</b> {TRACKER_SOON}</p></Card>
+          {/* 0400: the tracker's last report from its hot row; the map, trips and pairing are on Fleet tracking */}
+          <Card title="Tracker" testId="vehicle-tracker">{v.tracker ? <Kv rows={[['Device', String(v.tracker.device.serial_number ?? '')], ['Last report', t(v.tracker.status?.reported_at ?? v.tracker.device.last_seen_at)],
+            ['Speed', v.tracker.status ? `${String(v.tracker.status.speed_kmh)} km/h` : ''], ['Ignition', v.tracker.status ? (v.tracker.status.ignition_on ? 'on' : 'off') : ''],
+            ['Tracker battery', v.tracker.status?.battery_pct != null ? `${String(v.tracker.status.battery_pct)}%` : ''], ['Odometer', v.tracker.status?.odometer_km != null ? `${String(v.tracker.status.odometer_km)} km` : '']]} /> : <p className="small muted">No tracker installed.</p>}
+            <p className="small" data-testid="tracker-link"><Link prefetch={false} className="link" href="/admin/vehicles/tracking">Fleet tracking</Link>: the map, trips, alerts, and pairing a tracker with this car.</p></Card>
           <Card title="Documents"><Table rows={v.documents} empty="No documents." cols={[{ key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
         </div>
       )}

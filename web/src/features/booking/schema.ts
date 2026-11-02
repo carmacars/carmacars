@@ -19,6 +19,8 @@ export const requestShape = z.object({
   returnAt: z.enum(['ours', 'owner', 'delivery', 'airport']).default('ours'), returnAddress: place.default({ label: '', placeId: '' }), returnAirport: z.string().default(''),
   first: z.string().trim().default(''), last: z.string().trim().default(''), email: z.string().trim().default(''), phone: z.string().trim().default(''), ...dobFields,
   drivers: z.array(driverSchema).default([]), referrer: z.string().trim().max(100).default(''),
+  // 0410: "How did you hear about us?" (optional), kept on the booking for the bookings-by-channel report
+  heardAbout: z.enum(['', 'fb_marketplace', 'instagram', 'tiktok', 'facebook', 'google', 'kijiji', 'word_of_mouth', 'repeat', 'other']).catch('').default(''),
   licClass: z.string().default(''), licIssuer: z.string().trim().max(100).default(''),
   coverage: z.string().default(''), bookingType: z.enum(['standard', 'non_refundable']).default('standard'),
   // 0066: add-ons replace the winter tire and baby seat fields (kept so an older saved draft still loads; it is converted)
@@ -36,7 +38,7 @@ export const emptyRequest = (): RequestData => requestShape.parse({});
 /** Which step each field belongs to, so the wizard can check one step at a time. */
 export const STEP_OF: Record<string, number> = {
   car: 1, dates: 1, from: 1, to: 1, tf: 1, tt: 1, pickupAt: 1, pickupAddress: 1, pickupAirport: 1, returnAt: 1, returnAddress: 1, returnAirport: 1,
-  first: 2, last: 2, email: 2, phone: 2, dob: 2, drivers: 2, referrer: 2, notifyChannel: 2,
+  first: 2, last: 2, email: 2, phone: 2, dob: 2, drivers: 2, referrer: 2, heardAbout: 2, notifyChannel: 2,
   licClass: 3, licIssuer: 3, coverage: 3, bookingType: 3, notes: 3, addons: 4, winter: 4, babySeats: 4, agree: 5, marketing: 5, promo: 5
 };
 
@@ -122,3 +124,7 @@ export function requestSchema(r: RequestRules, ctx: { todayIso: string; nowMinut
 }
 
 export { nonRefAllowed } from './nonref';
+
+/** The answers to "How did you hear about us?" (app.heard_about_options of 0410), in the order the form lists them. */
+export const HEARD_ABOUT: Array<[RequestData['heardAbout'], string]> = [['fb_marketplace', 'Facebook Marketplace'], ['instagram', 'Instagram'], ['tiktok', 'TikTok'], ['facebook', 'Facebook'],
+  ['google', 'Google'], ['kijiji', 'Kijiji'], ['word_of_mouth', 'A friend or family'], ['repeat', 'I rented before'], ['other', 'Somewhere else']];

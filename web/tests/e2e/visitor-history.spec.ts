@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { db, noOverflow } from './helpers';
+import { db, noOverflow, pickRange } from './helpers';
 
 // Migration 0118 end to end, at 375 and 1440: a visitor who accepted analytics views three pages and sends a booking
 // request; two hours later (the visit is made two hours old) the visitor job works out its summary and the day's
@@ -93,7 +93,8 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     await expect(page.getByRole('heading', { level: 1, name: 'Visitors' })).toBeVisible();
     await expect(page.getByTestId('vs-tab-history')).toHaveAttribute('aria-current', 'page');
     await expect(page.getByTestId('vh-intro')).toContainText('worked out 30 minutes after it ends');
-    await expect(page.locator('.ad-tile').filter({ hasText: 'Visits' }).first()).toBeVisible();
+    await expect(page.getByTestId('vh-summary')).toContainText('visits');
+    await page.getByText('Day by day and top pages').click();
     await expect(page.getByTestId('vh-chart')).toBeVisible();
     // the top pages: the day's rollup counts this visit's /faq (or the day already has its 20 pages, as a full run of
     // the tests does); the card shows the dates' first pages, which the other tests' visits of the day decide
@@ -101,8 +102,8 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
       select exists (select 1 from visitor_daily_top t, d where t.day = d.day and t.dim = 'page' and t.key = '/faq' and t.n >= 1)
           or (select count(*) from visitor_daily_top t, d where t.day = d.day and t.dim = 'page') = 20 as ok`;
     expect(faq!.ok, '/faq in the day\'s top pages').toBe(true);
-    const from = await page.locator('#vh-from').inputValue();
-    const to = await page.locator('#vh-to').inputValue();
+    const from = await page.locator('input[name="from"]').inputValue();
+    const to = await page.locator('input[name="to"]').inputValue();
     const [top] = await sql`select app.visitor_history_summary(${from}::date, ${to}::date) -> 'top' -> 'page' -> 0 ->> 'key' as key`;
     expect(top!.key).toBeTruthy();
     await expect(page.getByTestId('vh-top-pages')).toContainText(`(${top!.key})`);
@@ -111,6 +112,27 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     await expect(row).toContainText('Request sent');
     await expect(row).toContainText('Kingston');
     await check(page, 'visitor history');
+    // the date range picker is the public booking calendar: it opens, is axe clean at this width, closes with Escape, and picking
+    // two days sends the form with them in the address
+    await page.getByRole('button', { name: /Dates/ }).click();
+    await expect(page.getByRole('dialog', { name: /Choose dates/ })).toBeVisible();
+    await check(page, 'visitor history date picker');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: /Choose dates/ })).toBeHidden();
+    const dayBefore = new Date(Date.parse(`${to}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+    await pickRange(page, 'Dates', { from: dayBefore, to });
+    await page.waitForURL((u) => u.searchParams.get('from') === dayBefore && u.searchParams.get('to') === to);
+    // the quick ranges: pressing 7 days sets the dates in the address and the page keeps its scroll
+    await page.evaluate(() => window.scrollTo(0, 240));
+    const y0 = await page.evaluate(() => window.scrollY);
+    await page.getByTestId('qr-7').click();
+    await page.waitForURL(/from=\d{4}-\d{2}-\d{2}&to=\d{4}-\d{2}-\d{2}/);
+    await expect(page.getByTestId('qr-7')).toHaveAttribute('aria-current', 'true');
+    expect(Math.abs((await page.evaluate(() => window.scrollY)) - y0)).toBeLessThan(40);
+    await page.getByTestId('qr-30').click();
+    await page.waitForURL((u) => u.searchParams.get('from') !== null && u.searchParams.get('to') !== null);
+    await expect(page.getByTestId('qr-30')).toHaveAttribute('aria-current', 'true');
+    await page.goto(`/admin/visitors?view=history&from=${from}&to=${to}`, { waitUntil: 'networkidle' });
 
     // the filters: its device keeps it, "a booking confirmed" does not
     const [dv] = await sql`select device from visitor_sessions where id = ${sid}`;
@@ -130,6 +152,7 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     await page.waitForURL(/converted=request/);
 
     // the visit in full
+    await page.getByTestId('vh-row').filter({ has: page.locator(`a[href="/admin/live/history/${sid}"]`) }).locator('.vh-row__main').click();
     await page.locator(`a[href="/admin/live/history/${sid}"]`).click();
     await page.waitForURL(`**/admin/live/history/${sid}`);
     await expect(page.getByTestId('vh-visit')).toContainText('Request sent');

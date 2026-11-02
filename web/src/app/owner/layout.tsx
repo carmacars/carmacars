@@ -1,6 +1,7 @@
 import '@/styles/portal.css';
 import '@/styles/owner.css';
 import '@/components/portal-ui/portal-ui.css';
+import '@/styles/portal-revamp.css';
 import { rpc } from '@/lib/db/repo';
 import { OwnerNav } from '@/features/owner/OwnerNav';
 import { currentUser } from '@/server/portal/data';
@@ -18,7 +19,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
     rpc('partner_agreement_state', { p_by: user.id }, { role: 'service_role' }).then((r) => !!r).catch(() => false)
   ]);
   return (
-    <div className="pt pt--lux">
+    <div className="pt pt--lux pt--rv">
       <div className="wrap pt__top">
         <div className="pt__hello">
           <p className="small muted">{partner ? 'Partner portal' : 'Owner portal'} · <b data-testid="account-email">{user.email}</b></p>

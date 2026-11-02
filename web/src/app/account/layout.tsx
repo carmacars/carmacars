@@ -1,5 +1,6 @@
 import '@/styles/portal.css';
 import '@/components/portal-ui/portal-ui.css';
+import '@/styles/portal-revamp.css';
 import { rpc } from '@/lib/db/repo';
 import { PortalNav } from '@/features/portal/PortalNav';
 import { currentUser } from '@/server/portal/data';
@@ -18,7 +19,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
     viewAs()
   ]);
   return (
-    <div className="pt pt--lux pt--renter">
+    <div className="pt pt--lux pt--rv pt--renter">
       <div className="wrap pt__top">
         <div className="pt__hello">
           <p className="small muted">{v ? 'Viewing as' : 'Signed in as'} <b data-testid="account-email">{user.email}</b></p>

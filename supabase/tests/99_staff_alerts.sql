@@ -62,20 +62,20 @@ select test.eq('push: an Admin who turned the topic off still has the line in th
 select test.mk_owner('sta_owner');
 select test.mk_vehicle('sta_car', 'sta_owner');
 select test.mk_booking('CC-SA001', 'sta_car', 'sta_rita', '2031-03-01 10:00', '2031-03-03 10:00', 'closed');
-select app.sta_booking_alert(b) from bookings b where booking_number = 'CC-SA001';
+select app.sa_booking_alert(b) from bookings b where booking_number = 'CC-SA001';
 select test.mk_booking('CC-SA003', 'sta_car', 'sta_rita', '2031-05-01 10:00', '2031-05-03 10:00', 'on_rent');
-select app.sta_booking_alert(b) from bookings b where booking_number = 'CC-SA003';
+select app.sa_booking_alert(b) from bookings b where booking_number = 'CC-SA003';
 select test.mk_booking('CC-SA004', 'sta_car', 'sta_rita', '2031-06-01 10:00', '2031-06-03 10:00', 'returned');
-select app.sta_booking_alert(b) from bookings b where booking_number = 'CC-SA004';
+select app.sa_booking_alert(b) from bookings b where booking_number = 'CC-SA004';
 select app.process_events(1000);
 select test.eq('booking steps: car out and back (Admin and fleet on duty), closed (digest), each naming the booking, car and renter',
   test.sta_who('staff_alert_normal', 'Car going out: CC-SA003%') || '/' || test.sta_who('staff_alert_normal', 'Car back: CC-SA004%') || '/' || test.sta_who('staff_alert_digest', 'Booking closed: CC-SA001%'),
   'sta_admin,sta_fleet/sta_admin,sta_fleet/sta_admin');
 
 select test.eq('the line names the renter and links the booking',
-  (select title || ' | ' || url from notifications where user_id = test.id('sta_admin') and title like 'Car going out: CC-SA003%') ~ 'CC-SA003, .*, Sa Rita \| .*/admin/bookings/CC-SA003$', true);
+  (select title || ' | ' || url from notifications where user_id = test.id('sta_admin') and title like 'Car going out: CC-SA003%') ~ 'CC-SA003, .*, Sta Rita \| .*/admin/bookings/CC-SA003$', true);
 select test.mk_booking('CC-SA002', 'sta_car', 'sta_rita', '2031-04-01 10:00', '2031-04-03 10:00', 'no_show');
-select app.sta_booking_alert(b) from bookings b where booking_number = 'CC-SA002';
+select app.sa_booking_alert(b) from bookings b where booking_number = 'CC-SA002';
 select app.process_events(1000);
 select test.eq('no-show is urgent', test.sta_who('staff_alert_urgent', 'No-show: CC-SA002%'), 'sta_admin,sta_fleet');
 -- money: only over the threshold, a refund when paid
@@ -115,6 +115,43 @@ select test.eq('the brief and wrap are built from the day''s counts at 8 and 21 
   (select count(*) from app_events where code in ('staff_alert_normal', 'staff_alert_urgent', 'staff_alert_digest') and payload ->> 'rule' in ('morning_brief_admin', 'evening_wrap') and created_at > now() - interval '1 minute')
   = case when app.local_hour(now()) in (8, 21) then 1 else 0 end, true);
 
+-- 0464: the tracker, the AI interview and the data health meet the rule table
+
+select app.tracker_alert('speeding', null, test.id('vehicle:sta_car'), null, now(), 43.7, -79.4, 160, 'Speeding: sta car', 'detail', 'sta:speed1');
+select app.tracker_alert('left_zone', null, test.id('vehicle:sta_car'), null, now(), 43.7, -79.4, 50, 'Left the zone: sta car', 'detail', 'sta:zone1');
+select app.process_events(1000);
+update staff_alert_rules set enabled = false where rule = 'tracker_zone';
+select app.tracker_alert('left_ontario', null, test.id('vehicle:sta_car'), null, now(), 43.7, -79.4, 50, 'Left Ontario: sta car', 'detail', 'sta:ont1');
+select app.process_events(1000);
+select test.eq('tracker: speeding reaches the Admin and fleet staff as before (urgent, topic alerts)',
+  (select count(distinct n.user_id) from notifications n where n.code in ('staff_tracker_alert', 'staff_tracker_alert_fleet') and n.title = 'Speeding: sta car' and n.body = 'detail'
+     and n.user_id in (test.id('sta_admin'), test.id('sta_fleet'))), 2::bigint);
+select test.eq('tracker: a rule that is on still sends', (select count(*) > 0 from notifications where code in ('staff_tracker_alert', 'staff_tracker_alert_fleet') and title like 'Left the zone: sta car%'), true);
+select test.eq('tracker: the rule turned off makes no notice for its kinds (the zone and Ontario)', (select count(*) from notifications where code in ('staff_tracker_alert', 'staff_tracker_alert_fleet') and title like 'Left Ontario: sta car%'), 0::bigint);
+update staff_alert_rules set enabled = true where rule = 'tracker_zone';
+select test.eq('tracker: every kind has a wired rule', (select count(*) from staff_alert_rules where rule like 'tracker\_%' and wired), 5::bigint);
+select test.eq('data health: its nightly notice also reaches the phone (topic alerts)', (select push_topic from notification_catalogue where code = 'staff_data_health'), 'alerts');
+insert into job_applications (role_id, status, full_name, email) select id, 'interviewed', 'Sta Applicant', 'sta_applicant@example.test' from hiring_roles where slug = 'va-customer-service';
+insert into ai_interviews (application_id, role_id, questions, state, expires_at, interview_score, recommendation)
+  select a.id, a.role_id, '[]'::jsonb, 'submitted', now() + interval '3 days', 72, 'live_call' from job_applications a where a.email = 'sta_applicant@example.test';
+update ai_interviews set state = 'scored' where application_id = (select id from job_applications where email = 'sta_applicant@example.test');
+select app.process_events(1000);
+select test.eq('interview scored: one normal alert to the Admin, with the score and the suggestion',
+  (select string_agg(n.body, '|') from notifications n join users u on u.id = n.user_id where n.code = 'staff_alert_normal' and n.title = 'AI interview scored: Sta Applicant' and u.email = 'sta_admin@example.test'),
+  '72 of 100, suggests a live call.');
+
+select app.request_account_deletion(test.id('sta_rita'), 'moving away');
+select app.process_events(1000);
+select test.eq('delete my account: an urgent alert to the Admin with the reason',
+  (select string_agg(n.title || ' / ' || n.body, '|') from notifications n where n.code = 'staff_alert_urgent' and n.user_id = test.id('sta_admin') and n.title like 'Account deletion asked:%'),
+  'Account deletion asked: Sta Rita / moving away. Settle anything open, reply within 30 days.');
+
+insert into academy_attempts (user_id, section_id, correct, total, score_bps, passed)
+  select test.id('sta_field'), s.id, 9, 10, 9000, true from academy_sections s order by s.slug limit 1;
+select app.process_events(1000);
+select test.eq('academy: a passed quiz is a line of the Admin digest, never a push',
+  (select count(*) from staff_digest_items where line like 'Quiz passed: %' and line like '%Field%') || '/' || (select count(*) from notifications where code = 'staff_alert_digest' and user_id = test.id('sta_admin') and title like 'Quiz passed:%'), '1/1');
+
 -- clean up
 delete from push_outbox where user_id in (select id from users where email like 'sta\_%@example.test');
 delete from push_subscriptions where endpoint like '%/sta\_%';
@@ -127,3 +164,11 @@ delete from field_jobs where id = test.id('sta_job');
 delete from reviews where id = test.id('sta_rev2');
 delete from chat_staff_prefs where user_id in (select id from users where email like 'sta\_%@example.test' or email = 'verify-sa-fleet@carmacars.ca');
 update program_settings p set alert_money_threshold_cents = s.alert_money_threshold_cents, alert_escalate_minutes = s.alert_escalate_minutes from sta_s s where s.id = p.id;
+delete from push_outbox where notification_id in (select id from notifications where code in ('staff_tracker_alert', 'staff_tracker_alert_fleet'));
+delete from notifications where code in ('staff_tracker_alert', 'staff_tracker_alert_fleet');
+delete from app_events where code in ('staff_tracker_alert', 'staff_tracker_alert_fleet');
+delete from tracker_alerts where dedupe_key like 'sta:%';
+delete from job_applications where email = 'sta_applicant@example.test';
+delete from tasks where task_type = 'account_deletion' and related_table = 'account_deletion_requests' and related_id in (select id from account_deletion_requests where user_id = test.id('sta_rita'));
+delete from account_deletion_requests where user_id = test.id('sta_rita');
+delete from academy_attempts where user_id = test.id('sta_field');

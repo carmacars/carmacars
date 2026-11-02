@@ -38,7 +38,16 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       { id: 'phone-sign-in', title: 'Sign in with a phone number', what: 'Renters and owners can sign in or open an account with their mobile number and a one-time code by text, no password to remember. The account\'s phone then fills the booking form.',
         why: 'Fewer forgotten passwords and abandoned sign-ins, and a verified phone number on every account that uses it.',
         points: ['Type the mobile number and get a code by text', 'Enter the code: signed in, or a new account opened', 'Limits on codes per number and per network stop abuse', 'The phone is remembered as this device\'s way to sign in'],
-        shots: [d('phone-sign-in.jpg', 'Sign in with a mobile number'), d('phone-sign-in-code.jpg', 'Entering the code texted to the phone')] }
+        shots: [d('phone-sign-in.jpg', 'Sign in with a mobile number'), d('phone-sign-in-code.jpg', 'Entering the code texted to the phone')] },
+      { id: 'walkthrough', title: 'The rental walkthrough, step by step', what: 'Each booking has a guided walkthrough with a ring of steps done: before pickup (licence, agreement, payment, the deposit hold on the morning of pickup, what to bring), at pickup (where we meet, the walk-around with every side photographed and the condition report signed on the phone), on the road (kilometres, fuel, tolls, what to do if something goes wrong) and the return. Field staff see how far the renter got.',
+        why: 'Renters arrive ready, handovers are shorter, and the steps that protect the car (licence, signature, photos) are done before the keys change hands.',
+        points: ['The step to do now first, with its button', 'Steps are marked done from the records, not ticked by hand', 'The photo report of pickup and return on the phone', 'Field staff see "read 2 of 6 steps" on the job'] },
+      { id: 'rewards', title: 'CarmaCars Rewards', what: 'A loyalty program on by default: points for every dollar of rental, referrals, reviews, a damage-free return, following our socials, the first rental and birthdays. Silver and Gold tiers by rental days bring a discount, and points turn into a code of the renter\'s own.',
+        why: 'Repeat renters cost nothing to find, and the program rewards exactly what protects the fleet: careful drivers, on-time returns and reviews.',
+        points: ['Points on the rental charge after discounts, never on fees or the deposit', 'Silver and Gold tiers by rental days in 12 months', '100 points make $1, redeemed as a code that ends after 90 days', 'Points expire 12 months after the last activity, with a reminder first'] },
+      { id: 'calendar-wallet', title: 'Add to calendar and Apple Wallet', what: 'The confirmation email adds pickup and return to the renter\'s calendar with the address, and the booking can be added to Apple Wallet with its number, car and times.',
+        why: 'A renter who has the pickup in their calendar and their phone wallet shows up on time.',
+        points: ['Pickup and return as two calendar events with the address', 'The booking as a Wallet pass', 'Only while the booking is confirmed or on rent'] }
     ]
   },
   {
@@ -60,7 +69,10 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       { id: 'owner-signing', title: 'Agreements and official forms, signed online', what: 'The enrollment agreement, vehicle schedules and the ServiceOntario forms are generated from the records, filled in and signed online.',
         why: 'Onboarding a car takes days, not weeks, and every document is consistent.', shots: [d('owner-official-form.jpg', 'An official form filled from the records')] },
       { id: 'payouts', title: 'Payouts to the owner\'s bank', what: 'Owners enter their payout account once. The account number is encrypted and verified by an Admin before the first payout.',
-        why: 'Owners are paid reliably, and banking details are protected.', shots: [d('owner-banking.jpg', 'Owner banking details')] }
+        why: 'Owners are paid reliably, and banking details are protected.', shots: [d('owner-banking.jpg', 'Owner banking details')] },
+      { id: 'flat-pay', title: 'Revenue share or a flat monthly payment', what: 'Each car works on revenue share terms, or, by agreement, on a flat monthly payment per car from CarmaCars with no split and no insurance fee, under its own set of agreements. The statements and payouts follow each car\'s arrangement, with its history.',
+        why: 'More owners say yes when they can choose the deal that suits them, and every arrangement is on record car by car.',
+        points: ['Revenue share or a flat amount a month, car by car', 'Its own signed agreements', 'Statements and payouts follow the arrangement in force each day'] }
     ]
   },
   {
@@ -75,7 +87,7 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
   },
   {
     id: 'staff', kicker: 'For our team', title: 'A small team runs a large fleet',
-    intro: 'Customer service, fleet, finance and sales each have their own workspace, and field staff have a phone app for handovers. Work arrives as queues with targets, so nothing is forgotten.',
+    intro: 'One staff portal for every kind of work: customer service, fleet, finance, sales and field work, each person with the functions they hold. Work arrives as queues with targets, so nothing is forgotten, and every function has its own training path.',
     features: [
       { id: 'cs-queue', title: 'Customer service: one queue, clear targets', what: 'The assistant\'s home shows the next task to do, then lanes (booking requests, renter messages, texts and calls, live chat, offers out) with a live timer against the first reply target, red once it is late. Requests, messages and tasks in one place, most urgent first.',
         why: 'Fast replies win bookings. A queue makes sure every renter gets an answer.', shots: [d('cs-queue.jpg', 'The customer service queue')] },
@@ -96,7 +108,19 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       { id: 'sales', title: 'Sales: a scorecard and commission tiers', what: 'Staff mark the rentals they sourced. Each person sees their week against the targets and their progress to the next commission tier.',
         why: 'Sales is paid on results, so growth pays for itself.', shots: [d('sales-scorecard.jpg', 'The sales scorecard')] },
       { id: 'field', title: 'The field app: a handover step by step', what: 'Built for one hand outside: the next job as one card with the time, the plate, a map link and a call button, then the handover in order: the renter, licence check, card, odometer, fuel, keys, photos of every side, damage and signatures. The renter\'s licence can be reviewed on the spot. Answers are kept on the phone when the signal drops. The report is stored with the booking.',
-        why: 'A complete record at every handover settles damage questions with evidence.', shots: [p('field-job.jpg', 'Field app: the next job'), p('field-renter.jpg', 'Field handover: the renter'), p('field-photos.jpg', 'Field handover: photos of the car'), p('field-signatures.jpg', 'Field handover: signatures')] }
+        why: 'A complete record at every handover settles damage questions with evidence.', shots: [p('field-job.jpg', 'Field app: the next job'), p('field-renter.jpg', 'Field handover: the renter'), p('field-photos.jpg', 'Field handover: photos of the car'), p('field-signatures.jpg', 'Field handover: signatures')] },
+      { id: 'one-portal', title: 'One staff portal, any mix of functions', what: 'Every staff member signs in to one portal and sees the work of the functions they hold: a salesperson who also does handovers has requests, offers and their field jobs in one place. Each function keeps its own permissions.',
+        why: 'People can grow into more work without new accounts or new tools, and each person sees only what their work needs.',
+        points: ['Customer service, fleet, finance, sales and field work in one portal', 'A switcher for people with two or more functions', 'Permissions follow the functions held', 'Hiring gives a new person the role\'s functions at once'] },
+      { id: 'academy', title: 'The training academy', what: 'A training path per function, made of short narrated lessons and a quiz per section, graded by the platform. A section passed opens the next. Objections are practised as chat scenes: the renter\'s words and ours.',
+        why: 'New staff learn the policies and the screens before they talk to renters, and the Admin sees each person\'s progress.',
+        points: ['Paths for customer service, fleet, finance, sales, field work and Admin', 'Narrated lessons with captions, made in the browser', 'Quizzes graded by the platform; a pass opens the next section', 'Progress per person for the Admin'] },
+      { id: 'card-reader', title: 'Card payments at the car and at the desk', what: 'From the booking, staff send a charge or a deposit hold to the CarmaCars card reader, record a card payment taken another way, or take cash. Every payment lands on the booking.',
+        why: 'Money taken in person is recorded the same way as money taken online, so nothing is missed when the deposit is settled.',
+        points: ['Charge or hold the deposit on the card reader from the booking', 'Card payments taken outside the site recorded in a few clicks', 'Credit card by default for deposits', 'Each payment tied to the booking and its agreement'] },
+      { id: 'insurers', title: 'Insurance replacement rentals', what: 'Rentals paid by an insurance company: the insurer and adjuster on the booking, the rate sheet by insurer and car class, the extra fees insurers pay, invoices to the right adjuster and what each insurer has been billed.',
+        why: 'Insurer rentals often run for weeks, and billing them correctly by adjuster gets them paid.',
+        points: ['A rate sheet by insurer and car class', 'Adjusters per insurer, the billing contact per booking', 'Invoices and what each insurer owes', 'Rentals longer than 30 days'] }
     ]
   },
   {
@@ -124,12 +148,21 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       { id: 'access', title: 'Portals, roles and View as', what: 'One sign-in for every portal a person has. Two-step sign-in for staff. An Admin can open any portal as one of its people to see exactly what they see, without acting for them.',
         why: 'Support is fast, and every person sees only what is theirs.', shots: [d('admin-view-as.jpg', 'View as, from the Admin portal')] },
       { id: 'settings', title: 'Every rule in one place', what: 'Fees, deposits, limits, timings, emails and features are settings, changed by an Admin without new code. Every change is in the audit log.',
-        why: 'The business can change a rule in minutes, and every change is on record.', shots: [d('admin-settings.jpg', 'Program settings')] }
+        why: 'The business can change a rule in minutes, and every change is on record.', shots: [d('admin-settings.jpg', 'Program settings')] },
+      { id: 'esign', title: 'E-signatures everywhere, with an audit trail', what: 'Every signature on the site, rental, owner and staff agreements alike, uses the same flow: the document on screen, the key terms initialled, the consents, a drawn or typed signature, and a certificate of completion with the time and the device behind it. Staff can collect a signature on the spot on their own device.',
+        why: 'One strong signing process for every document, with the evidence on file if it is ever questioned.',
+        points: ['The same signing flow for renters, owners and staff', 'Key terms initialled and consents ticked', 'A certificate of completion on every signed copy', 'Signing on the spot on a staff device'] },
+      { id: 'alerts', title: 'Phone and browser alerts', what: 'The site can be installed on a phone like an app, and every portal sends alerts to the phone or browser for what needs the person: a new request, an offer answered, a payment, a job assigned.',
+        why: 'Staff answer faster without watching a screen, and the same alerts carry over to the store apps when they come.',
+        points: ['Installable on a phone\'s home screen', 'Alerts for every portal', 'The same send path the native apps will use'] },
+      { id: 'live-map', title: 'The live map', what: 'A map of the region for a screen in the office: people on the site, requests, bookings and cars on rent as dots by stage, with the hottest lead and a live feed of what is happening. It is built to show every car\'s road position once the trackers report.',
+        why: 'The whole team sees demand as it happens, and the hottest leads get called first.',
+        points: ['Leads by stage on a real map of the region', 'The hottest lead and a live feed', 'A TV mode for the office', 'Ready for the cars\' positions from the trackers'] }
     ]
   },
   {
     id: 'growth', kicker: 'Growth and marketing', title: 'Built to be found, and to turn visitors into renters',
-    intro: 'Search pages, live chat, buying signals, games and recovery emails bring visitors in and bring them back.',
+    intro: 'Search pages, listings on other sites and Marketplace, live chat, buying signals, games and recovery emails bring visitors in and bring them back. Owner recruitment follows up by itself.',
     features: [
       { id: 'seo', title: 'Search pages for every model and need', what: 'Model pages, landing pages for areas and needs (airport, weekly, young drivers and more) and guide articles, each kept fresh with the cars and prices available. New pages are sent to search engines at once.',
         why: 'Renters searching in Toronto and the GTA find CarmaCars without paying for every click.', shots: [d('landing.jpg', 'A landing page for car rental')] },
@@ -154,7 +187,16 @@ export const FEATURE_GROUPS: FeatureGroup[] = [
       { id: 'partners', title: 'Partner fleets and chauffeur service', what: 'Partner rental companies list their whole fleets on CarmaCars. A partner rental fleet\'s exotic and luxury cars are on the site with their own pages, and a chauffeur service books a driver and a luxury car or van by the hour.',
         why: 'More cars and a new hourly service to sell without buying a single car, and every booking earns a kickback on the partner\'s listed rates, plus our own fees.',
         points: ['Partner rental companies list their fleets on CarmaCars, and we earn a kickback on their listed rates plus our own fees', 'Exotic and luxury cars from partners, each with its own page and request to book', 'An hourly chauffeur service: a professional driver and a luxury car or van, two hours minimum', 'A partner can connect its own CRM, which sees our cars and availability', 'Referral partners such as body shops and tow companies send renters through a private link, a QR code and a flyer, and are paid per rental that follows'],
-        shots: [d('partner-car.jpg', 'A partner rental fleet\'s car page with its badges and rates'), d('chauffeur.jpg', 'The chauffeur service page with its vehicles and hourly rates')] }
+        shots: [d('partner-car.jpg', 'A partner rental fleet\'s car page with its badges and rates'), d('chauffeur.jpg', 'The chauffeur service page with its vehicles and hourly rates')] },
+      { id: 'channels', title: 'Our cars on other rental sites', what: 'A checklist of the rental sites, directories and catalogs that matter in Canada, each with its status and its own feed of our cars (JSON, CSV and a vehicle-listings feed), with tracked links back to each car\'s page.',
+        why: 'Every site that lists our cars is another place renters find us, and every request they send is counted by channel.',
+        points: ['Feeds of our own and co-hosted cars, never a partner\'s', 'A tracked link per channel', 'Bookings counted by the channel they came from'] },
+      { id: 'marketplace', title: 'Facebook Marketplace kits', what: 'For every car, a ready Marketplace listing: each field of the form, a description in Marketplace style, the best photos in order and a tracked link, with a light daily rotation of posts and renewals and the replies for every common question. Each phone number collected becomes a lead with a call-back task.',
+        why: 'Marketplace brings renters by the hundred. The kits keep the listings current and turn the messages into phone calls and requests.',
+        points: ['A kit per car with today\'s prices', 'A few posts and renewals a day, to stay clear of spam flags', 'Replies that lead to a request or a phone call', 'Leads counted by tracked links and "How did you hear about us?"'] },
+      { id: 'owner-pipeline', title: 'Owner recruitment that follows up by itself', what: 'One pipeline for every prospective car owner, from the website, an owner\'s referral link, classified ads and leads added by hand, with stages from new to car onboarded and follow-ups sent on set days. Sales staff can bring owners in too.',
+        why: 'More owners means more cars without capital, and no prospective owner is forgotten.',
+        points: ['Every owner lead in one pipeline', 'Follow-ups on day 0, 2, 5 and 10', 'Stages that follow the owner\'s own records', 'Consent kept for every message'] }
     ]
   }
 ];

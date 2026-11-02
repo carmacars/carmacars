@@ -3,6 +3,7 @@ import { useId, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Act } from '@/features/admin/Act';
 import { guidedAct } from '@/server/actions/guided';
+import { DateInput } from '@/components/DateInput';
 
 // Insurer confirmed (migration 0078): the car goes on the fleet insurance policy from the date of the insurer's written
 // confirmation. Its onboarding moves past the insurer step, the Enrollment Date is set and the owner gets the enrollment
@@ -52,7 +53,7 @@ export function InsurerBulk({ cars, refresh = [] }: { cars: Array<{ vehicle_id: 
           </fieldset>
           <div className="ad-fields">
             <div className="field ad-field"><label className="label" htmlFor={`${idp}-on`}>Date the insurer confirmed them</label>
-              <input className="input" id={`${idp}-on`} type="date" value={on} max={today()} onChange={(e) => setOn(e.target.value)} required /></div>
+              <DateInput className="input" id={`${idp}-on`} type="date" value={on} max={today()} onChange={(e) => setOn(e.target.value)} required /></div>
             <div className="field ad-field"><label className="label" htmlFor={`${idp}-note`}>Reference (optional)</label>
               <input className="input" id={`${idp}-note`} value={note} onChange={(e) => setNote(e.target.value)} /></div>
           </div>

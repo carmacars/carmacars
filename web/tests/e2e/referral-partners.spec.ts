@@ -92,6 +92,14 @@ test('a body shop signs up, an Admin approves it, the link, flyer and private pa
   await pp.goto(portal, { waitUntil: 'networkidle' });
   await expect(pp.getByTestId('portal-code')).toHaveText(code);
   await expect(pp.getByTestId('portal-totals')).toBeVisible();
+  // r27 portals: the totals in the dark band first, Copy for the link and the code, no sideways scroll at 375 and 1440
+  await expect(pp.getByTestId('portal-totals')).toContainText('Referred rentals');
+  await expect(pp.getByRole('button', { name: 'Copy the link' })).toBeVisible();
+  for (const w of [375, 1440]) {
+    await pp.setViewportSize({ width: w, height: 900 });
+    expect(await pp.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `partner page ${w}`).toBeLessThanOrEqual(0);
+    await axe(pp, `partner page ${w}`);
+  }
   const bad = await pp.goto(portal.replace(/[^/]+$/, 'x'.repeat(40)));
   expect(bad?.status()).toBe(404);
   await ctx.close();

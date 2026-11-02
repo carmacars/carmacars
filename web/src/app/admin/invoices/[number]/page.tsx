@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { money } from '@/lib/format';
@@ -39,10 +39,10 @@ export default async function AdminInvoice({ params, searchParams }: { params: P
   if (!i) notFound();
   const facts = await door<{ hst_bps: number }>(user.id, 'ops_read', 'owner_add_car_facts', {});
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-  const paths = [`/admin/owners/${i.owner_id}`, '/admin/invoices'];
+  const paths = [`/admin/owners/${i.owner_id}`, '/admin/owner-money'];
   return (
     <>
-      <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/invoices">Owner invoices</Link> · <Link prefetch={false} className="link" href={`/admin/owners/${i.owner_id}?tab=invoices`}>{i.owner_name}</Link></>}
+      <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/owner-money?tab=invoices">Owner invoices</Link> · <Link prefetch={false} className="link" href={`/admin/owners/${i.owner_id}?tab=invoices`}>{i.owner_name}</Link></>}
         title={`${i.invoice_number}: ${invoiceWhat(i)}`}>
         <Badge s={i.partly_paid ? 'sent' : INVOICE_BADGE[i.status] ?? i.status}>{statusText(i.status, i.partly_paid, i.from_statement)}</Badge>
       </PageHead>

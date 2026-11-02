@@ -1,9 +1,10 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { calendarAct, type CalendarAction } from '@/server/actions/calendar-sync';
 import { torontoToUtc } from '@/features/turo/email';
+import { DateInput } from '@/components/DateInput';
 
 // Turo by email on Calendar sync (migrations 0063, 0088). Turo has no calendar link, so:
 //   in:  Turo's trip emails block the car. No setup per car: each email is matched to a car by itself (the Turo car id,
@@ -75,9 +76,9 @@ export function TripForm({ cars, carId, email, initial, onDone }: { cars?: Array
           <select className="select" id={`tc-${id}`} required value={vehicle} onChange={(e) => setVehicle(e.target.value)}>
             <option value="">Choose the car</option>{cars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
         <div className="field"><label className="label" htmlFor={`tf-${id}`}>Trip start (Toronto time)</label>
-          <input className="input" id={`tf-${id}`} type="datetime-local" required value={from} onChange={(e) => setFrom(e.target.value)} /></div>
+          <DateInput className="input" id={`tf-${id}`} type="datetime-local" required value={from} onChange={(e) => setFrom(e.target.value)} /></div>
         <div className="field"><label className="label" htmlFor={`tt-${id}`}>Trip end</label>
-          <input className="input" id={`tt-${id}`} type="datetime-local" required value={to} onChange={(e) => setTo(e.target.value)} /></div>
+          <DateInput className="input" id={`tt-${id}`} type="datetime-local" required value={to} onChange={(e) => setTo(e.target.value)} /></div>
         <div className="field"><label className="label" htmlFor={`tn-${id}`}>Turo trip number (optional)</label>
           <input className="input" id={`tn-${id}`} inputMode="numeric" maxLength={20} value={trip} onChange={(e) => setTrip(e.target.value)} placeholder="48211907" /></div>
         <div className="field"><label className="label" htmlFor={`tg-${id}`}>Guest first name (optional)</label>

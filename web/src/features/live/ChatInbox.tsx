@@ -1,7 +1,7 @@
 'use client';
 import { SkeletonLines } from '@/components/Skeleton';
 import './live.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { agoWords, aiPausedText, clock, closedWords, EVENT_WORDS, liveDo, liveRead, newWaitingMessages, seenFrom, STATUS_WORDS, type ChatMsg, type ChatRow, type Inbox, type Thread } from './staff';
 import { poller } from '@/lib/poll/poll';

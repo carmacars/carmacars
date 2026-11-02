@@ -5,6 +5,7 @@ import { useAct } from '@/features/portal/useAct';
 import { money } from '@/lib/format';
 import type { ActionResult } from '@/features/forms/schemas';
 import { recordManualPayment, recordPaperSignature, voidManualPayment, voidPaperSignature } from '@/server/actions/manual-records';
+import { DateInput } from '@/components/DateInput';
 
 // Payments received another way and signatures on paper (migration 0044): the forms Admins and staff use on the owner,
 // invoice, booking, investor and staff screens, and the lists of what was recorded, each with its undo (void, with a reason).
@@ -55,7 +56,7 @@ export function ManualPaymentForm({ invoice, booking, number, balance, today, re
         <Field id={id('m')} label="Paid by" err={a.err('method')}>
           <select className="select" id={id('m')} name="method" value={method} onChange={(e) => setMethod(e.target.value)}>{METHODS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         </Field>
-        <Field id={id('on')} label="Date received" err={a.err('received_on')}><input className="input" id={id('on')} name="received_on" type="date" defaultValue={today} max={today} aria-describedby={desc('on')} /></Field>
+        <Field id={id('on')} label="Date received" err={a.err('received_on')}><DateInput className="input" id={id('on')} name="received_on" type="date" defaultValue={today} max={today} aria-describedby={desc('on')} /></Field>
       </div>
       <div className="field-row">
         <Field id={id('ref')} label={method === 'cheque' ? 'Cheque number' : 'Reference'} err={a.err('reference')} hint={REF_HINT[method]}><input className="input" id={id('ref')} name="reference" aria-describedby={desc('ref', true)} /></Field>
@@ -132,7 +133,7 @@ export function PaperSignatureForm({ docs, today, refresh = [], label = 'Record 
         : <p className="small"><b>{doc.label}</b></p>}
       <div className="field-row">
         <Field id={id('who')} label="Signed by" err={a.err('signer_name')}><input key={`who-${pick}`} className="input" id={id('who')} name="signer_name" defaultValue={doc.signer ?? ''} autoComplete="off" /></Field>
-        <Field id={id('on')} label="Date signed" err={a.err('signed_on')}><input className="input" id={id('on')} name="signed_on" type="date" defaultValue={today} max={today} /></Field>
+        <Field id={id('on')} label="Date signed" err={a.err('signed_on')}><DateInput className="input" id={id('on')} name="signed_on" type="date" defaultValue={today} max={today} /></Field>
       </div>
       {(doc.witnesses ?? 0) > 0 && (
         <div className="field-row">

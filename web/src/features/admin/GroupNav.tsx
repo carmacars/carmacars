@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -7,7 +7,8 @@ import { useEffect, useState } from 'react';
 // groups with plain names, the current group open with its pages and the current page highlighted, the others one
 // tap away. On a phone the whole menu folds behind one "Menu" button that names where you are. Keyboard: "g" then a
 // letter goes to a page; "/" focuses the search.
-export interface NavLink { href: string; label: string; key?: string; /** a small heading above this link: a long group in a few labelled parts */ section?: string }
+export interface NavLink { href: string; label: string; key?: string; /** a small heading above this link: a long group in a few labelled parts */ section?: string;
+  /** the other addresses of a page group (r27, src/features/admin/hubs.ts): the link is current on each of them */ also?: string[] }
 export interface NavGroup { key: string; label: string; links: NavLink[] }
 
 function matches(path: string, query: string, href: string): boolean {
@@ -21,11 +22,14 @@ export function currentLink(groups: NavGroup[], path: string, query: string): { 
   let best: { group: NavGroup | null; link: NavLink | null; len: number } = { group: null, link: null, len: -1 };
   for (const g of groups) for (const l of g.links) {
     if (matches(path, query, l.href) && l.href.length > best.len) best = { group: g, link: l, len: l.href.length };
+    // a page group's other addresses: as specific as the address itself
+    for (const a of l.also ?? []) if (matches(path, '', a) && a.length > best.len) best = { group: g, link: l, len: a.length };
   }
   return { group: best.group, link: best.link };
 }
 
-export function GroupNav({ groups, counts = {}, label, testId }: { groups: NavGroup[]; counts?: Record<string, number>; label: string; testId?: string }) {
+// alwaysOpen (r27 audit): groups open on every page (a staff role's own group and Me), so the role's jobs are one tap away
+export function GroupNav({ groups, counts = {}, label, testId, alwaysOpen = [] }: { groups: NavGroup[]; counts?: Record<string, number>; label: string; testId?: string; alwaysOpen?: string[] }) {
   const path = usePathname();
   const sp = useSearchParams();
   const query = sp?.toString() ?? '';
@@ -59,7 +63,7 @@ export function GroupNav({ groups, counts = {}, label, testId }: { groups: NavGr
       <ul className={`gn__groups${menu ? ' is-open' : ''}`} id={`${testId ?? 'gn'}-groups`}>
         {groups.map((g) => {
           const isCur = cur?.key === g.key;
-          const expanded = open[g.key] ?? isCur;
+          const expanded = open[g.key] ?? (isCur || alwaysOpen.includes(g.key));
           const n = total(g);
           if (g.links.length === 1) {
             const l = g.links[0]!;

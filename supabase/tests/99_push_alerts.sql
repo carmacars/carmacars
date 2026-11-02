@@ -17,9 +17,9 @@ language sql as $$ insert into notifications (id, user_id, code, title, body, ur
   values (test.id('pu_n:' || p_label), p_user, p_code, 'Title ' || p_label, 'Body ' || p_label, p_url, 'pu:' || p_label) returning id $$;
 
 -- ================================================================== the catalogue
-select test.eq('every notice that may alert has a topic (136), and none of the sign-in links, codes or digests',
+select test.eq('every notice that may alert has a topic (139: the tracker alerts of 0400 and the data health notice of 0441 are among them), and none of the sign-in links, codes or digests',
   (select count(*) filter (where push_topic is not null) || '/' || count(*) filter (where push_topic is not null and (code like 'account_%' or code like '%signing_code'
-     or code like 'staff_digest_%' or code = 'renter_continue_request' or category = 'marketing')) from notification_catalogue), '136/0');
+     or code like 'staff_digest_%' or code = 'renter_continue_request' or category = 'marketing')) from notification_catalogue), '139/0');
 select test.eq('the four the owner named alert: a new request, a payment, a handover, a message',
   (select string_agg(push_topic, ',' order by code) from notification_catalogue where code in ('staff_booking_request_new', 'owner_payment_received', 'renter_pickup_details', 'renter_staff_message')),
   'payments,handovers,messages,requests');
@@ -114,7 +114,7 @@ select test.eq('switched off: nothing is queued and nothing is handed out',
   (select count(*) from push_outbox where notification_id = test.id('pu_n:rita_off')) || '/' || app.server_push_due(10)::text, '0/[]');
 update program_settings p set push_enabled = s.push_enabled from pu_s s where s.id = p.id;
 select test.ok('the push functions are not callable from a browser',
-  not has_function_privilege('authenticated', 'public.server_push_due(integer)', 'execute') and not has_function_privilege('anon', 'public.server_push_subscribe(uuid, jsonb)', 'execute')
+  not has_function_privilege('authenticated', 'public.server_push_due(integer, text[])', 'execute') and not has_function_privilege('anon', 'public.server_push_subscribe(uuid, jsonb)', 'execute')
   and not has_function_privilege('authenticated', 'app.push_subscribe(uuid, jsonb)', 'execute') and has_function_privilege('service_role', 'public.server_push_result(jsonb)', 'execute'));
 select set_config('request.jwt.claim.sub', test.id('pu_rita')::text, false);
 set role authenticated;

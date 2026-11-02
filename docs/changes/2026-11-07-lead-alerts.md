@@ -91,6 +91,18 @@ mapped in the matrix with the partner, referral partner and applicant gaps. Prog
 to Home Screen); desktop keeps browser alerts; inside the app (user agent token `CarmaCarsApp`) the native prompt is used.
 Prompt moments per role (after a booking is confirmed, after owner approval, first staff sign-in) are TODO.
 
+## r27 merged: tracker, interviews, data health, deletion, academy (0464)
+
+Built on origin/r27. The tracker alerts of 0400 (offline, left the zone or Ontario, speeding, still driving after the return
+time, battery low or unplugged) were already urgent notices to the Admins and fleet staff but had blank titles; their words now
+come through, they appear in the rule table (five rows) and a rule switched off stops its kind. A scored AI interview (0380) is
+one normal alert to the Admins with the score and the suggestion. The nightly data health notice (0441) now reaches the phone
+(topic alerts). A request to delete an account (0390) is an urgent alert; a passed or failed academy quiz is a digest line.
+The customer portal pages of r27 already show the topic switches and the download prompt (the profile tabs use PushAlerts).
+Still TODO, no data source today: investor month closed (live sheets keep no closing event), sign-in security (new device,
+failed sign-ins), deploy result, maintenance dates, complaint words, and the other rows marked TODO in the matrix; partner and
+applicant accounts have no sign-in, so no push.
+
 ## Needs the owner
 
 Nothing to set up. For a phone to be alerted a person must have turned phone alerts on (Settings > My phone alerts, or
@@ -98,7 +110,7 @@ Profile for staff) and be on duty for the unassigned alerts.
 
 ## Guides
 
-- `admin/text-alerts-email-text-or-both` (new section "Lead and visitor alerts" and the topic defaults)
+- `admin/text-alerts-email-text-or-both` (new sections "Lead and visitor alerts" and "Also on your phone", and the topic defaults)
 - `va/live-visitors-and-live-chat` (new section "Alerts on your phone")
 
-Published by 0461 (`supabase/seed/0461_gen_guides.mjs`). SCHEMA_MARKER 0463.
+Published by 0461 (`supabase/seed/0461_gen_guides.mjs`, base origin/r27). SCHEMA_MARKER 0471 (the highest of r27).

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
 import { auth } from '@/lib/auth';
@@ -9,6 +9,7 @@ import { SignInSettings } from '@/features/portal/SignInSettings';
 import { notifyReach, signInState } from '@/server/sign-in-settings';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
+import { AppProfile } from '@/features/app-shell/AppProfile';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile', path: '/staff/field/profile', noindex: true, description: 'Your details and sign-in.' });
@@ -33,6 +34,7 @@ export default async function Profile() {
       {si && <SignInSettings state={si} className="fd-card stack" />}
       {nc && <NotifyChannelCard reach={nc} className="fd-card stack" />}
       <PushAlerts userId={user.id} portal="field" className="fd-card stack" />
+      <AppProfile userId={user.id} lock className="fd-card stack" />
       <section className="fd-card" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>
         <p className="small">Two-step sign-in: {twoStep ? 'on, with your authenticator app.' : 'not set up.'}</p>
         {!twoStep && <Link prefetch={false} className="btn btn--ghost fd-wide" href="/two-step/setup?next=/staff/field/profile">Set up two-step sign-in</Link>}

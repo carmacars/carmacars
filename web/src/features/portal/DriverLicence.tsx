@@ -5,6 +5,7 @@ import { driverLicenceSave, driverLicenceUpload } from '@/server/actions/driver-
 import { toStandardImage } from '@/features/uploads/standard-image';
 import { PHOTO_ACCEPT } from '@/features/uploads/formats';
 import type { LicenceStatus } from '@/features/handover/types';
+import { DateInput } from '@/components/DateInput';
 
 // The additional driver's licence on their signing link (migration 0130): the details, then the front, the back and a
 // selfie holding it, each taken with the phone's camera and re-encoded in the browser (no location data kept).
@@ -35,7 +36,7 @@ export function DriverLicence({ token, l, selfie }: { token: string; l: LicenceS
         <form className="stack" noValidate onSubmit={(e) => { e.preventDefault(); start(async () => { const r = await driverLicenceSave(token, d); if (!r.ok) setErr(r.message); else router.refresh(); }); }}>
           <div className="field-row">
             <div className="field"><label className="label" htmlFor="dl-num">Licence number</label><input className="input" id="dl-num" value={d.licence_number} onChange={(e) => setD({ ...d, licence_number: e.target.value })} data-testid="dl-number" /></div>
-            <div className="field"><label className="label" htmlFor="dl-exp">Expiry date</label><input className="input" id="dl-exp" type="date" value={d.licence_expiry} onChange={(e) => setD({ ...d, licence_expiry: e.target.value })} data-testid="dl-expiry" /></div>
+            <div className="field"><label className="label" htmlFor="dl-exp">Expiry date</label><DateInput className="input" id="dl-exp" type="date" value={d.licence_expiry} onChange={(e) => setD({ ...d, licence_expiry: e.target.value })} data-testid="dl-expiry" /></div>
           </div>
           <div className="field"><label className="label" htmlFor="dl-iss">Issued by</label>
             <select className="select" id="dl-iss" value={d.licence_issuer} onChange={(e) => setD({ ...d, licence_issuer: e.target.value })}>{[['ON', 'Ontario'], ['QC', 'Quebec'], ['BC', 'British Columbia'], ['AB', 'Alberta'], ['US', 'United States'], ['OTHER', 'Another province or country']].map(([c, t]) => <option key={c} value={c}>{t}</option>)}</select></div>

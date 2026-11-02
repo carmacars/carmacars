@@ -99,8 +99,9 @@ insert into contact_captures (visitor_id, form, ref, name, phone, last_at, first
   (test.id('lal_v4'), 'booking_request', 'd4', 'Sent It', '4165550204', now() - interval '60 minutes', now() - interval '70 minutes', now() - interval '50 minutes');
 insert into contact_captures (visitor_id, form, ref, name, email, last_at, first_at) values
   (test.id('lal_v5'), 'booking_request', 'd5', 'Verify Typer', 'verify-la-capture@carmacars.ca', now() - interval '60 minutes', now() - interval '70 minutes');
+create temp table lal_unf as select app.lead_alert_unfinished() as first_run;
 select test.eq('unfinished: after the capture delay only, once, not a sent form, not a test address',
-  ((app.lead_alert_unfinished() >= 2)::text || '/' || app.lead_alert_unfinished() || '/'
+  (((select first_run from lal_unf) >= 2)::text || '/' || app.lead_alert_unfinished() || '/'
    || (select count(*) from app_events where code = 'staff_request_unfinished' and entity_id in (select id from contact_captures where visitor_id in (select test.id('lal_v' || g) from generate_series(1, 5) g)))), 'true/0/2');
 select app.process_events(1000);
 select test.eq('unfinished: the Admin and the staff on duty, naming the form',

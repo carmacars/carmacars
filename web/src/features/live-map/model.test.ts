@@ -316,3 +316,89 @@ describe('Release 26: the Canvas map projects as MapLibre does (Web Mercator, 51
     assert.ok(my(43.65) < 0.5 && my(44.39) < my(43.26), 'north is up');
   });
 });
+
+import { clusterPins, splitZoom, spiderOffsets } from './model.ts';
+import { cleanRoles, notRenterOnly, personPages, roleLabel } from './roles.ts';
+describe('clusters (Release 27)', () => {
+  const pt = (id: string, lng: number, lat: number, hot = false, score = 10, colour = '#38bdf8') => ({ id, lng, lat, hot, score, colour });
+  const W = (z: number) => 512 * 2 ** z;
+  it('a lone pin stays a pin; crowded pins become one bubble in the middle, coloured by the hottest member', () => {
+    const r = clusterPins([pt('a', -79.38, 43.65, false, 90, '#fb923c'), pt('b', -79.381, 43.651), pt('c', -79.379, 43.649), pt('far', -79.9, 43.2)], W(9), 30);
+    assert.equal(r.singles.map((s) => s.id).join(), 'far');
+    assert.equal(r.clusters.length, 1);
+    assert.equal(r.clusters[0]!.n, 3); assert.equal(r.clusters[0]!.colour, '#fb923c'); assert.equal(r.clusters[0]!.top, 'a');
+    assert.ok(Math.abs(r.clusters[0]!.lat - 43.65) < 0.001);
+  });
+  it('a hot member makes the bubble hot; a radius of 0 never clusters', () => {
+    assert.equal(clusterPins([pt('a', -79.38, 43.65, true), pt('b', -79.3801, 43.6501)], W(9), 30).clusters[0]!.hot, true);
+    assert.equal(clusterPins([pt('a', -79.38, 43.65), pt('b', -79.38, 43.65)], W(13), 0).clusters.length, 0);
+  });
+  it('is the same every time, whatever the order', () => {
+    const a = [pt('a', -79.38, 43.65), pt('b', -79.3805, 43.6502), pt('c', -79.37, 43.7)];
+    assert.deepEqual(clusterPins(a, W(9), 30), clusterPins([...a].reverse(), W(9), 30));
+  });
+  it('splits as you zoom in; pins on one spot never split (they open as a ring)', () => {
+    const near = [pt('a', -79.38, 43.65), pt('b', -79.384, 43.653)];
+    const z = splitZoom(near, 9, 14, () => 30);
+    assert.ok(z !== null && z > 9 && z <= 14);
+    assert.equal(splitZoom([pt('a', -79.38, 43.65), pt('b', -79.38, 43.65)], 9, 14, () => 30), null);
+  });
+  it('spreads a bubbles members on a circle', () => {
+    const o = spiderOffsets(5);
+    assert.equal(o.length, 5);
+    assert.ok(o.every(([x, y]) => Math.abs(Math.hypot(x, y) - 34) < 1e-6));
+    assert.equal(new Set(o.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`)).size, 5);
+  });
+});
+
+describe('roles (migration 0470): the most relevant role first, and who is a renter lead', () => {
+  const raw = (o: Partial<RawPin>): RawPin => ({ id: 'x', type: 'session', types: ['session'], at: new Date().toISOString(), detail: null, booking_number: null, renter_id: 'r1', session_id: 's1', name: 'Pat Example',
+    email: null, phone: null, city: 'Toronto', lat: 43.65, lng: -79.38, precision: 'visit', online: true, device: null, from_ad: false, facts, car: null, ...o });
+  it('labels: owner over renter, both when both', () => {
+    assert.equal(roleLabel(['renter', 'owner']), 'Owner · renter');
+    assert.equal(roleLabel(['owner']), 'Owner');
+    assert.equal(roleLabel(['renter']), 'Renter');
+    assert.equal(roleLabel(['investor', 'renter', 'bogus']), 'Investor · renter');
+    assert.equal(roleLabel([]), null); assert.equal(roleLabel(undefined), null);
+    assert.deepEqual(cleanRoles(['renter', 'partner', 'owner']), ['owner', 'partner', 'renter']);
+  });
+  it('an owner who is not also a renter is no renter lead; a renter and an owner who rents are', () => {
+    assert.equal(notRenterOnly(['owner']), true); assert.equal(notRenterOnly(['owner', 'renter']), false); assert.equal(notRenterOnly([]), false);
+    const v = (roles: string[]) => toView({ at: new Date().toISOString(), days: 30, cap: 500, live_minutes: 5, kpi: { active_now: 1, requests_today: 0, bookings_week: 0, on_rent_now: 0, collected_month_cents: null }, totals: {}, fleet: [],
+      pins: [raw({ id: 'o', roles, owner_id: roles.includes('owner') ? 'own1' : null, facts: { ...facts, pages: 12, seconds: 900, cars: 4 } })] }, false);
+    assert.equal(spotlight(v(['owner'])).length, 0);
+    assert.equal(spotlight(v(['owner', 'renter'])).length, 1);
+    assert.equal(spotlight(v([])).length, 1);
+  });
+  it('the card links to the owner for an owner, the renter for a renter, booking first', () => {
+    const base = { booking_number: null, renter_id: 'r1', session_id: 's1', name: 'Pat Example', type: 'session' as const };
+    assert.equal(adminHref({ ...base, roles: ['owner'], owner_id: 'o1' }).href, '/admin/owners/o1');
+    assert.equal(adminHref({ ...base, roles: ['owner', 'renter'], owner_id: 'o1' }).href, '/admin/renters/r1');
+    assert.equal(adminHref({ ...base }).href, '/admin/renters/r1');
+    assert.equal(adminHref({ ...base, booking_number: 'CC-1', roles: ['owner'], owner_id: 'o1' }).href, '/admin/bookings/CC-1');
+    assert.deepEqual(personPages({ roles: ['owner', 'renter'], owner_id: 'o1', renter_id: 'r1' }).map((x) => x.label), ['Owner page', 'Renter page']);
+    assert.deepEqual(personPages({ roles: ['owner'], owner_id: 'o1', renter_id: 'r1' }).map((x) => x.label), ['Owner page']);
+  });
+  it('hottest lead still leaves out customers already renting', () => {
+    const v = toView({ at: new Date().toISOString(), days: 30, cap: 500, live_minutes: 5, kpi: { active_now: 1, requests_today: 0, bookings_week: 0, on_rent_now: 1, collected_month_cents: null }, totals: {}, fleet: [],
+      pins: [raw({ id: 'r', type: 'on_rent', types: ['on_rent'], roles: ['renter'], facts: { ...facts, pages: 20, seconds: 2000, cars: 5 } })] }, false);
+    assert.equal(spotlight(v).length, 0);
+  });
+});
+
+describe('clusters never overlap (Release 27)', () => {
+  it('no two bubbles, and no pin and bubble, end up closer than the radius', () => {
+    let seed = 3; const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const pts = Array.from({ length: 150 }, (_, i) => ({ id: `p${i}`, lng: -79.38 + (rnd() - 0.5) * 0.12, lat: 43.65 + (rnd() - 0.5) * 0.06, hot: rnd() < 0.1, score: Math.round(rnd() * 90), colour: '#fff' }));
+    for (const z of [8.5, 9.5, 10.5, 11.5]) {
+      const world = 512 * 2 ** z, r = clusterPins(pts, world, 36);
+      const px = (c: { lng: number; lat: number }) => [mx(c.lng) * world, my(c.lat) * world];
+      const all = [...r.clusters, ...r.singles];
+      for (let i = 0; i < r.clusters.length; i++) for (let j = i + 1; j < all.length; j++) {
+        const a = px(r.clusters[i]!), b = px(all[j]!);
+        assert.ok(Math.hypot(a[0]! - b[0]!, a[1]! - b[1]!) > 36 - 1e-6, `zoom ${z}`);
+      }
+      assert.equal(r.clusters.reduce((n, c) => n + c.n, 0) + r.singles.length, pts.length);
+    }
+  });
+});

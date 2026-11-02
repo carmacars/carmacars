@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
@@ -23,7 +23,7 @@ export default async function Money() {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   return (
     <>
-      <PageHead title="Payments, deposits, refunds" purpose="Failed payments, owner invoices owing, deposits to take and to return, refunds and statements. Each figure jumps to its list."><Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/payments" data-testid="to-payments-by-day">Payments by day and refunds to decide</Link></PageHead>
+      <PageHead title="Payments, deposits, refunds" purpose="Failed payments, owner invoices owing, deposits to take and to return, refunds and statements. Each figure jumps to its list." />
       <FigureLinks label="Money to handle" testId="money-figures" items={[
         { k: 'Failed payments', v: b.payments_failed.length, sub: 'last 30 days', href: '#failed', warn: b.payments_failed.length > 0 },
         { k: 'Owner invoices owing', v: open.length, sub: 'record a payment', href: '#owing', warn: open.length > 0 },

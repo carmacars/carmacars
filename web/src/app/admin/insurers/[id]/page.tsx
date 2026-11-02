@@ -1,4 +1,7 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
+import { QuickRange } from '@/components/QuickRange';
+import { torontoToday } from '@/lib/nav/range';
+import { GetForm } from '@/components/GetForm';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
@@ -6,6 +9,7 @@ import { Act } from '@/features/admin/Act';
 import { $, Badge, BookingLink, Card, PageHead, Table, Tiles, d, t } from '@/features/admin/ui';
 import { rateFields, removeFields } from '@/features/insurers/fields';
 import { rateLine, rateSource, type BillingRow, type SheetRate } from '@/features/insurers/rates';
+import { DateRangePicker } from '@/components/DateRangePicker';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Insurer', path: '/admin/insurers', noindex: true, description: 'An insurer\'s rates by car class, their history, and its billing history.' });
@@ -53,11 +57,11 @@ export default async function Insurer({ params, searchParams }: { params: Promis
       <a className="btn btn--ghost btn--sm" href={`${base}/export${qs ? `?${qs}` : ''}`} data-testid="ir-csv" download>Download CSV</a>
       <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/settings/insurers">Contacts</Link>
     </PageHead>
-    <form className="row ad-filters" method="get" action={base} aria-label="Period" data-testid="ir-period">
-      <label className="field ad-field"><span className="label">Picked up from</span><input className="input" type="date" name="from" defaultValue={from} /></label>
-      <label className="field ad-field"><span className="label">to</span><input className="input" type="date" name="to" defaultValue={to} /></label>
+    <GetForm className="row ad-filters" action={base} aria-label="Period" data-testid="ir-period">
+      <QuickRange base={base} from={from || null} to={to || null} today={torontoToday()} customId="ir-from" label="Picked up" />
+      <DateRangePicker id="ir-from" label="Picked up" from={from} to={to} quick={false} />
       <button className="btn btn--ghost btn--sm" type="submit">Show</button>{(from || to) && <Link prefetch={false} className="link small" href={base}>All time</Link>}
-    </form>
+    </GetForm>
     <Tiles items={[
       { k: 'Bookings', v: tot.bookings, sub: `${tot.days_used} days used, ${tot.days_authorized} authorized` },
       { k: 'Billed', v: $(tot.billed_cents) }, { k: 'Paid', v: $(tot.paid_cents) },
