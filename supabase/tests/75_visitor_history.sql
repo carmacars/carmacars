@@ -171,8 +171,9 @@ select test.eq('visit: the booking it led to', (select v -> 'bookings' -> 0 ->> 
 select test.throws('visit: one that is gone', $$ select app.door(test.id('vh_admin'), '', 'admin_read', 'visitor_visit', '{"id": "00000000-0000-0000-0000-000000000000"}') $$, 'no longer kept');
 select test.throws('visit: a bad id', $$ select app.door(test.id('vh_admin'), '', 'admin_read', 'visitor_visit', '{"id": "x"}') $$, 'no longer kept');
 
--- ================================================================ 7. Admins only
-select test.throws('customer service: no history', $$ select app.door(test.id('vh_cs'), '', 'va_read', 'visitor_history', '{}') $$, 'Admins');
+-- ================================================================ 7. Admins; since 0500 (r27 consolidation) History for customer service and Sales too
+select test.ok('customer service: History, as on the staff Visitors page', app.door(test.id('vh_cs'), '', 'va_read', 'visitor_history', '{}') ? 'rows');
+select test.throws('fleet: no history', $$ select app.door(test.id('vh_staffer'), '', 'va_read', 'visitor_history', '{}') $$, 'customer service and Sales');
 select test.throws('Sales: no history', $$ select app.door(test.id('vh_sales'), '', 'va_read', 'visitor_visit', jsonb_build_object('id', test.vhsid('back'))) $$, 'Admins');
 select test.throws('a VA calling it as an Admin read', $$ select app.door(test.id('vh_cs'), '', 'admin_read', 'visitor_history', '{}') $$, null);
 select test.throws('a renter', $$ select app.visitor_history(test.id('vh_renter'), '{}') $$, null);

@@ -106,9 +106,18 @@ async function runTextsJob(): Promise<Record<string, unknown>> {
   return { ok: true, sent: sent.filter((x) => x.ok).length, failed: sent.filter((x) => !x.ok).length, summaries };
 }
 
-type Door = (call: 'admin_do' | 'va_do', name: string, p: Record<string, unknown>) => Promise<Record<string, unknown>>;
+type Door = (call: 'admin_do' | 'va_do' | 'field_do', name: string, p: Record<string, unknown>) => Promise<Record<string, unknown>>;
 export function staffDoor(userId: string, admin: boolean, aal: 'aal1' | 'aal2' | null): Door {
   return (call, name, p) => door(userId, admin ? 'admin_do' : call, name, p, aal);
+}
+
+/** A text from a Text button (r27 consolidation, migration 0500): the database checks the person and the number, queues it
+ *  in the person's conversation and refuses an opted-out number; this sends it at once from the CarmaCars number. */
+export async function staffCompose(d: Door, call: 'va_do' | 'field_do', p: { number: string; body: string; booking_number?: string }): Promise<{ ok: boolean; thread_id?: string; error?: string }> {
+  const r = (await d(call, 'phone_compose', p)) as { send?: Send; from?: string; thread_id?: string };
+  if (!r.send) return { ok: false, error: 'Nothing to send' };
+  const [res] = await sendTexts([r.send], r.from);
+  return res!.ok ? { ok: true, thread_id: r.thread_id } : { ok: false, thread_id: r.thread_id, error: `Not sent: ${res!.error ?? 'Quo refused it'}` };
 }
 
 /** A staff reply: the database checks and queues it (refusing an opted-out number), this sends it at once. */

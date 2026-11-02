@@ -56,7 +56,7 @@ export default async function Visit({ params }: { params: Promise<{ id: string }
             {v.renter && <li>Renter: <Link prefetch={false} className="link" href={`/admin/renters/${v.renter.id}`}>{v.renter.name}</Link>{v.signed_in ? ' (signed in)' : ''}</li>}
             {v.bookings.map((b) => <li key={b.number}>Booking <BookingLink n={b.number} />: {b.status.replace(/_/g, ' ')}{b.booked_at ? `, confirmed ${t(b.booked_at)}` : `, requested ${t(b.requested_at)}`}</li>)}
             {v.forms.some((x) => x.lead_id) && <li>Lead: <Link prefetch={false} className="link" href="/admin/leads">Bookings &gt; Leads</Link></li>}
-            {v.chats.map((c) => <li key={c.id}>Chat <Link prefetch={false} className="link" href={`/admin/chat?id=${c.id}`}>{c.number}</Link></li>)}
+            {v.chats.map((c) => <li key={c.id}>Chat <Link prefetch={false} className="link" href={`/admin/visitors?view=chat&id=${c.id}`}>{c.number}</Link></li>)}
           </ul>
         </Card>
       )}
@@ -86,7 +86,7 @@ export default async function Visit({ params }: { params: Promise<{ id: string }
         <Card title="Chats" testId="vh-chats">
           {v.chats.map((c) => (
             <div key={c.id}>
-              <p className="small"><Link prefetch={false} className="link" href={`/admin/chat?id=${c.id}`}>{c.number}</Link>, {t(c.at)}, {c.messages} {c.messages === 1 ? 'message' : 'messages'}</p>
+              <p className="small"><Link prefetch={false} className="link" href={`/admin/visitors?view=chat&id=${c.id}`}>{c.number}</Link>, {t(c.at)}, {c.messages} {c.messages === 1 ? 'message' : 'messages'}</p>
               {c.first.map((m, i) => <p key={i} className="vh-chatmsg"><b>{SENDER[m.sender] ?? m.sender}</b> <span className="muted">{clockS(m.at)}</span>: {m.body}</p>)}
             </div>))}
         </Card>)}

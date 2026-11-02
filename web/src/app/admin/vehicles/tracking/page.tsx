@@ -3,7 +3,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { requireAdmin } from '@/server/admin/data';
 import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
-import { Card, PageHead, Table, Tabs, t } from '@/features/admin/ui';
+import { Card, PageHead, Table, t } from '@/features/admin/ui';
 import { FleetTracking } from '@/features/tracking/FleetTracking';
 import { IngestKey } from '@/features/tracking/IngestKey';
 import type { Fleet, TrackedCar, Unpaired } from '@/features/tracking/model';
@@ -33,7 +33,6 @@ export default async function Tracking() {
       <PageHead title="Fleet tracking" kicker="Cars" purpose="Where every car is now, who has it, its trips and the alerts. The trackers and their settings are below the map.">
         <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/live-map">Live map</Link>
       </PageHead>
-      <Tabs label="Cars" current="/admin/vehicles/tracking" items={[['/admin/vehicles', 'Vehicles'], ['/admin/vehicles/tracking', 'Fleet tracking', f?.open_alerts || undefined]]} />
       {f ? <FleetTracking initial={f} at={at} /> : <p className="alert alert--error" role="alert"><span>Fleet tracking could not be read. Reload the page.</span></p>}
 
       <div className="stack" style={{ marginTop: 24 }}>

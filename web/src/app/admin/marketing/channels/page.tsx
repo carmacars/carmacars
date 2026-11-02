@@ -4,7 +4,6 @@ import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { Badge, Card, PageHead, Table, t } from '@/features/admin/ui';
 import { CopyFeed } from '@/features/channels/CopyFeed';
-import { MarketingTabs } from '@/features/ads/MarketingTabs';
 import { siteUrl } from '@/lib/site';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +28,6 @@ export default async function Channels() {
   return (<>
     <PageHead kicker={<Link prefetch={false} className="link" href="/admin/marketing/listings">Marketing</Link>} title="Listing channels"
       purpose={`Where our cars can be listed beyond carmacars.ca: ${live} live of ${d.channels.length}. Every feed has CarmaCars' own and co-hosted cars only, never a partner's car.`} />
-    <MarketingTabs current="/admin/marketing/channels" />
     <Card title="Channels" testId="channels" aside={<Act action="listing_channel_save" label="Add a channel" refresh={refresh} done="Added." testId="channel-add"
       fields={[{ name: 'name', label: 'Site name', type: 'text', required: true }, { name: 'url', label: 'Address (https://...)', type: 'text' },
         { name: 'kind', label: 'Kind', type: 'select', value: 'directory', options: Object.entries(KIND) }, { name: 'login_owner', label: 'Who holds the login', type: 'text' }, { name: 'notes', label: 'Notes', type: 'textarea' }]} />}>

@@ -369,6 +369,14 @@ export function adminHref(p: Pick<Pin, 'booking_number' | 'renter_id' | 'session
   return { href: p.name ? `/admin/leads?q=${encodeURIComponent(p.name)}` : '/admin/leads', label: p.roles?.length && notRenterOnly(p.roles) ? 'Open in Leads' : 'Open in Renter leads' };
 }
 
+/** Where the detail card's link goes in the staff portal (r27 consolidation): the booking, else the renter found by name
+ * (Find a renter), else nothing: staff have no owner or lead pages of Admin's. */
+export function staffHref(p: Pick<Pin, 'booking_number' | 'renter_id' | 'name' | 'type'> & { roles?: string[] }): { href: string; label: string } | null {
+  if (p.booking_number) return { href: `/staff/bookings/${encodeURIComponent(p.booking_number)}`, label: `Open booking ${p.booking_number}` };
+  if (p.renter_id && p.name && (!p.roles?.length || cleanRoles(p.roles).includes('renter'))) return { href: `/staff/renters?q=${encodeURIComponent(p.name)}`, label: 'Find the renter' };
+  return null;
+}
+
 /** "12 min on the site", "on the site now", "seen 3h ago": the detail card's time line. */
 export function timeLine(p: Pick<Pin, 'online' | 'at' | 'seconds'>, now = Date.now()): string {
   const on = p.seconds && p.seconds >= 60 ? `${Math.round(p.seconds / 60)} min on the site` : null;

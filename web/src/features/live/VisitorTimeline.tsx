@@ -1,5 +1,6 @@
 import Link from '@/components/Link';
 import { when } from '@/features/agreement/model';
+import { addQuery } from '@/features/visitors/tabs';
 
 // The renter's visits on the site (migration 0060), on the booking page and the renter page: when they viewed the
 // offer, opened the change proposal, left the pay page, which cars they looked at, and their chats.
@@ -23,7 +24,7 @@ export function VisitorTimeline({ t, chatBase }: { t: TimelineData | null; chatB
     <div className="stack" data-testid="visitor-timeline">
       <p className="small muted">{t.visits} visit{t.visits === 1 ? '' : 's'}{t.last_seen_at ? `, last seen ${when(t.last_seen_at)}` : ''}.</p>
       {t.signals.length > 0 && <p className="small">{t.signals.map((s) => s.label).join(' · ')}</p>}
-      {t.chats.length > 0 && <ul className="lt-list">{t.chats.map((c) => <li key={c.id}><Link prefetch={false} className="link" href={`${chatBase}?id=${c.id}`}>Live chat {c.number}</Link> <span className="muted">{when(c.at)}, {c.messages} messages, {c.status}</span></li>)}</ul>}
+      {t.chats.length > 0 && <ul className="lt-list">{t.chats.map((c) => <li key={c.id}><Link prefetch={false} className="link" href={addQuery(chatBase, { id: c.id })}>Live chat {c.number}</Link> <span className="muted">{when(c.at)}, {c.messages} messages, {c.status}</span></li>)}</ul>}
       <ol className="ad-timeline">{t.events.map((e, i) => (
         <li key={i}><time>{when(e.at)}</time><span><b>{WORDS[e.kind] ?? e.kind}</b>{e.kind === 'page_view' && e.page ? ` ${e.page}` : ''}{e.car ? `: ${e.car}` : ''}{e.booking_number ? ` (${e.booking_number})` : ''}</span></li>))}</ol>
     </div>

@@ -143,3 +143,11 @@
 .vs .lv-select { max-width: min(16rem, 100%); text-overflow: ellipsis; }
 
 .vs-about > summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; width: fit-content; }
+
+/* r27 consolidation: the three tabs on top of the page (Live now, Chat, History), so they never move between tabs */
+.vs-tabs--top { display: flex; width: fit-content; max-width: 100%; margin: 0 0 var(--s-4, 16px); }
+.vs-tab { white-space: nowrap; }
+.vs-tab .pt__count { margin-left: 8px; }
+.vs-tab.is-on .pt__count { background: var(--red-600); color: var(--white); }
+.vs-chat { display: grid; gap: var(--s-4, 16px); min-width: 0; }
+@media (max-width: 39.99rem) { .vs-tabs--top { width: 100%; } .vs-tabs--top .vs-tab { padding: 0 8px; font-size: var(--fs-sm); } .vs-tab .pt__count { margin-left: 5px; } }

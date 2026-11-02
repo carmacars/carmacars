@@ -23,7 +23,7 @@ const imgOf = (p: CarPhoto | null | undefined, w = 160): string | null => {
 };
 type Tab = 'alerts' | 'trips';
 
-export function FleetTracking({ initial, at, staff = false }: { initial: Fleet | null; at: number; /** the fleet staff's page: booking links go to /staff */ staff?: boolean }) {
+export function FleetTracking({ initial, at, staff = false }: { initial: Fleet | null; at: number; /** the fleet staff's page: booking links go to /staff; 'field' (r27 consolidation): field staff's map of their jobs' cars, a booking opens My jobs */ staff?: boolean | 'field' }) {
   const [raw, setRaw] = useState<Fleet | null>(initial);
   const [now, setNow] = useState(at);
   const [err, setErr] = useState('');
@@ -121,7 +121,7 @@ export function FleetTracking({ initial, at, staff = false }: { initial: Fleet |
 
   const k = view?.counts;
   const open = (view?.alerts ?? []).filter((a) => !a.ack_at);
-  const bookingHref = (n: string) => `${base}/bookings/${encodeURIComponent(n)}`;
+  const bookingHref = (n: string) => (staff === 'field' ? '/staff/field' : `${base}/bookings/${encodeURIComponent(n)}`);
 
   return (
     <div className="lm lm--page ft" data-testid="fleet-tracking">

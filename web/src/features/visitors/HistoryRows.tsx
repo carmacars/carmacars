@@ -18,7 +18,7 @@ const thumb = (c: NonNullable<HistoryRow['cars']>[number]) => {
   return photoUrl(v?.path ?? p.path);
 };
 
-function Row({ r, open, toggle }: { r: HistoryRow; open: boolean; toggle: () => void }) {
+function Row({ r, open, toggle, admin }: { r: HistoryRow; open: boolean; admin: boolean; toggle: () => void }) {
   const out = outcomeOf(r), role = roleLabel(r.roles), city = r.city ?? '', cars = r.cars ?? [], more = Math.max(0, (r.cars_n ?? r.cars_viewed) - cars.length);
   const band = bandOf(r.score);
   const [none, setNone] = useState(false);
@@ -56,7 +56,7 @@ function Row({ r, open, toggle }: { r: HistoryRow; open: boolean; toggle: () => 
         {cars.length > 0 && <p className="small muted vh-carnames">Cars: {cars.map((c) => c.name).join(', ')}{more > 0 ? ` and ${more} more` : ''}</p>}
         {!r.summarized && <p className="small muted">What it led to is worked out after the visit.</p>}
         <p className="vh-acts">
-          <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/live/history/${r.id}`} data-testid="vh-open">Open the visit</Link>
+          {admin && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/live/history/${r.id}`} data-testid="vh-open">Open the visit</Link>}
           <button type="button" className="btn btn--ghost btn--sm" data-testid="vh-locate" onClick={() => setNone(!showOnMap({ session_id: r.id, renter_id: r.renter_id }))}>Show on the map</button>
           {none && <span className="small muted" role="status">Not on the map now</span>}
         </p>
@@ -65,7 +65,7 @@ function Row({ r, open, toggle }: { r: HistoryRow; open: boolean; toggle: () => 
   );
 }
 
-export function HistoryRows({ rows, now }: { rows: HistoryRow[]; now: number }) {
+export function HistoryRows({ rows, now, admin = true }: { rows: HistoryRow[]; now: number; /** r27 consolidation: staff see the rows without the visit's own (Admin) page */ admin?: boolean }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const shown = useMemo(() => {
@@ -86,7 +86,7 @@ export function HistoryRows({ rows, now }: { rows: HistoryRow[]; now: number }) 
           {days.map((g) => (
             <section key={g.day} className="vh-day" aria-label={g.heading}>
               <h3 className="vh-day__h"><span>{g.heading}</span><span className="vh-day__n">{g.rows.length} visit{g.rows.length === 1 ? '' : 's'}</span></h3>
-              <ul className="vh-list">{g.rows.map((r) => <Row key={r.id} r={r} open={open === r.id} toggle={() => setOpen(open === r.id ? null : r.id)} />)}</ul>
+              <ul className="vh-list">{g.rows.map((r) => <Row key={r.id} r={r} admin={admin} open={open === r.id} toggle={() => setOpen(open === r.id ? null : r.id)} />)}</ul>
             </section>
           ))}
         </div>

@@ -33,3 +33,16 @@ export function checkedWords(iso: string, now = new Date()): string {
   if (day(at) === day(new Date(now.getTime() - 86400_000))) return `Checked yesterday, ${time}`;
   return `Checked ${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' }).format(at)}, ${time}`;
 }
+
+/** Where a Data health link goes in the staff portal (r27 consolidation: each role's lines on its To do), or null when the
+ *  page is Admin's only (owners, settings). Booking, car, payment, lead and request pages have their staff versions. */
+export function staffLink(href: string | null | undefined): string | null {
+  if (!href) return null;
+  const [path = '', q = ''] = href.split('?');
+  const keep = (to: string) => (q ? `${to}${to.includes('?') ? '&' : '?'}${q}` : to);
+  const m = path.match(/^\/admin\/(bookings|vehicles)\/([^/#]+)/);
+  if (m) return keep(`/staff/${m[1]}/${m[2]}`);
+  const map: Record<string, string> = { '/admin/bookings': '/staff/bookings', '/admin/vehicles': '/staff/cars', '/admin/payments': '/staff/money?tab=payments',
+    '/admin/reconciliation': '/staff/money?tab=reconciliation', '/admin/requests': '/staff/requests', '/admin/tasks': '/staff', '/admin/leads': '/staff/leads', '/admin/calendar': '/staff/calendar' };
+  return map[path] ? keep(map[path]!) : null;
+}

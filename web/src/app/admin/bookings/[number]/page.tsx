@@ -41,6 +41,7 @@ import { nextStep } from '@/features/admin/next-step';
 import { DateConflicts, PlaceholderBanner, type Overlap } from '@/features/admin/DateConflicts';
 import { PayPlanCard } from '@/features/bookings-now/PayPlanCard';
 import type { Pay } from '@/features/bookings-now/model';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/admin/bookings', noindex: true, description: 'One booking: review, money, history.' });
@@ -162,7 +163,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <div className="ad-cols ad-cols--2">
             <Card title="The request as sent">
               <Kv rows={[['Pickup', t(b.request_sent.pickup_at)], ['Return', t(b.request_sent.return_at)], ['Note', String(b.request_note ?? '')],
-                ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · {b.renter?.mobile} · {b.renter?.bookings ? `${b.renter.bookings} past bookings` : 'first booking'}{b.renter?.is_blocked ? <b className="ad-late"> blocked</b> : null}</>],
+                ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · <ContactButtons phone={b.renter?.mobile} name={b.renter?.legal_name} booking={b.booking_number} look="link" inbox="/admin/visitors?view=chat" testId="renter-phone">{b.renter?.mobile}</ContactButtons> · {b.renter?.bookings ? `${b.renter.bookings} past bookings` : 'first booking'}{b.renter?.is_blocked ? <b className="ad-late"> blocked</b> : null}</>],
                 ['Offer', b.current_offer_version ? `version ${b.current_offer_version}${b.offer_expires_at ? `, open until ${t(b.offer_expires_at)}` : ''}` : 'not sent yet'],
                 ['Came from', came ? <MarketingSource key="mk" m={came} booking={b.booking_number} refresh={refresh} /> : ''],
               ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : '']]} />
@@ -196,7 +197,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <Card title="Trip">
             <Kv rows={[['Car', <Link prefetch={false} key="c" className="link" href={`/admin/vehicles/${b.vehicle_id}`}>{b.vehicle?.name} {b.vehicle?.plate}</Link>], ['Pickup', `${t(b.pickup_at)}, ${b.pickup_place ?? 'our location'}`],
               ['Return', `${t(b.return_at)}, ${b.return_place ?? 'our location'}`], ['Days', String(b.billable_days)], ['Bill to', `${label(b.bill_to)}${b.insurer_name ? `, ${b.insurer_name} claim ${b.insurer_claim_number ?? ''}` : ''}`],
-              ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · {b.renter?.mobile}</>], ['Identity', label(b.renter?.identity_status)],
+              ['Renter', <>{b.renter?.legal_name} · {b.renter?.email} · <ContactButtons phone={b.renter?.mobile} name={b.renter?.legal_name} booking={b.booking_number} look="link" inbox="/admin/visitors?view=chat" testId="renter-phone-2">{b.renter?.mobile}</ContactButtons></>], ['Identity', label(b.renter?.identity_status)],
               ...(b.added_by_staff ? [['Added by hand', <span key="a" data-testid="booking-added">{b.added_mode === 'past' ? 'A past rental recorded by staff' : b.added_mode === 'in_progress' ? 'Added by staff while already underway (recorded as on trip at the pickup)' : 'Added by staff'}; source {label(b.source)}; payment: {label(b.payment_mode)}{b.do_not_email ? '; renter not emailed' : ''}{b.clash_override_reason ? `; added over a clash: ${String(b.clash_override_reason)}` : ''}</span>] as [string, React.ReactNode]] : []),
               ['Came from', came ? <MarketingSource key="mk" m={came} booking={b.booking_number} refresh={refresh} /> : ''],
               ['Sales credit', credit ? <SalesCreditLine key="sc" c={credit} booking={b.booking_number} refresh={refresh} /> : ''],
@@ -268,8 +269,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
           </Card>
           <div className="stack">
             <Card title="Status history"><ol className="ad-timeline">{b.history.map((h, i) => <li key={i}><time>{t(h.at)}</time><span>{label(h.from)} to <b>{label(h.to)}</b> <span className="muted small">{String(h.by ?? '')}</span></span></li>)}</ol></Card>
-            <Card title="Calls and texts" testId="booking-calls"><PhoneTimeline t={calls} inbox="/admin/chat" /></Card>
-            <Card title="On the site" testId="booking-visits"><VisitorTimeline t={visits} chatBase="/admin/chat" /></Card>
+            <Card title="Calls and texts" testId="booking-calls"><PhoneTimeline t={calls} inbox="/admin/visitors?view=chat" /></Card>
+            <Card title="On the site" testId="booking-visits"><VisitorTimeline t={visits} chatBase="/admin/visitors?view=chat" /></Card>
             <Card title="Emails sent"><Table rows={b.emails} empty="No emails." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'code', label: 'Email' }, { key: 'to', label: 'To' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }]} /></Card>
           </div>
         </div>

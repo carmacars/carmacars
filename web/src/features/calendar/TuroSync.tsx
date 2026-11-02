@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { calendarAct, type CalendarAction } from '@/server/actions/calendar-sync';
 import { torontoToUtc } from '@/features/turo/email';
 import { DateInput } from '@/components/DateInput';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 
 // Turo by email on Calendar sync (migrations 0063, 0088). Turo has no calendar link, so:
 //   in:  Turo's trip emails block the car. No setup per car: each email is matched to a car by itself (the Turo car id,
@@ -233,7 +234,7 @@ export function TuroCar({ car, enabled, bookingBase, onDone }: { car: TuroCarDat
       {car.turo.trips.length > 0 && (
         <ul className="cs-events small" aria-label={`Turo trips of ${car.name}`} data-testid="turo-trips">{car.turo.trips.map((t) => (
           <li key={t.id}>{at(t.starts_at)} to {at(t.ends_at)}: Turo trip {t.trip_id.startsWith('M-') ? '(added by hand)' : t.trip_id}{guestOf(t) ? ` (${guestOf(t)})` : ''}{t.blocked ? '' : ' (block removed by staff)'}
-            {t.guest_phone && <> <a className="link" href={`tel:${t.guest_phone}`} aria-label={`Call ${t.guest_name ?? t.guest_first_name ?? 'the guest'}`}>Call</a></>}
+            {t.guest_phone && <> <ContactButtons phone={t.guest_phone} name={t.guest_name ?? t.guest_first_name ?? 'the guest'} look="link" testId="turo-guest">Call</ContactButtons></>}
             {' '}<button type="button" className="btn btn--quiet btn--sm" disabled={pending} onClick={() => { if (confirm('Cancelled on Turo? This frees the car here.')) act('turo_trip_cancel', { id: t.id }, 'Trip cancelled: the car is free again'); }}>Cancelled</button></li>))}</ul>
       )}
       {onTuro && <details className="cs-more" open={add} onToggle={(e) => setAdd(e.currentTarget.open)}>

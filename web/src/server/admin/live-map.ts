@@ -37,3 +37,11 @@ async function demoFleet(adminId: string, aal?: 'aal1' | 'aal2' | null): Promise
     status: c.booking?.status === 'on_rent' ? 'on_rent' : c.status === 'available' || c.status === 'ready_to_list' ? 'available' : 'in_service', updated_at: c.pos!.at,
     photo: (c.photo as FleetCar['photo']) ?? null }));
 }
+
+/** The staff Visitors page's map (r27 consolidation, migration 0500): customer service and Sales, through va_read live_map
+ *  (the database checks the function again and leaves out the fleet layer and the money). Read afresh each time: the
+ *  answer depends on the person. */
+export async function staffLiveMap(userId: string, contact: boolean, aal?: 'aal1' | 'aal2' | null): Promise<MapView> {
+  const raw = await door<RawMap>(userId, 'va_read', 'live_map', {}, aal);
+  return toView(raw, contact);
+}

@@ -2,7 +2,7 @@ import './data-health.css';
 import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { door } from '@/server/door';
-import { checkedWords, fixedWords, splitChecks, type DataHealth } from './model';
+import { checkedWords, fixedWords, splitChecks, staffLink, type DataHealth } from './model';
 
 // Data health on Admin > To do (migration 0441; the owner: "i shouldnt be spotting this myself, u should be telling me this
 // and fixing it urself"). The nightly self-check: one line per problem with its count, opened for the records, each with
@@ -19,7 +19,16 @@ export async function DataHealthCard({ userId }: { userId: string }) {
   return <DataHealthView d={d} />;
 }
 
-export function DataHealthView({ d, now }: { d: DataHealth; now?: Date }) {
+/** A staff role's lines on its To do (r27 consolidation, migration 0500 va_read data_health): the same card, the role's
+ *  checks only, links to the staff pages, no Check now and no fixes (Admin's). Nothing shows while all is clear. */
+export async function StaffDataHealthCard({ read }: { read: <T>(what: string) => Promise<T> }) {
+  const d = await read<DataHealth>('data_health').catch(() => null);
+  if (!d || !d.checks.some((c) => c.count > 0)) return null;
+  const staff: DataHealth = { ...d, fixed: {}, fixed_week: {}, checks: d.checks.map((c) => ({ ...c, href: staffLink(c.href), items: c.items.map((i) => ({ ...i, href: staffLink(i.href), fix: null })) })) };
+  return <DataHealthView d={staff} staff />;
+}
+
+export function DataHealthView({ d, now, staff = false }: { d: DataHealth; now?: Date; staff?: boolean }) {
   const { open, clear } = splitChecks(d.checks);
   const fixed = fixedWords(d.fixed_week ?? d.fixed);
   const issues = open.reduce((n, c) => n + c.count, 0);
@@ -29,7 +38,7 @@ export function DataHealthView({ d, now }: { d: DataHealth; now?: Date }) {
         <h2 className="d4" id="dh-h">Data health{issues > 0 && <span className="dh__count" data-testid="data-health-count">{issues}</span>}</h2>
         <span className="dh__when small muted">
           {d.ran_at ? checkedWords(d.ran_at, now) : 'Runs every night'}
-          <Act ops action="data_health_run" label="Check now" variant="quiet" done="Checked." testId="data-health-run" />
+          {!staff && <Act ops action="data_health_run" label="Check now" variant="quiet" done="Checked." testId="data-health-run" />}
         </span>
       </div>
       {!d.ran_at ? (

@@ -14,13 +14,14 @@ const sec = (k: string, key?: string): NavLink => ({ ...sectionLink(ADMIN_SECTIO
 // top, and a second row of tabs where a page is a group (hubs.ts). Ctrl+K reaches every page and tab. Old addresses
 // redirect to their tab, so links in emails and bookmarks work. Release 26 (the owner: "We need less pages not
 // more"): Bookings opens on Now, Chauffeur is a tab of Requests and offers, and Send an offer and Add a rental are
-// buttons on Bookings and Today.
+// buttons on Bookings and Today. r27 consolidation (November 2, 2026): Live chat is a tab of Visitors (Live now, Chat,
+// History); every area's row is at most five pages, actions are buttons on their page (hubs.ts).
 export const GROUPS: NavGroup[] = [
   { key: 'today', label: 'Today', links: [
-    { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Staff tasks', key: 'k' }, { href: '/admin/visitors', label: 'Visitors' }] },
+    { href: '/admin', label: 'To do', key: 't' }, { href: '/admin/overview', label: 'Overview' }, { href: '/admin/tasks', label: 'Staff tasks', key: 'k' }, { href: '/admin/visitors', label: 'Visitors', key: 'l', also: ['/admin/chat', '/admin/live'] }] },
   { key: 'bookings', label: 'Bookings', links: [
     { href: '/admin/bookings', label: 'Bookings', key: 'b', section: 'Trips' }, { href: '/admin/requests', label: 'Requests and offers', key: 'r' }, { href: '/admin/calendar', label: 'Calendar', key: 'c' },
-    { href: '/admin/chat', label: 'Live chat', section: 'Customers' }, { href: '/admin/reviews', label: 'Reviews' },
+    { href: '/admin/reviews', label: 'Reviews', section: 'Customers' },
     { ...hub('problems'), section: 'Problems' }] },
   { key: 'cars', label: 'Cars', links: [sec('cars', 'v')] },
   { key: 'people', label: 'People', links: [sec('people', 'o')] },

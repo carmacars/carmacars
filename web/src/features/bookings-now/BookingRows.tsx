@@ -49,7 +49,7 @@ export function BookingRows({ rows, cards, base, at, empty, testId = 'bookings' 
               {r.found && <span className="bn-sub">Found by {r.found}</span>}
             </div>
             <div className="bk-row__car"><CarLine car={car} number="" href={null} /></div>
-            <div className="bk-row__who">{r.renter_name ? <Who r={{ id: r.id, name: r.renter_name, phone: c?.phone ?? null }} /> : <span className="bn-sub">No renter</span>}</div>
+            <div className="bk-row__who">{r.renter_name ? <Who r={{ id: r.id, name: r.renter_name, phone: c?.phone ?? null }} booking={r.booking_number} /> : <span className="bn-sub">No renter</span>}</div>
             <div className="bk-row__dates"><span className="bn-k">Dates</span><span>{when(r.pickup_at, at)}</span><span className="bn-sub">to {when(r.return_at, at)}</span></div>
             <div className="bk-row__money"><span className="bn-k">Money</span><Chip tone={mw.tone}>{mw.text}</Chip></div>
             <div className="bk-row__bill"><span className="bn-k">Bill to</span><span>{BILL_WORDS[bill] ?? bill}</span></div>

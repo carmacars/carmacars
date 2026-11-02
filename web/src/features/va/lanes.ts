@@ -16,7 +16,7 @@ const REQUESTS: LaneDef = { key: 'requests', label: 'Booking requests', verb: 'R
   types: ['booking_request', 'request_open_to_sales', 'reoffer_booking', 'offer_change_requested', 'calendar_offer_clash', 'confirm_offline_booking', 'chauffeur_request', 'place_request'] };
 const MESSAGES: LaneDef = { key: 'messages', label: 'Renter messages', verb: 'Reply to the renter', href: '/staff/messages', icon: 'arrow', reply: true, types: ['renter_message'] };
 const PHONE: LaneDef = { key: 'phone', label: 'Texts and calls', verb: 'Call back or text', href: '/staff?lane=phone', icon: 'alert', reply: true, types: ['phone_missed_call', 'account_phone_review'] };
-const CHAT: LaneDef = { key: 'chat', label: 'Live chat', verb: 'Answer the visitor', href: '/staff/chat', icon: 'arrow', reply: true, types: ['live_chat_waiting', 'chat_request', 'chat_contact'] };
+const CHAT: LaneDef = { key: 'chat', label: 'Live chat', verb: 'Answer the visitor', href: '/staff/visitors?view=chat', icon: 'arrow', reply: true, types: ['live_chat_waiting', 'chat_request', 'chat_contact'] };
 const OFFERS: LaneDef = { key: 'offers', label: 'Offers out', verb: 'Chase or re-send the offer', href: '/staff/requests?state=offer_out', icon: 'clock', types: ['chase_offer', 'offer_expired', 'offer_approved_paid'] };
 const SIGNING: LaneDef = { key: 'signing', label: 'Signing and payment', verb: 'Help the renter finish', href: '/staff?lane=signing', icon: 'sign',
   types: ['verify_renter', 'chase_verification', 'protection_plan_request', 'coverage_review', 'paper_agreement_scan', 'insurer_provisional', 'review_extension', 'booking_change_approval'] };

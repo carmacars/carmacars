@@ -10,8 +10,8 @@ const base: Task = { id: 't1', task_type: 'x', title: 'T', queue: 'cs', priority
 const chat = '7b0d9f0e-1111-4222-8333-944445555666';
 
 test('an assistant: a chat waiting for a person opens that chat', () => {
-  assert.equal(taskHref({ ...base, task_type: 'live_chat_waiting', related_table: 'chat_conversations', related_id: chat }), `/staff/chat?id=${chat}`);
-  assert.equal(taskHref({ ...base, task_type: 'live_chat_waiting' }), '/staff/chat');
+  assert.equal(taskHref({ ...base, task_type: 'live_chat_waiting', related_table: 'chat_conversations', related_id: chat }), `/staff/visitors?view=chat&id=${chat}`);
+  assert.equal(taskHref({ ...base, task_type: 'live_chat_waiting' }), '/staff/visitors?view=chat');
 });
 
 test('an assistant: coverage and Protection Plan tasks open the identity and coverage review', () => {
@@ -27,7 +27,7 @@ test('an assistant: the other kinds keep their screens', () => {
 
 test('the Admin: each task opens where its work is done', () => {
   const t = { task_type: '', booking_number: null, vehicle_id: null, related_table: null, related_id: null };
-  assert.equal(adminTaskHref({ ...t, task_type: 'live_chat_waiting', related_table: 'chat_conversations', related_id: chat }), `/admin/chat?id=${chat}`);
+  assert.equal(adminTaskHref({ ...t, task_type: 'live_chat_waiting', related_table: 'chat_conversations', related_id: chat }), `/admin/visitors?view=chat&id=${chat}`);
   assert.equal(adminTaskHref({ ...t, task_type: 'verify_renter', booking_number: 'CC-1042' }), '/admin/bookings/CC-1042?tab=documents');
   assert.equal(adminTaskHref({ ...t, task_type: 'booking_request', booking_number: 'CC-1042' }), '/admin/bookings/CC-1042?tab=review');
   assert.equal(adminTaskHref({ ...t, task_type: 'collect_upfront', invoice_number: 'INV-1052' }), '/admin/invoices/INV-1052');

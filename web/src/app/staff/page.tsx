@@ -19,6 +19,7 @@ import type { SalesFollowUp } from '@/features/va/SalesBoard';
 import { signCount } from '@/features/manual/SignPages';
 import { RemoteDuties, type SalesDuties } from '@/features/sales/RemoteDuties';
 import { opensToYou, type ClaimInfo } from '@/features/offers/claim';
+import { StaffDataHealthCard } from '@/features/admin/data-health/DataHealthCard';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'To do', path: '/staff', noindex: true, description: 'The assistant\'s work queue.' });
@@ -37,7 +38,7 @@ const REPLY: Record<string, { what: string; cta: string }> = {
 const QUICK: Record<Fn, Array<[string, string]>> = {
   cs: [['/staff/offers/new', 'Send an offer'], ['/staff/bookings/new', 'Add a rental'], ['/staff/renters', 'Find a renter']],
   sales: [['/staff/quotes/new', 'New quote'], ['/staff/offers/new', 'Send an offer'], ['/staff/my-sales', 'My sales']],
-  finance: [['/staff/payments', 'Payments by day'], ['/staff/money', 'Deposits and refunds'], ['/staff/reconciliation', 'Reconciliation']],
+  finance: [['/staff/money?tab=day', 'Payments by day'], ['/staff/money', 'Money to handle'], ['/staff/owner-money?tab=invoices', 'Owner money']],
   fleet: [['/staff/fleet', 'Field jobs'], ['/staff/checks', 'Daily checks'], ['/staff/calendar', 'Calendar']]
 };
 
@@ -119,6 +120,9 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
 
       <NextUp task={top?.first ?? null} lane={top} now={now} target={tm} userId={user.id} />
       <LaneBoard lanes={lanes} now={now} target={tm} />
+      {/* r27 consolidation: Admin's Data health, this role's problem lines (fleet: car gaps; customer service: licences;
+          Sales: stalled leads; finance: unmatched payments and deposits held). Shown only when something is open. */}
+      <StaffDataHealthCard read={read} />
 
       {duties?.mode === 'remote' && <RemoteDuties d={duties} own />}
 

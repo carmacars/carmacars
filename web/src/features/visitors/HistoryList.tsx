@@ -10,7 +10,7 @@ import { DateRangePicker } from '@/components/DateRangePicker';
 // The Visitors page's History (Release 27, redesigned): one list grouped by day, a compact row a visit (time, who and what
 // they are to us, city, source, pages and the cars they looked at, score, what it led to) that opens to its page trail;
 // quick date ranges, the filters that matter in one row and the rest under More; the totals as one line, the chart and the
-// top lists folded under it. Admins only (the page's gate, and the database's). Never a phone or an email.
+// top lists folded under it. Admins, customer service and Sales (r27 consolidation; the page's gate and the database's). Never a phone or an email.
 
 function Top({ title, rows, words, testId }: { title: string; rows: TopRow[]; words?: (r: TopRow) => string; testId: string }) {
   return (
@@ -22,7 +22,7 @@ function Top({ title, rows, words, testId }: { title: string; rows: TopRow[]; wo
   );
 }
 
-export function HistoryList({ d, sp, now }: { d: HistoryData; sp: Record<string, string | string[] | undefined>; now: number }) {
+export function HistoryList({ d, sp, now, base = '/admin/visitors' }: { d: HistoryData; sp: Record<string, string | string[] | undefined>; now: number; /** the Visitors page: Admin's or staff's (r27 consolidation) */ base?: string }) {
   const f = historyFilters(sp);
   const s = d.summary;
   const tot = s?.totals;
@@ -36,10 +36,10 @@ export function HistoryList({ d, sp, now }: { d: HistoryData; sp: Record<string,
     <div className="vs-hist" data-testid="vh-list">
       <details className="vs-about small muted"><summary>About these visits</summary><p className="vs-intro" data-testid="vh-intro">Visits by people who accepted analytics, known customers on their own booking pages and anyone who opened the chat, as the privacy policy allows. Staff are never recorded. Pages viewed are kept {d.keep.pages_days} days, the visit itself {d.keep.visits_days} days and the daily totals {d.keep.daily_days} days. What a visit led to is worked out 30 minutes after it ends.</p></details>
 
-      <GetForm className="vhf" action="/admin/visitors" role="search" aria-label="Filter the visits" data-testid="vh-filters">
+      <GetForm className="vhf" action={base} role="search" aria-label="Filter the visits" data-testid="vh-filters">
         <input type="hidden" name="view" value="history" />
         <div className="vhf__row">
-          <QuickRange base="/admin/visitors" keep={keep} from={d.from} to={d.to} today={today} customId="vh-from" label="Dates" />
+          <QuickRange base={base} keep={keep} from={d.from} to={d.to} today={today} customId="vh-from" label="Dates" />
           <DateRangePicker id="vh-from" label="Dates" from={d.from} to={d.to} min={d.oldest} quick={false} />
           <div className="field"><label className="label" htmlFor="vh-source">Source</label><input className="input" id="vh-source" name="source" defaultValue={v('source')} placeholder="google, ad, newsletter" /></div>
           <div className="field"><label className="label" htmlFor="vh-converted">Led to</label>
@@ -65,7 +65,7 @@ export function HistoryList({ d, sp, now }: { d: HistoryData; sp: Record<string,
             </div>
           </div>
         </details>
-        {d.filtered ? <p className="small"><Link prefetch={false} className="link" href="/admin/visitors?view=history">Clear the filters</Link></p> : null}
+        {d.filtered ? <p className="small"><Link prefetch={false} className="link" href={`${base}?view=history`}>Clear the filters</Link></p> : null}
       </GetForm>
 
       {first && s && tot && (
@@ -90,10 +90,10 @@ export function HistoryList({ d, sp, now }: { d: HistoryData; sp: Record<string,
         </>
       )}
 
-      {!d.rows.length ? <p className="vs-empty">{d.filtered ? 'No visits match. Clear a filter or widen the dates.' : 'No visits in these dates.'}</p> : <HistoryRows rows={d.rows} now={now} />}
+      {!d.rows.length ? <p className="vs-empty">{d.filtered ? 'No visits match. Clear a filter or widen the dates.' : 'No visits in these dates.'}</p> : <HistoryRows rows={d.rows} now={now} admin={base.startsWith('/admin')} />}
       <div className="vh-pager">
-        {d.next && <Link prefetch={false} className="btn btn--ghost btn--sm" href={historyHref(f, d.next)} data-testid="vh-next">Older visits</Link>}
-        {!first && <Link prefetch={false} className="link small" href={historyHref(f)}>Back to the newest</Link>}
+        {d.next && <Link prefetch={false} className="btn btn--ghost btn--sm" href={historyHref(f, d.next, base)} data-testid="vh-next">Older visits</Link>}
+        {!first && <Link prefetch={false} className="link small" href={historyHref(f, null, base)}>Back to the newest</Link>}
         <span className="small muted">{d.rows.length} shown, {d.limit} a page</span>
       </div>
     </div>

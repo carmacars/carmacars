@@ -98,7 +98,7 @@ export function LiveVisitors({ initial, portal, inVisitors = false }: { initial:
   }, [data.now, sort, only, kind, city, source]);
   const cities = useMemo(() => [...new Set(data.now.map((v) => v.city).filter((c): c is string => !!c))].sort(), [data.now]);
   const sources = useMemo(() => [...new Set(data.now.map(sourceOf))].sort(), [data.now]);
-  const chatHref = portal === 'admin' ? '/admin/chat' : '/staff/chat';
+  const chatHref = portal === 'admin' ? '/admin/visitors?view=chat' : '/staff/visitors?view=chat';
   const known = data.now.filter((v) => v.known).length;
   const hotNow = data.now.filter((v) => v.band === 'hot').length;
   const visitorsToday = data.today.visitors ?? data.today.sessions;
@@ -119,7 +119,7 @@ export function LiveVisitors({ initial, portal, inVisitors = false }: { initial:
         <div className="ad-tile"><span className="ad-tile__k">Visitors today</span><b className="ad-tile__v" data-testid="visitors-today">{visitorsToday}</b><span className="ad-tile__s">{data.today.sessions} visit{data.today.sessions === 1 ? '' : 's'}, {data.today.known} known, {data.today.hot ?? 0} hot</span></div>
         <div className="ad-tile"><span className="ad-tile__k">Hot now</span><b className="ad-tile__v" data-testid="hot-count">{hotNow}</b><span className="ad-tile__s">likelihood {cfg.hot} or more</span></div>
         <div className="ad-tile"><span className="ad-tile__k">Known customers now</span><b className="ad-tile__v">{known}</b></div>
-        <div className="ad-tile"><span className="ad-tile__k">Chats today</span><b className="ad-tile__v">{data.today.chats}</b><Link prefetch={false} className="ad-tile__s link" href={chatHref}>Open Live chat</Link></div>
+        <div className="ad-tile"><span className="ad-tile__k">Chats today</span><b className="ad-tile__v">{data.today.chats}</b><Link prefetch={false} className="ad-tile__s link" href={chatHref}>Open the chats</Link></div>
       </div>}
       {!data.tracking ? <p className="pt-note" role="status" data-testid="live-untracked">Live visitors is off in Program settings: nothing is recorded, so nobody is counted here.</p>
         : untracked > 0 && <p className="small muted" data-testid="live-untracked">Not counted: {untracked} visitor{untracked === 1 ? '' : 's'} today chose necessary cookies only, so their visits are not recorded. Visitors who have not answered the cookie banner (where we ask first) are not counted either.</p>}
@@ -255,7 +255,7 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat, inVisitors = false
     void liveRead<SessionDetail>('live_session', inVisitors ? { id: v.id, contact: contact ? '1' : '0' } : { id: v.id }).then((d) => { if (live) setDetail(d); }).catch(() => undefined);
     return () => { live = false; };
   }, [open, v.id, v.last_seen_at, inVisitors, contact]);
-  const chatHref = portal === 'admin' ? '/admin/chat' : '/staff/chat';
+  const chatHref = portal === 'admin' ? '/admin/visitors?view=chat' : '/staff/visitors?view=chat';
   const sug = v.suggested ?? null;
   const preview = (sug?.message ?? '').replaceAll('{staff}', cfg.me ?? '');
   const act = async (f: () => Promise<string>) => {
@@ -305,7 +305,7 @@ function VisitorRow({ v, cfg, portal, open, onToggle, onChat, inVisitors = false
         {v.signals.length > 0 && <p className="lv-badges">{v.signals.map((s, i) => <SignalBadge key={i} s={s} />)}</p>}
       </div>
       <div className="lv-row__acts">
-        {v.chat ? <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${chatHref}?id=${v.chat.id}`}>Open chat {v.chat.number}</Link>
+        {v.chat ? <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${chatHref}&id=${v.chat.id}`}>Open chat {v.chat.number}</Link>
           : <button type="button" className="btn btn--primary btn--sm" onClick={() => setComposing(!composing)} aria-expanded={composing}>Start a chat</button>}
         <button type="button" className="btn btn--quiet btn--sm" onClick={onToggle} aria-expanded={open}>{open ? 'Hide pages' : 'Pages'}</button>
         <button type="button" className="btn btn--quiet btn--sm" onClick={() => setNaming(!naming)} aria-expanded={naming} data-testid="act-name">{v.label ? 'Edit name' : 'Name'}</button>

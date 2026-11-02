@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { agoWords, clock, dayClock, EVENT_WORDS } from '../live/staff';
 import { phoneDo, phoneRead, CallBody, type PhoneInboxData, type PhoneThreadData, type PhoneThreadRow } from './client';
 import { poller } from '@/lib/poll/poll';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 
 // Live chat > Texts and calls (migration 0085): every number that called or texted the CarmaCars Quo line, newest first;
 // Unknown callers with Create lead and Link to a renter; the thread with calls and texts, the reply box (sent through
@@ -108,7 +109,7 @@ function PhoneThread({ id, portal, fn, onChange }: { id: string; portal: 'admin'
           <div><h2 className="d4" id="ph-h">{c.who} <span className="muted small">{c.display}</span></h2>
             <p className="small muted">{KIND_WORDS[c.match_kind]}{c.booking_number ? ` · booking ${c.booking_number}` : ''}{c.opted_out ? ' · asked for no texts' : ''}</p></div>
           <div className="lc-acts">
-            <a className="btn btn--quiet btn--sm" href={`tel:${c.number}`}>Call</a>
+            <ContactButtons phone={c.number} name={c.who} booking={c.booking_number} only="call" testId="ph-contact" />
             {c.opted_out
               ? <button type="button" className="btn btn--quiet btn--sm" disabled={busy} onClick={() => void act('phone_opt_out', { on: false }, 'Texts allowed again.')}>Allow texts again</button>
               : <button type="button" className="btn btn--quiet btn--sm" disabled={busy} onClick={() => { if (confirm('Stop all texts to this number, booking texts included?')) void act('phone_opt_out', { on: true }, 'No more texts to this number.'); }}>Stop texts</button>}

@@ -18,16 +18,19 @@ export const STAFF_FN_LABEL: Record<StaffFn, string> = { cs: 'Customer service',
 
 // The menu of each role (r27 audit, the owner on November 1, 2026: "Lots of the tabs under admin and under each staff
 // account are redundant and can be merged", then "i think u can reduce staff menu links even further"). The same few
-// anchors for every office role: To do (the home; Today at a glance is its tab), the role's five most frequent jobs, one
+// anchors for every office role: To do (the home; Today at a glance is its tab), the role's most frequent jobs, one
 // "More ..." link for the rest of its work (a section, features/admin/hubs.ts STAFF_SECTIONS: a row of its pages on top),
-// Bookings and Me. Field staff: their five jobs and Me. A person holding several functions sees each role's group, a page once.
+// Bookings and Me. r27 consolidation (November 2, 2026): at most five links a role; actions (Send an offer, New quote, Add a
+// rental, Report a problem) are buttons on their page (STAFF_ACTIONS); Live visitors and Live chat are one Visitors page;
+// Fleet and Field work have their map; Sales has the Marketplace. A person holding several functions sees each role's
+// group, a page once.
 export const STAFF_GROUPS: NavGroup[] = [
   { key: 'today', label: 'To do', links: [sec('todo', 'To do', 't')] },
-  { key: 'cs', label: 'Customer service', links: [{ href: '/staff/requests', label: 'Requests', key: 'r' }, { href: '/staff/chat', label: 'Live chat' }, { href: '/staff/messages', label: 'Messages' }, { href: '/staff/offers/new', label: 'Send an offer' }, { href: '/staff/live', label: 'Live visitors' }, sec('cs', 'More customer service')] },
-  { key: 'sales', label: 'Sales', links: [{ href: '/staff/requests', label: 'Requests and offers', key: 'r' }, { href: '/staff/offers/new', label: 'Send an offer' }, { href: '/staff/quotes/new', label: 'New quote' }, { href: '/staff/chat', label: 'Live chat' }, { href: '/staff/my-sales', label: 'My sales' }, sec('sales', 'More sales')] },
-  { key: 'fleet', label: 'Fleet', links: [{ href: '/staff/fleet', label: 'Field jobs' }, { href: '/staff/checks', label: 'Daily checks' }, { href: '/staff/reviews', label: 'Photo reviews' }, { href: '/staff/maintenance', label: 'Maintenance' }, { href: '/staff/listings', label: 'Listings' }, sec('fleet', 'More fleet')] },
-  { key: 'finance', label: 'Finance', links: [{ href: '/staff/money', label: 'Money to handle' }, { href: '/staff/payments', label: 'Payments by day' }, { href: '/staff/tolls', label: 'Tolls and tickets' }, { href: '/staff/reconciliation', label: 'Reconciliation' }, { href: '/staff/turo', label: 'Turo trips' }, sec('finance', 'More finance')] },
-  { key: 'field', label: 'Field work', links: [{ href: '/staff/field', label: 'My jobs' }, { href: '/staff/field/now', label: 'Cars now' }, { href: '/staff/field/hours', label: 'My hours' }, { href: '/staff/field/report', label: 'Report a problem' }, { href: '/staff/field/rentals/new', label: 'Add a rental' }, { href: '/staff/field/sales', label: 'My sales' }] },
+  { key: 'cs', label: 'Customer service', links: [{ href: '/staff/requests', label: 'Requests', key: 'r' }, { href: '/staff/visitors', label: 'Visitors', key: 'v' }, { href: '/staff/messages', label: 'Messages' }, sec('cs', 'More customer service')] },
+  { key: 'sales', label: 'Sales', links: [{ href: '/staff/requests', label: 'Requests and offers', key: 'r' }, { href: '/staff/visitors', label: 'Visitors', key: 'v' }, { href: '/staff/marketplace', label: 'Marketplace' }, { href: '/staff/my-sales', label: 'My sales' }, sec('sales', 'More sales')] },
+  { key: 'fleet', label: 'Fleet', links: [{ href: '/staff/fleet', label: 'Field jobs', also: ['/staff/field-hours'] }, { href: '/staff/fleet/map', label: 'Fleet map' }, { href: '/staff/checks', label: 'Checks', also: ['/staff/reviews'] }, { href: '/staff/maintenance', label: 'Maintenance' }, sec('fleet', 'More fleet')] },
+  { key: 'finance', label: 'Finance', links: [{ href: '/staff/money', label: 'Money', also: ['/staff/payments', '/staff/reconciliation'] }, { href: '/staff/owner-money?tab=invoices', label: 'Owner money', also: ['/staff/owner-money'] }, { href: '/staff/tolls', label: 'Tolls and tickets' }, { href: '/staff/turo', label: 'Turo trips' }, sec('finance', 'More finance')] },
+  { key: 'field', label: 'Field work', links: [{ href: '/staff/field', label: 'My jobs' }, { href: '/staff/field/now', label: 'Cars now' }, { href: '/staff/field/map', label: 'Map' }, { href: '/staff/field/hours', label: 'My hours' }] },
   { key: 'bookings', label: 'Bookings', links: [sec('bookings', 'Bookings', 'b')] },
   { key: 'me', label: 'Me', links: [sec('me', 'Me')] }
 ];

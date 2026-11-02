@@ -5,7 +5,6 @@ import { Act } from '@/features/admin/Act';
 import { Badge, Card, PageHead } from '@/features/admin/ui';
 import { withUtm } from '@/features/ads/channels';
 import { CopyText } from '@/features/ads/CopyText';
-import { MarketingTabs } from '@/features/ads/MarketingTabs';
 import { KIND_WORDS, addDays, captionFor, draftCampaign, mondayOf, type SocialChannel } from '@/features/ads/social';
 import { writeWeekDrafts } from '@/server/actions/ads';
 import { photoUrl } from '@/lib/photo';
@@ -32,7 +31,6 @@ export default async function SocialDrafts({ searchParams }: { searchParams: Pro
     <PageHead kicker="Marketing" title="Social drafts" purpose="Posts for the Facebook Page and Instagram, written from the fleet each week. Nothing is posted until a person approves it.">
       <form action={writeWeekDrafts}><input type="hidden" name="week" value={d.week} /><button className="btn btn--primary btn--sm" type="submit" data-testid="ads-write-week">Write drafts for this week</button></form>
     </PageHead>
-    <MarketingTabs current="/admin/marketing/social" />
     <nav className="row" aria-label="Weeks" style={{ gap: '0.75rem', alignItems: 'center', margin: '0 0 1rem' }}>
       <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/marketing/social?week=${addDays(d.week, -7)}`}>Previous week</Link>
       <b>Week of {label(d.week)}</b>

@@ -3,7 +3,6 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { Badge, Filters, PageHead, Search, Table, d } from '@/features/admin/ui';
-import { MarketingTabs } from '@/features/ads/MarketingTabs';
 import { CONTACT_KINDS, LEAD_STATUS, LISTING_SITES, type ConsentState } from '@/features/ads/recruit';
 
 export const dynamic = 'force-dynamic';
@@ -31,7 +30,6 @@ export default async function Recruit({ searchParams }: { searchParams: Promise<
           { name: 'vehicle_text', label: 'The car (for example 2021 Honda Civic)', type: 'text' }, { name: 'listing_site', label: 'Site (found from the address if empty)', type: 'select', options: [['', 'From the address'], ...LISTING_SITES] },
           { name: 'note', label: 'Note', type: 'textarea' }]} />
     </PageHead>
-    <MarketingTabs current="/admin/marketing/recruit" />
     {!r.enabled && <p className="alert small" role="status"><span>Recruitment emails and texts are off in Program settings: nothing sends until they are on.</span></p>}
     <div className="row" style={{ gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
       <Filters base="/admin/marketing/recruit" name="status" value={status} sp={sp} options={[['open', `Open (${r.counts.open})`], ['contacted', 'Contacted'], ['qualified', 'Interested'], ['converted', 'Signed up'], ['do_not_contact', `Do not contact (${r.counts.do_not_contact})`], ['all', `All (${r.counts.all})`]]} />

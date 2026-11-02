@@ -175,7 +175,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
             <Table rows={rec.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }]} /></Card>
           <Card title="Forms C and D" aside={<Link prefetch={false} className="link small" href="/admin/owner-forms">Review queue</Link>}>
             <Table rows={witnessed} testId="owner-witnessed" empty="No witnessed form is needed yet." cols={[{ key: 'title', label: 'Form', render: (r) => <>{String(r.title)}{r.vehicle_name ? <><br /><span className="small">{String(r.vehicle_name)}</span></> : null}</> }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'reject_reason', label: 'Note', className: 'wrap' }, { key: 'uploaded_at', label: 'Uploaded', render: (r) => at(r.uploaded_at) }]} /></Card>
-          <Card title="Calls and texts" testId="owner-calls"><PhoneTimeline t={calls} inbox="/admin/chat" /></Card>
+          <Card title="Calls and texts" testId="owner-calls"><PhoneTimeline t={calls} inbox="/admin/visitors?view=chat" /></Card>
           <Card title="Documents"><Table rows={rec.documents} empty="No documents." cols={[{ key: 'title', label: 'Document' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => at(r.created_at) }]} /></Card>
           <section className="pt-card stack" aria-labelledby="ad-signin"><h2 className="d4" id="ad-signin">Owner portal sign-in</h2>
             {o.user_id ? <><p className="small">Signs in as <b>{o.user_email ?? o.email}</b>.</p>

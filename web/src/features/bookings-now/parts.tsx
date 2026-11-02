@@ -3,6 +3,7 @@ import Link from '@/components/Link';
 import type { ReactNode } from 'react';
 import { photoUrl } from '@/lib/photo';
 import { initial, phoneHref, photoPath, type Car, type Renter } from './model';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 
 // The pieces every Bookings screen shares (Now, Requests and offers, All bookings, the Calendar; admin and staff alike):
 // the dark count tiles, the car with its photo, the renter with Call and Text, a time with its countdown, a status chip.
@@ -37,16 +38,14 @@ export function CarLine({ car, number, href, compact }: { car: Car; number: stri
   );
 }
 
-export function Who({ r }: { r: Renter | null }) {
+export function Who({ r, booking }: { r: Renter | null; booking?: string | null }) {
   if (!r) return <span className="bn-who muted">No renter</span>;
-  const tel = phoneHref(r.phone, 'tel'), sms = phoneHref(r.phone, 'sms');
+  // r27 consolidation: Call and Text through Quo (features/phone/QuoButtons.tsx; tel: and sms: when Quo is off)
+  const tel = phoneHref(r.phone, 'tel');
   return (
     <span className="bn-who">
       <span className="bn-who__name">{r.name}</span>
-      {(tel || sms) && <span className="bn-who__acts">
-        {tel && <a className="bn-icon" href={tel} aria-label={`Call ${r.name}`} title={`Call ${r.phone}`}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6.6 2.5 4.4 3.1c-.8.2-1.3 1-1.2 1.8.6 6.1 5.7 11.2 11.8 11.8.8.1 1.6-.4 1.8-1.2l.6-2.2-3.4-1.5-1.5 1.6a9 9 0 0 1-4.6-4.6l1.6-1.5z" /></svg></a>}
-        {sms && <a className="bn-icon" href={sms} aria-label={`Text ${r.name}`} title={`Text ${r.phone}`}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 4.5h13v9h-7l-4 3v-3h-2z" /></svg></a>}
-      </span>}
+      {tel && <span className="bn-who__acts"><ContactButtons phone={r.phone} name={r.name} booking={booking} look="icons" testId="bn-contact" /></span>}
     </span>
   );
 }

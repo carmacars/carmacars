@@ -12,7 +12,7 @@ const FLEET = ['schedule_handover', 'schedule_detail', 'late_return', 'job_unack
 export function taskHref(t: Task): string {
   const n = t.booking_number ? encodeURIComponent(t.booking_number) : null;
   // a visitor who asked for a person: straight to that chat (0078)
-  if (['live_chat_waiting', 'chat_request', 'chat_contact', 'visitor_follow_up'].includes(t.task_type)) return t.related_table === 'chat_conversations' && t.related_id ? `/staff/chat?id=${t.related_id}` : '/staff/chat';
+  if (['live_chat_waiting', 'chat_request', 'chat_contact', 'visitor_follow_up'].includes(t.task_type)) return t.related_table === 'chat_conversations' && t.related_id ? `/staff/visitors?view=chat&id=${t.related_id}` : '/staff/visitors?view=chat';
   if (n && BOOKING_REVIEW.includes(t.task_type)) return `/staff/bookings/${n}?task=${t.id}`;
   if (n && VERIFY.includes(t.task_type)) return `/staff/verify/${n}?task=${t.id}`;
   if (n && CHANGES.includes(t.task_type)) return `/staff/bookings/${n}?tab=changes&task=${t.id}`;
@@ -22,7 +22,7 @@ export function taskHref(t: Task): string {
   if (['opening_checks', 'closing_checks'].includes(t.task_type)) return `/staff/checks?kind=${t.task_type === 'closing_checks' ? 'closing' : 'opening'}`;
   if (FLEET.includes(t.task_type)) return n ? `/staff/bookings/${n}?task=${t.id}` : `/staff/fleet?task=${t.id}`;
   if (t.task_type === 'match_toll') return '/staff/tolls';
-  if (['reconcile', 'unmatched_payment'].includes(t.task_type)) return '/staff/reconciliation';
+  if (['reconcile', 'unmatched_payment'].includes(t.task_type)) return '/staff/money?tab=reconciliation';
   if (['debit_failed', 'arrears', 'collect_upfront', 'review_statements', 'fleet_report'].includes(t.task_type)) return '/staff/money';
   if (['review_listing', 'list_vehicle'].includes(t.task_type)) return '/staff/listings';
   if (t.task_type === 'chauffeur_request') return '/staff/chauffeur';
@@ -44,7 +44,7 @@ export function taskHref(t: Task): string {
 export function adminTaskHref(t: Pick<Task, 'task_type' | 'booking_number' | 'vehicle_id' | 'related_table' | 'related_id'> & { owner_id?: string | null; invoice_number?: string | null }): string {
   const n = t.booking_number ? encodeURIComponent(t.booking_number) : null;
   const rel = (table: string) => (t.related_table === table && t.related_id ? t.related_id : null);
-  if (['live_chat_waiting', 'chat_request', 'chat_contact', 'visitor_follow_up'].includes(t.task_type)) return rel('chat_conversations') ? `/admin/chat?id=${rel('chat_conversations')}` : '/admin/chat';
+  if (['live_chat_waiting', 'chat_request', 'chat_contact', 'visitor_follow_up'].includes(t.task_type)) return rel('chat_conversations') ? `/admin/visitors?view=chat&id=${rel('chat_conversations')}` : '/admin/visitors?view=chat';
   if (n && BOOKING_REVIEW.includes(t.task_type)) return `/admin/bookings/${n}?tab=review`;
   if (n && (VERIFY.includes(t.task_type) || t.task_type === 'live_rental_agreement')) return `/admin/bookings/${n}?tab=documents`;
   if (n && CHANGES.includes(t.task_type)) return `/admin/bookings/${n}?tab=changes`;

@@ -13,6 +13,7 @@ import { RenterMerge, type DuplicateRow } from '@/features/money/RenterMerge';
 import { door } from '@/server/door';
 import { BookingConversation } from '@/features/messages/BookingConversation';
 import type { Conversation } from '@/features/messages/email-choices';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Renter', path: '/admin/renters', noindex: true, description: 'One renter: details, bookings and visits on the site.' });
@@ -46,7 +47,7 @@ export default async function Renter({ params, searchParams }: { params: Promise
         <div className="stack">
           {rf && <RenterEdit x={rf} />}
           <RenterMerge renterId={id} name={r.name} rows={dupes} />
-          <Card title="Details"><Kv rows={[['Email', <span key="e">{r.email ?? ''}{r.has_sign_in && !r.email_confirmed && <> <span className="ad-b ad-b--amber" data-testid="email-not-confirmed">Email not confirmed</span></>}</span>], ['Phone', r.mobile ?? ''], ['City', r.city ?? ''], ['Identity', <Badge key="i" s={r.identity_status} />], ['Blocked', r.is_blocked ? 'Yes' : 'No'], ['Since', d(r.created_at)]]} /></Card>
+          <Card title="Details"><Kv rows={[['Email', <span key="e">{r.email ?? ''}{r.has_sign_in && !r.email_confirmed && <> <span className="ad-b ad-b--amber" data-testid="email-not-confirmed">Email not confirmed</span></>}</span>], ['Phone', r.mobile ? <ContactButtons key="p" phone={r.mobile} name={r.name} look="link" inbox="/admin/visitors?view=chat" testId="renter-phone">{r.mobile}</ContactButtons> : ''], ['City', r.city ?? ''], ['Identity', <Badge key="i" s={r.identity_status} />], ['Blocked', r.is_blocked ? 'Yes' : 'No'], ['Since', d(r.created_at)]]} /></Card>
           {!!r.captured?.length && (
             <Card title="Typed into forms" testId="renter-captured">
               {r.account_opened_from_form && <p className="small muted">The account was opened from a form{r.account_closed ? ' and closed: the email was not confirmed in time' : ''}. It cannot accept an offer, sign or pay until the email is confirmed.</p>}
@@ -58,8 +59,8 @@ export default async function Renter({ params, searchParams }: { params: Promise
         </div>
         <div className="stack">
           <ReachCard reach={reach} who={{ renter_id: id }} />
-          <Card title="Calls and texts" testId="renter-calls"><PhoneTimeline t={calls} inbox="/admin/chat" /></Card>
-          <Card title="On the site" testId="renter-visits"><VisitorTimeline t={r.timeline} chatBase="/admin/chat" /></Card>
+          <Card title="Calls and texts" testId="renter-calls"><PhoneTimeline t={calls} inbox="/admin/visitors?view=chat" /></Card>
+          <Card title="On the site" testId="renter-visits"><VisitorTimeline t={r.timeline} chatBase="/admin/visitors?view=chat" /></Card>
         </div>
       </div>
       <section className="stack" id="email" data-testid="renter-email">

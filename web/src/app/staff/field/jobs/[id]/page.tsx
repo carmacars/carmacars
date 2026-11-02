@@ -12,7 +12,8 @@ import type { FieldJob, LicenceCard } from '@/features/field/types';
 import { when } from '@/features/agreement/model';
 import { Plate } from '@/features/field/Plate';
 import { FdIcon } from '@/features/field/icons';
-import { KIND, STATUS, clock, maps, tel } from '@/features/field/format';
+import { KIND, STATUS, clock, maps } from '@/features/field/format';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Job', path: '/staff/field', noindex: true, description: 'One field job and its checklist.' });
@@ -52,12 +53,12 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
         {j.job.place && <p className="fd-next__place"><FdIcon name="pin" /><span>{j.job.place}</span></p>}
         {(j.job.place || b?.renter?.mobile) && <div className="fd-next__go">
           {j.job.place && <a className="btn fd-go" href={maps(j.job.place)} target="_blank" rel="noreferrer"><FdIcon name="pin" />Open in maps</a>}
-          {b?.renter?.mobile && <a className="btn fd-go" href={tel(b.renter.mobile)}><FdIcon name="phone" />Call {b.renter.name.split(' ')[0]}</a>}
+          {b?.renter?.mobile && <ContactButtons phone={b.renter.mobile} name={b.renter.name} booking={b.booking_number} btnClass="btn fd-go" testId="fd-renter">Call {b.renter.name.split(' ')[0]}</ContactButtons>}
         </div>}
         {j.job.instructions && <p className="fd-bring small">{j.job.instructions}</p>}
         {/* the booking's facts: open before the job starts, folded away under the checklist once it runs */}
         {b && <details className="fd-more" open={j.job.status !== 'in_progress' || undefined}><summary>Booking {b.booking_number}</summary><dl className="fd-facts">
-          {b.renter && <div><dt>Renter</dt><dd>{b.renter.name}{b.renter.mobile ? <>, <a className="link" href={tel(b.renter.mobile)}>{b.renter.mobile}</a></> : null}</dd></div>}
+          {b.renter && <div><dt>Renter</dt><dd>{b.renter.name}{b.renter.mobile ? <>, <ContactButtons phone={b.renter.mobile} name={b.renter.name} booking={b.booking_number} look="link" testId="fd-renter-num">{b.renter.mobile}</ContactButtons></> : null}</dd></div>}
           {b.card?.last4 && <div><dt>Card on File</dt><dd>{b.card.brand ?? 'card'} ending {b.card.last4}</dd></div>}
           {b.drivers.map((d) => <div key={d.name}><dt>{d.role === 'renter' ? 'Driver' : d.role.replace(/_/g, ' ')}</dt><dd>{d.name}: licence {d.licence_number ?? ''}, class {d.licence_class ?? ''}, expires {d.licence_expiry ?? ''}</dd></div>)}
         </dl></details>}

@@ -104,7 +104,7 @@ export function BookingsNow({ initial: first, at, src, base }: { initial: Board 
             <li key={r.booking_id} className="bn-row bn-row--stale" data-testid={`bn-stale-${r.number}`}>
               <Time big={day(r.return_at)} small={`${day(r.booked_pickup_at)} to ${day(r.return_at)}`} late={false} />
               <CarLine car={r.car} number={r.number} href={href(r.number)} />
-              <Who r={r.renter} />
+              <Who r={r.renter} booking={r.number} />
               {b.scope === 'full' && base && <Act ops action="booking_close_ended" payload={{ booking: r.booking_id }} label="Close" title={`Close ${r.number}`} testId={`bn-close-${r.number}`}
                 refresh={[`${base}/bookings`]} done="Closed: the pickup and the return are recorded. Fleet has a task for the photos." fields={closeFields} />}
             </li>))}</ul>
@@ -121,7 +121,7 @@ export function BookingsNow({ initial: first, at, src, base }: { initial: Board 
                   <li key={r.booking_id} className={`bn-row${c.late ? ' is-late' : ''}`} data-testid={`bn-back-${r.number}`}>
                     <Time big={when(r.return_at, now).replace(/^(Today|Tomorrow) /, '')} small={c.text} late={c.late} />
                     <CarLine car={r.car} number={r.number} href={href(r.number)} compact />
-                    <Who r={r.renter} />
+                    <Who r={r.renter} booking={r.number} />
                     <span className="bn-tag">{r.return_kind === 'delivery' ? 'We collect' : r.return_kind === 'airport' ? 'Airport' : 'Drop-off'}</span>
                   </li>);
               })}</ul>
@@ -136,7 +136,7 @@ export function BookingsNow({ initial: first, at, src, base }: { initial: Board 
               <li key={r.booking_id} className={`bn-row bn-row--go${c.late ? ' is-late' : ''}`} data-testid={`bn-going-${r.number}`}>
                 <Time big={when(r.booked_pickup_at, now)} small={c.text} late={c.late} />
                 <CarLine car={r.car} number={r.number} href={href(r.number)} compact />
-                <Who r={r.renter} />
+                <Who r={r.renter} booking={r.number} />
                 <span className={`bn-tag${r.pickup_kind === 'delivery' ? ' bn-tag--dark' : ''}`} title={r.pickup_place ?? undefined}>{KIND[r.pickup_kind] ?? 'Pickup'}</span>
                 {r.ready && <Readiness r={r} />}
               </li>);
@@ -152,7 +152,7 @@ export function BookingsNow({ initial: first, at, src, base }: { initial: Board 
                 <li key={r.booking_id} className={`bn-row bn-row--pay is-${p.tone}`} data-testid={`bn-money-${r.number}`}>
                   <span className="bn-amt"><b>{p.amount}</b><span className={`bn-state bn-state--${p.tone}`}>{r.pay?.state === 'overdue' ? 'Overdue' : r.pay?.state === 'soon' ? 'Due soon' : 'Upcoming'}</span></span>
                   <span className="bn-pay__when"><b>{p.label}</b><span>{p.sub || planWords(r.pay)}</span></span>
-                  <Who r={r.renter} />
+                  <Who r={r.renter} booking={r.number} />
                   <CarLine car={r.car} number={r.number} href={href(r.number)} compact />
                 </li>);
             })}</ul> : <p className="bn-none">Nothing due in the next 7 days, nothing overdue.</p>}
@@ -218,7 +218,7 @@ function OutRow({ r, now, href, full, mark, refresh }: { r: Rental; now: number;
   return (
     <article className={`bn-out${tone}`} role="listitem" data-testid={`bn-out-${r.number}`} data-due={r.due}>
       <div className="bn-out__car"><CarLine car={r.car} number={r.number} href={href} /></div>
-      <div className="bn-out__who"><Who r={r.renter} />
+      <div className="bn-out__who"><Who r={r.renter} booking={r.number} />
         {r.unrecorded
           ? <span className="bn-unrec"><span className="bn-flag" data-testid={`bn-unrecorded-${r.number}`}>Out (pickup not recorded) since {when(r.booked_pickup_at, now)}</span>
               {mark && <Act ops action="handover_record_now" payload={{ booking: r.booking_id, kind: 'pickup' }} label="Mark picked up" variant="primary" title={`Mark ${r.number} picked up`}
