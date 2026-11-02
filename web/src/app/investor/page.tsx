@@ -110,6 +110,7 @@ export default async function InvestorHome() {
                 ))}
               </Timeline>
               <p className="pu-chart__cap">Estimated amounts use your Invested Amount and Yearly Percentage today, as your agreement computes a Return; your statement for each month is the record.</p>
+              <p className="small"><Link className="link" href="/investor/model" data-testid="to-live-sheets">Your full 36-month schedule, the calculators and the Excel download</Link></p>
             </section>
           )}
           {deck && <section className="pu-panel pu-panel--ink iv-deck" data-testid="deck-promo" aria-labelledby="dk-t">

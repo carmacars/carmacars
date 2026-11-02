@@ -392,6 +392,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'indexnow_queue',
                             -- phone alerts (0300): the queue of alerts, one row per alert and device (the devices and choices are audited)
                             'push_outbox',
+                            -- the company model's actuals (0420): a summary the hourly job recomputes from audited rows (bookings, payments,
+                            -- payouts, expenses); the assumptions an Admin saves are audited
+                            'finance_model_actuals',
                             -- Turo by email (0063): the inbound log and the trips written by the email reader; every change by staff (the
                             -- listing, a trip added or cancelled, a review handled, Done on Turo) is written to audit_log by the functions
                             'turo_vehicle_links', 'turo_inbound_emails', 'turo_calendar_trips', 'turo_blocked_bookings',

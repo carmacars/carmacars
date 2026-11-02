@@ -71,8 +71,13 @@ select test.ok('the sources list every new path, and every path of every mapping
 -- ---------------------------------------------------------------- the checked mappings, filled
 -- the official templates as the migration left them: other suites upload their own forms and save mappings in an
 -- Admin's name, so the stored copies are made current again and remapped (no Admin's mapping)
-update pdf_templates t set is_current = exists (select 1 from official_form_originals o where o.form_code = t.form_code and o.from_sha256 = t.sha256)
- where t.form_code in (select form_code from official_form_originals);
+-- (in two steps: one statement flipping both rows can hit the one-current index first, depending on the rows' order on disk)
+update pdf_templates t set is_current = false
+ where t.form_code in (select form_code from official_form_originals) and t.is_current
+   and not exists (select 1 from official_form_originals o where o.form_code = t.form_code and o.from_sha256 = t.sha256);
+update pdf_templates t set is_current = true
+ where t.form_code in (select form_code from official_form_originals) and not t.is_current
+   and exists (select 1 from official_form_originals o where o.form_code = t.form_code and o.from_sha256 = t.sha256);
 update pdf_templates t set mapped_by = null, verified = false, verified_by = null, verified_at = null
  where t.is_current and t.form_code in (select form_code from official_form_originals);
 select app.official_form_remap(o.form_code, o.from_sha256, o.field_names, o.field_map, o.notes) from official_form_originals o where o.form_code <> 'ON00453';

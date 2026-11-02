@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 // The investor portal's tabs (October 23, 2026: the same tabs as the renter and owner portals, instead of a row of
-// underlined links). The deck shows while an Admin shares it; Documents to sign for investors.
+// underlined links). The deck shows while an Admin shares it; Documents to sign and the live sheets (0420) for investors.
 const LINKS: Array<{ href: string; label: string; exact?: boolean; when?: 'deck' | 'investor' }> = [
   { href: '/investor', label: 'Investments', exact: true },
+  { href: '/investor/model', label: 'Live sheets', when: 'investor' },
   { href: '/investor/statements', label: 'Statements' },
   { href: '/investor/sign', label: 'Documents to sign', when: 'investor' },
   { href: '/investor/deck', label: 'Investor deck', when: 'deck' },
