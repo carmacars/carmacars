@@ -19,6 +19,10 @@ insert into investors (id, user_id, legal_name, investor_type, email) values (te
 update renters set user_id = test.id('pr_olga') where id = test.id('renter:pr_olga');
 update renters set user_id = test.id('pr_ora') where id = test.id('renter:pr_ora');
 update renters set user_id = test.id('pr_staff') where id = test.id('renter:pr_staff');
+-- numbers of their own: an earlier file may give an owner the helpers' shared renter mobile (16, 46), and a match by
+-- phone would make these two owners too
+update renters set mobile = '647-555-0171' where id = test.id('renter:pr_rita');
+update renters set mobile = '647-555-0172' where id = test.id('renter:pr_staff');
 create or replace function test.prt(p interval) returns text language sql stable as $$
   select to_char((now() + p) at time zone 'America/Toronto', 'YYYY-MM-DD HH24:00') $$;
 select test.mk_booking('PR-1', 'pr_car', 'pr_ora', test.prt('-20 days'), test.prt('-17 days'), 'closed');
