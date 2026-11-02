@@ -7,6 +7,7 @@ import { OwnerNav } from '@/features/owner/OwnerNav';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { StuckHelp } from '@/features/help/StuckHelp';
 import { PushInvite } from '@/features/push/PushAlerts';
 
 // The owner portal shell (04-owner.md): the same phone-first frame as the renter portal. Each page
@@ -27,7 +28,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
         </div>
         <PortalSwitch current="owner" />
         <OwnerNav unread={unread || 0} partner={partner} />
-        <GuideBanner portal="owner" userId={user.id} />
+        <GuideBanner portal="owner" userId={user.id} /><StuckHelp portal="owner" />
         <PushInvite portal="owner" home="/owner" />
       </div>
       <div className="wrap pt__body">{children}</div>

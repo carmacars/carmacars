@@ -12,7 +12,7 @@ export const REVAMP_ADMIN: string[] = [
   '/admin/academy', '/admin/hiring', '/admin/portals', '/admin/investors', '/admin/marketing', '/admin/reviews'
 ];
 export const REVAMP_STAFF: string[] = [
-  '/staff/money', '/staff/owner-money', '/staff/marketplace', '/staff/payments', '/staff/reconciliation', '/staff/tolls', '/staff/turo', '/staff/maintenance',
+  '/staff/money', '/staff/owner-money', '/staff/marketing', '/staff/payments', '/staff/reconciliation', '/staff/tolls', '/staff/turo', '/staff/maintenance',
   '/staff/fleet', '/staff/field-hours', '/staff/checks', '/staff/reviews', '/staff/listings', '/staff/similar-cars', '/staff/calendar-sync', '/staff/addons', '/staff/cars', '/staff/card-coverage',
   '/staff/owners', '/staff/owner-forms', '/staff/owner-pipeline', '/staff/leads', '/staff/renters', '/staff/messages', '/staff/review-requests', '/staff/game-leads',
   '/staff/academy', '/staff/scorecard', '/staff/profile', '/staff/documents', '/staff/field'

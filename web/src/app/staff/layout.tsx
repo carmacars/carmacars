@@ -8,6 +8,7 @@ import Link from '@/components/Link';
 import { currentUser } from '@/server/portal/data';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { StuckHelp } from '@/features/help/StuckHelp';
 import { PushInvite } from '@/features/push/PushAlerts';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 import { switchFunction } from '@/server/actions/va';
@@ -66,7 +67,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             <StaffNav functions={held} open={open} chat={chat} hot={hot} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{children}</RevampScope></DoorProvider></div>
+        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{children}</RevampScope></DoorProvider></div>
       </div>
     </div>
   );

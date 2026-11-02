@@ -69,6 +69,8 @@ const LABELS: Record<string, string> = {
   custom_price_floor_daily_cents: 'Price typed by hand: floor a day (empty: no floor)', custom_price_max_discount_bps: 'Price typed by hand: flag a discount from the rate sheet above',
   marketplace_posts_per_day: 'Facebook Marketplace: new posts and renewals a day (3 to 5 avoids spam flags)', marketplace_renew_days: 'Facebook Marketplace: renew a listing after this many days',
   marketplace_location: 'Facebook Marketplace: the listing\'s location when a car has no home area',
+  marketplace_max_live_per_car: 'Facebook Marketplace: live listings of one car at most across the team, yours included (each in its own copy)', marketplace_listing_days: 'Facebook Marketplace: a team listing ends this many days after it was posted or renewed',
+  stuck_help_on: 'Stuck? help: offer the guide and the Academy lesson to someone who seems stuck on a page', stuck_idle_minutes: 'Stuck? help: minutes working on a page without a successful action', stuck_errors: 'Stuck? help: validation errors on a page before the offer shows',
   ads_rate_change_bps: 'Advertising: a rate change of at least this share opens a task to update each posted ad of the car', ads_social_drafts_enabled: 'Advertising: write the week\'s Facebook Page and Instagram drafts from the fleet (approval needed; nothing posts by itself)',
   recruit_outreach_enabled: 'Owner recruitment: emails and texts may be sent (each still needs consent in the log)',
   referral_partner_flat_cents: 'Referral partners: the flat kickback a new partner starts with, per completed rental', referral_partner_percent_bps: 'Referral partners: the share of the rental charge a new partner starts with when a percentage is chosen',

@@ -7599,6 +7599,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      help_stuck_events: {
+        Row: {
+          id: string;
+          at: string;
+          user_id: string | null;
+          portal: string;
+          route: string;
+          tab: string | null;
+          trigger: string | null;
+          action: string;
+        };
+        Insert: {
+          id?: string;
+          at?: string;
+          user_id?: string | null;
+          portal: string;
+          route: string;
+          tab?: string | null;
+          trigger?: string | null;
+          action: string;
+        };
+        Update: {
+          id?: string;
+          at?: string;
+          user_id?: string | null;
+          portal?: string;
+          route?: string;
+          tab?: string | null;
+          trigger?: string | null;
+          action?: string;
+        };
+        Relationships: [];
+      };
       hiring_decisions: {
         Row: {
           application_id: string;
@@ -9789,6 +9822,66 @@ export type Database = {
         };
         Relationships: [];
       };
+      marketplace_claims: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          variant: number;
+          poster_id: string;
+          status: string;
+          title: string;
+          body_hash: string;
+          cover: string;
+          price_line: string | null;
+          url: string | null;
+          claimed_at: string;
+          posted_on: string | null;
+          renewed_on: string | null;
+          updated_on: string | null;
+          expires_at: string;
+          ended_at: string | null;
+          ended_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          variant: number;
+          poster_id: string;
+          status?: string;
+          title: string;
+          body_hash: string;
+          cover: string;
+          price_line?: string | null;
+          url?: string | null;
+          claimed_at?: string;
+          posted_on?: string | null;
+          renewed_on?: string | null;
+          updated_on?: string | null;
+          expires_at: string;
+          ended_at?: string | null;
+          ended_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          variant?: number;
+          poster_id?: string;
+          status?: string;
+          title?: string;
+          body_hash?: string;
+          cover?: string;
+          price_line?: string | null;
+          url?: string | null;
+          claimed_at?: string;
+          posted_on?: string | null;
+          renewed_on?: string | null;
+          updated_on?: string | null;
+          expires_at?: string;
+          ended_at?: string | null;
+          ended_reason?: string | null;
+        };
+        Relationships: [];
+      };
       marketplace_log: {
         Row: {
           id: string;
@@ -9802,6 +9895,8 @@ export type Database = {
           numbers: number | null;
           note: string | null;
           logged_by: string | null;
+          claim_id: string | null;
+          variant: number | null;
         };
         Insert: {
           id?: string;
@@ -9815,6 +9910,8 @@ export type Database = {
           numbers?: number | null;
           note?: string | null;
           logged_by?: string | null;
+          claim_id?: string | null;
+          variant?: number | null;
         };
         Update: {
           id?: string;
@@ -9828,6 +9925,8 @@ export type Database = {
           numbers?: number | null;
           note?: string | null;
           logged_by?: string | null;
+          claim_id?: string | null;
+          variant?: number | null;
         };
         Relationships: [];
       };
@@ -14609,6 +14708,11 @@ export type Database = {
           notify_not_back: boolean;
           notify_not_back_minutes: number;
           phone_quo_buttons: boolean;
+          marketplace_max_live_per_car: number;
+          marketplace_listing_days: number;
+          stuck_help_on: boolean;
+          stuck_idle_minutes: number;
+          stuck_errors: number;
         };
         Insert: {
           id?: string;
@@ -15190,6 +15294,11 @@ export type Database = {
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
           phone_quo_buttons?: boolean;
+          marketplace_max_live_per_car?: number;
+          marketplace_listing_days?: number;
+          stuck_help_on?: boolean;
+          stuck_idle_minutes?: number;
+          stuck_errors?: number;
         };
         Update: {
           id?: string;
@@ -15771,6 +15880,11 @@ export type Database = {
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
           phone_quo_buttons?: boolean;
+          marketplace_max_live_per_car?: number;
+          marketplace_listing_days?: number;
+          stuck_help_on?: boolean;
+          stuck_idle_minutes?: number;
+          stuck_errors?: number;
         };
         Relationships: [];
       };
@@ -25235,6 +25349,8 @@ export type Database = {
       guide_read: { Args: { p_by: string; p_portal: string }; Returns: Json };
       handover_places: { Args: { p_vehicle: string }; Returns: Json };
       health_ping: { Args: never; Returns: Json };
+      help_stuck_log: { Args: { p_by: string; p: Json }; Returns: boolean };
+      help_stuck_settings: { Args: never; Returns: Json };
       hiring_role_public: { Args: { p_slug: string }; Returns: Json };
       hiring_roles_public: { Args: never; Returns: Json };
       load_form_draft: { Args: { p_form_code: string; p_user?: string; p_token?: string; p_entity_table?: string; p_entity_id?: string }; Returns: Json };

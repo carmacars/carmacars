@@ -6,6 +6,7 @@ import { InvestorNav } from '@/features/investor/InvestorNav';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { currentUser } from '@/server/portal/data';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
+import { StuckHelp } from '@/features/help/StuckHelp';
 import { PushInvite } from '@/features/push/PushAlerts';
 import { door, rolesOf } from '@/server/door';
 
@@ -26,7 +27,7 @@ export default async function InvestorLayout({ children }: { children: React.Rea
               <span className="gd-frame-links">{investor && <GuideLink portal="investor" />}<SignOutOrExit /></span></div>
             <PortalSwitch current="investor" />
             <InvestorNav deck={deck} investor={investor} />
-            {investor && <GuideBanner portal="investor" userId={user.id} />}
+            {investor && <GuideBanner portal="investor" userId={user.id} />}{investor && <StuckHelp portal="investor" />}
             {investor && <PushInvite portal="investor" home="/investor" />}
           </div>
         )}

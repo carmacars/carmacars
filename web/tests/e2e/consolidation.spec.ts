@@ -173,12 +173,13 @@ test('Sales: Visitors (the map, Live now, Chat, History), the Marketplace and a 
   expect(new URL(page.url()).pathname).toBe('/staff/visitors');
   await page.goto('/staff/chat?view=phone', { waitUntil: 'networkidle' });
   expect(new URL(page.url()).searchParams.get('inbox')).toBe('phone');
-  // the Marketplace, read only
+  // the Marketplace is Sales's Marketing tab now (0510): the old address lands there, without Admin's settings
   await page.goto('/staff/marketplace', { waitUntil: 'networkidle' });
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Marketplace');
+  expect(new URL(page.url()).pathname).toBe('/staff/marketing');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Marketing');
   await expect(page.getByTestId('mp-settings')).toHaveCount(0);
-  await expect(page.getByTestId('mp-inbox')).toHaveCount(0);
-  await check(page, 'sales marketplace');
+  await expect(page.getByTestId('mk-inbox')).toBeVisible();
+  await check(page, 'sales marketing');
   // the actions are buttons on Requests and offers
   await page.goto('/staff/requests', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('send-offer-link')).toBeVisible();

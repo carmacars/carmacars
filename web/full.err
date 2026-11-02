@@ -1,0 +1,3 @@
+psql:/home/claude/cc-r27-mkt/supabase/tests/03_flows.sql:480: WARNING:  FAIL  A every table that holds money, pricing or status is audited  got marketplace_claims,help_stuck_events, want 
+psql:/home/claude/cc-r27-mkt/supabase/tests/04_rls.sql:92: WARNING:  FAIL  S every table has the admin policy and nothing is granted to the anonymous role by policy  got 1/0, want 0/0
+psql:/home/claude/cc-r27-mkt/supabase/tests/13_owner_answers.sql:297: NOTICE:  relation "cov_0079" already exists, skipping
