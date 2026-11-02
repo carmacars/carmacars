@@ -178,10 +178,15 @@ migrate() {
 # The email templates: migration 0018 stores only the file names; the sender renders the contents.
 # Rebuilds emails/ and loads every template's HTML and text into notification_catalogue.
 templates() {
-  local tmp out; tmp=$(mktemp)
+  local tmp out total off=0 step=40; tmp=$(mktemp)
   (cd "$ROOT/emails" && node build.mjs > /dev/null)
-  node "$ROOT/scripts/deploy/email-templates-sql.mjs" > "$tmp"
-  out=$(sbq_file "$tmp") || { rm -f "$tmp"; die "Loading the email templates failed"; }
+  total=$(jq '.emails | length' "$ROOT/emails/catalogue.json")
+  # in parts of 40 emails: the database API refuses a request body over its limit (r26)
+  while [ "$off" -lt "$total" ]; do
+    node "$ROOT/scripts/deploy/email-templates-sql.mjs" "$off" "$step" > "$tmp" 2>/dev/null
+    out=$(sbq_file "$tmp") || { rm -f "$tmp"; die "Loading the email templates failed (emails $off to $((off + step)))"; }
+    off=$((off + step))
+  done
   rm -f "$tmp"
   [ "$(jq -r '.[0].still_paths' <<<"$out")" = "0" ] || die "Some email templates are still file names: $out"
   notice "Email templates: $(jq -r '.[0].total' <<<"$out") loaded"
