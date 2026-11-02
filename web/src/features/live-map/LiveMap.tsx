@@ -14,7 +14,8 @@ import { CanvasMap, hasWebGL } from './canvas';
 /** What LiveMap asks of a renderer: MapLibre (engine.ts) or Canvas 2D (canvas.ts). */
 type Engine = Pick<MapEngine, 'start' | 'destroy' | 'setPins' | 'setCars' | 'setHq' | 'frame' | 'reframe' | 'focus'>;
 import { roleLabel } from './roles';
-import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, adminHref, carLabel, timeLine, withoutContact, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, isLead, spread, stageOf, tally, verbOf,
+import { ContactButtons } from '@/features/phone/QuoButtons';
+import { CAR_HOW, CAR_SILHOUETTE, FLEET_STATUS, adminHref, staffHref, carLabel, timeLine, withoutContact, compactMoney, onTheRoad, photoPins, PRECISION_WORDS, STAGE, STAGES, TYPE, isNew, reasonOf, shortAgo, spotlight, isLead, spread, stageOf, tally, verbOf,
   type CarPhoto, type Kpi, type MapView, type Pin, type Stage } from './model';
 
 // Today > Live map (migration 0242). The map is the hero: the site's own dark basemap with a glowing dot per lead (four
@@ -53,7 +54,8 @@ function padOf(box: HTMLElement | null, top: HTMLElement | null, foot: HTMLEleme
   return { top: Math.max(edge, t === null ? (tv ? edge : 56) : t - b.top + 8), right: edge, bottom: Math.max(edge, f === null ? edge : b.bottom - f + 8 + line), left: edge };
 }
 
-export function LiveMap({ initial, tv, at, embedded = false }: { initial: MapView | null; tv: boolean; /** the server's clock when the page was drawn */ at?: number;
+export function LiveMap({ initial, tv, at, embedded = false, portal = 'admin' }: { initial: MapView | null; tv: boolean; /** the server's clock when the page was drawn */ at?: number;
+  /** r27 consolidation: the staff Visitors page (customer service and Sales): staff links, no TV mode */ portal?: 'admin' | 'staff';
   /** Release 26: on the Visitors page, which has its own list (Live now and History) under the map: no table of leads here */
   embedded?: boolean }) {
   const [view, setView] = useState<MapView | null>(initial);
@@ -251,7 +253,7 @@ export function LiveMap({ initial, tv, at, embedded = false }: { initial: MapVie
     <div className={`lm-float${float.at ? '' : ' lm-float--dock'}`} style={float.at ? floatAt(float.at) : undefined} data-testid="lm-popup" data-pinned={float.pinned ? '1' : '0'}
       onMouseEnter={() => clearTimeout(hoverT.current.hide)}
       onMouseLeave={() => { if (!float.pinned) hoverT.current.hide = setTimeout(() => setFloat((f) => (f?.pinned ? f : null)), GRACE_MS); }}>
-      <PinCard p={card} now={now} contact={!!view?.contact} onClose={float.pinned ? close : undefined} tv={tv} />
+      <PinCard p={card} now={now} contact={!!view?.contact} onClose={float.pinned ? close : undefined} tv={tv} portal={portal} />
     </div>) : null;
   const contactSwitch = (
     <button type="button" role="switch" aria-checked={contact} className={`lm-switch${contact ? ' is-on' : ''}`} onClick={() => showContact(!contact)} data-testid="lm-contact">
@@ -308,7 +310,7 @@ export function LiveMap({ initial, tv, at, embedded = false }: { initial: MapVie
         <Kpis k={view?.kpi} />
         <div className="lm-head__acts">
           {contactSwitch}
-          <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/live-map?tv=1" target="_blank" rel="noopener">Open TV mode</Link>
+          {portal === 'admin' && <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/live-map?tv=1" target="_blank" rel="noopener">Open TV mode</Link>}
         </div>
       </div>
       <div className="lm-hero">
@@ -421,8 +423,8 @@ function Spotlight({ p, on }: { p: Pin; on: boolean }) {
 
 /** The detail card (Release 26): who (the full name), what they did, the score and every signal, the car with its photo,
  * the city and the time, the phone and email when "Show contact" is on, and a link into Admin. */
-function PinCard({ p, now, contact, onClose, tv }: { p: Pin; now: number; contact: boolean; onClose?: () => void; tv: boolean }) {
-  const src = imgOf(p.car?.photo, 320), go = adminHref(p);
+function PinCard({ p, now, contact, onClose, tv, portal = 'admin' }: { p: Pin; now: number; contact: boolean; onClose?: () => void; tv: boolean; portal?: 'admin' | 'staff' }) {
+  const src = imgOf(p.car?.photo, 320), go = portal === 'staff' ? staffHref(p) : adminHref(p);
   return (
     <article className="lm-pop" style={{ ['--c' as string]: colourOf(p) }} aria-label={`${p.name ?? p.who}, ${TYPE[p.type].label}`} data-testid="lm-detail">
       <div className="lm-pop__top">
@@ -442,10 +444,10 @@ function PinCard({ p, now, contact, onClose, tv }: { p: Pin; now: number; contac
       )}
       {contact ? (p.phone || p.email) && (
         <p className="lm-pop__contact" data-testid="lm-detail-contact">
-          {p.phone && <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`}>{p.phone}</a>}{p.phone && p.email ? ' · ' : ''}{p.email && <a href={`mailto:${p.email}`}>{p.email}</a>}
+          {p.phone && (tv ? <span>{p.phone}</span> : <ContactButtons phone={p.phone} name={p.name ?? p.who} booking={p.booking_number} look="link" testId="lm-contact">{p.phone}</ContactButtons>)}{p.phone && p.email ? ' · ' : ''}{p.email && <a href={`mailto:${p.email}`}>{p.email}</a>}
         </p>) : !p.anonymous && <p className="lm-pop__hint lm-quiet">Phone and email hidden. Turn on Show contact to see them.</p>}
-      {!tv && <p className="lm-pop__acts"><Link prefetch={false} href={go.href} data-testid="lm-detail-link">{go.label}</Link></p>}
-      {tv && <p className="lm-pop__acts lm-quiet">{go.label.replace(/^Open /, 'In Admin: ')}</p>}
+      {!tv && go && <p className="lm-pop__acts"><Link prefetch={false} href={go.href} data-testid="lm-detail-link">{go.label}</Link></p>}
+      {tv && go && <p className="lm-pop__acts lm-quiet">{go.label.replace(/^Open /, 'In Admin: ')}</p>}
     </article>
   );
 }

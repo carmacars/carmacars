@@ -1,0 +1,29 @@
+import type { vaPage } from '@/server/va';
+import { Act } from '@/features/admin/Act';
+import { door } from '@/server/door';
+import { ManualMonth, type ManualMonthData } from '@/features/manual/ManualMonth';
+import { $, Badge, Card, PageHead, Table, d, t } from '@/features/admin/ui';
+import { KIND_LABEL, friendly } from '@/features/money/ledger';
+
+type R = Record<string, unknown>;
+
+// Finance's daily reconciliation (05-va.md section 2): processor payouts against the payments; an unmatched
+// item is matched to a payment; anything still unmatched goes to an Admin at the closing check.
+export async function Reconciliation({ ctx, sp }: { ctx: Awaited<ReturnType<typeof vaPage>>; sp: { month?: string } }) {
+  const { read, user, aal } = ctx;
+  const month = /^\d{4}-\d{2}-\d{2}$/.test(sp.month ?? '') ? sp.month : undefined;
+  const [rows, manual] = await Promise.all([read<Array<R & { items: R[] }>>('reconciliation'),
+    door<ManualMonthData>(user.id, 'ops_read', 'manual_payments_month', { month }, aal).catch(() => null)]);
+  const RF = ['/staff/money'];
+  return (<>
+    <PageHead title="Payout reconciliation"><Act action="reconcile_record" label="Record a processor payout" variant="primary" testId="reconcile-record" refresh={RF}
+      fields={[{ name: 'payout_ref', label: 'Payout reference', required: true }, { name: 'paid_on', label: 'Paid on', type: 'date', required: true }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'items', label: 'Items (from the processor report)', type: 'json', value: [] }]} done="Payout recorded." /></PageHead>
+    {rows.length ? rows.map((r) => (
+      <Card key={String(r.id)} title={`${String(r.processor_payout_ref)} · ${d(r.paid_on)}`} aside={<span className="small"><Badge s={String(r.status)} /> {$(r.amount_cents)}, unmatched {$(r.unmatched_cents)}</span>}>
+        <Table rows={r.items} empty="No items." cols={[{ key: 'occurred_at', label: 'When', render: (x) => t(x.occurred_at) }, { key: 'kind', label: 'Kind', render: (x) => friendly(KIND_LABEL, x.kind) }, { key: 'processor_payment_ref', label: 'Processor ref' }, { key: 'amount_cents', label: 'Amount', num: true, render: (x) => $(x.amount_cents) }, { key: 'fee_cents', label: 'Fee', num: true, render: (x) => $(x.fee_cents) },
+          { key: 'status', label: 'Status', render: (x) => <Badge s={String(x.status)} /> }, { key: 'act', label: '', render: (x) => x.status !== 'matched' ? <Act action="reconcile_match" payload={{ item: x.id }} label="Match" fields={[{ name: 'payment', label: 'Payment id' }, { name: 'note', label: 'Note' }]} refresh={RF} /> : null }]} />
+      </Card>)) : <p className="ad-empty" data-testid="reconcile-empty">No processor payouts recorded.</p>}
+    {manual && <ManualMonth data={manual} base="/staff/money?tab=reconciliation" />}
+    <p className="small muted">Anything still unmatched at the closing check goes to an Admin.</p>
+  </>);
+}

@@ -22,7 +22,8 @@ export default async function VaRequests({ searchParams }: { searchParams: Promi
   return (
     <>
       <PageHead title="Requests and offers" kicker={`${all.filter((r) => r.status === 'requested').length} waiting · reply within ${target.words}`} purpose={<>The most urgent first. Open one to review it and send the offer.<InfoTip k="request_claim" topic="answering requests" /></>}>
-        <Link prefetch={false} className="btn btn--primary btn--sm" href="/staff/offers/new" data-testid="send-offer-link">Send an offer without a request</Link></PageHead>
+        <Link prefetch={false} className="btn btn--primary btn--sm" href="/staff/offers/new" data-testid="send-offer-link">Send an offer without a request</Link>
+        <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/quotes/new" data-testid="new-quote-link">New quote</Link></PageHead>
       <RequestsQueue all={all} cards={cards} state={state} sp={sp} target={target} at={at} base="/staff" admin={false} sales={fn === 'sales'} />
     </>
   );

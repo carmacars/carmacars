@@ -8,7 +8,7 @@ import { rpc } from '@/lib/db/repo';
 import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/AccountTools';
 import { ViewAsButton } from '@/features/admin/ViewAs';
 import { door } from '@/server/door';
-import { Tabs } from '@/features/admin/ui';
+import { PageHead } from '@/features/admin/ui';
 import { ChecklistItems, OwnerChecklist, type OwnerChecklistRow } from '@/features/manual/OwnerChecklist';
 import { AddOwnerForm } from '@/features/owner-billing/AddOwnerForm';
 
@@ -24,8 +24,8 @@ export default async function AdminOwners({ searchParams }: { searchParams: Prom
     rpc('admin_account_index', { p_admin: user.id }, { role: 'service_role' }) as unknown as Promise<{ owners: Record<string, Acct> }>]);
   return (
     <>
-      <h1 className="d2">Owner applications</h1>
-      <Tabs items={[['/admin/owners', 'Owners'], ['/admin/owners?view=checklist', 'Paid and signed']]} current="/admin/owners" label="Owner views" />
+      <PageHead title="Owners" purpose="Every owner with their cars, applications, terms and invoices.">
+        <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/owners/add-car" data-testid="add-car-for-owner">Add a car for an owner</Link></PageHead>
       <div className="pt-split">
         <section className="stack" aria-labelledby="ad-list"><h2 className="pt-section-title" id="ad-list">{rows.length} owners</h2>
           {rows.length ? <ul className="ow-rows" data-testid="admin-owners">{rows.map((o) => (
@@ -56,8 +56,8 @@ async function Checklists({ userId, show }: { userId: string; show: 'open' | 'al
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   return (
     <>
-      <h1 className="d2">Owner applications</h1>
-      <Tabs items={[['/admin/owners', 'Owners'], ['/admin/owners?view=checklist', 'Paid and signed']]} current="/admin/owners?view=checklist" label="Owner views" />
+      <PageHead title="Paid and signed" purpose="What each owner has left to pay or sign.">
+        <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/owners/add-car">Add a car for an owner</Link></PageHead>
       <p className="small">{all.filter((r) => r.open > 0).length} of {all.length} owners have something left to pay or sign. {show === 'all'
         ? <Link prefetch={false} className="link" href="/admin/owners?view=checklist">Show only those</Link>
         : <Link prefetch={false} className="link" href="/admin/owners?view=checklist&show=all">Show every owner</Link>}</p>

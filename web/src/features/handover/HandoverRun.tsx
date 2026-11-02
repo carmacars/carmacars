@@ -5,6 +5,7 @@ import { door } from '@/server/door';
 import { Checklist } from '@/features/field/Checklist';
 import type { FieldJob } from '@/features/field/types';
 import { when } from '@/features/agreement/model';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 
 // Check-out or check-in from the booking page (migration 0130): the field portal's checklist, run by an Admin or an
 // assistant on the job the database assigned to them (app.handover_open). The same screens, the same rules: the ready
@@ -21,7 +22,7 @@ export async function HandoverRun({ userId, aal, job, number, base }: { userId: 
         <p className="pt-kicker">{pickup ? 'Check out (pickup)' : 'Check in (return)'} · due {when(pickup ? j.booking.pickup_at : j.booking.return_at)}</p>
         <h1 className="d3">{j.vehicle.name}</h1>
         <p><b className="fd-big">{j.vehicle.plate}</b>{j.vehicle.colour ? ` · ${j.vehicle.colour}` : ''}</p>
-        <p>{j.booking.renter?.name}{j.booking.renter?.mobile ? <> · <a className="link" href={`tel:${j.booking.renter.mobile.replace(/[^\d+]/g, '')}`}>{j.booking.renter.mobile}</a></> : null}</p>
+        <p>{j.booking.renter?.name}{j.booking.renter?.mobile ? <> · <ContactButtons phone={j.booking.renter.mobile} name={j.booking.renter.name} booking={number} look="link" testId="ho-renter">{j.booking.renter.mobile}</ContactButtons></> : null}</p>
         {j.job.place && <p className="small">{j.job.place}</p>}
       </header>
       {/* completing re-renders this page (the action revalidates): the finished job shows the same completion screen

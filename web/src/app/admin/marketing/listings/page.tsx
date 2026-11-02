@@ -7,7 +7,6 @@ import { Badge, Card, PageHead, d } from '@/features/admin/ui';
 import { CHANNELS, isChannel, type AdChannel } from '@/features/ads/channels';
 import { writeListing, type CarFacts, type Rules } from '@/features/ads/listing';
 import { CopyText } from '@/features/ads/CopyText';
-import { MarketingTabs } from '@/features/ads/MarketingTabs';
 import { photoUrl } from '@/lib/photo';
 
 export const dynamic = 'force-dynamic';
@@ -31,7 +30,6 @@ export default async function Listings({ searchParams }: { searchParams: Promise
   const refresh = ['/admin/marketing/listings', '/admin/marketing/ads'];
   return (<>
     <PageHead kicker="Marketing" title="Listings" purpose="The text of an ad for each car and channel, ready to paste, with the tracked link and the photo order. Record where you posted it." />
-    <MarketingTabs current="/admin/marketing/listings" />
     <Card title="Car and channel" testId="ads-pick">
       <GetForm className="ad-row" action="/admin/marketing/listings" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'flex-end' }}>
         <div className="field"><label className="label" htmlFor="ads-car">Car</label>

@@ -1,7 +1,6 @@
 import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { Badge, Card, PageHead, Tiles, d } from '@/features/admin/ui';
-import { MarketingTabs } from '@/features/ads/MarketingTabs';
 import { CopyText } from '@/features/ads/CopyText';
 import type { CarFacts, Rules } from '@/features/ads/listing';
 import { buildKit, type KitExtra, type KitSettings } from './kit';
@@ -21,7 +20,8 @@ const tone = (a: MpItem['action']) => ({ update: 'pending_approval', remove: 'ex
 // Admin > Marketing > Marketplace, the page's body (migration 0410; docs/runbooks/marketplace.md). Facebook Marketplace is posted from the
 // owner's own profile, by Claude in his Chrome or by a person: this page is the kit for every car (computed now, so prices
 // are today's), the rotation of what to post or renew (a few a day), the replies for the inbox, and the log of what was done.
-export function MarketplaceView({ data, car }: { data: MarketplaceData; car?: string }) {
+export function MarketplaceView({ data, car, staff = false }: { data: MarketplaceData; car?: string;
+  /** r27 consolidation: Sales's Marketplace page (/staff/marketplace): the kits, today's plan and the replies, read only (logging, the photo ZIP and the settings stay Admin's) */ staff?: boolean }) {
   const sp = { car };
   const kits = data.cars.map((c) => ({ c, k: buildKit(c, data.rules, data.extra[c.vehicle_id], data.settings, data.site_url, data.today) }));
   const plan = marketplacePlan(kits.map(({ c, k }) => ({ vehicle_id: c.vehicle_id, name: `${c.name}${c.car_code ? ` (${c.car_code})` : ''}`, blocked: k.blockers.length > 0,
@@ -30,9 +30,10 @@ export function MarketplaceView({ data, car }: { data: MarketplaceData; car?: st
   const pick = kits.find((x) => x.c.vehicle_id === sp.car) ?? kits.find((x) => x.c.vehicle_id === plan.today[0]?.vehicle_id) ?? kits.find((x) => !x.k.blockers.length) ?? kits[0];
   const live = new Map(data.postings.filter((p) => p.status === 'live').map((p) => [p.vehicle_id, p]));
   const refresh = ['/admin/marketing/marketplace', '/admin/marketing/ads', '/admin/marketing/listings'];
-  const self = (id: string) => `/admin/marketing/marketplace?car=${id}#kit`;
+  const self = (id: string) => `${staff ? '/staff/marketplace' : '/admin/marketing/marketplace'}?car=${id}#kit`;
 
   const doneButton = (it: MpItem) => {
+    if (staff) return null;
     const k = kits.find((x) => x.c.vehicle_id === it.vehicle_id)?.k;
     const base = { vehicle: it.vehicle_id, title: k?.title, body: k?.description, price_line: k?.priceLine };
     if (it.action === 'post') return <Act action="marketplace_log" payload={{ ...base, kind: 'posted' }} label="Posted" variant="primary" title={`Posted on Marketplace: ${it.name}`} refresh={refresh} done="Logged as posted."
@@ -44,13 +45,12 @@ export function MarketplaceView({ data, car }: { data: MarketplaceData; car?: st
   };
 
   return (<>
-    <PageHead kicker="Marketing" title="Marketplace" purpose={`Facebook Marketplace, posted from the owner's own profile: a kit for every car, ${data.settings.posts_per_day} posts or renewals a day, the inbox replies, and what was done. Playbook: docs/runbooks/marketplace.md.`} />
-    <MarketingTabs current="/admin/marketing/marketplace" />
+    <PageHead kicker={staff ? 'Sales' : 'Marketing'} title="Marketplace" purpose={`Facebook Marketplace, posted from the owner's own profile: a kit for every car, ${data.settings.posts_per_day} posts or renewals a day, the inbox replies, and what was done. Playbook: docs/runbooks/marketplace.md.`} />
     <Tiles items={[
       { k: 'Live listings', v: plan.live, sub: plan.waiting ? `${plan.waiting} cars not posted yet` : 'Every car is up' },
       { k: 'Left today', v: `${plan.left_today} of ${data.settings.posts_per_day}`, sub: 'New posts and renewals' },
       { k: 'This week', v: `${data.week.conversations} chats`, sub: `${data.week.numbers} numbers, ${data.week.posted} posted, ${data.week.renewed} renewed` },
-      { k: 'Last 30 days', v: `${data.requests_30} requests`, sub: `${data.leads_30} call-back leads from Marketplace`, href: '/admin/marketing/report' }
+      { k: 'Last 30 days', v: `${data.requests_30} requests`, sub: `${data.leads_30} call-back leads from Marketplace`, href: staff ? undefined : '/admin/marketing/report' }
     ]} />
 
     <Card title="Today" testId="mp-today" tone={plan.today.length ? 'next' : undefined}>
@@ -81,7 +81,7 @@ export function MarketplaceView({ data, car }: { data: MarketplaceData; car?: st
       const lp = live.get(c.vehicle_id);
       return (<>
         <Card id="kit" title={`Kit: ${c.name}${c.car_code ? ` (${c.car_code})` : ''}`} testId="mp-kit" aside={lp ? <Badge s={lp.needs_update ? 'draft' : 'published'}>{lp.needs_update ? 'Live: update the price' : `Live since ${d(lp.posted_on)}`}</Badge> : <Badge s="closed">Not on Marketplace</Badge>}>
-          <form method="get" action="/admin/marketing/marketplace#kit" className="mp-pick">
+          <form method="get" action={`${staff ? '/staff/marketplace' : '/admin/marketing/marketplace'}#kit`} className="mp-pick">
             <label className="label" htmlFor="mp-car">Car</label>
             <select className="select" id="mp-car" name="car" defaultValue={c.vehicle_id} data-testid="mp-car">
               {kits.map(({ c: x, k: y }) => <option key={x.vehicle_id} value={x.vehicle_id}>{x.name}{x.car_code ? ` (${x.car_code})` : ''}{y.blockers.length ? `: ${y.blockers[0]}` : live.has(x.vehicle_id) ? ': live' : ''}</option>)}
@@ -100,7 +100,7 @@ export function MarketplaceView({ data, car }: { data: MarketplaceData; car?: st
             <details><summary className="small">The description without the link (if Facebook holds the listing back for the link)</summary><CopyText label="Description without the link" value={k.descriptionNoLink} rows={10} testId="mp-description-nolink" /></details>
           </div>
         </Card>
-        <Card title={`Photos, in this order (${k.photos.length} of 10)`} testId="mp-photos" aside={k.photos.length ? <a className="btn btn--primary btn--sm" href={`/admin/marketing/marketplace/photos/${c.vehicle_id}`} download data-testid="mp-zip">Download the photos (ZIP)</a> : null}>
+        <Card title={`Photos, in this order (${k.photos.length} of 10)`} testId="mp-photos" aside={k.photos.length && !staff ? <a className="btn btn--primary btn--sm" href={`/admin/marketing/marketplace/photos/${c.vehicle_id}`} download data-testid="mp-zip">Download the photos (ZIP)</a> : null}>
           {k.photos.length === 0 ? <p className="small muted">No real photos yet.</p> : (
             <ol className="mp-photos">{k.photos.map((p, i) => (
               <li key={p.path}>
@@ -123,14 +123,14 @@ export function MarketplaceView({ data, car }: { data: MarketplaceData; car?: st
       </>);
     })()}
 
-    <Card title="Log an inbox session" testId="mp-inbox">
+    {!staff && <Card title="Log an inbox session" testId="mp-inbox">
       <p className="small muted">After answering the Marketplace inbox: how many chats, and every phone number collected. Each new number becomes a lead with a call-back task for customer service within 15 minutes.</p>
       <Act action="marketplace_inbox" label="Log the session" variant="primary" title="The Marketplace inbox" refresh={refresh} done="Logged." testId="mp-inbox-log"
         fields={[{ name: 'conversations', label: 'Conversations answered', type: 'number', required: true, min: 0, max: 5000, info: false },
           { name: 'replies', label: 'Replies sent', type: 'number', min: 0, max: 5000, info: false },
           { name: 'numbers_text', label: 'Numbers collected, one per line: name, phone, car code', type: 'textarea', wide: true, placeholder: 'Sam, 416 555 0142, CC-7F3A', info: false },
           { name: 'note', label: 'Note', type: 'text', wide: true, info: false }]} />
-    </Card>
+    </Card>}
 
     <Card title="Log" testId="mp-log">
       {data.log.length === 0 ? <p className="small muted">Nothing logged yet.</p> : (
@@ -139,12 +139,12 @@ export function MarketplaceView({ data, car }: { data: MarketplaceData; car?: st
         </ul>)}
     </Card>
 
-    <Card title="Rotation settings" testId="mp-settings">
+    {!staff && <Card title="Rotation settings" testId="mp-settings">
       <p className="small muted">{data.settings.posts_per_day} new posts or renewals a day, each listing renewed after {data.settings.renew_days} days, location {data.settings.location} when a car has no home area. Three to five a day avoids spam flags.</p>
       <Act action="marketplace_settings" label="Change" refresh={refresh} done="Saved." testId="mp-settings-save"
         fields={[{ name: 'posts_per_day', label: 'Posts and renewals a day', type: 'number', value: data.settings.posts_per_day, min: 1, max: 10, required: true, info: false },
           { name: 'renew_days', label: 'Renew after (days)', type: 'number', value: data.settings.renew_days, min: 2, max: 60, required: true, info: false },
           { name: 'location', label: 'Default location', type: 'text', value: data.settings.location, required: true, info: false }]} />
-    </Card>
+    </Card>}
   </>);
 }

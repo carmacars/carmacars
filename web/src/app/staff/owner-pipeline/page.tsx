@@ -1,3 +1,4 @@
+import Link from '@/components/Link';
 import { redirect } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
@@ -16,7 +17,8 @@ export default async function StaffOwnerPipeline() {
   const { read } = await vaPage('/staff/owner-pipeline', ['cs']);
   const d = await read<PipelineData>('owner_pipeline');
   return (<>
-    <PageHead title="Owner pipeline" purpose="Prospective owners by stage. Move a lead when you talk to them; follow-up emails stop by themselves when they reply or the stage changes." />
+    <PageHead title="Owner pipeline" purpose="Prospective owners by stage. Move a lead when you talk to them; follow-up emails stop by themselves when they reply or the stage changes.">
+      <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/owners/add-car" data-testid="add-car-link">Add a car for an owner</Link></PageHead>
     <PipelineBoard d={d} refresh={['/staff/owner-pipeline']} />
   </>);
 }

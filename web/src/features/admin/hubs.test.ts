@@ -17,7 +17,7 @@ test('a grouped page is its own tab; a tab with a query wins when the page has i
   assert.equal(at('/admin/expenses'), 'company:Expenses');
   assert.equal(at('/admin/owners', 'view=checklist'), 'owners:Paid and signed');
   assert.equal(at('/admin/owners'), 'owners:Owners');
-  assert.equal(at('/admin/money/field-pay', 'tab=hours'), 'staff-pay:Field pay');
+  assert.equal(at('/admin/money/field-pay', 'tab=hours'), 'company:Field pay');
 });
 
 test('detail pages and pages outside a group show no tab row', () => {
@@ -30,7 +30,8 @@ test('every tab is in one group only, and every group has at least two tabs', ()
     assert.equal(all.length, new Set(all).size);
     for (const h of hubs) assert.ok(h.tabs.length >= 2, h.key);
   }
-  assert.equal(hubOf(STAFF_HUBS, '/staff/payments', 'from=2026-10-01')?.tab.label, 'By day');
+  assert.equal(hubOf(STAFF_HUBS, '/staff/money', 'tab=day&from=2026-10-01')?.tab.label, 'By day');
+  assert.equal(hubOf(STAFF_HUBS, '/staff/money', '')?.tab.label, 'To handle');
 });
 
 test('a group\'s menu link goes to its first tab and is current on each of its addresses', () => {
@@ -58,7 +59,7 @@ test('tabOf: a known tab, else the first', () => {
 test('admin sections: one link each, opening on the page used most, current on every page in it', () => {
   const l = (k: string) => sectionLink(ADMIN_SECTIONS, ADMIN_HUBS, k)!;
   assert.equal(l('cars').href, '/admin/vehicles');
-  assert.equal(l('people').href, '/admin/owners');
+  assert.equal(l('people').href, '/admin/applications');
   assert.equal(l('money').href, '/admin/money?tab=day');
   assert.equal(l('settings').href, '/admin/settings');
   for (const p of ['/admin/maintenance', '/admin/similar-cars', '/admin/calendar-sync']) assert.ok(l('cars').also.includes(p), p);
@@ -85,4 +86,22 @@ test('admin rows: the section with its current page, then the group\'s tabs', ()
   assert.equal(d.section, null);
   assert.equal(d.hub?.tab.label, 'Claims');
   assert.equal(placeOf(ADMIN_SECTIONS, ADMIN_HUBS, '/admin/bookings', '').section, null);
+});
+
+// r27 consolidation (the owner on November 2, 2026: "Target each area <= 5 sub-pages"; actions are buttons, not menu items)
+test('every admin area lists at most five pages, and its actions are buttons that still belong to it', () => {
+  for (const sec of ADMIN_SECTIONS) assert.ok(sec.items.length <= 5, `${sec.key}: ${sec.items.length}`);
+  const people = sectionLink(ADMIN_SECTIONS, ADMIN_HUBS, 'people')!;
+  for (const p of ['/admin/applications', '/admin/owners', '/admin/owner-forms', '/admin/owners/add-car', '/admin/partners', '/admin/referral-partners', '/admin/renters',
+    '/admin/settings/staff', '/admin/academy', '/admin/hiring', '/admin/portals', '/admin/investors']) assert.ok(people.also.includes(p), p);
+  const cars = sectionLink(ADMIN_SECTIONS, ADMIN_HUBS, 'cars')!;
+  for (const p of ['/admin/vehicles/new', '/admin/vehicles/bulk-rates', '/admin/vehicles/samples', '/admin/vehicles/tracking']) assert.ok(cars.also.includes(p), p);
+  const mk = sectionLink(ADMIN_SECTIONS, ADMIN_HUBS, 'marketing')!;
+  assert.equal(mk.href, '/admin/marketing/marketplace');
+  for (const p of ['/admin/marketing/listings', '/admin/marketing/ads', '/admin/marketing/social', '/admin/marketing/channels', '/admin/marketing/report', '/admin/marketing/recruit', '/admin/marketing/owner-pipeline']) assert.ok(mk.also.includes(p), p);
+  // actions are never tabs
+  for (const h of [...ADMIN_HUBS, ...STAFF_HUBS]) for (const a of h.actions ?? []) assert.ok(!h.tabs.some((t) => t.href === a.href), a.href);
+  assert.deepEqual(hubOf(ADMIN_HUBS, '/admin/applications', '')?.tab.label, 'Applications');
+  const add = placeOf(ADMIN_SECTIONS, ADMIN_HUBS, '/admin/owners/add-car', '');
+  assert.equal(add.section?.current.label, 'Owners');
 });

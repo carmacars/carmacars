@@ -75,12 +75,12 @@ export function historyParams(sp: Record<string, string | string[] | undefined>)
 }
 
 /** The list's address with these filters (and a cursor, for the next page). */
-export function historyHref(f: Partial<Record<FilterKey, string>>, cursor?: string | null): string {
+export function historyHref(f: Partial<Record<FilterKey, string>>, cursor?: string | null, base = '/admin/visitors'): string {
   // Release 26: History is a view of the Visitors page
   const q = new URLSearchParams({ view: 'history' });
   for (const k of FILTER_KEYS) if (f[k]) q.set(k, f[k]!);
   if (cursor) q.set('cursor', cursor);
-  return `/admin/visitors?${q}`;
+  return `${base}?${q}`;
 }
 
 export const CONVERSION_WORDS: Record<Conversion, string> = { request: 'Request sent', booking: 'Booking confirmed', signup: 'Account opened', contact: 'Contact details given' };

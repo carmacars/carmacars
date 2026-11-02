@@ -1,3 +1,4 @@
+import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { door } from '@/server/door';
@@ -26,8 +27,9 @@ export default async function FindBooking({ searchParams }: { searchParams: Prom
   const [{ user, aal, fn }, sp] = await Promise.all([vaPage('/staff/bookings'), searchParams]);
   const q = (sp.q ?? '').trim();
   const rows = q.length >= 3 ? await door<Row[]>(user.id, 'ops_read', 'bookings_search', { q, limit: 50, _va: fn }, aal).catch(() => [] as Row[]) : [];
-  // Release 26 (0330): fleet and customer service open on Now (read-only; the database checks the function)
-  const board = !q && (fn === 'fleet' || fn === 'cs') ? await bookingsNow(user.id, { va: fn, aal }).catch(() => null) : null;
+  // Release 26 (0330): the office opens on Now (read-only; the database checks the function). r27 consolidation (0500):
+  // every office role, as Admin: finance with the money, Sales without the money and without renters' phones and emails
+  const board = !q ? await bookingsNow(user.id, { va: fn, aal }).catch(() => null) : null;
   // Release 26 (0332): every office function sees the bookings they are credited with, sent the offer for or added (Sales:
   // "unable to see his bookings"), with the commission on each
   const mine = !q ? await door<MyRow[]>(user.id, 'ops_read', 'my_bookings', { _va: fn }, aal).catch(() => [] as MyRow[]) : [];
@@ -36,8 +38,9 @@ export default async function FindBooking({ searchParams }: { searchParams: Prom
   const cards = ids.length ? await bookingCards(user.id, ids, { va: fn, aal }) : {};
   return (<>
     <PageHead title={board ? 'Bookings now' : 'Bookings'} purpose={board ? 'What is out, coming back, going out and owed, live. Toronto time. Search finds any booking; every search is logged.' : 'Search by booking number, renter or driver name, email, phone, plate or car code. Every search is logged.'}>
-      <Search action="/staff/bookings" value={q} placeholder="CC-1042, name, email, phone, plate or car code" /></PageHead>
-    {board && <BookingsNow initial={board} at={at} src={`/api/staff/bookings-now?va=${fn}`} base="/staff" />}
+      <Search action="/staff/bookings" value={q} placeholder="CC-1042, name, email, phone, plate or car code" />
+      <Link prefetch={false} className="btn btn--primary btn--sm" href="/staff/bookings/new" data-testid="add-rental-link">Add a rental</Link></PageHead>
+    {board && <BookingsNow initial={board} at={at} src={`/api/staff/bookings-now?va=${fn}`} base={fn === 'sales' ? null : '/staff'} />}
     {!q && (mine.length > 0 || !board) && (
       <section className="bn-sec" aria-labelledby="my-bk-h" data-testid="my-bookings">
         <header className="bn-sec__head"><h2 id="my-bk-h">My bookings <span className="bn-count">{mine.length}</span></h2><p className="bn-sec__note">Credited to you, offered by you or added by you, with your commission</p></header>

@@ -9,6 +9,7 @@ import { Hire } from '@/features/careers/admin/Hire';
 import { AiInterview, type AiInterviewData } from '@/features/careers/admin/AiInterview';
 import { RECOMMENDATION_WORDS } from '@/features/careers/ai-interview';
 import { fmtSlot, MANILA, SOURCE_WORDS, STATUS_WORDS, type Criterion } from '@/features/careers/model';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Candidate', path: '/admin/hiring', noindex: true, description: 'One application: the answers and the score, the call, the rubric beside the call guide, and the decision.' });
@@ -85,7 +86,7 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
         <Card title="Contact and source" testId="cand-contact">
           <Kv rows={[
             ['Email', a.email ? <a className="link" href={`mailto:${a.email}`}>{a.email}</a> : 'Removed'],
-            ['Phone', tel ? <a className="link" href={`tel:${tel}`} data-testid="cand-call">{x.phone_enabled ? 'Call (Quo) ' : 'Call '}{a.phone}</a> : '-'],
+            ['Phone', tel ? <ContactButtons phone={a.phone} name={a.full_name} look="link" testId="cand-call">{a.phone}</ContactButtons> : '-'],
             ['Profile name', a.profile_name ?? '-'], ['Source', SOURCE_WORDS[a.source] ?? a.source],
             ['Campaign', Object.entries(a.utm ?? {}).map(([k, v]) => `${k.replace('utm_', '')}: ${v}`).join(', ') || '-'], ['Applied', t(a.created_at)],
             ['Booking link', <a key="b" className="link" href={a.booking_url} rel="noopener" target="_blank">Open the candidate&apos;s booking page</a>]]} />
@@ -94,7 +95,7 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
           {a.slot_starts_at
             ? <p>{x.role.remote && <span className="small muted">{fmtSlot(a.slot_starts_at, MANILA)} in Manila. </span>}
                 {a.mode === 'video' ? (a.meet_url ? <a className="btn btn--ghost btn--sm" href={a.meet_url} rel="noopener" target="_blank">Join the video call</a> : 'Video')
-                  : tel ? <a className="btn btn--ghost btn--sm" href={`tel:${tel}`}>Call {a.phone}</a> : 'Phone'}</p>
+                  : tel ? <ContactButtons phone={a.phone} name={a.full_name} only="call" testId="cand-slot">Call {a.phone}</ContactButtons> : 'Phone'}</p>
             : <p className="muted small">No call booked{aiOpen && a.status === 'invited' ? ': the candidate has the AI interview link.' : a.status === 'invited' ? ': the candidate has the booking link.' : '.'}</p>}
         </Card>
         <Card title={`Screening: ${a.score ?? '-'} of 100${a.score !== null ? (a.score >= a.pass_mark ? ' (passed)' : ` (pass mark ${a.pass_mark})`) : ''}`} testId="cand-breakdown">

@@ -3,7 +3,6 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { Badge, Filters, PageHead, Table, d } from '@/features/admin/ui';
-import { MarketingTabs } from '@/features/ads/MarketingTabs';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Posted ads', path: '/admin/marketing/ads', noindex: true, description: 'Every ad posted by hand, which need updating after a rate change, and the ones taken down.' });
@@ -20,7 +19,6 @@ export default async function PostedAds({ searchParams }: { searchParams: Promis
   const refresh = ['/admin/marketing/ads', '/admin/marketing/listings'];
   return (<>
     <PageHead kicker="Marketing" title="Posted ads" purpose={`${r.counts.live} live, ${r.counts.needs_update} to update. A change of 3% or more in a car's rates, of its deposit, kilometres or delivery fee, or the car leaving the site, marks its ads and opens a task.`} />
-    <MarketingTabs current="/admin/marketing/ads" />
     <Filters base="/admin/marketing/ads" name="status" value={status} sp={sp} options={[['', `Live (${r.counts.live})`], ['needs_update', `To update (${r.counts.needs_update})`], ['removed', `Taken down (${r.counts.removed})`], ['all', 'All']]} />
     <Table<Row> testId="ads-postings" rows={r.rows} rowKey={(x) => x.id} empty="No ad recorded yet. Write one under Listings and mark it posted." cols={[
       { key: 'car', label: 'Car', render: (x) => <Link prefetch={false} className="link" href={`/admin/marketing/listings?car=${x.vehicle_id}&channel=${x.channel}`}>{x.car}{x.car_code ? ` (${x.car_code})` : ''}</Link> },

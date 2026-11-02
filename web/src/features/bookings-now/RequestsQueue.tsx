@@ -115,7 +115,7 @@ function RequestRow({ r, c, target, at, base, admin, refresh }: { r: Req; c: Car
         <span className="rq__dates"><b>{when(r.pickup_at, at)}</b> to {when(r.return_at, at)} <span className="rq__days">{r.days} day{r.days === 1 ? '' : 's'}</span></span>
       </div>
       <div className="rq__who">
-        <Who r={{ id: r.id, name: r.renter, phone: c?.phone ?? null }} />
+        <Who r={{ id: r.id, name: r.renter, phone: c?.phone ?? null }} booking={r.booking_number} />
         <span className="rq__tags">
           <Chip tone={r.returning ? 'ok' : 'quiet'}>{r.returning ? 'Returning' : 'New renter'}</Chip>
           <Chip tone={lic === 'verified' ? 'ok' : lic === 'pending' ? 'amber' : 'red'} testId={`rq-licence-${r.booking_number}`}>{lic === 'verified' ? 'Licence verified' : lic === 'pending' ? 'Licence to review' : 'No licence yet'}</Chip>

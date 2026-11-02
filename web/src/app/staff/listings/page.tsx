@@ -23,6 +23,7 @@ export default async function VaListings() {
   return (
     <>
       <PageHead title="Listings" kicker={`${rows.filter((r) => r.state === 'needs_review').length} waiting for review`}>
+        <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/owners/add-car" data-testid="add-car-link">Add a car for an owner</Link>
         {fn === 'fleet' && <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'text' }, { name: 'colour', label: 'Colour', type: 'text' }, { name: 'odometer_km', label: 'Odometer (km)', type: 'number' }]} go="/staff/listings/{intake_id}" />}
       </PageHead>
       <Table<I> testId="listings" rows={rows} empty="No listings in progress." cols={[

@@ -4,7 +4,6 @@ import { torontoToday } from '@/lib/nav/range';
 import { GetForm } from '@/components/GetForm';
 import { page } from '@/server/admin/api';
 import { $, Card, PageHead, Table, Tiles } from '@/features/admin/ui';
-import { MarketingTabs } from '@/features/ads/MarketingTabs';
 import { ChannelChart, type ChannelRow } from '@/features/ads/ChannelChart';
 import { DateRangePicker } from '@/components/DateRangePicker';
 
@@ -26,7 +25,6 @@ export default async function ChannelReport({ searchParams }: { searchParams: Pr
   const conv = r.totals.requests ? Math.round((r.totals.bookings * 10000) / r.totals.requests) : 0;
   return (<>
     <PageHead kicker="Marketing" title="Bookings by channel" purpose="Where requests and bookings came from, by month. Set the source on a booking by hand when the renter told you (a Kijiji reply, a walk-in)." />
-    <MarketingTabs current="/admin/marketing/report" />
     <GetForm className="vh-filters" action="/admin/marketing/report" data-testid="ads-report-filters">
       <QuickRange base="/admin/marketing/report" keep={{ model: sp.model }} from={r.from} to={r.to} today={torontoToday()} customId="rp-from" />
       <DateRangePicker id="rp-from" label="Dates" from={r.from} to={r.to} quick={false} />

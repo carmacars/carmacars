@@ -34,6 +34,7 @@ import { ClaimBanner, ClaimGate, RequestClaim } from '@/features/offers/RequestC
 
 import { MoreActions, NextStepPanel } from '@/features/admin/NextStep';
 import { nextStep } from '@/features/admin/next-step';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Booking', path: '/staff', noindex: true, description: 'One booking, as the assistant works it.' });
 
@@ -44,8 +45,6 @@ type Detail = B & R & {
   drivers: R[]; available: boolean; readiness: R | null; request_sent: R; current_offer_version: number | null; offer_expires_at: string | null; request_note: string | null;
 };
 const REFUND_REASONS = ['cancellation', 'carmacars_cancelled', 'driver_not_verifiable', 'pricing_error', 'breakdown_unused_days', 'goodwill', 'duplicate', 'other'];
-// a phone number for a tel: link: the digits and a leading +
-const telHref = (n: string) => n.replace(/(?!^\+)[^\d]/g, '');
 const KINDS: Array<[string, string]> = [['handover', 'Handover'], ['delivery', 'Delivery'], ['return_check_in', 'Return check-in'], ['pickup_from_renter', 'Pickup from renter'], ['detail', 'Detail'], ['photo_shoot', 'Photo shoot'], ['recovery', 'Recovery'], ['other', 'Other']];
 
 // One booking for an assistant (05-va.md sections 2 to 5): the admin screens, narrowed by function. Customer
@@ -54,6 +53,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
   const [{ number }, sp] = await Promise.all([params, searchParams]);
   const n = decodeURIComponent(number);
   const { read, list, fn, user, aal } = await vaPage(`/staff/bookings/${n}`);
+  // r27 consolidation: the conversation of a text sent with the Text button (customer service and Sales have the inbox)
+  const inbox = fn === 'cs' || fn === 'sales' ? '/staff/visitors?view=chat' : null;
   const b = await read<Detail | null>('booking', { number: n }).catch(() => null);
   if (!b) notFound();
   const arranging = ['requested', 'offered', 'pending_payment'].includes(b.status) && (fn === 'cs' || fn === 'sales');
@@ -152,7 +153,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           <Card title="The request as sent">
             <Kv rows={[['Pickup', t(b.request_sent.pickup_at)], ['Return', t(b.request_sent.return_at)], ['Note', String(b.request_note ?? '')], ['Renter', `${b.renter?.legal_name ?? ''}${b.renter?.bookings ? `, ${b.renter.bookings} past bookings` : ', first booking'}`],
               // 2026-10-28: the renter's phone and email, to call or write to them (customer service and Sales)
-              ['Phone', b.renter?.mobile ? <a className="link" href={`tel:${telHref(b.renter.mobile)}`} data-testid="request-renter-phone">{b.renter.mobile}</a> : null],
+              ['Phone', b.renter?.mobile ? <ContactButtons phone={b.renter.mobile} name={b.renter.legal_name} booking={b.booking_number} look="link" inbox={inbox} testId="request-renter-phone">{b.renter.mobile}</ContactButtons> : null],
               ['Email', b.renter?.email ? <a className="link" href={`mailto:${b.renter.email}`} data-testid="request-renter-email">{b.renter.email}</a> : null],
               ['Offer', b.current_offer_version ? `version ${b.current_offer_version}${b.offer_expires_at ? `, open until ${t(b.offer_expires_at)}` : ''}` : 'not sent yet'], ['Car free', b.available ? 'yes' : 'no']]} />
           </Card>
@@ -213,8 +214,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
         <div className="ad-cols ad-cols--2">
           <Card title="Timeline" testId="timeline"><ol className="ad-timeline">{b.events.map((e) => <li key={String(e.id)}><time>{t(e.created_at)}</time><span><b>{label(e.kind)}</b>{e.note ? `: ${String(e.note)}` : ''} <span className="muted small">{String(e.actor_name ?? e.actor_type ?? '')}</span></span></li>)}</ol></Card>
           <div className="stack">
-            {calls && <Card title="Calls and texts" testId="booking-calls"><PhoneTimeline t={calls} inbox="/staff/chat" /></Card>}
-            <Card title="On the site" testId="booking-visits"><VisitorTimeline t={visits} chatBase="/staff/chat" /></Card>
+            {calls && <Card title="Calls and texts" testId="booking-calls"><PhoneTimeline t={calls} inbox="/staff/visitors?view=chat" /></Card>}
+            <Card title="On the site" testId="booking-visits"><VisitorTimeline t={visits} chatBase="/staff/visitors?view=chat" /></Card>
           </div>
         </div>
       )}

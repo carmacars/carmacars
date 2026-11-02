@@ -23,7 +23,7 @@ export interface Rental {
 }
 export interface FreeCar extends Car { state: 'free' | 'maintenance'; why: string | null; note: string | null; until: string | null; idle_since: string | null; idle_days: number | null; next: { booking_id: string; number: string; pickup_at: string } | null }
 export interface Summary { out: number; unrecorded?: number; stale?: number; due_today: number; overdue: number; going: number; money?: number; money_cents?: number; money_overdue?: number; free: number; maintenance: number; partner_cars?: number }
-export interface Board { at: string; today: string; scope: 'full' | 'field'; out: Rental[]; going: Rental[]; back: Rental[]; money?: Rental[]; stale?: Rental[]; cars: FreeCar[]; summary: Summary }
+export interface Board { at: string; today: string; /** 0500: 'sales', the cars without the money or renters' contact */ scope: 'full' | 'field' | 'sales'; out: Rental[]; going: Rental[]; back: Rental[]; money?: Rental[]; stale?: Rental[]; cars: FreeCar[]; summary: Summary }
 
 const TZ = 'America/Toronto';
 const MIN = 60_000;

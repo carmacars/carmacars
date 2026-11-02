@@ -1,5 +1,6 @@
 import { Act } from '@/features/admin/Act';
 import { Card, Kv, ago, t } from '@/features/admin/ui';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 
 // The late-return panel (05-va.md section 3.4, procedure 8): the clock from the return time, the next step
 // with its time, and the buttons. T13 and T14 are the same events the late-returns job sends, so a press
@@ -17,7 +18,7 @@ export function LatePanel({ l, fleet, refresh }: { l: Late; fleet: boolean; refr
   const disableReady = Boolean(l.t14_at) && now - new Date(l.t14_at!).getTime() >= l.notice_minutes * 60_000;
   return (
     <Card title={<>Late return: <span className="ad-score--low">{ago(l.minutes_late)}</span></>} tone="warn" testId="late-panel"
-      aside={l.renter?.mobile ? <a className="btn btn--ghost btn--sm" href={`tel:${l.renter.mobile.replace(/[^\d+]/g, '')}`}>Call {l.renter.name.split(' ')[0]}</a> : null}>
+      aside={l.renter?.mobile ? <ContactButtons phone={l.renter.mobile} name={l.renter.name} testId="late-renter">Call {l.renter.name.split(' ')[0]}</ContactButtons> : null}>
       <ol className="ad-steps">{l.steps.map((s) => {
         const due = !s.done && new Date(s.at).getTime() <= now;
         return <li key={s.label} className={s.done ? 'is-done' : due ? 'is-due' : ''}><span className="small">{t(s.at)}</span><span>{s.done ? '✓ ' : ''}<b>{s.label}</b></span></li>;

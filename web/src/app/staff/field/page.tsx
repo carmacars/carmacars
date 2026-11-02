@@ -11,6 +11,7 @@ import type { FieldCard, FieldJob, FieldList, LicenceCard } from '@/features/fie
 import { when } from '@/features/agreement/model';
 import { getTokens } from '@/lib/site';
 import { signCount } from '@/features/manual/SignPages';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'My jobs', path: '/staff/field', noindex: true, description: 'Today\'s and tomorrow\'s field jobs.' });
@@ -21,7 +22,8 @@ const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toront
 // big card at the top (its time, the car's plate, the place with Maps and a call to the renter, what to bring and the
 // one button that starts it); the rest follow as a timeline. Vehicle moves below. (2026-10-25 design pass.)
 export default async function Field({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ user }, sp] = await Promise.all([requireStaff('field', '/staff/field'), searchParams]);
+  const [{ user, roles }, sp] = await Promise.all([requireStaff('field', '/staff/field'), searchParams]);
+  const office = !!roles.va;
   // 0162: the licences of the renters on their upcoming jobs (today and the next 7 days) that wait for a decision
   const [d, tk, toSign, licences] = await Promise.all([door<FieldList>(user.id, 'field_read', 'jobs'), getTokens(), signCount(user.id),
     door<LicenceCard[]>(user.id, 'field_read', 'licences').catch(() => [] as LicenceCard[])]);
@@ -37,6 +39,9 @@ export default async function Field({ searchParams }: { searchParams: Promise<Re
       <header className="fd-home">
         <h1 className="fd-home__h">My jobs{d.name ? <span className="fd-home__name">, {d.name.split(' ')[0]}</span> : ''}</h1>
         <p className="fd-home__sub">{today()}{d.today.length ? <>. {done && day === 'today' ? `${done} of ${d.today.length} done` : `${d.today.length} today`}</> : null}</p>
+        {/* r27 consolidation: actions are buttons here, not menu items (an office holder adds rentals from Bookings) */}
+        <p className="fd-home__acts">{!office && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/field/rentals/new" data-testid="field-add-rental">Add a rental</Link>}
+          <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/field/report" data-testid="field-report">Report a problem</Link></p>
       </header>
       {toSign > 0 && <p className="alert alert--warn" role="status" data-testid="field-to-sign"><span>You have {toSign === 1 ? 'a document' : `${toSign} documents`} to sign. <Link prefetch={false} className="link" href="/staff/field/sign">Read and sign</Link></span></p>}
       {licences.length > 0 && <section className="fd-licences" aria-labelledby="lic-t" data-testid="field-licences">
@@ -92,7 +97,7 @@ function NextJob({ j, detail }: { j: FieldCard; detail: FieldJob | null }) {
       {j.place && <p className="fd-next__place"><FdIcon name="pin" /><span>{j.place}</span></p>}
       {(j.place || b?.renter?.mobile) && <div className="fd-next__go">
         {j.place && <a className="btn fd-go" href={maps(j.place)} target="_blank" rel="noreferrer"><FdIcon name="pin" />Open in maps</a>}
-        {b?.renter?.mobile && <a className="btn fd-go" href={tel(b.renter.mobile)}><FdIcon name="phone" />Call {j.renter_first_name ?? 'the renter'}</a>}
+        {b?.renter?.mobile && <ContactButtons phone={b.renter.mobile} name={j.renter_first_name} booking={j.booking_number} btnClass="btn fd-go" testId="fd-next-renter">Call {j.renter_first_name ?? 'the renter'}</ContactButtons>}
       </div>}
       {(bring.length > 0 || detail?.job.instructions) && <div className="fd-bring">
         <p className="fd-bring__h"><FdIcon name="bag" />{bring.length ? 'Put in the car' : 'From the office'}</p>

@@ -8,6 +8,7 @@ import { CopyText } from '@/features/ads/CopyText';
 import { applyPath, DECISIONS, fmtSlot, inviteMessage, SOURCE_WORDS, STATUS_FILTERS, STATUS_WORDS } from '@/features/careers/model';
 import { siteUrl } from '@/lib/site';
 import { AI_STATE_WORDS, RECOMMENDATION_WORDS, type InterviewState, type Recommendation } from '@/features/careers/ai-interview';
+import { ContactButtons } from '@/features/phone/QuoButtons';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Hiring', path: '/admin/hiring', noindex: true, description: 'Applications from carmacars.ca/careers, interview days, the calls, the rubric and the ranked shortlist.' });
@@ -53,7 +54,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
           { key: 'full_name', label: 'Candidate', render: (x) => <Link prefetch={false} className="link" href={`${base}/${x.id}`}>{x.full_name}</Link> },
           { key: 'role', label: 'Role' }, { key: 'score', label: 'Screen', num: true },
           { key: 'mode', label: 'How', render: (x) => (x.mode === 'video' ? (x.meet_url ? <a className="link" href={String(x.meet_url)} rel="noopener" target="_blank">Video link</a> : 'Video')
-            : x.phone ? <a className="link" href={`tel:${String(x.phone).replace(/[^\d+]/g, '')}`}>{s.phone_enabled ? 'Call (Quo)' : 'Call'} {x.phone}</a> : 'Phone') },
+            : x.phone ? <ContactButtons phone={String(x.phone)} name={x.full_name ? String(x.full_name) : null} only="call" look="link" testId="hire-call">Call {String(x.phone)}</ContactButtons> : 'Phone') },
           // 0229: a remote role's call is confirmed by the candidate (24 hours before), or cancelled; shown under the status
           // (its own column pushed the table past the screen)
           { key: 'status', label: 'Status', render: (x) => <><Badge s={tone(x.status)}>{STATUS_WORDS[x.status] ?? x.status}</Badge>{CONFIRM_WORDS[String(x.confirm ?? '')] ? <span className="small muted" style={{ display: 'block' }} data-testid={`call-confirm-${x.id}`}>{CONFIRM_WORDS[String(x.confirm ?? '')]}</span> : null}</> },

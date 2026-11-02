@@ -15,6 +15,7 @@ function Bar({ hubs, sections, counts }: { hubs: Hub[]; sections: Section[]; cou
   const { section, hub } = placeOf(sections, hubs, path, sp?.toString() ?? '');
   const tabs = hub && hub.hub.tabs.length > 1 && (!section || section.current.key === hub.hub.key) ? hub : null;
   if (!section && !tabs) return null;
+
   return (
     <div className="hub-rows" data-testid="hub-rows">
       {section && (

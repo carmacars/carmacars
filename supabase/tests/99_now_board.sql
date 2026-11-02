@@ -175,7 +175,10 @@ insert into bn select 'cs', app.door(test.id('bn_cs'), 'aal2', 'ops_read', 'book
 select test.ok('customer service: the whole board with the money', test.bn('cs') ->> 'scope' = 'full' and test.bn('cs') ? 'money');
 select test.ok('fleet: the whole board', app.door(test.id('bn_fleet'), 'aal2', 'ops_read', 'bookings_now', '{"_va": "fleet"}') ->> 'scope' = 'full');
 select test.ok('Admin: the whole board', app.door(test.id('bn_admin'), 'aal2', 'ops_read', 'bookings_now', '{}') ->> 'scope' = 'full');
-select test.throws('sales: not on the board', format($$select app.door(%L, 'aal2', 'ops_read', 'bookings_now', '{"_va": "sales"}')$$, test.id('bn_sales')), 'only');
+-- 0500 (r27 consolidation): Sales reads the board too, the cars without the money and without any renter's phone or email
+insert into bn select 'sales', app.door(test.id('bn_sales'), 'aal2', 'ops_read', 'bookings_now', '{"_va": "sales"}');
+select test.ok('sales: the cars, no money, no renter phone or email', test.bn('sales') ->> 'scope' = 'sales' and not test.bn('sales') ? 'money'
+  and not exists (select 1 from jsonb_array_elements(test.bn('sales') -> 'going') x where (x -> 'renter') ? 'phone' or (x -> 'renter') ? 'email' or x ? 'pay'));
 insert into field_jobs (kind, booking_id, vehicle_id, assigned_to, scheduled_at, status)
 values ('handover', test.id('booking:BN-GO'), test.id('vehicle:bn_go'), test.id('bn_field'), (select pickup_at from bookings where id = test.id('booking:BN-GO')), 'scheduled');
 insert into bn select 'field', app.door(test.id('bn_field'), 'aal2', 'field_read', 'bookings_now', '{}');

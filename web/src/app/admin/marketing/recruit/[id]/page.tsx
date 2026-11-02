@@ -4,7 +4,6 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { Badge, Card, Kv, PageHead, Table, d, t } from '@/features/admin/ui';
-import { MarketingTabs } from '@/features/ads/MarketingTabs';
 import { BASIS, CALL_OUTCOMES, CALL_SCRIPT, CONTACT_KINDS, LEAD_STATUS, LISTING_SITES, TEMPLATES, fillTemplate, recruitLink, withStop, type ConsentState } from '@/features/ads/recruit';
 
 export const dynamic = 'force-dynamic';
@@ -40,7 +39,6 @@ export default async function RecruitLead({ params }: { params: Promise<{ id: st
       {!dnc && <Act action="recruit_do_not_contact" payload={{ lead: id }} label="Do not contact" variant="danger" testId="rc-dnc" refresh={refresh} done="Recorded: never contact them again."
         fields={[{ name: 'reason', label: 'Why (their words)', type: 'text' }]} />}
     </PageHead>
-    <MarketingTabs current="/admin/marketing/recruit" />
     <div className="ad-cols ad-cols--2">
       <Card title="Lead" testId="rc-summary">
         <Kv rows={[['Who', word(CONTACT_KINDS, l.contact_kind)], ['Car', l.vehicle_text], ['Ad', l.listing_url ? <a className="link" href={l.listing_url} target="_blank" rel="noopener noreferrer nofollow">{word(LISTING_SITES, l.listing_site) || l.listing_url}</a> : null],

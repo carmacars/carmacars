@@ -6,7 +6,8 @@ import { realUser as currentUser } from '@/server/portal/data';
 import { signOut } from '@/server/actions/auth';
 import { AdminNav, AdminSearch, GROUPS } from '@/features/admin/AdminNav';
 import { HubBar } from '@/features/admin/HubBar';
-import { ADMIN_HUBS, ADMIN_SECTIONS } from '@/features/admin/hubs';
+import { ADMIN_HUBS, ADMIN_SECTIONS, pagesOf } from '@/features/admin/hubs';
+import { VISITOR_TABS } from '@/features/visitors/tabs';
 import { RevampScope } from '@/features/admin/revamp/RevampScope';
 import { REVAMP_ADMIN } from '@/features/admin/revamp/scope';
 import { AdminCommand } from '@/features/admin/shell/AdminCommand';
@@ -21,7 +22,10 @@ import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 import { greetName } from '@/features/admin/today/greeting';
 
 // Ctrl+K reaches every page of the menu, every tab of a page group and every settings page (the menu lists none of them)
-const JUMP = [...GROUPS, ...ADMIN_HUBS.map((h) => ({ key: `hub-${h.key}`, label: h.label, links: h.tabs.map((t) => ({ href: t.href, label: `${h.label}: ${t.label}` })) })),
+// r27 consolidation: the groups' actions (Add a car, Rates for many cars...) and the Visitors page's tabs too
+const JUMP = [...GROUPS, ...ADMIN_HUBS.map((h) => ({ key: `hub-${h.key}`, label: h.label, links: pagesOf(h).map((t) => ({ href: t.href, label: `${h.label}: ${t.label}` })) })),
+  { key: 'visitors', label: 'Visitors', links: VISITOR_TABS.admin.map((t) => ({ href: t.href, label: `Visitors: ${t.label}` })) },
+  { key: 'actions', label: 'Actions', links: [{ href: '/admin/offers/new', label: 'Send an offer' }, { href: '/admin/bookings/new', label: 'Add a rental' }] },
   // the sections' own pages (Maintenance, Applications, Investors, Tolls and tickets, Settings)
   ...ADMIN_SECTIONS.map((x) => ({ key: `sec-${x.key}`, label: x.label, links: x.items.flatMap((i) => (typeof i === 'string' ? [] : [{ href: i.href, label: i.label }])) })),
   { key: 'settings-all', label: 'Settings', links: SECTIONS.map(([k, title]) => ({ href: `/admin/settings/${k}`, label: title })) }];
@@ -40,12 +44,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       // r27: statements to approve on Owner money (its link and its Statements tab), refunds to decide on Payments (By day)
       // r27: a section's link carries its pages' counts (Cars: listings; People: applications; Money: refunds, statements, tolls);
       // the rows on top of the pages carry each page's own
-      counts = { '/admin/requests': c.requests, '/admin/vehicles': c.listings, '/admin/owners': c.applications ?? 0, '/admin/money?tab=day': (c.refunds ?? 0) + (c.statements ?? 0) + (c.tolls ?? 0),
+      counts = { '/admin/requests': c.requests, '/admin/vehicles': c.listings, '/admin/applications': c.applications ?? 0, '/admin/money?tab=day': (c.refunds ?? 0) + (c.statements ?? 0) + (c.tolls ?? 0),
         rowListings: c.listings, rowStatements: c.statements, rowTolls: c.tolls, rowRefunds: c.refunds, rowApplications: c.applications ?? 0 };
     } catch { counts = {}; }
-    // chats waiting for a person (0060)
-    // and hot visitors on the site now (0086), from the same read
-    try { const c = await door<{ waiting: number; hot?: number }>(user.id, 'admin_read', 'chat_counts'); counts['/admin/chat'] = Number(c.waiting) || 0; counts['/admin/visitors'] = Number(c.hot) || 0; } catch { /* no count */ }
+    // chats waiting for a person (0060) and hot visitors on the site now (0086), from the same read: one badge on Visitors
+    // (r27 consolidation: Live chat is its Chat tab), each tab shows its own
+    try { const c = await door<{ waiting: number; hot?: number }>(user.id, 'admin_read', 'chat_counts'); counts['/admin/visitors'] = (Number(c.waiting) || 0) + (Number(c.hot) || 0); } catch { /* no count */ }
   }
   return (
     <div className="ad">

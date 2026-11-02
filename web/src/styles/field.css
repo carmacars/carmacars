@@ -353,3 +353,4 @@
 /* 0291: how much of the rental walkthrough the renter has read */
 .fd-walk { margin: 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-2); background: rgb(255 255 255 / 0.08); }
 .fd-walk.is-ok b { color: #5BD08A; }
+.fd-home__acts { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: var(--s-3) 0 0; }
