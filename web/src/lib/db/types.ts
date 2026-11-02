@@ -4035,6 +4035,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      client_errors: {
+        Row: {
+          id: number;
+          created_at: string;
+          path: string;
+          message: string;
+          stack: string | null;
+          ua: string | null;
+          digest: string | null;
+        };
+        Insert: {
+          id?: number;
+          created_at?: string;
+          path: string;
+          message: string;
+          stack?: string | null;
+          ua?: string | null;
+          digest?: string | null;
+        };
+        Update: {
+          id?: number;
+          created_at?: string;
+          path?: string;
+          message?: string;
+          stack?: string | null;
+          ua?: string | null;
+          digest?: string | null;
+        };
+        Relationships: [];
+      };
       company_expense_categories: {
         Row: {
           code: string;
@@ -24830,6 +24860,7 @@ export type Database = {
       server_chat_open: { Args: { p: Json; p_user?: string }; Returns: Json };
       server_chat_staff_note: { Args: { p_token: string; p_note: string }; Returns: Json };
       server_chat_visitor_message: { Args: { p_token: string; p_body: string }; Returns: Json };
+      server_client_error: { Args: { p: Json }; Returns: string };
       server_colour_read_due: { Args: { p_limit?: number }; Returns: Json };
       server_colour_read_record: { Args: { p: Json }; Returns: Json };
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
