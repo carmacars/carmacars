@@ -68,7 +68,7 @@ const SECTION = {
 const problems = [];
 for (const l of SECTION.lessons) for (const sc of l.scenes) if (!sc.caption || !sc.say || !sc.visual?.kind) problems.push(`${l.title}: a scene without caption, words or picture`);
 for (const x of SECTION.quiz) if (!(x.answer >= 0 && x.answer < x.options.length)) problems.push(`answer out of range in "${x.prompt}"`);
-if (/[–—]/.test(JSON.stringify(SECTION))) problems.push('a long dash');
+if (/[\u2013\u2014]/.test(JSON.stringify(SECTION))) problems.push('a long dash');
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
 const sec = `(select id from academy_sections where slug = ${q(SECTION.slug)})`;
 const acad = [

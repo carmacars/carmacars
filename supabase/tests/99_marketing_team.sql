@@ -112,3 +112,7 @@ select test.ok('the Academy section is last on both Sales paths, with its lesson
     and ps.sort = (select max(sort) from academy_path_sections x where x.path_code = ps.path_code))
   and (select count(*) from academy_lessons l join academy_sections s on s.id = l.section_id where s.slug = 'marketplace-with-claude') = 2
   and (select count(*) from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'marketplace-with-claude') = 5);
+
+-- leave the shared Marketplace counts as they were for the suites after this one (99_marketplace_kits counts today's log)
+delete from marketplace_log where logged_by in (test.id('mkt_admin'), test.id('mkt_s1'), test.id('mkt_s2'), test.id('mkt_s3'), test.id('mkt_s4'));
+update ad_postings set status = 'removed', removed_on = app.today(), removed_reason = 'test cleanup' where vehicle_id = test.id('vehicle:MKT1') and status = 'live';

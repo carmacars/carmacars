@@ -82,6 +82,8 @@ revoke all on marketplace_claims from anon, authenticated;
 grant all on marketplace_claims to service_role;
 drop policy if exists admin_all on marketplace_claims;
 create policy admin_all on marketplace_claims for all to authenticated using (app.is_admin()) with check (app.is_admin());
+drop trigger if exists audit_marketplace_claims on marketplace_claims;
+create trigger audit_marketplace_claims after insert or update or delete on marketplace_claims for each row execute function app.audit_row();
 
 -- claims past their time end (a claim not posted within a day; a listing past Facebook's lifetime)
 create or replace function app.mp_expire() returns integer
@@ -290,8 +292,10 @@ comment on table help_stuck_events is 'Stuck? help (0510): the prompt shown on a
 alter table help_stuck_events enable row level security;
 revoke all on help_stuck_events from anon, authenticated;
 grant all on help_stuck_events to service_role;
-drop policy if exists admin_read on help_stuck_events;
-create policy admin_read on help_stuck_events for select to authenticated using (app.is_admin());
+drop policy if exists admin_all on help_stuck_events;
+create policy admin_all on help_stuck_events for all to authenticated using (app.is_admin()) with check (app.is_admin());
+drop trigger if exists audit_help_stuck_events on help_stuck_events;
+create trigger audit_help_stuck_events after insert or update or delete on help_stuck_events for each row execute function app.audit_row();
 
 create or replace function public.help_stuck_settings() returns jsonb
 language sql stable security definer set search_path = public, app as $$
