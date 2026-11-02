@@ -85,7 +85,8 @@ async function makeTokens(fleet: CarRow[]): Promise<Tokens> {
     airports: list(f.airports.map((a) => a.name), 'and'), deductible: money(f.deductible_cents),
     adminClaim: amt('admin_fee_claim'), adminOther: amt('admin_fee_other'),
     overMin: overs.length ? money(Math.min(...overs), { cents: true }) : '', overMax: overs.length ? money(Math.max(...overs), { cents: true }) : '',
-    grace: plural(late?.grace_minutes ?? 0, 'minute'), graceShort: `${late?.grace_minutes ?? 0} minute`, lateHr: amt('late_return_fee'),
+    grace: plural(late?.grace_minutes ?? 0, 'minute'), graceShort: `${late?.grace_minutes ?? 0} minute`, lateHr: lateHourly(f, amt('late_return_fee')),
+    extDisc: pct(f.extension_discount_bps ?? 500), extShortDisc: pct(f.extension_short_discount_bps ?? 1000),
     fuelPct: pct(fee('fuel')?.percent_bps ?? 0), fuelFee: amt('fuel_service_fee'), evPer: amt('recharging'),
     clean: amt('cleaning'), cleanHeavy: amt('cleaning_heavy'), pet: amt('pet_cleaning'), smoke: amt('smoking'), keyFee: amt('lost_key_fee'),
     tollFee: amt('toll_admin_fee'), ticketFee: amt('ticket_admin_fee'), declined: amt('declined_payment'),
@@ -95,6 +96,12 @@ async function makeTokens(fleet: CarRow[]): Promise<Tokens> {
     payoutDay: ordinal(f.payout_day), billDay: ordinal(f.billing_day), noticeDays: String(f.notice_period_days), referralPct: pct(f.kickback_bps),
     ownerReply: extra.owner_reply ?? '', listDays: s.listing_time_promise ?? '', minDaily: dailies.length ? money(Math.min(...dailies)) : ''
   };
+}
+
+/** The late fee per started hour (0480): "17.5% of the daily rate, at least $25" (a flat amount before it). */
+export function lateHourly(f: Pick<SiteFacts, 'late_fee_hourly_bps' | 'late_fee_hourly_min_cents'>, flat: string): string {
+  if (!f.late_fee_hourly_bps) return flat;
+  return `${pct(f.late_fee_hourly_bps)} of the daily rate, at least ${money(f.late_fee_hourly_min_cents ?? 0)}`;
 }
 
 export function fill(text: string, t: Tokens): string {

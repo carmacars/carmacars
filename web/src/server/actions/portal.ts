@@ -21,6 +21,7 @@ import { changeFacts, openAmendment, payAndApply } from '@/server/portal/change'
 import { AMENDMENT_STATEMENT } from '@/features/agreement/amendment';
 import { driverLinkUrl } from '@/server/portal/driver-links';
 import { accountGate, GATE_MESSAGE } from '@/server/sign-in-settings';
+import { newPayToken, payTokenHash } from '@/server/pay-token';
 
 // Every renter action: a server action (POST with a same-origin check by Next.js), run for the
 // signed-in user, re-checking that the booking is theirs (public.my_booking under row-level security)
@@ -333,19 +334,69 @@ export async function requestExtension(number: string, newReturn: string, note: 
   } catch (e) { return fail(dbMessage(e)); }
 }
 
+// Pay an approved extension with the Card on File (0480: also after the return time while the car is still out).
+async function chargeExtension(number: string, bookingId: string, userId: string, extensionId: string): Promise<R> {
+  const f = (await rpc('server_extension_payment_facts', { p_extension: extensionId, p_by: userId }, SR)) as unknown as { status: string; total_cents: number; booking_id: string; card_on_file: { method_id: string; customer_id: string } | null };
+  if (f.booking_id !== bookingId) return fail('Not found');
+  if (f.status !== 'approved') return fail('This extension is not waiting for payment.');
+  if (!f.card_on_file?.method_id || !f.card_on_file.customer_id) return fail('No Card on File. Call us to pay for the extension.');
+  const i = await (await payments()).chargeOffSession({ customerId: f.card_on_file.customer_id, paymentMethodId: f.card_on_file.method_id, amountCents: f.total_cents, description: `Extension of ${number}`, metadata: { booking_id: bookingId, extension_id: extensionId, purpose: 'extension' }, idempotencyKey: `extension:${extensionId}` });
+  if (i.status !== 'succeeded') return fail(i.lastError ?? 'The card was declined. Nothing was charged.');
+  const r = (await rpc('server_confirm_extension_payment', { p_extension: extensionId, p_processor: { processor: 'stripe', payment_id: i.id, charge_id: i.chargeId, customer_id: i.customerId, method_id: i.paymentMethodId }, p_amount_cents: i.amountCents, p_by: userId }, SR)) as unknown as { ok?: boolean; message?: string };
+  if (r && r.ok === false) return fail(r.message ?? 'The extension could not be confirmed.');
+  return { ok: true, data: null };
+}
+
 export async function payExtension(number: string, extensionId: string): Promise<R> {
   try {
     const { userId, b } = await mine(number);
-    const f = (await rpc('server_extension_payment_facts', { p_extension: extensionId, p_by: userId }, SR)) as unknown as { status: string; total_cents: number; booking_id: string; card_on_file: { method_id: string; customer_id: string } | null };
-    if (f.booking_id !== b.id) return fail('Not found');
-    if (f.status !== 'approved') return fail('This extension is not waiting for payment.');
-    if (!f.card_on_file?.method_id || !f.card_on_file.customer_id) return fail('No Card on File. Call us to pay for the extension.');
-    const i = await (await payments()).chargeOffSession({ customerId: f.card_on_file.customer_id, paymentMethodId: f.card_on_file.method_id, amountCents: f.total_cents, description: `Extension of ${number}`, metadata: { booking_id: b.id, extension_id: extensionId, purpose: 'extension' }, idempotencyKey: `extension:${extensionId}` });
-    if (i.status !== 'succeeded') return fail(i.lastError ?? 'The card was declined. Nothing was charged.');
-    const r = (await rpc('server_confirm_extension_payment', { p_extension: extensionId, p_processor: { processor: 'stripe', payment_id: i.id, charge_id: i.chargeId, customer_id: i.customerId, method_id: i.paymentMethodId }, p_amount_cents: i.amountCents, p_by: userId }, SR)) as unknown as { ok?: boolean; message?: string };
-    if (r && r.ok === false) return fail(r.message ?? 'The extension could not be confirmed.');
+    const r = await chargeExtension(number, b.id, userId, extensionId);
+    if (r.ok) refresh(number);
+    return r;
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+/** 0482: an approved extension paid by card on Stripe's own form (/pay/<token>), when there is no Card on File or it
+ *  was declined. The path to open; paying confirms the extension, and the page brings the renter back to the booking. */
+async function extensionLink(number: string, userId: string, extensionId: string): Promise<string> {
+  const token = newPayToken();
+  const q = (await rpc('renter_extension_payreq', { p_extension: extensionId, p_by: userId, p_token_sha256: await payTokenHash(token) }, SR)) as unknown as
+    { id: string; amount_cents: number; booking_id: string; booking_number: string; renter: { id: string; legal_name: string; email: string | null; customer_id: string | null } };
+  const pay = await payments();
+  const customerId = q.renter.customer_id ?? (await pay.createCustomer({ email: q.renter.email ?? '', name: q.renter.legal_name, renterId: q.renter.id, idempotencyKey: `customer:${q.renter.id}` })).id;
+  const intent = await pay.createStaffIntent({ amountCents: q.amount_cents, customerId, capture: 'manual', description: `CarmaCars booking ${q.booking_number}: extension`,
+    metadata: { booking_id: q.booking_id, booking_number: q.booking_number, purpose: 'staff_request', payment_request_id: q.id, covers: 'extension', extension_id: extensionId }, idempotencyKey: `payreq:${q.id}` });
+  await rpc('server_payreq_attach', { p_id: q.id, p_intent: intent.id }, SR);
+  return `/pay/${token}?back=${encodeURIComponent(`/account/bookings/${number}`)}`;
+}
+
+/** Pay an approved extension with another card: the pay page's path. */
+export async function extensionPayLink(number: string, extensionId: string): Promise<R<{ url: string }>> {
+  try {
+    const { userId } = await mine(number);
+    return { ok: true, data: { url: await extensionLink(number, userId, extensionId) } };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+/** 0480: one tap on an offer. Approved at once when nothing needs a person, then paid with the Card on File, or with a
+ *  pay link when there is none (state "link": open url); otherwise a request for our team. "approved" with a message:
+ *  approved, but the card was declined (pay with another card or call). */
+export interface ExtendOutcome { state: 'paid' | 'approved' | 'requested' | 'link'; newReturnAt: string; totalCents: number; extensionId?: string; url?: string; message?: string }
+export async function extendWithOption(number: string, option: string): Promise<R<ExtendOutcome>> {
+  if (!['1h', '3h', '1d', '3d', '1w', '1m'].includes(option)) return fail('Choose how long to extend.');
+  try {
+    const { userId, b } = await mine(number);
+    const r = (await rpc('renter_extend_option', { p_booking: b.id, p_by: userId, p_option: option }, SR)) as unknown as { extension_id: string; status: string; new_return_at: string; total_cents: number };
+    const base = { newReturnAt: r.new_return_at, totalCents: Number(r.total_cents ?? 0) };
+    if (r.status !== 'approved') { refresh(number); return { ok: true, data: { state: 'requested', ...base } }; }
+    const facts = (await rpc('server_extension_payment_facts', { p_extension: r.extension_id, p_by: userId }, SR)) as unknown as { card_on_file: { method_id: string; customer_id: string } | null };
+    if (!facts.card_on_file?.method_id || !facts.card_on_file.customer_id) {
+      refresh(number);
+      return { ok: true, data: { state: 'link', ...base, extensionId: r.extension_id, url: await extensionLink(number, userId, r.extension_id) } };
+    }
+    const paid = await chargeExtension(number, b.id, userId, r.extension_id);
     refresh(number);
-    return { ok: true, data: null };
+    return { ok: true, data: paid.ok ? { state: 'paid', ...base } : { state: 'approved', ...base, extensionId: r.extension_id, message: paid.message } };
   } catch (e) { return fail(dbMessage(e)); }
 }
 

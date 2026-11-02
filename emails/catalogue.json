@@ -7636,6 +7636,11 @@
           "note": "Public contact address shown in the footer (site_settings public email)."
         },
         {
+          "name": "extend_offer",
+          "type": "string",
+          "sample": "Extend at 5% off: from $107.35 for 1 more day"
+        },
+        {
           "name": "first_name",
           "type": "string",
           "sample": "Maya",
@@ -7835,6 +7840,11 @@
           "type": "string",
           "sample": "contact@carmacars.ca",
           "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "extend_offer",
+          "type": "string",
+          "sample": "Extend at 5% off: from $107.35 for 1 more day"
         },
         {
           "name": "first_name",
@@ -17602,7 +17612,7 @@
         "staff_va_finance"
       ],
       "category": "transactional",
-      "trigger": "A booking extension row is created with status requested. Immediate, because an extension must be confirmed in writing and paid before the current return time.",
+      "trigger": "A booking extension row is created with status requested. Immediate, because the renter waits for the answer and pays once it is approved.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",

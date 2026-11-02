@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { cancelBooking, payExtension, previewChange, previewExtension, requestChange, requestExtension, withdrawChange } from '@/server/actions/portal';
+import { cancelBooking, extensionPayLink, payExtension, previewChange, previewExtension, requestChange, requestExtension, withdrawChange } from '@/server/actions/portal';
 import { clock, timeSlots, torontoInstant } from '@/lib/dates';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
@@ -48,7 +48,7 @@ function Lines({ lines, hst, total, totalLabel }: { lines: Line[]; hst: number; 
   );
 }
 
-export function ExtendForm({ number, returnDate, returnTime, approved }: { number: string; returnDate: string; returnTime: string; approved: { id: string; total_cents: number; new_return_at: string } | null }) {
+export function ExtendForm({ number, returnDate, returnTime, approved, hasCard = true }: { number: string; returnDate: string; returnTime: string; approved: { id: string; total_cents: number; new_return_at: string } | null; hasCard?: boolean }) {
   const router = useRouter();
   const [date, setDate] = useState(returnDate);
   const [time, setTime] = useState(returnTime);
@@ -56,16 +56,23 @@ export function ExtendForm({ number, returnDate, returnTime, approved }: { numbe
   const prev = useAct<Record<string, unknown>>();
   const req = useAct();
   const pay = useAct();
+  const link = useAct<{ url: string }>();
   const p = prev.res?.ok ? (prev.res.data as { ok?: boolean; total_cents: number; hst_cents: number; lines: Line[]; new_days: number; problems?: { message: string }[]; available?: boolean; message?: string }) : null;
   if (approved) return (
     <div className="stack">
-      <p>Your extension to <b>{when(approved.new_return_at)}</b> is approved. Pay {money(approved.total_cents, { cents: true })} with your Card on File to confirm it before your current return time.</p>
+      <p>Your extension to <b>{when(approved.new_return_at)}</b> is approved. Pay {money(approved.total_cents, { cents: true })} to confirm it.</p>
       {pay.res && !pay.res.ok && <p className="alert alert--error" role="alert"><span>{pay.res.message}</span></p>}
-      {pay.res?.ok ? <p className="alert alert--ok" role="status"><span>Paid. Your new return time is confirmed.</span></p>
-        : <button className="btn btn--primary" type="button" disabled={pay.pending} onClick={() => pay.run(() => payExtension(number, approved.id), (r) => { if (r.ok) router.refresh(); })}>{pay.pending ? 'Paying' : `Pay ${money(approved.total_cents, { cents: true })}`}</button>}
+      {link.res && !link.res.ok && <p className="alert alert--error" role="alert"><span>{link.res.message}</span></p>}
+      {pay.res?.ok ? <p className="alert alert--ok" role="status"><span>Paid. Your new return time is confirmed.</span></p> : (
+        <div className="row">
+          {hasCard && <button className="btn btn--primary" type="button" disabled={pay.pending || link.pending} onClick={() => pay.run(() => payExtension(number, approved.id), (r) => { if (r.ok) router.refresh(); })}>{pay.pending ? 'Paying' : `Pay ${money(approved.total_cents, { cents: true })} with your card on file`}</button>}
+          <button className={`btn ${hasCard ? 'btn--ghost' : 'btn--primary'}`} type="button" disabled={pay.pending || link.pending} data-testid="extend-pay-link"
+            onClick={() => link.run(() => extensionPayLink(number, approved.id), (r) => { if (r.ok) window.location.assign(r.data.url); })}>{link.pending ? 'Opening' : hasCard ? 'Pay with another card' : `Pay ${money(approved.total_cents, { cents: true })} by card`}</button>
+        </div>
+      )}
     </div>
   );
-  if (req.res?.ok) return <p className="alert alert--ok" role="status"><span className="alert__title">Extension requested</span><span>We will confirm it shortly. Once approved, you pay here before your current return time.</span></p>;
+  if (req.res?.ok) return <p className="alert alert--ok" role="status"><span className="alert__title">Extension requested</span><span>It is approved at once when the car is free; otherwise we confirm it shortly. Once approved, you pay here.</span></p>;
   return (
     <div className="stack-lg">
       <DateTime id="pt-ext" label="New return date and time" date={date} time={time} onDate={setDate} onTime={setTime} min={returnDate} />

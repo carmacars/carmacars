@@ -165,11 +165,11 @@ select test.throws('2 a booking that is not expired is not reopened', $$select a
 -- =====================================================================================
 -- 3. Timing
 -- =====================================================================================
-select test.eq('3 the settings: 2 hours notice, 2-hour turnaround, Deposit 1 hour before pickup, reply target 2 hours; also the defaults of a new dated row',
+select test.eq('3 the settings: 2 hours notice, 2-hour turnaround, Deposit 1 hour before pickup, reply target 2 hours; also the defaults of a new dated row (0480: a 90 minute buffer)',
   (select booking_min_notice_minutes || '/' || turnaround_buffer_minutes || '/' || take_deposit_lead_minutes || '/' || notify_request_waiting_minutes from app.settings())
   || '/' || (select string_agg(column_default, ' ' order by column_name) from information_schema.columns
               where table_name = 'program_settings' and column_name in ('turnaround_buffer_minutes', 'booking_min_notice_minutes', 'take_deposit_lead_minutes')),
-  '120/120/60/120/120 60 120');
+  '120/120/60/120/120 60 90');
 select test.throws('3 a request inside 2 hours of pickup is refused',
   $$select app.submit_booking_request(test.ba_req('oa-n1', 'oa.notice@example.test', 'BA1', now() + interval '1 hour', now() + interval '1 day'))$$, 'at least 120 minutes');
 -- OA-M1 is confirmed on OA2 from 4 April 10:00 to 6 April 10:00

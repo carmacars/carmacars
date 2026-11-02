@@ -24,7 +24,7 @@ export default {
       'Bring the car back with the same fuel or charge, and all keys.',
       'You have {{km_allowance}} included. Extra kilometres are {{overage_rate}} each.',
       'Only drivers named on the agreement may drive.',
-      'Need more time? [Ask to extend](@booking_extend) before your return time.',
+      'Need more time? [Extend in your booking](@booking_extend): it is approved at once when the car is free.',
     ),
     notice('alert', 'Breakdown or accident', 'Call our 24-hour line at **{{roadside_phone}}**. If anyone is hurt, call 911 first.'),
     small('Your trip details are on your booking page any time.'),

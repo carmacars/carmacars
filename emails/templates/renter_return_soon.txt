@@ -14,7 +14,9 @@ Where: {{return_place}}
 - Leave the car reasonably clean and take your belongings.
 - Bring all keys and anything that came with the car.
 
-Need more time? Extend:
+{{extend_offer}}. Pick 1 hour, 3 hours, a day, a week or a month in your booking and pay with your card on file.
+
+Extend my rental:
 https://carmacars.ca/account/bookings/{{booking_number}}/extend
 
 Please be on time

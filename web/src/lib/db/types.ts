@@ -1758,6 +1758,10 @@ export type Database = {
           declined_by: string | null;
           declined_at: string | null;
           decline_reason: string | null;
+          option_code: string | null;
+          pricing: string | null;
+          regular_total_cents: number | null;
+          auto_approved: boolean;
         };
         Insert: {
           id?: string;
@@ -1788,6 +1792,10 @@ export type Database = {
           declined_by?: string | null;
           declined_at?: string | null;
           decline_reason?: string | null;
+          option_code?: string | null;
+          pricing?: string | null;
+          regular_total_cents?: number | null;
+          auto_approved?: boolean;
         };
         Update: {
           id?: string;
@@ -1818,6 +1826,10 @@ export type Database = {
           declined_by?: string | null;
           declined_at?: string | null;
           decline_reason?: string | null;
+          option_code?: string | null;
+          pricing?: string | null;
+          regular_total_cents?: number | null;
+          auto_approved?: boolean;
         };
         Relationships: [];
       };
@@ -1872,6 +1884,7 @@ export type Database = {
           override_by: string | null;
           override_reason: string | null;
           created_at: string;
+          rate_bps: number | null;
         };
         Insert: {
           id?: string;
@@ -1884,6 +1897,7 @@ export type Database = {
           override_by?: string | null;
           override_reason?: string | null;
           created_at?: string;
+          rate_bps?: number | null;
         };
         Update: {
           id?: string;
@@ -1896,6 +1910,7 @@ export type Database = {
           override_by?: string | null;
           override_reason?: string | null;
           created_at?: string;
+          rate_bps?: number | null;
         };
         Relationships: [];
       };
@@ -12859,6 +12874,7 @@ export type Database = {
           text_id: string | null;
           opened_at: string | null;
           emailed_at: string | null;
+          extension_id: string | null;
         };
         Insert: {
           id?: string;
@@ -12884,6 +12900,7 @@ export type Database = {
           text_id?: string | null;
           opened_at?: string | null;
           emailed_at?: string | null;
+          extension_id?: string | null;
         };
         Update: {
           id?: string;
@@ -12909,6 +12926,7 @@ export type Database = {
           text_id?: string | null;
           opened_at?: string | null;
           emailed_at?: string | null;
+          extension_id?: string | null;
         };
         Relationships: [];
       };
@@ -14638,6 +14656,12 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes: number;
           notify_not_back: boolean;
           notify_not_back_minutes: number;
+          late_fee_hourly_bps: number;
+          late_fee_hourly_min_cents: number;
+          extension_short_discount_bps: number;
+          extension_discount_bps: number;
+          extension_auto_approve: boolean;
+          booking_buffer_minutes: number;
         };
         Insert: {
           id?: string;
@@ -15218,6 +15242,12 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes?: number;
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
+          late_fee_hourly_bps?: number;
+          late_fee_hourly_min_cents?: number;
+          extension_short_discount_bps?: number;
+          extension_discount_bps?: number;
+          extension_auto_approve?: boolean;
+          booking_buffer_minutes?: number;
         };
         Update: {
           id?: string;
@@ -15798,6 +15828,12 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes?: number;
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
+          late_fee_hourly_bps?: number;
+          late_fee_hourly_min_cents?: number;
+          extension_short_discount_bps?: number;
+          extension_discount_bps?: number;
+          extension_auto_approve?: boolean;
+          booking_buffer_minutes?: number;
         };
         Relationships: [];
       };
@@ -23449,6 +23485,7 @@ export type Database = {
           lead_time_mode: string;
           lead_time_tiers: Json | null;
           partner_discount_bps: number | null;
+          extension_offers: boolean;
         };
         Insert: {
           id?: string;
@@ -23522,6 +23559,7 @@ export type Database = {
           lead_time_mode?: string;
           lead_time_tiers?: Json | null;
           partner_discount_bps?: number | null;
+          extension_offers?: boolean;
         };
         Update: {
           id?: string;
@@ -23595,6 +23633,7 @@ export type Database = {
           lead_time_mode?: string;
           lead_time_tiers?: Json | null;
           partner_discount_bps?: number | null;
+          extension_offers?: boolean;
         };
         Relationships: [];
       };
@@ -25276,6 +25315,7 @@ export type Database = {
       my_cancellation_preview: { Args: { p_booking: string }; Returns: Json };
       my_document: { Args: { p_document: string }; Returns: Json };
       my_documents: { Args: never; Returns: Json[] };
+      my_extension_offers: { Args: { p_booking: string }; Returns: Json };
       my_extension_preview: { Args: { p_booking: string; p_new_return: string }; Returns: Json };
       my_notification_preferences: { Args: never; Returns: Json[] };
       my_notifications: { Args: { p_limit?: number; p_unread_only?: boolean }; Returns: Json[] };
@@ -25340,6 +25380,8 @@ export type Database = {
       renter_balance_payreq: { Args: { p_booking: string; p_by: string; p_token_sha256: string }; Returns: Json };
       renter_cancel_booking: { Args: { p_booking: string; p_by: string; p_note?: string }; Returns: Json };
       renter_decline_booking_change: { Args: { p_request: string; p_by: string; p_reason?: string }; Returns: undefined };
+      renter_extend_option: { Args: { p_booking: string; p_by: string; p_option: string }; Returns: Json };
+      renter_extension_payreq: { Args: { p_extension: string; p_by: string; p_token_sha256: string }; Returns: Json };
       renter_offline_pay_facts: { Args: { p_booking: string }; Returns: Json };
       renter_open_agreement: { Args: { p_booking: string; p_by: string; p_template_version: string; p_document_sha256: string; p_storage_path: string }; Returns: string };
       renter_register_upload: { Args: { p_booking: string; p_by: string; p_kind: string; p_storage_path: string; p_sha256: string; p_mime_type: string; p_storage_bucket: string; p_driver?: string; p_details?: Json }; Returns: Json };
@@ -25592,6 +25634,7 @@ export type Database = {
       server_payreq_settle_pre0203: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_payreq_settle_pre0260: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_payreq_settle_pre0261: { Args: { p_id: string; p_intent: Json }; Returns: Json };
+      server_payreq_settle_pre0482: { Args: { p_id: string; p_intent: Json }; Returns: Json };
       server_pdf_facts: { Args: { p_kind: string; p_key: string; p_user?: string }; Returns: Json };
       server_pdf_job_done: { Args: { p_job: string }; Returns: undefined };
       server_pdf_job_fail: { Args: { p_job: string; p_error: string }; Returns: undefined };

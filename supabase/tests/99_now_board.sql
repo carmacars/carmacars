@@ -79,8 +79,8 @@ select app.booking_periods_sync(test.id('booking:BN-LONG'));
 select test.mk_booking('BN-GO', 'bn_go', 'bn_rita', test.bnt(interval '1 day 3 hours'), test.bnt(interval '5 days'), 'confirmed');
 select test.bn_set('BN-GO', 50000, 50000);
 update bookings set pickup_location_kind = 'delivery', pickup_place = '1 Example Street, Toronto' where id = test.id('booking:BN-GO');
--- confirmed, picked up 2 hours ago by the clock, no check-out recorded: out, "pickup not recorded"
-select test.mk_booking('BN-UNREC', 'bn_unrec', 'bn_ivan', to_char((now() - interval '2 hours') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'), test.bnt(interval '3 days'), 'confirmed');
+-- confirmed, picked up 2 hours before the board's noon, no check-out recorded: out, "pickup not recorded"
+select test.mk_booking('BN-UNREC', 'bn_unrec', 'bn_ivan', test.bnt(interval '-2 hours'), test.bnt(interval '3 days'), 'confirmed');
 select test.bn_set('BN-UNREC', 40000, 40000);
 -- ended, never closed: confirmed for 6 to 4 days ago, no check-out, and the same car went out again 3 days ago
 select test.mk_booking('BN-STALE', 'bn_stale', 'bn_rita', test.bnt(interval '-6 days'), test.bnt(interval '-4 days'), 'confirmed');

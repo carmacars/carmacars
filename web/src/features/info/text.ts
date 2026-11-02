@@ -10,7 +10,7 @@ export const INFO: Record<string, string> = {
   deductible: 'The most a renter pays for damage to the car under our fleet policy: $2,500, plus a $75 administration fee for a claim. Damage under it is billed from the deposit first, then the card on file.',
   young_driver: 'A daily fee for younger drivers: $35 a day aged 18 to 20, $20 a day aged 21 to 25. Some cars set their own. From 26 there is no fee.',
   additional_driver: 'Each extra driver adds 25% of the daily rate and signs the agreement with their own link.',
-  late_return: 'After a 30 minute grace period, a late return is $25 an hour. A renter running late should ask to extend before the return time.',
+  late_return: 'After a 30 minute grace period, a late return is 17.5% of the daily rate per started hour, at least $25 (older bookings keep $25). A renter running late extends in their booking at a discount, even after the return time while they still have the car.',
   mileage_overage: 'Kilometres over the allowance cost $0.35 a km, read from the odometer at pickup and return.',
   fuel: 'Return the car with the fuel it had at pickup. Less is charged at the pump price plus 25%, and a $25 service fee. A prepaid full tank means no fuel charge.',
   tolls_tickets: 'Tolls and tickets are the renter\'s. When one reaches us we pay it and charge the amount plus our fee ($15 a toll, $40 a ticket) to the card on file.',

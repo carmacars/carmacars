@@ -5,7 +5,7 @@ CarmaCars  |  Booking {{booking_number}}
 [Extension request]
 Answer before {{return_time}} on {{return_date}}
 
-{{renter_name}} asked to keep the {{vehicle_name}} longer. It only counts if confirmed and paid before the current return time.
+{{renter_name}} asked to keep the {{vehicle_name}} longer. It could not be approved at once. It counts once you approve it and the renter pays.
 
 Current return: {{return_date}}, {{return_time}}
 Asked for: {{requested_return_date}}, {{requested_return_time}}

@@ -28,7 +28,7 @@ export default {
       'You have {{km_allowance}} included. Extra kilometres are {{overage_rate}} each.',
     ),
     button('Ask to extend my rental', '@booking_extend'),
-    notice('info', 'Please be on time', 'An extension only counts once we confirm it in writing and it is paid before your return time. More than 30 minutes late, a late fee of {{late_fee_hourly}} per started hour applies, plus the rental charge for each extra day.'),
+    notice('info', 'Please be on time', 'Need more time? Extend in your booking: it costs less than a late return and counts once it is paid. More than 30 minutes late, a late fee of {{late_fee_hourly}} per started hour applies, plus the rental charge for each extra day.'),
     small('We inspect the car with you at hand-back and you both sign the condition report.'),
   ],
   sample: { fuel_out: 'Full', late_fee_hourly: '$25' },
