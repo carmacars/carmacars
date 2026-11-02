@@ -2,7 +2,7 @@
 -- (docs/changes/2026-11-07-extend-offers.md). Fixtures start with "ex" and use example.test only. Every time is set
 -- relative to the clock (the functions take the time), so nothing depends on when the suite runs.
 select test.suite('99 extend offers');
-update program_settings set extension_auto_approve = true, extension_discount_bps = 500, extension_short_discount_bps = 1000,
+update program_settings set extension_auto_approve = true, extension_discount_bps = 500, extension_short_discount_bps = 1000, max_rental_days = 365,
        late_fee_hourly_bps = 1750, late_fee_hourly_min_cents = 2500, booking_buffer_minutes = 90 where id = (app.settings()).id;
 
 select test.mk_user('ex_admin', 'admin');
@@ -216,6 +216,14 @@ select test.eq('buffer: after a return, 89 minutes is taken, 90 and 91 are free'
 select test.eq('buffer: the turnaround setting follows booking_buffer_minutes', (select turnaround_buffer_minutes from program_settings where id = (app.settings()).id), 90);
 update program_settings set turnaround_buffer_minutes = 75 where id = (app.settings()).id;
 select test.eq('buffer: either setting changes the one buffer', (select booking_buffer_minutes from program_settings where id = (app.settings()).id), 75);
+-- a new dated row: the one given sets the other (both default to 90)
+insert into program_settings (effective_from, turnaround_buffer_minutes) values (date '2099-01-01', 100);
+insert into program_settings (effective_from, booking_buffer_minutes) values (date '2099-01-02', 80);
+insert into program_settings (effective_from) values (date '2099-01-03');
+select test.eq('buffer: a new dated row takes the buffer it was given, either name, else 90',
+  (select string_agg(booking_buffer_minutes || '=' || turnaround_buffer_minutes, ' ' order by effective_from) from program_settings where effective_from >= date '2099-01-01'),
+  '100=100 80=80 90=90');
+delete from program_settings where effective_from >= date '2099-01-01';
 update program_settings set booking_buffer_minutes = 90 where id = (app.settings()).id;
 -- an existing booking closer than the buffer is not changed, the calendar rings it
 select test.mk_booking('EX-B3', 'ex_h', 'ex_lena', test.ext('5 days 1 hour'), test.ext('6 days'), 'confirmed');

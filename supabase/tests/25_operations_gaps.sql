@@ -24,14 +24,14 @@ select test.mk_booking('OG-1', 'OGA', 'og_rita', '2027-03-08 10:00', '2027-03-11
 select test.mk_booking('OG-2', 'OGB', 'og_ray', '2027-04-05 10:00', '2027-04-07 10:00', 'confirmed');
 
 -- ---------------------------------------------------------------- 1. settings
-select test.eq('settings: 48 hours to accept, a reminder 12 hours before, 2 hours before pickup at the latest, links for 72 hours, a 90-minute cleaning block (0480: the buffer between trips), copy 60% alike',
+select test.eq('settings: 48 hours to accept, a reminder 12 hours before, 2 hours before pickup at the latest, links for 72 hours, a 120-minute cleaning block, copy 60% alike',
   (select booking_change_accept_hours || '/' || booking_change_reminder_hours || '/' || booking_change_lead_hours || '/' || booking_driver_link_hours || '/'
           || turnaround_block_enabled || '/' || turnaround_block_minutes || '/' || listing_similarity_enabled || '/' || listing_similarity_copy_bps from app.settings()),
-  '48/12/2/72/true/90/true/6000');
+  '48/12/2/72/true/120/true/6000');
 
 -- ---------------------------------------------------------------- 2. the cleaning block after a trip
 select test.eq('cleaning: a confirmed booking has its block from the return, for the minutes in settings',
-  (select reason || '/' || source || '/' || (starts_at = test.og_at('2027-03-11 10:00')) || '/' || ((ends_at - starts_at) = interval '90 minutes')
+  (select reason || '/' || source || '/' || (starts_at = test.og_at('2027-03-11 10:00')) || '/' || ((ends_at - starts_at) = interval '120 minutes')
      from vehicle_calendar_blocks where booking_id = test.id('booking:OG-1')), 'cleaning/turnaround/true/true');
 select test.eq('cleaning: the car is not free during the block, free right after it',
   app.vehicle_is_available(test.id('vehicle:OGA'), test.og_at('2027-03-11 11:00'), test.og_at('2027-03-12 10:00')) || '/' ||

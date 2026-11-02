@@ -73,7 +73,13 @@ comment on column program_settings.booking_buffer_minutes is 'The time between t
 create or replace function app.program_settings_one_buffer() returns trigger
 language plpgsql as $$
 begin
-  if tg_op = 'INSERT' or new.booking_buffer_minutes is distinct from old.booking_buffer_minutes then
+  if tg_op = 'INSERT' then
+    -- a new dated row: the one of the two that was given (both default to 90) sets the other
+    if new.booking_buffer_minutes = 90 and new.turnaround_buffer_minutes is distinct from 90 then
+      new.booking_buffer_minutes := least(greatest(coalesce(new.turnaround_buffer_minutes, 0), 0), 2880);
+    end if;
+    new.turnaround_buffer_minutes := new.booking_buffer_minutes;
+  elsif new.booking_buffer_minutes is distinct from old.booking_buffer_minutes then
     new.turnaround_buffer_minutes := new.booking_buffer_minutes;
   elsif new.turnaround_buffer_minutes is distinct from old.turnaround_buffer_minutes then
     new.booking_buffer_minutes := least(greatest(coalesce(new.turnaround_buffer_minutes, 0), 0), 2880);
@@ -83,6 +89,7 @@ end $$;
 drop trigger if exists program_settings_a_buffer on program_settings;
 create trigger program_settings_a_buffer before insert or update on program_settings
   for each row execute function app.program_settings_one_buffer();
+alter table program_settings alter column turnaround_buffer_minutes set default 90;
 update program_settings set booking_buffer_minutes = 90, turnaround_buffer_minutes = 90;
 comment on column program_settings.turnaround_buffer_minutes is 'Follows booking_buffer_minutes (0480): the one time between trips, in minutes. After each trip it shows on the calendar as the cleaning block, which staff may remove to free the time.';
 

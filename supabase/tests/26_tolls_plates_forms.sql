@@ -30,19 +30,19 @@ select test.eq('settings: lines at 80% or more import without a check, renters m
           || ai_vision_daily_neurons || '/' || listing_plate_check_required || '/' || plate_cover_style || '/' || plate_detect_enabled from app.settings()),
   '80/true/6/true/@cf/meta/llama-4-scout-17b-16e-instruct/3000/true/cover/true');
 
--- ================================================================ 2. one turnaround between trips (0480: the owner's 90 minutes, held once)
-select test.eq('turnaround: one setting, 90 minutes; the cleaning block''s length follows it',
-  (select turnaround_buffer_minutes || '/' || turnaround_block_minutes from app.settings()), '90/90');
+-- ================================================================ 2. one turnaround between trips (the owner's 2 hours, held once)
+select test.eq('turnaround: one setting, 120 minutes; the cleaning block''s length follows it',
+  (select turnaround_buffer_minutes || '/' || turnaround_block_minutes from app.settings()), '120/120');
 select test.mk_booking('TP-1', 'TPA', 'tp_rosa', '2027-05-03 10:00', '2027-05-05 10:00', 'confirmed');
-select test.eq('turnaround: the trip''s cleaning block is the turnaround (90 minutes from the return)',
+select test.eq('turnaround: the trip''s cleaning block is the turnaround (2 hours from the return)',
   (select (starts_at = test.tp_at('2027-05-05 10:00')) || '/' || (ends_at - starts_at)::text from vehicle_calendar_blocks where booking_id = test.id('booking:TP-1') and source = 'turnaround'),
-  'true/01:30:00');
-select test.eq('turnaround: the next trip may start 90 minutes after the return, not a minute sooner (not 3 hours: block and buffer do not add up)',
-  app.vehicle_is_available(test.id('vehicle:TPA'), test.tp_at('2027-05-05 11:29'), test.tp_at('2027-05-06 10:00')) || '/' ||
-  app.vehicle_is_available(test.id('vehicle:TPA'), test.tp_at('2027-05-05 11:30'), test.tp_at('2027-05-06 10:00')), 'false/true');
-select test.eq('turnaround: a trip before must end 90 minutes before the pickup',
-  app.vehicle_is_available(test.id('vehicle:TPA'), test.tp_at('2027-05-01 10:00'), test.tp_at('2027-05-03 08:31')) || '/' ||
-  app.vehicle_is_available(test.id('vehicle:TPA'), test.tp_at('2027-05-01 10:00'), test.tp_at('2027-05-03 08:30')), 'false/true');
+  'true/02:00:00');
+select test.eq('turnaround: the next trip may start 2 hours after the return, not a minute sooner (not 4 hours: block and buffer do not add up)',
+  app.vehicle_is_available(test.id('vehicle:TPA'), test.tp_at('2027-05-05 11:59'), test.tp_at('2027-05-06 10:00')) || '/' ||
+  app.vehicle_is_available(test.id('vehicle:TPA'), test.tp_at('2027-05-05 12:00'), test.tp_at('2027-05-06 10:00')), 'false/true');
+select test.eq('turnaround: a trip before must end 2 hours before the pickup',
+  app.vehicle_is_available(test.id('vehicle:TPA'), test.tp_at('2027-05-01 10:00'), test.tp_at('2027-05-03 08:01')) || '/' ||
+  app.vehicle_is_available(test.id('vehicle:TPA'), test.tp_at('2027-05-01 10:00'), test.tp_at('2027-05-03 08:00')), 'false/true');
 select app.remove_turnaround_block(test.id('tp_fleet'), (select id from vehicle_calendar_blocks where booking_id = test.id('booking:TP-1') and source = 'turnaround'), 'Cleaned at the return');
 select test.eq('turnaround: removing the cleaning block frees the time after the return (no second buffer behind it)',
   app.vehicle_is_available(test.id('vehicle:TPA'), test.tp_at('2027-05-05 10:30'), test.tp_at('2027-05-06 10:00')), true);
@@ -54,20 +54,20 @@ select test.eq('turnaround: a car''s own turnaround (60 minutes) sets its block 
   app.vehicle_is_available(test.id('vehicle:TPB'), test.tp_at('2027-05-05 11:00'), test.tp_at('2027-05-06 10:00')) || '/' ||
   app.vehicle_is_available(test.id('vehicle:TPB'), test.tp_at('2027-05-01 10:00'), test.tp_at('2027-05-03 09:00')), '01:00:00/false/true/true');
 select app.set_vehicle_turnaround(test.id('tp_admin'), test.id('vehicle:TPB'), null);
-update program_settings set turnaround_buffer_minutes = 60 where id = (select id from app.settings());
-select test.eq('turnaround: a new turnaround in Program settings moves the blocks ahead and the availability (60 minutes)',
+update program_settings set turnaround_buffer_minutes = 90 where id = (select id from app.settings());
+select test.eq('turnaround: a new turnaround in Program settings moves the blocks ahead and the availability (90 minutes)',
   (select turnaround_block_minutes::text from app.settings()) || '/' ||
   (select (ends_at - starts_at)::text from vehicle_calendar_blocks where booking_id = test.id('booking:TP-2') and source = 'turnaround') || '/' ||
-  app.vehicle_is_available(test.id('vehicle:TPB'), test.tp_at('2027-05-05 11:00'), test.tp_at('2027-05-06 10:00')), '60/01:00:00/true');
+  app.vehicle_is_available(test.id('vehicle:TPB'), test.tp_at('2027-05-05 11:30'), test.tp_at('2027-05-06 10:00')), '90/01:30:00/true');
 update program_settings set turnaround_block_enabled = false where id = (select id from app.settings());
 select test.eq('turnaround: with the block switched off the same time is still held after the return, without a block',
   (select count(*) from vehicle_calendar_blocks where booking_id = test.id('booking:TP-2') and source = 'turnaround')::text || '/' ||
-  app.vehicle_is_available(test.id('vehicle:TPB'), test.tp_at('2027-05-05 10:59'), test.tp_at('2027-05-06 10:00')) || '/' ||
-  app.vehicle_is_available(test.id('vehicle:TPB'), test.tp_at('2027-05-05 11:00'), test.tp_at('2027-05-06 10:00')), '0/false/true');
-update program_settings set turnaround_buffer_minutes = 90, turnaround_block_enabled = true where id = (select id from app.settings());
-select test.eq('turnaround: back to 90 (the default) with the block', (select (ends_at - starts_at)::text from vehicle_calendar_blocks where booking_id = test.id('booking:TP-2') and source = 'turnaround'), '01:30:00');
+  app.vehicle_is_available(test.id('vehicle:TPB'), test.tp_at('2027-05-05 11:29'), test.tp_at('2027-05-06 10:00')) || '/' ||
+  app.vehicle_is_available(test.id('vehicle:TPB'), test.tp_at('2027-05-05 11:30'), test.tp_at('2027-05-06 10:00')), '0/false/true');
+update program_settings set turnaround_buffer_minutes = 120, turnaround_block_enabled = true where id = (select id from app.settings());
+select test.eq('turnaround: back to 120 with the block', (select (ends_at - starts_at)::text from vehicle_calendar_blocks where booking_id = test.id('booking:TP-2') and source = 'turnaround'), '02:00:00');
 update program_settings set turnaround_block_minutes = 30 where id = (select id from app.settings());
-select test.eq('turnaround: the old block minutes cannot drift from the turnaround (set to 30, kept at 90)', (select turnaround_block_minutes::integer from app.settings()), 90);
+select test.eq('turnaround: the old block minutes cannot drift from the turnaround (set to 30, kept at 120)', (select turnaround_block_minutes::integer from app.settings()), 120);
 
 -- ================================================================ 3. reading a notice: who, context, save
 select test.throws('read: customer service does not read notices', format('select app.toll_read_context(%L)', test.id('tp_cs')), 'Finance or an Admin');

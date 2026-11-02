@@ -438,7 +438,7 @@ insert into program_settings (effective_from, turnaround_buffer_minutes) values 
 select test.eq('AV with a 2-hour turnaround buffer set, the two hours after a return are not available, and the time after that is',
   app.vehicle_is_available(test.id('vehicle:RQ2'), test.at('2029-06-07 10:00'), test.at('2029-06-08 10:00')) || '/'
   || app.vehicle_is_available(test.id('vehicle:RQ2'), test.at('2029-06-07 12:00'), test.at('2029-06-08 10:00')), 'false/true');
-update program_settings set turnaround_buffer_minutes = 90 where effective_from = app.today();   -- back to the default (0480: 90 minutes)
+update program_settings set turnaround_buffer_minutes = 120 where effective_from = app.today();   -- 0025: the buffer is 2 hours
 -- calendar blocks
 select test.rq_new('k1', 'rq_eve', 'RQ1', '2029-07-02 10:00', '2029-07-05 10:00');
 select test.rq_ready('k1');
