@@ -109,10 +109,11 @@ test('admin: To do, the six groups, search, the keyboard, Admin access only for 
   const nav = page.getByTestId('admin-nav');
   for (const g of GROUPS) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
   await expect(nav.locator('.gn__head, .gn__single')).toHaveCount(GROUPS.length);
-  await nav.getByTestId('nav-group-people').click();
-  await expect(nav.getByRole('link', { name: /^Applications/ })).toBeVisible();
+  // r27: People is one link; its pages (Owners, Applications, Partners...) are a row on top
   await shot(page, 'menu');
-  await nav.getByRole('link', { name: /^Applications/ }).click();
+  await nav.getByRole('link', { name: /^People/ }).click();
+  await page.waitForURL(/\/admin\/owners/);
+  await page.getByTestId('section-bar').getByRole('link', { name: /^Applications/ }).click();
   await page.waitForURL(/\/admin\/applications/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Owner applications');
   if (isPhone()) await expect(page.getByTestId('nav-menu')).toContainText('People');
@@ -455,7 +456,7 @@ test('legal: Form C on screen with the witness, the co-owner\'s own page, the de
   // the debit policy, in words: the retry and the Late Fee only for insufficient funds
   const page = await ctx(browser);
   await signIn(page, admin.email, '/admin');
-  await page.goto('/admin/debits', { waitUntil: 'networkidle' });
+  await page.goto('/admin/owner-money?tab=debits', { waitUntil: 'networkidle' });
   await expect(page.locator('body')).toContainText(/insufficient funds/i);
   await check(page, 'owner debits');
   await page.context().close();
@@ -471,8 +472,8 @@ test('assistant: the grouped menu, To do first', async ({ browser }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('To do');
   await openMenu(page);
   const nav = page.getByTestId('va-nav');
-  for (const g of ['My work', 'Live', 'Customer service', 'Rentals']) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
-  await nav.getByTestId('nav-group-cs').click();
+  // r27 audit: To do, the role's own group (always open), Bookings, Me
+  for (const g of ['To do', 'Customer service', 'Bookings', 'Me']) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
   await nav.getByRole('link', { name: 'Requests', exact: true }).click();
   await page.waitForURL(/\/staff\/requests/);
   await check(page, 'assistant requests');

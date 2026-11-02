@@ -76,7 +76,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
       {/* R23 (0238): the one-off fees agreed on the terms, charged to a car in one step: deducted from payouts or debited */}
       {(carTerms?.cars ?? []).length > 0 && <Card title="Charge the agreed one-off fees" testId="one-off-charge">
         <p className="small">The one-off fees agreed on this owner&apos;s terms (for example the appraisal, tax and plates, the safety certificate) as one invoice for a car. Deducted from payouts: taken from the owner&apos;s monthly payouts until paid, shown as deductions on the statements, never debited.</p>
-        <Act action="owner_one_off_charge" label="Charge the one-off fees" variant="primary" refresh={[`/admin/owners/${id}`, '/admin/invoices']} testId="one-off-charge-open" done="Invoice made." submitLabel="Charge"
+        <Act action="owner_one_off_charge" label="Charge the one-off fees" variant="primary" refresh={[`/admin/owners/${id}`, '/admin/owner-money']} testId="one-off-charge-open" done="Invoice made." submitLabel="Charge"
           fields={[{ name: 'vehicle_id', label: 'Car', type: 'select', required: true, options: carTerms!.cars.map((c) => [c.vehicle_id, c.name] as [string, string]) },
             { name: 'collect_by', label: 'How it is paid', type: 'select', required: true, value: 'payout', options: [['payout', 'Deduct from payouts'], ['bank_debit', 'Bank debit on the 15th']] },
             { name: 'fees', label: 'Only these fees (their names, separated by commas; empty: all the agreed ones)', type: 'list' }]} />

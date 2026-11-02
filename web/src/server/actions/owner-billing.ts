@@ -92,7 +92,7 @@ export async function chooseFirstLast(c: FirstLastInput, paths: string[] = []) {
   if (c.action !== 'none' && (!Number.isInteger(c.amount_cents) || (c.amount_cents ?? 0) <= 0)) fe.amount = 'Enter the amount in dollars and cents.';
   if (c.action === 'paid' && ['e_transfer', 'cheque', 'bank_transfer'].includes(c.payment?.method ?? '') && (c.payment?.reference ?? '').trim().length < 3) fe.reference = 'Enter the reference of the payment.';
   if (Object.keys(fe).length) return invalid(fe);
-  return act<{ choice: FirstLastAction; amount_cents: number | null; invoice: { invoice_number: string; status: string } | null }>('first_last_choose', c as unknown as J, ['/admin/invoices', '/admin', ...paths]);
+  return act<{ choice: FirstLastAction; amount_cents: number | null; invoice: { invoice_number: string; status: string } | null }>('first_last_choose', c as unknown as J, ['/admin/owner-money', '/admin', ...paths]);
 }
 
 // ---------------------------------------------------------------- invoices
@@ -108,19 +108,19 @@ export async function saveDraft(d: DraftInput, paths: string[] = []) {
   });
   if (!d.lines.length) fe.lines = 'Add at least one line.';
   if (Object.keys(fe).length) return invalid(fe);
-  return act<{ id: string; invoice_number: string; status: string; total_cents: number }>('owner_invoice_draft_save', { ...d, lines: d.lines.map((l) => ({ ...l, quantity: String(l.quantity) })) } as J, ['/admin/invoices', ...paths]);
+  return act<{ id: string; invoice_number: string; status: string; total_cents: number }>('owner_invoice_draft_save', { ...d, lines: d.lines.map((l) => ({ ...l, quantity: String(l.quantity) })) } as J, ['/admin/owner-money', ...paths]);
 }
-export async function issueInvoice(id: string, paths: string[] = []) { return act('owner_invoice_issue', { id }, ['/admin/invoices', ...paths]); }
+export async function issueInvoice(id: string, paths: string[] = []) { return act('owner_invoice_issue', { id }, ['/admin/owner-money', ...paths]); }
 export async function voidInvoice(id: string, reason: string, reissue: boolean, paths: string[] = []) {
   if (!reason.trim()) return invalid({ reason: 'Give the reason. The owner reads it.' });
-  return act<{ replacement_id: string | null; replacement_number: string | null }>('owner_invoice_void', { id, reason: reason.trim(), reissue }, ['/admin/invoices', ...paths]);
+  return act<{ replacement_id: string | null; replacement_number: string | null }>('owner_invoice_void', { id, reason: reason.trim(), reissue }, ['/admin/owner-money', ...paths]);
 }
 export async function creditNote(id: string, amountCents: number, reason: string, paths: string[] = []) {
   const fe: Record<string, string> = {};
   if (!reason.trim()) fe.reason = 'Give the reason. The owner reads it.';
   if (!Number.isInteger(amountCents) || amountCents <= 0) fe.amount = 'Enter the amount to credit, before HST.';
   if (Object.keys(fe).length) return invalid(fe);
-  return act<{ invoice_number: string }>('owner_invoice_credit_note', { id, amount_cents: amountCents, reason: reason.trim() }, ['/admin/invoices', ...paths]);
+  return act<{ invoice_number: string }>('owner_invoice_credit_note', { id, amount_cents: amountCents, reason: reason.trim() }, ['/admin/owner-money', ...paths]);
 }
 export async function resendInvoice(id: string, paths: string[] = []) { return act('owner_invoice_resend', { id }, paths); }
 
@@ -165,7 +165,7 @@ export async function approveWithTerms(applicationId: string, cars: ApproveCar[]
       user.id, 'ops_do', 'application_approve', { id: applicationId, cars }, aal);
     let note: string | null = null;
     if (r.setup?.needed) note = await setupEmail(user.id, aal, applicationId, r.setup).catch((e) => `Approved. The set-up email did not go: ${(fail(e) as { message: string }).message} Use "Send the set-up email" on the application.`);
-    again(['/admin/applications', `/admin/applications/${applicationId}`, '/admin', '/admin/invoices']);
+    again(['/admin/applications', `/admin/applications/${applicationId}`, '/admin', '/admin/owner-money']);
     return { ok: true as const, data: { ...r, note } };
   } catch (e) { return fail(e); }
 }
@@ -244,7 +244,7 @@ export async function staffAddOwnerCar(form: FormData): Promise<R<{ application_
     }
     let note: string | null = null;
     if (r.approved && r.approve?.setup?.needed) note = await setupEmail(user.id, aal, r.application_id, r.approve.setup).catch((e) => `The set-up email did not go: ${(fail(e) as { message: string }).message}`);
-    again(['/admin/applications', '/admin/owners', `/admin/owners/${r.owner_id}`, '/admin', '/admin/invoices']);
+    again(['/admin/applications', '/admin/owners', `/admin/owners/${r.owner_id}`, '/admin', '/admin/owner-money']);
     const { afterCarAdded } = await import('@/server/car-added');
     afterCarAdded();   // the title, description and features right after the response (0082)
     return { ok: true, data: { application_id: r.application_id, application_number: r.application_number, owner_id: r.owner_id, vehicle_id: r.vehicle_id, approved: r.approved, note, docs } };

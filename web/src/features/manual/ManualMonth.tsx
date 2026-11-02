@@ -12,7 +12,7 @@ export function ManualMonth({ data, base }: { data: ManualMonthData; base: strin
   const title = new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', month: 'long', year: 'numeric' }).format(m);
   const totals = Object.entries(data.totals);
   return (
-    <Card title={`Paid another way, ${title}`} testId="manual-month" aside={<span className="small"><Link prefetch={false} className="link" href={`${base}?month=${shift(-1)}`}>Previous month</Link> · <Link prefetch={false} className="link" href={`${base}?month=${shift(1)}`}>Next month</Link></span>}>
+    <Card title={`Paid another way, ${title}`} testId="manual-month" aside={<span className="small"><Link prefetch={false} className="link" href={`${base}${base.includes('?') ? '&' : '?'}month=${shift(-1)}`}>Previous month</Link> · <Link prefetch={false} className="link" href={`${base}${base.includes('?') ? '&' : '?'}month=${shift(1)}`}>Next month</Link></span>}>
       <p className="small">{totals.length ? totals.map(([k, v]) => `${LABEL[k] ?? k} ${$(v)}`).join(' · ') : 'Nothing recorded this month.'} Voided payments are listed but not counted.</p>
       <Table rows={data.rows} empty="No payments recorded by hand this month." cols={[{ key: 'received_on', label: 'Received', render: (r) => d(r.received_on) }, { key: 'method_label', label: 'How' }, { key: 'reference', label: 'Reference' },
         { key: 'for', label: 'For', render: (r) => String(r.invoice_number ?? r.booking_number ?? '') }, { key: 'payer', label: 'From' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) },

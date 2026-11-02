@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, Card, PageHead, Table, d, t } from '@/features/admin/ui';
+import { $, Badge, Card, PageHead, Table, Tiles, d, t } from '@/features/admin/ui';
 import { CHANNELS, CHANNEL_LABEL, refundMaths, type Channel, type Ledger, type LedgerDay, type LedgerRow, type RefundItem } from './ledger';
 
 // Payments (0151), for an Admin and for Finance: a date range and the methods, the totals of each day by method, the cash
@@ -20,7 +20,17 @@ export function PaymentsView({ l, base, bookingBase }: { l: Ledger; base: string
         purpose="Every payment and refund by day and method, the cash drawer against the count, and the refunds waiting for a decision.">
         <a className="btn btn--ghost btn--sm" href={`/api/payments/export?${q.toString()}`} data-testid="payments-export" download>Export CSV</a>
       </PageHead>
-      <form className="ad-filters pay-filters" method="get" action={base} data-testid="payments-filters">
+      {/* r27: the range's money first, as the Now view's dark band (admin and Finance alike) */}
+      <Tiles items={[
+        { k: 'Received', v: $(sum('in')), sub: `${used.reduce((a, c) => a + (l.totals[c]?.count ?? 0), 0)} payments` },
+        { k: 'Refunded', v: $(sum('out')) },
+        { k: 'Net', v: $(sum('in') - sum('out')), sub: l.from === l.to ? 'this day' : 'these days' },
+        { k: 'Refunds waiting', v: String(l.refunds.filter((r) => r.status === 'pending_approval').length), sub: 'to approve or decline', href: '#c-refunds-waiting', warn: l.refunds.some((r) => r.status === 'pending_approval') },
+        { k: 'Cash drawer', v: (() => { const off = l.days.filter((x) => x.cash_difference_cents); return off.length ? 'Off' : 'Balanced'; })(), sub: l.days.some((x) => x.cash_difference_cents) ? 'a count does not match' : 'every count matches', warn: l.days.some((x) => x.cash_difference_cents) }
+      ]} />
+      {/* a base with its own query (Admin: /admin/money?tab=day) keeps it: a GET form drops the action's query */}
+      <form className="ad-filters pay-filters" method="get" action={base.split('?')[0]} data-testid="payments-filters">
+        {[...new URLSearchParams(base.split('?')[1] ?? '')].map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
         <label className="field"><span className="label">From</span><input className="input" type="date" name="from" defaultValue={l.from} data-testid="pay-from" /></label>
         <label className="field"><span className="label">To</span><input className="input" type="date" name="to" defaultValue={l.to} data-testid="pay-to" /></label>
         <fieldset className="pay-methods"><legend className="label">Methods (none ticked: all)</legend>

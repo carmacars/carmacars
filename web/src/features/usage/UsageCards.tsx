@@ -17,7 +17,7 @@ export async function UsageCards({ userId }: { userId: string }) {
   return (
     <div className="stack" data-testid="usage-cards">
       {u.emails_held > 0 && (
-        <p className="alert alert--warn" role="status" data-testid="usage-emails-held"><span><b>{u.emails_held} email{u.emails_held === 1 ? '' : 's'} held.</b> {PAUSE.emailsHeld} <Link prefetch={false} className="link" href="/admin/messages">See the emails</Link></span></p>)}
+        <p className="alert alert--warn" role="status" data-testid="usage-emails-held"><span><b>{u.emails_held} email{u.emails_held === 1 ? '' : 's'} held.</b> {PAUSE.emailsHeld} <Link prefetch={false} className="link" href="/admin/logs?tab=emails">See the emails</Link></span></p>)}
       {u.cards.map((c) => <UsageCard key={c.alert_id} c={c} />)}
     </div>
   );

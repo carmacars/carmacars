@@ -27,3 +27,6 @@ export async function page(next: string) {
     read: <T = Row>(what: string, p: Record<string, unknown> = {}) => adminRead<T>(user.id, what, p)
   };
 }
+
+/** What `page()` gives a page: the signed-in Admin and the reads (a merged page hands it to each tab, r27). */
+export type AdminPage = Awaited<ReturnType<typeof page>>;

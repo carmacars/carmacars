@@ -111,7 +111,7 @@ test('owner debit: set up banking, notice, the debit day, one cleared and one re
   // ---------------------------------------------------------------- 2. an Admin sends the notice
   const ctx = await browser.newContext({ viewport: page.viewportSize()!, baseURL: test.info().project.use.baseURL });
   const admin = await ctx.newPage();
-  await signIn(admin, adminEmail, '/admin/debits');
+  await signIn(admin, adminEmail, '/admin/owner-money?tab=debits');
   await check(admin, 'admin debits');
   const row = admin.getByTestId('debit-owners').locator('tr', { hasText: `Dora ${last}` });
   await expect(row).toContainText('Active, ending 6789');
@@ -170,7 +170,7 @@ test('owner debit: set up banking, notice, the debit day, one cleared and one re
 
   // ---------------------------------------------------------------- 4. the Admin sees the results and the run log
   await sql`select app.owner_debit_run_close(now())`;
-  await admin.goto('/admin/debits', { waitUntil: 'networkidle' });
+  await admin.goto('/admin/owner-money?tab=debits', { waitUntil: 'networkidle' });
   await expect(admin.getByTestId('debit-recent')).toContainText('Cleared');
   await expect(admin.getByTestId('debit-recent')).toContainText('Returned');
   await expect(admin.getByTestId('debit-runs')).toContainText('Debits');

@@ -1,0 +1,27 @@
+import Link from 'next/link';
+import type { AdminPage } from '@/server/admin/api';
+import { Act } from '@/features/admin/Act';
+import { $, Badge, Filters, PageHead, Table, Tiles, t, d } from '@/features/admin/ui';
+
+type R = Record<string, unknown>;
+
+// Payouts (11-statements-and-reports.md section 6): approve (a second Admin where both principals must), then record the transfer.
+export async function Payouts({ ctx: { list }, sp }: { ctx: AdminPage; sp: Record<string, string | undefined> }) {
+  const { rows } = await list('payouts', { eq: sp.status ? { status: sp.status } : {}, limit: 200 });
+  const R = ['/admin/owner-money'];
+  return (<>
+    <PageHead title="Payouts" purpose="Money going out to owners and investors: approve it, then record the transfer." />
+    <Tiles items={[{ k: 'Waiting for approval', v: String(rows.filter((r) => ['draft', 'pending_approval'].includes(String(r.status))).length), href: '/admin/owner-money?tab=payouts&status=pending_approval', warn: rows.some((r) => ['draft', 'pending_approval'].includes(String(r.status))) },
+      { k: 'Approved, to send', v: String(rows.filter((r) => r.status === 'approved').length), sub: $(rows.filter((r) => r.status === 'approved').reduce((n, r) => n + Number(r.amount_cents ?? 0), 0)), href: '/admin/owner-money?tab=payouts&status=approved' },
+      { k: 'Paid', v: String(rows.filter((r) => r.status === 'paid').length), href: '/admin/owner-money?tab=payouts&status=paid' }]} />
+    <Filters base="/admin/owner-money?tab=payouts" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Waiting for approval'], ['approved', 'Approved'], ['paid', 'Paid'], ['cancelled', 'Cancelled']]} />
+    <Table<R> testId="payouts" rows={rows} empty="No payouts yet. They are made when an owner statement is approved." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'payee', label: 'Payee', render: (r) => String(r.owner_name ?? r.investor_name ?? r.payee_type) }, { key: 'kind', label: 'Kind' },
+      { key: 'statement', label: 'Statement', render: (r) => r.owner_statement_id ? <Link prefetch={false} className="link" href={`/admin/statements/${String(r.owner_statement_id)}`}>open</Link> : null },
+      { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'scheduled_for', label: 'Scheduled', render: (r) => d(r.scheduled_for) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
+      { key: 'reference', label: 'Reference' }, { key: 'paid_at', label: 'Paid', render: (r) => t(r.paid_at) },
+      { key: 'act', label: 'Actions', render: (r) => <span className="ad-actions">
+        {['draft', 'pending_approval'].includes(String(r.status)) && <Act action="payout_approve" payload={{ id: r.id }} label={r.approved_by ? 'Second approval' : 'Approve'} variant="primary" refresh={R} />}
+        {['approved', 'sent'].includes(String(r.status)) && <Act action="payout_paid" payload={{ id: r.id }} label="Record sent" refresh={R} fields={[{ name: 'reference', label: 'Transfer reference', required: true }, { name: 'paid_at', label: 'Sent', type: 'datetime', value: new Date().toISOString() }]} />}
+        {['draft', 'pending_approval', 'approved'].includes(String(r.status)) && <Act action="payout_cancel" payload={{ id: r.id }} label="Cancel" fields={[{ name: 'reason', label: 'Reason', required: true }]} refresh={R} />}</span> }]} />
+  </>);
+}

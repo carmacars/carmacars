@@ -130,7 +130,8 @@ test('customer service: the quick reference with what to say and the list', asyn
     const email = await person(sql, 'va', 'Casey Service');
     await signIn(page, email, '/staff/card-coverage');
     await page.goto('/staff/card-coverage', { waitUntil: 'networkidle' });
-    await expect(page.getByTestId('va-nav').getByRole('link', { name: 'Card coverage' })).toBeVisible();
+    // r27: Card coverage is a page of Bookings, in the row on top
+    await expect(page.getByTestId('section-bar').getByRole('link', { name: 'Card coverage' })).toHaveAttribute('aria-current', 'page');
     await expect(page.getByTestId('card-coverage-script')).toContainText('Never say they are covered');
     await expect(page.locator('[data-testid="card-coverage"] tbody tr').first()).toBeVisible();
     await axe(page, 'va card coverage');

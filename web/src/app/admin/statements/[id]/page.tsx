@@ -18,9 +18,9 @@ export default async function Statement({ params }: { params: Promise<{ id: stri
   const s = await read<(R & { vehicles: Veh[]; owner_lines: R[]; row: R }) | null>('owner_statement', { id });
   if (!s?.row) notFound();
   const r = s.row; const status = String(r.status);
-  const R = [`/admin/statements/${id}`, '/admin/statements'];
+  const R = [`/admin/statements/${id}`, '/admin/owner-money'];
   return (<>
-    <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/statements">Owner statements</Link> · {String(r.owner_name)}</>} title={<>{monthOf(String(r.statement_month))} statement, v{String(r.version)} <Badge s={status} /></>}>
+    <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/owner-money?tab=statements">Owner statements</Link> · {String(r.owner_name)}</>} title={<>{monthOf(String(r.statement_month))} statement, v{String(r.version)} <Badge s={status} /></>}>
       <a className="btn btn--ghost btn--sm" href={`/files/owner_statement/${id}`} data-testid="statement-pdf">{status === 'draft' ? 'Preview PDF' : 'PDF'}</a>
       <a className="btn btn--ghost btn--sm" href={`/admin/reports/export?kind=owner_statement&id=${id}`}>CSV</a>
       {status === 'draft' && <Act action="statement_build" payload={{ owner: r.owner_id, month: r.statement_month }} label="Rebuild" refresh={R} />}

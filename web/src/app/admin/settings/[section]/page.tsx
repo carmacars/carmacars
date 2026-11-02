@@ -253,7 +253,7 @@ export default async function Section({ params, searchParams }: { params: Promis
     const keys = ['phone_gate_gallery', 'phone_gate_free_photos', 'phone_gate_dates', 'phone_gate_request', 'phone_gate_verify', 'phone_gate_allow_unverified',
       'phone_gate_texts_per_number_day', 'phone_gate_texts_per_ip_day', 'phone_gate_texts_per_day'];
     return (<>{head}
-      <p className="small muted">A visitor who has not given a mobile number on this device is asked for one before more than the first {String(s.program.phone_gate_free_photos ?? 6)} photos of a car, and before the full availability (the booked days on a car&apos;s calendar, and the cars booked for the chosen dates). Picking dates and seeing whether that car is free stays open, and search engines see every photo. Signed-in renters with a verified mobile, and devices that gave a number in the last 90 days, never see it. Numbers given are under <Link prefetch={false} className="link" href="/admin/leads">Bookings &gt; Renter leads</Link> and on Live visitors.</p>
+      <p className="small muted">A visitor who has not given a mobile number on this device is asked for one before more than the first {String(s.program.phone_gate_free_photos ?? 6)} photos of a car, and before the full availability (the booked days on a car&apos;s calendar, and the cars booked for the chosen dates). Picking dates and seeing whether that car is free stays open, and search engines see every photo. Signed-in renters with a verified mobile, and devices that gave a number in the last 90 days, never see it. Numbers given are under <Link prefetch={false} className="link" href="/admin/renters?tab=leads">People &gt; Renters &gt; Leads</Link> and on Live visitors.</p>
       <Card title="Each box, one press"><GateSwitches r={g.rules} /></Card>
       <GateReport g={g} />
       <Card title="All the settings" testId="gate-settings"><SaveForm table="program_settings" rowKey="current" testId="program-phone-gate" fields={fieldsFrom(s.program, keys)} /></Card>
@@ -435,7 +435,7 @@ export default async function Section({ params, searchParams }: { params: Promis
       <Card title="Where replies go"><Table rows={s.reply_to} cols={[{ key: 'audience', label: 'Audience', render: (r) => r.audience ? String(r.audience) : 'any' }, { key: 'code', label: 'Email', render: (r) => r.code ? String(r.code) : 'any' }, { key: 'reply_to', label: 'Reply to' }, { key: 'note', label: 'Note' }]} />
         {s.reply_to.map((r) => <details key={String(r.id)}><summary className="link">Change {String(r.audience ?? 'any')} / {String(r.code ?? 'any')}</summary><SaveForm table="email_reply_to" rowKey={String(r.id)} compact fields={[{ name: 'reply_to', label: 'Reply to', type: 'email', value: r.reply_to }, { name: 'note', label: 'Note', value: r.note }]} /></details>)}
         <SaveForm table="email_reply_to" label="Add a rule" fields={[{ name: 'audience', label: 'Audience', type: 'select', options: [['renter', 'Renter'], ['owner', 'Owner'], ['staff', 'Staff'], ['insurer', 'Insurer']] }, { name: 'code', label: 'Email code (empty: any)' }, { name: 'reply_to', label: 'Reply to', type: 'email', required: true }]} /></Card>
-      <p className="small"><Link prefetch={false} className="link" href="/admin/messages">Outbox and suppressions</Link></p>
+      <p className="small"><Link prefetch={false} className="link" href="/admin/logs?tab=emails">Email log and blocked addresses</Link></p>
     </>);
   case 'staff':
     return (<>{head}
