@@ -124,8 +124,11 @@ number and email and name".
   records now include Applied.
 - **Calculator hand-off:** the application reads `?year=&make=&model=&vin=&est=` (est: the monthly estimate in cents),
   fills the first car with it, shows "Your estimate: about CA$1,450 a month for your 2021 Toyota RAV4", and keeps it in the
-  draft (`calc`), so the lead carries the car they priced and the estimate (`payload.calculator`). The calculator builds
-  the address with `applyHref({ year, make, model, vin, estimate_cents })` from `web/src/features/owner/apply-schema.ts`.
+  draft (`calc`), so the lead carries the car they priced and the estimate (`payload.calculator`). The calculator on List your car
+  links there with **Apply with this car** (`applyHref({ year, make, model, vin, estimate_cents })` from
+  `web/src/features/owner/apply-schema.ts`). The name, mobile and email are usually captured before the first autosave
+  of the draft: the draft, once saved, takes that capture by its email or mobile, so the lead gets the car, the estimate
+  and the link to the draft.
 
 Files: `supabase/migrations/0340_sales_owner_recruitment.sql`, `0341_sales_owner_recruitment_guides.sql`, `0342_sales_owner_leads_scope.sql`,
 `0343_test_accounts_never_credited.sql`, `0344_owner_unfinished_applications.sql`

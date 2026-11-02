@@ -114,13 +114,26 @@ begin
 end $$;
 select pg_temp.copy_grants('app.capture_contact(jsonb)'::regprocedure, 'app.capture_contact_pre0344(jsonb)'::regprocedure);
 
--- the car typed later (or handed over by the calculator) follows the draft onto its lead
+-- the car typed later (or handed over by the calculator) follows the draft onto its lead. A capture made before the
+-- draft was first saved (the name, mobile and email are typed before the first autosave) takes this draft when it holds
+-- the same email or mobile, so its lead gets the car, the estimate and the link to the draft.
 create or replace function app.owner_draft_to_lead() returns trigger
 language plpgsql security definer set search_path = public, app as $$
 declare
   v_car text;
+  v_email text := app.capture_clean_email(new.data #>> '{owner,email}');
+  v_phone text := app.phone_key(new.data #>> '{owner,phone}');
 begin
   if new.form_code <> 'owner_application' or new.submitted_at is not null then return null; end if;
+  if v_email is not null or v_phone is not null then
+    update contact_captures c set draft_id = new.id, ref = new.id::text
+     where c.form = 'owner_application' and c.draft_id is null and c.done_at is null and c.last_at > now() - interval '1 day'
+       and ((v_email is not null and c.email = v_email) or (v_phone is not null and app.phone_key(c.phone) = v_phone))
+       and not exists (select 1 from contact_captures y where y.visitor_id = c.visitor_id and y.form = c.form and y.ref = new.id::text);
+    update leads l set payload = l.payload || jsonb_build_object('draft_id', new.id), updated_at = now()
+      from contact_captures c
+     where c.draft_id = new.id and c.lead_id = l.id and l.kind in ('owner_program', 'owner_recruit') and l.payload ->> 'draft_id' is distinct from new.id::text;
+  end if;
   v_car := app.owner_draft_car(new.data);
   update leads l set vehicle_text = coalesce(v_car, l.vehicle_text),
          payload = case when new.data ? 'calc' then l.payload || jsonb_build_object('calculator', new.data -> 'calc') else l.payload end, updated_at = now()

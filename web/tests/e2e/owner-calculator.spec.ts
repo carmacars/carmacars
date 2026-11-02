@@ -28,6 +28,9 @@ test('List your car: the month and the year from the car, the days and the share
   const at18 = await value(page, 'ecalc-monthly');
   expect(at18).toBeGreaterThan(0);
   expect(await value(page, 'ecalc-yearly')).toBe(at18 * 12);
+  // 0344: Apply with this car hands the car and the estimate to the application
+  const href = await page.getByTestId('ecalc-apply').getAttribute('href');
+  expect(href).toMatch(/^\/list-your-car\/apply\?year=\d{4}&make=Toyota&model=Corolla&est=\d+$/);
   // no fees set in Program settings: none made up
   await expect(page.getByTestId('ecalc-fees')).toHaveText('quoted in your agreement');
   await expect(page.getByTestId('ecalc-result')).toContainText('a month, before fees');

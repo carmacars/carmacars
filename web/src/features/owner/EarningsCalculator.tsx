@@ -8,6 +8,7 @@ import type { CarEdits } from '@/features/vin/entry';
 import { cleanVin } from '@/features/vin/vin';
 import { lookupVin } from '@/server/actions/apply';
 import { DAYS, SHARE, estimate, rateFor, type CalcData } from './earnings';
+import { applyHref } from './apply-schema';
 
 // The earnings calculator (migration 0354, docs/changes/2026-11-06-owner-earnings-calculator.md): on List your car near
 // the top, and compact at the start of the application. Every number is worked out here from the page's small JSON
@@ -119,7 +120,8 @@ export function EarningsCalculator({ data: given = null, compact = false }: { da
         <div className="ecalc__out on-dark" aria-live="polite" data-testid="ecalc-result">
           {!data && <p className="muted">Loading the rates</p>}
           {data && !chosen && <><p className="ecalc__kicker">Your estimate</p><p className="ecalc__big ecalc__big--wait">Pick your car</p><p className="small ecalc__note">Year, make and model, or the VIN.</p></>}
-          {data && chosen && !e && <><p className="ecalc__kicker">Your estimate</p><p className="ecalc__wait">We have no rate for this car yet. Apply and we quote it with you.</p></>}
+          {data && chosen && !e && <><p className="ecalc__kicker">Your estimate</p><p className="ecalc__wait">We have no rate for this car yet. Apply and we quote it with you.</p>
+            {!compact && <p><a className="btn btn--primary" href={applyHref({ year: Number(car.year) || undefined, make: car.make, model: car.model, vin: by === 'vin' ? cleanVin(vin) : undefined })} data-testid="ecalc-apply">Apply with this car</a></p>}</>}
           {e && rate && <>
             <p className="ecalc__kicker">{rate.label} · {dollars(rate.cents!)} a day{rate.source === 'model' ? `, the average of ${rate.n} like it` : rate.source === 'class' ? `, our ${rate.label.toLowerCase()} average` : ', our rate card'}</p>
             <p className="ecalc__big"><Running cents={e.net} testId="ecalc-monthly" /> <span>a month{e.beforeFees ? ', before fees' : ''}</span></p>
@@ -134,6 +136,8 @@ export function EarningsCalculator({ data: given = null, compact = false }: { da
               <p>Rented only {DAYS.low} days a month, your share is <b className="num" data-testid="ecalc-low">{dollars(low!.share)}</b>{low!.fees !== null ? <>, {low!.net >= 0 ? `${dollars(low!.net)} after fees` : `${dollars(-low!.net)} short of the fees`}</> : ' before fees'}.</p>
             </div>}
             <p className="small ecalc__note">An estimate, not a promise: what you earn depends on the bookings.</p>
+            {/* 0344: the application starts with this car and estimate, and its lead carries them */}
+            {!compact && <p><a className="btn btn--primary" href={applyHref({ year: Number(car.year) || undefined, make: car.make, model: car.model, vin: by === 'vin' ? cleanVin(vin) : undefined, estimate_cents: e.net > 0 ? e.net : undefined })} data-testid="ecalc-apply">Apply with this car</a></p>}
           </>}
         </div>
       </div>
