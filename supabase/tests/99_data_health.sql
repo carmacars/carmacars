@@ -133,6 +133,8 @@ insert into documents (id, kind, storage_bucket, storage_path, booking_id) value
 insert into verification_uploads (booking_id, driver_id, kind, document_id, uploaded_at)
 values (test.id('booking:DH-REQ'), test.id('driver:dh_rita'), 'licence_front', test.id('doc:dh_lic'), now() - interval '2 days');
 -- a published car with no seats and no photos of its own
+-- (named first in the list: the check shows the first 25 cars, and the cars of the other test files stay published)
+update vehicles set year = 1995 where id = test.id('vehicle:dh_bare');
 select app.ensure_listing(test.id('vehicle:dh_bare'));
 update vehicle_listings set status = 'published', published_at = now(), first_published_at = now(), seats = null where vehicle_id = test.id('vehicle:dh_bare');
 -- money with nothing to tie it to

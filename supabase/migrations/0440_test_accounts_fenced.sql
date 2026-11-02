@@ -186,8 +186,11 @@ begin
       ('notification_outbox', 'notice', array['recipient_user_id']), ('notifications', 'notice', array['user_id']),
       ('push_outbox', 'notice', array['user_id']), ('phone_outbox', 'notice', array['user_id'])) x(tbl, mode, cols) loop
     execute format('drop trigger if exists a_fence_test_accounts on %I', f.tbl);
-    -- named "a_..." so it runs before the table's other BEFORE triggers see the person
-    execute format('create trigger a_fence_test_accounts before insert or update of %s on %I for each row execute function app.fence_test_accounts(%s)',
+    execute format('drop trigger if exists z_fence_test_accounts on %I', f.tbl);
+    -- named "a_..." so it runs before the table's other BEFORE triggers see the person; leads' is "z_...": 0343's
+    -- leads_no_test_staff (Release 26, live) first gives a lead to the least busy real Sales person, then this one clears what is left
+    execute format('create trigger %s before insert or update of %s on %I for each row execute function app.fence_test_accounts(%s)',
+                   case when f.tbl = 'leads' then 'z_fence_test_accounts' else 'a_fence_test_accounts' end,
                    array_to_string(array(select quote_ident(c) from unnest(f.cols) c), ', '), f.tbl,
                    array_to_string(array(select quote_literal(a) from unnest(array[f.mode] || f.cols) a), ', '));
   end loop;
@@ -345,7 +348,7 @@ language plpgsql security definer set search_path = public, app as $$
 begin
   if app.is_test_email(new.email) and new.status not in ('closed', 'spam') then
     new.status := 'closed'; new.closed_reason := coalesce(new.closed_reason, 'Test account');
-    new.assigned_to := null; new.followup_next_at := null;
+    new.followup_next_at := null;   -- the assignee stays (0343: a test lead keeps its test account, the verification's own data)
     if new.pipeline_stage is not null then new.pipeline_stage := 'lost'; end if;
     new.followup_stopped_at := coalesce(new.followup_stopped_at, now()); new.followup_stop_reason := coalesce(new.followup_stop_reason, 'Test account');
   end if;
