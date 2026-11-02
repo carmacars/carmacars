@@ -94,6 +94,8 @@ function rows(base: string, portal: HelpPortal, m: Record<string, Spec>): Row[] 
 export const HELP_ROWS: Row[] = [
   ...rows('admin', 'admin', ADMIN), ...rows('staff', 'va', STAFF), ...rows('staff/field', 'field', FIELD), ...rows('owner', 'owner', OWNER),
   ...rows('account', 'renter', RENTER), ...rows('investor', 'investor', INVESTOR),
+  // the Call button of a phone alert (0466): a hand-off to the dialer, signed in, nothing to get stuck on
+  { key: ['alerts', 'call'], row: { off: 'public' } },
   { key: ['pay'], row: { off: 'payment' } }, { key: ['sign'], row: { off: 'signing' } }, { key: ['sign-document'], row: { off: 'signing' } },
   ...PUBLIC.map((k) => ({ key: seg(k), row: { off: 'public' as const } }))
 ];
