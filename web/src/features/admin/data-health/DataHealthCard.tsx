@@ -1,5 +1,5 @@
 import './data-health.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { door } from '@/server/door';
 import { checkedWords, fixedWords, splitChecks, type DataHealth } from './model';

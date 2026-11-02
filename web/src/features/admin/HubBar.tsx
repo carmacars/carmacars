@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { placeOf, type Hub, type Section } from './hubs';

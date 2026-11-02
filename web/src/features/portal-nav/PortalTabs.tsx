@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { PageTab } from './tabs';
 
 // The tab row of a merged portal page (r27 portals): the subject's name with a red mark, then its tabs, the current one

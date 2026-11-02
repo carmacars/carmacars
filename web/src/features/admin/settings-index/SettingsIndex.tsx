@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useState } from 'react';
 import { cardMatches, type SettingsCard } from './groups';
 

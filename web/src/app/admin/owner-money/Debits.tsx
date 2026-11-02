@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { AdminPage } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, Card, d, Kv, PageHead, Table, Tiles, t } from '@/features/admin/ui';

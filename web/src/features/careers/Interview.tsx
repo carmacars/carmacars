@@ -1,5 +1,5 @@
 'use client';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { MAX_ANSWER_SECONDS, type InterviewView } from './ai-interview';
 

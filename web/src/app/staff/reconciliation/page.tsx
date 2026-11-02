@@ -3,7 +3,6 @@ import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
 import { door } from '@/server/door';
 import { ManualMonth, type ManualMonthData } from '@/features/manual/ManualMonth';
-import Link from '@/components/Link';
 import { $, Badge, Card, PageHead, Table, d, t } from '@/features/admin/ui';
 import { KIND_LABEL, friendly } from '@/features/money/ledger';
 

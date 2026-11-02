@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { money } from '@/lib/format';
 import { firstOfNextMonth, longDate, monthLabel } from '@/features/deck/returns';
 import { HOW_IT_WORKS_AMOUNTS, howItWorksRow } from './calc';
