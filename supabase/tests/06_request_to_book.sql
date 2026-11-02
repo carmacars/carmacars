@@ -110,8 +110,8 @@ select test.eq('S every new table has row-level security, the admin policy and a
       and c.relrowsecurity
       and exists (select 1 from pg_policies p where p.tablename = c.relname and p.policyname = 'admin_all')
       and exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), 7::bigint);
-select test.eq('S offers expire after 24 hours unless set otherwise; the turnaround buffer is 2 hours (0025)',
-  (select offer_expiry_hours || '/' || turnaround_buffer_minutes from app.settings()), '24/120');
+select test.eq('S offers expire after 24 hours unless set otherwise; the turnaround buffer is 90 minutes (0025; 0480: booking_buffer_minutes)',
+  (select offer_expiry_hours || '/' || turnaround_buffer_minutes from app.settings()), '24/90');
 select test.eq('S the status flow lists the request steps',
   (select string_agg(from_status || '>' || to_status, ' ' order by from_status, to_status) from status_transitions
     where entity = 'booking' and (from_status in ('requested', 'offered') or to_status in ('requested', 'offered'))),

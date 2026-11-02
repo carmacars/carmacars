@@ -702,3 +702,7 @@ $$;
 revoke all on function app.extension_offer_priced(bookings), app.booking_still_out(bookings, timestamptz), app.extension_auto_refusal(uuid, jsonb),
   app.extension_offers(uuid, timestamptz), app.request_extension_option(uuid, uuid, text, timestamptz), app.extension_offer_line(uuid, timestamptz),
   app.ext_when(timestamptz, timestamptz) from public, anon, authenticated;
+grant execute on function app.late_fee_hourly_cents(uuid), app.freeze_late_fee_terms(), app.vehicle_free_until(uuid, timestamptz, uuid),
+  app.extension_offer_priced(bookings), app.booking_still_out(bookings, timestamptz), app.extension_auto_refusal(uuid, jsonb),
+  app.extension_offers(uuid, timestamptz), app.request_extension_option(uuid, uuid, text, timestamptz), app.extension_offer_line(uuid, timestamptz),
+  app.ext_when(timestamptz, timestamptz) to service_role;
