@@ -79,7 +79,9 @@ auto_approved; the checks allow a few hours that add no billable day and a payme
 `app.admin_calendar` and `app.calendar_preview_change`; `public.my_extension_offers` and `public.renter_extend_option`
 for the portal; `public.site_facts` gives the late fee and discounts to the site. 0481: the words in the database.
 0482: the pay link of an approved extension (`payment_requests.covers` 'extension' with `extension_id`,
-`public.renter_extension_payreq`, `public.server_payreq_settle` confirms the extension or refunds). 0483: the guides.
+`public.renter_extension_payreq`, `public.server_payreq_settle` confirms the extension or refunds), and a Live map fix the
+full test suite found: while any placeholder booking existed, every pin with no booking (a visitor on the site, a lead, a
+game) was dropped (0283's filter); now only the placeholders' own pins are. 0483: the guides.
 
 Tests: supabase/tests/99_extend_offers.sql (late fee, old booking unchanged, extend after return while out, pricing from
 the original return, each option's math with the short-or-day fallback, approval at once and its refusals, insurer

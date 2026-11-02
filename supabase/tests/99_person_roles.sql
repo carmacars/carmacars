@@ -14,6 +14,7 @@ select test.mk_renter('pr_ora', false);
 select test.mk_user('pr_staff', 'admin');
 select test.mk_renter('pr_staff', false);
 select test.mk_user('pr_ivy', 'renter');
+select test.mk_renter('pr_ivy_ph');
 insert into investors (id, user_id, legal_name, investor_type, email) values (test.id('inv:pr_ivy'), test.id('pr_ivy'), 'Pr Ivy', 'individual', 'pr_ivy@example.test');
 -- olga and ora signed in on the renter side, so each has a renters row on their own login; ora has also rented
 update renters set user_id = test.id('pr_olga') where id = test.id('renter:pr_olga');
@@ -64,6 +65,12 @@ select test.eq('Live visitors: the renter''s visit says renter',
 select test.eq('Live visitors: an owner who rents says both',
   (select array_to_string(array(select jsonb_array_elements_text(x -> 'roles')), ' ') from jsonb_array_elements(app.live_visitors(test.id('pr_admin')) -> 'now') x where x ->> 'id' = test.prsid('ora')::text),
   'owner renter');
+-- a placeholder booking anywhere must not hide the pins with no booking (0482: the Live map dropped them)
+select test.mk_vehicle('pr_ph', 'pr_ora');
+select test.mk_booking('PR-PH', 'pr_ph', 'pr_ivy_ph', test.prt('20 days'), test.prt('22 days'), 'confirmed');
+select set_config('session_replication_role', 'replica', false);
+update bookings set is_placeholder = true where booking_number = 'PR-PH';
+select set_config('session_replication_role', 'origin', false);
 create temp table s99pr as select app.door(test.id('pr_admin'), 'aal2', 'admin_read', 'live_map', jsonb_build_object('who', jsonb_build_array(
   test.id('renter:pr_olga'), test.id('renter:pr_rita'), test.id('renter:pr_ora')))) as v;
 create or replace function test.prpin(p_renter text) returns text language sql stable as $$
