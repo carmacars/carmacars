@@ -105,7 +105,7 @@ test('Signals: a visitor who prices a car for soon, opens a question, taps the p
 
   const staff = await ctx(browser);
   await signIn(staff, sales.email, '/staff');
-  await staff.goto('/staff/live', { waitUntil: 'networkidle' });
+  await staff.goto('/staff/visitors', { waitUntil: 'networkidle' });
   const row = staff.getByTestId('live-row').filter({ hasText: `campaign e2e/${camp}` });
   await expect(row).toBeVisible({ timeout: 15_000 });
   await expect(row.getByTestId('score')).toHaveText(new RegExp(`^${s!.score}`));

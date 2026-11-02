@@ -12,7 +12,7 @@ import type { FieldJob, LicenceCard } from '@/features/field/types';
 import { when } from '@/features/agreement/model';
 import { Plate } from '@/features/field/Plate';
 import { FdIcon } from '@/features/field/icons';
-import { KIND, STATUS, clock, maps, tel } from '@/features/field/format';
+import { KIND, STATUS, clock, maps } from '@/features/field/format';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 
 export const dynamic = 'force-dynamic';

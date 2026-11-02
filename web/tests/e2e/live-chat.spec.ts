@@ -82,10 +82,13 @@ test('Live visitors: a visitor viewing six cars shows with a viewing spree for c
   const staff = await ctx(browser);
   await signIn(staff, cs.email, '/staff');
   await openMenuIfPhone(staff, 'va-nav');
-  // r27 audit: Live chat and Live visitors are in the role's own group, always open
-  await expect(staff.getByTestId('va-nav').getByRole('link', { name: 'Live visitors' })).toBeVisible();
-  await expect(staff.getByTestId('va-nav').getByRole('link', { name: 'Live chat' })).toBeVisible();
+  // r27 consolidation: Live visitors and Live chat are one Visitors page in the role's own group, always open
+  await expect(staff.getByTestId('va-nav').getByRole('link', { name: 'Visitors', exact: true })).toBeVisible();
+  for (const old of ['Live visitors', 'Live chat']) await expect(staff.getByTestId('va-nav').getByRole('link', { name: old, exact: true })).toHaveCount(0);
+  // the old address lands on Live now
   await staff.goto('/staff/live', { waitUntil: 'networkidle' });
+  await expect(staff).toHaveURL(/\/staff\/visitors$/);
+  await expect(staff.getByTestId('vs-tab-live')).toHaveAttribute('aria-current', 'page');
   const row = staff.getByTestId('live-row').filter({ hasText: `campaign e2e/${camp}` });
   await expect(row).toBeVisible({ timeout: 15_000 });
   await expect(row).toContainText('Visitor from Toronto');
@@ -109,7 +112,8 @@ test('Live chat: the assistant quotes from the pricing function, a person takes 
   // customer service opens Live chat first: they are on shift
   const staff = await ctx(browser);
   await signIn(staff, cs.email, '/staff');
-  await staff.goto('/staff/chat', { waitUntil: 'networkidle' });
+  await staff.goto('/staff/visitors?view=chat', { waitUntil: 'networkidle' });
+  await expect(staff.getByTestId('vs-tab-chat')).toHaveAttribute('aria-current', 'page');
   await check(staff, 'va live chat, empty or with others');
 
   const v = await visitor(browser);
@@ -171,7 +175,7 @@ test('Proactive chat: customer service starts a chat from Live visitors and the 
   await viewAndBeacon(v, '/cars/mercedes-benz-c300');
   const staff = await ctx(browser);
   await signIn(staff, sales.email, '/staff');
-  await staff.goto('/staff/live', { waitUntil: 'networkidle' });
+  await staff.goto('/staff/visitors', { waitUntil: 'networkidle' });
   const row = staff.getByTestId('live-row').filter({ hasText: `campaign e2e/${camp}` });
   await expect(row).toContainText('Mercedes-Benz C300', { timeout: 15_000 });
   await row.getByRole('button', { name: 'Start a chat' }).click();
@@ -186,7 +190,9 @@ test('Proactive chat: customer service starts a chat from Live visitors and the 
   await expect(v.getByTestId('chat-log')).toContainText('question about the C300', { timeout: 15_000 });
   await v.getByLabel('Your message').fill('Is it automatic?');
   await v.getByRole('button', { name: 'Send' }).click();
+  // the old Live chat address keeps working: it opens the Chat tab
   await staff.goto('/staff/chat', { waitUntil: 'networkidle' });
+  await expect(staff).toHaveURL(/\/staff\/visitors\?view=chat/);
   await staff.getByTestId('chat-item').filter({ hasText: 'Is it automatic?' }).first().click();
   await expect(staff.getByTestId('chat-thread')).toContainText('Is it automatic?', { timeout: 15_000 });
   await sql.end();
@@ -208,7 +214,11 @@ test('Admin: Visitors and Live chat in the menu, a car shows its interest, the r
   await expect(page).toHaveURL(/\/admin\/visitors$/);
   await expect(page.getByTestId('live-visitors')).toBeVisible();
   await check(page, 'admin live visitors');
+  // r27 consolidation: Live chat is the Chat tab of Visitors; the old address lands there, its query kept
+  await page.goto('/admin/chat?view=phone', { waitUntil: 'networkidle' });
+  await expect(page).toHaveURL(/\/admin\/visitors\?view=chat&inbox=phone/);
   await page.goto('/admin/chat', { waitUntil: 'networkidle' });
+  await expect(page).toHaveURL(/\/admin\/visitors\?view=chat$/);
   await expect(page.getByTestId('chat-inbox')).toBeVisible();
   await check(page, 'admin live chat');
   const [car] = await sql`select vehicle_id from vehicle_listings where slug = 'toyota-corolla'`;

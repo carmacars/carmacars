@@ -165,7 +165,10 @@ test('Staff add rentals: a typed price and "I sourced this client", "Entered for
   await signIn(dp, field.email, '/staff/field');
   // 0197: the one staff menu folds behind "Menu" on a phone
   if (isPhone()) await dp.getByTestId('va-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
-  await expect(dp.getByTestId('va-nav').getByRole('link', { name: 'Add a rental' })).toBeAttached();
+  // r27 consolidation: Add a rental is a button on My jobs, not a menu link
+  await expect(dp.getByTestId('va-nav').getByRole('link', { name: 'Add a rental' })).toHaveCount(0);
+  if (isPhone()) await dp.getByTestId('va-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
+  await expect(dp.getByTestId('field-add-rental')).toBeVisible();
   await dp.goto('/staff/field/rentals/new', { waitUntil: 'networkidle' });
   await expect(dp.getByTestId('mr-renter-q')).toHaveCount(0);
   await expect(dp.getByTestId('mr-paid-by').locator('option[value=\"e_transfer\"]')).toHaveCount(0);

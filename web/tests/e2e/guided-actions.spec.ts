@@ -219,7 +219,7 @@ test('a chat waiting for a person opens the chat; an assistant task stays on its
   await expect(prompt(page, `task:${t!.id}`)).toHaveCount(0);
   await expect(page.getByTestId('todo-team-cs')).toBeVisible();
   await prompt(page, `chat:${c!.id}`).getByTestId(`todo-act-chat:${c!.id}`).click();
-  await page.waitForURL((u) => u.pathname === '/admin/chat' && u.searchParams.get('id') === c!.id);
+  await page.waitForURL((u) => u.pathname === '/admin/visitors' && u.searchParams.get('view') === 'chat' && u.searchParams.get('id') === c!.id);
   await sql`update chat_conversations set status = 'closed' where id = ${c!.id}`;
   await sql.end();
 });

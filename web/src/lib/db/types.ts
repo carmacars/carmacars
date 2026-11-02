@@ -14608,6 +14608,7 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes: number;
           notify_not_back: boolean;
           notify_not_back_minutes: number;
+          phone_quo_buttons: boolean;
         };
         Insert: {
           id?: string;
@@ -15188,6 +15189,7 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes?: number;
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
+          phone_quo_buttons?: boolean;
         };
         Update: {
           id?: string;
@@ -15768,6 +15770,7 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes?: number;
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
+          phone_quo_buttons?: boolean;
         };
         Relationships: [];
       };

@@ -70,7 +70,7 @@ export function ContactButtons({ phone, name, booking, look = 'buttons', inbox, 
       setSheet('call');
       return;
     }
-    window.location.href = plan.href;
+    window.location.assign(plan.href);
     // a phone without the Quo app stays on this page: offer the web app and the phone's own dialer
     if (plan.kind === 'quo-app') setTimeout(() => { if (document.visibilityState === 'visible') setSheet('call'); }, 1600);
   };
@@ -81,9 +81,9 @@ export function ContactButtons({ phone, name, booking, look = 'buttons', inbox, 
   };
 
   const call = only === 'text' ? null : look === 'icons'
-    ? <a className="qb-icon" href={telHref(n)} onClick={onCall} aria-label={`Call ${who}${quo ? ' in Quo' : ''}`} title={`Call ${prettyNumber(n)}`} data-testid={`${testId}-call`}><Phone /></a>
+    ? <a className="qb-icon" href={telHref(n)} onClick={onCall} aria-label={`Call ${who}`} title={`Call ${prettyNumber(n)}${quo ? ' in Quo' : ''}`} data-testid={`${testId}-call`}><Phone /></a>
     : look === 'link'
-      ? <a className="link" href={telHref(n)} onClick={onCall} aria-label={`Call ${who}${quo ? ' in Quo' : ''}`} data-testid={`${testId}-call`}>{children ?? prettyNumber(n)}</a>
+      ? <a className="link" href={telHref(n)} onClick={onCall} title={`Call ${who}${quo ? ' in Quo' : ''}`} data-testid={testId}>{children ?? prettyNumber(n)}</a>
       : <a className={`${btnClass} qb-btn`} href={telHref(n)} onClick={onCall} data-testid={`${testId}-call`}><Phone />{children ?? 'Call'}</a>;
   const text = only === 'call' ? null : look === 'buttons'
     ? <a className={`${btnClass} qb-btn`} href={smsHref(n)} onClick={onText} data-testid={`${testId}-text`}><Bubble />Text</a>
@@ -103,6 +103,8 @@ function Sheet({ title, onClose, children, testId }: { title: string; onClose: (
   useEffect(() => {
     const d = ref.current;
     if (d && !d.open) { try { d.showModal(); } catch { d.setAttribute('open', ''); } }
+    // the text box (composer) or the main button (call), not the close button
+    d?.querySelector<HTMLElement>('textarea, .btn--primary')?.focus();
     return () => { try { d?.close(); } catch { /* gone */ } };
   }, []);
   return (
@@ -171,7 +173,7 @@ function CallSheet({ n, who, onClose, testId }: { n: string; who: string; onClos
         <a className="btn btn--ghost btn--sm" href={telHref(n)}>{handheld ? 'Use this phone' : 'Use this computer’s phone app'}</a>
       </p>
       {!handheld && <label className="qb-pref small"><input type="checkbox" checked={app} onChange={(e) => { setApp(e.target.checked); writeDesktop(e.target.checked ? 'app' : 'web'); }} data-testid="quo-desktop-pref" />
-        On this computer, call with the Quo desktop app (set as the default calling app)</label>}
+        <span>On this computer, call with the Quo desktop app<span className="muted"> (when it is the computer&apos;s calling app)</span></span></label>}
     </Sheet>
   );
 }

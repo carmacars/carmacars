@@ -107,9 +107,9 @@ test('Texts and calls: customer service reads a renter\'s text, takes a suggesti
   expect((await sql`select 1 from phone_outbox o join phone_threads p on p.id = o.thread_id where p.number = ${stranger}`).length, 'no automatic text (Quo\'s own auto-reply is used)').toBe(0);
 
   await signIn(page, cs.email, '/staff');
-  await page.goto('/staff/chat', { waitUntil: 'networkidle' });
+  await page.goto('/staff/visitors?view=chat', { waitUntil: 'networkidle' });
   await page.getByTestId('tab-phone').click();
-  await page.waitForURL(/view=phone/);
+  await page.waitForURL(/inbox=phone/);
   const inbox = page.getByTestId('phone-inbox');
   await expect(inbox).toBeVisible();
   await inbox.getByTestId('phone-item').filter({ hasText: shown(r.mobile) }).first().click();
@@ -164,7 +164,7 @@ test('Admin: the booking\'s History tab and the renter page show the calls and t
   await page.goto(`/admin/renters/${r.renter_id}`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('renter-calls').getByText('Running ten minutes late').first()).toBeVisible();
   await check(page, 'admin renter page');
-  await page.goto('/admin/chat?view=phone', { waitUntil: 'networkidle' });
+  await page.goto('/admin/visitors?view=chat&inbox=phone', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('phone-inbox')).toBeVisible();
   await check(page, 'admin texts and calls');
   await page.goto('/admin/settings/program', { waitUntil: 'networkidle' });

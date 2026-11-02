@@ -354,3 +354,6 @@
 .fd-walk { margin: 0; padding: var(--s-2) var(--s-3); border-radius: var(--r-2); background: rgb(255 255 255 / 0.08); }
 .fd-walk.is-ok b { color: #5BD08A; }
 .fd-home__acts { display: flex; flex-wrap: wrap; gap: var(--s-2); margin: var(--s-3) 0 0; }
+.fd-home__acts .btn { min-height: 44px; padding-inline: 0.9rem; font-size: 0.95rem; }
+/* r27 consolidation: the Quo Call and Text buttons are the slab's own grid items, beside Open in maps */
+.fd-next__go .qb { display: contents; }

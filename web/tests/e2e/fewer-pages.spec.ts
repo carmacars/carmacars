@@ -154,8 +154,10 @@ test('admin: 20 menu links, the merged pages and their tabs, the old addresses, 
   }
 
   // grouped pages keep their addresses and share a tab row
-  for (const [path, group, tab] of [['/admin/expenses', 'Company accounts', 'Expenses'], ['/admin/money/field-pay', 'Staff pay', 'Field pay'], ['/admin/referral-partners', 'Partners', 'Referral partners'],
-    ['/admin/owners?view=checklist', 'Owners', 'Paid and signed'], ['/admin/hiring', 'Staff', 'Hiring'], ['/admin/similar-cars', 'Listings', 'Similar cars'], ['/admin/marketing/report', 'Ads', 'Bookings by channel']] as const) {
+  // r27 consolidation: Company accounts and Staff pay are one Company group, Staff is Team, Ads and Channels are two groups
+  for (const [path, group, tab] of [['/admin/expenses', 'Company', 'Expenses'], ['/admin/money/field-pay', 'Company', 'Field pay'], ['/admin/referral-partners', 'Partners', 'Referral partners'],
+    ['/admin/owners?view=checklist', 'Owners', 'Paid and signed'], ['/admin/applications', 'Owners', 'Applications'], ['/admin/hiring', 'Team', 'Hiring'], ['/admin/similar-cars', 'Listings', 'Similar cars'],
+    ['/admin/marketing/report', 'Channels', 'Bookings by channel'], ['/admin/marketing/social', 'Ads', 'Social drafts']] as const) {
     await page.goto(path, { waitUntil: 'networkidle' });
     await tabRow(page, group, tab);
     await check(page, path);
@@ -180,7 +182,7 @@ test('admin: 20 menu links, the merged pages and their tabs, the old addresses, 
   await sql.end();
 });
 
-test('staff Finance: one Money link, its three tabs at their own addresses', async ({ browser }) => {
+test('staff Finance: Money with Admin\'s tabs and Owner money, each at its own address; the old addresses redirect', async ({ browser }) => {
   test.setTimeout(120_000);
   const sql = db();
   const fin = await mkUser(sql, 'finance', 'Fp Finance');
@@ -190,22 +192,29 @@ test('staff Finance: one Money link, its three tabs at their own addresses', asy
   await page.goto('/staff/money', { waitUntil: 'networkidle' });
   const nav = page.getByTestId('va-nav');
   if (phone()) await page.getByTestId('nav-menu').click();
-  // the Finance group is always open, its five jobs first (r27, second cut)
+  // the Finance group is always open, at most five links (r27 consolidation)
   await expect(nav.getByTestId('nav-group-finance')).toHaveAttribute('aria-expanded', 'true');
-  await expect(nav.getByRole('link', { name: 'Money to handle', exact: true })).toHaveAttribute('aria-current', 'page');
-  for (const l of ['Payments by day', 'Tolls and tickets', 'Reconciliation', 'Turo trips', 'More finance', 'Bookings', 'Me']) await expect(nav.getByRole('link', { name: l, exact: true })).toHaveCount(1);
-  await expect(nav.locator('.gn__links a, a.gn__single')).toHaveCount(9);
+  await expect(nav.getByRole('link', { name: 'Money', exact: true })).toHaveAttribute('aria-current', 'page');
+  for (const l of ['Owner money', 'Tolls and tickets', 'Turo trips', 'More finance', 'Bookings', 'Me']) await expect(nav.getByRole('link', { name: l, exact: true })).toHaveCount(1);
+  await expect(nav.locator('.gn__links a, a.gn__single')).toHaveCount(8);
   if (phone()) await page.getByTestId('nav-menu').click();
-  for (const [path, tab] of [['/staff/money', 'To handle'], ['/staff/payments', 'By day'], ['/staff/reconciliation', 'Reconciliation']] as const) {
-    await page.goto(path, { waitUntil: 'networkidle' });
-    await tabRow(page, 'Money', tab);
+  for (const [path, group, tab] of [['/staff/money', 'Money', 'To handle'], ['/staff/money?tab=day', 'Money', 'By day'], ['/staff/money?tab=payments', 'Money', 'All payments'], ['/staff/money?tab=refunds', 'Money', 'Refunds'],
+    ['/staff/money?tab=deposits', 'Money', 'Deposits'], ['/staff/money?tab=reconciliation', 'Money', 'Reconciliation'], ['/staff/owner-money?tab=invoices', 'Owner money', 'Invoices'], ['/staff/owner-money?tab=statements', 'Owner money', 'Statements']] as const) {
+    const res = await page.goto(path, { waitUntil: 'networkidle' });
+    expect(res?.status(), path).toBe(200);
+    await tabRow(page, group, tab);
     await expect(page.locator('[data-revamp]')).toHaveCount(1);
     await check(page, path);
   }
   await page.screenshot({ path: `${SHOTS}/${test.info().project.name}-staff-money.png`, fullPage: true });
-  // the dark band of the day's money, the same component as the Admin's By day
-  await page.goto('/staff/payments', { waitUntil: 'networkidle' });
+  // the old addresses open their tabs, the dates kept; By day has the dark band and the quick ranges of Admin's
+  await page.goto('/staff/payments?from=2026-10-01&to=2026-10-02', { waitUntil: 'networkidle' });
+  expect(new URL(page.url()).searchParams.get('tab')).toBe('day');
+  expect(new URL(page.url()).searchParams.get('from')).toBe('2026-10-01');
   await expect(page.locator('.rv .ad-tiles')).toBeVisible();
+  await expect(page.getByTestId('quick-range')).toBeVisible();
+  await page.goto('/staff/reconciliation', { waitUntil: 'networkidle' });
+  expect(new URL(page.url()).searchParams.get('tab')).toBe('reconciliation');
   // the staff To do keeps its look (another branch's page)
   await page.goto('/staff', { waitUntil: 'networkidle' });
   await expect(page.locator('[data-revamp]')).toHaveCount(0);
@@ -214,7 +223,7 @@ test('staff Finance: one Money link, its three tabs at their own addresses', asy
 });
 
 // the r27 audit: each role's own group is always open, its jobs one tap away; a page group shows only the role's tabs
-for (const [fn, links, hub] of [['cs', 9, ['/staff/messages', 'Renters', 'Messages']], ['fleet', 9, ['/staff/checks', 'Checks', 'Daily checks']]] as const) {
+for (const [fn, links, hub] of [['cs', 7, ['/staff/messages', 'Renters', 'Messages']], ['fleet', 8, ['/staff/checks', 'Checks', 'Daily checks']]] as const) {
   test(`staff ${fn}: a short menu, the role's group open, page groups with the role's tabs`, async ({ browser }) => {
     test.setTimeout(120_000);
     const sql = db();

@@ -109,12 +109,12 @@ test('admin: To do, the six groups, search, the keyboard, Admin access only for 
   const nav = page.getByTestId('admin-nav');
   for (const g of GROUPS) await expect(nav.locator('.gn__head, .gn__single').filter({ hasText: g }).first()).toBeVisible();
   await expect(nav.locator('.gn__head, .gn__single')).toHaveCount(GROUPS.length);
-  // r27: People is one link; its pages (Owners, Applications, Partners...) are a row on top
+  // r27: People is one link; its pages (Owners, Partners, Renters, Team, Investors) are a row on top. r27 consolidation:
+  // it opens on Owners > Applications, the first tab of Owners
   await shot(page, 'menu');
   await nav.getByRole('link', { name: /^People/ }).click();
-  await page.waitForURL(/\/admin\/owners/);
-  await page.getByTestId('section-bar').getByRole('link', { name: /^Applications/ }).click();
   await page.waitForURL(/\/admin\/applications/);
+  await expect(page.getByTestId('hub-bar').locator('a[aria-current="page"]')).toHaveText(/^Applications/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Owner applications');
   if (isPhone()) await expect(page.getByTestId('nav-menu')).toContainText('People');
   // search: a booking number finds the booking

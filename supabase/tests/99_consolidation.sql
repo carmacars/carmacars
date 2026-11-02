@@ -15,7 +15,7 @@ select test.mk_owner('cn_own');
 select test.mk_vehicle('cn_car', 'cn_own');
 select test.mk_vehicle('cn_car2', 'cn_own');
 select test.mk_renter('cn_rita');
-update renters set mobile = '416-555-0177' where id = test.id('renter:cn_rita');
+update renters set mobile = '416-555-0463' where id = test.id('renter:cn_rita');
 update site_settings set phone = '289-555-0100';
 
 create or replace function test.cn(p_user text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
@@ -71,24 +71,24 @@ select test.throws('customer service still cannot read Fleet tracking', $$select
 -- ================================================================ 6. Call and Text through Quo
 select test.ok('the buttons go through Quo by default', (test.cn('cn_fleet', 'va_read', 'phone_buttons') ->> 'quo')::boolean);
 select test.eq('from the CarmaCars number', test.cn('cn_field', 'field_read', 'phone_buttons') ->> 'from', '+12895550100');
-create temp table cn_sent as select test.cn('cn_cs', 'va_do', 'phone_compose', '{"number": "(416) 555-0177", "body": "Hi Rita, your car is ready. CarmaCars"}') v;
+create temp table cn_sent as select test.cn('cn_cs', 'va_do', 'phone_compose', '{"number": "(416) 555-0463", "body": "Hi Rita, your car is ready. CarmaCars"}') v;
 select test.ok('customer service: the text is queued to send now from the CarmaCars number',
-  (select v -> 'send' ->> 'to' = '+14165550177' and v ->> 'from' = '+12895550100' from cn_sent));
+  (select v -> 'send' ->> 'to' = '+14165550463' and v ->> 'from' = '+12895550100' from cn_sent));
 select test.eq('it is in Rita''s conversation, as staff wrote it', (select o.kind || '/' || o.status || '/' || t.match_kind from phone_outbox o join phone_threads t on t.id = o.thread_id
   where o.id = (select (v -> 'send' ->> 'id')::uuid from cn_sent)), 'staff/sending/renter');
 select app.server_phone_sent(jsonb_build_object('id', (select v -> 'send' ->> 'id' from cn_sent), 'ok', true, 'quo_id', 'AC-cn-1'));
 select test.eq('once sent it shows in the conversation', (select count(*) from phone_activity a where a.quo_id = 'AC-cn-1' and a.renter_id = test.id('renter:cn_rita') and a.sent_by = test.id('cn_cs')), 1::bigint);
 select test.throws('fleet staff cannot text a number nobody knows', $$select test.cn('cn_fleet', 'va_do', 'phone_compose', '{"number": "416-555-0911", "body": "Hello. CarmaCars"}')$$, 'people of your work');
-select test.ok('fleet staff can text a renter', test.cn('cn_fleet', 'va_do', 'phone_compose', '{"number": "416-555-0177", "body": "Your car is out front. CarmaCars"}') ? 'send');
-select test.throws('an empty text is refused', $$select test.cn('cn_sales', 'va_do', 'phone_compose', '{"number": "416-555-0177", "body": "  "}')$$, 'Write the text');
+select test.ok('fleet staff can text a renter', test.cn('cn_fleet', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "Your car is out front. CarmaCars"}') ? 'send');
+select test.throws('an empty text is refused', $$select test.cn('cn_sales', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "  "}')$$, 'Write the text');
 select test.throws('not a number', $$select test.cn('cn_sales', 'va_do', 'phone_compose', '{"number": "abc", "body": "Hi"}')$$, 'not a phone number');
-update phone_threads set opted_out_at = now() where number = '+14165550177';
-select test.throws('a number that opted out is refused', $$select test.cn('cn_sales', 'va_do', 'phone_compose', '{"number": "416-555-0177", "body": "Hi. CarmaCars"}')$$, 'opted out');
-update phone_threads set opted_out_at = null where number = '+14165550177';
-select test.ok('a call from the site is logged', (test.cn('cn_field', 'field_do', 'phone_call_log', '{"number": "416-555-0177"}') ->> 'logged')::boolean);
-select test.ok('a double tap logs it once', not (test.cn('cn_field', 'field_do', 'phone_call_log', '{"number": "416-555-0177"}') ->> 'logged')::boolean);
+update phone_threads set opted_out_at = now() where number = '+14165550463';
+select test.throws('a number that opted out is refused', $$select test.cn('cn_sales', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "Hi. CarmaCars"}')$$, 'opted out');
+update phone_threads set opted_out_at = null where number = '+14165550463';
+select test.ok('a call from the site is logged', (test.cn('cn_field', 'field_do', 'phone_call_log', '{"number": "416-555-0463"}') ->> 'logged')::boolean);
+select test.ok('a double tap logs it once', not (test.cn('cn_field', 'field_do', 'phone_call_log', '{"number": "416-555-0463"}') ->> 'logged')::boolean);
 select test.eq('the call is in the conversation, by the field staff member',
-  (select count(*) from phone_activity a join phone_threads t on t.id = a.thread_id where t.number = '+14165550177' and a.kind = 'call' and a.status = 'dialed' and a.sent_by = test.id('cn_field')), 1::bigint);
+  (select count(*) from phone_activity a join phone_threads t on t.id = a.thread_id where t.number = '+14165550463' and a.kind = 'call' and a.status = 'dialed' and a.sent_by = test.id('cn_field')), 1::bigint);
 select test.throws('an owner cannot use the buttons', $$select test.cn('cn_own', 'va_read', 'phone_buttons')$$);
 update program_settings set phone_quo_buttons = false;
 select test.ok('off in Program settings: the phone''s own apps', not (test.cn('cn_fleet', 'va_read', 'phone_buttons') ->> 'quo')::boolean);
