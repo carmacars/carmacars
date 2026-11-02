@@ -90,7 +90,7 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
     key: `${i.code}-${i.vehicle_id ?? ''}-${n}`, label: `${i.label}${i.vehicle_name && i.code !== 'registry_form' ? `, ${i.vehicle_name}` : ''}`, done: i.status === 'done',
     note: i.status === 'done' ? null : i.how === 'paper' ? 'print it filled in, sign it with your witness, then take a photo of the signed page' : i.how === 'banking' ? 'set up in Banking'
       : i.how === 'registry' ? i.detail ?? 'print it filled in and sign it in ink' : i.detail ?? null,
-    href: i.preview && previewDocs.length ? '#ow-preview' : i.how === 'paper' ? '/owner/documents#ow-wit' : i.how === 'banking' ? '/owner/banking' : i.how === 'registry' ? '/owner/documents' : null,
+    href: i.preview && previewDocs.length ? '#ow-preview' : i.how === 'paper' ? '/owner/documents#ow-wit' : i.how === 'banking' ? '/owner/account?tab=banking' : i.how === 'registry' ? '/owner/documents' : null,
     here: i.status !== 'done' && inPackage(i.code)
   }));
   if (previewDocs.length && preview) return <PreviewPage facts={preview} docs={previewDocs} items={items} />;
@@ -99,16 +99,16 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
   const rows: SummaryRow[] = [];
   const f = packet.facts;
   if (f) {
-    rows.push({ label: 'Signing as', value: f.owner.owner_type === 'corporation' ? `${f.owner.signer_name}, for ${f.owner.corporation_name ?? f.owner.legal_name}` : f.owner.signer_name, fix: '/owner/profile' });
-    rows.push({ label: 'Address', value: f.owner.address ?? '', fix: '/owner/profile' });
-    rows.push({ label: 'Email and phone', value: [f.owner.email, f.owner.phone].filter(Boolean).join(', '), fix: '/owner/profile' });
+    rows.push({ label: 'Signing as', value: f.owner.owner_type === 'corporation' ? `${f.owner.signer_name}, for ${f.owner.corporation_name ?? f.owner.legal_name}` : f.owner.signer_name, fix: '/owner/account' });
+    rows.push({ label: 'Address', value: f.owner.address ?? '', fix: '/owner/account' });
+    rows.push({ label: 'Email and phone', value: [f.owner.email, f.owner.phone].filter(Boolean).join(', '), fix: '/owner/account' });
     for (const s of f.schedules.filter((x) => !x.signed_at)) {
       rows.push({ label: `${s.year} ${s.make} ${s.model}`, value: `VIN ${s.vin}, plate ${s.plate ?? 'not registered yet'}. ${MODE[s.management_mode] ?? s.management_mode}: Insurance Fee ${money(s.insurance_fee_cents)} and Tracker Fee ${money(s.tracker_fee_cents)} a month, Revenue Share ${s.revenue_share_bps === null ? PENDING.toLowerCase() : pct(s.revenue_share_bps)}.`, fix: `/owner/vehicles/${s.vehicle_id}` });
     }
-    if (f.owner.payout) rows.push({ label: 'Payouts to', value: f.owner.payout, fix: '/owner/banking' });
+    if (f.owner.payout) rows.push({ label: 'Payouts to', value: f.owner.payout, fix: '/owner/account?tab=banking' });
   } else if (pa) {
-    rows.push({ label: 'Signing as', value: `${pa.facts.partner.signer_name}${pa.facts.partner.signer_title ? `, ${pa.facts.partner.signer_title}` : ''}, for ${pa.facts.partner.legal_name || pa.facts.partner.business_name}`, fix: '/owner/profile' });
-    rows.push({ label: 'Address', value: pa.facts.partner.address, fix: '/owner/profile' });
+    rows.push({ label: 'Signing as', value: `${pa.facts.partner.signer_name}${pa.facts.partner.signer_title ? `, ${pa.facts.partner.signer_title}` : ''}, for ${pa.facts.partner.legal_name || pa.facts.partner.business_name}`, fix: '/owner/account' });
+    rows.push({ label: 'Address', value: pa.facts.partner.address, fix: '/owner/account' });
     rows.push({ label: 'Commission', value: `${pct(pa.facts.commission_bps)} of rental revenue to CarmaCars`, fix: null });
     rows.push({ label: 'Your insurance', value: [pa.facts.insurance.company, pa.facts.insurance.policy, pa.facts.insurance.expiry ? `expires ${pa.facts.insurance.expiry}` : null].filter(Boolean).join(', '), fix: null });
     rows.push({ label: 'Cars', value: pa.facts.cars.map((c) => `${c.name}${c.plate ? ` (${c.plate})` : ''}`).join('; ') || 'None yet', fix: null });
@@ -168,9 +168,9 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
 // (the documents open for signature only once an Admin's terms make the agreements).
 function PreviewPage({ facts: f, docs, items }: { facts: OwnerAgreementFacts; docs: Array<{ key: PacketKey; title: string; blocks: ReturnType<typeof documentBlocks> }>; items: ProgressItem[] }) {
   const rows: SummaryRow[] = [
-    { label: 'Signing as', value: f.owner.owner_type === 'corporation' ? `${f.owner.signer_name}, for ${f.owner.corporation_name ?? f.owner.legal_name}` : f.owner.signer_name, fix: '/owner/profile' },
-    { label: 'Address', value: f.owner.address ?? '', fix: '/owner/profile' },
-    { label: 'Email and phone', value: [f.owner.email, f.owner.phone].filter(Boolean).join(', '), fix: '/owner/profile' },
+    { label: 'Signing as', value: f.owner.owner_type === 'corporation' ? `${f.owner.signer_name}, for ${f.owner.corporation_name ?? f.owner.legal_name}` : f.owner.signer_name, fix: '/owner/account' },
+    { label: 'Address', value: f.owner.address ?? '', fix: '/owner/account' },
+    { label: 'Email and phone', value: [f.owner.email, f.owner.phone].filter(Boolean).join(', '), fix: '/owner/account' },
     ...f.schedules.filter((s) => s.pending).map((s) => ({ label: `${s.year} ${s.make} ${s.model}`,
       value: `VIN ${s.vin}, plate ${s.plate ?? 'not registered yet'}. ${MODE[s.management_mode] ?? s.management_mode}: Insurance Fee, Tracker Fee and Revenue Share ${PENDING.toLowerCase()}.`,
       fix: `/owner/vehicles/${s.vehicle_id}` }))

@@ -18,7 +18,7 @@ const day = (s: string) => when(`${s}T12:00:00Z`, false);
 const month = (s: string) => new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${s.slice(0, 10)}T12:00:00Z`));
 const torontoToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
-// Home (07-investor.md section 2): what needs the investor, then their own money: invested, paid, next payment, the
+// Home (07-investor.md section 2; r27 portals: what needs the investor first, above the numbers): what needs the investor, then their own money: invested, paid, next payment, the
 // schedule and the growth of their account, from their own records only (investor_read home and statements). Nothing about
 // the fleet (its size, use, insurance or costs) is read here.
 export default async function InvestorHome() {
@@ -31,13 +31,15 @@ export default async function InvestorHome() {
   const plan = investorPlan(h, rows, today);
   // what needs the investor first (portal cleanup, October 23, 2026), then the numbers
   const attention: ActionTileItem[] = [
-    ...(toSign ? [{ key: 'sign', title: toSign === 1 ? 'A document to sign' : `${toSign} documents to sign`, note: 'Read it and sign on this screen.', href: '/investor/sign', cta: 'Read and sign', testId: 'investor-to-sign', icon: 'sign' as const, urgent: true }] : []),
+    ...(toSign ? [{ key: 'sign', title: toSign === 1 ? 'A document to sign' : `${toSign} documents to sign`, note: 'Read it and sign on this screen.', href: '/investor/documents?tab=sign', cta: 'Read and sign', testId: 'investor-to-sign', icon: 'sign' as const, urgent: true }] : []),
     ...h.redemptions.map((r, i) => ({ key: `r${i}`, title: `Redemption notice: ${c(r.amount_cents)} on ${day(r.redemption_date)}`, note: `Notice of ${day(r.notice_date)}.`, href: '/investor/profile', cta: 'Your notices', icon: 'doc' as const })),
-    ...h.held.map((r, i) => ({ key: `h${i}`, title: `Return on hold: ${month(r.return_month)}, ${c(r.return_cents)}`, note: r.hold_reason ?? undefined, href: '/investor/statements', cta: 'Statements', icon: 'alert' as const }))
+    ...h.held.map((r, i) => ({ key: `h${i}`, title: `Return on hold: ${month(r.return_month)}, ${c(r.return_cents)}`, note: r.hold_reason ?? undefined, href: '/investor/documents', cta: 'Statements', icon: 'alert' as const }))
   ];
   const reinvesting = h.investments.length > 0 && h.investments.every((x) => x.mode === 'reinvest');
   return (
     <div className="stack-lg iv-home">
+      {/* what needs the investor comes first (r27 portals): a document to sign, a notice, a return on hold */}
+      <ActionTiles items={attention} title="Needs you now" />
       <PortalHero testId="investor-hero" titleId="investor-name-h" kicker={h.agreement ? `Agreement ${h.agreement.agreement_number}` : 'Investor'}
         title={<span data-testid="investor-name">{h.investor.legal_name}</span>}
         lead={h.investments.length ? `${reinvesting ? 'Your Returns are reinvested each month.' : 'Your Returns are paid monthly.'} Every figure here is from your own statements.` : 'Your investment appears here once your agreement is signed and your funds have cleared.'}
@@ -58,7 +60,6 @@ export default async function InvestorHome() {
                 { key: 'proj', label: 'Returns, projected', values: plan.chart.projected, tone: 'dash' }
               ]} />
           </div>) : undefined} />
-      <ActionTiles items={attention} />
       <div className="pu-grid-2 pu-grid-2--wide">
         <div className="stack-lg">
           {h.investments.map((x) => {
@@ -96,7 +97,7 @@ export default async function InvestorHome() {
                   amount={c(h.latest.return_cents)} action={<Link className="link small" href={`/investor/statements/${h.latest.id}`}>Open</Link>} />
               </DocumentList>
               : <p className="small">Your first Return Month starts on {h.investments[0] ? day(h.investments[0].lockup_end_date) : 'the Lockup End Date'}. Statements will appear here.</p>}
-            {h.latest && <p className="small"><Link className="link" href="/investor/statements">Every statement and the yearly downloads</Link></p>}
+            {h.latest && <p className="small"><Link className="link" href="/investor/documents">Every statement and the yearly downloads</Link></p>}
           </section>
         </div>
         <div className="stack-lg">

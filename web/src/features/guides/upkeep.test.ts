@@ -48,7 +48,7 @@ describe('the facts read from the code', () => {
     // r27 audit: Today first, then each role's own group (Live chat in customer service and Sales)
     expect(facts.nav.va.map((g: { group: string }) => g.group)).toContain('To do');
     expect(facts.nav.va.find((g: { group: string }) => g.group === 'Customer service').links).toContain('Live chat');
-    expect(facts.nav.investor[0].links).toContain('Profile and notices');
+    expect(facts.nav.investor[0].links).toContain('Account');
     expect(facts.nav.owner[0].links).toContain('Documents');
   });
   it('knows the labels of a page from its code', () => {

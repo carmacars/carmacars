@@ -1,26 +1,9 @@
 'use client';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { PortalMenu } from '@/features/portal-nav/PortalMenu';
+import { INVESTOR_MENU } from './menu';
 
-// The investor portal's tabs (October 23, 2026: the same tabs as the renter and owner portals, instead of a row of
-// underlined links). The deck shows while an Admin shares it; Documents to sign and the live sheets (0420) for investors.
-const LINKS: Array<{ href: string; label: string; exact?: boolean; when?: 'deck' | 'investor' }> = [
-  { href: '/investor', label: 'Investments', exact: true },
-  { href: '/investor/model', label: 'Live sheets', when: 'investor' },
-  { href: '/investor/statements', label: 'Statements' },
-  { href: '/investor/sign', label: 'Documents to sign', when: 'investor' },
-  { href: '/investor/deck', label: 'Investor deck', when: 'deck' },
-  { href: '/investor/profile', label: 'Profile and notices' }
-];
-
+// The investor portal's menu (r27 portals): Home, Live sheets, Documents, the deck while an Admin shares it, Account
+// (features/investor/menu.ts).
 export function InvestorNav({ deck, investor }: { deck: boolean; investor: boolean }) {
-  const path = usePathname() ?? '/investor';
-  return (
-    <nav className="pt__nav" aria-label="Investor portal">
-      {LINKS.filter((l) => (l.when === 'deck' ? deck : l.when === 'investor' ? investor : true)).map((l) => (
-        <Link prefetch={false} key={l.href} href={l.href} data-testid={l.when === 'deck' ? 'nav-deck' : undefined}
-          aria-current={(l.exact ? path === l.href : path === l.href || path.startsWith(`${l.href}/`)) ? 'page' : undefined}>{l.label}</Link>
-      ))}
-    </nav>
-  );
+  return <PortalMenu menu={INVESTOR_MENU} label="Investor portal" flags={{ deck, investor }} testId="investor-nav" />;
 }

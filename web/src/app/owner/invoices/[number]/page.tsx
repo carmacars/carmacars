@@ -27,7 +27,7 @@ export default async function OwnerInvoicePage({ params, searchParams }: { param
   const debit = i.status !== 'paid' ? debitLine(i.debit, day, (c) => money(c, { cents: true })) : null;
   return (
     <>
-      <Back href="/owner/invoices">Invoices</Back>
+      <Back href="/owner/money?tab=invoices">Invoices</Back>
       <header className="stack">
         <p className="pt-kicker">Invoice {i.invoice_number}</p>
         <h1 className="d2">{invoiceTitle(i, monthOf)}</h1>

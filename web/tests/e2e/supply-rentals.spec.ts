@@ -293,15 +293,16 @@ test('partner portal: the partner agreement, signed on screen and countersigned'
   await sql`update owners set user_id = ${pu.id} where id = (select owner_id from partners where id = ${partnerId})`;
   const page = await ctx(browser);
   await signIn(page, pu.email, '/owner');
-  // six tabs since October 23, 2026: the partner agreement is under Documents, and Money has no invoices for a partner
-  await expect(page.locator('.pt__nav')).toContainText('Documents');
-  await expect(page.locator('.pt__nav, .pt__subnav')).not.toContainText('Invoices');
+  // five links since r27 (features/owner/menu.ts): the partner agreement is on Documents, and Money has no Invoices tab
+  await expect(page.getByTestId('owner-nav')).toContainText('Documents');
+  await expect(page.getByTestId('owner-nav')).not.toContainText('Invoices');
   await check(page, 'partner home');
   await page.goto('/owner/statements', { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('owner-subnav')).toContainText('Payouts');
-  await expect(page.getByTestId('owner-subnav')).not.toContainText('Invoices');
+  await expect(page).toHaveURL(/\/owner\/money/);
+  await expect(page.getByTestId('portal-tabs')).toContainText('Payouts');
+  await expect(page.getByTestId('portal-tabs')).not.toContainText('Invoices');
   await page.goto('/owner/documents', { waitUntil: 'networkidle' });
-  await page.getByTestId('owner-subnav').getByRole('link', { name: 'Partner agreement' }).click();
+  await page.getByTestId('owner-partner-agreement').getByRole('link', { name: 'Partner agreement' }).click();
   await page.waitForURL(/\/owner\/partner-agreement/);
   await page.waitForLoadState('networkidle');
   // the approved text (the legal review, 0053): no draft banner, sections 3 to 11

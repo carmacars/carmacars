@@ -568,7 +568,7 @@ export async function markRead(ids: string[] | null): Promise<R> {
   try {
     const user = await requireUser('/account/notifications');
     await rpc('mark_notifications_read', { p_ids: ids && ids.length ? ids : undefined }, { role: 'authenticated', userId: user.id });
-    revalidatePath('/account/notifications');
+    revalidatePath('/account/profile');
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
 }
@@ -577,7 +577,7 @@ export async function setPreference(code: string, email: boolean, inApp: boolean
   try {
     const user = await requireUser('/account/notifications');
     await rpc('set_notification_preference', { p_code: code, p_email: email, p_in_app: inApp }, { role: 'authenticated', userId: user.id });
-    revalidatePath('/account/notifications');
+    revalidatePath('/account/profile');
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
 }
@@ -588,7 +588,7 @@ export async function setMarketing(optIn: boolean): Promise<R> {
     const meta = await requestMeta();
     const c = (await consentTexts()).marketing;
     await rpc('renter_set_marketing', { p_by: user.id, p_opt_in: optIn, p_text: c.text, p_version: c.version, p_ip: meta.ip ?? undefined, p_user_agent: meta.userAgent }, SR);
-    revalidatePath('/account/notifications');
+    revalidatePath('/account/profile');
     return { ok: true, data: null };
   } catch (e) { return fail(dbMessage(e)); }
 }

@@ -36,7 +36,7 @@ export default async function OwnerStatementPage({ params }: { params: Promise<{
   const st = s.statement;
   return (
     <>
-      <Back href="/owner/statements">Statements</Back>
+      <Back href="/owner/money">Statements</Back>
       <header className="stack"><p className="pt-kicker">Statement {st.statement_number}{st.is_final ? ' · Final statement' : ''}</p><h1 className="d2">{monthOf(st.statement_month)}</h1><p className="muted">Payout date {day(st.payout_date)}. Fees are billed separately on the {home.auto_debit.terms.debit_day_text}.</p>
         <p><a className="btn btn--ghost btn--sm" href={`/files/owner_statement/${id}`} data-testid="statement-pdf">Download PDF</a></p></header>
       <div className="pt-split">
