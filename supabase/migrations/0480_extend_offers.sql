@@ -339,6 +339,14 @@ begin
              b.weekly_rate_cents, b.monthly_rate_cents, 'America/Toronto', b.multi_day_rate_cents) r;
       v_disc_bps := v_set.extension_discount_bps;
       v_rental := v_regular - public.calc_bps(v_regular, v_disc_bps);
+      -- the lower of the two methods: the added days at the tier less the discount, or the whole booking repriced at its
+      -- new length less what was already charged (so a weekly renter never pays more than before)
+      select * into x from public.calc_extension(b.pickup_at, b.billable_days, v_new_days,
+                                                 b.daily_rate_cents, b.weekend_rate_cents, b.weekly_rate_cents, b.monthly_rate_cents);
+      if x.rental_difference_cents is not null and x.rental_difference_cents >= 0 and x.rental_difference_cents < v_rental then
+        v_rental := x.rental_difference_cents;
+        v_disc_bps := case when v_regular > 0 then round(10000.0 * (v_regular - v_rental) / v_regular)::integer else 0 end;
+      end if;
       v_lines := v_lines || app.price_line('rental_charge', v_days, null, v_rental, b.hst_bps,
         format('Extension: %s added %s', v_days, case when v_days = 1 then 'day' else 'days' end),
         null, jsonb_build_object('regular_cents', v_regular, 'discount_bps', v_disc_bps));
