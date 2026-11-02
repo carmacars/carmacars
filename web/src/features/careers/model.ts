@@ -40,6 +40,8 @@ export const STATUS_FILTERS: Array<[string, string]> = [['', 'All'], ['open', 'O
 export const DECISIONS: Array<[string, string]> = [['hire', 'Hire'], ['maybe', 'Maybe'], ['no', 'No'], ['sales', 'Good fit for Sales instead'], ['no_show', 'No show']];
 export const OUTCOME_WORDS: Record<string, { h: string; p: string }> = {
   invited: { h: 'Thank you. We would like to talk.', p: 'Your answers fit what this role needs. Book a short call now, or use the link we just emailed you.' },
+  // 0380: a remote assistant role: the AI interview instead of the call
+  interview: { h: 'Thank you. We would like to hear from you.', p: 'Your answers fit what this role needs. The next step is a short interview you can do now: about 10 minutes, answered out loud or typed. We also emailed you the link; it works for 7 days.' },
   received: { h: 'Thank you. We have your application.', p: 'A person at CarmaCars reads every application. If your experience fits what we need, we will write to you with a time to talk.' },
   declined: { h: 'Thank you for applying.', p: 'This role has requirements your answers do not meet, so we cannot move forward this time. We have emailed you the details.' },
   referred: { h: 'Thank you for applying.', p: 'This role is not the right fit, but another one may be. We have emailed you a one-click link to apply.' }

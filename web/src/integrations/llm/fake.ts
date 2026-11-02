@@ -165,7 +165,7 @@ export function fakeText(): TextGenerator {
   return {
     name: 'fake',
     model: 'fake-draft-v1',
-    async generate<T>(req: { prompt: string; task?: string }): Promise<GenerateResult<T>> {
+    async generate<T>(req: { prompt: string; task?: string; system?: string }): Promise<GenerateResult<T>> {
       // a guide section to rewrite (0055): each missing button renamed to its closest label, nothing invented
       if (req.task === 'guide_rewrite') {
         if (process.env.FAKE_LLM_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake model is set to fail' };
@@ -186,6 +186,14 @@ export function fakeText(): TextGenerator {
           ? { reply: `Hi${name && name !== 'the' ? ` ${name}` : ''}, thanks for your message. How can we help with your booking? CarmaCars` }
           : { summary: `Caller asked about ${/pric/i.test(req.prompt) ? 'pricing' : 'a booking'}.` };
         return { ok: true, data: data as T, model: 'fake-phone-v1', usage: { inputTokens: Math.round(req.prompt.length / 4), outputTokens: 40, neurons: 0 } };
+      }
+      // the AI interview (0380): a follow-up for a short answer, scores with real quotes from the answers
+      if (req.task === 'interview_followup' || req.task === 'interview_score') {
+        if (process.env.FAKE_LLM_FAIL === '1') return { ok: false, reason: 'unavailable', message: 'The fake model is set to fail' };
+        const { fakeFollowup, fakeScores } = await import('../../features/careers/ai-interview');
+        const topics = [...(req.system ?? '').matchAll(/^- ([a-z_]+): /gm)].map((m) => ({ key: m[1]! }));
+        const data = req.task === 'interview_followup' ? fakeFollowup(req.prompt) : fakeScores(req.prompt, topics);
+        return { ok: true, data: data as T, model: 'fake-interview-v1', usage: { inputTokens: Math.round(req.prompt.length / 4), outputTokens: 80, neurons: 0 } };
       }
       // the search copy (0061): built from the facts in the prompt, so it passes the same checks as a real answer
       if (req.task === 'car_copy' || req.task === 'seo_page' || req.task === 'article') {

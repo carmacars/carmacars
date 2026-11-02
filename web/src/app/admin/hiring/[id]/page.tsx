@@ -6,6 +6,8 @@ import { DECISION_WORDS, emailLine, type DecisionRow } from '@/features/careers/
 import { Badge, Card, Kv, PageHead, Table, d, t } from '@/features/admin/ui';
 import { Rubric } from '@/features/careers/admin/Rubric';
 import { Hire } from '@/features/careers/admin/Hire';
+import { AiInterview, type AiInterviewData } from '@/features/careers/admin/AiInterview';
+import { RECOMMENDATION_WORDS } from '@/features/careers/ai-interview';
 import { fmtSlot, MANILA, SOURCE_WORDS, STATUS_WORDS, type Criterion } from '@/features/careers/model';
 
 export const dynamic = 'force-dynamic';
@@ -23,6 +25,7 @@ interface Detail {
   score: { scores: Record<string, number>; interview_score: number | null; final_score: number | null; notes: string | null; decision: string | null; interviewer: string | null; updated_at: string } | null;
   linked: Array<{ id: string; role: string; status: string; score: number | null; created_at: string; referred_from: string | null }>;
   phone_enabled: boolean;
+  ai_interview?: (Omit<AiInterviewData, 'answers'> & { answers: Array<Omit<AiInterviewData['answers'][number], 'audio_url'> & { audio_key: string | null }> }) | null;
   decision?: (Pick<DecisionRow, 'outcome' | 'send_email' | 'email_code' | 'subject' | 'sales_role' | 'send_after' | 'sent_at'>) | null;
 }
 
@@ -38,6 +41,16 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
   const tel = a.phone ? a.phone.replace(/[^\d+]/g, '') : null;
   const portal = x.role.staff_kind === 'field' ? 'field staff' : 'assistant';
   const canScore = ['booked', 'interviewed', 'invited', 'no_show'].includes(a.status);
+  // 0380: the AI interview, each recording on a signed link of an hour
+  const ai = x.ai_interview ?? null;
+  let aiData: AiInterviewData | null = null;
+  if (ai) {
+    const keys = ai.answers.filter((w) => w.audio_key);
+    const s = keys.length ? await (await import('@/integrations/storage')).storage() : null;
+    const urls = new Map(await Promise.all(keys.map(async (w) => [w.id, await s!.signedDownloadUrl('documents', w.audio_key!, 3600).catch(() => null)] as const)));
+    aiData = { ...ai, answers: ai.answers.map((w) => ({ ...w, audio_url: urls.get(w.id) ?? null })) };
+  }
+  const aiOpen = ai && !ai.live_call_at && (ai.state === 'sent' || ai.state === 'started' || ai.state === 'expired');
   // the calls of the same day in time order: Previous and Next go straight to the neighbour's rubric
   let prev: { id: string; full_name: string } | null = null; let next: { id: string; full_name: string } | null = null;
   if (a.slot_starts_at) {
@@ -54,6 +67,10 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
       <span className="ad-actions">
         {prev && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/${prev.id}#rubric`} data-testid="cand-prev" title={prev.full_name}>Previous call</Link>}
         {next && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/${next.id}#rubric`} data-testid="cand-next" title={next.full_name}>Next call: {next.full_name}</Link>}
+        {ai && !ai.live_call_at && ['invited', 'interviewed'].includes(a.status) && <Act action="hiring_ai_live_call" payload={{ id }} label="Invite to a live call" variant={ai.recommendation === 'live_call' ? 'primary' : undefined} testId="cand-ai-live"
+          refresh={refresh} done="Invited to a live call: the booking link is on its way." confirm={`Send ${a.full_name} the link to book a live call?`} />}
+        {aiOpen && a.status === 'invited' && <Act action="hiring_ai_new_link" payload={{ id }} label="New interview link" testId="cand-ai-link" refresh={refresh} done="A new link is on its way: it works 7 days."
+          confirm={`Email ${a.full_name} a new interview link (7 days)? The answers given are kept.`} />}
         {['below_bar', 'declined', 'referred', 'no_show'].includes(a.status) && <Act action="hiring_invite" payload={{ id }} label="Invite anyway" variant="primary" testId="cand-invite" refresh={refresh} done="Invited: the booking link is on its way." confirm={`Send ${a.full_name} the booking link?`} />}
         {['below_bar', 'invited', 'referred', 'no_show'].includes(a.status) && <Act action="hiring_decline" payload={{ id }} label="Decline" testId="cand-decline" refresh={refresh} done="Declined."
           fields={[{ name: 'email', label: 'Send the polite decline email', type: 'bool', value: true }, { name: 'reason', label: 'The requirement it names (optional: "This role needs ...")', type: 'text' }]} />}
@@ -64,6 +81,7 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
     </PageHead>
     <div className="ad-grid ad-grid--2">
       <div className="stack-lg">
+        {aiData && <AiInterview x={aiData} />}
         <Card title="Contact and source" testId="cand-contact">
           <Kv rows={[
             ['Email', a.email ? <a className="link" href={`mailto:${a.email}`}>{a.email}</a> : 'Removed'],
@@ -77,7 +95,7 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
             ? <p>{x.role.remote && <span className="small muted">{fmtSlot(a.slot_starts_at, MANILA)} in Manila. </span>}
                 {a.mode === 'video' ? (a.meet_url ? <a className="btn btn--ghost btn--sm" href={a.meet_url} rel="noopener" target="_blank">Join the video call</a> : 'Video')
                   : tel ? <a className="btn btn--ghost btn--sm" href={`tel:${tel}`}>Call {a.phone}</a> : 'Phone'}</p>
-            : <p className="muted small">No call booked{a.status === 'invited' ? ': the candidate has the booking link.' : '.'}</p>}
+            : <p className="muted small">No call booked{aiOpen && a.status === 'invited' ? ': the candidate has the AI interview link.' : a.status === 'invited' ? ': the candidate has the booking link.' : '.'}</p>}
         </Card>
         <Card title={`Screening: ${a.score ?? '-'} of 100${a.score !== null ? (a.score >= a.pass_mark ? ' (passed)' : ` (pass mark ${a.pass_mark})`) : ''}`} testId="cand-breakdown">
           {a.knockouts.length > 0 && <p className="alert alert--error"><span><b>Knock-out:</b> {a.knockouts.join('; ')}</span></p>}
@@ -99,6 +117,7 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
       </div>
       <div className="stack-lg" id="rubric">
         <Card title="Interview rubric" testId="cand-rubric" aside={x.score?.updated_at ? <span className="small muted">Saved {t(x.score.updated_at)}{x.score.interviewer ? ` by ${x.score.interviewer}` : ''}</span> : undefined}>
+          {ai?.recommendation && <p className="small" data-testid="cand-ai-hint">AI interview: recommends <b>{RECOMMENDATION_WORDS[ai.recommendation]}</b>{ai.interview_score !== null ? `, ${ai.interview_score} of 100` : ''}. You decide.</p>}
           {canScore || x.score
             ? <Rubric id={id} criteria={x.criteria} screening={a.score} initial={x.score ? { scores: x.score.scores, notes: x.score.notes, decision: x.score.decision } : null} />
             : <p className="muted small">The rubric opens once the candidate has a call.</p>}
