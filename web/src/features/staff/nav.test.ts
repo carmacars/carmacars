@@ -12,7 +12,7 @@ const actions = (fns: string[]) => STAFF_ACTIONS.filter((a) => !a.fns || a.fns.s
 
 test('Sales in person with field work: the Sales jobs and the field jobs in one menu', () => {
   const h = hrefs(['sales', 'field']);
-  for (const p of ['/staff/requests', '/staff/visitors', '/staff/marketplace', '/staff/my-sales', '/staff/field', '/staff/field/map', '/staff/field/hours']) assert.ok(h.includes(p), p);
+  for (const p of ['/staff/requests', '/staff/visitors', '/staff/marketing', '/staff/my-sales', '/staff/field', '/staff/field/map', '/staff/field/hours']) assert.ok(h.includes(p), p);
   assert.deepEqual(groups(['sales', 'field']), ['To do', 'Sales', 'Field work', 'Bookings', 'Me']);
   // the office pages cover adding a rental, the sales and the profile
   for (const p of ['/staff/field/rentals/new', '/staff/field/sales', '/staff/field/profile']) assert.ok(!reach(['sales', 'field']).includes(p), p);
@@ -66,7 +66,7 @@ const TOP: Record<string, string[]> = {
   cs: ['/staff/requests', '/staff/visitors', '/staff/messages'],
   fleet: ['/staff/fleet', '/staff/fleet/map', '/staff/checks', '/staff/maintenance'],
   finance: ['/staff/money', '/staff/owner-money?tab=invoices', '/staff/tolls', '/staff/turo'],
-  sales: ['/staff/requests', '/staff/visitors', '/staff/marketplace', '/staff/my-sales'],
+  sales: ['/staff/requests', '/staff/visitors', '/staff/marketing', '/staff/my-sales'],
   field: ['/staff/field', '/staff/field/now', '/staff/field/map', '/staff/field/hours']
 };
 
@@ -102,7 +102,7 @@ test('a person sees only the pages of their functions in a section or a group', 
   assert.ok(!reach(['cs']).includes('/staff/calendar-sync'));
   assert.ok(reach(['cs', 'fleet']).includes('/staff/calendar-sync'));
   assert.ok(!reach(['finance']).includes('/staff/listings'));
-  assert.ok(!reach(['cs']).includes('/staff/marketplace'));
+  assert.ok(!reach(['cs']).includes('/staff/marketing'));
   assert.ok(!reach(['cs', 'sales']).includes('/staff/fleet/map'));
 });
 

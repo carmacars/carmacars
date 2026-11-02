@@ -195,3 +195,25 @@ The auto-reply only answers the first "Is this available?" message. Every other 
   removed, do not appeal or repost it: tell the owner.
 - Facebook's pages change. If a field or button described here is not where this playbook says it is, look for it by
   its label. If it is not there at all, stop and tell the owner instead of guessing.
+
+## 8. Sales: the Marketing tab (each salesperson's own profile)
+
+Since migration 0510, every salesperson has the same tool for their own Facebook profile: **Sales** > **Marketing**
+(`https://carmacars.ca/staff/marketing`). It has Today, the kit, the auto-reply text, the inbox replies, **Log an inbox
+session** (each number is a lead assigned to them, with the call-back task) and **Your Claude in Chrome** (the
+instructions to paste into their own Claude; the Academy section "Marketplace with your own Claude" teaches it).
+
+No ad is posted twice:
+
+- Every listing is a **copy variant**. Variant 1 is the owner's kit (this page). The team claims variants 2 and up, each
+  with its own title (the description's first line), description order and closing lines, photo order and cover photo,
+  and its own `utm_content=v<n>` on the link.
+- A car has at most `marketplace_max_live_per_car` (5) live listings across the team, the owner's included. A variant
+  that someone holds cannot be claimed; the database refuses the same title, description or cover twice for a car.
+- **Claim** before posting, then **Posted** with the listing's address. A claim not posted within a day lets go; a
+  listing ends `marketplace_listing_days` (30) after it was posted or renewed, or when it is marked **Taken down**.
+- Each salesperson's day is their own `posts_per_day` (spam flags are per account). The owner's day counts only his own.
+- Admin > Marketing > Marketplace, **The team's listings**, shows who posted what, its status, its end and its address.
+
+A salesperson's Claude follows sections 1 to 7 with their Marketing tab in place of this page: the kit's words and the
+templates only, stop at any Facebook check, never a password, and log every post, renewal, update and take-down in the tab.

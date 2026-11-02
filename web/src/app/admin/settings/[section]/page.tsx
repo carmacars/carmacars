@@ -34,6 +34,7 @@ import { SalesModesCard, type SalesModes } from '@/features/sales/SalesModesAdmi
 import { StaffFunctions } from '@/features/staff/StaffFunctions';
 import { CardReaderAdmin, type TerminalState } from '@/features/terminal/CardReaderAdmin';
 import { LeadTimeSettings } from '@/features/rates/LeadTimeEditor';
+import { StuckReport, type StuckReportData } from '@/features/help/StuckReport';
 import type { Tier } from '@/features/rates/lead-time';
 import { profileFunctions as staffFns, STAFF_FN_LABEL } from '@/features/staff/nav';
 const googleKeysSet = () => googleKeys() !== null;
@@ -85,6 +86,8 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Phone and texts (Quo)', (k) => k.startsWith('phone_')],
   ['Sign-in by phone', (k) => k.startsWith('signin_')],
   ['Google Maps daily caps', (k) => k.startsWith('maps_')],
+  ['Facebook Marketplace', (k) => k.startsWith('marketplace_')],
+  ['Stuck? help', (k) => k.startsWith('stuck_')],
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');
@@ -368,6 +371,7 @@ export default async function Section({ params, searchParams }: { params: Promis
         <Card key={title} title={title}><details open={title === 'Booking requests and offers'}><summary className="link">{ks.length} settings</summary>
           <SaveForm table="program_settings" rowKey="current" testId={`program-${title.split(' ')[0]!.toLowerCase()}`} fields={fieldsFrom(s.program, ks)} /></details></Card>); })}
       <Card title="Staff agreement defaults by function" testId="staff-defaults"><StaffDefaults value={(s.program.staff_agreement_defaults ?? {}) as StaffDefaultsValue} /></Card>
+      <StuckReport d={await read<StuckReportData>('help_stuck').catch(() => null)} />
     </>);
   }
   case 'fees':

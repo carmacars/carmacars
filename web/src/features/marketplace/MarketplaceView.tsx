@@ -1,17 +1,15 @@
 import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
-import { Badge, Card, PageHead, Tiles, d } from '@/features/admin/ui';
-import { CopyText } from '@/features/ads/CopyText';
+import { Badge, Card, PageHead, Table, Tiles, d } from '@/features/admin/ui';
 import type { CarFacts, Rules } from '@/features/ads/listing';
 import { buildKit, type KitExtra, type KitSettings } from './kit';
 import { ACTION_LABEL, marketplacePlan, type MpItem, type MpPosting } from './plan';
-import { replies } from './replies';
-import { CopyValue } from './CopyValue';
-import { photoUrl } from '@/lib/photo';
+import { KitCards } from './KitCards';
+import type { TeamClaim } from './team';
 
 type Posting = MpPosting & { id: string; car: string };
 type LogRow = { id: string; at: string; kind: string; car: string | null; conversations: number | null; replies: number | null; numbers: number | null; note: string | null; by: string | null };
-export type MarketplaceData = { today: string; site_url: string; rules: Rules; cars: CarFacts[]; extra: Record<string, KitExtra>; settings: KitSettings; phone: string | null; postings: Posting[]; log: LogRow[];
+export type MarketplaceData = { today: string; site_url: string; rules: Rules; cars: CarFacts[]; extra: Record<string, KitExtra>; settings: KitSettings & { max_live?: number; listing_days?: number }; team?: TeamClaim[]; phone: string | null; postings: Posting[]; log: LogRow[];
   done_today: number; week: { posted: number; renewed: number; conversations: number; replies: number; numbers: number }; leads_30: number; requests_30: number };
 
 const KIND: Record<string, string> = { posted: 'Posted', renewed: 'Renewed', updated: 'Updated', removed: 'Taken down', inbox: 'Inbox' };
@@ -77,51 +75,22 @@ export function MarketplaceView({ data, car, staff = false }: { data: Marketplac
 
     {pick && (() => {
       const { c, k } = pick;
-      const rs = replies(c, data.rules, k.link, data.phone);
       const lp = live.get(c.vehicle_id);
-      return (<>
-        <Card id="kit" title={`Kit: ${c.name}${c.car_code ? ` (${c.car_code})` : ''}`} testId="mp-kit" aside={lp ? <Badge s={lp.needs_update ? 'draft' : 'published'}>{lp.needs_update ? 'Live: update the price' : `Live since ${d(lp.posted_on)}`}</Badge> : <Badge s="closed">Not on Marketplace</Badge>}>
-          <form method="get" action={`${staff ? '/staff/marketplace' : '/admin/marketing/marketplace'}#kit`} className="mp-pick">
-            <label className="label" htmlFor="mp-car">Car</label>
-            <select className="select" id="mp-car" name="car" defaultValue={c.vehicle_id} data-testid="mp-car">
-              {kits.map(({ c: x, k: y }) => <option key={x.vehicle_id} value={x.vehicle_id}>{x.name}{x.car_code ? ` (${x.car_code})` : ''}{y.blockers.length ? `: ${y.blockers[0]}` : live.has(x.vehicle_id) ? ': live' : ''}</option>)}
-            </select>
-            <button className="btn btn--ghost btn--sm" type="submit">Show</button>
-          </form>
-          {k.blockers.length > 0 && <p className="small mp-warn" data-testid="mp-blockers"><b>Do not post yet:</b> {k.blockers.join('. ')}.</p>}
-          {k.warnings.length > 0 && <ul className="small muted" data-testid="mp-warnings">{k.warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
-          <p className="small muted">facebook.com/marketplace/create/vehicle asks for these, in this order. Marketplace titles a vehicle Year Make Model by itself.</p>
-          <dl className="mp-fields" data-testid="mp-fields">
-            {k.fields.map((f) => <div key={f.label}><dt>{f.label}</dt><dd><span className="mp-val">{f.value || <span className="muted">{f.note}</span>}{f.value && f.note ? <span className="mp-note">{f.note}</span> : null}</span><CopyValue value={f.value} label={f.label} /></dd></div>)}
-          </dl>
-          <div className="stack">
-            <CopyText label="Description" value={k.description} rows={Math.min(18, k.description.split('\n').length + 2)} max={5000} testId="mp-description" />
-            <CopyText label="Tracked link" value={k.link} testId="mp-link" />
-            <details><summary className="small">The description without the link (if Facebook holds the listing back for the link)</summary><CopyText label="Description without the link" value={k.descriptionNoLink} rows={10} testId="mp-description-nolink" /></details>
-          </div>
-        </Card>
-        <Card title={`Photos, in this order (${k.photos.length} of 10)`} testId="mp-photos" aside={k.photos.length && !staff ? <a className="btn btn--primary btn--sm" href={`/admin/marketing/marketplace/photos/${c.vehicle_id}`} download data-testid="mp-zip">Download the photos (ZIP)</a> : null}>
-          {k.photos.length === 0 ? <p className="small muted">No real photos yet.</p> : (
-            <ol className="mp-photos">{k.photos.map((p, i) => (
-              <li key={p.path}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photoUrl(p.path)} alt={p.alt || `${c.name}, photo ${i + 1}`} loading="lazy" />
-                <span className="small"><b>{i + 1}.</b> {p.label ?? p.shot ?? 'Photo'}</span>
-              </li>))}
-            </ol>)}
-          <p className="small muted">The ZIP names them 01 to {String(k.photos.length).padStart(2, '0')}: add them in that order, the first is the cover.</p>
-        </Card>
-        <Card title="Inbox replies for this car" testId="mp-replies">
-          <p className="small muted">Every reply ends on the next step: request on carmacars.ca, or send a number for a call. Log each number below.</p>
-          <div className="mp-replies">{rs.map((r) => (
-            <details key={r.key} className="mp-reply" data-testid={`mp-reply-${r.key}`}>
-              <summary><b>{r.label}</b> <span className="small muted">{r.when}</span></summary>
-              <CopyText label={`${r.label} reply`} value={r.text} rows={Math.min(8, r.text.split('\n').length + 3)} />
-            </details>))}
-          </div>
-        </Card>
-      </>);
+      return <KitCards c={c} k={k} rules={data.rules} phone={data.phone} action={staff ? '/staff/marketplace' : '/admin/marketing/marketplace'}
+        zipHref={staff ? null : `/admin/marketing/marketplace/photos/${c.vehicle_id}`}
+        options={kits.map(({ c: x, k: y }) => ({ id: x.vehicle_id, label: `${x.name}${x.car_code ? ` (${x.car_code})` : ''}${y.blockers.length ? `: ${y.blockers[0]}` : live.has(x.vehicle_id) ? ': live' : ''}` }))}
+        aside={lp ? <Badge s={lp.needs_update ? 'draft' : 'published'}>{lp.needs_update ? 'Live: update the price' : `Live since ${d(lp.posted_on)}`}</Badge> : <Badge s="closed">Not on Marketplace</Badge>} />;
     })()}
+
+    {!staff && <Card title="The team's listings" testId="mp-team">
+      <p className="small muted">Sales post from their own Facebook profiles in the Marketing tab, each in a copy variant of their own: at most {data.settings.max_live ?? 5} live listings a car, yours (variant 1) included. A listing ends when it is taken down or {data.settings.listing_days ?? 30} days after it was posted or renewed.</p>
+      <Table testId="mp-team-table" caption="The team's listings" empty="No team listings yet." rowKey={(r) => String(r.id)} rows={(data.team ?? []) as unknown as Array<Record<string, unknown>>} cols={[
+        { key: 'car', label: 'Car' }, { key: 'variant', label: 'Variant', num: true }, { key: 'poster', label: 'Posted by' },
+        { key: 'status', label: 'Status', render: (r) => <><Badge s={r.status === 'live' ? 'published' : r.status === 'claimed' ? 'draft' : 'closed'}>{r.status === 'live' ? 'Live' : r.status === 'claimed' ? 'Claimed' : 'Ended'}</Badge>{r.ended_reason ? <span className="muted"> {String(r.ended_reason)}</span> : null}</> },
+        { key: 'posted_on', label: 'Posted', render: (r) => (r.posted_on ? d(String(r.posted_on)) : '') },
+        { key: 'expires_at', label: 'Ends', render: (r) => (r.status === 'ended' ? '' : d(String(r.expires_at))) },
+        { key: 'url', label: 'Listing', render: (r) => (r.url ? <a className="link" href={String(r.url)} target="_blank" rel="noopener noreferrer">Open</a> : '') }]} />
+    </Card>}
 
     {!staff && <Card title="Log an inbox session" testId="mp-inbox">
       <p className="small muted">After answering the Marketplace inbox: how many chats, and every phone number collected. Each new number becomes a lead with a call-back task for customer service within 15 minutes.</p>

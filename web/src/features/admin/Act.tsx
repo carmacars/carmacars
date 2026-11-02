@@ -126,6 +126,9 @@ function useForm(fields: Field[]) {
 
 const fill = (tpl: string, data: unknown) => tpl.replace(/\{(\w+)\}/g, (_, k: string) => encodeURIComponent(String((data as Record<string, unknown> | null)?.[k] ?? '')));
 
+/** Tells the page's "Stuck?" help (features/help, migration 0510) that an action worked or was refused. */
+export const signal = (ok: boolean) => { try { window.dispatchEvent(new Event(ok ? 'cc:progress' : 'cc:error')); } catch { /* not in a browser */ } };
+
 /** A button that runs one action, optionally after a dialog with fields or a confirmation. */
 export function Act({ action, payload = {}, fields = [], label, confirm, variant = 'ghost', title, go, done = 'Done.', refresh = [], nest, testId, disabled, inline, submitLabel, ops }: {
   action: string; payload?: Record<string, unknown>; fields?: Field[]; label: string; confirm?: string; variant?: 'primary' | 'ghost' | 'quiet' | 'danger';
@@ -145,12 +148,13 @@ export function Act({ action, payload = {}, fields = [], label, confirm, variant
   const needsDialog = !inline && (fields.length > 0 || !!confirm);
   const run = () => {
     const vals = f.collect();
-    if (!vals) return;
+    if (!vals) { signal(false); return; }
     const body = nest ? { ...payload, [nest]: vals } : { ...payload, ...vals };
     start(async () => {
       const r = (await adminAct(action, body, refresh)) as Result;
       setRes(r);
       if (!r.ok && r.fieldErrors) f.setErrs(r.fieldErrors);
+      signal(r.ok);
       if (r.ok) {
         dlg.current?.close();
         // a dialog or a one-press button says what happened in a toast (the inline form shows its own line)
@@ -203,11 +207,11 @@ export function SaveForm({ table, rowKey, fields, label = 'Save', extra, testId,
   return (
     <form className={`ad-form${compact ? ' ad-form--compact' : ''}`} noValidate data-testid={testId} onSubmit={(e) => {
       e.preventDefault();
-      const vals = f.collect(); if (!vals) return;
+      const vals = f.collect(); if (!vals) { signal(false); return; }
       // only what changed on an existing row; everything on a new one
       const send = rowKey ? Object.fromEntries(Object.entries(vals).filter(([k]) => { const x = fields.find((y) => y.name === k)!; return convert(x, initial(x)).v !== vals[k] && JSON.stringify(convert(x, initial(x)).v) !== JSON.stringify(vals[k]); })) : vals;
       if (rowKey && !Object.keys(send).length) { setRes({ ok: false, message: 'Nothing changed.' }); return; }
-      start(async () => { const r = (await adminSaveRow(table, send, rowKey ?? null, extra)) as Result; setRes(r); if (r.ok) { setDirty(false); router.refresh(); } });
+      start(async () => { const r = (await adminSaveRow(table, send, rowKey ?? null, extra)) as Result; setRes(r); signal(r.ok); if (r.ok) { setDirty(false); router.refresh(); } });
     }}>
       <div className="ad-fields">{fields.map((x) => <FieldInput key={x.name} f={{ ...x, siblings: fields.map((y) => y.name) }} idp={idp} value={f.vals[x.name] ?? ''} set={(v) => { setDirty(true); f.setVals((s) => ({ ...s, [x.name]: v })); }} err={f.errs[x.name]}
         fill={(patch) => { setDirty(true); f.setVals((s) => ({ ...s, ...patch })); }} />)}</div>
