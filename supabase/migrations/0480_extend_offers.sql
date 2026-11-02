@@ -343,7 +343,9 @@ begin
       -- new length less what was already charged (so a weekly renter never pays more than before)
       select * into x from public.calc_extension(b.pickup_at, b.billable_days, v_new_days,
                                                  b.daily_rate_cents, b.weekend_rate_cents, b.weekly_rate_cents, b.monthly_rate_cents);
-      if x.rental_difference_cents is not null and x.rental_difference_cents >= 0 and x.rental_difference_cents < v_rental then
+      -- (the six offers keep their own tier price; only a date the renter picks gets the lower of the two)
+      if (p_new_return - b.return_at) not in (interval '1 hour', interval '3 hours', interval '1 day', interval '3 days', interval '7 days', interval '30 days')
+         and x.rental_difference_cents > 0 and x.rental_difference_cents < v_rental then
         v_rental := x.rental_difference_cents;
         v_disc_bps := case when v_regular > 0 then round(10000.0 * (v_regular - v_rental) / v_regular)::integer else 0 end;
       end if;

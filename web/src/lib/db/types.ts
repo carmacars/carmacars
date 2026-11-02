@@ -10301,6 +10301,7 @@ export type Database = {
           dedupe_key: string;
           created_at: string;
           read_at: string | null;
+          snoozed_until: string | null;
         };
         Insert: {
           id?: string;
@@ -10315,6 +10316,7 @@ export type Database = {
           dedupe_key: string;
           created_at?: string;
           read_at?: string | null;
+          snoozed_until?: string | null;
         };
         Update: {
           id?: string;
@@ -10329,6 +10331,7 @@ export type Database = {
           dedupe_key?: string;
           created_at?: string;
           read_at?: string | null;
+          snoozed_until?: string | null;
         };
         Relationships: [];
       };
@@ -14656,12 +14659,28 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes: number;
           notify_not_back: boolean;
           notify_not_back_minutes: number;
+          notify_lead_new: boolean;
+          notify_request_unfinished: boolean;
+          notify_owner_lead_new: boolean;
+          notify_hot_visitor: boolean;
+          notify_lead_burst_count: number;
+          notify_lead_burst_minutes: number;
+          alert_money_threshold_cents: number;
+          alert_escalate_enabled: boolean;
+          alert_escalate_minutes: number;
+          alert_brief_enabled: boolean;
+          app_store_url: string | null;
+          play_store_url: string | null;
+          alert_complaint_words: string;
+          alert_burst_count: number;
+          alert_burst_minutes: number;
           late_fee_hourly_bps: number;
           late_fee_hourly_min_cents: number;
           extension_short_discount_bps: number;
           extension_discount_bps: number;
           extension_auto_approve: boolean;
           booking_buffer_minutes: number;
+          phone_quo_buttons: boolean;
         };
         Insert: {
           id?: string;
@@ -15242,12 +15261,28 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes?: number;
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
+          notify_lead_new?: boolean;
+          notify_request_unfinished?: boolean;
+          notify_owner_lead_new?: boolean;
+          notify_hot_visitor?: boolean;
+          notify_lead_burst_count?: number;
+          notify_lead_burst_minutes?: number;
+          alert_money_threshold_cents?: number;
+          alert_escalate_enabled?: boolean;
+          alert_escalate_minutes?: number;
+          alert_brief_enabled?: boolean;
+          app_store_url?: string | null;
+          play_store_url?: string | null;
+          alert_complaint_words?: string;
+          alert_burst_count?: number;
+          alert_burst_minutes?: number;
           late_fee_hourly_bps?: number;
           late_fee_hourly_min_cents?: number;
           extension_short_discount_bps?: number;
           extension_discount_bps?: number;
           extension_auto_approve?: boolean;
           booking_buffer_minutes?: number;
+          phone_quo_buttons?: boolean;
         };
         Update: {
           id?: string;
@@ -15828,12 +15863,28 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes?: number;
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
+          notify_lead_new?: boolean;
+          notify_request_unfinished?: boolean;
+          notify_owner_lead_new?: boolean;
+          notify_hot_visitor?: boolean;
+          notify_lead_burst_count?: number;
+          notify_lead_burst_minutes?: number;
+          alert_money_threshold_cents?: number;
+          alert_escalate_enabled?: boolean;
+          alert_escalate_minutes?: number;
+          alert_brief_enabled?: boolean;
+          app_store_url?: string | null;
+          play_store_url?: string | null;
+          alert_complaint_words?: string;
+          alert_burst_count?: number;
+          alert_burst_minutes?: number;
           late_fee_hourly_bps?: number;
           late_fee_hourly_min_cents?: number;
           extension_short_discount_bps?: number;
           extension_discount_bps?: number;
           extension_auto_approve?: boolean;
           booking_buffer_minutes?: number;
+          phone_quo_buttons?: boolean;
         };
         Relationships: [];
       };
@@ -16029,6 +16080,7 @@ export type Database = {
           sent_at: string | null;
           last_error: string | null;
           created_at: string;
+          actions: Json | null;
         };
         Insert: {
           id?: string;
@@ -16047,6 +16099,7 @@ export type Database = {
           sent_at?: string | null;
           last_error?: string | null;
           created_at?: string;
+          actions?: Json | null;
         };
         Update: {
           id?: string;
@@ -16065,6 +16118,7 @@ export type Database = {
           sent_at?: string | null;
           last_error?: string | null;
           created_at?: string;
+          actions?: Json | null;
         };
         Relationships: [];
       };
@@ -16101,6 +16155,7 @@ export type Database = {
           last_error: string | null;
           kind: string;
           platform: string | null;
+          topics: string[] | null;
         };
         Insert: {
           id?: string;
@@ -16116,6 +16171,7 @@ export type Database = {
           last_error?: string | null;
           kind?: string;
           platform?: string | null;
+          topics?: string[] | null;
         };
         Update: {
           id?: string;
@@ -16131,6 +16187,7 @@ export type Database = {
           last_error?: string | null;
           kind?: string;
           platform?: string | null;
+          topics?: string[] | null;
         };
         Relationships: [];
       };
@@ -18210,6 +18267,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      sign_in_events: {
+        Row: {
+          id: number;
+          user_id: string | null;
+          email: string | null;
+          ok: boolean;
+          device: string | null;
+          country: string | null;
+          at: string;
+        };
+        Insert: {
+          id?: number;
+          user_id?: string | null;
+          email?: string | null;
+          ok: boolean;
+          device?: string | null;
+          country?: string | null;
+          at?: string;
+        };
+        Update: {
+          id?: number;
+          user_id?: string | null;
+          email?: string | null;
+          ok?: boolean;
+          device?: string | null;
+          country?: string | null;
+          at?: string;
+        };
+        Relationships: [];
+      };
       sign_requests: {
         Row: {
           id: string;
@@ -18923,6 +19010,78 @@ export type Database = {
           publish_attempts?: number;
           created_by?: string | null;
           created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_alert_prefs: {
+        Row: {
+          user_id: string;
+          quiet_on: boolean;
+          quiet_from: number;
+          quiet_until: number;
+          focus_until: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          quiet_on?: boolean;
+          quiet_from?: number;
+          quiet_until?: number;
+          focus_until?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          quiet_on?: boolean;
+          quiet_from?: number;
+          quiet_until?: number;
+          focus_until?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_alert_rules: {
+        Row: {
+          rule: string;
+          label: string;
+          grp: string;
+          who: string[];
+          tier: string;
+          topic: string;
+          enabled: boolean;
+          wired: boolean;
+          fixed: boolean;
+          hint: string | null;
+          sort: number;
+          updated_at: string;
+        };
+        Insert: {
+          rule: string;
+          label: string;
+          grp: string;
+          who?: string[];
+          tier?: string;
+          topic?: string;
+          enabled?: boolean;
+          wired?: boolean;
+          fixed?: boolean;
+          hint?: string | null;
+          sort?: number;
+          updated_at?: string;
+        };
+        Update: {
+          rule?: string;
+          label?: string;
+          grp?: string;
+          who?: string[];
+          tier?: string;
+          topic?: string;
+          enabled?: boolean;
+          wired?: boolean;
+          fixed?: boolean;
+          hint?: string | null;
+          sort?: number;
           updated_at?: string;
         };
         Relationships: [];
@@ -25450,6 +25609,12 @@ export type Database = {
       server_ai_interview_start: { Args: { p_token: string; p?: Json }; Returns: Json };
       server_ai_interview_transcript: { Args: { p: Json }; Returns: Json };
       server_ai_interviews_due: { Args: { p_limit?: number }; Returns: Json };
+      server_alert_feed: { Args: { p_user: string; p_limit?: number; p_filter?: string }; Returns: Json };
+      server_alert_prefs: { Args: { p_user: string }; Returns: Json };
+      server_alert_read: { Args: { p_user: string; p_ids?: string[] }; Returns: number };
+      server_alert_rules: { Args: { p_user: string }; Returns: Json };
+      server_alert_snooze: { Args: { p_user: string; p_id: string; p_minutes?: number }; Returns: string };
+      server_alert_unread: { Args: { p_user: string }; Returns: number };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };
@@ -25499,6 +25664,7 @@ export type Database = {
       server_coverage_click: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_coverage_detail: { Args: { p_booking: string }; Returns: Json };
       server_db_busy: { Args: never; Returns: Json };
+      server_deploy_result: { Args: { p: Json }; Returns: number };
       server_deposit_auto_begin: { Args: { p_booking: string; p_token_sha256: string }; Returns: Json };
       server_deposit_auto_failed: { Args: { p_id: string; p_error: string }; Returns: Json };
       server_deposit_autos_due: { Args: never; Returns: Json };
@@ -25665,6 +25831,7 @@ export type Database = {
       server_places_import_finish: { Args: { p_import: number; p_skipped?: Json }; Returns: Json };
       server_places_import_region_done: { Args: { p_import: number; p_region: string; p_counts: Json }; Returns: Json };
       server_places_stage_clear: { Args: never; Returns: undefined };
+      server_push_device_topics: { Args: { p_user: string; p_endpoint: string; p_topics: string[] }; Returns: Json };
       server_push_due: { Args: { p_limit?: number; p_kinds?: string[] }; Returns: Json };
       server_push_result: { Args: { p: Json }; Returns: Json };
       server_push_set_topics: { Args: { p_user: string; p_topics: string[] }; Returns: Json };
@@ -25700,7 +25867,10 @@ export type Database = {
       server_seo_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_seo_result: { Args: { p: Json }; Returns: Json };
       server_seo_snapshots: { Args: never; Returns: number };
+      server_set_alert_prefs: { Args: { p_user: string; p: Json }; Returns: Json };
+      server_set_alert_rule: { Args: { p_user: string; p_rule: string; p: Json }; Returns: Json };
       server_set_notify_channel: { Args: { p_user: string; p_channel: string }; Returns: Json };
+      server_sign_in_event: { Args: { p: Json }; Returns: undefined };
       server_sign_now_prepare: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_sign_request_attach: { Args: { p_id: string; p_path: string; p_sha256: string }; Returns: string };
       server_sign_request_document: { Args: { p_id: string }; Returns: Json };
