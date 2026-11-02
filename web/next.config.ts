@@ -63,7 +63,11 @@ const config: NextConfig = {
         { source: '/:name(sitemap-index-\\d{1,5}\\.xml)', destination: '/sitemap-files/index/:name' },
         { source: '/:name(sitemap-priority-\\d{1,3}\\.xml)', destination: '/sitemap-files/priority/:name' },
         { source: '/:name(sitemap-vehicles-[a-z0-9-]{1,120}\\.xml)', destination: '/sitemap-files/vehicles/:name' },
-        { source: '/:name(sitemap-places-[a-z0-9.-]{1,160}\\.xml)', destination: '/sitemap-files/places/:name' }
+        { source: '/:name(sitemap-places-[a-z0-9.-]{1,160}\\.xml)', destination: '/sitemap-files/places/:name' },
+        // the store app's universal links and app links (0390)
+        { source: '/.well-known/apple-app-site-association', destination: '/api/app-links/apple' },
+        { source: '/apple-app-site-association', destination: '/api/app-links/apple' },
+        { source: '/.well-known/assetlinks.json', destination: '/api/app-links/android' }
       ],
       afterFiles: [
         { source: '/:name([a-f0-9]{32}\\.txt)', destination: '/api/site-file/:name' },

@@ -113,7 +113,7 @@ select test.eq('switched off: nothing is queued and nothing is handed out',
   (select count(*) from push_outbox where notification_id = test.id('pu_n:rita_off')) || '/' || app.server_push_due(10)::text, '0/[]');
 update program_settings p set push_enabled = s.push_enabled from pu_s s where s.id = p.id;
 select test.ok('the push functions are not callable from a browser',
-  not has_function_privilege('authenticated', 'public.server_push_due(integer)', 'execute') and not has_function_privilege('anon', 'public.server_push_subscribe(uuid, jsonb)', 'execute')
+  not has_function_privilege('authenticated', 'public.server_push_due(integer, text[])', 'execute') and not has_function_privilege('anon', 'public.server_push_subscribe(uuid, jsonb)', 'execute')
   and not has_function_privilege('authenticated', 'app.push_subscribe(uuid, jsonb)', 'execute') and has_function_privilege('service_role', 'public.server_push_result(jsonb)', 'execute'));
 select set_config('request.jwt.claim.sub', test.id('pu_rita')::text, false);
 set role authenticated;

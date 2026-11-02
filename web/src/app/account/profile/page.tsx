@@ -7,6 +7,7 @@ import { SignInSettings } from '@/features/portal/SignInSettings';
 import { notifyReach, signInState } from '@/server/sign-in-settings';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
+import { AppProfile } from '@/features/app-shell/AppProfile';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile', path: '/account/profile', noindex: true, description: 'Your contact details, drivers and Card on File.' });
@@ -29,10 +30,12 @@ export default async function ProfilePage() {
           {si && <SignInSettings state={si} />}
           {nc && <NotifyChannelCard reach={nc} />}
           <PushAlerts userId={user.id} portal="renter" />
+          <AppProfile userId={user.id} lock />
           <section className="pt-card" aria-labelledby="pt-contact"><h2 className="d4" id="pt-contact">Contact details</h2>
             {r ? <ProfileForm initial={{ mobile: r.mobile ?? p.user?.phone ?? '', address_line1: r.address_line1 ?? '', address_line2: r.address_line2 ?? '', city: r.city ?? '', province: r.province ?? '', postal_code: r.postal_code ?? '', country: r.country ?? 'Canada' }} />
               : <p className="muted">Your contact details are saved with your first booking request.</p>}
           </section>
+          <AppProfile userId={user.id} deletion />
         </div>
         <aside className="pt-split__aside stack-lg">
           <section className="pt-card" aria-labelledby="pt-card"><h2 className="d4" id="pt-card">Card on File</h2>

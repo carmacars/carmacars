@@ -80,7 +80,18 @@ const schema = z.object({
   VAPID_SUBJECT: z.string().optional(),
   /** fake: alerts on without keys, with a key pair made in memory and pushes recorded as sent (local work and tests;
    *  never in production). Unset: alerts only with the VAPID keys. */
-  PUSH_PROVIDER: z.enum(['fake']).optional()
+  PUSH_PROVIDER: z.enum(['fake']).optional(),
+  /** The store app's alerts (migration 0390): the Firebase project's service account, its JSON as downloaded (or that
+   *  JSON in base64), from the vault secret deploy_fcm_service_account. Unset: the app's alerts card is hidden and app
+   *  devices are not sent to (browser alerts are unaffected). */
+  FCM_SERVICE_ACCOUNT: z.string().optional(),
+  /** The universal links file (/.well-known/apple-app-site-association, 0390): the Apple Developer Team ID (10
+   *  characters), the GitHub repository variable APP_APPLE_TEAM_ID. Unset: the file answers 404. */
+  APP_APPLE_TEAM_ID: z.string().optional(),
+  /** The app links file (/.well-known/assetlinks.json, 0390): the SHA-256 fingerprints of the app's signing keys (Play
+   *  Console, App integrity: the app signing key, and the upload key), comma separated; the repository variable
+   *  APP_ANDROID_CERT_SHA256. Unset: the file answers 404. */
+  APP_ANDROID_CERT_SHA256: z.string().optional()
 });
 
 export type ServerEnv = z.infer<typeof schema>;

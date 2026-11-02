@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth';
 import { notifyReach } from '@/server/sign-in-settings';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
+import { AppProfile } from '@/features/app-shell/AppProfile';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Profile and notices', path: '/investor/profile', noindex: true, description: 'Contact details and notices.' });
@@ -34,11 +35,13 @@ export default async function Profile() {
       </section>
       {nc && <NotifyChannelCard reach={nc} />}
       <PushAlerts userId={user.id} portal="investor" />
+      <AppProfile userId={user.id} lock />
       <Requests investments={h.investments.map((x) => ({ id: x.id, label: `${money(x.invested_amount_cents, { cents: true })} from ${x.investment_date}` }))} effective={eff} />
       <section className="pt-card" aria-labelledby="dc-t"><h2 className="d4" id="dc-t">Documents</h2>{docs.length ? <ul className="small">{docs.map((d) => <li key={d.id}>{d.title ?? d.kind.replace(/_/g, ' ')}</li>)}</ul> : <p className="small">No documents yet.</p>}</section>
       <section className="pt-card" aria-labelledby="ts-t" data-testid="two-step-offer"><h2 className="d4" id="ts-t">Two-step sign-in</h2>
         {twoStep ? <p className="small">On: you sign in with your password and a code from your authenticator app.</p>
           : <><p className="small">Add an authenticator app for a second step at sign-in. We recommend it for your investment records.</p><Link className="btn btn--ghost btn--sm" href="/two-step/setup?next=/investor/profile">Set up two-step sign-in</Link></>}</section>
+      <AppProfile userId={user.id} deletion />
     </div>
   );
 }
