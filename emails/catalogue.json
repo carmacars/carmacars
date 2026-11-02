@@ -7636,6 +7636,11 @@
           "note": "Public contact address shown in the footer (site_settings public email)."
         },
         {
+          "name": "extend_offer",
+          "type": "string",
+          "sample": "Extend at 5% off: from $107.35 for 1 more day"
+        },
+        {
           "name": "first_name",
           "type": "string",
           "sample": "Maya",
@@ -7835,6 +7840,11 @@
           "type": "string",
           "sample": "contact@carmacars.ca",
           "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "extend_offer",
+          "type": "string",
+          "sample": "Extend at 5% off: from $107.35 for 1 more day"
         },
         {
           "name": "first_name",

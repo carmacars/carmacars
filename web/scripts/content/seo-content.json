@@ -30,6 +30,8 @@
   "depTiers",
   "email",
   "evPer",
+  "extDisc",
+  "extShortDisc",
   "fuelFee",
   "fuelPct",
   "fullAge",

@@ -30,7 +30,7 @@ export const metadata = pageMeta({ title: 'Vehicle', path: '/admin/vehicles', no
 
 type R = Record<string, unknown>;
 type V = R & { id: string; name: string; plate: string | null; vin: string; status: string; management_mode: string; class: string | null; colour: string | null; odometer_km: number | null;
-  fleet_number: string | null; allows_18_to_20: boolean; bookings_enabled: boolean; is_sample: boolean; home_location: string | null; enrollment_date: string | null; exit_date: string | null;
+  fleet_number: string | null; allows_18_to_20: boolean; bookings_enabled: boolean; extension_offers?: boolean; is_sample: boolean; home_location: string | null; enrollment_date: string | null; exit_date: string | null;
   owner: { id: string; legal_name: string } | null; listing: R | null; rate_card: R | null; rate_history: R[]; fee_overrides: R[]; classes: string[];
   fee_types: Array<{ code: string; label: string; unit: string; default: { amount_cents: number | null; percent_bps: number | null; source: string } | null }>;
   coverage_prices: R[]; schedule: R | null; terms: R | null; documents: R[]; tracker: { device: R; status: R | null } | null; bookings: R[]; transitions: string[]; intake: R | null;
@@ -110,7 +110,8 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
               { name: 'plate', label: 'Plate', value: v.plate }, { name: 'colour', label: 'Colour', value: v.colour }, { name: 'odometer_km', label: 'Odometer (km)', type: 'number', value: v.odometer_km },
               { name: 'fleet_number', label: 'Fleet number', value: v.fleet_number }, { name: 'class', label: 'Deposit class', type: 'select', value: v.class, options: classOptions(classes, v.class) },
               { name: 'home_location', label: 'Home area', value: v.home_location }, { name: 'allows_18_to_20', label: 'Drivers aged 18 to 20 allowed', type: 'bool', value: v.allows_18_to_20 },
-              { name: 'bookings_enabled', label: 'Open for bookings', type: 'bool', value: v.bookings_enabled }]} />
+              { name: 'bookings_enabled', label: 'Open for bookings', type: 'bool', value: v.bookings_enabled },
+              { name: 'extension_offers', label: 'Renters extend themselves', type: 'bool', value: v.extension_offers ?? true, hint: 'At the extension discount, approved at once when the car is free. Off: renters of this car ask and staff approve, at the regular price.' }]} />
           </Card>
           <Card title="For sale" testId="vehicle-for-sale">
             <p className="small muted">Flag the car for sale with its asking price: it then shows at the top of its /buy pages with the price (and a schema.org Offer). Without the flag no page says the car is for sale.</p>

@@ -24,7 +24,7 @@ export default async function Requirements() {
     ['Delivery, pickup', 'Each way, if you choose it', 'The car’s fee, from {{delMin}}, plus distance'], ['Airport delivery or pickup', '{{airports}}', 'As delivery; a surcharge may apply'],
     ['Additional driver', 'Each driver, each day', '{{addDrvPct}} of the daily rate'], ['Young driver', 'Ages {{youngA}}, each day', 'Usually {{ydA}}'], ['Young driver', 'Ages {{youngB}}, each day', 'Usually {{ydB}}'],
     ['Winter tires', 'On request', '{{winter}} a day, up to {{winterCap}}'], ['Baby seat', 'Each seat', '{{baby}} a day, up to {{babyCap}}'],
-    ['Extra kilometres', 'Over your allowance', '{{overMin}} to {{overMax}} per km, set per car'], ['Late return', 'More than {{grace}} late', '{{lateHr}} an hour, plus the extra day'],
+    ['Extra kilometres', 'Over your allowance', '{{overMin}} to {{overMax}} per km, set per car'], ['Late return', 'More than {{grace}} late', '{{lateHr}} per started hour, plus the extra day'],
     ['Fuel', 'Less fuel than at pickup', 'Pump price + {{fuelPct}}, + {{fuelFee}}'], ['Recharging', 'Less charge than at pickup', '{{evPer}} per 10% of battery, + {{fuelFee}}'],
     ['Cleaning', 'More than a standard clean', '{{clean}}; {{cleanHeavy}} if heavy'], ['Pet cleaning', 'Hair, odour or soiling', '{{pet}}'], ['Smoking', 'Evidence of smoking or vaping', '{{smoke}}'],
     ['Lost key or fob', 'Each one', 'Replacement cost + {{keyFee}}'], ['Tolls', 'Each toll invoice, on top of the toll', '{{tollFee}}'],

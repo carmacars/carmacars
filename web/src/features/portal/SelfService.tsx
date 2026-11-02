@@ -58,13 +58,13 @@ export function ExtendForm({ number, returnDate, returnTime, approved }: { numbe
   const p = prev.res?.ok ? (prev.res.data as { ok?: boolean; total_cents: number; hst_cents: number; lines: Line[]; new_days: number; problems?: { message: string }[]; available?: boolean; message?: string }) : null;
   if (approved) return (
     <div className="stack">
-      <p>Your extension to <b>{when(approved.new_return_at)}</b> is approved. Pay {money(approved.total_cents, { cents: true })} with your Card on File to confirm it before your current return time.</p>
+      <p>Your extension to <b>{when(approved.new_return_at)}</b> is approved. Pay {money(approved.total_cents, { cents: true })} with your Card on File to confirm it.</p>
       {pay.res && !pay.res.ok && <p className="alert alert--error" role="alert"><span>{pay.res.message}</span></p>}
       {pay.res?.ok ? <p className="alert alert--ok" role="status"><span>Paid. Your new return time is confirmed.</span></p>
         : <button className="btn btn--primary" type="button" disabled={pay.pending} onClick={() => pay.run(() => payExtension(number, approved.id), (r) => { if (r.ok) router.refresh(); })}>{pay.pending ? 'Paying' : `Pay ${money(approved.total_cents, { cents: true })}`}</button>}
     </div>
   );
-  if (req.res?.ok) return <p className="alert alert--ok" role="status"><span className="alert__title">Extension requested</span><span>We will confirm it shortly. Once approved, you pay here before your current return time.</span></p>;
+  if (req.res?.ok) return <p className="alert alert--ok" role="status"><span className="alert__title">Extension requested</span><span>It is approved at once when the car is free; otherwise we confirm it shortly. Once approved, you pay here.</span></p>;
   return (
     <div className="stack-lg">
       <DateTime id="pt-ext" label="New return date and time" date={date} time={time} onDate={setDate} onTime={setTime} min={returnDate} />

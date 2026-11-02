@@ -80,7 +80,7 @@ CarmaCars: phone [●], email [●], address [●]. 24-hour incident and roadsid
 
 **3.1 Thirty-day limit.** Each rental is a single transaction of 30 days or less and never renews automatically. To keep a vehicle longer, you must make a new booking and sign a new agreement before the current rental ends. We may refuse a renewal or change the rate.
 
-**3.2 Extensions and late return.** A day is 24 hours from the pickup time, and a part day counts as a day. An extension is valid only if we confirm it in writing and you pay for it before the return time. It reprices the whole booking at its new length under section 5.1, and you pay the difference. Returning early earns no refund. Keeping the Vehicle past the return time without a confirmed extension is a breach, and section 12 applies. If you return more than 30 minutes late, you owe the rental charge for each extra day or part day, at the booking's daily rate, plus the late return fee.
+**3.2 Extensions and late return.** A day is 24 hours from the pickup time, and a part day counts as a day. An extension is valid only once we confirm it in writing and you pay for it. You may extend before the return time, or after it while the Vehicle is still with you; an extension always runs from the original return time, and late return charges keep adding up until it is paid. A few hours cost the late return fee for those hours less the short extension discount, never more than one added day. A day or more costs the rental charge for the added days at the booking's rates for that length (daily, 3-day, weekly or monthly), less the extension discount, plus per-day fees. The discounts are shown before you pay. Returning early earns no refund. Keeping the Vehicle past the return time without a confirmed extension is a breach, and section 12 applies. If you return more than 30 minutes late, you owe the rental charge for each extra day or part day, at the booking's daily rate, plus the late return fee.
 
 ### 4. Pickup and return
 
@@ -232,7 +232,7 @@ Standard amounts. Section 1.3 applies.
 | Winter tire fee | On request | $15 per day, up to $150 per rental |
 | Baby seat fee | Each seat. You install it and check that it suits the child | $12 per day, up to $70 per rental |
 | Mileage overage | Each kilometre over the allowance | $0.35 per km; $0.75 to $1.50 for luxury and exotic vehicles |
-| Late return fee | Return more than 30 minutes late, counted from the return time. Added to the rental charge for the extra time (section 3.2) | $25 per hour, up to 1.5 times the booking's daily rate for each 24 hours |
+| Late return fee | Return more than 30 minutes late, counted from the return time. Added to the rental charge for the extra time (section 3.2) | 17.5% of the booking's daily rate per started hour, at least $25 an hour, up to 1.5 times the daily rate for each 24 hours. A booking made before November 7, 2026 keeps $25 per hour |
 | Fuel or recharging fee | Less fuel or charge at return than at pickup | Pump price plus 25%, or $10 per 10% of battery, plus a $25 service fee |
 | Cleaning fee | More than standard cleaning needed | $75; $250 for heavy soiling or odour removal |
 | Pet cleaning fee | Pet hair, odour or soiling at return | $150 |

@@ -7,7 +7,9 @@ Your booking ended at {{return_time}}
 
 Please bring the {{vehicle_name}} back to {{return_place}} now, {{first_name}}. If you are on your way, thank you.
 
-Need more time? Extend:
+{{extend_offer}}. While you still have the car you can extend from your booking, and it costs less than being late.
+
+Extend my rental:
 https://carmacars.ca/account/bookings/{{booking_number}}/extend
 
 Late fees start 30 minutes after the return time: {{late_fee_hourly}} per started hour, plus the rental charge for each extra day. To talk it through, call {{support_phone}}.

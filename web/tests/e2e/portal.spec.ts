@@ -252,6 +252,8 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   // 8. extension and change previews come from the database
   await page.goto(`/account/bookings/${number}/extend`);
   await axe(page, 'extend');
+  // 0480: the offers come first; another date is in the disclosure below them
+  if (await page.getByTestId('extend-custom').count()) await page.getByTestId('extend-custom').locator('summary').click();
   const newReturn = new Date(`${range.to}T12:00:00Z`); newReturn.setUTCDate(newReturn.getUTCDate() + 2);
   await page.locator('#pt-ext-d').fill(newReturn.toISOString().slice(0, 10));
   await page.getByRole('button', { name: 'See the price' }).click();

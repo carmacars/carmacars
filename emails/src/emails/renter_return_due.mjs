@@ -15,8 +15,9 @@ export default {
   ref: 'Booking {{booking_number}}',
   body: [
     hero('Return time', 'Your booking ended at {{return_time}}', 'Please bring the {{vehicle_name}} back to {{return_place}} now, {{first_name}}. If you are on your way, thank you.'),
-    button('Need more time? Extend', '@booking_extend'),
+    p('**{{extend_offer}}.** While you still have the car you can extend from your booking, and it costs less than being late.'),
+    button('Extend my rental', '@booking_extend'),
     p('Late fees start 30 minutes after the return time: {{late_fee_hourly}} per started hour, plus the rental charge for each extra day. To talk it through, call **{{support_phone}}**.'),
   ],
-  sample: { late_fee_hourly: '$25' },
+  sample: { late_fee_hourly: '$25', extend_offer: 'Extend at 5% off: from $107.35 for 1 more day' },
 };

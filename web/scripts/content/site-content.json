@@ -173,7 +173,7 @@
         },
         {
           "question": "Can I extend once I have the car?",
-          "answer": "Ask before your return time. An extension counts only when we confirm it in writing and you have paid for it. The whole booking is repriced at its new length and you pay the difference."
+          "answer": "Yes, in your booking: pick 1 hour, 3 hours, 1 day, 3 days, 1 week or 1 month and pay with your card on file. A day or more is {{extDisc}} off the regular rate, and a few hours are {{extShortDisc}} off the late fee. It is approved at once when the car is free, and counts once it is paid. You can still extend after the return time while you have the car."
         }
       ]
     },
@@ -285,7 +285,7 @@
         },
         {
           "question": "What if I am late bringing it back?",
-          "answer": "There is a {{graceShort}} grace period. After that you owe the rental charge for each extra day or part day, plus a late fee of {{lateHr}} an hour counted from the return time. If you know you will be late, ask for an extension first."
+          "answer": "There is a {{graceShort}} grace period. After that you owe the rental charge for each extra day or part day, plus a late fee of {{lateHr}} for each started hour, counted from the return time. If you will be late, extend in your booking instead: it costs less, and you can do it even after the return time while you still have the car."
         },
         {
           "question": "Do I need to refuel or recharge?",

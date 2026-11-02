@@ -333,19 +333,41 @@ export async function requestExtension(number: string, newReturn: string, note: 
   } catch (e) { return fail(dbMessage(e)); }
 }
 
+// Pay an approved extension with the Card on File (0480: also after the return time while the car is still out).
+async function chargeExtension(number: string, bookingId: string, userId: string, extensionId: string): Promise<R> {
+  const f = (await rpc('server_extension_payment_facts', { p_extension: extensionId, p_by: userId }, SR)) as unknown as { status: string; total_cents: number; booking_id: string; card_on_file: { method_id: string; customer_id: string } | null };
+  if (f.booking_id !== bookingId) return fail('Not found');
+  if (f.status !== 'approved') return fail('This extension is not waiting for payment.');
+  if (!f.card_on_file?.method_id || !f.card_on_file.customer_id) return fail('No Card on File. Call us to pay for the extension.');
+  const i = await (await payments()).chargeOffSession({ customerId: f.card_on_file.customer_id, paymentMethodId: f.card_on_file.method_id, amountCents: f.total_cents, description: `Extension of ${number}`, metadata: { booking_id: bookingId, extension_id: extensionId, purpose: 'extension' }, idempotencyKey: `extension:${extensionId}` });
+  if (i.status !== 'succeeded') return fail(i.lastError ?? 'The card was declined. Nothing was charged.');
+  const r = (await rpc('server_confirm_extension_payment', { p_extension: extensionId, p_processor: { processor: 'stripe', payment_id: i.id, charge_id: i.chargeId, customer_id: i.customerId, method_id: i.paymentMethodId }, p_amount_cents: i.amountCents, p_by: userId }, SR)) as unknown as { ok?: boolean; message?: string };
+  if (r && r.ok === false) return fail(r.message ?? 'The extension could not be confirmed.');
+  return { ok: true, data: null };
+}
+
 export async function payExtension(number: string, extensionId: string): Promise<R> {
   try {
     const { userId, b } = await mine(number);
-    const f = (await rpc('server_extension_payment_facts', { p_extension: extensionId, p_by: userId }, SR)) as unknown as { status: string; total_cents: number; booking_id: string; card_on_file: { method_id: string; customer_id: string } | null };
-    if (f.booking_id !== b.id) return fail('Not found');
-    if (f.status !== 'approved') return fail('This extension is not waiting for payment.');
-    if (!f.card_on_file?.method_id || !f.card_on_file.customer_id) return fail('No Card on File. Call us to pay for the extension.');
-    const i = await (await payments()).chargeOffSession({ customerId: f.card_on_file.customer_id, paymentMethodId: f.card_on_file.method_id, amountCents: f.total_cents, description: `Extension of ${number}`, metadata: { booking_id: b.id, extension_id: extensionId, purpose: 'extension' }, idempotencyKey: `extension:${extensionId}` });
-    if (i.status !== 'succeeded') return fail(i.lastError ?? 'The card was declined. Nothing was charged.');
-    const r = (await rpc('server_confirm_extension_payment', { p_extension: extensionId, p_processor: { processor: 'stripe', payment_id: i.id, charge_id: i.chargeId, customer_id: i.customerId, method_id: i.paymentMethodId }, p_amount_cents: i.amountCents, p_by: userId }, SR)) as unknown as { ok?: boolean; message?: string };
-    if (r && r.ok === false) return fail(r.message ?? 'The extension could not be confirmed.');
+    const r = await chargeExtension(number, b.id, userId, extensionId);
+    if (r.ok) refresh(number);
+    return r;
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+/** 0480: one tap on an offer. Approved at once when nothing needs a person, then paid with the Card on File; otherwise
+ *  a request for our team. "approved" with a message: approved, but the card was not charged (pay again or call). */
+export interface ExtendOutcome { state: 'paid' | 'approved' | 'requested'; newReturnAt: string; totalCents: number; message?: string }
+export async function extendWithOption(number: string, option: string): Promise<R<ExtendOutcome>> {
+  if (!['1h', '3h', '1d', '3d', '1w', '1m'].includes(option)) return fail('Choose how long to extend.');
+  try {
+    const { userId, b } = await mine(number);
+    const r = (await rpc('renter_extend_option', { p_booking: b.id, p_by: userId, p_option: option }, SR)) as unknown as { extension_id: string; status: string; new_return_at: string; total_cents: number };
+    const base = { newReturnAt: r.new_return_at, totalCents: Number(r.total_cents ?? 0) };
+    if (r.status !== 'approved') { refresh(number); return { ok: true, data: { state: 'requested', ...base } }; }
+    const paid = await chargeExtension(number, b.id, userId, r.extension_id);
     refresh(number);
-    return { ok: true, data: null };
+    return { ok: true, data: paid.ok ? { state: 'paid', ...base } : { state: 'approved', ...base, message: paid.message } };
   } catch (e) { return fail(dbMessage(e)); }
 }
 

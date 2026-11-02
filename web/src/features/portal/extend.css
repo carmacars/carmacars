@@ -1,0 +1,30 @@
+/* Extend (0480): the six offers as choice tiles on the portal's cards, two across on a phone, three from 40rem. */
+.ext { display: grid; gap: var(--s-5); min-width: 0; }
+.ext-card { max-width: 52rem; }
+.ext__set { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: var(--s-3); }
+.ext__until { margin: 0; }
+.ext__grid { display: grid; gap: var(--s-3); grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 40rem) { .ext__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ext__opt { position: relative; display: grid; gap: 0.2rem; align-content: start; min-width: 0; min-height: 44px; cursor: pointer;
+  background: var(--pu-card, var(--white)); border: 1px solid var(--pu-line, var(--grey-200)); border-radius: var(--pu-radius-sm, 12px);
+  padding: var(--s-4); box-shadow: var(--pu-shadow); transition: border-color var(--t-1), box-shadow var(--t-2); }
+.ext__opt:hover { border-color: var(--black); }
+.ext__opt[data-on] { border-color: var(--black); box-shadow: inset 0 0 0 1px var(--black), var(--pu-shadow); }
+.ext__opt[data-off] { cursor: not-allowed; background: var(--grey-100); box-shadow: none; }
+.ext__opt input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: inherit; }
+.ext__opt:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+.ext__label { font-weight: 700; }
+.ext__ret { font-size: var(--fs-xs); color: var(--text-2); overflow-wrap: anywhere; }
+.ext__price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--s-2); margin-top: var(--s-2); font-variant-numeric: tabular-nums; }
+.ext__price b { font-family: var(--font-display); font-size: 1.25rem; }
+.ext__price s { font-size: var(--fs-xs); color: var(--text-2); }
+.ext__save { font-size: var(--fs-xs); font-weight: 700; color: var(--pu-ok, #1F7A3A); }
+.ext__note { font-size: var(--fs-2xs, 0.75rem); color: var(--text-2); }
+.ext__reason { margin-top: var(--s-2); font-size: var(--fs-xs); color: var(--text-2); overflow-wrap: anywhere; }
+.ext__compare { margin: 0; }
+.ext__pay { display: grid; gap: var(--s-2); }
+.ext__pay p { margin: 0; }
+.ext-done { display: grid; gap: var(--s-2); justify-items: start; }
+.ext-done__kicker { margin: 0; font-size: var(--fs-xs); font-weight: 700; color: var(--pu-ok, #1F7A3A); }
+.ext-done__when { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 1.75rem; }
+.ext-done p { margin: 0; }
