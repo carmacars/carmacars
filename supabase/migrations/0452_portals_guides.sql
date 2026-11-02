@@ -737,6 +737,284 @@ select app.guide_release_section('owner', 'quick-reference', 'reference', 'notic
 | **A debit was returned** | You get an email with the reason. Insufficient funds: keep the money in the account for the retry, or pay the invoice from its page. Any other reason: pay from the invoice''s page or set up a new account under Account > Banking. |
 ',
   '<h3 class="gd-h3">Where things are</h3><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">Item</th><th scope="col">What it is for</th></tr></thead><tbody><tr><td><b class="gd-ui">Home</b></td><td>The next thing to do first, then what you earned this month, cars out, the next payout and fees due, your cars and what is coming up</td></tr><tr><td><b class="gd-ui">Cars</b></td><td><b class="gd-ui">Your cars</b> (each car: terms, checklist, uploads, photos, Leaving) and <b class="gd-ui">Bookings</b> (all bookings, the calendar, Book my own car)</td></tr><tr><td><b class="gd-ui">Money</b></td><td><b class="gd-ui">Statements</b> (this month so far, then one a month, Download PDF), <b class="gd-ui">Payouts</b> (what was paid and when), <b class="gd-ui">Invoices</b> (fee invoices and Pay $...)</td></tr><tr><td><b class="gd-ui">Documents</b></td><td>Agreements, forms, Forms C and D</td></tr><tr><td><b class="gd-ui">Account</b></td><td><b class="gd-ui">Profile</b> (contact details, password), <b class="gd-ui">Banking</b> (automatic debit, where we pay you), <b class="gd-ui">Notifications</b> (our messages)</td></tr></tbody></table></div><h3 class="gd-h3">Top tasks</h3><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><em>Sign everything at once:</em> <b class="gd-ui">Home</b> &gt; <b class="gd-ui">Check and sign</b></div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><em>Set up the monthly debit:</em> <b class="gd-ui">Account</b> &gt; <b class="gd-ui">Banking</b> &gt; <b class="gd-ui">Set up pre-authorized debit</b></div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t"><em>Pay an invoice now:</em> <b class="gd-ui">Money</b> &gt; <b class="gd-ui">Invoices</b>, the invoice, then <b class="gd-ui">Pay $...</b></div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t"><em>Payout details:</em> <b class="gd-ui">Account</b> &gt; <b class="gd-ui">Banking</b> &gt; <b class="gd-ui">Where we pay you</b></div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t"><em>Forms C and D:</em> <b class="gd-ui">Documents</b> &gt; <b class="gd-ui">Sign Form C on screen instead</b> or <b class="gd-ui">Take a photo of the signed page</b></div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t"><em>Book your own car:</em> <b class="gd-ui">Cars</b> &gt; <b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Book my own car</b></div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t"><em>New listing photos:</em> <b class="gd-ui">Cars</b>, the car, then <b class="gd-ui">Take new photos</b></div></li><li><span class="gd-n" aria-hidden="true">8</span><div class="gd-t"><em>Leave the program:</em> <b class="gd-ui">Cars</b>, the car, then <b class="gd-ui">Give notice</b></div></li></ol></div><h3 class="gd-h3">If something goes wrong</h3><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">What you see</th><th scope="col">What to do</th></tr></thead><tbody><tr><td><b class="gd-ui">A link says it expired</b></td><td>Links in our emails work for 24 hours, once. Press <b class="gd-ui">Send me a new link</b> on that page.</td></tr><tr><td><b class="gd-ui">&quot;Error 1102&quot; on a page</b></td><td>A short limit on our web host. Reload the page. You are still signed in.</td></tr><tr><td><b class="gd-ui">&quot;That email and password do not match an account.&quot;</b></td><td>Check the address, or use <b class="gd-ui">Set a new password</b> on the sign-in page.</td></tr><tr><td><b class="gd-ui">A debit was returned</b></td><td>You get an email with the reason. Insufficient funds: keep the money in the account for the retry, or pay the invoice from its page. Any other reason: pay from the invoice&#39;s page or set up a new account under Account &gt; Banking.</td></tr></tbody></table></div>');
+select app.guide_release_section('admin', 'text-alerts-email-text-or-both', 'chapter', 'texts-and-calls-the-quo-phone-line', 'Every renter, owner, investor and staff member chooses how we reach them: Email, Text or Both. Texts go only to a phone they verified with a code, from the CarmaCars number, and each has a link to the page. It is on by default; nothing needs setting up.
+
+## Who gets what
+
+- **Email**: emails only. **Text**: a short text instead of the email. **Both**: a text and the email.
+- Not chosen yet: Both for someone with a verified phone and an email, Text for an account made by phone without an email, otherwise Email.
+- No verified phone, a number that replied STOP, a US number while US texting waits for A2P 10DLC, or a number outside Canada and the US: email only.
+- Signed agreements, statements, receipts, invoices and notices are always emailed when there is an email address. Someone on Text also gets a text with a link to view or download it in their portal.
+- Every customer email has its own short text: renters, owners, investors, additional drivers, co-signers and leads. Only the sign-in and security emails (password reset, sign-in link, security notice, "Continue your request") are never texts. A review request or a come-back offer is texted only when its email may go (marketing consent).
+- An additional driver''s or a co-signer''s link is texted to that person (their own account with a verified phone), never to the renter or owner.
+
+## A person''s channel
+
+Open the renter, owner or investor under People. The card **How we reach them** shows what they chose, what is used now and why, their verified phone, texts in the last 30 days and any STOP or START. Press **Change** to set it (recorded in the audit log). Customer service and Sales can change a renter''s or owner''s; an investor''s only Admins.
+
+## STOP, START and quiet hours
+
+- A reply STOP (or OPT OUT, UNSUBSCRIBE, CANCEL, END, QUIT) stops texts to the number at once; texts waiting are not sent and their emails go instead. START turns texts back on. Every STOP and START is logged.
+- Quo sends no confirmation, so we do: one text right away (quiet hours do not apply), "CarmaCars: you''re unsubscribed and won''t get more texts. Reply START to resubscribe." after STOP, and "CarmaCars: texts are back on. Reply STOP to opt out." after START. Once per change; the card How we reach them shows it as confirmed by text. A STOP or START you set by hand, or a carrier block, sends nothing.
+- The first automated text to a number, and the first after START, ends "Reply STOP to opt out."
+- Quiet hours, 9 pm to 8 am Toronto time: texts that are not urgent wait and go at 8 am. Urgent: late return notices, pickup and return details on the day, breakdown, accident and a disabled car.
+- A text that is not sent after all (STOP, Quo refuses it, the person chose email meanwhile) sends the email it replaced.
+
+## The settings and the texts
+
+**Settings**, **Text alerts**: on or off, the defaults, the quiet hours, the STOP line, US numbers, and the text of each notification with a preview (edit, switch off, mark urgent). A text names CarmaCars, keeps {{link}}, has no long dash and is at most 320 characters; 160 is one text. The two confirmation texts (after STOP and START) are in the same settings. The generic text built from the email''s subject is only for an email added later without its own text.
+
+## Booking start and end
+
+Every booking gets these by itself, by email, text and phone alert (each person''s channel), once each, and again only when the time changes (an extension, a new pickup time):
+
+| When | The renter gets |
+| --- | --- |
+| The day before pickup | What to bring, where and when |
+| About 2 hours before pickup | "See you at 2:00 pm today", the place and what to bring |
+| 30 minutes after a pickup nobody recorded | "You''re all set", the return time and place |
+| The day before the return | The return time and place, fuel and keys |
+| About 3 hours before the return | "Your rental ends at 5:00 pm", fuel, clean, all keys and a one-tap Extend link |
+| At the return time | "Your booking ended at 5:00 pm", return now or extend |
+| 15 minutes late | T13, the late notice |
+| 2 hours late | T14, the final notice |
+
+- A booking whose pickup nobody recorded counts as out: it gets the end messages, the late notices and the late tasks like a rental on rent. Its status stays as it is.
+- The late notices and the short reminders go from 7 am to 10 pm. Overnight they wait until 7 am; a car returned in the night gets nothing.
+- The late panel''s **Send T13** and **Send T14** send the same notices: never twice.
+- An insurer-billed booking messages the renter too: they hold the car.
+- **Pickup not recorded**: 30 minutes after the pickup time with nothing recorded, Fleet gets the task "Record pickup for CC-xxxxx, or mark no-show" and the field staff of the handover an alert and a text. At 3 hours the Admins get an alert and a task. They close by themselves once the pickup is recorded or the booking is cancelled.
+- **Not back**: 15 minutes after the return time with no return recorded, the field staff of the return and the Admins get an alert and a text with the renter''s name and phone, at any hour.
+- Each moment has its switch, all on: **Settings** > **All settings**, **Text alerts**, "Booking start and end". The text of each is in the list of texts on the same page.
+
+## Texts a day
+
+Site health on **To do** has **Texts today**: sent, notifications among them, failed, not sent and sign-in codes for the last 7 days, and the texts waiting for 8 am.
+
+## Phone alerts
+
+Every renter, owner, investor and staff member can also get alerts on their phone or computer (web push), as well as their emails and texts. Each turns them on per device on their profile; the first page of each portal offers it once. On iPhone and iPad it works from the Home Screen app (Safari, **Share**, **Add to Home Screen**; iOS 16.4 or later).
+
+- What alerts: new requests and offers, booking changes, payments, pickups and returns (field jobs), messages, urgent alerts and documents to sign. Each person changes them; the defaults: renters everything, owners new bookings, changes, payments, incidents and documents, staff requests, changes, messages and urgent alerts, field staff their jobs and pay, Admins requests, payments, messages and urgent alerts.
+- Sign-in links and codes, digests and marketing never come as alerts. An alert that is not urgent waits for the quiet hours to end for customers; an alert already read in the portal is not sent.
+- Your own: **Settings** > **My phone alerts**.
+- On or off for everyone: **Settings**, **Text alerts**, "Phone alerts".
+- Setup: nothing to do. The deploy makes the two keys alerts need once and keeps them; until the first deploy after this release the cards are hidden and **My phone alerts** says so. A phone that uninstalled the app or turned alerts off is removed by itself.
+', 'Text alerts: email, text or both', 'Each person''s channel, what is always emailed, STOP and START, quiet hours, US numbers, the texts and the daily count.',
+  'Every renter, owner, investor and staff member chooses how we reach them: Email, Text or Both. Texts go only to a phone they verified with a code, from the CarmaCars number, and each has a link to the page. It is on by default; nothing needs setting up.
+
+## Who gets what
+
+- **Email**: emails only. **Text**: a short text instead of the email. **Both**: a text and the email.
+- Not chosen yet: Both for someone with a verified phone and an email, Text for an account made by phone without an email, otherwise Email.
+- No verified phone, a number that replied STOP, a US number while US texting waits for A2P 10DLC, or a number outside Canada and the US: email only.
+- Signed agreements, statements, receipts, invoices and notices are always emailed when there is an email address. Someone on Text also gets a text with a link to view or download it in their portal.
+- Every customer email has its own short text: renters, owners, investors, additional drivers, co-signers and leads. Only the sign-in and security emails (password reset, sign-in link, security notice, "Continue your request") are never texts. A review request or a come-back offer is texted only when its email may go (marketing consent).
+- An additional driver''s or a co-signer''s link is texted to that person (their own account with a verified phone), never to the renter or owner.
+
+## A person''s channel
+
+Open the renter, owner or investor under People. The card **How we reach them** shows what they chose, what is used now and why, their verified phone, texts in the last 30 days and any STOP or START. Press **Change** to set it (recorded in the audit log). Customer service and Sales can change a renter''s or owner''s; an investor''s only Admins.
+
+## STOP, START and quiet hours
+
+- A reply STOP (or OPT OUT, UNSUBSCRIBE, CANCEL, END, QUIT) stops texts to the number at once; texts waiting are not sent and their emails go instead. START turns texts back on. Every STOP and START is logged.
+- Quo sends no confirmation, so we do: one text right away (quiet hours do not apply), "CarmaCars: you''re unsubscribed and won''t get more texts. Reply START to resubscribe." after STOP, and "CarmaCars: texts are back on. Reply STOP to opt out." after START. Once per change; the card How we reach them shows it as confirmed by text. A STOP or START you set by hand, or a carrier block, sends nothing.
+- The first automated text to a number, and the first after START, ends "Reply STOP to opt out."
+- Quiet hours, 9 pm to 8 am Toronto time: texts that are not urgent wait and go at 8 am. Urgent: late return notices, pickup and return details on the day, breakdown, accident and a disabled car.
+- A text that is not sent after all (STOP, Quo refuses it, the person chose email meanwhile) sends the email it replaced.
+
+## The settings and the texts
+
+**Settings**, **Text alerts**: on or off, the defaults, the quiet hours, the STOP line, US numbers, and the text of each notification with a preview (edit, switch off, mark urgent). A text names CarmaCars, keeps {{link}}, has no long dash and is at most 320 characters; 160 is one text. The two confirmation texts (after STOP and START) are in the same settings. The generic text built from the email''s subject is only for an email added later without its own text.
+
+## Booking start and end
+
+Every booking gets these by itself, by email, text and phone alert (each person''s channel), once each, and again only when the time changes (an extension, a new pickup time):
+
+| When | The renter gets |
+| --- | --- |
+| The day before pickup | What to bring, where and when |
+| About 2 hours before pickup | "See you at 2:00 pm today", the place and what to bring |
+| 30 minutes after a pickup nobody recorded | "You''re all set", the return time and place |
+| The day before the return | The return time and place, fuel and keys |
+| About 3 hours before the return | "Your rental ends at 5:00 pm", fuel, clean, all keys and a one-tap Extend link |
+| At the return time | "Your booking ended at 5:00 pm", return now or extend |
+| 15 minutes late | T13, the late notice |
+| 2 hours late | T14, the final notice |
+
+- A booking whose pickup nobody recorded counts as out: it gets the end messages, the late notices and the late tasks like a rental on rent. Its status stays as it is.
+- The late notices and the short reminders go from 7 am to 10 pm. Overnight they wait until 7 am; a car returned in the night gets nothing.
+- The late panel''s **Send T13** and **Send T14** send the same notices: never twice.
+- An insurer-billed booking messages the renter too: they hold the car.
+- **Pickup not recorded**: 30 minutes after the pickup time with nothing recorded, Fleet gets the task "Record pickup for CC-xxxxx, or mark no-show" and the field staff of the handover an alert and a text. At 3 hours the Admins get an alert and a task. They close by themselves once the pickup is recorded or the booking is cancelled.
+- **Not back**: 15 minutes after the return time with no return recorded, the field staff of the return and the Admins get an alert and a text with the renter''s name and phone, at any hour.
+- Each moment has its switch, all on: **Settings**, **Text alerts**, "Booking start and end". The text of each is in the list of texts on the same page.
+
+## Texts a day
+
+Site health on **To do** has **Texts today**: sent, notifications among them, failed, not sent and sign-in codes for the last 7 days, and the texts waiting for 8 am.
+
+## Phone alerts
+
+Every renter, owner, investor and staff member can also get alerts on their phone or computer (web push), as well as their emails and texts. Each turns them on per device on their profile; the first page of each portal offers it once. On iPhone and iPad it works from the Home Screen app (Safari, **Share**, **Add to Home Screen**; iOS 16.4 or later).
+
+- What alerts: new requests and offers, booking changes, payments, pickups and returns (field jobs), messages, urgent alerts and documents to sign. Each person changes them; the defaults: renters everything, owners new bookings, changes, payments, incidents and documents, staff requests, changes, messages and urgent alerts, field staff their jobs and pay, Admins requests, payments, messages and urgent alerts.
+- Sign-in links and codes, digests and marketing never come as alerts. An alert that is not urgent waits for the quiet hours to end for customers; an alert already read in the portal is not sent.
+- Your own: **Settings** > **My phone alerts**.
+- On or off for everyone: **Settings**, **Text alerts**, "Phone alerts".
+- Setup: nothing to do. The deploy makes the two keys alerts need once and keeps them; until the first deploy after this release the cards are hidden and **My phone alerts** says so. A phone that uninstalled the app or turned alerts off is removed by itself.
+',
+  '<p class="gd-p">Every renter, owner, investor and staff member chooses how we reach them: Email, Text or Both. Texts go only to a phone they verified with a code, from the CarmaCars number, and each has a link to the page. It is on by default; nothing needs setting up.</p><section class="gd-task" id="text-alerts-email-text-or-both-who-gets-what" data-gd-task><h2 class="gd-h2">Who gets what</h2><ul class="gd-ul"><li><b class="gd-ui">Email</b>: emails only. <b class="gd-ui">Text</b>: a short text instead of the email. <b class="gd-ui">Both</b>: a text and the email.</li><li>Not chosen yet: Both for someone with a verified phone and an email, Text for an account made by phone without an email, otherwise Email.</li><li>No verified phone, a number that replied STOP, a US number while US texting waits for A2P 10DLC, or a number outside Canada and the US: email only.</li><li>Signed agreements, statements, receipts, invoices and notices are always emailed when there is an email address. Someone on Text also gets a text with a link to view or download it in their portal.</li><li>Every customer email has its own short text: renters, owners, investors, additional drivers, co-signers and leads. Only the sign-in and security emails (password reset, sign-in link, security notice, &quot;Continue your request&quot;) are never texts. A review request or a come-back offer is texted only when its email may go (marketing consent).</li><li>An additional driver&#39;s or a co-signer&#39;s link is texted to that person (their own account with a verified phone), never to the renter or owner.</li></ul></section><section class="gd-task" id="text-alerts-email-text-or-both-a-person-s-channel" data-gd-task><h2 class="gd-h2">A person&#39;s channel</h2><p class="gd-p">Open the renter, owner or investor under People. The card <b class="gd-ui">How we reach them</b> shows what they chose, what is used now and why, their verified phone, texts in the last 30 days and any STOP or START. Press <b class="gd-ui">Change</b> to set it (recorded in the audit log). Customer service and Sales can change a renter&#39;s or owner&#39;s; an investor&#39;s only Admins.</p></section><section class="gd-task" id="text-alerts-email-text-or-both-stop-start-and-quiet-hours" data-gd-task><h2 class="gd-h2">STOP, START and quiet hours</h2><ul class="gd-ul"><li>A reply STOP (or OPT OUT, UNSUBSCRIBE, CANCEL, END, QUIT) stops texts to the number at once; texts waiting are not sent and their emails go instead. START turns texts back on. Every STOP and START is logged.</li><li>Quo sends no confirmation, so we do: one text right away (quiet hours do not apply), &quot;CarmaCars: you&#39;re unsubscribed and won&#39;t get more texts. Reply START to resubscribe.&quot; after STOP, and &quot;CarmaCars: texts are back on. Reply STOP to opt out.&quot; after START. Once per change; the card How we reach them shows it as confirmed by text. A STOP or START you set by hand, or a carrier block, sends nothing.</li><li>The first automated text to a number, and the first after START, ends &quot;Reply STOP to opt out.&quot;</li><li>Quiet hours, 9 pm to 8 am Toronto time: texts that are not urgent wait and go at 8 am. Urgent: late return notices, pickup and return details on the day, breakdown, accident and a disabled car.</li><li>A text that is not sent after all (STOP, Quo refuses it, the person chose email meanwhile) sends the email it replaced.</li></ul></section><section class="gd-task" id="text-alerts-email-text-or-both-the-settings-and-the-texts" data-gd-task><h2 class="gd-h2">The settings and the texts</h2><p class="gd-p"><b class="gd-ui">Settings</b>, <b class="gd-ui">Text alerts</b>: on or off, the defaults, the quiet hours, the STOP line, US numbers, and the text of each notification with a preview (edit, switch off, mark urgent). A text names CarmaCars, keeps {{link}}, has no long dash and is at most 320 characters; 160 is one text. The two confirmation texts (after STOP and START) are in the same settings. The generic text built from the email&#39;s subject is only for an email added later without its own text.</p></section><section class="gd-task" id="text-alerts-email-text-or-both-booking-start-and-end" data-gd-task><h2 class="gd-h2">Booking start and end</h2><p class="gd-p">Every booking gets these by itself, by email, text and phone alert (each person&#39;s channel), once each, and again only when the time changes (an extension, a new pickup time):</p><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">When</th><th scope="col">The renter gets</th></tr></thead><tbody><tr><td>The day before pickup</td><td>What to bring, where and when</td></tr><tr><td>About 2 hours before pickup</td><td>&quot;See you at 2:00 pm today&quot;, the place and what to bring</td></tr><tr><td>30 minutes after a pickup nobody recorded</td><td>&quot;You&#39;re all set&quot;, the return time and place</td></tr><tr><td>The day before the return</td><td>The return time and place, fuel and keys</td></tr><tr><td>About 3 hours before the return</td><td>&quot;Your rental ends at 5:00 pm&quot;, fuel, clean, all keys and a one-tap Extend link</td></tr><tr><td>At the return time</td><td>&quot;Your booking ended at 5:00 pm&quot;, return now or extend</td></tr><tr><td>15 minutes late</td><td>T13, the late notice</td></tr><tr><td>2 hours late</td><td>T14, the final notice</td></tr></tbody></table></div><ul class="gd-ul"><li>A booking whose pickup nobody recorded counts as out: it gets the end messages, the late notices and the late tasks like a rental on rent. Its status stays as it is.</li><li>The late notices and the short reminders go from 7 am to 10 pm. Overnight they wait until 7 am; a car returned in the night gets nothing.</li><li>The late panel&#39;s <b class="gd-ui">Send T13</b> and <b class="gd-ui">Send T14</b> send the same notices: never twice.</li><li>An insurer-billed booking messages the renter too: they hold the car.</li><li><b class="gd-ui">Pickup not recorded</b>: 30 minutes after the pickup time with nothing recorded, Fleet gets the task &quot;Record pickup for CC-xxxxx, or mark no-show&quot; and the field staff of the handover an alert and a text. At 3 hours the Admins get an alert and a task. They close by themselves once the pickup is recorded or the booking is cancelled.</li><li><b class="gd-ui">Not back</b>: 15 minutes after the return time with no return recorded, the field staff of the return and the Admins get an alert and a text with the renter&#39;s name and phone, at any hour.</li><li>Each moment has its switch, all on: <b class="gd-ui">Settings</b>, <b class="gd-ui">Text alerts</b>, &quot;Booking start and end&quot;. The text of each is in the list of texts on the same page.</li></ul></section><section class="gd-task" id="text-alerts-email-text-or-both-texts-a-day" data-gd-task><h2 class="gd-h2">Texts a day</h2><p class="gd-p">Site health on <b class="gd-ui">To do</b> has <b class="gd-ui">Texts today</b>: sent, notifications among them, failed, not sent and sign-in codes for the last 7 days, and the texts waiting for 8 am.</p></section><section class="gd-task" id="text-alerts-email-text-or-both-phone-alerts" data-gd-task><h2 class="gd-h2">Phone alerts</h2><p class="gd-p">Every renter, owner, investor and staff member can also get alerts on their phone or computer (web push), as well as their emails and texts. Each turns them on per device on their profile; the first page of each portal offers it once. On iPhone and iPad it works from the Home Screen app (Safari, <b class="gd-ui">Share</b>, <b class="gd-ui">Add to Home Screen</b>; iOS 16.4 or later).</p><ul class="gd-ul"><li>What alerts: new requests and offers, booking changes, payments, pickups and returns (field jobs), messages, urgent alerts and documents to sign. Each person changes them; the defaults: renters everything, owners new bookings, changes, payments, incidents and documents, staff requests, changes, messages and urgent alerts, field staff their jobs and pay, Admins requests, payments, messages and urgent alerts.</li><li>Sign-in links and codes, digests and marketing never come as alerts. An alert that is not urgent waits for the quiet hours to end for customers; an alert already read in the portal is not sent.</li><li>Your own: <b class="gd-ui">Settings</b> &gt; <b class="gd-ui">My phone alerts</b>.</li><li>On or off for everyone: <b class="gd-ui">Settings</b>, <b class="gd-ui">Text alerts</b>, &quot;Phone alerts&quot;.</li><li>Setup: nothing to do. The deploy makes the two keys alerts need once and keeps them; until the first deploy after this release the cards are hidden and <b class="gd-ui">My phone alerts</b> says so. A phone that uninstalled the app or turned alerts off is removed by itself.</li></ul></section>');
+select app.guide_release_section('va', 'your-workday', 'chapter', 'start-here', 'Every function works the same way: start on To do, take the oldest task, finish it, and check Today for pickups and returns. The menu keeps your own work first, then the screens of your function in a few groups.
+
+## The menu
+
+Every office role has the same short menu, about nine links: **To do** (your home; Today at a glance is its second tab), your five most used pages, **More** for the rest of your work, **Bookings** (Bookings, Calendar, Find a car, Add a rental, New quote, Card coverage) and **Me** (My numbers: Scorecard and My sales; Academy). Your group is always open. On a phone the whole menu sits behind one Menu button.
+
+A **More** page and a page with several parts open with a row on top (and a second row of tabs where a page has them). You see only the pages of your function.
+
+| Function | Your five, then More |
+| --- | --- |
+| Customer service | Requests, Live chat, Messages, Send an offer, Live visitors. More customer service: Renters (Messages, Find a renter, Review requests, Leads), Chauffeur, Owners (Owner leads, Owner pipeline, Owner forms, Add a car), Listings (Listings, Similar cars) |
+| Sales | Requests and offers, Send an offer, New quote, Live chat, My sales. More sales: Live visitors, Renters (Leads), Owners (Buyer leads; your owners are on My sales), Chauffeur |
+| Fleet | Field jobs, Daily checks, Photo reviews, Maintenance, Listings. More fleet: Field jobs (Jobs, Field hours), Checks, Listings (Listings, Similar cars, Calendar sync), Add-ons, Add a car for an owner, Find a renter |
+| Finance | Money to handle, Payments by day, Tolls and tickets, Reconciliation, Turo trips. More finance: Money (To handle, By day, Reconciliation), Maintenance bills, Find a renter |
+
+## To do
+
+Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more. To do puts the most urgent first.
+
+1. The top shows your function, today''s date, how many things need you, your open, overdue and done-today figures, and your quickest actions.
+2. **Next up** is the one task to do now. Press its button to do it, or **Take it** to make it yours.
+3. Your lanes group the work, for example Booking requests, Renter messages, Texts and calls, Live chat and Offers out. Each shows how many are waiting and how long the oldest has waited. Replies are timed against the 5-minute first reply target: past it the time turns red and says late. The most urgent lane comes first; press a lane to open it.
+4. Customer service and Sales: **Waiting for a reply** lists every request, renter message, missed call and chat, the longest wait first, each with its reply button. Sales also sees the commission ring and Follow-ups due, Fleet today''s handovers, returns and moves and the cars right now, Finance Money today.
+5. **Every open task**: filter All, Mine, Unassigned or Waiting. Under More filters: Any time, Overdue, Due today or Escalated, and by type. Each row has a priority, the task, its record, when it is due and a live timer of how long it has waited.
+6. Press **Take it** to make it yours. Pressing the task opens the screen where it is done: a chat waiting for a person opens that chat, documents to check open the review, a request opens the booking. **Sheet** opens the step-by-step procedure.
+7. Tasks close by themselves when their work is done elsewhere (an invoice paid or voided, a chat answered or closed); a day''s opening and closing checks close at the end of that day.
+8. On a computer, press **/** to search (Find a renter; Sales: Find a car).
+
+![](/guides/img/va-cs-01-queue-desktop-702d7c14.jpg "desktop; size: 1440 940; address: carmacars.ca/va; pins: 1 48.6 20.2, 2 31.9 52.1, 3 41.7 72.3")
+
+## Work a task
+
+Open the task. The buttons along the top move it on.
+
+| Button | What it does |
+| --- | --- |
+| **Open the working screen** | Jumps to the booking, car or owner the task is about. |
+| **Done** | You finished it. It leaves the queue. |
+| **Waiting** | You are waiting on someone (a renter, an owner). It stays yours. |
+| **Escalate** | It needs an Admin. Add why. |
+| **Hand over** | Give it to someone else on the team. |
+| **Add a note** | Leave a note for whoever looks next. |
+
+> Tip: Work oldest due first. A task meets its target when it is done by its due time; that is what your scorecard counts.
+
+## Today
+
+1. Today lists pickups and returns, and what is due, for your function.
+2. Press a booking number to open it. **To do** takes you back to your tasks.
+
+![](/guides/img/va-cs-02-today-desktop-dfd277b7.jpg "desktop; size: 1440 700; address: carmacars.ca/va/today; pins: 1 22.9 24.6")
+
+## Documents to sign
+
+Your staff agreement, when CarmaCars sends it.
+
+1. The queue shows "You have a document to sign". Press **Read and sign**.
+2. Check the key values at the top (your role, hours, rate and start date), then press **Read the PDF** and read it.
+3. Sign in a few steps: press **Send the code** and type the 6-digit code from your phone or email, tick that you read it, draw your initials beside the key terms (confidentiality, the rules on money, keys and cars, ending the agreement), tick the two consents and draw your signature.
+4. Press **Sign**. Several documents? One signature covers all of them. The signed copy, with its certificate of completion, stays on the same page.
+
+## Several functions? Switch with Working as
+
+If you cover more than one function, **Working as** above the menu lists them: Customer service, Finance, Fleet and Sales. Choose one; the menu, To do and Today change to that function.
+
+## Your scorecard
+
+1. Open **Me** (the **Scorecard** tab).
+2. By week shows each measure, its target and your result for each week.
+3. A task meets its target when done by its due time. Daily checks count when done by 9:00 and 18:00.
+4. The first reply target is 5 minutes: a new booking request, an enquiry, a change the renter asked for or a renter message is due 5 minutes after it comes in. An Admin sets it in Program settings, and the target column shows the one in force.
+
+![](/guides/img/va-sales-05-scorecard-desktop-78ec1b03.jpg "desktop; size: 1440 360; address: carmacars.ca/va/scorecard; pins: 1 4.2 39.7, 2 62.5 58.3")
+', 'Your workday', 'The menu, To do, task actions, Today, switching functions and your scorecard.',
+  'Every function works the same way: start on To do, take the oldest task, finish it, and check Today for pickups and returns. The menu keeps your own work first, then the screens of your function in a few groups.
+
+## The menu
+
+Every office role has the same short menu, about nine links: **To do** (your home; Today at a glance is its second tab), your five most used pages, **More** for the rest of your work, **Bookings** (Bookings, Calendar, Find a car, Add a rental, New quote, Card coverage) and **Me** (My numbers: Scorecard and My sales; Academy). Your group is always open. On a phone the whole menu sits behind one Menu button.
+
+A **More** page and a page with several parts open with a row on top (and a second row of tabs where a page has them). You see only the pages of your function.
+
+| Function | Your five, then More |
+| --- | --- |
+| Customer service | Requests, Live chat, Messages, Send an offer, Live visitors. More customer service: Renters (Messages, Find a renter, Review requests, Leads), Chauffeur, Owners (Owner and buyer leads, Owner pipeline, Owner forms, Add a car), Listings (Listings, Similar cars) |
+| Sales | Requests and offers, Send an offer, New quote, Live chat, My sales. More sales: Live visitors, Renters (Leads), Owners (Owner and buyer leads; your owners are on My sales), Chauffeur |
+| Fleet | Field jobs, Daily checks, Photo reviews, Maintenance, Listings. More fleet: Field jobs (Jobs, Field hours), Checks, Listings (Listings, Similar cars, Calendar sync), Add-ons, Add a car for an owner, Find a renter |
+| Finance | Money to handle, Payments by day, Tolls and tickets, Reconciliation, Turo trips. More finance: Money (To handle, By day, Reconciliation), Maintenance bills, Find a renter |
+
+## To do
+
+Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more. To do puts the most urgent first.
+
+1. The top shows your function, today''s date, how many things need you, your open, overdue and done-today figures, and your quickest actions.
+2. **Next up** is the one task to do now. Press its button to do it, or **Take it** to make it yours.
+3. Your lanes group the work, for example Booking requests, Renter messages, Texts and calls, Live chat and Offers out. Each shows how many are waiting and how long the oldest has waited. Replies are timed against the 5-minute first reply target: past it the time turns red and says late. The most urgent lane comes first; press a lane to open it.
+4. Customer service and Sales: **Waiting for a reply** lists every request, renter message, missed call and chat, the longest wait first, each with its reply button. Sales also sees the commission ring and Follow-ups due, Fleet today''s handovers, returns and moves and the cars right now, Finance Money today.
+5. **Every open task**: filter All, Mine, Unassigned or Waiting. Under More filters: Any time, Overdue, Due today or Escalated, and by type. Each row has a priority, the task, its record, when it is due and a live timer of how long it has waited.
+6. Press **Take it** to make it yours. Pressing the task opens the screen where it is done: a chat waiting for a person opens that chat, documents to check open the review, a request opens the booking. **Sheet** opens the step-by-step procedure.
+7. Tasks close by themselves when their work is done elsewhere (an invoice paid or voided, a chat answered or closed); a day''s opening and closing checks close at the end of that day.
+8. On a computer, press **/** to search (Find a renter; Sales: Find a car).
+
+![](/guides/img/va-cs-01-queue-desktop-702d7c14.jpg "desktop; size: 1440 940; address: carmacars.ca/va; pins: 1 48.6 20.2, 2 31.9 52.1, 3 41.7 72.3")
+
+## Work a task
+
+Open the task. The buttons along the top move it on.
+
+| Button | What it does |
+| --- | --- |
+| **Open the working screen** | Jumps to the booking, car or owner the task is about. |
+| **Done** | You finished it. It leaves the queue. |
+| **Waiting** | You are waiting on someone (a renter, an owner). It stays yours. |
+| **Escalate** | It needs an Admin. Add why. |
+| **Hand over** | Give it to someone else on the team. |
+| **Add a note** | Leave a note for whoever looks next. |
+
+> Tip: Work oldest due first. A task meets its target when it is done by its due time; that is what your scorecard counts.
+
+## Today
+
+1. Today lists pickups and returns, and what is due, for your function.
+2. Press a booking number to open it. **To do** takes you back to your tasks.
+
+![](/guides/img/va-cs-02-today-desktop-dfd277b7.jpg "desktop; size: 1440 700; address: carmacars.ca/va/today; pins: 1 22.9 24.6")
+
+## Documents to sign
+
+Your staff agreement, when CarmaCars sends it.
+
+1. The queue shows "You have a document to sign". Press **Read and sign**.
+2. Check the key values at the top (your role, hours, rate and start date), then press **Read the PDF** and read it.
+3. Sign in a few steps: press **Send the code** and type the 6-digit code from your phone or email, tick that you read it, draw your initials beside the key terms (confidentiality, the rules on money, keys and cars, ending the agreement), tick the two consents and draw your signature.
+4. Press **Sign**. Several documents? One signature covers all of them. The signed copy, with its certificate of completion, stays on the same page.
+
+## Several functions? Switch with Working as
+
+If you cover more than one function, **Working as** above the menu lists them: Customer service, Finance, Fleet and Sales. Choose one; the menu, To do and Today change to that function.
+
+## Your scorecard
+
+1. Open **Me** (the **Scorecard** tab).
+2. By week shows each measure, its target and your result for each week.
+3. A task meets its target when done by its due time. Daily checks count when done by 9:00 and 18:00.
+4. The first reply target is 5 minutes: a new booking request, an enquiry, a change the renter asked for or a renter message is due 5 minutes after it comes in. An Admin sets it in Program settings, and the target column shows the one in force.
+
+![](/guides/img/va-sales-05-scorecard-desktop-78ec1b03.jpg "desktop; size: 1440 360; address: carmacars.ca/va/scorecard; pins: 1 4.2 39.7, 2 62.5 58.3")
+',
+  '<p class="gd-p">Every function works the same way: start on To do, take the oldest task, finish it, and check Today for pickups and returns. The menu keeps your own work first, then the screens of your function in a few groups.</p><section class="gd-task" id="your-workday-the-menu" data-gd-task><h2 class="gd-h2">The menu</h2><p class="gd-p">Every office role has the same short menu, about nine links: <b class="gd-ui">To do</b> (your home; Today at a glance is its second tab), your five most used pages, <b class="gd-ui">More</b> for the rest of your work, <b class="gd-ui">Bookings</b> (Bookings, Calendar, Find a car, Add a rental, New quote, Card coverage) and <b class="gd-ui">Me</b> (My numbers: Scorecard and My sales; Academy). Your group is always open. On a phone the whole menu sits behind one Menu button.</p><p class="gd-p">A <b class="gd-ui">More</b> page and a page with several parts open with a row on top (and a second row of tabs where a page has them). You see only the pages of your function.</p><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">Function</th><th scope="col">Your five, then More</th></tr></thead><tbody><tr><td>Customer service</td><td>Requests, Live chat, Messages, Send an offer, Live visitors. More customer service: Renters (Messages, Find a renter, Review requests, Leads), Chauffeur, Owners (Owner and buyer leads, Owner pipeline, Owner forms, Add a car), Listings (Listings, Similar cars)</td></tr><tr><td>Sales</td><td>Requests and offers, Send an offer, New quote, Live chat, My sales. More sales: Live visitors, Renters (Leads), Owners (Owner and buyer leads; your owners are on My sales), Chauffeur</td></tr><tr><td>Fleet</td><td>Field jobs, Daily checks, Photo reviews, Maintenance, Listings. More fleet: Field jobs (Jobs, Field hours), Checks, Listings (Listings, Similar cars, Calendar sync), Add-ons, Add a car for an owner, Find a renter</td></tr><tr><td>Finance</td><td>Money to handle, Payments by day, Tolls and tickets, Reconciliation, Turo trips. More finance: Money (To handle, By day, Reconciliation), Maintenance bills, Find a renter</td></tr></tbody></table></div></section><section class="gd-task" id="your-workday-to-do" data-gd-task><h2 class="gd-h2">To do</h2><p class="gd-p">Tasks come to your function on their own: new requests, renter replies, failed payments, toll notices and more. To do puts the most urgent first.</p><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The top shows your function, today&#39;s date, how many things need you, your open, overdue and done-today figures, and your quickest actions.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Next up</b> is the one task to do now. Press its button to do it, or <b class="gd-ui">Take it</b> to make it yours.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Your lanes group the work, for example Booking requests, Renter messages, Texts and calls, Live chat and Offers out. Each shows how many are waiting and how long the oldest has waited. Replies are timed against the 5-minute first reply target: past it the time turns red and says late. The most urgent lane comes first; press a lane to open it.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Customer service and Sales: <b class="gd-ui">Waiting for a reply</b> lists every request, renter message, missed call and chat, the longest wait first, each with its reply button. Sales also sees the commission ring and Follow-ups due, Fleet today&#39;s handovers, returns and moves and the cars right now, Finance Money today.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t"><b class="gd-ui">Every open task</b>: filter All, Mine, Unassigned or Waiting. Under More filters: Any time, Overdue, Due today or Escalated, and by type. Each row has a priority, the task, its record, when it is due and a live timer of how long it has waited.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Press <b class="gd-ui">Take it</b> to make it yours. Pressing the task opens the screen where it is done: a chat waiting for a person opens that chat, documents to check open the review, a request opens the booking. <b class="gd-ui">Sheet</b> opens the step-by-step procedure.</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t">Tasks close by themselves when their work is done elsewhere (an invoice paid or voided, a chat answered or closed); a day&#39;s opening and closing checks close at the end of that day.</div></li><li><span class="gd-n" aria-hidden="true">8</span><div class="gd-t">On a computer, press <b class="gd-ui">/</b> to search (Find a renter; Sales: Find a car).</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/940"><img src="/guides/img/va-cs-01-queue-desktop-702d7c14.jpg" alt="" loading="lazy" decoding="async" width="1440" height="940"><span class="gd-pin" style="left:48.6%;top:20.2%" aria-hidden="true">1</span><span class="gd-pin" style="left:31.9%;top:52.1%" aria-hidden="true">2</span><span class="gd-pin" style="left:41.7%;top:72.3%" aria-hidden="true">3</span></div></div></figure></div></section><section class="gd-task" id="your-workday-work-a-task" data-gd-task><h2 class="gd-h2">Work a task</h2><p class="gd-p">Open the task. The buttons along the top move it on.</p><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">Button</th><th scope="col">What it does</th></tr></thead><tbody><tr><td><b class="gd-ui">Open the working screen</b></td><td>Jumps to the booking, car or owner the task is about.</td></tr><tr><td><b class="gd-ui">Done</b></td><td>You finished it. It leaves the queue.</td></tr><tr><td><b class="gd-ui">Waiting</b></td><td>You are waiting on someone (a renter, an owner). It stays yours.</td></tr><tr><td><b class="gd-ui">Escalate</b></td><td>It needs an Admin. Add why.</td></tr><tr><td><b class="gd-ui">Hand over</b></td><td>Give it to someone else on the team.</td></tr><tr><td><b class="gd-ui">Add a note</b></td><td>Leave a note for whoever looks next.</td></tr></tbody></table></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Work oldest due first. A task meets its target when it is done by its due time; that is what your scorecard counts.</div></aside></section><section class="gd-task" id="your-workday-today" data-gd-task><h2 class="gd-h2">Today</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Today lists pickups and returns, and what is due, for your function.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Press a booking number to open it. <b class="gd-ui">To do</b> takes you back to your tasks.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/today</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/700"><img src="/guides/img/va-cs-02-today-desktop-dfd277b7.jpg" alt="" loading="lazy" decoding="async" width="1440" height="700"><span class="gd-pin" style="left:22.9%;top:24.6%" aria-hidden="true">1</span></div></div></figure></div></section><section class="gd-task" id="your-workday-documents-to-sign" data-gd-task><h2 class="gd-h2">Documents to sign</h2><p class="gd-p">Your staff agreement, when CarmaCars sends it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The queue shows &quot;You have a document to sign&quot;. Press <b class="gd-ui">Read and sign</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Check the key values at the top (your role, hours, rate and start date), then press <b class="gd-ui">Read the PDF</b> and read it.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Sign in a few steps: press <b class="gd-ui">Send the code</b> and type the 6-digit code from your phone or email, tick that you read it, draw your initials beside the key terms (confidentiality, the rules on money, keys and cars, ending the agreement), tick the two consents and draw your signature.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Sign</b>. Several documents? One signature covers all of them. The signed copy, with its certificate of completion, stays on the same page.</div></li></ol></div></section><section class="gd-task" id="your-workday-several-functions-switch-with-working-as" data-gd-task><h2 class="gd-h2">Several functions? Switch with Working as</h2><p class="gd-p">If you cover more than one function, <b class="gd-ui">Working as</b> above the menu lists them: Customer service, Finance, Fleet and Sales. Choose one; the menu, To do and Today change to that function.</p></section><section class="gd-task" id="your-workday-your-scorecard" data-gd-task><h2 class="gd-h2">Your scorecard</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Me</b> (the <b class="gd-ui">Scorecard</b> tab).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">By week shows each measure, its target and your result for each week.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">A task meets its target when done by its due time. Daily checks count when done by 9:00 and 18:00.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">The first reply target is 5 minutes: a new booking request, an enquiry, a change the renter asked for or a renter message is due 5 minutes after it comes in. An Admin sets it in Program settings, and the target column shows the one in force.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/scorecard</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/360"><img src="/guides/img/va-sales-05-scorecard-desktop-78ec1b03.jpg" alt="" loading="lazy" decoding="async" width="1440" height="360"><span class="gd-pin" style="left:4.2%;top:39.7%" aria-hidden="true">1</span><span class="gd-pin" style="left:62.5%;top:58.3%" aria-hidden="true">2</span></div></div></figure></div></section>');
 select app.guide_release_section('investor', 'start-here', 'start', null, '### Who this guide is for
 
 Investors with an Investment Agreement with CarmaCars. Your portal shows each investment, what it has earned and paid, your monthly statements, and lets you send notices to us.

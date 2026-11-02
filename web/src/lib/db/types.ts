@@ -298,6 +298,7 @@ export type Database = {
           posted_by: string | null;
           created_at: string;
           updated_at: string;
+          renewed_on: string | null;
         };
         Insert: {
           id?: string;
@@ -320,6 +321,7 @@ export type Database = {
           posted_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          renewed_on?: string | null;
         };
         Update: {
           id?: string;
@@ -342,6 +344,7 @@ export type Database = {
           posted_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          renewed_on?: string | null;
         };
         Relationships: [];
       };
@@ -738,6 +741,150 @@ export type Database = {
           created_at?: string;
           signed_at?: string | null;
           superseded_at?: string | null;
+        };
+        Relationships: [];
+      };
+      ai_interview_answers: {
+        Row: {
+          id: string;
+          interview_id: string;
+          seq: number;
+          question_key: string;
+          kind: string;
+          prompt: string;
+          mode: string;
+          audio_key: string | null;
+          audio_type: string | null;
+          audio_bytes: number | null;
+          audio_seconds: number | null;
+          transcript: string | null;
+          transcript_state: string;
+          transcript_model: string | null;
+          transcribe_attempts: number;
+          audio_purged_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          interview_id: string;
+          seq: number;
+          question_key: string;
+          kind: string;
+          prompt: string;
+          mode: string;
+          audio_key?: string | null;
+          audio_type?: string | null;
+          audio_bytes?: number | null;
+          audio_seconds?: number | null;
+          transcript?: string | null;
+          transcript_state?: string;
+          transcript_model?: string | null;
+          transcribe_attempts?: number;
+          audio_purged_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          interview_id?: string;
+          seq?: number;
+          question_key?: string;
+          kind?: string;
+          prompt?: string;
+          mode?: string;
+          audio_key?: string | null;
+          audio_type?: string | null;
+          audio_bytes?: number | null;
+          audio_seconds?: number | null;
+          transcript?: string | null;
+          transcript_state?: string;
+          transcript_model?: string | null;
+          transcribe_attempts?: number;
+          audio_purged_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      ai_interviews: {
+        Row: {
+          id: string;
+          application_id: string;
+          role_id: string;
+          questions: Json;
+          state: string;
+          sent_at: string;
+          expires_at: string;
+          links_sent: number;
+          consent_at: string | null;
+          consent_text: string | null;
+          started_at: string | null;
+          submitted_at: string | null;
+          followups_used: number;
+          pending_followup: Json | null;
+          result: Json | null;
+          interview_score: number | null;
+          recommendation: string | null;
+          score_model: string | null;
+          score_attempts: number;
+          next_attempt_at: string | null;
+          last_error: string | null;
+          scored_at: string | null;
+          live_call_at: string | null;
+          purged_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          application_id: string;
+          role_id: string;
+          questions: Json;
+          state?: string;
+          sent_at?: string;
+          expires_at: string;
+          links_sent?: number;
+          consent_at?: string | null;
+          consent_text?: string | null;
+          started_at?: string | null;
+          submitted_at?: string | null;
+          followups_used?: number;
+          pending_followup?: Json | null;
+          result?: Json | null;
+          interview_score?: number | null;
+          recommendation?: string | null;
+          score_model?: string | null;
+          score_attempts?: number;
+          next_attempt_at?: string | null;
+          last_error?: string | null;
+          scored_at?: string | null;
+          live_call_at?: string | null;
+          purged_at?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          application_id?: string;
+          role_id?: string;
+          questions?: Json;
+          state?: string;
+          sent_at?: string;
+          expires_at?: string;
+          links_sent?: number;
+          consent_at?: string | null;
+          consent_text?: string | null;
+          started_at?: string | null;
+          submitted_at?: string | null;
+          followups_used?: number;
+          pending_followup?: Json | null;
+          result?: Json | null;
+          interview_score?: number | null;
+          recommendation?: string | null;
+          score_model?: string | null;
+          score_attempts?: number;
+          next_attempt_at?: string | null;
+          last_error?: string | null;
+          scored_at?: string | null;
+          live_call_at?: string | null;
+          purged_at?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -2708,6 +2855,7 @@ export type Database = {
           lead_time_locked_at: string | null;
           lead_time_source: string | null;
           partner_discount_bps: number | null;
+          heard_about: string | null;
         };
         Insert: {
           id?: string;
@@ -2884,6 +3032,7 @@ export type Database = {
           lead_time_locked_at?: string | null;
           lead_time_source?: string | null;
           partner_discount_bps?: number | null;
+          heard_about?: string | null;
         };
         Update: {
           id?: string;
@@ -3060,6 +3209,7 @@ export type Database = {
           lead_time_locked_at?: string | null;
           lead_time_source?: string | null;
           partner_discount_bps?: number | null;
+          heard_about?: string | null;
         };
         Relationships: [];
       };
@@ -5187,6 +5337,33 @@ export type Database = {
           results?: number | null;
           granted_until?: string | null;
           at?: string;
+        };
+        Relationships: [];
+      };
+      data_health_runs: {
+        Row: {
+          id: string;
+          ran_at: string;
+          issues: number;
+          checks: Json;
+          fixed: Json;
+          ran_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          ran_at?: string;
+          issues?: number;
+          checks?: Json;
+          fixed?: Json;
+          ran_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          ran_at?: string;
+          issues?: number;
+          checks?: Json;
+          fixed?: Json;
+          ran_by?: string | null;
         };
         Relationships: [];
       };
@@ -9609,6 +9786,48 @@ export type Database = {
           promo_code_id?: string | null;
           consent_id?: string | null;
           decided_at?: string;
+        };
+        Relationships: [];
+      };
+      marketplace_log: {
+        Row: {
+          id: string;
+          at: string;
+          on_date: string;
+          kind: string;
+          vehicle_id: string | null;
+          posting_id: string | null;
+          conversations: number | null;
+          replies: number | null;
+          numbers: number | null;
+          note: string | null;
+          logged_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          at?: string;
+          on_date?: string;
+          kind: string;
+          vehicle_id?: string | null;
+          posting_id?: string | null;
+          conversations?: number | null;
+          replies?: number | null;
+          numbers?: number | null;
+          note?: string | null;
+          logged_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          at?: string;
+          on_date?: string;
+          kind?: string;
+          vehicle_id?: string | null;
+          posting_id?: string | null;
+          conversations?: number | null;
+          replies?: number | null;
+          numbers?: number | null;
+          note?: string | null;
+          logged_by?: string | null;
         };
         Relationships: [];
       };
@@ -14367,6 +14586,13 @@ export type Database = {
           partner_discount_bps: number;
           chat_auto_close_minutes: number;
           ai_live_bps: number | null;
+          hiring_ai_interviews: boolean;
+          hiring_ai_interview_days: number;
+          hiring_ai_followups: number;
+          hiring_ai_transcribe_model: string;
+          marketplace_posts_per_day: number;
+          marketplace_renew_days: number;
+          marketplace_location: string;
           notify_pickup_soon: boolean;
           notify_pickup_soon_hours: number;
           notify_trip_started: boolean;
@@ -14940,6 +15166,13 @@ export type Database = {
           partner_discount_bps?: number;
           chat_auto_close_minutes?: number;
           ai_live_bps?: number | null;
+          hiring_ai_interviews?: boolean;
+          hiring_ai_interview_days?: number;
+          hiring_ai_followups?: number;
+          hiring_ai_transcribe_model?: string;
+          marketplace_posts_per_day?: number;
+          marketplace_renew_days?: number;
+          marketplace_location?: string;
           notify_pickup_soon?: boolean;
           notify_pickup_soon_hours?: number;
           notify_trip_started?: boolean;
@@ -15513,6 +15746,13 @@ export type Database = {
           partner_discount_bps?: number;
           chat_auto_close_minutes?: number;
           ai_live_bps?: number | null;
+          hiring_ai_interviews?: boolean;
+          hiring_ai_interview_days?: number;
+          hiring_ai_followups?: number;
+          hiring_ai_transcribe_model?: string;
+          marketplace_posts_per_day?: number;
+          marketplace_renew_days?: number;
+          marketplace_location?: string;
           notify_pickup_soon?: boolean;
           notify_pickup_soon_hours?: number;
           notify_trip_started?: boolean;
@@ -20819,6 +21059,7 @@ export type Database = {
           notify_channel_at: string | null;
           notify_channel_by: string | null;
           greeting_name: string | null;
+          is_test: boolean | null;
         };
         Insert: {
           id?: string;
@@ -20839,6 +21080,7 @@ export type Database = {
           notify_channel_at?: string | null;
           notify_channel_by?: string | null;
           greeting_name?: string | null;
+          is_test?: boolean | null;
         };
         Update: {
           id?: string;
@@ -20859,6 +21101,7 @@ export type Database = {
           notify_channel_at?: string | null;
           notify_channel_by?: string | null;
           greeting_name?: string | null;
+          is_test?: boolean | null;
         };
         Relationships: [];
       };
@@ -25126,7 +25369,15 @@ export type Database = {
       server_agreement_wording: { Args: { p_booking: string }; Returns: Json };
       server_agreements_due: { Args: { p_limit?: number }; Returns: Json };
       server_ai_allow: { Args: { p_purpose: string; p_est?: number }; Returns: Json };
+      server_ai_audio_purged: { Args: { p_ids: string[] }; Returns: number };
       server_ai_budget: { Args: never; Returns: Json };
+      server_ai_interview: { Args: { p_token: string }; Returns: Json };
+      server_ai_interview_answer: { Args: { p_token: string; p: Json }; Returns: Json };
+      server_ai_interview_followup: { Args: { p_token: string; p: Json }; Returns: Json };
+      server_ai_interview_scored: { Args: { p: Json }; Returns: Json };
+      server_ai_interview_start: { Args: { p_token: string; p?: Json }; Returns: Json };
+      server_ai_interview_transcript: { Args: { p: Json }; Returns: Json };
+      server_ai_interviews_due: { Args: { p_limit?: number }; Returns: Json };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };
@@ -25145,6 +25396,7 @@ export type Database = {
       server_booking_calendar: { Args: { p_token: string }; Returns: Json };
       server_booking_debit_deposit: { Args: { p_booking: string }; Returns: number };
       server_booking_driver_links: { Args: { p_booking: string; p_by: string }; Returns: Json };
+      server_booking_heard_about: { Args: { p_booking_number: string; p_value: string }; Returns: boolean };
       server_booking_payment_capture_failed: { Args: { p_booking: string; p_processor: Json; p_error: string }; Returns: undefined };
       server_booking_payment_facts: { Args: { p_booking: string }; Returns: Json };
       server_capture_contact: { Args: { p: Json }; Returns: Json };
@@ -25226,6 +25478,7 @@ export type Database = {
       server_guide_upkeep_run: { Args: { p: Json }; Returns: Json };
       server_guide_upkeep_sections: { Args: { p_run: string }; Returns: Json };
       server_hiring_apply: { Args: { p: Json; p_ip?: string }; Returns: Json };
+      server_hiring_apply_pre0380: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_hiring_book: { Args: { p_token: string; p_slot: string }; Returns: Json };
       server_hiring_booking: { Args: { p_token: string }; Returns: Json };
       server_hiring_booking_pre0211: { Args: { p_token: string }; Returns: Json };

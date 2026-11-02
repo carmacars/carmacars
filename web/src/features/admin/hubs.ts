@@ -50,7 +50,7 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'money', label: 'Money', tabs: [{ href: '/staff/money', label: 'To handle', fns: 'finance' }, { href: '/staff/payments', label: 'By day', fns: 'finance' }, { href: '/staff/reconciliation', label: 'Reconciliation', fns: 'finance' }] },
   { key: 'renters', label: 'Renters', tabs: [{ href: '/staff/messages', label: 'Messages', fns: 'cs' }, { href: '/staff/renters', label: 'Find a renter', fns: 'cs fleet finance' },
     { href: '/staff/review-requests', label: 'Review requests', fns: 'cs' }, { href: '/staff/game-leads', label: 'Leads', fns: 'cs sales' }] },
-  { key: 'owners', label: 'Owners', tabs: [{ href: '/staff/leads', label: 'Owner leads', fns: 'cs' }, { href: '/staff/leads', label: 'Buyer leads', fns: 'sales' }, { href: '/staff/owner-pipeline', label: 'Owner pipeline', fns: 'cs' },
+  { key: 'owners', label: 'Owners', tabs: [{ href: '/staff/leads', label: 'Owner and buyer leads', fns: 'cs sales' }, { href: '/staff/owner-pipeline', label: 'Owner pipeline', fns: 'cs' },
     { href: '/staff/owner-forms', label: 'Owner forms', fns: 'cs' }, { href: '/staff/owners/add-car', label: 'Add a car', fns: 'cs fleet' }] },
   { key: 'listings', label: 'Listings', tabs: [{ href: '/staff/listings', label: 'Listings', fns: 'cs fleet' }, { href: '/staff/similar-cars', label: 'Similar cars', fns: 'cs fleet' }, { href: '/staff/calendar-sync', label: 'Calendar sync', fns: 'fleet' }] },
   { key: 'field-jobs', label: 'Field jobs', tabs: [{ href: '/staff/fleet', label: 'Jobs', fns: 'fleet' }, { href: '/staff/field-hours', label: 'Field hours', fns: 'fleet' }] },

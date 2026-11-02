@@ -19,9 +19,9 @@ test('Sales in person with field work: the Sales jobs and the field jobs in one 
   for (const p of ['/staff/money', '/staff/fleet', '/staff/messages', '/staff/owner-forms']) assert.ok(!reach(['sales', 'field']).includes(p), p);
 });
 
-test('field work only: their five jobs and Me (referrals, profile, academy)', () => {
+test('field work only: their six jobs and Me (referrals, profile, academy)', () => {
   assert.deepEqual(groups(['field']), ['Field work', 'Me']);
-  assert.equal(count(['field']), 6);
+  assert.equal(count(['field']), 7);
   for (const p of ['/staff/field/rentals/new', '/staff/field/sales', '/staff/field/hours']) assert.ok(hrefs(['field']).includes(p), p);
   for (const p of ['/staff/field/referrals', '/staff/field/profile', '/staff/academy']) assert.ok(reach(['field']).includes(p), p);
   assert.ok(!reach(['field']).includes('/staff'));
@@ -65,9 +65,9 @@ const TOP5: Record<string, string[]> = {
   sales: ['/staff/requests', '/staff/offers/new', '/staff/quotes/new', '/staff/chat', '/staff/my-sales'],
   field: ['/staff/field', '/staff/field/hours', '/staff/field/report', '/staff/field/rentals/new', '/staff/field/sales']
 };
-const SIZE: Record<string, number> = { cs: 9, fleet: 9, finance: 9, sales: 9, field: 6 };
+const SIZE: Record<string, number> = { cs: 9, fleet: 9, finance: 9, sales: 9, field: 7 };
 
-test('each role: 9 links (field 6), its top five jobs one tap away, everything else one tap from "More" or Bookings or Me', () => {
+test('each role: 9 links (field 7), its top five jobs one tap away, everything else one tap from "More" or Bookings or Me', () => {
   for (const [fn, jobs] of Object.entries(TOP5)) {
     assert.equal(count([fn]), SIZE[fn], fn);
     for (const j of jobs) assert.ok(hrefs([fn]).includes(j), `${fn}: ${j}`);
