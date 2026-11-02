@@ -172,8 +172,11 @@ test('photo: no car found is flagged as a bad cut-out; a provider outage is retr
 
 test('photo: interiors are normalized (no backdrop); the odometer is never published', async () => {
   const f = files();
-  const r = await runJob(deps({}, f), job('process_photo', { photo: { ...job('process_photo').photo!, rebackground: false, shot_type: 'dashboard' } }), budget);
+  const r = await runJob(deps({}, f), job('process_photo', { photo: { ...job('process_photo').photo!, rebackground: false, shot_type: 'trunk', angle: 'trunk' } }), budget);
   assert.deepEqual([(r.output as Record<string, unknown>).width, (r.output as Record<string, unknown>).preset_version], [1600, 'normalize_v1']);
+  // 0521: a dashboard or seats photo gets its windows treated: a cut-out this check cannot read is blurred, never the studio
+  const dash = await runJob(deps({}, f), job('process_photo', { photo: { ...job('process_photo').photo!, rebackground: false, shot_type: 'dashboard', angle: 'dashboard' } }), budget);
+  assert.deepEqual([(dash.output as Record<string, unknown>).width, (dash.output as Record<string, unknown>).preset_version, (dash.output as Record<string, unknown>).flags], [1600, 'windows_blur_v1', ['windows_blurred']]);
   const odo = await runJob(deps({}, f), job('process_photo', { photo: { ...job('process_photo').photo!, is_public: false, shot_type: 'odometer' } }), budget);
   assert.deepEqual([odo.ok, (odo.output as Record<string, unknown>).used_original, (odo.output as Record<string, unknown>).processed_path], [true, true, undefined]);
 });

@@ -8,6 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { report } from './report.mjs';
+import { FORBIDDEN_TOKEN, forbidden } from './forbidden.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, '../..');
@@ -76,6 +77,11 @@ const scenes = parts.map((p, i) => {
   return { n: i + 1, title, group: g?.id ?? null, slides, text, say: spoken(text), words: text.split(/\s+/).length };
 });
 if (at !== slideTitles.length) problems.push(`the script covers ${at} slides; the deck has ${slideTitles.length}`);
+// r27: what the video may never show or say, on any slide or in any line (the owner: no fleet size, utilization,
+// insurance premium or internal costs). The narration, the captions and every slide's text are checked; a token named
+// for one of them is refused too. An owner's fee tier ("1 to 2 cars") is that owner's own cars, not the fleet.
+problems.push(...forbidden(scenes.map((s) => s.text).join(' '), 'the narration'), ...forbidden(deckText, 'the slides'));
+for (const k of Object.keys(vars)) if (FORBIDDEN_TOKEN.test(k)) problems.push(`token {{${k}}}: never in the video`);
 if (problems.length) { for (const p of problems.slice(0, 9)) report('error', 'script and deck', p); process.exit(1); }
 
 // ---------------------------------------------------------------- the stage page

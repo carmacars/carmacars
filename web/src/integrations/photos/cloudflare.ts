@@ -57,6 +57,12 @@ export function cloudflareImages(f: FetchCf = (u, i) => fetch(u, i as RequestIni
     async normalize({ sourceUrl, width, height }) {
       return transform(sourceUrl, { width, height, fit: 'cover', gravity: 'auto', format: 'jpeg', quality: 85, brightness: 1.03, contrast: 1.03 }, 'image/jpeg');
     },
+    async layer({ baseUrl, baseBlur, overlayUrl, width, height }) {
+      return transform(baseUrl, {
+        width, height, fit: 'cover', format: 'jpeg', quality: 85, brightness: 1.03, contrast: 1.03, ...(baseBlur ? { blur: baseBlur } : {}),
+        draw: [{ url: overlayUrl, width, height, fit: 'cover' }]
+      }, 'image/jpeg');
+    },
     async resize({ sourceUrl, width }) {
       return transform(sourceUrl, { width, fit: 'scale-down', format: 'webp', quality: 82 }, 'image/webp');
     }

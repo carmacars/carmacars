@@ -31,7 +31,7 @@ export default async function Listings() {
       <Table<I> testId="listings" caption="Listing intakes" rows={rows} empty="No listings in progress. Press Start a listing to list a car: real photos are optional, sample photos are shown until they are added." cols={[
         { key: 'vehicle_name', label: 'Vehicle', render: (r) => <Link prefetch={false} className="link" href={`/admin/listings/${r.id}`}><CarCell name={r.vehicle_name} photo={photos[String(r.vehicle_id)]} sub={r.plate} /></Link> },
         { key: 'plate', label: 'Plate' }, { key: 'state', label: 'State', render: (r) => <Badge s={r.state} /> },
-        { key: 'photos', label: 'Photos', render: (r) => samples.has(r.vehicle_id) ? <span data-testid="listing-using-samples">{r.photos} <Badge s="needs_review">Using sample photos</Badge></span> : String(r.photos) }, { key: 'progress', label: 'Pipeline', render: (r) => <ProgressCell p={prog[r.id]} /> }, { key: 'listing_status', label: 'Listing', render: (r) => r.listing_status ? <Badge s={r.listing_status} /> : null },
+        { key: 'photos', label: 'Photos', render: (r) => samples.has(r.vehicle_id) ? <span data-testid="listing-using-samples">{r.photos} <Badge s="needs_review">Using sample photos</Badge></span> : String(r.photos) }, { key: 'progress', label: 'Work done', render: (r) => <ProgressCell p={prog[r.id]} /> }, { key: 'listing_status', label: 'Listing', render: (r) => r.listing_status ? <Badge s={r.listing_status} /> : null },
         { key: 'started', label: 'Started by', render: (r) => `${r.started_by_name ?? ''} (${r.started_role})` }, { key: 'reason', label: 'Note', className: 'wrap' },
         { key: 'updated_at', label: 'Updated', render: (r) => t(r.updated_at) }
       ]} />

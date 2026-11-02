@@ -489,7 +489,7 @@ test('the chat greeting: after 45 seconds, once a visit, with the car on a car p
   if (!isPhone()) expect(Date.now() - t0).toBeGreaterThanOrEqual(44_000);
   await expect(bubble).toHaveAttribute('data-kind', 'greeting');
   await expect(bubble).toContainText('CarmaCars');
-  await expect(bubble).toContainText('Hi! Questions about the 2021 Mercedes-Benz A220?');
+  await expect(bubble).toContainText('Hi! Questions about the 2021 Mercedes-Benz A-Class?');
   // a preview only: the chat itself is not open
   await expect(page.locator('#ccw-panel')).toHaveCount(0);
   await axe(page, 'greeting', '[data-testid="chat-widget"]');

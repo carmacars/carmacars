@@ -79,8 +79,9 @@ select app.booking_periods_sync(test.id('booking:BN-LONG'));
 select test.mk_booking('BN-GO', 'bn_go', 'bn_rita', test.bnt(interval '1 day 3 hours'), test.bnt(interval '5 days'), 'confirmed');
 select test.bn_set('BN-GO', 50000, 50000);
 update bookings set pickup_location_kind = 'delivery', pickup_place = '1 Example Street, Toronto' where id = test.id('booking:BN-GO');
--- confirmed, picked up 2 hours before the board's noon, no check-out recorded: out, "pickup not recorded"
-select test.mk_booking('BN-UNREC', 'bn_unrec', 'bn_ivan', test.bnt(interval '-2 hours'), test.bnt(interval '3 days'), 'confirmed');
+-- confirmed, picked up 2 hours before both the board's time and the clock (whichever is earlier, so the suite passes at any
+-- hour: after 2 pm the clock's "2 hours ago" was after the board's noon), no check-out recorded: out, "pickup not recorded"
+select test.mk_booking('BN-UNREC', 'bn_unrec', 'bn_ivan', to_char((least(test.bn_now(), now()) - interval '2 hours') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'), test.bnt(interval '3 days'), 'confirmed');
 select test.bn_set('BN-UNREC', 40000, 40000);
 -- ended, never closed: confirmed for 6 to 4 days ago, no check-out, and the same car went out again 3 days ago
 select test.mk_booking('BN-STALE', 'bn_stale', 'bn_rita', test.bnt(interval '-6 days'), test.bnt(interval '-4 days'), 'confirmed');
@@ -175,10 +176,7 @@ insert into bn select 'cs', app.door(test.id('bn_cs'), 'aal2', 'ops_read', 'book
 select test.ok('customer service: the whole board with the money', test.bn('cs') ->> 'scope' = 'full' and test.bn('cs') ? 'money');
 select test.ok('fleet: the whole board', app.door(test.id('bn_fleet'), 'aal2', 'ops_read', 'bookings_now', '{"_va": "fleet"}') ->> 'scope' = 'full');
 select test.ok('Admin: the whole board', app.door(test.id('bn_admin'), 'aal2', 'ops_read', 'bookings_now', '{}') ->> 'scope' = 'full');
--- 0500 (r27 consolidation): Sales reads the board too, the cars without the money and without any renter's phone or email
-insert into bn select 'sales', app.door(test.id('bn_sales'), 'aal2', 'ops_read', 'bookings_now', '{"_va": "sales"}');
-select test.ok('sales: the cars, no money, no renter phone or email', test.bn('sales') ->> 'scope' = 'sales' and not test.bn('sales') ? 'money'
-  and not exists (select 1 from jsonb_array_elements(test.bn('sales') -> 'going') x where (x -> 'renter') ? 'phone' or (x -> 'renter') ? 'email' or x ? 'pay'));
+select test.throws('sales: not on the board', format($$select app.door(%L, 'aal2', 'ops_read', 'bookings_now', '{"_va": "sales"}')$$, test.id('bn_sales')), 'only');
 insert into field_jobs (kind, booking_id, vehicle_id, assigned_to, scheduled_at, status)
 values ('handover', test.id('booking:BN-GO'), test.id('vehicle:bn_go'), test.id('bn_field'), (select pickup_at from bookings where id = test.id('booking:BN-GO')), 'scheduled');
 insert into bn select 'field', app.door(test.id('bn_field'), 'aal2', 'field_read', 'bookings_now', '{}');

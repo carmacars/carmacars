@@ -14,7 +14,7 @@ import { OwnerMonths } from '@/features/owner/OwnerMonths';
 import { Timeline, TimelineItem } from '@/components/portal-ui';
 import { door } from '@/server/door';
 import { ListingCapture, type Capture } from '@/features/listing/ListingCapture';
-import { ListingProgress, type Progress } from '@/features/listing/ListingProgress';
+import { ListingSteps, type Progress, type Steps } from '@/features/listing/ListingProgress';
 import { StartListing } from '@/features/listing/StartListing';
 import { ServiceHistory } from '@/features/maintenance/OwnerHistory';
 import type { OwnerHistory } from '@/features/maintenance/model';
@@ -40,9 +40,10 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   // the car's listing: photos and progress while one is open (an owner's listing is reviewed by staff)
   const listable = !['exited', 'total_loss', 'declined'].includes(v.status) && v.management_mode !== 'turo_only';
   const current = listable ? await door<{ intake_id: string; state: string; open: boolean } | null>(user.id, 'ops_read', 'listing_current', { vehicle: id }).catch(() => null) : null;
-  const [cap, prog] = current?.open
-    ? await Promise.all([door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: current.intake_id }), door<Record<string, Progress>>(user.id, 'ops_read', 'listing_progress', { intake: current.intake_id })])
-    : [null, null];
+  const [cap, prog, steps] = current?.open
+    ? await Promise.all([door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: current.intake_id }), door<Record<string, Progress>>(user.id, 'ops_read', 'listing_progress', { intake: current.intake_id }),
+      door<Steps>(user.id, 'ops_read', 'listing_steps', { intake: current.intake_id }).catch(() => null)])
+    : [null, null, null];
   // the car's service history (0089), read only, while the car is with us
   const service = !['declined', 'exited', 'total_loss'].includes(v.status) ? await door<OwnerHistory>(user.id, 'ops_read', 'maint_owner', { vehicle_id: id }).catch(() => null) : null;
   // the car's terms over time and the notices (0135)
@@ -75,7 +76,7 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
             <p className="small">{v.listing_path ? 'Your car is on the website. New photos replace the current ones once our team approves them.' : 'Take the photos for the website: 13 set angles and the odometer. We write the details, edit the backgrounds and publish the car after a review.'}</p>
             <StartListing vehicleId={id} label={v.listing_path ? 'Take new photos' : 'Add listing photos'} />
           </section>}
-          {cap && prog?.[cap.intake_id] && <ListingProgress initial={prog[cap.intake_id]!} refresh={[`/owner/vehicles/${id}`]} />}
+          {cap && steps && <ListingSteps initial={steps} progress={prog?.[cap.intake_id] ?? null} refresh={[`/owner/vehicles/${id}`]} />}
           {cap && <ListingCapture initial={cap} refresh={[`/owner/vehicles/${id}`]} />}
           {enrolled && <OwnerMonths months={view.months} only={id} testId="vehicle-months" />}
           {soon.length > 0 && <section className="pu-panel" aria-labelledby="ow-soon" data-testid="vehicle-coming-up"><h2 className="pu-title" id="ow-soon">Coming up</h2>

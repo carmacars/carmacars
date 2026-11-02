@@ -4,6 +4,9 @@ import { useRouter } from 'next/navigation';
 import { photoUrl } from '@/lib/photo';
 import { staffDo } from '@/server/actions/staff-tools';
 import { PlateEditor } from '@/features/listing/PlateEditor';
+import { PlateAutoSuggest } from '@/features/listing/PlateAutoSuggest';
+import { suggestedBoxes } from '@/features/listing/plate-cover';
+import { normalizePlateBoxes } from '@/features/tolls/vision-schema';
 import { useDoor } from './door';
 import { CarCopyPanel, type CarCopyData } from '@/features/seo/CarCopyPanel';
 
@@ -11,15 +14,15 @@ import { CarCopyPanel, type CarCopyData } from '@/features/seo/CarCopyPanel';
 // (approve, reject, use the original, choose the cover), the problems the database still sees, then
 // approve and publish, or send it back with what to change.
 type Photo = { id: string; vehicle_id: string; shot_type: string; shot_label: string | null; processed_path: string | null; original_path: string | null; original_url?: string | null; status: string; is_cover: boolean; alt_text: string | null;
-  plate_status: 'unchecked' | 'covered' | 'not_visible'; plate_boxes: Array<{ x: number; y: number; w: number; h: number }> | null; variants: Array<{ width: number }> | null };
-export type Plates = { required: boolean; unchecked: string[]; private_shots: string[] };
+  plate_status: 'unchecked' | 'covered' | 'not_visible'; plate_boxes: Array<{ x: number; y: number; w: number; h: number }> | null; variants: Array<{ width: number }> | null; plate_suggestion?: unknown };
+export type Plates = { required: boolean; unchecked: string[]; private_shots: string[]; detect?: boolean };
 const PLATE: Record<Photo['plate_status'], string> = { unchecked: 'Plate not checked', covered: 'Plate covered', not_visible: 'No plate visible' };
 export type L = { id: string; vehicle_id: string; state: string; reason: string | null; vehicle: { name: string; plate: string | null };
   listing: { status: string; slug: string | null; headline: string | null; description: string | null; features: string[] | null; faq: Array<{ question: string; answer: string }> | null; seo_title: string | null; seo_description: string | null } | null;
   draft: { id: string; headline: string | null; description: string | null; features: string[] | null; faq: Array<{ question: string; answer: string }> | null; seo_title: string | null; seo_description: string | null; lint_problems: string[] | null; proposed_classes: string[] | null } | null;
   photos: Photo[]; jobs: Array<Record<string, unknown>>; problems: { copy: string[] | null; photos: string[] | null; specs: string[] | null; missing_shots: string[] | null } };
 
-export function ListingReview({ l, plates, copy }: { l: L; plates?: Plates | null; copy?: CarCopyData | null }) {
+export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates?: Plates | null; copy?: CarCopyData | null; exterior?: string[] }) {
   const { act: adminAct } = useDoor();
   const router = useRouter();
   const [ph, setPh] = useState<Record<string, string>>({});
@@ -53,6 +56,7 @@ export function ListingReview({ l, plates, copy }: { l: L; plates?: Plates | nul
           : <section className="pt-card ad-card" aria-labelledby="lr-copy"><h2 className="d4" id="lr-copy">Copy</h2><p className="small muted">Written automatically from the car&apos;s facts once the car is saved. Nothing to type.</p></section>}
         <section className="pt-card ad-card" aria-labelledby="lr-ph"><h2 className="d4" id="lr-ph">Photos</h2>
           {plates && <p className="small muted">Every photo that goes on the website needs its licence plate covered, or a check that no plate can be read{plates.required ? ' before the listing is published' : ''}. The photo as it was is kept privately.</p>}
+          {plates && <PlateAutoSuggest photos={l.photos.filter((p) => plateCheck(p)).map((p) => ({ ...p, vehicle_id: l.vehicle_id }))} exterior={exterior} on={plates.detect !== false} />}
           {plates && toCheck.length > 1 && <p className="row">{!sure
             ? <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="plates-none-visible" onClick={() => setSure(true)}>No plate visible on the {toCheck.length} photos left</button>
             : <><span className="small">No plate can be read on any of these {toCheck.length} photos?</span>
@@ -70,6 +74,7 @@ export function ListingReview({ l, plates, copy }: { l: L; plates?: Plates | nul
               <label className="check"><input type="radio" name="cover" checked={cover === p.id} disabled={!reviewable} onChange={() => setCover(p.id)} /> <span>Cover</span></label>
               {plates && plateCheck(p) && <span className="lr-plate" data-testid={`plate-${p.shot_type}`} data-plate={p.plate_status}>
                 <span className={`ad-b ${p.plate_status === 'unchecked' ? 'ad-b--amber' : 'ad-b--light'}`}>{PLATE[p.plate_status]}</span>
+                {p.plate_status === 'unchecked' && suggestedBoxes(p.plate_suggestion, normalizePlateBoxes).length > 0 && <span className="ad-b ad-b--light" data-testid={`plate-suggested-${p.shot_type}`}>Box suggested</span>}
                 <button className="btn btn--ghost btn--sm" type="button" onClick={() => setEditing(editing === p.id ? null : p.id)} aria-expanded={editing === p.id} data-testid={`plate-edit-${p.shot_type}`}>{p.plate_status === 'covered' ? 'Cover again' : 'Cover the plate'}</button>
                 {p.plate_status === 'unchecked' && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid={`plate-none-${p.shot_type}`}
                   onClick={() => start(async () => { const r = await staffDo('photo_plate_record', { photo: p.id, status: 'not_visible' }); if (r.ok) router.refresh(); else setRes({ ok: false, text: r.message }); })}>No plate visible</button>}

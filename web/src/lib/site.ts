@@ -18,6 +18,11 @@ export const getBlocks = cache(async () => (await rpc('site_content', {})) as un
 // a car without an address is left out (0310: the database gives every published car one; this keeps the site's links
 // whole even if one slips through): the home page, Cars, Delivery, Requirements and the class pages all link /cars/<slug>
 export const getFleet = cache(async () => (((await rpc('fleet', { p_filters: {} })) ?? []) as unknown as CarRow[]).filter(hasAddress));
+/** 0523: the store app's links (Program settings app_store_url, play_store_url); both null until the apps are live. */
+export type AppLinks = { ios: string | null; android: string | null };
+export const appLinks = cache(async (): Promise<AppLinks> => {
+  try { const r = (await rpc('app_links', {})) as unknown as AppLinks | null; return { ios: r?.ios ?? null, android: r?.android ?? null }; } catch { return { ios: null, android: null }; }
+});
 export const getClasses = cache(async () => (await rpc('vehicle_classes', {})) as unknown as { code: string; label: string }[]);
 
 export async function block(key: string): Promise<ContentBlock | undefined> {

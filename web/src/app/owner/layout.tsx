@@ -29,7 +29,7 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
         <PortalSwitch current="owner" />
         <OwnerNav unread={unread || 0} partner={partner} />
         <GuideBanner portal="owner" userId={user.id} /><StuckHelp portal="owner" />
-        <PushInvite portal="owner" home="/owner" />
+        <PushInvite portal="owner" home="/owner" userId={user.id} />
       </div>
       <div className="wrap pt__body">{children}</div>
     </div>

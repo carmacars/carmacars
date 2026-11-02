@@ -156,3 +156,16 @@ export function refineBox(g: Grey, guess: NBox): { box: NBox; moved: boolean; sc
   if (!moved) return { box: guess, moved: false, score: base };
   return { box: clampBox({ x: best.x / W, y: best.y / H, w: best.w / W, h: best.h / H, suggested: true }), moved: true, score: best.s };
 }
+
+/** 0521: a stored suggestion (vehicle_photos.plate_suggestion: the vision model's answer and the size of the image it
+ *  saw) as boxes to start the editor with, marked suggested; none when there is no usable answer. */
+export function suggestedBoxes(s: unknown, toBoxes: (data: unknown, img: { width: number; height: number }) => Array<{ x: number; y: number; w: number; h: number }>): NBox[] {
+  const o = (s && typeof s === 'object' ? s : null) as { answer?: unknown; width?: unknown; height?: unknown } | null;
+  if (!o || o.answer === undefined) return [];
+  const width = Number(o.width) > 0 ? Number(o.width) : 1, height = Number(o.height) > 0 ? Number(o.height) : 1;
+  return toBoxes(o.answer, { width, height }).map((b) => ({ ...clampBox(b), suggested: true }));
+}
+/** 0521: the outside photos whose plate box is suggested by itself: public, edited, plate not checked, no box, never asked. */
+export function needsSuggestion(p: { shot_type: string; processed_path: string | null; plate_status: string; plate_boxes: unknown[] | null; plate_suggestion?: unknown }, exterior: string[]): boolean {
+  return exterior.includes(p.shot_type) && !!p.processed_path && p.plate_status === 'unchecked' && !(p.plate_boxes?.length) && !p.plate_suggestion;
+}

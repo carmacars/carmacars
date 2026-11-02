@@ -18,6 +18,9 @@ export interface PhotoProcessor {
     lettering?: { url: string; top: number; width: number } | null }): Promise<PhotoOut>;
   /** Orientation, crop to the aspect, size and exposure (JPEG); for interiors. */
   normalize(r: { sourceUrl: string; width: number; height: number }): Promise<PhotoOut>;
+  /** 0521: a base image (the studio backdrop, or the photo itself blurred) with an overlay drawn on it, both cropped to
+   *  the same frame (JPEG); for the windows of interior photos (features/listing/window-check.ts). */
+  layer(r: { baseUrl: string; baseBlur?: number; overlayUrl: string; width: number; height: number }): Promise<PhotoOut>;
   /** One size variant (WebP). */
   resize(r: { sourceUrl: string; width: number }): Promise<PhotoOut>;
 }

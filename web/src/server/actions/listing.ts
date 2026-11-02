@@ -67,6 +67,24 @@ export async function listingCapture<T = Record<string, unknown>>(intake: string
   } catch (e) { return fail(e); }
 }
 
+/** 0521: the listing page's four steps (Photos, Cover plates, Review, Live on the site). */
+export async function listingSteps<T = Record<string, unknown>>(intake: string): Promise<R<T>> {
+  try {
+    const { user, aal } = await me();
+    return { ok: true, data: await door<T>(user.id, 'ops_read', 'listing_steps', { intake }, aal) };
+  } catch (e) { return fail(e); }
+}
+
+/** 0521: a photo filed under the wrong shot taken off (kept privately); the shot is free for the right photo. */
+export async function listingPhotoRemove(photo: string, refresh: string[] = []): Promise<R<{ photo_id: string; shot: string; missing: string[] }>> {
+  try {
+    const { user, aal } = await me();
+    const data = await door<{ photo_id: string; shot: string; missing: string[] }>(user.id, 'ops_do', 'listing_photo_remove', { photo }, aal);
+    for (const x of refresh) revalidatePath(x);
+    return { ok: true, data };
+  } catch (e) { return fail(e); }
+}
+
 /** R23 (0236): the newest handover's photos (the check-out or check-in photos field staff took) become the car's listing
  *  photos: each copied into the listing intake as if taken on the capture screen, then the intake is submitted when every
  *  required shot is there, so the studio editor runs and the listing review follows as usual. */

@@ -5,6 +5,7 @@ import type { Field } from './Act';
 const nice = (k: string) => { const s = k.replace(/_(cents|bps)$/, '').replace(/_/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 // settings whose meaning needs a sentence (0042: one turnaround between trips; the tolls, plates and vision settings)
 const LABELS: Record<string, string> = {
+  app_store_url: 'The CarmaCars app on the App Store (https://apps.apple.com/...)', play_store_url: 'The CarmaCars app on Google Play (https://play.google.com/...)',
   phone_gate_gallery: 'Phone number box: before more photos of a car', phone_gate_free_photos: 'Phone number box: photos shown before the number is asked',
   phone_gate_dates: 'Phone number box: before the full availability', phone_gate_request: 'Phone number box: before a booking request',
   phone_gate_verify: 'Phone number box: check the number with a code by text', phone_gate_allow_unverified: 'Phone number box: with the code on, also offer "Use without verifying"',
@@ -174,6 +175,8 @@ const LABELS: Record<string, string> = {
   esign_typed_fallback: 'E-signing: a signer who cannot draw may type their name and initials', esign_code_minutes: 'E-signing: the code works for (minutes)'
 };
 const HINTS: Record<string, string> = {
+  app_store_url: 'Empty until the app is live. When set, iPhones browsing the site see "Download the CarmaCars app" in the footer and in the alerts invitation.',
+  play_store_url: 'Empty until the app is live. When set, Android phones browsing the site see "Download the CarmaCars app" in the footer and in the alerts invitation.',
   phone_gate_gallery: 'Never on a car with that many photos or fewer. Every photo stays in the page for search engines.',
   phone_gate_dates: 'The booked days on a car\'s calendar and the cars booked for the chosen dates. Picking dates and seeing whether that car is free stays open.',
   phone_gate_request: 'Off by default: the request form asks for the mobile number itself. On: the box comes before the first step\'s Continue and the form shows the number given.',

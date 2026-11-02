@@ -5,12 +5,14 @@ import { CookiePrefsButton } from './CookieBanner';
 import { napAddress } from '@/features/seo/business';
 import { PortalSwitchFooter } from './HeaderClient';
 import type { HubLinks } from '@/features/seo/data';
+import type { AppLinks } from '@/lib/site';
+import { AppDownload } from '@/features/push/AppDownload';
 
 const SOCIAL: Record<string, string> = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', x: 'X', youtube: 'YouTube', linkedin: 'LinkedIn' };
 export const waLink = (e164: string) => `https://wa.me/${e164.replace(/\D/g, '')}`;
 
 type Link_ = { slug: string; kind: string; name: string; path: string };
-export function Footer({ s, reply, links = [], hubs, careers = false }: { s: SiteSettings; reply: string; links?: Link_[]; hubs?: HubLinks; careers?: boolean }) {
+export function Footer({ s, reply, links = [], hubs, careers = false, apps }: { s: SiteSettings; reply: string; links?: Link_[]; hubs?: HubLinks; careers?: boolean; apps?: AppLinks }) {
   const places = links.filter((l) => l.kind === 'location');
   const uses = links.filter((l) => l.kind === 'use');
   const socials = Object.entries(s.social_links ?? {}).filter(([k, v]) => SOCIAL[k] && /^https:\/\//.test(v));
@@ -37,6 +39,7 @@ export function Footer({ s, reply, links = [], hubs, careers = false }: { s: Sit
             {s.tagline && <p className="d3">{s.tagline}</p>}
             <p className="muted small measure">Car rental in {s.city}, picked up or delivered. Bring it back the way you got it, and so does your deposit.</p>
             <p><Link prefetch={false} className="btn btn--primary" href="/cars">Find a car</Link></p>
+            {apps && (apps.ios || apps.android) ? <AppDownload apps={apps} /> : null}
           </div>
           <nav aria-label="Rent"><h2>Rent</h2><ul>
             <li><Link prefetch={false} href="/cars">Fleet</Link></li><li><Link prefetch={false} href="/how-it-works">How it works</Link></li>

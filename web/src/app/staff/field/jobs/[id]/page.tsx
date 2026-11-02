@@ -6,6 +6,7 @@ import { Checklist } from '@/features/field/Checklist';
 import { FieldButton } from '@/features/field/FieldButton';
 import { JobChecklist } from '@/features/field/JobChecklist';
 import { ListingCapture, type Capture } from '@/features/listing/ListingCapture';
+import { ListingSteps, type Steps } from '@/features/listing/ListingProgress';
 import { StartListing } from '@/features/listing/StartListing';
 import { LicenceReview } from '@/features/field/LicenceReview';
 import type { FieldJob, LicenceCard } from '@/features/field/types';
@@ -36,7 +37,8 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
   // a photo shoot (procedure 17): the listing capture of the car, as owners and Fleet use it (migration 0032)
   const cap = j.job.kind === 'photo_shoot' && j.checklist?.listing && j.job.status === 'in_progress'
     ? await door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: j.checklist.listing.intake_id }).catch(() => null) : null;
-  const listing = j.job.kind !== 'photo_shoot' ? null : cap ? <ListingCapture initial={cap} refresh={[`/staff/field/jobs/${id}`]} />
+  const steps = cap ? await door<Steps>(user.id, 'ops_read', 'listing_steps', { intake: cap.intake_id }).catch(() => null) : null;
+  const listing = j.job.kind !== 'photo_shoot' ? null : cap ? <>{steps && <ListingSteps initial={steps} refresh={[`/staff/field/jobs/${id}`]} />}<ListingCapture initial={cap} refresh={[`/staff/field/jobs/${id}`]} /></>
     : j.checklist?.listing?.submitted_at ? <p className="fd-line is-ok">Submitted for listing.</p> : <StartListing vehicleId={j.vehicle.id} label="Start the listing photos" />;
   const c = clock(j.job.scheduled_at);
   return (

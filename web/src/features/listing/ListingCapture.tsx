@@ -1,17 +1,19 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { listingCapture, listingSubmit } from '@/server/actions/listing';
+import { listingCapture, listingPhotoRemove, listingSubmit } from '@/server/actions/listing';
+import { photoUrl } from '@/lib/photo';
 import { PHOTO, shrinkImage } from '@/lib/image-shrink';
 
 // The capture step (09-listing-pipeline.md section 4): the shot list in order, a photo for each (from the
 // camera on a phone, or a file on a computer), a retake replaces the shot, then "Submit for listing".
 // Each photo is resized in the browser to 2048 px on the long side and re-encoded as JPEG 80 before upload (lib/image-shrink).
+// 0521: a photo filed under the wrong shot is taken off with Remove (kept privately), then the right one is taken.
 export interface Capture {
-  intake_id: string; vehicle_id: string; vehicle_name: string; state: string; submitted: boolean; reason: string | null; may_upload: boolean;
+  intake_id: string; vehicle_id: string; vehicle_name: string; state: string; submitted: boolean; reason: string | null; may_upload: boolean; may_remove?: boolean;
   missing: string[];
   shots: Array<{ code: string; label: string; seq: number; required: boolean; max_count: number; guide: string | null; rebackground: boolean;
-    photos: Array<{ id: string; status: string; background_status: string }> }>;
+    photos: Array<{ id: string; status: string; background_status: string; processed_path?: string | null }> }>;
 }
 
 async function prepare(file: File): Promise<{ blob: Blob; width: number; height: number }> {
@@ -45,6 +47,14 @@ export function ListingCapture({ initial, refresh = [] }: { initial: Capture; re
       await reload();
     } finally { setBusy(null); }
   };
+  const [sure, setSure] = useState<string | null>(null);
+  const remove = (photo: string) => start(async () => {
+    const r = await listingPhotoRemove(photo, refresh);
+    setSure(null);
+    setMsg(r.ok ? { ok: true, text: 'Taken off. Take the right photo for that shot.' } : { ok: false, text: r.message });
+    await reload();
+    router.refresh();
+  });
   const submit = () => start(async () => {
     const r = await listingSubmit(c.intake_id, refresh);
     setMsg(r.ok ? { ok: true, text: 'Submitted. The details and photos are being prepared; this takes a few minutes.' } : { ok: false, text: r.message });
@@ -71,6 +81,16 @@ export function ListingCapture({ initial, refresh = [] }: { initial: Capture; re
               <span className="lc__label"><b>{s.label}</b>{!s.required && <span className="muted"> (optional)</span>}</span>
               {s.guide && <span className="small muted">{s.guide}</span>}
               <span className="small">{busy === s.code ? 'Uploading' : has ? `Added${last?.status === 'processed' ? ', processed' : last?.background_status === 'original_used' ? ', kept as taken' : ''}` : 'Missing'}</span>
+              {has && c.may_remove !== false && <ul className="lc__photos">{s.photos.map((ph, n) => (
+                <li key={ph.id} className="lc__photo">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- the edited photo, pre-sized by the pipeline */}
+                  {ph.processed_path ? <img src={photoUrl(ph.processed_path)} alt="" width={64} height={43} loading="lazy" /> : <span className="lc__ph" aria-hidden="true">{n + 1}</span>}
+                  {sure === ph.id
+                    ? <span className="row lc__sure"><span className="small">Wrong shot?</span>
+                        <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={() => remove(ph.id)} data-testid={`shot-remove-yes-${s.code}`}>Remove it</button>
+                        <button className="btn btn--quiet btn--sm" type="button" onClick={() => setSure(null)}>Keep</button></span>
+                    : <button className="btn btn--quiet btn--sm" type="button" disabled={pending || !!busy} onClick={() => setSure(ph.id)} data-testid={`shot-remove-${s.code}`}>Remove<span className="vh"> photo {n + 1} of {s.label}</span></button>}
+                </li>))}</ul>}
               {c.may_upload && <span className="row lc__picks">
                 <label className="btn btn--ghost btn--sm lc__pick">
                   <span>{has && s.max_count === 1 ? 'Retake' : 'Take photo'}<span className="vh"> for {s.label}</span></span>

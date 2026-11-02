@@ -70,3 +70,15 @@ test('0121: mechanical work we arrange never says CarmaCars does it, offers a re
   assert.match(words(far), /honestly whether we know a shop there/);
   assert.equal(far.faq.length, 0);
 });
+
+test('0522: the alternative terms: "Turo Alternative in <place>", the not-affiliated sentence on the page, nothing about the other company', () => {
+  const alt = (slug: string, title: string, note: string) => hubCopy(base({ term: { ...base().term, slug, title, phrase: title.toLowerCase(), landing_slug: null, intent_note: note,
+    faq: [{ question: `Is CarmaCars part of ${title.split(' ')[0]}?`, answer: `No. CarmaCars is not affiliated with, approved or endorsed by ${title.split(' ')[0]}.` }] } }), fill);
+  const turo = alt('turo-alternative', 'Turo Alternative', 'Rent from CarmaCars directly. CarmaCars is not affiliated with, approved or endorsed by Turo.');
+  assert.equal(turo.title, 'Turo Alternative in Port Credit, Mississauga | CarmaCars');
+  assert.equal(turo.h1, 'Turo Alternative in Port Credit, Mississauga');
+  assert.match(words(turo), /not affiliated with, approved or endorsed by Turo/);
+  const luup = alt('luup-alternative', 'Luup Alternative for Rideshare Drivers', 'A car for Uber, Lyft or delivery work. CarmaCars is not affiliated with, approved or endorsed by any of them.');
+  assert.ok(luup.title.startsWith('Luup Alternative for Rideshare Drivers in Port Credit') && luup.title.length <= 70, luup.title);
+  assert.ok(luup.faq.some((q) => /not affiliated/.test(q.answer)));
+});
