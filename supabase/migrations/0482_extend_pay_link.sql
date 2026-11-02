@@ -3,8 +3,7 @@
 -- Extend page; paying confirms the extension exactly as a charge of the card on file does (app.confirm_extension_payment:
 -- the return time moves, the reminders follow it). A payment that can no longer confirm it (the extension lapsed, the
 -- car was taken) is refunded at once. SCHEMA_MARKER 0483.
--- Also a fix found by the full test suite: the Live map's placeholder filter (0283) dropped every pin without a booking
--- number (a visitor on the site, a lead, a game) whenever any placeholder booking existed.
+-- (The Live map placeholder fix found with it is in 0523.)
 -- No applied migration is edited.
 set local check_function_bodies = off;
 
@@ -28,11 +27,6 @@ begin
   end if;
   execute replace(d, p_old, p_new);
 end $$;
-
--- ================================================================ the Live map: a pin with no booking is never a placeholder
-select pg_temp.patch_fn('app.live_map_pre0400(uuid, jsonb)'::regprocedure,
-  'where not (x ->> ''booking_number'' = any (v_ph))',
-  'where x ->> ''booking_number'' is null or not (x ->> ''booking_number'' = any (v_ph))');
 
 -- ================================================================ the extension's pay link
 alter table payment_requests add column if not exists extension_id uuid references booking_extensions(id);

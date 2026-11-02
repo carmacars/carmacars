@@ -21399,6 +21399,7 @@ export type Database = {
           notify_channel_by: string | null;
           greeting_name: string | null;
           is_test: boolean | null;
+          alerts_asked_at: string | null;
         };
         Insert: {
           id?: string;
@@ -21420,6 +21421,7 @@ export type Database = {
           notify_channel_by?: string | null;
           greeting_name?: string | null;
           is_test?: boolean | null;
+          alerts_asked_at?: string | null;
         };
         Update: {
           id?: string;
@@ -21441,6 +21443,7 @@ export type Database = {
           notify_channel_by?: string | null;
           greeting_name?: string | null;
           is_test?: boolean | null;
+          alerts_asked_at?: string | null;
         };
         Relationships: [];
       };
@@ -25511,6 +25514,7 @@ export type Database = {
       admin_record_tracker_installed: { Args: { p_vehicle: string; p_admin: string; p_on?: string }; Returns: undefined };
       admin_save: { Args: { p_admin: string; p_table: string; p: Json }; Returns: Json };
       admin_set_vehicle_terms: { Args: { p_vehicle: string; p_admin: string; p_terms?: Json }; Returns: Json };
+      app_links: { Args: never; Returns: Json };
       article: { Args: { p_slug: string }; Returns: Json };
       articles_public: { Args: never; Returns: Json };
       booking_car: { Args: { p_slug: string }; Returns: Json };
@@ -25731,6 +25735,8 @@ export type Database = {
       server_alert_rules: { Args: { p_user: string }; Returns: Json };
       server_alert_snooze: { Args: { p_user: string; p_id: string; p_minutes?: number }; Returns: string };
       server_alert_unread: { Args: { p_user: string }; Returns: number };
+      server_alerts_ask: { Args: { p_user: string }; Returns: Json };
+      server_alerts_asked: { Args: { p_user: string; p_answer: string }; Returns: Json };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };
