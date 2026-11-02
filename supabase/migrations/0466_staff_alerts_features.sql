@@ -547,6 +547,13 @@ begin
   return format('late jobs %s, offers %s, escalated %s, briefs %s, checks %s', n_late, n_offer, n_esc, n_brief, n_more);
 end $$;
 
+-- ================================================================ 7b. one "your car is live" per car a day
+-- The owner's "live and open for bookings" was sent twice when a listing was published again without its intake (the
+-- dedupe key then held the time): a second publish of the same car within a day sends nothing.
+select pg_temp.patch_fn('app.publish_listing(uuid, uuid)'::regprocedure,
+  'if v.status <> ''onboarding'' then',
+  'if v.status <> ''onboarding'' and not exists (select 1 from app_events e where e.code = ''owner_vehicle_listed'' and e.entity_id = v.id and e.created_at > now() - interval ''1 day'') then');
+
 -- ================================================================ 8. public wrappers (the server calls them as service_role) and privileges
 create or replace function public.server_alert_feed(p_user uuid, p_limit integer default 60, p_filter text default 'all') returns jsonb
 language sql set search_path = public, app as $$ select app.server_alert_feed(p_user, p_limit, p_filter) $$;
