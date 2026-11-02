@@ -126,7 +126,8 @@ test('admin: To do, the six groups, search, the keyboard, Admin access only for 
   // the keyboard: g then a opens Applications, / focuses the search
   if (!isPhone()) {
     await page.goto('/admin', { waitUntil: 'networkidle' });
-    await page.locator('body').click({ position: { x: 700, y: 400 } });
+    // focus the page without landing on a link (the home's tiles are links): blur whatever is focused
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await page.keyboard.press('g'); await page.keyboard.press('a');
     await page.waitForURL(/\/admin\/applications/);
     await page.keyboard.press('/');
