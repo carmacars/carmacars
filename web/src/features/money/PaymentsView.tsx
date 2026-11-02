@@ -33,9 +33,9 @@ export function PaymentsView({ l, base, bookingBase }: { l: Ledger; base: string
         { k: 'Cash drawer', v: (() => { const off = l.days.filter((x) => x.cash_difference_cents); return off.length ? 'Off' : 'Balanced'; })(), sub: l.days.some((x) => x.cash_difference_cents) ? 'a count does not match' : 'every count matches', warn: l.days.some((x) => x.cash_difference_cents) }
       ]} />
       {/* a base with its own query (Admin: /admin/money?tab=day) keeps it: a GET form drops the action's query */}
-      <GetForm className="ad-filters pay-filters" action={base.split('?')[0]} data-testid="payments-filters">
+      <GetForm className="ad-filters pay-filters" action={base.split('?')[0]!} data-testid="payments-filters">
         {[...new URLSearchParams(base.split('?')[1] ?? '')].map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
-        <QuickRange base={base.split('?')[0]} keep={{ ...Object.fromEntries(new URLSearchParams(base.split('?')[1] ?? '')), ...Object.fromEntries(new URLSearchParams(q.toString())) }} from={l.from} to={l.to} today={torontoToday()} customId="pay-from-input" />
+        <QuickRange base={base.split('?')[0]!} keep={{ ...Object.fromEntries(new URLSearchParams(base.split('?')[1] ?? '')), ...Object.fromEntries(new URLSearchParams(q.toString())) }} from={l.from} to={l.to} today={torontoToday()} customId="pay-from-input" />
         <DateRangePicker id="pay-from-input" label="Dates" from={l.from} to={l.to} quick={false} />
         <fieldset className="pay-methods"><legend className="label">Methods (none ticked: all)</legend>
           {CHANNELS.map((c) => <label key={c} className="check"><input type="checkbox" name="method" value={c} defaultChecked={l.methods.includes(c)} data-testid={`pay-m-${c}`} /> <span>{CHANNEL_LABEL[c]}</span></label>)}
