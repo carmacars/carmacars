@@ -4,7 +4,8 @@
 //   - a form whose GET action does not answer, a toggle or dialog button that does nothing or throws,
 //   - a button with no handler (no React handler, no listener, not a form submit),
 //   - a console error, an uncaught exception or a failed same-origin request,
-//   - horizontal overflow at 375 and at 1440.
+//   - horizontal overflow (any, over 0px) at 375 and at 1440, with the page's menus, dialogs and the phone number box open at 375
+//     (and the public site at 390 too), measured without the stylesheet's `overflow-x: clip` safety net.
 // Pages with ids are sampled (two of each shape, e.g. /admin/bookings/:id). Local stack only: it signs in
 // accounts it picks from the database (the richest of each role) after giving them a known password in
 // local_auth; it never submits a form that writes.
@@ -184,14 +185,63 @@ async function pressToggles(page, errors) {
   return out;
 }
 
+/** A page wider than the window at this width, or null. The safety net in the stylesheet (`html, body { overflow-x: clip }`) hides
+ *  an overflow from scrollWidth, so the net is lifted for the measure: the cause is found, not just covered. Anything over 0px
+ *  fails. The culprits are the deepest elements that pass the right edge, outside a fixed box and outside anything that clips
+ *  them; an overflow with none listed comes from a pseudo-element (a glow, a sweep) of the box named last. */
 async function overflow(page) {
-  return page.evaluate(() => {
-    const over = document.documentElement.scrollWidth - window.innerWidth;
-    if (over <= 0) return null;
-    const culprits = [...document.querySelectorAll('body *')].filter((e) => e.getBoundingClientRect().right > window.innerWidth + 1 && e.offsetParent)
-      .slice(-3).map((e) => `${e.tagName.toLowerCase()}.${String(e.className).split(' ')[0]}`);
-    return `${over}px (${culprits.join(', ')})`;
-  });
+  const net = await page.addStyleTag({ content: 'html, body { overflow-x: visible !important; }' }).catch(() => null);
+  try {
+    return await page.evaluate(() => {
+      const w = window.innerWidth;
+      const over = document.documentElement.scrollWidth - w;
+      if (over <= 0) return null;
+      const clipped = (e) => {
+        for (let a = e.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+          const cs = getComputedStyle(a);
+          if (cs.position === 'fixed') return true;
+          if (cs.overflowX !== 'visible' && a !== document.body && a.getBoundingClientRect().right <= w + 0.5) return true;
+        }
+        return getComputedStyle(e).position === 'fixed';
+      };
+      const wide = [...document.querySelectorAll('body *')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > w + 0.5 && getComputedStyle(e).visibility !== 'hidden' && !clipped(e); })
+        .filter((e, _i, all) => !all.some((o) => o !== e && e.contains(o)));
+      const name = (e) => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${String(e.getAttribute('class') ?? '').trim() ? '.' + String(e.getAttribute('class')).trim().split(/\s+/).slice(0, 2).join('.') : ''} right=${Math.round(e.getBoundingClientRect().right)}`;
+      return `${over}px at ${w} (${wide.length ? wide.slice(0, 4).map(name).join(', ') : 'no element passes the edge: a pseudo-element or an animation of a box with overflow visible'})`;
+    });
+  } finally { await net?.evaluate((e) => e.remove()).catch(() => {}); }
+}
+
+/** Overlays at a phone width: the first toggles and dialog buttons (menus, the date picker's sheet, the chat, the game) and the
+ *  phone number box (past the free photos of a car) are opened one by one, each measured with the page open and closed again. */
+async function overlayOverflow(page) {
+  const out = [];
+  const n = await page.locator('button[aria-expanded]:visible, button[aria-haspopup]:visible').count();
+  const shut = async (b) => {
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.evaluate(() => document.querySelectorAll('dialog[open]').forEach((d) => d.close())).catch(() => {});
+    if ((await b.getAttribute('aria-expanded').catch(() => null)) === 'true') await b.click({ timeout: 2000 }).catch(() => {});
+  };
+  for (let i = 0; i < Math.min(n, 8); i++) {
+    const b = page.locator('button[aria-expanded]:visible, button[aria-haspopup]:visible').nth(i);
+    const label = ((await b.textContent().catch(() => '')) || (await b.getAttribute('aria-label')) || '').trim().slice(0, 40);
+    try { await b.click({ timeout: 3000 }); } catch { continue; }
+    await page.waitForTimeout(450); // past the opening animation
+    const o = await overflow(page);
+    if (o) out.push(`"${label}" open: ${o}`);
+    await shut(b);
+  }
+  // the phone number box: the arrows of a car's photos, past the free ones (when the box is on)
+  const next = page.getByRole('button', { name: 'Next photo' }).first();
+  if (await next.isVisible().catch(() => false)) {
+    for (let i = 0; i < 6; i++) await next.click({ timeout: 2000 }).catch(() => {});
+    await page.waitForTimeout(450);
+    const o = await overflow(page);
+    if (o) out.push(`photos, phone number box open: ${o}`);
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.evaluate(() => document.querySelectorAll('dialog[open]').forEach((d) => d.close())).catch(() => {});
+  }
+  return out;
 }
 
 // ------------------------------------------------------------------ crawl one role
@@ -333,11 +383,13 @@ async function crawlRole(browser, role) {
     const tog = await pressToggles(page, errors);
     stats.toggles += tog.length;
     for (const t of tog) bad(role, href, `toggle ${t}`);
-    for (const [w, h] of [[1440, 900], [375, 812]]) {
+    // every page at a phone width, then its overlays; the public site also at 390 (the other common phone width)
+    for (const [w, h] of [[1440, 900], [375, 812], ...(role === 'anon' ? [[390, 844]] : [])]) {
       await page.setViewportSize({ width: w, height: h });
       await page.waitForTimeout(120);
       const o = await overflow(page);
       if (o) bad(role, href, `horizontal overflow at ${w}: ${o}`);
+      if (w < 500) for (const m of await overlayOverflow(page)) bad(role, href, `horizontal overflow at ${w}, ${m}`);
     }
     await page.setViewportSize({ width: 1440, height: 900 });
     for (const e of new Set(errors)) bad(role, href, `console: ${e}`);

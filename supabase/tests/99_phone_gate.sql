@@ -16,9 +16,9 @@ begin
 end $$;
 
 -- ================================================================ 1. the defaults, light
-select test.eq('defaults: photos on after 6, full availability on, request off, code off, skip off',
+select test.eq('defaults: photos on after 4, full availability on, request off, code off, skip off',
   (select r ->> 'gallery' || '/' || (r ->> 'free_photos') || '/' || (r ->> 'dates') || '/' || (r ->> 'request') || '/' || (r ->> 'verify') || '/' || (r ->> 'allow_unverified')
-     from (select app.phone_gate_rules() r) x), 'true/6/true/false/false/false');
+     from (select app.phone_gate_rules() r) x), 'true/4/true/false/false/false');
 select test.eq('the cost caps: 3 codes a number, 10 a network address, 200 the site, a day',
   (select phone_gate_texts_per_number_day || '/' || phone_gate_texts_per_ip_day || '/' || phone_gate_texts_per_day from (select (app.settings()).*) s), '3/10/200');
 select test.ok('site_facts carries the box (the pages need no other call), still with the earlier facts',

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/Link';
 import type { ReactNode } from 'react';
 
 // The first panel of each portal home (r27 portals): what the person needs to do or know right now, in one sentence,

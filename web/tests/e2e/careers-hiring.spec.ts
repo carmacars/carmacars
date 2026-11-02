@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, watch } from './helpers';
+import { acceptCookies, db, noOverflow, pickDate, watch } from './helpers';
 
 // Careers and hiring (docs/changes/2026-10-26-careers-hiring.md, migration 0173): a candidate applies from an Indeed link and
 // passes (the invitation with the booking link), books a call; a Field staff knock-out is offered Sales (in person, with Remote sales
@@ -48,9 +48,12 @@ async function answer(page: Page, a: Record<string, string | string[]>) {
     const q = page.getByTestId(`q-${k}`);
     if (Array.isArray(v)) { for (const c of v) await q.getByText(c, { exact: true }).click(); }
     else if (await q.evaluate((el) => el.tagName === 'FIELDSET')) await q.getByText(v, { exact: true }).click();
+    else if (k in DATE_LABEL) await pickDate(page, DATE_LABEL[k]!, v);
     else await q.fill(v);
   }
 }
+/** The questions that are dates (the shared date field takes the typed day, as the pickers do). */
+const DATE_LABEL: Record<string, RegExp> = { start: /Earliest start date/ };
 const FIELD_PASS = {
   licence: 'Yes, a full G', years: '5 years or more', record: 'None', days: ['Monday', 'Friday', 'Saturday', 'Sunday'], hours: 'Full time (35 or more)', transport: 'My own car',
   experience: ['Delivery driver'], late: 'Message the office at once, keep the renter updated and follow the office\'s instructions',

@@ -1,7 +1,7 @@
 'use client';
 import '@/features/live-map/live-map.css';
 import './tracking.css';
-import Link from 'next/link';
+import Link from '@/components/Link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { photoUrl } from '@/lib/photo';
 import { HOME_BOUNDS, MAX_BOUNDS, inBounds, type Bounds } from '@/features/live-map/config';

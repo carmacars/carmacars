@@ -22,7 +22,7 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
   const [cur, setCur] = useState(0);
   const passed = useGatePassed();
   const { ask, dialog } = usePhoneGate(gate);
-  const free = Math.max(1, gate?.free_photos ?? 6);
+  const free = Math.max(1, gate?.free_photos ?? 4);
   const scrollTo = (i: number) => {
     const t = track.current; if (!t) return; const n = Math.max(0, Math.min(photos.length - 1, i));
     const li = t.children[n] as HTMLElement | undefined;
