@@ -148,7 +148,8 @@ test('listing: an owner lists a car on a phone; the pipeline drafts and edits; a
     const [c] = await sql`select count(*)::int as n from provider_calls where intake_id = ${intake!.id}`;
     expect(c!.n).toBeGreaterThan(14);
     await phone.reload();
-    await expect(phone.getByTestId('listing-progress')).toHaveAttribute('data-state', 'needs_review');
+    // 0521: the four steps replace the Pipeline card
+    await expect(phone.getByTestId('listing-steps')).toContainText('Ready for review');
     await check(phone, 'owner progress 375');
     expect(errors.filter((e) => !/favicon|Failed to load resource/.test(e))).toEqual([]);
 
@@ -157,7 +158,7 @@ test('listing: an owner lists a car on a phone; the pipeline drafts and edits; a
     await desk.goto('/admin/listings');
     await expect(desk.getByTestId('listings')).toContainText('2022 Toyota Corolla');
     await desk.goto(`/admin/listings/${intake!.id}`);
-    await expect(desk.getByTestId('listing-progress')).toContainText('Ready for review');
+    await expect(desk.getByTestId('listing-steps')).toContainText('Ready for review');
     await check(desk, 'admin listing review 1440');
     // every public photo needs a plate decision before publishing (0042): none of the test photos shows a plate
     await desk.getByTestId('plates-none-visible').click();

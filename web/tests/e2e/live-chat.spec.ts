@@ -173,7 +173,7 @@ test('Proactive chat: customer service starts a chat from Live visitors and the 
   await signIn(staff, sales.email, '/staff');
   await staff.goto('/staff/live', { waitUntil: 'networkidle' });
   const row = staff.getByTestId('live-row').filter({ hasText: `campaign e2e/${camp}` });
-  await expect(row).toContainText('Mercedes-Benz C300', { timeout: 15_000 });
+  await expect(row).toContainText('Mercedes-Benz C-Class', { timeout: 15_000 });  // 0520: the model is the family
   await row.getByRole('button', { name: 'Start a chat' }).click();
   await row.getByLabel('Your message (the visitor sees it in a bubble)').fill('Hi, I am here if you have a question about the C300.');
   await row.getByRole('button', { name: 'Send' }).click();

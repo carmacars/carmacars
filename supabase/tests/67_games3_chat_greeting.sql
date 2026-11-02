@@ -106,10 +106,11 @@ update program_settings set game_weights = '{"wheel": 1, "scratch": 1, "blackjac
 -- ================================================================ 5. the chat greeting
 select test.mk_owner('g3_own');
 select test.mk_vehicle('G3V', 'g3_own');
-update vehicles set year = 2021, make = 'Mercedes-Benz', model = 'A220' where id = test.id('vehicle:G3V');
+-- r27 (0520): the model is the family (A-Class), the code its trim (A220); the greeting names the car as its name reads
+update vehicles set year = 2021, make = 'Mercedes-Benz', model = 'A-Class', trim = 'A220' where id = test.id('vehicle:G3V');
 insert into vehicle_listings (vehicle_id, slug, headline, status, published_at) values (test.id('vehicle:G3V'), 'g3-a220', 'Mercedes A220', 'published', now());
 select test.eq('the browser hears when (45 seconds) without the beacon', (public.chat_greeting('/faq') ->> 'after')::int, 45);
-select test.eq('on a car page: the car', (public.chat_greeting('/cars/g3-a220') ->> 'text'), 'Hi! Questions about the 2021 Mercedes-Benz A220? Ask me anything: prices, availability, or how to book.');
+select test.eq('on a car page: the car', (public.chat_greeting('/cars/g3-a220') ->> 'text'), 'Hi! Questions about the 2021 Mercedes-Benz A-Class? Ask me anything: prices, availability, or how to book.');
 select test.eq('on the service pages: the service',
   (public.chat_greeting('/chauffeur') ->> 'text') || ' | ' || (public.chat_greeting('/detailing/ceramic/toronto') ->> 'text') || ' | ' || (public.chat_greeting('/body-shop') ->> 'text'),
   'Hi! Questions about our chauffeur service? Ask me anything: prices, availability, or how to book. | Hi! Questions about our car detailing? Ask me anything: prices, availability, or how to book. | Hi! Questions about our body shop? Ask me anything: prices, availability, or how to book.');
@@ -127,7 +128,7 @@ update program_settings set chat_greeting_topic_text = 'Hi! Questions about {top
 insert into g3 values (200, app.server_chat_open(jsonb_build_object('vid', test.g3vid('chat'), 'page', '/faq', 'greeting', 'true', 'greeting_page', '/cars/g3-a220')));
 select test.eq('a reply opens the chat with the greeting the visitor saw (its page) as the first message, from CarmaCars',
   (select (v ->> 'ok') || ' ' || (v -> 'messages' -> 0 ->> 'sender') || ' ' || (v -> 'messages' -> 0 ->> 'body') from g3 where n = 200),
-  'true ai Hi! Questions about the 2021 Mercedes-Benz A220? Ask me anything: prices, availability, or how to book.');
+  'true ai Hi! Questions about the 2021 Mercedes-Benz A-Class? Ask me anything: prices, availability, or how to book.');
 select test.eq('the conversation says it began from the greeting', (select started_by from chat_conversations where token = (select v ->> 'token' from g3 where n = 200)), 'greeting');
 insert into g3 values (201, app.server_chat_open(jsonb_build_object('vid', test.g3vid('chat2'), 'page', '/how-it-works', 'greeting', 'true')));
 select test.eq('without its page: the greeting of the page the chat opens on',

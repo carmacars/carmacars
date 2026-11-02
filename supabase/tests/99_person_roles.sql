@@ -19,6 +19,19 @@ insert into investors (id, user_id, legal_name, investor_type, email) values (te
 update renters set user_id = test.id('pr_olga') where id = test.id('renter:pr_olga');
 update renters set user_id = test.id('pr_ora') where id = test.id('renter:pr_ora');
 update renters set user_id = test.id('pr_staff') where id = test.id('renter:pr_staff');
+-- every person of this suite has a number of their own: test.mk_owner gives every owner 416-555-0100 and test.mk_renter every
+-- renter 647-555-0199, so another suite's owner, partner or investor would otherwise share a phone with ours (555-01xx: fiction)
+update owners set phone = '416-555-0151' where id = test.id('owner:pr_olga');
+update owners set phone = '416-555-0152' where id = test.id('owner:pr_ora');
+update renters set mobile = '647-555-0153' where id = test.id('renter:pr_rita');
+update renters set mobile = '647-555-0154' where id = test.id('renter:pr_olga');
+update renters set mobile = '647-555-0155' where id = test.id('renter:pr_ora');
+update renters set mobile = '647-555-0156' where id = test.id('renter:pr_staff');
+select test.eq('fixture: no one outside this suite has these numbers',
+  (select count(*) from (select phone p from owners where id not in (test.id('owner:pr_olga'), test.id('owner:pr_ora'))
+                         union all select mobile from renters where id not in (test.id('renter:pr_rita'), test.id('renter:pr_olga'), test.id('renter:pr_ora'), test.id('renter:pr_staff'))
+                         union all select phone from partners union all select phone from investors) x
+    where app.phone_e164(p) in ('+14165550151', '+14165550152', '+16475550153', '+16475550154', '+16475550155', '+16475550156')), 0::bigint);
 create or replace function test.prt(p interval) returns text language sql stable as $$
   select to_char((now() + p) at time zone 'America/Toronto', 'YYYY-MM-DD HH24:00') $$;
 select test.mk_booking('PR-1', 'pr_car', 'pr_ora', test.prt('-20 days'), test.prt('-17 days'), 'closed');
@@ -35,7 +48,8 @@ select test.eq('an owner who has rented is both, owner first', test.prroles(test
 select test.eq('a renter who rents is a renter only', test.prroles(test.id('pr_rita'), test.id('renter:pr_rita')), 'renter');
 select test.ok('a renter has no owner id', app.person_tags(null, test.id('renter:pr_rita'), null, null) -> 'owner_id' = 'null'::jsonb);
 select test.eq('an owner is found by email alone (a form typed on the site)', test.prroles(null, null, 'PR_Olga@example.test'), 'owner');
-select test.eq('an owner is found by phone alone', test.prroles(null, null, null, '(416) 555-0100') like 'owner%', true);
+select test.eq('an owner is found by phone alone', test.prroles(null, null, null, '(416) 555-0151'), 'owner');
+select test.eq('the owner found by phone is that owner', (app.person_tags(null, null, null, '(416) 555-0151') ->> 'owner_id')::uuid, test.id('owner:pr_olga'));
 select test.eq('a stranger has no role', test.prroles(null, null, 'pr.nobody@example.test'), '');
 insert into leads (id, kind, name, email, created_at) values (test.id('lead:pr_owner'), 'owner_program', 'Pr Leadowner', 'pr.leadowner@example.test', now());
 select test.eq('an owner-program lead with no owners row yet is an owner', test.prroles(null, null, 'pr.leadowner@example.test'), 'owner');

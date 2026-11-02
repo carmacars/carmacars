@@ -1,6 +1,7 @@
 -- 19: the listing pipeline's worker, generated documents and signed file links, refunds through the
 -- payments module, the guided Deposit settlement, a document on a toll, the insurer invoice email
 -- (migration 0032). Every fixture label starts with "pd".
+-- r27 (0520): the decoded car is an EQE, a family the model rule keeps as it is (a "C 300" is saved as the C-Class, trim C300).
 select test.suite('19 pipeline documents');
 
 select test.mk_user('pd_admin', 'admin');
@@ -22,16 +23,16 @@ select test.mk_booking('PD2', 'pdX', 'pd_r2', '2026-09-05 10:00', '2026-09-07 10
 create function test.pd_answer(j jsonb) returns jsonb language sql as $$
   select case j ->> 'kind'
     when 'decode_vin' then jsonb_build_object('ok', true, 'provider', 'fake', 'units', 1, 'unit', 'requests', 'output',
-      '{"ok": true, "year": 2023, "make": "Mercedes-Benz", "model": "C 300", "trim": "4MATIC", "body_class": "Sedan", "fuel": "gasoline",
+      '{"ok": true, "year": 2023, "make": "Mercedes-Benz", "model": "EQE", "trim": "4MATIC", "body_class": "Sedan", "fuel": "gasoline",
         "seats": 5, "transmission": "automatic", "doors": 4, "drivetrain": "AWD", "engine": "2.0 L, 4 cylinders"}'::jsonb)
     when 'draft_copy' then jsonb_build_object('ok', true, 'provider', 'workers-ai', 'units', 250, 'unit', 'neurons', 'cost_microusd', 0,
       'output', jsonb_build_object(
-        'headline', 'A 2023 Mercedes-Benz C 300 4MATIC sedan with all-wheel drive',
+        'headline', 'A 2023 Mercedes-Benz EQE 4MATIC sedan with all-wheel drive',
         'description', (select string_agg('word' || g, ' ') from generate_series(1, 140) g),
         'features', jsonb_build_array('All-wheel drive', 'Automatic transmission', 'Five seats', 'Four doors', 'Gasoline engine', 'Sedan body', 'Two-litre engine', 'Rear seats'),
         'faq', jsonb_build_array(jsonb_build_object('question', 'How many seats?', 'answer', 'Five.'), jsonb_build_object('question', 'Which fuel?', 'answer', 'Gasoline.'),
                                  jsonb_build_object('question', 'Is it all-wheel drive?', 'answer', 'Yes.'), jsonb_build_object('question', 'Automatic?', 'answer', 'Yes.')),
-        'seo_title', '2023 Mercedes-Benz C 300 rental in Toronto', 'seo_description', 'Rent a 2023 Mercedes-Benz C 300 sedan in Toronto.',
+        'seo_title', '2023 Mercedes-Benz EQE rental in Toronto', 'seo_description', 'Rent a 2023 Mercedes-Benz EQE sedan in Toronto.',
         'classes', jsonb_build_array('premium', 'sedan', 'not_a_class'), 'model', '@cf/meta/llama-3.3-70b-instruct-fp8-fast', 'prompt_version', 'listing-draft-v1'))
     when 'process_photo' then jsonb_build_object('ok', true, 'provider', 'cloudflare-images', 'units', 2, 'unit', 'transformations',
       'output', jsonb_build_object('processed_path', 'vehicles/' || (j ->> 'vehicle_id') || '/' || (j -> 'photo' ->> 'file_base') || '.jpg',
@@ -90,7 +91,7 @@ select test.eq('worker: the decode comes first and the copy draft waits for it',
 select test.eq('worker: a decode job carries the VIN; a photo job carries the original, the backdrop rule and a file name',
   (select (x ->> 'vin') is not null from pd_c1, jsonb_array_elements(c -> 'jobs') x where x ->> 'kind' = 'decode_vin')
   || '/' || (select count(*) from pd_c1, jsonb_array_elements(c -> 'jobs') x where x ->> 'kind' = 'process_photo' and (x -> 'photo' ->> 'rebackground')::boolean
-              and x -> 'photo' ->> 'original_path' like 'vehicles/%' and x -> 'photo' ->> 'file_base' like '2023-mercedes-benz-c-300-pdv-%'),
+              and x -> 'photo' ->> 'original_path' like 'vehicles/%' and x -> 'photo' ->> 'file_base' like '2023-mercedes-benz-eqe-pdv-%'),
   'true/8');
 select public.server_listing_result((x ->> 'id')::uuid, test.pd_answer(x)) from pd_c1, jsonb_array_elements(c -> 'jobs') x;
 create temp table pd_c2 as select public.server_listing_claim('pd-worker', 100) c;
@@ -118,7 +119,7 @@ select test.eq('worker: processed photos carry the size variants for the site',
 
 -- ---------------------------------------------------------------- 3. budgets
 select test.mk_vehicle('pdY', 'pd_o');
-insert into vin_decodes (vin, provider, ok, raw, year, make, model) select upper(vin), 'fake', true, '{}', 2023, 'Mercedes-Benz', 'C 300' from vehicles where id = test.id('vehicle:pdY');
+insert into vin_decodes (vin, provider, ok, raw, year, make, model) select upper(vin), 'fake', true, '{}', 2023, 'Mercedes-Benz', 'EQE' from vehicles where id = test.id('vehicle:pdY');
 create temp table pd_s2 as select app.start_listing_intake(test.id('pd_admin'), jsonb_build_object('vehicle_id', test.id('vehicle:pdY'), 'colour', 'Black')) r;
 create function test.pd_i2() returns uuid language sql as $$ select ((select r from pd_s2) ->> 'intake_id')::uuid $$;
 select app.record_listing_upload(test.id('pd_admin'), test.pd_i2(), jsonb_build_object('shot_type', s.code, 'original_path', 'o/' || s.code || '.jpg'))
@@ -179,7 +180,7 @@ select test.eq('end to end: customer service approves; the car is published thro
 select test.eq('end to end: the public car page shows the drafted headline and the processed photos',
   (select (c ->> 'headline') || '/' || (jsonb_array_length(c -> 'photos') >= 10)::text
      from public.car_page((select slug from vehicle_listings where vehicle_id = test.id('vehicle:pdW'))) c),
-  'A 2023 Mercedes-Benz C 300 4MATIC sedan with all-wheel drive/true');
+  'A 2023 Mercedes-Benz EQE 4MATIC sedan with all-wheel drive/true');
 select test.eq('end to end: the public page carries no plate, VIN or original path',
   (select c::text not like '%' || v.plate || '%' and c::text not like '%' || v.vin || '%' and c::text not like '%/original/%'
      from public.car_page((select slug from vehicle_listings where vehicle_id = test.id('vehicle:pdW'))) c, vehicles v where v.id = test.id('vehicle:pdW')), true);

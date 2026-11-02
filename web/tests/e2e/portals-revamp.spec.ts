@@ -70,7 +70,7 @@ test('renter portal: Trips opens on what to do now, Account has two tabs, old ad
     await menu(page, 'renter-nav', ['Trips', 'Documents', 'Rewards', 'Account'], 'Trips');
     // what to do now, first: return the car, when, with Extend and Message us
     const now = page.getByTestId('next-step');
-    await expect(now).toContainText(/Return the \d{4} Mercedes-Benz GLC300 (today|tomorrow) at \d{1,2}:\d\d [ap]\.m\./);
+    await expect(now).toContainText(/Return the \d{4} Mercedes-Benz GLC (today|tomorrow) at \d{1,2}:\d\d [ap]\.m\./);
     await expect(now.getByTestId('now-extend')).toHaveAttribute('href', `/account/bookings/${number}/extend`);
     await expect(now.getByTestId('now-message')).toBeVisible();
     const box = await now.boundingBox();

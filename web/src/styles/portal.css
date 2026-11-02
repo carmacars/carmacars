@@ -206,10 +206,11 @@
 .ls__go { justify-self: start; margin-top: var(--s-1); }
 .ls__working { margin: var(--s-3) 0 0; }
 /* 0521: each photo of a shot, with Remove for one filed under the wrong shot */
-.lc__photos { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.lc__photo { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; min-width: 0; }
-.lc__photo img { width: 4rem; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border: 1px solid var(--grey-200); }
-.lc__ph { display: grid; place-items: center; width: 4rem; aspect-ratio: 3 / 2; background: var(--grey-100); font-size: var(--fs-xs); }
+.lc__photos { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-1); }
+.lc__photo { display: flex; align-items: center; gap: var(--s-1); flex-wrap: wrap; min-width: 0; }
+.lc__photo .btn--quiet { padding-inline: var(--s-2); }
+.lc__photo img { width: 3rem; height: auto; aspect-ratio: 3 / 2; object-fit: cover; border: 1px solid var(--grey-200); }
+.lc__ph { display: grid; place-items: center; width: 3rem; aspect-ratio: 3 / 2; background: var(--grey-100); font-size: var(--fs-xs); }
 .lc__sure { gap: var(--s-2); flex-wrap: wrap; align-items: center; }
 
 /* 0033: the booking's messages */

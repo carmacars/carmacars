@@ -1,6 +1,8 @@
 -- 11: site settings, form drafts, leads, the owner application and onboarding, government form
 -- pre-fill, exit, fee and bank changes, the owner portal, the listing pipeline, the public
 -- website reads, and row-level security on every new table (migration 0022).
+-- r27 (0520): the decoded car is an EQE, a family name the model rule keeps as it is; a "C 300" is now saved as the C-Class
+-- (trim C300 ...) and would share its model page with other suites' C-Class cars, so the model page tests below need a model of their own.
 --
 -- Every fixture label starts with "ofl" so nothing collides with the other test files.
 select test.suite('11 owners forms listings');
@@ -36,21 +38,21 @@ $$;
 
 create function test.ofl_copy() returns jsonb language sql as $$
   select jsonb_build_object(
-    'headline', 'A 2023 Mercedes-Benz C 300 with all-wheel drive and heated seats',
+    'headline', 'A 2023 Mercedes-Benz EQE with all-wheel drive and heated seats',
     'description', test.ofl_words(130),
     'features', jsonb_build_array('Heated front seats', 'Apple CarPlay', 'Android Auto', 'All-wheel drive', 'Backup camera', 'Blind spot assist', 'Keyless entry', 'LED headlights'),
     'faq', jsonb_build_array(jsonb_build_object('question', 'How many suitcases fit?', 'answer', 'Two large suitcases.'),
                              jsonb_build_object('question', 'Can I fit a child seat?', 'answer', 'Yes, two.'),
                              jsonb_build_object('question', 'Is it good in winter?', 'answer', 'Yes, with winter tires.'),
                              jsonb_build_object('question', 'What fuel does it take?', 'answer', 'Premium gasoline.')),
-    'seo_title', '2023 Mercedes-Benz C 300 rental in Toronto', 'seo_description', 'Rent this 2023 Mercedes-Benz C 300 in Toronto.',
+    'seo_title', '2023 Mercedes-Benz EQE rental in Toronto', 'seo_description', 'Rent this 2023 Mercedes-Benz EQE in Toronto.',
     'model', 'test-model', 'prompt_version', 'listing-v1')
 $$;
 
 -- what the fake worker answers for each kind of job
 create function test.ofl_output(j listing_jobs) returns jsonb language sql as $$
   select case j.kind
-    when 'decode_vin' then '{"ok": true, "year": 2023, "make": "Mercedes-Benz", "model": "C 300", "trim": "4MATIC", "body_class": "Sedan",
+    when 'decode_vin' then '{"ok": true, "year": 2023, "make": "Mercedes-Benz", "model": "EQE", "trim": "4MATIC", "body_class": "Sedan",
                              "fuel": "gasoline", "seats": 5, "transmission": "automatic", "doors": 4, "drivetrain": "AWD", "engine": "2.0L I4"}'::jsonb
     when 'draft_copy' then test.ofl_copy()
     when 'process_photo' then jsonb_build_object('processed_path', 'vehicles/processed/' || j.vehicle_photo_id || '.jpg', 'width', 2400, 'height', 1600)
@@ -501,7 +503,7 @@ select test.eq('K the worker claims the decode job (skip locked) and completes i
   (select count(*) from (select app.complete_listing_job(j.id, test.ofl_output(j), 'vpic', 0, 120) from app.claim_listing_jobs('w1', 10, array['decode_vin']) j) q), 1::bigint);
 select test.eq('K the decode fills what nobody typed (model, body, seats, transmission) and keeps what a person confirmed (trim AMG Line, colour Black)',
   (select v.model || '/' || v.trim || '/' || v.colour || '/' || v.body_type || '/' || l.seats || '/' || l.transmission || '/' || (v.spec_sources -> 'trim' ->> 'source')
-     from vehicles v join vehicle_listings l on l.vehicle_id = v.id where v.id = test.id('vehicle:oflC')), 'C 300/AMG Line/Black/Sedan/5/Automatic/person');  -- 0073: the samples' words
+     from vehicles v join vehicle_listings l on l.vehicle_id = v.id where v.id = test.id('vehicle:oflC')), 'EQE/AMG Line/Black/Sedan/5/Automatic/person');  -- 0073: the samples' words
 select test.eq('K the decode is cached and the intake waits for submission with every photo in', (select count(*) from vin_decodes where vin = (select upper(vin) from vehicles where id = test.id('vehicle:oflC'))) || '/' || (select state from listing_intakes where id = test.ofl_ki()), '1/photos_uploaded');
 select test.eq('K submit: state drafting', (app.submit_listing_intake(test.id('ofl_field'), test.ofl_ki()) ->> 'state'), 'drafting');
 select test.eq('K a copy draft and one photo job per photo',
@@ -560,11 +562,11 @@ select test.throws('K field staff do not review', format('select app.review_list
 select test.eq('K the reviewer approves without publishing yet, rewording one alt text',
   (app.review_listing(test.id('ofl_cs'), test.ofl_ki(), true, jsonb_build_object('publish', false, 'listing', jsonb_build_object('staff_note', 'The rear seats fold flat.'),
      'photos', jsonb_build_array(jsonb_build_object('photo_id', (select id from vehicle_photos where vehicle_id = test.id('vehicle:oflC') and shot_type = 'trunk' and replaced_at is null),
-                                                    'decision', 'approve', 'alt_text', 'Deep trunk of the black C 300'))))
+                                                    'decision', 'approve', 'alt_text', 'Deep trunk of the black EQE'))))
    ->> 'state'), 'approved');
 select test.eq('K the generated alt text names the car and the view; the reviewer''s wording is kept',
   (select string_agg(alt_text, ' | ' order by shot_type) from vehicle_photos where vehicle_id = test.id('vehicle:oflC') and replaced_at is null and shot_type in ('rear', 'trunk')),
-  '2023 Mercedes-Benz C 300 AMG Line in black, rear view | Deep trunk of the black C 300');
+  '2023 Mercedes-Benz EQE AMG Line in black, rear view | Deep trunk of the black EQE');
 select test.eq('K the odometer photo is approved but never public', (select is_public::text || ':' || status from vehicle_photos where vehicle_id = test.id('vehicle:oflC') and shot_type = 'odometer' and replaced_at is null), 'false:approved');
 
 -- publish refused for each missing requirement, then published
@@ -582,9 +584,9 @@ select test.ok('K fewer photos than the setting is no refusal since 0070 (the re
 update program_settings set listing_min_photos = 10 where id = (app.settings()).id;
 update vehicle_listings set headline = 'Too short' where vehicle_id = test.id('vehicle:oflC');
 select test.ok('K copy that breaks the rules is replaced by the template at publishing since 0070 (the rules still name it)', array_to_string((select app.listing_copy_problems(l.headline, l.description, l.features, l.faq) from vehicle_listings l where l.vehicle_id = test.id('vehicle:oflC')), '; ') like '%Headline must be 20 to 70 characters%');  -- 0061: the written copy's heading
-update vehicle_listings set headline = 'Elevate your drive in a 2023 Mercedes-Benz C 300 sedan' where vehicle_id = test.id('vehicle:oflC');
+update vehicle_listings set headline = 'Elevate your drive in a 2023 Mercedes-Benz EQE sedan' where vehicle_id = test.id('vehicle:oflC');
 select test.ok('K a banned phrase is named by the rules (the template replaces it at publishing, 0070)', array_to_string((select app.listing_copy_problems(l.headline, l.description, l.features, l.faq) from vehicle_listings l where l.vehicle_id = test.id('vehicle:oflC')), '; ') like '%Remove the phrase "elevate"%');
-update vehicle_listings set headline = 'A 2023 Mercedes-Benz C 300 with all-wheel drive and heated seats' where vehicle_id = test.id('vehicle:oflC');
+update vehicle_listings set headline = 'A 2023 Mercedes-Benz EQE with all-wheel drive and heated seats' where vehicle_id = test.id('vehicle:oflC');
 update vehicles set status = 'out_of_service' where id = test.id('vehicle:oflC');
 select test.throws('K refused while the vehicle is out of service', format('select app.publish_listing(%L, %L)', test.id('vehicle:oflC'), test.id('ofl_cs')), 'Out of service');
 update vehicles set status = 'available' where id = test.id('vehicle:oflC');
@@ -592,7 +594,7 @@ create temp table ofl_pub as select app.publish_listing(test.id('vehicle:oflC'),
 grant all on ofl_pub to authenticated, anon;
 create function test.ofl_slug(p_label text) returns text language sql security definer as $$ select slug from vehicle_listings where vehicle_id = test.id('vehicle:' || p_label) $$;
 select test.eq('K published: a clean slug from year, make, model and trim (0073); intake published; tasks closed; the owner is told',
-  (select (r ->> 'slug') = '2023-mercedes-benz-c-300-amg-line' from ofl_pub)::text
+  (select (r ->> 'slug') = '2023-mercedes-benz-eqe-amg-line' from ofl_pub)::text
   || '/' || (select state from listing_intakes where id = test.ofl_ki())
   || '/' || (select status from tasks where task_type = 'review_listing' and related_id = test.ofl_ki())
   || '/' || (select count(*) from app_events where code = 'owner_vehicle_listed' and entity_id = test.id('vehicle:oflC')), 'true/published/done/1');
@@ -606,7 +608,7 @@ select app.confirm_vehicle_specs(test.id('ofl_admin'), test.id('vehicle:oflD'), 
 select test.eq('L an Admin''s listing needs no review: it publishes itself when the worker is done',
   (test.ofl_list(test.id('vehicle:oflD'), test.id('ofl_admin'), 'Black') ->> 'state'), 'published');
 select test.eq('L and the listing is live', (select status from vehicle_listings where vehicle_id = test.id('vehicle:oflD')), 'published');
-select test.eq('L the twin gets its own slug (never the same address)', test.ofl_slug('oflD') <> test.ofl_slug('oflC') and test.ofl_slug('oflD') like '2023-mercedes-benz-c-300-amg-line-black%', true);
+select test.eq('L the twin gets its own slug (never the same address)', test.ofl_slug('oflD') <> test.ofl_slug('oflC') and test.ofl_slug('oflD') like '2023-mercedes-benz-eqe-amg-line-black%', true);
 update vehicle_listings set canonical_vehicle_id = test.id('vehicle:oflC') where vehicle_id = test.id('vehicle:oflD');
 select test.eq('L a fleet assistant lists a third car of the model in another colour (review not required for assistants)',
   (select (r ->> 'state') from test.ofl_list(test.id('vehicle:oflE'), test.id('ofl_fleet'), 'White') r), 'published');
@@ -619,14 +621,14 @@ select test.eq('L anon: the car page has the listing, rates, photos and the vehi
 create temp table ofl_pubtext as select public.car_page(test.ofl_slug('oflC'))::text || public.car_page(test.ofl_slug('oflD'))::text
                               || (select coalesce(string_agg(f::text, ''), '') from public.fleet() f)
                               || (select coalesce(string_agg(h::text, ''), '') from public.model_hubs() h)
-                              || public.model_hub('mercedes-benz-c-300')::text || public.vehicle_photos_public(test.ofl_slug('oflC'))::text
+                              || public.model_hub('mercedes-benz-eqe')::text || public.vehicle_photos_public(test.ofl_slug('oflC'))::text
                               || (select string_agg(path, '') from public.sitemap_rows()) as t;
 select test.eq('L anon: the twin points its canonical at the first car and is left out of the sitemap; the hub lists all three',
   (select (p ->> 'canonical_path') = '/cars/' || test.ofl_slug('oflC') and not (p ->> 'indexable')::boolean from public.car_page(test.ofl_slug('oflD')) p)::text
   || '/' || (select count(*) from public.sitemap_rows() where kind = 'car' and path in ('/cars/' || test.ofl_slug('oflC'), '/cars/' || test.ofl_slug('oflD'), '/cars/' || test.ofl_slug('oflE')))
-  || '/' || jsonb_array_length(public.model_hub('mercedes-benz-c-300') -> 'cars')
-  || '/' || (select count(*) from public.sitemap_rows() where kind = 'model_hub' and path = '/cars/mercedes-benz/c-300'), 'true/2/3/1');
-select test.eq('L anon: the fleet is rows only, no count field; filters work', (select count(*) >= 3 from public.fleet())::text || '/' || (select count(*) from public.fleet('{"make": "mercedes-benz", "model": "c-300"}')), 'true/3');
+  || '/' || jsonb_array_length(public.model_hub('mercedes-benz-eqe') -> 'cars')
+  || '/' || (select count(*) from public.sitemap_rows() where kind = 'model_hub' and path = '/cars/mercedes-benz/eqe'), 'true/2/3/1');
+select test.eq('L anon: the fleet is rows only, no count field; filters work', (select count(*) >= 3 from public.fleet())::text || '/' || (select count(*) from public.fleet('{"make": "mercedes-benz", "model": "eqe"}')), 'true/3');
 reset role;
 select test.eq('L anon: no VIN, plate, fleet number, owner, original photo path, cost, draft or private field anywhere in the public reads',
   (select bool_or(t ilike '%' || v.vin || '%' or t ilike '%' || v.plate || '%' or t ilike '%' || v.fleet_number || '%' or t ilike '%Ofl Olga%'
@@ -646,15 +648,15 @@ select test.eq('L which becomes canonical, and the car page answers with the red
   (select coalesce(canonical_vehicle_id::text, 'none') from vehicle_listings where vehicle_id = test.id('vehicle:oflD'))
   || '/' || (select (p ->> 'redirect') = '/cars/' || test.ofl_slug('oflD') from public.car_page(test.ofl_slug('oflC')) p)::text, 'none/true');
 select test.eq('L unlisting the second while another car of the model is live: 301 to the model hub',
-  (select (r ->> 'to_path') from app.unlist_listing(test.id('vehicle:oflD'), test.id('ofl_fleet'), 'Repair') r), '/cars/mercedes-benz/c-300');
+  (select (r ->> 'to_path') from app.unlist_listing(test.id('vehicle:oflD'), test.id('ofl_fleet'), 'Repair') r), '/cars/mercedes-benz/eqe');
 select test.eq('L and the first address follows (single hop, no chain)',
   (select to_path from listing_redirects where from_path = '/cars/' || test.ofl_slug('oflC'))
-  || '/' || (select count(*) from listing_redirects r1 join listing_redirects r2 on r2.from_path = r1.to_path), '/cars/mercedes-benz/c-300/0');
+  || '/' || (select count(*) from listing_redirects r1 join listing_redirects r2 on r2.from_path = r1.to_path), '/cars/mercedes-benz/eqe/0');
 select test.eq('L the last car of the model goes: 410',
   (select (r ->> 'status_code') from app.unlist_listing(test.id('vehicle:oflE'), test.id('ofl_admin'), 'Exited') r), '410');
 select test.eq('L 410 everywhere, nothing redirects to a dead page',
   (select string_agg(distinct status_code::text, ',') from listing_redirects where vehicle_id in (test.id('vehicle:oflC'), test.id('vehicle:oflD'), test.id('vehicle:oflE')))
-  || '/' || coalesce(public.model_hub('mercedes-benz-c-300')::text, 'no hub'), '410/no hub');
+  || '/' || coalesce(public.model_hub('mercedes-benz-eqe')::text, 'no hub'), '410/no hub');
 select test.eq('L the car returns with the same slug', (app.publish_listing(test.id('vehicle:oflD'), test.id('ofl_admin')) ->> 'slug') = test.ofl_slug('oflD'), true);
 select test.eq('L and its redirect is removed', exists (select 1 from listing_redirects where from_path = '/cars/' || test.ofl_slug('oflD')), false);
 select test.eq('L a resolve of an old address', (app.resolve_listing_path('/cars/' || test.ofl_slug('oflE') || '/') ->> 'status_code'), '410');
