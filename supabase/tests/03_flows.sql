@@ -470,7 +470,10 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             'academy_lesson_views', 'academy_attempts', 'academy_path_sections',
                             -- the phone number box (0280): a number given (written only by the box, like contact_captures; the switches
                             -- are settings rows) and the per-day counts written on every box shown
-                            'phone_gate_contacts', 'phone_gate_daily')
+                            'phone_gate_contacts', 'phone_gate_daily',
+                            -- fleet tracking (0400): the position history and the trips, written by the ingest (telemetry; the alerts,
+                            -- the settings and the devices are audited)
+                            'tracker_points', 'tracker_trips')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

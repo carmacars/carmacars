@@ -177,7 +177,8 @@ select test.eq('owner: another owner''s vehicle, statement and booking are invis
   + test.visible(format('select 1 from owner_statements where id = %L', test.id('st:xavier:1')))
   + test.visible($$select 1 from owner_bookings where booking_number = 'RB3'$$)
   + test.visible('select 1 from booking_splits'), 0::bigint);
-select test.eq('owner: keeps live location of her own vehicle, also during a rental', test.visible('select * from tracker_status'), 1::bigint);
+-- 0400: positions are for Admins and fleet staff only (the owner's read of tracker_status was removed)
+select test.eq('owner: no tracker positions (Admins and fleet staff only, 0400)', test.visible('select * from tracker_status'), 0::bigint);
 insert into tracker_commands (tracker_device_id, vehicle_id, command, actor_type, requested_by, reason_code, reason)
 values (test.id('trk:W1'), test.id('vehicle:W1'), 'lock', 'owner', test.id('wendy'), 'owner_protecting_vehicle', 'checking the doors');
 select test.eq('owner: her lock command during a managed rental is refused and logged as blocked',

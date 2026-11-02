@@ -32,7 +32,8 @@ export interface Pin {
 }
 export interface MapView { at: string; days: number; cap: number; hq: { lat: number; lng: number } | null; kpi: Kpi; totals: Partial<Record<LeadType, number>>; pins: Pin[]; fleet: FleetCar[];
   /** Release 26: phones and emails are in this answer ("Show contact" on); without it they are never sent. */
-  contact: boolean }
+  contact: boolean;
+  /** 0400: the fleet layer is Fleet tracking's demo mode (simulated cars) */ fleet_demo?: boolean }
 
 /** Most advanced first; the legend's order. Colours are for a dark map (each has 4.5:1 or more against #0b1020). */
 export const TYPES: Array<{ type: LeadType; label: string; short: string; colour: string }> = [

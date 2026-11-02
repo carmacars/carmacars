@@ -1,0 +1,17 @@
+[Unit]
+Description=CarmaCars: tracker relay (GT06 over TCP to the website's ingest), migration 0400
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# TRACKER_INGEST_URL and TRACKER_INGEST_KEY (Admin > Cars > Fleet tracking > Settings > Make the ingest key)
+EnvironmentFile=/opt/carmacars/tracker-relay.env
+WorkingDirectory=/opt/carmacars/repo
+ExecStart=/usr/bin/node --experimental-strip-types infra/vps/tracker-relay/relay.mjs
+Restart=always
+RestartSec=5
+DynamicUser=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

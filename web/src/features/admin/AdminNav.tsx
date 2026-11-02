@@ -15,7 +15,7 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/chat', label: 'Live chat', section: 'Customers' }, { href: '/admin/leads', label: 'Renter leads' }, { href: '/admin/reviews', label: 'Reviews' },
     { href: '/admin/damages', label: 'Damage', section: 'Problems' }, { href: '/admin/incidents', label: 'Incidents and claims' }] },
   { key: 'cars', label: 'Cars', links: [
-    { href: '/admin/vehicles', label: 'Vehicles', key: 'v' }, { href: '/admin/listings', label: 'Listings', key: 'l' }, { href: '/admin/maintenance', label: 'Maintenance' },
+    { href: '/admin/vehicles', label: 'Vehicles', key: 'v' }, { href: '/admin/vehicles/tracking', label: 'Fleet tracking' }, { href: '/admin/listings', label: 'Listings', key: 'l' }, { href: '/admin/maintenance', label: 'Maintenance' },
     { href: '/admin/vehicles/bulk-rates', label: 'Rates for many cars' }, { href: '/admin/calendar-sync', label: 'Calendar sync' }, { href: '/admin/similar-cars', label: 'Similar cars' },
     { href: '/admin/vehicles/samples', label: 'Retire or delete' }] },
   { key: 'people', label: 'People', links: [

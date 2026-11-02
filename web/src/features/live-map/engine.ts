@@ -17,7 +17,8 @@ export interface PinSpec { id: string; lng: number; lat: number; colour: string;
   photo?: { src: string | null; initial: string; route: boolean } }
 export interface CarSpec { id: string; lng: number; lat: number; colour: string; heading: number | null; label: string; photo: string | null }
 export interface Spot { x: number; y: number; w: number; h: number; bw: number; bh: number }
-export interface EngineEvents { select(id: string | null, at: Spot | null): void; hover(id: string | null, at: Spot | null): void; moved(): void }
+export interface EngineEvents { select(id: string | null, at: Spot | null): void; hover(id: string | null, at: Spot | null): void; moved(): void;
+  /** Fleet tracking (0400): a car marker was pressed. */ car?(id: string): void }
 /** Pixels the view keeps clear on each side (what sits over the map: the TV's header and filmstrip, the page's layer chips). */
 export interface Pad { top: number; right: number; bottom: number; left: number }
 
@@ -72,6 +73,9 @@ export class MapEngine {
   private seen: Set<string> | null = null;
   private lastPins: PinSpec[] = [];
   private lastCars: CarSpec[] = [];
+  private selCar: string | null = null;
+  private trail: Array<[number, number]> | null = null;
+  private zone: Array<[number, number]> | null = null;
   private pinsKey = '';
   private fitKey = '';
   private framed = false;
@@ -138,6 +142,17 @@ export class MapEngine {
   setCars(c: CarSpec[]) { this.lastCars = c; if (this.map) this.syncCars(); }
   /** Home base (the delivery origin of Program settings): a branded marker with a soft pulse, and where the arcs start. */
   setHq(at: { lat: number; lng: number } | null) { this.hqAt = at ? [at.lng, at.lat] : null; if (this.map) { this.syncHq(); this.syncPins(true); } }
+
+  /** Fleet tracking (0400): a trip's route as a line under the cars (null: none). */
+  setTrail(path: Array<[number, number]> | null) { this.trail = path && path.length > 1 ? path : null; if (this.map) this.syncLines(); }
+  /** Fleet tracking (0400): the geofence, a ring of points (null: none). */
+  setZone(ring: Array<[number, number]> | null) { this.zone = ring; if (this.map) this.syncLines(); }
+  /** Fleet tracking (0400): the chosen car's ring stands out. */
+  selectCar(id: string | null) { this.selCar = id; for (const [k, v] of this.cars) v.el.classList.toggle('lm-car--sel', k === id); }
+  /** The map's box changed size (a layout that settles after the map started). */
+  resize() { this.map?.resize(); }
+  /** Moves the map to a point (a car or an alert). */
+  flyTo(lng: number, lat: number, zoom = 12) { this.map?.easeTo({ center: [lng, lat], zoom: Math.max(this.map.getZoom(), zoom), duration: 700 }); }
 
   /** Frames `home` (the owner's box) edge to edge inside what `pad` leaves clear, never closer than a city
    * (FRAME_MAX_ZOOM). When a pin would then sit under the UI (a photo pin's half size counts), it frames `all` (the box
@@ -213,7 +228,10 @@ export class MapEngine {
             progress: ['+', ['case', ['==', ['get', 'stage'], 'progress'], 1, 0]], site: ['+', ['case', ['==', ['get', 'stage'], 'site'], 1, 0]], past: ['+', ['case', ['==', ['get', 'stage'], 'past'], 1, 0]] } },
         ripples: { type: 'geojson', data: EMPTY },
         heat: { type: 'geojson', data: EMPTY },
-        arcs: { type: 'geojson', data: EMPTY, lineMetrics: true }
+        arcs: { type: 'geojson', data: EMPTY, lineMetrics: true },
+        // Fleet tracking (0400): a trip's route and the geofence
+        trail: { type: 'geojson', data: EMPTY },
+        zone: { type: 'geojson', data: EMPTY }
       },
       layers: [
         // the land round the GTA: a deep slate; the GTA's municipalities a shade lighter, so the region reads at a glance
@@ -266,6 +284,11 @@ export class MapEngine {
           layout: { 'symbol-placement': 'line', 'symbol-spacing': 900 * k, 'text-field': ['upcase', ['get', 'name']], 'text-font': ['noto-regular'], 'text-size': 10 * k,
             'text-letter-spacing': 0.45, 'text-offset': [0, -1.2], 'text-padding': 10 * k, 'text-max-angle': 25 },
           paint: { 'text-color': '#56637d', 'text-opacity': 0.7 } },
+        // the geofence (Fleet tracking): a faint fill and a dashed edge; a trip's route: a cyan line with a soft glow
+        { id: 'zone-fill', type: 'fill', source: 'zone', paint: { 'fill-color': '#22d3ee', 'fill-opacity': 0.04 } },
+        { id: 'zone-edge', type: 'line', source: 'zone', paint: { 'line-color': '#22d3ee', 'line-width': 1.2 * k, 'line-opacity': 0.5, 'line-dasharray': [3, 3] } },
+        { id: 'trail-glow', type: 'line', source: 'trail', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#22d3ee', 'line-width': 8 * k, 'line-blur': 6 * k, 'line-opacity': 0.35 } },
+        { id: 'trail', type: 'line', source: 'trail', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#a5f3fc', 'line-width': 2.4 * k } },
         // the delivery arcs from home base: a faint gradient line, and a dash travelling along it
         { id: 'arc', type: 'line', source: 'arcs', layout: { 'line-cap': 'round' }, paint: { 'line-width': 1.4 * k,
           'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(250,250,250,0.05)', 1, 'rgba(52,211,153,0.6)'] } },
@@ -361,7 +384,13 @@ export class MapEngine {
     return { x: p.x - 6, y: p.y - 6, w: 12, h: 12, bw: this.box.clientWidth, bh: this.box.clientHeight };
   }
 
-  private render() { this.syncHq(); this.syncPins(); this.syncCars(); }
+  private render() { this.syncHq(); this.syncPins(); this.syncCars(); this.syncLines(); }
+
+  private syncLines() {
+    this.map.getSource('trail')?.setData(this.trail ? { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'LineString', coordinates: this.trail }, properties: {} }] } : EMPTY);
+    this.map.getSource('zone')?.setData(this.zone ? { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Polygon', coordinates: [this.zone] }, properties: {} }] } : EMPTY);
+    this.box.dataset.trail = String(this.trail?.length ?? 0);
+  }
 
   private syncPins(force = false) {
     const key = JSON.stringify([this.hqAt, this.lastPins.map((p) => [p.id, p.lng, p.lat, p.colour, p.hot, p.live, p.photo?.src ?? p.photo?.initial ?? ''])]);
@@ -548,7 +577,14 @@ export class MapEngine {
         const el = document.createElement('div');
         el.className = 'lm-car';
         el.setAttribute('role', 'img');
-        el.innerHTML = `<span class="lm-car__arrow" aria-hidden="true"></span><span class="lm-car__body" aria-hidden="true">${s.photo ? `<img alt="" src="${encodeURI(s.photo)}" decoding="async">` : ''}</span>`;
+        el.innerHTML = `<span class="lm-car__arrow" aria-hidden="true"></span><span class="lm-car__body" aria-hidden="true">${s.photo ? `<img alt="" src="${encodeURI(s.photo)}" decoding="async">` : `<span class="lm-car__shape">${CAR_SILHOUETTE}</span>`}</span>`;
+        // Fleet tracking (0400): a car can be chosen (a button then, for the keyboard too)
+        if (this.ev.car) {
+          const id = s.id;
+          el.setAttribute('role', 'button'); el.tabIndex = 0; el.classList.add('lm-car--pick');
+          el.addEventListener('click', (e) => { e.stopPropagation(); this.ev.car?.(id); });
+          el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.ev.car?.(id); } });
+        }
         const marker = new this.ml.Marker({ element: el, anchor: 'center' }).setLngLat([s.lng, s.lat]).addTo(this.map);
         v = { el, marker, lng: s.lng, lat: s.lat, anim: 0 };
         this.cars.set(s.id, v);
@@ -556,11 +592,13 @@ export class MapEngine {
       v.el.style.setProperty('--c', s.colour);
       v.el.style.setProperty('--h', `${s.heading ?? 0}deg`);
       v.el.classList.toggle('lm-car--still', s.heading === null);
+      v.el.classList.toggle('lm-car--sel', s.id === this.selCar);
       v.el.setAttribute('aria-label', s.label);
       if (v.lng !== s.lng || v.lat !== s.lat) this.glide(v, s.lng, s.lat);
     }
     for (const [id, v] of this.cars) if (!seen.has(id)) { cancelAnimationFrame(v.anim); v.marker.remove(); this.cars.delete(id); }
     this.layout();
+    this.box.dataset.cars = String(this.lastCars.length);
   }
 
   /** The labels' keep-out squares: every photo pin (where it is drawn, once moved aside), home base and car, at its size on screen. */
