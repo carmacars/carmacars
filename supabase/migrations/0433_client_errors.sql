@@ -13,6 +13,7 @@ create table client_errors (
 );
 create index client_errors_created on client_errors (created_at desc);
 alter table client_errors enable row level security;
+create policy admin_all on client_errors for all to authenticated using (app.is_admin()) with check (app.is_admin());
 comment on table client_errors is 'Crashes reported by visitors'' browsers (0433): service role only, kept 30 days.';
 
 create or replace function public.server_client_error(p jsonb) returns text
