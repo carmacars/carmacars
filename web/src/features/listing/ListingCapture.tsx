@@ -89,8 +89,8 @@ export function ListingCapture({ initial, refresh = [] }: { initial: Capture; re
         })}
       </ol>
       {!c.submitted && c.may_upload && <p>
-        <button className="btn btn--primary" type="button" disabled={pending || (c.missing.length > 0 && done > 0) || !!busy} onClick={submit} data-testid="listing-submit">{pending ? 'Submitting' : done === 0 ? 'Submit without photos (sample photos)' : 'Submit for listing'}</button>
-        {c.missing.length > 0 && <span className="small muted"> Still needed: {c.missing.join(', ')}.</span>}
+        <button className="btn btn--primary" type="button" disabled={pending || !!busy} onClick={submit} data-testid="listing-submit">{pending ? 'Submitting' : done === 0 ? 'Submit without photos (sample photos)' : 'Submit for listing'}</button>
+        {c.missing.length > 0 && <span className="small muted"> {done > 0 ? 'Can be added later' : 'Still needed'}: {c.missing.join(', ')}.</span>}
       </p>}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
     </section>

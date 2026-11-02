@@ -18,6 +18,7 @@ import { SHELL_MARK_SCRIPT } from '@/lib/native/shell';
 import { businessLd, websiteLd } from '@/features/seo/business';
 import { getHubLinks, getSeoLinks } from '@/features/seo/data';
 import { cookieWording, getSettings, photoUrl, replyText, siteUrl } from '@/lib/site';
+import { ClientErrorListener } from '@/lib/client-error/Listener';
 import { openRoles } from '@/server/careers';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -61,6 +62,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Effects />
         <SiteAssist />
         <AppShellMount />
+        <ClientErrorListener />
       </body>
     </html>
   );
