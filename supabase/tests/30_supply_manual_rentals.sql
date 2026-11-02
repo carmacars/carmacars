@@ -70,7 +70,8 @@ select test.ok('Paid and signed lists owners in the owner program only',
 
 -- ================================================================ 2. rentals added by hand
 create or replace function test.smr(p_vehicle uuid, p_from interval, p_to interval, p jsonb default '{}'::jsonb) returns jsonb language sql as $$
-  select jsonb_build_object('vehicle_id', p_vehicle, 'pickup_at', test.base() + p_from, 'return_at', test.base() + p_to,
+  select jsonb_build_object('vehicle_id', p_vehicle, 'pickup_at', case when p_from < interval '0' then date_trunc('hour', now()) else test.base(5) end + p_from,
+                            'return_at', case when p_from < interval '0' then date_trunc('hour', now()) else test.base(5) end + p_to,
                             'source', 'phone', 'coverage_option', 1, 'renter_id', test.id('renter:sm_rita')) || p
 $$;
 -- paid another way, by an Admin, on the company car
@@ -93,7 +94,7 @@ select test.ok('added: audited, and the booking history says staff added it',
   exists (select 1 from audit_log a where a.action = 'manual_rental_create' and a.entity_id = (test.smb('r1')).id::text and a.actor_user_id = test.id('sm_admin'))
   and exists (select 1 from booking_events e where e.booking_id = (test.smb('r1')).id and e.kind = 'added_by_staff'));
 select set_config('request.jwt.claim.sub', test.id('sm_admin')::text, false);
-select test.ok('added: on the master calendar', exists (select 1 from app.master_calendar(now(), now() + interval '10 days') m where m.booking_id = (test.smb('r1')).id and m.is_blocking));
+select test.ok('added: on the master calendar', exists (select 1 from app.master_calendar(test.base(5) - interval '1 day', test.base(5) + interval '10 days') m where m.booking_id = (test.smb('r1')).id and m.is_blocking));
 select set_config('request.jwt.claim.sub', '', false);
 select test.eq('added: the cleaning turnaround after it', (select count(*) from vehicle_calendar_blocks k where k.vehicle_id = test.smv('company_car')
   and k.reason = 'cleaning' and k.removed_at is null and k.starts_at = (test.smb('r1')).return_at), 1::bigint);

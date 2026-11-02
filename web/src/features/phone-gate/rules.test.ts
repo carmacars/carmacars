@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { draftPhone, formatAsTyped, gateNumber, gateOn, GATE_OFF, GATE_TEXT, passValid, passValue, photoLocked, PASS_DAYS, type GateRules } from './rules.ts';
+import { draftPhone, formatAsTyped, gateNumber, gateOn, cardPhotoCap, GATE_OFF, GATE_TEXT, passValid, passValue, photoLocked, PASS_DAYS, type GateRules } from './rules.ts';
 
 // The phone number box (migration 0280): the number, the format as typed, the photos that need it, remembering a device.
-const ON: GateRules = { ...GATE_OFF, gallery: true, dates: true, free_photos: 6 };
+const ON: GateRules = { ...GATE_OFF, gallery: true, dates: true, free_photos: 4 };
 const VID = '0f8fad5b-d9cb-469f-a165-70867728950e';
 const OTHER = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 
@@ -31,19 +31,27 @@ test('formatted as it is typed', () => {
   assert.equal(formatAsTyped('(647) 555-1234'), '(647) 555-1234', 'formatting again changes nothing');
 });
 
-test('photos: the first 6 free, never on a car with 6 or fewer, nothing when the box is off', () => {
-  assert.equal(photoLocked(5, 12, ON), false);
-  assert.equal(photoLocked(6, 12, ON), true);
+test('photos: the first 4 free, never on a car with 4 or fewer, nothing when the box is off', () => {
+  assert.equal(photoLocked(3, 12, ON), false);
+  assert.equal(photoLocked(4, 12, ON), true);
   assert.equal(photoLocked(11, 12, ON), true);
-  assert.equal(photoLocked(5, 6, ON), false);
   assert.equal(photoLocked(3, 4, ON), false);
-  assert.equal(photoLocked(6, 7, ON), true);
+  assert.equal(photoLocked(2, 3, ON), false);
+  assert.equal(photoLocked(4, 5, ON), true);
   assert.equal(photoLocked(8, 12, { ...ON, gallery: false }), false);
   assert.equal(photoLocked(2, 12, { ...ON, free_photos: 2 }), true);
   assert.equal(photoLocked(8, 12, null), false);
   assert.equal(gateOn(ON, 'dates'), true);
   assert.equal(gateOn(ON, 'request'), false);
   assert.equal(gateOn(undefined, 'dates'), false);
+});
+
+test('a car card shows at most 5 photos, fewer when the box leaves fewer free (4 by default)', () => {
+  assert.equal(cardPhotoCap(null), 5);
+  assert.equal(cardPhotoCap({ ...ON, gallery: false }), 5);
+  assert.equal(cardPhotoCap(ON), 4);
+  assert.equal(cardPhotoCap({ ...ON, free_photos: 2 }), 2);
+  assert.equal(cardPhotoCap({ ...ON, free_photos: 9 }), 5);
 });
 
 test('remembering a device: this visitor id, 90 days, no number in the cookie', () => {

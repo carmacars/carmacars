@@ -4,8 +4,8 @@ The owner, October 31, 2026: ask renters for their mobile number before parts of
 light so it does not cost bookings.
 
 - **Where it asks** (each an Admin setting, Settings, **Phone number box**):
-  - **More photos** (on): past the first 6 photos of a car (`phone_gate_free_photos`), by the arrows, the thumbnails,
-    the keys or a swipe. Never on a car with 6 photos or fewer. The number given goes on to the photo tapped.
+  - **More photos** (on): past the first 4 photos of a car (`phone_gate_free_photos`; 6 until migration 0490, November 2026), by the arrows, the thumbnails,
+    the keys or a swipe. Never on a car with 4 photos or fewer. The number given goes on to the photo tapped.
   - **Full availability** (on): the booked days on a car's calendar (a "See full availability" link above it) and the
     cars booked for the chosen dates on the cars page ("Also show cars booked for my dates", "Show them anyway").
     Picking dates and seeing whether that car is free for them, with its price, is never asked.
