@@ -14638,6 +14638,8 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes: number;
           notify_not_back: boolean;
           notify_not_back_minutes: number;
+          app_store_url: string | null;
+          play_store_url: string | null;
         };
         Insert: {
           id?: string;
@@ -15218,6 +15220,8 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes?: number;
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
+          app_store_url?: string | null;
+          play_store_url?: string | null;
         };
         Update: {
           id?: string;
@@ -15798,6 +15802,8 @@ export type Database = {
           notify_pickup_unrecorded_admin_minutes?: number;
           notify_not_back?: boolean;
           notify_not_back_minutes?: number;
+          app_store_url?: string | null;
+          play_store_url?: string | null;
         };
         Relationships: [];
       };
@@ -21090,6 +21096,7 @@ export type Database = {
           notify_channel_by: string | null;
           greeting_name: string | null;
           is_test: boolean | null;
+          alerts_asked_at: string | null;
         };
         Insert: {
           id?: string;
@@ -21111,6 +21118,7 @@ export type Database = {
           notify_channel_by?: string | null;
           greeting_name?: string | null;
           is_test?: boolean | null;
+          alerts_asked_at?: string | null;
         };
         Update: {
           id?: string;
@@ -21132,6 +21140,7 @@ export type Database = {
           notify_channel_by?: string | null;
           greeting_name?: string | null;
           is_test?: boolean | null;
+          alerts_asked_at?: string | null;
         };
         Relationships: [];
       };
@@ -25199,6 +25208,7 @@ export type Database = {
       admin_record_tracker_installed: { Args: { p_vehicle: string; p_admin: string; p_on?: string }; Returns: undefined };
       admin_save: { Args: { p_admin: string; p_table: string; p: Json }; Returns: Json };
       admin_set_vehicle_terms: { Args: { p_vehicle: string; p_admin: string; p_terms?: Json }; Returns: Json };
+      app_links: { Args: never; Returns: Json };
       article: { Args: { p_slug: string }; Returns: Json };
       articles_public: { Args: never; Returns: Json };
       booking_car: { Args: { p_slug: string }; Returns: Json };
@@ -25408,6 +25418,8 @@ export type Database = {
       server_ai_interview_start: { Args: { p_token: string; p?: Json }; Returns: Json };
       server_ai_interview_transcript: { Args: { p: Json }; Returns: Json };
       server_ai_interviews_due: { Args: { p_limit?: number }; Returns: Json };
+      server_alerts_ask: { Args: { p_user: string }; Returns: Json };
+      server_alerts_asked: { Args: { p_user: string; p_answer: string }; Returns: Json };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };

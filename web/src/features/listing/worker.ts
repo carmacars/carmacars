@@ -7,6 +7,7 @@ import type { PhotoOut, PhotoProcessor } from '../../integrations/photos/types.t
 import { DEFAULT_RULES, DRAFT_SCHEMA, PROMPT_VERSION, draftProblems, normalizeDraft, systemPrompt, userPrompt, type CopyRules, type Draft } from './prompt.ts';
 import { plainDraft } from '../seo/copy.ts';
 import { LETTERING, letteringPath, letteringPng } from './lettering.ts';
+import { WINDOW_SHOTS, readAlpha, windowPlan, type WindowPlan } from './window-check.ts';
 
 // 0073: the sample cars' black studio with the model's name behind the car (was brand_background_v1, a light grey room)
 export const PRESET = 'studio_v2';
@@ -197,6 +198,7 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     ? { ok: false, provider: d.photos.name, error: `${o.reason}: ${o.message}`, retryable: true, ...imageCost(n, b, used) } : null;
   let out: PhotoOut;
   let size = EXTERIOR;
+  let windowsPlan: WindowPlan | null = null;
   if (p.rebackground) {
     const cut = await d.photos.cutout(src);
     if (!cut.ok) return fail(cut) ?? fallback(d, j, cut.reason, cut.message, n, b, used);
@@ -215,14 +217,36 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     out = await d.photos.composite({ backdropUrl: d.files.publicUrl(BACKDROP_PATH), shadowUrl: d.files.publicUrl(SHADOW_PATH), cutoutUrl: await d.files.privateUrl(cutPath), lettering, ...EXTERIOR });
   } else {
     size = INTERIOR;
-    out = await d.photos.normalize({ sourceUrl: src, ...INTERIOR });
+    // 0521: a dashboard or seats photo: what shows through the windows is replaced by the studio when the cut-out
+    // passes the quality check (window-check.ts), else blurred; a failed cut-out leaves the photo as edited before
+    const w = WINDOW_SHOTS.includes(p.angle) || WINDOW_SHOTS.includes(p.shot_type) ? await windows(d, j, src) : null;
+    if (w?.out) { n += w.n; out = w.out; windowsPlan = w.plan; }
+    else { n += w?.n ?? 0; out = await d.photos.normalize({ sourceUrl: src, ...INTERIOR }); }
   }
   if (!out.ok) return fail(out) ?? fallback(d, j, out.reason, out.message, n, b, used);
   n += out.transformations;
   const path = `vehicles/${j.vehicle_id}/${p.file_base}.${ext(out.contentType)}`;
   await d.files.putPublic(path, out.bytes, out.contentType);
   return { ok: true, provider: d.photos.name, ...imageCost(n, b, used),
-    output: { processed_path: path, width: size.width, height: size.height, preset_version: p.rebackground ? PRESET : 'normalize_v1', flags: [] } };
+    output: { processed_path: path, width: size.width, height: size.height, preset_version: p.rebackground ? PRESET : windowsPlan ? `windows_${windowsPlan.action}_v1` : 'normalize_v1',
+      flags: windowsPlan?.action === 'blur' ? ['windows_blurred'] : [], ...(windowsPlan ? { windows: windowsPlan } : {}) } };
+}
+
+/** 0521: the windows of an interior photo. The interior is cut out; its transparency (what the segmenter saw through the
+ *  windows) passes the quality check or not: the studio behind the windows, or the photo itself blurred behind them. No
+ *  window seen, or no cut-out: null out, and the photo is edited as before. */
+async function windows(d: WorkerDeps, j: JobContext, src: string): Promise<{ out: PhotoOut | null; n: number; plan: WindowPlan | null }> {
+  const p = j.photo!;
+  const cut = await d.photos.cutout(src);
+  if (!cut.ok) return { out: null, n: 0, plan: null };
+  const plan = windowPlan(await readAlpha(cut.bytes));
+  if (plan.action === 'none') return { out: null, n: cut.transformations, plan: null };
+  const cutPath = `vehicles/${j.vehicle_id}/work/${p.id}-interior.png`;
+  await d.files.putPrivate(cutPath, cut.bytes, 'image/png');
+  const out = await d.photos.layer(plan.action === 'replace'
+    ? { baseUrl: d.files.publicUrl(BACKDROP_PATH), overlayUrl: await d.files.privateUrl(cutPath), ...INTERIOR }
+    : { baseUrl: src, baseBlur: 40, overlayUrl: await d.files.privateUrl(cutPath), ...INTERIOR });
+  return { out: out.ok ? out : null, n: cut.transformations, plan: out.ok ? plan : null };
 }
 
 /** Transformations are off (or found no car): keep the original on the site and flag it for staff. */

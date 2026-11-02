@@ -10,7 +10,7 @@ import { ListingReview, type Plates } from '@/features/admin/ListingReview';
 import { Badge, PageHead } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import { ListingCapture, type Capture } from '@/features/listing/ListingCapture';
-import { ListingProgress, type Progress } from '@/features/listing/ListingProgress';
+import { ListingSteps, type Progress, type Steps } from '@/features/listing/ListingProgress';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Listing review', path: '/staff/listings', noindex: true, description: 'Review a listing draft and its photos.' });
@@ -25,16 +25,16 @@ export default async function VaListing({ params }: { params: Promise<{ id: stri
   if (!l) notFound();
   // possible duplicates of this car (migration 0040): an open flag that stops publishing is decided here first
   const flags = await read<Flag[]>('vehicle_similarity', { vehicle: l.vehicle_id }).catch(() => [] as Flag[]);
-  const [cap, prog, plates] = await Promise.all([door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: id }, aal), door<Record<string, Progress>>(user.id, 'ops_read', 'listing_progress', { intake: id }, aal),
-    door<Plates>(user.id, 'ops_read', 'listing_plates', { vehicle: l.vehicle_id }, aal).catch(() => null)]);
+  const [cap, prog, plates, steps] = await Promise.all([door<Capture>(user.id, 'ops_read', 'listing_capture', { intake: id }, aal), door<Record<string, Progress>>(user.id, 'ops_read', 'listing_progress', { intake: id }, aal),
+    door<Plates>(user.id, 'ops_read', 'listing_plates', { vehicle: l.vehicle_id }, aal).catch(() => null), door<Steps>(user.id, 'ops_read', 'listing_steps', { intake: id }, aal).catch(() => null)]);
   return (
     <>
       <PageHead kicker={<><Link prefetch={false} className="link" href="/staff/listings">Listings</Link>{fn === 'fleet' && <> · <Link prefetch={false} className="link" href={`/staff/vehicles/${l.vehicle_id}`} data-testid="va-listing-car">The car and its rates</Link></>}</>} title={<>{l.vehicle.name} <Badge s={l.state} /></>} />
       {l.reason && <p className="pt-note small">{l.reason}</p>}
-      {prog[id] && <ListingProgress initial={prog[id]} refresh={[`/staff/listings/${id}`]} />}
+      {steps && <ListingSteps initial={steps} progress={prog[id] ?? null} canReview hasCapture={!['published', 'cancelled'].includes(l.state)} refresh={[`/staff/listings/${id}`]} />}
       {!['published', 'cancelled'].includes(l.state) && <ListingCapture initial={cap} refresh={[`/staff/listings/${id}`]} />}
       {flags.length > 0 && <Card title="Similar cars on file" testId="listing-similar"><SimilarityTable rows={flags} base="/staff" refresh={[`/staff/listings/${id}`]} showVehicle={false} /></Card>}
-      <ListingReview l={await withOriginalUrls(l)} plates={plates} copy={await door<CarCopyData>(user.id, 'ops_read', 'car_copy', { vehicle: l.vehicle_id }, aal).catch(() => null)} />
+      <ListingReview l={await withOriginalUrls(l)} plates={plates} exterior={cap.shots.filter((x) => x.rebackground).map((x) => x.code)} copy={await door<CarCopyData>(user.id, 'ops_read', 'car_copy', { vehicle: l.vehicle_id }, aal).catch(() => null)} />
     </>
   );
 }

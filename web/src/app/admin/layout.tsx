@@ -59,7 +59,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <AdminNav counts={counts} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{gate?.admin && user ? <GuideBanner portal="admin" userId={user.id} /> : null}{gate?.admin && user ? <PushInvite portal="admin" home="/admin" /> : null}{gate?.admin ? <HubBar hubs={ADMIN_HUBS} sections={ADMIN_SECTIONS} counts={{ '/admin/listings': counts.rowListings ?? 0, '/admin/applications': counts.rowApplications ?? 0, '/admin/tolls': counts.rowTolls ?? 0,
+        <div className="ad__main">{gate?.admin && user ? <GuideBanner portal="admin" userId={user.id} /> : null}{gate?.admin && user ? <PushInvite portal="admin" home="/admin" userId={user.id} /> : null}{gate?.admin ? <HubBar hubs={ADMIN_HUBS} sections={ADMIN_SECTIONS} counts={{ '/admin/listings': counts.rowListings ?? 0, '/admin/applications': counts.rowApplications ?? 0, '/admin/tolls': counts.rowTolls ?? 0,
           '/admin/owner-money?tab=invoices': counts.rowStatements ?? 0, '/admin/owner-money?tab=statements': counts.rowStatements ?? 0, '/admin/money?tab=day': counts.rowRefunds ?? 0 }} /> : null}<RevampScope list={REVAMP_ADMIN}>{children}</RevampScope></div>
       </div>
     </div>

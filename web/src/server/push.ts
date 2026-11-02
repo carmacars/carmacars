@@ -95,3 +95,9 @@ export async function runPushJob(limit = 50): Promise<Record<string, unknown>> {
   const r = await rpc('server_push_result', { p: { results } as unknown as Json }, SR);
   return { ok: true, kinds, ...(r as Record<string, unknown>) };
 }
+
+export type AlertsAsk = { ask: boolean; why: 'staff_first' | 'owner_approved' | 'on' | null };
+/** 0523: must this person be asked to turn alerts on now (an owner once approved, staff at their first sign-in)? */
+export async function alertsAsk(userId: string): Promise<AlertsAsk | null> {
+  try { return (await rpc('server_alerts_ask', { p_user: userId }, SR)) as unknown as AlertsAsk; } catch { return null; }
+}

@@ -74,6 +74,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Referral partners (body shops, tow trucks)', (k) => k.startsWith('referral_partner_')],
   ['Advertising and owner recruitment', (k) => /^(ads_|recruit_)/.test(k)],
   ['Live visitors and live chat', (k) => /^(visitor_|chat_)/.test(k)],
+  ['The CarmaCars app (App Store and Google Play)', (k) => ['app_store_url', 'play_store_url'].includes(k)],
   ['Review requests', (k) => k.startsWith('review_')],
   ['Search copy, landing pages and reviews', (k) => /^(seo_|google_review_|indexnow_)/.test(k)],
   ['Vehicle pages', (k) => k.startsWith('vpage_')],

@@ -4,6 +4,10 @@
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; scroll-padding-top: calc(var(--header-h) + 1rem); }
 body { margin: 0; background: var(--bg); color: var(--text); font: 400 var(--fs-body)/var(--lh-body) var(--font-text); font-feature-settings: "ss01", "cv11"; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: clip; }
+/* The safety net (r27): nothing may scroll the page sideways on a phone. clip, not hidden: no scroll container, so sticky
+   headers still stick, and pinch-zoom stays allowed (the viewport sets no maximum scale). The crawl (tests/lint/crawl-roles.mjs)
+   and noOverflow (tests/e2e/helpers.ts) lift it while measuring, so an overflow is fixed at its cause, not hidden. */
+html, body { overflow-x: clip; }
 img, svg, picture { display: block; max-width: 100%; }
 img { height: auto; }
 h1, h2, h3, h4, p, ul, ol, dl, dd, figure, blockquote, fieldset { margin: 0; padding: 0; }

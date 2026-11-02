@@ -1,4 +1,5 @@
 import { nameCase } from './name-case.ts';
+import { modelFamily } from './model-family.ts';
 // VIN-first entry (migration 0082): the VIN's own rules, the decoder's answer in our words, the one summary line and the
 // colour swatches. Pure, so the browser, the server and the unit tests share it (src/features/vin/vin.test.ts).
 // The database keeps the same check (app.vin_check_ok, 0040) and decides what is stored.
@@ -135,6 +136,9 @@ export function chooseGearbox(epa: Gearbox | 'mixed' | null, vpic: { style: stri
 
 const n = (s: unknown) => { const x = String(s ?? '').trim(); return x && x !== 'Not Applicable' && x !== '0' ? x : ''; };
 
+// one model per family, the code in the trim (0520: the database applies the same rule on save)
+const family = (make: string, model: string, trim: string) => { const f = modelFamily(make, model, trim || null); return { model: f.model, trim: f.trim ?? '' }; };
+
 /** One vPIC DecodeVinValues result in the shape the listing worker and public.server_record_vin_decode store. */
 export function mapVpic(x: Record<string, unknown>): VinDecode {
   // vPIC answers in capitals: the names in the case people write them (0087), so a new car never comes in shouting
@@ -145,7 +149,7 @@ export function mapVpic(x: Record<string, unknown>): VinDecode {
   const speeds = n(x.TransmissionSpeeds);
   const style = n(x.TransmissionStyle);
   return {
-    ok: !!(year && make && model), year, make, model, trim: nameCase(trimOf(n(x.Trim) || n(x.Series)), 'trim'),
+    ok: !!(year && make && model), year, make, ...family(make, model, nameCase(trimOf(n(x.Trim) || n(x.Series)), 'trim')),
     trim_candidates: trimCandidates(n(x.Trim) || n(x.Series))?.map((t) => nameCase(t, 'trim')) ?? null, body_class: n(x.BodyClass),
     fuel: fuelOf(n(x.FuelTypePrimary), n(x.ElectrificationLevel), n(x.FuelTypeSecondary)), drivetrain: n(x.DriveType),
     transmission: style ? (speeds && !/continuously/i.test(style) ? `${style}, ${speeds} speeds` : style) : '',

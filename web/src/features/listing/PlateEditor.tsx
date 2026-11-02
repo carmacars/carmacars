@@ -4,14 +4,14 @@ import { useRouter } from 'next/navigation';
 import { photoUrl } from '@/lib/photo';
 import { staffDo, staffRead } from '@/server/actions/staff-tools';
 import { normalizePlateBoxes } from '@/features/tolls/vision-schema';
-import { clampBox, exportCovered, forSave, fromCorners, greyOf, inside, nearCorner, paint, refineBox, type NBox, type PlateStyle } from './plate-cover';
+import { clampBox, exportCovered, forSave, fromCorners, greyOf, inside, nearCorner, paint, refineBox, suggestedBoxes, type NBox, type PlateStyle } from './plate-cover';
 
 // Cover the licence plate on one listing photo (migration 0042): the vision model suggests the box when it can;
 // staff drag a box (or several) over each plate with a mouse or a finger, choose a CarmaCars plate, pixelation or
 // blur, and save. The covered photo replaces the public one; the photo as it was is kept privately. Keyboard: Tab
 // to the photo, N adds a box in the middle, the arrows move the chosen box, Shift and the arrows resize it,
 // Delete removes it.
-type Photo = { id: string; vehicle_id: string; shot_label: string | null; shot_type: string; processed_path: string | null; plate_status: string; plate_boxes: NBox[] | null; variants: Array<{ width: number }> | null };
+type Photo = { id: string; vehicle_id: string; shot_label: string | null; shot_type: string; processed_path: string | null; plate_status: string; plate_boxes: NBox[] | null; variants: Array<{ width: number }> | null; plate_suggestion?: unknown };
 type Ctx = { cover_text: string; default_style: PlateStyle; detect: boolean };
 
 export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => void }) {
@@ -20,7 +20,8 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
   const img = useRef<HTMLImageElement | null>(null);
   const drag = useRef<{ mode: 'new' | 'move' | 'size'; i: number; start: { x: number; y: number }; orig?: NBox } | null>(null);
   const [ctx, setCtx] = useState<Ctx | null>(null);
-  const [boxes, setBoxes] = useState<NBox[]>(photo.plate_boxes ?? []);
+  // 0521: the box suggested by itself when the review opened (ListingReview's PlateAutoSuggest), else the boxes saved
+  const [boxes, setBoxes] = useState<NBox[]>(() => (photo.plate_boxes?.length ? photo.plate_boxes : suggestedBoxes(photo.plate_suggestion, normalizePlateBoxes)));
   const [sel, setSel] = useState<number>(-1);
   const [style, setStyle] = useState<PlateStyle>('cover');
   const [ready, setReady] = useState(false);
@@ -80,7 +81,7 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
     setNote(`Suggested ${found.length} box${found.length > 1 ? 'es' : ''}${fixed.some((r) => r.moved) ? ', placed on the plate\'s edges' : ''}. Check each covers the whole plate; move or resize it if not.`);
   }, [photo.id, photo.vehicle_id]);
   const asked = useRef(false);
-  useEffect(() => { if (ready && ctx?.detect && !asked.current && !boxes.length && photo.plate_status === 'unchecked') { asked.current = true; void suggest(); } }, [ready, ctx, boxes.length, photo.plate_status, suggest]);
+  useEffect(() => { if (ready && ctx?.detect && !asked.current && !boxes.length && !photo.plate_suggestion && photo.plate_status === 'unchecked') { asked.current = true; void suggest(); } }, [ready, ctx, boxes.length, photo.plate_suggestion, photo.plate_status, suggest]);
 
   const at = (e: React.PointerEvent<HTMLCanvasElement>) => { const r = e.currentTarget.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; };
   const down = (e: React.PointerEvent<HTMLCanvasElement>) => {

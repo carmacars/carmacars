@@ -10,6 +10,7 @@ import { money, plural } from '@/lib/format';
 import type { CarRow } from '@/lib/types';
 import { cardPhotoCap, type GateRules } from '@/features/phone-gate/rules';
 import { usePhoneGate } from '@/features/phone-gate/usePhoneGate';
+import { familyTree, modelFamily } from '@/features/vin/model-family';
 
 // The fleet (docs/blueprint/01-public-site.md 4.2, prototype fleet page). The list of cars is in the
 // static HTML; filters apply in the browser, and chosen dates ask public.search_available which cars
@@ -48,8 +49,18 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
   // make, model and colour (the owner's request of October 31, 2026): the lists come from the cars on the site
   const makes = useMemo(() => [...new Set(cars.map((c) => c.make).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [cars]);
   const [make, setMake] = useState(() => { const m = p.get('make') ?? ''; return makes.includes(m) ? m : ''; });
-  const models = useMemo(() => [...new Set(cars.filter((c) => !make || c.make === make).map((c) => c.model).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [cars, make]);
-  const [model, setModel] = useState(() => p.get('model') ?? '');
+  // one model per family, its trims nested under it (0520: "C-Class" and "C300" are one model); grouped by make when no
+  // make is chosen. The value is the family, or "family|trim" for one trim.
+  const tree = useMemo(() => familyTree(cars.filter((c) => !make || c.make === make)), [cars, make]);
+  const models = useMemo(() => tree.flatMap((m) => m.families.flatMap((f) => [f.model, ...f.trims.map((t) => `${f.model}|${t}`)])), [tree]);
+  const [model, setModel] = useState(() => {
+    const m = p.get('model') ?? '', t = p.get('trim') ?? '';
+    if (!m) return '';
+    // an old link (?model=C300) finds its family
+    const fam = modelFamily(p.get('make') || cars.find((c) => modelFamily(c.make, m, null).model !== m)?.make || '', m, t || null);
+    return fam.trim && (t || fam.model !== m) ? `${fam.model}|${fam.trim}` : fam.model;
+  });
+  const famOf = (c: { make: string; model: string; trim?: string | null }) => modelFamily(c.make, c.model, c.trim ?? null);
   const colourOf = (c: { colour: string | null }) => (c.colour ?? '').trim().replace(/^./, (x) => x.toUpperCase());
   const colours = useMemo(() => [...new Set(cars.map(colourOf).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [cars]);
   const [col, setCol] = useState<string[]>(() => (p.get('colour') ?? '').split(',').filter((c) => colours.includes(c)));
@@ -102,7 +113,7 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
     if (seats !== 'any') q.set('seats', seats);
     if (trans !== 'any') q.set('trans', trans);
     if (make) q.set('make', make);
-    if (modelOk) q.set('model', modelOk);
+    if (modelOk) { const [m, t] = modelOk.split('|'); q.set('model', m!); if (t) q.set('trim', t); }
     if (col.length) q.set('colour', col.join(','));
     if (max < maxP) q.set('max', String(max));
     if (sort !== 'featured') q.set('sort', sort);
@@ -141,7 +152,7 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
       if (seats === '2' && st !== 2) ok = false; if (seats === '5' && st < 5) ok = false; if (seats === '7' && st < 7) ok = false;
       if (trans !== 'any' && c.transmission !== trans) ok = false;
       if (make && c.make !== make) ok = false;
-      if (modelOk && c.model !== modelOk) ok = false;
+      if (modelOk) { const f = famOf(c); const [m, t] = modelOk.split('|'); if (f.model !== m || (t && f.trim !== t)) ok = false; }
       if (col.length && !col.includes(colourOf(c))) ok = false;
       if (c.daily_rate_cents / 100 > max) ok = false;
       if (words.length) { const hay = [c.year, c.make, c.model, c.trim, c.body_style, c.fuel, ...c.classes.map((k) => labels[k] ?? k)].join(' ').toLowerCase(); if (!words.every((w) => hay.includes(w))) ok = false; }
@@ -167,7 +178,7 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
     ...(seats !== 'any' ? [['seats', seats === '2' ? '2 seats' : `${seats}+ seats`] as [string, string]] : []),
     ...(trans !== 'any' ? [['trans', trans] as [string, string]] : []),
     ...(make ? [['make', make] as [string, string]] : []),
-    ...(modelOk ? [['model', modelOk] as [string, string]] : []),
+    ...(modelOk ? [['model', modelOk.replace('|', ' ')] as [string, string]] : []),
     ...col.map((k) => ['col:' + k, k] as [string, string]),
     ...(max < maxP ? [['max', `Up to ${money(max * 100)}`] as [string, string]] : []),
     ...(qText ? [['q', `"${qText}"`] as [string, string]] : [])
@@ -234,7 +245,11 @@ function Browser({ cars, labels, classes, maxDays, gate, p, sync }: Props & { p:
                 </select>
                 <label className="filters__legend" htmlFor="fl-model">Model</label>
                 <select className="select" id="fl-model" value={modelOk} onChange={(e) => setModel(e.target.value)}>
-                  <option value="">Any model</option>{models.map((m) => <option key={m} value={m}>{m}</option>)}
+                  <option value="">Any model</option>{tree.map((g) => {
+                    const opts = g.families.flatMap((f) => [<option key={f.model} value={f.model}>{f.model}</option>,
+                      ...f.trims.map((t) => <option key={`${f.model}|${t}`} value={`${f.model}|${t}`}>{`\u00a0\u00a0\u00a0${t}`}</option>)]);
+                    return make || tree.length === 1 ? opts : <optgroup key={g.make} label={g.make}>{opts}</optgroup>;
+                  })}
                 </select>
               </div>
               {colours.length > 1 && <fieldset className="filters__group"><legend>Colour <span className="small muted">(any of these)</span></legend>

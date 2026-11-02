@@ -1,5 +1,6 @@
 import 'server-only';
-import { nativePushConfig, pushCard, pushPublicKey } from '@/server/push';
+import { alertsAsk, nativePushConfig, pushCard, pushPublicKey } from '@/server/push';
+import { appLinks } from '@/lib/site';
 import { inAppShell } from '@/server/app-shell';
 import { viewAs } from '@/server/view-as';
 import { PushAlertsCard } from './PushAlertsCard';
@@ -17,9 +18,12 @@ export async function PushAlerts({ userId, portal, className }: { userId: string
   return <PushAlertsCard publicKey={card.publicKey} native={card.native} portal={portal} initial={card.state} className={className} />;
 }
 
-export async function PushInvite({ portal, home }: { portal: PushRole; home: string | string[] }) {
+// 0523: the database says when this person must be asked whatever the device remembers (an owner once approved, staff at
+// their first sign-in); on a phone browser that cannot show alerts, the store app's link when it is set.
+export async function PushInvite({ portal, home, userId }: { portal: PushRole; home: string | string[]; userId?: string }) {
   if (await viewAs().catch(() => null)) return null;
-  if (await inAppShell()) return nativePushConfig() ? <PushPrompt publicKey={null} native portal={portal} home={home} /> : null;
-  const key = await pushPublicKey().catch(() => null);
-  return key ? <PushPrompt publicKey={key} portal={portal} home={home} /> : null;
+  const ask = userId ? await alertsAsk(userId) : null;
+  if (await inAppShell()) return nativePushConfig() ? <PushPrompt publicKey={null} native portal={portal} home={home} ask={ask} /> : null;
+  const [key, apps] = await Promise.all([pushPublicKey().catch(() => null), appLinks()]);
+  return key || apps.ios || apps.android ? <PushPrompt publicKey={key} portal={portal} home={home} ask={ask} apps={apps} /> : null;
 }

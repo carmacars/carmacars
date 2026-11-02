@@ -82,3 +82,10 @@ export async function pushStateFor(endpoint: string | null): Promise<ActionResul
     return { ok: true, data: (await rpc('server_push_state', { p_user: s.user.id, p_endpoint: endpoint ?? undefined }, SR)) as unknown as PushState };
   } catch (e) { return refused(e); }
 }
+
+/** 0523: the answer to the alerts invitation (Turn on or Not now), kept for every device of this person. */
+export async function alertsAnswered(answer: 'on' | 'later'): Promise<ActionResult<null>> {
+  const user = await (await auth()).currentUser();
+  if (!user) return { ok: false, code: 'auth', message: 'Sign in first.' };
+  try { await rpc('server_alerts_asked', { p_user: user.id, p_answer: answer === 'on' ? 'on' : 'later' }, SR); return { ok: true, data: null }; } catch (e) { return refused(e); }
+}

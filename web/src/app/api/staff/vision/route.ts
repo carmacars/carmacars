@@ -49,7 +49,7 @@ async function handle(req: Request): Promise<Response> {
     vehicle: typeof body?.vehicle === 'string' && /^[0-9a-f-]{36}$/.test(body.vehicle) ? body.vehicle : null }, aal).catch(() => undefined);
   if (!r.ok) return NextResponse.json({ ok: false, reason: r.reason, message: r.message, model, tried: r.tried });
   if (purpose === 'plate_detect' && typeof body?.photo === 'string' && /^[0-9a-f-]{36}$/.test(body.photo)) {
-    await door(user.id, 'ops_do', 'photo_plate_suggestion', { photo: body.photo, suggestion: { answer: r.data, model, at: new Date().toISOString() } }, aal).catch(() => undefined);
+    await door(user.id, 'ops_do', 'photo_plate_suggestion', { photo: body.photo, suggestion: { answer: r.data, model, at: new Date().toISOString(), ...(Number.isFinite(body?.width) && Number.isFinite(body?.height) ? { width: Number(body!.width), height: Number(body!.height) } : {}) } }, aal).catch(() => undefined);
   }
   return NextResponse.json({ ok: true, model, neurons: r.usage.neurons, data: r.data });
 }

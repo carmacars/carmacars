@@ -27,7 +27,7 @@ export default async function VaListings() {
       </PageHead>
       <Table<I> testId="listings" rows={rows} empty="No listings in progress." cols={[
         { key: 'vehicle_name', label: 'Vehicle', render: (r) => <Link prefetch={false} className="link" href={`/staff/listings/${r.id}`}><CarCell name={r.vehicle_name} photo={photos[String(r.vehicle_id)]} sub={r.plate} /></Link> },
-        { key: 'state', label: 'State', render: (r) => <Badge s={r.state} /> }, { key: 'photos', label: 'Photos', num: true }, { key: 'progress', label: 'Pipeline', render: (r) => <ProgressCell p={prog[r.id]} /> },
+        { key: 'state', label: 'State', render: (r) => <Badge s={r.state} /> }, { key: 'photos', label: 'Photos', num: true }, { key: 'progress', label: 'Work done', render: (r) => <ProgressCell p={prog[r.id]} /> },
         { key: 'listing_status', label: 'Listing', render: (r) => r.listing_status ? <Badge s={r.listing_status} /> : null }, { key: 'reason', label: 'Note', className: 'wrap' }, { key: 'updated_at', label: 'Updated', render: (r) => t(r.updated_at) }]} />
     </>
   );

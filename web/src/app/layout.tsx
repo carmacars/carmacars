@@ -17,7 +17,7 @@ import { AppShellMount } from '@/features/app-shell/AppShellMount';
 import { SHELL_MARK_SCRIPT } from '@/lib/native/shell';
 import { businessLd, websiteLd } from '@/features/seo/business';
 import { getHubLinks, getSeoLinks } from '@/features/seo/data';
-import { cookieWording, getSettings, photoUrl, replyText, siteUrl } from '@/lib/site';
+import { cookieWording, getSettings, photoUrl, replyText, siteUrl, appLinks } from '@/lib/site';
 import { ClientErrorListener } from '@/lib/client-error/Listener';
 import { openRoles } from '@/server/careers';
 
@@ -44,7 +44,7 @@ export const viewport: Viewport = { themeColor: '#000000', width: 'device-width'
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // settings and the cookie wording only: the frame runs on every page (docs/audit/2026-10-13-launch-audit.md section 9)
-  const [s, w, links, hubs, roles] = await Promise.all([getSettings(), cookieWording(), getSeoLinks().catch(() => []), getHubLinks(), openRoles()]);
+  const [s, w, links, hubs, roles, apps] = await Promise.all([getSettings(), cookieWording(), getSeoLinks().catch(() => []), getHubLinks(), openRoles(), appLinks()]);
   return (
     <html lang="en-CA" className={`${interDisplay.variable} ${inter.variable}`} suppressHydrationWarning>
       {/* the stale page guard: a script or stylesheet of an older build that fails to load reloads the page once (src/lib/chunk-guard.ts) */}
@@ -56,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <CookieBanner w={w} />
         <Header s={s} />
         <main id="main" tabIndex={-1}>{children}</main>
-        <Footer s={s} reply={replyText(s)} links={links} hubs={hubs} careers={roles.length > 0} />
+        <Footer s={s} reply={replyText(s)} links={links} hubs={hubs} careers={roles.length > 0} apps={apps} />
         {/* the business on every page (settings only), so every #business reference resolves (2026-10-23-ai-search) */}
         <JsonLd graph={[websiteLd(s, siteUrl()), businessLd(s, siteUrl(), { lite: true })]} />
         <Effects />

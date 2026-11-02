@@ -6,10 +6,17 @@ import { useState, useSyncExternalStore } from 'react';
 import { ShareIcon } from './PushAlertsCard';
 import type { PushRole } from './topics';
 import { usePushDevice } from './usePushDevice';
+import { phoneStore } from './AppDownload';
+import { alertsAnswered } from '@/server/actions/push';
+import type { AppLinks } from '@/lib/site';
+import type { AlertsAsk } from '@/server/push';
 
 // Phone and browser alerts (migration 0300): one short invitation on each portal's first page, on a device that can
 // show alerts and has not been asked. "Not now" hides it for 30 days on this device. Never shown to automation (a
 // crawler or a test browser), and never while an Admin views a portal as someone else (the layout leaves it out).
+// 0523: when the database says this person must be asked (an owner once their application is approved, staff at their
+// first sign-in), the invitation shows whatever this device remembers, and the answer is kept for every device. A phone
+// browser that cannot show alerts gets the store app's link instead, once it is set in Program settings.
 const KEY = 'cc-push-prompt';
 const QUIET_DAYS = 30;
 
@@ -30,17 +37,25 @@ function dismissed(): boolean {
   try { const t = Number(localStorage.getItem(KEY)); return t > 0 && Date.now() - t < QUIET_DAYS * 86_400_000; } catch { return false; }
 }
 
-export function PushPrompt({ publicKey, portal, home, native = false }: { publicKey: string | null; portal: PushRole; home: string | string[]; native?: boolean }) {
+const NO_APPS: AppLinks = { ios: null, android: null };
+export function PushPrompt({ publicKey, portal, home, native = false, ask = null, apps = NO_APPS }:
+  { publicKey: string | null; portal: PushRole; home: string | string[]; native?: boolean; ask?: AlertsAsk | null; apps?: AppLinks }) {
   const path = usePathname();
   const homes = Array.isArray(home) ? home : [home];
-  // asked on this device in the last 30 days, or a test browser: no invitation (the server render never has one)
-  const quiet = useSyncExternalStore(noop, () => dismissed() || navigator.webdriver === true, () => true);
+  const must = ask?.ask === true;
+  // asked on this device in the last 30 days (unless the database says ask now), or a test browser: no invitation (the
+  // server render never has one)
+  const quiet = useSyncExternalStore(noop, () => (!must && dismissed()) || navigator.webdriver === true, () => true);
+  const store = useSyncExternalStore(noop, () => (native ? null : phoneStore(navigator.userAgent, apps)), () => null);
   const [closed, setHidden] = useState(false);
   const [done, setDone] = useState(false);
   const d = usePushDevice(publicKey, portal, null, { readState: false, native });
-  if (!homes.includes(path) || quiet || closed || d.status === 'loading') return null;
-  if (!done && !(d.status === 'ready' || d.status === 'ios_install')) return null;
-  const notNow = () => { try { localStorage.setItem(KEY, String(Date.now())); } catch { /* private mode */ } setHidden(true); };
+  if (!homes.includes(path) || quiet || closed || d.status === 'loading' || ask?.why === 'on') return null;
+  const canPush = !!publicKey || native;
+  const appOnly = !done && !(canPush && (d.status === 'ready' || d.status === 'ios_install')) && !!store;
+  if (!done && !appOnly && !(canPush && (d.status === 'ready' || d.status === 'ios_install'))) return null;
+  const answer = (a: 'on' | 'later') => { if (must) void alertsAnswered(a).catch(() => undefined); };
+  const notNow = () => { try { localStorage.setItem(KEY, String(Date.now())); } catch { /* private mode */ } answer('later'); setHidden(true); };
 
   if (done) {
     return (
@@ -52,17 +67,30 @@ export function PushPrompt({ publicKey, portal, home, native = false }: { public
       </aside>
     );
   }
+  if (appOnly) {
+    return (
+      <aside className="pa-prompt" aria-label="Phone alerts" data-testid="push-prompt" data-ask={ask?.why ?? undefined}>
+        <span className="pa-prompt__icon" aria-hidden="true"><Bell /></span>
+        <div className="pa-prompt__text"><p className="pa-prompt__title">Get alerts on your phone</p><p className="small">{WHAT[portal]}</p></div>
+        <div className="pa-prompt__actions">
+          <a className="btn btn--primary btn--sm" href={store!} rel="noopener" target="_blank" onClick={() => answer('on')} data-testid="push-prompt-app">Download the CarmaCars app</a>
+          <button type="button" className="btn btn--quiet btn--sm" onClick={notNow} data-testid="push-prompt-later">Not now</button>
+        </div>
+      </aside>
+    );
+  }
   const ios = d.status === 'ios_install';
   return (
-    <aside className="pa-prompt" aria-label="Phone alerts" data-testid="push-prompt">
+    <aside className="pa-prompt" aria-label="Phone alerts" data-testid="push-prompt" data-ask={ask?.why ?? undefined}>
       <span className="pa-prompt__icon" aria-hidden="true"><Bell /></span>
       <div className="pa-prompt__text">
         <p className="pa-prompt__title">{ios ? 'Get CarmaCars alerts on your iPhone' : native ? 'Get alerts on this phone' : 'Get alerts on this device'}</p>
-        <p className="small">{ios ? <>Tap <b>Share</b> <ShareIcon /> then <b>Add to Home Screen</b>. Open CarmaCars from there to turn alerts on.</> : WHAT[portal]}</p>
+        <p className="small">{ios ? (store ? <>Download the CarmaCars app, or tap <b>Share</b> <ShareIcon /> then <b>Add to Home Screen</b>.</> : <>Tap <b>Share</b> <ShareIcon /> then <b>Add to Home Screen</b>. Open CarmaCars from there to turn alerts on.</>) : WHAT[portal]}</p>
         {d.error && <p className="small pa-prompt__error" role="alert">{d.error}</p>}
       </div>
       <div className="pa-prompt__actions">
-        {!ios && <button type="button" className="btn btn--primary btn--sm" disabled={d.busy} onClick={async () => { if (await d.turnOn()) setDone(true); }} data-testid="push-prompt-on">{d.busy ? 'Turning on…' : 'Turn on'}</button>}
+        {ios && store && <a className="btn btn--primary btn--sm" href={store} rel="noopener" target="_blank" onClick={() => answer('on')} data-testid="push-prompt-app">Download the CarmaCars app</a>}
+        {!ios && <button type="button" className="btn btn--primary btn--sm" disabled={d.busy} onClick={async () => { if (await d.turnOn()) { answer('on'); setDone(true); } }} data-testid="push-prompt-on">{d.busy ? 'Turning on…' : 'Turn on'}</button>}
         <button type="button" className="btn btn--quiet btn--sm" onClick={notNow} data-testid="push-prompt-later">Not now</button>
       </div>
     </aside>

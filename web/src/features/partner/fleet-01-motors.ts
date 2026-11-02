@@ -11,6 +11,7 @@
 // Money: whole cents. The sheet's rates are the partner's ("sheet rates"); the renter pays the sheet rate marked up
 // (10% by default) rounded to the nearest dollar, the site's whole-dollar prices; CarmaCars keeps the markup plus its
 // cut (20% of the sheet rate by default) and the partner is owed the rest of the sheet rate.
+import { modelFamily } from '../vin/model-family.ts';
 
 export interface SheetRental { name: string; base: number; multi: number; long: number }
 export type ChauffeurKind = 'chauffeur_only' | 'chauffeur_rental';
@@ -157,7 +158,9 @@ export const SPECS: Record<string, Spec> = {
 export const CARS: PartnerCar[] = SHEET_RENTALS.map((rates) => {
   const s = SPECS[rates.name];
   if (!s) throw new Error(`No car for sheet row ${rates.name}`);
-  const [make, model, trim, colour, body, seats, doors, drive, transmission, cls, year, included] = s;
+  const [make, sheetModel, sheetTrim, colour, body, seats, doors, drive, transmission, cls, year, included] = s;
+  // one model per family, the code in the trim (0520; the database applies the same rule on save)
+  const { model, trim } = modelFamily(make, sheetModel, sheetTrim);
   return { sheet: rates.name, make, model, trim, colour, body, seats, doors, drive, transmission, cls, year, included: included === true, rates };
 });
 

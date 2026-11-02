@@ -216,6 +216,17 @@ async function overflow(page) {
  *  phone number box (past the free photos of a car) are opened one by one, each measured with the page open and closed again. */
 async function overlayOverflow(page) {
   const out = [];
+  // the chat first (its launcher can be past the first toggles of a long page), open and measured
+  const chat = page.getByTestId('chat-open');
+  if (await chat.isVisible().catch(() => false)) {
+    try {
+      await chat.click({ timeout: 3000 });
+      await page.waitForTimeout(450);
+      const o = await overflow(page);
+      if (o) out.push(`chat open: ${o}`);
+      if ((await chat.getAttribute('aria-expanded').catch(() => null)) === 'true') await chat.click({ timeout: 2000 }).catch(() => {});
+    } catch { /* covered by another element: the toggles below still run */ }
+  }
   const n = await page.locator('button[aria-expanded]:visible, button[aria-haspopup]:visible').count();
   const shut = async (b) => {
     await page.keyboard.press('Escape').catch(() => {});
@@ -241,6 +252,25 @@ async function overlayOverflow(page) {
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => document.querySelectorAll('dialog[open]').forEach((d) => d.close())).catch(() => {});
   }
+  return out;
+}
+
+/** The discount game at 375 and 390: the card, then the game played open (?preview=game shows it to anyone, signed in or not). */
+async function gameOverflow(page) {
+  const out = [];
+  for (const [w, h] of [[375, 812], [390, 844]]) {
+    await page.setViewportSize({ width: w, height: h });
+    const ok = await page.goto(BASE + '/?preview=game', { waitUntil: 'load', timeout: 45_000 }).then(() => true).catch(() => false);
+    if (!ok) { out.push(`game preview did not load at ${w}`); continue; }
+    await page.waitForTimeout(900);
+    const steps = [['card', null], ['opened', 'game-open'], ['playing', 'game-play']];
+    for (const [what, id] of steps) {
+      if (id) { const b = page.getByTestId(id).first(); if (!(await b.isVisible().catch(() => false))) continue; await b.click({ timeout: 3000 }).catch(() => {}); await page.waitForTimeout(600); }
+      const o = await overflow(page);
+      if (o) out.push(`horizontal overflow at ${w}, game ${what}: ${o}`);
+    }
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
   return out;
 }
 
@@ -394,6 +424,9 @@ async function crawlRole(browser, role) {
     await page.setViewportSize({ width: 1440, height: 900 });
     for (const e of new Set(errors)) bad(role, href, `console: ${e}`);
   }
+  // the discount game (its preview, ?preview=game: the card and each game on demand) at both phone widths, by the part
+  // that renders the home page
+  if (role === 'anon' && mine('/')) for (const m of await gameOverflow(page)) bad(role, '/?preview=game', m);
   stats.shapes = shapes.size;
   stats.visited = [...shapes.keys()].sort();
   await ctx.close();
