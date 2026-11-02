@@ -122,6 +122,8 @@ export async function submitBookingRequest(input: SubmitInput): Promise<SubmitRe
     if (!res.ok) return { ok: false, code: String(res.error ?? 'refused'), message: String(res.message ?? 'We could not send the request. Please try again or call us.') };
     // 0096: how we reach the renter, chosen in the form (empty: the default)
     if (v.notifyChannel) await rpc('server_request_notify_channel', { p_booking_number: String(res.booking_number), p_channel: v.notifyChannel, p_user: user?.id }, { role: 'service_role' }).catch(() => undefined);
+    // 0410: "How did you hear about us?" (empty: not answered)
+    if (v.heardAbout) await rpc('server_booking_heard_about', { p_booking_number: String(res.booking_number), p_value: v.heardAbout }, { role: 'service_role' }).catch(() => undefined);
     // 0147: a partner's booking link sent this visitor (/p/<code>/<car>): the partner gets the lead when leads are on
     const partnerRef = (await cookies()).get(PARTNER_COOKIE)?.value ?? null;
     if (partnerRef && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(partnerRef) && partnerRef.length <= 30) await rpc('server_partner_referral', { p: { booking_number: String(res.booking_number), code: partnerRef } }, { role: 'service_role' }).catch(() => undefined);

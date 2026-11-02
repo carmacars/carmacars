@@ -28,7 +28,7 @@ import { Estimate, useQuote, type LabelTokens } from './Estimate';
 import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 import { gateOn, type GateRules } from '@/features/phone-gate/rules';
 import { gatePhone, usePhoneGate } from '@/features/phone-gate/usePhoneGate';
-import { ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, nonRefAllowed, stepOfKey, type RequestData, type RequestRules } from './schema';
+import { HEARD_ABOUT, ageOn, checkRequest, dobIso, emptyRequest, migrateExtras, nonRefAllowed, stepOfKey, type RequestData, type RequestRules } from './schema';
 
 // Request to book: five steps (0066: add-ons have their own), autosaved to form_drafts (and this device) and resumable, one schema
 // checked here and again on the server, Turnstile, and one call to submit_booking_request with an
@@ -416,6 +416,10 @@ export function RequestWizard(p: WizardProps) {
                 </fieldset>
               );
             })}
+            <div className="field"><label className="label" htmlFor="rq-heard">How did you hear about us? <span className="opt">optional</span></label>
+              <select className="select" id="rq-heard" value={d.heardAbout} onChange={(e) => set('heardAbout', e.target.value as RequestData['heardAbout'])} data-testid="rq-heard">
+                <option value="">Choose one</option>{HEARD_ABOUT.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select></div>
             <div className="field"><label className="label" htmlFor="rq-ref">Did someone refer you? <span className="opt">optional</span></label><input className="input" id="rq-ref" value={d.referrer} onChange={(e) => set('referrer', e.target.value)} aria-describedby="rq-ref-hint" /><p className="hint" id="rq-ref-hint">Their name, or the referral code from their flyer or card.</p></div>
             <div className="req__nav"><button type="button" className="btn btn--ghost" onClick={() => show(1)}>Back</button><button type="button" className="btn btn--primary btn--lg" onClick={() => { if (validate(2)) show(3); }}>Continue to licence</button></div>
           </section>

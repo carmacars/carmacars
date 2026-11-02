@@ -24,7 +24,7 @@ export const GROUPS: NavGroup[] = [
     { href: '/admin/renters', label: 'Renters', section: 'Renters, staff and investors' }, { href: '/admin/settings/staff', label: 'Staff' }, { href: '/admin/academy', label: 'Academy' }, { href: '/admin/hiring', label: 'Hiring' }, { href: '/admin/investors', label: 'Investors' },
     { href: '/admin/portals', label: 'Portals and view as' }] },
   { key: 'marketing', label: 'Marketing', links: [
-    { href: '/admin/marketing/listings', label: 'Listings', section: 'Ads' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' }, { href: '/admin/marketing/channels', label: 'Listing channels' },
+    { href: '/admin/marketing/marketplace', label: 'Marketplace', section: 'Ads' }, { href: '/admin/marketing/listings', label: 'Listings' }, { href: '/admin/marketing/ads', label: 'Posted ads' }, { href: '/admin/marketing/social', label: 'Social drafts' }, { href: '/admin/marketing/channels', label: 'Listing channels' },
     { href: '/admin/marketing/report', label: 'Bookings by channel', section: 'Results' }, { href: '/admin/marketing/recruit', label: 'Owner recruitment', section: 'Owners' }, { href: '/admin/marketing/owner-pipeline', label: 'Owner pipeline' }] },
   { key: 'money', label: 'Money', links: [
     { href: '/admin/invoices', label: 'Owner invoices', section: 'Owners' }, { href: '/admin/debits', label: 'Owner debits' }, { href: '/admin/statements', label: 'Owner statements' }, { href: '/admin/payouts', label: 'Payouts' },

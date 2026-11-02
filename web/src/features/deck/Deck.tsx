@@ -65,7 +65,7 @@ function FeatureSlide({ f, group }: { f: Feature; group: string }) {
           </figure>)}
         </div>
       ) : f.points?.length ? (
-        <div className="dk-card dk-points"><h3>How it works</h3><ul className="dk-list">{f.points.map((x) => <li key={x}>{x}</li>)}</ul></div>
+        <div className="dk-how"><p className="dk-how__k">How it works</p><ol className="dk-how__list">{f.points.map((x) => <li key={x}>{x}</li>)}</ol></div>
       ) : <div className="dk-noshot">Runs in the background: nothing to click.</div>}
     </div>
   );
@@ -111,7 +111,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
     <Head kicker="In one page" title="A rental company that grows without buying every car" lead="Owners bring their cars, CarmaCars rents them out on its own platform, and every rental carries several lines of revenue. Investors back the growth and earn a fixed yearly percentage under a written agreement." />
     <div className="dk-body"><div className="dk-grid">
       <div className="dk-card"><h3>Asset-light supply</h3><p>Owner cars pay us fixed monthly fees and a {shareRange} management fee on their rental revenue. Partner cars earn us a {pctOf(f.partner_commission_bps)} commission with no capital.</p></div>
-      <div className="dk-card"><h3>Our own platform</h3><p>Renter, owner, investor, staff, field and Admin portals, with {f.emails} automated emails, AI listings and live chat. Built, owned and run by CarmaCars.</p></div>
+      <div className="dk-card"><h3>Our own platform</h3><p>Renter, owner, investor, staff and Admin portals on one website, with {f.emails} automated emails, e-signatures, AI listings and live chat. Built, owned and run by CarmaCars.</p></div>
       <div className="dk-card"><h3>Many revenue lines</h3><p>Rental, delivery, add-ons, young driver and other renter fees, coverage, and charges after the trip, on every rental.</p></div>
       <div className="dk-card dk-card--accent"><h3>{multText}</h3><p>CarmaCars&apos; figure: a {multText} multiplier on the money we invest in the fleet. Internal, not audited.</p></div>
       <div className="dk-card dk-card--accent"><h3>{yearly} a year</h3><p>On our current offer, set in your agreement. From {$(minC)}. No Return for the {inv.lockup_months}-month lockup, then monthly.</p></div>
@@ -166,7 +166,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
   add({ title: 'How CarmaCars adds cars', node: <>
     <Head kicker="Business model" title="Three ways to add cars, two of them without capital" lead="The fleet grows with owners and partners, and CarmaCars earns on every car it rents, whoever owns it." />
     <div className="dk-body"><div className="dk-cols" style={{ ['--dk-cols' as string]: 2 }}>
-      <div className="dk-card dk-card--accent"><h3>Owner program</h3><p>Owners bring their cars. Each owner car pays CarmaCars a monthly insurance fee and a monthly tracker fee ({feeRange} a month together, by tier), plus a management fee of {shareRange} of its rental revenue.</p></div>
+      <div className="dk-card dk-card--accent"><h3>Owner program</h3><p>Owners bring their cars. Each owner car pays CarmaCars a monthly insurance fee and a monthly tracker fee ({feeRange} a month together, by tier), plus a management fee of {shareRange} of its rental revenue. By agreement, a car can instead earn its owner a flat monthly payment.</p></div>
       <div className="dk-card dk-card--accent"><h3>Brokered partner cars</h3><p>Partner rental companies list their cars with us. CarmaCars earns a {pctOf(f.partner_commission_bps)} commission on the rental charge, with no purchase and no loan.</p></div>
       <div className="dk-card"><h3>Company cars</h3><p>Cars CarmaCars owns keep 100% of their rental revenue.</p></div>
       <div className="dk-card"><h3>A marketplace partner</h3><p>A marketplace partner lists our cars under our policy, bringing renters we do not pay to find.</p></div>
@@ -267,9 +267,9 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
 
   // ---------------------------------------------------------------- the platform
   add({ title: 'The platform at a glance', tone: 'dark', node: <>
-    <Head kicker="What we built" title="One platform for everyone in the business" lead={`Seven portals on one website that works on any phone, and the automation behind them. ${groupTitles.length} features follow, each with what it is, why it matters, and the real screen.`} />
+    <Head kicker="What we built" title="One platform for everyone in the business" lead={`Portals for renters, owners, investors, staff and Admin on one website that works on any phone, and the automation behind them. ${groupTitles.length} features follow, each with what it is, why it matters, and the real screen or how it works.`} />
     <div className="dk-body"><div className="dk-cols" style={{ ['--dk-cols' as string]: 3 }}>
-      {FEATURE_GROUPS.map((g) => <div key={g.id} className="dk-card"><h3>{g.kicker}</h3><p>{g.features.map((x) => x.title).join('. ')}.</p></div>)}
+      {FEATURE_GROUPS.map((g) => <div key={g.id} className="dk-card"><h3>{g.kicker}: {g.features.length} features</h3><p>{g.features.slice(0, 4).map((x) => x.title).join('. ')}{g.features.length > 4 ? ', and more.' : '.'}</p></div>)}
     </div><p className="dk-note">Screens are shown with fictional people and sample cars.</p></div>
   </> });
 
@@ -296,20 +296,20 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
     <Head kicker="Team and operations" title="A lean team, supported by the platform" />
     <div className="dk-body"><div className="dk-grid">
       <div className="dk-card"><h3>Founder-led</h3><p>The owner runs CarmaCars as Admin: pricing, owners, partners, investors and every rule of the business.</p></div>
-      <div className="dk-card"><h3>Remote assistant team</h3><p>Customer service, fleet, finance and sales assistants, each with their own workspace, queues and targets.</p></div>
-      <div className="dk-card"><h3>Field staff</h3><p>Deliveries, handovers, returns, cleaning and photo shoots, guided step by step on a phone.</p></div>
+      <div className="dk-card"><h3>One staff portal</h3><p>Customer service, fleet, finance and sales, in person and remote, each person with the functions they hold, their queues and targets.</p></div>
+      <div className="dk-card"><h3>Field staff</h3><p>Deliveries, handovers, returns, cleaning and photo shoots, guided step by step on a phone, with card payments at the car.</p></div>
       <div className="dk-card dk-card--accent"><h3>24/7 incident line</h3><p>Renters reach us at any hour for accidents, breakdowns and emergencies{b.incident_phone ? `: ${b.incident_phone}` : ''}.</p></div>
-      <div className="dk-card"><h3>Guides for everyone</h3><p>Each portal has its own guide, kept up to date by the platform, so new people start fast.</p></div>
+      <div className="dk-card"><h3>Trained before they start</h3><p>A training academy per function, with lessons and quizzes, and a guide for every portal kept up to date by the platform.</p></div>
     </div></div>
   </> });
 
   add({ title: 'Roadmap', node: <>
     <Head kicker="Roadmap" title="What comes next" />
     <div className="dk-body"><ol className="dk-flow">
-      <li><b>Native apps</b><span>iOS and Android apps for renters, owners and staff, after the web build</span></li>
-      <li><b>GPS trackers</b><span>Location and remote immobilizer on every car; the platform&apos;s tracker interface is ready</span></li>
+      <li><b>Native apps</b><span>iOS and Android apps for renters, owners and staff; the site already installs on a phone and sends alerts</span></li>
+      <li><b>GPS trackers</b><span>Location and remote immobilizer on every car, and a tracker dashboard; the live map is ready to show each car on the road</span></li>
+      <li><b>Every rental site</b><span>Our cars on more rental sites and catalogs through the channel feeds, and more marketplaces under our policy</span></li>
       <li><b>More partner fleets</b><span>More rental companies listing their cars with us on commission</span></li>
-      <li><b>More marketplaces</b><span>More channels listing our cars under our policy</span></li>
     </ol><p className="dk-note">Plans, not promises: timing and scope may change.</p></div>
   </> });
 
