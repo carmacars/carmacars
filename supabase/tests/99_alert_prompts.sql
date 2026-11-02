@@ -57,3 +57,6 @@ values (md5('alp-sid')::uuid, md5('alp-vid')::uuid, null, 'analytics', 'Toronto'
 select test.eq('live map: a visitor on the site keeps their pin while a placeholder is open; the placeholder''s own pin is left out',
   (select format('%s %s', count(*) filter (where x ->> 'type' = 'session'), count(*) filter (where x ->> 'booking_number' = 'ALP-PH'))
      from jsonb_array_elements(app.live_map(test.id('alp_admin'), jsonb_build_object('who', jsonb_build_array(md5('alp-vid')::uuid, test.id('renter:alp_rena')))) -> 'pins') x), '1 0');
+
+-- this suite's device must not stay for the suites that count push devices (99_lead_alerts)
+delete from push_subscriptions where user_id = test.id('alp_admin');

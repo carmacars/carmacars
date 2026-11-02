@@ -57,6 +57,10 @@ end $$;
 alter table program_settings
   add column if not exists app_store_url text check (app_store_url is null or app_store_url = '' or app_store_url ~ '^https://apps\.apple\.com/[^\s]+$'),
   add column if not exists play_store_url text check (play_store_url is null or play_store_url = '' or play_store_url ~ '^https://play\.google\.com/[^\s]+$');
+-- 0463 (staff alerts) added the same two columns with a looser check: each must be a link of its own store
+alter table program_settings
+  add constraint program_settings_app_store_url_store check (app_store_url is null or app_store_url = '' or app_store_url ~ '^https://apps\.apple\.com/[^\s]+$'),
+  add constraint program_settings_play_store_url_store check (play_store_url is null or play_store_url = '' or play_store_url ~ '^https://play\.google\.com/[^\s]+$');
 comment on column program_settings.app_store_url is 'The CarmaCars app on the App Store (0523), https://apps.apple.com/... Empty until the app is live. When set, iPhones browsing the site see "Download the CarmaCars app".';
 comment on column program_settings.play_store_url is 'The CarmaCars app on Google Play (0523), https://play.google.com/... Empty until the app is live. When set, Android phones browsing the site see "Download the CarmaCars app".';
 

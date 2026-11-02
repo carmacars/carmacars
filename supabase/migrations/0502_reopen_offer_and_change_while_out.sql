@@ -38,6 +38,7 @@ begin
   return v_version;
 end $$;
 revoke all on function app.reopen_expired_offer(uuid, uuid, text) from public, anon, authenticated;
+grant execute on function app.reopen_expired_offer(uuid, uuid, text) to service_role;
 
 select pg_temp.patch_fn('app.admin_do_0030(uuid, text, jsonb)'::regprocedure,
   $o$perform app.reopen_expired_request(b.id, p_admin, nullif(btrim(p_ ->> 'note'), ''));$o$,

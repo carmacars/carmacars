@@ -32,9 +32,9 @@ insert into rx_ids select 'y', app.request_booking(test.id('renter:rx_ivan'), te
 select app.send_offer((select id from rx_ids where k = 'y'), test.id('rx_admin'), 'Offer', now() + interval '1 hour');
 select app.expire_offers(now() + interval '2 hours');
 update bookings set pickup_at = now() - interval '1 day', return_at = now() + interval '2 days' where id = (select id from rx_ids where k = 'y');
-select test.eq('1 a pickup in the past: reopened to requested, no new offer',
-  coalesce(app.reopen_expired_offer((select id from rx_ids where k = 'y'), test.id('rx_admin'))::text, 'none') || '/' || (select status::text from bookings where id = (select id from rx_ids where k = 'y')),
-  'none/requested');
+select test.eq('1 a pickup in the past: no new offer',
+  coalesce(app.reopen_expired_offer((select id from rx_ids where k = 'y'), test.id('rx_admin'))::text, 'none'), 'none');
+select test.eq('1 a pickup in the past: reopened to requested', (select status::text from bookings where id = (select id from rx_ids where k = 'y')), 'requested');
 
 -- ================================================================ 2. staff change the return while the guest has the car
 select test.mk_vehicle('rx_c', 'rx_olive');
