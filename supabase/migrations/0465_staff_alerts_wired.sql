@@ -570,7 +570,7 @@ begin
   begin
     select * into a from job_applications where id = new.application_id;
     if a.id is null or app.email_is_test(a.email) then return null; end if;
-    perform app.staff_alert('interview_expired', 'job_application', a.id, 'expired:' || coalesce(new.links_sent, 0), 'Interview link expired: ' || coalesce(a.full_name, 'an applicant'),
+    perform app.staff_alert('interview_expired', 'hiring_alert', a.id, 'expired:' || coalesce(new.links_sent, 0), 'Interview link expired: ' || coalesce(a.full_name, 'an applicant'),
       'They did not finish the AI interview in time. Send a new link or decide.', jsonb_build_object('path_admin', '/admin/hiring'));
   exception when others then
     raise warning 'interview expired alert not made: %', sqlerrm;
@@ -586,7 +586,7 @@ language plpgsql security definer set search_path = public, app as $$
 begin
   begin
     if app.email_is_test(new.email) then return null; end if;
-    perform app.staff_alert('applicant_hired', 'job_application', new.id, 'hired', 'Offer accepted: ' || coalesce(new.full_name, 'an applicant'),
+    perform app.staff_alert('applicant_hired', 'hiring_alert', new.id, 'hired', 'Offer accepted: ' || coalesce(new.full_name, 'an applicant'),
       'Their staff account is ready. Set their function and first day.', jsonb_build_object('path_admin', '/admin/hiring'));
   exception when others then
     raise warning 'hired alert not made: %', sqlerrm;
@@ -596,6 +596,43 @@ end $$;
 drop trigger if exists job_applications_z_staff_alert_hired on job_applications;
 create trigger job_applications_z_staff_alert_hired after update of status on job_applications for each row
   when (new.status = 'hired' and old.status is distinct from 'hired') execute function app.sa_applicant_hired();
+
+-- ================================================================ 10b. hiring alerts on their own entity
+-- the applicant's emails are the job_application events (one per decision sent); a staff alert about an application is
+-- kept apart (entity hiring_alert, the same id), so "nothing is emailed when a decision is recorded" stays true
+create or replace function app.sa_application() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+begin
+  begin
+    if app.email_is_test(new.email) then return null; end if;
+    perform app.staff_alert('application_new', 'hiring_alert', new.id, 'new', 'New job application: ' || coalesce(new.full_name, 'someone'),
+      coalesce(new.profile_name, ''), jsonb_build_object('path_admin', '/admin/hiring'));
+  exception when others then
+    raise warning 'application alert not made: %', sqlerrm;
+  end;
+  return null;
+end $$;
+
+create or replace function app.sa_interview() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+declare
+  a job_applications;
+begin
+  begin
+    if new.state = 'scored' and old.state is distinct from 'scored' then
+      select * into a from job_applications where id = new.application_id;
+      if a.id is null or app.email_is_test(a.email) then return null; end if;
+      perform app.staff_alert('interview_finished', 'hiring_alert', a.id, 'scored',
+        'AI interview scored: ' || coalesce(a.full_name, 'an applicant'),
+        format('%s of 100, suggests %s.', coalesce(new.interview_score::text, '?'),
+               case new.recommendation when 'live_call' then 'a live call' when 'hire' then 'hiring' when 'decline' then 'declining' when 'sales' then 'Sales' else 'a look' end),
+        jsonb_build_object('path_admin', '/admin/hiring'));
+    end if;
+  exception when others then
+    raise warning 'interview alert not made: %', sqlerrm;
+  end;
+  return null;
+end $$;
 
 -- ================================================================ 11. the academy
 create or replace function app.sa_academy_lesson() returns trigger
@@ -737,7 +774,7 @@ begin
               'sa_offer_answer', 'sa_extension', 'sa_change_request', 'sa_deposit', 'sa_card_declined', 'sa_owner_debit', 'sa_investor_test', 'sa_investment',
               'sa_investor_signed', 'sa_payout', 'sa_condition_report', 'sa_complaint_match', 'sa_chat_complaint', 'sa_message_complaint', 'sa_opt_out',
               'sa_licence_upload', 'sa_agreement_signed', 'sa_service_due', 'sa_listing_off', 'sa_owner_exit', 'sa_owner_banking', 'sa_interview_expired',
-              'sa_applicant_hired', 'sa_academy_lesson', 'sa_academy_more', 'sa_scheduled', 'sa_interview', 'sa_account_deletion', 'sa_academy_attempt'])
+              'sa_applicant_hired', 'sa_academy_lesson', 'sa_academy_more', 'sa_scheduled', 'sa_interview', 'sa_account_deletion', 'sa_academy_attempt', 'sa_application'])
   loop
     execute format('revoke all on function %s from public, anon, authenticated', f.sig);
     execute format('grant execute on function %s to service_role', f.sig);

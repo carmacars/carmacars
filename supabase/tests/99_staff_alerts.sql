@@ -10,7 +10,10 @@ insert into user_roles (user_id, role) values (test.id('sta_vtest'), 'va');
 insert into staff_profiles (user_id, staff_type, va_function) values (test.id('sta_vtest'), 'va', 'fleet');
 insert into chat_staff_prefs (user_id, last_seen_at) values (test.id('sta_fleet'), now()), (test.id('sta_vtest'), now());
 select test.mk_renter('sta_rita');
-create temp table sta_s as select id, alert_money_threshold_cents, alert_escalate_minutes, alert_escalate_enabled, alert_brief_enabled from program_settings;
+create temp table sta_s as select id, alert_money_threshold_cents, alert_escalate_minutes, alert_escalate_enabled, alert_brief_enabled,
+  sms_quiet_hours, sms_quiet_from_hour, sms_quiet_until_hour, alert_burst_count, notify_lead_burst_count from program_settings;
+-- the quiet hours and the grouping as shipped (earlier files may have changed them); restored at the end
+update program_settings set sms_quiet_hours = true, sms_quiet_from_hour = 21, sms_quiet_until_hour = 8, alert_burst_count = 50, notify_lead_burst_count = 50;
 create or replace function test.sta_who(p_code text, p_like text) returns text language sql stable as $$
   select coalesce(string_agg(l, ',' order by l), 'none') from (select distinct replace(replace(u.email, '@example.test', ''), '@carmacars.ca', '') l
     from notifications n join users u on u.id = n.user_id where n.code = p_code and n.title like p_like and (u.email like 'sta\_%@example.test' or u.email = 'verify-sa-fleet@carmacars.ca')) x $$;
@@ -97,7 +100,8 @@ insert into notification_outbox (code, category, priority, audience, to_address,
   select 'renter_late_return_first', 'transactional', 3, 'renter', 'verify-sa-renter@carmacars.ca', 'Test Renter', b.id, 'booking', b.id, '{}'::jsonb, 'sa:mirror2', 'queued' from bookings b where booking_number = 'CC-SA001';
 select app.process_events(1000);
 select test.eq('mirror: a late notice sent to a renter alerts the Admin as urgent, a test address does not',
-  (select count(*) from app_events where code = 'staff_alert_urgent' and payload ->> 'rule' = 'sent:renter_late_return_first'), 1::bigint);
+  (select count(*) from app_events where code = 'staff_alert_urgent' and payload ->> 'rule' = 'sent:renter_late_return_first'
+      and payload ->> 'booking_id' = (select id::text from bookings where booking_number = 'CC-SA001')), 1::bigint);
 
 -- the job: late field job, offer expiring, escalation, the briefs
 insert into field_jobs (id, kind, vehicle_id, assigned_to, scheduled_at, status) values (test.id('sta_job'), 'detail', test.id('vehicle:sta_car'), test.id('sta_field'), now() - interval '30 minutes', 'scheduled');
@@ -260,7 +264,7 @@ select test.eq('test accounts: a test renter''s booking makes no alert', (select
 
 -- ================================================================ 0466: quiet hours, focus, device topics, buttons, snooze, escalation, grouping
 select test.eq('quiet hours: default 21:00 to 8:00 (no row: the normal tier only); my own hours move the time',
-  (select app.alert_quiet_end(test.id('sta_fleet'), timestamptz '2031-01-10 23:30 America/Toronto') = timestamptz '2031-01-11 08:00 America/Toronto'), true);
+  (select app.alert_quiet_end(test.id('sta_fleet'), timestamptz '2031-01-10 23:30 America/Toronto') = app.sms_quiet_end(timestamptz '2031-01-10 23:30 America/Toronto')), true);
 select app.server_set_alert_prefs(test.id('sta_fleet'), '{"quiet_on": true, "quiet_from": 1320, "quiet_until": 420}');
 select test.eq('quiet hours: 22:00 to 7:00 saved', (select app.alert_quiet_end(test.id('sta_fleet'), timestamptz '2031-01-10 23:30 America/Toronto') = timestamptz '2031-01-11 07:00 America/Toronto')
   || '/' || (select app.alert_quiet_end(test.id('sta_fleet'), timestamptz '2031-01-10 21:30 America/Toronto') = timestamptz '2031-01-10 21:30 America/Toronto'), 'true/true');
@@ -363,7 +367,8 @@ delete from tasks where task_type = 'account_deletion' and related_table = 'acco
 delete from account_deletion_requests where user_id = test.id('sta_rita');
 delete from academy_attempts where user_id = test.id('sta_field');
 -- 0465 and 0466 fixtures
-update program_settings set alert_burst_count = 5;
+update program_settings p set alert_burst_count = s.alert_burst_count, notify_lead_burst_count = s.notify_lead_burst_count, sms_quiet_hours = s.sms_quiet_hours,
+  sms_quiet_from_hour = s.sms_quiet_from_hour, sms_quiet_until_hour = s.sms_quiet_until_hour from sta_s s where s.id = p.id;
 delete from staff_alert_prefs where user_id in (select id from users where email like 'sta\_%@example.test');
 delete from sign_in_events where email like 'sta\_%@example.test' or user_id in (select id from users where email like 'sta\_%@example.test');
 delete from sales_availability where staff_id = test.id('sta_sales');
