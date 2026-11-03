@@ -22,9 +22,10 @@ export function ChannelChart({ rows, money }: { rows: ChannelRow[]; money: (c: n
         <span><i aria-hidden="true" style={{ display: 'inline-block', width: '0.8rem', height: '0.8rem', marginRight: '0.35rem', background: 'var(--grey-300, #c8c8c8)' }} />Requests</span>
         <span><i aria-hidden="true" style={{ display: 'inline-block', width: '0.8rem', height: '0.8rem', marginRight: '0.35rem', background: 'var(--black, #111)' }} />Bookings</span>
       </figcaption>
-      <table className="ad-table small vh" data-testid="ads-chart-table"><caption>Requests and bookings by channel</caption>
+      {/* the chart's numbers for a screen reader: hidden in a 1px box (a table grows to its content, so it is not hidden itself) */}
+      <div className="vh"><table className="ad-table small" data-testid="ads-chart-table"><caption>Requests and bookings by channel</caption>
         <thead><tr><th scope="col">Channel</th><th scope="col">Requests</th><th scope="col">Bookings</th><th scope="col">Revenue</th></tr></thead>
-        <tbody>{rows.map((r) => <tr key={r.channel}><td>{r.label}</td><td>{r.requests}</td><td>{r.bookings}</td><td>{money(r.revenue_cents)}</td></tr>)}</tbody></table>
+        <tbody>{rows.map((r) => <tr key={r.channel}><td>{r.label}</td><td>{r.requests}</td><td>{r.bookings}</td><td>{money(r.revenue_cents)}</td></tr>)}</tbody></table></div>
     </figure>
   );
 }

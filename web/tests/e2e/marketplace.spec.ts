@@ -71,6 +71,8 @@ for (const phone of [false, true]) {
       await dlg.getByLabel(/Numbers collected/).fill(`Casey Example, ${number}`);
       await page.getByTestId('mp-inbox-log-submit').click();
       await expect(page.getByTestId('mp-log')).toContainText('9 chats', { timeout: 30_000 });
+      // (the other width's run logs "9 chats" too, so the log row alone does not say this save is done: wait for the lead)
+      await expect.poll(async () => (await sql`select count(*)::int n from leads where source = 'fb_marketplace' and phone = ${'+1' + number}`)[0]!.n, { timeout: 30_000 }).toBe(1);
       const [lead] = await sql`select id from leads where source = 'fb_marketplace' and phone = ${'+1' + number}`;
       expect(lead).toBeTruthy();
       const [task] = await sql`select queue, status from tasks where task_type = 'marketplace_callback' and related_id = ${lead!.id}`;

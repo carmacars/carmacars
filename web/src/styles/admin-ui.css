@@ -67,6 +67,8 @@
   .ad__rail .gn__group + .gn__group { border-top: 0; }
   .ad__rail .gn__head, .ad__rail .gn__single { min-height: 38px; border-radius: 8px; margin-inline: var(--s-2); width: calc(100% - var(--s-4)); padding-inline: var(--s-2); }
   .ad__rail .gn__head:hover, .ad__rail .gn__single:hover { background: var(--grey-50); }
+  /* the current one-link area keeps its black under the pointer (its white text on the hover grey failed contrast) */
+  .ad__rail .gn__single[aria-current="page"]:hover { background: var(--black); }
   .ad__rail .gn__links a { min-height: 34px; padding-left: var(--s-5); }
   .ad__rail .gn__section { padding-left: var(--s-5); }
 }

@@ -83,7 +83,7 @@ test('Live visitors: a visitor viewing six cars shows with a viewing spree for c
   await signIn(staff, cs.email, '/staff');
   await openMenuIfPhone(staff, 'va-nav');
   // r27 consolidation: Live visitors and Live chat are one Visitors page in the role's own group, always open
-  await expect(staff.getByTestId('va-nav').getByRole('link', { name: 'Visitors', exact: true })).toBeVisible();
+  await expect(staff.getByTestId('va-nav').getByRole('link', { name: /^Visitors\s*\d*$/ })).toBeVisible();
   for (const old of ['Live visitors', 'Live chat']) await expect(staff.getByTestId('va-nav').getByRole('link', { name: old, exact: true })).toHaveCount(0);
   // the old address lands on Live now
   await staff.goto('/staff/live', { waitUntil: 'networkidle' });
@@ -209,7 +209,7 @@ test('Admin: Visitors and Live chat in the menu, a car shows its interest, the r
   await signIn(page, email, '/admin');
   await openMenuIfPhone(page, 'admin-nav');
   // Release 26: Live visitors is the Live now of Today > Visitors; the old address lands there
-  await expect(page.getByTestId('admin-nav').getByRole('link', { name: 'Visitors', exact: true })).toBeAttached();
+  await expect(page.getByTestId('admin-nav').getByRole('link', { name: /^Visitors\s*\d*$/ })).toBeAttached();
   await page.goto('/admin/live', { waitUntil: 'networkidle' });
   await expect(page).toHaveURL(/\/admin\/visitors$/);
   await expect(page.getByTestId('live-visitors')).toBeVisible();

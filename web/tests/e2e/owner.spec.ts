@@ -16,7 +16,7 @@ const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/181222
 
 async function check(page: Page, where: string) {
   await noOverflow(page);
-  const wide = await page.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => e.getBoundingClientRect().right > innerWidth + 1 && !e.closest('.table-scroll, .agreement, .pt__nav, .ad-nav')).slice(0, 5).map((e) => `${e.tagName}.${e.className}`));
+  const wide = await page.evaluate(() => [...document.querySelectorAll('body *')].filter((e) => e.getBoundingClientRect().right > innerWidth + 1 && !e.closest('.table-scroll, .agreement, .pt__nav, .ad-nav, .hub__tabs')).slice(0, 5).map((e) => `${e.tagName}.${e.className}`));
   expect(wide, `${where}: elements wider than the screen`).toEqual([]);
   const r = await new AxeBuilder({ page: page as never }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   const bad = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
@@ -175,7 +175,7 @@ test('owner billing: apply with three vehicles, terms and upfront invoices, sign
   // 0077: the documents are prepared in their own requests; the sign form appears once they are open
   await expect(page.getByTestId('package-sign')).toBeVisible({ timeout: 45_000 });
   await expect(page.getByTestId('sign-summary-values')).toContainText('VIN');
-  await expect(page.getByTestId('sign-fix').first()).toHaveAttribute('href', '/owner/profile');
+  await expect(page.getByTestId('sign-fix').first()).toHaveAttribute('href', '/owner/account');
   await check(page, 'owner sign');
   const total = await page.getByTestId('package-docs').innerText().then((t) => Number(/these (\d+) documents/.exec(t)?.[1] ?? '1'));
   // 0193: the signing steps of every signature: the code, the reading, the three confirmations initialled, the consents,

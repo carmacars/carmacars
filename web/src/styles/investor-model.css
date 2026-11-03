@@ -9,6 +9,8 @@
 .im-dl { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .im-dl .btn { display: inline-flex; align-items: center; gap: 0.45rem; }
 .im-tabs { margin-top: var(--s-2); }
+/* the sheets' own tabs stay in the revamped portal, which hides the frame's sub-menu row (portal-revamp.css) */
+.pt--rv .pt__subnav.im-tabs { display: flex; }
 
 .im-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); }
 @media (min-width: 48rem) { .im-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } .im-stats--6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

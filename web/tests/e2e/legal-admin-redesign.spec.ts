@@ -124,13 +124,13 @@ test('admin: To do, the six groups, search, the keyboard, Admin access only for 
   await page.waitForURL(/\/admin\/search\?q=/);
   await expect(page.locator(`main a[href="/admin/bookings/${bk!.booking_number as string}"]`).first()).toBeVisible();
   await check(page, 'search');
-  // the keyboard: g then a opens Applications, / focuses the search
+  // the keyboard: g then c opens the Calendar (r27: Applications is a tab of People, no letter of its own), / focuses the search
   if (!isPhone()) {
     await page.goto('/admin', { waitUntil: 'networkidle' });
     // focus the page without landing on a link (the home's tiles are links): blur whatever is focused
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-    await page.keyboard.press('g'); await page.keyboard.press('a');
-    await page.waitForURL(/\/admin\/applications/);
+    await page.keyboard.press('g'); await page.keyboard.press('c');
+    await page.waitForURL(/\/admin\/calendar/);
     await page.keyboard.press('/');
     await expect(page.locator('#gn-q')).toBeFocused();
   }

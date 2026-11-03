@@ -37,12 +37,17 @@ async function mkCar(sql: Sql, admin: string) {
     rates: { daily: 8900, weekend: 9900, weekly: 53400, monthly: 178000, deposit: 50000 } })}) as r`;
   const car = (made!.r as { vehicle_id: string }).vehicle_id;
   await sql`update vehicle_listings set status = 'published', published_at = now() where vehicle_id = ${car}`;
+  // the car is published, so its photos show on the public pages other tests check for a broken image: three pictures that
+  // exist (the seed's), each its own cover for the variants
+  const paths = (await sql`select distinct processed_path from vehicle_photos where processed_path like 'vehicles/%' and is_public and status = 'approved' order by processed_path limit 3`)
+    .map((r) => r.processed_path as string);
+  expect(paths).toHaveLength(3);
   for (const [i, shot] of ['front_left', 'rear', 'left'].entries()) {
     // plate checked (no plate in the shot): a photo with an unchecked plate is kept private (0070), so the kit would have none
     await sql`insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, sort_order, is_cover, alt_text, variants, background_status, is_public, approved_at, plate_status)
-              values (${car}, ${shot}, ${shot}, ${`original/mk/${car}/${i}.jpg`}, ${`mk/${car}/${i}.jpg`}, 'approved', ${i}, ${i === 0}, ${`2023 Toyota ${model}, photo ${i + 1}`}, ${sql.json([])}, 'done', true, now(), 'not_visible')`;
+              values (${car}, ${shot}, ${shot}, ${`original/mk/${car}/${i}.jpg`}, ${paths[i]!}, 'approved', ${i}, ${i === 0}, ${`2023 Toyota ${model}, photo ${i + 1}`}, ${sql.json([])}, 'done', true, now(), 'not_visible')`;
   }
-  return { car, model };
+  return { car, model, paths };
 }
 async function ctx(browser: Browser, phone: boolean) {
   const c = await browser.newContext({ viewport: phone ? { width: 375, height: 812 } : { width: 1440, height: 900 }, hasTouch: phone, baseURL: test.info().project.use.baseURL });
@@ -66,9 +71,9 @@ for (const phone of [false, true]) {
     const admin = await mkUser(sql, 'admin', 'Mk Admin');
     const other = await mkUser(sql, 'sales', 'Mk Other');
     const me = await mkUser(sql, 'sales', 'Mk Seller');
-    const { car, model } = await mkCar(sql, admin.id);
+    const { car, model, paths } = await mkCar(sql, admin.id);
     // a teammate already holds variant 2 of the car
-    await sql`select app.mp_claim(${other.id}, ${sql.json({ vehicle: car, variant: 2, title: `2023 Toyota ${model} by the day or week, from $89/day`, cover: `mk/${car}/1.jpg`,
+    await sql`select app.mp_claim(${other.id}, ${sql.json({ vehicle: car, variant: 2, title: `2023 Toyota ${model} by the day or week, from $89/day`, cover: paths[1]!,
       body: 'Teammate copy. Daily and weekly bookings only, not for sale. Book it on carmacars.ca.' })})`;
     const page = await ctx(browser, phone);
     try {
