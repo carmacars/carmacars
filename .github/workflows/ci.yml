@@ -72,7 +72,9 @@ jobs:
   fast:
     if: github.event_name != 'workflow_dispatch' || inputs.checks
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # 30 (was 20): the database suite alone is 12 to 18 minutes since r27 (each staff alert goes to every Admin the suites
+    # make); the full suite beside it takes longer, so this never delays a deploy
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: web
