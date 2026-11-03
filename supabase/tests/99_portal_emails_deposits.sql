@@ -1,6 +1,9 @@
 -- 0187: email the renter and the adjuster from the portal, the insurance emails as Blind Spot Car Rental, and the reminders
 -- to release deposits. Fixtures start with "pq" (bookings PQ-...).
 select test.suite('99 portal emails and deposit reminders');
+-- the events earlier suites left are theirs: this suite processes only its own (r27: each staff alert goes to every
+-- Admin the suites made, minutes of work on the CI's fast job)
+update app_events set processed_at = now() where processed_at is null;
 
 select test.mk_user('pq_admin', 'admin');
 select test.mk_user('pq_cs', 'va', 'cs');

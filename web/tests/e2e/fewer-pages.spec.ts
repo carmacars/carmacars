@@ -39,11 +39,11 @@ async function signIn(page: Page, email: string, expectPath: string) {
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL((u) => u.pathname.startsWith(expectPath), { timeout: 20_000 });
 }
-/** The tab row: its group's name and the current tab. */
+/** The tab row: its group's name and the current tab (with its count of things to do, r27, like the menu links). */
 async function tabRow(page: Page, group: string, tab: string) {
   const bar = page.getByTestId('hub-bar');
   await expect(bar).toHaveAttribute('aria-label', group);
-  await expect(bar.locator('a[aria-current="page"]')).toHaveText(tab);
+  await expect(bar.locator('a[aria-current="page"]')).toHaveText(new RegExp(`^${tab.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\d*$`));
 }
 
 const MERGED: Array<[string, string, Array<[string, string]>]> = [

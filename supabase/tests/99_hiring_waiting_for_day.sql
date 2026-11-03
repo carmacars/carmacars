@@ -1,6 +1,9 @@
 -- 99: no interview invitation without an open call time (migration 0211). Uses test.h99field of 99_careers_hiring.sql.
 -- Fixtures start with "hwd".
 select test.suite('99 hiring waiting for a day');
+-- the events earlier suites left are theirs: this suite processes only its own (r27: each staff alert goes to every
+-- Admin the suites made, minutes of work on the CI's fast job)
+update app_events set processed_at = now() where processed_at is null;
 select test.mk_user('hwd_admin', 'admin');
 
 -- no open day for any role (the days of earlier tests are put back at the end)

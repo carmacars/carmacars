@@ -123,7 +123,8 @@ test('Visitor history: an Admin sees past visits with the daily chart, filters t
     await pickRange(page, 'Dates', { from: dayBefore, to });
     await page.waitForURL((u) => u.searchParams.get('from') === dayBefore && u.searchParams.get('to') === to);
     // the quick ranges: pressing 7 days sets the dates in the address and the page keeps its scroll
-    await page.evaluate(() => window.scrollTo(0, 240));
+    // (r27: the live map is above the history, so the quick ranges are scrolled to: in view, the page well down from its top)
+    await page.evaluate(() => window.scrollTo(0, document.querySelector('[data-testid="qr-7"]')!.getBoundingClientRect().top + window.scrollY - 300));
     const y0 = await page.evaluate(() => window.scrollY);
     await page.getByTestId('qr-7').click();
     await page.waitForURL(/from=\d{4}-\d{2}-\d{2}&to=\d{4}-\d{2}-\d{2}/);

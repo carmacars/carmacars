@@ -25,7 +25,7 @@ export async function noOverflow(page: Page) {
       .slice(0, 5).map((e) => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${e.getAttribute('class') ? '.' + String(e.getAttribute('class')).trim().split(/\s+/).join('.') : ''}${e.getAttribute('data-testid') ? `[data-testid=${e.getAttribute('data-testid')}]` : ''} right=${Math.round(e.getBoundingClientRect().right)} "${(e.textContent ?? '').trim().slice(0, 40)}"`);
     return { over: document.documentElement.scrollWidth - w, wide };
   });
-  await net.evaluate((e) => e.remove());
+  await net.evaluate((e) => (e as Element).remove());
   expect(over, `horizontal overflow in px; past the edge: ${wide.join(' | ') || 'none found'}`).toBeLessThanOrEqual(0);
 }
 

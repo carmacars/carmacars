@@ -176,7 +176,9 @@ test('a booking request with Text: the email is skipped, the text is queued with
     await expect.poll(async () => {
       await sql`select app.process_events(1000)`;
       return (await sql`select n.status, n.status_reason, n.channel from notification_outbox n join bookings b on b.id = n.booking_id where b.booking_number = ${number} and n.code = 'renter_request_received'`)[0] ?? null;
-    }, { timeout: 15_000 }).toEqual({ status: 'skipped', status_reason: 'Sent by text (the person chose text)', channel: 'text' });
+      // one pass works through every queued event of the run (r27: each staff alert goes to every Admin the tests made), so a
+      // pass can take longer than the 15 seconds this used to allow
+    }, { timeout: 90_000 }).toEqual({ status: 'skipped', status_reason: 'Sent by text (the person chose text)', channel: 'text' });
     const [sms] = await sql<Array<{ id: string; status: string; to_number: string; body: string; waits: boolean; quiet: boolean }>>`
       select o.id, o.status, o.to_number, o.body, o.send_after > now() + interval '1 second' as waits, app.sms_quiet_end(o.created_at) > o.created_at as quiet
         from phone_outbox o join bookings b on b.id = o.booking_id where b.booking_number = ${number} and o.kind = 'notify' and o.sms_kind = 'renter_request_received'`;

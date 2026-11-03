@@ -4,6 +4,9 @@
 -- Admin's reads and doors (a live call, a new link), the expiry, the removal with the application, and the privileges.
 -- Fixtures start with "aiv"; example.test addresses only.
 select test.suite('99 ai interviews');
+-- the events earlier suites left are theirs: this suite processes only its own (each staff alert fans out to every Admin
+-- the earlier suites made, minutes of work that kept the CI's fast job past its time limit)
+update app_events set processed_at = now() where processed_at is null;
 select test.mk_user('aiv_admin', 'admin');
 select test.mk_user('aiv_cs', 'va', 'cs');
 

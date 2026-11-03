@@ -4,7 +4,7 @@
 
 .ad { background: var(--grey-50); border-top: var(--bw) solid var(--black); min-height: 70vh; }
 .ad__frame { display: grid; grid-template-columns: minmax(0, 1fr); }
-.ad__main { padding: var(--s-4) var(--gutter) var(--section); display: grid; gap: var(--s-4); align-content: start; min-width: 0; }
+.ad__main { padding: var(--s-4) var(--gutter) var(--section); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); align-content: start; min-width: 0; }
 .ad__main > * { min-width: 0; }
 .ad__rail { background: var(--white); border-bottom: 1px solid var(--grey-200); }
 .ad__who { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); padding: var(--s-3) var(--gutter); font-size: var(--fs-xs); }
@@ -379,7 +379,9 @@ a.ad-tile:hover { border-color: var(--black); }
 @media (max-width: 63.99rem) {
   .ad__who { flex-wrap: wrap; padding-block: var(--s-2); row-gap: 0; }
   .ad__who > .muted { flex: 1 1 9rem; min-width: 9rem; overflow-wrap: anywhere; }
-  .ad__who .gd-frame-links { flex: none; flex-wrap: nowrap; }
+  .ad__who .gd-frame-links { flex: 1 1 auto; flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+  /* r27: the bell, Profile, Assistant, Guide and Sign out fit one line at 375 (tighter buttons); a narrower screen wraps them, never past the edge */
+  .ad__who .gd-frame-links .btn--sm { padding-inline: 0.5rem; }
 }
 /* a long group of the menu in a few labelled parts */
 .gn__section { padding: var(--s-2) var(--s-3) 2px var(--s-5); font-size: var(--fs-2xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); }

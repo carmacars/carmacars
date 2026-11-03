@@ -82,8 +82,8 @@ test('Calendar sync: Fleet adds a calendar link, its trip blocks the car at once
   page.on('dialog', (d) => { void d.accept(); });
   await signIn(page, fleet.email, '/staff');
   if (isPhone()) await page.getByTestId('va-nav').getByRole('button', { name: /^Menu\. You are on/ }).click();
-  // r27: the Fleet group is always open; Calendar sync is a tab of Listings
-  await expect(page.getByTestId('va-nav').getByRole('link', { name: 'Listings', exact: true })).toBeVisible();
+  // r27: the Fleet group is always open; Calendar sync is a tab of Listings, reached from More fleet (r27 consolidation: five links a role)
+  await expect(page.getByTestId('va-nav').getByRole('link', { name: 'More fleet', exact: true })).toBeVisible();
   await page.goto('/staff/calendar-sync', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('hub-bar').locator('a[aria-current="page"]')).toHaveText('Calendar sync');
   const car = page.getByTestId(`cs-car-${b.id}`);

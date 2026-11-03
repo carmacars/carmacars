@@ -136,7 +136,7 @@ test('gaps: Finance records Turo trips and a processor payout; the scorecard', a
   await act(page, 'turo-add', async (d) => {
     await d.getByLabel('Car', { exact: true }).selectOption(car!.id as string);
     await d.getByLabel('Trip reference').fill(ref);
-    await d.getByLabel('Start').fill('2026-09-02T14:00'); await d.getByLabel('End').fill('2026-09-05T14:00');
+    await d.getByLabel('Start', { exact: true }).fill('2026-09-02T14:00'); await d.getByLabel('End', { exact: true }).fill('2026-09-05T14:00');
     await d.getByLabel('Gross (trip price and distance fees) ($)').fill('400'); await d.getByLabel('Turo fees ($)').fill('100');
   });
   await expect(page.getByTestId('turo-trips')).toContainText(ref, { timeout: 15_000 });

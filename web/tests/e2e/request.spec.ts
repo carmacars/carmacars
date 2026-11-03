@@ -122,7 +122,9 @@ test('the wizard keeps a draft and resumes it', async ({ page }) => {
 test('car page: calendar shows the turnaround, estimate comes from the database, bar carries the total', async ({ page }) => {
   const errors = watch(page);
   const sql = db();
-  const [bk] = await sql`select (b.return_at at time zone 'America/Toronto')::date::text d from bookings b join vehicle_listings l using (vehicle_id) where l.slug = 'mercedes-benz-c300' and b.status = 'confirmed' and b.return_at > now() + interval '1 day' order by b.return_at limit 1`;
+  const [bk] = await sql`select (b.return_at at time zone 'America/Toronto')::date::text d,
+      to_char((b.return_at at time zone 'America/Toronto') + make_interval(mins => (app.settings()).turnaround_buffer_minutes), 'FMHH12:MI') free,
+      extract(hour from (b.return_at at time zone 'America/Toronto') + make_interval(mins => (app.settings()).turnaround_buffer_minutes)) >= 12 pm from bookings b join vehicle_listings l using (vehicle_id) where l.slug = 'mercedes-benz-c300' and b.status = 'confirmed' and b.return_at > now() + interval '1 day' order by b.return_at limit 1`;
   await sql.end();
   await page.goto('/cars/mercedes-benz-c300');
   await acceptCookies(page);
@@ -133,12 +135,12 @@ test('car page: calendar shows the turnaround, estimate comes from the database,
   await phoneGatePassed(page, test.info().project.use.baseURL!);
   await page.reload({ waitUntil: 'networkidle' });
   await expect(page.getByTestId('full-availability')).toContainText('Days already booked are crossed out.');
-  // the day a booking ends is free from 2 hours after its return (the turnaround)
+  // the day a booking ends is free from the turnaround after its return (r27: one buffer between trips, 90 minutes by default)
   const day = page.locator(`.cal [data-date="${bk!.d}"]`);
   await expect(async () => { await page.locator('#dates').scrollIntoViewIfNeeded({ timeout: 2_000 }); }).toPass({ timeout: 15_000 });
   for (let i = 0; i < 4 && !(await day.count()); i++) await page.getByRole('button', { name: 'Next month' }).first().click();
   await expect(day).toHaveClass(/is-part/);
-  await expect(day).toHaveAttribute('aria-label', /partly available, free from 12:00 p.m./);
+  await expect(day).toHaveAttribute('aria-label', new RegExp(`partly available, free from ${bk!.free} ${bk!.pm ? 'p' : 'a'}\\.m\\.`));
   // dates in the address (from the fleet) fill the calendar, and the estimate is the database's quote
   const { from, to } = await freeWindow('mercedes-benz-c300');
   await page.goto(`/cars/mercedes-benz-c300?from=${from}&to=${to}&tf=10:00&tt=10:00`);

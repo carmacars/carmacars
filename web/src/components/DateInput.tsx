@@ -120,7 +120,15 @@ export function DateInput({ type, value: valueProp, defaultValue, min: minProp, 
       <input {...rest} ref={field} id={id} type="text" data-value={value} inputMode="numeric" autoComplete="off" className="input dp__text" value={shown} required={p.required} disabled={p.disabled}
         placeholder={p.placeholder ?? (kind === 'date' ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:MM')}
         autoFocus={p.autoFocus}
-        onFocus={() => { if (value) setText(kind === 'date' ? value : value.replace('T', ' ')); }}
+        onFocus={(e) => {
+          if (!value || text !== null) return;
+          // the words become the typed form at once (not on the next render), selected, so typing, a paste or an autofill
+          // replaces the whole date instead of landing in front of the old one
+          const raw = kind === 'date' ? value : value.replace('T', ' ');
+          e.currentTarget.value = raw;
+          e.currentTarget.select();
+          setText(raw);
+        }}
         onChange={(e) => typed(e.target.value)}
         onBlur={(e) => { const v = normalize(kind, text ?? ''); if (v || !(text ?? '').trim()) setText(null); onBlur?.(e); }} />
       {p.name && <input type="hidden" name={p.name} value={value} disabled={p.disabled} />}
