@@ -1,5 +1,5 @@
 import Link from '@/components/Link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
 import { Checklist } from '@/features/field/Checklist';
@@ -27,7 +27,8 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { user } = await requireStaff('field', `/staff/field/jobs/${id}`);
   const j = await door<FieldJob | null>(user.id, 'field_read', 'job', { id }).catch(() => null);
-  if (!j) notFound();
+  // a job that is no longer theirs (passed to someone else, or removed) opens My jobs: a phone alert can still link to it
+  if (!j) redirect('/staff/field');
   const b = j.booking;
   // 0162: the renter's licence waits for a decision on this job's booking: field staff review it here too
   const lic = b && j.job.status !== 'done'

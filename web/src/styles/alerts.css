@@ -8,7 +8,7 @@
   font-size: var(--fs-2xs); font-weight: 700; line-height: 1.15rem; text-align: center; }
 
 /* the feed */
-.al { display: grid; gap: var(--s-3); min-width: 0; }
+.al { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-3); min-width: 0; }
 .al__bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
 .al__right { display: flex; align-items: center; gap: var(--s-2); margin-left: auto; }
 .al__count { font-size: var(--fs-xs); font-weight: 600; color: var(--red-700); white-space: nowrap; }
