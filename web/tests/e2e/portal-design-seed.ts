@@ -54,7 +54,9 @@ export async function seedOwner(sql: Sql): Promise<OwnerFixture> {
     if (p) await sql`insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, sort_order, is_cover, alt_text, width, height, variants, background_status, is_public, approved_at)
                      values (${car}, 'front_left', 'front_left', ${`original/${p.processed_path}`}, ${p.processed_path}, 'approved', 0, true, ${`${s.year} ${s.make} ${s.model}`}, ${p.width}, ${p.height}, ${sql.json([])}, 'done', true, now())`;
     await sql`update vehicles set status = ${s.status}::vehicle_status where id = ${car}`;
-    cars.push({ id: car, name: `${s.year} ${s.make} ${s.model}`, status: s.status });
+    // the car's name as every page writes it (r27, 0520: with its model family, "2023 Mercedes-Benz C-Class C300")
+    const [nm] = await sql`select app.vehicle_name(${car}::uuid) as n`;
+    cars.push({ id: car, name: nm!.n as string, status: s.status });
     // bookings: two a month for six months back, one on now for the car on rent, upcoming ones for the first two cars
     const trips: Array<[number, number, string]> = [];
     for (let m = 5; m >= 1; m--) trips.push([-(m * 30) + 3 + i, -(m * 30) + 7 + i + (m % 3), 'closed'], [-(m * 30) + 14 + i, -(m * 30) + 18 + i, 'closed']);

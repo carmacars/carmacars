@@ -316,9 +316,9 @@ update notifications set created_at = now() - interval '5 minutes' where user_id
 select app.job_staff_alerts();
 select app.process_events(1000);
 select test.eq('escalation: still unopened after the time again, the Admins', test.sta_who('staff_alert_urgent', 'Not opened: No-show: sa focus%'), 'sta_admin');
--- grouping: a burst of one normal rule pushes once as a group; each stays in the feed (the Admin's quiet hours off, so the
--- count does not depend on the hour the suite runs at: normal alerts wait in the quiet hours, checked above)
-select app.server_set_alert_prefs(test.id('sta_admin'), '{"quiet_on": false}');
+-- grouping: a burst of one normal rule pushes once as a group; each stays in the feed (the refunds earlier suites issued in
+-- the last minutes are outside the window, so the burst counts this one only)
+update app_events set created_at = created_at - interval '1 day' where code like 'staff_alert_%' and payload ->> 'rule' = 'refund_issued';
 update program_settings set alert_burst_count = 3;
 select app.staff_alert('refund_issued', 'sa', test.id('sta_g' || g), 'paid', 'Refund issued: sa burst ' || g, 'b') from generate_series(1, 6) g;
 select app.process_events(1000);

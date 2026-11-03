@@ -51,12 +51,15 @@ async function pick(role) {
     admin: sql`select u.id, u.email from users u join user_roles r on r.user_id = u.id and r.role = 'admin' where u.status = 'active' ${no2fa}
                order by u.created_at limit 1`,
     field: sql`select u.id, u.email from users u join staff_profiles p on p.user_id = u.id and p.staff_type = 'field' where p.is_active ${no2fa}
+               and exists (select 1 from user_roles r where r.user_id = u.id and r.role = 'field')
                order by (select count(*) from field_jobs j where j.assigned_to = u.id) desc limit 1`
   };
+  // (a staff profile whose sign-in lost its role, as a test's clean-up leaves it, is not that role's portal)
   const va = /^va_(cs|finance|fleet|sales)$/.exec(role)?.[1];
   const rows = va
     ? await sql`select u.id, u.email from users u join staff_profiles p on p.user_id = u.id and p.staff_type = 'va' and p.va_function = ${va}::va_function
                 where p.is_active and coalesce(array_length(p.cover_functions, 1), 0) = 0 ${no2fa}
+                  and exists (select 1 from user_roles r where r.user_id = u.id and r.role = 'va')
                 order by (select count(*) from tasks t where t.assigned_to = u.id) desc limit 1`
     : await q[role];
   // a fresh stack (CI before any end-to-end run) may have no account of a role: make a bare one

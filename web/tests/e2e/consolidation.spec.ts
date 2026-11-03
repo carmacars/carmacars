@@ -128,6 +128,8 @@ test('Admin: each area at most five pages, actions are buttons, Ctrl+K finds eve
     for (const [q, href] of [['Add a car for', '/admin/owners/add-car'], ['Visitors: Chat', '/admin/visitors?view=chat'], ['Field pay', '/admin/money/field-pay'], ['Rates for many', '/admin/vehicles/bulk-rates']] as const) {
       await page.keyboard.press('Control+k');
       await page.getByTestId('admin-jump-input').fill(q);
+      // the first line searches the records (the guide: Jump to a page); the page found is the next line
+      await page.keyboard.press('ArrowDown');
       await page.keyboard.press('Enter');
       await page.waitForURL((u) => `${u.pathname}${u.search}` === href, { timeout: 15_000 });
     }
@@ -147,7 +149,7 @@ test('Sales: Visitors (the map, Live now, Chat, History), the Marketplace and a 
   await openMenu(page, 'va-nav');
   const group = nav.getByTestId('nav-group-sales');
   await expect(group).toHaveAttribute('aria-expanded', 'true');
-  for (const l of ['Requests and offers', 'Visitors', 'Marketplace', 'My sales', 'More sales']) await expect(nav.getByRole('link', { name: new RegExp(`^${l}`) })).toHaveCount(1);
+  for (const l of ['Requests and offers', 'Visitors', 'Marketing', 'My sales', 'More sales']) await expect(nav.getByRole('link', { name: new RegExp(`^${l}`) })).toHaveCount(1);
   for (const gone of ['Live chat', 'Live visitors', 'Send an offer', 'New quote']) await expect(nav.getByRole('link', { name: gone, exact: true })).toHaveCount(0);
   await expect(nav.getByRole('link', { name: /^Visitors/ })).toHaveAttribute('aria-current', 'page');
   if (phone()) await page.getByTestId('nav-menu').click();
