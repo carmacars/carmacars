@@ -81,6 +81,20 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
     setNote(`Suggested ${found.length} box${found.length > 1 ? 'es' : ''}${fixed.some((r) => r.moved) ? ', placed on the plate\'s edges' : ''}. Check each covers the whole plate; move or resize it if not.`);
   }, [photo.id, photo.vehicle_id]);
   const asked = useRef(false);
+  // the box suggested when the review opened (0521) is as rough as one asked for here: once the photo is loaded it is moved
+  // onto the plate's edges the same way, and the note says so
+  const refined = useRef(false);
+  useEffect(() => {
+    if (!ready || !img.current || refined.current || photo.plate_boxes?.length) return;
+    refined.current = true;
+    const auto = suggestedBoxes(photo.plate_suggestion, normalizePlateBoxes);
+    if (!auto.length) return;
+    const w = img.current.naturalWidth || 1024, h = img.current.naturalHeight || 683;
+    const grey = greyOf(img.current, w, h);
+    const fixed = auto.map((f) => refineBox(grey, { x: f.x, y: f.y, w: f.w, h: f.h }));
+    setBoxes((b) => (b.length === auto.length && b.every((x) => x.suggested) ? fixed.map((r) => ({ ...r.box, suggested: true })) : b));
+    setNote(`Suggested ${auto.length} box${auto.length > 1 ? 'es' : ''}${fixed.some((r) => r.moved) ? ', placed on the plate\'s edges' : ''}. Check each covers the whole plate; move or resize it if not.`);
+  }, [ready, photo.plate_boxes, photo.plate_suggestion]);
   useEffect(() => { if (ready && ctx?.detect && !asked.current && !boxes.length && !photo.plate_suggestion && photo.plate_status === 'unchecked') { asked.current = true; void suggest(); } }, [ready, ctx, boxes.length, photo.plate_suggestion, photo.plate_status, suggest]);
 
   const at = (e: React.PointerEvent<HTMLCanvasElement>) => { const r = e.currentTarget.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; };

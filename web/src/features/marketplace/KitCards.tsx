@@ -1,3 +1,4 @@
+import './marketplace.css';
 import type { ReactNode } from 'react';
 import { Card } from '@/features/admin/ui';
 import { CopyText } from '@/features/ads/CopyText';

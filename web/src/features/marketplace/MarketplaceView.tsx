@@ -1,3 +1,4 @@
+import './marketplace.css';
 import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { Badge, Card, PageHead, Table, Tiles, d } from '@/features/admin/ui';

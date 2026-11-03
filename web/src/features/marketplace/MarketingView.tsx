@@ -1,3 +1,4 @@
+import './marketplace.css';
 import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { Badge, Card, PageHead, Tiles, d } from '@/features/admin/ui';
@@ -86,7 +87,11 @@ export function MarketingView({ data, car, academyHref }: { data: MarketingData;
     return (<>
       <KitCards c={c} k={vk} rules={data.rules} phone={data.phone} variant={v} action={SELF} options={options}
         zipHref={vk.photos.length ? `${SELF}/photos/${c.vehicle_id}?v=${v}` : null}
-        aside={claim ? <Badge s={claim.status === 'live' ? 'published' : 'draft'}>{claim.status === 'live' ? `Yours, live since ${d(claim.posted_on!)}` : 'Claimed by you'}</Badge> : <Badge s="on_rent">{`Variant ${v} is free`}</Badge>} />
+        aside={claim ? <Badge s={claim.status === 'live' ? 'published' : 'draft'}>{claim.status === 'live' ? `Yours, live since ${d(claim.posted_on!)}` : 'Claimed by you'}</Badge>
+          // the car picked here can be claimed here, also when it is not on today's list
+          : k.blockers.length ? <Badge s="on_rent">{`Variant ${v} is free`}</Badge>
+          : <Act action="mp_claim" label={`Claim variant ${v}`} variant="primary" refresh={REFRESH} done="Claimed: post it now, then press Posted." testId="mk-kit-claim"
+              payload={{ vehicle: c.vehicle_id, variant: v, title: vk.title, body: vk.description, cover: vk.cover, price_line: vk.priceLine }} />} />
       <Card title="Auto-reply for this listing" testId="mk-autoreply">
         <ol className="small">
           <li>On facebook.com/marketplace/create/vehicle, fill the listing and scroll to <b>Auto replies</b> (or <b>Meta AI replies</b>) near the description, before <b>Next</b>.</li>

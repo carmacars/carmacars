@@ -38,8 +38,9 @@ async function mkCar(sql: Sql, admin: string) {
   const car = (made!.r as { vehicle_id: string }).vehicle_id;
   await sql`update vehicle_listings set status = 'published', published_at = now() where vehicle_id = ${car}`;
   for (const [i, shot] of ['front_left', 'rear', 'left'].entries()) {
-    await sql`insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, sort_order, is_cover, alt_text, variants, background_status, is_public, approved_at)
-              values (${car}, ${shot}, ${shot}, ${`original/mk/${car}/${i}.jpg`}, ${`mk/${car}/${i}.jpg`}, 'approved', ${i}, ${i === 0}, ${`2023 Toyota ${model}, photo ${i + 1}`}, ${sql.json([])}, 'done', true, now())`;
+    // plate checked (no plate in the shot): a photo with an unchecked plate is kept private (0070), so the kit would have none
+    await sql`insert into vehicle_photos (vehicle_id, angle, shot_type, original_path, processed_path, status, sort_order, is_cover, alt_text, variants, background_status, is_public, approved_at, plate_status)
+              values (${car}, ${shot}, ${shot}, ${`original/mk/${car}/${i}.jpg`}, ${`mk/${car}/${i}.jpg`}, 'approved', ${i}, ${i === 0}, ${`2023 Toyota ${model}, photo ${i + 1}`}, ${sql.json([])}, 'done', true, now(), 'not_visible')`;
   }
   return { car, model };
 }
@@ -81,18 +82,20 @@ for (const phone of [false, true]) {
       expect(await page.getByTestId('mp-link').inputValue()).toContain('utm_content=v3');
       await expect(page.getByTestId('mk-autoreply-text')).toHaveValue(/not for sale/);
       await expect(page.getByTestId('mk-prompt')).toHaveValue(/CAPTCHA/);
-      await expect(page.getByTestId('mk-academy')).toHaveAttribute('href', '/staff/academy/sales_remote/marketplace-with-claude');
+      // the lesson in the person's own Academy path: a Sales assistant is in person unless set remote (0174)
+      await expect(page.getByTestId('mk-academy')).toHaveAttribute('href', '/staff/academy/sales_in_person/marketplace-with-claude');
       await check(page, 'marketing');
 
-      // claim variant 3, then log it as posted
-      await page.getByTestId(`mk-claim-${car}`).click();
+      // claim variant 3 from the car's kit (the car need not be on today's list), then log it as posted
+      await page.getByTestId('mk-kit-claim').click();
       await expect(page.getByTestId(`mk-posted-${car}`)).toBeVisible({ timeout: 30_000 });
       await page.getByTestId(`mk-posted-${car}`).click();
       await page.locator('dialog[open]').getByLabel(/listing's address/).fill(`https://www.facebook.com/marketplace/item/${Date.now()}/`);
       await page.getByTestId(`mk-posted-${car}-submit`).click();
       await expect(page.getByTestId('mk-mine')).toContainText('variant 3', { timeout: 30_000 });
-      const rows = await sql`select variant, status, poster_id from marketplace_claims where vehicle_id = ${car} and status <> 'ended' order by variant`;
-      expect(rows.map((r) => `${r.variant}:${r.status}:${r.poster_id === me.id ? 'me' : 'other'}`)).toEqual(['2:claimed:other', '3:live:me']);
+      // (Your listings shows a claim as soon as it is made: wait for the Posted log itself)
+      await expect.poll(async () => (await sql`select variant, status, poster_id from marketplace_claims where vehicle_id = ${car} and status <> 'ended' order by variant`)
+        .map((r) => `${r.variant}:${r.status}:${r.poster_id === me.id ? 'me' : 'other'}`), { timeout: 30_000 }).toEqual(['2:claimed:other', '3:live:me']);
       const [log] = await sql`select kind, variant from marketplace_log where claim_id is not null and logged_by = ${me.id}`;
       expect(log).toMatchObject({ kind: 'posted', variant: 3 });
 

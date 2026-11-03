@@ -149,7 +149,8 @@ export function StuckHelp({ portal }: { portal: HelpPortal }) {
           <button type="button" ref={closeBtn} className="btn btn--primary btn--sm" onClick={close} data-testid="stuck-back">Back to what I was doing</button>
           <a className="link small" href={help.guideHref} target="_blank" rel="noopener">Open the whole guide</a>
         </div>
-        <div className="stk-panel__body" id={help.guide}>
+        {/* the chapter scrolls on its own: reachable by keyboard to scroll it (a chapter can have no link in it) */}
+        <div className="stk-panel__body" id={help.guide} tabIndex={0} role="region" aria-label="The guide chapter">
           {panel.loading ? <p className="small muted" role="status">Opening the guide...</p> : panel.section ? (<>
             <h2 className="d4" id="stk-title">{panel.section.title}</h2>
             {panel.section.blurb && <p className="small muted">{panel.section.blurb}</p>}
