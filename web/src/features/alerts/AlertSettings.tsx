@@ -15,12 +15,17 @@ export function AlertSettings({ initial, className = 'pt-card stack' }: { initia
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [now, setNow] = useState(() => Date.now());
-  const save = (change: Parameters<typeof saveAlertPrefs>[0], done: string) => start(async () => {
-    setMsg(null); setErr(null);
-    const r = await saveAlertPrefs(change);
-    if (!r.ok) { setErr(r.message); return; }
-    setP(r.data); setMsg(done); setNow(Date.now());
-  });
+  const save = (change: Parameters<typeof saveAlertPrefs>[0], done: string) => {
+    // the switch moves at once (the saved row replaces it; a refusal puts it back)
+    const before = p;
+    setP((x) => ({ ...x, ...(change as Partial<AlertPrefs>) }));
+    start(async () => {
+      setMsg(null); setErr(null);
+      const r = await saveAlertPrefs(change);
+      if (!r.ok) { setP(before); setErr(r.message); return; }
+      setP(r.data); setMsg(done); setNow(Date.now());
+    });
+  };
   const focus = p.focus_until && new Date(p.focus_until).getTime() > now ? p.focus_until : null;
 
   return (

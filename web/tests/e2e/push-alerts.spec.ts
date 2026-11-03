@@ -166,8 +166,9 @@ test('an Admin has Settings > My phone alerts with the Admin topics', async ({ p
     await page.goto('/admin/alerts?tab=settings', { waitUntil: 'networkidle' });
     const card = page.getByTestId('push-card');
     await expect(card).toHaveAttribute('data-status', 'ready');
-    await expect(card.locator('input[type="checkbox"]')).toHaveCount(5);
-    await expect(card.locator('input[type="checkbox"]:checked')).toHaveCount(4);
+    // r27 staff alerts: New leads and Hot visitors join the five, and every topic is on by default
+    await expect(card.locator('input[type="checkbox"]')).toHaveCount(7);
+    await expect(card.locator('input[type="checkbox"]:checked')).toHaveCount(7);
     await check(page, '/admin/alerts');
     await card.getByTestId('push-on').click();
     await expect(card).toHaveAttribute('data-status', 'on');

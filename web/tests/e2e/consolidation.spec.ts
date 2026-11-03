@@ -72,7 +72,8 @@ test('Admin: one Visitors page with Live now, Chat and History; the old Live cha
     await check(page, `admin visitors ${view}`);
     await page.screenshot({ path: `${SHOTS}/${test.info().project.name}-admin-visitors-${view}.png`, fullPage: true });
   }
-  // Texts and calls under Chat
+  // Texts and calls under Chat (the loop ends on History)
+  await page.goto('/admin/visitors?view=chat', { waitUntil: 'networkidle' });
   await page.getByTestId('tab-phone').click();
   await page.waitForURL((u) => u.searchParams.get('view') === 'chat' && u.searchParams.get('inbox') === 'phone');
   await expect(page.getByTestId('phone-inbox')).toBeVisible();
