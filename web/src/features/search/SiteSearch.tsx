@@ -105,7 +105,7 @@ export function SiteSearch() {
   let lastGroup = '';
   return (
     <>
-      <button type="button" className="site-search-btn" onClick={open} aria-haspopup="dialog" aria-keyshortcuts="/ Control+K Meta+K" data-testid="site-search">
+      <button type="button" className="site-search-btn" aria-label="Search" onClick={open} aria-haspopup="dialog" aria-keyshortcuts="/ Control+K Meta+K" data-testid="site-search">
         <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"><path d="M8.5 3a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM12.5 12.5 17 17" /></svg>
         <span className="site-search-btn__label">Search</span>
         <kbd className="site-search-btn__kbd" aria-hidden="true">/</kbd>

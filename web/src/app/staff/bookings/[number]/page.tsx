@@ -190,12 +190,11 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           {fn === 'cs' && <Card title="Signed on paper" testId="booking-paper"><div className="stack"><p className="small muted">The renter signed the rental agreement or a change on paper: upload the scan and it counts as signed. Only an Admin can void it.</p><PaperSignatureList rows={paper} canVoid={false} docBase="/staff/documents" /><PaperSignatureForm docs={paperDocs} today={today} refresh={R} /></div></Card>}
         </div>
       )}
-      {tab === 'money' && <OwnerDeductionsPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />}
       {/* r29 C0: the same two panels as Admin's (Rental charges, Security deposit); the database decides who may do each */}
       {tab === 'money' && moneyByPart && <BookingMoney m={moneyByPart} lines={((b as R).lines as PanelLine[] | undefined) ?? []} totalCents={(b.total_due_at_booking_cents as number | null | undefined) ?? null}
         waived={!!(b as R).deposit_waived_at}
         rentalExtras={<>
-          {fees && <BookingFees x={fees} />}
+          {fees && <BookingFees x={fees} withBalance={false} />}
           {b.payments?.some((r) => r.status === 'failed') && <Card title="Card payments that failed"><Table rows={b.payments.filter((r) => r.status === 'failed')} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'card_last4', label: 'Card' },
             { key: 'act', label: '', render: (r) => fn === 'finance' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={R} label="Paid another way" /> : null }]} /></Card>}
           {fn === 'finance' && manual.length > 0 && <details className="pt-card ad-card" data-testid="booking-manual-payments"><summary className="small">Payments received another way ({manual.length})</summary><ManualPaymentList rows={manual} canVoid={false} docBase="/staff/documents" /></details>}
@@ -204,6 +203,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
               { key: 'act', label: '', render: (r) => fn === 'finance' && r.status === 'pending_approval' ? <Act action="refund_approve" payload={{ id: r.id }} label="Approve (within my limit)" refresh={R} /> : null }]} />}</div>}
         </>}
         depositSettle={fn === 'finance' ? <DepositSettle bookingId={b.id} bookingNumber={b.booking_number} refresh={R} /> : undefined} />}
+      {tab === 'money' && <OwnerDeductionsPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />}
       {tab === 'money' && b.payments && (
         <div className="stack">
           {fn === 'finance' && b.status === 'returned' && <Card title="Statement"><Act action="issue_booking_statement" payload={P} label="Issue the final statement" confirm="Issue the Check-in statement from the assessed lines. Damage lines wait for an Admin." refresh={R} /></Card>}

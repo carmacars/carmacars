@@ -216,7 +216,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           {/* r29 C0: Rental charges and Security deposit, two panels; every money tool sits in the panel it belongs to */}
           {moneyByPart && <BookingMoney m={moneyByPart} lines={b.lines} totalCents={b.total_due_at_booking_cents} waived={!!(b as unknown as R).deposit_waived_at}
             rentalExtras={<>
-              {fees && <BookingFees x={fees} />}
+              {fees && <BookingFees x={fees} withBalance={false} />}
               {b.payments.some((r) => r.status === 'failed') && <Card title="Card payments that failed"><Table rows={b.payments.filter((r) => r.status === 'failed')} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'method', label: 'Method' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'card_last4', label: 'Card' },
                 { key: 'act', label: '', render: (r) => r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={[base]} label="Paid another way" /> : null }]} /></Card>}
               {manual.length > 0 && <details className="pt-card ad-card" data-testid="booking-manual-payments"><summary className="small">Correct or void a payment received another way ({manual.length})</summary>

@@ -13,7 +13,7 @@ type Sql = ReturnType<typeof db>;
 const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${salt.toString('base64')}$${scryptSync(pw, salt, 64).toString('base64')}`; };
 const tag = () => randomBytes(3).toString('hex');
 const money = (c: number) => `$${(c / 100).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const SHOTS = 'test-results/booking-money';
+const SHOTS = process.env.SHOTS_DIR ?? 'test-results/booking-money';
 
 async function check(page: Page, where: string) {
   await noOverflow(page);
@@ -102,7 +102,7 @@ test('the Money tab: the deposit alone, then the rental alone, each balance unto
   await expect(page.getByTestId('bm-rental-due')).toHaveText(money(due));
   await expect(page.getByTestId('bm-strip-paid')).toHaveText(money(50000));
   await expect(page.getByTestId('bm-deposit-history')).toContainText(money(50000));
-  await expect(page.getByTestId('bm-rental-history')).toContainText('No rental payment yet');
+  await expect(page.getByTestId('bm-rental-history-empty')).toHaveText('No rental payment yet.');
   expect(await open()).toBe(due);
 
   // the rental alone, by e-Transfer

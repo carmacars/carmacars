@@ -154,9 +154,10 @@ test('the owner\'s case: picked up yesterday, six weeks, young driver, rent in c
   await page.getByTestId('bf-own-amount').fill('50');
   await page.getByTestId('bf-own-add').click();
   await expect(page.getByTestId('bf-msg')).toContainText('Added', { timeout: 20_000 });
-  await expect(page.getByTestId('bal-open')).toBeVisible();
-  await page.getByTestId('bal-email').click();
-  await expect(page.getByTestId('bal-msg')).toContainText('pay link', { timeout: 20_000 });
+  await page.getByTestId('bm-rental-collect').click();
+  await page.getByTestId('bm-rhow-email').check();
+  await page.getByTestId('bm-rcollect-go').click();
+  await expect(page.getByTestId('bm-message-rental')).toContainText('link sent', { timeout: 20_000 });
   const [req] = await sql`select covers, amount_cents, status from payment_requests where booking_id = ${b!.id} order by created_at desc limit 1`;
   expect(req!.covers).toBe('balance');
   expect(req!.status).toBe('open');
@@ -165,7 +166,7 @@ test('the owner\'s case: picked up yesterday, six weeks, young driver, rent in c
   await expect(page.getByTestId('bm-rcovers')).toHaveValue('balance');
   await page.getByTestId('bm-rmethod').selectOption('cash');
   await page.getByTestId('bm-rcollect-go').click();
-  await expect(page.getByTestId('booking-money')).toContainText('Recorded', { timeout: 20_000 });
+  await expect(page.getByTestId('bm-message-rental')).toContainText('Rental payment recorded', { timeout: 20_000 });
   const [open] = await sql`select app.booking_part_open(${b!.id}, 'rental') + app.booking_part_open(${b!.id}, 'fees') as o`;
   expect(Number(open!.o)).toBe(0);
   await check(page, 'booking money');
