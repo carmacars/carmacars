@@ -312,3 +312,6 @@ create or replace function test.base(p_isodow integer default 1) returns timesta
 -- off again.
 alter table program_settings alter column lead_time_enabled set default false;
 update program_settings set lead_time_enabled = false;
+
+-- 0533: the public reads' kept copy is off for the suites, which change the data and read it back at once
+do $$ begin execute format('alter database %I set app.read_cache = %L', current_database(), 'off'); end $$;
