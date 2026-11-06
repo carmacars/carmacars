@@ -595,6 +595,8 @@ a[href^="tel:"] { white-space: nowrap; }
 .vscan { display: grid; gap: var(--s-2); }
 .vscan__actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .vscan__btn { display: inline-flex; align-items: center; gap: 0.4em; min-height: 44px; }
+.vscan--compact .vscan__actions { gap: var(--s-1); }
+.vscan--compact .vscan__btn { min-height: 36px; padding-inline: 0.6rem; font-size: var(--fs-sm); }
 .vscan__msg { margin: 0; color: var(--text-2); overflow-wrap: anywhere; }
 .vscan__msg--warn { color: var(--warn-text, #8a5300); }
 .vscan__dlg { width: min(36rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 0; border-radius: var(--r-3); background: var(--black); color: var(--white); }

@@ -26140,6 +26140,7 @@ export type Database = {
       server_file_stored: { Args: { p_kind: string; p_key: string }; Returns: Json };
       server_game_claim: { Args: { p: Json; p_user?: string }; Returns: Json };
       server_game_start: { Args: { p: Json; p_user?: string }; Returns: Json };
+      server_gsc_coverage_trend: { Args: { p_admin: string }; Returns: Json };
       server_guide_auto_update: { Args: { p: Json }; Returns: Json };
       server_guide_images_replaced: { Args: never; Returns: Json };
       server_guide_pdf_record: { Args: { p: Json }; Returns: Json };
@@ -26256,6 +26257,8 @@ export type Database = {
       server_phone_sent: { Args: { p: Json }; Returns: Json };
       server_phone_signed_in: { Args: { p_user: string; p_phone: string; p_name?: string }; Returns: Json };
       server_phone_summary: { Args: { p: Json }; Returns: Json };
+      server_photo_sort_gate: { Args: { p_by: string }; Returns: Json };
+      server_photo_sort_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_places_budget: { Args: never; Returns: Json };
       server_places_import_apply: { Args: { p_import: number; p_region: string }; Returns: Json };
       server_places_import_apply_chunk: { Args: { p_phase: string; p_after: number; p_limit?: number }; Returns: Json };

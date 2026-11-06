@@ -1,7 +1,7 @@
 -- 0566_listing_photos_any_order.sql
 -- Release 28 (docs/changes/2026-11-06-r28-platform.md, B8; the owner: "take 20 photos, not every photo in a defined
 -- position, the background removed on every photo"):
---   1. No named shot is required any more. A listing is complete with at least 10 photos that can go on the site and an
+--   1. No named shot is required any more (the 14 named shots stay as the guide's list). A listing is complete with at least 10 photos that can go on the site and an
 --      outside photo for the cover (app.listing_missing_shots, which every step, the submit and the publish already ask).
 --      "More outside photos" and "Other detail" take up to 30 each.
 --   2. "Add photos" on the listing sends many photos at once with the shot "auto": the server asks the vision model which
@@ -13,7 +13,7 @@
 --   4. The photos already on cars not yet published are processed again under these rules (one job each).
 
 -- ================================================================ 1. any order
-update listing_shot_types set required = false where required;
+-- (listing_shot_types.required keeps naming the 14 shots of the guide and the shot list; it no longer gates anything)
 alter table listing_shot_types drop constraint if exists listing_shot_types_max_count_check;
 alter table listing_shot_types add constraint listing_shot_types_max_count_check check (max_count between 1 and 30);
 update listing_shot_types set max_count = 30 where code in ('other', 'exterior_more') and max_count < 30;
@@ -31,6 +31,35 @@ language sql stable security definer set search_path = public, app as $$
          then format('At least %s photos (%s so far)', (app.settings()).listing_min_photos, (select count(*) from ph)) end,
     case when not exists (select 1 from ph where ph.rebackground) then 'An outside photo of the car for the cover' end], null)
 $$;
+
+-- step 1 of the listing steps (0521) counts the photos toward the 10, not the named shots
+do $$ begin
+  if not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'app' and p.proname = 'listing_steps_pre0566') then
+    alter function app.listing_steps(uuid, uuid) rename to listing_steps_pre0566;
+  end if;
+end $$;
+create or replace function app.listing_steps(p_by uuid, p_intake uuid) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  r jsonb := app.listing_steps_pre0566(p_by, p_intake);
+  v_vehicle uuid := (select vehicle_id from listing_intakes where id = p_intake);
+  v_submitted boolean := (select submitted_at is not null from listing_intakes where id = p_intake);
+  v_min integer := (app.settings()).listing_min_photos;
+  v_have integer;
+  v_missing text[] := app.listing_missing_shots(v_vehicle);
+  s1 jsonb;
+begin
+  select count(*) into v_have from vehicle_photos p join listing_shot_types t on t.code = p.shot_type
+   where p.vehicle_id = v_vehicle and p.replaced_at is null and p.status <> 'rejected' and t.is_public and not coalesce(p.quality_flags ? 'watermark', false);
+  s1 := (r -> 'steps' -> 0) || jsonb_build_object('title', format('Photos (%s of %s)', least(v_have, v_min), v_min), 'have', v_have, 'of', v_min,
+          'done', v_submitted and cardinality(v_missing) = 0,
+          'need', case when not v_submitted and v_have = 0 then 'Add photos (up to 30 at once, in any order), or submit to start with sample photos.'
+                       when not v_submitted then 'Add what is missing, then press Submit for listing.' || case when cardinality(v_missing) > 0 then ' Missing: ' || array_to_string(v_missing, ', ') || '.' else '' end
+                       when cardinality(v_missing) > 0 then 'Submitted. Can be added later: ' || array_to_string(v_missing, ', ') || '.'
+                       else 'Enough photos are in.' end);
+  return jsonb_set(r, '{steps,0}', s1);
+end $$;
+revoke all on function app.listing_steps(uuid, uuid) from public, anon, authenticated;
 
 -- ================================================================ 2. the sorter's gate and record (purpose photo_sort)
 create or replace function app.ai_tier(p_purpose text) returns text
