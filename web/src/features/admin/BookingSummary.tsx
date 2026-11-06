@@ -8,7 +8,7 @@ import { when } from '@/features/agreement/model';
 // hidden from screen readers and its step names are drawn by the stylesheet (admin-ui.css). Nothing is worked out here.
 
 export const STEPS: Array<[string, string]> = [
-  ['requested', 'Request'], ['offered', 'Offer'], ['pending_payment', 'Sign and pay'], ['confirmed', 'Confirmed'], ['on_rent', 'On trip'], ['returned', 'Returned'], ['closed', 'Closed']
+  ['requested', 'Request'], ['offered', 'Offer'], ['pending_payment', 'Booked, payment due'], ['confirmed', 'Confirmed'], ['on_rent', 'On trip'], ['returned', 'Returned'], ['closed', 'Closed']
 ];
 
 /** The step the status is at, or -1 for a booking off the way (cancelled, expired, declined, no-show). */

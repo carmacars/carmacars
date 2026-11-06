@@ -87,14 +87,14 @@ function nextStepOnly(x: NextStepInput): NextStep {
   const depositNeeded = Number(x.depositCents ?? 0) > 0 && !HELD.has(String(x.depositStatus ?? ''));
   switch (x.status) {
     case 'requested':
-      return { step: 'send_offer', who: 'Sales or customer service', text: 'The renter asked for this car. Check the request and send the offer: it is not a booking until the renter approves and pays.',
+      return { step: 'send_offer', who: 'Sales or customer service', text: 'The renter asked for this car. Check the request and send the offer: it is booked once the renter approves.',
         ...btn('offer', 'Send the offer', `${x.base}?tab=review`, 'next-step-offer') };
     case 'offered':
       return { step: 'wait_offer', who: 'The renter', text: `Waiting for the renter to approve the offer${x.offerExpiresAt ? ` (open until ${when(x.offerExpiresAt)})` : ''}. Nothing to do unless they call: then use Renter approved by phone in More actions.` };
     case 'pending_payment': {
       const open = Math.max(0, Number(x.dueCents ?? 0) - Number(x.paidCents ?? 0));
       return { step: 'wait_payment', who: 'The renter, or staff when they pay another way',
-        text: `The renter approved the offer. Waiting for payment${open > 0 ? `: ${money(open)} open` : ''}. Record cash or e-Transfer, or send a pay link.`,
+        text: `Booked: the renter approved the offer. Payment due${open > 0 ? `: ${money(open)} open` : ''}. Record cash or e-Transfer, or send a pay link.`,
         ...btn('money', 'Record a payment or send a pay link', `${x.base}?tab=money`, 'next-step-pay') };
     }
     case 'confirmed': {

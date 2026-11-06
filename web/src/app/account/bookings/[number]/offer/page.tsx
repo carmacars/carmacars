@@ -62,7 +62,7 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
             <p className="pt-kicker">Offer, version {o.version}</p>
             <h1 className="d2">Your offer for the {o.vehicle ? `${o.vehicle.year} ${o.vehicle.make} ${o.vehicle.model}` : carName(b)}</h1>
           </header>
-          <p className="pt-note" data-testid="offer-hold-rule"><b>This offer does not hold the car.</b> The car is reserved for you only once you approve, sign and pay. If someone else confirms it first, we will offer you another.</p>
+          <p className="pt-note" data-testid="offer-hold-rule"><b>This offer does not hold the car until you approve it.</b> Once you approve, the car is booked for you; you then sign and pay before pickup. If someone else approves it first, we will offer you another.</p>
           {o.message && <section className="pt-card" aria-labelledby="pt-msg"><h2 className="d4" id="pt-msg">Message from our team</h2><p>{o.message}</p></section>}
           {changes.length > 0 && (
             <section className="pt-card" aria-labelledby="pt-chg" data-testid="offer-changes"><h2 className="d4" id="pt-chg">What changed from your {b.offers.length > 1 ? 'last offer' : 'request'}</h2>

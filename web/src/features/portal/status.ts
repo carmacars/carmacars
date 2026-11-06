@@ -5,8 +5,8 @@ import { money } from '@/lib/format';
 // What each status means to the renter and what to do next (02-booking-and-renter.md sections 2 and 7.1).
 export const STATUS: Record<BookingStatus, { label: string; badge: string; blurb: string }> = {
   requested: { label: 'Requested', badge: 'badge--outline', blurb: 'We are checking the car and dates and will send you an offer.' },
-  offered: { label: 'Offer ready', badge: 'badge--red', blurb: 'Your offer is ready. It does not hold the car until you approve, sign and pay.' },
-  pending_payment: { label: 'Sign and pay', badge: 'badge--red', blurb: 'You approved the offer. Sign the agreement and pay to confirm the booking.' },
+  offered: { label: 'Offer ready', badge: 'badge--red', blurb: 'Your offer is ready. It holds the car once you approve it.' },
+  pending_payment: { label: 'Booked', badge: 'badge--red', blurb: 'You approved the offer: the car is booked for you. Sign the agreement and pay before pickup.' },
   confirmed: { label: 'Confirmed', badge: '', blurb: 'Your booking is confirmed and the car is reserved for you.' },
   on_rent: { label: 'On rent', badge: '', blurb: 'You have the car. Drive safely.' },
   returned: { label: 'Returned', badge: 'badge--grey', blurb: 'The car is back. Your final statement follows within a few days.' },
@@ -40,8 +40,8 @@ export function nextStep(b: BookingSummary | MyBooking, now = Date.now()): NextS
     case 'pending_payment': {
       const signed = full?.agreement?.status === 'signed' || full?.agreement?.status === 'completed';
       return signed
-        ? { title: 'Pay to confirm', note: 'Your agreement is signed. Pay to confirm the booking.', href: path('pay'), cta: 'Pay now', urgent: true }
-        : { title: 'Sign and pay', note: 'Sign the rental agreement, then pay to confirm.', href: path('sign'), cta: 'Sign agreement', urgent: true };
+        ? { title: 'Booked: payment due', note: 'Your car is booked and your agreement is signed. Pay before pickup.', href: path('pay'), cta: 'Pay now', urgent: true }
+        : { title: 'Booked: sign and pay', note: 'Your car is booked. Sign the rental agreement, then pay before pickup.', href: path('sign'), cta: 'Sign agreement', urgent: true };
     }
     case 'confirmed': {
       // a rental staff added by hand (0046): confirmed before the agreement is signed

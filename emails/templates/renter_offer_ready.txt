@@ -40,7 +40,7 @@ Review, approve and pay:
 https://carmacars.ca/account/bookings/{{booking_number}}/offer
 
 This offer is open until {{offer_expires_at}}
-An offer does not hold the car. It is booked only when you approve, sign and pay. If another renter pays for the same car and dates first, we withdraw the offer and tell you.
+The car is booked for you as soon as you approve. Until then the offer does not hold it: if another renter approves the same car and dates first, we withdraw the offer and tell you.
 
 For different dates or another car, ask for a change (https://carmacars.ca/account/bookings/{{booking_number}}/change) before you approve. To pass on this offer, do nothing and it will expire.
 

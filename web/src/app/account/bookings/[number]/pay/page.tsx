@@ -16,7 +16,7 @@ import { CompleteDetails } from '@/features/portal/CompleteDetails';
 import { renterDetailsMissing } from '@/server/portal/renter-details';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Pay for your booking', path: '/account/bookings', noindex: true, description: 'Pay to confirm your booking.' });
+export const metadata = pageMeta({ title: 'Pay for your booking', path: '/account/bookings', noindex: true, description: 'Pay for your booking.' });
 
 // Pay (02 section 6): the lines as stored, the deposit rule, and the card form.
 export default async function PayPage({ params }: { params: Promise<{ number: string }> }) {
@@ -41,7 +41,7 @@ export default async function PayPage({ params }: { params: Promise<{ number: st
   return (
     <>
       <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
-      <StepHeader b={b} photo={photos[b.vehicle_id] ?? null} kicker={live ? 'Your rental' : 'Step 3 of 3 · Pay'} title={live ? 'Pay for your rental' : 'Pay to confirm'} step={live ? undefined : 3} />
+      <StepHeader b={b} photo={photos[b.vehicle_id] ?? null} kicker={live ? 'Your rental' : 'Step 3 of 3 · Pay'} title={live ? 'Pay for your rental' : 'Pay for your booking'} step={live ? undefined : 3} />
       {b.status !== 'pending_payment' && !live ? (
         <div className="pt-card pt-card--next" role="alert" data-testid="pay-pushed-back">
           <h2 className="d4">{pushedBack ? 'This car was just taken' : 'Nothing to pay'}</h2>
