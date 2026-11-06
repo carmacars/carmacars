@@ -31,7 +31,8 @@ const RAW: RegExp[] = [
   /connection (terminated|refused|reset)|ECONNREFUSED|ECONNRESET|server closed the connection/i,
   /new row for relation/i,
   /in a non-volatile function/i,
-  /^Unknown (action|screen) /i
+  /^Unknown (action|screen) /i,
+  /did not answer in time \(HTTP \d+\)/i
 ];
 
 /** True for an error the database raised itself rather than one of its written refusals. */
@@ -66,6 +67,7 @@ export function friendlyText(e: DbLike, ref: string): string {
   else if (code === '23502' || code === '23514' || /null value in column|check constraint/i.test(m)) what = 'A value is missing or not allowed here. Check what you entered and try again.';
   else if (code === '22P02' || code === '22007' || code === '22008' || code === '22003' || /invalid input|out of range|value too long/i.test(m)) what = 'One of the values is not in the expected format. Check what you entered and try again.';
   else if (code === '40001' || code === '40P01' || code === '57014' || /could not serialize|deadlock|canceling statement/i.test(m)) what = 'The system was busy and nothing was changed. Try again in a moment.';
+  else if (/did not answer in time/i.test(m)) what = 'The system was too slow to answer. It may have gone through: refresh the page to check before trying again.';
   else if (/^08|^53|^57/.test(code) || /connection|ECONN/i.test(m)) what = 'The system could not be reached and nothing was changed. Try again in a moment.';
   return `${what} If it happens again, tell the office: reference ${ref}.`;
 }

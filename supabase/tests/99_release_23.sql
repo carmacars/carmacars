@@ -85,8 +85,15 @@ update program_settings p set usage_banner_red_usd = x.r from r23red x where x.i
 select test.ok('a 70% level exists for the CPU time', (select warn_bps = 7000 from usage_services where service = 'workers_cpu'));
 
 -- ================================================================ 3. Cloudflare email first (0222)
+update program_settings set cf_email_enabled = true;  -- off for the other suites (helpers.sql)
 select test.ok('the sender tries Cloudflare (on, under the month''s 3,000)', app.cf_email_try());
-select test.ok('Resend''s limits hold until Cloudflare has sent', not app.cf_email_available());
+-- 0533: Cloudflare gets its chance before its first send (the claim held every email until it had sent, so it never did)
+select test.ok('while Cloudflare may send, Resend''s limits hold nothing, before its first send too', app.cf_email_available());
+select test.ok('an email held by a limit waits 15 minutes while Cloudflare has budget today', app.email_hold_until(now(), now() + interval '10 hours') <= now() + interval '15 minutes');
+update program_settings set notify_cf_daily_budget = 0;
+select test.ok('Cloudflare''s day''s budget used: Resend''s limits hold again', not app.cf_email_available());
+select test.ok('and a held email waits for midnight', app.email_hold_until(now(), now() + interval '10 hours') = now() + interval '10 hours');
+update program_settings set notify_cf_daily_budget = 200;
 select public.server_cf_email_result('{"ok": true}');
 select test.ok('once it sends, Resend''s limits are lifted', app.cf_email_available());
 select public.server_cf_email_result('{"ok": false, "error": "no EMAIL binding"}');
@@ -94,6 +101,7 @@ select test.ok('after a refusal it rests 15 minutes', not app.cf_email_try() and
 update email_provider_state set cf_failed_at = now() - interval '20 minutes', cf_ok_at = null where id;
 select test.ok('then it may try again', app.cf_email_try());
 select test.ok('Settings > Usage counts the Cloudflare emails', exists (select 1 from usage_services where service = 'cf_email' and included = 3000));
+update program_settings set cf_email_enabled = false;
 
 -- ================================================================ 4. hiring decisions (0226)
 insert into job_applications (role_id, status, full_name, email) select id, 'interviewed', 'R23 Field Person', 'field@r23.example.test' from hiring_roles where slug = 'field-staff';

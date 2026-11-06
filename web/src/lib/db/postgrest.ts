@@ -40,7 +40,11 @@ export async function postgrestRpc(f: typeof fetch, t: RpcTarget, fn: string, ar
   }
   if (!res.ok) {
     let e: { message?: string; code?: string; hint?: string | null } = {};
-    try { e = JSON.parse(text); } catch { e = { message: text.slice(0, 300) || res.statusText }; }
+    // r27b: a gateway's own answer (Cloudflare's "error code: 504", an HTML error page) is never passed on as it is
+    try { e = JSON.parse(text); } catch {
+      e = { message: /^\s*(error code: \d+|<!doctype|<html)/i.test(text) || !text.trim()
+        ? `The database server did not answer in time (HTTP ${res.status}). Try again in a moment.` : text.slice(0, 300) || res.statusText };
+    }
     throw new RpcError(e.message ?? `Database call ${fn} failed (${res.status})`, e.code, e.hint ?? undefined, res.status);
   }
   // a function returning void answers 204 with no body: supabase-js gives null

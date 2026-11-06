@@ -54,4 +54,6 @@ test('robots: the AI answer engines are named and the private paths kept out', (
     'Bingbot', 'DuckDuckBot', 'DuckAssistBot', 'Amazonbot', 'Meta-ExternalAgent', 'YandexBot']) assert.ok((ANSWER_CRAWLERS as readonly string[]).includes(b), b);
   for (const p of ['/admin', '/account', '/owner', '/investor', '/api/', '/sign-in', '/auth/']) assert.ok((PRIVATE_PATHS as readonly string[]).includes(p), p);
   assert.equal(new Set(ANSWER_CRAWLERS).size, ANSWER_CRAWLERS.length);
+  // r27b: every AI engine by name, none refused
+  for (const b of ['GPTBot', 'CCBot', 'ClaudeBot', 'Bytespider', 'YouBot', 'cohere-ai', 'MistralAI-User', 'Google-Extended', 'Applebot-Extended']) assert.ok((ANSWER_CRAWLERS as readonly string[]).includes(b), b);
 });

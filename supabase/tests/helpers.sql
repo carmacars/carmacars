@@ -312,3 +312,9 @@ create or replace function test.base(p_isodow integer default 1) returns timesta
 -- off again.
 alter table program_settings alter column lead_time_enabled set default false;
 update program_settings set lead_time_enabled = false;
+
+-- 0533: Cloudflare email is off for the suites (the test world has no Worker binding), so they test Resend's own limits
+-- as before (until 0533 Cloudflare counted only after a send, which no suite makes). 99_owner_todo_usage_noise.sql and
+-- 99_release_23.sql switch it on for their Cloudflare checks and off again.
+alter table program_settings alter column cf_email_enabled set default false;
+update program_settings set cf_email_enabled = false;

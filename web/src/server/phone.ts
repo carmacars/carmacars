@@ -113,11 +113,29 @@ export function staffDoor(userId: string, admin: boolean, aal: 'aal1' | 'aal2' |
 
 /** A text from a Text button (r27 consolidation, migration 0500): the database checks the person and the number, queues it
  *  in the person's conversation and refuses an opted-out number; this sends it at once from the CarmaCars number. */
-export async function staffCompose(d: Door, call: 'va_do' | 'field_do', p: { number: string; body: string; booking_number?: string }): Promise<{ ok: boolean; thread_id?: string; error?: string }> {
-  const r = (await d(call, 'phone_compose', p)) as { send?: Send; from?: string; thread_id?: string };
-  if (!r.send) return { ok: false, error: 'Nothing to send' };
+/** r27b: the database call of a Text button gives up after this long (the dialog waits 25 s in all; Quo has 10 s). */
+export const COMPOSE_DB_MS = 12_000;
+export class SlowServer extends Error { constructor() { super('The server was too slow to confirm the text. It was not sent twice: press Send again and we check first.'); this.name = 'SlowServer'; } }
+export function within<T>(p: Promise<T>, ms: number): Promise<T> {
+  let id: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([p, new Promise<T>((_, no) => { id = setTimeout(() => no(new SlowServer()), ms); })]).finally(() => { if (id !== undefined) clearTimeout(id); });
+}
+/** Quo's refusals in words a person can act on (the owner's 504 of November 6 hid a Quo 402 behind it on other texts). */
+export function quoProblem(error: string | undefined): string {
+  const e = error ?? '';
+  if (/Quo 402|prepaid credits/i.test(e)) return 'Not sent: the Quo account is out of prepaid credits. Top up Quo (Settings > Billing in Quo), then press Send again.';
+  if (/Quo did not answer|Quo 5\d\d|Quo 429/i.test(e)) return 'Not sent: Quo did not answer. Press Send again in a minute (it is not sent twice).';
+  return `Not sent: ${e || 'Quo refused it'}`;
+}
+
+/** A text from a Text button (r27 consolidation, migration 0500): the database checks the person and the number, queues it
+ *  in the person's conversation and refuses an opted-out number; this sends it at once from the CarmaCars number.
+ *  r27b (0533): the dialog's key makes it one text however often Send is pressed; the database call is bounded. */
+export async function staffCompose(d: Door, call: 'va_do' | 'field_do', p: { number: string; body: string; booking_number?: string; key?: string }): Promise<{ ok: boolean; thread_id?: string; error?: string; note?: string }> {
+  const r = (await within(d(call, 'phone_compose', p), COMPOSE_DB_MS)) as { send?: Send; from?: string; thread_id?: string; note?: string; already?: boolean; pending?: boolean };
+  if (!r.send) return r.already || r.pending ? { ok: true, thread_id: r.thread_id, note: r.note } : { ok: false, error: 'Nothing to send' };
   const [res] = await sendTexts([r.send], r.from);
-  return res!.ok ? { ok: true, thread_id: r.thread_id } : { ok: false, thread_id: r.thread_id, error: `Not sent: ${res!.error ?? 'Quo refused it'}` };
+  return res!.ok ? { ok: true, thread_id: r.thread_id } : { ok: false, thread_id: r.thread_id, error: quoProblem(res!.error) };
 }
 
 /** A staff reply: the database checks and queues it (refusing an opted-out number), this sends it at once. */
@@ -125,7 +143,7 @@ export async function staffReply(d: Door, id: string, body: string): Promise<{ o
   const r = (await d('va_do', 'phone_reply', { id, body })) as { send?: Send; from?: string };
   if (!r.send) return { ok: false, error: 'Nothing to send' };
   const [res] = await sendTexts([r.send], r.from);
-  return res!.ok ? { ok: true } : { ok: false, error: `Not sent: ${res!.error ?? 'Quo refused it'}` };
+  return res!.ok ? { ok: true } : { ok: false, error: quoProblem(res!.error) };
 }
 
 /** A suggested reply (never sent): from the conversation, the booking and the site's facts. */

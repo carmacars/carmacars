@@ -108,3 +108,11 @@ test('0106: a deadline gives up on a hanging call with the statement-timeout cod
   // without a deadline the call is as before
   assert.deepEqual(await postgrestRpc(mock(200, '{"a":1}').f, T, 'car_page', {}, { role: 'anon' }), { a: 1 });
 });
+
+test('r27b: a gateway answer ("error code: 504", an HTML page) becomes a sentence, never the raw text', async () => {
+  for (const body of ['error code: 504', '<!DOCTYPE html><html><body>502 Bad Gateway</body></html>', '']) {
+    const f = (async () => new Response(body, { status: 504 })) as unknown as typeof fetch;
+    await assert.rejects(postgrestRpc(f, { url: 'https://db.example.test', anonKey: 'a' }, 'x', {}, { role: 'anon' }),
+      (e: Error) => /did not answer in time \(HTTP 504\)/.test(e.message) && !/error code/.test(e.message));
+  }
+});
