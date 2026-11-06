@@ -84,7 +84,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
       {v.id_pending === true && <div className="alert alert--warn" role="status" data-testid="vehicle-id-needed"><span className="alert__title">VIN or plate needed</span>
         <span>Added before its VIN or plate was known. Until one is added it is not listed, not bookable and not put on the fleet policy.</span>
         <Act ops action="vehicle_id_set" payload={{ vehicle_id: id }} label="Add the VIN or plate" variant="primary" refresh={refresh} testId="vehicle-id-set"
-          fields={[{ name: 'vin', label: 'VIN (17 characters)', type: 'text' }, { name: 'plate', label: 'Plate', type: 'text' }]} /></div>}
+          fields={[{ name: 'vin', label: 'VIN (17 characters)', type: 'vin' }, { name: 'plate', label: 'Plate', type: 'text' }]} /></div>}
       {tab === 'overview' && (
         <div className="ad-cols ad-cols--2">
           <Card title="Notes" testId="vehicle-notes">

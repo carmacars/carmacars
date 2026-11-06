@@ -9,6 +9,7 @@ import { emailResumeLink, lookupVin, methodOptions, saveApplyDraft, submitApplic
 import { ColourSwatches, YearMakeModel } from '@/features/vin/VinEntry';
 import { PermitScan } from '@/features/vehicles/PermitScan';
 import { carName, detailLine, vinMessage, vinState } from '@/features/vin/vin';
+import { VinScan } from '@/features/vin/VinScan';
 import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
 import { blankVehicle, cleanVin, ownerErrors, planErrors, startErrors, STEPS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle } from './apply-schema';
 import { DateInput } from '@/components/DateInput';
@@ -276,6 +277,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
               {by === 'vin' ? (
                 <Field id="ap-s-vin" label="VIN" err={errs.vin} hint="17 letters and digits, on the ownership permit and the driver's door frame.">
                   <input className="input vin-input" {...aria('ap-s-vin', errs.vin, 'hint')} value={v0?.vin ?? ''} onChange={(e) => { setV0({ vin: e.target.value.toUpperCase(), decoded: false }); clearErr('vin'); }} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={24} data-testid="apply-start-vin" />
+                  <VinScan prefix="apply-start" compact onVin={(vin) => { setV0({ vin, decoded: false }); clearErr('vin'); }} />
                 </Field>
               ) : (
                 <YearMakeModel value={{ year: v0?.year ?? '', make: v0?.make ?? '', model: v0?.model ?? '' }} prefix="ap-s" errs={{ year: errs.year, make: errs.make, model: errs.model }}
@@ -362,6 +364,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
                 }} note="Take a photo of the vehicle portion of your Ontario permit, flat and in good light: the VIN, plate and colour fill in for you to check. Bring the permit itself to the handover." />}
                 <Field id={id('vin')} label="VIN" err={e('vin')} hint={vinMsg[v.key] || vinMessage(vinState(v.vin)) || 'On the ownership permit and the driver\'s door frame. Your car\'s details come from it.'}>
                   <div className="ow-vin"><input className="input vin-input" {...aria(id('vin'), e('vin'), 'hint')} value={v.vin} onChange={(ev) => { set({ vin: ev.target.value.toUpperCase(), ...(cleanVin(ev.target.value) !== cleanVin(v.vin) ? { decoded: false } : {}) }, 'vin'); setVinMsg((m) => ({ ...m, [v.key]: '' })); }} autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={24} data-testid="apply-vin" /></div>
+                  <VinScan prefix="apply" compact onVin={(vin) => set({ vin, decoded: false }, 'vin')} />
                 </Field>
                 {v.decoded && !v.editing ? (
                   <div className="vin-sum" data-testid="apply-vin-summary">

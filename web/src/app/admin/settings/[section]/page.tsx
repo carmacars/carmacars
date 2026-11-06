@@ -10,6 +10,7 @@ import { ViewAsButton } from '@/features/admin/ViewAs';
 import { $, Badge, Card, Kv, PageHead, Table, d, t, label } from '@/features/admin/ui';
 import { SampleCarsToggle } from '@/features/supply/SampleCarsToggle';
 import { SECTIONS } from '../sections';
+import { ApiAccessPage } from '@/features/api-access/ApiAccessPage';
 import { door } from '@/server/door';
 import { OfficialForms, type FormsData } from '@/features/official-forms/OfficialForms';
 import { RentalForms, type RentalForm } from '@/features/blindspot/RentalForms';
@@ -136,6 +137,8 @@ export default async function Section({ params, searchParams }: { params: Promis
   const academy = section === 'staff' ? new Map(((await door<{ staff: Array<{ id: string; passed: number; sections: number; done: boolean }> }>(user.id, 'admin_read', 'academy_progress').catch(() => null))?.staff ?? []).map((x) => [x.id, x])) : null;
 
   switch (section) {
+  // release 28: API access (Claude connector and keys)
+  case 'api': return (<>{head}<ApiAccessPage adminId={user.id} /></>);
   case 'site': {
     const samples = await door<{ public: number; cars: number; catalogue: number; open_enquiries: number }>(user.id, 'ops_read', 'sample_cars_state').catch(() => null);
     return (<>{head}

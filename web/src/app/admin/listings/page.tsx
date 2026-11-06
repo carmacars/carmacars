@@ -26,7 +26,7 @@ export default async function Listings() {
   return (
     <>
       <PageHead title="Listings" kicker={`${rows.filter((r) => r.state === 'needs_review').length} waiting for review`}>
-        <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'text' }, { name: 'colour', label: 'Colour', type: 'text' }, { name: 'odometer_km', label: 'Odometer (km)', type: 'number' }]} go="/admin/listings/{intake_id}" />
+        <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'vin' }, { name: 'colour', label: 'Colour', type: 'text' }, { name: 'odometer_km', label: 'Odometer (km)', type: 'number' }]} go="/admin/listings/{intake_id}" />
       </PageHead>
       <Table<I> testId="listings" caption="Listing intakes" rows={rows} empty="No listings in progress. Press Start a listing to list a car: real photos are optional, sample photos are shown until they are added." cols={[
         { key: 'vehicle_name', label: 'Vehicle', render: (r) => <Link prefetch={false} className="link" href={`/admin/listings/${r.id}`}><CarCell name={r.vehicle_name} photo={photos[String(r.vehicle_id)]} sub={r.plate} /></Link> },
