@@ -26,14 +26,37 @@ export function longTail(pathname: string): boolean {
   return PLACE_PAGE.test(p) || PROGRAMMATIC.test(p);
 }
 
-export type Guard = 'pass' | 'copy-only';
+/** The cookie a browser gets from the check page (and the site's own cookies, which only a browser that keeps cookies sends). */
+export const CHECK_COOKIE = 'cc_h';
+const SELF_AGENT = /bot\b|bot\/|crawler|spider|slurp|compatible;|-User\b|Fetcher|externalhit|WhatsApp|Slack|Discord|Telegram|LinkedIn|Google|Bing|Yahoo|Yandex|Baidu|Applebot|Mediapartners|CarmaCars|HeadlessChrome|Playwright|curl|wget|python|node|Go-http|okhttp|axios|undici/i;
+/** True when the request carries a cookie of ours: the check page's, the geo notice's (every HTML page sets it) or a session. */
+export function knownBrowser(cookie: string | null | undefined): boolean {
+  return /(^|;\s*)(cc_h|cc_geo|cc-view-as)=|(^|;\s*)sb-[a-z0-9]+-auth-token/.test(cookie ?? '');
+}
+
+export type Guard = 'pass' | 'copy-only' | 'check';
 /** 'copy-only': a page from a hosting network that is not a verified bot gets the page's kept copy (up to a week old) or
  *  429, never a render. */
-export function scraperGuard(method: string, pathname: string, cf: CfLike | undefined): Guard {
+/** 'check': an agent that says it is a browser, on a long-tail page, with none of our cookies: its kept copy, else a tiny
+ *  page that sets a cookie and reloads (a person sees it for a moment, once), never a render. Scrapers that pose as
+ *  browsers and keep no cookies (the residential proxy pool of November 6) stop there. Crawlers that name themselves,
+ *  verified bots, scripts and the site's own checks are never asked. */
+export function scraperGuard(method: string, pathname: string, cf: CfLike | undefined, ua?: string | null, cookie?: string | null, rsc = false): Guard {
   if (method !== 'GET' && method !== 'HEAD') return 'pass';
   if (!longTail(pathname) || verifiedBot(cf)) return 'pass';
   const org = typeof cf?.asOrganization === 'string' ? cf.asOrganization : '';
-  return org && HOSTING_NETWORK.test(org) ? 'copy-only' : 'pass';
+  if (org && HOSTING_NETWORK.test(org)) return 'copy-only';
+  if (!ua || SELF_AGENT.test(ua) || !/Mozilla\//.test(ua) || rsc || knownBrowser(cookie)) return 'pass';
+  return 'check';
+}
+
+/** The check page: sets the cookie for a day and reloads; without JavaScript a link does the same after the cookie. */
+export function checkPage(headers: Record<string, string> = {}): Response {
+  const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>CarmaCars</title><style>body{margin:0;font:16px/1.5 system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;background:#f7f7f5;color:#1b1b1b}</style></head>'
+    + '<body><main><p>One moment, loading the page.</p><noscript><p>Turn on JavaScript, or <a href="">open the page</a>.</p></noscript></main>'
+    + `<script>document.cookie="${CHECK_COOKIE}=1; Path=/; Max-Age=86400; SameSite=Lax; Secure";if(document.cookie.indexOf("${CHECK_COOKIE}=")>-1)location.reload();else document.querySelector("main p").textContent="Allow cookies for carmacars.ca to open this page."</script></body></html>`;
+  return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'x-robots-tag': 'noindex', ...headers } });
 }
 
 /** http:// on the site's own hosts: the https address (301), before anything renders; null otherwise. */

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { httpsRedirect, longTail, scraperGuard, tooMany, verifiedBot } from './scraper-guard.ts';
+import { checkPage, httpsRedirect, knownBrowser, longTail, scraperGuard, tooMany, verifiedBot } from './scraper-guard.ts';
 
 const place = '/car-rental/cars-for-hire/valle-el-coriejo-mex';
 test('a hosting network gets only kept copies of the long-tail pages; people and verified bots always pass', () => {
@@ -31,5 +31,23 @@ test('429 with Retry-After, never cached', () => {
   const r = tooMany(3600);
   assert.equal(r.status, 429);
   assert.equal(r.headers.get('retry-after'), '3600');
+  assert.equal(r.headers.get('cache-control'), 'no-store');
+});
+
+test('a browser-looking agent without our cookies is checked on long-tail pages; crawlers, scripts and known browsers are not', () => {
+  const chrome = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36';
+  const isp = { asOrganization: 'Virgin Media Limited' };
+  assert.equal(scraperGuard('GET', place, isp, chrome, null), 'check');
+  assert.equal(scraperGuard('GET', place, isp, chrome, 'cc_geo=CA-ON'), 'pass', 'a browser that keeps our cookies');
+  assert.equal(scraperGuard('GET', place, isp, chrome, 'cc_h=1'), 'pass');
+  assert.equal(scraperGuard('GET', place, isp, chrome, null, true), 'pass', 'the router');
+  assert.equal(scraperGuard('GET', place, { ...isp, verifiedBotCategory: 'AI Search' }, chrome, null), 'pass');
+  for (const ua of ['Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)', 'Mozilla/5.0 (compatible; Claude-User/1.0)', 'curl/8.5.0', 'CarmaCars warm-up (cron)',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/130.0 Safari/537.36', '']) assert.equal(scraperGuard('GET', place, isp, ua, null), 'pass', ua);
+  assert.equal(scraperGuard('GET', '/', isp, chrome, null), 'pass', 'home is never checked');
+  assert.equal(scraperGuard('GET', '/cars/bmw', isp, chrome, null), 'pass');
+  assert.ok(knownBrowser('a=1; sb-abc123-auth-token=x') && !knownBrowser('cc_geox=1'));
+  const r = checkPage();
+  assert.equal(r.status, 200);
   assert.equal(r.headers.get('cache-control'), 'no-store');
 });

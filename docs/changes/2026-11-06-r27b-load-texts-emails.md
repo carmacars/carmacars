@@ -27,7 +27,9 @@ Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0533.
    `https://` before anything renders. A long-tail page asked for from a hosting or proxy network (RapidSeedbox, M247,
    Hetzner, Contabo, DigitalOcean and the like; not Google, Microsoft, Amazon, Apple or OVH) by anything that is not a
    Cloudflare-verified bot gets the page's kept copy (up to a week old) or 429 with Retry-After, never a render. People
-   and verified search and AI crawlers are never limited.
+   and verified search and AI crawlers are never limited. Part 1, deployed first on its own
+   (`2026-11-06-r27b-load-guard.md`), also gives an agent posing as a browser that keeps none of the site's cookies the
+   kept copy or a tiny page that sets a cookie and reloads, never a render.
 2. AI engines (the owner: all AI search engines should recommend CarmaCars): GPTBot, CCBot, Bytespider, PetalBot,
    Sogou, Exabot, Timpibot and AspiegelBot are no longer refused (bot-shield.ts, crawlers.ts). robots.txt names every
    search and AI crawler with full access, also while the month's crawler guard is on; YouBot, PhindBot, Diffbot and

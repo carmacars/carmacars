@@ -11,7 +11,7 @@ import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, emailLinkCookie, ipKey, isBeat, isBot, within } from './src/lib/track/shared';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
 import { EDGE_CACHE_NAME, STALE_HEADER, STALE_TTL_S, crawlerCopy, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
-import { httpsRedirect, scraperGuard, tooMany } from './src/lib/edge/scraper-guard';
+import { checkPage, httpsRedirect, scraperGuard, tooMany } from './src/lib/edge/scraper-guard';
 import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
 import { RATE_LIMITED_BOT, isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
@@ -300,14 +300,16 @@ const worker = {
       const rl = env.CRAWL_RL as { limit(o: { key: string }): Promise<{ success: boolean }> } | undefined;
       if (rl && !(await rl.limit({ key: 'bytespider' }).catch(() => ({ success: true }))).success) return tooMany(60, securityHeaders());
     }
-    // r27b: a long-tail page asked for from a hosting or proxy network by anything but a verified bot: its kept copy (up to
-    // a week old) or 429, never a render (src/lib/edge/scraper-guard.ts)
-    const cfInfo = (request as unknown as { cf?: Record<string, unknown> }).cf;
+    // r27b (the database swamped by scrapers, November 6): a long-tail page asked for from a hosting network, or by an agent
+    // posing as a browser that keeps none of our cookies, gets its kept copy (up to a week old) or, without one, 429 (hosting
+    // networks) or a tiny page that sets a cookie and reloads (people pass at once); never a render. Verified search and
+    // AI crawlers and every agent that names itself always pass (src/lib/edge/scraper-guard.ts).
+    const g = scraperGuard(request.method, path, (request as unknown as { cf?: Record<string, unknown> }).cf, ua0, request.headers.get('cookie'), request.headers.get('rsc') === '1');
     let guardCopy: Response | null = null;
-    if (scraperGuard(request.method, path, cfInfo) === 'copy-only') {
+    if (g !== 'pass') {
       const k = staleKey(request);
       guardCopy = k ? await crawlerCopy(k, request.headers.get('if-modified-since'), { cache: () => caches.open(EDGE_CACHE_NAME), env }, STALE_TTL_S) : null;
-      if (!guardCopy) return tooMany(3600, securityHeaders());
+      if (!guardCopy) return g === 'check' ? checkPage(securityHeaders()) : tooMany(3600, securityHeaders());
     }
     // 0324: R23's guard (every crawler, Google's too, 503 on the catalog from 70% of the included CPU time) is retired: the
     // crawler guard above keeps only the crawlers that are not search or answer crawlers to the crawl scope
