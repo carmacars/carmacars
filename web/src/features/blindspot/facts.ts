@@ -8,11 +8,12 @@ import type { BlindSpotFacts } from './layout.ts';
 export interface BlindSpotExtraFacts {
   mailing: BlindSpotFacts['extra']['mailing']; hst_number: string | null; fleet_number: string | null; odometer_out_km: number | null; multi_day_rate_cents: number | null;
   insurer: BlindSpotFacts['extra']['insurer'];
+  readings?: BlindSpotFacts['extra']['readings']; late_fee_cents?: number | null; overrides?: Record<string, string> | null;
 }
 export function toBlindSpotFacts(f: AgreementFacts, bs: BlindSpotExtraFacts, x: AgreementExtra | null): BlindSpotFacts {
   return {
     booking: { ...f.booking, multi_day_rate_cents: bs.multi_day_rate_cents }, renter: f.renter, drivers: f.drivers, vehicle: f.vehicle, lines: f.lines, card: f.card,
     extra: { mailing: bs.mailing, hst_number: bs.hst_number, fleet_number: bs.fleet_number, odometer_out_km: bs.odometer_out_km, insurer: bs.insurer,
-      more: x, coverage: f.coverage, card_expiry: x?.card_expiry ?? null }
+      more: x, coverage: f.coverage, card_expiry: x?.card_expiry ?? null, readings: bs.readings ?? null, late_fee_cents: bs.late_fee_cents ?? null, overrides: bs.overrides ?? null }
   };
 }
