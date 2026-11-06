@@ -5,6 +5,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { pendingView } from '@/server/capture';
 import { realUser } from '@/server/portal/data';
 import { leavePending } from '@/server/actions/capture';
+import { AskReopen } from '@/features/portal/AskReopen';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Your request', path: '/my-request', noindex: true, description: 'Continue the request you started on this device.' });
@@ -43,7 +44,7 @@ export default async function MyRequest() {
                   : <><b>Owner application</b>. <Link className="link" href="/list-your-car/apply">Continue the application</Link></>}</li>))}</ul></div>)}
           {v.bookings.length > 0 && (
             <div className="stack"><h2 className="d3">Sent</h2>
-              <ul className="stack">{v.bookings.map((b) => <li key={b.number} data-testid="my-request-booking"><b>{b.number}</b>, {b.car}, {day(b.pickup_at.slice(0, 10))} to {day(b.return_at.slice(0, 10))}: {STATUS[b.status] ?? b.status.replace(/_/g, ' ')}</li>)}</ul></div>)}
+              <ul className="stack">{v.bookings.map((b) => <li key={b.number} data-testid="my-request-booking"><b>{b.number}</b>, {b.car}, {day(b.pickup_at.slice(0, 10))} to {day(b.return_at.slice(0, 10))}: {STATUS[b.status] ?? b.status.replace(/_/g, ' ')}{b.status === 'expired' && <AskReopen number={b.number} />}</li>)}</ul></div>)}
           {v.chats.length > 0 && <p className="small muted">Your chat with us ({v.chats.map((c) => c.number).join(', ')}) stays open in the chat button.</p>}
           {!v.drafts.length && !v.bookings.length && <p><Link className="btn btn--primary" href="/cars">Find a car</Link></p>}
           <form action={leavePending}><button className="btn btn--ghost btn--sm" type="submit">Not you? Forget this device</button></form>

@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { ReopenOffer } from '@/features/offers/ReopenOffer';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
@@ -126,6 +127,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
         {(fn === 'cs' || (fn === 'sales' && b.status === 'offered')) && ['offered', 'pending_payment'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=review`} data-testid="edit-offer">Edit the offer</Link>}
         {fn === 'cs' && ['confirmed', 'on_rent'].includes(b.status) && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=changes`} data-testid="edit-booking">Change the booking</Link>}
         {(fn === 'cs' || fn === 'sales') && b.status === 'offered' && <Act action="approve_offer_by_phone" payload={{ ...P, expected_version: b.current_offer_version }} label="Renter approved by phone" confirm="Record that the renter approved this offer on the phone. The history shows it was staff." refresh={R} />}
+        {(fn === 'cs' || fn === 'sales') && b.status === 'expired' && <ReopenOffer booking={b.id} pickupAt={b.pickup_at} returnAt={b.return_at} refresh={R} />}
         {(fn === 'cs' || fn === 'sales') && ['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Withdraw the offer" fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={R} />}
         {fn === 'cs' && ['confirmed', 'pending_payment'].includes(b.status) && <Act action="cancel_booking" payload={{ ...P, reason: 'renter_request' }} label="Cancel for the renter" variant="danger" fields={[
           { name: 'channel', label: 'Received by', type: 'select', required: true, options: [['email', 'Email'], ['portal', 'Portal'], ['phone', 'Phone']], value: 'email' },

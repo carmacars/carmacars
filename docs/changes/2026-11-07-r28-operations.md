@@ -1,6 +1,6 @@
-# Release 28, operations, bookings, agreements and money (migrations 0540 to 0549)
+# Release 28, operations, bookings, agreements and money (migrations 0540 to 0549, and the P0 fix 0569)
 
-Branch `r28` (agent A of release 28). SCHEMA_MARKER 0549 (the merge with agent B's 0560 to 0579 sets the highest).
+Branch `r28` (agent A of release 28). SCHEMA_MARKER 0569 after the merges (the merge with agent B's 0560 to 0579 sets the highest).
 
 ## A1. Booked when the renter accepts (0540)
 
@@ -94,6 +94,26 @@ Admin (Referral partners > Invoices, the Overview tile) and Finance (Money > Par
 lists them. Record money received takes a photo of the cheque (made smaller on the device, private storage,
 `/api/staff/partner-invoice` POST; View on the payment).
 
+## P0. Offers sent after their pickup no longer expire at once; Reopen offer; the renter's ask (0569)
+
+- Cause: 0332 expired an offer once its pickup time passed. After the Nov 6 outage many requests were past their
+  pickup, so each offer sent for them expired on the next job tick and the renter could not accept it.
+- `app.expire_offers` and `app.job_offers_expire`: an offer expires at `offer_expires_at`; the pickup only counts when
+  the offer was sent before it (`app.offer_sent_at`) and the pickup is 2 hours or more past.
+- Repair in the migration: every booking expired this way since Nov 5 whose offer was sent after its pickup, or whose
+  own expiry is still ahead, is offered again (offer `sent`, expiry the later of the original and now + 24 hours), with a
+  booking event and the `offer_expired` To do resolved; no email. The count is a NOTICE in the deploy log.
+- **Reopen offer** (`app.reopen_offer`, door action `reopen_expired`): Admin, Customer service and now Sales, on the
+  booking page and the Requests queue's Expired rows; open 24 hours or the hours given; a pickup already past asks for
+  the new pickup and return first; re-priced and sent with the usual offer email and text (`features/offers/ReopenOffer.tsx`).
+- The renter's **Ask to reopen this offer** (expired offer page and /my-request, optional new pickup):
+  `server_renter_ask_reopen` raises the To do "Renter wants expired offer reopened" and the alert
+  `staff_offer_reopen_ask` (who and tier as a new lead), once per 6 hours.
+- The offer screens (`OfferComposer`, `BookingReview`; Admin and staff) say "Pickup time has passed: update it" and
+  do not send until the pickup is moved (`features/offers/pickup-passed.ts`, unit test).
+- Tests: `99_r28_operations.sql` (sent after pickup stays open and is accepted; Sales reopens with new dates; the
+  renter's ask once per 6 hours); `offers/pickup-passed.test.ts`.
+
 ## Tests
 
 `supabase/tests/99_r28_operations.sql`; older suites follow the new rules (06 and 08: the first to accept gets the car;
@@ -104,5 +124,5 @@ Unit: `blindspot/fill.test.ts`, `payments/stripe.test.ts`, `handover/angles.test
 
 `admin/requests-offers-and-bookings`, `admin/owner-money`, `admin/fleet-and-listings`,
 `admin/referral-partners-and-rentalcoverage`, `admin/settings`, `va/finance`, `va/customer-service`, `va/fleet`,
-`field/a-handover`, `field/a-return`, `renter/your-offer`, `renter/before-pickup`, `renter/during-your-trip`,
+`field/a-handover`, `field/a-return`, `renter/your-offer` (also the P0: ask to reopen), `va/sales` (P0: Reopen offer), `renter/before-pickup`, `renter/during-your-trip`,
 `owner/home-and-your-vehicles`. Academy: the offer rule and the deposit lesson and question (0548).

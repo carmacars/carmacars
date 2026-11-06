@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { ReopenOffer } from '@/features/offers/ReopenOffer';
 import { Act } from '@/features/admin/Act';
 import { LiveWait } from '@/features/admin/shell/LiveWait';
 import { Filters } from '@/features/admin/ui';
@@ -132,7 +133,7 @@ function RequestRow({ r, c, target, at, base, admin, refresh }: { r: Req; c: Car
           <Link prefetch={false} className={`btn btn--sm btn--${primary.kind}`} href={primary.href} data-testid={`rq-go-${r.booking_number}`}>{primary.label}</Link>
           {admin && free && <Act action="decline_request" payload={{ booking: r.id }} label="Decline" title={`Decline ${r.booking_number}`}
             fields={[{ name: 'note', label: 'Reason and any alternative', type: 'textarea', required: true }]} refresh={refresh} />}
-          {admin && r.status === 'expired' && <Act action="reopen_expired" payload={{ booking: r.id }} label="Reopen" fields={[{ name: 'note', label: 'Note', type: 'text' }]} refresh={refresh} />}
+          {r.status === 'expired' && <ReopenOffer booking={r.id} pickupAt={r.pickup_at} returnAt={r.return_at} refresh={refresh} testId={`rq-reopen-${r.booking_number}`} />}
         </span>
       </div>
     </article>

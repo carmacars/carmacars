@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { ReopenOffer } from '@/features/offers/ReopenOffer';
 import { BookingInsurer, type BookingInsurerData } from '@/features/insurers/BookingInsurer';
 import { InsurerClaimEdit, type AdjusterOpt } from '@/features/insurers/InsurerClaimEdit';
 import { StaffDocUpload } from '@/features/admin/StaffDocUpload';
@@ -130,7 +131,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
         {['offered', 'pending_payment'].includes(b.status) && <Act action="withdraw_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Withdraw the offer" confirm="The renter's offer is withdrawn and they are told. To change it instead, press Edit the offer." fields={[{ name: 'note', label: 'Note to the renter', type: 'text' }]} refresh={refresh} />}
         {b.status === 'offered' && <Act action="resend_offer" payload={{ ...P, expected_version: b.current_offer_version }} label="Send again, later expiry" fields={[{ name: 'expires_at', label: 'Open until', type: 'datetime', required: true }, { name: 'message', label: 'Message', type: 'textarea' }]} refresh={refresh} />}
         {b.status === 'offered' && <Act action="approve_offer_by_phone" payload={{ ...P, expected_version: b.current_offer_version }} label="Renter approved by phone" confirm="Record that the renter approved this offer on the phone. The history shows it was staff." refresh={refresh} />}
-        {b.status === 'expired' && <Act action="reopen_expired" payload={P} label="Reopen" fields={[{ name: 'note', label: 'Note', type: 'text' }]} refresh={refresh} />}
+        {b.status === 'expired' && <ReopenOffer booking={b.id} pickupAt={b.pickup_at} returnAt={b.return_at} refresh={refresh} />}
         {['confirmed', 'requested', 'offered', 'pending_payment', 'tentative'].includes(b.status) && !b.handed_over_at && (b.placeholder?.on
           ? <Act action="booking_placeholder" payload={{ ...P, on: false }} label="Make it a real booking" fields={[{ name: 'reason', label: 'Why', type: 'text', required: true }]} refresh={refresh} testId="placeholder-off" />
           : <Act action="booking_placeholder" payload={{ ...P, on: true }} label="Mark as a placeholder" confirm="A placeholder (for an insurer, or a hold) never blocks the calendar, is never handed over, sends the renter nothing and is never matched to a toll or ticket. The owner sees only that the car is unavailable." fields={[{ name: 'reason', label: 'What it is for', type: 'text', placeholder: 'Insurance or a hold' }]} refresh={refresh} testId="placeholder-on" />)}
