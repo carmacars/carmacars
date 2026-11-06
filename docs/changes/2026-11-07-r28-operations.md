@@ -82,8 +82,9 @@ Renter signature also on the x line below box 2 and in box 40; box 34's per-hour
 VLF, LDW, T&LDW, PAP/PEC, Waiver Saver, underage, CDW and winter tires each in their box with the rate a day left of it
 (also when typed by hand as "other"); km and fuel out and in from the booking when the reports have none; totals
 checked against the ledger (unit test). **Type into the Blind Spot agreement**: typed values per box
-(`blindspot_box_overrides`), written back to the booking where they have a home, preview PDF. Not done: a visual
-rasterized comparison (the form is private; the position tests run on the stand-in).
+(`blindspot_box_overrides`), written back to the booking where they have a home, preview PDF. Visual test (`blindspot/raster.test.ts`):
+the filled stand-in is rasterized (pdftoppm, installed in CI) and compared with the empty form: every value inks its own
+box and nothing lands outside the boxes. The real form is private; it shares the stand-in's page and box positions.
 
 ## A12. Invoices to partners (0547)
 
@@ -97,7 +98,7 @@ lists them. Record money received takes a photo of the cheque (made smaller on t
 
 `supabase/tests/99_r28_operations.sql`; older suites follow the new rules (06 and 08: the first to accept gets the car;
 01, 03, 08, 09: deposits stay holds; 07: the partner invoice email; 99_overdue_returns: the self checkout).
-Unit: `blindspot/fill.test.ts`, `payments/stripe.test.ts`, `handover/angles.test.ts`, `partner-invoices/model.test.ts`.
+Unit: `blindspot/fill.test.ts`, `payments/stripe.test.ts`, `handover/angles.test.ts`, `partner-invoices/model.test.ts`, `blindspot/raster.test.ts`.
 
 ## Guides
 
