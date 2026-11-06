@@ -10,7 +10,8 @@ import { refreshSession } from './src/lib/auth/edge-refresh';
 import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, emailLinkCookie, ipKey, isBeat, isBot, within } from './src/lib/track/shared';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
-import { EDGE_CACHE_NAME, STALE_HEADER, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
+import { EDGE_CACHE_NAME, STALE_HEADER, STALE_TTL_S, crawlerCopy, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
+import { checkPage, httpsRedirect, scraperGuard, tooMany } from './src/lib/edge/scraper-guard';
 import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
 import { isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
@@ -271,6 +272,10 @@ const worker = {
   },
 
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
+    // r27b: http:// is answered with the https address before anything else (the scrapers of November 6 asked for every
+    // page twice, over http and https, and both rendered)
+    const secure = httpsRedirect(request.url);
+    if (secure) return new Response(null, { status: request.method === 'GET' || request.method === 'HEAD' ? 301 : 308, headers: { location: secure, 'cache-control': 'public, max-age=86400', ...securityHeaders() } });
     const path = new URL(request.url).pathname;
     if (path.startsWith('/media/')) return media(request, env, path, ctx);
     // 2026-11-06: a build file the static assets do not have (a page from an older build than the 8 days the deploy keeps,
@@ -290,6 +295,17 @@ const worker = {
     const core = await keptToScope(ua0, path, async () => (await readNumber(env, SEARCH_SCOPE_KEY)) === 1, async () => (await readNumber(env, CPU_GUARD_KEY)) === 1);
     const sh = shield(request.method, request.url, ua0, core);
     if (sh.kind !== 'pass') return shieldResponse(sh, securityHeaders());
+    // r27b (the database swamped by scrapers, November 6): a long-tail page asked for from a hosting network, or by an agent
+    // posing as a browser that keeps none of our cookies, gets its kept copy (up to a week old) or, without one, 429 (hosting
+    // networks) or a tiny page that sets a cookie and reloads (people pass at once); never a render. Verified search and
+    // AI crawlers and every agent that names itself always pass (src/lib/edge/scraper-guard.ts).
+    const g = scraperGuard(request.method, path, (request as unknown as { cf?: Record<string, unknown> }).cf, ua0, request.headers.get('cookie'), request.headers.get('rsc') === '1');
+    let guardCopy: Response | null = null;
+    if (g !== 'pass') {
+      const k = staleKey(request);
+      guardCopy = k ? await crawlerCopy(k, request.headers.get('if-modified-since'), { cache: () => caches.open(EDGE_CACHE_NAME), env }, STALE_TTL_S) : null;
+      if (!guardCopy) return g === 'check' ? checkPage(securityHeaders()) : tooMany(3600, securityHeaders());
+    }
     // 0324: R23's guard (every crawler, Google's too, 503 on the catalog from 70% of the included CPU time) is retired: the
     // crawler guard above keeps only the crawlers that are not search or answer crawlers to the crawl scope
     if (path === '/api/t' && request.method === 'POST') { const t = await track(request, env, ctx); if (t) return t; }
@@ -322,7 +338,7 @@ const worker = {
     const key = version ? edgeKey(req, version) : null;
     const sKey = version ? staleKey(req) : null;
     const origin = () => handler.fetch(new Request(req), env, ctx) as Promise<Response>;
-    const response: Response = version && (key || sKey)
+    const response: Response = guardCopy ? guardCopy : version && (key || sKey)
       ? await serveEdge(req, key, sKey, path, { cache: () => caches.open(EDGE_CACHE_NAME), env, version, origin, waitUntil: (p: Promise<unknown>) => ctx.waitUntil(p),
           // 0321: a crawler gets the page's last good copy (under 3 days old) or a 304, never a render when one is kept
           crawler: isCrawler(request.headers.get('user-agent')) ? { ifModifiedSince: request.headers.get('if-modified-since') } : undefined })
