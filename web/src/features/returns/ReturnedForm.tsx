@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
 import { DateInput } from '@/components/DateInput';
-import { toStandardImage } from '@/features/uploads/standard-image';
 import { FUEL_LEVELS, MAX_PHOTOS, claimPayload } from './claim';
 import { PhotoPicker } from '@/features/handover/PhotoPicker';
 import type { PickedPhoto } from '@/features/handover/angles';
@@ -17,7 +16,7 @@ function localNow(): string {
 
 export function ReturnedForm({ token }: { token: string }) {
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
-  const uploading = 0;
+  const [uploading, setUploading] = useState(0);
   const [at, setAt] = useState(localNow());
   const [km, setKm] = useState('');
   const [fuel, setFuel] = useState('');
@@ -62,7 +61,7 @@ export function ReturnedForm({ token }: { token: string }) {
 
   return (
     <form className="stack" data-testid="returned-form" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-      <PhotoPicker scope="return-claim" id={token} upload={upload} photos={photos} onChange={setPhotos} max={MAX_PHOTOS} label="Photos of the car where you left it (all sides, odometer, fuel, keys)" testId="returned-photos" />
+      <PhotoPicker scope="return-claim" id={token} upload={upload} photos={photos} onChange={setPhotos} onBusy={setUploading} max={MAX_PHOTOS} label="Photos of the car where you left it (all sides, odometer, fuel, keys)" testId="returned-photos" />
       <p className="small muted">With the photos, the odometer and the fuel level, your return is completed at once. Without them, we check and confirm.</p>
       <div className="field">
         <label className="label" htmlFor="ret-at">When you returned it</label>

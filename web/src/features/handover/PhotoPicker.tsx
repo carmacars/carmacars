@@ -6,12 +6,15 @@ import { ANGLES, anglesDone, type PickedPhoto, type PhotoScope } from './angles'
 // Many photos at once, from the camera roll or the camera (migration 0545): each is made a smaller JPEG on the device
 // first (storage limits), uploaded on its own, and can be tagged with an angle. The suggested angles are a checklist
 // beside them, ticked as photos are tagged or by hand: guidance, never one upload per angle.
-export function PhotoPicker({ scope, id, upload, photos, onChange, max = 40, label = 'Photos of the car', testId = 'photo-picker' }: {
+export function PhotoPicker({ scope, id, upload, photos, onChange, onBusy, max = 40, label = 'Photos of the car', testId = 'photo-picker' }: {
   scope: PhotoScope; id: string; photos: PickedPhoto[]; onChange: (p: PickedPhoto[]) => void; max?: number; label?: string; testId?: string;
   /** where the photo goes; defaults to the shared upload route */
   upload?: (blob: Blob) => Promise<{ bucket: string; path: string }>;
+  /** how many photos are still uploading (the form waits for them) */
+  onBusy?: (n: number) => void;
 }) {
-  const [busy, setBusy] = useState(0);
+  const [busy, setBusy0] = useState(0);
+  const setBusy = (f: (n: number) => number) => setBusy0((n) => { const v = f(n); onBusy?.(v); return v; });
   const [err, setErr] = useState<string | null>(null);
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const done = anglesDone(photos, ticked);

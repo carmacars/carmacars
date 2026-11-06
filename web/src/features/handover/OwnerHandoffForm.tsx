@@ -21,6 +21,7 @@ export function OwnerHandoffForm({ vehicleId, addTo, refresh = [] }: { vehicleId
   const [fuel, setFuel] = useState('');
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
+  const [busy, setBusy] = useState(0);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const save = () => start(async () => {
@@ -46,11 +47,11 @@ export function OwnerHandoffForm({ vehicleId, addTo, refresh = [] }: { vehicleId
             <select className="input" id={`ohf-fuel-${vehicleId}`} value={fuel} onChange={(e) => setFuel(e.target.value)}>
               <option value="">Not given</option>{FUEL_LEVELS.map(([l, p]) => <option key={l} value={String(p)}>{l}</option>)}</select></div>
         </div>}
-        <PhotoPicker scope="owner-handoff" id={vehicleId} photos={photos} onChange={setPhotos} max={60} testId={addTo ? `ohf-photos-${addTo}` : `ohf-photos-${vehicleId}`} />
+        <PhotoPicker scope="owner-handoff" id={vehicleId} photos={photos} onChange={setPhotos} onBusy={setBusy} max={60} testId={addTo ? `ohf-photos-${addTo}` : `ohf-photos-${vehicleId}`} />
         <div className="field"><label className="label" htmlFor={`ohf-notes-${addTo ?? vehicleId}`}>Notes</label>
           <textarea className="textarea" id={`ohf-notes-${addTo ?? vehicleId}`} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
         {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
-        <button className="btn btn--primary btn--sm" type="button" disabled={pending || (!!addTo && !photos.length)} onClick={save}>{pending ? 'Saving' : 'Save'}</button>
+        <button className="btn btn--primary btn--sm" type="button" disabled={pending || busy > 0 || (!!addTo && !photos.length)} onClick={save}>{pending ? 'Saving' : 'Save'}</button>
       </div>
     </details>
   );

@@ -57,3 +57,8 @@ export function returnReportable(status: string, returnAt: string, now: Date = n
   void returnAt; void now;
   return status === 'on_rent';
 }
+
+/** 0545: the renter's own check-in is offered from 24 hours before the pickup, once the offer is approved. */
+export function selfPickupOffered(status: string, pickupAt: string, now: Date = new Date()): boolean {
+  return (status === 'confirmed' || status === 'pending_payment') && Date.parse(pickupAt) - now.getTime() < 24 * 3600_000;
+}

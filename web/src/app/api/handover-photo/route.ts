@@ -57,5 +57,5 @@ export async function GET(req: Request) {
   if (!user || !(await allowed(user.id, 'owner-handoff', id, true))) return new Response('Not found', { status: 404 });
   const bytes = await (await storage()).get('condition-photos', path);
   if (!bytes) return new Response('Not found', { status: 404 });
-  return new Response(bytes, { headers: { 'content-type': path.endsWith('.png') ? 'image/png' : 'image/jpeg', 'cache-control': 'private, max-age=300' } });
+  return new Response(bytes as unknown as BodyInit, { headers: { 'content-type': path.endsWith('.png') ? 'image/png' : 'image/jpeg', 'cache-control': 'private, max-age=300' } });
 }

@@ -24,6 +24,7 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
   const [fuel, setFuel] = useState('');
   const [note, setNote] = useState('');
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
+  const [busy, setBusy] = useState(0);
   const [dep, setDep] = useState('');
   const [sig, setSig] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -44,7 +45,7 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
   });
   return (
     <form className="stack" data-testid={`one-screen-${kind}`} onSubmit={(e) => { e.preventDefault(); go(); }}>
-      <PhotoPicker scope={who === 'renter' ? 'self-pickup' : 'one-screen'} id={booking} photos={photos} onChange={setPhotos}
+      <PhotoPicker scope={who === 'renter' ? 'self-pickup' : 'one-screen'} id={booking} photos={photos} onChange={setPhotos} onBusy={setBusy}
         label={who === 'renter' ? 'Photos of the car as you get it (all sides, odometer, fuel, inside, any damage)' : 'Photos (add to the renter\'s, if they took some)'} testId={`os-${kind}-photos`} />
       <div className="field-row">
         <div className="field"><label className="label" htmlFor={`os-${kind}-at`}>{pickup ? 'Picked up at' : 'Returned at'}</label>
@@ -61,7 +62,7 @@ export function HandoverOneScreen({ booking, number, kind, who, refresh = [], is
         <div className="field"><label className="label" htmlFor="os-dep">Deposit not taken: the reason it is waived</label><input className="input" id="os-dep" value={dep} onChange={(e) => setDep(e.target.value)} /></div>
         <div className="field"><label className="label" htmlFor="os-sig">Without the renter&apos;s signature on the report: the reason</label><input className="input" id="os-sig" value={sig} onChange={(e) => setSig(e.target.value)} /></div></details>}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
-      <button className="btn btn--primary" type="submit" disabled={pending} data-testid={`os-${kind}-go`}>{pending ? 'Saving' : who === 'renter' ? 'Check in' : pickup ? 'Check out on one screen' : 'Check in on one screen'}</button>
+      <button className="btn btn--primary" type="submit" disabled={pending || busy > 0} data-testid={`os-${kind}-go`}>{pending ? 'Saving' : who === 'renter' ? 'Check in' : pickup ? 'Check out on one screen' : 'Check in on one screen'}</button>
     </form>
   );
 }
