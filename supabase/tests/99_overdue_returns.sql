@@ -67,12 +67,13 @@ select test.throws('report: only photos this link uploaded',
   format($$select public.server_return_claim_submit(%L, jsonb_build_object('photos', jsonb_build_array(jsonb_build_object('bucket', 'condition-photos', 'path', 'bookings/x/return-claim/a.jpg'))))$$, test.or_tok('OR-1')), 'not uploaded through this link');
 select test.throws('report: an unknown link', format($$select public.server_return_claim_submit(%L, '{}'::jsonb)$$, gen_random_uuid()), 'not valid');
 create temp table or_c1 as select public.server_return_claim_submit(test.or_tok('OR-1'),
-  jsonb_build_object('returned_at', now() - interval '1 hour', 'odometer_km', 20450, 'fuel_pct', 75, 'note', 'Keys in the drop box',
+  -- no fuel level: with the odometer, the fuel and photos the renter's own checkout completes the trip at once (0545)
+  jsonb_build_object('returned_at', now() - interval '1 hour', 'odometer_km', 20450, 'note', 'Keys in the drop box',
                      'photos', jsonb_build_array(test.or_photo('OR-1'), test.or_photo('OR-1'), test.or_photo('OR-1')))) r;
 select test.eq('report: pending, the booking returned waiting for confirmation, kept as renter-provided',
   (select r ->> 'status' from or_c1) || '/' || (select return_state from bookings where id = test.id('booking:OR-1'))
-  || '/' || (select status || ':' || renter_provided || ':' || odometer_km || ':' || fuel_pct || ':' || jsonb_array_length(photos) from return_claims where booking_id = test.id('booking:OR-1')),
-  'pending/returned_pending_confirmation/pending:true:20450:75:3');
+  || '/' || (select status || ':' || renter_provided || ':' || odometer_km || ':' || coalesce(fuel_pct::text, '-') || ':' || jsonb_array_length(photos) from return_claims where booking_id = test.id('booking:OR-1')),
+  'pending/returned_pending_confirmation/pending:true:20450:-:3');
 select test.eq('report: every overdue notice still waiting is skipped at once',
   (select count(*) from notification_outbox o join app_events e on e.id = o.event_id
     where e.entity_id = test.id('booking:OR-1') and o.code = any (app.overdue_codes()) and o.status in ('queued', 'delayed'))::integer, 0);

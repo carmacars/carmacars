@@ -276,11 +276,11 @@ begin
 end $$;
 
 -- the email (catalogue partner_invoice), straight into the outbox: the link to the PDF, the total, how to pay
-create or replace function app.partner_invoice_email(p_id uuid, p_to text, p_why text) returns bigint
+create or replace function app.partner_invoice_email(p_id uuid, p_to text, p_why text) returns uuid
 language plpgsql security definer set search_path = public, app as $$
 declare
   j jsonb := app.partner_invoice_json(p_id);
-  v_id bigint;
+  v_id uuid;
   v_base text := rtrim(coalesce((app.settings()).notify_base_url, 'https://carmacars.ca'), '/');
 begin
   insert into notification_outbox (code, category, priority, audience, to_address, to_name, entity, entity_id, payload, missing_variables, dedupe_key, status, send_after)
