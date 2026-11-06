@@ -34,7 +34,8 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
     if (!c || !i || !ctx) return;
     const g = c.getContext('2d')!;
     try { paint(g, i, c.width, c.height, boxes, style, ctx.cover_text, font); }
-    catch (e) { if (isTaintError(e)) { g.drawImage(i, 0, 0, c.width, c.height); setErr(TAINT_MESSAGE); } else throw e; }
+    // a canvas that cannot be read (never, now the photo is same origin) shows the photo without the covers; save says why
+    catch (e) { if (isTaintError(e)) g.drawImage(i, 0, 0, c.width, c.height); else throw e; }
     boxes.forEach((b, n) => {
       g.save(); g.lineWidth = 2; g.setLineDash(b.suggested ? [6, 4] : []); g.strokeStyle = n === sel ? '#d7141a' : '#ffffff';
       g.strokeRect(b.x * c.width, b.y * c.height, b.w * c.width, b.h * c.height);

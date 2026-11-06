@@ -14,6 +14,7 @@ create or replace function test.sfm_up(p_shot text) returns uuid language sql as
           'byte_size', 900000, 'mime_type', 'image/jpeg')) ->> 'photo_id')::uuid $$;
 create temp table s99ph as select test.sfm_up('other') as kept, test.sfm_up('trunk') as cleared, test.sfm_up('front_left') as outside;
 update vehicle_photos set quality_flags = '["watermark"]'::jsonb where id in (select kept from s99ph union select cleared from s99ph);
+select app.enqueue_listing_job((select i from s99sf), 'process_photo', x) from (select kept x from s99ph union all select cleared from s99ph union all select outside from s99ph) q;
 
 select test.eq('the job of a flagged photo says so; the others do not',
   (select string_agg(format('%s=%s', p.shot_type, app.listing_job_context(j.id) #>> '{photo,watermark}'), ',' order by p.shot_type)

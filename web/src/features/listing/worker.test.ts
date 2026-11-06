@@ -157,7 +157,7 @@ test('photo: a readable cut-out is framed to the car and placed big on the floor
   fill(320, 250, 680, 420); fill(850, 600, 980, 625);   // the car (a side view, 36% of the width) and a corner mark
   const png = await encodePng({ width: W, height: H, data });
   const f = files();
-  const placed: Array<Record<string, number> | null | undefined> = [];
+  const placed: Array<{ width: number; height: number; left: number; bottom: number } | null | undefined> = [];
   const photos = { ...fakePhotos(getter(f)), name: 'cloudflare-images' as const,
     cutout: async () => ({ ok: true as const, bytes: png, contentType: 'image/png', transformations: 1 }),
     composite: async (r: { place?: { width: number; height: number; left: number; bottom: number } | null }) => { placed.push(r.place); return { ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }; } };

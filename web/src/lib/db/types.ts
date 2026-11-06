@@ -26257,6 +26257,8 @@ export type Database = {
       server_phone_sent: { Args: { p: Json }; Returns: Json };
       server_phone_signed_in: { Args: { p_user: string; p_phone: string; p_name?: string }; Returns: Json };
       server_phone_summary: { Args: { p: Json }; Returns: Json };
+      server_photo_mark_gate: { Args: never; Returns: Json };
+      server_photo_mark_record: { Args: { p: Json }; Returns: Json };
       server_photo_sort_gate: { Args: { p_by: string }; Returns: Json };
       server_photo_sort_record: { Args: { p_by: string; p: Json }; Returns: Json };
       server_places_budget: { Args: never; Returns: Json };
