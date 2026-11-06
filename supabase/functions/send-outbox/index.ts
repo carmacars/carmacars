@@ -166,7 +166,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
     const files = await attachments(r);
     if (cfOn && budget.cfLeft <= 0) cfOn = false;
     if (!cfOn && budget.resendLeft <= 0) {
-      // 0533: Resend's budget is used and Cloudflare cannot send right now. With Cloudflare budget left today (it rests 15
+      // 0534: Resend's budget is used and Cloudflare cannot send right now. With Cloudflare budget left today (it rests 15
       // minutes after a refusal) the email waits 16 minutes; only when both budgets are used it waits for tomorrow,
       // attempts untouched (oldest, highest priority first when it comes due)
       if (budget.cfLeft > 0) {
@@ -207,7 +207,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
             headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined });
           if ('id' in cf) {
             cfOn = true;
-            // 0533: a send here counts as Cloudflare working too (before, Cloudflare "never" sent: its last success was not kept)
+            // 0534: a send here counts as Cloudflare working too (before, Cloudflare "never" sent: its last success was not kept)
             await sql`select public.server_cf_email_result(${JSON.stringify({ ok: true })}::jsonb)`;
             await sql`select app.outbox_mark_sent(${r.id}::uuid, ${'cf:' + cf.id}, ${text})`;
             budget.cfLeft--;

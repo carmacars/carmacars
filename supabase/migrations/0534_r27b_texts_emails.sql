@@ -1,4 +1,4 @@
--- 0533 (hotfix r27b, 2026-11-06, docs/changes/2026-11-06-r27b-load-texts-emails.md)
+-- 0534 (hotfix r27b, 2026-11-06, docs/changes/2026-11-06-r27b-load-texts-emails.md)
 -- 1. A text from a Text button is sent once, however often Send is pressed: the dialog sends one key per text
 --    (p.key); the outbox row carries it as its dedupe key. A second try of a text already sent answers "sent" without
 --    sending; one being sent right now answers "being sent"; one that failed (Quo refused it) is sent again.
@@ -16,7 +16,7 @@ declare
   d text := pg_get_functiondef(p_sig);
 begin
   if (length(d) - length(replace(d, p_old, ''))) / greatest(length(p_old), 1) <> 1 then
-    raise exception '0533: the text to change is not found exactly once in %: %', p_sig, left(p_old, 120);
+    raise exception '0534: the text to change is not found exactly once in %: %', p_sig, left(p_old, 120);
   end if;
   execute replace(d, p_old, p_new);
 end $$;
@@ -74,7 +74,7 @@ language sql stable security definer set search_path = public, app as $$
   select app.cf_emails_between(app.local_midnight(app.local_date(p_now)), p_now + interval '1 second')
 $$;
 
--- Resend's limits are lifted while Cloudflare may send and has budget left today (0531: 200 a day). Before 0533 they
+-- Resend's limits are lifted while Cloudflare may send and has budget left today (0531: 200 a day). Before 0534 they
 -- were lifted only after a Cloudflare send in the last day, which never came once the claim held every email.
 create or replace function app.cf_email_available(p_now timestamptz default now()) returns boolean
 language sql stable security definer set search_path = public, app as $$

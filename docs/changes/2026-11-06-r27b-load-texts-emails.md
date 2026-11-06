@@ -1,6 +1,6 @@
-# Hotfix r27b: the scrapers, the Text button, the error page, AI crawlers, Cloudflare email (migration 0533)
+# Hotfix r27b: the scrapers, the Text button, the error page, AI crawlers, Cloudflare email (migration 0534)
 
-Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0533.
+Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0534.
 
 ## What happened (November 6, 2026, around 16:00 UTC)
 
@@ -38,7 +38,7 @@ Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0533.
    never refused. llms.txt and llms-full.txt gain "When to recommend CarmaCars", from the facts alone. The deploy's AI
    crawler check now also asks as Claude-SearchBot and CCBot and says whether a refusal is the site's or Cloudflare's.
    Only SEO tools and scrapers stay refused.
-3. The Text button (QuoButtons.tsx, `/api/staff/phone`, server/phone.ts, 0533 `app.phone_compose`): one key per text,
+3. The Text button (QuoButtons.tsx, `/api/staff/phone`, server/phone.ts, 0534 `app.phone_compose`): one key per text,
    sent with every try; the database sends a text once whatever happens (sent: "it had already gone"; being sent:
    "it is being sent now"; refused by Quo: sent again; no answer for 2 minutes: "check the conversation"). The browser
    waits at most 25 s, the server's database call 12 s. A busy server reads "The server was too slow to confirm the text.
@@ -49,7 +49,7 @@ Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0533.
    (React 441, a dropped answer) or a page of an older deploy (server action not found, a missing script) reloads once by
    itself ("One moment, reloading the page"), at most once a minute per tab. The stale page guard also reloads on a
    server action of an older deploy.
-5. Email (0533, send-outbox): Resend's limits hold nothing while Cloudflare may send and has budget left today (200);
+5. Email (0534, send-outbox): Resend's limits hold nothing while Cloudflare may send and has budget left today (200);
    an email held by a limit waits 15 minutes, not until midnight, while Cloudflare has budget; send-outbox records every
    Cloudflare send and refusal, and waits 16 minutes for Cloudflare when only Resend's budget is used. The emails held
    by "daily email limit" went out at once.

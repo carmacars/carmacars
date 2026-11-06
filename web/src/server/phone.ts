@@ -130,7 +130,7 @@ export function quoProblem(error: string | undefined): string {
 
 /** A text from a Text button (r27 consolidation, migration 0500): the database checks the person and the number, queues it
  *  in the person's conversation and refuses an opted-out number; this sends it at once from the CarmaCars number.
- *  r27b (0533): the dialog's key makes it one text however often Send is pressed; the database call is bounded. */
+ *  r27b (0534): the dialog's key makes it one text however often Send is pressed; the database call is bounded. */
 export async function staffCompose(d: Door, call: 'va_do' | 'field_do', p: { number: string; body: string; booking_number?: string; key?: string }): Promise<{ ok: boolean; thread_id?: string; error?: string; note?: string }> {
   const r = (await within(d(call, 'phone_compose', p), COMPOSE_DB_MS)) as { send?: Send; from?: string; thread_id?: string; note?: string; already?: boolean; pending?: boolean };
   if (!r.send) return r.already || r.pending ? { ok: true, thread_id: r.thread_id, note: r.note } : { ok: false, error: 'Nothing to send' };
