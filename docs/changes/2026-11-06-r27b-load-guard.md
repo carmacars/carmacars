@@ -15,6 +15,19 @@ in about 40 countries, each long-tail place page asked for about 12 times an hou
   agent that names itself (GPTBot, Claude-User, Googlebot and the others), the site's own checks and scripts always
   pass. Nothing is noindexed, disallowed or removed from a sitemap.
 
+## Part 1b: the reads every page makes, kept in the database (migration 0533)
+
+At 16:30 UTC the scrapers had tripled (119,700 Worker invocations in an hour from the Windows Chrome lookalikes) and
+PostgREST's 20 connections were all busy, most of them with three reads every public page makes and that answer the
+same for every page: `public.seo_links()` (1,313 ms a call, 619,000 calls), `public.seo_hub_links()` (1,134 ms, 611,000)
+and `public.site_facts()` (about 650 ms, 531,000). The Worker keeps them 5 minutes per isolate, but scrapers spread over
+hundreds of data centres keep starting cold isolates. No pg_cron job was heavy (each 15 s or less).
+
+- `app.public_read_cache`: pg_cron works the three out every 3 minutes (`app.job_public_read_cache`); the functions
+  answer from that copy in a few milliseconds (seo_links and seo_hub_links up to an hour old, site_facts 15 minutes),
+  else work it out as before. An edit of the site or program settings drops the copy, so it shows at once.
+- The database suites switch the copy off (helpers.sql), as they change data and read it back at once.
+
 ## Guides
 
 No guide change: no screen changes; only scrapers see the check page.
