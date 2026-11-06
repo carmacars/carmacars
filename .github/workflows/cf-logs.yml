@@ -88,7 +88,13 @@ jobs:
                 from phone_outbox where created_at > now() - interval '$HOURS hours' group by 1, 2, 3 order by 4 desc limit 10) x),
             'crashes', (select coalesce(jsonb_agg(x), '[]') from (select regexp_replace(left(message, 140), (select re from m), '#', 'g') msg, regexp_replace(split_part(path, '/', 2) || '/' || split_part(path, '/', 3), (select re from m), '#', 'g') p, count(*) n, max(created_at) last
                 from client_errors where created_at > now() - interval '$HOURS hours' group by 1, 2 order by 3 desc limit 12) x),
-            'activity', (select coalesce(jsonb_agg(x), '[]') from (select coalesce(usename, '?') u, state, count(*) n, max(extract(epoch from now() - query_start))::int oldest_s from pg_stat_activity where backend_type = 'client backend' group by 1, 2 order by 3 desc limit 10) x)
+            'activity', (select coalesce(jsonb_agg(x), '[]') from (select coalesce(usename, '?') u, state, count(*) n, max(extract(epoch from now() - query_start))::int oldest_s from pg_stat_activity where backend_type = 'client backend' group by 1, 2 order by 3 desc limit 10) x),
+            'active_queries', (select coalesce(jsonb_agg(x), '[]') from (select regexp_replace(left(regexp_replace(query, '\s+', ' ', 'g'), 160), (select re from m), '#', 'g') q, count(*) n, max(extract(epoch from now() - query_start))::int oldest_s
+                from pg_stat_activity where state <> 'idle' and backend_type = 'client backend' and pid <> pg_backend_pid() group by 1 order by 2 desc limit 12) x),
+            'top_statements', (select coalesce(jsonb_agg(x), '[]') from (select regexp_replace(left(regexp_replace(query, '\s+', ' ', 'g'), 140), (select re from m), '#', 'g') q, calls, round(total_exec_time)::bigint ms, round(mean_exec_time)::int mean_ms
+                from pg_stat_statements order by total_exec_time desc limit 12) x),
+            'cron_jobs', (select coalesce(jsonb_agg(x), '[]') from (select j.jobname, j.schedule, count(r.*) runs, round(avg(extract(epoch from r.end_time - r.start_time)))::int avg_s, max(extract(epoch from r.end_time - r.start_time))::int max_s
+                from cron.job j left join cron.job_run_details r on r.jobid = j.jobid and r.start_time > now() - interval '2 hours' group by 1, 2 order by 4 desc nulls last limit 12) x)
           ) as d
           SQL
           scripts/deploy/sb.sh sql-file "$RUNNER_TEMP/diag.sql" > "$RUNNER_TEMP/diag.json"
