@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react';
 import { askReopenOffer } from '@/server/actions/reopen-ask';
 import { ASK_REOPEN_DONE } from '@/features/offers/pickup-passed';
+import { DateInput } from '@/components/DateInput';
 
 // "Ask to reopen this offer" (0569): one tap on an expired offer, with a new pickup time if wanted.
 export function AskReopen({ number }: { number: string }) {
@@ -17,7 +18,7 @@ export function AskReopen({ number }: { number: string }) {
       if (r.ok) setDone(true); else setErr(r.message);
     }); }}>
       <div className="field"><label className="label" htmlFor={`ask-reopen-${number}`}>New pickup time (optional)</label>
-        <input className="input" id={`ask-reopen-${number}`} type="datetime-local" value={pickup} onChange={(e) => setPickup(e.target.value)} /></div>
+        <DateInput className="input" id={`ask-reopen-${number}`} type="datetime-local" value={pickup} onChange={(e) => setPickup(e.target.value)} /></div>
       {err && <p className="alert alert--error" role="alert"><span>{err}</span></p>}
       <p><button className="btn btn--primary" type="submit" disabled={pending} data-testid="ask-reopen-send">{pending ? 'Sending' : 'Ask to reopen this offer'}</button></p>
     </form>

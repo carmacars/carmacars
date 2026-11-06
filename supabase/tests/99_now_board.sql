@@ -261,7 +261,7 @@ select test.ok('my bookings: Sales see the bookings they added, with how',
   exists (select 1 from jsonb_array_elements(test.bn('mine')) x where x ->> 'booking_number' = 'BN-WEEK' and x ->> 'how' = 'added')
   and not exists (select 1 from jsonb_array_elements(test.bn('mine')) x where x ->> 'booking_number' = 'BN-LATE'));
 select test.throws('my bookings: office staff only', format($$select app.door(%L, 'aal2', 'ops_read', 'my_bookings', '{}')$$, test.id('bn_field')), 'Office staff');
--- an offer still out when its pickup time passes expires by itself
+-- an offer still out when its pickup time passes expires by itself (sent before the pickup, the pickup 2 hours or more past: 0569)
 select test.mk_vehicle('bn_offer', 'bn_olive');
 select test.mk_booking('BN-OFFER', 'bn_offer', 'bn_ivan', test.bnt(interval '-30 hours'), test.bnt(interval '3 days'), 'offered');
 update bookings set offer_expires_at = now() + interval '1 day' where id = test.id('booking:BN-OFFER');

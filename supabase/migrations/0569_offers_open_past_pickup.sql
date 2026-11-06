@@ -28,6 +28,7 @@ language sql stable security definer set search_path = public, app as $$
   select coalesce(o.sent_at, o.created_at) from booking_offers o where o.booking_id = p_booking and o.version = p_version
 $$;
 revoke all on function app.offer_sent_at(uuid, integer) from public, anon, authenticated;
+grant execute on function app.offer_sent_at(uuid, integer) to service_role;
 comment on function app.offer_sent_at(uuid, integer) is 'When the offer version was sent (0569): the pickup only expires an offer sent before it.';
 
 select pg_temp.patch_fn('app.expire_offers(timestamptz)'::regprocedure,
@@ -36,11 +37,11 @@ select pg_temp.patch_fn('app.expire_offers(timestamptz)'::regprocedure,
 select pg_temp.patch_fn('app.expire_offers(timestamptz)'::regprocedure,
   $o$where b.status = 'offered' and (b.offer_expires_at <= p_now or b.pickup_at <= p_now)$o$,
   $n$where b.status = 'offered' and (b.offer_expires_at <= p_now
-                   or (b.pickup_at <= p_now - interval '2 hours' and app.offer_sent_at(b.id, b.current_offer_version) < b.pickup_at))$n$);
+                   or (b.pickup_at <= p_now - interval '2 hours' and coalesce(app.offer_sent_at(b.id, b.current_offer_version), '-infinity') < b.pickup_at))$n$);
 select pg_temp.patch_fn('app.job_offers_expire(timestamptz)'::regprocedure,
   $o$if not exists (select 1 from bookings b where b.status = 'offered' and (b.offer_expires_at <= p_now or b.pickup_at <= p_now))$o$,
   $n$if not exists (select 1 from bookings b where b.status = 'offered' and (b.offer_expires_at <= p_now
-                     or (b.pickup_at <= p_now - interval '2 hours' and app.offer_sent_at(b.id, b.current_offer_version) < b.pickup_at)))$n$);
+                     or (b.pickup_at <= p_now - interval '2 hours' and coalesce(app.offer_sent_at(b.id, b.current_offer_version), '-infinity') < b.pickup_at)))$n$);
 
 -- 2. the repair
 do $$
@@ -109,6 +110,7 @@ begin
   return app.send_offer(p_booking, p_by, nullif(btrim(coalesce(p ->> 'note', '')), ''), now() + make_interval(hours => v_hours));
 end $$;
 revoke all on function app.reopen_offer(uuid, uuid, jsonb) from public, anon, authenticated;
+grant execute on function app.reopen_offer(uuid, uuid, jsonb) to service_role;
 comment on function app.reopen_offer(uuid, uuid, jsonb) is 'Reopen an expired offer in one click (0569): new dates when the pickup has passed, re-priced, a new version sent, open p.hours (24).';
 
 select pg_temp.patch_fn('app.admin_do_0030(uuid, text, jsonb)'::regprocedure,
