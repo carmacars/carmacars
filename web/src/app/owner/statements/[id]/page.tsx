@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Statement', path: '/owner/statements', noindex: true, description: 'A monthly owner statement.' });
 
 const c = (v?: number) => (v === undefined || v === null ? '' : money(v, { cents: true }));
-const LINE: Record<string, string> = { rental: 'Rental', turo_trip: 'Turo trip', withheld: 'Withheld (chargeback open)', fees_deducted: 'Unpaid Fees deducted', owner_cost: 'Owner cost deducted', refund_or_chargeback: 'Earlier refund or chargeback', arrears_moved: 'Arrears moved', kickback_earned: 'Referral Kickback earned', hst_on_payout: 'HST on payout', balance_brought_forward: 'Balance brought forward', credit: 'Credit', later_revenue: 'Credit', flat_payment: 'Flat monthly payment' };
+const LINE: Record<string, string> = { rental: 'Rental', turo_trip: 'Turo trip', withheld: 'Withheld (chargeback open)', fees_deducted: 'Unpaid Fees deducted', owner_cost: 'Owner cost deducted', refund_or_chargeback: 'Earlier refund or chargeback', arrears_moved: 'Arrears moved', kickback_earned: 'Referral Kickback earned', hst_on_payout: 'HST on payout', balance_brought_forward: 'Balance brought forward', credit: 'Credit', later_revenue: 'Credit', flat_payment: 'Flat monthly payment', referral_share: 'Referral share' };
 
 function LineRow({ l }: { l: StatementLine }) {
   const ref = l.booking_number ? `Booking ${l.booking_number}` : l.invoice_number ? `Invoice ${l.invoice_number}` : l.from_vehicle_name ? `From ${l.from_vehicle_name}` : '';
@@ -23,6 +23,7 @@ function LineRow({ l }: { l: StatementLine }) {
        // 0156: each documented deduction with its reason, as the statement stores it
        l.owner_expense_cents || (l.booking_share_bps !== null && l.booking_share_bps !== undefined) ? (l.description ?? '').split('; ').slice(1).join('; ') : '']
     : l.line_type === 'turo_trip' ? [`Turo gross ${c(l.turo_gross_cents)}`, `Turo fees ${c(-(l.turo_fees_cents ?? 0))}`]
+    : l.line_type === 'referral_share' ? [l.description ?? '', `on revenue ${c(l.rental_charge_cents)} at ${((l.booking_share_bps ?? 0) / 100).toFixed(0)} points`]
     : l.line_type === 'fees_deducted' ? [`Fees with HST ${c(l.fee_cents)}`, l.late_fee_cents ? `Late Fee ${c(l.late_fee_cents)}` : '']
     : [l.description ?? ''];
   return <li><span>{LINE[l.line_type] ?? l.line_type}{ref ? ` · ${ref}` : ''}</span><span className="ow-amount">{c(l.amount_cents)}</span><span className="ow-meta">{detail.filter(Boolean).map((d, i) => <span key={i}>{d}</span>)}</span></li>;
@@ -62,7 +63,7 @@ export default async function OwnerStatementPage({ params }: { params: Promise<{
           <section className="pt-card" aria-labelledby="ow-tot"><h2 className="d4" id="ow-tot">Totals</h2>
             <dl className="pt-dl pt-dl--money">
               <div><dt>Vehicles payable</dt><dd>{c(st.vehicles_payable_cents)}</dd></div>
-              {st.kickbacks_earned_cents !== 0 && <div><dt>Referral Kickbacks earned</dt><dd>{c(st.kickbacks_earned_cents)}</dd></div>}
+              {st.kickbacks_earned_cents !== 0 && <div><dt>Referral Kickbacks and shares earned</dt><dd>{c(st.kickbacks_earned_cents)}</dd></div>}
               {st.hst_on_payout_cents !== 0 && <div><dt>HST on payout</dt><dd>{c(st.hst_on_payout_cents)}</dd></div>}
               {st.balance_brought_forward_cents !== 0 && <div><dt>Balance brought forward</dt><dd>{c(st.balance_brought_forward_cents)}</dd></div>}
               <div><dt><b>{st.balance_carried_forward_cents < 0 ? 'Balance owing' : 'Payout'}</b></dt><dd className="pt-total" data-testid="statement-payout">{c(st.balance_carried_forward_cents < 0 ? -st.balance_carried_forward_cents : st.payout_cents)}</dd></div>
