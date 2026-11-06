@@ -99,10 +99,14 @@ async function main() {
   } catch (e) { report.failures_unavailable = String(e.message).slice(0, 300); }
   // 3. (2026-11-06, r27b) the invocations by user agent and by the edge copy's answer (x-edge header kept in the logs):
   // which crawlers cost Worker time. Each part the dataset does not have is reported as unavailable.
-  for (const [name, key] of [['by_user_agent', '$workers.event.request.headers.user-agent'], ['by_path', '$workers.event.request.path']]) {
+  const browserLike = { key: '$workers.event.request.headers.user-agent', operation: 'includes', type: 'string', value: 'Windows NT 10.0; Win64; x64) AppleWebKit' };
+  for (const [name, key, extra] of [['by_user_agent', '$workers.event.request.headers.user-agent'], ['by_path', '$workers.event.request.path'],
+    ['by_network', '$workers.event.request.cf.asOrganization'], ['by_bot_category', '$workers.event.request.cf.verifiedBotCategory'],
+    ['by_network_windows_chrome', '$workers.event.request.cf.asOrganization', browserLike], ['by_path_windows_chrome', '$workers.event.request.path', browserLike],
+    ['by_country_windows_chrome', '$workers.event.request.cf.country', browserLike]]) {
     try {
       const res = await query({ queryId: `carmacars-${name}-${Date.now()}`, view: 'calculations', limit: 40, timeframe: { from, to },
-        parameters: { ...base, filters: [byScript], calculations: [{ operator: 'count', alias: 'n' }, { operator: 'sum', key: '$workers.cpuTimeMs', keyType: 'number', alias: 'cpu_ms' }],
+        parameters: { ...base, filters: extra ? [byScript, extra] : [byScript], calculations: [{ operator: 'count', alias: 'n' }, { operator: 'sum', key: '$workers.cpuTimeMs', keyType: 'number', alias: 'cpu_ms' }],
           groupBys: [{ type: 'string', value: key }], orderBy: { value: 'n', order: 'desc' }, limit: 40 } });
       const rows = {};
       for (const c of res.calculations ?? []) for (const g of c.aggregates ?? []) {
