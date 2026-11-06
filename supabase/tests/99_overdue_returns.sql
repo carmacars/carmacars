@@ -35,6 +35,17 @@ select test.eq('overdue: every overdue notice has the one-tap link of the bookin
 select test.ok('overdue: the texts carry the link too',
   (select bool_and(strpos(body, '{{returned_url}}') > 0) from sms_templates where code in ('renter_return_due', 'renter_late_return_first', 'renter_late_return_final')));
 
+create function test.or_copy() returns void language plpgsql as $f$
+declare cols text;
+begin
+  select string_agg(quote_ident(attname), ', ' order by attnum) into cols from pg_attribute
+   where attrelid = 'public.bookings'::regclass and attnum > 0 and not attisdropped and attgenerated = '';
+  execute format('insert into bookings (%1$s) select %1$s from jsonb_populate_record(null::bookings, (select to_jsonb(b) || jsonb_build_object(''id'', gen_random_uuid(), ''booking_number'', ''OR-COPY'', ''agreement_number'', null, ''request_key'', null, ''calendar_token'', gen_random_uuid(), ''status'', ''closed'', ''pickup_at'', now() - interval ''400 days'', ''handed_over_at'', now() - interval ''400 days'', ''return_at'', now() - interval ''398 days'', ''original_return_at'', now() - interval ''398 days'', ''checked_in_at'', now() - interval ''398 days'') from bookings b where b.booking_number = ''OR-2''))', cols);
+end $f$;
+select test.lives('a booking copied with the same link gets its own (the e2e suites copy bookings this way)', $$select test.or_copy()$$);
+select test.ok('the copy has its own link', test.or_tok('OR-COPY') is distinct from test.or_tok('OR-2'));
+delete from bookings where booking_number = 'OR-COPY';
+
 -- ---------------------------------------------------------------- 2. the link's page
 select test.eq('read: the booking out with the renter can be reported',
   (select (r ->> 'number') || ':' || (r ->> 'can_report') || ':' || coalesce(r ->> 'return_state', '-') from public.server_return_claim_read(test.or_tok('OR-1')) r), 'OR-1:true:-');
