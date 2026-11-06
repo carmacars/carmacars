@@ -144,7 +144,7 @@ test('investor portal: what needs you first, Documents with three tabs, nothing 
     const errors = watch(page);
     const i = await seedInvestor(sql);
     await signIn(page, i.email, '/investor');
-    await menu(page, 'investor-nav', ['Home', 'Live sheets', 'Documents', 'Investor deck', 'Account'], 'Home');
+    await menu(page, 'investor-nav', ['Home', 'Live sheets', 'Documents', 'Updates', 'Investor deck', 'Account'], 'Home');
     await check(page, 'investor home');
     for (const [path, tab] of [['/investor/documents', 'Statements'], ['/investor/documents?tab=sign', 'Documents to sign'], ['/investor/documents?tab=files', 'Your files']] as const) {
       await page.goto(path, { waitUntil: 'networkidle' });
@@ -158,7 +158,17 @@ test('investor portal: what needs you first, Documents with three tabs, nothing 
     await check(page, 'investor account');
     await moved(page, '/investor/statements', /\/investor\/documents\?tab=statements$/);
     await moved(page, '/investor/sign?signed=1', /\/investor\/documents\?tab=sign&signed=1$/);
-    for (const p of ['/investor', '/investor/documents', '/investor/documents?tab=files', '/investor/profile']) {
+    // r29: Updates, every release newest first, with search and an area filter
+    await page.goto('/investor/updates', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Updates');
+    await expect(page.getByTestId('investor-nav').locator('a[aria-current="page"]')).toHaveText(/^Updates/);
+    const all = await page.getByTestId('updates-count').innerText();
+    await page.getByTestId('updates-area').selectOption('Owners');
+    await expect(page.getByTestId('updates-count')).not.toHaveText(all);
+    await page.getByTestId('updates-search').fill('zzqx nothing');
+    await expect(page.getByTestId('updates-none')).toBeVisible();
+    await check(page, 'investor updates');
+    for (const p of ['/investor', '/investor/documents', '/investor/documents?tab=files', '/investor/profile', '/investor/updates']) {
       await page.goto(p, { waitUntil: 'networkidle' });
       const text = await page.locator('main').innerText();
       for (const word of [/utili[sz]ation/i, /fleet size/i, /premium/i, /\bcars? in the fleet\b/i, /insurance/i, /operating cost/i]) expect(text, p).not.toMatch(word);

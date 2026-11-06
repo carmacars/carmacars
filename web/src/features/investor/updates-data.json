@@ -1,0 +1,968 @@
+[
+ {
+  "release": "r27b",
+  "title": "Release 27b",
+  "date": "2026-11-06",
+  "seq": 3,
+  "summary": "Reliability improvements that keep the website fast under heavy traffic.",
+  "areas": [
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements to website speed"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "hotfix-2026-11-06",
+  "title": "Hotfix of November 6",
+  "date": "2026-11-06",
+  "seq": 2,
+  "summary": "Reliability improvements to the website and email.",
+  "areas": [
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r27",
+  "title": "Release 27",
+  "date": "2026-11-06",
+  "seq": 1,
+  "summary": "Revamped customer portals, the CarmaCars app, AI interviews, extension offers and a simpler staff layout.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "The CarmaCars app on the app stores",
+     "Renters can tell us \"I've returned the car\", ending reminders right away",
+     "The renter, owner, investor and partner portals revamped",
+     "Renters can extend their trip from an offer, with a buffer between trips"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Fewer pages: one menu link and a row of tabs per subject",
+     "A tracker dashboard, ready for the tracking hardware",
+     "AI interviews for remote assistant roles, with everything recorded",
+     "Every staff role sees the same tools for its work, with live chat inside Visitors",
+     "Staff alerts for leads and visitors under one set of rules",
+     "A calmer live map and a cleaner history",
+     "A marketing tab for Sales, and \"Stuck?\" help on every page",
+     "Final touches to the release"
+    ]
+   },
+   {
+    "area": "Partners",
+    "items": [
+     "Live model spreadsheets for investors, and the company model for Admins"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Online marketplace listing kits, and the investor deck and video brought up to date"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements: the database checks itself every night",
+     "Reliability improvements: the full test suite",
+     "Reliability improvements"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "hotfix-2026-11-02",
+  "title": "Listing photos update",
+  "date": "2026-11-02",
+  "seq": 0,
+  "summary": "More photos per listing.",
+  "areas": [
+   {
+    "area": "Website & search",
+    "items": [
+     "More photos per listing"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r26",
+  "title": "Release 26",
+  "date": "2026-11-01",
+  "seq": 2,
+  "summary": "Bookings at a glance, live chat answered by the assistant, lead-time pricing and an earnings calculator for owners.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Messages when a booking starts and ends"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Lead-time pricing, and partner cars on our own pricing",
+     "An earnings calculator on the List your car page",
+     "Sales staff bring in car owners"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Bookings at a glance: what is out, coming back, going out and owed",
+     "The car list opens on what is trending",
+     "A friendlier greeting on the Admin to-do page",
+     "A to-do list that fits a day, and usage shown in money",
+     "A cleaner staff to-do list, and view-as shows the person's own portal"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "The discount game on every visit, with a preview for staff",
+     "Live chat answered by the assistant, closing when the visitor leaves",
+     "Visitors page: live map, Live now and History, with clickable leads",
+     "Seat counts from the VIN, never guessed",
+     "Fresher pages after an update, a better date picker and car card photos"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Security hardening and reliability improvements"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r25",
+  "title": "Release 25",
+  "date": "2026-11-01",
+  "seq": 1,
+  "summary": "Phone alerts, the rental walkthrough, permit reading from a photo and placeholder bookings.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Texts held for quiet hours go out on the hour, also when the clocks change",
+     "A rental walkthrough for renters"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "The ownership permit read from a photo",
+     "Placeholder bookings, conflicting dates flagged, and Live map polish",
+     "Phone alerts and an installable site"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements: two broken links fixed"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r24",
+  "title": "Release 24",
+  "date": "2026-10-31",
+  "seq": 4,
+  "summary": "One-flow offers, the Live map, the phone number box and fairer deposits and pricing rules.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Each booking message is texted once, never twice",
+     "The non-refundable discount only when booked a week or more ahead",
+     "Renters can pay again after a declined or cancelled card",
+     "A car's weekend rate is always above its daily rate",
+     "A higher deposit on a debit or prepaid card",
+     "The deposit hold placed on the morning of pickup",
+     "A payment link paid in full confirms the booking"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Owners can start on their own, and a car can be added before its VIN or plate",
+     "Company statements tie owner invoices correctly"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Admin keeps your place on the page",
+     "Hiring call screens fit any screen; make, model and colour filters on the car list",
+     "The handover essentials first",
+     "The Live map of cars and bookings",
+     "Send an offer as one flow, with charges following the choices made"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "A phone number box for renters on car pages"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r23b",
+  "title": "Release 23b",
+  "date": "2026-10-31",
+  "seq": 3,
+  "summary": "Insurer billing by adjuster, car registrations in Admin and real photos for every car.",
+  "areas": [
+   {
+    "area": "Owners",
+    "items": [
+     "Owner charges deducted from payouts",
+     "Handover photos used as listing photos, so every car has real photos",
+     "The tracker fee starts from the tracker's installation"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Insurers' adjusters, and billing by class, car and adjuster",
+     "Tasks for a rental already underway close themselves",
+     "Every class picker uses the real class list",
+     "A car's registration, documents and renewal reminders in Admin"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r23a",
+  "title": "Release 23a",
+  "date": "2026-10-31",
+  "seq": 2,
+  "summary": "Faster, leaner website delivery, more reliable email and a smoother hiring flow.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Credit card by default, with debit and prepaid allowed per booking"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "The job application form flags a mismatch with the role's posted terms",
+     "Clear minimum requirements for every role",
+     "Interview calls by role, with remote calls confirmed",
+     "Hiring decisions recorded, and decision emails sent together"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Changed pages reported to search engines first"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements to email delivery",
+     "Reliability improvements to website speed",
+     "Reliability improvements: usage alerts by text and a banner for Admins"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r22",
+  "title": "Release 22",
+  "date": "2026-10-31",
+  "seq": 1,
+  "summary": "CarmaCars Rewards, calendar and wallet passes, listing channels and the owner pipeline.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "CarmaCars Rewards: points for bookings, referrals and reviews",
+     "Add a booking to your calendar or phone wallet from the email"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "The owner pipeline: from first contact to a listed car"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Listings shared to more channels"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "hotfix-2026-10-30",
+  "title": "Card payments fix",
+  "date": "2026-10-30",
+  "seq": 4,
+  "summary": "A quick fix that keeps card payments reliable.",
+  "areas": [
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements to card payments"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r21b",
+  "title": "Release 21b",
+  "date": "2026-10-30",
+  "seq": 3,
+  "summary": "A staff training academy, investor onboarding and address autofill everywhere.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Address autofill everywhere, and every official form field accounted for",
+     "The deposit link texted before pickup, and staff payment links accept credit cards",
+     "Booking and pickup messages go by text when email cannot be sent",
+     "Prices shown after tax on the review screen, remembered on the device"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "A training academy for staff",
+     "Interview invitations only when a call time is open",
+     "Short explanations beside fields that need them"
+    ]
+   },
+   {
+    "area": "Partners",
+    "items": [
+     "Admins can add a new investor, with the investment agreement sent to sign"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r21a",
+  "title": "Release 21a",
+  "date": "2026-10-30",
+  "seq": 2,
+  "summary": "In-person card payments, bookings search and a flat-rate owner agreement.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Credit card coverage applies when the same card pays for the rental"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "A flat-rate owner agreement set",
+     "Owner fees taken from the revenue statement"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Bookings search",
+     "Card payments taken outside the site can be recorded",
+     "In-person card payments with a card reader"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r20",
+  "title": "Release 20",
+  "date": "2026-10-30",
+  "seq": 1,
+  "summary": "One staff portal, flat monthly owner payments and clearer bookings waiting for payment.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Rental agreement wording tailored to each booking",
+     "Photos shrink on the device before upload, so they send faster"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "A flat monthly payment option per car"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "The partner rental agreement shows the rate, signature, deposit and fuel correctly",
+     "The booking page shows one \"Next step\", with other actions in a menu",
+     "Bookings waiting for payment shown in the bookings list",
+     "Interview reminders by text",
+     "Interview times correct on the day the clocks change",
+     "One staff portal for every staff role",
+     "Record a pickup or return in one tap, and renters complete their agreement details"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements to backups",
+     "Reliability improvements to website speed",
+     "Security hardening and reliability improvements"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-28",
+  "title": "Update October 28, 2026",
+  "date": "2026-10-28",
+  "seq": 0,
+  "summary": "10 improvements, mostly for staff tools and renters.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Coverage details collected before proof of coverage is uploaded",
+     "Discounts apply to the rental charge only, and simpler e-signing",
+     "Renters can pay before they sign"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Interview reminders sent only the hour before",
+     "Email from the portal, insurer emails and deposit reminders",
+     "Sales can answer a website request with the renter's contact and a ready offer",
+     "Sales see bookings waiting for payment",
+     "Insurer rentals at the desk: documents, adjuster, signing and editing the agreement",
+     "Clearer remote assistant job postings",
+     "Screening, scheduling and calls for remote assistant hiring"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-27",
+  "title": "Update October 27, 2026",
+  "date": "2026-10-27",
+  "seq": 0,
+  "summary": "9 improvements, mostly for staff tools and renters.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Every signature on the site signed the same secure way",
+     "One clear answer to each booking request",
+     "Prices can be entered tax-included"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Owners see their agreements before approval, and government form fixes"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Every box of the partner rental agreement filled in",
+     "Insurer charges itemised on each rental",
+     "Business phone contacts kept in step with the site, and names for live visitors"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "A saved prize reminder that appears once a visit"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements to call records"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-26",
+  "title": "Update October 26, 2026",
+  "date": "2026-10-26",
+  "seq": 0,
+  "summary": "2 improvements, mostly for staff tools.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "Careers page and hiring workflow",
+     "Sales staff can work in person or remotely"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-25",
+  "title": "Update October 25, 2026",
+  "date": "2026-10-25",
+  "seq": 0,
+  "summary": "18 improvements, mostly for staff tools and the website.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Long rentals, part two"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "A booking's revenue can be hidden from the owner, with owner deductions per booking"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "A redesigned Admin portal",
+     "A deposit guard so no car leaves without its deposit",
+     "Field staff can take a cash deposit",
+     "Field staff review the renter's licence at handover",
+     "Field staff settings, vehicle class rules and each car's management mode",
+     "A field portal designed for the phone, outdoors",
+     "Replacement-rental rates for insurers and each insurer's billing history",
+     "Sales staff review the renter's licence",
+     "A redesigned portal for remote assistants"
+    ]
+   },
+   {
+    "area": "Partners",
+    "items": [
+     "Guides, the investor deck and its video brought up to date",
+     "Referral partners and a coverage affiliate link"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Advertising and marketing automation",
+     "The saved discount's \"Get my code\" button works again",
+     "The discount game returns, and one prize is another try",
+     "Winners can play again on a later visit",
+     "Promo codes expire, with reminders before they do"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-24",
+  "title": "Update October 24, 2026",
+  "date": "2026-10-24",
+  "seq": 0,
+  "summary": "16 improvements, mostly for renters and staff tools.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Address autofill on every address field",
+     "Accurate rental agreements with signatures that hold up",
+     "Renters see which credit cards include rental car coverage",
+     "Long rentals, with every fee editable and changes possible after a trip starts",
+     "The renter portal, redesigned",
+     "Renters are asked for a review after their trip"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Redesigned owner and investor portals",
+     "Owner terms set per car"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "The staff assistant can add rentals and send offers, within a set AI budget",
+     "Check-out without the office, payments by day, and the owner's month to date",
+     "Check-out and check-in photos, signing on the spot, and the licence collected with the request",
+     "Offers and rentals made easy for staff",
+     "Offers, handovers and card coverage brought together"
+    ]
+   },
+   {
+    "area": "Partners",
+    "items": [
+     "Partner dealer cars shown here and our cars shared with the partner's CRM"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Licensed stock photos on search pages",
+     "Richer, more varied text on every search page"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-23",
+  "title": "Update October 23, 2026",
+  "date": "2026-10-23",
+  "seq": 0,
+  "summary": "11 improvements, mostly for the website and staff tools.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "Government forms and agreements filled in automatically",
+     "A tidier set of portal pages",
+     "The partner rental agreement produced for every booking"
+    ]
+   },
+   {
+    "area": "Partners",
+    "items": [
+     "A narrated video version of the investor deck"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Better answers for AI search engines: a facts page and short answers",
+     "Pages for the mechanical services we arrange for each car",
+     "Search engines find and read the site faster",
+     "Cars shown in one consistent order across the site",
+     "Pages for the mechanical services we arrange, and visit history kept for 13 months"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements: the full test suite",
+     "Reliability improvements: the full test suite"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-22",
+  "title": "Update October 22, 2026",
+  "date": "2026-10-22",
+  "seq": 0,
+  "summary": "11 improvements, mostly for reliability & security and the website.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "Alerts by email, text or both, each person's choice"
+    ]
+   },
+   {
+    "area": "Partners",
+    "items": [
+     "A partner's cars listed alongside ours, and a chauffeur service"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Faster car pages and a simpler car list when booking",
+     "Live visitor counts stay accurate while people read a page",
+     "Local search pages for each area, plus detailing and body shop services",
+     "More rental search terms covered"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Security hardening",
+     "Reliability improvements: the full test suite",
+     "Reliability improvements",
+     "Reliability improvements: the public site stays up under heavy load",
+     "Reliability improvements to website speed"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-21",
+  "title": "Update October 21, 2026",
+  "date": "2026-10-21",
+  "seq": 0,
+  "summary": "21 improvements, mostly for staff tools and the website.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Show password, a simpler cookie banner and quieter site checks",
+     "Sign in with a phone number"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Listing a car with no roadblocks, proof of coverage, and smoother animations",
+     "Owners can open an account before adding a car",
+     "Owner signing that always completes, with the first and last month invoice optional"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Sensible default settings for every new car",
+     "Guided next steps on Admin's Today page for insurer confirmations and renter documents",
+     "A maintenance and service tracker for every car",
+     "The business phone line built in: calls and texts inside the platform",
+     "Rentals already underway can be added by hand",
+     "Marketplace booking emails matched to the right car automatically",
+     "A usage guard for paid services and an assistant for staff",
+     "Adding a car starts from its VIN, with the details filled in automatically"
+    ]
+   },
+   {
+    "area": "Partners",
+    "items": [
+     "The investor deck, available in the investor portal"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Contact details captured from every form, so no enquiry is lost",
+     "Discount games appear sooner, can be replayed and can be used in the booking form",
+     "Live visitor signals: who is likely to book, why, and what to say to them",
+     "Real car listings look as polished as the sample cars",
+     "Pages for every make, model, year and trim, by place, colour and search term"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Security hardening",
+     "Reliability improvements to website speed and storage"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-19",
+  "title": "Update October 19, 2026",
+  "date": "2026-10-19",
+  "seq": 0,
+  "summary": "10 improvements, mostly for the website and staff tools.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Add-ons such as child seats and extra drivers, bookable with a rental",
+     "Calendar sync, reminders to finish an unfinished booking, and automatic site monitoring"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Owner terms and invoices, and staff can add a car on an owner's behalf"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Guides that update themselves as the platform changes",
+     "Rates and included kilometres set in one step when listing a car",
+     "Bookings from other rental marketplaces read from email, and quieter site alerts"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Discount games that reward website visitors with a promo code",
+     "Live visitors, buying signals and live chat on the website",
+     "Sample cars and photos shown while real listings are being prepared",
+     "Car descriptions written automatically, landing pages, guides and faster search engine notification"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-18",
+  "title": "Update October 18, 2026",
+  "date": "2026-10-18",
+  "seq": 0,
+  "summary": "2 improvements, mostly for staff tools.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "Response-time targets, sales tracking and default staff agreements",
+     "Sales results tracked per booking"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-16",
+  "title": "Update October 16, 2026",
+  "date": "2026-10-16",
+  "seq": 0,
+  "summary": "5 improvements, mostly for staff tools and renters.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Updated rental terms and policies on the website",
+     "One clear confirmation email per sign-up"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Rental terms reviewed by counsel, and a redesigned Admin portal",
+     "Rentals added by hand, cars retired or removed cleanly, and simpler signing"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements to the legal pages"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-15",
+  "title": "Update October 15, 2026",
+  "date": "2026-10-15",
+  "seq": 0,
+  "summary": "1 improvement, mostly for staff tools.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "A user guide in every portal, payments recorded by hand, and paper signatures on file"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-14",
+  "title": "Update October 14, 2026",
+  "date": "2026-10-14",
+  "seq": 0,
+  "summary": "6 improvements, mostly for renters and staff tools.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Sign-in for every portal",
+     "Sign-in for every portal, with simpler links and codes"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Automatic monthly owner payments, statement emails with PDFs, and clearer company statements"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Staff can propose booking changes, record amendments and cleaning blocks, and schedule photo shoots",
+     "Toll notices read automatically, licence plates covered on listing photos, and government forms filled for staff"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements to email sending"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-13",
+  "title": "Update October 13, 2026",
+  "date": "2026-10-13",
+  "seq": 0,
+  "summary": "2 improvements, mostly for reliability & security.",
+  "areas": [
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Security hardening from the pre-launch review",
+     "Security hardening and reliability improvements from the launch review"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "update-2026-10-12",
+  "title": "Update October 12, 2026",
+  "date": "2026-10-12",
+  "seq": 0,
+  "summary": "17 improvements, mostly for staff tools and renters.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Renters can request to book a car online, with dates, price and extras worked out on the spot",
+     "The booking application: renters apply once and their details carry into every rental",
+     "Emails reach the right reply address and carry clear contact details",
+     "The renter portal: bookings, documents, payments and messages in one place"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Owner onboarding: owner records, agreements, forms and car listings",
+     "Owner questions answered in the owner area, with clear agreement terms",
+     "The owner portal: owner agreements, statements and invoice payments online"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Booking, payment and pickup notifications for renters, owners and staff",
+     "Day-to-day operations tools: handovers, returns, cleaning and car availability",
+     "Tolls, tickets and damage charges tracked per booking, and monthly statements",
+     "The Admin portal, with access checked for every action",
+     "Listings written and photographed automatically, documents generated as PDFs, and secure file links"
+    ]
+   },
+   {
+    "area": "Partners",
+    "items": [
+     "Staff and investor portals, each person seeing only what their role allows"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "The public website: car pages, search and booking pages"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements to how the booking, payment and operations parts work together",
+     "Reliability improvements across bookings and payments",
+     "Reliability improvements to the staff and investor portals"
+    ]
+   }
+  ]
+ }
+]

@@ -30,4 +30,6 @@ if [ "$HITS" -gt 0 ]; then
   echo "TEXT CHECK FAILED: $HITS line(s) with an em dash or a spaced en dash"
   exit 1
 fi
+# every change record belongs to a release note of the investor Updates page (release 29)
+node scripts/check-release-notes.mjs
 echo "TEXT CHECK PASSED"
