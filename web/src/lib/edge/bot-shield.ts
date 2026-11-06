@@ -14,7 +14,7 @@
 
 import { deepOutOfScope } from './crawl-scope.ts';
 
-export const BLOCKED_BOT = /AhrefsBot|SemrushBot|MJ12bot|DotBot|PetalBot|Bytespider|DataForSeoBot|BLEXBot|serpstatbot|MegaIndex|SeekportBot|Barkrowler|ImagesiftBot|Timpibot|ZoominfoBot|AwarioBot|magpie-crawler|SiteAuditBot|trendictionbot|Sogou web spider/i;
+export const BLOCKED_BOT = /AhrefsBot|SemrushBot|MJ12bot|DotBot|PetalBot|Bytespider|DataForSeoBot|BLEXBot|serpstatbot|MegaIndex|SeekportBot|Barkrowler|ImagesiftBot|Timpibot|ZoominfoBot|AwarioBot|magpie-crawler|SiteAuditBot|trendictionbot|Sogou web spider|MauiBot|AspiegelBot|LinkpadBot|Exabot|CCBot|GPTBot/i;
 /** A user agent that says it is a crawler. Not a headless browser or a script (the e2e tests and uptime checks are never
  *  refused here). A chat app's link preview that calls itself a bot (Slackbot, TelegramBot) gets no preview of a portal
  *  page, which shows nothing to a stranger anyway. */
@@ -30,7 +30,7 @@ export type Shield = { kind: 'pass' } | { kind: 'refuse'; reason: 'blocked' | 'p
 
 /** 0320: the search and answer crawlers that bring visitors (features/seo/crawlers.ts FULL_SCOPE_CRAWLERS): they read every
  *  public page the search scope allows. Any other crawler reads the crawl scope only (crawl-scope.ts), whatever the scope. */
-export const SEARCH_CRAWLER = /Googlebot|Google-InspectionTool|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-CloudVertexBot|Gemini-Deep-Research|bingbot|BingPreview|msnbot|DuckDuckBot|DuckAssistBot|Applebot(?!-Extended)|OAI-SearchBot|ChatGPT-User|Claude-SearchBot|Claude-User|PerplexityBot|Perplexity-User|Meta-ExternalFetcher|Amzn-SearchBot|Amzn-User|MistralAI-User/i;
+export const SEARCH_CRAWLER = /Googlebot|Google-InspectionTool|Storebot-Google|AdsBot-Google|Mediapartners-Google|Google-CloudVertexBot|Gemini-Deep-Research|bingbot|BingPreview|msnbot|DuckDuckBot|DuckAssistBot|Applebot(?!-Extended)|OAI-SearchBot|ChatGPT-User|Claude-SearchBot|Claude-User|PerplexityBot|Perplexity-User|Meta-ExternalFetcher|Amzn-SearchBot|Amzn-User|MistralAI-User|YandexBot/i;
 export const isSearchCrawler = (ua: string | null | undefined): boolean => !!ua && SEARCH_CRAWLER.test(ua);
 
 /** Whether a user agent says it is a crawler (custom-worker.ts reads the search scope flag only for one). */

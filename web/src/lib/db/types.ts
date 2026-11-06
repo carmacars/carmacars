@@ -2871,6 +2871,8 @@ export type Database = {
           lead_time_source: string | null;
           partner_discount_bps: number | null;
           heard_about: string | null;
+          return_link_token: string;
+          return_state: string | null;
         };
         Insert: {
           id?: string;
@@ -3048,6 +3050,8 @@ export type Database = {
           lead_time_source?: string | null;
           partner_discount_bps?: number | null;
           heard_about?: string | null;
+          return_link_token?: string;
+          return_state?: string | null;
         };
         Update: {
           id?: string;
@@ -3225,6 +3229,8 @@ export type Database = {
           lead_time_source?: string | null;
           partner_discount_bps?: number | null;
           heard_about?: string | null;
+          return_link_token?: string;
+          return_state?: string | null;
         };
         Relationships: [];
       };
@@ -14785,6 +14791,8 @@ export type Database = {
           stuck_help_on: boolean;
           stuck_idle_minutes: number;
           stuck_errors: number;
+          notify_cf_daily_budget: number;
+          notify_resend_daily_budget: number;
         };
         Insert: {
           id?: string;
@@ -15392,6 +15400,8 @@ export type Database = {
           stuck_help_on?: boolean;
           stuck_idle_minutes?: number;
           stuck_errors?: number;
+          notify_cf_daily_budget?: number;
+          notify_resend_daily_budget?: number;
         };
         Update: {
           id?: string;
@@ -15999,6 +16009,8 @@ export type Database = {
           stuck_help_on?: boolean;
           stuck_idle_minutes?: number;
           stuck_errors?: number;
+          notify_cf_daily_budget?: number;
+          notify_resend_daily_budget?: number;
         };
         Relationships: [];
       };
@@ -17513,6 +17525,75 @@ export type Database = {
           shot?: string;
           is_required?: boolean;
           guide?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      return_claims: {
+        Row: {
+          id: string;
+          booking_id: string;
+          status: string;
+          claimed_by: string | null;
+          claimed_at: string;
+          renter_provided: boolean;
+          returned_at: string | null;
+          odometer_km: number | null;
+          fuel_pct: number | null;
+          note: string | null;
+          photos: Json;
+          decided_by: string | null;
+          decided_at: string | null;
+          decision_note: string | null;
+          confirmed_returned_at: string | null;
+          confirmed_odometer_km: number | null;
+          confirmed_fuel_pct: number | null;
+          condition_report_id: string | null;
+          task_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          status?: string;
+          claimed_by?: string | null;
+          claimed_at?: string;
+          renter_provided?: boolean;
+          returned_at?: string | null;
+          odometer_km?: number | null;
+          fuel_pct?: number | null;
+          note?: string | null;
+          photos?: Json;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          confirmed_returned_at?: string | null;
+          confirmed_odometer_km?: number | null;
+          confirmed_fuel_pct?: number | null;
+          condition_report_id?: string | null;
+          task_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          status?: string;
+          claimed_by?: string | null;
+          claimed_at?: string;
+          renter_provided?: boolean;
+          returned_at?: string | null;
+          odometer_km?: number | null;
+          fuel_pct?: number | null;
+          note?: string | null;
+          photos?: Json;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          confirmed_returned_at?: string | null;
+          confirmed_odometer_km?: number | null;
+          confirmed_fuel_pct?: number | null;
+          condition_report_id?: string | null;
+          task_id?: string | null;
           created_at?: string;
         };
         Relationships: [];
@@ -25779,6 +25860,7 @@ export type Database = {
       server_chat_staff_note: { Args: { p_token: string; p_note: string }; Returns: Json };
       server_chat_visitor_message: { Args: { p_token: string; p_body: string }; Returns: Json };
       server_client_error: { Args: { p: Json }; Returns: string };
+      server_client_error_pre0532: { Args: { p: Json }; Returns: string };
       server_colour_read_due: { Args: { p_limit?: number }; Returns: Json };
       server_colour_read_record: { Args: { p: Json }; Returns: Json };
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
@@ -25810,6 +25892,7 @@ export type Database = {
       server_driver_link_valid: { Args: { p_signer: string; p_version: number }; Returns: boolean };
       server_driver_register_upload: { Args: { p_signer: string; p_kind: string; p_storage_path: string; p_sha256: string; p_mime_type: string }; Returns: string };
       server_driver_save_licence: { Args: { p_signer: string; p: Json }; Returns: Json };
+      server_email_budgets: { Args: never; Returns: Json };
       server_email_capped: { Args: never; Returns: Json };
       server_esign_certificate: { Args: { p_context: string; p_refs: string[] }; Returns: Json };
       server_esign_certificate_for_booking: { Args: { p_booking: string }; Returns: Json };
@@ -25976,6 +26059,9 @@ export type Database = {
       server_request_account_deletion: { Args: { p_user: string; p_reason?: string }; Returns: Json };
       server_request_notify_channel: { Args: { p_booking_number: string; p_channel: string; p_user?: string }; Returns: Json };
       server_resume_form_draft: { Args: { p_link_token: string; p_user?: string; p_device_label?: string }; Returns: Json };
+      server_return_claim_read: { Args: { p_token: string }; Returns: Json };
+      server_return_claim_submit: { Args: { p_token: string; p: Json; p_user?: string }; Returns: Json };
+      server_return_link: { Args: { p_booking: string; p_user: string }; Returns: string };
       server_review_google_sync_begin: { Args: never; Returns: Json };
       server_review_google_sync_finish: { Args: { p: Json }; Returns: Json };
       server_review_helper: { Args: { p_token: string }; Returns: Json };

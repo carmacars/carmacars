@@ -1,5 +1,12 @@
 -- 99: lead-time pricing (0360) and 01 Motors on our own pricing (0361). Fixtures start with "ltp".
 select test.suite('99 lead-time and partner pricing');
+-- 2026-11-06: the quotes below run from 30 to 78 hours from now and expect weekday rates ($100 a day). When that window touches
+-- a Saturday or Sunday (Toronto time) the weekend rate applies and the amounts differ, so the suite runs on the other days.
+select exists (select 1 from generate_series(0, 48) h where extract(isodow from (now() + interval '30 hours' + make_interval(hours => h)) at time zone 'America/Toronto') >= 6) as ltp_weekend \gset
+\if :ltp_weekend
+\echo 99 lead-time and partner pricing: skipped, the 30 to 78 hour window touches a weekend
+\quit
+\endif
 select test.mk_user('ltp_admin', 'admin');
 select test.mk_user('ltp_cs', 'va', 'cs');
 select test.mk_owner('ltp_owner');

@@ -4,6 +4,7 @@ import { Card } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import { lateLabel } from './late';
 import { handoverPanelView, SIGNING_STATUSES } from './panel';
+import { ReturnClaimCard } from './ReturnClaimCard';
 import { SendSigningLink } from './SendSigningLink';
 import type { SigningState } from './types';
 
@@ -39,8 +40,11 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
     ? ((await door<{ details_pending?: Array<'pickup' | 'return'> }>(userId, 'ops_read', 'handover_report', { booking: b.id }, aal).catch(() => null))?.details_pending ?? []) : [];
   // 0185: in-person signing while the booking waits for payment too, and never an empty card
   const v = handoverPanelView({ status: b.status, canHandover, signing, late: !!late, detailsPending: pending });
-  if (!v.show) return null;
-  return (
+  // 0532: the renter's "I've returned the car" report (Confirm or Deny), for everyone who checks a car in
+  const claim = canHandover && ['on_rent', 'confirmed', 'returned', 'closed'].includes(b.status) ? <ReturnClaimCard booking={b.id} base={base} userId={userId} aal={aal} /> : null;
+  if (!v.show) return claim;
+  return (<>
+    {claim}
     <Card title="Check-out, check-in and signing" testId="handover-panel" tone={late ? 'warn' : b.status === 'confirmed' || b.status === 'on_rent' ? 'next' : undefined}>
       <div className="stack">
         {late && <p className="ad-late" data-testid="booking-late"><b>{late}</b>{b.checked_in_at ? '' : '. Check the car in as soon as it is back: the late return charges follow the actual time.'}</p>}
@@ -64,5 +68,5 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
         {v.sendLink && <SendSigningLink booking={b.id} mobile={signing?.renter_mobile ?? null} email={signing?.renter_email ?? null} />}
       </div>
     </Card>
-  );
+  </>);
 }

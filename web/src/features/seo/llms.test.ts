@@ -50,8 +50,8 @@ test('no date: no "updated" line', () => {
 });
 
 test('robots: the AI answer engines are named and the private paths kept out', () => {
-  for (const b of ['OAI-SearchBot', 'ChatGPT-User', 'GPTBot', 'ClaudeBot', 'Claude-SearchBot', 'Claude-User', 'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Applebot', 'Applebot-Extended',
-    'Bingbot', 'DuckDuckBot', 'DuckAssistBot', 'Amazonbot', 'Meta-ExternalAgent', 'CCBot', 'YandexBot']) assert.ok((ANSWER_CRAWLERS as readonly string[]).includes(b), b);
+  for (const b of ['OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-SearchBot', 'Claude-User', 'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Applebot', 'Applebot-Extended',
+    'Bingbot', 'DuckDuckBot', 'DuckAssistBot', 'Amazonbot', 'Meta-ExternalAgent', 'YandexBot']) assert.ok((ANSWER_CRAWLERS as readonly string[]).includes(b), b);
   for (const p of ['/admin', '/account', '/owner', '/investor', '/api/', '/sign-in', '/auth/']) assert.ok((PRIVATE_PATHS as readonly string[]).includes(p), p);
   assert.equal(new Set(ANSWER_CRAWLERS).size, ANSWER_CRAWLERS.length);
 });

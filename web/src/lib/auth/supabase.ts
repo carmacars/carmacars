@@ -57,7 +57,7 @@ async function gotrue(path: string, body: unknown, opts: { service?: boolean; qu
   const text = await r.text();
   let data: Record<string, unknown> = {};
   try { data = text ? (JSON.parse(text) as Record<string, unknown>) : {}; } catch { data = { msg: text.slice(0, 200) }; }
-  const err = r.ok ? null : { status: r.status, code: (data.error_code ?? data.code) as string | undefined, message: String(data.msg ?? data.message ?? data.error_description ?? data.error ?? `Supabase Auth ${r.status}`) };
+  const err = r.ok ? null : { status: r.status, code: (data.error_code ?? data.code) as string | undefined, message: String(data.msg ?? data.message ?? data.error_description ?? data.error ?? `The sign-in service answered ${r.status}`) };
   return { ok: r.ok, status: r.status, data, err };
 }
 

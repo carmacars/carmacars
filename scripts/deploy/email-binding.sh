@@ -23,11 +23,22 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
     echo "::warning title=email::EMAIL binding NOT added: the repository variable CF_EMAIL_BINDING is $([ -n "$v" ] && echo "'$v'" || echo 'not set'), not one of 1, true, yes, on or EMAIL, so every email goes through Resend (100 a day). Owner step: GitHub > Settings > Secrets and variables > Actions > Variables, CF_EMAIL_BINDING = 1"
     exit 0
   fi
-  if grep -q '"send_email"' "$f"; then echo "::notice title=email::EMAIL binding already in wrangler.jsonc (CF_EMAIL_BINDING='$v')"; exit 0; fi
-  sed -i '0,/"ai": { "binding": "AI" },/s//"ai": { "binding": "AI" },\n  "send_email": [{ "name": "EMAIL" }],/' "$f"
-  if grep -q '"send_email": \[{ "name": "EMAIL" }\]' "$f"; then
-    echo "::notice title=email::EMAIL binding added (CF_EMAIL_BINDING='$v'): the Worker sends the outbox through Cloudflare Email Service first, Resend after"
-  else
-    echo "::warning title=email::EMAIL binding NOT added: CF_EMAIL_BINDING='$v' turns it on, but wrangler.jsonc has no AI binding line to put it after; every email goes through Resend (100 a day)"
-  fi
+  # 2026-11-06: wrangler-config.mjs rewrites the file as plain JSON first ("ai" spread over three lines), so the old
+  # one-line sed found no anchor and the binding was never added. The JSON is now edited as JSON: the top level only
+  # (production), never env.staging.
+  r=$(node -e '
+    const fs = require("fs"); const f = process.argv[1];
+    const src = fs.readFileSync(f, "utf8");
+    const cfg = JSON.parse(src.replace(/^\s*\/\/.*$/gm, ""));
+    if ((cfg.send_email ?? []).some((b) => b.name === "EMAIL")) { console.log("already"); process.exit(0); }
+    // the first line holding only "{" opens the top level (comments may come before it); env.staging is never touched
+    const out = src.replace(/^\{[ \t]*$/m, "{\n  \"send_email\": [{ \"name\": \"EMAIL\" }],");
+    const back = JSON.parse(out.replace(/^\s*\/\/.*$/gm, ""));
+    if (!(back.send_email ?? []).some((b) => b.name === "EMAIL")) throw new Error("no top-level object line");
+    fs.writeFileSync(f, out); console.log("added");' "$f" 2>&1) || r="error: $r"
+  case "$r" in
+    already) echo "::notice title=email::EMAIL binding already in wrangler.jsonc (CF_EMAIL_BINDING='$v')" ;;
+    added) echo "::notice title=email::EMAIL binding added (CF_EMAIL_BINDING='$v'): the Worker sends the outbox through Cloudflare Email Service first (200 a day), Resend after (100 a day)" ;;
+    *) echo "::warning title=email::EMAIL binding NOT added: CF_EMAIL_BINDING='$v' turns it on, but wrangler.jsonc could not be read (${r:0:200}); every email goes through Resend (100 a day)" ;;
+  esac
 fi

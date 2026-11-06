@@ -12,6 +12,8 @@ Please bring the {{vehicle_name}} back to {{return_place}} now, {{first_name}}. 
 Extend my rental:
 https://carmacars.ca/account/bookings/{{booking_number}}/extend
 
+Already returned the car? Tell us in one tap: {{returned_url}}
+
 Late fees start 30 minutes after the return time: {{late_fee_hourly}} per started hour, plus the rental charge for each extra day. To talk it through, call {{support_phone}}.
 
 ----------------------------------------

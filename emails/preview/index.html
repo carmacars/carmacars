@@ -21,10 +21,10 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .tags .m{background:#D0111B;border-color:#D0111B;color:#fff}.tags .d{background:#000;color:#fff}
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
-<header><div class="wm">Carma<b>Cars</b></div><p>205 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>82</span></a><a href="#owner">Owner <span>46</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>13</span></a></nav>
+<header><div class="wm">Carma<b>Cars</b></div><p>206 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
+<nav><a href="#renter">Renter <span>83</span></a><a href="#owner">Owner <span>46</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>13</span></a></nav>
 <main>
-<h2 id="renter">Renter (82)</h2>
+<h2 id="renter">Renter (83)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/account_password_reset.html"><img loading="lazy" src="../shots/account_password_reset.desktop.png" alt="Screenshot of account_password_reset"></a><div class="b">
 <div class="code">account_password_reset</div><div class="sub">Reset your CarmaCars password</div>
@@ -293,13 +293,13 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_late_return_final.html"><img loading="lazy" src="../shots/renter_late_return_final.desktop.png" alt="Screenshot of renter_late_return_final"></a><div class="b">
 <div class="code">renter_late_return_final</div><div class="sub">Final notice: return the 2024 Honda Civic Sport by 1:05 pm today</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Reminders job (every 5 minutes): the booking is 2 hours past its return time (late_admin_minutes), still out (on rent, or confirmed with no handover recorded, migration 0430), with no paid extension, and T13 went at least 30 minutes ago. Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. The deadline shown is 1 hour after this email is sent. (Message template T14.)</div>
+<div class="tr">Carries the one-tap &quot;I've returned the car&quot; link (0532); not sent while the renter's report waits for staff. Reminders job (every 5 minutes): the booking is 2 hours past its return time (late_admin_minutes), still out (on rent, or confirmed with no handover recorded, migration 0430), with no paid extension, and T13 went at least 30 minutes ago. Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. The deadline shown is 1 hour after this email is sent. (Message template T14.)</div>
 <div class="ln"><a href="../dist/renter_late_return_final.html">HTML</a><a href="../dist/renter_late_return_final.txt">Text</a><a href="../shots/renter_late_return_final.desktop.png">Desktop</a><a href="../shots/renter_late_return_final.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_late_return_first.html"><img loading="lazy" src="../shots/renter_late_return_first.desktop.png" alt="Screenshot of renter_late_return_first"></a><div class="b">
 <div class="code">renter_late_return_first</div><div class="sub">Your rental ended at 10:00 am. Please return the car now</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Reminders job (every 5 minutes): the return time has passed, the booking is still out (on rent, or confirmed with its pickup time passed and no handover recorded, migration 0430) and no paid extension covers the time. Sent once per return time, 15 minutes late (notify_late_first_minutes; renter_return_due goes at the return time). Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. (Message template T13.)</div>
+<div class="tr">Reminders job (every 5 minutes): the return time has passed, the booking is still out (on rent, or confirmed with its pickup time passed and no handover recorded, migration 0430) and no paid extension covers the time. Each one carries the renter's one-tap &quot;I've returned the car&quot; link (migration 0532), and none is sent while the renter's report waits for staff. Sent once per return time, 15 minutes late (notify_late_first_minutes; renter_return_due goes at the return time). Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. (Message template T13.)</div>
 <div class="ln"><a href="../dist/renter_late_return_first.html">HTML</a><a href="../dist/renter_late_return_first.txt">Text</a><a href="../shots/renter_late_return_first.desktop.png">Desktop</a><a href="../shots/renter_late_return_first.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_named_to_authority.html"><img loading="lazy" src="../shots/renter_named_to_authority.desktop.png" alt="Screenshot of renter_named_to_authority"></a><div class="b">
@@ -428,6 +428,12 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tr">A booking row is created with status requested (booking event requested; the renter submitted the request form).</div>
 <div class="ln"><a href="../dist/renter_request_received.html">HTML</a><a href="../dist/renter_request_received.txt">Text</a><a href="../shots/renter_request_received.desktop.png">Desktop</a><a href="../shots/renter_request_received.phone.png">Phone</a></div>
 </div></div>
+<div class="c"><a class="th" href="../dist/renter_return_claim_denied.html"><img loading="lazy" src="../shots/renter_return_claim_denied.desktop.png" alt="Screenshot of renter_return_claim_denied"></a><div class="b">
+<div class="code">renter_return_claim_denied</div><div class="sub">We could not confirm the return of the 2024 Honda Civic Sport</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">Staff press Deny on the renter's &quot;I've returned the car&quot; report (migration 0532): the car is not back. The booking is overdue again, so the late return notices resume.</div>
+<div class="ln"><a href="../dist/renter_return_claim_denied.html">HTML</a><a href="../dist/renter_return_claim_denied.txt">Text</a><a href="../shots/renter_return_claim_denied.desktop.png">Desktop</a><a href="../shots/renter_return_claim_denied.phone.png">Phone</a></div>
+</div></div>
 <div class="c"><a class="th" href="../dist/renter_return_complete.html"><img loading="lazy" src="../shots/renter_return_complete.desktop.png" alt="Screenshot of renter_return_complete"></a><div class="b">
 <div class="code">renter_return_complete</div><div class="sub">Returned. Thanks for renting the 2024 Honda Civic Sport</div>
 <div class="tags"><span>Transactional</span></div>
@@ -443,7 +449,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="c"><a class="th" href="../dist/renter_return_due.html"><img loading="lazy" src="../shots/renter_return_due.desktop.png" alt="Screenshot of renter_return_due"></a><div class="b">
 <div class="code">renter_return_due</div><div class="sub">Your booking ended at 10:00 am</div>
 <div class="tags"><span>Transactional</span></div>
-<div class="tr">Reminders job (every 5 minutes, migration 0430): the return time of a booking that is out has come and no return is recorded. Sent once per return time, in the first 15 minutes (T13 follows at 15 minutes late). Only between 7 am and 10 pm Toronto time. Off with notify_return_due.</div>
+<div class="tr">Reminders job (every 5 minutes, migration 0430): the return time of a booking that is out has come and no return is recorded. Each one carries the renter's one-tap &quot;I've returned the car&quot; link (migration 0532), and none is sent while the renter's report waits for staff. Sent once per return time, in the first 15 minutes (T13 follows at 15 minutes late). Only between 7 am and 10 pm Toronto time. Off with notify_return_due.</div>
 <div class="ln"><a href="../dist/renter_return_due.html">HTML</a><a href="../dist/renter_return_due.txt">Text</a><a href="../shots/renter_return_due.desktop.png">Desktop</a><a href="../shots/renter_return_due.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/renter_return_reminder.html"><img loading="lazy" src="../shots/renter_return_reminder.desktop.png" alt="Screenshot of renter_return_reminder"></a><div class="b">

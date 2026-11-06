@@ -42,6 +42,13 @@ test('the email binding: 1, true, yes, on or EMAIL (any case) add it, once, and 
     assert.match(run('scripts/deploy/email-binding.sh', [f, 'production', v]), /::warning title=email::EMAIL binding NOT added: the repository variable CF_EMAIL_BINDING is/, v);
     assert.equal(readFileSync(f, 'utf8'), base, v);
   }
+  // 2026-11-06: the file as wrangler-config.mjs rewrites it (plain JSON, "ai" over three lines) gets the binding too
+  const rewritten = join(d, 'w-rewritten.json');
+  writeFileSync(rewritten, JSON.stringify({ name: 'x', ai: { binding: 'AI' }, env: { staging: { ai: { binding: 'AI' } } } }, null, 2) + '\n');
+  assert.match(run('scripts/deploy/email-binding.sh', [rewritten, 'production', 'EMAIL']), /EMAIL binding added/);
+  const cfg = JSON.parse(readFileSync(rewritten, 'utf8')) as { send_email?: Array<{ name: string }>; env: { staging: { send_email?: unknown } } };
+  assert.deepEqual(cfg.send_email, [{ name: 'EMAIL' }]);
+  assert.equal(cfg.env.staging.send_email, undefined);
   const f = join(d, 'w-stg.jsonc'); writeFileSync(f, base);
   assert.match(run('scripts/deploy/email-binding.sh', [f, 'staging', 'EMAIL']), /production only/);
   // the owner-step list treats EMAIL as set

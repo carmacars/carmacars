@@ -8,7 +8,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'Reminders job (every 5 minutes): the return time has passed, the booking is still out (on rent, or confirmed with its pickup time passed and no handover recorded, migration 0430) and no paid extension covers the time. Sent once per return time, 15 minutes late (notify_late_first_minutes; renter_return_due goes at the return time). Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. (Message template T13.)',
+  trigger: 'Reminders job (every 5 minutes): the return time has passed, the booking is still out (on rent, or confirmed with its pickup time passed and no handover recorded, migration 0430) and no paid extension covers the time. Each one carries the renter\'s one-tap "I\'ve returned the car" link (migration 0532), and none is sent while the renter\'s report waits for staff. Sent once per return time, 15 minutes late (notify_late_first_minutes; renter_return_due goes at the return time). Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. (Message template T13.)',
   timing: '15 minutes after the return time',
   source: 'T13',
   subject: 'Your rental ended at {{return_time}}. Please return the car now',
@@ -22,7 +22,8 @@ export default {
     ),
     notice('alert', 'What it costs', 'Once you are more than 30 minutes late you owe the rental charge for each extra day, plus a late fee of {{late_fee_hourly}} per started hour counted from {{return_time}}.'),
     button('Pay for an extension', '@booking_extend'),
+    link('Already returned the car? Tell us in one tap', '{{returned_url}}'),
     p('To talk it through, call **{{support_phone}}** now. If you are already on your way, thank you. We will see you shortly.'),
   ],
-  sample: { late_fee_hourly: '$25' },
+  sample: { returned_url: 'https://carmacars.ca/returned/9d3b6a1e-4c2f-4b7a-8e1d-2f6c5a4b3e21', late_fee_hourly: '$25' },
 };

@@ -1,0 +1,36 @@
+CarmaCars  |  Booking {{booking_number}}
+
+========================================
+
+[Return not confirmed]
+We could not confirm your return
+
+You told us the {{vehicle_name}} is back, {{first_name}}, but we could not confirm it. The booking is still overdue.
+
+Was due: {{return_date}}, {{return_time}}
+Return place: {{return_place}}
+Why: {{deny_reason}}
+
+IMPORTANT: What happens now
+The late fees and the overdue notices go on until the car is checked in. Please return it now, or call us if it is already back.
+
+Pay for an extension:
+https://carmacars.ca/account/bookings/{{booking_number}}/extend
+
+Returned it since? Tell us in one tap: {{returned_url}}
+
+To talk it through, call {{support_phone}} now.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

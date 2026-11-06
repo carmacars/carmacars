@@ -25,6 +25,8 @@ const LINK_SECONDS = 86400;
 
 const patch = {
   mailer_otp_exp: LINK_SECONDS,
+  // the sender name of every sign-in email (the service's own default reads "Supabase Auth")
+  smtp_sender_name: 'CarmaCars',
   mailer_subjects_confirmation: 'Confirm your CarmaCars account',
   // no next: the callback sends the person to their own portal by role (an owner who applied lands in /owner)
   mailer_templates_confirmation_content: wrap('Confirm your email', 'Thanks for creating a CarmaCars account. Confirm this email address to finish: the button confirms it and signs you in.', 'Confirm my email', cb('signup', ''), 'The link works once, for 24 hours. If it has expired, go to carmacars.ca/sign-in, enter your email and password, and press "Send a new confirmation link". If you did not create an account, ignore this email.'),

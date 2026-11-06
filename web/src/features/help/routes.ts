@@ -68,7 +68,7 @@ const RENTER: Record<string, Spec> = {
   '': ['start-here'], bookings: ['before-pickup'], 'bookings/[number]': ['before-pickup'], 'bookings/[number]/pay': 'payment', 'bookings/[number]/addons/pay': 'payment',
   'bookings/[number]/sign': 'signing', 'bookings/[number]/offer': 'payment', 'bookings/[number]/extend': 'payment', 'bookings/[number]/cancel': ['your-offer'],
   'bookings/[number]/change': ['your-offer'], 'bookings/[number]/verify': ['sign-and-pay'], 'bookings/[number]/walkthrough': ['during-your-trip'],
-  'bookings/[number]/condition-report': ['during-your-trip'], 'bookings/[number]/review': ['after-your-trip'], documents: ['after-your-trip'], guide: 'guide',
+  'bookings/[number]/condition-report': ['during-your-trip'], 'bookings/[number]/returned': ['during-your-trip'], 'bookings/[number]/review': ['after-your-trip'], documents: ['after-your-trip'], guide: 'guide',
   notifications: ['start-here'], profile: ['start-here'], rewards: ['after-your-trip']
 };
 const INVESTOR: Record<string, Spec> = {
@@ -79,7 +79,7 @@ const INVESTOR: Record<string, Spec> = {
 // ---------------------------------------------------------------- outside the portals: never
 const PUBLIC = ['', 'about', 'body-shop', 'book', 'buy', 'cancellation-policy', 'car-rental', 'careers', 'cars', 'chauffeur', 'choose-portal', 'contact', 'create-account',
   'credit-card-rental-coverage', 'delivery', 'detailing', 'faq', 'guides', 'how-it-works', 'investors', 'link-expired', 'list-your-car', 'makes', 'my-request', 'partners',
-  'place-data', 'places', 'privacy', 'read-only', 'rent', 'requirements', 'reset-password', 'review', 'sign-in', 't', 'terms', 'two-step', 'unsubscribe', 'update-password', 'verify'];
+  'place-data', 'places', 'privacy', 'read-only', 'rent', 'requirements', 'reset-password', 'returned', 'review', 'sign-in', 't', 'terms', 'two-step', 'unsubscribe', 'update-password', 'verify'];
 
 type Row = { key: string[]; row: HelpRow & { tabs?: Record<string, HelpEntry> } };
 const seg = (k: string) => (k ? k.split('/') : []);

@@ -25,8 +25,8 @@ begin
 end $$;
 
 -- ================================================================== A. catalogue
-select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '205/21');
+select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied)',
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '206/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -202,8 +202,11 @@ select test.eq('C a 1-star review goes at once to customer service and the admin
   || '/' || (select count(*) from staff_digest_items where entity_id = test.id('rev:NT6')), 'staff_admin,staff_va_cs/0');
 select test.eq('C a dispute reaches the admins and finance at once',
   (select string_agg(audience, ',' order by audience) from notification_outbox where entity_id = test.id('dis:NT')), 'staff_admin,staff_va_finance');
-select test.eq('C a failed job is one email to each admin, with its name and error',
-  (select count(*) || '/' || min(payload ->> 'job_name') || '/' || min(payload ->> 'job_error') from notification_outbox where entity_id = test.id('jr:NT')), '1/test-notify/it broke');
+-- 0530: a failed job is no longer emailed at once: the admins' in-app notice, and one line in the morning digest
+select test.eq('C a failed job is one in-app notice per admin and one digest line, with its name and no email',
+  (select count(*) from notification_outbox where entity_id = test.id('jr:NT')) || '/' ||
+  (select count(*) from staff_digest_items where entity_id = test.id('jr:NT') and code = 'staff_job_failed' and digest_slot = 'morning') || '/' ||
+  (select count(*) > 0 from notifications where entity_id = test.id('jr:NT') and code = 'staff_job_failed'), '0/1/true');
 select test.eq('C the Monday recount at the warning level warns the admins',
   (select count(*) || '/' || min(payload ->> 'fleet_count_after') from notification_outbox o join fleet_counts f on f.id = o.entity_id
     where o.code = 'staff_fleet_count_warning' and f.counted_on = date '2031-02-03'), '1/10');
@@ -489,7 +492,9 @@ select test.eq('F a hard bounce suppresses the address for every email and stops
   (select scope || ':' || reason from email_suppressions where email = 'cap3_1@example.test') || '/' ||
   (select status from notification_outbox where dedupe_key = 'captest:3:1') || '/' || (select status from notification_outbox where dedupe_key = 'captest:after-bounce'),
   'all:bounce/failed/suppressed');
-update notification_outbox set status = 'sending', locked_at = test.at('2031-09-05 11:00') where dedupe_key = 'captest:4:2';
+-- 0530: the other two digests of the day wait paced instead of staying locked; they are not what this checks
+update notification_outbox set status = 'sent', sent_at = test.at('2031-09-04 09:00') where dedupe_key in ('captest:4:1', 'captest:4:3') and status <> 'sent';
+update notification_outbox set status = 'sending', locked_at = test.at('2031-09-05 11:00'), send_after = test.at('2031-09-05 10:00') where dedupe_key = 'captest:4:2';
 select test.eq('F a stale sending lock is released to the queue and claimed again',
   (select count(*) from app.outbox_claim(100, test.at('2031-09-05 12:00')) where left(to_address, 6) = 'cap4_2'), 1::bigint);
 delete from program_settings where effective_from = date '2031-09-01';
@@ -864,7 +869,8 @@ select test.eq('G no wired code is missing a variable (built here or supplied by
 select test.eq('G every wired email code has been built at least once in these tests, digests included',
   (select string_agg(c.code, ',' order by c.code) from notification_catalogue c
     where c.has_email and c.emitted_by not like 'not emitted%'
-      and not exists (select 1 from notification_outbox o where o.code = c.code)),
+      and not exists (select 1 from notification_outbox o where o.code = c.code)
+      and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);
 select test.eq('G the variables the sender supplies are only signed links and sign-in service values',
   (select string_agg(distinct v, ',' order by v) from notification_catalogue, unnest(sender_supplied) v),

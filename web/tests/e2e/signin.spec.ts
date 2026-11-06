@@ -360,7 +360,8 @@ test('view as matches the person\'s own sign-in: a Sales assistant and a custome
       for (const t of Array.from(document.querySelectorAll('[role="timer"], .pu-timer, .ad-wait, time, [data-testid^="guide-banner"]'))) t.remove();
       const kinds = new Set(Array.from(document.querySelectorAll('.ad__main [data-testid]')).map((e) => e.getAttribute('data-testid')!)
         .filter((t) => !t.startsWith('guide-banner')).map((t) => t.replace(/^(va-reply|va-licence|task|booking|row|car)-.*$/, '$1-*')));
-      return { rail: text('.ad__rail').join(' | '), headings: text('.ad__main h1, .ad__main h2').map((h) => h.replace(/^Next up: .*$/, 'Next up')).join(' | '), tests: [...kinds].sort().join(',') };
+      // a count badge on the menu shows only while the count is above 0 (other tests add and close tasks): left out
+      return { rail: text('.ad__rail').join(' | ').split(' ').filter((w) => w !== '#').join(' '), headings: text('.ad__main h1, .ad__main h2').map((h) => h.replace(/^Next up: .*$/, 'Next up')).join(' | '), tests: [...kinds].sort().join(',') };
     });
   };
   for (const [who, fn] of [[sales, 'va-sales'], [cs, 'va-cs']] as const) {

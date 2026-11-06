@@ -16,6 +16,8 @@ Once you are more than 30 minutes late you owe the rental charge for each extra 
 Pay for an extension:
 https://carmacars.ca/account/bookings/{{booking_number}}/extend
 
+Already returned the car? Tell us in one tap: {{returned_url}}
+
 To talk it through, call {{support_phone}} now. If you are already on your way, thank you. We will see you shortly.
 
 ----------------------------------------

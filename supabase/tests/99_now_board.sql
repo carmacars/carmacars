@@ -29,7 +29,8 @@ select test.mk_renter('bn_ivan');
 insert into insurers (id, name, billing_email) values (test.id('insurer:bn'), 'Example Insurance', 'claims@example.test');
 
 create or replace function test.bn_now() returns timestamptz language sql stable as $$
-  select (((now() at time zone 'America/Toronto')::date + time '12:00') at time zone 'America/Toronto')
+  -- 2026-11-06: never later than two hours ago, so a run before 10:00 Toronto time does not put the pickups in the future
+  select least(((now() at time zone 'America/Toronto')::date + time '12:00') at time zone 'America/Toronto', date_trunc('hour', now()) - interval '2 hours')
 $$;
 create or replace function test.bnt(p interval) returns text language sql stable as $$
   select to_char((test.bn_now() + p) at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI')

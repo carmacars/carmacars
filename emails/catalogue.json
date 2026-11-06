@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 205,
+  "count": 206,
   "emails": [
     {
       "code": "account_password_reset",
@@ -4686,7 +4686,7 @@
       "code": "renter_late_return_final",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Reminders job (every 5 minutes): the booking is 2 hours past its return time (late_admin_minutes), still out (on rent, or confirmed with no handover recorded, migration 0430), with no paid extension, and T13 went at least 30 minutes ago. Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. The deadline shown is 1 hour after this email is sent. (Message template T14.)",
+      "trigger": "Carries the one-tap \"I've returned the car\" link (0532); not sent while the renter's report waits for staff. Reminders job (every 5 minutes): the booking is 2 hours past its return time (late_admin_minutes), still out (on rent, or confirmed with no handover recorded, migration 0430), with no paid extension, and T13 went at least 30 minutes ago. Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. The deadline shown is 1 hour after this email is sent. (Message template T14.)",
       "timing": "2 hours after the return time",
       "digest": false,
       "source": "T14",
@@ -4749,6 +4749,11 @@
           "sample": "Union Station, 65 Front Street West, Toronto"
         },
         {
+          "name": "returned_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/returned/9d3b6a1e-4c2f-4b7a-8e1d-2f6c5a4b3e21"
+        },
+        {
           "name": "support_phone",
           "type": "string",
           "sample": "289-312-5991",
@@ -4774,7 +4779,7 @@
       "code": "renter_late_return_first",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Reminders job (every 5 minutes): the return time has passed, the booking is still out (on rent, or confirmed with its pickup time passed and no handover recorded, migration 0430) and no paid extension covers the time. Sent once per return time, 15 minutes late (notify_late_first_minutes; renter_return_due goes at the return time). Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. (Message template T13.)",
+      "trigger": "Reminders job (every 5 minutes): the return time has passed, the booking is still out (on rent, or confirmed with its pickup time passed and no handover recorded, migration 0430) and no paid extension covers the time. Each one carries the renter's one-tap \"I've returned the car\" link (migration 0532), and none is sent while the renter's report waits for staff. Sent once per return time, 15 minutes late (notify_late_first_minutes; renter_return_due goes at the return time). Between 7 am and 10 pm Toronto time; overnight it waits until 7 am. The late panel sends the same notice by hand, never twice. (Message template T13.)",
       "timing": "15 minutes after the return time",
       "digest": false,
       "source": "T13",
@@ -4845,6 +4850,11 @@
           "name": "return_time",
           "type": "string",
           "sample": "10:00 am"
+        },
+        {
+          "name": "returned_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/returned/9d3b6a1e-4c2f-4b7a-8e1d-2f6c5a4b3e21"
         },
         {
           "name": "support_phone",
@@ -7367,6 +7377,108 @@
       "template_text": "templates/renter_request_received.txt"
     },
     {
+      "code": "renter_return_claim_denied",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Staff press Deny on the renter's \"I've returned the car\" report (migration 0532): the car is not back. The booking is overdue again, so the late return notices resume.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "We could not confirm the return of the {{vehicle_name}}",
+      "preheader": "The car is not checked in yet. Please return it now or call {{support_phone}}.",
+      "sample_subject": "We could not confirm the return of the 2024 Honda Civic Sport",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "deny_reason",
+          "type": "string",
+          "sample": "The car is not at the return place and the tracker shows it on the road."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "return_date",
+          "type": "string",
+          "sample": "Mon, Oct 26, 2026"
+        },
+        {
+          "name": "return_place",
+          "type": "string",
+          "sample": "Union Station, 65 Front Street West, Toronto"
+        },
+        {
+          "name": "return_time",
+          "type": "string",
+          "sample": "10:00 am"
+        },
+        {
+          "name": "returned_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/returned/9d3b6a1e-4c2f-4b7a-8e1d-2f6c5a4b3e21"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        },
+        {
+          "name": "vehicle_name",
+          "type": "string",
+          "sample": "2024 Honda Civic Sport",
+          "note": "Year, make, model and trim."
+        }
+      ],
+      "template_html": "templates/renter_return_claim_denied.html",
+      "template_text": "templates/renter_return_claim_denied.txt"
+    },
+    {
       "code": "renter_return_complete",
       "audience": "renter",
       "category": "transactional",
@@ -7608,7 +7720,7 @@
       "code": "renter_return_due",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "Reminders job (every 5 minutes, migration 0430): the return time of a booking that is out has come and no return is recorded. Sent once per return time, in the first 15 minutes (T13 follows at 15 minutes late). Only between 7 am and 10 pm Toronto time. Off with notify_return_due.",
+      "trigger": "Reminders job (every 5 minutes, migration 0430): the return time of a booking that is out has come and no return is recorded. Each one carries the renter's one-tap \"I've returned the car\" link (migration 0532), and none is sent while the renter's report waits for staff. Sent once per return time, in the first 15 minutes (T13 follows at 15 minutes late). Only between 7 am and 10 pm Toronto time. Off with notify_return_due.",
       "timing": "At the return time",
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",
@@ -7678,6 +7790,11 @@
           "name": "return_time",
           "type": "string",
           "sample": "10:00 am"
+        },
+        {
+          "name": "returned_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/returned/9d3b6a1e-4c2f-4b7a-8e1d-2f6c5a4b3e21"
         },
         {
           "name": "support_phone",
