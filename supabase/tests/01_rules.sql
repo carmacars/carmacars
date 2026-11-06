@@ -163,7 +163,7 @@ select test.eq('R1 late return fee is capped at 1.5 x daily rate per 24 hours (1
 select test.eq('R1 late return, 26 hours: $150 for the first 24 hours + 2 x $25, and 2 extra days',
   (select late_fee_cents || '/' || extra_days from public.calc_late_return(1560, 10000)), '20000/2');
 select test.eq('R3 deposit: 7 days or less is a card hold', public.calc_deposit_method(7), 'card_hold');
-select test.eq('R3 deposit: over 7 days is charged, then refunded', public.calc_deposit_method(8), 'charged');
+select test.eq('R3 deposit: over 7 days is a card hold too (0541: deposits stay holds)', public.calc_deposit_method(8), 'card_hold');
 select test.eq('R7 interest: 1.5% a month on $200 overdue = $3.00', public.calc_monthly_interest(20000), test.money('3.00'));
 select test.eq('R1 HST is 13%', public.calc_hst(60000), test.money('78.00'));
 

@@ -134,6 +134,7 @@ on conflict (code) do update set
   in_catalogue = true, updated_at = now();
 select app.notification_catalogue_refresh();
 -- CATALOGUE 0547 END
+update notification_catalogue set emitted_by = 'app.partner_invoice_email (0547)' where code = 'partner_invoice';
 
 -- ================================================================ the state a person reads
 create or replace function app.partner_invoice_state(i partner_invoices) returns text
@@ -446,3 +447,13 @@ begin
   return app.door_pre0547(p_user, p_aal, p_call, p_name, p);
 end $$;
 select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre0547(uuid, text, text, text, jsonb)'::regprocedure);
+
+-- the server runs every function of release 28 (0540 to 0547 revoked them from the public role, which service_role used)
+do $$
+declare f regprocedure;
+begin
+  for f in select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'app' and not has_function_privilege('service_role', p.oid, 'execute') loop
+    execute format('grant execute on function %s to service_role', f);
+  end loop;
+end $$;

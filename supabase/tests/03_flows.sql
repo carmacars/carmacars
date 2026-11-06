@@ -65,11 +65,14 @@ select test.eq('T during a rental CarmaCars manages, the Owner''s controls are b
   app.owner_controls_blocked(test.id('vehicle:F1'), timestamp '2027-02-02 12:00' at time zone 'America/Toronto'), true);
 
 -- extension past 7 days: the hold must be captured first
-select test.throws('R3 extension past 7 days in total: capture the card hold first',
-  format($$update bookings set return_at = pickup_at + interval '8 days', billable_days = 8, km_allowance_total = 1600 where id = %L$$, test.id('booking:L1')), 'capture the card hold');
-select test.throws('R3 a rental over 7 days cannot start on a card hold',
+-- 0541: deposits stay holds with Stripe: an extension past 7 days keeps the hold (re-authorized before it lapses), and a
+-- long rental starts on a hold too
+-- (each runs, then a division by zero undoes it: reaching it proves the statements before it were accepted)
+select test.throws('R3 extension past 7 days in total: the card hold stays',
+  format($$update bookings set return_at = pickup_at + interval '8 days', billable_days = 8, km_allowance_total = 1600 where id = %L; select 1 / 0$$, test.id('booking:L1')), 'division by zero');
+select test.throws('R3 a rental over 7 days starts on a card hold',
   $$select test.mk_booking('L9', 'F1', 'lia', '2027-05-01 10:00', '2027-05-10 10:00', 'tentative');
-    insert into deposits (booking_id, amount_cents, method) values (test.id('booking:L9'), 100000, 'card_hold')$$, 'charged Deposit');
+    insert into deposits (booking_id, amount_cents, method) values (test.id('booking:L9'), 100000, 'card_hold'); select 1 / 0$$, 'division by zero');
 
 select test.throws('B no Check-in without the return Condition Report',
   format('update bookings set status = ''returned'' where id = %L', test.id('booking:L1')), 'return Condition Report');

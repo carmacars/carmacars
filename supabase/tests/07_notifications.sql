@@ -25,8 +25,8 @@ begin
 end $$;
 
 -- ================================================================== A. catalogue
-select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '206/21');
+select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0547 the partner invoice)',
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '207/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -865,6 +865,13 @@ select test.flush();
 -- 0532: the renter's return report denied (the deny reason and the one-tap link again)
 select app.ntf_emit('renter_return_claim_denied', 'booking', test.id('booking:NT-5'), 'nt',
   jsonb_build_object('booking_id', test.id('booking:NT-5'), 'deny_reason', 'The car is not at the return place.'));
+select test.flush();
+-- 0547: an invoice to a partner (the link to its PDF, how to pay)
+insert into referral_partners (id, kind, status, business_name, contact_name, email, referral_code, rate_kind, flat_cents)
+values (test.id('nt_rp'), 'tow_truck', 'active', 'Nt Towing', 'Nat Tow', 'nt.tow@example.test', 'NTTOW1', 'flat', 2500);
+insert into partner_invoices (id, partner_id, status, invoice_number, issued_on, due_on, subtotal_cents, hst_cents, total_cents)
+values (test.id('nt_pi'), test.id('nt_rp'), 'sent', 'PI-NT0001', current_date, current_date + 14, 10000, 1300, 11300);
+select app.partner_invoice_email(test.id('nt_pi'), 'nt.tow@example.test', 'invoice');
 select test.flush();
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');

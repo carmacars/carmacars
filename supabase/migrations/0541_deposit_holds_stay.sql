@@ -55,6 +55,15 @@ create or replace function public.calc_deposit_method(p_days integer, p_hold_max
 language sql immutable as $$ select 'card_hold'::text $$;
 comment on function public.calc_deposit_method(integer, integer) is 'A deposit by card is always a hold (0541): kept in Stripe, renewed before it lapses, never charged and paid out.';
 
+-- an extension past the hold limit no longer forces the hold to be captured: the hold stays and is re-authorized
+do $$
+declare d text := pg_get_functiondef('app.booking_before_write()'::regprocedure);
+  v_old text := $o$    raise exception 'Total length is now over 7 days: capture the card hold as a charged Deposit first' using errcode = '23514';$o$;
+begin
+  if position(v_old in d) = 0 then raise exception '0541: the extension guard was not found in app.booking_before_write'; end if;
+  execute replace(d, v_old, $n$    null; -- 0541: the hold stays with Stripe; a To do re-authorizes it before it lapses$n$);
+end $$;
+
 -- ================================================================ 3. the real expiry, from Stripe
 create or replace function public.server_deposit_hold_expiry(p_intent text, p_capture_before bigint, p_extended boolean default false) returns jsonb
 language plpgsql security definer set search_path = public, app as $$

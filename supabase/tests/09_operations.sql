@@ -44,8 +44,8 @@ declare
   v_id uuid := gen_random_uuid();
 begin
   insert into payments (id, booking_id, renter_id, purpose, kind, method, amount_cents, status, processed_at)
-  select v_id, b.id, b.renter_id, 'deposit', case when b.billable_days <= 7 then 'hold' else 'charge' end, 'card', b.deposit_cents,
-         case when b.billable_days <= 7 then 'authorized' else 'succeeded' end, now()
+  -- 0541: the deposit is a hold for any length of rental
+  select v_id, b.id, b.renter_id, 'deposit', 'hold', 'card', b.deposit_cents, 'authorized', now()
     from bookings b where b.id = test.b(p_key);
   return v_id;
 end $$;
@@ -439,12 +439,12 @@ select test.eq('X once paid, the damage money the renter paid (repair and towing
      join incidents i on i.id = c.incident_id where i.booking_id = test.b('opB')), 'renter_at_cost=20000 renter_at_cost=110000');
 
 -- ------------------------------------------------------------------ damage of $2,500 or more: a claim, the deductible and the claim fee
--- C: 10 days (weekly rate / 7 x 10 = $800), so the Deposit is charged, not held.
+-- C: 10 days (weekly rate / 7 x 10 = $800); the Deposit is a hold all the same (0541).
 select test.rq_new('opC', 'op_r3', 'OP3', '2031-06-05 10:00', '2031-06-15 10:00');
 select test.op_confirm('opC', 'op_r3');
 insert into test.rq_ids values ('jobC', app.create_field_job('handover', test.id('vehicle:OP3'), test.at('2031-06-05 10:00'), test.id('op_admin'), test.b('opC'), test.id('op_field')));
 select test.op_handover('opC', 'op_field', '2031-06-05 10:00', 40000);
-select test.eq('Y a rental over 7 days takes a charged Deposit', (select method || '/' || status || '/' || captured_cents from deposits where booking_id = test.b('opC')), 'charged/captured/100000');
+select test.eq('Y a rental over 7 days takes a card hold too (0541)', (select method || '/' || status || '/' || captured_cents from deposits where booking_id = test.b('opC')), 'card_hold/held/0');
 insert into test.rq_ids values ('jobCr', app.create_field_job('return_check_in', test.id('vehicle:OP3'), test.at('2031-06-15 10:00'), test.id('op_admin'), test.b('opC'), test.id('op_field')));
 select test.op_return('opC', 'op_field', '2031-06-15 09:00', 41000,
   jsonb_build_object('damages', jsonb_build_array(jsonb_build_object('label', 'D1', 'location', 'left side', 'description', 'door and fender crushed', 'is_new', true)),
@@ -461,10 +461,10 @@ select test.eq('Y loss of use is not added on top of the deductible, and 1,000 k
   (select count(*) from booking_line_items where booking_id = test.b('opC') and voided_at is null and charge_type in ('loss_of_use', 'damage_at_cost', 'mileage_overage')), 0::bigint);
 select app.issue_booking_statement(test.b('opC'), test.id('op_admin'), test.at('2031-06-16 10:00'));
 create table test.op_settleC as select app.settle_deposit(test.b('opC'), test.id('op_admin'), '{}', test.at('2031-06-16 10:05')) as r;
-select test.eq('Y $2,584.75 due: the charged Deposit of $1,000 is applied (no capture needed) and $1,584.75 goes to the card',
+select test.eq('Y $2,584.75 due: the Deposit hold of $1,000 is captured and applied, and $1,584.75 goes to the card',
   (select (r ->> 'charges_due_cents') || '/' || (r ->> 'applied_cents') || '/' || (r ->> 'charged_to_card_cents') from test.op_settleC)
   || ' ' || (select string_agg((a ->> 'action') || ':' || (a ->> 'amount_cents'), ' ') from test.op_settleC, jsonb_array_elements(r -> 'server_actions') a),
-  '258475/100000/158475 charge_card:158475');
+  '258475/100000/158475 capture_deposit:100000 charge_card:158475');
 select app.post_rental_payment_result((select id from payments where booking_id = test.b('opC') and purpose = 'post_rental'), true);
 select test.eq('Y the deductible paid by the renter is money in on the claim', (select c.money_in_cents from claims c join incidents i on i.id = c.incident_id where i.booking_id = test.b('opC')), 250000::bigint);
 

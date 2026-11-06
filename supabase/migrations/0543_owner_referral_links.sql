@@ -64,7 +64,8 @@ create table if not exists owner_referral_shares (
 );
 create index if not exists owner_referral_shares_open on owner_referral_shares (referrer_owner_id) where owner_statement_id is null;
 alter table owner_referral_shares enable row level security;
-create policy admin_read on owner_referral_shares for select to authenticated using (app.is_admin());
+create policy admin_all on owner_referral_shares for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_owner_referral_shares after insert or update or delete on owner_referral_shares for each row execute function app.audit_row();
 comment on table owner_referral_shares is 'Each booking''s referral share for an owner referral link (0543): paid once, on the referrer''s statement.';
 
 alter table owner_statement_lines drop constraint if exists owner_statement_lines_line_type_check;
