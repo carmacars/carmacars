@@ -74,3 +74,7 @@ begin
     perform cron.schedule('carmacars-public-read-cache', '*/3 * * * *', 'select app.job_public_read_cache()');
   end if;
 end $$;
+
+-- the server may run every function of the app schema (the suites check it)
+revoke all on function app.read_cache_on(), app.public_read_cache_drop() from public, anon, authenticated;
+grant execute on function app.job_public_read_cache(), app.seo_hub_links_live(), app.site_facts_live(), app.read_cache_on(), app.public_read_cache_drop() to service_role;
