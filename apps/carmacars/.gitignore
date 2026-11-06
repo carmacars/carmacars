@@ -1,7 +1,7 @@
 node_modules/
 # the native projects are made fresh by each release build (npx cap add, scripts/native-setup.mjs); never committed
-ios/
-android/
+/ios/
+/android/
 # keys and Firebase files: GitHub secrets only (docs/apps/publish.md)
 google-services.json
 GoogleService-Info.plist

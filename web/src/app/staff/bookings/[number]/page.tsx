@@ -56,6 +56,17 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
   // r27 consolidation: the conversation of a text sent with the Text button (customer service and Sales have the inbox)
   const inbox = fn === 'cs' || fn === 'sales' ? '/staff/visitors?view=chat' : null;
   const b = await read<Detail | null>('booking', { number: n }).catch(() => null);
+  // a request customer service has first (offer claims): it is on a Sales person's list before it opens to them, so the
+  // list's Open says so here instead of a 404
+  if (!b && fn === 'sales') return (
+    <>
+      <PageHead kicker={<Link prefetch={false} className="link" href="/staff">To do</Link>} title={n} />
+      <Card title="Not open to you yet" testId="booking-not-yours">
+        <p>Customer service has this request first. It opens to you on your To do list when it is yours to answer, or when it waits too long.</p>
+        <p><Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff">Back to To do</Link></p>
+      </Card>
+    </>
+  );
   if (!b) notFound();
   const arranging = ['requested', 'offered', 'pending_payment'].includes(b.status) && (fn === 'cs' || fn === 'sales');
   const tab = sp.tab ?? (arranging ? 'review' : 'overview');
