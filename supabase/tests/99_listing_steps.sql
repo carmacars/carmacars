@@ -30,8 +30,8 @@ select test.throws('finance may not read a listing''s steps', format($$select ap
 
 -- ================================================================ a photo filed under the wrong shot
 select test.lsp_up(car, 'front') as wrong from s99ls \gset
-select test.eq('taken off: the shot is missing again',
-  (select app.door(test.id('lsp_admin'), 'aal2', 'ops_do', 'listing_photo_remove', jsonb_build_object('photo', :'wrong')) -> 'missing' ? 'Front'), true);
+select test.eq('taken off: it no longer counts toward the 10 (0566)',
+  (select app.door(test.id('lsp_admin'), 'aal2', 'ops_do', 'listing_photo_remove', jsonb_build_object('photo', :'wrong')) -> 'missing' ? 'At least 10 photos (1 so far)'), true);
 select test.ok('the file is kept, marked replaced, and the removal is audited',
   (select replaced_at is not null from vehicle_photos where id = :'wrong')
   and exists (select 1 from audit_log where action = 'listing_photo_remove' and entity_id = :'wrong' and actor_user_id = test.id('lsp_admin')));
