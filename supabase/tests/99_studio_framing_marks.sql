@@ -49,3 +49,29 @@ select app.studio_v3_requeue();
 select test.eq('a covered plate on a car not named: not queued', (select count(*) from listing_jobs where vehicle_photo_id = (select outside from s99ph) and status = 'queued'), 0::bigint);
 select test.ok('the service role only', not has_function_privilege('authenticated', 'app.studio_v3_requeue()', 'execute')
   and not has_function_privilege('anon', 'public.server_photo_mark_gate()', 'execute') and has_function_privilege('service_role', 'public.server_photo_mark_record(jsonb)', 'execute'));
+
+-- ================================================================ 0568: the light touch-up
+select test.mk_user('sfm_fin', 'va', 'finance');
+create temp table s99en as select test.sfm_up('dashboard') as ph;
+select app.enqueue_listing_job((select i from s99sf), 'process_photo', (select ph from s99en));
+create temp table s99ej as select id from listing_jobs where vehicle_photo_id = (select ph from s99en) and kind = 'process_photo' and status = 'queued';
+select test.ok('on by default: the job says touch it up', (select (app.listing_job_context(id) #>> '{photo,enhance}')::boolean from s99ej));
+update program_settings set listing_photo_enhance = false;
+select test.ok('the Admin setting off: not touched up', (select not (app.listing_job_context(id) #>> '{photo,enhance}')::boolean from s99ej));
+update program_settings set listing_photo_enhance = true;
+update vehicle_photos set enhance_off = true where id = (select ph from s99en);
+select test.ok('the photo''s "Use original colours": not touched up', (select not (app.listing_job_context(id) #>> '{photo,enhance}')::boolean from s99ej));
+update vehicle_photos set enhance_off = false where id = (select ph from s99en);
+select app.claim_listing_jobs('sfm-e', 100, array['process_photo']);
+select app.worker_listing_result((select id from s99ej), jsonb_build_object('ok', true, 'provider', 'fake', 'output', jsonb_build_object(
+  'processed_path', 'vehicles/sfm/dash.jpg', 'width', 1600, 'height', 1200, 'flags', '[]'::jsonb, 'preset_version', 'normalize_v1',
+  'enhance', jsonb_build_object('version', 'enhance_v1', 'brightness', 1.02, 'contrast', 1.04, 'gamma', 1.01, 'saturation', 1.06, 'sharpen', 1))));
+select test.eq('the values used are kept on the photo', (select enhance ->> 'saturation' from vehicle_photos where id = (select ph from s99en)), '1.06');
+select test.throws('finance may not switch a photo''s touch-up',
+  format($$select app.door(%L, 'aal2', 'ops_do', 'photo_enhance_set', '{"photo": "%s", "off": true}')$$, test.id('sfm_fin'), (select ph from s99en)), 'edits listing photos');
+select test.eq('an Admin switches it off: the photo is made again',
+  (select app.door(test.id('sfm_admin'), 'aal2', 'ops_do', 'photo_enhance_set', jsonb_build_object('photo', (select ph from s99en), 'off', true)) ->> 'queued'), 'true');
+select test.ok('switched off, off the site, a job queued', (select enhance_off and not is_public from vehicle_photos where id = (select ph from s99en))
+  and exists (select 1 from listing_jobs where vehicle_photo_id = (select ph from s99en) and kind = 'process_photo' and status = 'queued'));
+select test.eq('the same switch again changes nothing',
+  (select app.door(test.id('sfm_admin'), 'aal2', 'ops_do', 'photo_enhance_set', jsonb_build_object('photo', (select ph from s99en), 'off', true)) ->> 'queued'), 'false');

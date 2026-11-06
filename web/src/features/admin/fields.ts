@@ -50,6 +50,7 @@ const LABELS: Record<string, string> = {
   listing_publish_new_cars_automatically: 'Publish new cars automatically (as soon as the year, make, model, plate or VIN and rates are in)',
   listing_default_daily_rate_cents: 'Starting daily rate by class, in cents (used when no similar car has rates)',
   plate_cover_style: 'Default way to cover a plate (cover, pixelate or blur)', plate_cover_text: 'Text on the plate cover (empty: the brand name)', plate_detect_enabled: 'Suggest the plate box with the vision model',
+  listing_photo_enhance: 'Auto-enhance listing photos (a light touch-up: exposure, levels, a little contrast and colour, mild sharpening; never the paint colour)',
   notify_daily_cap: 'Emails a day (the email provider\'s daily limit)', notify_class_limits: 'Daily count under which each kind may still send: customer, owner and investor, staff, digests, marketing',
   notify_cap_warn_bps: 'Warn the Admins in the portal at this share of the daily limit', notify_count_auth_emails: 'Count sign-in emails (sent by the sign-in service through the same provider) in the daily limit',
   owner_debit_notice_days: 'Pre-debit notice (days before each debit, 10 to 30)',

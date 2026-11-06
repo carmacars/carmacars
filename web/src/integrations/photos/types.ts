@@ -26,6 +26,10 @@ export interface PhotoProcessor {
   /** 0521: a base image (the studio backdrop, or the photo itself blurred) with an overlay drawn on it, both cropped to
    *  the same frame (JPEG); for the windows of interior photos (features/listing/window-check.ts). */
   layer(r: { baseUrl: string; baseBlur?: number; overlayUrl: string; width: number; height: number }): Promise<PhotoOut>;
+  /** r28 B9: a small PNG of the photo, to measure it (enhance.ts). */
+  preview?(r: { sourceUrl: string; width: number }): Promise<PhotoOut>;
+  /** r28 B9: the light touch-up (JPEG, same size). */
+  enhance?(r: { sourceUrl: string; width: number; height: number; values: { brightness: number; contrast: number; gamma: number; saturation: number; sharpen: number } }): Promise<PhotoOut>;
   /** One size variant (WebP). */
   resize(r: { sourceUrl: string; width: number }): Promise<PhotoOut>;
 }

@@ -6,6 +6,7 @@
 //   3. the car is cropped to its own edges, with room below for a soft contact shadow drawn under it (darkest at the
 //      tyres), so the compositor can place it at a set share of the frame with its wheels on the floor line.
 // Pure and dependency free (the platform's CompressionStream / DecompressionStream); unit tested in subject-frame.test.ts.
+import { statsOf, type PhotoStats } from './enhance.ts';
 
 export interface Rgba { width: number; height: number; data: Uint8ClampedArray }
 export interface Framed {
@@ -18,6 +19,8 @@ export interface Framed {
   dropped: number;
   /** the car's share of the cut-out's width and height before the crop (for the logs) */
   share: { w: number; h: number };
+  /** r28 B9: the car's own pixels measured, for the touch-up (enhance.ts) */
+  stats: PhotoStats;
 }
 
 const u32 = (b: Uint8Array, o: number) => ((b[o]! << 24) | (b[o + 1]! << 16) | (b[o + 2]! << 8) | b[o + 3]!) >>> 0;
@@ -27,20 +30,24 @@ async function pipe(data: Uint8Array, s: CompressionStream | DecompressionStream
   return new Uint8Array(await out.arrayBuffer());
 }
 
-/** The PNG's pixels as RGBA; null when it is not an 8-bit, non-interlaced RGBA or grey-alpha PNG. */
+/** The PNG's pixels as RGBA; null when it is not an 8-bit, non-interlaced PNG (RGBA, RGB, grey, grey-alpha or palette). */
 export async function decodePng(png: Uint8Array): Promise<Rgba | null> {
   if (png.length < 33 || u32(png, 0) !== 0x89504e47 || u32(png, 4) !== 0x0d0a1a0a) return null;
   let o = 8, width = 0, height = 0, depth = 0, colour = 0, interlace = 0;
   const idat: Uint8Array[] = [];
+  let plte: Uint8Array | null = null, trns: Uint8Array | null = null;
   while (o + 8 <= png.length) {
     const len = u32(png, o), type = String.fromCharCode(png[o + 4]!, png[o + 5]!, png[o + 6]!, png[o + 7]!);
     const body = png.subarray(o + 8, o + 8 + len);
     if (type === 'IHDR') { width = u32(body, 0); height = u32(body, 4); depth = body[8]!; colour = body[9]!; interlace = body[12]!; }
     else if (type === 'IDAT') idat.push(body);
+    else if (type === 'PLTE') plte = body;
+    else if (type === 'tRNS') trns = body;
     else if (type === 'IEND') break;
     o += 12 + len;
   }
-  const bpp = colour === 6 ? 4 : colour === 4 ? 2 : 0;
+  const bpp = colour === 6 ? 4 : colour === 4 ? 2 : colour === 2 ? 3 : colour === 0 || colour === 3 ? 1 : 0;
+  if (colour === 3 && !plte) return null;
   if (!width || !height || width * height > 16_000_000 || depth !== 8 || !bpp || interlace !== 0 || !idat.length) return null;
   const joined = new Uint8Array(idat.reduce((n, c) => n + c.length, 0));
   let at = 0; for (const c of idat) { joined.set(c, at); at += c.length; }
@@ -62,7 +69,13 @@ export async function decodePng(png: Uint8Array): Promise<Rgba | null> {
     }
     const row = y * width * 4;
     if (bpp === 4) data.set(cur, row);
-    else for (let x = 0; x < width; x++) { const g = cur[x * 2]!; data[row + x * 4] = g; data[row + x * 4 + 1] = g; data[row + x * 4 + 2] = g; data[row + x * 4 + 3] = cur[x * 2 + 1]!; }
+    else for (let x = 0; x < width; x++) {
+      const o4 = row + x * 4;
+      if (colour === 4) { const g = cur[x * 2]!; data[o4] = g; data[o4 + 1] = g; data[o4 + 2] = g; data[o4 + 3] = cur[x * 2 + 1]!; }
+      else if (colour === 2) { data[o4] = cur[x * 3]!; data[o4 + 1] = cur[x * 3 + 1]!; data[o4 + 2] = cur[x * 3 + 2]!; data[o4 + 3] = 255; }
+      else if (colour === 0) { const g = cur[x]!; data[o4] = g; data[o4 + 1] = g; data[o4 + 2] = g; data[o4 + 3] = 255; }
+      else { const k = cur[x]!; data[o4] = plte![k * 3] ?? 0; data[o4 + 1] = plte![k * 3 + 1] ?? 0; data[o4 + 2] = plte![k * 3 + 2] ?? 0; data[o4 + 3] = trns && k < trns.length ? trns[k]! : 255; }
+    }
     [prev, cur] = [cur, prev];
   }
   return { width, height, data };
@@ -194,7 +207,8 @@ export function frameRgba(img: Rgba): Omit<Framed, 'png'> & { image: Rgba } | nu
     out[oi] = Math.round(data[si]! * k); out[oi + 1] = Math.round(data[si + 1]! * k); out[oi + 2] = Math.round(data[si + 2]! * k);
     out[oi + 3] = Math.round(a * 255);
   }
-  return { image: { width: OW, height: OH, data: out }, width: OW, height: OH, ground: (padB) / OH, side: padS / OW, dropped: cells.dropped, share: { w: bw / W, h: bh / H } };
+  const image = { width: OW, height: OH, data: out };
+  return { image, width: OW, height: OH, ground: (padB) / OH, side: padS / OW, dropped: cells.dropped, share: { w: bw / W, h: bh / H }, stats: statsOf(image, 200) };
 }
 
 /** The whole step on the segmenter's PNG; null when the PNG cannot be read or holds no subject (the worker then frames
