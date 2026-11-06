@@ -160,10 +160,11 @@ test('the owner\'s case: picked up yesterday, six weeks, young driver, rent in c
   const [req] = await sql`select covers, amount_cents, status from payment_requests where booking_id = ${b!.id} order by created_at desc limit 1`;
   expect(req!.covers).toBe('balance');
   expect(req!.status).toBe('open');
-  await page.getByTestId('bm-record-open').click();
-  await expect(page.getByTestId('bm-covers')).toHaveValue('both');
-  await page.getByTestId('bm-method').selectOption('cash');
-  await page.getByTestId('bm-record-save').click();
+  await page.getByTestId('bm-rental-collect').click();
+  await page.getByTestId('bm-rhow-record').check();
+  await expect(page.getByTestId('bm-rcovers')).toHaveValue('balance');
+  await page.getByTestId('bm-rmethod').selectOption('cash');
+  await page.getByTestId('bm-rcollect-go').click();
   await expect(page.getByTestId('booking-money')).toContainText('Recorded', { timeout: 20_000 });
   const [open] = await sql`select app.booking_part_open(${b!.id}, 'rental') + app.booking_part_open(${b!.id}, 'fees') as o`;
   expect(Number(open!.o)).toBe(0);

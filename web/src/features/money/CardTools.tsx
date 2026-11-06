@@ -12,6 +12,8 @@ export interface CardRule { required: boolean; overridden?: boolean; override_re
 export interface CardToolsProps {
   booking: string; parts: Array<{ covers: string; open_cents: number }>; deposit_cents: number; depositTaken: boolean;
   rule: CardRule | null; readers: Array<{ id: string; label: string }>; isAdmin: boolean; mayRecord: boolean; mayCollect: boolean;
+  /** r29: the Money tab's two panels: the rental panel's tools (no deposit hold), or the deposit panel's (the hold only) */
+  only?: 'rental' | 'deposit';
 }
 const fmt = (c: number | null | undefined) => money(Number(c ?? 0), { cents: true });
 const cents = (s: string) => { const t = s.replace(/[$,\s]/g, ''); return t ? Math.round(Number(t) * 100) : null; };
@@ -51,15 +53,15 @@ export function CardTools(x: CardToolsProps) {
   if (!x.mayRecord && !x.mayCollect && !rule) return null;
   return (
     <div className="stack" data-testid="card-tools">
-      {rule && <p className={`alert ${rule.overridden ? 'alert--info' : 'alert--warn'}`} role="status" data-testid="card-rule"><span>
+      {rule && x.only !== 'deposit' && <p className={`alert ${rule.overridden ? 'alert--info' : 'alert--warn'}`} role="status" data-testid="card-rule"><span>
         {rule.overridden ? <>Another card or method is allowed for this rental: {rule.override_reason}</>
           : <>Credit card coverage: the whole rental is paid on {cardWords(rule)}. Another card or method is refused.</>}
         {x.isAdmin && !rule.overridden && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => setOpen(open === 'override' ? '' : 'override')} data-testid="card-rule-override">Allow another card</button></>}
       </span></p>}
       <div className="row">
-        {x.mayRecord && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'card'} onClick={() => setOpen(open === 'card' ? '' : 'card')} data-testid="ct-record-open">Record card payment</button>}
-        {x.mayCollect && x.readers.length > 0 && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'reader' && rdr.kind === 'charge'} onClick={() => { setRdr({ ...rdr, kind: 'charge' }); setOpen(open === 'reader' && rdr.kind === 'charge' ? '' : 'reader'); }} data-testid="ct-reader-charge-open">Charge on reader</button>}
-        {x.mayCollect && x.readers.length > 0 && x.deposit_cents > 0 && !x.depositTaken && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'reader' && rdr.kind === 'hold'} onClick={() => { setRdr({ ...rdr, kind: 'hold' }); setOpen(open === 'reader' && rdr.kind === 'hold' ? '' : 'reader'); }} data-testid="ct-reader-hold-open">Hold deposit on reader</button>}
+        {x.only !== 'deposit' && x.mayRecord && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'card'} onClick={() => setOpen(open === 'card' ? '' : 'card')} data-testid="ct-record-open">Record card payment</button>}
+        {x.only !== 'deposit' && x.mayCollect && x.readers.length > 0 && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'reader' && rdr.kind === 'charge'} onClick={() => { setRdr({ ...rdr, kind: 'charge' }); setOpen(open === 'reader' && rdr.kind === 'charge' ? '' : 'reader'); }} data-testid="ct-reader-charge-open">Charge on reader</button>}
+        {x.only !== 'rental' && x.mayCollect && x.readers.length > 0 && x.deposit_cents > 0 && !x.depositTaken && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'reader' && rdr.kind === 'hold'} onClick={() => { setRdr({ ...rdr, kind: 'hold' }); setOpen(open === 'reader' && rdr.kind === 'hold' ? '' : 'reader'); }} data-testid="ct-reader-hold-open">Hold deposit on reader</button>}
       </div>
 
       {open === 'override' && (

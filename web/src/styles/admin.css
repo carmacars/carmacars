@@ -644,3 +644,13 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 /* r28: the offer as the renter sees it, right below the send button (A6) */
 .oc-renter-below { display: grid; gap: var(--s-2); margin-top: var(--s-3); }
 .oc-renter-below > .pt-kicker { margin: 0; }
+
+/* r29 C0: the booking's Money tab: the strip, then Rental charges and Security deposit side by side (stacked on a phone) */
+.bm-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); padding: var(--s-3); border: 1px solid var(--line, #e3e3e3); border-radius: 12px; background: var(--surface-2, #f7f7f7); }
+.bm-strip > div { display: flex; flex-direction: column; min-width: 0; }
+.bm-strip__k { font-size: 0.8rem; color: var(--muted, #666); text-transform: uppercase; letter-spacing: 0.04em; }
+.bm-strip__v { font-size: 1.25rem; overflow-wrap: anywhere; }
+.bm-panels { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-3); align-items: start; }
+.bm-panel { min-width: 0; }
+@media (max-width: 900px) { .bm-panels { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .bm-strip { grid-template-columns: minmax(0, 1fr); } }

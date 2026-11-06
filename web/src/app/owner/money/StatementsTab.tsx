@@ -4,6 +4,7 @@ import { ownerMonthToDate } from '@/server/owner/data';
 import type { OwnerCtx } from '@/features/owner/ctx';
 import { BarChart, DocumentList, DocumentRow, StatCard } from '@/components/portal-ui';
 import { MonthToDate } from '@/features/owner/MonthToDate';
+import { OwnerExtras } from '@/features/profit-extras/OwnerExtras';
 
 // Money > Statements: this month so far (provisional), then one statement a month with the booking behind every number.
 export async function StatementsTab({ user, home }: OwnerCtx) {
@@ -14,6 +15,8 @@ export async function StatementsTab({ user, home }: OwnerCtx) {
     <>
       <p className="ph__purpose">One statement a month with the booking behind every number. Paid out on the {home.auto_debit.terms.payout_day_text} for the month before.</p>
       <MonthToDate m={mtd} />
+      {/* r29 (0581): only when staff show this owner their repair costs and kickbacks */}
+      <OwnerExtras userId={user.id} />
       {home.statements.length ? (
         <>
           <div className="pu-grid-2 pu-grid-2--wide">

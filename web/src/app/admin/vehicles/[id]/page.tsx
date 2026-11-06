@@ -25,6 +25,7 @@ import { CarMaintenancePanel } from '@/features/maintenance/Views';
 import { CarTermsTable, type CarTermsData } from '@/features/owner-billing/CarTerms';
 import type { CarMaintenance } from '@/features/maintenance/model';
 import { OwnerHandoffs } from '@/features/handover/OwnerHandoffs';
+import { ProfitExtras } from '@/features/profit-extras/ProfitExtras';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/admin/vehicles', noindex: true, description: 'One vehicle: rates, fees, calendar, listing.' });
@@ -79,7 +80,8 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
         title={<>{v.name} {v.retired_at ? <Badge s="retired">Retired</Badge> : <Badge s={v.status} />}{usingSamples && <> <Badge s="needs_review">Using sample photos</Badge></>}</>}>
         {slug && v.listing?.status === 'published' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/cars/${slug}`} target="_blank">Public page</Link>}
       </PageHead>
-      <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=overview`, 'Overview'], [`${base}?tab=rates`, 'Rates'], [`${base}?tab=fees`, 'Fees and Protection Plan'], [`${base}?tab=calendar`, 'Calendar'], [`${base}?tab=listing`, 'Listing'], [`${base}?tab=maintenance`, 'Maintenance'], [`${base}?tab=records`, 'Owner, documents, tracker']]} />
+      <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=overview`, 'Overview'], [`${base}?tab=rates`, 'Rates'], [`${base}?tab=fees`, 'Fees and Protection Plan'], [`${base}?tab=calendar`, 'Calendar'], [`${base}?tab=listing`, 'Listing'], [`${base}?tab=maintenance`, 'Maintenance'], [`${base}?tab=profit`, 'Kickbacks and repairs'], [`${base}?tab=records`, 'Owner, documents, tracker']]} />
+      {tab === 'profit' && <ProfitExtras userId={user.id} level="vehicle" id={id} sp={sp} base={`${base}?tab=profit`} />}
       {tab === 'maintenance' && <CarMaintenancePanel m={await door<CarMaintenance>(user.id, 'ops_read', 'maint_vehicle', { vehicle_id: id })} base="/admin" autoRecord={sp.record === '1'} />}
       {/* 0264: a car added before its VIN or plate: an onboarding draft until one is added */}
       {v.id_pending === true && <div className="alert alert--warn" role="status" data-testid="vehicle-id-needed"><span className="alert__title">VIN or plate needed</span>

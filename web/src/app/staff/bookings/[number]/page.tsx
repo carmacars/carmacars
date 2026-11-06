@@ -4,13 +4,13 @@ import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
 import { DepositSettle } from '@/features/admin/DepositSettle';
-import { depositMethod, depositStatus } from '@/features/money/deposit-words';
+import { depositStatus } from '@/features/money/deposit-words';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
 import { BookingAddons } from '@/features/addons/BookingAddons';
 import { DriverLinks, ProposeChange, type DriverLinkRow } from '@/features/admin/BookingChanges';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { REFUND_OF } from '@/features/admin/refunds';
-import { BookingMoney, type Money } from '@/features/money/BookingMoney';
+import { BookingMoney, type Money, type PanelLine } from '@/features/money/BookingMoney';
 import { BookingFees, type Fees } from '@/features/money/BookingFees';
 import { BookingEdit, type EditForm } from '@/features/money/BookingEdit';
 import { BookingPeriods, type PeriodRow } from '@/features/money/BookingPeriods';
@@ -191,21 +191,21 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
         </div>
       )}
       {tab === 'money' && <OwnerDeductionsPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />}
-      {tab === 'money' && moneyByPart && !b.payments && <><BookingMoney m={moneyByPart} />{fees && <BookingFees x={fees} />}</>}
+      {/* r29 C0: the same two panels as Admin's (Rental charges, Security deposit); the database decides who may do each */}
+      {tab === 'money' && moneyByPart && <BookingMoney m={moneyByPart} lines={((b as R).lines as PanelLine[] | undefined) ?? []} totalCents={(b.total_due_at_booking_cents as number | null | undefined) ?? null}
+        waived={!!(b as R).deposit_waived_at}
+        rentalExtras={<>
+          {fees && <BookingFees x={fees} />}
+          {b.payments?.some((r) => r.status === 'failed') && <Card title="Card payments that failed"><Table rows={b.payments.filter((r) => r.status === 'failed')} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'card_last4', label: 'Card' },
+            { key: 'act', label: '', render: (r) => fn === 'finance' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={R} label="Paid another way" /> : null }]} /></Card>}
+          {fn === 'finance' && manual.length > 0 && <details className="pt-card ad-card" data-testid="booking-manual-payments"><summary className="small">Payments received another way ({manual.length})</summary><ManualPaymentList rows={manual} canVoid={false} docBase="/staff/documents" /></details>}
+          {b.payments && <div className="stack" data-testid="bm-refunds"><div className="row"><b className="small">Refunds</b>{fn === 'finance' && <Act action="request_refund" payload={P} label="Refund" testId="request-refund" fields={[{ name: 'reason', label: 'Reason', type: 'select', required: true, options: REFUND_REASONS.map((x) => [x, label(x)] as [string, string]) }, { name: 'refund_of', label: 'What it refunds', type: 'select', required: true, options: REFUND_OF, value: 'rental', hint: 'Only a refund of the rental charge lowers staff commissions.' }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'note', label: 'Note', type: 'text' }]} refresh={R} done="Refund requested." />}</div>
+            {(b.refunds ?? []).length > 0 && <Table rows={b.refunds ?? []} testId="refunds" empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason', render: (r) => label(r.reason) }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)}>{r.status === 'pending_approval' ? 'Waiting for an Admin' : undefined}</Badge> }, { key: 'due_by', label: 'Due by' },
+              { key: 'act', label: '', render: (r) => fn === 'finance' && r.status === 'pending_approval' ? <Act action="refund_approve" payload={{ id: r.id }} label="Approve (within my limit)" refresh={R} /> : null }]} />}</div>}
+        </>}
+        depositSettle={fn === 'finance' ? <DepositSettle bookingId={b.id} bookingNumber={b.booking_number} refresh={R} /> : undefined} />}
       {tab === 'money' && b.payments && (
         <div className="stack">
-          {moneyByPart && <BookingMoney m={moneyByPart} />}
-          {fees && <BookingFees x={fees} />}
-          {(!moneyByPart || b.payments.some((r) => r.status === 'failed')) && <Card title={moneyByPart ? 'Card payments that failed' : 'Payments'}><Table rows={moneyByPart ? b.payments.filter((r) => r.status === 'failed') : b.payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },
-            { key: 'act', label: '', render: (r) => fn === 'finance' && r.status === 'failed' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={R} label="Paid another way" /> : null }]} /></Card>}
-          {fn === 'finance' && <Card title="Paid another way" testId="booking-manual-payments"><ManualPaymentList rows={manual} canVoid={false} docBase="/staff/documents" /><ManualPaymentForm booking={b.id} number={b.booking_number} balance={0} today={today} refresh={R} label="Record a payment received another way" /></Card>}
-          <Card title="Refunds" aside={fn === 'finance' ? <Act action="request_refund" payload={P} label="Request a refund" testId="request-refund" fields={[{ name: 'reason', label: 'Reason', type: 'select', required: true, options: REFUND_REASONS.map((x) => [x, label(x)] as [string, string]) }, { name: 'refund_of', label: 'What it refunds', type: 'select', required: true, options: REFUND_OF, value: 'rental', hint: 'Only a refund of the rental charge lowers staff commissions.' }, { name: 'amount_cents', label: 'Amount', type: 'money', required: true }, { name: 'note', label: 'Note', type: 'text' }]} refresh={R} done="Refund requested." /> : null}>
-            <Table rows={b.refunds ?? []} testId="refunds" empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason', render: (r) => label(r.reason) }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)}>{r.status === 'pending_approval' ? 'Waiting for an Admin' : undefined}</Badge> }, { key: 'due_by', label: 'Due by' },
-              { key: 'act', label: '', render: (r) => fn === 'finance' && r.status === 'pending_approval' ? <Act action="refund_approve" payload={{ id: r.id }} label="Approve (within my limit)" refresh={R} /> : null }]} />
-          </Card>
-          <Card title="Deposit" aside={fn === 'finance' && (b.deposit || ['returned', 'closed'].includes(b.status)) ? <DepositSettle bookingId={b.id} bookingNumber={b.booking_number} refresh={R} /> : null}>
-            {b.deposit ? <Kv rows={[['Amount', $(b.deposit.amount_cents)], ['Method', depositMethod(b.deposit.method)], ['Status', depositStatus(b.deposit.status)], ['Release due', String(b.deposit.release_due_on ?? '')]]} /> : <p className="small muted">No deposit taken yet ({$(b.deposit_cents)} at pickup).</p>}
-          </Card>
           {fn === 'finance' && b.status === 'returned' && <Card title="Statement"><Act action="issue_booking_statement" payload={P} label="Issue the final statement" confirm="Issue the Check-in statement from the assessed lines. Damage lines wait for an Admin." refresh={R} /></Card>}
         </div>
       )}

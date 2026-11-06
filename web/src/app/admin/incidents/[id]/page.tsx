@@ -4,6 +4,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { $, Badge, BookingLink, Card, Kv, PageHead, Table, t, label } from '@/features/admin/ui';
+import { ProfitExtras } from '@/features/profit-extras/ProfitExtras';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Incident', path: '/admin/incidents', noindex: true, description: 'One incident.' });
@@ -14,7 +15,7 @@ export default async function Incident({ params }: { params: Promise<{ id: strin
   // by id, or by the incident number the emails link to (/admin/incidents/IN-1001)
   const byId = /^[0-9a-f-]{36}$/.test(key);
   if (!byId && !/^[A-Z]{1,4}-[0-9A-Z]{1,12}$/.test(key)) notFound();
-  const { list } = await page(`/admin/incidents/${encodeURIComponent(key)}`);
+  const { list, user } = await page(`/admin/incidents/${encodeURIComponent(key)}`);
   const inc = await list('incidents', { eq: byId ? { id: key } : { incident_number: key } });
   const i = inc.rows[0]; if (!i) notFound();
   const id = String(i.id);
@@ -27,5 +28,10 @@ export default async function Incident({ params }: { params: Promise<{ id: strin
       <Card title="Incident"><Kv rows={[['Kind', label(i.kind)], ['Vehicle', String(i.vehicle_name ?? '')], ['Booking', <BookingLink key="b" n={i.booking_number} />], ['Happened', t(i.occurred_at)], ['Reported', t(i.reported_at)], ['Place', String(i.place ?? '')], ['What', String(i.description ?? '')], ['Drivable', i.drivable === null ? '' : i.drivable ? 'Yes' : 'No'], ['Police report', String(i.police_report_number ?? '')], ['Owner told', t(i.owner_notified_at)]]} /></Card>
       <Card title="Claim"><Table rows={claims.rows} empty="No claim opened." cols={[{ key: 'claim_number', label: 'Claim' }, { key: 'path', label: 'Path', render: (r) => label(r.path) }, { key: 'status', label: 'Status' }, { key: 'damage_cost_cents', label: 'Damage', num: true, render: (r) => $(r.damage_cost_cents) }, { key: 'deductible_billed_cents', label: 'Deductible billed', num: true, render: (r) => $(r.deductible_billed_cents) }]} /></Card>
     </div>
+    {/* r29 (0581): the repair costs and kickbacks of each claim, added here from the claim */}
+    {claims.rows.map((c) => <section key={String(c.id)} className="stack mt-h" data-testid={`claim-repairs-${String(c.claim_number)}`}>
+      <h2 className="d4">Repairs and kickbacks: claim {String(c.claim_number)}</h2>
+      <ProfitExtras userId={user.id} level="vehicle" id={String(c.vehicle_id)} claimId={String(c.id)} sp={{ from: '2020-01-01' }} base={`/admin/incidents/${encodeURIComponent(key)}`} />
+    </section>)}
   </>);
 }

@@ -8,6 +8,7 @@ import { Act } from '@/features/admin/Act';
 import { CarMaintenancePanel } from '@/features/maintenance/Views';
 import type { CarMaintenance } from '@/features/maintenance/model';
 import { OwnerHandoffs } from '@/features/handover/OwnerHandoffs';
+import { ProfitExtras } from '@/features/profit-extras/ProfitExtras';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/staff', noindex: true, description: 'One vehicle for Fleet and customer service.' });
@@ -24,7 +25,9 @@ export default async function VaVehicle({ params, searchParams }: { params: Prom
   if (fn === 'finance') {
     const m = await door<CarMaintenance>(user.id, 'ops_read', 'maint_vehicle', { vehicle_id: id }, aal).catch(() => null);
     if (!m) notFound();
-    return (<><PageHead title={m.name} kicker={m.plate ?? ''} /><CarMaintenancePanel m={m} base="/staff" autoRecord={sp.record === '1'} /></>);
+    return (<><PageHead title={m.name} kicker={m.plate ?? ''} /><CarMaintenancePanel m={m} base="/staff" autoRecord={sp.record === '1'} />
+      {/* r29 (0581): the car's kickbacks and repair costs */}
+      <h2 className="d4 mt-h">Kickbacks and repairs</h2><ProfitExtras userId={user.id} aal={aal} level="vehicle" id={id} sp={sp} base={`/staff/vehicles/${id}`} /></>);
   }
   const v = await read<V | null>('vehicle', { id }).catch(() => null);
   if (!v?.id) notFound();
@@ -51,6 +54,7 @@ export default async function VaVehicle({ params, searchParams }: { params: Prom
         <Card title="Documents"><Table rows={v.documents ?? []} empty="No documents." cols={[{ key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
       </div>
       {maint && <><h2 className="d4 mt-h">Maintenance</h2><CarMaintenancePanel m={maint} base="/staff" autoRecord={sp.record === '1'} /></>}
+      {fn === 'fleet' && <><h2 className="d4 mt-h">Kickbacks and repairs</h2><ProfitExtras userId={user.id} aal={aal} level="vehicle" id={id} sp={sp} base={`/staff/vehicles/${id}`} /></>}
     </>
   );
 }
