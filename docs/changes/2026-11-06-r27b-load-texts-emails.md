@@ -72,6 +72,15 @@ Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0534.
      `outage` issue opens on the first failed check; self-heal comments and closes it on recovery.
    - The scraper guard (part 1) and the Bytespider rate limit stay, with their unit tests.
 
+8. Remote applicants (0534, the owner): every remote assistant applicant (customer service, fleet, finance, remote sales)
+   still invited to book a call, or whose booked call time passed without the call (the Thursday November 5 calls), is
+   moved to the AI interview once (`app.hiring_remote_to_ai`, run by the migration, kept in `hiring_ai_moves`, logged):
+   a past call is marked No show first, without an email, and each gets one email through the outbox
+   (`applicant_ai_interview_sorry`: sorry about the scheduling problem on our side, no need to book, the short recorded
+   interview any time this week with the personal link). AI interviews stay on, so a remote applicant who passes
+   screening gets only the interview link, and the "invited but no interview day is open" warning leaves the remote roles
+   out. In-person roles keep their phone calls. Test: `supabase/tests/99_r27b_remote_to_ai.sql`.
+
 ## Owner steps
 
 - Quo: top up the prepaid credits (Quo > Settings > Billing); texts are refused with 402 until then.
@@ -79,4 +88,4 @@ Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0534.
 
 ## Guides
 
-No guide change: the Text dialog, the error page and the email holds keep their steps; only their messages changed.
+No guide change: the Text dialog, the error page and the email holds keep their steps (only their messages changed), and the hiring guide already says remote assistant roles take the AI interview (0381).

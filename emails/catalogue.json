@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 206,
+  "count": 207,
   "emails": [
     {
       "code": "account_password_reset",
@@ -19323,6 +19323,96 @@
       ],
       "template_html": "templates/applicant_ai_interview.html",
       "template_text": "templates/applicant_ai_interview.txt"
+    },
+    {
+      "code": "applicant_ai_interview_sorry",
+      "audience": "applicant",
+      "category": "transactional",
+      "trigger": "Once, by migration 0534 (the owner, November 6, 2026): a candidate for a remote assistant role (customer service, fleet, finance or remote sales) who was invited to book a call, or whose booked call time passed without the call, is moved to the AI interview: an apology for the scheduling problem on our side and the personal link to the recorded interview. No booking needed.",
+      "timing": "Once",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "CarmaCars: sorry about the interview times, here is your interview link",
+      "preheader": "No need to book a call: do the short recorded interview any time before {{expires_on}}.",
+      "sample_subject": "CarmaCars: sorry about the interview times, here is your interview link",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "expires_on",
+          "type": "string",
+          "sample": "Friday, November 13"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Jordan",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "interview_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/careers/interview/3f9a1c"
+        },
+        {
+          "name": "minutes",
+          "type": "string",
+          "sample": "10"
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "question_count",
+          "type": "string",
+          "sample": "9"
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "role_title",
+          "type": "string",
+          "sample": "Customer Service Coordinator (Remote)"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/applicant_ai_interview_sorry.html",
+      "template_text": "templates/applicant_ai_interview_sorry.txt"
     },
     {
       "code": "applicant_booked",
