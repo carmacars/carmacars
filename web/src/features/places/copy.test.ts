@@ -82,3 +82,20 @@ test('0522: the alternative terms: "Turo Alternative in <place>", the not-affili
   assert.ok(luup.title.startsWith('Luup Alternative for Rideshare Drivers in Port Credit') && luup.title.length <= 70, luup.title);
   assert.ok(luup.faq.some((q) => /not affiliated/.test(q.answer)));
 });
+
+test('release 28: each place page reads differently, with its drive time, landmarks, nearby places and real cars', async () => {
+  const { driveMinutes, variant } = await import('./copy.ts');
+  assert.equal(driveMinutes(19), 30);
+  assert.ok(driveMinutes(3) >= 10);
+  const picks = new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((k) => variant(`${k}-place|suv-rental`, 3)));
+  assert.ok(picks.size >= 2, 'neighbouring pages do not all read the same');
+  const car = (make: string, model: string, cents: number) => ({ year: 2024, make, model, daily_rate_cents: cents, is_sample: false }) as unknown as Hub['cars'][number];
+  const h = base({ landmarks: [{ name: 'Port Credit Lighthouse', km: 1 }], nearby: [{ slug: 'lakeview', kind: 'neighbourhood', name: 'Lakeview', country: 'CA', region: 'CA-ON', region_name: 'Ontario', km: 3 }],
+    cars: [car('Toyota', 'RAV4', 8900), car('Honda', 'Civic', 5900)] });
+  const w = words(hubCopy(h, fill));
+  assert.match(w, /Port Credit Lighthouse/);
+  assert.match(w, /Lakeview/);
+  assert.match(w, /the 2024 Honda Civic from \$59 a day and the 2024 Toyota RAV4 from \$89 a day/);
+  assert.match(w, /minutes by car/);
+  assert.doesNotMatch(w, /—/);
+});

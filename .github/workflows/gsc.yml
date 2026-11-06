@@ -11,6 +11,9 @@ name: gsc
 #      ones submitted again, and each file's figures (discovered addresses, errors, pending) are kept in
 #      app.gsc_sitemap_log and shown in the run's summary.
 #   2. After a deploy: the first priority addresses fetched once (warm), so Googlebot's first fetches are fast.
+#   2b. The index coverage report (release 28, 0564): a sample of priority and long-tail addresses inspected with the URL
+#      Inspection API, counted as indexed, crawled not indexed and discovered not indexed by kind of page
+#      (web/scripts/gsc-coverage.mjs; app.gsc_coverage_log; Admin > Settings > Search shows the trend).
 #   3. IndexNow: whether it is on, its key file answers, and where the sweep is; then a few batches of 10,000 addresses
 #      of the sweep (priority list first) sent from here to Bing's endpoint, on the same cursor and daily ceiling as the
 #      site's five-minute job (so the sweep keeps going even when the site's job cannot).
@@ -84,6 +87,14 @@ jobs:
             tag="j$(openssl rand -hex 6)"
             printf 'select app.gsc_sitemap_store($%s$%s$%s$::jsonb) n' "$tag" "$(cat "$OUT")" "$tag" > "$RUNNER_TEMP/store.sql"
             "$sb" sql-file "$RUNNER_TEMP/store.sql" >/dev/null && echo "::notice title=gsc::figures stored (app.gsc_sitemap_log)" || echo "::warning title=gsc::the figures could not be stored (migration 0124 not applied yet?)"
+          fi
+          # release 28 (0564): the index coverage report, a sample inspected with the URL Inspection API (2,000 a day; 150 a run)
+          COV="$RUNNER_TEMP/coverage.json"
+          AT="$AT" SITE="$SITE" OUT="$COV" INSPECT="${INSPECT:-150}" node --experimental-strip-types --no-warnings web/scripts/gsc-coverage.mjs || echo "::warning title=coverage::the coverage sample did not finish"
+          if [ -s "$COV" ]; then
+            tag="j$(openssl rand -hex 6)"
+            printf 'select app.gsc_coverage_store($%s$%s$%s$::jsonb) n' "$tag" "$(cat "$COV")" "$tag" > "$RUNNER_TEMP/cov.sql"
+            "$sb" sql-file "$RUNNER_TEMP/cov.sql" >/dev/null && echo "::notice title=coverage::stored (app.gsc_coverage_log)" || echo "::warning title=coverage::not stored (migration 0564 not applied yet?)"
           fi
 
       - name: IndexNow (on, key file, sweep; then batches from here)

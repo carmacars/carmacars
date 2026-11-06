@@ -10,6 +10,7 @@ import { ViewAsButton } from '@/features/admin/ViewAs';
 import { $, Badge, Card, Kv, PageHead, Table, d, t, label } from '@/features/admin/ui';
 import { SampleCarsToggle } from '@/features/supply/SampleCarsToggle';
 import { SECTIONS } from '../sections';
+import { rpc } from '@/lib/db/repo';
 import { ApiAccessPage } from '@/features/api-access/ApiAccessPage';
 import { door } from '@/server/door';
 import { OfficialForms, type FormsData } from '@/features/official-forms/OfficialForms';
@@ -219,7 +220,10 @@ export default async function Section({ params, searchParams }: { params: Promis
     type Ov = { cars: R[]; pages: Array<PageRow & R>; articles: Array<ArticleRow & R>; indexnow: { waiting: number; sent_7d: number; last: { at: string | null; status: number | null };
       answer?: IxAnswer; sweep?: IxAnswer & { next_round: string | null; streak_429: number } };
       neurons: { seo: number; all: number; seo_cap: number; all_cap: number }; min_real_cars: number };
-    const [o, po] = await Promise.all([door<Ov>(user.id, 'admin_read', 'seo_overview'), door<PlacesOverview>(user.id, 'admin_read', 'place_overview').catch(() => null)]);
+    type Cov = Array<{ day: string; inspected: number; indexed: number; crawled: number; discovered: number }>;
+    const [o, po, cov] = await Promise.all([door<Ov>(user.id, 'admin_read', 'seo_overview'), door<PlacesOverview>(user.id, 'admin_read', 'place_overview').catch(() => null),
+      rpc('server_gsc_coverage_trend', { p_admin: user.id }, { role: 'service_role' }).then((x) => (x ?? []) as unknown as Cov).catch(() => [] as Cov)]);
+    const pc = (n: number, of: number) => (of ? `${Math.round((n / of) * 100)}%` : '');
     return (<>{head}
       <p className="small muted">The car pages, the landing pages and the guides are written by the daily Claude batch (docs/seo-batches.md; Workers AI only when its writer is on in Program settings) from the facts in the database, checked (lengths, the house style, no number or claim the facts do not support) and published by themselves. Nothing waits for review. A field you change is locked and kept by every rewrite.</p>
       <Card title="Today" testId="seo-today"><Kv rows={[['Workers AI used for search copy', `${o.neurons.seo} of ${o.neurons.seo_cap} neurons`], ['All Workers AI use today', `${o.neurons.all} of ${o.neurons.all_cap} neurons`],
@@ -228,6 +232,14 @@ export default async function Section({ params, searchParams }: { params: Promis
         ['IndexNow: changed pages', <span key="ixq" data-testid="seo-indexnow-answer">{ixLine(o.indexnow.answer, t)}</span>],
         ['IndexNow: sweep', <span key="ixs" data-testid="seo-indexnow-sweep">{ixLine(o.indexnow.sweep, t)}{o.indexnow.sweep?.next_round ? `; next round ${t(o.indexnow.sweep.next_round)}` : ''}</span>],
         ['Landing pages for a use', `indexed with ${o.min_real_cars} or more real matching cars (Program settings)`]]} /></Card>
+      {/* release 28 (0564): the gsc workflow's sample of addresses inspected in Search Console, by day */}
+      <Card title="Index coverage (Search Console sample)" testId="seo-coverage">
+        {cov.length ? <Table rows={cov as unknown as R[]} rowKey={(r) => String(r.day)} cols={[{ key: 'day', label: 'Day', render: (r) => String(r.day) }, { key: 'inspected', label: 'Inspected', num: true },
+          { key: 'indexed', label: 'Indexed', render: (r) => `${String(r.indexed)} (${pc(Number(r.indexed), Number(r.inspected))})` },
+          { key: 'crawled', label: 'Crawled, not indexed', render: (r) => `${String(r.crawled)} (${pc(Number(r.crawled), Number(r.inspected))})` },
+          { key: 'discovered', label: 'Discovered, not indexed', render: (r) => `${String(r.discovered)} (${pc(Number(r.discovered), Number(r.inspected))})` }]} />
+          : <p className="small muted">No sample yet: the gsc workflow inspects about 150 addresses each run (every three hours) once migration 0564 is live.</p>}
+      </Card>
       <Card title={`Car copy (${o.cars.length} real cars)`} testId="seo-cars"><Table rows={o.cars} rowKey={(r) => String(r.vehicle_id)} empty="No real car yet. Sample cars keep their sample text." cols={[
         { key: 'vehicle', label: 'Car', render: (r) => <Link prefetch={false} className="link" href={`/admin/vehicles/${String(r.vehicle_id)}?tab=listing`}>{String(r.vehicle)}</Link> },
         { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'source', label: 'Written by', render: (r) => (r.source === 'ai' ? 'Workers AI' : r.source === 'claude-batch' ? 'Daily Claude batch' : 'Plain copy (waiting)') },

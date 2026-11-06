@@ -27,6 +27,26 @@ const clip = (description: string, usd: string) => { const d = T(description + u
 const isWide = (h: Pick<Hub, 'place'>) => ['country', 'province', 'area', 'region'].includes(h.place.kind);
 const kmText = (n: number | null | undefined) => (n === null || n === undefined ? '' : `${Math.round(n).toLocaleString('en-CA')} km`);
 
+// release 28 (B7, "indexing stuck at 172k"): each place page says what is particular to it, from the same data
+/** A drive's minutes from a straight-line distance: roads about a third longer, city, suburban or highway speed; to 5. */
+export function driveMinutes(km: number): number {
+  const road = km * 1.35;
+  const speed = km < 12 ? 32 : km < 35 ? 48 : 70;
+  return Math.max(10, Math.round(((road / speed) * 60) / 5) * 5);
+}
+/** A stable choice among phrasings for a page (the same page always reads the same; neighbours read differently). */
+export function variant(key: string, n: number): number {
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
+  return (h >>> 0) % n;
+}
+const listWords = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+/** Up to three real cars of the page with their daily price, cheapest first ("the 2024 Toyota Corolla from $49 a day"). */
+function carLine(h: Hub): string[] {
+  return [...h.cars].filter((c) => !c.is_sample && c.daily_rate_cents > 0).sort((a, b) => a.daily_rate_cents - b.daily_rate_cents).slice(0, 3)
+    .map((c) => `the ${[c.year, c.make, c.model].filter(Boolean).join(' ')} from ${money(c.daily_rate_cents)} a day`);
+}
+
 export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
   const where = placeLabel(h);
   const term = h.term;
@@ -52,8 +72,23 @@ export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
       lead.push(note, `Tell us the date, the trip and how many people, and we will reply with what we can arrange in ${where}.`);
     } else if (near || isWide(h)) {
       description = `${term.title} in ${where}, ${stock}. ${fee ? `Delivered from ${fee}` : 'Delivered to your door'} or picked up in Toronto. Request with no payment up front.`;
-      lead.push(isWide(h) ? `${BRAND} rents cars from our location in Toronto and delivers across the Toronto area. Pick a place below, or see the cars.` :
-        `${BRAND} brings rental cars to ${where}, about ${kmText(h.delivery.km)} from ${from}. ${fee ? `Delivery starts at ${fee} each way, priced in your offer.` : 'Each car shows its delivery fee on its page.'} You can also pick the car up from us at no charge.`);
+      if (isWide(h)) lead.push(`${BRAND} rents cars from our location in Toronto and delivers across the Toronto area. Pick a place below, or see the cars.`);
+      else {
+        const km = kmText(h.delivery.km);
+        const mins = h.delivery.km !== null ? driveMinutes(h.delivery.km) : null;
+        const feeLine = fee ? `Delivery starts at ${fee} each way, priced in your offer.` : 'Each car shows its delivery fee on its page.';
+        const intro = [
+          `${BRAND} brings rental cars to ${where}, about ${km} from ${from}. ${feeLine} You can also pick the car up from us at no charge.`,
+          `Need a car in ${where}? We drive it to you: ${where} is about ${km} from ${from}${mins ? `, roughly ${mins} minutes by road` : ''}. ${feeLine} Picking it up from us costs nothing.`,
+          `From ${from} to ${where} is about ${km}${mins ? ` (around ${mins} minutes' drive)` : ''}, well inside the area ${BRAND} delivers to. ${feeLine} Or collect the car from us, free.`
+        ];
+        lead.push(intro[variant(`${h.place.slug}|${term.slug}`, intro.length)]!);
+        const marks = h.landmarks.slice(0, 3).map((l) => l.name);
+        const close = h.nearby.slice(0, 3).map((x) => x.name);
+        if (marks.length || close.length) lead.push(`${marks.length ? `We deliver near ${listWords(marks)}` : `We deliver across ${where}`}${close.length ? `, and to ${listWords(close)} close by` : ''}: give the address in your request, a hotel, a home or an office.`);
+        const cars = carLine(h);
+        if (cars.length) lead.push(`On the site now: ${listWords(cars)}. Every car shows its own calendar, deposit and delivery fee.`);
+      }
       if (note) lead.push(note);
     } else {
       description = `${term.title} for ${where}: ${BRAND} serves the Toronto area, about ${kmText(h.delivery.km)} away. Tell us what you need in ${where} and a person replies.`;
@@ -91,7 +126,7 @@ export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
   if (isAutoService(term)) return { title: T(title), description: clip(description, usd), h1: T(h1), lead: lead.map(T).filter(Boolean), faq };
   if (!isWide(h)) {
     faq.push({ question: `Does ${BRAND} have a location in ${where}?`, answer: `No. ${BRAND} has one location, in Toronto${near ? `, and we deliver to ${where}` : ''}.` });
-    if (h.delivery.km !== null) faq.push({ question: `How far is ${where} from ${BRAND}?`, answer: `About ${kmText(h.delivery.km)} in a straight line from ${from}.` });
+    if (h.delivery.km !== null) faq.push({ question: `How far is ${where} from ${BRAND}?`, answer: `About ${kmText(h.delivery.km)} in a straight line from ${from}, roughly ${driveMinutes(h.delivery.km)} minutes by car.` });
   }
   if (term.vertical === 'rental' && term.served === 'yes') {
     faq.push(near
@@ -99,6 +134,9 @@ export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
       : isWide(h) ? { question: `Where do you deliver?`, answer: `To addresses within about ${kmText(h.delivery.reach_km)} of ${from}, including Toronto Pearson and Billy Bishop airports.` }
       : { question: `Can you deliver a rental car to ${where}?`, answer: `Not as a rule: ${where} is beyond the ${kmText(h.delivery.reach_km)} we deliver to. Send a request and we will tell you if we can make an exception.` });
     faq.push({ question: `Do I pay when I send a request?`, answer: `No. The request is free and does not hold the car. You pay only after we confirm the car and the price and you approve the offer.` });
+    const cars = carLine(h);
+    if (cars.length && !isWide(h)) faq.push({ question: `Which cars can I rent in ${where}?`, answer: `Any car on the site can be delivered to ${where}. Right now that includes ${listWords(cars)}.` });
+    if (h.landmarks.length && near) faq.push({ question: `Can you deliver near ${h.landmarks[0]!.name}?`, answer: `Yes. ${h.landmarks[0]!.name} is about ${h.landmarks[0]!.km} km from the centre of ${where}; give the exact address in your request and the delivery fee is in your offer.` });
   }
   if (h.airport && !isWide(h)) faq.push({ question: `What is the nearest airport to ${where}?`, answer: `${h.airport.name}${h.airport.iata ? ` (${h.airport.iata})` : ''}, about ${kmText(h.airport.km)} away.` });
   if (term.vertical === 'sale') faq.push({ question: `Does ${BRAND} sell or finance cars?`, answer: `No. ${BRAND} rents cars and does detailing and body work. We are not a dealer, a lender or a leasing company.` });
@@ -107,5 +145,5 @@ export function hubCopy(h: Hub, t: { fill: (s: string) => string }): HubCopy {
     faq.push({ question: `Can I have a car while mine is in the shop?`, answer: term.vertical === 'bodyshop' ? `Yes. Rent a car delivered to you; after a collision your insurer may pay for a replacement rental when your adjuster approves it.` : `Yes. Rent one of our cars, delivered to your door, for as long as the work takes.` });
   }
   for (const q of term.faq ?? []) faq.push({ question: t.fill(q.question), answer: t.fill(q.answer) });
-  return { title: T(title), description: clip(description, usd), h1: T(h1), lead: lead.map(T).filter(Boolean), faq: faq.slice(0, 6) };
+  return { title: T(title), description: clip(description, usd), h1: T(h1), lead: lead.map(T).filter(Boolean), faq: faq.slice(0, 8) };
 }

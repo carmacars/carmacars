@@ -128,4 +128,24 @@ select test.eq('the old refresh token stops', app.api_oauth_token(jsonb_build_ob
 select test.ok('every API function is for the server only', not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.proname like 'server_api_%' and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))));
 
+
+-- ================================================================ 4. the hero's fleet cars (0563) and the indexing work (0564)
+select test.ok('the hero list is public and lists only studio covers of published cars', has_function_privilege('anon', 'public.site_hero_photos(integer)', 'execute')
+  and not exists (select 1 from jsonb_array_elements(public.site_hero_photos(12)) x join vehicle_photos p on p.vehicle_id = (x ->> 'vehicle_id')::uuid and p.processed_path = x ->> 'path'
+                   where p.preset_version not like 'studio%' or not p.is_public));
+insert into vehicle_photos (vehicle_id, angle, original_path, processed_path, status, is_cover, is_public, background_status, preset_version, shot_type, width, height)
+values (test.id('vehicle:RQZA'), 'front_left', 'vehicles/original/rqz.jpg', 'vehicles/processed/rqz-studio.jpg', 'approved', true, true, 'done', 'studio_v2', 'front_left', 2400, 1600);
+update vehicle_listings set status = 'published', slug = coalesce(slug, 'rqz-car-a') where vehicle_id = test.id('vehicle:RQZA');
+select test.ok('a published car with a studio cover is in the hero', exists (select 1 from jsonb_array_elements(public.site_hero_photos(12)) x where x ->> 'path' = 'vehicles/processed/rqz-studio.jpg'));
+delete from indexnow_queue where path like '/cars/%';
+update rate_cards set effective_to = current_date + 1 where vehicle_id = test.id('vehicle:RQZA') and effective_to is null;
+insert into rate_cards (vehicle_id, daily_rate_cents, weekend_rate_cents, weekly_rate_cents, monthly_rate_cents, km_allowance_per_day, overage_cents_per_km, deposit_cents, delivery_fee_cents, pickup_fee_cents, effective_from)
+select test.id('vehicle:RQZA'), 9900, 11900, 59000, 199000, 200, 25, 50000, 7500, 0, current_date + 1;
+select test.ok('a price change queues the car''s page for IndexNow', exists (select 1 from indexnow_queue q join vehicle_listings l on q.path = '/cars/' || l.slug where l.vehicle_id = test.id('vehicle:RQZA') and q.reason = 'prices changed'));
+update vehicle_listings set headline = 'A changed headline for the test' where vehicle_id = test.id('vehicle:RQZA');
+select test.ok('a car page''s copy change queues it too', exists (select 1 from indexnow_queue q join vehicle_listings l on q.path = '/cars/' || l.slug where l.vehicle_id = test.id('vehicle:RQZA') and q.reason = 'car page changed'));
+select app.gsc_coverage_store('{"inspected": 10, "by_state": {"Submitted and indexed": 6, "Crawled - currently not indexed": 3, "Discovered - currently not indexed": 1}, "by_kind": {"place": {"indexed": 6, "crawled": 3, "discovered": 1, "other": 0}}}');
+select test.eq('the coverage trend for Admin', (select (x ->> 'inspected') || '/' || (x ->> 'indexed') || '/' || (x ->> 'crawled') from jsonb_array_elements(app.gsc_coverage_trend(test.id('rqz_admin'))) x limit 1), '10/6/3');
+select test.throws('the trend is for Admins', $$select app.gsc_coverage_trend(test.id('rqz_cs'))$$, '%Only an Admin%');
+
 update program_settings p set require_staff_two_step = x.t from rqz_ps x where p.id = x.id;
