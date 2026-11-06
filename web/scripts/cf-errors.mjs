@@ -97,6 +97,21 @@ async function main() {
     for (const f of report.failures) { const k = `${f.outcome ?? '?'} ${f.status ?? ''} ${f.route ?? f.trigger ?? '?'}`.replace(/\s+/g, ' '); by[k] = (by[k] ?? 0) + 1; }
     report.failures_by_route = Object.entries(by).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ key: k, count: n }));
   } catch (e) { report.failures_unavailable = String(e.message).slice(0, 300); }
+  // 3. (2026-11-06, r27b) the invocations by user agent and by the edge copy's answer (x-edge header kept in the logs):
+  // which crawlers cost Worker time. Each part the dataset does not have is reported as unavailable.
+  for (const [name, key] of [['by_user_agent', '$workers.event.request.headers.user-agent'], ['by_path', '$workers.event.request.path']]) {
+    try {
+      const res = await query({ queryId: `carmacars-${name}-${Date.now()}`, view: 'calculations', limit: 40, timeframe: { from, to },
+        parameters: { ...base, filters: [byScript], calculations: [{ operator: 'count', alias: 'n' }, { operator: 'sum', key: '$workers.cpuTimeMs', keyType: 'number', alias: 'cpu_ms' }],
+          groupBys: [{ type: 'string', value: key }], orderBy: { value: 'n', order: 'desc' }, limit: 40 } });
+      const rows = {};
+      for (const c of res.calculations ?? []) for (const g of c.aggregates ?? []) {
+        const k = clean((g.groups ?? []).map((x) => x.value).join(' ') || '(none)', 160);
+        rows[k] = { ...(rows[k] ?? {}), [c.alias ?? 'value']: typeof g.value === 'number' ? Math.round(g.value) : g.value };
+      }
+      report[name] = Object.entries(rows).map(([k, x]) => ({ key: k, ...x })).sort((a, b) => (b.n ?? 0) - (a.n ?? 0)).slice(0, 40);
+    } catch (e) { report[`${name}_unavailable`] = String(e.message).slice(0, 200); }
+  }
   return report;
 }
 
