@@ -23,7 +23,9 @@
 .al__dot { width: 0.6rem; height: 0.6rem; margin-top: 0.45rem; border-radius: 50%; background: transparent; }
 .al__item.is-unread .al__dot { background: var(--black); }
 .al__item--urgent.is-unread .al__dot { background: var(--red-600); }
-.al__main { min-width: 0; display: grid; gap: 0.15rem; }
+.al__main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.15rem; }
+/* the meta line wraps its pieces too (an auto track grew to the longest line: 6px past a 375 phone in CI) */
+.al__meta > * { min-width: 0; overflow-wrap: anywhere; }
 .al__title { color: var(--text); font-weight: 500; text-decoration: none; overflow-wrap: anywhere; }
 .al__item.is-unread .al__title { font-weight: 650; }
 .al__title:hover { text-decoration: underline; }

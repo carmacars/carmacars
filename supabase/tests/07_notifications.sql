@@ -862,6 +862,10 @@ select app.hiring_emit_pre0211('applicant_ai_interview', a, jsonb_build_object('
   'question_count', '9', 'minutes', '10'), 'nt:applicant_ai_interview')
   from job_applications a where a.email = 'nt.referred@example.test';
 select test.flush();
+-- 0532: the renter's return report denied (the deny reason and the one-tap link again)
+select app.ntf_emit('renter_return_claim_denied', 'booking', test.id('booking:NT-5'), 'nt',
+  jsonb_build_object('booking_id', test.id('booking:NT-5'), 'deny_reason', 'The car is not at the return place.'));
+select test.flush();
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');
 select test.eq('G no wired code is missing a variable (built here or supplied by the sender)',
