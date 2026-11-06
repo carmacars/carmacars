@@ -40,3 +40,16 @@ test('with nothing plate-like near it, the model\'s box stays', () => {
   assert.equal(r.moved, false);
   assert.deepEqual(r.box, g);
 });
+
+// r28: "Cover the plate" crashed with a SecurityError when the canvas was tainted by the storage host's photo
+import { editorPhotoSrc, isTaintError, readSafely } from './plate-cover.ts';
+test('the editor loads the photo from the site itself and a tainted canvas does not crash it', () => {
+  const src = editorPhotoSrc('a797ab50-0000-4000-8000-000000000001');
+  assert.ok(src.startsWith('/api/listing/plate?photo='), 'same origin, never the storage host');
+  const taint = Object.assign(new Error("Failed to execute 'getImageData' on 'CanvasRenderingContext2D': The canvas has been tainted by cross-origin data."), { name: 'SecurityError' });
+  assert.equal(isTaintError(taint), true);
+  assert.equal(isTaintError(new Error('The canvas has been tainted by cross-origin data.')), true);
+  assert.equal(readSafely(() => { throw taint; }), null);
+  assert.equal(readSafely(() => 42), 42);
+  assert.throws(() => readSafely(() => { throw new TypeError('other'); }), TypeError);
+});

@@ -66,7 +66,8 @@ select test.eq('capture: Fleet starts a listing through the door, and the VIN de
 select test.throws('capture: an owner of another car cannot see the capture screen',
   format($$select public.door(%L, null, 'ops_read', 'listing_capture', jsonb_build_object('intake', %L))$$, test.id('pd_o2'), test.pd_i()), 'Not permitted');
 select test.eq('capture: the owner of the car sees the shot list and what is missing',
-  (select jsonb_array_length(c -> 'shots') > 10 and jsonb_array_length(c -> 'missing') > 10
+  -- 0566: what is missing is the 10 photos and the cover, not each named shot
+  (select jsonb_array_length(c -> 'shots') > 10 and jsonb_array_length(c -> 'missing') = 2
      from public.door(test.id('pd_o'), null, 'ops_read', 'listing_capture', jsonb_build_object('intake', test.pd_i())) c), true);
 select test.eq('capture: the owner finds the open listing of the car',
   (public.door(test.id('pd_o'), null, 'ops_read', 'listing_current', jsonb_build_object('vehicle', test.id('vehicle:pdV'))) ->> 'intake_id'), test.pd_i()::text);

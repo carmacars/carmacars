@@ -1,7 +1,8 @@
 import 'server-only';
 import { env } from '@/lib/env';
 import { zip } from '@/lib/zip';
-import { bytes, cmsSignedData, iconPng, passJson, pemToDer, signedAttrs, type PassFacts } from '@/features/wallet/pkpass';
+import { bytes, cmsSignedData, passJson, pemToDer, signedAttrs, type PassFacts } from '@/features/wallet/pkpass';
+import { WALLET_IMAGES } from '@/features/wallet/brand-images';
 
 // Apple Wallet passes for a confirmed booking (Release 22). Signing needs CarmaCars' own Pass Type ID certificate from the
 // Apple Developer account; until the five WALLET_* values are set, walletReady() is false: the button is hidden and Admin >
@@ -20,8 +21,8 @@ export async function buildPass(f: PassFacts): Promise<Uint8Array> {
   if (!walletReady()) throw new Error('Apple Wallet is not set up');
   const files: Array<{ name: string; data: Uint8Array }> = [
     { name: 'pass.json', data: bytes(JSON.stringify(passJson(f, { passTypeId: e.WALLET_PASS_TYPE_ID!, teamId: e.WALLET_TEAM_ID! }))) },
-    { name: 'icon.png', data: iconPng(29) }, { name: 'icon@2x.png', data: iconPng(58) }, { name: 'icon@3x.png', data: iconPng(87) },
-    { name: 'logo.png', data: iconPng(50) }, { name: 'logo@2x.png', data: iconPng(100) }
+    // the brand's app icon and white logo (release 28)
+    ...WALLET_IMAGES.map((i) => ({ name: i.name, data: i.data() }))
   ];
   const manifest: Record<string, string> = {};
   for (const x of files) manifest[x.name] = hex(await crypto.subtle.digest('SHA-1', buf(x.data)));

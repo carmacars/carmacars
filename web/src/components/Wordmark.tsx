@@ -2,17 +2,19 @@ import Link from '@/components/Link';
 import type { SiteSettings } from '@/lib/types';
 import { photoUrl } from '@/lib/photo';
 
-// The logo slot: the logo image from site settings when one is set (the dark-surface version on
-// black), otherwise the text wordmark "Carma" + red "Cars".
+// The logo slot: the logo image from Admin > Settings > Site when one is uploaded (the dark-surface version on black),
+// otherwise the brand logo of release 28 (public/brand: white letters on dark surfaces, black on light, the red bar on
+// both). Fixed size from the SVG's own proportions, so it never shifts the header.
+export const DEFAULT_LOGO = { dark: '/brand/carma-logo-white.svg', light: '/brand/carma-logo-black.svg', width: 857, height: 152 } as const;
 function Mark({ s, dark }: { s: SiteSettings; dark: boolean }) {
   const img = (dark && s.logo.dark) || s.logo.light;
+  const alt = s.logo.alt || s.brand_name;
   if (img) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={photoUrl(img)} width={s.logo.width ?? undefined} height={s.logo.height ?? undefined} alt={s.logo.alt} />;
+    return <img src={photoUrl(img)} width={s.logo.width ?? undefined} height={s.logo.height ?? undefined} alt={alt} />;
   }
-  const w = s.logo.wordmark || s.brand_name;
-  const i = w.search(/(?<=.)[A-Z]/);
-  return i > 0 ? <>{w.slice(0, i)}<b>{w.slice(i)}</b></> : <>{w}</>;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={dark ? DEFAULT_LOGO.dark : DEFAULT_LOGO.light} width={DEFAULT_LOGO.width} height={DEFAULT_LOGO.height} alt={alt} decoding="async" />;
 }
 
 export function Wordmark({ s, className = '', link = true, dark = true }: { s: SiteSettings; className?: string; link?: boolean; dark?: boolean }) {

@@ -2,6 +2,7 @@ import Link from '@/components/Link';
 import type { SiteSettings } from '@/lib/types';
 import { Wordmark } from './Wordmark';
 import { AccountLink, MenuButton, NavLink, PublicOnly } from './HeaderClient';
+import { SiteSearch } from '@/features/search/SiteSearch';
 
 export const NAV: [string, string, string][] = [
   ['/cars', 'Fleet', 'Every car, with dates and prices'], ['/how-it-works', 'How it works', 'Request to book'],
@@ -20,6 +21,8 @@ export function Header({ s }: { s: SiteSettings }) {
             {NAV.map(([h, l]) => <NavLink key={h} className="nav__link" href={h}>{l}</NavLink>)}
           </nav></PublicOnly>
           <div className="header-actions">
+            {/* release 28: one search box on every page and portal (features/search) */}
+            <SiteSearch />
             <AccountLink className="btn btn--quiet btn--sm header-signin" />
             <PublicOnly keep={['account']}><Link prefetch={false} className="btn btn--primary btn--sm" href="/cars">Find a car</Link></PublicOnly>
             <MenuButton />

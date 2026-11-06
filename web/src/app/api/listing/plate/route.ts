@@ -16,6 +16,23 @@ const jpeg = (b: Uint8Array) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
 const ext = (p: string) => (/\.(\w+)$/.exec(p)?.[1] ?? 'jpg').toLowerCase();
 const type = (p: string) => ({ png: 'image/png', webp: 'image/webp', avif: 'image/avif' } as Record<string, string>)[ext(p)] ?? 'image/jpeg';
 
+/** The photo's bytes from this site's own address, for the editor's canvas (r28): a photo drawn from the storage host
+ *  (another origin) taints the canvas, and reading it back (the plate suggestion, the save) then throws a SecurityError.
+ *  Same rights as saving (photo_plate_context); never cached by a shared cache. */
+export async function GET(req: Request) {
+  const photo = new URL(req.url).searchParams.get('photo') ?? '';
+  if (!/^[0-9a-f-]{36}$/.test(photo)) return new NextResponse('Unknown photo.', { status: 400 });
+  const user = await currentUser();
+  if (!user) return new NextResponse('Sign in first.', { status: 401 });
+  let ctx: Ctx;
+  try { ctx = await door<Ctx>(user.id, 'ops_read', 'photo_plate_context', { photo }, await sessionAal()); }
+  catch { return new NextResponse('Not permitted.', { status: 403 }); }
+  if (!ctx?.processed_path) return new NextResponse('This photo is not ready.', { status: 409 });
+  const bytes = await (await storage()).get('vehicle-public', ctx.processed_path).catch(() => null);
+  if (!bytes) return new NextResponse('The photo could not be read.', { status: 404 });
+  return new NextResponse(bytes as unknown as BodyInit, { headers: { 'content-type': type(ctx.processed_path), 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
+}
+
 export async function POST(req: Request) {
   const origin = req.headers.get('origin');
   if (origin && new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ ok: false, message: 'Not permitted.' }, { status: 403 });

@@ -8,7 +8,7 @@ const red = '#D0111B';
 const wrap = (title, body, cta, href, after) => `<!doctype html><html><body style="margin:0;background:#EDEDED;font-family:Inter,Helvetica,Arial,sans-serif;color:#111111">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EDEDED;padding:24px 0"><tr><td align="center">
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#FFFFFF">
-<tr><td style="background:#000000;border-top:4px solid ${red};padding:24px 32px"><span style="font-size:24px;font-weight:800;color:#FFFFFF">Carma<span style="color:${red}">Cars</span></span></td></tr>
+<tr><td style="background:#000000;border-top:4px solid ${red};padding:24px 32px"><img src="https://carmacars.ca/brand/email/on-dark.png" width="170" height="30" alt="CarmaCars" style="display:block;border:0;width:170px;height:auto;font-size:22px;font-weight:800;color:#FFFFFF"></td></tr>
 <tr><td style="padding:32px">
 <h1 style="font-size:24px;line-height:1.25;margin:0 0 16px">${title}</h1>
 <p style="font-size:16px;line-height:1.5;margin:0 0 24px">${body}</p>

@@ -92,7 +92,7 @@ const fonts = [font('VInterDisplay', 600, 'inter-display-600.woff2'), font('VInt
 const page = `<!doctype html><html lang="en-CA"><head><meta charset="utf-8"><title>CarmaCars investor video stage</title>
 <style>${fonts}\n:root{--ff-display:"VInterDisplay";--ff-text:"VInter"}\n${css}</style>
 <link rel="stylesheet" href="/scripts/investor-video/stage.css"></head>
-<body><div id="deck" hidden>${html.replace(/src="\/deck\//g, 'src="/public/deck/').replace(/ loading="lazy"/g, '')}</div><div id="stage"></div>
+<body><div id="deck" hidden>${html.replace(/src="\/(deck|brand)\//g, 'src="/public/$1/').replace(/ loading="lazy"/g, '')}</div><div id="stage"></div>
 <script src="/scripts/investor-video/stage.js"></script></body></html>`;
 writeFileSync(join(out, 'stage.html'), page);
 writeFileSync(join(out, 'plan.json'), JSON.stringify({ today, vars, scenes, slides: slideTitles }, null, 2));

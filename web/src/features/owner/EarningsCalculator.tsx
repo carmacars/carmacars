@@ -4,6 +4,7 @@ import { publicRead } from '@/lib/browser-rpc';
 import { motionOK } from '@/lib/motion';
 import { money } from '@/lib/format';
 import { YearMakeModel } from '@/features/vin/VinEntry';
+import { VinScan } from '@/features/vin/VinScan';
 import type { CarEdits } from '@/features/vin/entry';
 import { cleanVin } from '@/features/vin/vin';
 import { lookupVin } from '@/server/actions/apply';
@@ -63,8 +64,8 @@ export function EarningsCalculator({ data: given = null, compact = false }: { da
     return () => { live = false; };
   }, [given]);
 
-  const lookUp = async () => {
-    const v = cleanVin(vin);
+  const lookUp = async (typed?: string) => {
+    const v = cleanVin(typed ?? vin);
     if (v.length !== 17) { setVinMsg('A VIN has 17 letters and numbers.'); return; }
     setVinMsg('Looking up your VIN');
     const r = await lookupVin(v);
@@ -102,6 +103,8 @@ export function EarningsCalculator({ data: given = null, compact = false }: { da
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void lookUp(); } }} aria-describedby={`${uid}-vin-m`} data-testid="ecalc-vin" />
                   <button type="button" className="btn" onClick={() => void lookUp()}>Look up</button>
                 </div>
+                {/* release 28: the VIN from the door-jamb barcode or a photo, then looked up at once */}
+                <VinScan prefix="ecalc" compact onVin={(v) => { setVin(v); void lookUp(v); }} />
                 <p className="hint" id={`${uid}-vin-m`} aria-live="polite">{vinMsg || 'On the ownership permit or the insurance slip.'}</p>
               </div>}
           <div className="field ecalc__slider">

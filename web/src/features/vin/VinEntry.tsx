@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { vinClassHint, vinClassOptions, vinFacts, vinModels } from '@/server/actions/vin';
 import { COLOURS, FUEL_WORDS, MAKES, carName, cleanVin, detailLine, vinMessage, vinState, yearChoices } from './vin';
 import { decoded, effectiveCar, type CarEdits, type VinValue } from './entry';
+import { VinScan } from './VinScan';
 export { effectiveCar, emptyVin, vinPayload, vinProblem, type VinValue } from './entry';
 
 // VIN-first entry (migration 0082), shared by Admin > Add a car and Add a car for an owner (an Admin or an assistant):
@@ -164,6 +165,8 @@ export function VinEntry({ value, onChange, prefix = 'vin', allowPlate = true, a
           <p className={st.kind === 'check_digit' ? 'hint vin-warn' : 'hint'} id={`${uid}-vin-m`} role="status" data-testid={`${prefix}-vin-status`}>
             {msg ?? 'On the ownership permit, the insurance slip and the driver\'s door frame. The car\'s details come from it.'}</p>
           {err && <p className="error" role="alert">{err}</p>}
+          {/* release 28: the VIN from the door-jamb barcode or a photo, decoded as when it is typed */}
+          <VinScan prefix={prefix} onVin={(vin) => { setProblem(null); set({ vin, facts: null, edits: {}, rate: null }); }} />
           {allowPlate && <button type="button" className="link vin-switch" onClick={() => { setProblem(null); set({ mode: 'plate', facts: null, edits: {} }); }} data-testid={`${prefix}-use-plate`}>No VIN at hand? Add the car by its plate</button>}
           {allowNone && <button type="button" className="link vin-switch" onClick={() => { setProblem(null); set({ mode: 'none', facts: null, edits: {} }); }} data-testid={`${prefix}-use-none-vin`}>Neither the VIN nor the plate yet?</button>}
         </div>

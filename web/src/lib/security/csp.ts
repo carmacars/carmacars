@@ -38,7 +38,8 @@ export function cspHeader(nonce: string, o: CspOptions = {}): string {
   const connect = ['\'self\'', ...(o.connectOrigins ?? []), 'https://*.supabase.co', 'wss://*.supabase.co', STRIPE_API, R2_UPLOADS].join(' ');
   return [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}'${turnstile} ${STRIPE_JS}`,
+    // 'wasm-unsafe-eval': WebAssembly only (release 28: the VIN barcode reader, self-hosted zxing-wasm), never eval of strings
+    `script-src 'self' 'nonce-${nonce}' 'wasm-unsafe-eval'${turnstile} ${STRIPE_JS}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src ${img} https:`,
     `font-src 'self'`,

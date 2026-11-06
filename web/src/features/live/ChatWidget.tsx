@@ -238,6 +238,8 @@ export function ChatWidget() {
         <section className="ccw-panel" role="dialog" aria-modal="false" aria-labelledby="ccw-title" id="ccw-panel"
           onKeyDown={(e) => { if (e.key === 'Escape') { setOpen(false); launcher.current?.focus(); } }}>
           <header className="ccw-head">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="ccw-avatar" src="/favicon.svg" width={36} height={36} alt="" aria-hidden="true" />
             <div><h2 id="ccw-title" className="ccw-title">Chat with CarmaCars</h2><p className="ccw-status" data-testid="chat-status">{status}</p></div>
             <button type="button" className="ccw-x" aria-label="Close the chat window" onClick={() => { setOpen(false); launcher.current?.focus(); }}>×</button>
           </header>

@@ -12,7 +12,7 @@ import { BookBar, CarBooking } from '@/features/car/CarBooking';
 import { Gallery } from '@/features/car/Gallery';
 import { carFaq, perDayFees } from '@/features/car/faq';
 import { absUrl, breadcrumbLd, faqLd, type Trail, seoMeta } from '@/features/seo/meta';
-import { getSeoLinks } from '@/features/seo/data';
+import { getHubLinks, getSeoLinks } from '@/features/seo/data';
 import { rpc } from '@/lib/db/repo';
 import { money, FUEL_LABEL } from '@/lib/format';
 import { deliveryFrom, fill, getClasses, getFacts, getFleet, getSettings, getTokens, listItems, photoUrl, siteUrl } from '@/lib/site';
@@ -96,6 +96,8 @@ export default async function CarPage({ params }: Params) {
     rpc('handover_places', { p_vehicle: c.vehicle_id }) as unknown as Promise<{ owner_location: boolean; area: string | null } | null>,
     perDayFees(c.vehicle_id), getSeoLinks()
   ]);
+  // release 28 (B7): the priority place pages, linked from every car (the cached hub list of 0533: no read of its own)
+  const hubs = await getHubLinks();
   const F = (x: string) => fill(x, t);
   const labels = Object.fromEntries(classes.map((k) => [k.code, k.label]));
   const classText = c.classes.map((k) => labels[k] ?? k).join(', ');
@@ -325,6 +327,7 @@ export default async function CarPage({ params }: Params) {
 
       <section className="section on-grey" aria-labelledby="h-sim">
         <div className="wrap">
+          {hubs.places.length > 0 && <nav className="car-landing" aria-label="Delivered to"><p className="small muted">Delivered to</p><ul className="chips">{hubs.places.slice(0, 10).map((p) => <li key={p.path}><Link prefetch={false} className="chip" href={p.path}>{c.make} {c.model} rental in {p.name}</Link></li>)}</ul></nav>}
           {landing.length > 0 && <nav className="car-landing" aria-label="Rent in your area or your way"><ul className="chips">{landing.map((l) => <li key={l.slug}><Link prefetch={false} className="chip" href={l.path}>{l.kind === 'location' ? `Car rental in ${l.name}` : `${l.name} in ${s.city}`}</Link></li>)}</ul></nav>}
           <div className="section-head"><h2 className="d2" id="h-sim">Similar cars</h2><Link className="link link--go" href={c.model_hub_path}>More {c.make} {c.model} <Icon name="arrow" /></Link> <Link className="link link--go" href="/cars">See every car <Icon name="arrow" /></Link></div>
           <ul className="fleet-grid fleet-grid--3">{similar.map((x) => <li key={x.slug}><CarCard c={x} labels={labels} photosMax={cardPhotoCap(f.phone_gate)} /></li>)}</ul>

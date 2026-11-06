@@ -1,4 +1,5 @@
 'use client';
+import { VinScan } from '@/features/vin/VinScan';
 import { useEffect, useId, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { adminSaveRow } from '@/server/actions/admin-portal';
@@ -15,7 +16,8 @@ import { TypedInput } from '@/components/DateInput';
 // (money in dollars becomes cents, a percentage becomes basis points, a local date and time becomes an
 // instant), the database decides, and its refusal is shown as written. Keyboard: Enter submits, Esc
 // closes a dialog.
-export type FieldType = 'text' | 'textarea' | 'money' | 'number' | 'percent' | 'date' | 'datetime' | 'select' | 'bool' | 'json' | 'email' | 'tel' | 'list' | 'address';
+export type FieldType = 'text' | 'textarea' | 'money' | 'number' | 'percent' | 'date' | 'datetime' | 'select' | 'bool' | 'json' | 'email' | 'tel' | 'list' | 'address'
+  /** release 28: a VIN, with the barcode scan and the photo reader (features/vin/VinScan.tsx) */ | 'vin';
 export interface Field { name: string; label: string; type?: FieldType; options?: Array<[string, string]>; required?: boolean; hint?: string; value?: unknown; placeholder?: string; wide?: boolean;
   /** For a number: the smallest and largest value allowed (the database checks the same). */
   min?: number; max?: number;
@@ -101,6 +103,11 @@ export function FieldInput({ f, value, set, err, idp, fill }: { f: Field; value:
         </select>
       ) : f.type === 'textarea' || f.type === 'json' ? (
         <textarea className={`input ad-textarea${f.type === 'json' ? ' pt-mono' : ''}`} rows={f.type === 'json' ? 6 : 3} {...common} onChange={(e) => set(e.target.value)} />
+      ) : f.type === 'vin' ? (
+        <>
+          <TypedInput className="input vin-input" {...common} onChange={(e) => set(e.target.value.toUpperCase())} type="text" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={24} />
+          <VinScan prefix={`${idp}-${f.name}`} compact onVin={(vin) => set(vin)} />
+        </>
       ) : (
         <TypedInput className="input" {...common} onChange={(e) => set(e.target.value)}
           type={f.type === 'date' ? 'date' : f.type === 'datetime' ? 'datetime-local' : f.type === 'email' ? 'email' : f.type === 'tel' ? 'tel' : 'text'}
