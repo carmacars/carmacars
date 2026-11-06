@@ -138,9 +138,9 @@ jobs:
           to="${to:-rent@carmacars.ca}"
           run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           case "$send" in
-            problem) subject="CarmaCars server: problem found"; intro="The check of the CarmaCars Supabase server (api.carmacars.ca) found:" ;;
-            still) subject="CarmaCars server: the problem continues"; intro="The problem with the CarmaCars Supabase server continues (about $(( (streak + 1) * 5 )) minutes):" ;;
-            recovered) subject="CarmaCars server: back to normal"; intro="The CarmaCars Supabase server passes every check again." ;;
+            problem) subject="CarmaCars server: problem found"; intro="The check of the CarmaCars server (api.carmacars.ca) found:" ;;
+            still) subject="CarmaCars server: the problem continues"; intro="The problem with the CarmaCars server continues (about $(( (streak + 1) * 5 )) minutes):" ;;
+            recovered) subject="CarmaCars server: back to normal"; intro="The CarmaCars server passes every check again." ;;
           esac
           body=$( { echo "$intro"; echo; [ "$send" != recovered ] && sed 's/^/- /' "$RUNNER_TEMP/problems.txt"; echo; echo "Run: $run"; echo "What to do: infra/vps/CUTOVER.md, section Upkeep."; } )
           code=$(curl -sS -o "$RUNNER_TEMP/resend.json" -w '%{http_code}' https://api.resend.com/emails -H "Authorization: Bearer $key" -H 'content-type: application/json' \

@@ -208,7 +208,7 @@ test('the programmatic vehicle pages: no ISR entry, kept at the edge for 6 hours
 test('place pages (0095): rendered on demand, kept in the edge copy only, a short public browser cache', async () => {
   const html = (x: Record<string, string> = {}) => new Headers({ 'content-type': 'text/html; charset=utf-8', 'cache-control': 'private, no-cache, no-store, max-age=0, must-revalidate', ...x });
   for (const p of ['/car-rental/port-credit-mississauga-on', '/car-rental/suv-rental/gta', '/buy/used-cars/buffalo-ny', '/detailing/ceramic-coating/toronto', '/body-shop/collision-repair/oakville']) {
-    assert.equal(edgeTtl(p, 200, html()), 21600, p);
+    assert.equal(edgeTtl(p, 200, html()), 86400, p);
   }
   assert.equal(edgeTtl('/car-rental/suv-rental/gta', 404, html()), 0);
   assert.equal(edgeTtl('/car-rental/suv-rental/gta', 200, html({ 'set-cookie': 'a=b' })), 0);
@@ -218,5 +218,5 @@ test('place pages (0095): rendered on demand, kept in the edge copy only, a shor
   assert.equal(res.headers.get('cache-control'), 'public, max-age=300');
   await new Promise((r) => setTimeout(r, 10));
   assert.equal(puts.length, 1);
-  assert.equal(puts[0]![1].headers.get('cache-control'), 'public, max-age=21600');
+  assert.equal(puts[0]![1].headers.get('cache-control'), 'public, max-age=86400');
 });

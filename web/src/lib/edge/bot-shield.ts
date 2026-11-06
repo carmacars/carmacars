@@ -14,7 +14,7 @@
 
 import { deepOutOfScope } from './crawl-scope.ts';
 
-export const BLOCKED_BOT = /AhrefsBot|SemrushBot|MJ12bot|DotBot|PetalBot|Bytespider|DataForSeoBot|BLEXBot|serpstatbot|MegaIndex|SeekportBot|Barkrowler|ImagesiftBot|Timpibot|ZoominfoBot|AwarioBot|magpie-crawler|SiteAuditBot|trendictionbot|Sogou web spider/i;
+export const BLOCKED_BOT = /AhrefsBot|SemrushBot|MJ12bot|DotBot|PetalBot|Bytespider|DataForSeoBot|BLEXBot|serpstatbot|MegaIndex|SeekportBot|Barkrowler|ImagesiftBot|Timpibot|ZoominfoBot|AwarioBot|magpie-crawler|SiteAuditBot|trendictionbot|Sogou web spider|MauiBot|AspiegelBot|LinkpadBot|Exabot|CCBot|GPTBot/i;
 /** A user agent that says it is a crawler. Not a headless browser or a script (the e2e tests and uptime checks are never
  *  refused here). A chat app's link preview that calls itself a bot (Slackbot, TelegramBot) gets no preview of a portal
  *  page, which shows nothing to a stranger anyway. */

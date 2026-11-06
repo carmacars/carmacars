@@ -1,0 +1,96 @@
+name: self-heal
+
+# Every 15 minutes (GitHub may run it late): the public site and the company's server API from outside, with retries.
+#   site  https://carmacars.ca/api/health answers 200
+#   api   https://api.carmacars.ca/auth/v1/settings answers (200, 401 or 403: the server and its gateway are up)
+# A failure that survives three tries opens (or updates) one GitHub issue labelled `outage`; the issue closes by itself when
+# both pass again. The only automatic repair is the existing vps-ops reboot, and only when the server's API (not the site)
+# has failed in this run and the two runs before it (about 45 minutes), the server is the live backend, and no vps-ops run
+# started in the last 6 hours. No SQL runs here. What to do otherwise: docs/runbook-outage.md.
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  actions: write   # dispatch vps-ops (reboot); read the run history
+
+concurrency:
+  group: self-heal
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash .github/ci-run.sh self-heal bash --noprofile --norc -eo pipefail {0}
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ github.token }}
+      LIVE_BACKEND: ${{ vars.DB_BACKEND }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github
+      - name: Check, with retries
+        id: check
+        run: |
+          probe() { # url, accepted codes (space separated)
+            local code i
+            for i in 1 2 3; do
+              code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$1" 2>/dev/null || echo 000)
+              case " $2 " in *" $code "*) echo "$code"; return 0 ;; esac
+              [ "$i" = 3 ] || sleep 20
+            done
+            echo "$code"; return 1
+          }
+          site=ok; api=ok
+          sc=$(probe https://carmacars.ca/api/health "200") || site=down
+          ac=$(probe https://api.carmacars.ca/auth/v1/settings "200 401 403") || api=down
+          echo "::notice title=self-heal::site $site ($sc), api $api ($ac)"
+          { echo "site=$site"; echo "api=$api"; echo "site_code=$sc"; echo "api_code=$ac"; } >> "$GITHUB_OUTPUT"
+      - name: Issue (open or update on a failure, close on recovery)
+        env:
+          SITE: ${{ steps.check.outputs.site }}
+          API: ${{ steps.check.outputs.api }}
+          SITE_CODE: ${{ steps.check.outputs.site_code }}
+          API_CODE: ${{ steps.check.outputs.api_code }}
+        run: |
+          gh label create outage -R "$GITHUB_REPOSITORY" --color B60205 --description "carmacars.ca or api.carmacars.ca is down (opened by self-heal)" 2>/dev/null || true
+          run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          num=$(gh issue list -R "$GITHUB_REPOSITORY" --label outage --state open --json number --jq '.[0].number // empty')
+          if [ "$SITE" = ok ] && [ "$API" = ok ]; then
+            [ -n "$num" ] || { echo "healthy, no open issue"; exit 0; }
+            gh issue comment "$num" -R "$GITHUB_REPOSITORY" --body "Recovered: the site and the API both answer again ($(date -u +%FT%TZ)). Run: $run"
+            gh issue close "$num" -R "$GITHUB_REPOSITORY" --reason completed
+            exit 0
+          fi
+          body="Site: $SITE (HTTP $SITE_CODE). Server API: $API (HTTP $API_CODE). Checked $(date -u +%FT%TZ). Run: $run
+          What to do: docs/runbook-outage.md."
+          if [ -z "$num" ]; then
+            gh issue create -R "$GITHUB_REPOSITORY" --label outage --title "Outage: carmacars.ca or api.carmacars.ca not answering" --body "$body"
+          else
+            gh issue comment "$num" -R "$GITHUB_REPOSITORY" --body "$body"
+          fi
+      - name: Auto-repair (reboot the server after repeated API failures)
+        if: steps.check.outputs.api == 'down' && env.LIVE_BACKEND == 'vps'
+        run: |
+          # the completed runs before this one: the API must have failed in the last two as well (each failed run exits 1 below)
+          prev=$(gh run list -R "$GITHUB_REPOSITORY" -w self-heal.yml -L 8 --json conclusion,status,databaseId \
+                 --jq "[.[] | select(.status == \"completed\" and .databaseId != $GITHUB_RUN_ID)] | .[0:2] | map(.conclusion) | join(\" \")")
+          if [ "$prev" != "failure failure" ]; then echo "not yet: the previous runs were '$prev'"; exit 0; fi
+          since=$(date -u -d '6 hours ago' +%FT%TZ)
+          recent=$(gh run list -R "$GITHUB_REPOSITORY" -w vps-ops.yml -L 10 --json createdAt --jq "[.[] | select(.createdAt > \"$since\")] | length")
+          if [ "$recent" != 0 ]; then echo "a vps-ops run started in the last 6 hours; no second reboot"; exit 0; fi
+          gh workflow run vps-ops.yml -R "$GITHUB_REPOSITORY" -f action=reboot -f confirm=REBOOT
+          num=$(gh issue list -R "$GITHUB_REPOSITORY" --label outage --state open --json number --jq '.[0].number // empty')
+          [ -z "$num" ] || gh issue comment "$num" -R "$GITHUB_REPOSITORY" --body "The server API failed for about 45 minutes: self-heal started the vps-ops reboot action (a clean reboot; it refuses while a deploy or backup runs)."
+          echo "::notice title=self-heal::reboot dispatched"
+      - name: Result
+        if: always()
+        run: '[ "${{ steps.check.outputs.site }}" = ok ] && [ "${{ steps.check.outputs.api }}" = ok ]'

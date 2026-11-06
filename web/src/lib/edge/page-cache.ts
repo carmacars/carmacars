@@ -39,8 +39,8 @@ const PRIVATE = new Set(['admin', 'account', 'owner', 'va', 'field', 'staff', 'i
  *  crawlers with PROGRAMMATIC_CC. */
 // 0124: the directories that lead to them (/makes, /places and its pages) too: rendered on demand, crawled often
 export const PROGRAMMATIC = /^\/(cars\/[^/]+\/[^/]+(\/[^/]+){0,5}|buy(\/[^/]+){1,7}|t\/[^/]+(\/[^/]+){1,7}|makes|places(\/\d{1,6})?)$/;
-export const PROGRAMMATIC_TTL_S = 21_600;
-export const PROGRAMMATIC_CC = 'public, max-age=600, s-maxage=21600, stale-while-revalidate=86400';
+export const PROGRAMMATIC_TTL_S = 86_400;
+export const PROGRAMMATIC_CC = 'public, max-age=600, s-maxage=86400, stale-while-revalidate=604800';
 // 0124: the sitemaps at the site's root (/sitemap-index-<n>.xml, /sitemap-priority-<n>.xml, /sitemap-vehicles-<file>.xml,
 // /sitemap-places-<file>.xml); the old addresses only redirect now
 export const SITEMAP = /^\/(sitemap(-[a-z]+)?\.xml|robots\.txt|sitemap-(index|priority)-\d+\.xml|sitemap-vehicles-[a-z0-9-]+\.xml|sitemap-places-[a-z0-9.-]+\.xml)$/;
@@ -77,7 +77,8 @@ function edgeSuffix(req: EdgeRequestLike): string | null {
 // OpenNext's page cache, so no cache write per page), and kept here only, for PLACE_TTL_S. Browsers get a short public
 // cache time. A rebuild on demand (an Admin's edit) retires the copies through the generation number as for any page.
 export const PLACE_PAGE = /^\/(car-rental\/[a-z0-9-]+(\/[a-z0-9-]+)?|(buy|detailing|body-shop)\/[a-z0-9-]+\/[a-z0-9-]+)$/;
-export const PLACE_TTL_S = 21_600;
+// 2026-11-06 (traffic doubled): a day, the longest the edge copy is kept (MAX_TTL_S); the last good copy is served stale for a week
+export const PLACE_TTL_S = 86_400;
 export const PLACE_BROWSER_CC = 'public, max-age=300';
 export const isPlacePage = (pathname: string) => PLACE_PAGE.test(pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname);
 

@@ -5,8 +5,8 @@
 // (copied next to this file at deploy time as engine.mjs), sends it through Resend and reports back with
 // app.outbox_mark_sent() or app.outbox_mark_failed(). Resend's own limits (HTTP 429: 2 requests a second, and
 // the free plan's 100 a day for the whole account, Supabase Auth's emails included) hold the row with
-// app.outbox_defer() without spending an attempt (0043): a rate refusal for a minute, a quota refusal until the
-// next Toronto midnight, together with the rest of the batch. Sends are spaced to stay under the rate.
+// app.outbox_defer() without spending an attempt (0043): a rate refusal for a minute, a quota refusal for two hours
+// (a spread of its own; 2026-11-06), together with the rest of the batch. Sends are spaced to stay under the rate.
 //
 // Secrets (Edge Function secrets, set by the deploy job): OUTBOX_JOB_TOKEN, RESEND_API_KEY, APP_URL,
 // LINK_SIGNING_KEY (the site's key: the 7-day file links are opened by the site at /d/<token>).
@@ -120,15 +120,17 @@ async function viaCloudflare(m: Mail): Promise<{ id: string } | { error: string 
 let cfOn = false;
 
 // Resend's 429 body names the limit: rate_limit_exceeded, daily_quota_exceeded or monthly_quota_exceeded.
-class Held extends Error { constructor(public reason: string, public until: 'minute' | 'midnight') { super(reason); } }
+// 2026-11-06: a quota refusal no longer waits for midnight (the whole backlog then came due at the same minute, spent the
+// day's quota in the first batches and was refused again): the rows wait 2 to 2.5 hours, a spread of their own, and the
+// pacing of app.outbox_claim (0432) keeps the low priority classes from taking the day's quota first.
+class Held extends Error { constructor(public reason: string, public until: 'minute' | 'later') { super(reason); } }
 function held(status: number, body: string): Held | null {
   if (status !== 429) return null;
-  if (/daily_quota|monthly_quota|quota/i.test(body)) return new Held(/monthly/i.test(body) ? 'the email provider\'s monthly limit' : 'the email provider\'s daily limit', 'midnight');
+  if (/daily_quota|monthly_quota|quota/i.test(body)) return new Held(/monthly/i.test(body) ? 'the email provider\'s monthly limit' : 'the email provider\'s daily limit', 'later');
   return new Held('held by the email provider\'s rate limit', 'minute');
 }
-const nextMidnight = async () => ((await sql`select app.local_midnight(app.local_date(now()) + 1) as t`) as unknown as [{ t: Date }])[0].t;
 async function defer(r: Row, h: Held) {
-  const until = h.until === 'minute' ? new Date(Date.now() + 60_000) : await nextMidnight();
+  const until = h.until === 'minute' ? new Date(Date.now() + 60_000) : new Date(Date.now() + 2 * 3600_000 + Math.floor(Math.random() * 1800_000));
   await sql`select app.outbox_defer(${r.id}::uuid, ${h.reason}, ${until})`;
 }
 const pause = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
@@ -175,7 +177,20 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
     if (!res.ok) {
       const body = (await res.text()).slice(0, 500);
       const h = held(res.status, body);
-      if (h) { await defer(r, h); return h; }
+      if (h) {
+        // 2026-11-06: Resend refused for its rate or quota: the Cloudflare email binding sends this one instead (the site's
+        // Worker), and the rest of the batch goes there too; only when that fails too the row waits, attempts untouched
+        if (LINK_KEY) {
+          const cf = await viaCloudflare({ from: fromHeader(r.from_address), to: r.to_address, reply_to: r.reply_to || undefined, subject: r.subject, html, text,
+            headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined });
+          if ('id' in cf) {
+            cfOn = true;
+            await sql`select app.outbox_mark_sent(${r.id}::uuid, ${'cf:' + cf.id}, ${text})`;
+            return 'sent';
+          }
+        }
+        await defer(r, h); return h;
+      }
       // 4xx other than rate limiting will not get better on a retry
       throw Object.assign(new Error(`Resend ${res.status}: ${body}`), { permanent: res.status >= 400 && res.status < 500 && res.status !== 429 });
     }
@@ -202,7 +217,7 @@ Deno.serve(async (req) => {
     if (stop) { await defer(r, stop); deferred++; continue; }
     const t0 = Date.now();
     const out = await sendOne(r);
-    if (out instanceof Held) { deferred++; if (out.until === 'midnight') stop = out; }
+    if (out instanceof Held) { deferred++; if (out.until === 'later') stop = out; }
     else if (out === 'sent') sent++; else failed++;
     // Resend allows 2 requests a second per account (Cloudflare's sends need no spacing)
     const wait = (cfOn ? 0 : 550) - (Date.now() - t0);
