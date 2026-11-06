@@ -34,7 +34,8 @@ const LABELS: Record<string, string> = {
   vpage_stock_photos: 'Show stock photos (licensed, credited) on the vehicle, place and service pages',
   search_scope: 'Search scope',
   card_types_accepted: 'Card types accepted',
-  deposit_timing: 'Deposit timing', deposit_auto_hour: 'Deposit hold: hour on the pickup day', debit_deposit_multiplier: 'Deposit with a debit or prepaid card (times the deposit)',
+  deposit_timing: 'Deposit timing', deposit_auto_hour: 'Deposit hold: hour on the pickup day', deposit_extended_holds: 'Extended deposit holds (up to about 30 days)',
+  deposit_auto_capture: 'Capture a deposit hold by itself before it lapses (off: a To do to re-authorize it instead)', debit_deposit_multiplier: 'Deposit with a debit or prepaid card (times the deposit)',
   usage_alert_texts: 'Usage alerts: also text every Admin with a verified phone (once per figure and level a month)',
   vpage_import_db_cap_mb: 'Database size cap for the catalog import (MB)', db_plan: 'Import size limit', db_cap_pro_mb: 'Database size cap for the imports, standard (MB)',
   db_cap_free_mb: 'Database size cap for the imports, small (MB)', indexnow_daily_max: 'IndexNow: most addresses a day', indexnow_batch: 'IndexNow: addresses a request (at most 10,000)',
@@ -298,6 +299,8 @@ const HINTS: Record<string, string> = {
   sms_start_confirm_text: 'Texted once, right away, when someone replies START. Name CarmaCars and say how to stop (STOP).',
   deposit_timing: 'On the morning of pickup day (the default): the deposit hold is placed on the card on file at the hour below (at once when the booking is confirmed later that day, from midnight when the pickup is earlier). If it does not go through, the renter gets the deposit link and staff a task "Deposit not taken". At handover (old): the hold is taken at the handover, with the deposit link texted before pickup.',
   deposit_auto_hour: 'The hour, Toronto time (0 to 23), the deposit hold is placed on the pickup day (8: 8:00 am).',
+  deposit_extended_holds: 'Turn on only once Stripe confirms IC+ pricing and extended authorization on the account. The deposit hold placed on the saved card (the pickup day, and Re-authorize) then asks Stripe for an extended authorization of up to about 30 days, and falls back to a standard hold (about 7 days) when the card or the account does not allow it. Never used on the rental payment.',
+  deposit_auto_capture: 'Off (the default since release 28): the deposit stays a hold in Stripe; when it nears its expiry Finance gets a To do to re-authorize it on the saved card. On: the hold is captured by itself before it lapses, which pays the money out and makes the return a refund.',
   debit_deposit_multiplier: 'On a booking that takes a debit or prepaid card, the deposit hold on such a card is the deposit times this (2: $300 becomes $600). Staff can set another amount on a booking (Money tab). Applies to the automatic hold, the deposit link and Collect a card.',
   card_types_accepted: 'Credit only (the default): the pay page, staff pay links and the deposit hold take a credit card, so the deductible can be charged; an Admin can allow a debit or prepaid card for one booking on its Money tab. Credit, debit and prepaid: every booking takes them. A booking on credit card rental coverage is always paid on that credit card.',
   search_scope: 'What search engines are invited to read (robots.txt, the sitemaps, IndexNow). Full: every page, which costs more website CPU time as crawlers read them. Core: the fixed pages, the cars, the landing pages, the guides and the vehicle pages down to the trim. From 70% of the month\'s CPU allowance crawlers get no catalog page until the month resets, in either scope. Takes effect within minutes, no deploy.'

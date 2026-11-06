@@ -135,6 +135,8 @@ export async function runDepositGuard(limit = 40) {
 export async function placeDepositHolds(limit = 10): Promise<{ held: number; failed: number; errors: string[] }> {
   const due = ((await call('server_deposit_autos_due', {})) as Array<{ booking_id: string; booking_number: string }> | null) ?? [];
   const out = { held: 0, failed: 0, errors: [] as string[] };
+  // 0541: Program settings, Extended deposit holds (off until Stripe confirms IC+): asked if available, never required
+  const extendedHold = due.length ? Boolean(await call('server_deposit_extended_holds', {}).catch(() => false)) : false;
   for (const d of due.slice(0, limit)) {
     try {
       // the request's token is never sent (no link): a fresh one, thrown away
@@ -145,7 +147,7 @@ export async function placeDepositHolds(limit = 10): Promise<{ held: number; fai
       let intent: Awaited<ReturnType<typeof p.chargeOffSession>> | null = null;
       let err: unknown = null;
       try {
-        intent = await p.chargeOffSession({ customerId: b.customer_id ?? '', paymentMethodId: b.method_id ?? '', amountCents: b.amount_cents ?? 0, capture: 'manual',
+        intent = await p.chargeOffSession({ customerId: b.customer_id ?? '', paymentMethodId: b.method_id ?? '', amountCents: b.amount_cents ?? 0, capture: 'manual', extendedHold,
           description: `CarmaCars booking ${b.booking_number ?? d.booking_number}: deposit hold`,
           metadata: { booking_id: d.booking_id, booking_number: b.booking_number ?? d.booking_number, purpose: 'staff_request', payment_request_id: b.id, covers: 'deposit' },
           idempotencyKey: `payreq:${b.id}` });
@@ -153,7 +155,7 @@ export async function placeDepositHolds(limit = 10): Promise<{ held: number; fai
       if (intent) await call('server_payreq_attach', { p_id: b.id, p_intent: intent.id });
       const step = autoHoldStep(intent, err);
       if (step.next === 'settle' && intent) {
-        const r = await settlePayreq(b.id, intent.id, 'hold');
+        const r = await settlePayreq(b.id, intent.id, 'hold', intent);
         if (r.ok) { out.held++; continue; }
         await call('server_deposit_auto_failed', { p_id: b.id, p_error: r.message ?? r.reason ?? 'the hold was not recorded' });
       } else if (step.next === 'failed') {

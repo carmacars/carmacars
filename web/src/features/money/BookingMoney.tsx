@@ -3,7 +3,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
-import { chargeSavedCard, holdAction, offersDo, startCardRequest } from '@/server/actions/offers';
+import { chargeSavedCard, holdAction, offersDo, reauthorizeHold, startCardRequest } from '@/server/actions/offers';
 import { Table } from '@/features/admin/ui';
 import { CardTools, type CardRule } from './CardTools';
 import { depositAutoText, type DepositAuto } from './deposit-auto-text';
@@ -67,7 +67,7 @@ export function BookingMoney({ m }: { m: Money }) {
   const openPart = (c: string) => (c === 'balance' ? m.parts.reduce((t, p) => t + Math.max(p.open_cents, 0), 0) : m.parts.find((p) => p.covers === c)?.open_cents ?? 0);
   const dep = m.deposit;
   const depWords = !dep || ['pending', 'failed'].includes(dep.status) ? (m.deposit_cents > 0 ? `${fmt(m.deposit_cents)} to take (${(METHOD[m.deposit_pay_method] ?? m.deposit_pay_method).toLowerCase()})` : 'No deposit')
-    : dep.method === 'card_hold' && dep.status === 'held' ? `${fmt(dep.amount_cents)} held on the card${dep.hold_days_left !== null ? `, about ${dep.hold_days_left} day${dep.hold_days_left === 1 ? '' : 's'} left (collected by itself before it lapses once the car is out)` : ''}`
+    : dep.method === 'card_hold' && dep.status === 'held' ? `${fmt(dep.amount_cents)} held on the card${dep.hold_expires_at ? `, hold expires ${when(dep.hold_expires_at)}` : ''}${dep.hold_days_left !== null ? ` (${dep.hold_days_left} day${dep.hold_days_left === 1 ? '' : 's'} left; re-authorize before then, never captured by itself)` : ''}`
     : dep.method === 'offline' ? `${fmt(dep.amount_cents)} taken by ${(METHOD[dep.paid_method ?? ''] ?? '').toLowerCase()}, ${dep.status}`
     : `${fmt(dep.amount_cents)}, ${dep.status.replace(/_/g, ' ')}`;
 
@@ -101,7 +101,11 @@ export function BookingMoney({ m }: { m: Money }) {
         {m.may.charge && m.card && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'charge'} onClick={() => setOpen(open === 'charge' ? '' : 'charge')} data-testid="bm-charge-open">Charge the saved card</button>}
         {m.may.hold && dep?.method === 'card_hold' && dep.status === 'held' && <>
           <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'capture'} onClick={() => setOpen(open === 'capture' ? '' : 'capture')} data-testid="bm-capture-open">Capture the hold</button>
-          <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'release'} data-testid="bm-release" onClick={() => setOpen(open === 'release' ? '' : 'release')}>Release the hold</button></>}
+          <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'release'} data-testid="bm-release" onClick={() => setOpen(open === 'release' ? '' : 'release')}>Release the hold</button>
+          {m.card && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="bm-reauth" onClick={() => run(async () => {
+            const r = await reauthorizeHold({ booking: m.booking_number });
+            done(r.ok && r.data.ok, r.ok ? (r.data.ok ? `Re-authorized on the saved card${r.data.hold_expires_at ? `: held until ${when(r.data.hold_expires_at)}` : ''}. The old hold is released.` : r.data.message ?? 'Not re-authorized.') : r.message);
+          })}>Re-authorize the hold</button>}</>}
       </div>
 
       <CardTools booking={m.booking_number} parts={m.parts} deposit_cents={m.deposit_cents} depositTaken={!!dep && !['pending', 'failed'].includes(dep.status)}
@@ -172,7 +176,7 @@ export function BookingMoney({ m }: { m: Money }) {
         }); }}>
           <div className="ad-fields">
             <div className="field ad-field"><label className="label" htmlFor="bm-gcovers">For</label><select className="select" id="bm-gcovers" value={chg.covers} onChange={(e) => setChg({ ...chg, covers: e.target.value as typeof chg.covers })}>
-              <option value="later">A later charge</option><option value="deposit">The deposit ({fmt(m.deposit_cents)}, charged and refunded after the return)</option></select></div>
+              <option value="later">A later charge</option><option value="deposit">The deposit as a charge ({fmt(m.deposit_cents)}; only when no hold can be placed, refunded after the return)</option></select></div>
             {chg.covers === 'later' && <div className="field ad-field"><label className="label" htmlFor="bm-gamount">Amount ($)</label><input className="input" id="bm-gamount" inputMode="decimal" value={chg.amount} onChange={(e) => setChg({ ...chg, amount: e.target.value })} data-testid="bm-gamount" /></div>}
             <div className="field ad-field ad-field--wide"><label className="label" htmlFor="bm-greason">Reason (on the renter&apos;s receipt)</label><input className="input" id="bm-greason" value={chg.reason} onChange={(e) => setChg({ ...chg, reason: e.target.value })} placeholder="Extra km, fuel, damage, late return" data-testid="bm-greason" /></div>
           </div>

@@ -18,7 +18,7 @@
     },
     {
       "question": "When is the deposit taken, and when do I get it back?",
-      "answer": "About {{depLead}} before pickup. For rentals of {{holdDays}} days or less it is a hold on your card. For longer rentals it is charged and refunded. We release the balance within {{releaseDays}} after you return the car."
+      "answer": "About {{depLead}} before pickup. It is a hold on your card, not a charge, renewed on your card before it lapses on a longer rental. We release the balance within {{releaseDays}} after you return the car."
     },
     {
       "question": "Can you bring the car to me?",

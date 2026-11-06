@@ -111,6 +111,34 @@ export async function holdAction(p: { booking: string; action: 'capture' | 'rele
   } catch (e) { return fail(e); }
 }
 
+/** 0541: Re-authorize the deposit hold before it lapses (Finance, an Admin): a new hold on the saved card, off-session,
+ *  for what is still held (extended if Program settings allow, falling back to a standard hold), then the old hold is
+ *  released. The money stays in Stripe; nothing is captured. */
+export async function reauthorizeHold(p: { booking: string }): Promise<R<{ ok: boolean; message?: string; hold_expires_at?: string }>> {
+  try {
+    const { user, aal, va } = await me();
+    const b = await door<{ deposit_id: string; booking_id: string; booking_number: string; amount_cents: number; customer_id: string; method_id: string; old_intent: string | null; extended: boolean; idempotency_key: string }>(
+      user.id, 'ops_do', 'hold_reauth_begin', withFn(p, va), aal);
+    const pay = await payments();
+    let fin: Record<string, unknown> = { deposit: b.deposit_id, amount_cents: b.amount_cents, ok: false };
+    try {
+      const i = await pay.chargeOffSession({ customerId: b.customer_id, paymentMethodId: b.method_id, amountCents: b.amount_cents, capture: 'manual', extendedHold: b.extended,
+        description: `CarmaCars booking ${b.booking_number}: deposit hold (re-authorized)`, metadata: { booking_id: b.booking_id, booking_number: b.booking_number, purpose: 'deposit_reauth', deposit_id: b.deposit_id },
+        idempotencyKey: b.idempotency_key });
+      if (i.status === 'requires_capture') fin = { ...fin, ok: true, intent_id: i.id, charge_id: i.chargeId, capture_before: i.captureBefore ?? null, extended: Boolean(i.extendedAuth) };
+      else {
+        if (i.status !== 'canceled') await pay.cancelIntent(i.id, `void:${i.id}`).catch(() => undefined);
+        fin = { ...fin, error: i.lastError ?? `Stripe answered ${i.status}` };
+      }
+    } catch (e) { fin = { ...fin, error: e instanceof Error ? e.message : 'Stripe refused the hold.' }; }
+    const r = await door<{ ok: boolean; message?: string; hold_expires_at?: string }>(user.id, 'ops_do', 'hold_reauth_finish', withFn(fin, va), aal);
+    // the new hold is recorded: the old one is released at Stripe (a failure here leaves it to lapse by itself)
+    if (r.ok && b.old_intent) await pay.cancelIntent(b.old_intent, `hold-reauth-release:${b.old_intent}`).catch(() => undefined);
+    refreshAll([`/admin/bookings/${b.booking_number}`, `/staff/bookings/${b.booking_number}`]);
+    return { ok: true, data: r };
+  } catch (e) { return fail(e); }
+}
+
 export interface RenterEditResult { changed: boolean; email_changed?: boolean; email?: string; warnings: Array<{ renter_id: string; name: string }>; signin?: string; link_sent?: boolean }
 /** Correct a renter's details (0132). The database checks and records it; a new email also goes to the sign-in at once
  *  (staff correct a typo: no confirmation email), and on request the renter gets a link to set a password there. */

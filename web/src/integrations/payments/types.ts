@@ -39,6 +39,8 @@ export interface Intent {
   methodType: 'card' | 'acss_debit' | 'card_present' | null;
   /** When an uncaptured card hold lapses (seconds since 1970), when Stripe says (0201). */
   captureBefore?: number | null;
+  /** 0541: the bank gave an extended authorization (payment_method_details.card.extended_authorization.status enabled) */
+  extendedAuth?: boolean;
   /** The bank account of a pre-authorized debit (never the full number). */
   bank: { name: string | null; last4: string } | null;
   /** The pre-authorized debit mandate the owner accepted, kept for the monthly debit. */
@@ -110,6 +112,9 @@ export interface OffSessionChargeRequest {
   amountCents: number;
   /** 0261: manual places a hold (the deposit on the pickup day), captured later; automatic (the default) charges */
   capture?: 'automatic' | 'manual';
+  /** 0541: a deposit hold only (capture manual): ask for an extended authorization (up to about 30 days) if available,
+   *  falling back to a standard hold when Stripe refuses it. Never for a rental charge. */
+  extendedHold?: boolean;
   description: string;
   metadata: Record<string, string>;
   idempotencyKey: string;
