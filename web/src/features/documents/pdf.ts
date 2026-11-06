@@ -127,7 +127,7 @@ function insurerInvoice(f: F): Block[] {
   return blocks;
 }
 
-// An invoice to a partner (migration 0547): from the company's legal name (no "operating as"), to the partner, the claim
+// An invoice to a partner (migration 0547): from the company's legal name alone, to the partner, the claim
 // it is for, every line (a fixed amount or a percentage of the partner's total) with its HST, the totals, what was paid,
 // and how to pay (cheque payable to the company, e-Transfer).
 export function partnerInvoiceBlocks(f: Row): Block[] {

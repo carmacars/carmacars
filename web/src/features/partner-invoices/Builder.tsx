@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { staffDo } from '@/server/actions/staff-tools';
 import { money } from '@/lib/format';
+import { DateInput } from '@/components/DateInput';
 import { DEFAULT_LINE, KINDS, linePayload, totals, type DraftLine } from './model';
 
 // The invoice builder (migration 0547): the partner, the claim it is for, the lines (editable wording, quantity and
@@ -61,7 +62,7 @@ export function Builder({ partners, inv, refresh, base }: { partners: Partner[];
           <div className="field ad-field" key={k}><label className="label" htmlFor={`pi-${k}`}>{l}</label><input className="input" id={`pi-${k}`} value={f[k]} onChange={(e) => set(k)(e.target.value)} data-testid={`pi-${k}`} /></div>))}
         <div className="field ad-field"><label className="label" htmlFor="pi-ptotal">The partner&apos;s claim, tow or storage total ($)</label>
           <input className="input" id="pi-ptotal" inputMode="decimal" value={f.partner_total} onChange={(e) => set('partner_total')(e.target.value)} data-testid="pi-partner-total" /></div>
-        <div className="field ad-field"><label className="label" htmlFor="pi-due">Due (empty: set when sent)</label><input className="input" id="pi-due" type="date" value={f.due_on} onChange={(e) => set('due_on')(e.target.value)} /></div>
+        <div className="field ad-field"><label className="label" htmlFor="pi-due">Due (empty: set when sent)</label><DateInput className="input" id="pi-due" type="date" value={f.due_on} onChange={(e) => set('due_on')(e.target.value)} /></div>
         <div className="field ad-field"><label className="label" htmlFor="pi-rb">Reminder, days before due (0: none)</label><input className="input" id="pi-rb" inputMode="numeric" value={f.remind_before_days} onChange={(e) => set('remind_before_days')(e.target.value)} /></div>
         <div className="field ad-field"><label className="label" htmlFor="pi-ra">Reminder, days after due (0: none)</label><input className="input" id="pi-ra" inputMode="numeric" value={f.remind_after_days} onChange={(e) => set('remind_after_days')(e.target.value)} /></div>
       </div>

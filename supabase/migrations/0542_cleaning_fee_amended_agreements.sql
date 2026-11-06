@@ -32,6 +32,8 @@ begin
 end $$;
 
 -- ================================================================ A8
+alter table program_settings add column if not exists amend_without_signature boolean not null default true;
+comment on column program_settings.amend_without_signature is 'A change to a signed booking makes an amended agreement that is not signed again (0542, rental terms 15.4); off: material changes are signed again as before.';
 alter function app.agreement_plan(uuid) rename to agreement_plan_pre0542;
 create function app.agreement_plan(p_booking uuid) returns jsonb
 language plpgsql stable security definer set search_path = public, app as $$
@@ -39,7 +41,8 @@ declare
   pl jsonb := app.agreement_plan_pre0542(p_booking);
   v_signers jsonb;
 begin
-  if pl ->> 'state' <> 'version' or not coalesce((pl ->> 'material')::boolean, false) or coalesce((pl ->> 'wording_changed')::boolean, false) then
+  if pl ->> 'state' <> 'version' or not coalesce((pl ->> 'material')::boolean, false) or coalesce((pl ->> 'wording_changed')::boolean, false)
+     or not coalesce((app.settings()).amend_without_signature, true) then
     return pl;
   end if;
   -- section 15.4: the signed agreement applies to the updated booking; only a driver who never signed it signs

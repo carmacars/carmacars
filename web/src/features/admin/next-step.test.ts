@@ -7,10 +7,10 @@ const base = '/admin/bookings/CC-1';
 const now = new Date('2026-10-30T14:00:00Z'); // 10:00 Toronto
 const x = (o: Partial<NextStepInput>): NextStepInput => ({ status: 'requested', base, now, pickupAt: '2026-11-05T14:00:00Z', returnAt: '2026-11-08T14:00:00Z', ...o });
 
-test('requested: send the offer, a button to the review tab; it says it is not a booking yet', () => {
+test('requested: send the offer, a button to the review tab; it says it is booked once the renter approves (0540)', () => {
   const s = nextStep(x({}));
   assert.equal(s.step, 'send_offer');
-  assert.match(s.text, /not a booking until/);
+  assert.match(s.text, /booked once the renter approves/);
   assert.deepEqual(s.action, { label: 'Send the offer', href: `${base}?tab=review`, testId: 'next-step-offer' });
   assert.equal(nextStep(x({ can: { offer: false } })).action, undefined);
 });
