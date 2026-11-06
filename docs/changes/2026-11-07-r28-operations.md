@@ -120,6 +120,12 @@ lists them. Record money received takes a photo of the cheque (made smaller on t
 01, 03, 08, 09: deposits stay holds; 07: the partner invoice email; 99_overdue_returns: the self checkout).
 Unit: `blindspot/fill.test.ts`, `payments/stripe.test.ts`, `handover/angles.test.ts`, `partner-invoices/model.test.ts`, `blindspot/raster.test.ts`.
 
+## CI fixes after the merge
+
+The header Search button has its name on phones (`aria-label`, B4); Cover the plate falls back to the photo's public
+address when the store cannot read it (B8); the owner handoff button is "Record an owner handoff" (it overflowed at
+375 px); the email lint lets the partner invoice name the numbered company (0547).
+
 ## Guides
 
 `admin/requests-offers-and-bookings`, `admin/owner-money`, `admin/fleet-and-listings`,
