@@ -3,6 +3,7 @@ import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { storage, type Bucket } from '@/integrations/storage';
 import { fmtDuration } from './late';
+import { angleLabel } from './angles';
 import type { ConditionSide, HandoverReportData } from './types';
 
 // The photo report of a rental (migration 0130): the check-out and the check-in side by side, with the actual times
@@ -81,7 +82,7 @@ function Side({ side, photos, electric }: { side: ConditionSide; photos: Array<C
           <li key={p.seq}>
             {/* eslint-disable-next-line @next/next/no-img-element -- signed private photo */}
             {p.src ? <a href={p.src} target="_blank" rel="noreferrer"><img src={p.src} alt={`${shotName(p.shot)}${p.damage_label ? ` ${p.damage_label}` : ''}`} loading="lazy" decoding="async" width={240} height={160} /></a> : <span className="small muted">Not available</span>}
-            <span className="xs">{shotName(p.shot)}{p.damage_label ? ` ${p.damage_label}` : ''}{p.taken_at ? ` · ${when(p.taken_at)}` : ''}{p.latitude !== null && p.longitude !== null ? <> · <a className="link" href={`https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}`} target="_blank" rel="noreferrer">where</a></> : null}</span>
+            <span className="xs">{p.angle ? angleLabel(p.angle) : shotName(p.shot)}{p.damage_label ? ` ${p.damage_label}` : ''}{p.taken_by_name ? ` · by ${p.taken_by_name}` : ''}{p.taken_at ? ` · ${when(p.taken_at)}` : ''}{p.latitude !== null && p.longitude !== null ? <> · <a className="link" href={`https://www.google.com/maps/search/?api=1&query=${p.latitude},${p.longitude}`} target="_blank" rel="noreferrer">where</a></> : null}</span>
           </li>
         ))}
       </ul>

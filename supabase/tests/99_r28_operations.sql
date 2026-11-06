@@ -164,6 +164,11 @@ select test.eq('A2: one screen: returned, the report complete with its photos an
   || '/' || (select count(*) || ':' || bool_and(uploaded_by = test.id('r8_fleet')) from condition_report_photos p join condition_reports c on c.id = p.condition_report_id where c.booking_id = test.id('booking:R8-R2'))
   || '/' || (select count(*) from tasks where booking_id = test.id('booking:R8-R2') and task_type = 'handover_details' and status = 'open'),
   'returned/true:true/2:true/0');
+select test.eq('A3: the report names who took each photo (the renter, or staff by first name) and its angle (0549)',
+  (select string_agg(coalesce(ph ->> 'angle', '-') || ':' || coalesce(ph ->> 'taken_by', '-'), ',' order by (ph ->> 'seq')::int)
+     from jsonb_array_elements(app.handover_report(test.id('booking:R8-R2')) -> 'reports') rp, jsonb_array_elements(rp -> 'photos') ph where rp ->> 'kind' = 'return')
+  || '/' || (select string_agg(coalesce(ph ->> 'taken_by', '-'), ',') from jsonb_array_elements(app.handover_report(test.id('booking:R8-R1')) -> 'reports') rp, jsonb_array_elements(rp -> 'photos') ph where rp ->> 'kind' = 'return'),
+  'rear:staff,-:staff/renter,renter');
 select test.throws('A3: only this booking''s photos', format($$select app.door(%L, 'aal2', 'ops_do', 'handover_one_screen', %L)$$, test.id('r8_fleet'),
   jsonb_build_object('booking', 'R8-R2', 'kind', 'return', 'photos', jsonb_build_array(test.r8_photo('R8-R1', 'one-screen', null)))), 'not uploaded for this booking');
 
@@ -192,7 +197,9 @@ select test.eq('A12: sent: numbered, due, emailed to the partner (logged)',
   ((test.r8v('pis') ->> 'invoice_number') ~ '^PI-\d{6}$') || ':' || (test.r8v('pis') ->> 'state') || ':' || (test.r8v('pis') ->> 'sent_to') || ':' || ((test.r8v('pis') ->> 'due_on') is not null)
   || ':' || (select count(*) from notification_outbox where code = 'partner_invoice' and entity_id = (test.r8v('pi') ->> 'id')::uuid), 'true:sent:r8.shop@example.test:true:1');
 select test.throws('A12: a sent invoice is not edited', format($$select app.door(%L, 'aal2', 'ops_do', 'partner_invoice_save', %L)$$, test.id('r8_fin'), jsonb_build_object('id', test.r8v('pi') ->> 'id')), 'only a draft');
-select app.door(test.id('r8_fin'), 'aal2', 'ops_do', 'partner_invoice_pay', jsonb_build_object('id', test.r8v('pi') ->> 'id', 'method', 'cheque', 'amount_cents', 100000, 'reference', '000123'));
+select app.door(test.id('r8_fin'), 'aal2', 'ops_do', 'partner_invoice_pay', jsonb_build_object('id', test.r8v('pi') ->> 'id', 'method', 'cheque', 'amount_cents', 100000, 'reference', '000123',
+  'photo_path', 'partner-invoices/' || (test.r8v('pi') ->> 'id') || '/' || gen_random_uuid() || '.jpg'));
+select test.eq('A12: the cheque photo is kept with the payment', (select count(*) from partner_invoice_payments where invoice_id = (test.r8v('pi') ->> 'id')::uuid and photo_path ~ '^partner-invoices/'), 1::bigint);
 select test.eq('A12: a cheque recorded: partly paid, the ledger per partner and per claim',
   (select (x #>> '{totals,received_cents}') || ':' || (x #>> '{totals,outstanding_cents}') || ':' || (x -> 'by_claim' -> 0 ->> 'claim_number') || ':' || (x -> 'invoices' -> 0 ->> 'state')
      from (select app.door(test.id('r8_admin'), 'aal2', 'ops_read', 'partner_invoices', '{}'::jsonb) x) q), '100000:51250:CLM-R8-9:partly_paid');

@@ -1,6 +1,6 @@
-# Release 28, operations, bookings, agreements and money (migrations 0540 to 0548)
+# Release 28, operations, bookings, agreements and money (migrations 0540 to 0549)
 
-Branch `r28` (agent A of release 28). SCHEMA_MARKER 0548 (the merge with agent B's 0560 to 0579 sets the highest).
+Branch `r28` (agent A of release 28). SCHEMA_MARKER 0549 (the merge with agent B's 0560 to 0579 sets the highest).
 
 ## A1. Booked when the renter accepts (0540)
 
@@ -27,7 +27,8 @@ Branch `r28` (agent A of release 28). SCHEMA_MARKER 0548 (the merge with agent B
   time (late charges follow it); otherwise r27's review. Overdue messages stop either way.
 - Photos (`PhotoPicker`): many at once from the camera roll or camera, made smaller JPEGs on the phone, each tagged with
   an angle if wanted; the 15 suggested angles are a checklist that ticks itself. `condition_report_photos.angle`, who
-  took each (`uploaded_by`). Upload route `/api/handover-photo`.
+  took each (`uploaded_by`). Upload route `/api/handover-photo`. The report shows each photo's angle and who took it
+  (the renter, or staff by first name; `app.handover_report`, 0549).
 - The pickup and return reminders (`renter_pickup_soon`, `renter_return_soon`) ask the renter to take the photos and
   check in or return the car themselves. The checklist screens themselves are unchanged.
 
@@ -89,7 +90,8 @@ rasterized comparison (the form is private; the position tests run on the stand-
 `partner_invoices`, lines, payments; PI-numbered; percentage of the partner's total or fixed lines, HST per line;
 email `partner_invoice` with the PDF link; one reminder before and after due; ledger per partner and claim; CSV;
 Admin (Referral partners > Invoices, the Overview tile) and Finance (Money > Partner invoices); the partner's page
-lists them. Not done: the cheque photo upload (the payment has its field).
+lists them. Record money received takes a photo of the cheque (made smaller on the device, private storage,
+`/api/staff/partner-invoice` POST; View on the payment).
 
 ## Tests
 

@@ -8,7 +8,7 @@ export interface SigningState {
   companion: { status: string; document_id: string; document_sha256: string } | null;
   signers: Signer[];
 }
-export interface ReportPhoto { seq: number; shot: string; bucket: string; path: string; taken_at: string | null; latitude: number | null; longitude: number | null; damage_label: string | null }
+export interface ReportPhoto { seq: number; shot: string; bucket: string; path: string; taken_at: string | null; latitude: number | null; longitude: number | null; damage_label: string | null; angle?: string | null; taken_by?: 'renter' | 'staff' | null; taken_by_name?: string | null }
 export interface ReportDamage { label: string; location: string | null; description: string | null; kind: string | null; size_cm: number | null; is_new: boolean; found_later: boolean | null; status_vs_pickup: string | null }
 export interface ConditionSide {
   id: string; kind: 'pickup' | 'return' | 'swap_out' | 'swap_in'; performed_at: string | null; completed_at: string | null; performed_by_name: string | null;

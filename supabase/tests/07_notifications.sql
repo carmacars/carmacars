@@ -886,8 +886,8 @@ select test.eq('G every wired email code has been built at least once in these t
 select test.eq('G the variables the sender supplies are only signed links and sign-in service values',
   (select string_agg(distinct v, ',' order by v) from notification_catalogue, unnest(sender_supplied) v),
   'invoice_url,link_expiry,receipt_url,reset_url,security_device,security_event,security_event_at,security_place,sign_in_url,signed_agreement_url,statement_url,supporting_document_url');
-select test.eq('G no payload names the numbered company alone; the payee of the owner billing emails is "<legal name>, operating as CarmaCars" (0053, 0128)',
-  (select count(*) from notification_outbox where replace(payload::text, (select company_legal_name || ', operating as ' || company_trade_name from app.settings()), 'CarmaCars') ~ '18122211|Canada Inc|operated by'), 0::bigint);
+select test.eq('G no payload names the numbered company alone (the partner invoice, from 18122211 Canada Inc. with no trade name, 0547, aside); the payee of the owner billing emails is "<legal name>, operating as CarmaCars" (0053, 0128)',
+  (select count(*) from notification_outbox where code <> 'partner_invoice' and replace(payload::text, (select company_legal_name || ', operating as ' || company_trade_name from app.settings()), 'CarmaCars') ~ '18122211|Canada Inc|operated by'), 0::bigint);
 select test.eq('G the owner billing emails name the payee "<legal name>, operating as <business name>" (0053, 0128: the agreements keep the legal name alone, 0122)',
   (select bool_and(payload ->> 'payee_name' = (select company_legal_name || ', operating as ' || company_trade_name from app.settings())) from notification_outbox o join notification_catalogue c on c.code = o.code
     where c.from_address like '%billing@%' and c.audience = 'owner'), true);
