@@ -454,3 +454,13 @@ begin
     execute format('grant execute on function %s to service_role', f);
   end loop;
 end $$;
+
+-- the server may run every function of the app schema (suites 06, 08 and 09)
+do $g$
+declare f regprocedure;
+begin
+  for f in select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'app' and not has_function_privilege('service_role', p.oid, 'execute') loop
+    execute format('grant execute on function %s to service_role', f);
+  end loop;
+end $g$;

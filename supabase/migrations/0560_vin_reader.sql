@@ -141,3 +141,13 @@ language sql security definer set search_path = public, app as $$ select app.vin
 revoke all on function app.vin_read_gate(uuid, text, timestamptz), app.vin_read_record(uuid, text, jsonb),
   public.server_vin_read_gate(text, uuid), public.server_vin_read_record(text, jsonb, uuid) from public, anon, authenticated;
 grant execute on function public.server_vin_read_gate(text, uuid), public.server_vin_read_record(text, jsonb, uuid) to service_role;
+
+-- the server may run every function of the app schema (suites 06, 08 and 09)
+do $g$
+declare f regprocedure;
+begin
+  for f in select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'app' and not has_function_privilege('service_role', p.oid, 'execute') loop
+    execute format('grant execute on function %s to service_role', f);
+  end loop;
+end $g$;

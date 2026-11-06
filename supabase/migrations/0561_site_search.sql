@@ -194,3 +194,13 @@ create or replace function public.server_search_mine(p_user uuid, p_aal text, p_
 language sql security definer set search_path = public, app as $$ select app.search_mine(p_user, p_aal, p_q) $$;
 revoke all on function app.search_mine(uuid, text, text), public.server_search_mine(uuid, text, text) from public, anon, authenticated;
 grant execute on function public.server_search_mine(uuid, text, text) to service_role;
+
+-- the server may run every function of the app schema (suites 06, 08 and 09)
+do $g$
+declare f regprocedure;
+begin
+  for f in select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'app' and not has_function_privilege('service_role', p.oid, 'execute') loop
+    execute format('grant execute on function %s to service_role', f);
+  end loop;
+end $g$;

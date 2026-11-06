@@ -97,7 +97,7 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
   .site-header .header-signin { display: inline-flex; }
 }
 /* 0102: at 64 to 80rem the full menu is 1px wider than the window (1024: the header's button overflowed) */
-@media (min-width: 64rem) and (max-width: 79.99rem) { .nav { gap: var(--s-3); margin-left: var(--s-4); } }
+@media (min-width: 64rem) and (max-width: 79.99rem) { .nav { gap: var(--s-3); margin-left: var(--s-4); } .site-header .wordmark img { height: 1.35rem; } .header-actions { gap: var(--s-1); } .site-header .header-signin { padding-inline: 0.5rem; } }
 
 /* ---------- the site search (release 28, features/search/SiteSearch.tsx) ---------- */
 .site-search-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; min-width: 44px; height: 44px; padding: 0 0.5rem; border: 1px solid rgb(255 255 255 / 0.22); border-radius: var(--r-2, 8px); background: transparent; color: var(--white); font: 600 var(--fs-sm)/1 var(--font-text, inherit); cursor: pointer; }
@@ -642,3 +642,12 @@ html[data-shell="app"] .web-only { display: none !important; }
 html:not([data-shell="app"]) .app-only { display: none !important; }
 html[data-shell="app"] { -webkit-tap-highlight-color: transparent; }
 html[data-shell="app"] body { overscroll-behavior-y: none; }
+/* release 28: the search button joined the phone header: under 30rem the menu shows its icon only (the word stays for
+   screen readers), and under 22.5rem the header's Find a car steps aside (the menu and the hero both have it) */
+@media (max-width: 29.99rem) {
+  .menu-btn > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .menu-btn { padding: 0 0.25rem; min-width: 40px; justify-content: center; }
+  .site-search-btn { min-width: 40px; padding: 0 0.4rem; }
+  .site-header .wordmark img { max-width: 38vw; }
+}
+@media (max-width: 22.49rem) { .header-actions .btn--primary { display: none; } }

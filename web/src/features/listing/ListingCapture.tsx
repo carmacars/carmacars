@@ -61,14 +61,50 @@ export function ListingCapture({ initial, refresh = [] }: { initial: Capture; re
     await reload();
     router.refresh();
   });
-  const required = c.shots.filter((s) => s.required);
-  const done = required.filter((s) => s.photos.length > 0).length;
-  const pct = required.length ? Math.round((100 * done) / required.length) : 100;
+  // release 28 (0566): no shot is required; the listing needs 10 photos that can go on the site (not the odometer)
+  const MIN = 10;
+  const done = c.shots.filter((s) => s.code !== 'odometer').reduce((n, s) => n + s.photos.length, 0);
+  const required = { length: MIN };
+  const pct = Math.min(100, Math.round((100 * done) / MIN));
+  // Add photos: many at once, one after another (each is sorted to its shot on the server: two at once could take the same shot)
+  const [batch, setBatch] = useState<{ at: number; of: number } | null>(null);
+  const addMany = async (files: FileList | null) => {
+    const list = Array.from(files ?? []).slice(0, 30);
+    if (!list.length) return;
+    setMsg(null);
+    let failedN = 0, flagged = 0;
+    for (let i = 0; i < list.length; i++) {
+      setBatch({ at: i + 1, of: list.length }); setBusy('auto');
+      try {
+        const { blob, width, height } = await prepare(list[i]!);
+        const fd = new FormData();
+        fd.set('intake', c.intake_id); fd.set('shot', 'auto'); fd.set('file', blob, `photo-${i + 1}.jpg`);
+        if (width) { fd.set('width', String(width)); fd.set('height', String(height)); }
+        const r = await fetch('/api/listing/upload', { method: 'POST', body: fd }).catch(() => null);
+        const j = (r ? await r.json().catch(() => ({ ok: false })) : { ok: false }) as { ok: boolean; similar?: number; watermark?: boolean };
+        if (!j.ok) failedN++; else { if (j.similar) setSimilar(j.similar); if (j.watermark) flagged++; }
+      } catch { failedN++; }
+    }
+    setBatch(null); setBusy(null);
+    setMsg(failedN ? { ok: false, text: `${list.length - failedN} of ${list.length} photos added; ${failedN} did not upload. Add those again.` }
+      : { ok: true, text: `${list.length} photos added and sorted to their shots.${flagged ? ` ${flagged} with a watermark or text on it: kept off the site until replaced.` : ''}` });
+    await reload();
+    router.refresh();
+  };
   return (
     <section className="pt-card ad-card lc" aria-labelledby="lc-h" data-testid="listing-capture">
       <h2 className="d4" id="lc-h">Photos</h2>
-      <p className="small muted">{c.submitted ? 'Submitted. A retake replaces the photo and is processed again.' : `Daylight, landscape, the whole car in frame, no people, no other plates readable. ${done} of ${required.length} required photos added.`}</p>
-      <div className="lc__progress" role="progressbar" aria-valuemin={0} aria-valuemax={required.length} aria-valuenow={done} aria-label="Required photos added" data-testid="capture-progress">
+      <p className="small muted">{c.submitted ? 'Submitted. A retake replaces the photo and is processed again.' : `Daylight, landscape, the whole car in frame, no people, no other plates readable. ${done} of at least ${required.length} photos added; the shots below are a guide, not a rule.`}</p>
+      {c.may_upload && (
+        <div className="lc__drop" data-testid="listing-add-photos">
+          <label className="btn btn--primary">
+            <span>{batch ? `Adding ${batch.at} of ${batch.of}` : 'Add photos'}</span>
+            <input className="vh" type="file" accept="image/jpeg,image/png,image/heic,image/heif" multiple disabled={!!busy}
+              onChange={(e) => { void addMany(e.target.files); e.target.value = ''; }} data-testid="listing-add-photos-input" />
+          </label>
+          <span className="small muted">Up to 30 at once from the camera roll, in any order. Each is sorted to its shot; outside photos get the studio background, inside and detail photos are kept as taken.</span>
+        </div>)}
+      <div className="lc__progress" role="progressbar" aria-valuemin={0} aria-valuemax={required.length} aria-valuenow={done} aria-label="Photos added" data-testid="capture-progress">
         <span style={{ width: `${pct}%` }} />
       </div>
       {similar > 0 && <p className="alert alert--warn small" role="status" data-testid="capture-similar"><span>This car looks like another car on file. Staff check it before it is published; keep going.</span></p>}
@@ -78,7 +114,7 @@ export function ListingCapture({ initial, refresh = [] }: { initial: Capture; re
           const last = s.photos[s.photos.length - 1];
           return (
             <li key={s.code} className={`lc__shot${has ? ' is-done' : ''}`} data-shot={s.code}>
-              <span className="lc__label"><b>{s.label}</b>{!s.required && <span className="muted"> (optional)</span>}</span>
+              <span className="lc__label"><b>{s.label}</b></span>
               {s.guide && <span className="small muted">{s.guide}</span>}
               <span className="small">{busy === s.code ? 'Uploading' : has ? `Added${last?.status === 'processed' ? ', processed' : last?.background_status === 'original_used' ? ', kept as taken' : ''}` : 'Missing'}</span>
               {has && c.may_remove !== false && <ul className="lc__photos">{s.photos.map((ph, n) => (

@@ -480,7 +480,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
                             -- sign-in security (0466): each password sign-in, written by the sign-in form only (a log, kept 90 days)
                             'sign_in_events',
                             -- crashes in visitors' browsers (0433): written by the error reporter only (a log, kept 30 days)
-                            'client_errors')
+                            'client_errors',
+                            -- API access (0562): the call log (append-only; its own before and after) and the one-time OAuth codes
+                            'api_calls', 'api_oauth_codes')
       and not exists (select 1 from pg_trigger g where g.tgrelid = c.oid and g.tgname = 'audit_' || c.relname)), null::text);
 select test.eq('A a new rate card is logged',
   (select count(*) > 0 from audit_log where entity_table = 'rate_cards' and action = 'INSERT' and after ->> 'daily_rate_cents' = '10000'), true);

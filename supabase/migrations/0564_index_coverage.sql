@@ -88,3 +88,13 @@ create or replace function public.server_gsc_coverage_trend(p_admin uuid) return
 language sql stable security definer set search_path = public, app as $$ select app.gsc_coverage_trend(p_admin) $$;
 revoke all on function app.gsc_coverage_trend(uuid), public.server_gsc_coverage_trend(uuid) from public, anon, authenticated;
 grant execute on function public.server_gsc_coverage_trend(uuid) to service_role;
+
+-- the server may run every function of the app schema (suites 06, 08 and 09)
+do $g$
+declare f regprocedure;
+begin
+  for f in select p.oid::regprocedure from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'app' and not has_function_privilege('service_role', p.oid, 'execute') loop
+    execute format('grant execute on function %s to service_role', f);
+  end loop;
+end $g$;
