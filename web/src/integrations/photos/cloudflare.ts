@@ -40,7 +40,17 @@ export function cloudflareImages(f: FetchCf = (u, i) => fetch(u, i as RequestIni
       if (out.ok && out.bytes.length < MIN_CUTOUT_BYTES) return { ok: false, reason: 'no_subject', retryable: false, message: 'No car was found in the photo' };
       return out;
     },
-    async composite({ backdropUrl, shadowUrl, cutoutUrl, width, height, lettering }) {
+    async composite({ backdropUrl, shadowUrl, cutoutUrl, width, height, lettering, place }) {
+      // r28 (studio_v3): the framed cut-out carries its own contact shadow and is drawn where placeSubject put it
+      if (place) {
+        return transform(backdropUrl, {
+          width, height, fit: 'cover', format: 'jpeg', quality: 86,
+          draw: [
+            ...(lettering ? [{ url: lettering.url, top: Math.round(lettering.top * height / 1200), left: 0, width: Math.round(lettering.width * width / 1800) }] : []),
+            { url: cutoutUrl, width: place.width, height: place.height, fit: 'contain', left: place.left, bottom: place.bottom }
+          ]
+        }, 'image/jpeg');
+      }
       // the sample cars' framing (studio.ts): the floor line at 74% of the height, so the car stands 26% above the
       // bottom and takes about 80% of the width; behind it the model's name, as on the samples; the shadow under it
       const carW = Math.round(width * 0.8);
@@ -54,8 +64,8 @@ export function cloudflareImages(f: FetchCf = (u, i) => fetch(u, i as RequestIni
         ]
       }, 'image/jpeg');
     },
-    async normalize({ sourceUrl, width, height }) {
-      return transform(sourceUrl, { width, height, fit: 'cover', gravity: 'auto', format: 'jpeg', quality: 85, brightness: 1.03, contrast: 1.03 }, 'image/jpeg');
+    async normalize({ sourceUrl, width, height, trim }) {
+      return transform(sourceUrl, { ...(trim ? { trim } : {}), width, height, fit: 'cover', gravity: trim ? 'center' : 'auto', format: 'jpeg', quality: 85, brightness: 1.03, contrast: 1.03 }, 'image/jpeg');
     },
     async layer({ baseUrl, baseBlur, overlayUrl, width, height }) {
       return transform(baseUrl, {

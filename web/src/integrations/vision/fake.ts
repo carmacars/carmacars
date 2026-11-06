@@ -22,6 +22,8 @@ export function fakeVision(): VisionModel {
       // a VIN photo (release 28): the same synthetic VIN, read with an O for the 0 the reader corrects
       if (req.purpose === 'vin_read') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { vin: '3FAKEPRM5RTOOOO42', other: [] } };
       // a listing photo sorted (release 28): another outside view, no watermark
+      // 0567: where the marks are on a photo: none
+      if (req.purpose === 'photo_sort' && req.prompt.includes('"marks"')) return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { marks: [] } };
       if (req.purpose === 'photo_sort') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { shot: 'exterior_other', watermark: false } };
       if (req.purpose === 'plate_detect') return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: { plates: [{ x: 0.42, y: 0.66, w: 0.16, h: 0.06, confidence: 72 }] } };
       return { ok: true, model: FAKE_MODEL, usage, tried: [FAKE_MODEL], data: {

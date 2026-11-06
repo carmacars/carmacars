@@ -8,9 +8,13 @@ import { DEFAULT_RULES, DRAFT_SCHEMA, PROMPT_VERSION, draftProblems, normalizeDr
 import { plainDraft } from '../seo/copy.ts';
 import { LETTERING, letteringPath, letteringPng } from './lettering.ts';
 import { WINDOW_SHOTS, readAlpha, windowPlan, type WindowPlan } from './window-check.ts';
+import { frameSubject, placeSubject } from './subject-frame.ts';
+import { cropAway, type MarkBox } from './photo-sort.ts';
 
-// 0073: the sample cars' black studio with the model's name behind the car (was brand_background_v1, a light grey room)
-export const PRESET = 'studio_v2';
+// 0073: the sample cars' black studio with the model's name behind the car (was brand_background_v1, a light grey room).
+// r28 (0567): studio_v3, the car framed to its own edges (subject-frame.ts): about 80% of the width, the wheels on the floor
+// line, a contact shadow under the tyres, any mark or caption beside the car left out.
+export const PRESET = 'studio_v3';
 export const BACKDROP_PATH = 'site/backdrop/studio_v2.png';
 export const SHADOW_PATH = 'site/backdrop/shadow_v1.png';
 /** The sizes the site uses (srcset of the car cards and the gallery); the master is 1800 wide. */
@@ -27,7 +31,9 @@ export interface JobContext {
   attempts: number; max_attempts: number; input: Record<string, unknown>; vin?: string | null;
   facts?: Record<string, unknown> | null; staff_notes?: string | null; classes?: string[] | null;
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
-  photo?: { id: string; shot_type: string; angle: string; original_path: string; processed_path: string | null; rebackground: boolean; is_public: boolean; file_base: string; model?: string | null } | null;
+  photo?: { id: string; shot_type: string; angle: string; original_path: string; processed_path: string | null; rebackground: boolean; is_public: boolean; file_base: string; model?: string | null;
+    /** 0567: the photo is flagged "watermark" (the sorter saw a mark, or it is queued for the check) */
+    watermark?: boolean } | null;
 }
 export interface Budget { ai_neurons_today: number; ai_neurons_limit: number; transformations_month: number; transformations_free: number;
   /** The usage guard (0080): the month's included image transformations are used and paid usage is not allowed. */
@@ -59,6 +65,9 @@ export interface WorkerDeps {
     /** Whether a public file exists already (the model-name band is drawn once per model). */
     hasPublic?(path: string): Promise<boolean>;
   };
+  /** 0567: where the overlaid marks (watermark, logo, caption) are on an edited inside or detail photo, as fractions;
+   *  [] none; null the model could not be asked (the photo then stays flagged, off the site). */
+  findMarks?(img: { bytes: Uint8Array; contentType: string; width: number; height: number; photoId: string }): Promise<MarkBox[] | null>;
   now?(): number;
   /** The car copy is written by the search job (0061, features/seo): the draft step stores a plain copy from the
    *  facts without calling the model, so no neurons are spent twice. */
@@ -199,12 +208,18 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   let out: PhotoOut;
   let size = EXTERIOR;
   let windowsPlan: WindowPlan | null = null;
+  let framed: Awaited<ReturnType<typeof frameSubject>> = null;
+  let marksGone = false;
+  let marks: MarkBox[] | null = null;
   if (p.rebackground) {
     const cut = await d.photos.cutout(src);
     if (!cut.ok) return fail(cut) ?? fallback(d, j, cut.reason, cut.message, n, b, used);
     n += cut.transformations;
     const cutPath = `vehicles/${j.vehicle_id}/work/${p.id}-cutout.png`;
-    await d.files.putPrivate(cutPath, cut.bytes, 'image/png');
+    // r28: the car cropped to its edges with its contact shadow, marks and captions beside it left out; when the PNG
+    // cannot be read, the cut-out is placed as before (studio_v2 framing)
+    framed = await frameSubject(cut.bytes).catch(() => null);
+    await d.files.putPrivate(cutPath, framed?.png ?? cut.bytes, 'image/png');
     // the model's name behind the car, as on the sample cars: one band per model, kept in the public bucket
     let lettering: { url: string; top: number; width: number } | null = null;
     if (p.model) {
@@ -214,7 +229,10 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
         lettering = { url: d.files.publicUrl(lp), top: LETTERING.top, width: LETTERING.width };
       } catch { lettering = null; /* the photo is still made, on the plain studio */ }
     }
-    out = await d.photos.composite({ backdropUrl: d.files.publicUrl(BACKDROP_PATH), shadowUrl: d.files.publicUrl(SHADOW_PATH), cutoutUrl: await d.files.privateUrl(cutPath), lettering, ...EXTERIOR });
+    out = await d.photos.composite({ backdropUrl: d.files.publicUrl(BACKDROP_PATH), shadowUrl: d.files.publicUrl(SHADOW_PATH), cutoutUrl: await d.files.privateUrl(cutPath), lettering, ...EXTERIOR,
+      place: framed ? placeSubject(framed, EXTERIOR.width, EXTERIOR.height) : null });
+    // a mark on an outside photo is gone when the car was framed (it is not part of the car's piece); otherwise it stays flagged
+    marksGone = !!framed;
   } else {
     size = INTERIOR;
     // 0521: a dashboard or seats photo: what shows through the windows is replaced by the studio when the cut-out
@@ -224,12 +242,37 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     else { n += w?.n ?? 0; out = await d.photos.normalize({ sourceUrl: src, ...INTERIOR }); }
   }
   if (!out.ok) return fail(out) ?? fallback(d, j, out.reason, out.message, n, b, used);
-  n += out.transformations;
-  const path = `vehicles/${j.vehicle_id}/${p.file_base}.${ext(out.contentType)}`;
-  await d.files.putPublic(path, out.bytes, out.contentType);
+  let done: Extract<PhotoOut, { ok: true }> = out;
+  n += done.transformations;
+  // 0567: an inside or detail photo flagged for a mark: the vision model says where; the edge band holding it is cut off
+  if (!p.rebackground && p.watermark) {
+    const r = await cleanMarks(d, j, done, size);
+    n += r.n; marks = r.marks; marksGone = r.gone; if (r.out) done = r.out;
+  }
+  const path = `vehicles/${j.vehicle_id}/${p.file_base}.${ext(done.contentType)}`;
+  await d.files.putPublic(path, done.bytes, done.contentType);
   return { ok: true, provider: d.photos.name, ...imageCost(n, b, used),
     output: { processed_path: path, width: size.width, height: size.height, preset_version: p.rebackground ? PRESET : windowsPlan ? `windows_${windowsPlan.action}_v1` : 'normalize_v1',
-      flags: windowsPlan?.action === 'blur' ? ['windows_blurred'] : [], ...(windowsPlan ? { windows: windowsPlan } : {}) } };
+      flags: windowsPlan?.action === 'blur' ? ['windows_blurred'] : [], ...(windowsPlan ? { windows: windowsPlan } : {}),
+      ...(p.watermark ? { watermark_removed: marksGone, ...(marks ? { marks } : {}) } : {}),
+      ...(framed ? { framing: { dropped: framed.dropped, share: framed.share } } : {}) } };
+}
+
+/** 0567: the overlaid marks of an edited inside or detail photo: none found, gone; found at the edges, cut off (trim) and
+ *  the photo framed again; in the middle, or the model not asked, kept flagged (off the site until a person replaces it). */
+async function cleanMarks(d: WorkerDeps, j: JobContext, out: Extract<PhotoOut, { ok: true }>, size: { width: number; height: number }): Promise<{ out: PhotoOut & { ok: true } | null; n: number; marks: MarkBox[] | null; gone: boolean }> {
+  const p = j.photo!;
+  const marks = d.findMarks ? await d.findMarks({ bytes: out.bytes, contentType: out.contentType, width: size.width, height: size.height, photoId: p.id }).catch(() => null) : null;
+  if (!marks) return { out: null, n: 0, marks: null, gone: false };
+  if (!marks.length) return { out: null, n: 0, marks, gone: true };
+  const cut = cropAway(marks);
+  if (!cut) return { out: null, n: 0, marks, gone: false };
+  const workPath = `vehicles/${j.vehicle_id}/work/${p.id}-marks.${ext(out.contentType)}`;
+  await d.files.putPrivate(workPath, out.bytes, out.contentType);
+  const px = { top: Math.round(cut.top * size.height), right: Math.round(cut.right * size.width), bottom: Math.round(cut.bottom * size.height), left: Math.round(cut.left * size.width) };
+  const again = await d.photos.normalize({ sourceUrl: await d.files.privateUrl(workPath), ...size, trim: px });
+  if (!again.ok) return { out: null, n: 0, marks, gone: false };
+  return { out: again, n: again.transformations, marks, gone: true };
 }
 
 /** 0521: the windows of an interior photo. The interior is cut out; its transparency (what the segmenter saw through the

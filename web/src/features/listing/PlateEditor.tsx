@@ -1,10 +1,9 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { photoUrl } from '@/lib/photo';
 import { staffDo, staffRead } from '@/server/actions/staff-tools';
 import { normalizePlateBoxes } from '@/features/tolls/vision-schema';
-import { clampBox, exportCovered, forSave, fromCorners, greyOf, inside, nearCorner, paint, refineBox, suggestedBoxes, type NBox, type PlateStyle } from './plate-cover';
+import { clampBox, editorPhotoSrc, exportCovered, forSave, fromCorners, greyOf, inside, isTaintError, nearCorner, paint, readSafely, refineBox, suggestedBoxes, TAINT_MESSAGE, type NBox, type PlateStyle } from './plate-cover';
 
 // Cover the licence plate on one listing photo (migration 0042): the vision model suggests the box when it can;
 // staff drag a box (or several) over each plate with a mouse or a finger, choose a CarmaCars plate, pixelation or
@@ -34,7 +33,8 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
     const c = canvas.current, i = img.current;
     if (!c || !i || !ctx) return;
     const g = c.getContext('2d')!;
-    paint(g, i, c.width, c.height, boxes, style, ctx.cover_text, font);
+    try { paint(g, i, c.width, c.height, boxes, style, ctx.cover_text, font); }
+    catch (e) { if (isTaintError(e)) { g.drawImage(i, 0, 0, c.width, c.height); setErr(TAINT_MESSAGE); } else throw e; }
     boxes.forEach((b, n) => {
       g.save(); g.lineWidth = 2; g.setLineDash(b.suggested ? [6, 4] : []); g.strokeStyle = n === sel ? '#d7141a' : '#ffffff';
       g.strokeRect(b.x * c.width, b.y * c.height, b.w * c.width, b.h * c.height);
@@ -48,6 +48,8 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
     void staffRead<Ctx>('photo_plate_context', { photo: photo.id }).then((r) => { if (gone) return; if (r.ok) { setCtx(r.data); setStyle(r.data.default_style); } else setErr(r.message); });
     if (!photo.processed_path) return () => { gone = true; };
     const i = new Image();
+    // same origin (r28): a photo from the storage host would taint the canvas and every read of it would throw
+    i.crossOrigin = 'anonymous';
     i.onload = () => {
       if (gone || !canvas.current) return;
       img.current = i;
@@ -57,7 +59,7 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
       setReady(true);
     };
     i.onerror = () => setErr('The photo could not be opened.');
-    i.src = photoUrl(photo.processed_path);
+    i.src = editorPhotoSrc(photo.id);
     return () => { gone = true; };
   }, [photo.id, photo.processed_path]);
   useEffect(() => { draw(); }, [draw, ready]);
@@ -69,14 +71,17 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
     const k = Math.min(1, 1024 / Math.max(img.current.naturalWidth || 1024, img.current.naturalHeight || 683));
     c.width = Math.round((img.current.naturalWidth || 1024) * k); c.height = Math.round((img.current.naturalHeight || 683) * k);
     c.getContext('2d')!.drawImage(img.current, 0, 0, c.width, c.height);
+    const data = readSafely(() => c.toDataURL('image/jpeg', 0.85));
+    if (!data) { setNote(null); setErr(TAINT_MESSAGE); return; }
     const { askVision } = await import('@/features/tolls/pdf');
-    const r = await askVision('plate_detect', c.toDataURL('image/jpeg', 0.85), { photo: photo.id, vehicle: photo.vehicle_id, width: c.width, height: c.height });
+    const r = await askVision('plate_detect', data, { photo: photo.id, vehicle: photo.vehicle_id, width: c.width, height: c.height });
     if (!r.ok) { setNote(`No suggestion: ${r.message} Draw the box yourself.`); return; }
     const found = normalizePlateBoxes(r.data, { width: c.width, height: c.height });
     if (!found.length) { setNote('No plate was found. Draw a box over the plate, or mark the photo "no plate visible" if there is none.'); return; }
     // the model's box is rough: moved onto the plate's edges nearby when they stand out (plate-cover.ts refineBox)
-    const grey = greyOf(img.current, img.current.naturalWidth || c.width, img.current.naturalHeight || c.height);
-    const fixed = found.map((f) => refineBox(grey, { x: f.x, y: f.y, w: f.w, h: f.h }));
+    const im = img.current;
+    const grey = readSafely(() => greyOf(im, im.naturalWidth || c.width, im.naturalHeight || c.height));
+    const fixed = found.map((f) => (grey ? refineBox(grey, { x: f.x, y: f.y, w: f.w, h: f.h }) : { box: { x: f.x, y: f.y, w: f.w, h: f.h }, moved: false }));
     setBoxes((b) => [...b, ...fixed.map((r) => ({ ...r.box, suggested: true }))]);
     setNote(`Suggested ${found.length} box${found.length > 1 ? 'es' : ''}${fixed.some((r) => r.moved) ? ', placed on the plate\'s edges' : ''}. Check each covers the whole plate; move or resize it if not.`);
   }, [photo.id, photo.vehicle_id]);
@@ -90,8 +95,9 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
     const auto = suggestedBoxes(photo.plate_suggestion, normalizePlateBoxes);
     if (!auto.length) return;
     const w = img.current.naturalWidth || 1024, h = img.current.naturalHeight || 683;
-    const grey = greyOf(img.current, w, h);
-    const fixed = auto.map((f) => refineBox(grey, { x: f.x, y: f.y, w: f.w, h: f.h }));
+    const im = img.current;
+    const grey = readSafely(() => greyOf(im, w, h));
+    const fixed = auto.map((f) => (grey ? refineBox(grey, { x: f.x, y: f.y, w: f.w, h: f.h }) : { box: { x: f.x, y: f.y, w: f.w, h: f.h }, moved: false }));
     setBoxes((b) => (b.length === auto.length && b.every((x) => x.suggested) ? fixed.map((r) => ({ ...r.box, suggested: true })) : b));
     setNote(`Suggested ${auto.length} box${auto.length > 1 ? 'es' : ''}${fixed.some((r) => r.moved) ? ', placed on the plate\'s edges' : ''}. Check each covers the whole plate; move or resize it if not.`);
   }, [ready, photo.plate_boxes, photo.plate_suggestion]);
@@ -147,7 +153,7 @@ export function PlateEditor({ photo, onClose }: { photo: Photo; onClose: () => v
       const j = (await r.json().catch(() => ({ ok: false, message: 'The server did not answer.' }))) as { ok: boolean; message?: string };
       if (!j.ok) throw new Error(j.message ?? 'The photo could not be saved.');
       router.refresh(); onClose();
-    } catch (e) { setErr(e instanceof Error ? e.message : 'The photo could not be saved.'); } finally { setBusy(false); }
+    } catch (e) { setErr(isTaintError(e) ? TAINT_MESSAGE : e instanceof Error ? e.message : 'The photo could not be saved.'); } finally { setBusy(false); }
   };
   const noPlate = async () => {
     setBusy(true); setErr(null);
