@@ -93,6 +93,8 @@ jobs:
                 from pg_stat_activity where state <> 'idle' and backend_type = 'client backend' and pid <> pg_backend_pid() group by 1 order by 2 desc limit 12) x),
             'top_statements', (select coalesce(jsonb_agg(x), '[]') from (select regexp_replace(left(regexp_replace(query, '\s+', ' ', 'g'), 140), (select re from m), '#', 'g') q, calls, round(total_exec_time)::bigint ms, round(mean_exec_time)::int mean_ms
                 from pg_stat_statements order by total_exec_time desc limit 12) x),
+            'hiring_ai_moves', (select case when to_regclass('public.hiring_ai_moves') is null then null else (xpath('/row/n/text()', query_to_xml('select count(*) n from hiring_ai_moves', false, true, '')))[1]::text end),
+            'apology_emails', (select jsonb_object_agg(status, n) from (select status, count(*) n from notification_outbox where code = 'applicant_ai_interview_sorry' group by 1) x),
             'cron_jobs', (select coalesce(jsonb_agg(x), '[]') from (select j.jobname, j.schedule, count(r.*) runs, round(avg(extract(epoch from r.end_time - r.start_time)))::int avg_s, max(extract(epoch from r.end_time - r.start_time))::int max_s
                 from cron.job j left join cron.job_run_details r on r.jobid = j.jobid and r.start_time > now() - interval '2 hours' group by 1, 2 order by 4 desc nulls last limit 12) x)
           ) as d
