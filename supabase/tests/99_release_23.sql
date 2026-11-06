@@ -87,7 +87,7 @@ select test.ok('a 70% level exists for the CPU time', (select warn_bps = 7000 fr
 -- ================================================================ 3. Cloudflare email first (0222)
 update program_settings set cf_email_enabled = true;  -- off for the other suites (helpers.sql)
 select test.ok('the sender tries Cloudflare (on, under the month''s 3,000)', app.cf_email_try());
--- 0534: Cloudflare gets its chance before its first send (the claim held every email until it had sent, so it never did)
+-- 0535: Cloudflare gets its chance before its first send (the claim held every email until it had sent, so it never did)
 select test.ok('while Cloudflare may send, Resend''s limits hold nothing, before its first send too', app.cf_email_available());
 select test.ok('an email held by a limit waits 15 minutes while Cloudflare has budget today', app.email_hold_until(now(), now() + interval '10 hours') <= now() + interval '15 minutes');
 update program_settings set notify_cf_daily_budget = 0;

@@ -1,4 +1,4 @@
--- 99: hotfix r27b (migration 0534): remote assistant applicants still invited to book a call, or whose booked call time
+-- 99: hotfix r27b (migration 0535): remote assistant applicants still invited to book a call, or whose booked call time
 -- passed, get the AI interview once with the apology email; a past call is No show first; in-person roles and a call
 -- still ahead are left alone; the "no interview day" warning leaves the remote roles out. Fixtures start with "rta";
 -- example.test addresses only.

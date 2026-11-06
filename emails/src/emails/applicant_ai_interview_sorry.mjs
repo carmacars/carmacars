@@ -7,7 +7,7 @@ export default {
   category: 'transactional',
   from: FROM.hello,
   digest: false,
-  trigger: 'Once, by migration 0534 (the owner, November 6, 2026): a candidate for a remote assistant role (customer service, fleet, finance or remote sales) who was invited to book a call, or whose booked call time passed without the call, is moved to the AI interview: an apology for the scheduling problem on our side and the personal link to the recorded interview. No booking needed.',
+  trigger: 'Once, by migration 0535 (the owner, November 6, 2026): a candidate for a remote assistant role (customer service, fleet, finance or remote sales) who was invited to book a call, or whose booked call time passed without the call, is moved to the AI interview: an apology for the scheduling problem on our side and the personal link to the recorded interview. No booking needed.',
   timing: 'Once',
   subject: 'CarmaCars: sorry about the interview times, here is your interview link',
   preheader: 'No need to book a call: do the short recorded interview any time before {{expires_on}}.',

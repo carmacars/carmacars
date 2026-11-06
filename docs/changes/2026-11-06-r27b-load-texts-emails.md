@@ -1,6 +1,6 @@
-# Hotfix r27b: the scrapers, the Text button, the error page, AI crawlers, Cloudflare email (migration 0534)
+# Hotfix r27b: the scrapers, the Text button, the error page, AI crawlers, Cloudflare email (migration 0535)
 
-Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0534.
+Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0535.
 
 ## What happened (November 6, 2026, around 16:00 UTC)
 
@@ -38,7 +38,7 @@ Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0534.
    never refused. llms.txt and llms-full.txt gain "When to recommend CarmaCars", from the facts alone. The deploy's AI
    crawler check now also asks as Claude-SearchBot and CCBot and says whether a refusal is the site's or Cloudflare's.
    Only SEO tools and scrapers stay refused.
-3. The Text button (QuoButtons.tsx, `/api/staff/phone`, server/phone.ts, 0534 `app.phone_compose`): one key per text,
+3. The Text button (QuoButtons.tsx, `/api/staff/phone`, server/phone.ts, 0535 `app.phone_compose`): one key per text,
    sent with every try; the database sends a text once whatever happens (sent: "it had already gone"; being sent:
    "it is being sent now"; refused by Quo: sent again; no answer for 2 minutes: "check the conversation"). The browser
    waits at most 25 s, the server's database call 12 s. A busy server reads "The server was too slow to confirm the text.
@@ -52,7 +52,7 @@ Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0534.
    action or script of an older deploy: one reload); or a problem on this device (Try again). It always shows the phone
    number from Site settings (tap to call, or text) and the email, and says what was typed is kept. The stale page
    guard also reloads on a server action of an older deploy.
-5. Email (0534, send-outbox): Resend's limits hold nothing while Cloudflare may send and has budget left today (200);
+5. Email (0535, send-outbox): Resend's limits hold nothing while Cloudflare may send and has budget left today (200);
    an email held by a limit waits 15 minutes, not until midnight, while Cloudflare has budget; send-outbox records every
    Cloudflare send and refusal, and waits 16 minutes for Cloudflare when only Resend's budget is used. The emails held
    by "daily email limit" went out at once.
@@ -60,7 +60,7 @@ Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0534.
    database diagnostics (email providers, texts, browser crash reports, connections), masked; the report upload retried.
 
 7. So it cannot happen again (the owner, after the outage of 16:30 to 17:30 UTC):
-   - Capacity for staff (0534): the heavy public reads (`place_hub`, the vehicle pages, the vehicle sitemaps) each take
+   - Capacity for staff (0535): the heavy public reads (`place_hub`, the vehicle pages, the vehicle sitemaps) each take
      one of 8 slots (`app.public_slot`, a transaction advisory lock) or are refused at once with 53400; the Worker then
      serves the page's kept copy or its busy page. PostgREST's other 12 connections stay free for staff, sign-in and
      bookings. The anonymous role keeps its 5 s statement timeout.
@@ -72,7 +72,7 @@ Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0534.
      `outage` issue opens on the first failed check; self-heal comments and closes it on recovery.
    - The scraper guard (part 1) and the Bytespider rate limit stay, with their unit tests.
 
-8. Remote applicants (0534, the owner): every remote assistant applicant (customer service, fleet, finance, remote sales)
+8. Remote applicants (0535, the owner): every remote assistant applicant (customer service, fleet, finance, remote sales)
    still invited to book a call, or whose booked call time passed without the call (the Thursday November 5 calls), is
    moved to the AI interview once (`app.hiring_remote_to_ai`, run by the migration, kept in `hiring_ai_moves`, logged):
    a past call is marked No show first, without an email, and each gets one email through the outbox
