@@ -58,7 +58,7 @@ grant execute on function public.seo_links(), public.seo_hub_links(), public.sit
 create or replace function app.public_read_cache_drop() returns trigger
 language plpgsql security definer set search_path = public, app as $$
 begin
-  delete from app.public_read_cache;
+  delete from app.public_read_cache where key is not null;
   return null;
 end $$;
 drop trigger if exists public_read_cache_drop on site_settings;
