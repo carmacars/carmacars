@@ -1,10 +1,12 @@
 import { PDFDocument, StandardFonts, rgb, type PDFImage, type PDFPage } from 'pdf-lib';
 import type { Block, InitialRow, SignatureRow } from './model.ts';
+import { LOGO_BAR, LOGO_LETTERS, LOGO_VIEWBOX } from '../brand/logo-paths.ts';
 
 // The agreement as a PDF (pdf-lib: pure JavaScript, runs in the Worker; pdf.ts is the server's door to it, and the unit
 // tests render with this file directly). Deterministic: the same
 // blocks and date give the same bytes, so the SHA-256 recorded at opening identifies the document.
 // The standard fonts use WinAnsi, so characters outside it are mapped to plain equivalents.
+const LOGO_INK = rgb(10 / 255, 10 / 255, 10 / 255), LOGO_RED = rgb(227 / 255, 6 / 255, 19 / 255);   // the brand kit's black and red
 const W = 612, H = 792, M = 54;           // US Letter, 0.75 inch margins
 const INK = rgb(0, 0, 0), GREY = rgb(0.37, 0.37, 0.37), LINE = rgb(0.85, 0.85, 0.85), RED = rgb(0.816, 0.067, 0.106), WHITE = rgb(1, 1, 1), ZEBRA = rgb(0.965, 0.965, 0.965);
 // a cell that is an amount (or a percentage, or a count with its unit) is right-aligned in a branded table
@@ -28,8 +30,18 @@ export interface PdfExtras {
   brand?: boolean;
   /** The logo from Admin > Settings > Site (PNG or JPEG) in place of the wordmark, on branded documents. */
   logo?: Uint8Array | null;
+  /** Release 28: false leaves out the small logo in the top right corner of an unbranded document. */
+  logoMark?: boolean;
   /** 0154: the drawn initials (PNG) of the key terms, by the term's code. */
   initials?: Map<string, Uint8Array>;
+}
+
+/** The brand logo (features/brand/logo-paths.ts) with its top left corner at (x, top), `width` points wide. */
+function drawLogo(p: PDFPage, x: number, top: number, width: number) {
+  const sc = width / LOGO_VIEWBOX.width;
+  const at = { x: x - LOGO_VIEWBOX.x * sc, y: top + LOGO_VIEWBOX.y * sc, scale: sc, borderWidth: 0 };
+  p.drawSvgPath(LOGO_LETTERS, { ...at, color: LOGO_INK });
+  p.drawSvgPath(LOGO_BAR, { ...at, color: LOGO_RED });
 }
 
 export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8Array> {
@@ -39,8 +51,6 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
   const reg = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const boldFont = bold;
-  // only branded documents embed the italic face: an agreement's bytes (and so its SHA-256) stay as they were
-  const boldItalic = x.brand ? await doc.embedFont(StandardFonts.HelveticaBoldOblique) : bold;
   let logo: PDFImage | null = null;
   if (x.brand && x.logo && x.logo.length > 8) {
     try { logo = x.logo[0] === 0x89 ? await doc.embedPng(x.logo) : x.logo[0] === 0xff ? await doc.embedJpg(x.logo) : null; } catch { logo = null; }
@@ -234,13 +244,16 @@ export async function agreementPdf(blocks: Block[], x: PdfExtras): Promise<Uint8
         const sc = Math.min(120 / logo.width, 24 / logo.height);
         p.drawImage(logo, { x: M, y: H - 44, width: logo.width * sc, height: logo.height * sc });
       } else {
-        const a = 'Carma', b = 'Cars', size = 16;
-        p.drawText(a, { x: M, y: H - 40, size, font: boldItalic, color: INK });
-        p.drawText(b, { x: M + boldItalic.widthOfTextAtSize(a, size), y: H - 40, size, font: boldItalic, color: RED });
+        // the brand logo (release 28), drawn as vectors: 120 points wide, on the header's line
+        drawLogo(p, M, H - 44 + 21, 120);
       }
       const tt = pdfSafe(x.title), ts = 8.5;
       p.drawText(tt, { x: W - M - reg.widthOfTextAtSize(tt, ts), y: H - 38, size: ts, font: reg, color: GREY });
       p.drawRectangle({ x: M, y: H - 52, width: W - 2 * M, height: 1.5, color: RED });
+    } else if (x.logoMark !== false) {
+      // release 28: every other document (agreements, notices) carries the small logo in the top right corner, inside the
+      // top margin, so nothing on the page moves
+      drawLogo(p, W - M - 72, H - 26, 72);
     }
   });
   return doc.save({ useObjectStreams: false });

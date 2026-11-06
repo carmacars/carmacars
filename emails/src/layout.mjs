@@ -2,9 +2,11 @@
 // Table-based, inline-styled, single column, 600px. Merge tags are left in place for the engine.
 import { BRAND, C, FONT, FONT_WORDMARK } from './brand.mjs';
 
-// The wordmark: the exact string CarmaCars, "Carma" in the surface text colour and "Cars" in red, bold italic condensed.
-const wordmark = (size, carma, cls = '') =>
-  `<span${cls ? ` class="${cls}"` : ''} style="font-family:${FONT_WORDMARK};font-size:${size}px;line-height:${size + 4}px;font-weight:700;font-style:italic;letter-spacing:-0.01em;color:${carma};">Carma<span style="color:${C.red};">Cars</span></span>`;
+// The logo (release 28): the brand kit's PNG at carmacars.ca/brand/email/<surface>.png, which serves the logo uploaded in
+// Admin > Settings > Site (PNG or JPEG) when there is one, else the brand kit's (web/src/app/brand/email). White letters on
+// the black header, black letters on the light footer; the alt text "CarmaCars" stands in while images are off.
+const logo = (width, surface, cls = '') =>
+  `<img${cls ? ` class="${cls}"` : ''} src="${BRAND.site}/brand/email/${surface}.png" width="${width}" height="${Math.round(width * 152 / 857)}" alt="CarmaCars" style="display:block;border:0;outline:none;text-decoration:none;width:${width}px;height:auto;max-width:${width}px;font-family:${FONT_WORDMARK};font-size:${Math.round(width / 8)}px;line-height:${Math.round(width / 6)}px;font-weight:700;font-style:italic;color:${surface === 'on-dark' ? '#FFFFFF' : C.ink};">`;
 import { url, PATHS } from './links.mjs';
 import { escapeHtml } from './engine.mjs';
 
@@ -264,7 +266,11 @@ a{text-decoration:underline;}
   .bar{background-color:#F3F3F3 !important;}
   .num{background-color:#F3F3F3 !important;color:#000000 !important;}
   .foot{background-color:#000000 !important;}
+  .logo-light{display:none !important;}
+  .logo-dark{display:block !important;max-height:none !important;}
 }
+[data-ogsc] .logo-light{display:none !important;}
+[data-ogsc] .logo-dark{display:block !important;max-height:none !important;}
 [data-ogsc] .tx{color:#F3F3F3 !important;}
 [data-ogsc] .tx-mid{color:#A3A3A3 !important;}
 [data-ogsc] .tx-soft{color:#909090 !important;}
@@ -279,7 +285,7 @@ a{text-decoration:underline;}
 <tr><td bgcolor="${C.red}" height="4" style="height:4px;background-color:${C.red};font-size:0;line-height:0;">&nbsp;</td></tr>
 <tr><td class="px" bgcolor="${C.black}" style="background-color:${C.black};padding:26px ${PAD}px 0 ${PAD}px;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
-<td align="left" valign="middle"><a href="${url('home')}" style="text-decoration:none;color:#FFFFFF;">${wordmark(30, '#FFFFFF')}</a></td>
+<td align="left" valign="middle"><a href="${url('home')}" style="text-decoration:none;color:#FFFFFF;">${logo(170, 'on-dark')}</a></td>
 <td class="ref" align="right" valign="middle" style="font-family:${FONT};font-size:11px;line-height:16px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;color:${C.labelOnBlack};">${esc(email.ref || '')}</td>
 </tr></table>
 </td></tr>
@@ -292,7 +298,7 @@ ${heroB.lead ? `<div style="font-family:${FONT};font-size:16px;line-height:25px;
 <tr><td height="34" style="height:34px;font-size:0;line-height:0;">&nbsp;</td></tr>
 ${blocksHtml(rest)}<tr><td class="px" style="padding:4px ${PAD}px 34px ${PAD}px;"><div class="rule" style="border-top:1px solid ${C.rule};padding-top:20px;font-family:${FONT};font-size:15px;line-height:23px;color:${C.ink};"><span class="tx">${inlineHtml(helpLine(email))}</span></div></td></tr>
 <tr><td class="px foot" bgcolor="${C.wash}" style="background-color:${C.wash};padding:26px ${PAD}px 30px ${PAD}px;">
-<div>${wordmark(21, C.ink, 'tx')}</div>
+<div>${logo(118, 'on-light', 'logo-light')}<!--[if !mso]><!--><div class="logo-dark" style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${logo(118, 'on-dark')}</div><!--<![endif]--></div>
 <div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${esc(reason(email))}</div>
 ${marketing ? `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;"><a href="{{unsubscribe_url}}" class="tx" style="color:${C.ink};text-decoration:underline;font-weight:700;">Unsubscribe</a> at any time. We act on it within 10 business days.</div>` : ''}
 ${staff ? '' : `<div class="tx-mid" style="font-family:${FONT};font-size:12px;line-height:19px;color:${C.mid};padding-top:8px;">${inlineHtml(CONTACT_LINE).replace(/class="tx"/g, '')}</div>`}

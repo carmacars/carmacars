@@ -1,3 +1,4 @@
+import { photoUrl } from '@/lib/photo';
 import type { SiteSettings } from '@/lib/types';
 
 // One name, address and phone everywhere (0095): the structured data, the footer and the contact page all print the
@@ -34,7 +35,8 @@ export function businessLd(s: SiteSettings, base: string, opts: { areas?: string
   return {
     '@type': 'AutoRental', '@id': `${base}/#business`, name: b?.name || s.brand_name, url: `${base}/`,
     ...(s.tagline ? { slogan: s.tagline } : {}),
-    ...(s.logo.light ? { logo: s.logo.light } : { logo: `${base}/favicon.svg` }),
+    // the logo uploaded in Admin, else the brand kit's PNG (release 28: search engines want a raster logo of 112 pixels or more)
+    logo: s.logo.light ? (/^https?:/.test(photoUrl(s.logo.light)) ? photoUrl(s.logo.light) : `${base}${photoUrl(s.logo.light)}`) : `${base}/brand/carma-logo-black-1000w.png`,
     image: `${base}/og/default.png`,
     ...(s.phone ? { telephone: s.phone } : {}),
     ...(s.public_email ? { email: s.public_email } : {}),

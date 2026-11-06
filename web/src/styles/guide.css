@@ -152,7 +152,7 @@
   .gd-hidden { display: revert !important; }
   .gd-cover { display: flex; flex-direction: column; justify-content: space-between; height: 9.4in; break-after: page; background: #000 !important; color: #fff; padding: 0.55in; margin: -0.1in 0 0; }
   .gd-cover .gd-wm { font: 800 24pt/1 var(--font-display); letter-spacing: -0.045em; }
-  .gd-cover .gd-wm b { color: var(--red-600); font-weight: 800; }
+  .gd-cover .gd-wm img { height: 30pt; width: auto; display: block; }
   .gd-cover h1 { font: 800 50pt/0.95 var(--font-display); letter-spacing: -0.045em; margin: 0 0 18pt; }
   .gd-cover .gd-rule { width: 0.7in; height: 5pt; background: var(--red-600) !important; margin: 0 0 14pt; }
   .gd-cover p { font: 500 14pt/1.35 var(--font-text); color: var(--grey-300); max-width: 4.4in; margin: 0; }

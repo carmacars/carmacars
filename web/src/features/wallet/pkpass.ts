@@ -16,8 +16,8 @@ export function passJson(f: PassFacts, ids: PassIds): Record<string, unknown> {
   back.push({ key: 'manage', label: 'Your booking', value: `${f.site.replace(/\/$/, '')}/account/bookings/${f.number}` });
   return {
     formatVersion: 1, passTypeIdentifier: ids.passTypeId, teamIdentifier: ids.teamId, serialNumber: f.number,
-    organizationName: 'CarmaCars', description: `CarmaCars booking ${f.number}`, logoText: 'CarmaCars',
-    foregroundColor: 'rgb(255, 255, 255)', backgroundColor: 'rgb(17, 17, 17)', labelColor: 'rgb(200, 200, 200)',
+    organizationName: 'CarmaCars', description: `CarmaCars booking ${f.number}`, 
+    foregroundColor: 'rgb(255, 255, 255)', backgroundColor: 'rgb(10, 10, 10)', labelColor: 'rgb(200, 200, 200)',
     relevantDate: f.pickup, expirationDate: new Date(new Date(f.ret).getTime() + 86400e3).toISOString(),
     barcodes: [{ format: 'PKBarcodeFormatQR', message: f.number, messageEncoding: 'iso-8859-1', altText: f.number }],
     eventTicket: {

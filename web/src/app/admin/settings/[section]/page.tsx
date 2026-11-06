@@ -145,7 +145,7 @@ export default async function Section({ params, searchParams }: { params: Promis
         <SampleCarsToggle publicCount={samples.public} />
       </Card>}
       {SITE_GROUPS.map(([title, keys]) => <Card key={title} title={title}><SaveForm table="site_settings" rowKey="singleton" testId={`site-${title.split(' ')[0]!.toLowerCase()}`} fields={fieldsFrom(s.site, keys, { featured_mode: [['random', 'Random'], ['manual', 'Chosen by hand']] })} /></Card>)}
-      <Card title="Logo"><p className="small muted">Light: {String(s.site.logo_light_file_key ?? 'none, the wordmark is shown')}. Dark: {String(s.site.logo_dark_file_key ?? 'none')}.</p><div className="ad-cols ad-cols--2"><LogoUpload which="light" /><LogoUpload which="dark" /></div></Card>
+      <Card title="Logo"><p className="small muted">Light: {String(s.site.logo_light_file_key ?? 'none, the brand logo (black letters, red bar) is shown')}. Dark: {String(s.site.logo_dark_file_key ?? 'none, the brand logo (white letters, red bar) is shown')}. The logo shows in the site header and footer, every portal, every email (PNG or JPEG only; an SVG upload leaves emails on the brand logo) and on the documents (PNG or JPEG).</p><div className="ad-cols ad-cols--2"><LogoUpload which="light" /><LogoUpload which="dark" /></div></Card>
       <Card title="Search engines: how to verify" testId="search-verify"><ol className="small">
         <li>Google Search Console: add the property https://carmacars.ca, choose <b>HTML tag</b>, and paste only the content value (the part inside content=&quot;...&quot;) into Google site verification above. Or choose <b>HTML file</b> and type the file name (for example google1234abcd.html) into Google verification file: the site answers it at its root.</li>
         <li>Bing Webmaster Tools: import from Search Console, or choose the meta tag and paste its content into Bing site verification.</li>
@@ -158,7 +158,7 @@ export default async function Section({ params, searchParams }: { params: Promis
           ['Phone', String(s.site.phone_display ?? s.site.phone ?? '')], ['Website', String(s.site.site_url ?? '')], ['Hours', String(s.site.opening_hours_text ?? '')],
           ['Categories', ((s.site.business_categories as string[] | null) ?? []).join(', ')], ['Description', String(s.site.business_description ?? '')]]} />
       </Card>
-      <Card title="Browser icon and sharing image"><p className="small muted">Icon: {String(s.site.favicon_file_key ?? 'none, the drawn stand-in is shown')}. Sharing image: {String(s.site.og_image_file_key ?? 'none, the built-in image is used')}.</p><div className="ad-cols ad-cols--2"><LogoUpload which="favicon" /><LogoUpload which="og" /></div></Card>
+      <Card title="Browser icon and sharing image"><p className="small muted">Icon: {String(s.site.favicon_file_key ?? 'none, the brand icon (the CA mark) is shown')}. Sharing image: {String(s.site.og_image_file_key ?? 'none, the built-in image is used')}.</p><div className="ad-cols ad-cols--2"><LogoUpload which="favicon" /><LogoUpload which="og" /></div></Card>
     </>);
   }
   case 'content':

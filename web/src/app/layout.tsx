@@ -28,7 +28,9 @@ export async function generateMetadata(): Promise<Metadata> {
     title: { default: s.seo.default_title ?? `${s.brand_name} | ${s.city} car rental`, template: `%s` },
     description: s.seo.default_description ?? undefined,
     applicationName: s.brand_name,
-    icons: { icon: s.favicon ? photoUrl(s.favicon) : '/favicon.svg', apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180' }] },
+    // release 28: the brand kit's favicons (public/favicon.*) unless Admin uploaded one
+    icons: { icon: s.favicon ? photoUrl(s.favicon) : [{ url: '/favicon.ico', sizes: 'any' }, { url: '/favicon.svg', type: 'image/svg+xml' }, { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' }],
+      apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180' }] },
     // installable on phones (migration 0300): the manifest, and iOS's Home Screen name and full-screen mode
     manifest: '/manifest.webmanifest',
     appleWebApp: { capable: true, title: s.brand_name, statusBarStyle: 'black' },
@@ -40,7 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const viewport: Viewport = { themeColor: '#000000', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: '#0A0A0A', width: 'device-width', initialScale: 1 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // settings and the cookie wording only: the frame runs on every page (docs/audit/2026-10-13-launch-audit.md section 9)
