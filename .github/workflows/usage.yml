@@ -50,10 +50,13 @@ jobs:
             'expired_today', (select count(*) from notification_outbox where status = 'skipped' and status_reason like 'expired%' and created_at > now() - interval '1 day'),
             'failed_today', (select count(*) from notification_outbox where status = 'failed' and updated_at > now() - interval '1 day'),
             'cf_ok_at', (select cf_ok_at from email_provider_state), 'cf_failed_at', (select cf_failed_at from email_provider_state),
-            'cf_error', (select left(cf_error, 200) from email_provider_state)) as e
+            'cf_error', (select left(cf_error, 200) from email_provider_state),
+            'next_due', (select min(send_after) from notification_outbox where status in ('queued', 'delayed')),
+            'held', (select string_agg(r || ' ' || n, '; ') from (select left(coalesce(status_reason, status), 60) r, count(*) n from notification_outbox
+                       where status in ('queued', 'delayed') group by 1 order by 2 desc limit 4) x)) as e
           SQL
           "$GITHUB_WORKSPACE/scripts/deploy/sb.sh" sql-file "$RUNNER_TEMP/email.sql" > "$RUNNER_TEMP/email.json"
-          jq -r '.[0].e | "Cloudflare \(.cf_used)/\(.cf_budget), Resend \(.resend_used)/\(.resend_budget), waiting \(.queued), expired today \(.expired_today), failed today \(.failed_today); Cloudflare last ok \(.cf_ok_at // "never"), last refusal \(.cf_failed_at // "none") \(.cf_error // "")"' "$RUNNER_TEMP/email.json" | sed 's/^/::notice title=emails::/'
+          jq -r '.[0].e | "Cloudflare \(.cf_used)/\(.cf_budget), Resend \(.resend_used)/\(.resend_budget), waiting \(.queued), expired today \(.expired_today), failed today \(.failed_today); Cloudflare last ok \(.cf_ok_at // "never"), last refusal \(.cf_failed_at // "none") \(.cf_error // ""); next due \(.next_due // "none"); held: \(.held // "none")"' "$RUNNER_TEMP/email.json" | sed 's/^/::notice title=emails::/'
       - name: Into the database
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
