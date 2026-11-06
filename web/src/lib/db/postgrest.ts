@@ -40,7 +40,11 @@ export async function postgrestRpc(f: typeof fetch, t: RpcTarget, fn: string, ar
   }
   if (!res.ok) {
     let e: { message?: string; code?: string; hint?: string | null } = {};
-    try { e = JSON.parse(text); } catch { e = { message: text.slice(0, 300) || res.statusText }; }
+    // r27b: a gateway's own answer (Cloudflare's "error code: 504", an HTML error page) is never passed on as it is
+    try { e = JSON.parse(text); } catch {
+      e = { message: /^\s*(error code: \d+|<!doctype|<html)/i.test(text) || !text.trim()
+        ? `The database server did not answer in time (HTTP ${res.status}). Try again in a moment.` : text.slice(0, 300) || res.statusText };
+    }
     throw new RpcError(e.message ?? `Database call ${fn} failed (${res.status})`, e.code, e.hint ?? undefined, res.status);
   }
   // a function returning void answers 204 with no body: supabase-js gives null
@@ -50,7 +54,7 @@ export async function postgrestRpc(f: typeof fetch, t: RpcTarget, fn: string, ar
 // While `next build` pre-renders pages (the deploy's "Build the Worker"), a slow moment of the database must not fail
 // the whole build: a statement timeout (57014), a pooler or network error, or a 5xx is tried again with a growing wait.
 // At run time only an error from before the statement ran is tried again (below).
-const RETRYABLE = new Set(['57014', '53300', '08000', '08003', '08006', '57P01', 'PGRST000', 'PGRST001', 'PGRST002', 'PGRST003']);
+const RETRYABLE = new Set(['57014', '53300', '53400', '08000', '08003', '08006', '57P01', 'PGRST000', 'PGRST001', 'PGRST002', 'PGRST003']);
 export function isRetryable(e: unknown): boolean {
   if (e instanceof RpcError) return (e.code !== undefined && RETRYABLE.has(e.code)) || (e.status !== undefined && (e.status >= 500 || e.status === 429));
   return e instanceof TypeError; // fetch failed: network

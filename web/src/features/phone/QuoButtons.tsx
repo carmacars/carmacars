@@ -29,12 +29,26 @@ function useCfg(): Cfg | null {
 const readDesktop = () => { try { return localStorage.getItem(QUO_DESKTOP_KEY); } catch { return null; } };
 const writeDesktop = (v: 'app' | 'web') => { try { localStorage.setItem(QUO_DESKTOP_KEY, v); } catch { /* this visit only */ } };
 
-async function post(action: string, p: Record<string, unknown>): Promise<Record<string, unknown> & { ok?: boolean; error?: string }> {
-  const r = await fetch('/api/staff/phone', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', keepalive: true, body: JSON.stringify({ action, ...p }) });
+/** What a person reads when the send did not finish (r27b: the raw "error code: 504" of a busy server is never shown). */
+export const SLOW_SEND = 'The server was too slow to confirm the text. It was not sent twice: press Send again and we check first.';
+export function sendProblem(status: number, error: string | undefined): string {
+  if (error && !/^error code:|^<!doctype|^<html|gave up|statement timeout|did not answer in time/i.test(error.trim())) return error;
+  if (status === 0 || status === 408 || status === 429 || status >= 500 || (error && /error code: 5|gave up|timeout|did not answer/i.test(error))) return SLOW_SEND;
+  return error || 'Something went wrong';
+}
+
+async function post(action: string, p: Record<string, unknown>, timeoutMs = 25_000): Promise<Record<string, unknown> & { ok?: boolean; error?: string }> {
+  let r: Response;
+  try {
+    // r27b: a bounded wait (the server gives up on its own calls before this), so the dialog never hangs on "Sending"
+    r = await fetch('/api/staff/phone', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', keepalive: true,
+      body: JSON.stringify({ action, ...p }), signal: AbortSignal.timeout(timeoutMs) });
+  } catch { throw new Error(sendProblem(0, undefined)); }
   const j = (await r.json().catch(() => ({}))) as Record<string, unknown> & { ok?: boolean; error?: string };
-  if (!r.ok) throw new Error(j.error ?? 'Something went wrong');
+  if (!r.ok) throw new Error(sendProblem(r.status, j.error));
   return j;
 }
+const newKey = () => { try { return crypto.randomUUID(); } catch { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`; } };
 
 const Phone = () => <svg viewBox="0 0 20 20" aria-hidden="true" className="qb-ic"><path d="M6.6 2.5 4.4 3.1c-.8.2-1.3 1-1.2 1.8.6 6.1 5.7 11.2 11.8 11.8.8.1 1.6-.4 1.8-1.2l.6-2.2-3.4-1.5-1.5 1.6a9 9 0 0 1-4.6-4.6l1.6-1.5z" /></svg>;
 const Bubble = () => <svg viewBox="0 0 20 20" aria-hidden="true" className="qb-ic"><path d="M3.5 4.5h13v9h-7l-4 3v-3h-2z" /></svg>;
@@ -121,15 +135,17 @@ function Sheet({ title, onClose, children, testId }: { title: string; onClose: (
 
 function Composer({ n, who, booking, from, inbox, onClose, testId }: { n: string; who: string; booking?: string | null; from: string | null; inbox?: string | null; onClose: () => void; testId: string }) {
   const [body, setBody] = useState('');
-  const [state, setState] = useState<{ busy?: boolean; err?: string; sent?: string | null }>({});
+  const [state, setState] = useState<{ busy?: boolean; err?: string; sent?: string | null; note?: string }>({});
+  // r27b: one key for this text, sent with every try: the database sends it once however often Send is pressed
+  const key = useRef<string>(newKey());
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!body.trim() || state.busy) return;
     setState({ busy: true });
     try {
-      const r = await post('phone_compose', { number: n, body, ...(booking ? { booking_number: booking } : {}) });
+      const r = await post('phone_compose', { number: n, body, key: key.current, ...(booking ? { booking_number: booking } : {}) });
       if (r.ok === false) throw new Error(r.error ?? 'Not sent');
-      setState({ sent: typeof r.thread_id === 'string' ? r.thread_id : null });
+      setState({ sent: typeof r.thread_id === 'string' ? r.thread_id : null, note: typeof r.note === 'string' ? r.note : undefined });
     } catch (x) { setState({ err: x instanceof Error ? x.message : 'Not sent' }); }
   };
   const left = 1600 - body.length;
@@ -137,7 +153,7 @@ function Composer({ n, who, booking, from, inbox, onClose, testId }: { n: string
     <Sheet title={`Text ${who}`} onClose={onClose} testId={`${testId}-composer`}>
       {state.sent !== undefined ? (
         <div className="qb-done" role="status" data-testid="quo-sent">
-          <p><b>Sent</b> from the CarmaCars number{from ? ` (${prettyNumber(from)})` : ''}. It is in {who}&apos;s conversation.</p>
+          <p><b>Sent</b> from the CarmaCars number{from ? ` (${prettyNumber(from)})` : ''}. It is in {who}&apos;s conversation.{state.note ? ` ${state.note}` : ''}</p>
           <p className="qb-acts">{inbox && state.sent && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${inbox}${inbox.includes('?') ? '&' : '?'}inbox=phone&id=${state.sent}`}>Open the conversation</Link>}
             <button type="button" className="btn btn--primary btn--sm" onClick={onClose}>Done</button></p>
         </div>

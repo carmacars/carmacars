@@ -48,7 +48,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en-CA" className={`${interDisplay.variable} ${inter.variable}`} suppressHydrationWarning>
       {/* the stale page guard: a script or stylesheet of an older build that fails to load reloads the page once (src/lib/chunk-guard.ts) */}
-      <head><script id="chunk-guard" dangerouslySetInnerHTML={{ __html: CHUNK_GUARD_SCRIPT }} /></head>
+      <head><script id="chunk-guard" dangerouslySetInnerHTML={{ __html: CHUNK_GUARD_SCRIPT }} />
+        {/* r27b: the phone and email the error page shows (src/lib/client-error/ErrorPanel.tsx), from Site settings */}
+        <meta name="cc-contact" content={JSON.stringify({ phone: s.phone_display || s.phone, email: s.public_email })} /></head>
       <body>
         {/* the store app (0390): <html data-shell="app"> before the first paint, so web-only parts never flash */}
         <script dangerouslySetInnerHTML={{ __html: SHELL_MARK_SCRIPT }} />

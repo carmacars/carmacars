@@ -97,6 +97,27 @@ async function main() {
     for (const f of report.failures) { const k = `${f.outcome ?? '?'} ${f.status ?? ''} ${f.route ?? f.trigger ?? '?'}`.replace(/\s+/g, ' '); by[k] = (by[k] ?? 0) + 1; }
     report.failures_by_route = Object.entries(by).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ key: k, count: n }));
   } catch (e) { report.failures_unavailable = String(e.message).slice(0, 300); }
+  // 3. (2026-11-06, r27b) the invocations by user agent and by the edge copy's answer (x-edge header kept in the logs):
+  // which crawlers cost Worker time. Each part the dataset does not have is reported as unavailable.
+  const browserLike = { key: '$workers.event.request.headers.user-agent', operation: 'includes', type: 'string', value: 'Windows NT 10.0; Win64; x64) AppleWebKit' };
+  for (const [name, key, extra] of [['by_user_agent', '$workers.event.request.headers.user-agent'], ['by_path', '$workers.event.request.path'],
+    ['by_network', '$workers.event.request.cf.asOrganization'], ['by_bot_category', '$workers.event.request.cf.verifiedBotCategory'],
+    ['by_network_windows_chrome', '$workers.event.request.cf.asOrganization', browserLike], ['by_path_windows_chrome', '$workers.event.request.path', browserLike],
+    ['by_country_windows_chrome', '$workers.event.request.cf.country', browserLike], ['by_url_windows_chrome', '$workers.event.request.url', browserLike],
+    ['by_fetch_dest_windows_chrome', '$workers.event.request.headers.sec-fetch-dest', browserLike], ['by_ch_ua_windows_chrome', '$workers.event.request.headers.sec-ch-ua-platform', browserLike],
+    ['by_lang_windows_chrome', '$workers.event.request.headers.accept-language', browserLike], ['by_status_windows_chrome', '$workers.event.response.status', browserLike]]) {
+    try {
+      const res = await query({ queryId: `carmacars-${name}-${Date.now()}`, view: 'calculations', limit: 40, timeframe: { from, to },
+        parameters: { ...base, filters: extra ? [byScript, extra] : [byScript], calculations: [{ operator: 'count', alias: 'n' }, { operator: 'sum', key: '$workers.cpuTimeMs', keyType: 'number', alias: 'cpu_ms' }],
+          groupBys: [{ type: key.endsWith('.status') ? 'number' : 'string', value: key }], orderBy: { value: 'n', order: 'desc' }, limit: 40 } });
+      const rows = {};
+      for (const c of res.calculations ?? []) for (const g of c.aggregates ?? []) {
+        const k = clean((g.groups ?? []).map((x) => x.value).join(' ') || '(none)', 160);
+        rows[k] = { ...(rows[k] ?? {}), [c.alias ?? 'value']: typeof g.value === 'number' ? Math.round(g.value) : g.value };
+      }
+      report[name] = Object.entries(rows).map(([k, x]) => ({ key: k, ...x })).sort((a, b) => (b.n ?? 0) - (a.n ?? 0)).slice(0, 40);
+    } catch (e) { report[`${name}_unavailable`] = String(e.message).slice(0, 200); }
+  }
   return report;
 }
 

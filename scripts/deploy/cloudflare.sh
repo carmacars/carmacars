@@ -271,7 +271,7 @@ email() {
 # live site answers each crawler; a block is a warning with the dashboard steps, never changed here.
 crawlers() {
   [ "$DEPLOY_ENV" = production ] || { log "crawlers: production only"; return 0; }
-  local zone bm steps ua code robots
+  local zone bm steps ua code robots body name
   steps="Cloudflare dashboard > $DOMAIN > Security > Bots (and AI Crawl Control): set 'Block AI bots' to do not block, turn off the managed robots.txt, and allow the AI crawlers"
   zone=$(cfapi GET "/zones?name=$DOMAIN" 2>/dev/null | jq -r '.result[0].id // empty') || zone=""
   if [ -z "$zone" ]; then warn "AI crawlers: the token cannot read the zone $DOMAIN; check by hand. $steps"
@@ -286,10 +286,19 @@ crawlers() {
   robots=$(curl -sS -m 20 "https://$DOMAIN/robots.txt" || true)
   if grep -qiE 'Cloudflare Managed|Content-Signal' <<<"$robots"; then warn "AI crawlers: robots.txt on $DOMAIN carries Cloudflare's managed lines. $steps"; fi
   grep -q 'OAI-SearchBot' <<<"$robots" || warn "AI crawlers: robots.txt on $DOMAIN does not name OAI-SearchBot yet (this deploy's robots.ts)"
+  # 2026-11-06 (r27b, the owner: every AI engine may read every public page): GPTBot, CCBot and the others are allowed by the
+  # site too; a refusal names who refused it (the site's own shield says "Not available to crawlers", else it is Cloudflare)
   for ua in 'Mozilla/5.0 (compatible; OAI-SearchBot/1.0; +https://openai.com/searchbot)' 'Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)' \
-            'Mozilla/5.0 (compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)' 'Mozilla/5.0 (compatible; GPTBot/1.2; +https://openai.com/gptbot)'; do
-    code=$(curl -sS -o /dev/null -m 20 -w '%{http_code}' -A "$ua" "https://$DOMAIN/" || echo 000)
-    case "$code" in 200|304) log "crawlers: ${ua#*compatible; } -> $code" ;; *) warn "AI crawlers: https://$DOMAIN/ answers $code to ${ua#*compatible; }. $steps" ;; esac
+            'Mozilla/5.0 (compatible; PerplexityBot/1.0; +https://perplexity.ai/perplexitybot)' 'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.2; +https://openai.com/gptbot)' \
+            'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; Claude-SearchBot/1.0; +https://www.anthropic.com)' 'CCBot/2.0 (https://commoncrawl.org/faq/)'; do
+    body=$(curl -sS -m 20 -w '\n%{http_code}' -A "$ua" "https://$DOMAIN/" || printf '\n000')
+    code=${body##*$'\n'}
+    name=${ua#*compatible; }; name=${name%%;*}
+    case "$code" in
+      200|304) log "crawlers: $name -> $code" ;;
+      *) if grep -q 'Not available to crawlers' <<<"$body"; then warn "AI crawlers: the site's own bot shield answers $code to $name (web/src/lib/edge/bot-shield.ts BLOCKED_BOT): it should not name an AI crawler"
+         else warn "AI crawlers: https://$DOMAIN/ answers $code to $name (Cloudflare, not the site). $steps"; fi ;;
+    esac
   done
   return 0
 }

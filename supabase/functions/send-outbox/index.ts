@@ -131,14 +131,14 @@ async function loadBudgets() {
 // 2026-11-06: a quota refusal no longer waits for midnight (the whole backlog then came due at the same minute, spent the
 // day's quota in the first batches and was refused again): the rows wait 2 to 2.5 hours, a spread of their own, and the
 // pacing of app.outbox_claim (0530) keeps the low priority classes from taking the day's quota first.
-class Held extends Error { constructor(public reason: string, public until: 'minute' | 'later', public done = false) { super(reason); } }
+class Held extends Error { constructor(public reason: string, public until: 'minute' | 'later', public done = false, public at?: Date) { super(reason); } }
 function held(status: number, body: string): Held | null {
   if (status !== 429) return null;
   if (/daily_quota|monthly_quota|quota/i.test(body)) return new Held(/monthly/i.test(body) ? 'the email provider\'s monthly limit' : 'the email provider\'s daily limit', 'later');
   return new Held('held by the email provider\'s rate limit', 'minute');
 }
 async function defer(r: Row, h: Held) {
-  const until = h.done ? budget.midnight : h.until === 'minute' ? new Date(Date.now() + 60_000) : new Date(Date.now() + 2 * 3600_000 + Math.floor(Math.random() * 1800_000));
+  const until = h.at ? h.at : h.done ? budget.midnight : h.until === 'minute' ? new Date(Date.now() + 60_000) : new Date(Date.now() + 2 * 3600_000 + Math.floor(Math.random() * 1800_000));
   await sql`select app.outbox_defer(${r.id}::uuid, ${h.reason}, ${until})`;
 }
 const pause = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
@@ -166,7 +166,14 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
     const files = await attachments(r);
     if (cfOn && budget.cfLeft <= 0) cfOn = false;
     if (!cfOn && budget.resendLeft <= 0) {
-      // both budgets are used: the email waits for tomorrow, attempts untouched (oldest, highest priority first when it comes due)
+      // 0535: Resend's budget is used and Cloudflare cannot send right now. With Cloudflare budget left today (it rests 15
+      // minutes after a refusal) the email waits 16 minutes; only when both budgets are used it waits for tomorrow,
+      // attempts untouched (oldest, highest priority first when it comes due)
+      if (budget.cfLeft > 0) {
+        const h = new Held('waiting for Cloudflare email (Resend\'s budget for today is used)', 'later', false, new Date(Date.now() + 16 * 60_000));
+        await defer(r, h);
+        return h;
+      }
       await sql`select app.outbox_defer(${r.id}::uuid, ${'the day\'s email budget is used'}, ${budget.midnight})`;
       return new Held('the day\'s email budget is used', 'later', true);
     }
@@ -200,9 +207,13 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
             headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined });
           if ('id' in cf) {
             cfOn = true;
+            // 0535: a send here counts as Cloudflare working too (before, Cloudflare "never" sent: its last success was not kept)
+            await sql`select public.server_cf_email_result(${JSON.stringify({ ok: true })}::jsonb)`;
             await sql`select app.outbox_mark_sent(${r.id}::uuid, ${'cf:' + cf.id}, ${text})`;
+            budget.cfLeft--;
             return 'sent';
           }
+          await sql`select public.server_cf_email_result(${JSON.stringify({ ok: false, error: cf.error })}::jsonb)`;
         }
         await defer(r, h); return h;
       }

@@ -46,3 +46,9 @@ test('a constraint a person can act on is named in words (0148)', () => {
   assert.match(friendlyText({ message: 'new row for relation "bookings" violates check constraint "bookings_bill_to_insurer"', code: '23514' }, 'E-1'), /pick the insurer.*E-1/);
   assert.match(friendlyText({ message: 'duplicate key value violates unique constraint "renters_email_key"', code: '23505' }, 'E-2'), /find them by email/);
 });
+
+test('r27b: a gateway timeout reads as a sentence that says to check first', () => {
+  const e = { message: 'The database server did not answer in time (HTTP 504). Try again in a moment.' };
+  assert.ok(isRawDbError(e));
+  assert.match(friendlyText(e, 'E-1'), /too slow to answer.*refresh the page to check/);
+});

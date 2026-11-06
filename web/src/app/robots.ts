@@ -27,12 +27,14 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const scoped = guard ? { allow: ['/', '/llms.txt', '/llms-full.txt', ...landing], disallow: [...PRIVATE_PATHS, ...OUT_OF_SCOPE] } : { allow, disallow };
   const full = new Set<string>(FULL_SCOPE_CRAWLERS);
   const slow = new Set<string>(SLOW_CRAWLERS);
+  // 2026-11-06 (r27b, the owner: every search and AI engine may index everything): every named search and AI crawler
+  // reads every public page the search scope allows (the crawler guard no longer narrows them); Bytespider is paced
   return {
     rules: [
       { userAgent: ANSWER_CRAWLERS.filter((b) => full.has(b)), allow, disallow },
-      { userAgent: ANSWER_CRAWLERS.filter((b) => !full.has(b) && !slow.has(b)), ...scoped },
-      // 2026-10-30: the training crawlers, one page every 10 seconds; the SEO tools and scrapers, nothing
-      { userAgent: [...SLOW_CRAWLERS], ...scoped, crawlDelay: CRAWL_DELAY_S },
+      { userAgent: ANSWER_CRAWLERS.filter((b) => !full.has(b) && !slow.has(b)), allow, disallow },
+      { userAgent: [...SLOW_CRAWLERS], allow, disallow, crawlDelay: CRAWL_DELAY_S },
+      // the SEO tools and scrapers, nothing
       { userAgent: [...BLOCKED_CRAWLERS], disallow: ['/', ...PRIVATE_PATHS] },
       { userAgent: '*', allow: scoped.allow.filter((a) => a !== '/llms.txt' && a !== '/llms-full.txt'), disallow: scoped.disallow }
     ],

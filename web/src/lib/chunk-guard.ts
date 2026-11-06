@@ -13,7 +13,7 @@
 // Plain text with no imports: it is inlined in the page (the Worker gives it the page's nonce).
 
 export const RELOAD_KEY = 'cc-stale-reload';
-export const CHUNK_ERROR_SOURCE = 'ChunkLoadError|Loading (CSS )?chunk|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module';
+export const CHUNK_ERROR_SOURCE = 'ChunkLoadError|Loading (CSS )?chunk|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Failed to find Server Action|older or newer deployment';
 
 export const CHUNK_GUARD_SCRIPT = `(function(w){
 var done=false,K=${JSON.stringify(RELOAD_KEY)},RE=new RegExp(${JSON.stringify(CHUNK_ERROR_SOURCE)},'i');

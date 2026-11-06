@@ -7,9 +7,28 @@
   "summary": "Reliability improvements that keep the website fast under heavy traffic.",
   "areas": [
    {
+    "area": "Renters",
+    "items": [
+     "A clearer error page that retries by itself and always shows how to reach us"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "A text sent from the platform is never sent twice",
+     "Remote applicants waiting for a call are offered the AI interview"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "Every AI search engine can read the site and recommend CarmaCars"
+    ]
+   },
+   {
     "area": "Reliability & security",
     "items": [
-     "Reliability improvements to website speed"
+     "Reliability improvements that keep the website fast under heavy traffic"
     ]
    }
   ]

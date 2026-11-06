@@ -10,10 +10,10 @@ import { refreshSession } from './src/lib/auth/edge-refresh';
 import { parseCookieHeader, readSession } from './src/lib/auth/session-cookie';
 import { BEACON_GIVE_UP_MS, BEACON_WAIT_MS, BEAT_WAIT_MS, MAX_BEACON_BYTES, cleanBeacon, cleanBeat, emailLinkCookie, ipKey, isBeat, isBot, within } from './src/lib/track/shared';
 import { SCHEMA_HEADER, SCHEMA_MARKER } from './src/lib/schema-marker';
-import { EDGE_CACHE_NAME, STALE_HEADER, STALE_TTL_S, crawlerCopy, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
-import { checkPage, httpsRedirect, scraperGuard, tooMany } from './src/lib/edge/scraper-guard';
+import { EDGE_CACHE_NAME, STALE_HEADER, STALE_TTL_S, busyPage, crawlerCopy, hasSession, deploymentOf, edgeKey, isProbe, serveEdge, staleKey } from './src/lib/edge/page-cache';
+import { BUSY_KEY, BUSY_MS, BusyMeter, checkPage, httpsRedirect, longTail, renderFailed, scraperGuard, tooMany } from './src/lib/edge/scraper-guard';
 import { jobsToRun, pushWaiting } from './src/lib/edge/cron-gate';
-import { isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
+import { RATE_LIMITED_BOT, isCrawler, keptToScope, shield, shieldResponse } from './src/lib/edge/bot-shield';
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
 import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
@@ -28,6 +28,14 @@ function deployNumber(version: string | null): number {
 }
 
 type Env = Record<string, unknown>;
+const busyMeter = new BusyMeter();
+/** the cached-only flag, read from the tag store at most every 15 s per isolate (a D1 read per request would cost more) */
+let busySeen = { at: 0, until: 0 };
+async function busyUntil(env: Env): Promise<number> {
+  const now = Date.now();
+  if (now - busySeen.at > 15_000) busySeen = { at: now, until: (await readNumber(env, BUSY_KEY).catch(() => 0)) ?? 0 };
+  return busySeen.until;
+}
 
 class NonceAdder {
   constructor(private readonly nonce: string) {}
@@ -295,12 +303,24 @@ const worker = {
     const core = await keptToScope(ua0, path, async () => (await readNumber(env, SEARCH_SCOPE_KEY)) === 1, async () => (await readNumber(env, CPU_GUARD_KEY)) === 1);
     const sh = shield(request.method, request.url, ua0, core);
     if (sh.kind !== 'pass') return shieldResponse(sh, securityHeaders());
+    // r27b: Bytespider reads every page, paced (Cloudflare's rate limiting binding, per data centre); never refused outright
+    if (ua0 && RATE_LIMITED_BOT.test(ua0)) {
+      const rl = env.CRAWL_RL as { limit(o: { key: string }): Promise<{ success: boolean }> } | undefined;
+      if (rl && !(await rl.limit({ key: 'bytespider' }).catch(() => ({ success: true }))).success) return tooMany(60, securityHeaders());
+    }
     // r27b (the database swamped by scrapers, November 6): a long-tail page asked for from a hosting network, or by an agent
     // posing as a browser that keeps none of our cookies, gets its kept copy (up to a week old) or, without one, 429 (hosting
     // networks) or a tiny page that sets a cookie and reloads (people pass at once); never a render. Verified search and
     // AI crawlers and every agent that names itself always pass (src/lib/edge/scraper-guard.ts).
     const g = scraperGuard(request.method, path, (request as unknown as { cf?: Record<string, unknown> }).cf, ua0, request.headers.get('cookie'), request.headers.get('rsc') === '1');
     let guardCopy: Response | null = null;
+    // cached-only mode (the database busy, tripped by the Worker itself below): long-tail pages from their kept copies only
+    const tail = (request.method === 'GET' || request.method === 'HEAD') && longTail(path) && !hasSession(request.headers.get('cookie'));
+    if (g === 'pass' && tail && (await busyUntil(env)) > Date.now()) {
+      const k = staleKey(request);
+      guardCopy = k ? await crawlerCopy(k, request.headers.get('if-modified-since'), { cache: () => caches.open(EDGE_CACHE_NAME), env }, STALE_TTL_S) : null;
+      if (!guardCopy) return request.headers.get('rsc') === '1' ? tooMany(120, securityHeaders()) : busyPage();
+    }
     if (g !== 'pass') {
       const k = staleKey(request);
       guardCopy = k ? await crawlerCopy(k, request.headers.get('if-modified-since'), { cache: () => caches.open(EDGE_CACHE_NAME), env }, STALE_TTL_S) : null;
@@ -343,6 +363,11 @@ const worker = {
           // 0321: a crawler gets the page's last good copy (under 3 days old) or a 304, never a render when one is kept
           crawler: isCrawler(request.headers.get('user-agent')) ? { ifModifiedSince: request.headers.get('if-modified-since') } : undefined })
       : await origin();
+    // a failed render of a long-tail page counts toward cached-only mode (BusyMeter: 5 within a minute in this isolate)
+    if (tail && !guardCopy && renderFailed(response.status, response.headers.get(STALE_HEADER)) && busyMeter.failed(Date.now())) {
+      busySeen = { at: Date.now(), until: Date.now() + BUSY_MS };
+      ctx.waitUntil(writeNumber(env, BUSY_KEY, Date.now() + BUSY_MS).catch(() => undefined));
+    }
     const type = response.headers.get('content-type') ?? '';
     const headers = new Headers(response.headers);
     for (const [k, v] of Object.entries(securityHeaders())) headers.set(k, v);

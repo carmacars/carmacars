@@ -14,7 +14,13 @@
 
 import { deepOutOfScope } from './crawl-scope.ts';
 
-export const BLOCKED_BOT = /AhrefsBot|SemrushBot|MJ12bot|DotBot|PetalBot|Bytespider|DataForSeoBot|BLEXBot|serpstatbot|MegaIndex|SeekportBot|Barkrowler|ImagesiftBot|Timpibot|ZoominfoBot|AwarioBot|magpie-crawler|SiteAuditBot|trendictionbot|Sogou web spider|MauiBot|AspiegelBot|LinkpadBot|Exabot|CCBot|GPTBot/i;
+// 2026-11-06 (r27b, the owner: every search and AI engine reads every public page): no search or AI crawler is named here
+// (GPTBot, CCBot, Bytespider, PetalBot, Sogou, Exabot, Timpibot and AspiegelBot were); only SEO tools and scrapers.
+export const BLOCKED_BOT = /AhrefsBot|SemrushBot|MJ12bot|DotBot|DataForSeoBot|BLEXBot|serpstatbot|MegaIndex|SeekportBot|Barkrowler|ImagesiftBot|ZoominfoBot|AwarioBot|magpie-crawler|SiteAuditBot|trendictionbot|MauiBot|LinkpadBot/i;
+/** Allowed everywhere but paced at the edge (custom-worker.ts, the CRAWL_RL binding): it crawls hardest and ignores Crawl-delay. */
+export const RATE_LIMITED_BOT = /Bytespider/i;
+/** The AI engines' own crawlers (training, grounding and answers): never kept to the crawl scope by the month's guard. */
+export const AI_CRAWLER = /GPTBot|OAI-SearchBot|ChatGPT-User|ClaudeBot|Claude-User|Claude-SearchBot|anthropic-ai|PerplexityBot|Perplexity-User|Google-Extended|GoogleOther|Applebot|CCBot|Amazonbot|meta-externalagent|meta-webindexer|meta-externalfetcher|FacebookBot|DuckAssistBot|Bytespider|YouBot|cohere-ai|cohere-training-data-crawler|MistralAI-User|PhindBot|Diffbot|Amzn-SearchBot|Amzn-User|Gemini-Deep-Research|Google-CloudVertexBot/i;
 /** A user agent that says it is a crawler. Not a headless browser or a script (the e2e tests and uptime checks are never
  *  refused here). A chat app's link preview that calls itself a bot (Slackbot, TelegramBot) gets no preview of a portal
  *  page, which shows nothing to a stranger anyway. */
@@ -43,7 +49,7 @@ export const isCrawler = (ua: string | null | undefined): boolean => !!ua && CRA
  *  read from the tag store only when it matters. */
 export async function keptToScope(ua: string | null | undefined, path: string, coreFlag: () => Promise<boolean>, guardFlag: () => Promise<boolean> = async () => false): Promise<boolean> {
   if (!isCrawler(ua) || !deepOutOfScope(path)) return false;
-  if (!isSearchCrawler(ua) && (await guardFlag())) return true;
+  if (!isSearchCrawler(ua) && !AI_CRAWLER.test(ua!) && (await guardFlag())) return true;
   return coreFlag();
 }
 

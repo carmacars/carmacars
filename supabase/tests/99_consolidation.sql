@@ -82,6 +82,22 @@ select test.throws('fleet staff cannot text a number nobody knows', $$select tes
 select test.ok('fleet staff can text a renter', test.cn('cn_fleet', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "Your car is out front. CarmaCars"}') ? 'send');
 select test.throws('an empty text is refused', $$select test.cn('cn_sales', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "  "}')$$, 'Write the text');
 select test.throws('not a number', $$select test.cn('cn_sales', 'va_do', 'phone_compose', '{"number": "abc", "body": "Hi"}')$$, 'not a phone number');
+-- 0535: one key per text: a second Send of the same text never sends it twice
+create temp table cn_k1 as select test.cn('cn_cs', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "Key test. CarmaCars", "key": "k-0535-aaaa"}') v;
+select test.ok('a text with a key is sent', (select v ? 'send' from cn_k1));
+select test.ok('pressed again while it is being sent: not sent twice', (select r ? 'pending' and not r ? 'send'
+  from (select test.cn('cn_cs', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "Key test. CarmaCars", "key": "k-0535-aaaa"}') r) x));
+select app.server_phone_sent(jsonb_build_object('id', (select v -> 'send' ->> 'id' from cn_k1), 'ok', true, 'quo_id', 'AC-cn-k1'));
+select test.ok('pressed again after it went: "already", nothing sent', (select (r ->> 'already')::boolean and not r ? 'send'
+  from (select test.cn('cn_cs', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "Key test. CarmaCars", "key": "k-0535-aaaa"}') r) x));
+select test.eq('one row for the key', (select count(*) from phone_outbox where dedupe_key = 'compose:' || test.id('cn_cs')::text || ':k-0535-aaaa'), 1::bigint);
+create temp table cn_k2 as select test.cn('cn_cs', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "Second. CarmaCars", "key": "k-0535-bbbb"}') v;
+select app.server_phone_sent(jsonb_build_object('id', (select v -> 'send' ->> 'id' from cn_k2), 'ok', false, 'error', 'Quo 402: no credits'));
+select test.ok('a text Quo refused is sent again with the same key', (select (r ->> 'retry')::boolean and r -> 'send' ->> 'id' = (select v -> 'send' ->> 'id' from cn_k2)
+  from (select test.cn('cn_cs', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "Second. CarmaCars", "key": "k-0535-bbbb"}') r) x));
+update phone_outbox set locked_at = now() - interval '5 minutes' where id = (select (v -> 'send' ->> 'id')::uuid from cn_k2);
+select test.throws('a send that never reported back is not repeated blindly', $$select test.cn('cn_cs', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "Second. CarmaCars", "key": "k-0535-bbbb"}')$$, 'could not confirm');
+select test.throws('a malformed key is refused', $$select test.cn('cn_cs', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "Hi. CarmaCars", "key": "x"}')$$, 'write the text again');
 update phone_threads set opted_out_at = now() where number = '+14165550463';
 select test.throws('a number that opted out is refused', $$select test.cn('cn_sales', 'va_do', 'phone_compose', '{"number": "416-555-0463", "body": "Hi. CarmaCars"}')$$, 'opted out');
 update phone_threads set opted_out_at = null where number = '+14165550463';

@@ -17,7 +17,6 @@ test('people, headless browsers (the e2e tests) and scripts pass everywhere', ()
 
 test('SEO tools and scrapers: 403 on every page but robots.txt and the API', () => {
   assert.deepEqual(shield('GET', u('/cars/bmw/x5'), AHREFS), { kind: 'refuse', reason: 'blocked' });
-  assert.deepEqual(shield('GET', u('/'), 'Mozilla/5.0 (Linux; Android 5.0) AppleWebKit/537.36 (KHTML, like Gecko) Mobile Safari/537.36 (compatible; Bytespider; spider-feedback@bytedance.com)'), { kind: 'refuse', reason: 'blocked' });
   assert.equal(shield('GET', u('/robots.txt'), AHREFS).kind, 'pass');
   assert.equal(shield('POST', u('/cars'), AHREFS).kind, 'pass');
   assert.equal(shield('GET', u('/api/health'), AHREFS).kind, 'pass');
@@ -58,7 +57,7 @@ test('the crawler guard: training and unnamed crawlers on deep pages only while 
   const off = async () => false, on = async () => true;
   assert.equal(await keptToScope(GPT, deep, off, off), false, 'guard off: every page');
   assert.equal(await keptToScope('Mozilla/5.0 (compatible; ClaudeBot/1.0; +claudebot@anthropic.com)', deep, off, off), false);
-  assert.equal(await keptToScope(GPT, deep, off, on), true, 'guard on: the crawl scope');
+  assert.equal(await keptToScope(GPT, deep, off, on), false, 'r27b: AI crawlers are never kept to the scope by the guard');
   assert.equal(await keptToScope('SomeNewBot/1.0', deep, off, on), true);
   assert.equal(await keptToScope(GOOGLE, deep, off, on), false, 'search crawlers are never limited by the guard');
   assert.equal(await keptToScope('Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)', deep, off, on), false);
@@ -72,3 +71,18 @@ test('the crawler guard: training and unnamed crawlers on deep pages only while 
   assert.equal(isSearchCrawler('Mozilla/5.0 (compatible; Applebot-Extended/1.0)'), false);
 });
 
+
+// r27b (the owner, November 6): every search and AI engine reads every public page; only SEO tools and scrapers are refused
+import { AI_CRAWLER, RATE_LIMITED_BOT } from './bot-shield.ts';
+test('AI and search crawlers are never refused, Bytespider is only paced', () => {
+  for (const b of ['GPTBot/1.2', 'OAI-SearchBot/1.0', 'ChatGPT-User/1.0', 'ClaudeBot/1.0', 'Claude-User/1.0', 'Claude-SearchBot/1.0', 'PerplexityBot/1.0', 'Perplexity-User/1.0',
+    'Google-Extended', 'Applebot/0.1', 'Applebot-Extended/0.1', 'CCBot/2.0', 'Amazonbot/0.1', 'meta-externalagent/1.1', 'DuckAssistBot/1.0', 'Bytespider', 'YouBot/1.0',
+    'cohere-ai', 'MistralAI-User/1.0', 'PetalBot', 'Sogou web spider/4.0', 'Exabot/3.0']) {
+    const ua = `Mozilla/5.0 (compatible; ${b}; +https://example.test/bot)`;
+    assert.equal(BLOCKED_BOT.test(ua), false, b);
+    assert.equal(shield('GET', u('/cars/bmw/x5'), ua).kind, 'pass', b);
+  }
+  for (const b of ['GPTBot', 'ClaudeBot', 'CCBot', 'Bytespider', 'meta-externalagent', 'Amazonbot', 'YouBot']) assert.ok(AI_CRAWLER.test(`x ${b}/1.0`), b);
+  assert.ok(RATE_LIMITED_BOT.test('Mozilla/5.0 (compatible; Bytespider; spider-feedback@bytedance.com)'));
+  assert.equal(RATE_LIMITED_BOT.test(GOOGLE), false);
+});
