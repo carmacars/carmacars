@@ -28,6 +28,12 @@ hundreds of data centres keep starting cold isolates. No pg_cron job was heavy (
   else work it out as before. An edit of the site or program settings drops the copy, so it shows at once.
 - The database suites switch the copy off (helpers.sql), as they change data and read it back at once.
 
+## Part 1c (migration 0534)
+
+0533's trigger emptied the kept copy with a DELETE without a WHERE clause, which pg_safeupdate refuses on the company
+server, so every save of the site or program settings failed. The delete names its rows now (the suite
+`99_safeupdate_usage_server` caught it).
+
 ## Guides
 
 No guide change: no screen changes; only scrapers see the check page.
