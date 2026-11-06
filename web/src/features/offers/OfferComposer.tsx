@@ -525,6 +525,25 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
             <button className="btn btn--primary" type="submit" disabled={pending} data-testid="oc-send">{pending ? 'Sending' : f.by_email || f.by_text ? `Send the offer${who ? ` to ${who}` : ''}` : 'Make the offer (not sent)'}</button>
             <button className="btn btn--quiet" type="button" disabled={pending} onClick={() => send(true)} data-testid="oc-draft">Save without sending</button>
           </div>
+          <section className="oc-renter-below" data-testid="oc-renter-view-d"><p className="pt-kicker">The offer as the renter sees it</p>
+            <div className="ad-renter-view" aria-label="The offer as the renter sees it" data-testid="oc-renter-view">
+              <h3 className="d4">Your offer for the {b?.vehicle?.name ?? car?.name ?? 'car'}</h3>
+              <p className="pt-note small"><b>This offer does not hold the car until you approve it.</b> Once you approve, the car is booked for you; sign the agreement and {f.rental_pay === 'card' ? 'pay' : 'send your payment'} before pickup.</p>
+              {f.message.trim() && <div><b className="small">Message from our team</b><p className="small">{f.message}</p></div>}
+              {b && <><dl className="pt-dl small">
+                <div><dt>Pickup</dt><dd>{when(b.pickup_at)}, {b.pickup_place ?? 'our location'}</dd></div>
+                <div><dt>Return</dt><dd>{when(b.return_at)}, {b.return_place ?? 'our location'}</dd></div>
+                <div><dt>Deposit at pickup</dt><dd>{money(b.deposit_cents)}</dd></div>
+                {b.km_allowance_total ? <div><dt>Kilometres</dt><dd>{b.km_allowance_total} km included, then {fmt(b.overage_cents_per_km)} per km</dd></div> : null}
+                <div><dt>You pay by</dt><dd>{RENTAL_PAY.find(([v]) => v === f.rental_pay)?.[1]}</dd></div>
+              </dl>
+              <dl className="pt-dl pt-dl--money small">
+                {renterLines.map((l) => <div key={l.id}><dt>{lineLabel(l)}</dt><dd>{fmt(l.amount_cents)}</dd></div>)}
+                <div><dt>HST</dt><dd>{fmt(b.hst_at_booking_cents)}</dd></div>
+                <div><dt><b>Total due at booking</b></dt><dd><b>{fmt(total)}</b></dd></div>
+              </dl></>}
+              <p className="small muted" suppressHydrationWarning>Open for {f.hours} hours after it is sent</p>
+            </div></section>
         </>, { testId: 'oc-step-send' })}
       </form>
 
@@ -540,25 +559,6 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
           {b && <p className="small">{priced?.available ? 'The car is free for these dates.' : <b className="ad-late">The car is not free for these dates.</b>}</p>}
           {b?.price_flags?.length ? <p className="small"><b>Flagged for an Admin:</b> {b.price_flags.map((x) => (x === 'below_floor' ? 'under the price floor' : 'past the discount limit')).join(', ')}.</p> : null}
           {difference && <p className="alert alert--warn" role="alert" data-testid="oc-total-diff"><span>{difference} Check the amounts before you send.</span></p>}
-          <details className="oc-disclose" data-testid="oc-renter-view-d"><summary>The offer as the renter sees it</summary>
-            <div className="ad-renter-view" aria-label="The offer as the renter sees it" data-testid="oc-renter-view">
-              <h3 className="d4">Your offer for the {b?.vehicle?.name ?? car?.name ?? 'car'}</h3>
-              <p className="pt-note small"><b>This offer does not hold the car.</b> The car is reserved once you approve, sign and {f.rental_pay === 'card' ? 'pay' : 'we receive your payment'}.</p>
-              {f.message.trim() && <div><b className="small">Message from our team</b><p className="small">{f.message}</p></div>}
-              {b && <><dl className="pt-dl small">
-                <div><dt>Pickup</dt><dd>{when(b.pickup_at)}, {b.pickup_place ?? 'our location'}</dd></div>
-                <div><dt>Return</dt><dd>{when(b.return_at)}, {b.return_place ?? 'our location'}</dd></div>
-                <div><dt>Deposit at pickup</dt><dd>{money(b.deposit_cents)}</dd></div>
-                {b.km_allowance_total ? <div><dt>Kilometres</dt><dd>{b.km_allowance_total} km included, then {fmt(b.overage_cents_per_km)} per km</dd></div> : null}
-                <div><dt>You pay by</dt><dd>{RENTAL_PAY.find(([v]) => v === f.rental_pay)?.[1]}</dd></div>
-              </dl>
-              <dl className="pt-dl pt-dl--money small">
-                {renterLines.map((l) => <div key={l.id}><dt>{lineLabel(l)}</dt><dd>{fmt(l.amount_cents)}</dd></div>)}
-                <div><dt>HST</dt><dd>{fmt(b.hst_at_booking_cents)}</dd></div>
-                <div><dt><b>Total due at booking</b></dt><dd><b>{fmt(total)}</b></dd></div>
-              </dl></>}
-              <p className="small muted" suppressHydrationWarning>Open for {f.hours} hours after it is sent</p>
-            </div></details>
         </div>
         {problem && <p className="alert alert--error" role="alert" data-testid="oc-problem"><span>{problem}</span></p>}
         <div className="oc-summary__foot">

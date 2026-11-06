@@ -491,29 +491,29 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
             <button className="btn btn--primary" type="submit" disabled={pending} data-testid="review-send">{pending ? 'Sending' : dirty ? 'Save and send the offer' : 'Send the offer'}</button>
           </form>
         )}
+        <aside className="ad-renter-view" aria-label="The offer as the renter sees it" data-testid="renter-preview">
+          <p className="pt-kicker">The offer as the renter sees it</p>
+          <h3 className="d4">Your offer for the {shown.vehicle?.name}</h3>
+          <p className="pt-note small"><b>This offer does not hold the car until you approve it.</b> Once you approve, the car is booked for you; sign the agreement and pay before pickup.</p>
+          {String(v.message).trim() && <div><b className="small">Message from our team</b><p className="small">{String(v.message)}</p></div>}
+          {diffs.length > 0 && <ul className="pt-changes">{diffs.map(([k, a, z]) => <li key={k}><span className="small muted">{k}</span><span><del>{a}</del> <span className="vh">changed to</span> <ins>{z}</ins></span></li>)}</ul>}
+          <dl className="pt-dl small">
+            <div><dt>Pickup</dt><dd>{when(shown.pickup_at)}, {shown.pickup_place ?? 'our location'}</dd></div>
+            <div><dt>Return</dt><dd>{when(shown.return_at)}, {shown.return_place ?? 'our location'}</dd></div>
+            <div><dt>Deposit at pickup</dt><dd>{v.deposit_pay === 'none' ? 'No deposit' : money(shown.deposit_cents)}</dd></div>
+            {shown.km_allowance_total ? <div><dt>Kilometres</dt><dd>{shown.km_allowance_total} km included, then {money(shown.overage_cents_per_km, { cents: true })} per km</dd></div> : null}
+          </dl>
+          <dl className="pt-dl pt-dl--money small">
+            {lines.map((l) => <div key={l.id}><dt>{lineLabel(l)} <Info text={lineHelp(l.charge_type)} label={`What is ${lineLabel(l)}?`} /></dt><dd>{money(l.amount_cents, { cents: true })}</dd></div>)}
+            <div><dt>HST</dt><dd>{money(shown.hst_at_booking_cents, { cents: true })}</dd></div>
+            <div><dt><b>Total due at booking</b></dt><dd><b>{money(total, { cents: true })}</b></dd></div>
+          </dl>
+          {/* from the clock: the server and the browser can be a minute apart, so the text may differ on hydration */}
+          <p className="small muted" suppressHydrationWarning>Open until {when(expiresAt())}</p>
+        </aside>
         {done && <p className="alert alert--ok" role="status"><span>{done}</span></p>}
       </section>
 
-      <aside className="ad-renter-view" aria-label="The offer as the renter sees it" data-testid="renter-preview">
-        <p className="pt-kicker">The offer as the renter sees it</p>
-        <h3 className="d4">Your offer for the {shown.vehicle?.name}</h3>
-        <p className="pt-note small"><b>This offer does not hold the car.</b> The car is reserved once you approve, sign and pay.</p>
-        {String(v.message).trim() && <div><b className="small">Message from our team</b><p className="small">{String(v.message)}</p></div>}
-        {diffs.length > 0 && <ul className="pt-changes">{diffs.map(([k, a, z]) => <li key={k}><span className="small muted">{k}</span><span><del>{a}</del> <span className="vh">changed to</span> <ins>{z}</ins></span></li>)}</ul>}
-        <dl className="pt-dl small">
-          <div><dt>Pickup</dt><dd>{when(shown.pickup_at)}, {shown.pickup_place ?? 'our location'}</dd></div>
-          <div><dt>Return</dt><dd>{when(shown.return_at)}, {shown.return_place ?? 'our location'}</dd></div>
-          <div><dt>Deposit at pickup</dt><dd>{v.deposit_pay === 'none' ? 'No deposit' : money(shown.deposit_cents)}</dd></div>
-          {shown.km_allowance_total ? <div><dt>Kilometres</dt><dd>{shown.km_allowance_total} km included, then {money(shown.overage_cents_per_km, { cents: true })} per km</dd></div> : null}
-        </dl>
-        <dl className="pt-dl pt-dl--money small">
-          {lines.map((l) => <div key={l.id}><dt>{lineLabel(l)} <Info text={lineHelp(l.charge_type)} label={`What is ${lineLabel(l)}?`} /></dt><dd>{money(l.amount_cents, { cents: true })}</dd></div>)}
-          <div><dt>HST</dt><dd>{money(shown.hst_at_booking_cents, { cents: true })}</dd></div>
-          <div><dt><b>Total due at booking</b></dt><dd><b>{money(total, { cents: true })}</b></dd></div>
-        </dl>
-        {/* from the clock: the server and the browser can be a minute apart, so the text may differ on hydration */}
-        <p className="small muted" suppressHydrationWarning>Open until {when(expiresAt())}</p>
-      </aside>
     </div>
     </Ctx.Provider>
   );
