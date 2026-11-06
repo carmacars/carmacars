@@ -1,0 +1,31 @@
+CarmaCars  |  Careers
+
+========================================
+
+[Careers]
+Sorry about the scheduling, {{first_name}}
+
+Thank you for applying for {{role_title}}. We had a scheduling problem on our side with the interview calls, and we are sorry for the trouble.
+
+There is no need to book a call. Instead, do the short recorded interview any time this week, from your phone or computer: {{question_count}} questions, about {{minutes}} minutes. Each question is shown and read aloud, and you answer out loud, or type if you prefer.
+
+Start my interview:
+{{interview_url}}
+
+The link works until {{expires_on}}. You can stop and come back to it with the same link.
+
+The interview is recorded so our hiring team can listen to your answers; a person makes every decision. The link is personal: please do not share it. Questions? Reply to this email.
+
+----------------------------------------
+
+Questions about your application? Reply to this email.
+
+You are receiving this because you applied for a job at CarmaCars. We keep the application of a candidate we do not hire for 12 months, then delete it.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

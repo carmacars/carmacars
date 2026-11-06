@@ -47,11 +47,58 @@ jobs:
           jq -r '.failures_by_route // [] | .[:9][] | "\(.count)x \(.key)"' "$f" | sed 's/^/::notice title=worker errors::/'
           jq -r 'select(.unavailable) | "Workers Observability could not be read: \(.unavailable). \(if .permission_needed then "Missing permission: \(.permission_needed)." else "" end)"' "$f" | sed 's/^/::warning title=worker errors::/'
           { echo "## The Worker's failures (last $HOURS hours)"; echo; echo '```json'; jq '{outcomes, failures_by_route, failures: (.failures // [] | .[:20]), unavailable, permission_needed}' "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      # 2026-11-06 (r27b): which agents send the requests, how many the edge copy answered, by user agent and path
+      - name: Who sends the traffic
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          HOURS: ${{ inputs.hours }}
+        run: |
+          case "$HOURS" in ''|*[!0-9]*) HOURS=24;; esac
+          f="$RUNNER_TEMP/traffic.json"
+          node scripts/cf-traffic.mjs --hours "$HOURS" --out "$f" > /dev/null
+          jq -r 'if .unavailable then "unavailable: \(.unavailable)" else "requests \(.requests); by agent: " + ((.by_family // [])[:14] | map("\(.family) \(.count)") | join(", ")) end' "$f" | sed 's/^/::notice title=traffic::/'
+          jq -r 'select(.by_cache) | "cache: " + (.by_cache | map("\(.cache) \(.count)") | join(", ")) + "; status: " + (.by_status | map("\(.status) \(.count)") | join(", "))' "$f" | sed 's/^/::notice title=traffic::/'
+          jq -r 'select(.by_segment_top400) | "segments (top 400 paths, \(.distinct_paths_in_top400) distinct, top path \(.top_path_share)%): " + (.by_segment_top400 | map("\(.segment) \(.count)") | join(", ")) + "; networks: " + ((.by_asn // [])[:8] | map("\(.asn) \(.count)") | join(", "))' "$f" | sed 's/^/::notice title=traffic::/'
+          jq -r '(.by_user_agent // [])[:12] | map("\(.n)x \(.cpu_ms // 0)ms \(.key)") | join(" | ") | select(length > 0) | "worker invocations by agent: " + .' "$RUNNER_TEMP/worker-errors.json" | cut -c1-3000 | sed 's/^/::notice title=traffic::/'
+          for k in by_path by_network by_bot_category by_network_windows_chrome by_path_windows_chrome by_country_windows_chrome by_url_windows_chrome by_fetch_dest_windows_chrome by_ch_ua_windows_chrome by_lang_windows_chrome by_status_windows_chrome; do
+            jq -r --arg k "$k" '(.[$k] // [])[:15] | map("\(.n)x \(.cpu_ms // 0)ms \(.key)") | join(" | ") | select(length > 0) | "\($k): " + .' "$RUNNER_TEMP/worker-errors.json" | cut -c1-3000 | sed 's/^/::notice title=traffic::/'
+            jq -r --arg k "$k" '.[$k + "_unavailable"] // empty | "\($k) unavailable: " + .' "$RUNNER_TEMP/worker-errors.json" | sed 's/^/::notice title=traffic::/'
+          done
+          jq -r 'select(.by_user_agent_unavailable) | "worker by agent unavailable: \(.by_user_agent_unavailable)"' "$RUNNER_TEMP/worker-errors.json" | sed 's/^/::notice title=traffic::/'
+      # 2026-11-06 (r27b): read only: the email providers' state, the texts sent from the Text buttons, the browsers' crash
+      # reports and the database's load (masked: no addresses, numbers or names leave here)
+      - name: Database diagnostics (read only)
+        continue-on-error: true
+        working-directory: .
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          HOURS: ${{ inputs.hours }}
+        run: |
+          case "$HOURS" in ''|*[!0-9]*) HOURS=24;; esac
+          cat > "$RUNNER_TEMP/diag.sql" <<SQL
+          with m as (select '[0-9]{4,}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+' as re)
+          select jsonb_build_object(
+            'cf', (select jsonb_build_object('ok', cf_ok_at, 'failed', cf_failed_at, 'error', regexp_replace(coalesce(left(cf_error, 240), ''), (select re from m), '#', 'g')) from email_provider_state limit 1),
+            'cf_try', (select app.cf_email_try()),
+            'email_errors', (select coalesce(jsonb_agg(x), '[]') from (select regexp_replace(left(coalesce(last_error, status_reason, ''), 140), (select re from m), '#', 'g') e, status, count(*) n
+                from notification_outbox where updated_at > now() - interval '$HOURS hours' and (last_error is not null or status in ('failed', 'delayed', 'queued')) group by 1, 2 order by 3 desc limit 8) x),
+            'texts', (select coalesce(jsonb_agg(x), '[]') from (select kind, status, regexp_replace(left(coalesce(last_error, status_reason, ''), 120), (select re from m), '#', 'g') e, count(*) n
+                from phone_outbox where created_at > now() - interval '$HOURS hours' group by 1, 2, 3 order by 4 desc limit 10) x),
+            'crashes', (select coalesce(jsonb_agg(x), '[]') from (select regexp_replace(left(message, 140), (select re from m), '#', 'g') msg, regexp_replace(split_part(path, '/', 2) || '/' || split_part(path, '/', 3), (select re from m), '#', 'g') p, count(*) n, max(created_at) last
+                from client_errors where created_at > now() - interval '$HOURS hours' group by 1, 2 order by 3 desc limit 12) x),
+            'activity', (select coalesce(jsonb_agg(x), '[]') from (select coalesce(usename, '?') u, state, count(*) n, max(extract(epoch from now() - query_start))::int oldest_s from pg_stat_activity where backend_type = 'client backend' group by 1, 2 order by 3 desc limit 10) x)
+          ) as d
+          SQL
+          scripts/deploy/sb.sh sql-file "$RUNNER_TEMP/diag.sql" > "$RUNNER_TEMP/diag.json"
+          jq -r '.[0].d | to_entries[] | "\(.key): \(.value | tostring)"' "$RUNNER_TEMP/diag.json" | cut -c1-3500 | sed 's/^/::notice title=diag::/'
       - name: Into Supabase Storage (deploy-reports/<run id>/worker-errors.json)
+        continue-on-error: true
         run: |
           set -euo pipefail
           K=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" service-key)
           echo "::add-mask::$K"
           S=$("$GITHUB_WORKSPACE/scripts/deploy/sb.sh" storage-url)
-          curl -sS -f -o /dev/null -X POST "$S/object/deploy-reports/${{ github.run_id }}/worker-errors.json" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' -H 'x-upsert: true' --data-binary "@$RUNNER_TEMP/worker-errors.json"
+          curl -sS -f --retry 3 --retry-all-errors --retry-delay 5 -o /dev/null -X POST "$S/object/deploy-reports/${{ github.run_id }}/worker-errors.json" -H "Authorization: Bearer $K" -H "apikey: $K" -H 'content-type: application/json' -H 'x-upsert: true' --data-binary "@$RUNNER_TEMP/worker-errors.json"
           echo "::notice title=worker errors::report at deploy-reports/${{ github.run_id }}/worker-errors.json"

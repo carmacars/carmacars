@@ -25,6 +25,7 @@ on:
 permissions:
   contents: read
   actions: read
+  issues: write   # r27b: the outage issue opens on the first failed check
 
 concurrency:
   group: vps-health
@@ -83,6 +84,9 @@ jobs:
           if inside=$(timeout 60 bash -c 'source scripts/deploy/vps.sh; vps_ssh sudo /opt/carmacars/bin/health-local' 2>/dev/null) || [ -n "${inside:-}" ]; then
             while IFS= read -r p; do [ -n "$p" ] && problems+=("server: $p"); done < <(jq -r '.problems[]?' <<<"$inside" 2>/dev/null)
             echo "$inside" | jq -c '{disk_pct, mem_available_mb, load1, connections, wal_spool_files, base_backup_age_h, cert_days_left, cron_jobs_failing, live}' | sed 's/^/::notice title=inside::/'
+            # r27b (November 6: load 7 to 25 in 50 minutes before the API failed): a load this high is a problem on its own
+            load=$(jq -r '.load1 // 0' <<<"$inside" 2>/dev/null || echo 0)
+            if awk -v l="$load" 'BEGIN { exit !(l + 0 >= 12) }'; then problems+=("server: load $load (12 or more: the database is overloaded; the site serves kept copies of the long-tail pages until it recovers)"); fi
             ANON=$(timeout 30 bash -c 'source scripts/deploy/vps.sh; vps_secret ANON_KEY' 2>/dev/null || true)
           else
             problems+=("server: SSH did not answer within 60 s")
@@ -146,6 +150,20 @@ jobs:
           code=$(curl -sS -o "$RUNNER_TEMP/resend.json" -w '%{http_code}' https://api.resend.com/emails -H "Authorization: Bearer $key" -H 'content-type: application/json' \
             --data "$(jq -n --arg to "$to" --arg s "$subject" --arg t "$body" '{from: "CarmaCars <hello@carmacars.ca>", to: [$to], subject: $s, text: $t}')")
           if [ "${code:0:1}" = 2 ]; then echo "::notice title=vps-health::$send email sent to $to"; else echo "::error::Resend answered $code: $(head -c 300 "$RUNNER_TEMP/resend.json")"; exit 1; fi
+      # r27b (the owner: "this can't happen again"): the outage issue opens on the first failed check, not after self-heal's
+      # three runs; self-heal comments on it and closes it when the site and the API answer again
+      - name: Outage issue (opened on the first failure)
+        if: always() && steps.check.outputs.failed == 'true' && needs.gate.outputs.backend == 'vps'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create outage -R "$GITHUB_REPOSITORY" --color B60205 --description "carmacars.ca or api.carmacars.ca is down (opened by self-heal)" 2>/dev/null || true
+          num=$(gh issue list -R "$GITHUB_REPOSITORY" --label outage --state open --json number --jq '.[0].number // empty')
+          [ -z "$num" ] || { echo "outage issue #$num already open"; exit 0; }
+          body="$(sed 's/^/- /' "$RUNNER_TEMP/problems.txt")
+          Checked $(date -u +%FT%TZ) by vps-health: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          What to do: docs/runbook-outage.md."
+          gh issue create -R "$GITHUB_REPOSITORY" --label outage --title "Outage: the CarmaCars server is failing its checks" --body "$body"
       - name: Result
         if: always()
         run: '[ "${{ steps.check.outputs.failed }}" = false ]'

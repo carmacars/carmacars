@@ -71,3 +71,31 @@ export function httpsRedirect(url: string): string | null {
 export function tooMany(retryAfterS: number, headers: Record<string, string> = {}): Response {
   return new Response('Too many requests. Try again later.', { status: 429, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'retry-after': String(retryAfterS), ...headers } });
 }
+
+// ------------------------------------------------------------------ cached-only mode (r27b, the owner: "this can't happen again")
+// When the site cannot render (the database busy: answers 5xx or slower than 4 s), every Worker switches the long-tail
+// pages to their kept copies for BUSY_MS: no render, no database query, until the server has room again. A Worker trips
+// it after BUSY_TRIP failures within BUSY_WINDOW_MS (its own count); the flag is a time in the tag store, so it ends by
+// itself. People and crawlers get the kept copy, or the busy page (503 with Retry-After, which search engines read as
+// "come back later"); signed-in staff and the portals are never affected.
+export const BUSY_KEY = 'carmacars/busy-until';
+export const BUSY_MS = 10 * 60_000;
+export const BUSY_TRIP = 5;
+export const BUSY_WINDOW_MS = 60_000;
+
+/** One isolate's count of failed renders; true when this failure should switch cached-only mode on. */
+export class BusyMeter {
+  private fails: number[] = [];
+  private tripped = 0;
+  failed(now: number): boolean {
+    this.fails = this.fails.filter((t) => now - t < BUSY_WINDOW_MS);
+    this.fails.push(now);
+    if (this.fails.length < BUSY_TRIP || now - this.tripped < BUSY_WINDOW_MS) return false;
+    this.tripped = now;
+    return true;
+  }
+}
+/** Whether an answer counts as a failed render: a 5xx, or the kept copy or busy page served because the site was slow or failing. */
+export function renderFailed(status: number, staleHeader: string | null): boolean {
+  return status >= 500 || /^(busy|slow|error)/.test(staleHeader ?? '');
+}

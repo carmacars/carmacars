@@ -7881,6 +7881,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      hiring_ai_moves: {
+        Row: {
+          application_id: string;
+          from_status: string;
+          slot_at: string | null;
+          moved_at: string;
+          outbox_event: number | null;
+        };
+        Insert: {
+          application_id: string;
+          from_status: string;
+          slot_at?: string | null;
+          moved_at?: string;
+          outbox_event?: number | null;
+        };
+        Update: {
+          application_id?: string;
+          from_status?: string;
+          slot_at?: string | null;
+          moved_at?: string;
+          outbox_event?: number | null;
+        };
+        Relationships: [];
+      };
       hiring_decisions: {
         Row: {
           application_id: string;
