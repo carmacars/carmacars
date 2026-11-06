@@ -1350,6 +1350,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      blindspot_box_overrides: {
+        Row: {
+          id: string;
+          booking_id: string;
+          box: string;
+          value: string;
+          set_by: string | null;
+          set_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          box: string;
+          value: string;
+          set_by?: string | null;
+          set_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          box?: string;
+          value?: string;
+          set_by?: string | null;
+          set_at?: string;
+        };
+        Relationships: [];
+      };
       booking_addons: {
         Row: {
           id: string;
@@ -4839,6 +4866,7 @@ export type Database = {
           height: number | null;
           quality_flags: Json | null;
           purge_after: string | null;
+          angle: string | null;
         };
         Insert: {
           id?: string;
@@ -4857,6 +4885,7 @@ export type Database = {
           height?: number | null;
           quality_flags?: Json | null;
           purge_after?: string | null;
+          angle?: string | null;
         };
         Update: {
           id?: string;
@@ -4875,6 +4904,7 @@ export type Database = {
           height?: number | null;
           quality_flags?: Json | null;
           purge_after?: string | null;
+          angle?: string | null;
         };
         Relationships: [];
       };
@@ -5799,6 +5829,8 @@ export type Database = {
           created_at: string;
           updated_at: string;
           paid_method: string | null;
+          hold_extended: boolean;
+          hold_expiry_from_bank: boolean;
         };
         Insert: {
           id?: string;
@@ -5823,6 +5855,8 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           paid_method?: string | null;
+          hold_extended?: boolean;
+          hold_expiry_from_bank?: boolean;
         };
         Update: {
           id?: string;
@@ -5847,6 +5881,8 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
           paid_method?: string | null;
+          hold_extended?: boolean;
+          hold_expiry_from_bank?: boolean;
         };
         Relationships: [];
       };
@@ -11892,6 +11928,90 @@ export type Database = {
         };
         Relationships: [];
       };
+      owner_referral_links: {
+        Row: {
+          id: string;
+          referrer_owner_id: string;
+          referred_owner_id: string;
+          share_bps: number;
+          sees_cars: boolean;
+          effective_from: string;
+          effective_to: string | null;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          referrer_owner_id: string;
+          referred_owner_id: string;
+          share_bps?: number;
+          sees_cars?: boolean;
+          effective_from?: string;
+          effective_to?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          referrer_owner_id?: string;
+          referred_owner_id?: string;
+          share_bps?: number;
+          sees_cars?: boolean;
+          effective_from?: string;
+          effective_to?: string | null;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      owner_referral_shares: {
+        Row: {
+          id: string;
+          link_id: string;
+          booking_id: string;
+          vehicle_id: string;
+          referrer_owner_id: string;
+          payout_month: string;
+          base_cents: number;
+          share_bps: number;
+          amount_cents: number;
+          owner_statement_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          link_id: string;
+          booking_id: string;
+          vehicle_id: string;
+          referrer_owner_id: string;
+          payout_month: string;
+          base_cents: number;
+          share_bps: number;
+          amount_cents: number;
+          owner_statement_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          link_id?: string;
+          booking_id?: string;
+          vehicle_id?: string;
+          referrer_owner_id?: string;
+          payout_month?: string;
+          base_cents?: number;
+          share_bps?: number;
+          amount_cents?: number;
+          owner_statement_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       owner_statement_lines: {
         Row: {
           id: string;
@@ -12777,6 +12897,198 @@ export type Database = {
           counts?: Json;
           error?: string | null;
           by_user?: string | null;
+        };
+        Relationships: [];
+      };
+      partner_invoice_lines: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          sort: number;
+          description: string;
+          quantity: number;
+          unit_cents: number;
+          percent_bps: number | null;
+          base_cents: number | null;
+          hst: boolean;
+          amount_cents: number;
+          hst_cents: number;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          sort?: number;
+          description: string;
+          quantity?: number;
+          unit_cents?: number;
+          percent_bps?: number | null;
+          base_cents?: number | null;
+          hst?: boolean;
+          amount_cents?: number;
+          hst_cents?: number;
+        };
+        Update: {
+          id?: string;
+          invoice_id?: string;
+          sort?: number;
+          description?: string;
+          quantity?: number;
+          unit_cents?: number;
+          percent_bps?: number | null;
+          base_cents?: number | null;
+          hst?: boolean;
+          amount_cents?: number;
+          hst_cents?: number;
+        };
+        Relationships: [];
+      };
+      partner_invoice_payments: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          method: string;
+          amount_cents: number;
+          received_on: string;
+          reference: string | null;
+          photo_path: string | null;
+          note: string | null;
+          recorded_by: string | null;
+          recorded_at: string;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          method: string;
+          amount_cents: number;
+          received_on: string;
+          reference?: string | null;
+          photo_path?: string | null;
+          note?: string | null;
+          recorded_by?: string | null;
+          recorded_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          invoice_id?: string;
+          method?: string;
+          amount_cents?: number;
+          received_on?: string;
+          reference?: string | null;
+          photo_path?: string | null;
+          note?: string | null;
+          recorded_by?: string | null;
+          recorded_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Relationships: [];
+      };
+      partner_invoices: {
+        Row: {
+          id: string;
+          invoice_number: string | null;
+          partner_id: string;
+          status: string;
+          kind: string;
+          issued_on: string | null;
+          due_on: string | null;
+          claim_number: string | null;
+          insurer_name: string | null;
+          vehicle: string | null;
+          renter_name: string | null;
+          booking_id: string | null;
+          partner_total_cents: number | null;
+          kickback_bps: number | null;
+          notes: string | null;
+          subtotal_cents: number;
+          hst_cents: number;
+          total_cents: number;
+          paid_cents: number;
+          remind_before_days: number;
+          remind_after_days: number;
+          reminded_before_at: string | null;
+          reminded_after_at: string | null;
+          view_token: string;
+          sent_at: string | null;
+          sent_to: string | null;
+          sends: number;
+          voided_at: string | null;
+          void_reason: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_number?: string | null;
+          partner_id: string;
+          status?: string;
+          kind?: string;
+          issued_on?: string | null;
+          due_on?: string | null;
+          claim_number?: string | null;
+          insurer_name?: string | null;
+          vehicle?: string | null;
+          renter_name?: string | null;
+          booking_id?: string | null;
+          partner_total_cents?: number | null;
+          kickback_bps?: number | null;
+          notes?: string | null;
+          subtotal_cents?: number;
+          hst_cents?: number;
+          total_cents?: number;
+          paid_cents?: number;
+          remind_before_days?: number;
+          remind_after_days?: number;
+          reminded_before_at?: string | null;
+          reminded_after_at?: string | null;
+          view_token?: string;
+          sent_at?: string | null;
+          sent_to?: string | null;
+          sends?: number;
+          voided_at?: string | null;
+          void_reason?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          invoice_number?: string | null;
+          partner_id?: string;
+          status?: string;
+          kind?: string;
+          issued_on?: string | null;
+          due_on?: string | null;
+          claim_number?: string | null;
+          insurer_name?: string | null;
+          vehicle?: string | null;
+          renter_name?: string | null;
+          booking_id?: string | null;
+          partner_total_cents?: number | null;
+          kickback_bps?: number | null;
+          notes?: string | null;
+          subtotal_cents?: number;
+          hst_cents?: number;
+          total_cents?: number;
+          paid_cents?: number;
+          remind_before_days?: number;
+          remind_after_days?: number;
+          reminded_before_at?: string | null;
+          reminded_after_at?: string | null;
+          view_token?: string;
+          sent_at?: string | null;
+          sent_to?: string | null;
+          sends?: number;
+          voided_at?: string | null;
+          void_reason?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -14955,6 +15267,11 @@ export type Database = {
           stuck_errors: number;
           notify_cf_daily_budget: number;
           notify_resend_daily_budget: number;
+          deposit_extended_holds: boolean;
+          amend_without_signature: boolean;
+          partner_invoice_payee: string;
+          partner_invoice_etransfer: string;
+          partner_invoice_due_days: number;
           ai_vision_vin_enabled: boolean;
           ai_vision_vin_daily_per_person: number;
           ai_vision_vin_daily_per_visitor: number;
@@ -15570,6 +15887,11 @@ export type Database = {
           stuck_errors?: number;
           notify_cf_daily_budget?: number;
           notify_resend_daily_budget?: number;
+          deposit_extended_holds?: boolean;
+          amend_without_signature?: boolean;
+          partner_invoice_payee?: string;
+          partner_invoice_etransfer?: string;
+          partner_invoice_due_days?: number;
           ai_vision_vin_enabled?: boolean;
           ai_vision_vin_daily_per_person?: number;
           ai_vision_vin_daily_per_visitor?: number;
@@ -16185,6 +16507,11 @@ export type Database = {
           stuck_errors?: number;
           notify_cf_daily_budget?: number;
           notify_resend_daily_budget?: number;
+          deposit_extended_holds?: boolean;
+          amend_without_signature?: boolean;
+          partner_invoice_payee?: string;
+          partner_invoice_etransfer?: string;
+          partner_invoice_due_days?: number;
           ai_vision_vin_enabled?: boolean;
           ai_vision_vin_daily_per_person?: number;
           ai_vision_vin_daily_per_visitor?: number;
@@ -17122,6 +17449,8 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          default_kickback_bps: number | null;
+          billing_email: string | null;
         };
         Insert: {
           id?: string;
@@ -17150,6 +17479,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          default_kickback_bps?: number | null;
+          billing_email?: string | null;
         };
         Update: {
           id?: string;
@@ -17178,6 +17509,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          default_kickback_bps?: number | null;
+          billing_email?: string | null;
         };
         Relationships: [];
       };
@@ -18402,6 +18735,54 @@ export type Database = {
           uploaded_by?: string | null;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      self_handovers: {
+        Row: {
+          id: string;
+          booking_id: string;
+          kind: string;
+          submitted_by: string | null;
+          submitted_at: string;
+          at: string;
+          odometer_km: number | null;
+          fuel_pct: number | null;
+          note: string | null;
+          photos: Json;
+          status: string;
+          reason: string | null;
+          condition_report_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          kind: string;
+          submitted_by?: string | null;
+          submitted_at?: string;
+          at: string;
+          odometer_km?: number | null;
+          fuel_pct?: number | null;
+          note?: string | null;
+          photos?: Json;
+          status?: string;
+          reason?: string | null;
+          condition_report_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          kind?: string;
+          submitted_by?: string | null;
+          submitted_at?: string;
+          at?: string;
+          odometer_km?: number | null;
+          fuel_pct?: number | null;
+          note?: string | null;
+          photos?: Json;
+          status?: string;
+          reason?: string | null;
+          condition_report_id?: string | null;
         };
         Relationships: [];
       };
@@ -23013,6 +23394,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_owner_handoffs: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          owner_id: string | null;
+          kind: string;
+          at: string;
+          odometer_km: number | null;
+          fuel_pct: number | null;
+          notes: string | null;
+          photos: Json;
+          recorded_by: string | null;
+          recorded_at: string;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          owner_id?: string | null;
+          kind: string;
+          at: string;
+          odometer_km?: number | null;
+          fuel_pct?: number | null;
+          notes?: string | null;
+          photos?: Json;
+          recorded_by?: string | null;
+          recorded_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          owner_id?: string | null;
+          kind?: string;
+          at?: string;
+          odometer_km?: number | null;
+          fuel_pct?: number | null;
+          notes?: string | null;
+          photos?: Json;
+          recorded_by?: string | null;
+          recorded_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Relationships: [];
+      };
       vehicle_pairs_daily: {
         Row: {
           vehicle_a: string;
@@ -26100,7 +26529,10 @@ export type Database = {
       server_deposit_auto_failed: { Args: { p_id: string; p_error: string }; Returns: Json };
       server_deposit_autos_due: { Args: never; Returns: Json };
       server_deposit_capture_begin: { Args: { p_deposit: string }; Returns: Json };
+      server_deposit_extended_holds: { Args: never; Returns: boolean };
       server_deposit_guard_sweep: { Args: never; Returns: Json };
+      server_deposit_guard_sweep_pre0541: { Args: never; Returns: Json };
+      server_deposit_hold_expiry: { Args: { p_intent: string; p_capture_before: number; p_extended?: boolean }; Returns: Json };
       server_deposit_hold_lapsed: { Args: { p_intent: string }; Returns: Json };
       server_deposit_link_payreq: { Args: { p_booking: string; p_token_sha256: string }; Returns: Json };
       server_deposit_link_send: { Args: { p_id: string; p_link: string }; Returns: Json };
@@ -26197,11 +26629,13 @@ export type Database = {
       server_owner_debit_setup_verified: { Args: { p_method: string; p_mandate: string }; Returns: Json };
       server_owner_debit_terms: { Args: never; Returns: Json };
       server_owner_form_ab_facts: { Args: { p_by: string; p_code: string }; Returns: Json };
+      server_owner_handoffs: { Args: { p_by: string; p_vehicle: string }; Returns: Json };
       server_owner_invoice_id: { Args: { p_number: string }; Returns: string };
       server_owner_invoice_payment_facts: { Args: { p_invoice: string; p_by: string }; Returns: Json };
       server_owner_mandate_inactive: { Args: { p_mandate: string }; Returns: Json };
       server_owner_program_facts: { Args: never; Returns: Json };
       server_owner_record_debit_setup: { Args: { p_by: string; p: Json }; Returns: Json };
+      server_owner_referred_cars: { Args: { p_by: string }; Returns: Json };
       server_owner_review: { Args: { p_by: string }; Returns: Json };
       server_owner_review_correct: { Args: { p_by: string; p: Json }; Returns: Json };
       server_owner_sales_credit: { Args: { p_application: string; p_staff: string; p_lead?: string }; Returns: Json };
@@ -26215,6 +26649,8 @@ export type Database = {
       server_partner_crm_secret: { Args: { p_conn: string }; Returns: string };
       server_partner_crm_token: { Args: { p_admin: string; p: Json }; Returns: Json };
       server_partner_feed: { Args: { p_partner: string }; Returns: Json };
+      server_partner_invoice_by_token: { Args: { p_token: string }; Returns: Json };
+      server_partner_invoices_of: { Args: { p_partner: string }; Returns: Json };
       server_partner_referral: { Args: { p: Json }; Returns: Json };
       server_payment_intent_opened: { Args: { p: Json }; Returns: undefined };
       server_payreq_attach: { Args: { p_id: string; p_intent: string }; Returns: undefined };
@@ -26293,6 +26729,7 @@ export type Database = {
       server_resume_form_draft: { Args: { p_link_token: string; p_user?: string; p_device_label?: string }; Returns: Json };
       server_return_claim_read: { Args: { p_token: string }; Returns: Json };
       server_return_claim_submit: { Args: { p_token: string; p: Json; p_user?: string }; Returns: Json };
+      server_return_claim_submit_pre0545: { Args: { p_token: string; p: Json; p_user?: string }; Returns: Json };
       server_return_link: { Args: { p_booking: string; p_user: string }; Returns: string };
       server_review_google_sync_begin: { Args: never; Returns: Json };
       server_review_google_sync_finish: { Args: { p: Json }; Returns: Json };
@@ -26304,6 +26741,7 @@ export type Database = {
       server_schedule_change_signed_facts: { Args: { p_change: string }; Returns: Json };
       server_search_mine: { Args: { p_user: string; p_aal: string; p_q: string }; Returns: Json };
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
+      server_self_handover_submit: { Args: { p_user: string; p: Json }; Returns: Json };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };
       server_seo_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
       server_seo_result: { Args: { p: Json }; Returns: Json };
