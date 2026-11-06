@@ -356,7 +356,8 @@ begin
                     from partner_invoices i where i.status = 'sent' and i.claim_number is not null group by i.claim_number) q), '[]'::jsonb),
     'totals', (select jsonb_build_object('invoiced_cents', coalesce(sum(i.total_cents), 0), 'received_cents', coalesce(sum(i.paid_cents), 0),
                   'outstanding_cents', coalesce(sum(greatest(i.total_cents - i.paid_cents, 0)), 0),
-                  'overdue', count(*) filter (where app.partner_invoice_state(i) = 'overdue')) from partner_invoices i where i.status = 'sent'),
+                  'overdue', count(*) filter (where app.partner_invoice_state(i) = 'overdue')) from partner_invoices i
+                where i.status = 'sent' and (v_partner is null or i.partner_id = v_partner) and (v_claim is null or i.claim_number = v_claim)),
     'partners', coalesce((select jsonb_agg(jsonb_build_object('id', p2.id, 'name', p2.business_name, 'kind', p2.kind, 'default_kickback_bps', p2.default_kickback_bps,
                   'email', coalesce(p2.billing_email, p2.email)) order by p2.business_name) from referral_partners p2), '[]'::jsonb));
 end $$;

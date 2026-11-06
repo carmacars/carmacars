@@ -53,9 +53,9 @@ create table test.dg (k text primary key, v jsonb);
 create function test.dgv(p text) returns jsonb language sql stable as $$ select v from test.dg where k = p $$;
 
 -- ================================================================ 1. settings
-select test.eq('settings: a 7-day toll window, the 30-day hold-back limit kept, holds captured 36 hours before they lapse, automatic capture and collection on',
+select test.eq('settings: a 7-day toll window, the 30-day hold-back limit kept, holds captured 36 hours before they lapse, automatic capture off (0541: holds stay holds), collection on',
   (select deposit_toll_window_days || '/' || deposit_holdback_days || '/' || deposit_hold_capture_hours || '/' || deposit_auto_capture || '/' || balance_auto_collect from program_settings limit 1),
-  '7/30/36/true/true');
+  '7/30/36/false/true');
 select test.eq('the cron gate asks about deposits', (public.server_jobs_due() ? 'deposits'), true);
 
 -- ================================================================ 2. inside the toll window
@@ -201,6 +201,9 @@ select test.eq('charged: the smoking line is paid, nothing owed, the statement p
   || '/' || app.booking_balance_open(test.dgb('DG-7')) || '/' || (select paid_at is not null from booking_statements where booking_id = test.dgb('DG-7')), '1/0/true');
 
 -- ================================================================ 6. card holds before they lapse
+-- automatic capture is off by default since 0541 (99_r28_operations covers the To do it raises instead); an Admin may
+-- still turn it on, and this section checks the capture path with it on
+update program_settings set deposit_auto_capture = true;
 -- DG-8 on the road, the hold lapsing in 10 hours; DG-9 confirmed, its hold lapsing before the pickup
 select test.mk_booking('DG-8', 'DGH', 'dgx_r', test.dgl(-4), test.dgl(2), 'on_rent');
 select test.dg_hold('DG-8', now() + interval '10 hours');
@@ -318,3 +321,6 @@ select test.eq('the server functions are the service role''s only',
                                                   'server_balance_payreq', 'server_balance_payreq_send', 'server_deposit_guard_sweep')
       and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))), 0::bigint);
 select test.eq('the new tables have row-level security', (select count(*) from pg_class where relname in ('deposit_overrides', 'balance_followups', 'deposit_guard_state') and relrowsecurity), 3::bigint);
+
+-- back to the default (0541) for the files after this one
+update program_settings set deposit_auto_capture = false;

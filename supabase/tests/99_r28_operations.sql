@@ -9,6 +9,7 @@ select test.mk_user('r8_cs', 'va', 'cs');
 select test.mk_user('r8_fleet', 'va', 'fleet');
 select test.mk_user('r8_fin', 'va', 'finance');
 update staff_profiles set single_limit_cents = 500000 where user_id in (test.id('r8_cs'), test.id('r8_fin'));
+create table test.r8_premium as select weekend_premium_bps from program_settings where id = (app.settings()).id;
 update program_settings set weekend_premium_bps = 0 where id = (app.settings()).id;
 
 create table test.r8 (k text primary key, v jsonb);
@@ -22,7 +23,7 @@ do $$
 declare i integer;
 begin
   for i in 1 .. 3 loop
-    insert into test.r8 select 'car' || i, app.vehicle_add(test.id('r8_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1XFCXMM00000099' || lpad(i::text, 2, '0'),
+    insert into test.r8 select 'car' || i, app.vehicle_add(test.id('r8_admin'), jsonb_build_object('supply_type', 'company', 'vin', '1XFCXMM00000028' || lpad(i::text, 2, '0'),
       'plate', 'R8C00' || i, 'year', 2024, 'make', 'Kia', 'model', 'K5', 'rates', jsonb_build_object('daily', 10000, 'weekend', 10000, 'weekly', 70000, 'monthly', 300000, 'deposit', 30000)));
   end loop;
 end $$;
@@ -200,12 +201,17 @@ select test.throws('A12: a sent invoice is not edited', format($$select app.door
 select app.door(test.id('r8_fin'), 'aal2', 'ops_do', 'partner_invoice_pay', jsonb_build_object('id', test.r8v('pi') ->> 'id', 'method', 'cheque', 'amount_cents', 100000, 'reference', '000123',
   'photo_path', 'partner-invoices/' || (test.r8v('pi') ->> 'id') || '/' || gen_random_uuid() || '.jpg'));
 select test.eq('A12: the cheque photo is kept with the payment', (select count(*) from partner_invoice_payments where invoice_id = (test.r8v('pi') ->> 'id')::uuid and photo_path ~ '^partner-invoices/'), 1::bigint);
-select test.eq('A12: a cheque recorded: partly paid, the ledger per partner and per claim',
+select test.eq('A12: a cheque recorded: partly paid, the ledger per partner and per claim (the totals follow the partner filter)',
   (select (x #>> '{totals,received_cents}') || ':' || (x #>> '{totals,outstanding_cents}') || ':' || (x -> 'by_claim' -> 0 ->> 'claim_number') || ':' || (x -> 'invoices' -> 0 ->> 'state')
-     from (select app.door(test.id('r8_admin'), 'aal2', 'ops_read', 'partner_invoices', '{}'::jsonb) x) q), '100000:51250:CLM-R8-9:partly_paid');
+     from (select app.door(test.id('r8_admin'), 'aal2', 'ops_read', 'partner_invoices', jsonb_build_object('partner', test.id('rp:r8'))) x) q), '100000:51250:CLM-R8-9:partly_paid');
 update partner_invoices set due_on = app.today() - 10 where id = (test.r8v('pi') ->> 'id')::uuid;
 select test.eq('A12: one reminder after the due date', app.partner_invoice_reminders(), 1);
 select test.eq('A12: ... once', app.partner_invoice_reminders(), 0);
 select test.eq('A12: the partner''s page lists it with its link', jsonb_array_length(public.server_partner_invoices_of(test.id('rp:r8'))), 1);
 
 update program_settings set weekend_premium_bps = 1500 where id = (app.settings()).id;
+
+-- the files after this one: the weekend premium back, and this file's cars keep the weekend-above-daily rule (99_weekend_above_daily)
+update program_settings set weekend_premium_bps = (select weekend_premium_bps from test.r8_premium) where id = (app.settings()).id;
+update rate_cards set weekend_rate_cents = daily_rate_cents + 1000
+ where effective_to is null and weekend_rate_cents <= daily_rate_cents and vehicle_id in (select test.r8car('car' || i) from generate_series(1, 3) i);
