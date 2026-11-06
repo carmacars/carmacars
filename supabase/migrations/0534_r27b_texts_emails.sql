@@ -104,3 +104,53 @@ update notification_outbox
    set send_after = now()
  where status = 'delayed' and send_after > now()
    and status_reason in ('daily email limit', 'the day''s email budget is used', 'the email provider''s daily limit');
+
+-- ================================================================ 3. the public pages' reads never take the whole pool
+-- November 6: scrapers' page renders held all 20 PostgREST connections (place_hub, the vehicle pages, the vehicle
+-- sitemaps), and the Admin portal and sign-in could not get one. The heavy public reads now take one of
+-- app.public_slots() slots (a transaction advisory lock) or are refused at once with 53400 ("busy"): the Worker then
+-- serves the page's kept copy or its busy page, and the other connections stay free for staff, sign-in and bookings.
+create or replace function app.public_slots() returns integer
+language sql immutable as $$ select 8 $$;
+
+create or replace function app.public_slot() returns void
+language plpgsql security definer set search_path = public, app as $$
+declare i integer;
+begin
+  -- the server itself (jobs, the deploy's checks) is never limited
+  if coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role', '') = 'service_role' then return; end if;
+  for i in 1 .. app.public_slots() loop
+    if pg_try_advisory_xact_lock(534000, i) then return; end if;
+  end loop;
+  raise exception 'The site is busy right now' using errcode = '53400', hint = 'public read slots in use';
+end $$;
+revoke all on function app.public_slot(), app.public_slots() from public, anon, authenticated;
+grant execute on function app.public_slot(), app.public_slots() to service_role;
+
+do $do$
+declare
+  f record;
+  v_args text;
+  v_call text;
+  v_grants text[];
+  g text;
+begin
+  for f in select p.oid, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'public' and p.proname in ('place_hub', 'vehicle_tier_page', 'vehicle_trim_page', 'vehicle_year_page', 'vehicle_model_page',
+                                                         'vehicle_tier_sitemap', 'vehicle_sitemap')
+              and pg_get_function_result(p.oid) = 'jsonb' loop
+    v_args := pg_get_function_arguments(f.oid);
+    select string_agg(quote_ident(a), ', ' order by o) into v_call from unnest((select proargnames from pg_proc where oid = f.oid)) with ordinality x(a, o);
+    v_grants := array(select r from unnest(array['anon', 'authenticated', 'service_role']) r where has_function_privilege(r, f.oid, 'execute'));
+    execute format('alter function public.%I(%s) rename to %I', f.proname, pg_get_function_identity_arguments(f.oid), f.proname || '_unslotted');
+    execute format('alter function public.%I(%s) set schema app', f.proname || '_unslotted', pg_get_function_identity_arguments(f.oid));
+    execute format('revoke all on function app.%I(%s) from public, anon, authenticated', f.proname || '_unslotted', pg_get_function_identity_arguments(f.oid));
+    execute format('grant execute on function app.%I(%s) to service_role', f.proname || '_unslotted', pg_get_function_identity_arguments(f.oid));
+    execute format($f$create function public.%I(%s) returns jsonb language plpgsql stable security definer set search_path = public, app as $b$
+      begin perform app.public_slot(); return app.%I(%s); end $b$$f$, f.proname, v_args, f.proname || '_unslotted', coalesce(v_call, ''));
+    execute format('revoke all on function public.%I(%s) from public', f.proname, pg_get_function_identity_arguments(f.oid));
+    foreach g in array v_grants loop
+      execute format('grant execute on function public.%I(%s) to %I', f.proname, pg_get_function_identity_arguments(f.oid), g);
+    end loop;
+  end loop;
+end $do$;

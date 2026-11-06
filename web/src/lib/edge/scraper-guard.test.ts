@@ -51,3 +51,15 @@ test('a browser-looking agent without our cookies is checked on long-tail pages;
   assert.equal(r.status, 200);
   assert.equal(r.headers.get('cache-control'), 'no-store');
 });
+
+import { BUSY_TRIP, BUSY_WINDOW_MS, BusyMeter, renderFailed } from './scraper-guard.ts';
+test('cached-only mode trips after repeated failed renders within a minute, at most once a minute per isolate', () => {
+  const m = new BusyMeter();
+  const t0 = 1_800_000_000_000;
+  for (let i = 0; i < BUSY_TRIP - 1; i++) assert.equal(m.failed(t0 + i), false);
+  assert.equal(m.failed(t0 + 10), true);
+  assert.equal(m.failed(t0 + 20), false, 'not again within the minute');
+  const late = new BusyMeter();
+  for (let i = 0; i < BUSY_TRIP; i++) assert.equal(late.failed(t0 + i * BUSY_WINDOW_MS), false, 'spread out: never');
+  assert.ok(renderFailed(503, null) && renderFailed(200, 'slow') && renderFailed(200, 'error 502; age=3') && !renderFailed(200, null) && !renderFailed(404, null));
+});

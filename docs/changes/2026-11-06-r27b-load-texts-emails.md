@@ -45,16 +45,32 @@ Branch `hotfix-r27b` from `main` (4ee0585b). SCHEMA_MARKER 0534.
    It was not sent twice: press Send again and we check first." A Quo 402 reads "the Quo account is out of prepaid
    credits". Every database call: a gateway's raw answer (`error code: 504`, an HTML page) becomes a sentence
    (postgrest.ts, friendly.ts).
-4. The error page (`app/error.tsx`, `app/global-error.tsx`, `lib/client-error/recover.ts`): a failed server render
-   (React 441, a dropped answer) or a page of an older deploy (server action not found, a missing script) reloads once by
-   itself ("One moment, reloading the page"), at most once a minute per tab. The stale page guard also reloads on a
-   server action of an older deploy.
+4. The error page (`app/error.tsx`, `app/global-error.tsx`, `lib/client-error/ErrorPanel.tsx`, `recover.ts`; every page,
+   Admin and staff too). The owner: "Try again and Reload just fail again, and it says call or text us with no number".
+   It now says whose problem it is: "Our servers are busy right now. This is on our side, not your device", with an
+   automatic retry after 5, 10, 20, 40 and then every 60 seconds and a countdown; "The site was just updated" (a server
+   action or script of an older deploy: one reload); or a problem on this device (Try again). It always shows the phone
+   number from Site settings (tap to call, or text) and the email, and says what was typed is kept. The stale page
+   guard also reloads on a server action of an older deploy.
 5. Email (0534, send-outbox): Resend's limits hold nothing while Cloudflare may send and has budget left today (200);
    an email held by a limit waits 15 minutes, not until midnight, while Cloudflare has budget; send-outbox records every
    Cloudflare send and refusal, and waits 16 minutes for Cloudflare when only Resend's budget is used. The emails held
    by "daily email limit" went out at once.
 6. cf-logs: the Worker's invocations by user agent, network, verified bot category, country and URL; read-only
    database diagnostics (email providers, texts, browser crash reports, connections), masked; the report upload retried.
+
+7. So it cannot happen again (the owner, after the outage of 16:30 to 17:30 UTC):
+   - Capacity for staff (0534): the heavy public reads (`place_hub`, the vehicle pages, the vehicle sitemaps) each take
+     one of 8 slots (`app.public_slot`, a transaction advisory lock) or are refused at once with 53400; the Worker then
+     serves the page's kept copy or its busy page. PostgREST's other 12 connections stay free for staff, sign-in and
+     bookings. The anonymous role keeps its 5 s statement timeout.
+   - Cached-only mode (custom-worker.ts, scraper-guard.ts `BusyMeter`): after 5 failed long-tail renders (5xx, or slower
+     than 4 s) within a minute, a Worker sets a flag in the tag store for 10 minutes; every Worker then serves long-tail
+     pages from their kept copies only (else the busy page, 503 with Retry-After). It ends by itself; signed-in people
+     and the portals are never affected.
+   - vps-health: a server load of 12 or more is a problem by itself (an email at once, as for any failed check), and the
+     `outage` issue opens on the first failed check; self-heal comments and closes it on recovery.
+   - The scraper guard (part 1) and the Bytespider rate limit stay, with their unit tests.
 
 ## Owner steps
 

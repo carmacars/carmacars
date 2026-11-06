@@ -28,3 +28,33 @@ export function recoverInBrowser(e: { message?: string; digest?: string }): bool
   window.setTimeout(() => window.location.reload(), 1200);
   return true;
 }
+
+// ------------------------------------------------------------------ what the page says (r27b, the owner: "Try again and Reload
+// just fail again, and it says call or text us with no number")
+/** The server could not answer (busy, a gateway timeout, the network dropped it): not the device's fault. */
+export const SERVER_BUSY = /Minified React error #441|Server Components render|error code: 5\d\d|\b50[234]\b|did not answer|too slow|busy|timed? ?out|Failed to fetch|NetworkError|Load failed|Connection closed|An unexpected response was received/i;
+export type Cause = 'server' | 'stale' | 'device';
+export function causeOf(e: { message?: string; digest?: string } | null | undefined): Cause {
+  const m = String(e?.message ?? '');
+  if (STALE_BUILD.test(m)) return 'stale';
+  if (SERVER_BUSY.test(m) || (!!e?.digest && /omitted in production/.test(m))) return 'server';
+  return 'device';
+}
+/** Seconds before the next automatic try: 5, 10, 20, 40, then every 60. */
+export function retryDelayS(attempt: number): number {
+  return Math.min(60, 5 * 2 ** Math.max(0, attempt));
+}
+export const FALLBACK_CONTACT = { phone: '289-312-5991', email: 'contact@carmacars.ca' };
+/** The site's phone and email, from the page's meta tag (the layout writes it from Site settings), else the defaults. */
+export function readContact(doc: { querySelector(s: string): { getAttribute(n: string): string | null } | null } | null | undefined): { phone: string; email: string } {
+  try {
+    const raw = doc?.querySelector('meta[name="cc-contact"]')?.getAttribute('content');
+    const c = raw ? (JSON.parse(raw) as { phone?: string | null; email?: string | null }) : {};
+    return { phone: c.phone || FALLBACK_CONTACT.phone, email: c.email || FALLBACK_CONTACT.email };
+  } catch { return { ...FALLBACK_CONTACT }; }
+}
+/** tel: and sms: addresses for a North American number as people write it. */
+export function dialable(phone: string): string {
+  const d = phone.replace(/[^0-9+]/g, '');
+  return /^\+/.test(d) ? d : d.length === 10 ? `+1${d}` : d.length === 11 && d.startsWith('1') ? `+${d}` : d;
+}
