@@ -25,6 +25,16 @@ over its limit, the server load was 7.4, hiring emails were not going out and er
 5. **Self-healing.** `.github/workflows/self-heal.yml` (every 15 minutes) checks the site and the server API, opens or
    updates one `outage` issue, closes it on recovery and, after about 45 minutes of API failure, starts the existing vps-ops
    reboot action (once per 6 hours). It runs no SQL. See docs/runbook-outage.md.
+6. **Email budget (migration 0433).** 300 a day: the send-outbox function sends through the Cloudflare email binding first (200 a
+   day, `notify_cf_daily_budget`) and through Resend after (100 a day, `notify_resend_daily_budget`); once both are used the
+   rest waits for tomorrow, the highest priority and oldest first. The binding is added by the production deploy when the
+   repository variable CF_EMAIL_BINDING is on (scripts/deploy/email-binding.sh); the deploy annotation says whether it was.
+7. **Test dates.** 99_now_board no longer puts its pickups in the future when the suite runs before 10:00 Toronto time, and
+   99_lead_time_partner_pricing is skipped (with a notice) when its 30 to 78 hour window touches a weekend, where the weekend
+   rate changes its amounts; both failed on main at those times.
+
+Not in this change: the renter's "I've returned the car" link and form (photos, odometer, fuel, time) with the staff
+Confirm or Deny, and a limit on repeated overdue emails. Overdue emails, texts and notices go on as before until it is built.
 
 ## Guides
 
