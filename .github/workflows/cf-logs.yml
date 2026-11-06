@@ -61,7 +61,7 @@ jobs:
           jq -r 'select(.by_cache) | "cache: " + (.by_cache | map("\(.cache) \(.count)") | join(", ")) + "; status: " + (.by_status | map("\(.status) \(.count)") | join(", "))' "$f" | sed 's/^/::notice title=traffic::/'
           jq -r 'select(.by_segment_top400) | "segments (top 400 paths, \(.distinct_paths_in_top400) distinct, top path \(.top_path_share)%): " + (.by_segment_top400 | map("\(.segment) \(.count)") | join(", ")) + "; networks: " + ((.by_asn // [])[:8] | map("\(.asn) \(.count)") | join(", "))' "$f" | sed 's/^/::notice title=traffic::/'
           jq -r '(.by_user_agent // [])[:12] | map("\(.n)x \(.cpu_ms // 0)ms \(.key)") | join(" | ") | select(length > 0) | "worker invocations by agent: " + .' "$RUNNER_TEMP/worker-errors.json" | cut -c1-3000 | sed 's/^/::notice title=traffic::/'
-          for k in by_path by_network by_bot_category by_network_windows_chrome by_path_windows_chrome by_country_windows_chrome; do
+          for k in by_path by_network by_bot_category by_network_windows_chrome by_path_windows_chrome by_country_windows_chrome by_url_windows_chrome by_fetch_dest_windows_chrome by_ch_ua_windows_chrome by_lang_windows_chrome by_status_windows_chrome; do
             jq -r --arg k "$k" '(.[$k] // [])[:15] | map("\(.n)x \(.cpu_ms // 0)ms \(.key)") | join(" | ") | select(length > 0) | "\($k): " + .' "$RUNNER_TEMP/worker-errors.json" | cut -c1-3000 | sed 's/^/::notice title=traffic::/'
             jq -r --arg k "$k" '.[$k + "_unavailable"] // empty | "\($k) unavailable: " + .' "$RUNNER_TEMP/worker-errors.json" | sed 's/^/::notice title=traffic::/'
           done
