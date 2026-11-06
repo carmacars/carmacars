@@ -16,7 +16,7 @@ export function claimPhotoKey(bookingId: string, id: string, png: boolean): stri
   return `bookings/${bookingId}/return-claim/${id}.${png ? 'png' : 'jpg'}`;
 }
 
-export interface ClaimInput { returned_at?: string; odometer_km?: string; fuel_pct?: string; note?: string; photos?: Array<{ bucket: string; path: string }> }
+export interface ClaimInput { returned_at?: string; odometer_km?: string; fuel_pct?: string; note?: string; photos?: Array<{ bucket: string; path: string; angle?: string | null }> }
 
 /** The form's values as the database's payload, or the first problem in words the renter reads. */
 export function claimPayload(v: ClaimInput, now: Date = new Date()): { ok: true; payload: Record<string, unknown> } | { ok: false; message: string } {
@@ -51,7 +51,9 @@ export function fuelLabel(pct: number | null | undefined): string {
   return FUEL_LEVELS.find(([, p]) => p === pct)?.[0] ?? `${pct}%`;
 }
 
-/** The renter's booking page offers "I've returned the car" from 3 hours before the return time while the car is out. */
+/** The renter's booking page offers "I've returned the car" (the self checkout) while the car is out (0545). */
 export function returnReportable(status: string, returnAt: string, now: Date = new Date()): boolean {
-  return status === 'on_rent' && Date.parse(returnAt) - now.getTime() < 3 * 3600_000;
+  // 0545: the renter's own checkout, any time while the car is out (it was the late window only)
+  void returnAt; void now;
+  return status === 'on_rent';
 }

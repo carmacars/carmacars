@@ -24,6 +24,7 @@ import '@/features/admin/todo/todo.css';
 import { CarMaintenancePanel } from '@/features/maintenance/Views';
 import { CarTermsTable, type CarTermsData } from '@/features/owner-billing/CarTerms';
 import type { CarMaintenance } from '@/features/maintenance/model';
+import { OwnerHandoffs } from '@/features/handover/OwnerHandoffs';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/admin/vehicles', noindex: true, description: 'One vehicle: rates, fees, calendar, listing.' });
@@ -153,6 +154,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
           </Card>
           <Card title="Bookings"><Table rows={v.bookings} empty="No bookings in the last 120 days." cols={[{ key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) }, { key: 'return_at', label: 'Return', render: (r) => t(r.return_at) }, { key: 'renter', label: 'Renter' }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) }]} /></Card>
           <Card title="Interest on the site" testId="vehicle-interest"><CarInterest i={interest} /></Card>
+          <OwnerHandoffs vehicleId={id} userId={user.id} refresh={[`/admin/vehicles/${id}`]} />
         </div>
       )}
       {tab === 'rates' && (

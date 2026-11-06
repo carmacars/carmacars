@@ -118,6 +118,11 @@ begin
     if p_name = 'owner_handoff_save' then return app.owner_handoff_save(p_user, coalesce(p, '{}'::jsonb) - '_va'); end if;
     return app.owner_handoff_void(p_user, coalesce(p, '{}'::jsonb) - '_va');
   end if;
+  if p_call = 'ops_read' and p_name = 'owner_handoffs' then
+    perform app.door_begin(p_user, p_aal);
+    if not app.user_may_owner_handoff(p_user) then raise exception 'Not permitted' using errcode = '42501'; end if;
+    return app.owner_handoffs_list(nullif(p ->> 'vehicle', '')::uuid);
+  end if;
   return app.door_pre0546(p_user, p_aal, p_call, p_name, p);
 end $$;
 select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre0546(uuid, text, text, text, jsonb)'::regprocedure);
