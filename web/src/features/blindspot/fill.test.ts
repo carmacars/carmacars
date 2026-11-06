@@ -375,3 +375,57 @@ test('31 days on the stand-in: nothing is cut, and the values are where the form
   assert.ok(near('500.00', 374, 707.4), 'deposit received, after the printed $');
   assert.ok(near('Full (100%)', 326, 681.4), 'fuel out');
 });
+
+test('0544: a charge typed by hand that names VLF, LDW or underage lands in its own box with its rate a day, never box 48', () => {
+  const f = withInsurerFees([{ charge_type: 'other', description: 'VLF vehicle licensing fee', amount_cents: 1500 }]);
+  const l = layout(f);
+  const by = (b: string) => l.texts.find((t) => t.box === b)?.text;
+  assert.equal(by('43-amount'), '$15.00', 'VLF total in box 43');
+  assert.equal(by('43-rate'), '$5.00', 'its rate a day left of box 43');
+  assert.equal(by('48'), '$15.00', 'box 48: the delivery only');
+});
+
+test('0544: the rate a day is printed even when the total does not divide evenly', () => {
+  const f = withInsurerFees([{ charge_type: 'vlf', description: 'VLF', amount_cents: 1000 }]);
+  const l = layout(f);
+  assert.equal(l.texts.find((t) => t.box === '43-rate')?.text, '$3.33');
+});
+
+test('0544: the per-hour late charge, km and fuel out and in from the booking, typed corrections in place', () => {
+  const f = sampleFacts({ mailing: MAILING, hst_number: null });
+  f.extra.late_fee_cents = 2500;
+  f.extra.readings = { odometer_out_km: 41000, fuel_out_pct: 100, odometer_in_km: 41500, fuel_in_pct: 75 };
+  f.extra.overrides = { claim: 'CLM-TYPED-1', '3': 'Jordan S. Renter' };
+  const l = layout(f);
+  const by = (b: string) => l.texts.find((t) => t.box === b)?.text;
+  assert.equal(by('34-rate'), '$25.00', 'box 34: the late fee per started hour');
+  assert.equal(by('28'), '41,000 km');
+  assert.equal(by('27'), '41,500 km');
+  assert.equal(by('29'), '500 km');
+  assert.equal(by('fuel-out'), 'Full (100%)');
+  assert.equal(by('fuel-in'), '3/4 (75%)');
+  assert.equal(by('claim'), 'CLM-TYPED-1', 'the typed value replaces the N/A');
+  assert.equal(by('claim-na'), undefined);
+  assert.equal(by('3'), 'Jordan S. Renter');
+});
+
+test('0544: the totals add up to the booking ledger (49 + 50 + 52 + 53 + 54 = 55 = every line with its HST)', () => {
+  const f = month();
+  const l = layout(f);
+  const sum = ['49', '50', '52', '53', '54'].reduce((t, b) => t + cents(box(l, b)), 0);
+  assert.equal(sum, cents(box(l, '55')));
+  const ledger = f.extra.more!.lines.filter((x) => ['booking', 'extension', 'pickup', 'monthly'].includes(x.stage)).reduce((t, x) => t + x.amount_cents + x.hst_cents, 0);
+  assert.equal(cents(box(l, '55')), ledger, 'box 55 is the ledger total');
+});
+
+test('0544: the renter signs on the x line below box 2 and in box 40 as well as 16, 17 and 20', async () => {
+  const f = sampleFacts({ mailing: MAILING, hst_number: null });
+  const unsigned = await fillBlindSpot(await standIn(), layout(f), {});
+  const withSig = await fillBlindSpot(await standIn(), layout(f), { renter: { png: PNG } });
+  const initialsOnly = await fillBlindSpot(await standIn(), layout(f), { renter: { png: PNG }, initials: PNG });
+  assert.notDeepEqual(unsigned.bytes, withSig.bytes);
+  // the same drawing whether initials are given or not: the signature is used on the x lines
+  assert.equal(Buffer.from(withSig.bytes).length, Buffer.from(initialsOnly.bytes).length);
+  assert.ok(SIG.initialsCleanup.top > 119 && SIG.initialsCleanup.top < 145, 'below box 2');
+  assert.ok(SIG.initialsDue.top > 425 && SIG.initialsDue.top < 450, 'in box 40');
+});

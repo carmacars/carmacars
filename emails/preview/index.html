@@ -22,7 +22,7 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 .ln a{font-size:13px;font-weight:700;color:#111;margin-right:12px}
 </style></head><body>
 <header><div class="wm">Carma<b>Cars</b></div><p>207 automated emails, rendered with sample values. Built by emails/build.mjs.</p></header>
-<nav><a href="#renter">Renter <span>83</span></a><a href="#owner">Owner <span>46</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>14</span></a></nav>
+<nav><a href="#renter">Renter <span>83</span></a><a href="#owner">Owner <span>46</span></a><a href="#investor">Investor <span>3</span></a><a href="#staff_admin">Staff: admin <span>18</span></a><a href="#staff_va_finance">Staff: finance <span>9</span></a><a href="#staff_va_fleet">Staff: fleet <span>10</span></a><a href="#staff_va_cs">Staff: customer service <span>13</span></a><a href="#staff_va_sales">Staff: sales <span>5</span></a><a href="#staff_field">Staff: field <span>5</span></a><a href="#insurer">Insurer (billing contact) <span>1</span></a><a href="#applicant">Job applicant <span>13</span></a><a href="#partner">Partner (body shop, tow truck, storage) <span>1</span></a></nav>
 <main>
 <h2 id="renter">Renter (83)</h2>
 <div class="grid">
@@ -1212,19 +1212,13 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="ln"><a href="../dist/insurer_invoice.html">HTML</a><a href="../dist/insurer_invoice.txt">Text</a><a href="../shots/insurer_invoice.desktop.png">Desktop</a><a href="../shots/insurer_invoice.phone.png">Phone</a></div>
 </div></div>
 </div>
-<h2 id="applicant">Job applicant (14)</h2>
+<h2 id="applicant">Job applicant (13)</h2>
 <div class="grid">
 <div class="c"><a class="th" href="../dist/applicant_ai_interview.html"><img loading="lazy" src="../shots/applicant_ai_interview.desktop.png" alt="Screenshot of applicant_ai_interview"></a><div class="b">
 <div class="code">applicant_ai_interview</div><div class="sub">CarmaCars: your interview for Customer Service Coordinator (Remote)</div>
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A candidate for a remote assistant role (customer service, fleet, finance or remote sales) passes screening, or an Admin presses Invite anyway or New interview link in Admin &gt; People &gt; Hiring, while AI interviews are on (migration 0380): the personal link to the recorded interview they take on their own, instead of the link to book a live call. In-person roles keep their calls. One email per link; no reminders and no texts.</div>
 <div class="ln"><a href="../dist/applicant_ai_interview.html">HTML</a><a href="../dist/applicant_ai_interview.txt">Text</a><a href="../shots/applicant_ai_interview.desktop.png">Desktop</a><a href="../shots/applicant_ai_interview.phone.png">Phone</a></div>
-</div></div>
-<div class="c"><a class="th" href="../dist/applicant_ai_interview_sorry.html"><img loading="lazy" src="../shots/applicant_ai_interview_sorry.desktop.png" alt="Screenshot of applicant_ai_interview_sorry"></a><div class="b">
-<div class="code">applicant_ai_interview_sorry</div><div class="sub">CarmaCars: sorry about the interview times, here is your interview link</div>
-<div class="tags"><span>Transactional</span></div>
-<div class="tr">Once, by migration 0535 (the owner, November 6, 2026): a candidate for a remote assistant role (customer service, fleet, finance or remote sales) who was invited to book a call, or whose booked call time passed without the call, is moved to the AI interview: an apology for the scheduling problem on our side and the personal link to the recorded interview. No booking needed.</div>
-<div class="ln"><a href="../dist/applicant_ai_interview_sorry.html">HTML</a><a href="../dist/applicant_ai_interview_sorry.txt">Text</a><a href="../shots/applicant_ai_interview_sorry.desktop.png">Desktop</a><a href="../shots/applicant_ai_interview_sorry.phone.png">Phone</a></div>
 </div></div>
 <div class="c"><a class="th" href="../dist/applicant_booked.html"><img loading="lazy" src="../shots/applicant_booked.desktop.png" alt="Screenshot of applicant_booked"></a><div class="b">
 <div class="code">applicant_booked</div><div class="sub">your CarmaCars interview call, Thursday, October 29 at 10:20 am</div>
@@ -1297,6 +1291,15 @@ h2{font-size:22px;letter-spacing:-.4px;margin:36px 0 16px;padding-top:12px;borde
 <div class="tags"><span>Transactional</span></div>
 <div class="tr">A candidate for a remote role did not confirm their interview call in time (12 hours after the confirmation email, or 1 hour before the call, whichever is sooner): the call is cancelled and the time opens again (migration 0229). One email per booking.</div>
 <div class="ln"><a href="../dist/applicant_unconfirmed.html">HTML</a><a href="../dist/applicant_unconfirmed.txt">Text</a><a href="../shots/applicant_unconfirmed.desktop.png">Desktop</a><a href="../shots/applicant_unconfirmed.phone.png">Phone</a></div>
+</div></div>
+</div>
+<h2 id="partner">Partner (body shop, tow truck, storage) (1)</h2>
+<div class="grid">
+<div class="c"><a class="th" href="../dist/partner_invoice.html"><img loading="lazy" src="../shots/partner_invoice.desktop.png" alt="Screenshot of partner_invoice"></a><div class="b">
+<div class="code">partner_invoice</div><div class="sub">Invoice PI-000012 from CarmaCars: $1,130.00</div>
+<div class="tags"><span>Transactional</span></div>
+<div class="tr">An invoice to a partner (a body shop, tow truck or storage yard) for its kickback on a claim, towing or storage total is sent from the admin portal (Money &gt; Partner invoices, Send), sent again, or reminded once before and once after its due date (migration 0547). The link opens the invoice PDF.</div>
+<div class="ln"><a href="../dist/partner_invoice.html">HTML</a><a href="../dist/partner_invoice.txt">Text</a><a href="../shots/partner_invoice.desktop.png">Desktop</a><a href="../shots/partner_invoice.phone.png">Phone</a></div>
 </div></div>
 </div>
 </main></body></html>

@@ -22,7 +22,7 @@ export async function markPayLinkOpened(token: string): Promise<void> {
   await rpc('server_payreq_opened', { p_token_sha256: await payTokenHash(token) }, SR).catch(() => undefined);
 }
 
-export async function settlePayreq(id: string, intentId: string, kind: PayLinkFacts['kind']): Promise<{ ok: boolean; reason?: string; message?: string }> {
+export async function settlePayreq(id: string, intentId: string, kind: PayLinkFacts['kind'], placed?: Intent | null): Promise<{ ok: boolean; reason?: string; message?: string }> {
   const p = await payments();
   let i: Intent = kind === 'setup' ? await p.retrieveCardSetup(intentId) : await p.retrieveIntent(intentId);
   // an older authorization (refused for its card and replaced), or the new one not used yet after a refusal (0213)
@@ -71,6 +71,11 @@ export async function settlePayreq(id: string, intentId: string, kind: PayLinkFa
   // another card on a card-coverage rental (0203): refused, and the money it took is given back at once
   if (res.refund && kind === 'charge' && i.status === 'succeeded') {
     await p.refund({ paymentIntentId: i.id, chargeId: i.chargeId, amountCents: i.amountCents, idempotencyKey: `same-card-refund:${id}`, metadata: { payment_request_id: id, reason: 'card_coverage_other_card' } }).catch(() => undefined);
+  }
+  // 0541: the hold's real expiry is Stripe's capture_before (an extended authorization: up to about 30 days)
+  if (res.ok && kind === 'hold' && i.status === 'requires_capture') {
+    const before = i.captureBefore ?? placed?.captureBefore ?? null;
+    if (before) await rpc('server_deposit_hold_expiry', { p_intent: i.id, p_capture_before: before, p_extended: Boolean(i.extendedAuth ?? placed?.extendedAuth) } as never, SR).catch(() => undefined);
   }
   return { ok: res.ok, reason: res.reason };
 }

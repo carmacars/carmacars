@@ -7,6 +7,7 @@ import { Card, Kv, PageHead, Table, t, label } from '@/features/admin/ui';
 import { Act } from '@/features/admin/Act';
 import { CarMaintenancePanel } from '@/features/maintenance/Views';
 import type { CarMaintenance } from '@/features/maintenance/model';
+import { OwnerHandoffs } from '@/features/handover/OwnerHandoffs';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/staff', noindex: true, description: 'One vehicle for Fleet and customer service.' });
@@ -46,6 +47,7 @@ export default async function VaVehicle({ params, searchParams }: { params: Prom
         <Card title="Vehicle"><Kv rows={[['Plate', String(c.plate ?? '')], ['Colour', String(c.colour ?? '')], ['Status', label(c.status)], ['Odometer', c.odometer_km ? `${String(c.odometer_km)} km` : ''], ['Class', String(c.class ?? '')]]} /></Card>
         {rates && <Card title="Rates and kilometres" testId="va-rates"><p className="small muted">Rates, kilometres and deposit save together. Bookings already made keep their rates.</p>
           <RateCardForm vehicleId={id} card={rates.current} refresh={[`/staff/vehicles/${id}`]} testId="va-rate-form" /></Card>}
+        {fn === 'fleet' && <OwnerHandoffs vehicleId={id} userId={user.id} aal={aal} refresh={[`/staff/vehicles/${id}`]} />}
         <Card title="Documents"><Table rows={v.documents ?? []} empty="No documents." cols={[{ key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
       </div>
       {maint && <><h2 className="d4 mt-h">Maintenance</h2><CarMaintenancePanel m={maint} base="/staff" autoRecord={sp.record === '1'} /></>}

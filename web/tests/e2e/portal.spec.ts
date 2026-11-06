@@ -105,7 +105,7 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await page.getByTestId('next-step').getByRole('link', { name: 'Review offer' }).click();
   await page.waitForURL(/\/offer$/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Your offer');
-  await expect(page.getByTestId('offer-hold-rule')).toContainText('This offer does not hold the car.');
+  await expect(page.getByTestId('offer-hold-rule')).toContainText('This offer does not hold the car until you approve it.');
   await expect(page.getByTestId('offer-countdown')).toContainText(/left/);
   const [due] = await sql`select renter_due_at_booking_cents::int c from bookings where id = ${bk!.id}`;
   const dollars = (c: number) => `$${(c / 100).toLocaleString('en-CA', { minimumFractionDigits: 2 })}`;

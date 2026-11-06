@@ -5,7 +5,7 @@ import { money } from '@/lib/format';
 import { getFleet, getSettings } from '@/lib/site';
 import { when } from '@/features/agreement/model';
 import { AWAITING_SIGNATURE, STATUS, awaitingSignature, bookingPath, nextStep, progress } from '@/features/portal/status';
-import { returnReportable } from '@/features/returns/claim';
+import { returnReportable, selfPickupOffered } from '@/features/returns/claim';
 import { Back, PriceBreakdown } from '@/features/portal/Blocks';
 import { AddToCalendar } from '@/features/portal/AddToCalendar';
 import { walletReady } from '@/server/wallet';
@@ -157,7 +157,9 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
               {(['requested', 'offered', 'confirmed', 'pending_payment'].includes(b.status) || (b.status === 'on_rent' && b.added_mode === 'in_progress')) && <QuickAction href={bookingPath(b.booking_number, 'verify')} icon="id" title={['requested', 'offered'].includes(b.status) ? 'Your licence' : 'Licence and coverage'} note="Photos, selfie and proof of coverage" />}
               {(b.status === 'on_rent' || b.status === 'confirmed') && <QuickAction href={bookingPath(b.booking_number, 'extend')} icon="extend" title={ext?.status === 'approved' ? 'Pay for the extension' : 'Extend'} note={ext?.status === 'requested' ? `Asked for ${when(ext.new_return_at)}` : 'Ask for more time with the car'} tone={ext?.status === 'approved' ? 'brand' : 'neutral'} />}
               {/* 0532: the car is back but the late notices keep coming: one tap stops them while staff check */}
-              {returnReportable(b.status, b.return_at) && <QuickAction href={bookingPath(b.booking_number, 'returned')} icon="key" title="I've returned the car" note="Stops the late notices while we check" testId="action-returned" />}
+              {/* 0545: the renter's own check-in at pickup, and own checkout (the same form as the late notices' link) */}
+              {selfPickupOffered(b.status, b.pickup_at) && <QuickAction href={bookingPath(b.booking_number, 'pickup')} icon="camera" title="Check in yourself" note="Your photos, km and fuel at pickup" testId="action-self-pickup" />}
+              {returnReportable(b.status, b.return_at) && <QuickAction href={bookingPath(b.booking_number, 'returned')} icon="key" title="Return the car yourself" note="Photos, km and fuel: done in one step" testId="action-returned" />}
               {b.status === 'confirmed' && <QuickAction href={bookingPath(b.booking_number, 'change')} icon="calendar" title="Ask to change dates" note="See the difference first" />}
               <QuickAction href="#messages" icon="chat" title="Message us" note={thread.length ? `${thread.length} ${thread.length === 1 ? 'message' : 'messages'} on this booking` : 'About this booking'} testId="action-message" />
               {phone && <QuickAction href={`tel:${tel}`} icon="phone" title={`Call us ${phone}`} note={s.opening_hours_text ?? 'We answer day and night'} testId="action-call" />}

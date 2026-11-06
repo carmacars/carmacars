@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveRegistration, uploadVehicleDocument } from '@/server/actions/vehicle-registration';
+import { VinScan } from '@/features/vin/VinScan';
 import { PermitScan } from './PermitScan';
 import type { PermitRead } from './permit-read';
 import { DateInput, TypedInput } from '@/components/DateInput';
@@ -49,7 +50,11 @@ export function Registration({ d }: { d: RegistrationData }) {
       <PermitScan prefix="reg-permit" onRead={permitRead} note="Take a photo of the vehicle portion of the permit: the VIN, year, body style, permit number and sticker expiry fill the empty fields for you to check." />
       {fromPermit && <p className="small" role="status" data-testid="reg-permit-msg">{fromPermit}</p>}
       <div className="ad-fields">
-        {field('vin', 'VIN', 'text', 'Checked (17 characters, the check digit, not on another car) and decoded again for the body style and trim.')}
+        <div className="field ad-field"><label className="label" htmlFor="reg-vin">VIN</label>
+          <TypedInput className="input vin-input" id="reg-vin" type="text" value={f.vin} onChange={(e) => setF((x) => ({ ...x, vin: e.target.value.toUpperCase() }))} autoCapitalize="characters" spellCheck={false} data-testid="reg-vin" />
+          {/* release 28: the VIN from the door-jamb barcode or a photo */}
+          <VinScan prefix="reg" compact onVin={(vin) => setF((x) => ({ ...x, vin }))} />
+          <p className="hint">Checked (17 characters, the check digit, not on another car) and decoded again for the body style and trim.</p></div>
         {field('year', 'Year', 'number')}
         {field('body_type', 'Body style', 'text', d.trim ? `Trim: ${d.trim}` : undefined)}
         {field('permit_number', 'Ontario permit number')}

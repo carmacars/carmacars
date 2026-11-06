@@ -7,6 +7,8 @@ import { Faq } from '@/components/Faq';
 import { Html } from '@/components/Html';
 import { JsonLd } from '@/components/JsonLd';
 import { SlotPicture } from '@/components/Picture';
+import { HeroSlides, type HeroCar } from '@/features/home/HeroSlides';
+import { rpc } from '@/lib/db/repo';
 import { Reviews } from '@/components/Reviews';
 import { SearchForm } from '@/features/home/SearchForm';
 import { Rail } from '@/features/home/Rail';
@@ -39,6 +41,10 @@ export default async function Home() {
     listItems<Row>('home.requirements'), listItems<Opt>('home.coverage_options'), slotPhoto('home.hero'), slotPhoto('home.delivery'), slotPhoto('home.owner'),
     getBusinessFacts(), getEntityFacts()
   ]);
+  // release 28 (0563): real fleet cars on the studio background in the hero, read when the page is rebuilt (hourly)
+  const studio = ((await rpc('site_hero_photos', { p_limit: 6 }).catch(() => [])) ?? []) as unknown as Array<{ vehicle_id: string; path: string; width: number; height: number; alt: string | null }>;
+  const heroCars: HeroCar[] = studio.flatMap((p) => { const c = fleet.find((x) => x.vehicle_id === p.vehicle_id);
+    return c ? [{ ...p, name: [c.year, c.make, c.model].filter(Boolean).join(' '), href: c.path }] : []; });
   const F = (x: string) => fill(x, t);
   const labels = Object.fromEntries(classes.map((c) => [c.code, c.label]));
   const tagline = s.tagline ?? '';
@@ -48,7 +54,7 @@ export default async function Home() {
     <div className="p-home">
       <JsonLd graph={[businessLd(s, siteUrl(), { areas: bf.areas, price: bf.price, rating: bf.rating }), faqLd(faq.map((q) => ({ ...q, answer: F(q.answer) })))]} />
       <section className="hero on-dark">
-        <div className="hero__media"><SlotPicture p={hero} eager /></div>
+        <div className="hero__media"><HeroSlides sample={hero} cars={heroCars} /></div>
         <div className="wrap hero__inner">
           <div className="hero__copy">
             <h1 className="eyebrow">Car rental in {s.city}</h1>

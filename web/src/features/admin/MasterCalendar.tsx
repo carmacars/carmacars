@@ -51,7 +51,7 @@ function cls(e: Entry, now: number) {
   return c.join(' ');
 }
 const text = (e: Entry) => e.type === 'block' ? `${(e.reason ?? '').replace(/_/g, ' ')}${e.note ? `: ${e.note}` : ''}`
-  : e.type === 'booking' ? `${e.renter?.split(' ').pop() ?? ''} ${e.status === 'requested' ? 'request' : e.status === 'offered' ? 'offer' : e.status === 'pending_payment' ? 'signing and payment' : e.booking_number ?? ''}${e.placeholder ? ' placeholder' : e.blocks === false ? ' not blocking' : ''}${e.insurer ? ' insurer' : ''}`
+  : e.type === 'booking' ? `${e.renter?.split(' ').pop() ?? ''} ${e.status === 'requested' ? 'request' : e.status === 'offered' ? 'offer' : e.status === 'pending_payment' ? 'booked, payment due' : e.booking_number ?? ''}${e.placeholder ? ' placeholder' : e.blocks === false ? ' not blocking' : ''}${e.insurer ? ' insurer' : ''}`
   : e.type === 'turo_trip' ? 'Turo' : e.detail ?? e.type.replace(/_/g, ' ');
 
 // Release 26 part 2 (the Now view's look): each car row starts with its photo, code and plate (cars, from car_thumbs,
@@ -59,7 +59,7 @@ const text = (e: Entry) => e.type === 'block' ? `${(e.reason ?? '').replace(/_/g
 // ring and "!" where the dates are taken); the phone agenda is grouped by day; a bar opens a side panel.
 const dayHead = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(iso));
 const hm = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' }).format(new Date(iso)).replace(/\s?a\.m\./, ' am').replace(/\s?p\.m\./, ' pm');
-const WORDS: Record<string, string> = { requested: 'Request', offered: 'Offer', pending_payment: 'Waiting for payment', confirmed: 'Booked', on_rent: 'Out', returned: 'Returned', closed: 'Closed' };
+const WORDS: Record<string, string> = { requested: 'Request', offered: 'Offer', pending_payment: 'Booked, payment due', confirmed: 'Booked', on_rent: 'Out', returned: 'Returned', closed: 'Closed' };
 const kindOf = (e: Entry) => e.type === 'booking' ? (e.placeholder ? 'Placeholder' : WORDS[e.status ?? ''] ?? (e.status ?? '').replace(/_/g, ' ')) : e.type === 'block' ? 'Block' : e.type === 'turo_trip' ? 'Turo' : e.type.replace(/_/g, ' ');
 
 function Thumb({ car, label }: { car?: Car; label: string }) {

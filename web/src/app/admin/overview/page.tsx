@@ -2,6 +2,7 @@ import Link from '@/components/Link';
 import { pageMeta } from '@/features/seo/meta';
 import { pct } from '@/lib/format';
 import { page } from '@/server/admin/api';
+import { door } from '@/server/door';
 import { $, ago, BookingLink, Card, PageHead, t, Tiles, label } from '@/features/admin/ui';
 import { TeamSales, type Team } from '@/features/va/TeamSales';
 
@@ -30,14 +31,18 @@ type Dash = {
 // The overview (03-admin.md section 1; the To do list is the home page since October 16, 2026): needs you, today, money
 // and fleet. Every card has its own zero state.
 export default async function AdminOverview({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ read }, sp] = await Promise.all([page('/admin/overview'), searchParams]);
+  const [{ read, user }, sp] = await Promise.all([page('/admin/overview'), searchParams]);
   const [d, team] = await Promise.all([read<Dash>('dashboard'),
     read<Team>('team_sales', { month: /^\d{4}-\d{2}$/.test(sp.sales_month ?? '') ? sp.sales_month : '' }).catch(() => null)]);
+  // 0547: money partners owe on invoices sent to them (the tile; the detail is under Referral partners > Invoices)
+  const pi = await door<{ totals: { invoiced_cents: number; received_cents: number; outstanding_cents: number; overdue: number } }>(user.id, 'ops_read', 'partner_invoices', {}).catch(() => null);
   const target = d.target_minutes >= 60 && d.target_minutes % 60 === 0 ? `${d.target_minutes / 60}-hour` : `${d.target_minutes}-minute`;
   const over = d.requests.filter((r) => !r.awaiting_renter && r.waiting_minutes > d.target_minutes).length;
   return (
     <>
       <PageHead title="Overview" kicker={t(d.now)}><Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/requests">Work the requests</Link><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/calendar">Calendar</Link></PageHead>
+      {pi && pi.totals.invoiced_cents > 0 && <Card title="Partner invoices" testId="dash-partner-invoices" tone={pi.totals.overdue ? 'warn' : undefined}>
+        <p>Outstanding <b>{$(pi.totals.outstanding_cents)}</b> of {$(pi.totals.invoiced_cents)} invoiced; received {$(pi.totals.received_cents)}{pi.totals.overdue ? `; ${pi.totals.overdue} overdue` : ''}. <Link prefetch={false} className="link" href="/admin/referral-partners?tab=invoices">Partner invoices</Link></p></Card>}
       {d.alerts.length > 0 && (
         <Card title="Alerts" tone="warn" testId="dash-alerts">
           <ul className="ad-list">{d.alerts.map((a, i) => <li key={i}><span>{a.message}{a.blocks ? <span className="muted"> (blocks {label(a.blocks)})</span> : null}</span>{a.field === 'email' ? <Link prefetch={false} className="link small" href="/admin/messages">Open Email</Link> : a.field !== 'job' && <Link prefetch={false} className="link small" href={a.href ?? '/admin/settings/site'}>Fix in settings</Link>}</li>)}</ul>

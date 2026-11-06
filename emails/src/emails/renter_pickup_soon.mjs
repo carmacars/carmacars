@@ -28,6 +28,7 @@ export default {
     when('verification_pending', [
       notice('alert', 'Your documents are not complete', 'Still missing: {{missing_items}}. [Upload them now](@booking_verify) so we can hand over the car on time.'),
     ]),
+    p('Please take the photos of the car yourself when you get it: on your booking, Check in yourself lets you pick them all at once from your camera roll (every side, the odometer, the fuel gauge, inside, any damage). If you do not, we take them.'),
     small('Running late or need to change the time? Call us at {{support_phone}} before your pickup time.'),
   ],
   sample: { verification_pending: false, missing_items: 'proof of coverage', pickup_time: '2:00 pm' },

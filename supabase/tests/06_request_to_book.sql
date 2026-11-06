@@ -276,8 +276,9 @@ select test.eq('AP approved: signing and payment in progress, with who, when and
 select test.throws('AP it cannot be approved twice', $$select app.approve_offer(test.b('c1'), 3, test.id('rq_amy'))$$, 'no open offer');
 select test.throws('AP approved terms stand still too', $$update bookings set rental_charge_cents = 1 where id = test.b('c1')$$, 'withdraw it');
 select test.throws('AP pending payment does not go back to offered', $$update bookings set status = 'offered' where id = test.b('c1')$$, 'cannot go from pending_payment to offered');
-select test.eq('AP approval alone does not block the calendar',
-  app.vehicle_is_available(test.id('vehicle:RQ3'), test.at('2029-03-05 10:00'), test.at('2029-03-09 10:00')), true);
+-- 0540: an accepted booking is booked: approval takes the car (payment and pickup are badges, not the reason)
+select test.eq('AP approval blocks the calendar (accepted is booked, 0540)',
+  app.vehicle_is_available(test.id('vehicle:RQ3'), test.at('2029-03-05 10:00'), test.at('2029-03-09 10:00')), false);
 
 -- signed and paid: confirmed, and only now on the calendar
 select test.throws('CF not confirmed until the agreement is signed', $$update bookings set status = 'confirmed' where id = test.b('c1')$$, 'agreement is signed');
@@ -287,7 +288,7 @@ select test.rq_pay('c1');
 select test.throws('CF not confirmed without a saved card', $$update bookings set status = 'confirmed' where id = test.b('c1')$$, 'No saved card');
 select test.rq_card('c1');
 select test.lives('CF approved, signed and paid: confirmed', $$update bookings set status = 'confirmed' where id = test.b('c1')$$);
-select test.eq('CF only now does the booking block the car',
+select test.eq('CF confirmed: the booking still blocks the car',
   app.vehicle_is_available(test.id('vehicle:RQ3'), test.at('2029-03-05 10:00'), test.at('2029-03-09 10:00')), false);
 select test.eq('CF the whole path is in the status history',
   (select string_agg(to_status, ' > ' order by id) from status_history where entity = 'booking' and entity_id = test.b('c1')),
@@ -344,8 +345,6 @@ select test.rq_new('V', 'rq_fay', 'RQ2', '2029-06-11 10:00', '2029-06-14 10:00')
 select test.rq_new('T', 'rq_gus', 'RQ2', '2029-06-05 10:00', '2029-06-08 10:00');   -- approved, calendar switch off
 select app.send_offer(test.b('X'), test.id('rq_cs'));
 select app.send_offer(test.b('Y'), test.id('rq_cs'));
-select app.approve_offer(test.b('Y'), 1, test.id('rq_cat'));
-select test.rq_pay('Y');
 select app.set_blocks_calendar(test.b('W'), false, test.id('rq_cs'), 'dates not final');
 select app.send_offer(test.b('W'), test.id('rq_cs'));
 select app.send_offer(test.b('V'), test.id('rq_cs'));
@@ -353,25 +352,26 @@ select app.set_blocks_calendar(test.b('T'), false, test.id('rq_cs'), 'dates not 
 select app.send_offer(test.b('T'), test.id('rq_cs'));
 select app.approve_offer(test.b('T'), 1, test.id('rq_gus'));
 select test.rq_ready('A');
-select test.eq('K before anything is confirmed: offered, offered, pending payment, requested, offered, offered, pending payment',
+-- 0540: A's acceptance already took the car: the overlapping offers X and Y went back to staff then
+select test.eq('K before anything is confirmed: A accepted; X and Y back to requested; the rest as they were',
   test.st('A') || ' ' || test.st('X') || ' ' || test.st('Y') || ' ' || test.st('Z') || ' ' || test.st('W') || ' ' || test.st('V') || ' ' || test.st('T'),
-  'pending_payment offered pending_payment requested offered offered pending_payment');
+  'pending_payment requested requested requested offered offered pending_payment');
 select test.lives('K the first booking is confirmed', $$update bookings set status = 'confirmed' where id = test.b('A')$$);
-select test.eq('K confirming it sends every other offered or pending payment booking on those dates back to requested',
+select test.eq('K after confirming, every other offered or pending payment booking on those dates is back with staff',
   test.st('X') || ' ' || test.st('Y'), 'requested requested');
 select test.eq('K a plain request, an offer on other dates, and bookings whose calendar switch is off are left alone',
   test.st('Z') || ' ' || test.st('V') || ' ' || test.st('W') || ' ' || test.st('T'), 'requested offered offered pending_payment');
 select test.eq('K their offers are withdrawn, saying why, and the approval is cleared',
-  (select string_agg(o.status || ':' || (o.response_note like 'Booking % was confirmed on this vehicle for overlapping dates'), ' ' order by k.k)
+  (select string_agg(o.status || ':' || (o.response_note like 'Booking % was % on this vehicle for overlapping dates'), ' ' order by k.k)
      from test.rq_ids k join booking_offers o on o.booking_id = k.id where k.k in ('X', 'Y'))
   || ' ' || (select coalesce(offer_approved_version::text, 'none') || '/' || coalesce(offer_expires_at::text, 'none') from bookings where id = test.b('Y')),
   'withdrawn:true withdrawn:true none/none');
 select test.eq('K each carries a system note in its history',
   (select count(*) || '/' || bool_and(actor_type = 'system' and actor_user_id is null and note like '%back with staff: offer another vehicle or other dates%')
      from booking_events where kind = 'pushed_back' and booking_id in (test.b('X'), test.b('Y'))), '2/true');
-select test.eq('K and staff get a task to re-offer; urgent, saying so, where a payment was already taken',
+select test.eq('K and staff get a task to re-offer each',
   (select string_agg(k.k || ':' || t.queue || ':' || t.priority || ':' || (t.detail like '%PAYMENT WAS ALREADY TAKEN%'), ' ' order by k.k)
-     from test.rq_ids k join tasks t on t.booking_id = k.id and t.task_type = 'reoffer_booking'), 'X:cs:high:false Y:cs:urgent:true');
+     from test.rq_ids k join tasks t on t.booking_id = k.id and t.task_type = 'reoffer_booking'), 'X:cs:high:false Y:cs:high:false');
 select test.throws('K the same car cannot be offered again for those dates',
   $$select app.send_offer(test.b('X'), test.id('rq_cs'))$$, 'change the vehicle or the dates');
 select app.adjust_booking(test.b('X'), test.id('rq_cs'), jsonb_build_object('vehicle_id', test.id('vehicle:RQ1')));

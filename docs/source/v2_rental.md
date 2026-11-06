@@ -94,7 +94,7 @@ CarmaCars: phone [●], email [●], address [●]. 24-hour incident and roadsid
 
 **5.1 Rental charge and fees.** The rental charge uses the Vehicle's rates quoted at booking and the days billed. For 1 to 6 days, each day is charged at the daily rate, or at the weekend rate if it starts on a Friday or Saturday, up to the weekly rate. For 7 to 29 days, each day is charged at one-seventh of the weekly rate, up to the monthly rate. For 30 days, the monthly rate applies. The "booking's daily rate" is the rental charge divided by the days billed. The mileage allowance is the daily allowance in the Summary multiplied by the days billed. You must also pay each Schedule fee that applies. Distance is measured by the odometer or, if it fails or is tampered with, by the Tracker.
 
-**5.2 Deposit.** The Deposit secures all Charges and does not limit what you owe. We take it on the day of pickup, before handover, as a card hold (which we may place on the Card on File that morning) or a refundable charge, as the Schedule says. A card hold lapses after about 7 days, so we may renew it or charge the Deposit instead if it would lapse before Check-in. At Check-in we capture or keep what you owe, and what we reasonably expect you to owe for a claim, toll or ticket still being assessed, and release the rest within 7 business days. We refund any amount held back and not owed within 30 days after Check-in. On a renewal, the Deposit carries over to the new agreement.
+**5.2 Deposit.** The Deposit secures all Charges and does not limit what you owe. We take it on the day of pickup, before handover, as a card hold (which we may place on the Card on File that morning). A card hold lapses after about 7 days, or up to about 30 days where your card issuer allows a longer hold, so we may renew it on the Card on File before it lapses, or charge the Deposit instead if it cannot be renewed. At Check-in we capture or keep what you owe, and what we reasonably expect you to owe for a claim, toll or ticket still being assessed, and release the rest within 7 business days. We refund any amount held back and not owed within 30 days after Check-in. On a renewal, the Deposit carries over to the new agreement.
 
 **5.3 Card authorization.** You must pay the total in the Summary at booking. The Card on File must be a valid credit card in your name. You authorize us to charge it, without asking you again, for every Charge, whenever it arises, including tolls, tickets, fees and Damage that become known only after return, until all Charges are paid. We will email you an itemized statement with the supporting record for anything charged after return or taken from the Deposit.
 
@@ -214,7 +214,9 @@ We collect, use and share each driver's personal information, including identifi
 
 **15.2 Electronic records and notices.** You sign and receive this Agreement and all notices electronically, at the email or mobile number in the Summary. You sign through an electronic signature service. Its record of the time and method of your acceptance is proof of your agreement.
 
-**15.3 Other terms.** This is the whole agreement about this rental. Changes must be in writing agreed by both of us. You may not transfer it. We may. If part of it is unenforceable, the rest stands. Delay does not waive a right. Charges, your card authorization and sections 6, 9 and 12 to 15 survive the Rental Period.
+**15.3 Other terms.** This is the whole agreement about this rental. Changes to these terms must be in writing agreed by both of us; changes to your booking follow section 15.4. You may not transfer it. We may. If part of it is unenforceable, the rest stands. Delay does not waive a right. Charges, your card authorization and sections 6, 9 and 12 to 15 survive the Rental Period.
+
+**15.4 Changes to your booking.** We may update the details of your booking after you sign, such as an extension, a change of dates or times, a price adjustment, a fee or charge under this Agreement, or a replacement vehicle, when you ask for it or agree to it, or when this Agreement allows it. This Agreement, as you signed it, continues to apply to the booking as updated, without a new signature. We send you the amended agreement, marked with the date of the change, and it is kept with your booking. An Additional Driver who has not signed this Agreement signs it before driving.
 
 <!--PART-->
 ## Part 3 – Schedule of Fees
@@ -224,7 +226,7 @@ Standard amounts. Section 1.3 applies.
 | Fee | When it applies | Standard amount |
 | --- | --- | --- |
 | Deposit | Every rental, taken on the day of pickup | $500 economy and standard; $1,000 premium and SUV; $2,500 luxury and exotic |
-| Deposit method | Section 5.2 | Card hold for rentals of 7 days or less; charged and refunded for longer rentals |
+| Deposit method | Section 5.2 | Card hold, renewed on the Card on File before it lapses on longer rentals |
 | Delivery fee and pickup fee | Each way | $75 to $200, depending on the vehicle |
 | Young driver fee, ages 18 to 20 | Each such driver | $35 per day, up to $350 per rental |
 | Young driver fee, ages 21 to 25 | Each such driver | $20 per day, up to $200 per rental |
@@ -234,7 +236,7 @@ Standard amounts. Section 1.3 applies.
 | Mileage overage | Each kilometre over the allowance | $0.35 per km; $0.75 to $1.50 for luxury and exotic vehicles |
 | Late return fee | Return more than 30 minutes late, counted from the return time. Added to the rental charge for the extra time (section 3.2) | 17.5% of the booking's daily rate per started hour, at least $25 an hour, up to 1.5 times the daily rate for each 24 hours. A booking made before November 7, 2026 keeps $25 per hour |
 | Fuel or recharging fee | Less fuel or charge at return than at pickup | Pump price plus 25%, or $10 per 10% of battery, plus a $25 service fee |
-| Cleaning fee | More than standard cleaning needed | $75; $250 for heavy soiling or odour removal |
+| Cleaning fee | More than standard cleaning needed | $75; $300 for an excessively dirty vehicle (heavy soiling or odour removal) |
 | Pet cleaning fee | Pet hair, odour or soiling at return | $150 |
 | Smoking fee | Evidence of smoking or vaping | $300 |
 | Lost key or fob fee | Each key or fob lost or not returned | Actual replacement cost plus $50 |

@@ -44,7 +44,7 @@ export default {
       ['Security deposit', '{{deposit_amount}}, a hold on the day of pickup, separate from the total'],
     ),
     button('Review, approve and pay', '@booking_offer'),
-    notice('info', 'This offer is open until {{offer_expires_at}}', 'An offer does not hold the car. It is booked only when you approve, sign and pay. If another renter pays for the same car and dates first, we withdraw the offer and tell you.'),
+    notice('info', 'This offer is open until {{offer_expires_at}}', 'The car is booked for you as soon as you approve. Until then the offer does not hold it: if another renter approves the same car and dates first, we withdraw the offer and tell you.'),
     small('For different dates or another car, [ask for a change](@booking_change) before you approve. To pass on this offer, do nothing and it will expire.'),
   ],
 };

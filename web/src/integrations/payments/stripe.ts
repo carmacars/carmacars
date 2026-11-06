@@ -56,6 +56,7 @@ export function toIntent(pi: Obj): Intent {
     lastErrorCode: bankReasonCode(str(obj(pi.last_payment_error)?.code), str(obj(pi.last_payment_error)?.decline_code), str(charge?.failure_code)),
     methodType: type === 'card' || type === 'acss_debit' ? type : type === 'card_present' || type === 'interac_present' ? 'card_present' : null,
     captureBefore: typeof obj(pmd?.card)?.capture_before === 'number' ? (obj(pmd?.card)!.capture_before as number) : null,
+    extendedAuth: str(obj(obj(pmd?.card)?.extended_authorization)?.status) === 'enabled',
     bank: acss || chargeAcss ? { name: str(acss?.bank_name) ?? str(chargeAcss?.bank_name), last4: str(acss?.last4) ?? str(chargeAcss?.last4) ?? '' } : null,
     mandateId: str(chargeAcss?.mandate) ?? str(obj(pi.mandate)?.id) ?? str(pi.mandate)
   };
@@ -101,6 +102,14 @@ export class StripeError extends Error {
     this.code = code;
     this.declineCode = declineCode;
   }
+}
+
+/** 0541: Stripe refused the extended authorization itself (not eligible, a parameter it does not take on this account),
+ *  as opposed to a card declined for its own reasons: the hold is asked again without it. */
+export function extendedRefused(e: unknown): boolean {
+  if (!(e instanceof StripeError)) return false;
+  if (/extended|card features|not eligible|request_extended_authorization|payment_method_options/i.test(e.message)) return true;
+  return e.status === 400 && (e.code === 'parameter_unknown' || e.code === 'parameter_invalid_empty' || e.code === 'feature_not_enabled');
 }
 
 export function toRefund(r: Obj): Refund {
@@ -218,11 +227,21 @@ export function stripeAdapter(secretKey: string, f: typeof fetch = (...a) => fet
       return toIntent(await call('POST', `/payment_intents/${encodeURIComponent(id)}/cancel`, { cancellation_reason: 'abandoned', expand }, key));
     },
     async chargeOffSession(r) {
-      return toIntent(await call('POST', '/payment_intents', {
+      const p: Params = {
         amount: r.amountCents, currency: 'cad', customer: r.customerId, payment_method: r.paymentMethodId, off_session: true, confirm: true,
         ...(r.capture === 'manual' ? { capture_method: 'manual', payment_method_types: ['card'] } : {}),
         description: r.description, metadata: r.metadata, expand
-      }, r.idempotencyKey));
+      };
+      // 0541: an extended authorization, on a deposit hold only, "if available"; refused (the account or the card is not
+      // eligible): the same hold again without it, silently (hotfix-stripe-ext-auth: never on a rental charge)
+      if (r.capture === 'manual' && r.extendedHold) {
+        try {
+          return toIntent(await call('POST', '/payment_intents', { ...p, 'payment_method_options[card][request_extended_authorization]': 'if_available' }, `${r.idempotencyKey}:ext`));
+        } catch (e) {
+          if (!extendedRefused(e)) throw e;
+        }
+      }
+      return toIntent(await call('POST', '/payment_intents', p, r.idempotencyKey));
     },
     async refund(r) {
       if (!r.paymentIntentId && !r.chargeId) throw new StripeError('The payment has no processor reference', 400, 'missing_reference', null);

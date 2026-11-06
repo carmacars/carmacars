@@ -230,3 +230,32 @@ test('a failed debit records the bank reason the charge keeps, not the generic P
     latest_charge: { id: 'py_1', failure_code: 'insufficient_funds' } });
   assert.equal(i.lastErrorCode, 'insufficient_funds');
 });
+
+test('0541: an extended deposit hold asks for the extended authorization if available, and reads capture_before', async () => {
+  const card = { capture_before: 1767225600, extended_authorization: { status: 'enabled' } };
+  const { f, calls } = mock([{ body: pi({ status: 'requires_capture', latest_charge: { id: 'ch_1', payment_method_details: { type: 'card', card } } }) }]);
+  const i = await stripeAdapter('sk_test_abc', f).chargeOffSession({ customerId: 'cus_1', paymentMethodId: 'pm_1', amountCents: 50000, capture: 'manual', extendedHold: true, description: 'Deposit hold', metadata: {}, idempotencyKey: 'hold:1' });
+  const body = new URLSearchParams(String(calls[0]!.init.body));
+  assert.equal(body.get('payment_method_options[card][request_extended_authorization]'), 'if_available');
+  assert.equal(body.get('capture_method'), 'manual');
+  assert.equal(i.captureBefore, 1767225600);
+  assert.equal(i.extendedAuth, true);
+});
+
+test('0541: an extended hold Stripe refuses falls back silently to a standard hold', async () => {
+  const { f, calls } = mock([
+    { status: 400, body: { error: { type: 'invalid_request_error', message: 'This account is not eligible for the requested card features.' } } },
+    { body: pi({ status: 'requires_capture' }) }
+  ]);
+  const i = await stripeAdapter('sk_test_abc', f).chargeOffSession({ customerId: 'cus_1', paymentMethodId: 'pm_1', amountCents: 50000, capture: 'manual', extendedHold: true, description: 'Deposit hold', metadata: {}, idempotencyKey: 'hold:2' });
+  assert.equal(calls.length, 2);
+  assert.equal(new URLSearchParams(String(calls[1]!.init.body)).get('payment_method_options[card][request_extended_authorization]'), null);
+  assert.equal(i.status, 'requires_capture');
+});
+
+test('0541: a rental charge never asks for an extended authorization, even with the flag', async () => {
+  const { f, calls } = mock([{ body: pi({ status: 'succeeded' }) }]);
+  await stripeAdapter('sk_test_abc', f).chargeOffSession({ customerId: 'cus_1', paymentMethodId: 'pm_1', amountCents: 100, extendedHold: true, description: 'x', metadata: {}, idempotencyKey: 'k' });
+  assert.equal(calls.length, 1);
+  assert.equal(new URLSearchParams(String(calls[0]!.init.body)).get('payment_method_options[card][request_extended_authorization]'), null);
+});

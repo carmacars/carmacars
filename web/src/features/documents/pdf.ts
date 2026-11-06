@@ -127,6 +127,40 @@ function insurerInvoice(f: F): Block[] {
   return blocks;
 }
 
+// An invoice to a partner (migration 0547): from the company's legal name alone, to the partner, the claim
+// it is for, every line (a fixed amount or a percentage of the partner's total) with its HST, the totals, what was paid,
+// and how to pay (cheque payable to the company, e-Transfer).
+export function partnerInvoiceBlocks(f: Row): Block[] {
+  const c = (f.company ?? {}) as Row; const pt = (f.partner ?? {}) as Row;
+  const lines = (f.lines ?? []) as Row[]; const pays = ((f.payments ?? []) as Row[]).filter((p) => !p.voided_at);
+  const blocks: Block[] = [
+    { t: 'title', text: `Invoice ${s(f.invoice_number) || '(draft)'}` },
+    { t: 'table', head: ['From', ''], kv: true, rows: [['Company', s(c.payee)], ...(c.address ? [['Address', s(c.address)] as [string, string]] : []),
+      ...(c.hst_number ? [['HST number', s(c.hst_number)] as [string, string]] : []), ...(c.email || c.phone ? [['Contact', [s(c.email), s(c.phone)].filter(Boolean).join(', ')] as [string, string]] : [])] },
+    { t: 'table', head: ['To', ''], kv: true, rows: [['Partner', s(pt.business_name)], ...(pt.contact_name ? [['Attention', s(pt.contact_name)] as [string, string]] : []), ...(s(pt.address) ? [['Address', s(pt.address)] as [string, string]] : [])] },
+    { t: 'table', head: ['Reference', ''], kv: true, rows: [['Invoice', s(f.invoice_number) || 'Draft'], ['Date', day(f.issued_on) || day(f.created_at)], ...(f.due_on ? [['Due', day(f.due_on)] as [string, string]] : []),
+      ['Claim number', s(f.claim_number) || 'Not given'], ...(f.insurer_name ? [['Insurer', s(f.insurer_name)] as [string, string]] : []), ...(f.vehicle ? [['Vehicle', s(f.vehicle)] as [string, string]] : []),
+      ...(f.renter_name ? [['Customer', s(f.renter_name)] as [string, string]] : []), ...(f.booking_number ? [['Booking', s(f.booking_number)] as [string, string]] : []),
+      ...(f.state === 'void' ? [['Status', 'Void']] as Array<[string, string]> : [])] },
+    { t: 'table', head: ['Description', 'Qty', 'Amount', 'HST'], rows: lines.map((l) => [
+      s(l.description) + (l.percent_bps != null && l.base_cents != null ? ` (${pct(l.percent_bps)} of ${dollars(l.base_cents)})` : ''),
+      l.percent_bps != null ? '1' : String(n(l.quantity)), dollars(l.amount_cents), l.hst ? dollars(l.hst_cents) : 'No HST']) },
+    { t: 'table', head: ['Totals', ''], kv: true, rows: [['Before HST', dollars(f.subtotal_cents)], ['HST (13%)', dollars(f.hst_cents)], ['**Total**', `**${dollars(f.total_cents)}**`],
+      ...pays.map((p) => [`Received by ${label(p.method)} on ${day(p.received_on)}`, dollars(-n(p.amount_cents))] as [string, string]),
+      ['**Balance due**', `**${dollars(f.state === 'void' ? 0 : Math.max(0, n(f.balance_cents)))}**`]] }
+  ];
+  if (f.notes) blocks.push({ t: 'p', text: s(f.notes) });
+  blocks.push({ t: 'p', text: `How to pay: a cheque payable to ${s(c.payee)}, or an e-Transfer to ${s(c.etransfer)}. Please quote invoice ${s(f.invoice_number)}.` });
+  return blocks;
+}
+
+export async function renderPartnerInvoice(f: Row, logo: Uint8Array | null = null): Promise<Uint8Array> {
+  const created = new Date(String(f.issued_on ? `${s(f.issued_on)}T12:00:00Z` : f.created_at));
+  const title = `Invoice ${s(f.invoice_number) || 'draft'}`;
+  return agreementPdf(partnerInvoiceBlocks(f), { title, createdAt: Number.isNaN(created.getTime()) ? new Date(0) : created, brand: true, logo,
+    footer: `${s((f.company as Row | undefined)?.payee)}. ${title}.` });
+}
+
 // An owner invoice (migration 0067): every line with its quantity, unit amount and HST, the totals, what was paid, a void.
 function ownerInvoice(f: F): Block[] {
   const o = (f.owner ?? {}) as Row;

@@ -25,6 +25,7 @@ import { Tabs } from '@/features/admin/ui';
 import { InvoiceList, type InvoiceListData } from '@/features/owner-billing/InvoiceList';
 import { TermsPanel, type TermsData } from '@/features/owner-billing/TermsPanel';
 import { CarTermsTable, type CarTermsData } from '@/features/owner-billing/CarTerms';
+import { ReferralLinks, type ReferralLinksData } from '@/features/admin/ReferralLinks';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner', path: '/admin/owners', noindex: true, description: 'An owner application.' });
@@ -71,8 +72,8 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   // every car's own terms, editable in place (0135): on Overview and on the Terms tab
   const carTerms = tab === 'invoices' ? null : await door<CarTermsData>(user.id, 'ops_read', 'car_terms', { owner_id: id });
   if (tab === 'terms') {
-    const terms = await door<TermsData>(user.id, 'ops_read', 'owner_terms', { owner_id: id });
-    return <>{head}<CarTermsTable data={carTerms!} paths={[`/admin/owners/${id}`]} /><TermsPanel data={terms} ownerId={id} today={todayIso} />
+    const [terms, refLinks] = await Promise.all([door<TermsData>(user.id, 'ops_read', 'owner_terms', { owner_id: id }), door<ReferralLinksData>(user.id, 'ops_read', 'owner_referral_links', { owner: id })]);
+    return <>{head}<CarTermsTable data={carTerms!} paths={[`/admin/owners/${id}`]} /><TermsPanel data={terms} ownerId={id} today={todayIso} /><ReferralLinks data={refLinks} ownerId={id} />
       {/* R23 (0238): the one-off fees agreed on the terms, charged to a car in one step: deducted from payouts or debited */}
       {(carTerms?.cars ?? []).length > 0 && <Card title="Charge the agreed one-off fees" testId="one-off-charge">
         <p className="small">The one-off fees agreed on this owner&apos;s terms (for example the appraisal, tax and plates, the safety certificate) as one invoice for a car. Deducted from payouts: taken from the owner&apos;s monthly payouts until paid, shown as deductions on the statements, never debited.</p>

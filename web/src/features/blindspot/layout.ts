@@ -51,6 +51,13 @@ export interface BlindSpotFacts {
       coverage_provider?: string | null; activation_ref?: string | null } | null;
     /** 0154: the card on file's expiry */
     card_expiry?: string | null;
+    /** 0544: the booking's own readings (the check-out and check-in, however they were recorded): the fallback of the
+     *  pickup and return records, so km out and in and fuel out and in are always filled once known */
+    readings?: { odometer_out_km: number | null; fuel_out_pct: number | null; odometer_in_km: number | null; fuel_in_pct: number | null } | null;
+    /** 0544: the booking's late fee per started hour (the per-hour late charge, box 34) */
+    late_fee_cents?: number | null;
+    /** 0544: what staff typed over the filled form (Type into the agreement), by box: replaces that box's value */
+    overrides?: Record<string, string> | null;
   };
 }
 
@@ -198,9 +205,30 @@ export function fuelText(pct: number | null | undefined): string | null {
 }
 const kmText = (n: number | null | undefined) => (n === null || n === undefined ? null : `${n.toLocaleString('en-CA')} km`);
 
+/** 0544: a line's kind for the form: its charge type, or, for a charge typed by hand ("other", an add-on), what its
+ *  description names (VLF, LDW, T&LDW, PAP/PEC, Waiver Saver, underage, CDW, winter tires), so each lands in its own box
+ *  and never in box 48. */
+export function formKind(l: { charge_type: string; description?: string | null }): string {
+  const c = l.charge_type;
+  if (INSURER_BOXED.has(c) || YOUNG.test(c) || c === 'coverage_sold' || c === 'winter_tire' || RENTAL.has(c)) return c;
+  const d = (l.description ?? '').toLowerCase();
+  if (/\bvlf\b|vehicle licen[cs]e?\w* fee/.test(d)) return 'vlf';
+  if (/t\s*&\s*ldw|theft and loss damage/.test(d)) return 'tldw';
+  if (/\bldw\b|loss damage waiver/.test(d)) return 'ldw';
+  if (/pap|pec\b|personal accident/.test(d)) return 'pap_pec';
+  if (/waiver saver/.test(d)) return 'waiver_saver';
+  if (/underage|young driver/.test(d)) return 'young_driver';
+  if (/\bcdw\b|collision damage waiver/.test(d)) return 'coverage_sold';
+  if (/winter tire/.test(d)) return 'winter_tire';
+  return c;
+}
+
 /** What goes in each box of page 1 for a booking (the unsigned document; signatures are added by fill.ts). */
-export function layout(f: BlindSpotFacts): Layout {
+export function layout(f0: BlindSpotFacts): Layout {
+  const f: BlindSpotFacts = { ...f0, lines: f0.lines.map((l) => ({ ...l, charge_type: formKind(l) })),
+    extra: { ...f0.extra, more: f0.extra.more ? { ...f0.extra.more, lines: f0.extra.more.lines.map((l) => ({ ...l, charge_type: formKind(l) })) } : f0.extra.more } };
   const b = f.booking; const r = f.renter; const v = f.vehicle; const x = f.extra;
+  const rd = x.readings ?? null;
   const me = f.drivers.find((d) => d.role === 'renter');
   const others = f.drivers.filter((d) => d.role === 'additional');
   const t: Array<Text | null> = [];
@@ -225,7 +253,7 @@ export function layout(f: BlindSpotFacts): Layout {
   const pick = mx?.pickup ?? null;
   const out = pick ? pick.at : b.pickup_at;
   t.push(T('26', dateTime(out), COL.original.x, ROW['26'], COL.original.w, { size: 7.5 }));
-  const kmOut = pick ? pick.odometer_km : x.odometer_out_km;
+  const kmOut = pick?.odometer_km ?? x.odometer_out_km ?? rd?.odometer_out_km ?? null;
   t.push(T('28', kmText(kmOut), COL.original.x, ROW['28'], COL.original.w));
   t.push(T('30', b.km_allowance_total != null ? `${b.km_allowance_total.toLocaleString('en-CA')} km` : null, COL.original.x, ROW['30'], COL.original.w));
   const back = mx?.return ?? null;
@@ -250,9 +278,14 @@ export function layout(f: BlindSpotFacts): Layout {
     }
   } else if (back) {
     t.push(T('25', dateTime(back.at), COL.original.x, ROW['25'], COL.original.w, { size: 7.5 }));
-    t.push(T('27', kmText(back.odometer_km), COL.original.x, ROW['27'], COL.original.w));
+    t.push(T('27', kmText(back.odometer_km ?? rd?.odometer_in_km), COL.original.x, ROW['27'], COL.original.w));
     t.push(T('29', kmText(back.km_driven), COL.original.x, ROW['29'], COL.original.w));
     t.push(T('31', kmText(back.km_charged), COL.original.x, ROW['31'], COL.original.w));
+  }
+  else if (rd?.odometer_in_km != null) {
+    // 0544: a return recorded without its report yet: the km in from the booking itself
+    t.push(T('27', kmText(rd.odometer_in_km), COL.original.x, ROW['27'], COL.original.w));
+    if (kmOut != null) t.push(T('29', kmText(rd.odometer_in_km - kmOut), COL.original.x, ROW['29'], COL.original.w));
   }
   t.push(T('32', b.km_allowance_per_day != null ? `${b.km_allowance_per_day} km` : null, 444, 285.5, 55, { size: 7 }));
 
@@ -362,8 +395,12 @@ export function layout(f: BlindSpotFacts): Layout {
     } else R('35', 346, null, null, rental);
   }
   // the closing copy: the hours late (34), the extra days (38)
+  // 34: the per-hour late charge is the booking's late fee per started hour, printed on every copy; the closing copy adds
+  // the hours late and their amount
+  const lateRate = x.late_fee_cents ?? null;
+  if (ret && (ret.late_hours || lateFee)) R('34', 326, ret.late_hours ? `${ret.late_hours}` : null, lateRate || (ret.late_hours && lateFee ? Math.round(lateFee / ret.late_hours) : null), lateFee || null);
+  else if (lateRate) R('34', 326, null, lateRate, null);
   if (ret) {
-    if (ret.late_hours || lateFee) R('34', 326, ret.late_hours ? `${ret.late_hours}` : null, null, lateFee || null);
     if (extraDays) {
       const n = ret.extra_days ?? 0;
       R('38', 407.5, n ? String(n) : null, n ? (b.daily_rate_cents && n * b.daily_rate_cents === extraDays ? b.daily_rate_cents : Math.round(extraDays / n)) : null, extraDays);
@@ -428,17 +465,26 @@ export function layout(f: BlindSpotFacts): Layout {
   dots.push({ box: due.pm ? '40-pm' : '40-am', x: 408.4, y: due.pm ? 444.6 : 435.8, r: 2.4 });
 
   // other taxable charges: underage fee, CDW (the coverage sold), winter tires; the rate per day when it divides evenly
-  const fee = (box: string, y: number, cents: number) => {
+  // 0544: the rate a day always, left of the box (the line's own unit price when it has one, else the total over the days,
+  // rounded to the cent), the total in the box
+  const unitOf = (pred: (c: string) => boolean) => {
+    const ls = all.filter((l) => pred(l.charge_type)) as Array<{ amount_cents: number; quantity?: number; unit_amount_cents?: number }>;
+    const units = [...new Set(ls.map((l) => l.unit_amount_cents).filter((u): u is number => typeof u === 'number' && u > 0))];
+    return units.length === 1 && ls.every((l) => (l.quantity ?? 0) > 1 || l.unit_amount_cents === l.amount_cents) ? units[0]! : null;
+  };
+  const fee = (box: string, y: number, pred: (c: string) => boolean) => {
+    const cents = sumOf(pred);
     if (!cents) return;
-    if (days > 0 && cents % days === 0) t.push(T(`${box}-rate`, dollars(cents / days), 448, y, 38, { size: 7 }));
+    const rate = unitOf(pred) ?? (days > 0 ? Math.round(cents / days) : null);
+    if (rate) t.push(T(`${box}-rate`, dollars(rate), 448, y, 38, { size: 7 }));
     t.push(T(`${box}-amount`, dollars(cents), 577, y, 72, { align: 'right' }));
   };
-  fee('42', 467, sumOf((c) => YOUNG.test(c)));
-  fee('cdw', 487.5, sumOf((c) => c === 'coverage_sold'));
-  fee('44', 529, sumOf((c) => c === 'winter_tire'));
+  fee('42', 467, (c) => YOUNG.test(c));
+  fee('cdw', 487.5, (c) => c === 'coverage_sold');
+  fee('44', 529, (c) => c === 'winter_tire');
   // 0191: the charges to the insurer: VLF (43), LDW (45), T&LDW (46), PAP/PEC (47), the rate a day and the amount; Waiver
   // Saver has no amount column: its white box, or box 48 when it does not fit ("See 48" in the white box)
-  for (const [code, box, y] of INSURER_ROWS) fee(box, y, sumOf((c) => c === code));
+  for (const [code, box, y] of INSURER_ROWS) fee(box, y, (c) => c === code);
   if (waiverCents) t.push(T('waiver-amount', waiverFits ? dollars(waiverCents) : 'See 48', WAIVER.x, WAIVER.y, WAIVER.w, { size: waiverFits ? 7 : 6 }));
   // 48, pre adjustment: the charges with no box of their own (delivery, add-ons, drivers, a discount), so 49 adds up
   const pre = preAdjust.reduce((t2, l) => t2 + l.amount_cents, 0);
@@ -493,8 +539,8 @@ export function layout(f: BlindSpotFacts): Layout {
     if (more.deposit.released_cents) t.push(T('refund', dollars(more.deposit.released_cents).replace('$', ''), 446, 797, 55, { size: 7.5 }));
   }
   // the fuel: out (the check-out report), in (the check-in report), in words over the covered gauges; blank with no reading
-  t.push(T('fuel-out', fuelText(more?.pickup?.fuel_pct), FUEL_TEXT.x, FUEL_TEXT.out, FUEL_TEXT.w, { size: 7 }));
-  t.push(T('fuel-in', fuelText(ret?.fuel_pct), FUEL_TEXT.x, FUEL_TEXT.in, FUEL_TEXT.w, { size: 7 }));
+  t.push(T('fuel-out', fuelText(more?.pickup?.fuel_pct ?? rd?.fuel_out_pct), FUEL_TEXT.x, FUEL_TEXT.out, FUEL_TEXT.w, { size: 7 }));
+  t.push(T('fuel-in', fuelText(ret?.fuel_pct ?? rd?.fuel_in_pct), FUEL_TEXT.x, FUEL_TEXT.in, FUEL_TEXT.w, { size: 7 }));
 
   // the old address, Blind Spot's HST number and the old signature are always covered (blank until replaced)
   // 0178, the owner: "Every box needs to be filled out": a box that does not apply to this rental says N/A (a box left
@@ -515,5 +561,28 @@ export function layout(f: BlindSpotFacts): Layout {
   NA('42-amount', 577, 467, 72, { align: 'right' }); NA('cdw-amount', 577, 487.5, 72, { align: 'right' }); NA('43-amount', 577, 508, 72, { align: 'right' });
   NA('44-amount', 577, 529, 72, { align: 'right' }); NA('45-amount', 577, 549, 72, { align: 'right' }); NA('46-amount', 577, 569.5, 72, { align: 'right' });
   NA('47-amount', 577, 590, 72, { align: 'right' }); NA('waiver-amount', WAIVER.x, WAIVER.y, WAIVER.w);
-  return { texts: t.filter((v2): v2 is Text => !!v2), dots, covers: COVERS };
+  let texts = t.filter((v2): v2 is Text => !!v2);
+  // 0544: what staff typed over the form: the box's value replaced in its place (its N/A too); an empty value clears it
+  for (const [box, value] of Object.entries(x.overrides ?? {})) {
+    const at0 = texts.find((v2) => v2.box === box) ?? texts.find((v2) => v2.box === `${box}-na`) ?? BOX_AT[box] ?? null;
+    if (!at0) continue;
+    texts = texts.filter((v2) => v2.box !== box && v2.box !== `${box}-na`);
+    const nt = T(box, value, at0.x, at0.y, at0.w, { size: at0.size === 7 && at0.text === 'N/A' ? S : at0.size, align: at0.align, bold: at0.bold });
+    if (nt) texts.push(nt);
+  }
+  return { texts, dots, covers: COVERS };
 }
+
+/** 0544: where a box is when the booking gave it no value (so a typed correction still has its place). */
+const BOX_AT: Record<string, Text> = Object.fromEntries(([
+  ['27', COL.original.x, ROW['27'], COL.original.w], ['28', COL.original.x, ROW['28'], COL.original.w], ['29', COL.original.x, ROW['29'], COL.original.w],
+  ['31', COL.original.x, ROW['31'], COL.original.w], ['fuel-out', FUEL_TEXT.x, FUEL_TEXT.out, FUEL_TEXT.w], ['fuel-in', FUEL_TEXT.x, FUEL_TEXT.in, FUEL_TEXT.w],
+  ['3', 22, 183.5, 220], ['4', 22, 204.5, 220], ['9', 22, 285.5, 136], ['insured', 22, 384, 296], ['claim', 22, 407.5, 296], ['adjuster', 22, 427, 264],
+  ['12', 22, 447.5, 264], ['13', 22, 468, 145]
+] as Array<[string, number, number, number]>).map(([box, x0, y, w]) => [box, { box, text: '', x: x0, y, w, size: S }]));
+/** 0544: the boxes staff may type into, with their names on the form (Type into the agreement). */
+export const EDITABLE_BOXES: Array<[string, string]> = [
+  ['3', 'Renter name (3)'], ['4', 'Address (4)'], ['9', 'Licence number (9)'], ['28', 'K/M out (28)'], ['27', 'K/M in (27)'], ['29', 'K/M driven (29)'], ['31', 'K/M charged (31)'],
+  ['fuel-out', 'Fuel out'], ['fuel-in', 'Fuel in'], ['insured', 'Insured vehicle information'], ['claim', 'Claim number'], ['adjuster', 'Adjuster'],
+  ['12', 'Insurance company (12)'], ['13', 'Policy (13)'], ['14-1', 'Additional information (14), line 1'], ['14-2', 'Additional information (14), line 2']
+];

@@ -71,7 +71,7 @@ export function depositText(x: AgreementExtra): string {
   const how = d.method === 'offline' ? methodLabel(d.paid_method) : d.method ? methodLabel(d.method)
     : d.pay_method === 'cash' || d.pay_method === 'e_transfer' ? `${methodLabel(d.pay_method)}, at pickup`
     : d.pay_method === 'none' ? 'not taken (waived)'
-    : `taken on the day of pickup on the card on file: a hold for rentals of ${d.card_hold_days ?? 7} days or less, otherwise charged and refunded`;
+    : `taken on the day of pickup on the card on file as a hold, renewed on that card before it lapses on a longer rental`;
   const state = d.status === 'held' ? 'held' : d.status === 'captured' ? 'received' : d.status === 'settled' ? 'settled' : d.status === 'failed' ? 'declined' : null;
   const after = [d.applied_cents ? `${money(d.applied_cents, { cents: true })} applied to charges` : '', d.released_cents ? `${money(d.released_cents, { cents: true })} returned` : '',
     d.held_back_cents ? `${money(d.held_back_cents, { cents: true })} held back` : ''].filter(Boolean).join(', ');

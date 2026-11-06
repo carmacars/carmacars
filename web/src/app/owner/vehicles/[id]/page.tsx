@@ -21,6 +21,7 @@ import type { OwnerHistory } from '@/features/maintenance/model';
 import { rpc } from '@/lib/db/repo';
 import { OwnerTermsHistory } from '@/features/owner-billing/OwnerTerms';
 import type { CarTermsData } from '@/features/owner-billing/terms-shared';
+import { OwnerHandoffs } from '@/features/handover/OwnerHandoffs';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/owner/vehicles', noindex: true, description: 'One of your vehicles: status, fees, bookings and leaving.' });
@@ -84,6 +85,7 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
               <TimelineItem key={b.booking_id} date={b.pickup_at} dateLabel={when(b.pickup_at, false)} state={b.status === 'on_rent' ? 'now' : 'future'} title={b.booking_type === 'owner' ? 'Your booking' : b.booking_number ?? 'Unavailable'}
                 amount={b.booking_type === 'owner' ? undefined : amountText(b, (c) => money(c))} meta={<><span>{viewOf(b) === 'unavailable' ? 'Unavailable' : b.status === 'on_rent' ? 'On rent now' : 'Confirmed'}</span><span>{when(b.pickup_at)} to {when(b.return_at)}</span></>} />))}
             </Timeline></section>}
+          <OwnerHandoffs vehicleId={id} userId={user.id} owner />
           <section className="pt-card" aria-labelledby="ow-bk"><h2 className="d4" id="ow-bk">Bookings</h2>
             {bookings.length ? <ul className="ow-rows">{bookings.map((b) => <OwnerBookingRow key={b.booking_id} b={b} withCar={false} />)}</ul>
               : <p className="muted small">No bookings yet.</p>}

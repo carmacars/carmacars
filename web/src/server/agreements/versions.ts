@@ -21,6 +21,8 @@ interface Plan {
   state: 'none' | 'unsigned' | 'wait' | 'current' | 'version'; renter_user_id?: string; acting_user_id?: string; any_signed?: boolean; agreement_number?: string; original_signed_at?: string | null;
   kind?: VersionHeader['kind']; material?: boolean; changes?: Change[]; snapshot_sha?: string; next_no?: number; previous_no?: number;
   signers?: Array<{ role: string; name: string }>; amendment_number?: string | null;
+  /** 0542: a change after signing under section 15.4 of the rental terms: marked amended, not signed again */
+  amended?: boolean; amended_on?: string | null;
   pickup?: { staff_name: string | null; at: string } | null; return?: { staff_name: string | null; at: string } | null;
 }
 
@@ -46,13 +48,14 @@ export async function runVersionJob(bookingId: string): Promise<string> {
   const renter = b.f.renter?.legal_name ?? b.f.drivers.find((d) => d.role === 'renter')?.full_name ?? '';
   const original = plan.original_signed_at ? `Signed the agreement on ${when(plan.original_signed_at)}` : 'Signed the agreement';
   const awaiting = !!plan.material && (plan.signers?.length ?? 0) > 0;
+  const amendedOn = plan.amended && plan.amended_on ? new Date(`${plan.amended_on}T12:00:00Z`).toLocaleDateString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric' }) : null;
   const signatures: SignatureRow[] = awaiting
     ? [...(plan.signers ?? []).map((s) => ({ party: s.role === 'renter' ? 'Renter' : 'Additional Driver', name: s.name, signature: 'To sign this version', when: '' })),
       { party: 'CarmaCars', name: '', signature: 'Applied when this version is signed', when: '' }]
-    : [{ party: 'Renter', name: renter, signature: plan.amendment_number ? `${original}; signed this change as amendment ${plan.amendment_number}` : `${original} (signature on the signed original; this version is not signed again)`, when: '' },
+    : [{ party: 'Renter', name: renter, signature: plan.amendment_number ? `${original}; signed this change as amendment ${plan.amendment_number}` : amendedOn ? `${original}; this amended version applies under section 15.4 without a new signature` : `${original} (signature on the signed original; this version is not signed again)`, when: '' },
       { party: kind === 'pickup' ? 'CarmaCars (check-out)' : kind === 'return' ? 'CarmaCars (check-in)' : 'CarmaCars', name: staff ?? '',
         signature: kind === 'pickup' ? 'Countersigned electronically at check-out' : kind === 'return' ? 'Countersigned electronically at check-in' : 'Filed by CarmaCars as a corrected copy', when: when(new Date().toISOString()) }];
-  const label = kind === 'pickup' ? 'as picked up' : kind === 'return' ? 'as returned' : kind === 'change' ? 'changed' : 'corrected';
+  const label = kind === 'pickup' ? 'as picked up' : kind === 'return' ? 'as returned' : kind === 'change' ? (amendedOn ? `Amended ${amendedOn}` : 'changed') : 'corrected';
   const cc = await renderCarmaCars(b, { version: header, signatures, title: `Rental agreement ${plan.agreement_number ?? ''}, version ${header.version_no} (${label})`, createdAt: new Date() });
   // a version not signed again carries the signatures of the signed original (the renter's in 16, 17 and 20 with the
   // day, the drivers', the initials); the note "Signed on the original" only when they cannot be read

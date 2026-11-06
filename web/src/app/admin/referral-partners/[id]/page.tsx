@@ -49,6 +49,12 @@ export default async function ReferralPartner({ params }: { params: Promise<{ id
         ['Joined', `${d(p.created_at)} (${p.source === 'signup' ? 'signed up on the site' : 'added by an Admin'})`], ['Their note', p.signup_note], ['Notes', p.notes as string | null | undefined]]} />
       <p className="small muted">Referred rentals {p.referrals}, completed {p.completed}. Not earned yet {$(p.accruing_cents)}; pending approval {$(p.pending_cents)}; approved, to pay {$(p.approved_cents)}; paid {$(p.paid_cents)}.</p>
     </Card>
+    <Card title="Invoices to this partner" testId="rp-invoices">
+      <p className="small">Kickbacks on their claim, towing or storage money: write and send them under <Link prefetch={false} className="link" href={`/admin/referral-partners?tab=invoices&partner=${p.id}`}>Invoices</Link>. The usual kickback % and the billing email fill new invoices.</p>
+      <Act ops action="partner_billing_save" payload={{ partner: p.id }} label="Invoice settings" refresh={[`/admin/referral-partners/${p.id}`]} done="Saved."
+        fields={[{ name: 'default_kickback_bps', label: 'Usual kickback on their total (basis points: 1000 = 10%)', type: 'number', value: (p as { default_kickback_bps?: number | null }).default_kickback_bps ?? '' },
+          { name: 'billing_email', label: 'Billing email (empty: the contact email)', type: 'email', value: (p as { billing_email?: string | null }).billing_email ?? '' }]} />
+    </Card>
     <Card title="Link, QR code and flyer" testId="rp-link">
       <div className="ad-row" style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <QrSvg text={link} label={`QR code of ${link}`} />

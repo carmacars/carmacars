@@ -238,9 +238,9 @@ select test.eq('Q example 2: Monday 09:00 to Sunday 09:00 is 6 days, 4 x $100 + 
           || '/' || (v ->> 'rate_rule') from test.out('q2') v),
   '6/4/2/' || test.money('560') || '/true/4 days at the daily rate and 2 days at the weekend rate, capped at the weekly rate');
 select test.keep('q3', app.quote_booking(test.id('vehicle:BA1'), test.at('2029-05-07 09:00'), test.at('2029-05-17 09:00')));
-select test.eq('Q example 3: 10 days is $560 / 7 x 10 = $800, by the weekly rate; over 7 days the Deposit is charged, not held',
+select test.eq('Q example 3: 10 days is $560 / 7 x 10 = $800, by the weekly rate; the Deposit is a hold for any length (0541)',
   (select (v ->> 'billable_days') || '/' || (v ->> 'rate_applied') || '/' || (v ->> 'rental_charge_cents') || '/' || (v ->> 'rate_rule') || '/' || (v ->> 'deposit_method')
-     from test.out('q3') v), '10/weekly/' || test.money('800') || '/weekly rate divided by 7, times 10 days/charged');
+     from test.out('q3') v), '10/weekly/' || test.money('800') || '/weekly rate divided by 7, times 10 days/card_hold');
 select test.eq('Q example 4 (0132): 45 days is one booking at the monthly rate for each 30 days ($1,800 x 45 / 30 = $2,700)',
   (select (app.quote_booking(test.id('vehicle:BA1'), test.at('2029-05-07 09:00'), test.at('2029-06-21 09:00')) ->> 'rental_charge_cents')::bigint), test.money('2,700'));
 select test.eq('Q example 4: 30 days at the monthly rate ($1,800), then a renewal of 15 days at $560 / 7 x 15 = $1,200: $3,000 over two transactions',
@@ -716,9 +716,9 @@ select test.eq('P an amount other than what the renter owes at booking is refuse
   'false/amount_mismatch/void_authorization/83055/71100');
 select test.eq('P a payment for an offer version that is not the approved one is refused',
   (select (v ->> 'reason') || '/' || (v ->> 'action') from test.ba_pay('f1', null, 2) v), 'offer_changed/void_authorization');
-select test.eq('P nothing was recorded by those attempts, each is in the history, and the booking still waits',
+select test.eq('P nothing was recorded by those attempts, each is in the history, and the booking still waits (accepted: it holds the car, 0540)',
   (select count(*) from payments where booking_id = test.ba('f1')) || '/' || (select count(*) from booking_events where booking_id = test.ba('f1') and kind = 'payment_refused')
-  || '/' || test.ba_st('f1') || '/' || app.vehicle_is_available(test.id('vehicle:BA8'), test.wsoon('10 days'), test.wsoon('17 days')), '0/4/pending_payment/true');
+  || '/' || test.ba_st('f1') || '/' || app.vehicle_is_available(test.id('vehicle:BA8'), test.wsoon('10 days'), test.wsoon('17 days')), '0/4/pending_payment/false');
 select test.keep('f1:paid', test.ba_pay('f1', null, null, 'evt_f1'));
 select test.eq('P signed, the right amount, the car free: the payment is recorded and the booking confirmed in one step; the server may capture',
   (select (v ->> 'ok') || '/' || (v ->> 'status') || '/' || (v ->> 'action') || '/' || (v ->> 'amount_cents') from test.out('f1:paid') v) || '/' || test.ba_st('f1'),
@@ -787,31 +787,30 @@ select test.throws('SG a signed copy is never replaced',
   $$select app.attach_signed_agreement(test.ba_sigreq('f1'), 'agreements/bookings/f1/signed-2.pdf', test.sha('signed f1 again'))$$, 'never replaced');
 
 -- ------------------------------------------------------------------ the race: two renters, one car, the same dates
+-- 0540: the first renter to accept gets the car (accepted is booked); the other offer goes back to staff at once
 select test.ba_new('b1', 'hal.hill@example.test', 'BA5', test.soon('20 days'), test.soon('27 days'));
 select test.ba_new('b2', 'ivy.ince@example.test', 'BA5', test.soon('22 days'), test.soon('29 days'));
-select test.ba_offer('b1'); select test.ba_offer('b2');
-select test.ba_open('b1'); select test.ba_open('b2');
-select test.ba_sign('b1'); select test.ba_sign('b2');
-insert into test.ba_ids select 'b2:ag', id from rental_agreements where booking_id = test.ba('b2');
-select test.eq('RACE both renters have approved and signed for the same car and overlapping dates; neither blocks it yet',
-  test.ba_st('b1') || ' ' || test.ba_st('b2') || ' ' || app.vehicle_is_available(test.id('vehicle:BA5'), test.soon('20 days'), test.soon('29 days')),
-  'pending_payment pending_payment true');
+select app.send_offer(test.ba('b1'), test.id('ba_cs'));
+select app.send_offer(test.ba('b2'), test.id('ba_cs'));
+select test.eq('RACE both renters have an offer for the same car and overlapping dates; an offer does not hold the car',
+  test.ba_st('b1') || ' ' || test.ba_st('b2') || ' ' || app.vehicle_is_available(test.id('vehicle:BA5'), test.soon('20 days'), test.soon('29 days')), 'offered offered true');
+select app.approve_offer(test.ba('b1'), (select current_offer_version from bookings where id = test.ba('b1')), (select r.user_id from bookings b join renters r on r.id = b.renter_id where b.id = test.ba('b1')));
+select test.eq('RACE the first to accept has booked the car; the other went back to staff at that moment',
+  test.ba_st('b1') || ' ' || test.ba_st('b2') || ' ' || app.vehicle_is_available(test.id('vehicle:BA5'), test.soon('20 days'), test.soon('29 days'))
+  || ' ' || (select status from booking_offers where booking_id = test.ba('b2') order by version desc limit 1), 'pending_payment requested false withdrawn');
+select test.throws('RACE the second renter can no longer accept', format($$select app.approve_offer(%L, 1, %L)$$, test.ba('b2'),
+  (select r.user_id from bookings b join renters r on r.id = b.renter_id where b.id = test.ba('b2'))), 'no open offer');
+select test.ba_open('b1'); select test.ba_sign('b1');
 select test.ba_pay('b1');
-select test.eq('RACE the first to pay is confirmed', (select (v ->> 'ok') || '/' || (v ->> 'action') from test.out('pay:b1') v) || '/' || test.ba_st('b1'), 'true/capture/confirmed');
-select test.eq('RACE the other went back to staff at that moment, and its signed but unpaid agreement was voided',
-  test.ba_st('b2') || '/' || (select a.status || ':' || (a.void_reason like 'The booking went back to staff%') || ':' || s.status
-                                from rental_agreements a join signature_requests s on s.id = a.signature_request_id where a.id = test.ba('b2:ag'))
-  || '/' || (select coalesce(signature_request_id::text, 'no agreement') from bookings where id = test.ba('b2')), 'requested/voided:true:voided/no agreement');
+select test.eq('RACE the first renter pays: confirmed', (select (v ->> 'ok') || '/' || (v ->> 'action') from test.out('pay:b1') v) || '/' || test.ba_st('b1'), 'true/capture/confirmed');
 select test.keep('b2:paid', test.ba_pay('b2', 63280, 1));
-select test.eq('RACE the second renter''s authorized payment is refused: the server is told to void the authorization, and nothing is charged or recorded',
+select test.eq('RACE a payment from the second renter is refused: the server is told to void the authorization, and nothing is charged or recorded',
   (select (v ->> 'ok') || '/' || (v ->> 'reason') || '/' || (v ->> 'action') || '/' || (v ->> 'status') from test.out('b2:paid') v)
   || '/' || (select count(*) from payments where booking_id = test.ba('b2')) || '/' || test.ba_st('b2')
   || '/' || coalesce((select card_on_file_id::text from bookings where id = test.ba('b2')), 'no card'),
   'false/not_awaiting_payment/void_authorization/requested/0/requested/no card');
 select test.eq('RACE customer service has the task to offer the second renter another car',
   (select count(*) || ':' || min(queue) from tasks where booking_id = test.ba('b2') and task_type = 'reoffer_booking'), '1:cs');
-select test.eq('RACE the signature the second renter gave is still on record, untouched',
-  (select count(*) || '/' || min(r.status) from signature_records r join rental_agreements a on a.signature_request_id = r.signature_request_id where a.id = test.ba('b2:ag')), '1/signed');
 -- the car is blocked (not booked) after the renter signed: the confirmation itself finds out
 select test.ba_new('b3', 'jon.jay@example.test', 'BA4', test.soon('20 days'), test.soon('27 days'));
 select test.ba_offer('b3'); select test.ba_open('b3'); select test.ba_sign('b3');

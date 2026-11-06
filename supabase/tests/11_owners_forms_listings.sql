@@ -489,13 +489,13 @@ select app.confirm_vehicle_specs(test.id('ofl_field'), test.id('vehicle:oflC'), 
 create temp table ofl_k as select app.start_listing_intake(test.id('ofl_field'), jsonb_build_object('plate', (select plate from vehicles where id = test.id('vehicle:oflC')), 'colour', 'Black', 'odometer_km', 20500)) as r;
 grant all on ofl_k to authenticated, anon;
 create function test.ofl_ki() returns uuid language sql as $$ select ((select r from ofl_k) ->> 'intake_id')::uuid $$;
-select test.eq('K field staff on their assigned photo job start by plate: review required, VIN decode queued, 14 shots asked for',
+select test.eq('K field staff on their assigned photo job start by plate: review required, VIN decode queued, 10 photos and a cover asked for (0566)',
   (select (r ->> 'state') || '/' || (r ->> 'review_required') || '/' || jsonb_array_length(r -> 'missing') from ofl_k)
-  || '/' || (select count(*) from listing_jobs where intake_id = test.ofl_ki() and kind = 'decode_vin' and status = 'queued'), 'decoding/true/14/1');
+  || '/' || (select count(*) from listing_jobs where intake_id = test.ofl_ki() and kind = 'decode_vin' and status = 'queued'), 'decoding/true/2/1');
 select test.eq('K starting again returns the same open intake', (app.start_listing_intake(test.id('ofl_field'), jsonb_build_object('vehicle_id', test.id('vehicle:oflC'))) ->> 'intake_id')::uuid, test.ofl_ki());
-select test.eq('K uploads: the missing list shrinks; all 14 make it complete',
+select test.eq('K uploads: the cover is in after the front three-quarter; all 14 shots make it complete (0566: 10 photos and a cover)',
   (select jsonb_array_length(app.record_listing_upload(test.id('ofl_field'), test.ofl_ki(), '{"shot_type": "front_left", "original_path": "o/fl.jpg"}') -> 'missing'))
-  || '/' || (select (test.ofl_upload_all(test.ofl_ki(), test.id('ofl_field')) ->> 'complete')), '13/true');
+  || '/' || (select (test.ofl_upload_all(test.ofl_ki(), test.id('ofl_field')) ->> 'complete')), '1/true');
 select test.eq('K a retake of one shot replaces the earlier photo', (select count(*) filter (where replaced_at is null) || ':' || count(*) from vehicle_photos where vehicle_id = test.id('vehicle:oflC') and shot_type = 'front_left'), '1:2');
 select test.throws('K an unknown shot is refused', format($$select app.record_listing_upload(%L, %L, '{"shot_type": "selfie", "original_path": "x.jpg"}')$$, test.id('ofl_field'), test.ofl_ki()), 'Unknown photo');
 -- the worker decodes the VIN

@@ -87,6 +87,20 @@ export async function exportCovered(img: HTMLImageElement, boxes: NBox[], style:
   return { main, width: W, height: H, variants };
 }
 
+/** r28: the editor draws the photo from this site's own address (GET /api/listing/plate), so the canvas is never
+ *  tainted by the storage host and can be read back. */
+export const editorPhotoSrc = (photoId: string) => `/api/listing/plate?photo=${encodeURIComponent(photoId)}`;
+/** A canvas that cannot be read back (a cross-origin photo) throws a SecurityError: the editor says so instead of crashing. */
+export function isTaintError(e: unknown): boolean {
+  const n = (e as { name?: unknown } | null)?.name, m = String((e as { message?: unknown } | null)?.message ?? '');
+  return n === 'SecurityError' || /tainted|cross-origin|insecure/i.test(m);
+}
+export const TAINT_MESSAGE = 'This photo could not be read for editing. Reload the page and try again; the boxes can still be drawn by hand.';
+/** Runs a canvas read; null instead of a crash when the canvas cannot be read (any other error is thrown as before). */
+export function readSafely<T>(f: () => T): T | null {
+  try { return f(); } catch (e) { if (isTaintError(e)) return null; throw e; }
+}
+
 /** A grey image: one byte per pixel, row by row. */
 export interface Grey { width: number; height: number; data: Uint8ClampedArray | Uint8Array }
 /** The photo drawn small and grey, for refineBox (in the browser). */

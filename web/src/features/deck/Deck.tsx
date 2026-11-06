@@ -25,13 +25,26 @@ const tierLabel = (min: number, max: number | null) => (max === null ? `${min} o
 
 interface SlideDef { title: string; tone?: 'dark' | 'red' | 'grey'; id?: string; free?: boolean; node: React.ReactNode }
 
+// The brand logo (release 28, public/brand): black on the light slides, white on the dark ones, one colour on the red ones;
+// the slide's tone picks one in deck.css.
+function DeckLogo() {
+  return (<>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img className="dk-logo dk-logo--light" src="/brand/carma-logo-black.svg" width={857} height={152} alt="" aria-hidden="true" />
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img className="dk-logo dk-logo--dark" src="/brand/carma-logo-white.svg" width={857} height={152} alt="" aria-hidden="true" />
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img className="dk-logo dk-logo--red" src="/brand/carma-logo-mono-white.svg" width={857} height={152} alt="" aria-hidden="true" />
+  </>);
+}
+
 function Slide({ s, n }: { s: SlideDef; n: number }) {
   return (
     <section className={`dk-slide${s.tone ? ` dk-slide--${s.tone}` : ''}${s.free ? ' dk-slide--free' : ''}`} id={s.id ?? `slide-${n}`} aria-label={`Slide ${n}: ${s.title}`} tabIndex={-1} data-testid="deck-slide">
       <div className="dk-slide__in">
         {s.node}
         <footer className="dk-foot">
-          <span className="dk-foot__brand">Carma<b>Cars</b></span>
+          <span className="dk-foot__brand" role="img" aria-label="CarmaCars"><DeckLogo /></span>
           <span className="dk-foot__note">{SHORT_NOTICE}</span>
           <span className="dk-foot__n" aria-hidden="true" />
         </footer>
@@ -102,7 +115,7 @@ export function Deck({ f, today }: { f: DeckFigures; today: string }) {
   // ---------------------------------------------------------------- the story
   add({ title: brand, tone: 'dark', id: 'title', node: <div className="dk-body" style={{ alignContent: 'center', gap: '1.5em' }}>
     <p className="dk-kicker">Investor deck{f.investor_name ? `, prepared for ${f.investor_name}` : ''}</p>
-    <p className="dk-wordmark" aria-label={brand}>Carma<b>Cars</b></p>
+    <p className="dk-wordmark" role="img" aria-label={brand}><DeckLogo /></p>
     <p className="dk-title" style={{ maxWidth: '22em' }}>{b.tagline ?? 'Car rental, run on our own platform.'}</p>
     <p className="dk-lead">Car rental in {b.service_area ?? b.city ?? 'Ontario'}, built on cars owners bring to us and a platform we built ourselves. {longDate(today)}.</p>
   </div> });

@@ -637,3 +637,11 @@ code { font: 500 var(--fs-xs)/1.4 var(--font-text); color: var(--grey-600); font
 .iv-audio { width: 100%; max-width: 28rem; }
 @media (prefers-reduced-motion: reduce) { .iv-dot.is-on { animation: none; } }
 @keyframes iv-pulse { 50% { opacity: 0.35; } }
+
+/* release 28 (features/home/HeroSlides.tsx): the fleet's studio photos over the sample car, cross-fading */
+.hero__slides { position: absolute; inset: 0; }
+.hero__media .hero__slide { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .hero__media .hero__slide { animation: none !important; }
+  .hero__media .hero__slide:first-child, .hero__media style + .hero__slide { opacity: 1; }
+}

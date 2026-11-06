@@ -67,7 +67,13 @@ const config: NextConfig = {
         // the store app's universal links and app links (0390)
         { source: '/.well-known/apple-app-site-association', destination: '/api/app-links/apple' },
         { source: '/apple-app-site-association', destination: '/api/app-links/apple' },
-        { source: '/.well-known/assetlinks.json', destination: '/api/app-links/android' }
+        { source: '/.well-known/assetlinks.json', destination: '/api/app-links/android' },
+        // release 28: the Claude connector's OAuth discovery (RFC 9728 and RFC 8414), with and without the resource's path
+        { source: '/.well-known/oauth-protected-resource', destination: '/api/oauth/protected-resource' },
+        { source: '/.well-known/oauth-protected-resource/:path*', destination: '/api/oauth/protected-resource' },
+        { source: '/.well-known/oauth-authorization-server', destination: '/api/oauth/metadata' },
+        { source: '/.well-known/oauth-authorization-server/:path*', destination: '/api/oauth/metadata' },
+        { source: '/.well-known/openid-configuration', destination: '/api/oauth/metadata' }
       ],
       afterFiles: [
         { source: '/:name([a-f0-9]{32}\\.txt)', destination: '/api/site-file/:name' },

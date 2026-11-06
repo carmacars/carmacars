@@ -8,6 +8,8 @@ import { textGenerator } from '@/integrations/llm';
 import { photoProcessor } from '@/integrations/photos';
 import { linkSecret } from '@/server/links';
 import { runListingWorker, type Claim, type RunSummary } from '@/features/listing/worker';
+import { visionModel } from '@/integrations/vision';
+import { MARK_PROMPT, MARK_SYSTEM, parseMarks, type MarkBox } from '@/features/listing/photo-sort';
 
 // The listing worker as the site runs it: the Cloudflare cron trigger (custom-worker.ts, every five
 // minutes) and a submitted capture (right away, after the response) call runListingWorkerNow. The queue
@@ -20,6 +22,21 @@ export async function workerToken(): Promise<string> {
   const key = await crypto.subtle.importKey('raw', enc.encode(linkSecret()), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const mac = new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode('carmacars-listing-worker-v1')));
   return Array.from(mac, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+const b64 = (b: Uint8Array) => { let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(s); };
+
+/** 0567: where the marks are on an edited inside or detail photo (the vision model, purpose photo_sort, within the live
+ *  AI share); null when the model may not be asked or did not answer usefully. */
+async function findMarks(img: { bytes: Uint8Array; contentType: string; width: number; height: number; photoId: string }): Promise<MarkBox[] | null> {
+  const gate = (await rpc('server_photo_mark_gate', {}, SR).catch(() => null)) as unknown as { allowed?: boolean; model?: string; fallback_model?: string | null } | null;
+  if (!gate?.allowed || !gate.model || img.bytes.length > 3_400_000) return null;
+  const t0 = Date.now();
+  const r = await (await visionModel()).read({ purpose: 'photo_sort', imageDataUrl: `data:${img.contentType};base64,${b64(img.bytes)}`, system: MARK_SYSTEM, prompt: MARK_PROMPT,
+    schema: { type: 'object' }, maxOutputTokens: 200 }, [gate.model, gate.fallback_model ?? ''].filter(Boolean)).catch(() => null);
+  const marks = r?.ok ? parseMarks(r.data, img) : null;
+  await rpc('server_photo_mark_record', { p: { model: r?.model ?? null, ok: !!marks, neurons: r?.usage?.neurons ?? 0, duration_ms: Date.now() - t0, photo_id: img.photoId, marks: marks?.length ?? null } }, SR).catch(() => undefined);
+  return marks;
 }
 
 const absolute = (u: string) => (/^https?:\/\//.test(u) ? u : `${env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '')}${u.startsWith('/') ? '' : '/'}${u}`);
@@ -48,6 +65,7 @@ export async function runListingWorkerNow(o: { maxJobs?: number; deadlineMs?: nu
     text: await textGenerator(),
     plainCopy: true,
     photos: await photoProcessor(read),
+    findMarks,
     files: {
       privateUrl: async (path) => { const u = absolute(await s.signedDownloadUrl('vehicle-originals', path, 900)); issued.set(u, { bucket: 'vehicle-originals', path }); return u; },
       publicUrl: (path) => { const u = absolute(s.publicUrl(path)); issued.set(u, { bucket: 'vehicle-public', path }); return u; },

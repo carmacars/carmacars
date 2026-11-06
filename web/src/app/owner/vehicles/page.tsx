@@ -11,6 +11,7 @@ import { PortalTabs } from '@/features/portal-nav/PortalTabs';
 import { tabOf } from '@/features/portal-nav/tabs';
 import { OWNER_CARS_TABS } from '@/features/owner/menu';
 import { BookingsTab } from './BookingsTab';
+import { ReferredCars, type ReferredCar } from '@/features/owner/ReferredCars';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Cars', path: '/owner/vehicles', noindex: true, description: 'Your cars with CarmaCars and the bookings on them.' });
@@ -21,13 +22,25 @@ export const metadata = pageMeta({ title: 'Cars', path: '/owner/vehicles', noind
 export default async function OwnerCars({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [ctx, sp] = await Promise.all([requireOwner('/owner/vehicles'), searchParams]);
   const { user, home } = ctx;
+  // 0543: the cars of owners you referred, read only (an Admin links you to them); the tab shows only when there are some
+  const referred = ((await rpc('server_owner_referred_cars', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as ReferredCar[] | null) ?? [];
+  const tabs = referred.length ? [...OWNER_CARS_TABS, { key: 'referred', href: '/owner/vehicles?tab=referred', label: 'Cars you referred' }] : OWNER_CARS_TABS;
+  if (sp.tab === 'referred' && referred.length) {
+    return (
+      <>
+        <PageHeader title="Cars" purpose="The cars of the owners you referred: bookings, use and revenue, read only. Your referral share is on your statements." />
+        <PortalTabs label="Cars" tabs={tabs} current="referred" />
+        <ReferredCars cars={referred} />
+      </>
+    );
+  }
   const tab = tabOf(OWNER_CARS_TABS, sp.tab);
   const add = home.kind !== 'partner' ? <Link prefetch={false} className="btn btn--primary btn--sm" href="/list-your-car/apply">Add a vehicle</Link> : undefined;
   if (tab.key === 'bookings') {
     return (
       <>
         <PageHeader title="Cars" purpose="Every booking on your vehicles, and your own bookings of them." />
-        <PortalTabs label="Cars" tabs={OWNER_CARS_TABS} current={tab.key} />
+        <PortalTabs label="Cars" tabs={tabs} current={tab.key} />
         <BookingsTab {...ctx} vehicle={sp.vehicle} />
       </>
     );
@@ -39,7 +52,7 @@ export default async function OwnerCars({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader title="Cars" purpose="Where each car is right now, this month so far, its terms and what it still needs. Open one for its months and bookings." action={add} />
-      <PortalTabs label="Cars" tabs={OWNER_CARS_TABS} current={tab.key} />
+      <PortalTabs label="Cars" tabs={tabs} current={tab.key} />
       {home.vehicles.length ? <ul className="ow-cars">{home.vehicles.map((v) => <VehicleCard key={v.vehicle_id} v={v} compact trackers={home.trackers_available} photo={photo[v.vehicle_id]} live={live[v.vehicle_id]} month={carThisMonth(months, v.vehicle_id)} next={nextOf(v.vehicle_id)} />)}</ul>
         : <div className="pt-empty"><p className="d4">No vehicles yet</p>{home.kind === 'partner' ? <p className="muted">CarmaCars adds your cars once we agree which ones join.</p> : <Link prefetch={false} className="btn btn--primary" href="/list-your-car/apply">Add your first vehicle</Link>}</div>}
       {terms && <OwnerTermsSummary data={terms} />}

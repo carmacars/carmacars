@@ -5,6 +5,7 @@ import { Act } from '@/features/admin/Act';
 import { $, Badge, BookingLink, Card, Filters, PageHead, Table, Tabs, d } from '@/features/admin/ui';
 import { EARNING_WORDS, kindLabel, PAYOUT_METHODS, STATUS_WORDS } from '@/features/referral/model';
 import { PARTNER_FIELDS } from '@/features/referral/fields';
+import { PartnerInvoices } from '@/features/partner-invoices/PartnerInvoices';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Referral partners', path: '/admin/referral-partners', noindex: true, description: 'Body shops and tow trucks that send us renters: partners, kickbacks, payments.' });
@@ -17,13 +18,15 @@ const FROM: Record<string, string> = { owner_revenue: 'Owner\'s car: a kickback 
 // Admin > People > Referral partners (migration 0164): body shops and tow trucks that send us renters. Partners and sign-ups to
 // approve, the ledger of kickbacks (approve, reverse), and the payments recorded by hand. Nothing is paid automatically.
 export default async function ReferralPartners({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ read }, sp] = await Promise.all([page('/admin/referral-partners'), searchParams]);
+  const [{ read, user }, sp] = await Promise.all([page('/admin/referral-partners'), searchParams]);
   const tab = sp.tab ?? 'partners';
   const base = '/admin/referral-partners';
   const list = await read<{ today: string; settings: { flat_cents: number; percent_bps: number }; partners: Partner[]; waiting: number }>('referral_partners');
-  const tabs = <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=partners`, 'Partners', list.waiting], [`${base}?tab=ledger`, 'Kickbacks'], [`${base}?tab=payments`, 'Payments made']]} />;
+  const tabs = <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=partners`, 'Partners', list.waiting], [`${base}?tab=ledger`, 'Kickbacks'], [`${base}?tab=payments`, 'Payments made'], [`${base}?tab=invoices`, 'Invoices']]} />;
   const head = <PageHead title="Referral partners" kicker={`${list.partners.filter((p) => p.status === 'active').length} active`} purpose="Body shops and tow trucks that send renters. A partner earns when the rental is completed and paid in full; you approve it and record the payment.">
     <Act action="referral_partner_save" label="Add a partner" variant="primary" testId="rp-add" go="/admin/referral-partners/{id}" fields={PARTNER_FIELDS({}, { flat_cents: list.settings.flat_cents, percent_bps: list.settings.percent_bps })} /></PageHead>;
+  // 0547: invoices to partners for their kickback on claim, towing or storage money, and the money they send
+  if (tab === 'invoices') return (<>{head}{tabs}<PartnerInvoices userId={user.id} base={`${base}?tab=invoices`} sp={sp} /></>);
   if (tab === 'payments') {
     const r = await read<{ payouts: R[] }>('referral_earnings');
     return (<>{head}{tabs}

@@ -170,6 +170,7 @@
 
 /* listing pipeline: capture and progress (0032) */
 .lc__grid { display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); list-style: none; margin: 0 0 var(--s-4); padding: 0; }
+.lc__drop { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); padding: var(--s-4); margin: var(--s-3) 0; border: 2px dashed var(--grey-300); border-radius: var(--r-3); background: var(--grey-50); }
 .lc__shot { display: grid; gap: var(--s-1); align-content: start; padding: var(--s-3); border: 1px solid var(--grey-200); background: var(--white); }
 .lc__shot.is-done { border-left: 4px solid var(--black); }
 .lc__pick { position: relative; justify-self: start; cursor: pointer; }

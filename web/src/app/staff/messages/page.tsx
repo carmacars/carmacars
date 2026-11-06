@@ -28,7 +28,10 @@ export default async function Messages({ searchParams }: { searchParams: Promise
             const who = inb ? r.renter_first_name ?? 'Renter' : r.sent_by ?? 'CarmaCars';
             return (
               <li key={r.id} className={`va-msg${inb ? ' va-msg--in' : ''}`}>
-                <span className="va-msg__avatar" aria-hidden="true">{who.trim().charAt(0).toUpperCase() || 'C'}</span>
+                {/* the company's own messages carry the brand icon (release 28); a person's, their initial */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {!inb && !r.sent_by ? <img className="va-msg__avatar" src="/favicon.svg" width={40} height={40} alt="" aria-hidden="true" />
+                  : <span className="va-msg__avatar" aria-hidden="true">{who.trim().charAt(0).toUpperCase() || 'C'}</span>}
                 <span className="va-msg__text">
                   <span className="va-msg__who"><Link prefetch={false} className="link" href={`/staff/bookings/${encodeURIComponent(r.booking_number)}?tab=messages`}>{who}</Link>
                     <span className="va-msg__dir">{inb ? 'to CarmaCars' : 'to the renter'}{CHANNEL[r.channel] ? ` by ${CHANNEL[r.channel]}` : ''} · {r.booking_number}</span></span>

@@ -139,7 +139,7 @@ test('photo: an exterior is cut out, placed on the backdrop with the shadow, sto
   assert.equal(r.ok, true);
   const o = r.output as Record<string, unknown>;
   assert.equal(o.processed_path, 'vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg');
-  assert.equal(o.preset_version, 'studio_v2');
+  assert.equal(o.preset_version, 'studio_v3');
   const band = f.pub.get('site/backdrop/lettering-v1-rav4.png');
   assert.ok(band && band[0] === 0x89 && band[1] === 0x50, 'the model-name band is a PNG in the public bucket');
   assert.deepEqual([o.width, o.height], [1800, 1200]);
@@ -147,6 +147,80 @@ test('photo: an exterior is cut out, placed on the backdrop with the shadow, sto
   assert.ok(f.priv.has('vehicles/v1/work/p1-cutout.png'), 'the cut-out stays private');
   assert.equal(calls[0], 'pub:site/backdrop/studio_v2.png|pub:site/backdrop/lettering-v1-rav4.png@348|pub:site/backdrop/shadow_v1.png|priv:vehicles/v1/work/p1-cutout.png');
   assert.deepEqual([r.units, r.unit, r.cost_microusd], [2, 'transformations', 0]);
+});
+
+// r28 (studio_v3): the cut-out framed to the car, placed at about 80% of the width on the floor line; marks left out
+test('photo: a readable cut-out is framed to the car and placed big on the floor line; a flagged mark beside the car is gone', async () => {
+  const { encodePng } = await import('./subject-frame.ts');
+  const W = 1000, H = 650, data = new Uint8ClampedArray(W * H * 4);
+  const fill = (x0: number, y0: number, x1: number, y1: number) => { for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) data[(y * W + x) * 4 + 3] = 255; };
+  fill(320, 250, 680, 420); fill(850, 600, 980, 625);   // the car (a side view, 36% of the width) and a corner mark
+  const png = await encodePng({ width: W, height: H, data });
+  const f = files();
+  const placed: Array<{ width: number; height: number; left: number; bottom: number } | null | undefined> = [];
+  const photos = { ...fakePhotos(getter(f)), name: 'cloudflare-images' as const,
+    cutout: async () => ({ ok: true as const, bytes: png, contentType: 'image/png', transformations: 1 }),
+    composite: async (r: { place?: { width: number; height: number; left: number; bottom: number } | null }) => { placed.push(r.place); return { ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }; } };
+  const r = await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, watermark: true } }), budget);
+  const o = r.output as Record<string, unknown>;
+  assert.equal(o.preset_version, 'studio_v3');
+  assert.equal(o.watermark_removed, true);
+  assert.equal((o.framing as { dropped: number }).dropped, 1);
+  const p = placed[0]!;
+  assert.ok(p, 'drawn where placeSubject put it');
+  assert.ok(p.width / 1800 > 0.8 && p.width / 1800 < 0.92, `the framed cut-out (car plus its shadow's spread) is ${p.width / 1800} of the width`);
+  const framed = f.priv.get('vehicles/v1/work/p1-cutout.png')!;
+  assert.equal(framed[0], 0x89, 'the framed cut-out is stored as the private cut-out');
+});
+
+test('photo: the touch-up (0568) is measured on the car itself, applied last and its values kept; off, nothing is applied', async () => {
+  const { encodePng } = await import('./subject-frame.ts');
+  const W = 1000, H = 650, data = new Uint8ClampedArray(W * H * 4);
+  for (let y = 250; y < 420; y++) for (let x = 320; x < 680; x++) { const i = (y * W + x) * 4; data[i] = 40 + (x % 120); data[i + 1] = 40; data[i + 2] = 50; data[i + 3] = 255; }
+  const png = await encodePng({ width: W, height: H, data });
+  const run = async (enhance: boolean) => {
+    const f = files();
+    const applied: unknown[] = [];
+    const photos = { ...fakePhotos(getter(f)), name: 'cloudflare-images' as const,
+      cutout: async () => ({ ok: true as const, bytes: png, contentType: 'image/png', transformations: 1 }),
+      composite: async () => ({ ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }),
+      enhance: async (r: { values: unknown }) => { applied.push(r.values); return { ok: true as const, bytes: new Uint8Array([0xff, 0xd8, 0xff, 9]), contentType: 'image/jpeg', transformations: 1 }; } };
+    const r = await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, enhance } }), budget);
+    return { r, applied, f };
+  };
+  const on = await run(true);
+  const o = on.r.output as { enhance: Record<string, number> | null };
+  assert.equal(on.applied.length, 1);
+  assert.deepEqual(o.enhance, on.applied[0]);
+  assert.ok((o.enhance!.saturation ?? 9) <= 1.08 && (o.enhance!.contrast ?? 9) <= 1.08);
+  assert.equal(on.r.units, 3, 'cut-out, studio, touch-up: no preview for an outside photo');
+  assert.deepEqual([...on.f.pub.get('vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg')!], [0xff, 0xd8, 0xff, 9], 'the touched-up file is the public one');
+  assert.ok(on.f.priv.has('vehicles/v1/work/p1-base.jpg'), 'the photo before the touch-up is kept');
+  const off = await run(false);
+  assert.equal(off.applied.length, 0);
+  assert.equal((off.r.output as { enhance: unknown }).enhance, null);
+});
+
+test('photo: a flagged inside photo has its edge mark cut off; a mark in the middle or no model keeps it flagged', async () => {
+  const inside = (over: Partial<NonNullable<JobContext['photo']>> = {}) => job('process_photo', { photo: { ...job('process_photo').photo!, rebackground: false, shot_type: 'other', angle: 'other', watermark: true, ...over } });
+  const trims: unknown[] = [];
+  const mk = (marks: Array<{ x: number; y: number; w: number; h: number }> | null) => {
+    const f = files();
+    const photos = { ...fakePhotos(getter(f)), normalize: async (r: { sourceUrl: string; trim?: unknown }) => { trims.push(r.trim ?? null); return { ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }; } };
+    return deps({ photos, findMarks: async () => marks }, f);
+  };
+  const corner = await runJob(mk([{ x: 0.82, y: 0.9, w: 0.16, h: 0.07 }]), inside(), budget);
+  assert.equal((corner.output as Record<string, unknown>).watermark_removed, true);
+  assert.deepEqual(trims[1], { top: 0, right: 0, bottom: Math.round((1 - 0.9 + 0.015) * 1200), left: 0 }, 'the bottom band holding the corner mark is cut off');
+  assert.equal(corner.units, 2);
+  const middle = await runJob(mk([{ x: 0.3, y: 0.3, w: 0.4, h: 0.4 }]), inside(), budget);
+  assert.equal((middle.output as Record<string, unknown>).watermark_removed, false);
+  const none = await runJob(mk([]), inside(), budget);
+  assert.equal((none.output as Record<string, unknown>).watermark_removed, true);
+  const noModel = await runJob(mk(null), inside(), budget);
+  assert.equal((noModel.output as Record<string, unknown>).watermark_removed, false);
+  const unflagged = await runJob(mk([{ x: 0.82, y: 0.9, w: 0.16, h: 0.07 }]), inside({ watermark: false }), budget);
+  assert.equal('watermark_removed' in (unflagged.output as Record<string, unknown>), false, 'a photo nobody flagged is not sent to the model');
 });
 
 test('photo fallback: transformations not enabled on the zone keeps the original on the site and flags it for staff', async () => {
@@ -201,6 +275,12 @@ test('cloudflare adapter: segment=foreground as a PNG; an untouched JPEG back me
   const draw = seen[1]!.draw as Array<Record<string, unknown>>;
   assert.deepEqual(draw.map((x) => x.url), ['l', 's', 'c'], 'the lettering behind, then the shadow, the car on top');
   assert.deepEqual([draw[0]!.top, draw[2]!.bottom], [348, 300], 'lettering and floor line where the sample cars have them');
+  // studio_v3: the framed cut-out carries its shadow and is drawn at the place given
+  await ok.composite({ backdropUrl: 'b', shadowUrl: 's', cutoutUrl: 'c', width: 1800, height: 1200, lettering: null, place: { width: 1500, height: 560, left: 150, bottom: 250 } });
+  const v3 = seen[2]!.draw as Array<Record<string, unknown>>;
+  assert.deepEqual(v3, [{ url: 'c', width: 1500, height: 560, fit: 'contain', left: 150, bottom: 250 }]);
+  await ok.normalize({ sourceUrl: 'x', width: 1600, height: 1200, trim: { top: 0, right: 0, bottom: 150, left: 0 } });
+  assert.deepEqual(seen[3]!.trim, { top: 0, right: 0, bottom: 150, left: 0 });
   const off = cloudflareImages(async () => new Response(new Uint8Array(30000), { headers: { 'content-type': 'image/jpeg' } }));
   const r = await off.cutout('https://x/o.jpg');
   assert.deepEqual([r.ok, !r.ok && r.reason, !r.ok && r.retryable], [false, 'not_enabled', false]);

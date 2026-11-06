@@ -54,3 +54,8 @@
 .ad-table-wrap { overflow-x: auto; max-inline-size: 100%; }
 [data-testid="mr-quick"] .pt-card__head, [data-testid="unfinished-rentals"] li { flex-wrap: wrap; gap: var(--s-2); }
 [data-testid="mr-draft-bar"] > span { min-inline-size: 0; overflow-wrap: anywhere; }
+
+/* r28: many photos at once with the suggested angles (A3) */
+.ho-photos { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+.ho-photos > li { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.ho-angles { border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: var(--s-1); }

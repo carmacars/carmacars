@@ -44,7 +44,7 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
 // 2. Required catalogue fields.
 {
   const p = [];
-  const AUD = ['renter', 'owner', 'investor', 'staff_admin', 'staff_va_finance', 'staff_va_fleet', 'staff_va_cs', 'staff_va_sales', 'staff_field', 'insurer', 'applicant'];
+  const AUD = ['renter', 'owner', 'investor', 'staff_admin', 'staff_va_finance', 'staff_va_fleet', 'staff_va_cs', 'staff_va_sales', 'staff_field', 'insurer', 'applicant', 'partner'];
   for (const e of cat.emails) {
     for (const k of ['code', 'audience', 'trigger', 'category', 'subject', 'preheader', 'variables', 'from']) if (e[k] === undefined || e[k] === '') p.push(`${e.code}: missing ${k}`);
     if (typeof e.digest !== 'boolean') p.push(`${e.code}: digest is not true or false`);
@@ -110,7 +110,8 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
   for (const [f, s] of outputs) {
     if (!f.endsWith('.html')) continue;
     for (const m of s.matchAll(/text-transform:uppercase[^>]*>([^<]*)/g)) if (/carmacars/i.test(m[1])) p.push(`${f}: brand name inside an upper-case label`);
-    if ((s.match(/>Carma<span style="color:#D0111B;">Cars<\/span><\/span>/g) || []).length !== 2) p.push(`${f}: wordmark missing from header or footer`);
+    // release 28: the brand logo image (header on black, footer on light, its dark-mode twin), alt text CarmaCars
+    if ((s.match(/<img[^>]* src="https:\/\/carmacars\.ca\/brand\/email\/on-(dark|light)\.png"[^>]* alt="CarmaCars"/g) || []).length !== 3) p.push(`${f}: logo missing from header or footer`);
     if (s.replace(/<[^>]+>/g, '').match(/Carma\s+Cars/)) p.push(`${f}: wordmark splits when tags are stripped`);
   }
   check('CarmaCars is always spelled and capitalised exactly so', p);

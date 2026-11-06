@@ -36,7 +36,7 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
         <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/vehicles/bulk-rates">Bulk rate change</Link>
         {settings.sample_cars > 0 && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/vehicles/samples" data-testid="sample-cars-link">Sample cars ({settings.sample_cars})</Link>}
         {samples && <SampleCarsToggle publicCount={samples.public} compact />}
-        <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'text' }, { name: 'notes', label: 'Notes', type: 'text' }]} go="/admin/listings/{intake_id}" />
+        <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'vin' }, { name: 'notes', label: 'Notes', type: 'text' }]} go="/admin/listings/{intake_id}" />
       </PageHead>
       {/* 0400: the list and Fleet tracking are the two views of Cars */}
       <Filters base="/admin/vehicles" name="status" value={sp.status ?? ''} options={[['', 'All'], ...statuses.map((x) => [x, x.replace(/_/g, ' ')] as [string, string])]} sp={sp} />

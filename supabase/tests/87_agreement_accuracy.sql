@@ -4,6 +4,8 @@
 -- completeness check at check-out with the Admin's override, and the dispute evidence pack. Uses the operations helpers
 -- of 09 (test.op_photos, test.op_deposit_payment). Fixtures start with "ag".
 select test.suite('87 agreement accuracy');
+-- this suite tests the signing again of a material change: 0542's amended agreements without a signature are off here
+update program_settings set amend_without_signature = false;
 grant usage on schema test to service_role;
 grant execute on all functions in schema test to authenticated, anon, service_role;
 
@@ -281,3 +283,4 @@ select test.eq('privileges: the new functions are the service role''s only',
     where n.nspname = 'public' and p.proname like 'server_esign%' and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))), 0::bigint);
 
 update program_settings set esign_strict = false, agreement_claim_check = false, esign_code_required = false;
+update program_settings set amend_without_signature = true;

@@ -31,6 +31,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['email', 'Email aliases and reply-to', 'Sending addresses and where replies go'],
   ['profile', 'My profile', 'Your greeting name on To do and in the assistant (for a login you share: both names)'],
   ['staff', 'Staff and roles', 'Invite, set limits, end access'],
+  ['api', 'API access', 'Connect Claude to bookings, requests and owners: keys, connections and every call with before and after'],
   ['insurers', 'Insurers', 'Insurance companies billed for bookings (their rates: Money > Insurers)'],
   ['promo-codes', 'Promo codes', 'Codes, values, dates and uses'],
   ['quick-replies', 'Quick replies', 'Snippets for staff messages']

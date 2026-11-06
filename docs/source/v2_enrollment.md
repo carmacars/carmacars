@@ -147,7 +147,7 @@
 
 ## 11. Upkeep, tolls and tickets
 
-11.1 The Owner pays for all maintenance and routine wear, including tires, brakes and servicing. The Owner keeps each Vehicle safe, roadworthy and serviced to the manufacturer's schedule.
+11.1 The Owner pays for all maintenance and routine wear, including tires, brakes and servicing. The Owner keeps each Vehicle safe, roadworthy and serviced to the manufacturer's schedule. CarmaCars does not cover, and the Fleet Policy and this Agreement do not pay for, mechanical failure of a Vehicle, including an engine failure or blowup, transmission problems, or major suspension problems; their repair and the downtime stay with the Owner, except to the extent CarmaCars' negligence, wilful misconduct or breach caused them.
 
 11.2 CarmaCars may take an unsafe or unfit Vehicle out of service. Kilometres, ordinary wear and loss in value are not compensated.
 

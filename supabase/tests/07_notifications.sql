@@ -25,7 +25,7 @@ begin
 end $$;
 
 -- ================================================================== A. catalogue
-select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0535 the apology to remote applicants moved to the AI interview)',
+select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0547 the partner invoice)',
   (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '207/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
@@ -866,6 +866,13 @@ select test.flush();
 select app.ntf_emit('renter_return_claim_denied', 'booking', test.id('booking:NT-5'), 'nt',
   jsonb_build_object('booking_id', test.id('booking:NT-5'), 'deny_reason', 'The car is not at the return place.'));
 select test.flush();
+-- 0547: an invoice to a partner (the link to its PDF, how to pay)
+insert into referral_partners (id, kind, status, business_name, contact_name, email, referral_code, rate_kind, flat_cents)
+values (test.id('nt_rp'), 'tow_truck', 'active', 'Nt Towing', 'Nat Tow', 'nt.tow@example.test', 'NTTOW1', 'flat', 2500);
+insert into partner_invoices (id, partner_id, status, invoice_number, issued_on, due_on, subtotal_cents, hst_cents, total_cents)
+values (test.id('nt_pi'), test.id('nt_rp'), 'sent', 'PI-NT0001', current_date, current_date + 14, 10000, 1300, 11300);
+select app.partner_invoice_email(test.id('nt_pi'), 'nt.tow@example.test', 'invoice');
+select test.flush();
 -- the change request made for the emails above is not left for the later files' counts
 delete from booking_change_requests where id = test.id('nt_cr');
 select test.eq('G no wired code is missing a variable (built here or supplied by the sender)',
@@ -873,15 +880,14 @@ select test.eq('G no wired code is missing a variable (built here or supplied by
 select test.eq('G every wired email code has been built at least once in these tests, digests included',
   (select string_agg(c.code, ',' order by c.code) from notification_catalogue c
     where c.has_email and c.emitted_by not like 'not emitted%'
-      and c.code <> 'applicant_ai_interview_sorry' -- run once by migration 0535, built in 99_r27b_remote_to_ai
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);
 select test.eq('G the variables the sender supplies are only signed links and sign-in service values',
   (select string_agg(distinct v, ',' order by v) from notification_catalogue, unnest(sender_supplied) v),
   'invoice_url,link_expiry,receipt_url,reset_url,security_device,security_event,security_event_at,security_place,sign_in_url,signed_agreement_url,statement_url,supporting_document_url');
-select test.eq('G no payload names the numbered company alone; the payee of the owner billing emails is "<legal name>, operating as CarmaCars" (0053, 0128)',
-  (select count(*) from notification_outbox where replace(payload::text, (select company_legal_name || ', operating as ' || company_trade_name from app.settings()), 'CarmaCars') ~ '18122211|Canada Inc|operated by'), 0::bigint);
+select test.eq('G no payload names the numbered company alone (the partner invoice, from 18122211 Canada Inc. with no trade name, 0547, aside); the payee of the owner billing emails is "<legal name>, operating as CarmaCars" (0053, 0128)',
+  (select count(*) from notification_outbox where code <> 'partner_invoice' and replace(payload::text, (select company_legal_name || ', operating as ' || company_trade_name from app.settings()), 'CarmaCars') ~ '18122211|Canada Inc|operated by'), 0::bigint);
 select test.eq('G the owner billing emails name the payee "<legal name>, operating as <business name>" (0053, 0128: the agreements keep the legal name alone, 0122)',
   (select bool_and(payload ->> 'payee_name' = (select company_legal_name || ', operating as ' || company_trade_name from app.settings())) from notification_outbox o join notification_catalogue c on c.code = o.code
     where c.from_address like '%billing@%' and c.audience = 'owner'), true);

@@ -1,0 +1,40 @@
+CarmaCars  |  Invoice {{invoice_number}}
+
+========================================
+
+[Invoice]
+Invoice {{invoice_number}}
+
+Hello {{first_name}}. Here is our invoice to {{partner_name}} for the outsourced services below.
+
+{{#if is_reminder}}
+{{reminder_line}} The balance is {{invoice_balance}}.
+{{/if}}
+
+Total due: {{invoice_total}}
+Due {{due_on}}. Please quote the invoice number with your payment.
+
+Invoice: {{invoice_number}}
+Claim number: {{claim_number}}
+Due: {{due_on}}
+Cheque payable to: {{payee}}
+e-Transfer to: {{etransfer}}
+
+Open the invoice (PDF):
+{{pdf_url}}
+
+Questions about a line? Reply to this email.
+
+----------------------------------------
+
+Help: reply to this email or call {{support_phone}}. We reply {{reply_time}}, day or night.
+
+You are receiving this because you have an account or a booking with CarmaCars. Messages about your booking, payments or safety are always sent.
+
+Questions: {{contact_email}} or {{support_phone}}. {{opening_hours}}. We reply {{reply_time}}.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/
+{{#if instagram_url}}Instagram: {{instagram_url}}
+{{/if}}{{#if tiktok_url}}TikTok: {{tiktok_url}}{{/if}}

@@ -14,7 +14,7 @@ export interface BookingRow {
 }
 
 const STATUS: Record<string, [string, 'red' | 'dark' | 'amber' | 'ok' | 'quiet']> = {
-  requested: ['Request', 'amber'], offered: ['Offer out', 'amber'], pending_payment: ['Waiting for payment', 'amber'], tentative: ['Tentative', 'amber'],
+  requested: ['Request', 'amber'], offered: ['Offer out', 'amber'], pending_payment: ['Booked · payment due', 'dark'], tentative: ['Tentative', 'amber'],
   confirmed: ['Booked', 'dark'], on_rent: ['Out', 'red'], returned: ['Returned', 'ok'], closed: ['Closed', 'quiet'],
   cancelled: ['Cancelled', 'quiet'], declined: ['Declined', 'quiet'], expired: ['Expired', 'quiet'], no_show: ['No show', 'quiet']
 };

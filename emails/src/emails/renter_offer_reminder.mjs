@@ -19,7 +19,7 @@ export default {
     figure('Total to pay now', '{{total_amount}}', 'HST included. The {{deposit_amount}} security deposit is separate: a hold on the day of pickup.'),
     button('Approve and pay', '@booking_offer'),
     small('If the dates no longer work, [ask for a change](@booking_change). If you have changed your mind, do nothing and the offer will expire. No charge either way.'),
-    small('An offer does not hold the car. If another renter pays for the same car and dates first, we withdraw the offer and tell you.'),
+    small('The car is booked for you once you approve. Until then, if another renter approves the same car and dates first, we withdraw the offer and tell you.'),
   ],
   sample: { offer_expires_at: 'Wed, Oct 21 at 2:15 pm', time_left: '6 hours' },
 };

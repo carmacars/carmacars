@@ -5,6 +5,7 @@ import { when } from '@/features/agreement/model';
 import { AgreementActions, AgreementEditAll, MissingFields, type AgreementCurrent, type Missing } from './AgreementActions';
 import { AgreementWording, type WordingChange } from './AgreementWording';
 import { CLAUSES, standardText } from '@/features/agreement/wording';
+import { BlindSpotBoxes } from './BlindSpotBoxes';
 
 // The booking page's Agreement card (migration 0154), for an Admin and the assistants: the current version of the two
 // rental agreements and every earlier one (what changed, both PDFs, who signed or countersigned), a version waiting for
@@ -72,6 +73,7 @@ export async function AgreementPanel({ b, base, userId, aal, docBase, finance, o
             clauses={CLAUSES.map((c) => ({ code: c.code, part: c.part, title: c.title, removable: c.removable, editable: c.editable, standard: standardText(c.code) }))} />
           : s.wording && Object.keys(s.wording.wording).length > 0 && <p className="small" data-testid="agreement-wording-note">{Object.keys(s.wording.wording).length} clause{Object.keys(s.wording.wording).length === 1 ? ' is' : 's are'} worded for this booking by an Admin.</p>}
         {s.current && <AgreementEditAll booking={s.booking_id} current={s.current} refresh={refresh} isAdmin={s.is_admin} />}
+        {openDocs && <BlindSpotBoxes bookingId={s.booking_id} userId={userId} refresh={refresh} />}
         <AgreementActions booking={s.booking_id} refresh={refresh} waiting={!!s.waiting} finance={finance || s.is_admin} disputes={s.disputes} docBase={openDocs ? docBase : ''} />
       </div>
     </Card>

@@ -112,7 +112,7 @@ export default async function Requirements() {
             </div>
             <table className="spec"><tbody>
               <tr><th scope="row">When</th><td>{F('About {{depLead}} before pickup. Never at request or booking.')}</td></tr>
-              <tr><th scope="row">How</th><td>{F('A card hold for rentals of {{holdDays}} days or less. Charged, then refunded, for longer rentals.')}</td></tr>
+              <tr><th scope="row">How</th><td>{F('A hold on your card, never a charge. On a longer rental the hold is renewed on your card before it lapses.')}</td></tr>
               <tr><th scope="row">Back to you</th><td>{F('The balance within {{releaseDays}} after you return the car')}</td></tr>
               <tr><th scope="row">Held back</th><td>{F('Only the amount expected for an open toll, ticket or claim, for up to {{holdbackDays}}')}</td></tr>
               <tr><th scope="row">Worth knowing</th><td>The deposit secures what you owe. It is not a cap on it.</td></tr>

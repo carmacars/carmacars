@@ -7,6 +7,7 @@ import { handoverPanelView, SIGNING_STATUSES } from './panel';
 import { ReturnClaimCard } from './ReturnClaimCard';
 import { SendSigningLink } from './SendSigningLink';
 import type { SigningState } from './types';
+import { HandoverOneScreen } from './HandoverOneScreen';
 
 // The booking page's check-out, check-in and signing card (migration 0130), the same for an Admin and an assistant
 // (Fleet, Sales, Customer service): "Check out (pickup)" on a confirmed booking, "Check in (return)" while it is on rent,
@@ -49,8 +50,8 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
       <div className="stack">
         {late && <p className="ad-late" data-testid="booking-late"><b>{late}</b>{b.checked_in_at ? '' : '. Check the car in as soon as it is back: the late return charges follow the actual time.'}</p>}
         {(v.checkout || v.checkin || v.report || v.signNow) && <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
-          {v.checkout && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'pickup' }} label="Check out (pickup)" variant="primary" go={`${base}/handover/{job}`} testId="checkout-start" />}
-          {v.checkin && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'return' }} label="Check in (return)" variant="primary" go={`${base}/handover/{job}`} testId="checkin-start" />}
+          {v.checkout && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'pickup' }} label="Full checklist (pickup)" go={`${base}/handover/{job}`} testId="checkout-start" />}
+          {v.checkin && <Act ops action="handover_open" payload={{ booking: b.id, kind: 'return' }} label="Full checklist (return)" go={`${base}/handover/{job}`} testId="checkin-start" />}
           {v.addDetails.map((k) => <Act key={k} ops action="handover_open" payload={{ booking: b.id, kind: k }} label={`Add the ${k === 'pickup' ? 'check-out' : 'check-in'} photos and readings`} variant="primary" go={`${base}/handover/{job}`} testId={`add-details-${k}`} />)}
           {v.recordPickup && <Act ops action="handover_record_now" payload={{ booking: b.id, kind: 'pickup' }} label="Record the pickup now (details later)" testId="record-pickup-now" refresh={[base]}
             done="Pickup recorded. Fleet has a task to add the photos and readings." fields={recordFields('pickup')} />}
@@ -59,7 +60,14 @@ export async function HandoverPanel({ b, base, userId, aal, canHandover, canSign
           {v.report && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}/report`} data-testid="photo-report-link">Photo report</Link>}
           {v.signNow && <Link prefetch={false} className={`btn ${v.checkout || v.checkin ? 'btn--ghost' : 'btn--primary'} btn--sm`} href={`${base}/sign-now`} data-testid="sign-now-link">Sign now on this device</Link>}
         </div>}
-        {(v.checkout || v.checkin) && <p className="small muted">{b.status === 'confirmed'
+        {/* 0545: one screen: the time, km, fuel, many photos at once with the suggested angles, a note; the renter's own
+            photos join the same report. The full checklist stays one tap away. */}
+        {(v.checkout || v.checkin) && <section aria-label={v.checkout ? 'Check out on one screen' : 'Check in on one screen'} data-testid="one-screen">
+          <h3 className="d4">{v.checkout ? 'Check out (pickup)' : 'Check in (return)'}</h3>
+          <HandoverOneScreen booking={b.id} number={b.booking_number} kind={v.checkout ? 'pickup' : 'return'} who="staff" refresh={[base]} isAdmin={base.startsWith('/admin')} /></section>}
+        {v.addDetails.map((k) => <details key={`os-${k}`} data-testid={`one-screen-add-${k}`}><summary className="small link">Add photos and readings to the {k === 'pickup' ? 'check-out' : 'check-in'} on one screen</summary>
+          <HandoverOneScreen booking={b.id} number={b.booking_number} kind={k} who="staff" refresh={[base]} /></details>)}
+        {(v.checkout || v.checkin) && <p className="small muted">The full checklist, when you want it: {b.status === 'confirmed'
           ? 'The checklist: ready check, licence and card, odometer and fuel, the photo set (every side, wheels, interior, odometer and fuel gauge, plate), damage close-ups, then the renter and you sign. Photos upload in the background and wait on the phone without a connection.'
           : 'The checklist: odometer and fuel, keys, cleanliness, the photo set, comparison with the check-out, belongings, then the renter and you sign. The late, kilometre and fuel charges are written at once.'}</p>}
         {v.addDetails.length > 0 && <p className="small" data-testid="details-pending">{v.addDetails.map((k) => (k === 'pickup' ? 'The check-out' : 'The check-in')).join(' and ')} was recorded with the details later: add the photos, the readings and your signature with the checklist.</p>}

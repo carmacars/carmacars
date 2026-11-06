@@ -7,10 +7,10 @@ const base = '/admin/bookings/CC-1';
 const now = new Date('2026-10-30T14:00:00Z'); // 10:00 Toronto
 const x = (o: Partial<NextStepInput>): NextStepInput => ({ status: 'requested', base, now, pickupAt: '2026-11-05T14:00:00Z', returnAt: '2026-11-08T14:00:00Z', ...o });
 
-test('requested: send the offer, a button to the review tab; it says it is not a booking yet', () => {
+test('requested: send the offer, a button to the review tab; it says it is booked once the renter approves (0540)', () => {
   const s = nextStep(x({}));
   assert.equal(s.step, 'send_offer');
-  assert.match(s.text, /not a booking until/);
+  assert.match(s.text, /booked once the renter approves/);
   assert.deepEqual(s.action, { label: 'Send the offer', href: `${base}?tab=review`, testId: 'next-step-offer' });
   assert.equal(nextStep(x({ can: { offer: false } })).action, undefined);
 });
@@ -26,7 +26,7 @@ test('offered: waiting for the renter, until when; no button', () => {
 test('pending_payment: the amount open, record or send a pay link (Money tab)', () => {
   const s = nextStep(x({ status: 'pending_payment', dueCents: 123456, paidCents: 23456 }));
   assert.equal(s.step, 'wait_payment');
-  assert.match(s.text, /Waiting for payment: \$1,000\.00 open\. Record cash or e-Transfer, or send a pay link\./);
+  assert.match(s.text, /Booked: the renter approved the offer\. Payment due: \$1,000\.00 open\. Record cash or e-Transfer, or send a pay link\./);
   assert.equal(s.action?.href, `${base}?tab=money`);
   assert.doesNotMatch(nextStep(x({ status: 'pending_payment', dueCents: 100, paidCents: 100 })).text, /open/);
 });

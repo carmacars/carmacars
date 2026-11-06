@@ -23,6 +23,9 @@ export interface BlindSpotExtra {
   insurer: { name: string | null; claim_number: string | null; adjuster_name: string | null; adjuster_phone: string | null; authorized_days: number | null; authorized_daily_rate_cents: number | null } | null;
   template: { id: string; version: string; file_key: string; sha256: string } | null;
   rep: { name: string; full_name: string | null; signature_key: string | null; signature_sha256: string | null };
+  /** 0544: the booking's readings, its late fee per hour, and what staff typed over the form */
+  readings?: { odometer_out_km: number | null; fuel_out_pct: number | null; odometer_in_km: number | null; fuel_in_pct: number | null } | null;
+  late_fee_cents?: number | null; overrides?: Record<string, string> | null;
 }
 /** w (0198): the booking's own wording of CarmaCars' clauses (never Blind Spot's form) */
 export interface Bundle { f: AgreementFacts; x: AgreementExtra; bs: BlindSpotExtra; w?: Wording | null }

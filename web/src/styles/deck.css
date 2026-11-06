@@ -82,6 +82,10 @@
 .dk-chip { display: inline-block; font: 600 var(--fs-2xs)/1 var(--font-text); letter-spacing: 0.08em; text-transform: uppercase; padding: 0.4em 0.6em; border-radius: var(--r-1); background: var(--black); color: var(--white); }
 .dk-slide--dark .dk-chip { background: var(--red-600); }
 .dk-wordmark { font: 800 clamp(3rem, 1rem + 9vw, 8rem)/0.9 var(--font-display); letter-spacing: -0.055em; }
+.dk-wordmark .dk-logo { height: 0.9em; width: auto; }
+.dk-foot__brand .dk-logo { height: 1.1em; width: auto; vertical-align: middle; }
+.dk-logo--dark, .dk-logo--red, .dk-slide--dark .dk-logo--light, .dk-slide--red .dk-logo--light, .dk-slide--red .dk-logo--dark { display: none; }
+.dk-slide--dark .dk-logo--dark, .dk-slide--red .dk-logo--red { display: inline-block; }
 .dk-wordmark b { color: var(--red-600); }
 
 /* a feature: words and a screen */

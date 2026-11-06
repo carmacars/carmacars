@@ -85,7 +85,7 @@ Status: approved by the lawyer (Release 21). Program settings, "Flat-rate agreem
 
 ## 9. Upkeep, tolls and tickets
 
-9.1 The Owner pays for maintenance and routine wear, including tires, brakes and servicing, and keeps each Vehicle safe and serviced to the manufacturer's schedule.
+9.1 The Owner pays for maintenance and routine wear, including tires, brakes and servicing, and keeps each Vehicle safe and serviced to the manufacturer's schedule. The Company does not cover, and the fleet policy and this Agreement do not pay for, mechanical failure of a Vehicle, including an engine failure or blowup, transmission problems, or major suspension problems; their repair and the downtime stay with the Owner, except to the extent the Company's negligence, wilful misconduct or breach caused them.
 
 9.2 Tolls and tickets are paid by the Renter who caused them, by the Owner during an Owner Booking and outside the Program, and by the Company while its staff have the Vehicle.
 

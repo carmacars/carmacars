@@ -4,7 +4,7 @@
 // is drawn in its box in Helvetica, shrunk to fit. Page 2 (the terms) is not touched.
 // The company representative's signature: the image uploaded in Admin > Settings > Forms when there is one, otherwise
 // the representative's name written in a script hand (Blind Spot's instruction, October 23, 2026).
-// The signed copy adds the renter's signature in boxes 16, 17 and 20, the day they signed beside box 20, and a signature
+// The signed copy adds the renter's signature in boxes 16, 17 and 20 and on the x lines below box 2 and in box 40 (0544), the day they signed beside box 20, and a signature
 // record page; a version of a signed agreement (as picked up, as returned, corrected) carries the same signature and day.
 // Works in Node and in the Worker (pdf-lib only). Relative imports with their extension: the unit tests run it directly.
 import { PDFArray, PDFDict, PDFDocument, PDFHexString, PDFName, PDFString, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
@@ -150,7 +150,10 @@ export async function fillBlindSpot(template: Uint8Array, l: Layout, o: FillOpti
     const w = SIG.drivers.w / drivers.length;
     for (const [i, d] of drivers.entries()) await drawSignature(doc, page, { ...SIG.drivers, x: SIG.drivers.x + i * w, w }, d);
   }
-  if (o.initials) for (const b of [SIG.initialsCleanup, SIG.initialsDue]) await drawSignature(doc, page, b, { png: o.initials });
+  // 0544: the renter's signature on the x line below box 2 (the clean-up charge line) and on the x line of box 40 (the
+  // due-back time); the initials only when there is no signature to draw
+  if (o.renter && (o.renter.png || o.renter.name)) for (const b of [SIG.initialsCleanup, SIG.initialsDue]) await drawSignature(doc, page, b, o.renter);
+  else if (o.initials) for (const b of [SIG.initialsCleanup, SIG.initialsDue]) await drawSignature(doc, page, b, { png: o.initials });
   if (o.note) for (const b of [SIG.ldw, SIG.tickets, SIG.terms]) {
     // the short form where the box is short (17): the note never runs past its box
     let size = 5.5; let text = winAnsi(b === SIG.tickets ? 'Signed on the original' : o.note);

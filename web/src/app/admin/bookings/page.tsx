@@ -85,7 +85,7 @@ export default async function Bookings({ searchParams }: { searchParams: Promise
         </MoreFilters>
       </section>
       <UnfinishedRentals rows={drafts} base="/admin" />
-      {waitingRows.length > 0 && <p className="small" data-testid="bookings-waiting-payment">{waitingRows.length === 1 ? '1 booking is' : `${waitingRows.length} bookings are`} waiting for payment: the renter accepted the offer and has not paid yet. They are listed first.</p>}
+      {waitingRows.length > 0 && <p className="small" data-testid="bookings-waiting-payment">{waitingRows.length === 1 ? '1 booking is' : `${waitingRows.length} bookings are`} booked with the payment due: the renter accepted the offer and has not paid yet. They are listed first.</p>}
       <BookingRows rows={listed.map((r) => ({ ...r, late: lateLabel(r) }))} cards={cards} base="/admin" at={at} empty={q ? `Nothing matches "${q}".` : 'No bookings with these filters.'} />
     </>
   );

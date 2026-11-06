@@ -1,4 +1,4 @@
--- 99: the listing page's plain steps and its photos (migration 0521): the four steps "Photos (n of 14) > Cover plates >
+-- 99: the listing page's plain steps and its photos (migration 0521; 0566: "Photos (n of 10)"): the four steps "Photos (n of 14) > Cover plates >
 -- Review > Live on the site" with what each needs, a photo filed under the wrong shot taken off (kept, audited, never on
 -- a live listing), and two-seaters needing no rear seats photo. Fixtures start with "lsp"; every address is example.test.
 select test.suite('99 listing steps and photos');
@@ -18,20 +18,20 @@ create or replace function test.lsp_steps(p_intake uuid) returns jsonb language 
   select app.door(test.id('lsp_admin'), 'aal2', 'ops_read', 'listing_steps', jsonb_build_object('intake', p_intake)) $$;
 
 -- ================================================================ the steps
-select test.eq('a new listing: step 1, "Photos (0 of 14)", what to do',
+select test.eq('a new listing: step 1, "Photos (0 of 10)" (0566: 10 photos in any order), what to do',
   (select format('%s | %s | %s', s ->> 'current', s #>> '{steps,0,title}', s #>> '{steps,0,need}') from (select test.lsp_steps(car) s from s99ls) x),
-  '1 | Photos (0 of 14) | Take the photos on the shot list, or submit to start with sample photos.');
+  '1 | Photos (0 of 10) | Add photos (up to 30 at once, in any order), or submit to start with sample photos.');
 select test.eq('four steps, in order', (select string_agg(x ->> 'title', ' > ' order by (x ->> 'n')::int) from s99ls, jsonb_array_elements(test.lsp_steps(car) -> 'steps') x),
-  'Photos (0 of 14) > Cover plates > Review > Live on the site');
+  'Photos (0 of 10) > Cover plates > Review > Live on the site');
 select test.lsp_up(car, 'front_left') from s99ls;
-select test.ok('a photo in: 1 of 14, the missing ones named', (select s #>> '{steps,0,title}' = 'Photos (1 of 14)' and s #>> '{steps,0,need}' like '%Missing: Front, Left side%'
+select test.ok('a photo in: 1 of 10, what is missing said', (select s #>> '{steps,0,title}' = 'Photos (1 of 10)' and s #>> '{steps,0,need}' like '%Missing: At least 10 photos (1 so far)%'
   from (select test.lsp_steps(car) s from s99ls) x));
 select test.throws('finance may not read a listing''s steps', format($$select app.door(%L, 'aal2', 'ops_read', 'listing_steps', '{"intake": "%s"}')$$, test.id('lsp_fin'), (select car from s99ls)), 'Not permitted');
 
 -- ================================================================ a photo filed under the wrong shot
 select test.lsp_up(car, 'front') as wrong from s99ls \gset
-select test.eq('taken off: the shot is missing again',
-  (select app.door(test.id('lsp_admin'), 'aal2', 'ops_do', 'listing_photo_remove', jsonb_build_object('photo', :'wrong')) -> 'missing' ? 'Front'), true);
+select test.eq('taken off: it no longer counts toward the 10 (0566)',
+  (select app.door(test.id('lsp_admin'), 'aal2', 'ops_do', 'listing_photo_remove', jsonb_build_object('photo', :'wrong')) -> 'missing' ? 'At least 10 photos (1 so far)'), true);
 select test.ok('the file is kept, marked replaced, and the removal is audited',
   (select replaced_at is not null from vehicle_photos where id = :'wrong')
   and exists (select 1 from audit_log where action = 'listing_photo_remove' and entity_id = :'wrong' and actor_user_id = test.id('lsp_admin')));
@@ -50,8 +50,8 @@ update vehicle_listings set status = 'draft' where vehicle_id = test.id('vehicle
 -- ================================================================ two-seaters
 insert into vehicle_listings (vehicle_id, status, seats) values (test.id('vehicle:lsp_two'), 'draft', 2)
 on conflict (vehicle_id) do update set seats = 2;
-select test.ok('a two-seater: rear seats not required (13 required)', (select s #>> '{steps,0,title}' = 'Photos (0 of 13)' from (select test.lsp_steps(two) s from s99ls) x));
+select test.ok('a two-seater: the same 10 photos (0566: no named shot required)', (select s #>> '{steps,0,title}' = 'Photos (0 of 10)' from (select test.lsp_steps(two) s from s99ls) x));
 select test.ok('not in the missing shots', not ('Rear seats' = any (app.listing_missing_shots(test.id('vehicle:lsp_two')))));
 select test.ok('the capture screen marks it optional', (select not (s ->> 'required')::boolean from s99ls, jsonb_array_elements(app.listing_capture(test.id('lsp_admin'), two) -> 'shots') s where s ->> 'code' = 'rear_seats'));
 select test.ok('no photo problem for it', not exists (select 1 from unnest(app.listing_photo_problems(test.id('vehicle:lsp_two'))) x where x like 'Rear seats%'));
-select test.ok('a five-seater still needs it', 'Rear seats' = any (app.listing_missing_shots(test.id('vehicle:lsp_car'))));
+select test.ok('0566: no named shot is ever missing, for any car', not ('Rear seats' = any (app.listing_missing_shots(test.id('vehicle:lsp_car')))));
