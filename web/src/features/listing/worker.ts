@@ -8,7 +8,8 @@ import { DEFAULT_RULES, DRAFT_SCHEMA, PROMPT_VERSION, draftProblems, normalizeDr
 import { plainDraft } from '../seo/copy.ts';
 import { LETTERING, letteringPath, letteringPng } from './lettering.ts';
 import { WINDOW_SHOTS, readAlpha, windowPlan, type WindowPlan } from './window-check.ts';
-import { frameSubject, placeSubject } from './subject-frame.ts';
+import { decodePng, frameSubject, placeSubject } from './subject-frame.ts';
+import { enhanceValues, statsOf, type Enhance } from './enhance.ts';
 import { cropAway, type MarkBox } from './photo-sort.ts';
 
 // 0073: the sample cars' black studio with the model's name behind the car (was brand_background_v1, a light grey room).
@@ -33,7 +34,9 @@ export interface JobContext {
   copy_rules?: { headline_chars: [number, number]; description_words: [number, number]; features: [number, number]; faq: [number, number]; banned_phrases: string[] } | null;
   photo?: { id: string; shot_type: string; angle: string; original_path: string; processed_path: string | null; rebackground: boolean; is_public: boolean; file_base: string; model?: string | null;
     /** 0567: the photo is flagged "watermark" (the sorter saw a mark, or it is queued for the check) */
-    watermark?: boolean } | null;
+    watermark?: boolean;
+    /** 0568: the light touch-up applies (Admin "Auto-enhance listing photos" on, the photo's "Use original colours" off) */
+    enhance?: boolean } | null;
 }
 export interface Budget { ai_neurons_today: number; ai_neurons_limit: number; transformations_month: number; transformations_free: number;
   /** The usage guard (0080): the month's included image transformations are used and paid usage is not allowed. */
@@ -249,13 +252,42 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     const r = await cleanMarks(d, j, done, size);
     n += r.n; marks = r.marks; marksGone = r.gone; if (r.out) done = r.out;
   }
+  // 0568: the light touch-up, last (the photo as made so far is kept when any step of it fails)
+  let enhance: Enhance | null = null;
+  if (p.enhance) {
+    const r = await touchUp(d, j, done, size, framed?.stats ?? null);
+    n += r.n; if (r.out) { done = r.out; enhance = r.values; }
+  }
   const path = `vehicles/${j.vehicle_id}/${p.file_base}.${ext(done.contentType)}`;
   await d.files.putPublic(path, done.bytes, done.contentType);
   return { ok: true, provider: d.photos.name, ...imageCost(n, b, used),
     output: { processed_path: path, width: size.width, height: size.height, preset_version: p.rebackground ? PRESET : windowsPlan ? `windows_${windowsPlan.action}_v1` : 'normalize_v1',
       flags: windowsPlan?.action === 'blur' ? ['windows_blurred'] : [], ...(windowsPlan ? { windows: windowsPlan } : {}),
       ...(p.watermark ? { watermark_removed: marksGone, ...(marks ? { marks } : {}) } : {}),
-      ...(framed ? { framing: { dropped: framed.dropped, share: framed.share } } : {}) } };
+      ...(framed ? { framing: { dropped: framed.dropped, share: framed.share } } : {}),
+      ...(p.enhance !== undefined ? { enhance } : {}) } };
+}
+
+/** 0568: measure the photo (an outside photo: the car's own pixels from the framed cut-out, free; any other: a small
+ *  PNG preview, one transformation), work out the touch-up (enhance.ts) and apply it (one transformation). */
+async function touchUp(d: WorkerDeps, j: JobContext, out: Extract<PhotoOut, { ok: true }>, size: { width: number; height: number }, carStats: ReturnType<typeof statsOf> | null):
+  Promise<{ out: Extract<PhotoOut, { ok: true }> | null; values: Enhance | null; n: number }> {
+  const p = j.photo!;
+  if (!d.photos.enhance) return { out: null, values: null, n: 0 };
+  const workPath = `vehicles/${j.vehicle_id}/work/${p.id}-base.${ext(out.contentType)}`;
+  await d.files.putPrivate(workPath, out.bytes, out.contentType);
+  const src = await d.files.privateUrl(workPath);
+  let n = 0;
+  let stats = carStats;
+  if (!stats && d.photos.preview) {
+    const pv = await d.photos.preview({ sourceUrl: src, width: 160 });
+    if (pv.ok) { n += pv.transformations; const px = await decodePng(pv.bytes).catch(() => null); if (px) stats = statsOf(px, 1); }
+  }
+  const values = stats ? enhanceValues(stats, { exterior: !!carStats }) : null;
+  if (!values) return { out: null, values: null, n };
+  const e = await d.photos.enhance({ sourceUrl: src, ...size, values });
+  if (!e.ok) return { out: null, values: null, n };
+  return { out: e, values, n: n + e.transformations };
 }
 
 /** 0567: the overlaid marks of an edited inside or detail photo: none found, gone; found at the edges, cut off (trim) and

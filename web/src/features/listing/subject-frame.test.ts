@@ -64,3 +64,15 @@ test('a PNG that is not RGBA, or a clear cut-out, is not framed (the worker fram
   assert.equal(await frameSubject(new Uint8Array([1, 2, 3])), null);
   assert.equal(await frameSubject(await encodePng({ width: 40, height: 30, data: new Uint8ClampedArray(40 * 30 * 4) })), null);
 });
+
+test('an RGB or palette PNG (a preview for the touch-up) is read too', async () => {
+  const zlib = await import('node:zlib');
+  const crc = (b: Buffer) => { let c = ~0; for (const x of b) { c ^= x; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; } return (~c) >>> 0; };
+  const chunk = (t: string, body: Buffer) => { const len = Buffer.alloc(4); len.writeUInt32BE(body.length); const tb = Buffer.concat([Buffer.from(t), body]); const c = Buffer.alloc(4); c.writeUInt32BE(crc(tb)); return Buffer.concat([len, tb, c]); };
+  const png = (colour: number, raw: number[], extra: Buffer[] = []) => { const ih = Buffer.alloc(13); ih.writeUInt32BE(2, 0); ih.writeUInt32BE(1, 4); ih[8] = 8; ih[9] = colour;
+    return new Uint8Array(Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ih), ...extra, chunk('IDAT', zlib.deflateSync(Buffer.from(raw))), chunk('IEND', Buffer.alloc(0))])); };
+  const rgb = (await decodePng(png(2, [0, 10, 20, 30, 40, 50, 60])))!;
+  assert.deepEqual([...rgb.data], [10, 20, 30, 255, 40, 50, 60, 255]);
+  const pal = (await decodePng(png(3, [0, 1, 0], [chunk('PLTE', Buffer.from([1, 2, 3, 200, 150, 100])), chunk('tRNS', Buffer.from([0]))])))!;
+  assert.deepEqual([...pal.data], [200, 150, 100, 255, 1, 2, 3, 0]);
+});

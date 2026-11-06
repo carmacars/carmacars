@@ -173,6 +173,34 @@ test('photo: a readable cut-out is framed to the car and placed big on the floor
   assert.equal(framed[0], 0x89, 'the framed cut-out is stored as the private cut-out');
 });
 
+test('photo: the touch-up (0568) is measured on the car itself, applied last and its values kept; off, nothing is applied', async () => {
+  const { encodePng } = await import('./subject-frame.ts');
+  const W = 1000, H = 650, data = new Uint8ClampedArray(W * H * 4);
+  for (let y = 250; y < 420; y++) for (let x = 320; x < 680; x++) { const i = (y * W + x) * 4; data[i] = 40 + (x % 120); data[i + 1] = 40; data[i + 2] = 50; data[i + 3] = 255; }
+  const png = await encodePng({ width: W, height: H, data });
+  const run = async (enhance: boolean) => {
+    const f = files();
+    const applied: unknown[] = [];
+    const photos = { ...fakePhotos(getter(f)), name: 'cloudflare-images' as const,
+      cutout: async () => ({ ok: true as const, bytes: png, contentType: 'image/png', transformations: 1 }),
+      composite: async () => ({ ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }),
+      enhance: async (r: { values: unknown }) => { applied.push(r.values); return { ok: true as const, bytes: new Uint8Array([0xff, 0xd8, 0xff, 9]), contentType: 'image/jpeg', transformations: 1 }; } };
+    const r = await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, enhance } }), budget);
+    return { r, applied, f };
+  };
+  const on = await run(true);
+  const o = on.r.output as { enhance: Record<string, number> | null };
+  assert.equal(on.applied.length, 1);
+  assert.deepEqual(o.enhance, on.applied[0]);
+  assert.ok((o.enhance!.saturation ?? 9) <= 1.08 && (o.enhance!.contrast ?? 9) <= 1.08);
+  assert.equal(on.r.units, 3, 'cut-out, studio, touch-up: no preview for an outside photo');
+  assert.deepEqual([...on.f.pub.get('vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg')!], [0xff, 0xd8, 0xff, 9], 'the touched-up file is the public one');
+  assert.ok(on.f.priv.has('vehicles/v1/work/p1-base.jpg'), 'the photo before the touch-up is kept');
+  const off = await run(false);
+  assert.equal(off.applied.length, 0);
+  assert.equal((off.r.output as { enhance: unknown }).enhance, null);
+});
+
 test('photo: a flagged inside photo has its edge mark cut off; a mark in the middle or no model keeps it flagged', async () => {
   const inside = (over: Partial<NonNullable<JobContext['photo']>> = {}) => job('process_photo', { photo: { ...job('process_photo').photo!, rebackground: false, shot_type: 'other', angle: 'other', watermark: true, ...over } });
   const trims: unknown[] = [];

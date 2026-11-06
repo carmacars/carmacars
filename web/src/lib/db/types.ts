@@ -15278,6 +15278,7 @@ export type Database = {
           ai_vision_vin_daily_visitors: number;
           api_access_enabled: boolean;
           api_calls_per_minute: number;
+          listing_photo_enhance: boolean;
         };
         Insert: {
           id?: string;
@@ -15898,6 +15899,7 @@ export type Database = {
           ai_vision_vin_daily_visitors?: number;
           api_access_enabled?: boolean;
           api_calls_per_minute?: number;
+          listing_photo_enhance?: boolean;
         };
         Update: {
           id?: string;
@@ -16518,6 +16520,7 @@ export type Database = {
           ai_vision_vin_daily_visitors?: number;
           api_access_enabled?: boolean;
           api_calls_per_minute?: number;
+          listing_photo_enhance?: boolean;
         };
         Relationships: [];
       };
@@ -23500,6 +23503,8 @@ export type Database = {
           plate_checked_at: string | null;
           uncovered_path: string | null;
           plate_suggestion: Json | null;
+          enhance: Json | null;
+          enhance_off: boolean;
         };
         Insert: {
           id?: string;
@@ -23537,6 +23542,8 @@ export type Database = {
           plate_checked_at?: string | null;
           uncovered_path?: string | null;
           plate_suggestion?: Json | null;
+          enhance?: Json | null;
+          enhance_off?: boolean;
         };
         Update: {
           id?: string;
@@ -23574,6 +23581,8 @@ export type Database = {
           plate_checked_at?: string | null;
           uncovered_path?: string | null;
           plate_suggestion?: Json | null;
+          enhance?: Json | null;
+          enhance_off?: boolean;
         };
         Relationships: [];
       };

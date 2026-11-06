@@ -14,7 +14,9 @@ import { CarCopyPanel, type CarCopyData } from '@/features/seo/CarCopyPanel';
 // (approve, reject, use the original, choose the cover), the problems the database still sees, then
 // approve and publish, or send it back with what to change.
 type Photo = { id: string; vehicle_id: string; shot_type: string; shot_label: string | null; processed_path: string | null; original_path: string | null; original_url?: string | null; status: string; is_cover: boolean; alt_text: string | null;
-  plate_status: 'unchecked' | 'covered' | 'not_visible'; plate_boxes: Array<{ x: number; y: number; w: number; h: number }> | null; variants: Array<{ width: number }> | null; plate_suggestion?: unknown };
+  plate_status: 'unchecked' | 'covered' | 'not_visible'; plate_boxes: Array<{ x: number; y: number; w: number; h: number }> | null; variants: Array<{ width: number }> | null; plate_suggestion?: unknown;
+  /** 0568: the touch-up values used (null: none) and the photo's "Use original colours" */
+  enhance?: Record<string, unknown> | null; enhance_off?: boolean };
 export type Plates = { required: boolean; unchecked: string[]; private_shots: string[]; detect?: boolean };
 const PLATE: Record<Photo['plate_status'], string> = { unchecked: 'Plate not checked', covered: 'Plate covered', not_visible: 'No plate visible' };
 export type L = { id: string; vehicle_id: string; state: string; reason: string | null; vehicle: { name: string; plate: string | null };
@@ -72,6 +74,11 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
               <select className="select" id={`ph-${p.id}`} value={ph[p.id] ?? ''} disabled={!reviewable} onChange={(e) => setPh({ ...ph, [p.id]: e.target.value })}>
                 <option value="">Keep as is</option><option value="approve">Approve</option><option value="use_original">Use the original</option><option value="reject">Reject</option></select>
               <label className="check"><input type="radio" name="cover" checked={cover === p.id} disabled={!reviewable} onChange={() => setCover(p.id)} /> <span>Cover</span></label>
+              {/* 0568: the light touch-up; switching it makes the photo again (approve it again, and check an outside photo's plate) */}
+              {p.processed_path && p.processed_path !== p.original_path && <label className="check" title={p.enhance ? 'Touched up: exposure, levels, a little contrast and colour, mild sharpening' : 'Not touched up'}>
+                <input type="checkbox" checked={!!p.enhance_off} disabled={pending} data-testid={`enhance-off-${p.id}`}
+                  onChange={(e) => { const off = e.target.checked; start(async () => { const r = await staffDo('photo_enhance_set', { photo: p.id, off }); if (r.ok) { setRes({ ok: true, text: 'The photo is being made again. Approve it again when it is ready.' }); router.refresh(); } else setRes({ ok: false, text: r.message }); }); }} />
+                <span>Use original colours{p.enhance && !p.enhance_off ? ' (touched up now)' : ''}</span></label>}
               {plates && plateCheck(p) && <span className="lr-plate" data-testid={`plate-${p.shot_type}`} data-plate={p.plate_status}>
                 <span className={`ad-b ${p.plate_status === 'unchecked' ? 'ad-b--amber' : 'ad-b--light'}`}>{PLATE[p.plate_status]}</span>
                 {p.plate_status === 'unchecked' && suggestedBoxes(p.plate_suggestion, normalizePlateBoxes).length > 0 && <span className="ad-b ad-b--light" data-testid={`plate-suggested-${p.shot_type}`}>Box suggested</span>}
