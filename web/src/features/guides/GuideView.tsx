@@ -20,7 +20,10 @@ export async function GuideView({ g, portal, pdfHref, admin = false }: { g: Guid
     <article className="gd" data-testid="guide" data-portal={portal} aria-labelledby="gd-title">
       <GuideSeen portal={portal} />
       <div className="gd-cover" aria-hidden="true">
-        <div className="gd-wm">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/brand/carma-logo-white.svg" width={857} height={152} alt="" /></div>
+        <div className="gd-wm">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/carma-logo-white.svg" width={857} height={152} alt="" />
+        </div>
         <div><p className="gd-kicker">User guide</p><h1>{g.title}</h1><div className="gd-rule" />{g.promise && <p>{g.promise}</p>}</div>
         <small>{s.site_url.replace(/^https?:\/\//, '')}{edition ? ` · Edition of ${edition}` : ''}</small>
       </div>

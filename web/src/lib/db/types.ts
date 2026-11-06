@@ -930,6 +930,168 @@ export type Database = {
         };
         Relationships: [];
       };
+      api_calls: {
+        Row: {
+          id: number;
+          key_id: string | null;
+          user_id: string | null;
+          tool: string;
+          target: string | null;
+          args: Json;
+          before: Json | null;
+          after: Json | null;
+          ok: boolean;
+          error: string | null;
+          client: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          key_id?: string | null;
+          user_id?: string | null;
+          tool: string;
+          target?: string | null;
+          args?: Json;
+          before?: Json | null;
+          after?: Json | null;
+          ok: boolean;
+          error?: string | null;
+          client?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: number;
+          key_id?: string | null;
+          user_id?: string | null;
+          tool?: string;
+          target?: string | null;
+          args?: Json;
+          before?: Json | null;
+          after?: Json | null;
+          ok?: boolean;
+          error?: string | null;
+          client?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      api_keys: {
+        Row: {
+          id: string;
+          user_id: string;
+          kind: string;
+          name: string;
+          prefix: string;
+          key_hash: string;
+          scopes: string[];
+          oauth_client_id: string | null;
+          refresh_hash: string | null;
+          expires_at: string | null;
+          refresh_expires_at: string | null;
+          created_by: string | null;
+          created_at: string;
+          last_used_at: string | null;
+          revoked_at: string | null;
+          revoked_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          kind?: string;
+          name: string;
+          prefix: string;
+          key_hash: string;
+          scopes: string[];
+          oauth_client_id?: string | null;
+          refresh_hash?: string | null;
+          expires_at?: string | null;
+          refresh_expires_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          last_used_at?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          kind?: string;
+          name?: string;
+          prefix?: string;
+          key_hash?: string;
+          scopes?: string[];
+          oauth_client_id?: string | null;
+          refresh_hash?: string | null;
+          expires_at?: string | null;
+          refresh_expires_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          last_used_at?: string | null;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+        };
+        Relationships: [];
+      };
+      api_oauth_clients: {
+        Row: {
+          id: string;
+          client_id: string;
+          client_name: string;
+          redirect_uris: string[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          client_name: string;
+          redirect_uris: string[];
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          client_name?: string;
+          redirect_uris?: string[];
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      api_oauth_codes: {
+        Row: {
+          code_hash: string;
+          client_id: string;
+          user_id: string;
+          redirect_uri: string;
+          code_challenge: string;
+          scopes: string[];
+          expires_at: string;
+          used_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          code_hash: string;
+          client_id: string;
+          user_id: string;
+          redirect_uri: string;
+          code_challenge: string;
+          scopes: string[];
+          expires_at: string;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          code_hash?: string;
+          client_id?: string;
+          user_id?: string;
+          redirect_uri?: string;
+          code_challenge?: string;
+          scopes?: string[];
+          expires_at?: string;
+          used_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       app_events: {
         Row: {
           id: number;
@@ -14793,6 +14955,12 @@ export type Database = {
           stuck_errors: number;
           notify_cf_daily_budget: number;
           notify_resend_daily_budget: number;
+          ai_vision_vin_enabled: boolean;
+          ai_vision_vin_daily_per_person: number;
+          ai_vision_vin_daily_per_visitor: number;
+          ai_vision_vin_daily_visitors: number;
+          api_access_enabled: boolean;
+          api_calls_per_minute: number;
         };
         Insert: {
           id?: string;
@@ -15402,6 +15570,12 @@ export type Database = {
           stuck_errors?: number;
           notify_cf_daily_budget?: number;
           notify_resend_daily_budget?: number;
+          ai_vision_vin_enabled?: boolean;
+          ai_vision_vin_daily_per_person?: number;
+          ai_vision_vin_daily_per_visitor?: number;
+          ai_vision_vin_daily_visitors?: number;
+          api_access_enabled?: boolean;
+          api_calls_per_minute?: number;
         };
         Update: {
           id?: string;
@@ -16011,6 +16185,12 @@ export type Database = {
           stuck_errors?: number;
           notify_cf_daily_budget?: number;
           notify_resend_daily_budget?: number;
+          ai_vision_vin_enabled?: boolean;
+          ai_vision_vin_daily_per_person?: number;
+          ai_vision_vin_daily_per_visitor?: number;
+          ai_vision_vin_daily_visitors?: number;
+          api_access_enabled?: boolean;
+          api_calls_per_minute?: number;
         };
         Relationships: [];
       };
@@ -24105,6 +24285,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      vin_reads: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          client_hash: string;
+          staff: boolean;
+          ok: boolean;
+          check_ok: boolean | null;
+          corrected: boolean | null;
+          model: string | null;
+          error: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          client_hash: string;
+          staff?: boolean;
+          ok: boolean;
+          check_ok?: boolean | null;
+          corrected?: boolean | null;
+          model?: string | null;
+          error?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          client_hash?: string;
+          staff?: boolean;
+          ok?: boolean;
+          check_ok?: boolean | null;
+          corrected?: boolean | null;
+          model?: string | null;
+          error?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       visitor_actions: {
         Row: {
           id: string;
@@ -25819,6 +26038,14 @@ export type Database = {
       server_alerts_ask: { Args: { p_user: string }; Returns: Json };
       server_alerts_asked: { Args: { p_user: string; p_answer: string }; Returns: Json };
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
+      server_api_access_view: { Args: { p_admin: string }; Returns: Json };
+      server_api_call: { Args: { p_hash: string; p_tool: string; p_args: Json; p_client?: string }; Returns: Json };
+      server_api_key_create: { Args: { p_admin: string; p_user: string; p_name: string; p_scopes: string[]; p_hash: string; p_prefix: string }; Returns: Json };
+      server_api_key_revoke: { Args: { p_admin: string; p_id: string }; Returns: Json };
+      server_api_oauth_approve: { Args: { p_user: string; p_client_id: string; p_redirect: string; p_challenge: string; p_scopes: string[]; p_code_hash: string }; Returns: Json };
+      server_api_oauth_client: { Args: { p_client_id: string }; Returns: Json };
+      server_api_oauth_register: { Args: { p_client_id: string; p_name: string; p_redirects: string[] }; Returns: Json };
+      server_api_oauth_token: { Args: { p: Json }; Returns: Json };
       server_application_owner_reply: { Args: { p_by: string; p: Json }; Returns: Json };
       server_apply_booking_change: { Args: { p_request: string; p_by: string; p_processor?: Json; p_amount_cents?: number }; Returns: Json };
       server_attach_companion_signed: { Args: { p_companion: string; p_storage_path: string; p_sha256: string }; Returns: string };
@@ -26070,6 +26297,7 @@ export type Database = {
       server_schedule_change_attach: { Args: { p_change: string; p_path: string; p_sha256: string }; Returns: string };
       server_schedule_change_sign: { Args: { p_by: string; p: Json }; Returns: Json };
       server_schedule_change_signed_facts: { Args: { p_change: string }; Returns: Json };
+      server_search_mine: { Args: { p_user: string; p_aal: string; p_q: string }; Returns: Json };
       server_seen_account_links: { Args: { p_user: string }; Returns: number };
       server_send_link_email: { Args: { p_email: string; p_name: string; p_url: string; p_expiry?: string; p_key?: string }; Returns: number };
       server_seo_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };
@@ -26116,6 +26344,8 @@ export type Database = {
       server_vin_decoded_apply: { Args: { p_vin: string }; Returns: number };
       server_vin_facts: { Args: { p_vin: string }; Returns: Json };
       server_vin_lookup: { Args: { p_vin: string }; Returns: Json };
+      server_vin_read_gate: { Args: { p_client: string; p_by?: string }; Returns: Json };
+      server_vin_read_record: { Args: { p_client: string; p: Json; p_by?: string }; Returns: Json };
       server_webhook_event_claim: { Args: { p_provider: string; p_event_id: string; p_event_type?: string; p_booking?: string; p_summary?: Json }; Returns: Json };
       server_webhook_event_finish: { Args: { p_provider: string; p_event_id: string; p_result?: Json; p_error?: string }; Returns: undefined };
       server_withdraw_account_deletion: { Args: { p_user: string }; Returns: Json };
@@ -26128,6 +26358,7 @@ export type Database = {
       site_content: { Args: { p_page?: string }; Returns: Json };
       site_facts: { Args: never; Returns: Json };
       site_file: { Args: { p_name: string }; Returns: string };
+      site_hero_photos: { Args: { p_limit?: number }; Returns: Json };
       site_settings_public: { Args: never; Returns: Json };
       sitemap_all: { Args: never; Returns: { path: string; kind: string; lastmod: string; images: Json }[] };
       sitemap_hubs: { Args: never; Returns: Json };

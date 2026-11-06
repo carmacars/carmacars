@@ -9,11 +9,16 @@
 - **Email.** The outbox sends transactional email first, expires old reminders and marketing, and paces the rest across
   the day. A provider limit holds the email without spending its tries; when the provider refuses, the Cloudflare email
   binding sends instead.
-- **self-heal (GitHub Actions, every 15 minutes).** Checks https://carmacars.ca/api/health and
-  https://api.carmacars.ca/auth/v1/settings, three tries each. A failure opens one GitHub issue labelled `outage` (one
-  comment per later run); recovery closes it. If the server API (not the site) failed in this run and the two before it
-  (about 45 minutes) and the server is the live backend, it starts the vps-ops `reboot` action once (never twice within
-  6 hours; the action refuses while a deploy or a backup runs). It never runs SQL.
+- **self-heal (GitHub Actions, every 15 minutes; learns since release 28).** Probes from outside: the site's health
+  (down, its database down, slow), the server API, email at its limit, both certificates, the server's own checks
+  (vps-health), the backup and the scheduled workflows. Each failure has a signature with a known safe action in
+  `.github/self-heal/runbook.json`: wait (crawler load, email limit, a deploy on its way: an issue only if it lasts),
+  vps-ops `reboot` (API down for about 45 minutes) or `apply-retention` (server disk, WAL or backup space), re-run a
+  failed scheduled workflow, start a backup. vps-ops actions only when the server is the live backend and never more than
+  one in 6 hours. A signature it does not know opens one issue (label `self-heal`; `outage` for the site and the API);
+  close it with a line `self-heal: <signature> => <action>` and that action is used the next time. An action that did not
+  help twice opens an issue instead of a third try. Every incident (signature, action, outcome) is in the open issue
+  labelled `self-heal-ledger`. It never runs SQL.
 - **vps-health (every 5 minutes)** emails the site-check address about the server and its API.
 
 ## What the owner does

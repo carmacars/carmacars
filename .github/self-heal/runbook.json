@@ -1,0 +1,14 @@
+{
+  "_about": "Known failure signatures and their known safe action (release 28, B6). Read by heal.mjs; the rules are in web/src/lib/self-heal/decide.ts. Actions: wait (clears by itself; an issue only if it lasts past escalate_after_h), reboot and apply_retention (vps-ops, at most one in 6 hours, only when the server is the live backend), rerun_failed (re-runs the failed jobs of a scheduled workflow once), dispatch_backup (starts the backup workflow), notify (an issue for a person). Never SQL. Sources: docs/runbook-outage.md and the incidents of October and November 2026.",
+  "api_down": { "about": "the server API (api.carmacars.ca) does not answer", "action": "reboot", "cooldown_h": 6, "after_runs": 3 },
+  "site_down": { "about": "carmacars.ca/api/health does not answer", "action": "wait", "cooldown_h": 1, "escalate_after_h": 0.5 },
+  "site_db_down": { "about": "the site answers but cannot reach its database", "action": "wait", "cooldown_h": 1, "escalate_after_h": 0.75 },
+  "site_slow": { "about": "the site answers slowly (crawler load; the edge copies and the bot shield absorb it)", "action": "wait", "cooldown_h": 1, "escalate_after_h": 2 },
+  "schema_behind": { "about": "the website is older than the database (a deploy is on its way)", "action": "wait", "cooldown_h": 1, "escalate_after_h": 3 },
+  "email_capped": { "about": "email is at the provider's daily limit (the outbox paces it and the Cloudflare binding sends instead)", "action": "wait", "cooldown_h": 6, "escalate_after_h": 24 },
+  "server_disk": { "about": "the server's disk, WAL spool or backup space is short (vps-health failing)", "action": "apply_retention", "cooldown_h": 12, "after_runs": 2 },
+  "backup_failed": { "about": "the last backup run failed or is over 30 hours old", "action": "dispatch_backup", "cooldown_h": 12 },
+  "cron_failed": { "about": "a scheduled workflow's last run failed", "action": "rerun_failed", "cooldown_h": 6 },
+  "cert_site": { "about": "carmacars.ca's certificate expires within 14 days (Cloudflare renews it)", "action": "wait", "cooldown_h": 24, "escalate_after_h": 72 },
+  "cert_api": { "about": "api.carmacars.ca's certificate expires within 14 days (the server's proxy renews it on restart)", "action": "reboot", "cooldown_h": 24, "after_runs": 2 }
+}

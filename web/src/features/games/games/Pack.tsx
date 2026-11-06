@@ -51,7 +51,10 @@ export default function Pack({ prize, reduced, onReveal }: GameProps) {
             <button type="button" className="ccg-pack__strip" aria-label="Tear the strip along the top of the pack" onPointerDown={onDown} onPointerMove={onMove}
               onPointerUp={onUp} onPointerCancel={onUp} onClick={onTap}><span className="ccg-pack__tear" aria-hidden="true" /></button>
             <div className="ccg-pack__face" aria-hidden="true">
-              <span className="ccg-pack__brand">{/* eslint-disable-next-line @next/next/no-img-element */}<img src="/brand/carma-logo-mono-white.svg" width={857} height={152} alt="" /></span>
+              <span className="ccg-pack__brand">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/carma-logo-mono-white.svg" width={857} height={152} alt="" />
+              </span>
               <span className="ccg-pack__sub">Discount pack</span>
               <span className="ccg-pack__count">5 cards inside</span>
             </div>
