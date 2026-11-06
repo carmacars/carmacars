@@ -17,6 +17,8 @@ test('preview: the game on demand, played through, nothing recorded', async ({ p
   const card = page.locator('[data-testid="game"][data-preview="true"]');
   await expect(card).toBeVisible({ timeout: 20_000 });
   await expect(card).toHaveAttribute('data-game', 'mystery');
+  // the cookie banner can come up after the first check (it then covers Play now on a phone): answered again
+  await acceptCookies(page);
   await expect(card).toContainText('Preview of the giveaway');
   await card.getByTestId('game-play').click();
   // the mystery box: pick one
