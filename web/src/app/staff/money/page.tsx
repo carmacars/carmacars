@@ -7,11 +7,12 @@ import { ledgerFilters, torontoToday, type Ledger } from '@/features/money/ledge
 import { ToHandle } from './ToHandle';
 import { Reconciliation } from './Reconciliation';
 import { Deposits, Payments, Refunds } from './Lists';
+import { PartnerInvoices } from '@/features/partner-invoices/PartnerInvoices';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Money', path: '/staff/money', noindex: true, description: 'Money to handle, payments by day, every payment, refunds, deposits and the processor payouts.' });
 
-const TABS = ['handle', 'day', 'payments', 'refunds', 'deposits', 'reconciliation'] as const;
+const TABS = ['handle', 'day', 'payments', 'refunds', 'deposits', 'reconciliation', 'partners'] as const;
 
 // Finance > Money (r27 consolidation: Admin's merged Payments for the finance role, the owner: "every Admin upgrade
 // reaches each staff role's portal"): To handle, By day (with the quick ranges), All payments, Refunds, Deposits and
@@ -28,6 +29,8 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
   if (tab === 'payments') return <Payments ctx={ctx} status={one('status')} />;
   if (tab === 'refunds') return <Refunds ctx={ctx} status={one('status')} />;
   if (tab === 'deposits') return <Deposits ctx={ctx} />;
+  // 0547: invoices to partners (body shops, tow trucks, storage) and the money they send
+  if (tab === 'partners') return <PartnerInvoices userId={ctx.user.id} aal={ctx.aal} base="/staff/money?tab=partners" sp={Object.fromEntries(['invoice', 'claim', 'partner'].map((k) => [k, one(k)]))} />;
   if (tab === 'reconciliation') return <Reconciliation ctx={ctx} sp={{ month: one('month') }} />;
   return <ToHandle ctx={ctx} />;
 }

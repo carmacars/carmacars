@@ -58,7 +58,8 @@ export const STAFF_HUBS: Hub[] = [
   // Finance's money (r27 consolidation, Admin's merged Payments): one page, a tab each
   { key: 'money', label: 'Money', tabs: [{ href: '/staff/money', label: 'To handle', fns: 'finance' }, { href: '/staff/money?tab=day', label: 'By day', fns: 'finance' },
     { href: '/staff/money?tab=payments', label: 'All payments', fns: 'finance' }, { href: '/staff/money?tab=refunds', label: 'Refunds', fns: 'finance' },
-    { href: '/staff/money?tab=deposits', label: 'Deposits', fns: 'finance' }, { href: '/staff/money?tab=reconciliation', label: 'Reconciliation', fns: 'finance' }] },
+    { href: '/staff/money?tab=deposits', label: 'Deposits', fns: 'finance' }, { href: '/staff/money?tab=reconciliation', label: 'Reconciliation', fns: 'finance' },
+    { href: '/staff/money?tab=partners', label: 'Partner invoices', fns: 'finance' }] },
   { key: 'owner-money', label: 'Owner money', tabs: [{ href: '/staff/owner-money?tab=invoices', label: 'Invoices', fns: 'finance' }, { href: '/staff/owner-money?tab=statements', label: 'Statements', fns: 'finance' }] },
   { key: 'renters', label: 'Renters', tabs: [{ href: '/staff/messages', label: 'Messages', fns: 'cs' }, { href: '/staff/review-requests', label: 'Review requests', fns: 'cs' }, { href: '/staff/game-leads', label: 'Leads', fns: 'cs sales' }] },
   { key: 'owners', label: 'Owners', tabs: [{ href: '/staff/leads', label: 'Owner and buyer leads', fns: 'cs sales' }, { href: '/staff/owner-pipeline', label: 'Owner pipeline', fns: 'cs' },

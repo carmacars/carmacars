@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 206,
+  "count": 207,
   "emails": [
     {
       "code": "account_password_reset",
@@ -20363,6 +20363,126 @@
       ],
       "template_html": "templates/applicant_unconfirmed.html",
       "template_text": "templates/applicant_unconfirmed.txt"
+    },
+    {
+      "code": "partner_invoice",
+      "audience": "partner",
+      "category": "transactional",
+      "trigger": "An invoice to a partner (a body shop, tow truck or storage yard) for its kickback on a claim, towing or storage total is sent from the admin portal (Money > Partner invoices, Send), sent again, or reminded once before and once after its due date (migration 0547). The link opens the invoice PDF.",
+      "timing": "When Finance or an Admin sends it; the reminders on their days",
+      "digest": false,
+      "from": "CarmaCars <billing@carmacars.ca>",
+      "reply_to": "billing@carmacars.ca",
+      "subject": "{{reminder_line}} Invoice {{invoice_number}} from CarmaCars: {{invoice_total}}",
+      "preheader": "Claim {{claim_number}}. Due {{due_on}}.",
+      "sample_subject": "Invoice PI-000012 from CarmaCars: $1,130.00",
+      "variables": [
+        {
+          "name": "claim_number",
+          "type": "string",
+          "sample": "CL-2026-00001"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "due_on",
+          "type": "string",
+          "sample": "Nov 20, 2026"
+        },
+        {
+          "name": "etransfer",
+          "type": "string",
+          "sample": "billing@carmacars.ca"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Sam",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "invoice_balance",
+          "type": "string",
+          "sample": "$1,130.00"
+        },
+        {
+          "name": "invoice_number",
+          "type": "string",
+          "sample": "PI-000012"
+        },
+        {
+          "name": "invoice_total",
+          "type": "string",
+          "sample": "$1,130.00"
+        },
+        {
+          "name": "is_reminder",
+          "type": "boolean",
+          "sample": false
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "partner_name",
+          "type": "string",
+          "sample": "Example Collision Centre"
+        },
+        {
+          "name": "payee",
+          "type": "string",
+          "sample": "18122211 Canada Inc."
+        },
+        {
+          "name": "pdf_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/api/partner-invoice/sample"
+        },
+        {
+          "name": "reminder_line",
+          "type": "string",
+          "sample": ""
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/partner_invoice.html",
+      "template_text": "templates/partner_invoice.txt"
     }
   ]
 }

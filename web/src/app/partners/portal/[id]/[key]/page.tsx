@@ -5,6 +5,7 @@ import { loadPortal, partnerLink } from '@/server/referral/portal';
 import { dollars, kindLabel } from '@/features/referral/model';
 import { CopyLink } from '@/features/portal/CopyLink';
 import { NowPanel } from '@/features/portal-nav/NowPanel';
+import { rpc } from '@/lib/db/repo';
 
 // A referral partner's own page (migration 0164): the link only they hold. Their referrals by the customer's first name and the
 // month, what is waiting and what was paid. No sign-in, no customer details beyond that, never indexed. The r27 portals
@@ -19,6 +20,8 @@ export default async function PartnerPortal({ params }: { params: Promise<{ id: 
   const d = await loadPortal(id, key);
   if (!d) notFound();
   const link = partnerLink(d.partner.referral_code);
+  // 0547: invoices CarmaCars sent this partner, read only, with how to pay
+  const invoices = ((await rpc('server_partner_invoices_of' as never, { p_partner: id } as never, { role: 'service_role', skipViewAs: true }).catch(() => null)) as unknown as Array<{ invoice_number: string; state: string; issued_on: string; due_on: string | null; claim_number: string | null; total_cents: number; balance_cents: number; view_token: string }> | null) ?? [];
   const t = d.totals;
   return (
     <div className="wrap rp" data-testid="partner-portal">
@@ -48,6 +51,14 @@ export default async function PartnerPortal({ params }: { params: Promise<{ id: 
         </div>
         <p className="small muted">Customers can scan your QR code, open your link, or give us your code. Ask us for a new flyer any time.</p>
       </section>
+      {invoices.length > 0 && <section className="stack" aria-labelledby="pp-inv" data-testid="portal-invoices">
+        <h2 className="d3" id="pp-inv">Invoices from CarmaCars</h2>
+        <ul className="rp__rows">{invoices.map((v) => (
+          <li key={v.invoice_number} className="rp__row"><b><a className="link" href={`/api/partner-invoice/${v.view_token}`} target="_blank" rel="noreferrer">{v.invoice_number}</a></b>
+            <span className="rp__amt">{dollars(v.balance_cents)} due</span>
+            <span className="rp__meta">{v.claim_number ? `Claim ${v.claim_number} · ` : ''}total {dollars(v.total_cents)}{v.due_on ? ` · due ${v.due_on}` : ''} · <span className={`rp-chip ${chip(v.state)}`}>{v.state.replace('_', ' ')}</span></span></li>))}</ul>
+        <p className="small muted">Pay by cheque or e-Transfer as each invoice says, quoting its number.</p>
+      </section>}
       <section className="stack" aria-labelledby="pp-rows">
         <h2 className="d3" id="pp-rows">Your referrals</h2>
         {d.rows.length === 0 ? <p className="pt-empty muted" style={{ borderRadius: 14, border: '1px dashed var(--grey-300)', padding: 'var(--s-4)' }}>No referrals yet. Your first one shows here as soon as a customer sends a request with your link or code.</p> : (

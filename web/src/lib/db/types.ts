@@ -12738,6 +12738,198 @@ export type Database = {
         };
         Relationships: [];
       };
+      partner_invoice_lines: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          sort: number;
+          description: string;
+          quantity: number;
+          unit_cents: number;
+          percent_bps: number | null;
+          base_cents: number | null;
+          hst: boolean;
+          amount_cents: number;
+          hst_cents: number;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          sort?: number;
+          description: string;
+          quantity?: number;
+          unit_cents?: number;
+          percent_bps?: number | null;
+          base_cents?: number | null;
+          hst?: boolean;
+          amount_cents?: number;
+          hst_cents?: number;
+        };
+        Update: {
+          id?: string;
+          invoice_id?: string;
+          sort?: number;
+          description?: string;
+          quantity?: number;
+          unit_cents?: number;
+          percent_bps?: number | null;
+          base_cents?: number | null;
+          hst?: boolean;
+          amount_cents?: number;
+          hst_cents?: number;
+        };
+        Relationships: [];
+      };
+      partner_invoice_payments: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          method: string;
+          amount_cents: number;
+          received_on: string;
+          reference: string | null;
+          photo_path: string | null;
+          note: string | null;
+          recorded_by: string | null;
+          recorded_at: string;
+          voided_at: string | null;
+          voided_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          method: string;
+          amount_cents: number;
+          received_on: string;
+          reference?: string | null;
+          photo_path?: string | null;
+          note?: string | null;
+          recorded_by?: string | null;
+          recorded_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          invoice_id?: string;
+          method?: string;
+          amount_cents?: number;
+          received_on?: string;
+          reference?: string | null;
+          photo_path?: string | null;
+          note?: string | null;
+          recorded_by?: string | null;
+          recorded_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+        };
+        Relationships: [];
+      };
+      partner_invoices: {
+        Row: {
+          id: string;
+          invoice_number: string | null;
+          partner_id: string;
+          status: string;
+          kind: string;
+          issued_on: string | null;
+          due_on: string | null;
+          claim_number: string | null;
+          insurer_name: string | null;
+          vehicle: string | null;
+          renter_name: string | null;
+          booking_id: string | null;
+          partner_total_cents: number | null;
+          kickback_bps: number | null;
+          notes: string | null;
+          subtotal_cents: number;
+          hst_cents: number;
+          total_cents: number;
+          paid_cents: number;
+          remind_before_days: number;
+          remind_after_days: number;
+          reminded_before_at: string | null;
+          reminded_after_at: string | null;
+          view_token: string;
+          sent_at: string | null;
+          sent_to: string | null;
+          sends: number;
+          voided_at: string | null;
+          void_reason: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_number?: string | null;
+          partner_id: string;
+          status?: string;
+          kind?: string;
+          issued_on?: string | null;
+          due_on?: string | null;
+          claim_number?: string | null;
+          insurer_name?: string | null;
+          vehicle?: string | null;
+          renter_name?: string | null;
+          booking_id?: string | null;
+          partner_total_cents?: number | null;
+          kickback_bps?: number | null;
+          notes?: string | null;
+          subtotal_cents?: number;
+          hst_cents?: number;
+          total_cents?: number;
+          paid_cents?: number;
+          remind_before_days?: number;
+          remind_after_days?: number;
+          reminded_before_at?: string | null;
+          reminded_after_at?: string | null;
+          view_token?: string;
+          sent_at?: string | null;
+          sent_to?: string | null;
+          sends?: number;
+          voided_at?: string | null;
+          void_reason?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          invoice_number?: string | null;
+          partner_id?: string;
+          status?: string;
+          kind?: string;
+          issued_on?: string | null;
+          due_on?: string | null;
+          claim_number?: string | null;
+          insurer_name?: string | null;
+          vehicle?: string | null;
+          renter_name?: string | null;
+          booking_id?: string | null;
+          partner_total_cents?: number | null;
+          kickback_bps?: number | null;
+          notes?: string | null;
+          subtotal_cents?: number;
+          hst_cents?: number;
+          total_cents?: number;
+          paid_cents?: number;
+          remind_before_days?: number;
+          remind_after_days?: number;
+          reminded_before_at?: string | null;
+          reminded_after_at?: string | null;
+          view_token?: string;
+          sent_at?: string | null;
+          sent_to?: string | null;
+          sends?: number;
+          voided_at?: string | null;
+          void_reason?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       partner_rates: {
         Row: {
           vehicle_id: string;
@@ -14914,6 +15106,9 @@ export type Database = {
           notify_cf_daily_budget: number;
           notify_resend_daily_budget: number;
           deposit_extended_holds: boolean;
+          partner_invoice_payee: string;
+          partner_invoice_etransfer: string;
+          partner_invoice_due_days: number;
         };
         Insert: {
           id?: string;
@@ -15524,6 +15719,9 @@ export type Database = {
           notify_cf_daily_budget?: number;
           notify_resend_daily_budget?: number;
           deposit_extended_holds?: boolean;
+          partner_invoice_payee?: string;
+          partner_invoice_etransfer?: string;
+          partner_invoice_due_days?: number;
         };
         Update: {
           id?: string;
@@ -16134,6 +16332,9 @@ export type Database = {
           notify_cf_daily_budget?: number;
           notify_resend_daily_budget?: number;
           deposit_extended_holds?: boolean;
+          partner_invoice_payee?: string;
+          partner_invoice_etransfer?: string;
+          partner_invoice_due_days?: number;
         };
         Relationships: [];
       };
@@ -17065,6 +17266,8 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          default_kickback_bps: number | null;
+          billing_email: string | null;
         };
         Insert: {
           id?: string;
@@ -17093,6 +17296,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          default_kickback_bps?: number | null;
+          billing_email?: string | null;
         };
         Update: {
           id?: string;
@@ -17121,6 +17326,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          default_kickback_bps?: number | null;
+          billing_email?: string | null;
         };
         Relationships: [];
       };
@@ -26211,6 +26418,8 @@ export type Database = {
       server_partner_crm_secret: { Args: { p_conn: string }; Returns: string };
       server_partner_crm_token: { Args: { p_admin: string; p: Json }; Returns: Json };
       server_partner_feed: { Args: { p_partner: string }; Returns: Json };
+      server_partner_invoice_by_token: { Args: { p_token: string }; Returns: Json };
+      server_partner_invoices_of: { Args: { p_partner: string }; Returns: Json };
       server_partner_referral: { Args: { p: Json }; Returns: Json };
       server_payment_intent_opened: { Args: { p: Json }; Returns: undefined };
       server_payreq_attach: { Args: { p_id: string; p_intent: string }; Returns: undefined };
