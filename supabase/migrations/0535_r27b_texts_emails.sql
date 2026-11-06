@@ -188,8 +188,8 @@ comment on table hiring_ai_moves is 'Hiring (0535): remote applicants moved from
 alter table hiring_ai_moves enable row level security;
 revoke all on hiring_ai_moves from anon, authenticated;
 grant all on hiring_ai_moves to service_role;
-drop policy if exists admin_read on hiring_ai_moves;
-create policy admin_read on hiring_ai_moves for select to authenticated using (app.is_admin());
+drop policy if exists admin_all on hiring_ai_moves;
+create policy admin_all on hiring_ai_moves for all to authenticated using (app.is_admin()) with check (app.is_admin());
 drop trigger if exists audit_hiring_ai_moves on hiring_ai_moves;
 create trigger audit_hiring_ai_moves after insert or update or delete on hiring_ai_moves for each row execute function app.audit_row();
 
