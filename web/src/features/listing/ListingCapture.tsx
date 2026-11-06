@@ -13,7 +13,7 @@ export interface Capture {
   intake_id: string; vehicle_id: string; vehicle_name: string; state: string; submitted: boolean; reason: string | null; may_upload: boolean; may_remove?: boolean;
   missing: string[];
   shots: Array<{ code: string; label: string; seq: number; required: boolean; max_count: number; guide: string | null; rebackground: boolean;
-    photos: Array<{ id: string; status: string; background_status: string; processed_path?: string | null }> }>;
+    photos: Array<{ id: string; status: string; background_status: string; original_path?: string | null; processed_path?: string | null }> }>;
 }
 
 async function prepare(file: File): Promise<{ blob: Blob; width: number; height: number }> {
@@ -83,8 +83,9 @@ export function ListingCapture({ initial, refresh = [] }: { initial: Capture; re
               <span className="small">{busy === s.code ? 'Uploading' : has ? `Added${last?.status === 'processed' ? ', processed' : last?.background_status === 'original_used' ? ', kept as taken' : ''}` : 'Missing'}</span>
               {has && c.may_remove !== false && <ul className="lc__photos">{s.photos.map((ph, n) => (
                 <li key={ph.id} className="lc__photo">
+                  {/* a shot kept private (the odometer, the VIN: never on the site) keeps its original in the private bucket, which has no public address */}
                   {/* eslint-disable-next-line @next/next/no-img-element -- the edited photo, pre-sized by the pipeline */}
-                  {ph.processed_path ? <img src={photoUrl(ph.processed_path)} alt="" width={64} height={43} loading="lazy" /> : <span className="lc__ph" aria-hidden="true">{n + 1}</span>}
+                  {ph.processed_path && ph.processed_path !== ph.original_path ? <img src={photoUrl(ph.processed_path)} alt="" width={64} height={43} loading="lazy" /> : <span className="lc__ph" aria-hidden="true">{n + 1}</span>}
                   {sure === ph.id
                     ? <span className="row lc__sure"><span className="small">Wrong shot?</span>
                         <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={() => remove(ph.id)} data-testid={`shot-remove-yes-${s.code}`}>Remove it</button>

@@ -5,6 +5,12 @@ select test.mk_user('ltp_cs', 'va', 'cs');
 select test.mk_owner('ltp_owner');
 select test.mk_vehicle('ltp_car', 'ltp_owner');
 select test.mk_vehicle('ltp_car2', 'ltp_owner');
+-- the quotes below start 30 hours from now: one rate every day of the week, so the amounts do not depend on the weekday
+-- the suite runs on (a Friday run put a Saturday in them at the weekend rate; the weekend premium is put back before part 8)
+create temp table ltp_wk as select id, weekend_premium_bps from program_settings;
+update program_settings set weekend_premium_bps = 0;
+create temp table ltp_rc as select id, weekend_rate_cents from rate_cards where vehicle_id in (test.id('vehicle:ltp_car'), test.id('vehicle:ltp_car2'));
+update rate_cards set weekend_rate_cents = daily_rate_cents where id in (select id from ltp_rc);
 select test.mk_renter('ltp_rita');
 -- a pickup at 10:00 Toronto time, so many days from today
 create function test.ltp_at(p_days integer, p_hour integer default 10) returns timestamptz language sql stable as $$
@@ -150,6 +156,10 @@ select test.eq('the split''s rental charge is the rental after the short-notice 
 select test.ok('the commission lines include it', 'lead_time' = any (app.commission_line_types()));
 select test.ok('it is never a fee on the site', not ((app.public_site_facts() -> 'fees') ? 'lead_time'));
 
+-- the weekend premium and the cars' weekend rates back (the partner rates below use the weekend rule; 99 weekend above
+-- daily checks every current card)
+update program_settings p set weekend_premium_bps = w.weekend_premium_bps from ltp_wk w where w.id = p.id;
+update rate_cards r set weekend_rate_cents = x.weekend_rate_cents from ltp_rc x where x.id = r.id;
 -- ================================================================ 8. 01 Motors: listed rates less 10%, our rules, the 20% kickback
 create function test.ltp_pm(p_sheet text) returns uuid language sql stable as $$
   select v.id from vehicles v join partners p on p.id = v.partner_id where p.business_name = '01 Motors' and v.partner_sheet_name = p_sheet $$;

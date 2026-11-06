@@ -17,6 +17,11 @@ language sql immutable as $$ select p_local::timestamp at time zone 'America/Tor
 create function test.soon(p_offset interval) returns timestamptz
 language sql stable as $$ select date_trunc('hour', now()) + p_offset $$;
 
+-- the extension examples price days at the daily and the weekend rates: they were worked out from a Monday, so their
+-- dates start from the next Monday (today when it is one) and the amounts do not depend on the day the suite runs
+create function test.wsoon(p_offset interval) returns timestamptz
+language sql stable as $$ select date_trunc('hour', now()) + make_interval(days => (8 - extract(isodow from now() at time zone 'America/Toronto')::int) % 7) + p_offset $$;
+
 create function test.sha(p_text text) returns text
 language sql immutable as $$ select encode(sha256(convert_to(p_text, 'UTF8')), 'hex') $$;
 
@@ -622,7 +627,7 @@ select test.eq('R dates that another booking has confirmed are still accepted as
 
 -- ------------------------------------------------------------------ request, offer, approve, sign, pay, confirmed
 -- F1: 7 days ($560) with one additional driver (0025: 25% of $100 = $25 x 7 = $175): $735 + HST $95.55 = $830.55
-select test.ba_new('f1', 'gus.green@example.test', 'BA8', test.soon('10 days'), test.soon('17 days'),
+select test.ba_new('f1', 'gus.green@example.test', 'BA8', test.wsoon('10 days'), test.wsoon('17 days'),
   '{"additional_drivers": [{"full_name": "Gina Green", "date_of_birth": "1985-02-02", "email": "gina.green@example.test"}]}');
 select test.eq('F the request is priced: $830.55 due at booking', (select total_due_at_booking_cents from bookings where id = test.ba('f1')), 83055::bigint);
 select test.throws('F an agreement cannot be opened on a request', $$select test.ba_open('f1')$$, 'opened once the offer is approved');
@@ -713,7 +718,7 @@ select test.eq('P a payment for an offer version that is not the approved one is
   (select (v ->> 'reason') || '/' || (v ->> 'action') from test.ba_pay('f1', null, 2) v), 'offer_changed/void_authorization');
 select test.eq('P nothing was recorded by those attempts, each is in the history, and the booking still waits',
   (select count(*) from payments where booking_id = test.ba('f1')) || '/' || (select count(*) from booking_events where booking_id = test.ba('f1') and kind = 'payment_refused')
-  || '/' || test.ba_st('f1') || '/' || app.vehicle_is_available(test.id('vehicle:BA8'), test.soon('10 days'), test.soon('17 days')), '0/4/pending_payment/true');
+  || '/' || test.ba_st('f1') || '/' || app.vehicle_is_available(test.id('vehicle:BA8'), test.wsoon('10 days'), test.wsoon('17 days')), '0/4/pending_payment/true');
 select test.keep('f1:paid', test.ba_pay('f1', null, null, 'evt_f1'));
 select test.eq('P signed, the right amount, the car free: the payment is recorded and the booking confirmed in one step; the server may capture',
   (select (v ->> 'ok') || '/' || (v ->> 'status') || '/' || (v ->> 'action') || '/' || (v ->> 'amount_cents') from test.out('f1:paid') v) || '/' || test.ba_st('f1'),
@@ -745,7 +750,7 @@ select test.eq('P the completed agreement is announced once, with who signed',
   (select count(*) || '/' || min(payload ->> 'countersigned_by') || '/' || min(jsonb_array_length(payload -> 'signers')) || '/' || bool_and(dedupe_key = 'renter_agreement_signed:' || entity_id || ':completed')
      from app_events where code = 'renter_agreement_signed' and entity_id = test.ba('f1:ag')), '1/Ba Cs/2/true');
 select test.eq('P only now is the car taken',
-  app.vehicle_is_available(test.id('vehicle:BA8'), test.soon('10 days'), test.soon('17 days')), false);
+  app.vehicle_is_available(test.id('vehicle:BA8'), test.wsoon('10 days'), test.wsoon('17 days')), false);
 select test.eq('P the whole path is in the status history and in the booking''s own history',
   (select string_agg(to_status, ' > ' order by id) from status_history where entity = 'booking' and entity_id = test.ba('f1'))
   || ' | ' || (select string_agg(kind, ' ' order by id) from booking_events where booking_id = test.ba('f1') and kind <> 'payment_refused'),
@@ -1035,10 +1040,10 @@ select test.eq('C a no-show: no refund, no refund row, the booking ends as a no-
 
 -- ------------------------------------------------------------------ extensions: ask, preview, approve, pay, confirm
 -- E1: 7 days ($560) for a renter of 23 (young driver $20 x 7 = $140): $700 + HST $91 = $791
-select test.ba_confirmed('e1', 'sam.stone@example.test', 'BA1', test.soon('3 days'), test.soon('10 days'), jsonb_build_object('renter', jsonb_build_object('date_of_birth', test.dob(23))));
+select test.ba_confirmed('e1', 'sam.stone@example.test', 'BA1', test.wsoon('3 days'), test.wsoon('10 days'), jsonb_build_object('renter', jsonb_build_object('date_of_birth', test.dob(23))));
 select test.eq('E a 7-day booking for a renter of 23 is confirmed and paid: $791.00',
   test.ba_st('e1') || '/' || app.booking_paid_cents(test.ba('e1')), 'confirmed/79100');
-select test.keep('e1:pv', app.preview_extension(test.ba('e1'), test.soon('13 days')));
+select test.keep('e1:pv', app.preview_extension(test.ba('e1'), test.wsoon('13 days')));
 select test.eq('E extending to 10 days (0480): the 3 added days at the stored daily and weekend rates ($340) less 5% = $323; the young driver fee $140 to its $200 cap (+$60); HST $49.79; $432.79 to pay',
   (select (v ->> 'ok') || '/' || (v ->> 'previous_days') || '>' || (v ->> 'new_days') || '/' || (v ->> 'previous_rental_charge_cents') || '>' || (v ->> 'new_rental_charge_cents')
           || '/' || (v ->> 'rental_difference_cents') || '/' || (v ->> 'fees_difference_cents') || '/' || (v ->> 'hst_cents') || '/' || (v ->> 'total_cents')
@@ -1048,32 +1053,32 @@ select test.eq('E line by line',
   (select string_agg((l ->> 'charge_type') || '=' || (l ->> 'amount_cents') || '+' || (l ->> 'hst_cents'), ' ' order by o)
      from test.out('e1:pv') v, jsonb_array_elements(v -> 'lines') with ordinality x(l, o)), 'rental_charge=32300+4199 young_driver_21_25=6000+780');
 select test.eq('E the rental difference of the whole booking repriced is still the one public.calc_extension() gives (insurer-billed extensions, 0480)',
-  (select rental_difference_cents from public.calc_extension(test.soon('3 days'), 7, 10, 10000, 12000, 56000, 180000)), 24000::bigint);
+  (select rental_difference_cents from public.calc_extension(test.wsoon('3 days'), 7, 10, 10000, 12000, 56000, 180000)), 24000::bigint);
 select test.eq('E to 12 days (a picked date): the whole booking repriced ($400) is lower than 5 added days at the tier ($513), young driver fee +$100 (0025: no maximum)',
-  (select (v ->> 'rental_difference_cents') || '/' || (v ->> 'fees_difference_cents') || '/' || (v ->> 'total_cents') from app.preview_extension(test.ba('e1'), test.soon('15 days')) v),
+  (select (v ->> 'rental_difference_cents') || '/' || (v ->> 'fees_difference_cents') || '/' || (v ->> 'total_cents') from app.preview_extension(test.ba('e1'), test.wsoon('15 days')) v),
   '40000/10000/56500');
 select test.eq('E what cannot be done is said: not later than the current return; over 30 days in total; a booking that is not live; after the return time it is still priced while the car is out (0480)',
-  (select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('e1'), test.soon('9 days')) v) || ' '
-  || (select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('e1'), test.soon('40 days')) v) || ' '
-  || coalesce((select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('e1'), test.soon('13 days'), test.soon('10 days 1 hour')) v), 'out') || ' '
-  || (select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('r2'), test.soon('18 days')) v),
+  (select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('e1'), test.wsoon('9 days')) v) || ' '
+  || (select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('e1'), test.wsoon('40 days')) v) || ' '
+  || coalesce((select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('e1'), test.wsoon('13 days'), test.wsoon('10 days 1 hour')) v), 'out') || ' '
+  || (select v -> 'problems' -> 0 ->> 'code' from app.preview_extension(test.ba('r2'), test.wsoon('18 days')) v),
   'not_later over_maximum_length out not_extendable');
 select test.throws('E another renter cannot ask to extend this booking',
-  $$select app.request_extension(test.ba('e1'), test.ba_user('gus.green@example.test'), test.soon('13 days'))$$, 'Only the renter of this booking, or staff');
+  $$select app.request_extension(test.ba('e1'), test.ba_user('gus.green@example.test'), test.wsoon('13 days'))$$, 'Only the renter of this booking, or staff');
 select test.throws('E an extension that cannot go ahead is refused when asked for',
-  $$select app.request_extension(test.ba('e1'), test.ba_user('sam.stone@example.test'), test.soon('40 days'))$$, 'total length stays at 30 days or less');
-insert into test.ba_ids values ('e1:x', app.request_extension(test.ba('e1'), test.ba_user('sam.stone@example.test'), test.soon('13 days'), 'One more weekend'));
+  $$select app.request_extension(test.ba('e1'), test.ba_user('sam.stone@example.test'), test.wsoon('40 days'))$$, 'total length stays at 30 days or less');
+insert into test.ba_ids values ('e1:x', app.request_extension(test.ba('e1'), test.ba_user('sam.stone@example.test'), test.wsoon('13 days'), 'One more weekend'));
 select test.eq('E the renter asks: the request is on record, priced, with who asked',
   (select status || '/' || seq || '/' || previous_days || '>' || new_days || '/' || rental_difference_cents || '/' || fees_difference_cents || '/' || hst_cents || '/' || total_cents
-          || '/' || note || '/' || (requested_by = test.ba_user('sam.stone@example.test')) || '/' || jsonb_array_length(lines) || '/' || (previous_return_at = test.soon('10 days'))
+          || '/' || note || '/' || (requested_by = test.ba_user('sam.stone@example.test')) || '/' || jsonb_array_length(lines) || '/' || (previous_return_at = test.wsoon('10 days'))
      from booking_extensions where id = test.ba('e1:x')), 'requested/1/7>10/32300/6000/4979/43279/One more weekend/true/2/true');
 select test.eq('E the renter gets an acknowledgement and customer service is told at once; the task is due by the current return time',
   (select string_agg(code || ':' || (dedupe_key = code || ':' || entity_id || ':requested'), ' ' order by code) from app_events where entity = 'booking_extension' and entity_id = test.ba('e1:x'))
-  || '/' || (select count(*) || ':' || min(priority) || ':' || bool_and(due_at = test.soon('10 days')) from tasks where related_id = test.ba('e1:x')),
+  || '/' || (select count(*) || ':' || min(priority) || ':' || bool_and(due_at = test.wsoon('10 days')) from tasks where related_id = test.ba('e1:x')),
   'renter_extension_requested:true staff_extension_requested:true/1:urgent:true');
-select test.eq('E asking does not move the return time', (select return_at = test.soon('10 days') and billable_days = 7 from bookings where id = test.ba('e1')), true);
+select test.eq('E asking does not move the return time', (select return_at = test.wsoon('10 days') and billable_days = 7 from bookings where id = test.ba('e1')), true);
 select test.throws('E one extension request at a time',
-  $$select app.request_extension(test.ba('e1'), test.ba_user('sam.stone@example.test'), test.soon('14 days'))$$, 'already open');
+  $$select app.request_extension(test.ba('e1'), test.ba_user('sam.stone@example.test'), test.wsoon('14 days'))$$, 'already open');
 select test.eq('E a payment before approval is refused: refund it',
   (select (v ->> 'ok') || '/' || (v ->> 'reason') || '/' || (v ->> 'action') from app.confirm_extension_payment(test.ba('e1:x'), '{"payment_id": "pi_e1x"}', 43279) v),
   'false/not_approved/refund_payment');
@@ -1082,17 +1087,17 @@ select test.throws('E nor can a sales assistant', $$select app.approve_extension
 select test.keep('e1:ap', app.approve_extension(test.ba('e1:x'), test.id('ba_cs')));
 select test.eq('E customer service approves: the new state "approved", who and when, and the renter is told what to pay and by when',
   (select status || '/' || (approved_by = test.id('ba_cs')) || '/' || (approved_at is not null) || '/' || total_cents from booking_extensions where id = test.ba('e1:x'))
-  || '/' || (select (payload ->> 'total_cents') || ':' || ((payload ->> 'pay_before')::timestamptz = test.soon('10 days')) from app_events where code = 'renter_extension_approved' and entity_id = test.ba('e1:x')),
+  || '/' || (select (payload ->> 'total_cents') || ':' || ((payload ->> 'pay_before')::timestamptz = test.wsoon('10 days')) from app_events where code = 'renter_extension_approved' and entity_id = test.ba('e1:x')),
   'approved/true/true/43279/43279:true');
-select test.eq('E approval alone still does not move the return time', (select return_at = test.soon('10 days') from bookings where id = test.ba('e1')), true);
+select test.eq('E approval alone still does not move the return time', (select return_at = test.wsoon('10 days') from bookings where id = test.ba('e1')), true);
 select test.eq('E the wrong amount is refused',
   (select (v ->> 'reason') || '/' || (v ->> 'action') || '/' || (v ->> 'expected_cents') from app.confirm_extension_payment(test.ba('e1:x'), '{"payment_id": "pi_e1x"}', 30000) v),
   'amount_mismatch/refund_payment/43279');
 select test.keep('e1:paid', app.confirm_extension_payment(test.ba('e1:x'), '{"payment_id": "pi_e1x", "charge_id": "ch_e1x"}', 43279));
 select test.eq('E paid before the return time: the extension is confirmed in writing and the booking''s return time, days, rental charge and mileage allowance move',
   (select (v ->> 'ok') || '/' || (v ->> 'billable_days') from test.out('e1:paid') v)
-  || '/' || (select (return_at = test.soon('13 days')) || ':' || billable_days || ':' || rental_charge_cents || ':' || km_allowance_total || ':' || rate_applied
-                    || ':' || (original_return_at = test.soon('10 days')) from bookings where id = test.ba('e1'))
+  || '/' || (select (return_at = test.wsoon('13 days')) || ':' || billable_days || ':' || rental_charge_cents || ':' || km_allowance_total || ':' || rate_applied
+                    || ':' || (original_return_at = test.wsoon('10 days')) from bookings where id = test.ba('e1'))
   || '/' || (select status || ':' || (paid_at is not null) || ':' || (confirmed_in_writing_at is not null) || ':' || (payment_id is not null) from booking_extensions where id = test.ba('e1:x')),
   'true/10/true:10:88300:2000:weekly:true/confirmed:true:true:true');
 select test.eq('E the extension''s charges are lines of their own, tied to its payment; the payment is an extension payment',
@@ -1103,53 +1108,53 @@ select test.eq('E the extension''s charges are lines of their own, tied to its p
   'rental_charge=32300+4199:extension:true:true young_driver_21_25=6000+780:extension:true:true/extension:43279:succeeded/122379');
 select test.eq('E the written confirmation is announced once, and the car is now taken to the new return time',
   (select count(*) from app_events where code = 'renter_extension_confirmed' and entity_id = test.ba('e1:x'))
-  || '/' || app.vehicle_is_available(test.id('vehicle:BA1'), test.soon('11 days'), test.soon('12 days')), '1/false');
+  || '/' || app.vehicle_is_available(test.id('vehicle:BA1'), test.wsoon('11 days'), test.wsoon('12 days')), '1/false');
 select test.eq('E the same payment reported again changes nothing',
   (select (v ->> 'ok') || '/' || (v ->> 'already_confirmed') from app.confirm_extension_payment(test.ba('e1:x'), '{"payment_id": "pi_e1x"}', 43279) v)
   || '/' || (select count(*) from payments where booking_id = test.ba('e1')), 'true/true/2');
 -- declined, withdrawn, not available, lapsed
-select test.ba_confirmed('e2', 'tia.tate@example.test', 'BAP', test.soon('3 days'), test.soon('10 days'));
-insert into test.ba_ids values ('e2:x1', app.request_extension(test.ba('e2'), test.ba_user('tia.tate@example.test'), test.soon('12 days')));
+select test.ba_confirmed('e2', 'tia.tate@example.test', 'BAP', test.wsoon('3 days'), test.wsoon('10 days'));
+insert into test.ba_ids values ('e2:x1', app.request_extension(test.ba('e2'), test.ba_user('tia.tate@example.test'), test.wsoon('12 days')));
 select test.throws('E declining needs a reason', $$select app.decline_extension(test.ba('e2:x1'), test.id('ba_cs'))$$, 'needs a reason');
 select app.decline_extension(test.ba('e2:x1'), test.id('ba_cs'), 'The car is promised to another customer');
 select test.eq('E declined by staff with the reason, and the renter is told',
   (select status || '/' || decline_reason || '/' || (declined_by = test.id('ba_cs')) from booking_extensions where id = test.ba('e2:x1'))
   || '/' || (select payload ->> 'decline_reason' from app_events where code = 'renter_extension_declined' and entity_id = test.ba('e2:x1')),
   'declined/The car is promised to another customer/true/The car is promised to another customer');
-insert into test.ba_ids values ('e2:x2', app.request_extension(test.ba('e2'), test.ba_user('tia.tate@example.test'), test.soon('12 days')));
+insert into test.ba_ids values ('e2:x2', app.request_extension(test.ba('e2'), test.ba_user('tia.tate@example.test'), test.wsoon('12 days')));
 select app.decline_extension(test.ba('e2:x2'), test.ba_user('tia.tate@example.test'));
 select test.eq('E the renter withdraws their own request (no email for that)',
   (select status || '/' || decline_reason from booking_extensions where id = test.ba('e2:x2'))
   || '/' || (select count(*) from app_events where code = 'renter_extension_declined' and entity_id = test.ba('e2:x2')), 'declined/Withdrawn by the renter/0');
-select test.ba_confirmed('e3', 'uma.underhill@example.test', 'BAP', test.soon('11 days'), test.soon('14 days'));
+select test.ba_confirmed('e3', 'uma.underhill@example.test', 'BAP', test.wsoon('11 days'), test.wsoon('14 days'));
 select test.eq('E when the car is booked right after, the preview says so and the request is refused',
-  (select (v ->> 'ok') || '/' || (v ->> 'available') || '/' || (v -> 'problems' -> 0 ->> 'code') from app.preview_extension(test.ba('e2'), test.soon('12 days')) v), 'false/false/not_available');
+  (select (v ->> 'ok') || '/' || (v ->> 'available') || '/' || (v -> 'problems' -> 0 ->> 'code') from app.preview_extension(test.ba('e2'), test.wsoon('12 days')) v), 'false/false/not_available');
 select test.throws('E and asking for it is refused',
-  $$select app.request_extension(test.ba('e2'), test.ba_user('tia.tate@example.test'), test.soon('12 days'))$$, 'booked or blocked for part of the added time');
-insert into test.ba_ids values ('e2:x3', app.request_extension(test.ba('e2'), test.ba_user('tia.tate@example.test'), test.soon('10 days 12 hours')));
+  $$select app.request_extension(test.ba('e2'), test.ba_user('tia.tate@example.test'), test.wsoon('12 days'))$$, 'booked or blocked for part of the added time');
+insert into test.ba_ids values ('e2:x3', app.request_extension(test.ba('e2'), test.ba_user('tia.tate@example.test'), test.wsoon('10 days 12 hours')));
 select app.approve_extension(test.ba('e2:x3'), test.id('ba_fleet'));
 -- the car is back (its return recorded): after the return time an extension can no longer be paid (0480: while the car
 -- is still out it can, supabase/tests/99_extend_offers.sql)
 select set_config('session_replication_role', 'replica', false);
-update bookings set checked_in_at = test.soon('10 days') where id = test.ba('e2');
+update bookings set checked_in_at = test.wsoon('10 days') where id = test.ba('e2');
 select set_config('session_replication_role', 'origin', false);
-select test.keep('e2:x3:c', app.confirm_extension_payment(test.ba('e2:x3'), '{"payment_id": "pi_e2x3"}', (select total_cents from booking_extensions where id = test.ba('e2:x3')), test.soon('10 days 1 hour')));
+select test.keep('e2:x3:c', app.confirm_extension_payment(test.ba('e2:x3'), '{"payment_id": "pi_e2x3"}', (select total_cents from booking_extensions where id = test.ba('e2:x3')), test.wsoon('10 days 1 hour')));
 select test.eq('E an approved extension paid after the return time, the car back, is refused and lapses: refund it',
   (select (v ->> 'reason') || '/' || (v ->> 'action') from test.out('e2:x3:c') v)
-  || '/' || (select status from booking_extensions where id = test.ba('e2:x3')) || '/' || (select return_at = test.soon('10 days') from bookings where id = test.ba('e2')),
+  || '/' || (select status from booking_extensions where id = test.ba('e2:x3')) || '/' || (select return_at = test.wsoon('10 days') from bookings where id = test.ba('e2')),
   'lapsed/refund_payment/lapsed/true');
-insert into test.ba_ids values ('e2:x4', app.request_extension(test.ba('e2'), test.ba_user('tia.tate@example.test'), test.soon('10 days 12 hours')));
-select test.keep('lapse1', to_jsonb(app.lapse_extensions(test.soon('10 days 1 minute'))));
-select test.keep('lapse2', to_jsonb(app.lapse_extensions(test.soon('10 days 1 minute'))));
+insert into test.ba_ids values ('e2:x4', app.request_extension(test.ba('e2'), test.ba_user('tia.tate@example.test'), test.wsoon('10 days 12 hours')));
+select test.keep('lapse1', to_jsonb(app.lapse_extensions(test.wsoon('10 days 1 minute'))));
+select test.keep('lapse2', to_jsonb(app.lapse_extensions(test.wsoon('10 days 1 minute'))));
 select test.eq('E requests still open at their return time lapse when the check runs, once',
   (test.out('lapse1') #>> '{}') || '/' || (test.out('lapse2') #>> '{}') || '/' || (select status from booking_extensions where id = test.ba('e2:x4')), '1/0/lapsed');
 -- over 7 days in total: the card hold is captured first
-select test.ba_confirmed('e4', 'vic.vance@example.test', 'BA3', test.soon('3 days'), test.soon('8 days'));
+select test.ba_confirmed('e4', 'vic.vance@example.test', 'BA3', test.wsoon('3 days'), test.wsoon('8 days'));
 insert into deposits (booking_id, amount_cents, method, status, taken_at, hold_expires_at) values (test.ba('e4'), 100000, 'card_hold', 'held', now(), now() + interval '7 days');
-insert into test.ba_ids values ('e4:x', app.request_extension(test.ba('e4'), test.id('ba_cs'), test.soon('11 days'), 'asked by phone'));
+insert into test.ba_ids values ('e4:x', app.request_extension(test.ba('e4'), test.id('ba_cs'), test.wsoon('11 days'), 'asked by phone'));
 select app.approve_extension(test.ba('e4:x'), test.id('ba_cs'));
 select test.eq('E an extension past 7 days in total with a card hold: the preview says the hold must be captured, and the payment is refused until it is',
-  (select v ->> 'deposit_hold_capture_needed' from app.preview_extension(test.ba('e4'), test.soon('11 days')) v)
+  (select v ->> 'deposit_hold_capture_needed' from app.preview_extension(test.ba('e4'), test.wsoon('11 days')) v)
   || '/' || (select v ->> 'reason' from app.confirm_extension_payment(test.ba('e4:x'), '{"payment_id": "pi_e4x"}', (select total_cents from booking_extensions where id = test.ba('e4:x'))) v),
   'true/capture_deposit_first');
 update deposits set status = 'captured', captured_cents = 100000 where booking_id = test.ba('e4');
@@ -1544,8 +1549,8 @@ select test.throws('renter: cannot write an upload record', $$update verificatio
 select test.eq('renter: previews the cancellation of his own booking through the wrapper',
   (select (v ->> 'can_cancel') || '/' || (v ->> 'total_paid_cents') || '/' || ((v ->> 'tier') is not null) from public.my_cancellation_preview(test.ba('f1')) v), 'true/83055/true');
 select test.eq('renter: and an extension, a change of dates, the readiness roll-up and a promo code, each for his own booking',
-  (select (v ->> 'new_days') || ':' || (v ->> 'total_cents') || ':' || ((v -> 'lines' -> 0) ? 'revenue_class') from public.my_extension_preview(test.ba('f1'), test.soon('20 days')) v)
-  || '/' || (select v ->> 'total_difference_cents' from public.my_booking_change_preview(test.ba('f1'), jsonb_build_object('pickup_at', test.soon('11 days'), 'return_at', test.soon('18 days'))) v)
+  (select (v ->> 'new_days') || ':' || (v ->> 'total_cents') || ':' || ((v -> 'lines' -> 0) ? 'revenue_class') from public.my_extension_preview(test.ba('f1'), test.wsoon('20 days')) v)
+  || '/' || (select v ->> 'total_difference_cents' from public.my_booking_change_preview(test.ba('f1'), jsonb_build_object('pickup_at', test.wsoon('11 days'), 'return_at', test.wsoon('18 days'))) v)
   || '/' || (select v ->> 'agreement_completed' from public.my_booking_readiness(test.ba('f1')) v)
   || '/' || public.my_promo_code_problem('NOPE', test.ba('f1')), '10:44974:false/0/true/This code is not known');
 select test.throws('renter: the cancellation preview of someone else''s booking is refused', $$select public.my_cancellation_preview(test.ba('g1'))$$, 'not your booking');
