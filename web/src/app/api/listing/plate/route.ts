@@ -30,9 +30,15 @@ export async function GET(req: Request) {
   if (!ctx?.processed_path) return new NextResponse('This photo is not ready.', { status: 409 });
   const st = await storage();
   const bytes = await st.get('vehicle-public', ctx.processed_path).catch(() => null);
-  // not readable here (a store that serves the public files elsewhere): the public address, as before r28
-  if (!bytes) return NextResponse.redirect(new URL(st.publicUrl(ctx.processed_path), req.url), { status: 302, headers: { 'cache-control': 'private, no-store' } });
-  return new NextResponse(bytes as unknown as BodyInit, { headers: { 'content-type': type(ctx.processed_path), 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
+  // not readable here (a store that serves its public files elsewhere): fetched from the public address by the server,
+  // so the browser still reads it from this site
+  let body: Uint8Array | ArrayBuffer | null = bytes;
+  if (!body) {
+    const r = await fetch(new URL(st.publicUrl(ctx.processed_path), req.url), { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+    body = r && r.ok ? await r.arrayBuffer().catch(() => null) : null;
+  }
+  if (!body) return new NextResponse('The photo could not be read.', { status: 404 });
+  return new NextResponse(body as unknown as BodyInit, { headers: { 'content-type': type(ctx.processed_path), 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
 }
 
 export async function POST(req: Request) {

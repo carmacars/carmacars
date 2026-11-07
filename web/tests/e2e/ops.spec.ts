@@ -470,7 +470,8 @@ test('listings and owners: a possible duplicate is cleared; Form D is sent back,
       await fp.getByTestId(`shot-${s.code}`).setInputFiles({ name: `${s.code}.png`, mimeType: 'image/png', buffer: PNG });
       await expect(fp.locator(`[data-shot="${s.code}"]`)).toContainText('Added', { timeout: 20_000 });
     }
-    await expect(fp.getByRole('progressbar')).toHaveAttribute('aria-valuenow', String(shots.length));
+    // r28 B8 (0566): the bar counts the photos toward the listing, the odometer shot aside
+    await expect(fp.getByRole('progressbar')).toHaveAttribute('aria-valuenow', String(shots.filter((s) => s.code !== 'odometer').length));
     await fp.getByTestId('listing-submit').click();
     await expect(fp.getByRole('status').filter({ hasText: 'Submitted' })).toBeVisible({ timeout: 20_000 });
     const [intake] = await sql`select i.submitted_at is not null submitted, (select count(*)::int from vehicle_photos p where p.vehicle_id = ${b.car} and p.content_sha256 is not null) hashed

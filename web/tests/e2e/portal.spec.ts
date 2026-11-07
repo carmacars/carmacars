@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
-import { acceptCookies, db, noOverflow, watch, giveLicence, storeFixturePdf, strongSign, readyEsign, completeAgreementDetails } from './helpers';
+import { acceptCookies, db, noOverflow, watch, giveLicence, strongSign, completeAgreementDetails } from './helpers';
 
 // The renter portal end to end, at 375 and 1440: request (the wizard, signed in), the staff step seeded
 // through app.send_offer, approve, details, sign by drawing on the canvas, pay with the fake adapter
@@ -310,7 +310,7 @@ async function seedRequest(sql: ReturnType<typeof db>, user: string | null, emai
   return v;
 }
 
-test('race: another renter pays first, the authorization is voided and the push-back is shown', async ({ page }, info) => {
+test('race (r28 A1): the first renter to accept gets the car; the other offer goes back to staff', async ({ page }, info) => {
   test.setTimeout(Number(process.env.PORTAL_TIMEOUT ?? 180_000));
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
@@ -349,40 +349,16 @@ test('race: another renter pays first, the authorization is voided and the push-
   await expect(page.getByTestId('fake-card')).toBeVisible();
   await page.waitForTimeout(500); // the intent is created when the form loads
 
-  // meanwhile B approves, signs and pays (through the database functions): B is confirmed first
-  await sql`select app.approve_offer(${b.booking_id}, (select current_offer_version from bookings where id = ${b.booking_id}), ${userB})`;
-  storeFixturePdf('agreements', `bookings/${b.booking_id}/agreement.pdf`);
-  await sql`select app.open_rental_agreement(${b.booking_id}, ${userB}, 'rental-e2e', encode(sha256(${b.booking_number}::bytea), 'hex'), ${`bookings/${b.booking_id}/agreement.pdf`})`;
-  const [gb] = await sql`select g.id from rental_agreements ra join rental_agreement_signers g on g.agreement_id = ra.id and g.signer_role = 'renter' where ra.booking_id = ${b.booking_id} and ra.status = 'open'`;
-  const drawnB = await readyEsign(sql, gb!.id);
-  await sql`select app.record_signature(bk.signature_request_id, g.id, null, ${drawnB}, '203.0.113.10', 'e2e', 'I sign.')
-              from bookings bk join rental_agreements ra on ra.signature_request_id = bk.signature_request_id
-              join rental_agreement_signers g on g.agreement_id = ra.id and g.signer_role = 'renter' where bk.id = ${b.booking_id}`;
-  const [pb] = await sql`select app.record_booking_payment(bk.id, jsonb_build_object('processor', 'stripe', 'payment_id', 'pi_race_' || bk.id, 'method_id', 'pm_race_' || bk.id, 'customer_id', 'cus_race'),
-              bk.renter_due_at_booking_cents, bk.offer_approved_version,
-              jsonb_build_object('brand', 'visa', 'last4', '4242', 'cardholder_name', 'Blake Fast', 'exp_month', 12, 'exp_year', 2031, 'is_credit', true), null) v
-            from bookings bk where bk.id = ${b.booking_id}`;
-  expect((pb!.v as { ok: boolean }).ok).toBe(true);
-
-  // A pays: the card is authorized, the database refuses, the authorization is voided, the push-back is shown
-  await page.locator('#pt-card-name').fill('Avery Slow');
-  await page.locator('#pt-card-number').fill('4242424242424242');
-  await page.locator('#pt-card-exp').fill('11/31');
-  await page.locator('#pt-card-cvc').fill('321');
-  await page.getByRole('button', { name: /^Pay \$/ }).click();
-  await expect(page.getByTestId('pay-pushed-back')).toContainText('Someone else confirmed this car for these dates first. Nothing was charged');
-  await axe(page, 'pay pushed back');
-  const [ra] = await sql`select b.status::text, (select count(*)::int from payments p where p.booking_id = b.id and p.status = 'succeeded') paid,
-      (select status from booking_offers o where o.booking_id = b.id order by version desc limit 1) offer,
-      (select count(*)::int from booking_events e where e.booking_id = b.id and e.kind = 'payment_refused') refused
-    from bookings b where b.id = ${a.booking_id}`;
-  expect(ra).toMatchObject({ status: 'requested', paid: 0, offer: 'withdrawn', refused: 1 });
-  const [rb] = await sql`select status::text from bookings where id = ${b.booking_id}`;
-  expect(rb!.status).toBe('confirmed');
-  // the booking page and the pay page say the same afterwards
-  await page.goto(`/account/bookings/${a.booking_number}/pay`);
-  await expect(page.getByTestId('pay-pushed-back')).toContainText('Nothing was charged');
-  // tidy: B's sample booking would otherwise block this car for later runs
-  await sql`update bookings set status = 'cancelled' where id = ${b.booking_id}`.catch(() => undefined);
+  // r28 A1 (0540): the first renter to accept gets the car. A accepted first, so B's open offer went back to staff
+  // (a Re-offer To do) and B can no longer approve it; A carries on to pay.
+  const [rb] = await sql`select b.status::text, (select status from booking_offers o where o.booking_id = b.id order by version desc limit 1) offer,
+      (select count(*)::int from tasks t where t.booking_id = b.id and t.task_type = 'reoffer_booking' and t.status = 'open') reoffer
+    from bookings b where b.id = ${b.booking_id}`;
+  expect(rb).toMatchObject({ status: 'requested', reoffer: 1 });
+  await expect(sql`select app.approve_offer(${b.booking_id}, (select current_offer_version from bookings where id = ${b.booking_id}), ${userB})`).rejects.toThrow(/no open offer/i);
+  const [ra] = await sql`select status::text from bookings where id = ${a.booking_id}`;
+  expect(ra!.status).toBe('pending_payment');
+  // tidy: A's sample booking would otherwise block this car for later runs
+  await sql`update bookings set status = 'cancelled' where id = ${a.booking_id}`.catch(() => undefined);
   await sql.end();
 });
