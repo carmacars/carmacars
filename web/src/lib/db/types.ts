@@ -23886,6 +23886,7 @@ export type Database = {
           plate_suggestion: Json | null;
           enhance: Json | null;
           enhance_off: boolean;
+          reframed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -23925,6 +23926,7 @@ export type Database = {
           plate_suggestion?: Json | null;
           enhance?: Json | null;
           enhance_off?: boolean;
+          reframed_at?: string | null;
         };
         Update: {
           id?: string;
@@ -23964,6 +23966,7 @@ export type Database = {
           plate_suggestion?: Json | null;
           enhance?: Json | null;
           enhance_off?: boolean;
+          reframed_at?: string | null;
         };
         Relationships: [];
       };
