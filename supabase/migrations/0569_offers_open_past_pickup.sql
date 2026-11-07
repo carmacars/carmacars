@@ -43,7 +43,10 @@ select pg_temp.patch_fn('app.job_offers_expire(timestamptz)'::regprocedure,
   $n$if not exists (select 1 from bookings b where b.status = 'offered' and (b.offer_expires_at <= p_now
                      or (b.pickup_at <= p_now - interval '2 hours' and coalesce(app.offer_sent_at(b.id, b.current_offer_version), '-infinity') < b.pickup_at)))$n$);
 
--- 2. the repair
+-- 2. the repair. "expired" to "offered" is allowed only for this repair (the row is removed after it)
+insert into status_transitions (entity, from_status, to_status, note)
+values ('booking', 'expired', 'offered', '0569: an offer that expired only because its pickup had passed, reopened as it was')
+on conflict do nothing;
 do $$
 declare
   r record;
@@ -68,6 +71,7 @@ begin
     n := n + 1;
   end loop;
   raise notice '0569: % booking(s) reopened', n;
+  delete from status_transitions where entity = 'booking' and from_status = 'expired' and to_status = 'offered';
   if to_regclass('public.app_migration_notes') is not null then
     execute 'insert into app_migration_notes (migration, note) values ($1, $2)' using '0569', format('%s booking(s) reopened', n);
   end if;
