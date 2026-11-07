@@ -1,4 +1,6 @@
 import Link from '@/components/Link';
+import { BOOKING_SECTIONS, bookingSection, shows } from '@/features/booking-sections/sections';
+import { BookingCarSection } from '@/features/booking-sections/BookingCarSection';
 import { ReopenOffer } from '@/features/offers/ReopenOffer';
 import { BookingInsurer, type BookingInsurerData } from '@/features/insurers/BookingInsurer';
 import { InsurerClaimEdit, type AdjusterOpt } from '@/features/insurers/InsurerClaimEdit';
@@ -80,35 +82,37 @@ export default async function Booking({ params, searchParams }: { params: Promis
   // the insurance replacement: the rate sheet for this car, the rate and the insurer's invoices (0163)
   const insurerCard = b.bill_to !== 'renter' || ['requested', 'offered', 'pending_payment'].includes(b.status)
     ? await read<BookingInsurerData | null>('booking_insurer', { booking: b.booking_number }).catch(() => null) : null;
-  const driverLinks = sp.tab === 'documents' ? await read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(() => []) : [];
+  const driverLinks = bookingSection(sp.tab) === 'documents' ? await read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(() => []) : [];
   const base = `/admin/bookings/${encodeURIComponent(n)}`;
+  const arranging = ['requested', 'offered', 'pending_payment'].includes(b.status);
+  // r32: six sections; the old tab names open the section that holds them now
+  const section = bookingSection(sp.tab);
+  const on = (t: string) => shows(section, t, arranging);
   // a swap during the trip picks the car from a list, never a typed id (sim item 4)
   const swapCars = b.status === 'on_rent' ? (await list<{ id: string; year: number; make: string; model: string; plate: string | null; status: string }>('vehicles', { order: 'make', asc: true, limit: 500 }).catch(() => ({ rows: [] as Array<{ id: string; year: number; make: string; model: string; plate: string | null; status: string }> }))).rows
     .filter((v) => v.id !== b.vehicle_id && v.status === 'available') : [];
   // payments received another way and documents signed on paper (migration 0044)
   const [manual, paper] = await Promise.all([
-    sp.tab === 'money' ? door<ManualRow[]>(user.id, 'ops_read', 'manual_payments', { booking: b.id }).catch(() => [] as ManualRow[]) : Promise.resolve([] as ManualRow[]),
-    sp.tab === 'documents' ? door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { booking: b.id }).catch(() => [] as PaperRow[]) : Promise.resolve([] as PaperRow[])]);
+    on('money') ? door<ManualRow[]>(user.id, 'ops_read', 'manual_payments', { booking: b.id }).catch(() => [] as ManualRow[]) : Promise.resolve([] as ManualRow[]),
+    on('documents') ? door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { booking: b.id }).catch(() => [] as PaperRow[]) : Promise.resolve([] as PaperRow[])]);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const paperDocs: PaperDoc[] = [{ doc_type: 'rental_agreement', target_id: b.id, label: 'Rental agreement', signer: b.renter?.legal_name ?? '' },
     ...b.change_requests.filter((c) => ['proposed', 'approved'].includes(String(c.status)) && !c.renter_agreed_at).map((c) => ({ doc_type: 'rental_amendment', target_id: String(c.id), label: `Booking change of ${t(c.created_at)}`, signer: b.renter?.legal_name ?? '' }))];
-  const arranging = ['requested', 'offered', 'pending_payment'].includes(b.status);
-  const tab = sp.tab ?? (arranging ? 'review' : 'overview');
   const P = { booking: b.id };
   // the renter's visits on the site (0060), on the history tab
   // the money by part (0129), on the Money tab
-  const moneyByPart = tab === 'money' ? await door<Money>(user.id, 'ops_read', 'booking_money', { booking: b.booking_number }).catch(() => null) : null;
+  const moneyByPart = on('money') ? await door<Money>(user.id, 'ops_read', 'booking_money', { booking: b.booking_number }).catch(() => null) : null;
   // the fees, each changeable on its own (0132), on the Money tab
-  const fees = (tab === 'money' || tab === 'overview') ? await door<Fees>(user.id, 'ops_read', 'booking_fees', { booking: b.booking_number }).catch(() => null) : null;
+  const fees = (on('money') || on('overview')) ? await door<Fees>(user.id, 'ops_read', 'booking_fees', { booking: b.booking_number }).catch(() => null) : null;
   // edit the booking directly, even on trip (0132), on the Overview tab
-  const editForm = tab === 'overview' && !['requested', 'offered', 'pending_payment', 'tentative'].includes(String(b.status)) ? await door<EditForm>(user.id, 'ops_read', 'booking_edit_form', { booking: b.booking_number }).catch(() => null) : null;
+  const editForm = on('overview') && !['requested', 'offered', 'pending_payment', 'tentative'].includes(String(b.status)) ? await door<EditForm>(user.id, 'ops_read', 'booking_edit_form', { booking: b.booking_number }).catch(() => null) : null;
   // correct the renter's details from the booking (0132)
-  const renterForm = tab === 'overview' || tab === 'review' ? await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { booking: b.booking_number }).catch(() => null) : null;
-  const visits = tab === 'history' ? await door<TimelineData>(user.id, 'admin_read', 'visitor_timeline', { booking_id: b.id }).catch(() => null) : null;
+  const renterForm = on('overview') || on('review') ? await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { booking: b.booking_number }).catch(() => null) : null;
+  const visits = on('history') ? await door<TimelineData>(user.id, 'admin_read', 'visitor_timeline', { booking_id: b.id }).catch(() => null) : null;
   // calls and texts with the renter about this booking (0085)
-  const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { booking_id: b.id }).catch(() => null) : null;
+  const calls = on('history') ? await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { booking_id: b.id }).catch(() => null) : null;
   // Email the renter or the adjuster, with the booking's conversation and emails (0187)
-  const conv = tab === 'messages' ? await door<Conversation>(user.id, 'ops_read', 'booking_conversation', { booking: b.booking_number }).catch(() => null) : null;
+  const conv = on('messages') ? await door<Conversation>(user.id, 'ops_read', 'booking_conversation', { booking: b.booking_number }).catch(() => null) : null;
   const insurerBilled = b.bill_to !== 'renter' && !!b.insurer_id;
   const refresh = [base, '/admin/requests'];
   const pendingChanges = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status)));
@@ -120,7 +124,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
     awaitingSignature: b.readiness?.awaiting_signature === true, licenceOk: (b.readiness?.all_drivers_verified as boolean | undefined) ?? null, depositCents: Number(b.deposit_cents ?? 0), depositStatus: (b.deposit?.status as string | undefined) ?? null,
     insurerBilled: b.bill_to !== 'renter' });
   return (
-    <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && tab === 'review'}>
+    <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && on('review')}>
       <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} />{b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>}</>}>
         {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
         <MoreActions>
@@ -150,16 +154,15 @@ export default async function Booking({ params, searchParams }: { params: Promis
         : <NextStepPanel s={step} />}
       <ClaimBanner />
       <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />
-      {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} base={base} canHandover canSign
+      {(section === 'overview' || section === 'car') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} base={base} canHandover canSign
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
-      {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} refresh={[base]} />}
-      {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} base={base} b={{ id: b.id, status: b.status }} docBase="/admin/documents" finance={true} />}
+      {section === 'activity' && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} refresh={[base]} />}
+      {(section === 'overview' || section === 'documents') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} base={base} b={{ id: b.id, status: b.status }} docBase="/admin/documents" finance={true} />}
       {/* what the owner sees of this booking (0156) */}
-      <OwnerVisibilityPanel userId={user.id} booking={b.booking_number} refresh={refresh} />
-      <Tabs current={`${base}?tab=${tab}`} items={[
-        ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : [[`${base}?tab=overview`, 'Overview']] as Array<[string, string]>),
-        [`${base}?tab=money`, 'Money'], [`${base}?tab=changes`, 'Changes', pendingChanges.length + pendingExt.length], [`${base}?tab=messages`, 'Messages'], [`${base}?tab=history`, 'History'], [`${base}?tab=documents`, 'Drivers and documents']]} />
-      {tab === 'review' && (
+      {section === 'car' && <OwnerVisibilityPanel userId={user.id} booking={b.booking_number} refresh={refresh} />}
+      {section === 'car' && <BookingCarSection base={base} number={b.booking_number} vehicleId={b.vehicle_id} vehicleName={b.vehicle?.name ?? null} vehicleHref={`/admin/vehicles/${b.vehicle_id}`} status={b.status} />}
+      <Tabs current={`${base}?tab=${section}`} items={BOOKING_SECTIONS.map(([k, l]) => [`${base}?tab=${k}`, k === 'overview' && arranging ? 'Overview: review and offer' : l, k === 'extras' ? pendingChanges.length + pendingExt.length : undefined] as [string, string, number?])} />
+      {on('review') && (
         <>
           <div className="ad-cols ad-cols--2">
             <Card title="The request as sent">
@@ -180,20 +183,20 @@ export default async function Booking({ params, searchParams }: { params: Promis
         </>
       )}
       {/* conflicting dates on this car (0284), once the booking is past the request */}
-      {tab === 'overview' && b.competing.length > 0 && <Card title="Also on this car for these dates" testId="date-conflicts-card"><DateConflicts items={b.competing} self={{ placeholder: !!b.placeholder?.on }} /></Card>}
-      {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
-      {(tab === 'overview' || tab === 'money') && insurerCard?.billed_to_insurer && <BookingInsurer x={insurerCard} />}
-      {tab === 'overview' && b.booking_type !== 'owner' && !['cancelled', 'declined', 'expired'].includes(b.status) && <InsurerClaimEdit insurers={ins.rows} adjusters={await door<AdjusterOpt[]>(user.id, 'admin_read', 'insurer_adjusters', {}).catch(() => [] as AdjusterOpt[])} x={{
+      {on('overview') && b.competing.length > 0 && <Card title="Also on this car for these dates" testId="date-conflicts-card"><DateConflicts items={b.competing} self={{ placeholder: !!b.placeholder?.on }} /></Card>}
+      {on('overview') && editForm && <BookingEdit x={editForm} fees={fees} />}
+      {(on('overview') || on('money')) && insurerCard?.billed_to_insurer && <BookingInsurer x={insurerCard} />}
+      {on('overview') && b.booking_type !== 'owner' && !['cancelled', 'declined', 'expired'].includes(b.status) && <InsurerClaimEdit insurers={ins.rows} adjusters={await door<AdjusterOpt[]>(user.id, 'admin_read', 'insurer_adjusters', {}).catch(() => [] as AdjusterOpt[])} x={{
         booking: b.booking_number, bill_to: b.bill_to, insurer_id: b.insurer_id, claim_number: b.insurer_claim_number, adjuster_name: b.insurer_adjuster_name,
         adjuster_email: b.insurer_adjuster_email, adjuster_phone: b.insurer_adjuster_phone, policy_number: (b.insurer_policy_number as string | null) ?? null,
         policy_province: (b.insurer_policy_province as string | null) ?? null, authorized_days: b.insurer_authorized_days, authorized_until: b.insurer_authorized_until,
         authorized_daily_rate_cents: b.insurer_authorized_daily_rate_cents, adjuster_id: ((b as Record<string, unknown>).insurer_adjuster_id as string | null) ?? null }} />}
-      {(tab === 'overview' || tab === 'money') && ['pending_payment', 'confirmed', 'on_rent', 'returned'].includes(b.status) && b.booking_type !== 'owner' && !b.placeholder?.on
+      {(on('overview') || on('money')) && ['pending_payment', 'confirmed', 'on_rent', 'returned'].includes(b.status) && b.booking_type !== 'owner' && !b.placeholder?.on
         && await door<Pay & { may_change?: boolean }>(user.id, 'ops_read', 'booking_pay_plan', { booking: b.booking_number }).then((pay) => <PayPlanCard booking={b.id} pay={pay} refresh={[base]} />).catch(() => null)}
-      {(tab === 'overview' || tab === 'money') && b.billable_days > 27 && <BookingPeriods booking={b.booking_number} rows={await door<PeriodRow[]>(user.id, 'ops_read', 'booking_periods', { booking: b.booking_number }).catch(() => [] as PeriodRow[])} />}
-      {(tab === 'overview' || tab === 'review') && renterForm && <RenterEdit x={renterForm} />}
-      {(tab === 'overview' || tab === 'review') && renterForm?.may_edit && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: renterForm.renter_id }).catch(() => [] as DuplicateRow[])} />}
-      {tab === 'overview' && (
+      {(on('overview') || on('money')) && b.billable_days > 27 && <BookingPeriods booking={b.booking_number} rows={await door<PeriodRow[]>(user.id, 'ops_read', 'booking_periods', { booking: b.booking_number }).catch(() => [] as PeriodRow[])} />}
+      {(on('overview') || on('review')) && renterForm && <RenterEdit x={renterForm} />}
+      {(on('overview') || on('review')) && renterForm?.may_edit && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: renterForm.renter_id }).catch(() => [] as DuplicateRow[])} />}
+      {on('overview') && (
         <div className="ad-cols ad-cols--2">
           <Card title="Trip">
             <Kv rows={[['Car', <Link prefetch={false} key="c" className="link" href={`/admin/vehicles/${b.vehicle_id}`}>{b.vehicle?.name} {b.vehicle?.plate}</Link>], ['Pickup', `${t(b.pickup_at)}, ${b.pickup_place ?? 'our location'}`],
@@ -213,7 +216,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <Card title="Open tasks"><Table rows={b.tasks} empty="No open tasks." cols={[{ key: 'title', label: 'Task', className: 'wrap' }, { key: 'queue', label: 'Queue' }, { key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }]} /></Card>
         </div>
       )}
-      {tab === 'money' && (
+      {on('money') && (
         <div className="stack">
           {moneyByPart && <BookingMoney m={moneyByPart} />}
           {/* 0230: an Admin may allow a debit or prepaid card for this booking (never on card coverage) */}
@@ -249,7 +252,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <Card title="Offers"><Table rows={b.offers} empty="No offers." cols={[{ key: 'version', label: 'Version' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'sent_at', label: 'Sent', render: (r) => t(r.sent_at) }, { key: 'expires_at', label: 'Expires', render: (r) => t(r.expires_at) }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) }, { key: 'message', label: 'Message', className: 'wrap' }]} /></Card>
         </div>
       )}
-      {tab === 'changes' && (
+      {on('changes') && (
         <div className="stack">
           {b.status === 'confirmed' && b.bill_to === 'renter' && <Card title="Propose a change" testId="propose-card"><ProposeChange booking={b.id} number={b.booking_number} pickupAt={b.pickup_at} returnAt={b.return_at} vehicleId={b.vehicle_id} rentalCents={Number(b.rental_charge_cents ?? 0)} refresh={[base]} /></Card>}
           <Card title="Change requests"><Table rows={b.change_requests} testId="change-requests" empty="No change requests." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'requested_by_role', label: 'From' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
@@ -262,8 +265,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
           <Card title="Questions to the renter"><Table rows={b.info_requests} empty="No questions." cols={[{ key: 'asked_at', label: 'Asked', render: (r) => t(r.asked_at) }, { key: 'question', label: 'Question', className: 'wrap' }, { key: 'status', label: 'Status' }, { key: 'reply', label: 'Reply', className: 'wrap' }]} /></Card>
         </div>
       )}
-      {tab === 'messages' && (conv ? <BookingConversation c={conv} refresh={[base]} initialTo={sp.to === 'adjuster' ? 'adjuster' : 'renter'} /> : <p className="small muted">The messages could not be read. Reload the page.</p>)}
-      {tab === 'history' && (
+      {on('messages') && (conv ? <BookingConversation c={conv} refresh={[base]} initialTo={sp.to === 'adjuster' ? 'adjuster' : 'renter'} /> : <p className="small muted">The messages could not be read. Reload the page.</p>)}
+      {on('history') && (
         <div className="ad-cols ad-cols--2">
           <Card title="Timeline" testId="timeline">
             <ol className="ad-timeline">{b.events.map((e) => <li key={String(e.id)}><time>{t(e.created_at)}</time><span><b>{label(e.kind)}</b>{e.from_status && e.to_status && e.from_status !== e.to_status ? ` ${label(e.from_status)} to ${label(e.to_status)}` : ''}{e.offer_version ? `, offer v${String(e.offer_version)}` : ''}{e.note ? `: ${String(e.note)}` : ''} <span className="muted small">{String(e.actor_name ?? e.actor_type ?? '')}</span></span></li>)}</ol>
@@ -276,7 +279,7 @@ export default async function Booking({ params, searchParams }: { params: Promis
           </div>
         </div>
       )}
-      {tab === 'documents' && (
+      {on('documents') && (
         <div className="ad-cols ad-cols--2">
           {['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}
           <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }, { key: 'age_band', label: 'Age band' }, { key: 'licence_last4', label: 'Licence' }, { key: 'accepted_at', label: 'Accepted', render: (r) => t(r.accepted_at) },

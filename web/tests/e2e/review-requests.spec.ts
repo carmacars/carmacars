@@ -147,7 +147,7 @@ test('staff: Ask for a review on the booking, the hold list with Send anyway, Se
     await sql`select app.review_step(${held.booking_id}, now())`;
 
     await signIn(page, admin.email, `/admin/bookings/${asked.booking_number}`);
-    await page.goto(`/admin/bookings/${asked.booking_number}`, { waitUntil: 'networkidle' });
+    await page.goto(`/admin/bookings/${asked.booking_number}?tab=activity`, { waitUntil: 'networkidle' });
     const card = page.getByTestId('review-panel');
     await expect(card).toContainText('Review request');
     await expect(card.getByTestId('review-steps')).toContainText('Final follow-up');

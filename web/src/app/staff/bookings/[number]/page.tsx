@@ -1,4 +1,6 @@
 import Link from '@/components/Link';
+import { BOOKING_SECTIONS, bookingSection, shows } from '@/features/booking-sections/sections';
+import { BookingCarSection } from '@/features/booking-sections/BookingCarSection';
 import { ReopenOffer } from '@/features/offers/ReopenOffer';
 import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
@@ -70,46 +72,47 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
   );
   if (!b) notFound();
   const arranging = ['requested', 'offered', 'pending_payment'].includes(b.status) && (fn === 'cs' || fn === 'sales');
-  const tab = sp.tab ?? (arranging ? 'review' : 'overview');
+  // r32: the same six sections as the Admin booking page (features/booking-sections), each shown when this function uses it
+  const section = bookingSection(sp.tab);
+  // staff keep the trip cards under the review while an offer is arranged (they had both tabs before)
+  const on = (t: string) => (t === 'overview' ? section === 'overview' : shows(section, t, arranging));
   const base = `/staff/bookings/${encodeURIComponent(n)}`;
   const P = { booking: b.id };
   const R = [base];
   // the renter's visits on the site (0060), on the history tab
-  const visits = tab === 'history' ? await door<TimelineData>(user.id, 'va_read', 'visitor_timeline', { booking_id: b.id }, aal).catch(() => null) : null;
+  const visits = on('history') ? await door<TimelineData>(user.id, 'va_read', 'visitor_timeline', { booking_id: b.id }, aal).catch(() => null) : null;
   // the money by part (0129): record a payment, collect a card, confirm a booking paid another way
-  const moneyByPart = tab === 'money' ? await door<Money>(user.id, 'ops_read', 'booking_money', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
+  const moneyByPart = on('money') ? await door<Money>(user.id, 'ops_read', 'booking_money', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
   // the fees, each changeable on its own (0132), on the Money tab
-  const fees = (tab === 'money' || tab === 'overview') ? await door<Fees>(user.id, 'ops_read', 'booking_fees', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
+  const fees = (on('money') || on('overview')) ? await door<Fees>(user.id, 'ops_read', 'booking_fees', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
   // edit the booking directly, even on trip (0132), on the Overview tab
-  const editForm = tab === 'overview' && !['requested', 'offered', 'pending_payment', 'tentative'].includes(String(b.status)) ? await door<EditForm>(user.id, 'ops_read', 'booking_edit_form', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
+  const editForm = on('overview') && !['requested', 'offered', 'pending_payment', 'tentative'].includes(String(b.status)) ? await door<EditForm>(user.id, 'ops_read', 'booking_edit_form', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
   // correct the renter's details from the booking (0132)
-  const renterForm = tab === 'overview' || tab === 'review' ? await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
+  const renterForm = on('overview') || on('review') ? await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
   // calls and texts with the renter (0085): customer service and Sales
-  const calls = tab === 'history' ? await door<PhoneTimelineData>(user.id, 'va_read', 'phone_timeline', { booking_id: b.id }, aal).catch(() => null) : null;
+  const calls = on('history') ? await door<PhoneTimelineData>(user.id, 'va_read', 'phone_timeline', { booking_id: b.id }, aal).catch(() => null) : null;
   const [km, staff] = await Promise.all([
     arranging ? list<{ km_per_day: number }>('km_allowance_choices', { eq: { is_active: true } }).catch(() => ({ rows: [], count: 0 })) : Promise.resolve({ rows: [], count: 0 }),
     fn === 'fleet' ? read<{ staff: Array<{ id: string; name: string }> }>('fleet_board') : Promise.resolve({ staff: [] })]);
   // Email the renter (every function; the adjuster too on an insurer-billed booking), with the booking's conversation (0187)
-  const conv = tab === 'messages' ? await door<Conversation>(user.id, 'ops_read', 'booking_conversation', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
+  const conv = on('messages') ? await door<Conversation>(user.id, 'ops_read', 'booking_conversation', { booking: b.booking_number, _va: fn }, aal).catch(() => null) : null;
   const insurerBilled = b.bill_to !== 'renter' && !!b.insurer_id;
   // the additional drivers' signing links (migration 0040), for customer service
   // payments received another way (Finance) and rental documents signed on paper (customer service), migration 0044
   const [manual, paper] = await Promise.all([
-    fn === 'finance' && tab === 'money' ? door<ManualRow[]>(user.id, 'ops_read', 'manual_payments', { booking: b.id }, aal).catch(() => [] as ManualRow[]) : Promise.resolve([] as ManualRow[]),
-    fn === 'cs' && tab === 'overview' ? door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { booking: b.id }, aal).catch(() => [] as PaperRow[]) : Promise.resolve([] as PaperRow[])]);
+    fn === 'finance' && on('money') ? door<ManualRow[]>(user.id, 'ops_read', 'manual_payments', { booking: b.id }, aal).catch(() => [] as ManualRow[]) : Promise.resolve([] as ManualRow[]),
+    fn === 'cs' && section === 'documents' ? door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { booking: b.id }, aal).catch(() => [] as PaperRow[]) : Promise.resolve([] as PaperRow[])]);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const paperDocs: PaperDoc[] = [{ doc_type: 'rental_agreement', target_id: b.id, label: 'Rental agreement', signer: b.renter?.legal_name ?? '' },
     ...b.change_requests.filter((c) => ['proposed', 'approved'].includes(String(c.status)) && !c.renter_agreed_at).map((c) => ({ doc_type: 'rental_amendment', target_id: String(c.id), label: `Booking change of ${t(c.created_at)}`, signer: b.renter?.legal_name ?? '' }))];
-  const driverLinks = fn === 'cs' && tab === 'overview' ? await read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(() => []) : [];
+  const driverLinks = fn === 'cs' && section === 'documents' ? await read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(() => []) : [];
   // the late-return panel (05-va.md section 3.4) for Fleet and customer service while the car is out past its time
   const late = (fn === 'fleet' || fn === 'cs') && b.status === 'on_rent'
     ? await read<Late | null>('late_panel', { booking: b.id }).catch(() => null) : null;
-  const tabs: Array<[string, string, number?]> = [
-    ...(arranging ? [[`${base}?tab=review`, 'Review and offer']] as Array<[string, string]> : []), [`${base}?tab=overview`, 'Overview'],
-    ...(fn === 'finance' || fn === 'cs' || fn === 'sales' ? [[`${base}?tab=money`, 'Money']] as Array<[string, string]> : []),
-    ...(fn === 'cs' ? [[`${base}?tab=changes`, 'Changes', b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length]] as Array<[string, string, number?]> : []),
-    [`${base}?tab=messages`, 'Messages'],
-    [`${base}?tab=history`, 'History']];
+  const extrasCount = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length;
+  const tabs: Array<[string, string, number?]> = BOOKING_SECTIONS
+    .filter(([k]) => (k !== 'money' || fn === 'finance' || fn === 'cs' || fn === 'sales') && (k !== 'extras' || fn === 'cs'))
+    .map(([k, l]) => [`${base}?tab=${k}`, k === 'overview' && arranging ? 'Overview: review and offer' : l, k === 'extras' ? extrasCount : undefined]);
   // the next step under the status (2026-10-30): one sentence, and a button only when this function can do the step
   const step = nextStep({ status: b.status, base, now: new Date(), pickupAt: b.pickup_at, returnAt: b.return_at, offerExpiresAt: b.offer_expires_at,
     dueCents: Number(b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents ?? 0),
@@ -118,7 +121,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
     insurerBilled: b.bill_to !== 'renter',
     can: { offer: fn === 'cs' || fn === 'sales', money: fn === 'finance' || fn === 'cs' || fn === 'sales', sign: fn !== 'finance', handover: fn !== 'finance', settle: fn === 'finance' } });
   return (
-    <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && tab === 'review' && (fn === 'cs' || fn === 'sales')} va={fn}>
+    <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && on('review') && (fn === 'cs' || fn === 'sales')} va={fn}>
       <PageHead kicker={<><Link prefetch={false} className="link" href="/staff">Queue</Link> · {b.vehicle?.name} · {b.renter?.legal_name}</>} title={<>{b.booking_number} <Badge s={b.status} /></>}>
         {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
         <MoreActions>
@@ -144,10 +147,10 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
       <ClaimBanner />
       {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={R} />}
       {fn === 'fleet' && ['on_rent', 'returned', 'closed'].includes(b.status) && <p className="small"><Link prefetch={false} className="link" href={`/staff/review/${encodeURIComponent(n)}`} data-testid="photo-review-link">Photo review: pickup and return side by side</Link></p>}
-      {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} aal={aal} base={base} canHandover={fn !== 'finance'} canSign={fn !== 'finance'}
+      {(section === 'overview' || section === 'car') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} aal={aal} base={base} canHandover={fn !== 'finance'} canSign={fn !== 'finance'}
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
-      {['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} aal={aal} refresh={[base]} />}
-      {['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} aal={aal} base={base} b={{ id: b.id, status: b.status }} docBase="/staff/documents" finance={fn === 'finance'} openDocs={false} />}
+      {section === 'activity' && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} aal={aal} refresh={[base]} />}
+      {(section === 'overview' || section === 'documents') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <AgreementPanel userId={user.id} aal={aal} base={base} b={{ id: b.id, status: b.status }} docBase="/staff/documents" finance={fn === 'finance'} openDocs={false} />}
       {/* the renter's licence front, back and selfie, reviewed by Sales (0169); the coverage stays with customer service and Admin */}
       {fn === 'sales' && ['requested', 'offered', 'tentative', 'pending_payment', 'confirmed', 'on_rent'].includes(b.status) && (
         <Card title="Renter licence" testId="booking-doc-review" aside={<DocumentReview booking={b.booking_number} refresh={R} label="Review the licence" />}>
@@ -159,9 +162,10 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           <StaffDocUpload bookingId={String(b.id)} drivers={((b.drivers ?? []) as Array<Record<string, unknown>>).map((d) => ({ driver_id: String(d.driver_id), full_name: String(d.full_name ?? '') }))} />
         </Card>)}
       {/* what the owner sees of this booking (0156) */}
-      <OwnerVisibilityPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />
-      <Tabs current={`${base}?tab=${tab}`} items={tabs} />
-      {tab === 'review' && arranging && (
+      {section === 'car' && <OwnerVisibilityPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />}
+      {section === 'car' && <BookingCarSection base={base} number={b.booking_number} vehicleId={b.vehicle_id} vehicleName={b.vehicle?.name ?? null} vehicleHref={fn === 'fleet' || fn === 'cs' ? `/staff/vehicles/${b.vehicle_id}` : null} status={b.status} />}
+      <Tabs current={`${base}?tab=${section}`} items={tabs} />
+      {on('review') && arranging && (
         <>
           <Card title="The request as sent">
             <Kv rows={[['Pickup', t(b.request_sent.pickup_at)], ['Return', t(b.request_sent.return_at)], ['Note', String(b.request_note ?? '')], ['Renter', `${b.renter?.legal_name ?? ''}${b.renter?.bookings ? `, ${b.renter.bookings} past bookings` : ', first booking'}`],
@@ -174,11 +178,11 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           <ClaimGate testId="claim-gate-review" explain><BookingReview b={b} insurers={[]} kmChoices={km.rows.map((k) => k.km_per_day)} offerHours={24} editable={['requested', 'offered'].includes(b.status) || (b.status === 'pending_payment' && fn === 'cs')} /></ClaimGate>
         </>
       )}
-      {tab === 'overview' && editForm && <BookingEdit x={editForm} fees={fees} />}
-      {(tab === 'overview' || tab === 'money') && b.billable_days > 27 && <BookingPeriods booking={b.booking_number} rows={await door<PeriodRow[]>(user.id, 'ops_read', 'booking_periods', { booking: b.booking_number }, aal).catch(() => [] as PeriodRow[])} />}
-      {(tab === 'overview' || tab === 'review') && renterForm && <RenterEdit x={renterForm} />}
-      {(tab === 'overview' || tab === 'review') && renterForm?.may_edit && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: renterForm.renter_id }, aal).catch(() => [] as DuplicateRow[])} />}
-      {tab === 'overview' && (
+      {on('overview') && editForm && <BookingEdit x={editForm} fees={fees} />}
+      {(on('overview') || on('money')) && b.billable_days > 27 && <BookingPeriods booking={b.booking_number} rows={await door<PeriodRow[]>(user.id, 'ops_read', 'booking_periods', { booking: b.booking_number }, aal).catch(() => [] as PeriodRow[])} />}
+      {(on('overview') || on('review')) && renterForm && <RenterEdit x={renterForm} />}
+      {(on('overview') || on('review')) && renterForm?.may_edit && <RenterMerge renterId={renterForm.renter_id} name={renterForm.now.full_name ?? 'this renter'} rows={await door<DuplicateRow[]>(user.id, 'ops_read', 'renter_duplicates', { renter: renterForm.renter_id }, aal).catch(() => [] as DuplicateRow[])} />}
+      {on('overview') && (
         <div className="ad-cols ad-cols--2">
           <Card title="Trip">
             <Kv rows={[['Car', `${b.vehicle?.name ?? ''} ${b.vehicle?.plate ?? ''}`], ['Pickup', `${t(b.pickup_at)}, ${b.pickup_place ?? 'our location'}`], ['Return', `${t(b.return_at)}, ${b.return_place ?? 'our location'}`],
@@ -187,14 +191,18 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           </Card>
           <Card title="Open tasks"><Table rows={b.tasks} empty="No open tasks." cols={[{ key: 'title', label: 'Task', className: 'wrap' }, { key: 'queue', label: 'Queue' }, { key: 'due_at', label: 'Due', render: (r) => t(r.due_at) }]} /></Card>
           <Card title="Add-ons" testId="booking-addons-card"><BookingAddons items={b.addons ?? []} status={b.status} refresh={R} /></Card>
+        </div>
+      )}
+      {section === 'documents' && (
+        <div className="ad-cols ad-cols--2" data-testid="booking-documents-section">
           <Card title="Drivers"><Table rows={b.drivers} empty="No drivers." cols={[{ key: 'full_name', label: 'Name' }, { key: 'role', label: 'Role' }]} /></Card>
           {fn === 'cs' && <Card title="Additional drivers' signing links"><DriverLinks rows={driverLinks} refresh={R} /></Card>}
           {fn === 'cs' && <Card title="Signed on paper" testId="booking-paper"><div className="stack"><p className="small muted">The renter signed the rental agreement or a change on paper: upload the scan and it counts as signed. Only an Admin can void it.</p><PaperSignatureList rows={paper} canVoid={false} docBase="/staff/documents" /><PaperSignatureForm docs={paperDocs} today={today} refresh={R} /></div></Card>}
         </div>
       )}
-      {tab === 'money' && <OwnerDeductionsPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />}
-      {tab === 'money' && moneyByPart && !b.payments && <><BookingMoney m={moneyByPart} />{fees && <BookingFees x={fees} />}</>}
-      {tab === 'money' && b.payments && (
+      {on('money') && <OwnerDeductionsPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />}
+      {on('money') && moneyByPart && !b.payments && <><BookingMoney m={moneyByPart} />{fees && <BookingFees x={fees} />}</>}
+      {on('money') && b.payments && (
         <div className="stack">
           {moneyByPart && <BookingMoney m={moneyByPart} />}
           {fees && <BookingFees x={fees} />}
@@ -211,7 +219,7 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           {fn === 'finance' && b.status === 'returned' && <Card title="Statement"><Act action="issue_booking_statement" payload={P} label="Issue the final statement" confirm="Issue the Check-in statement from the assessed lines. Damage lines wait for an Admin." refresh={R} /></Card>}
         </div>
       )}
-      {tab === 'changes' && fn === 'cs' && (
+      {on('changes') && fn === 'cs' && (
         <div className="stack">
           {b.status === 'confirmed' && b.bill_to === 'renter' && <Card title="Propose a change" testId="propose-card"><ProposeChange booking={b.id} number={b.booking_number} pickupAt={b.pickup_at} returnAt={b.return_at} vehicleId={b.vehicle_id} rentalCents={Number(b.rental_charge_cents ?? 0)} refresh={R} /></Card>}
           <Card title="Change requests"><Table rows={b.change_requests} testId="change-requests" empty="No change requests." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'requested_by_role', label: 'From' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'note', label: 'Reason', className: 'wrap' }, { key: 'accept_by', label: 'Answer by', render: (r) => t(r.accept_by) }, { key: 'total_difference_cents', label: 'Difference', num: true, render: (r) => $(r.total_difference_cents) },
@@ -222,8 +230,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
           <Card title="Questions to the renter"><Table rows={b.info_requests} empty="No questions." cols={[{ key: 'asked_at', label: 'Asked', render: (r) => t(r.asked_at) }, { key: 'question', label: 'Question', className: 'wrap' }, { key: 'status', label: 'Status' }, { key: 'reply', label: 'Reply', className: 'wrap' }]} /></Card>
         </div>
       )}
-      {tab === 'messages' && (conv ? <BookingConversation c={conv} refresh={R} initialTo={sp.to === 'adjuster' ? 'adjuster' : 'renter'} /> : <p className="small muted">The messages could not be read. Reload the page.</p>)}
-      {tab === 'history' && (
+      {on('messages') && (conv ? <BookingConversation c={conv} refresh={R} initialTo={sp.to === 'adjuster' ? 'adjuster' : 'renter'} /> : <p className="small muted">The messages could not be read. Reload the page.</p>)}
+      {on('history') && (
         <div className="ad-cols ad-cols--2">
           <Card title="Timeline" testId="timeline"><ol className="ad-timeline">{b.events.map((e) => <li key={String(e.id)}><time>{t(e.created_at)}</time><span><b>{label(e.kind)}</b>{e.note ? `: ${String(e.note)}` : ''} <span className="muted small">{String(e.actor_name ?? e.actor_type ?? '')}</span></span></li>)}</ol></Card>
           <div className="stack">

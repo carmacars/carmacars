@@ -342,7 +342,7 @@ test('drivers and accounts: new signing links from the renter and from customer 
     const va = await ctx(browser, phone);
     const verrors = watch(va);
     await signIn(va, cs.email, '/staff');
-    await va.goto(`/staff/bookings/${req.booking_number}?tab=overview`);
+    await va.goto(`/staff/bookings/${req.booking_number}?tab=documents`);
     await expect(va.getByTestId('driver-links')).toContainText('Dana Driver');
     await check(va, 'va driver links');
     await va.getByTestId(`staff-driver-resend-${sg!.id}`).click();

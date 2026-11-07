@@ -53,7 +53,7 @@ test('hide a booking\'s revenue from the owner, and a booking expense the owner 
   const a = await ctx(browser, false);
   const errors = watch(a);
   await signIn(a, adminEmail, '/admin');
-  await a.goto(`/admin/bookings/${hidden}`, { waitUntil: 'networkidle' });
+  await a.goto(`/admin/bookings/${hidden}?tab=car`, { waitUntil: 'networkidle' });
   await expect(a.getByTestId('owner-visibility-state')).toHaveText('The owner can see it');
   await a.getByTestId('owner-hide').click();
   await a.getByTestId('owner-hide-form').getByLabel(/Reason/).fill('Price under review with the owner');
@@ -93,7 +93,7 @@ test('hide a booking\'s revenue from the owner, and a booking expense the owner 
   }
 
   // shown again: the amount is back
-  await a.goto(`/admin/bookings/${hidden}`, { waitUntil: 'networkidle' });
+  await a.goto(`/admin/bookings/${hidden}?tab=car`, { waitUntil: 'networkidle' });
   await a.getByTestId('owner-show').click();
   await a.getByTestId('owner-show-submit').click();
   await expect(a.getByTestId('owner-visibility-state')).toHaveText('The owner can see it');
