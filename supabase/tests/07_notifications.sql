@@ -25,8 +25,8 @@ begin
 end $$;
 
 -- ================================================================== A. catalogue
-select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0547 the partner invoice)',
-  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '207/21');
+select test.eq('A the catalogue holds every email of emails/catalogue.json plus the in-app notices (0043 cap, 0044 document to sign, 0370 a visitor message waiting in live chat, 0430 the start and end notices, 0400 the two tracker alerts, 0441 the data health notice, 0380 adds one email, 0460 the lead and visitor alerts, 0462 the staff alerts, 0532 the return report denied, 0547 the partner invoice, 0583 the staff email digest)',
+  (select count(*) filter (where has_email and in_catalogue) || '/' || count(*) filter (where not has_email) from notification_catalogue), '209/21');
 select test.eq('A the two emails added here are in the catalogue',
   (select string_agg(code, ',' order by code) from notification_catalogue where code in ('renter_named_to_authority', 'staff_monthly_statements_ready')),
   'renter_named_to_authority,staff_monthly_statements_ready');
@@ -877,6 +877,8 @@ select test.flush();
 delete from booking_change_requests where id = test.id('nt_cr');
 select test.eq('G no wired code is missing a variable (built here or supplied by the sender)',
   (select string_agg(distinct code || ':' || array_to_string(missing_variables, ','), '; ') from notification_outbox where missing_variables <> '{}'), null::text);
+-- 0583: the staff email digest of the alerts these tests sent
+select app.staff_email_digests(now() + interval '2 hours');
 select test.eq('G every wired email code has been built at least once in these tests, digests included',
   (select string_agg(c.code, ',' order by c.code) from notification_catalogue c
     where c.has_email and c.emitted_by not like 'not emitted%'

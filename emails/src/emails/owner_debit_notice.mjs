@@ -14,15 +14,8 @@ export default {
   ref: 'Debit on {{debit_date}}',
   body: [
     hero('Upcoming debit', 'We will debit {{debit_total}} on {{debit_date}}', 'This is your notice of the fees below, {{first_name}}. If your bank account is up to date, there is nothing to do.'),
-    table({
-      each: 'debit_items',
-      cols: [
-        { head: 'Invoice', value: '{{invoice_number}}', strong: true },
-        { head: 'Vehicle', value: '{{vehicle}}' },
-        { head: 'Covers', value: '{{covers}}' },
-        { head: 'Amount', value: '{{amount}}', align: 'right', strong: true },
-      ],
-    }),
+    // r29 C4: each amount in one plain line: the car, the fee, the period, how it was worked out, the invoice
+    rows('debit_items', '{{line}}', '{{how}}. Invoice {{invoice_number}}.', '{{url}}'),
     facts(
       ['Debit date', '{{debit_date}}'],
       ['Payee', '{{payee_name}}'],
@@ -36,8 +29,10 @@ export default {
   sample: {
     payee_name: '18122211 Canada Inc., operating as CarmaCars', debit_date: 'Sun, Nov 15, 2026', debit_total: '$1,073.50', debit_count_text: '2 invoices', bank_last4: '6621', notice_days: '10',
     debit_items: [
-      { invoice_number: 'INV-1042', vehicle: '2023 Toyota RAV4 XLE', covers: 'November 2026', amount: '$536.75' },
-      { invoice_number: 'INV-1043', vehicle: '2022 Hyundai Elantra Preferred', covers: 'November 2026', amount: '$536.75' },
+      { invoice_number: 'INV-1042', amount: '$536.75', car: '2023 Toyota RAV4 XLE', fee: 'monthly fee', period: 'November 2026', how: 'full month, plus HST',
+        line: '$536.75: 2023 Toyota RAV4 XLE, monthly fee, November 2026', url: 'https://carmacars.ca/owner/invoices/INV-1042' },
+      { invoice_number: 'INV-1043', amount: '$536.75', car: '2022 Hyundai Elantra Preferred', fee: 'monthly fee', period: 'November 2026', how: 'full month, plus HST',
+        line: '$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026', url: 'https://carmacars.ca/owner/invoices/INV-1043' },
     ],
   },
 };

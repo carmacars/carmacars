@@ -18,7 +18,7 @@ const TABS = ['invoices', 'debits', 'statements', 'payouts'] as const;
 export default async function OwnerMoney({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const [ctx, sp] = await Promise.all([page('/admin/owner-money'), searchParams]);
   const tab = tabOf(TABS, sp.tab);
-  if (tab === 'debits') return <Debits ctx={ctx} />;
+  if (tab === 'debits') return <Debits ctx={ctx} sp={sp} />;
   if (tab === 'statements') return <Statements ctx={ctx} sp={sp} />;
   if (tab === 'payouts') return <Payouts ctx={ctx} sp={sp} />;
   return <Invoices ctx={ctx} sp={sp} />;

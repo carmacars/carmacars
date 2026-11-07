@@ -15,6 +15,8 @@ export default {
   body: [
     hero('In arrears', 'The retry failed. Your vehicle is in arrears.', 'We tried the debit for your {{vehicle_name}} a second time, {{first_name}}, and your bank returned it again.'),
     figure('Owing', '{{arrears_amount}}', 'Invoice {{invoice_number}}: fees {{amount}} plus the {{late_fee}} late fee.'),
+    // r29 C4: the amount in one plain line: the car, the fee, the period, how it was worked out, the invoice
+    rows('amount_items', '{{line}}', '{{how}}. Invoice {{invoice_number}}.', '{{url}}'),
     h('What happens now'),
     steps(
       ['You can pay today', 'Paying now clears the arrears and stops everything below.'],
@@ -29,6 +31,8 @@ export default {
     small('Getting your car back is never delayed because money is owed. If there is a problem we should know about, reply to this email or call us today.'),
   ],
   sample: {
+    amount_items: [{ invoice_number: 'INV-2026-11-0042', amount: '$536.75', car: '2022 Hyundai Elantra Preferred', fee: 'monthly fee', period: 'November 2026', how: 'prorated: 20 of 30 days, plus HST',
+        line: '$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026', url: 'https://carmacars.ca/owner/invoices/INV-2026-11-0042' }],
     arrears_amount: '$586.75', amount: '$536.75', late_fee: '$50.00', invoice_number: 'INV-2026-11-0042',
     next_payout_date: 'December 10', removal_date: 'December 18, 2026', is_self_managed: false,
   },

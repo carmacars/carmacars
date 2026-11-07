@@ -8,7 +8,7 @@ import { join } from 'node:path';
 
 const ROOT = join(import.meta.dirname, '../../..');
 const run = (script: string, args: string[], env: Record<string, string> = {}) =>
-  execFileSync('bash', [join(ROOT, script), ...args], { encoding: 'utf8', env: { ...process.env, CF_EMAIL_BINDING: '', OWNER_STEPS_JSON: '', GITHUB_STEP_SUMMARY: '', ...env } });
+  execFileSync('bash', [join(ROOT, script), ...args], { encoding: 'utf8', env: { ...process.env, CF_EMAIL_BINDING: '', OWNER_STEPS_JSON: '', FEE_AUDIT_JSON: '', GITHUB_STEP_SUMMARY: '', ...env } });
 
 test('logical backups: the last 7 nights and the Sundays of the last 4 weeks', () => {
   const out = run('scripts/backup/keep.sh', ['--now', '2026-11-01T07:30Z', '--days', '7', '--weeks', '4',
@@ -24,6 +24,18 @@ test('owner steps: every waiting feature in one annotation, the Cloudflare email
   assert.match(waiting, /CF_EMAIL_BINDING = 1/);
   const set = run('scripts/deploy/owner-steps.sh', ['--offline'], { OWNER_STEPS_JSON: '[]', CF_EMAIL_BINDING: '1' });
   assert.equal(set.trim(), '::notice title=owner steps::nothing is waiting on an owner step');
+});
+
+test('the fee check: one annotation, owners by reference, each invoice that does not match with why', () => {
+  const ok = JSON.stringify({ month: 'November 2026', invoices: 2, owners: 1, total: '$1,073.50', by_owner: [{ owner: 'owner a1b2c3', invoices: 2, total: '$1,073.50' }], problems: [] });
+  assert.equal(run('scripts/deploy/fee-audit.sh', ['--offline'], { FEE_AUDIT_JSON: ok }).trim(),
+    '::notice title=fee check::November 2026: 2 invoices to 1 owners, $1,073.50. Every invoice matches the agreement.%0A- owner a1b2c3: 2 invoices, $1,073.50');
+  const bad = JSON.stringify({ month: 'November 2026', invoices: 3, owners: 1, total: '$1,610.25', by_owner: [{ owner: 'owner a1b2c3', invoices: 3, total: '$1,610.25' }],
+    problems: [{ owner: 'owner a1b2c3', invoice: 'INV-1050', car: 'F-12', total: '$536.75', problem: 'every day on a flat monthly payment: no monthly fee' }] });
+  const out = run('scripts/deploy/fee-audit.sh', ['--offline'], { FEE_AUDIT_JSON: bad });
+  assert.match(out, /^::warning title=fee check \(1 to look at\)::November 2026: 3 invoices to 1 owners, \$1,610\.25\. 1 do not match/);
+  assert.match(out, /INV-1050 \(car F-12, owner a1b2c3\), \$536\.75: every day on a flat monthly payment: no monthly fee/);
+  assert.match(run('scripts/deploy/fee-audit.sh', ['--offline'], { FEE_AUDIT_JSON: '' }), /::warning title=fee check::the owner invoices could not be read/);
 });
 
 test('the email binding: 1, true, yes, on or EMAIL (any case) add it, once, and say so; anything else says why not', async () => {

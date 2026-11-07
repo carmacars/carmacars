@@ -15,6 +15,8 @@ export default {
   ref: 'Invoice {{invoice_number}}',
   body: [
     hero('Payment failed', 'Your fee payment did not go through', 'The debit for your {{vehicle_name}} was returned by your bank, {{first_name}}.'),
+    // r29 C4: the amount in one plain line: the car, the fee, the period, how it was worked out, the invoice
+    rows('amount_items', '{{line}}', '{{how}}. Invoice {{invoice_number}}.', '{{url}}'),
     price({
       rows: [['Invoice {{invoice_number}}, {{invoice_month}} fees', '{{amount}}'], ['Late fee', '{{late_fee}}']],
     }),
@@ -23,5 +25,7 @@ export default {
     button('Check my payment details', '@owner_billing'),
     small('If you changed banks, update your debit authorization before {{retry_date}}. This affects only the {{vehicle_name}}. Your other vehicles are billed separately. {{late_fee_rule}}'),
   ],
-  sample: { amount: '$536.75', invoice_number: 'INV-2026-11-0042', invoice_month: 'November', late_fee: '$50.00', retry_date: 'Wed, Nov 18, 2026', retry_amount: '$536.75' },
+  sample: {
+    amount_items: [{ invoice_number: 'INV-2026-11-0042', amount: '$536.75', car: '2022 Hyundai Elantra Preferred', fee: 'monthly fee', period: 'November 2026', how: 'prorated: 20 of 30 days, plus HST',
+        line: '$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026', url: 'https://carmacars.ca/owner/invoices/INV-2026-11-0042' }], amount: '$536.75', invoice_number: 'INV-2026-11-0042', invoice_month: 'November', late_fee: '$50.00', retry_date: 'Wed, Nov 18, 2026', retry_amount: '$536.75' },
 };

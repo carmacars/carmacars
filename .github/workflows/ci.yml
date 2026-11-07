@@ -440,6 +440,11 @@ jobs:
         env:
           CF_EMAIL_BINDING: ${{ vars.CF_EMAIL_BINDING }}
         run: scripts/deploy/owner-steps.sh
+      # r29 C4 (0584): the month's owner invoices against each car's signed terms, read only (owners by a short reference)
+      - name: Fee check (owner invoices against the signed terms)
+        if: inputs.environment == 'production'
+        continue-on-error: true
+        run: scripts/deploy/fee-audit.sh
       - name: Turo by email (Email Routing on in.carmacars.ca and its rule to the Worker; never the root domain's mail)
         if: inputs.environment == 'production'
         continue-on-error: true

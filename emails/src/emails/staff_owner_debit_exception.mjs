@@ -7,33 +7,25 @@ export default {
   category: 'transactional',
   from: FROM.billing,
   digest: false,
-  trigger: 'An owner\'s automatic debit cannot go ahead: no active pre-authorized debit on file at the notice or on the debit day, the agreement was cancelled at the bank (Stripe mandate inactive), the balance grew after the notice, or the invoice is blocked for another reason. Paused invoices are not reported. Immediate to the Admins; an Admin task opens for a missing debit agreement.',
+  trigger: 'An owner\'s automatic debit cannot go ahead: no bank debit set up at the notice or on the debit day, the owner cancelled the debit at their bank, the amount went up after the notice, the bank sent the payment back, or the invoice is held for another reason. Paused invoices are not reported. Immediate to the Admins; an Admin task opens for a missing debit agreement.',
   timing: 'Immediate',
-  subject: 'Owner debit exception: {{owner_name}}, {{exception_title}}',
-  preheader: '{{debit_count_text}}, {{debit_total}}, due {{debit_date}}.',
+  subject: 'Can\'t collect {{debit_total}} from {{owner_name}}: {{reason_plain}}',
+  preheader: '{{fix_text}}',
   ref: 'Owner debits',
+  // r29 C4 (migrations 0583, 0584): what happened, how much (each amount in one plain line), what to do, one button.
   body: [
-    hero('Owner debit exception', '{{exception_title}}', '{{owner_name}}: {{exception_detail}}'),
-    table({
-      each: 'debit_items',
-      cols: [
-        { head: 'Invoice', value: '{{invoice_number}}', strong: true },
-        { head: 'Vehicle', value: '{{vehicle}}' },
-        { head: 'Amount', value: '{{amount}}', align: 'right', strong: true },
-      ],
-    }),
-    facts(
-      ['Owner', '{{owner_name}}'],
-      ['Debit date', '{{debit_date}}'],
-      ['Total', '{{debit_total}}'],
-    ),
-    button('Open owner debits', '@admin_debits'),
-    small('From Owner debits you can pause the debit, send a new notice once the owner has set up banking, or record a payment received another way.'),
+    hero('Owner payment', 'Can\'t collect {{debit_total}} from {{owner_name}}', 'We were going to take {{debit_total}} from {{owner_name}}\'s bank on {{debit_date}} for {{debit_for}}, and we can\'t: {{reason_plain}}.'),
+    // r29 C4: each amount in one plain line
+    rows('debit_items', '{{line}}', '{{how}}. Invoice {{invoice_number}}.', '{{url}}'),
+    notice('info', 'What to do', '{{fix_text}}'),
+    button('{{fix_label}}', '{{fix_url}}'),
   ],
   sample: {
-    owner_name: 'Daniel Rossi', exception_title: 'No pre-authorized debit on file',
-    exception_detail: 'The owner has no active pre-authorized debit. They were emailed a link to set it up in Banking. Nothing is debited until they do; they can also pay from each invoice page.',
-    debit_date: 'Sun, Nov 15, 2026', debit_total: '$536.75', debit_count_text: '1 invoice',
-    debit_items: [{ invoice_number: 'INV-1042', vehicle: '2023 Toyota RAV4 XLE', amount: '$536.75' }],
+    owner_name: 'Daniel Rossi', reason_plain: 'no bank debit set up', debit_date: 'Sun, Nov 15, 2026', debit_total: '$536.75',
+    debit_for: 'invoice INV-1042 (2023 Toyota RAV4 XLE)',
+    debit_items: [{ invoice_number: 'INV-1042', amount: '$536.75', car: '2023 Toyota RAV4 XLE', fee: 'monthly fee', period: 'November 2026', how: 'prorated: 20 of 30 days, plus HST',
+        line: '$536.75: 2023 Toyota RAV4 XLE, monthly fee, November 2026', url: 'https://carmacars.ca/admin/owners/00000000-0000-0000-0000-000000000000#inv-INV-1042' }],
+    fix_text: 'Send the owner the link to set up their bank debit. Nothing is taken until they do.',
+    fix_label: 'Send the sign-up link', fix_url: 'https://carmacars.ca/admin/owner-money?tab=debits&owner=00000000-0000-0000-0000-000000000000&fix=setup',
   },
 };

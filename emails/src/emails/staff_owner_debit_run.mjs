@@ -13,29 +13,24 @@ export default {
   preheader: '{{skipped_count}} not sent, {{failed_count}} refused at once. Bank results follow over the next days.',
   ref: 'Owner debits',
   body: [
-    hero('Owner debit run', '{{submitted_count}} debits sent for {{submitted_total}}', 'The automatic owner debits of {{run_date}} have gone to the bank. Each one clears or comes back within about 5 business days.'),
+    hero('Owner debits', '{{submitted_count}} debits sent for {{submitted_total}}', 'The automatic owner debits of {{run_date}} have gone to the bank. Each one clears or comes back within about 5 business days.'),
     keyfacts(
       { label: 'Sent', value: '{{submitted_count}}' },
       { label: 'Not sent', value: '{{skipped_count}}' },
       { label: 'Refused', value: '{{failed_count}}' },
     ),
-    table({
-      each: 'run_items',
-      cols: [
-        { head: 'Owner', value: '{{owner}}', strong: true },
-        { head: 'Invoice', value: '{{invoice_number}}' },
-        { head: 'Amount', value: '{{amount}}', align: 'right' },
-        { head: 'Status', value: '{{status}}' },
-      ],
-    }),
+    // r29 C4: each debit in one plain line: the owner, the amount, the car, the fee, the period, how, the invoice
+    rows('run_items', '{{owner}}, {{line}}', '{{status}}. {{how}}. Invoice {{invoice_number}}.', '{{url}}'),
     button('Open owner debits', '@admin_debits'),
-    small('Owners without a debit agreement ({{no_mandate_count}} today) were asked to set one up. A returned debit adds the late fee and is tried again as Program settings say.'),
+    small('Owners with no bank debit set up ({{no_mandate_count}} today) were sent the link to set one up. A payment the bank sends back adds the late fee and is tried again as Program settings say.'),
   ],
   sample: {
     run_date: 'Sun, Nov 15, 2026', submitted_count: '12', submitted_total: '$6,441.00', skipped_count: '1', failed_count: '0', no_mandate_count: '1',
     run_items: [
-      { owner: 'Daniel Rossi', invoice_number: 'INV-1042', amount: '$536.75', status: 'Sent, processing' },
-      { owner: 'Lena Park', invoice_number: 'INV-1044', amount: '$536.75', status: 'Not sent: no pre-authorized debit mandate' },
+      { owner: 'Daniel Rossi', status: 'Sent, waiting for the bank', invoice_number: 'INV-1042', amount: '$536.75', car: '2023 Toyota RAV4 XLE', fee: 'monthly fee', period: 'November 2026', how: 'prorated: 20 of 30 days, plus HST',
+        line: '$536.75: 2023 Toyota RAV4 XLE, monthly fee, November 2026', url: 'https://carmacars.ca/admin/owners/00000000-0000-0000-0000-000000000000#inv-INV-1042' },
+      { owner: 'Lena Park', status: 'Not sent: no bank debit set up', invoice_number: 'INV-1044', amount: '$536.75', car: '2022 Hyundai Elantra Preferred', fee: 'monthly fee', period: 'November 2026', how: 'full month, plus HST',
+        line: '$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026', url: 'https://carmacars.ca/admin/owners/00000000-0000-0000-0000-000000000000#inv-INV-1044' },
     ],
   },
 };

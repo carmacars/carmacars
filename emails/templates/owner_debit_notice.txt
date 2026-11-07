@@ -8,7 +8,9 @@ We will debit {{debit_total}} on {{debit_date}}
 This is your notice of the fees below, {{first_name}}. If your bank account is up to date, there is nothing to do.
 
 {{#each debit_items}}
-  Invoice: {{invoice_number}} | Vehicle: {{vehicle}} | Covers: {{covers}} | Amount: {{amount}}
+- {{line}}
+  {{how}}. Invoice {{invoice_number}}.
+  {{url}}
 {{/each}}
 
 Debit date: {{debit_date}}

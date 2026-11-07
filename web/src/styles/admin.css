@@ -654,3 +654,9 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .bm-panel { min-width: 0; }
 @media (max-width: 900px) { .bm-panels { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 480px) { .bm-strip { grid-template-columns: minmax(0, 1fr); } }
+
+/* r29 C4: the debit preview (Owner money > Debits) */
+.ad-preview { list-style: none; margin: 0; padding: 0; }
+.ad-preview > li { padding: var(--s-2) 0; border-bottom: 1px solid var(--grey-200); }
+.ad-preview__head { flex-wrap: wrap; gap: var(--s-2); align-items: center; margin: 0 0 var(--s-1); }
+.ad-preview ul { margin: 0; padding-left: 1.1rem; overflow-wrap: anywhere; }

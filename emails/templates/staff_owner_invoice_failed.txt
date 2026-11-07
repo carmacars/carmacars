@@ -2,25 +2,22 @@ CarmaCars  |  Invoice {{invoice_number}}
 
 ========================================
 
-[Owner invoice failed]
-A fee debit was returned
+[Owner payment]
+The bank sent back {{amount}}
 
-{{owner_name}}'s debit for the {{vehicle_name}} did not clear. Stage: {{failure_stage}}.
+We took {{amount}} from {{owner_name}}'s bank for invoice {{invoice_number}} ({{vehicle_name}}), and the bank sent it back: {{bank_reason}}.
 
-Invoice: {{invoice_number}}, {{invoice_month}}
-Amount: {{amount}}
-Late fee: {{late_fee}}
-Now owing: {{arrears_amount}}
-Bank reason: {{bank_reason}}
-Next step: {{failure_next_step}}
+{{#each amount_items}}
+- {{line}}
+  {{how}}. Invoice {{invoice_number}}.
+  {{url}}
+{{/each}}
+
+What to do
+{{fix_text}}
 
 Open the invoice:
 https://carmacars.ca/staff/money
-
-- First failure: late fee added per vehicle, owner told, retry on the {{retry_day}}.
-- Retry fails: deduct from that vehicle's revenue at the next payout. Do not enable a Self-Managed car for new bookings. Tell an admin.
-- Balance left at the next payout, the {{payout_day}}: debt payable on demand. Deduct from the owner's other vehicles.
-- 30 days after the failed retry: an admin may remove the vehicle.
 
 ----------------------------------------
 

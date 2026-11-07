@@ -2,7 +2,7 @@ CarmaCars  |  Owner debits
 
 ========================================
 
-[Owner debit run]
+[Owner debits]
 {{submitted_count}} debits sent for {{submitted_total}}
 
 The automatic owner debits of {{run_date}} have gone to the bank. Each one clears or comes back within about 5 business days.
@@ -12,13 +12,15 @@ Not sent: {{skipped_count}}
 Refused: {{failed_count}}
 
 {{#each run_items}}
-  Owner: {{owner}} | Invoice: {{invoice_number}} | Amount: {{amount}} | Status: {{status}}
+- {{owner}}, {{line}}
+  {{status}}. {{how}}. Invoice {{invoice_number}}.
+  {{url}}
 {{/each}}
 
 Open owner debits:
 https://carmacars.ca/admin/debits
 
-Owners without a debit agreement ({{no_mandate_count}} today) were asked to set one up. A returned debit adds the late fee and is tried again as Program settings say.
+Owners with no bank debit set up ({{no_mandate_count}} today) were sent the link to set one up. A payment the bank sends back adds the late fee and is tried again as Program settings say.
 
 ----------------------------------------
 

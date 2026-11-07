@@ -14,15 +14,8 @@ export default {
   ref: 'Fees due {{debit_date}}',
   body: [
     hero('Action needed', 'Set up your pre-authorized debit', 'Your fees are paid by pre-authorized debit on the {{debit_day}} of each month, {{first_name}}, but we have no active bank account on file for you. Nothing was debited.'),
-    table({
-      each: 'debit_items',
-      cols: [
-        { head: 'Invoice', value: '{{invoice_number}}', strong: true },
-        { head: 'Vehicle', value: '{{vehicle}}' },
-        { head: 'Covers', value: '{{covers}}' },
-        { head: 'Amount', value: '{{amount}}', align: 'right', strong: true },
-      ],
-    }),
+    // r29 C4: each amount in one plain line
+    rows('debit_items', '{{line}}', '{{how}}. Invoice {{invoice_number}}.', '{{url}}'),
     facts(
       ['Total due', '{{debit_total}}'],
       ['Due', '{{debit_date}}'],
@@ -33,6 +26,7 @@ export default {
   ],
   sample: {
     debit_date: 'Sun, Nov 15, 2026', debit_total: '$536.75', notice_days: '10',
-    debit_items: [{ invoice_number: 'INV-1042', vehicle: '2023 Toyota RAV4 XLE', covers: 'November 2026', amount: '$536.75' }],
+    debit_items: [{ invoice_number: 'INV-1042', amount: '$536.75', car: '2023 Toyota RAV4 XLE', fee: 'monthly fee', period: 'November 2026', how: 'prorated: 20 of 30 days, plus HST',
+        line: '$536.75: 2023 Toyota RAV4 XLE, monthly fee, November 2026', url: 'https://carmacars.ca/owner/invoices/INV-1042' }],
   },
 };
