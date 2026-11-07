@@ -92,6 +92,23 @@ select public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'card_charge_finish', 
 select test.eq('charged once: nothing open for the rental or the fees', app.booking_part_open(test.id('booking:R32F-4'), 'rental') || '/' || app.booking_part_open(test.id('booking:R32F-4'), 'fees'), '0/0');
 select test.eq('one succeeded charge only', (select count(*) from payments where booking_id = test.id('booking:R32F-4') and kind = 'charge' and status = 'succeeded')::integer, 1);
 select test.eq('the split is kept', (select string_agg(part || ':' || amount_cents, ',' order by part) from payment_part_allocations where payment_id = (select (v ->> 'payment_id')::uuid from test.rf where k = 'c1')), 'fees:5000,rental:30000');
+
+-- an insurer pays the rental: the one charge takes only what the renter owes
+insert into insurers (id, name, billing_email) values (test.id('insurer:r32f'), 'Example Insurance R32F', 'claims-r32f@example.test');
+select test.mk_booking('R32F-9', 'R32FY', 'r32f_r', test.rf_t(interval '10 days'), test.rf_t(interval '13 days'), 'confirmed');
+do $$
+declare v_b uuid := test.id('booking:R32F-9');
+begin
+  delete from booking_line_items where booking_id = v_b;
+  delete from payments where booking_id = v_b;
+  insert into booking_line_items (booking_id, charge_type, quantity, unit_amount_cents, amount_cents, hst_applies, hst_cents, revenue_class, stage)
+  select v_b, 'rental_charge', 1, 30000, 30000, false, 0, f.revenue_class, 'booking' from fee_types f where f.code = 'rental_charge';
+  update bookings set total_due_at_booking_cents = 35000, bill_to = 'insurer', insurer_id = test.id('insurer:r32f'),
+         insurer_share_cents = 30000, insurer_hst_cents = 0, card_on_file_id = (select card_on_file_id from bookings where id = test.id('booking:R32F-4'))
+   where id = v_b;
+end $$;
+insert into test.rf select 'c9', public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-9', 'covers', 'balance', 'reason', 'Rental and fees'));
+select test.eq('insurer billed: the one charge is the renter''s $50 only', (select v ->> 'amount_cents' from test.rf where k = 'c9'), '5000');
 select test.eq('the Money tab lists it once, for the rental and the fees, with both amounts',
   (select x ->> 'covers' || '/' || (x #>> '{parts,rental}') || '/' || (x #>> '{parts,fees}')
      from jsonb_array_elements(public.door(test.id('r32f_fin'), 'aal2', 'ops_read', 'booking_money', jsonb_build_object('booking', 'R32F-4')) -> 'payments') x
