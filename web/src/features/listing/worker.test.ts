@@ -139,13 +139,15 @@ test('photo: an exterior is cut out, placed on the backdrop with the shadow, sto
   assert.equal(r.ok, true);
   const o = r.output as Record<string, unknown>;
   assert.equal(o.processed_path, 'vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg');
-  assert.equal(o.preset_version, 'studio_v3');
-  const band = f.pub.get('site/backdrop/lettering-v1-rav4.png');
-  assert.ok(band && band[0] === 0x89 && band[1] === 0x50, 'the model-name band is a PNG in the public bucket');
+  assert.equal(o.preset_version, 'studio_v4');
+  // r31: no model name lettered behind a real car (it showed as a large faint word around the car)
+  assert.ok(!f.pub.has('site/backdrop/lettering-v1-rav4.png'), 'no model-name band is made for a real photo');
+  // a cut-out that cannot be read is placed the old way, and flagged
+  assert.deepEqual(o.flags, ['not_framed']);
   assert.deepEqual([o.width, o.height], [1800, 1200]);
   assert.ok(f.pub.has('vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg'));
   assert.ok(f.priv.has('vehicles/v1/work/p1-cutout.png'), 'the cut-out stays private');
-  assert.equal(calls[0], 'pub:site/backdrop/studio_v2.png|pub:site/backdrop/lettering-v1-rav4.png@348|pub:site/backdrop/shadow_v1.png|priv:vehicles/v1/work/p1-cutout.png');
+  assert.equal(calls[0], 'pub:site/backdrop/studio_v2.png|-@-|pub:site/backdrop/shadow_v1.png|priv:vehicles/v1/work/p1-cutout.png');
   assert.deepEqual([r.units, r.unit, r.cost_microusd], [2, 'transformations', 0]);
 });
 
@@ -163,7 +165,8 @@ test('photo: a readable cut-out is framed to the car and placed big on the floor
     composite: async (r: { place?: { width: number; height: number; left: number; bottom: number } | null }) => { placed.push(r.place); return { ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }; } };
   const r = await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, watermark: true } }), budget);
   const o = r.output as Record<string, unknown>;
-  assert.equal(o.preset_version, 'studio_v3');
+  assert.equal(o.preset_version, 'studio_v4');
+  assert.deepEqual(o.flags, []);
   assert.equal(o.watermark_removed, true);
   assert.equal((o.framing as { dropped: number }).dropped, 1);
   const p = placed[0]!;

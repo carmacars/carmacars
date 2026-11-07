@@ -120,6 +120,8 @@ export function greyOf(img: CanvasImageSource, width: number, height: number, lo
  * Near the model's box, windows of plate shapes are scored by the edges inside them against the edges around them; the
  * best one is taken when it clearly stands out, otherwise the model's box stays. Staff check the box either way.
  */
+/** r31: how far across (a share of the box's width) the plate is looked for beside the model's box. */
+export const REFINE_ACROSS = 0.35;
 export function refineBox(g: Grey, guess: NBox): { box: NBox; moved: boolean; score: number } {
   const W = g.width, H = g.height;
   if (W < 16 || H < 16) return { box: guess, moved: false, score: 0 };
@@ -153,7 +155,9 @@ export function refineBox(g: Grey, guess: NBox): { box: NBox; moved: boolean; sc
   for (const kw of [0.75, 1, 1.3]) {
     for (const ratio of [2, 2.8, 3.6, 4.5]) {
       const w = Math.round(gw * kw), h = Math.max(3, Math.round(w / ratio));
-      const rx = Math.round(Math.max(gw, w) * 1.2), ry = Math.round(Math.max(gh, h) * 2 + H * 0.12);
+      // r31: across, only a third of the box either way: the model's box is across the plate (its error is up or down), and a
+      // wider search took the grille or the bumper's intake beside the plate (denser edges) for it
+      const rx = Math.round(Math.max(gw, w) * REFINE_ACROSS), ry = Math.round(Math.max(gh, h) * 2 + H * 0.12);
       for (let y = Math.round(cy - h / 2 - ry); y <= cy - h / 2 + ry; y += step) {
         if (y < 0 || y + h > H) continue;
         for (let x = Math.round(cx - w / 2 - rx); x <= cx - w / 2 + rx; x += step) {

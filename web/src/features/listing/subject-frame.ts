@@ -107,8 +107,19 @@ export async function encodePng(img: Rgba): Promise<Uint8Array> {
 }
 
 export const FRAME = {
-  /** a pixel at or above this alpha is part of the subject */
-  solid: 48,
+  /** a pixel at or above this alpha is part of the subject (r31: was 48, which let the segmenter's faint haze, the floor's
+   *  reflection and the soft shadow under the car count as car: the "car" was then the whole frame, nothing was cropped and
+   *  the car came out a quarter of the width, floating above the floor line) */
+  solid: 128,
+  /** r31: when the subject still spans nearly the whole cut-out at that alpha, firmer ones are tried in turn */
+  firmer: [192, 232],
+  /** r31: a subject this share of the cut-out's width and height (or more) is haze around the car, not the car */
+  hazeShare: 0.96,
+  /** r31: a firmer alpha is taken while the car keeps at least this share of its cells */
+  firmKeeps: 0.5,
+  /** r31: rows and columns at the subject's edges holding less than this share of its fullest row or column are trimmed
+   *  (specks of haze or reflection touching the car) */
+  trim: 0.02,
   /** the size of the cells the pieces are found on */
   cell: 4,
   /** a piece outside the car's box is kept only when it is at least this share of the car (a car the segmenter split in two; a detached mirror is inside the box anyway, a mark's plate or a caption's band is far smaller) */
@@ -122,11 +133,11 @@ export const FRAME = {
 type Box = { x0: number; y0: number; x1: number; y1: number };
 
 /** The pieces of the subject on a grid of cells: the car (the largest) and what is kept with it. Pure. */
-export function subjectCells(img: Rgba, cell: number = FRAME.cell): { gw: number; gh: number; keep: Uint8Array; car: Box; dropped: number } | null {
+export function subjectCells(img: Rgba, cell: number = FRAME.cell, solid: number = FRAME.solid): { gw: number; gh: number; keep: Uint8Array; car: Box; dropped: number } | null {
   const { width: W, height: H, data } = img;
   const gw = Math.ceil(W / cell), gh = Math.ceil(H / cell);
   const on = new Uint8Array(gw * gh);
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (data[(y * W + x) * 4 + 3]! >= FRAME.solid) on[Math.floor(y / cell) * gw + Math.floor(x / cell)] = 1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (data[(y * W + x) * 4 + 3]! >= solid) on[Math.floor(y / cell) * gw + Math.floor(x / cell)] = 1;
   const label = new Int32Array(gw * gh).fill(-1);
   const pieces: Array<{ n: number } & Box> = [];
   const stack: number[] = [];
@@ -162,17 +173,47 @@ export function subjectCells(img: Rgba, cell: number = FRAME.cell): { gw: number
 
 /** The cut-out framed for the studio: marks and captions made clear, the car cropped to its edges, the contact shadow under it. */
 export function frameRgba(img: Rgba): Omit<Framed, 'png'> & { image: Rgba } | null {
-  const cells = subjectCells(img);
-  if (!cells) return null;
   const { width: W, height: H, data } = img, c = FRAME.cell;
-  // the car's pixel edges inside its cells (only kept pixels)
-  let x0 = W, y0 = H, x1 = -1, y1 = -1;
-  for (let y = cells.car.y0 * c; y < Math.min(H, (cells.car.y1 + 1) * c); y++) for (let x = cells.car.x0 * c; x < Math.min(W, (cells.car.x1 + 1) * c); x++) {
-    if (!cells.keep[Math.floor(y / c) * cells.gw + Math.floor(x / c)]) continue;
-    if (data[(y * W + x) * 4 + 3]! < FRAME.solid) continue;
-    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  // r31: the subject at a firm alpha, then at firmer ones while the car keeps most of its cells (what falls away is the
+  // haze, the floor's reflection and the soft shadow, never the car's own solid body), or while it is still the whole
+  // frame (the haze holds it all together)
+  let cells = subjectCells(img, c, FRAME.solid), solid: number = FRAME.solid;
+  // what is drawn: the pieces at the first alpha that is not haze (so a window the segmenter left half clear stays
+  // drawn inside the crop, even when the crop is found at a firmer alpha)
+  let draw = cells;
+  const count = (k: { keep: Uint8Array }) => k.keep.reduce((n, v) => n + v, 0);
+  const haze = (k: { car: Box }) => ((k.car.x1 - k.car.x0 + 1) * c) / W >= FRAME.hazeShare && ((k.car.y1 - k.car.y0 + 1) * c) / H >= FRAME.hazeShare;
+  for (const t of FRAME.firmer) {
+    if (!cells) break;
+    const k = subjectCells(img, c, t);
+    if (!k || (!haze(cells) && count(k) < count(cells) * FRAME.firmKeeps)) break;
+    if (haze(cells)) draw = k;
+    cells = k; solid = t;
   }
-  if (x1 < x0 || y1 < y0) return null;
+  if (!cells || !draw) return null;
+  // the car's soft edge (below the firm alpha) is kept: the drawn cells grown by one
+  const kept = new Uint8Array(draw.keep.length);
+  for (let i = 0; i < kept.length; i++) {
+    if (!draw.keep[i]) continue;
+    const gx = i % draw.gw, gy = (i - gx) / draw.gw;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const nx = gx + dx, ny = gy + dy; if (nx >= 0 && ny >= 0 && nx < draw.gw && ny < draw.gh) kept[ny * draw.gw + nx] = 1; }
+  }
+  const isCar = (x: number, y: number) => !!cells!.keep[Math.floor(y / c) * cells!.gw + Math.floor(x / c)] && data[(y * W + x) * 4 + 3]! >= solid;
+  // the car's pixel edges inside its cells (firm pixels only), as counts per row and column
+  const bx0 = cells.car.x0 * c, bx1 = Math.min(W, (cells.car.x1 + 1) * c), by0 = cells.car.y0 * c, by1 = Math.min(H, (cells.car.y1 + 1) * c);
+  const cols = new Uint32Array(bx1 - bx0), rows = new Uint32Array(by1 - by0);
+  for (let y = by0; y < by1; y++) for (let x = bx0; x < bx1; x++) if (isCar(x, y)) { cols[x - bx0]!++; rows[y - by0]!++; }
+  const edges = (a: Uint32Array) => {
+    let max = 0; for (const v of a) if (v > max) max = v;
+    const min = Math.max(1, Math.ceil(max * FRAME.trim));
+    let lo = 0, hi = a.length - 1;
+    while (lo <= hi && a[lo]! < min) lo++;
+    while (hi >= lo && a[hi]! < min) hi--;
+    return [lo, hi] as const;
+  };
+  const [cx0, cx1] = edges(cols), [ry0, ry1] = edges(rows);
+  if (cx1 < cx0 || ry1 < ry0) return null;
+  const x0 = bx0 + cx0, x1 = bx0 + cx1, y0 = by0 + ry0, y1 = by0 + ry1;
   const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
   if (bw < 24 || bh < 16) return null;
   const padB = Math.max(4, Math.round(bw * FRAME.ground)), padS = Math.max(2, Math.round(bw * FRAME.side));
@@ -181,7 +222,7 @@ export function frameRgba(img: Rgba): Omit<Framed, 'png'> & { image: Rgba } | nu
   // the footprint: where the car touches the ground, from the lowest rows of the car
   const band = Math.max(2, Math.round(bh * 0.12));
   let fl = bw, fr = -1;
-  for (let y = y1 - band + 1; y <= y1; y++) for (let x = x0; x <= x1; x++) if (data[(y * W + x) * 4 + 3]! >= FRAME.solid && cells.keep[Math.floor(y / c) * cells.gw + Math.floor(x / c)]) { if (x - x0 < fl) fl = x - x0; if (x - x0 > fr) fr = x - x0; }
+  for (let y = y1 - band + 1; y <= y1; y++) for (let x = x0; x <= x1; x++) if (isCar(x, y)) { if (x - x0 < fl) fl = x - x0; if (x - x0 > fr) fr = x - x0; }
   if (fr < fl) { fl = 0; fr = bw - 1; }
   const cx = padS + (fl + fr) / 2, gy = bh - 1;                // the wheel line, in the output
   const rxSoft = ((fr - fl) / 2) * 1.06 + padS * 0.5, rySoft = padB * 0.95 + bh * 0.03;
@@ -197,7 +238,7 @@ export function frameRgba(img: Rgba): Omit<Framed, 'png'> & { image: Rgba } | nu
   // the car over its shadow (dropped pieces clear)
   for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
     const sx = x0 + x, sy = y0 + y, si = (sy * W + sx) * 4;
-    if (!cells.keep[Math.floor(sy / c) * cells.gw + Math.floor(sx / c)]) continue;
+    if (!kept[Math.floor(sy / c) * cells.gw + Math.floor(sx / c)]) continue;
     const ca = data[si + 3]! / 255;
     if (ca <= 0) continue;
     const oi = ((y) * OW + x + padS) * 4, sa = out[oi + 3]! / 255;

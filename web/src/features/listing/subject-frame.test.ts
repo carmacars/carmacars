@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FRAME, STUDIO, decodePng, encodePng, frameSubject, placeSubject, subjectCells, type Rgba } from './subject-frame.ts';
+import { FRAME, STUDIO, decodePng, encodePng, frameRgba, frameSubject, placeSubject, subjectCells, type Rgba } from './subject-frame.ts';
 
 /** A segmenter's cut-out: a 1000 x 650 clear frame, a car (a solid body with two wheels) in the middle at 40% of the width
  *  standing well above the bottom, a corner watermark and a caption's letters, as the Mercedes sources have. */
@@ -75,4 +75,47 @@ test('an RGB or palette PNG (a preview for the touch-up) is read too', async () 
   assert.deepEqual([...rgb.data], [10, 20, 30, 255, 40, 50, 60, 255]);
   const pal = (await decodePng(png(3, [0, 1, 0], [chunk('PLTE', Buffer.from([1, 2, 3, 200, 150, 100])), chunk('tRNS', Buffer.from([0]))])))!;
   assert.deepEqual([...pal.data], [200, 150, 100, 255, 1, 2, 3, 0]);
+});
+
+// r31 (the CLA on production): the segmenter's cut-out had a faint haze over the whole frame and a reflection under the
+// car; at the old alpha (48) both counted as car, nothing was cropped and the car came out a quarter of the width,
+// floating above the floor line. Now the car alone is framed and placed at about 80% of the width, wheels on the line.
+function hazy(): Rgba {
+  const W = 1000, H = 650, data = new Uint8ClampedArray(W * H * 4);
+  const fill = (x0: number, y0: number, x1: number, y1: number, a: number) => {
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = (y * W + x) * 4; data[i] = 90; data[i + 1] = 90; data[i + 2] = 95; data[i + 3] = a; }
+  };
+  fill(0, 0, W, H, 70);                              // the haze, everywhere
+  fill(300, 260, 700, 400, 255);                     // the body
+  fill(330, 400, 390, 440, 255); fill(610, 400, 670, 440, 255);   // the wheels
+  fill(300, 440, 700, 520, 170);                     // the floor's reflection, touching the tyres
+  return { width: W, height: H, data };
+}
+test('a hazy cut-out with a reflection: the car alone is framed, at about 80% of the width, its wheels on the floor line', async () => {
+  const f = (await frameSubject(await encodePng(hazy())))!;
+  assert.ok(f, 'framed');
+  assert.ok(f.share.w > 0.39 && f.share.w < 0.41, `the car's width share ${f.share.w}`);
+  assert.ok(f.share.h > 0.27 && f.share.h < 0.29, `the car's height share ${f.share.h} (the reflection below the tyres left out)`);
+  const img = (await decodePng(f.png))!;
+  const padS = Math.round(400 * FRAME.side);
+  // no haze kept beside the car (its soft rim at most one cell)
+  const a = (x: number, y: number) => img.data[(y * img.width + x) * 4 + 3]!;
+  assert.equal(a(padS + 200, 5), 255, 'the body');
+  const W = 1800, H = 1200;
+  const p = placeSubject(f, W, H);
+  assert.ok(p.carShare >= 0.75 && p.carShare <= 0.85, `car share ${p.carShare}`);
+  const wheels = p.bottom + p.height * f.ground;
+  assert.ok(Math.abs(wheels - H * STUDIO.floor) <= 1.5, 'wheels on the floor line');
+  assert.ok(Math.abs(p.left + p.width / 2 - W / 2) <= 1, 'centred');
+});
+test('a window the segmenter left half clear is still drawn (the crop found at a firmer alpha, the car drawn whole)', async () => {
+  const img = cutout();
+  for (let y = 270; y < 300; y++) for (let x = 400; x < 600; x++) img.data[(y * img.width + x) * 4 + 3] = 150;
+  const f = (await frameRgba(img))!;
+  const padS = Math.round(400 * FRAME.side);
+  assert.equal(f.image.data[((285 - 230) * f.width + padS + 100) * 4 + 3], 150, 'the window kept as the segmenter left it');
+});
+test('a car the segmenter left solid is framed the same at every alpha (a firmer one never trims the car)', () => {
+  const c = subjectCells(cutout(), FRAME.cell, FRAME.solid)!, k = subjectCells(cutout(), FRAME.cell, FRAME.firmer.at(-1))!;
+  assert.deepEqual(c.car, k.car);
 });

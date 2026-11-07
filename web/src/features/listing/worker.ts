@@ -15,7 +15,12 @@ import { cropAway, type MarkBox } from './photo-sort.ts';
 // 0073: the sample cars' black studio with the model's name behind the car (was brand_background_v1, a light grey room).
 // r28 (0567): studio_v3, the car framed to its own edges (subject-frame.ts): about 80% of the width, the wheels on the floor
 // line, a contact shadow under the tyres, any mark or caption beside the car left out.
-export const PRESET = 'studio_v3';
+// r31 (0660): studio_v4, the car found at a firm alpha (the segmenter's haze and the floor's reflection no longer count as
+// car, which left the car a quarter of the width and floating), and no model name lettered behind a real car: it showed
+// as a large faint word around the car. The stand-ins (car/studio.ts) keep their lettering, as the sample cars.
+export const PRESET = 'studio_v4';
+/** r31: the model's name is not lettered behind real photos (lettering.ts stays for a later, quieter version). */
+export const LETTER_REAL_PHOTOS = false;
 export const BACKDROP_PATH = 'site/backdrop/studio_v2.png';
 export const SHADOW_PATH = 'site/backdrop/shadow_v1.png';
 /** The sizes the site uses (srcset of the car cards and the gallery); the master is 1800 wide. */
@@ -225,7 +230,7 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
     await d.files.putPrivate(cutPath, framed?.png ?? cut.bytes, 'image/png');
     // the model's name behind the car, as on the sample cars: one band per model, kept in the public bucket
     let lettering: { url: string; top: number; width: number } | null = null;
-    if (p.model) {
+    if (p.model && LETTER_REAL_PHOTOS) {
       const lp = letteringPath(p.model);
       try {
         if (!(await d.files.hasPublic?.(lp))) await d.files.putPublic(lp, await letteringPng(p.model), 'image/png');
@@ -262,7 +267,8 @@ async function processPhoto(d: WorkerDeps, j: JobContext, b: Budget, used: { tra
   await d.files.putPublic(path, done.bytes, done.contentType);
   return { ok: true, provider: d.photos.name, ...imageCost(n, b, used),
     output: { processed_path: path, width: size.width, height: size.height, preset_version: p.rebackground ? PRESET : windowsPlan ? `windows_${windowsPlan.action}_v1` : 'normalize_v1',
-      flags: windowsPlan?.action === 'blur' ? ['windows_blurred'] : [], ...(windowsPlan ? { windows: windowsPlan } : {}),
+      // r31: an outside photo whose cut-out could not be framed is placed the old way (small): flagged so it is seen
+      flags: [...(windowsPlan?.action === 'blur' ? ['windows_blurred'] : []), ...(p.rebackground && !framed ? ['not_framed'] : [])], ...(windowsPlan ? { windows: windowsPlan } : {}),
       ...(p.watermark ? { watermark_removed: marksGone, ...(marks ? { marks } : {}) } : {}),
       ...(framed ? { framing: { dropped: framed.dropped, share: framed.share } } : {}),
       ...(p.enhance !== undefined ? { enhance } : {}) } };
