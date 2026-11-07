@@ -219,7 +219,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         </Card>)}
       {/* what the owner sees of this booking (0156) */}
       {section === 'car' && <OwnerVisibilityPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={refresh} />}
-      {section === 'car' && <BookingCarSection base={base} number={b.booking_number} vehicleId={b.vehicle_id} vehicleName={b.vehicle?.name ?? null} vehicleHref={carHref} status={b.status} />}
+      {section === 'car' && <BookingCarSection base={base} number={b.booking_number} vehicleId={b.vehicle_id} vehicleName={b.vehicle?.name ?? null} vehicleHref={carHref} status={b.status} canSign={can.sign} />}
       {on('review') && (
         <>
           <div className={can.admin ? 'ad-cols ad-cols--2' : undefined}>
