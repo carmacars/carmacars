@@ -26533,6 +26533,7 @@ export type Database = {
       owner_witnessed_forms: { Args: { p_by: string }; Returns: Json };
       partner_agreement_facts: { Args: { p_by: string }; Returns: Json };
       partner_agreement_open: { Args: { p_by: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
+      referral_agreement_open: { Args: { p_by: string; p_link: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       partner_agreement_state: { Args: { p_by: string }; Returns: Json };
       partner_referral_code_ok: { Args: { p_code: string }; Returns: boolean };
       place_directory_index: { Args: never; Returns: Json };
@@ -26812,6 +26813,8 @@ export type Database = {
       server_owner_program_facts: { Args: never; Returns: Json };
       server_owner_record_debit_setup: { Args: { p_by: string; p: Json }; Returns: Json };
       server_owner_referred_cars: { Args: { p_by: string }; Returns: Json };
+      server_referral_agreement_facts: { Args: { p_by: string; p_link: string }; Returns: Json };
+      server_referral_agreements: { Args: { p_by: string }; Returns: Json };
       server_owner_review: { Args: { p_by: string }; Returns: Json };
       server_owner_review_correct: { Args: { p_by: string; p: Json }; Returns: Json };
       server_owner_sales_credit: { Args: { p_application: string; p_staff: string; p_lead?: string }; Returns: Json };

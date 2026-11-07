@@ -6,6 +6,9 @@ import { DateInput } from '@/components/DateInput';
 import { toStandardImage } from '@/features/uploads/standard-image';
 import { PAID_BY, type Repair } from './model';
 
+const UPKEEP: Array<[string, string]> = [['engine', 'Engine'], ['transmission', 'Transmission'], ['shocks', 'Shocks and struts'], ['rustproofing', 'Rustproofing'],
+  ['refurbishment', 'Refurbishment not part of a claim'], ['tires', 'Tires'], ['brakes', 'Brakes'], ['oil_change', 'Oil changes'], ['ball_joints', 'Ball joints']];
+
 // A repair cost on a car (migration 0581): the date, the shop (a partner) or another vendor, what was done, the amount
 // and tax, who paid, the claim, and a receipt (a photo made smaller on the device, or a PDF; private storage).
 // Admin, Finance and Fleet; from the car or from a claim.
@@ -16,7 +19,7 @@ export function RepairCostForm({ vehicleId, claimId, partners, claims, cars, edi
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ vehicle_id: edit?.vehicle_id ?? vehicleId ?? '', claim_id: edit?.claim_id ?? claimId ?? '', spent_on: edit?.on_date ?? '', vendor_partner_id: '',
-    vendor_name: edit?.vendor ?? '', description: edit?.description ?? '', amount: edit ? (edit.cents / 100).toFixed(2) : '', tax: edit ? (edit.tax_cents / 100).toFixed(2) : '', paid_by: edit?.paid_by ?? 'company' });
+    vendor_name: edit?.vendor ?? '', description: edit?.description ?? '', amount: edit ? (edit.cents / 100).toFixed(2) : '', tax: edit ? (edit.tax_cents / 100).toFixed(2) : '', paid_by: edit?.paid_by ?? 'company', cost_type: '' });
   const [file, setFile] = useState<File | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -38,7 +41,7 @@ export function RepairCostForm({ vehicleId, claimId, partners, claims, cars, edi
     }
     const r = await staffDo('repair_cost_save', { id: edit?.id, vehicle_id: f.vehicle_id || null, claim_id: f.claim_id || null, spent_on: f.spent_on || null,
       vendor_partner_id: f.vendor_partner_id || null, vendor_name: f.vendor_partner_id ? null : f.vendor_name, description: f.description, amount_cents: cents(f.amount), tax_cents: cents(f.tax),
-      paid_by: f.paid_by, receipt_path }, refresh);
+      paid_by: f.paid_by, receipt_path, ...(f.cost_type ? { cost_type: f.cost_type } : {}) }, refresh);
     if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
     setOpen(false); setFile(null); setMsg({ ok: true, text: 'Saved.' });
     router.refresh();
@@ -63,6 +66,10 @@ export function RepairCostForm({ vehicleId, claimId, partners, claims, cars, edi
         <div className="field ad-field"><label className="label" htmlFor={`rc-${id}-t`}>Tax ($)</label><input className="input" id={`rc-${id}-t`} inputMode="decimal" value={f.tax} onChange={(e) => set('tax')(e.target.value)} /></div>
         <div className="field ad-field"><label className="label" htmlFor={`rc-${id}-b`}>Paid by</label>
           <select className="select" id={`rc-${id}-b`} value={f.paid_by} onChange={(e) => set('paid_by')(e.target.value)} data-testid="rc-paid-by">{PAID_BY.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+        {/* 0640: on a fleet lease car, the cost type bills the party its Upkeep Table names (the supplier's: off its lease payments) */}
+        <div className="field ad-field"><label className="label" htmlFor={`rc-${id}-k`}>Upkeep type (fleet lease cars)</label>
+          <select className="select" id={`rc-${id}-k`} value={f.cost_type} onChange={(e) => set('cost_type')(e.target.value)} data-testid="rc-cost-type">
+            <option value="">Not an upkeep cost</option>{UPKEEP.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
         {claims && claims.length > 0 && !claimId && <div className="field ad-field"><label className="label" htmlFor={`rc-${id}-c`}>Claim</label>
           <select className="select" id={`rc-${id}-c`} value={f.claim_id} onChange={(e) => set('claim_id')(e.target.value)}><option value="">None</option>{claims.map((c) => <option key={c.id} value={c.id}>{c.claim_number}</option>)}</select></div>}
         <div className="field ad-field"><label className="label" htmlFor={`rc-${id}-r`}>Receipt (photo or PDF){edit?.receipt ? ': a new one replaces it' : ''}</label>

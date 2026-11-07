@@ -53,7 +53,7 @@
 
 3.1 A vehicle with a rebuilt or salvage title is not eligible. CarmaCars or the Insurer may decline any vehicle.
 
-3.2 CarmaCars collects no registry or other third-party onboarding cost. It gives the Owner information and the rough estimates in Schedule B, Part 3, helps prepare the paperwork and attends the registry visit. The Owner pays ServiceOntario, the safety inspection, the appraisal, any notary, any corporation registration and any tax directly to the party charging them. Amounts may vary.
+3.2 CarmaCars collects no registry or other third-party onboarding cost, except one it pays for the Owner and the Vehicle Schedule lists (section 4.2). It gives the Owner information and the rough estimates in Schedule B, Part 3, helps prepare the paperwork and attends the registry visit. The Owner pays ServiceOntario, the safety inspection, the appraisal, any notary, any corporation registration and any tax directly to the party charging them. Amounts may vary.
 
 3.3 The Owner must keep the Owner's own insurance on each Vehicle until CarmaCars confirms in writing that it is on the Fleet Policy. Loss during a gap is the Owner's alone.
 
@@ -63,7 +63,7 @@
 
 4.1 The Vehicle Schedule sets each Vehicle's Fees, Revenue Share, Management Mode and Onboarding Method. The Schedule B grid is only a starting point.
 
-4.2 Before a Vehicle's Enrollment Date the Owner pays CarmaCars the Install Fee and the first and last month's Insurance Fee for that Vehicle. There is no security deposit. The prepaid amounts are applied only to that Vehicle's first and final months, and any unused part is credited or refunded.
+4.2 Before a Vehicle's Enrollment Date the Owner pays CarmaCars the Install Fee, the first and last month's Insurance Fee and any onboarding cost CarmaCars paid for the Owner that the Vehicle Schedule lists (such as a registration fee). Where the Vehicle Schedule says so, these are instead deducted from the Owner's payouts for any Vehicle until paid (section 4.5), and the later Fees are paid by pre-authorized debit. [LAWYER: confirm deducting the first and last month and onboarding costs from payouts after the Enrollment Date, for the Owner's first Vehicles only.] There is no security deposit. The prepaid amounts are applied only to that Vehicle's first and final months, and any unused part is credited or refunded.
 
 4.3 CarmaCars charges each Vehicle's Fees on each Billing Date, from its Enrollment Date to its Exit Date, whether or not the Vehicle is rented, in repair or off the road. The Fees for a Vehicle's first and last month are pro-rated by day.
 
@@ -76,6 +76,8 @@
 4.7 Any balance left at the next Payout Date is a debt payable on demand. CarmaCars may deduct it from amounts payable for any of the Owner's Vehicles.
 
 4.8 CarmaCars may change the Fees on written notice of the Notice Period. The Owner may exit instead. A Revenue Share changes only in writing signed by both parties.
+
+4.9 **Shareholder Vehicle.** For a Vehicle the Vehicle Schedule marks as a Shareholder Vehicle there is no Insurance Fee, Tracker Fee, Install Fee or first and last month's Insurance Fee, and the Revenue Share is the one the Vehicle Schedule sets. [LAWYER: confirm this matches Article 6 of the Shareholder Agreement, which governs these Vehicles on a conflict.]
 
 ## 5. Tracker and killswitch
 
@@ -285,4 +287,4 @@ Rough estimates per Vehicle, for information. The Owner pays these directly to t
 | Co-Registrant | Individual; not Leased | Registration $50; safety $150; appraisal $50 | About $250, plus any tax |
 | Transfer (the only method for a Leased Vehicle) | Any Vehicle | Sign-back or registration $50; safety $150; appraisal $50; optional Owner's Lien $10 if Owned Outright | About $250, or $260 with lien, plus any tax |
 
-Any tax is calculated on appraised value at the registry counter. Safety repairs are extra. CarmaCars' own onboarding charges are only the Install Fee and the first and last month's Insurance Fee.
+Any tax is calculated on appraised value at the registry counter. Safety repairs are extra. CarmaCars' own onboarding charges are only the Install Fee, the first and last month's Insurance Fee and the onboarding costs the Vehicle Schedule lists (section 4.2).

@@ -12,7 +12,8 @@ import { requestMeta } from '@/server/request';
 import { sha256Hex } from '@/server/links';
 import { SIGN_STATEMENT } from '@/features/manual/constants';
 import { partnerAgreementBlocks, type PartnerFacts } from '@/features/partner/agreement';
-import { formABFacts, formCFacts, formCSpec, formSpec, partnerFacts, partnerSpec, prepareSpec } from '@/server/signing/prepare';
+import { formABFacts, formCFacts, formCSpec, formSpec, partnerFacts, partnerSpec, prepareSpec, referralFacts } from '@/server/signing/prepare';
+import { referralAgreementBlocks } from '@/features/referral-agreement/agreement';
 import { enqueuePdfJobs } from '@/server/pdf-jobs';
 import { withRequestCertificate } from '@/server/signing/certified';
 
@@ -54,7 +55,7 @@ function pngBytes(dataUrl: string): Uint8Array | null {
 }
 
 export interface SignedRequest {
-  id: string; signature_request_id: string; doc_type: 'form_a' | 'form_b' | 'form_c' | 'investment_agreement' | 'staff_agreement' | 'partner_agreement'; vehicle_id?: string | null; witness_record_id?: string | null; title: string; owner_id: string | null; investor_id: string | null; staff_user_id: string | null;
+  id: string; signature_request_id: string; doc_type: 'form_a' | 'form_b' | 'form_c' | 'investment_agreement' | 'staff_agreement' | 'partner_agreement' | 'referral_agreement'; vehicle_id?: string | null; referral_link_id?: string | null; witness_record_id?: string | null; title: string; owner_id: string | null; investor_id: string | null; staff_user_id: string | null;
   signer_name: string; signer_role: string; signed_at: string; method: string; document_sha256: string;
   record: { signer_role: string; signer_name: string; method: string; signed_at: string; ip_address: string | null; user_agent: string | null; provider_signature: string | null; typed_name: string | null; initials: Record<string, string> | null };
 }
@@ -125,6 +126,11 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
   } else if (r.doc_type === 'partner_agreement') {
     const facts = await partnerFacts(userId);
     blocks = facts ? partnerAgreementBlocks(facts, { partner: row, carmacars: { party: 'CarmaCars', name: companyName ?? (facts.company.legal_name || facts.company.brand), signature: company.text ?? `Signed electronically for ${facts.company.legal_name || facts.company.brand}.`, when: when(rec.signed_at) } })
+      : [{ t: 'title', text: r.title }, { t: 'signatures', rows: [row] }];
+  } else if (r.doc_type === 'referral_agreement' && r.referral_link_id) {
+    // 0640: the Referral Override Agreement, rendered again from the link with both signatures
+    const facts = await referralFacts(userId, r.referral_link_id);
+    blocks = facts ? referralAgreementBlocks(facts, { referrer: { ...row, party: 'Referrer' }, company: { party: facts.company.legal_name || facts.company.brand, name: companyName ?? (facts.company.legal_name || facts.company.brand), signature: company.text ?? `Signed electronically for ${facts.company.legal_name || facts.company.brand}.`, when: when(rec.signed_at) } })
       : [{ t: 'title', text: r.title }, { t: 'signatures', rows: [row] }];
   } else {
     whole = true;

@@ -24,12 +24,17 @@ export default async function OwnerCars({ searchParams }: { searchParams: Promis
   const { user, home } = ctx;
   // 0543: the cars of owners you referred, read only (an Admin links you to them); the tab shows only when there are some
   const referred = ((await rpc('server_owner_referred_cars', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as ReferredCar[] | null) ?? [];
+  // 0640: a Referral Override Agreement waiting for this owner's signature
+  const toSign = (((await rpc('server_referral_agreements', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as Array<{ link_id: string; referred: string; status: string }> | null) ?? []).filter((r) => r.status !== 'signed');
+  const signNotice = toSign.length ? <section className="pt-card stack" data-testid="referral-agreement-to-sign"><h2 className="d4">Sign your Referral Override Agreement</h2>
+    <ul className="ad-list">{toSign.map((r) => <li key={r.link_id}><Link prefetch={false} className="link" href={`/owner/referral-agreement/${r.link_id}`}>The cars of {r.referred}: read and sign</Link></li>)}</ul></section> : null;
   const tabs = referred.length ? [...OWNER_CARS_TABS, { key: 'referred', href: '/owner/vehicles?tab=referred', label: 'Cars you referred' }] : OWNER_CARS_TABS;
   if (sp.tab === 'referred' && referred.length) {
     return (
       <>
         <PageHeader title="Cars" purpose="The cars of the owners you referred: bookings, use and revenue, read only. Your referral share is on your statements." />
         <PortalTabs label="Cars" tabs={tabs} current="referred" />
+        {signNotice}
         <ReferredCars cars={referred} />
       </>
     );
@@ -53,6 +58,7 @@ export default async function OwnerCars({ searchParams }: { searchParams: Promis
     <>
       <PageHeader title="Cars" purpose="Where each car is right now, this month so far, its terms and what it still needs. Open one for its months and bookings." action={add} />
       <PortalTabs label="Cars" tabs={tabs} current={tab.key} />
+      {signNotice}
       {home.vehicles.length ? <ul className="ow-cars">{home.vehicles.map((v) => <VehicleCard key={v.vehicle_id} v={v} compact trackers={home.trackers_available} photo={photo[v.vehicle_id]} live={live[v.vehicle_id]} month={carThisMonth(months, v.vehicle_id)} next={nextOf(v.vehicle_id)} />)}</ul>
         : <div className="pt-empty"><p className="d4">No vehicles yet</p>{home.kind === 'partner' ? <p className="muted">CarmaCars adds your cars once we agree which ones join.</p> : <Link prefetch={false} className="btn btn--primary" href="/list-your-car/apply">Add your first vehicle</Link>}</div>}
       {terms && <OwnerTermsSummary data={terms} />}

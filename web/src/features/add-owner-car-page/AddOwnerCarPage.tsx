@@ -2,6 +2,7 @@ import Link from '@/components/Link';
 import { PageHead } from '@/features/admin/ui';
 import { AddOwnerCar } from '@/features/owner-billing/AddOwnerCar';
 import type { PageCtx } from '@/features/shared-pages/context';
+import type { FleetLeaseData } from '@/features/owner-agreements/FleetLease';
 import { portalBase } from '@/features/shared-pages/viewer';
 
 // r31 "Simple": one Add a car for an owner page (migration 0067) for Admin and staff. An Admin's car goes straight to the
@@ -24,6 +25,8 @@ export async function AddOwnerCarPage({ ctx, sp }: { ctx: PageCtx; sp: Record<st
   const owner = /^[0-9a-f-]{36}$/.test(sp.owner ?? '') ? sp.owner! : null;
   type Facts = Parameters<typeof AddOwnerCar>[0]['initial'];
   const facts = admin ? await ops<Facts>('owner_add_car_facts', { owner_id: owner }) : await read<Facts>('owner_add_car_facts', { owner_id: owner });
+  // 0640: a fleet lease owner's car needs its tier
+  const fleet = owner ? (await ops<FleetLeaseData>('fleet_lease', { owner }).catch(() => null))?.terms ?? null : null;
   return (
     <>
       {admin
@@ -32,7 +35,7 @@ export async function AddOwnerCarPage({ ctx, sp }: { ctx: PageCtx; sp: Record<st
       <p className="small muted" style={{ maxWidth: '48rem' }}>{admin
         ? 'Everything the owner would enter in their application, entered for them. The owner gets one email to review the details, correct anything and sign; or they sign on paper and you record it.'
         : 'Enter everything for the owner. An Admin checks the terms and first invoice, then approves; the owner gets one email to review and sign.'}</p>
-      <div style={{ maxWidth: '60rem' }}><AddOwnerCar initial={facts} base={base} /></div>
+      <div style={{ maxWidth: '60rem' }}><AddOwnerCar initial={facts} base={base} fleet={fleet ? { regular_cents: fleet.regular_cents, troubled_cents: fleet.troubled_cents } : null} /></div>
     </>
   );
 }

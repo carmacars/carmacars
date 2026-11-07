@@ -4,6 +4,7 @@ import { AddressLookup } from '@/features/forms/AddressFields';
 import Link from '@/components/Link';
 import { useAct } from '@/features/portal/useAct';
 import { money } from '@/lib/format';
+import { DateInput } from '@/components/DateInput';
 import { ColourSwatches, VinEntry, emptyVin, vinPayload, vinProblem, type VinValue } from '@/features/vin/VinEntry';
 import { addCarFacts, pickOwner, staffAddOwnerCar } from '@/server/actions/owner-billing';
 import { InvoiceChoice, inv, type Inv } from './ApproveStep';
@@ -25,7 +26,10 @@ type Facts = { admin: boolean; today: string; hst_bps: number; trackers_availabl
 const DOCS: Array<[string, string, string]> = [['ownership_permit', 'Ownership permit', 'Both sides. A photo or a PDF.'], ['owner_insurance_proof', 'Insurance slip', 'The current pink slip.'],
   ['finance_party_permission', 'Lender or lessor information', 'The lender\'s permission or the loan or lease statement.']];
 
-export function AddOwnerCar({ initial, base, sales = false }: { initial: Facts; base: '/admin' | '/staff'; sales?: boolean }) {
+/** 0640: the owner is on a fleet lease: each car's tier is required (set once), and no fee invoice is made. */
+export interface FleetChoice { regular_cents: number; troubled_cents: number }
+
+export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { initial: Facts; base: '/admin' | '/staff'; sales?: boolean; fleet?: FleetChoice | null }) {
   const a = useAct<{ application_id: string; application_number: string; owner_id: string; vehicle_id: string; approved: boolean; note: string | null; docs: number }>();
   const uid = `ac-${useId().replace(/[^\w-]/g, '')}`;
   const [facts, setFacts] = useState<Facts>(initial);
@@ -38,6 +42,9 @@ export function AddOwnerCar({ initial, base, sales = false }: { initial: Facts; 
   const [car, setCar] = useState<VinValue>(emptyVin());
   const [sourced, setSourced] = useState(sales);
   const [signing, setSigning] = useState<'email' | 'paper'>('email');
+  const [tier, setTier] = useState<'' | 'regular' | 'troubled'>('');
+  const [delivered, setDelivered] = useState(initial.today);
+  const isFleet = !!fleet && !isNew && owner?.id === initial.owner?.id;
   const t0 = initial.terms ?? (initial.standard ? { ...initial.standard, first_last_cents: initial.standard.insurance_fee_cents * 2, sources: {} } : null);
   const [terms, setTerms] = useState<Record<string, string>>({ ins: dollars(t0?.insurance_fee_cents), trk: dollars(t0?.tracker_fee_cents), share: pctOf(t0?.revenue_share_bps), inst: dollars(t0?.install_fee_cents), fl: dollars(t0?.first_last_cents) });
   const [fl, setFl] = useState<Inv>(inv(initial.today, true, dollars(t0?.first_last_cents), 'draft'));
@@ -100,7 +107,10 @@ export function AddOwnerCar({ initial, base, sales = false }: { initial: Facts; 
       if (!(toCents(reg.amount) > 0)) { setProblem('Enter the registration fee.'); return; }
       invoices.push({ type: 'registration', amount_cents: toCents(reg.amount), hst: reg.hst, action: reg.action, title: 'Registration fee', ...pay(reg) });
     }
+    if (isFleet && !tier) { setProblem('Choose the car\'s tier: Regular or Troubled. It is set once and does not change.'); return; }
+    if (isFleet) invoices.length = 0; // the supplier pays no fees
     const payload = {
+      ...(isFleet ? { fleet: { tier, delivered_on: delivered } } : {}),
       owner_id: isNew ? undefined : owner!.id,
       owner: isNew ? { ...o, email: (o.email ?? '').trim().toLowerCase(), first_name: (o.legal_name ?? '').trim().split(/\s+/)[0] } : undefined,
       vehicle: { ...v, ...vinPayload(car), plate: car.mode === 'plate' ? car.plate.toUpperCase().replace(/\s/g, '') : v.plate || undefined,
@@ -199,6 +209,15 @@ export function AddOwnerCar({ initial, base, sales = false }: { initial: Facts; 
           <InvoiceChoice uid={`${uid}-rg`} label="Registration fee" v={reg} hstBps={facts.hst_bps} testId="addcar-inv-registration" set={setReg} />
           {fl.on && <p className="small muted">First and last total with HST: {money(toCents(fl.amount) + Math.round(toCents(fl.amount) * facts.hst_bps / 10000), { cents: true })}.</p>}
         </>)}
+      </section>}
+
+      {isFleet && fleet && <section className="pt-card stack" aria-labelledby={`${uid}-fl`} data-testid="addcar-fleet"><h2 className="d4" id={`${uid}-fl`}>Fleet lease: the car&apos;s tier</h2>
+        <p className="small">This owner leases cars to CarmaCars. The tier is required and set once: it does not change later. The supplier pays no fees, so no invoice is made for this car.</p>
+        <div className="row" role="radiogroup" aria-label="Tier" style={{ gap: 'var(--s-3)', flexWrap: 'wrap' }}>
+          <label className="check" htmlFor={`${uid}-t-r`}><input type="radio" id={`${uid}-t-r`} checked={tier === 'regular'} onChange={() => setTier('regular')} data-testid="addcar-tier-regular" /><span>Regular, {money(fleet.regular_cents)} a month</span></label>
+          <label className="check" htmlFor={`${uid}-t-t`}><input type="radio" id={`${uid}-t-t`} checked={tier === 'troubled'} onChange={() => setTier('troubled')} data-testid="addcar-tier-troubled" /><span>Troubled (needs work), {money(fleet.troubled_cents)} a month</span></label>
+        </div>
+        <label className="field"><span className="field__label">Delivered on</span><DateInput className="input" type="date" value={delivered} onChange={(e) => setDelivered(e.target.value)} data-testid="addcar-delivered" /></label>
       </section>}
 
       <section className="pt-card stack" aria-labelledby={`${uid}-s`}><h2 className="d4" id={`${uid}-s`}>{sales ? '3. Signing' : '4. Who sourced the owner, and signing'}</h2>

@@ -27,6 +27,8 @@ import { TermsPanel, type TermsData } from '@/features/owner-billing/TermsPanel'
 import { CarTermsTable, type CarTermsData } from '@/features/owner-billing/CarTerms';
 import { ProfitExtras } from '@/features/profit-extras/ProfitExtras';
 import { ReferralLinks, type ReferralLinksData } from '@/features/admin/ReferralLinks';
+import { FleetLease, type FleetLeaseData } from '@/features/owner-agreements/FleetLease';
+import { AgreementsChecklist, type AgreementOwner } from '@/features/owner-agreements/AgreementsChecklist';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner', path: '/admin/owners', noindex: true, description: 'An owner application.' });
@@ -55,6 +57,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
       <Back href="/admin/owners">Owner applications</Back>
       <header className="stack"><p className="pt-kicker">{d.applications.map((a) => a.application_number).join(', ')} · {d.owner.owner_type === 'corporation' ? 'Corporation' : 'Individual'}</p><h1 className="d2">{d.owner.legal_name}</h1>
         <p className="muted">{[d.owner.email, d.owner.phone].filter(Boolean).join(' · ')}</p>
+        {set?.variant === 'fleet_lease' && <p className="small" data-testid="owner-agreement-set">Agreements: the fleet lease set (Fleet Supplier Lease Agreement, {set.status === 'signed' ? 'signed' : 'waiting for the supplier\'s signature'})</p>}
         {set?.variant === 'flat_rate' && <p className="small" data-testid="owner-agreement-set">Agreements: the flat-rate set (Flat-Rate Vehicle Enrollment Agreement, {set.status === 'signed' ? 'signed' : 'waiting for the owner\'s signature'}){set.awaiting_lawyer ? <> <span className="badge badge--outline" data-testid="flat-rate-lawyer">Awaiting lawyer OK</span></> : null}</p>}
         <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}><Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/owners/add-car?owner=${id}`} data-testid="owner-add-car">Add another car</Link>
           <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/invoices/new?owner=${id}`} data-testid="owner-new-invoice">New invoice</Link>
@@ -73,8 +76,10 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   // every car's own terms, editable in place (0135): on Overview and on the Terms tab
   const carTerms = tab === 'invoices' ? null : await door<CarTermsData>(user.id, 'ops_read', 'car_terms', { owner_id: id });
   if (tab === 'terms') {
-    const [terms, refLinks] = await Promise.all([door<TermsData>(user.id, 'ops_read', 'owner_terms', { owner_id: id }), door<ReferralLinksData>(user.id, 'ops_read', 'owner_referral_links', { owner: id })]);
-    return <>{head}<CarTermsTable data={carTerms!} paths={[`/admin/owners/${id}`]} /><TermsPanel data={terms} ownerId={id} today={todayIso} /><ReferralLinks data={refLinks} ownerId={id} />
+    const [terms, refLinks, fleet, agreements] = await Promise.all([door<TermsData>(user.id, 'ops_read', 'owner_terms', { owner_id: id }), door<ReferralLinksData>(user.id, 'ops_read', 'owner_referral_links', { owner: id }),
+      door<FleetLeaseData>(user.id, 'ops_read', 'fleet_lease', { owner: id }), door<AgreementOwner[]>(user.id, 'ops_read', 'owner_agreements_checklist', { owner: id }).catch(() => [] as AgreementOwner[])]);
+    return <>{head}{agreements.length > 0 && <section className="pt-card stack" data-testid="owner-agreements"><h2 className="d4">Agreements</h2><AgreementsChecklist rows={agreements} refresh={[`/admin/owners/${id}`]} /></section>}
+      <CarTermsTable data={carTerms!} paths={[`/admin/owners/${id}`]} /><TermsPanel data={terms} ownerId={id} today={todayIso} /><FleetLease data={fleet} ownerId={id} /><ReferralLinks data={refLinks} ownerId={id} />
       {/* R23 (0238): the one-off fees agreed on the terms, charged to a car in one step: deducted from payouts or debited */}
       {(carTerms?.cars ?? []).length > 0 && <Card title="Charge the agreed one-off fees" testId="one-off-charge">
         <p className="small">The one-off fees agreed on this owner&apos;s terms (for example the appraisal, tax and plates, the safety certificate) as one invoice for a car. Deducted from payouts: taken from the owner&apos;s monthly payouts until paid, shown as deductions on the statements, never debited.</p>
