@@ -13698,6 +13698,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      payment_part_allocations: {
+        Row: {
+          payment_id: string;
+          part: string;
+          amount_cents: number;
+          created_at: string;
+        };
+        Insert: {
+          payment_id: string;
+          part: string;
+          amount_cents: number;
+          created_at?: string;
+        };
+        Update: {
+          payment_id?: string;
+          part?: string;
+          amount_cents?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       payment_processor_details: {
         Row: {
           payment_id: string;

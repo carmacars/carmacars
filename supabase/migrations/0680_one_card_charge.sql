@@ -31,6 +31,7 @@ create table if not exists payment_part_allocations (
 );
 alter table payment_part_allocations enable row level security;
 create policy admin_all on payment_part_allocations for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_payment_part_allocations after insert or update or delete on payment_part_allocations for each row execute function app.audit_row();
 comment on table payment_part_allocations is 'How one charge of the card on file for the rental and the fees is split across the two parts, the rental first (0680).';
 
 -- the split of an amount across what the rental and the fees have open: the rental first
