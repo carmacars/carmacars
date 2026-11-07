@@ -1,7 +1,8 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import type { AdminPage } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, Filters, PageHead, Table, Tiles, t, d } from '@/features/admin/ui';
+import { $, Badge, PageHead, Table, Tiles, t, d } from '@/features/admin/ui';
 
 type R = Record<string, unknown>;
 
@@ -14,7 +15,7 @@ export async function Payouts({ ctx: { list }, sp }: { ctx: AdminPage; sp: Recor
     <Tiles items={[{ k: 'Waiting for approval', v: String(rows.filter((r) => ['draft', 'pending_approval'].includes(String(r.status))).length), href: '/admin/owner-money?tab=payouts&status=pending_approval', warn: rows.some((r) => ['draft', 'pending_approval'].includes(String(r.status))) },
       { k: 'Approved, to send', v: String(rows.filter((r) => r.status === 'approved').length), sub: $(rows.filter((r) => r.status === 'approved').reduce((n, r) => n + Number(r.amount_cents ?? 0), 0)), href: '/admin/owner-money?tab=payouts&status=approved' },
       { k: 'Paid', v: String(rows.filter((r) => r.status === 'paid').length), href: '/admin/owner-money?tab=payouts&status=paid' }]} />
-    <Filters base="/admin/owner-money?tab=payouts" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Waiting for approval'], ['approved', 'Approved'], ['paid', 'Paid'], ['cancelled', 'Cancelled']]} />
+    <ListFilters id="admin-owner-money-payouts-status" base="/admin/owner-money?tab=payouts" sp={sp} chips={{ name: 'status', label: 'Status', value: sp.status ?? '', options: [['', 'All'], ['pending_approval', 'Waiting for approval'], ['approved', 'Approved'], ['paid', 'Paid'], ['cancelled', 'Cancelled']] }} />
     <Table<R> testId="payouts" rows={rows} empty="No payouts yet. They are made when an owner statement is approved." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'payee', label: 'Payee', render: (r) => String(r.owner_name ?? r.investor_name ?? r.payee_type) }, { key: 'kind', label: 'Kind' },
       { key: 'statement', label: 'Statement', render: (r) => r.owner_statement_id ? <Link prefetch={false} className="link" href={`/admin/statements/${String(r.owner_statement_id)}`}>open</Link> : null },
       { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'scheduled_for', label: 'Scheduled', render: (r) => d(r.scheduled_for) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },

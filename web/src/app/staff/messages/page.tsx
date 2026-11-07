@@ -1,7 +1,8 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
-import { Filters, PageHead, t } from '@/features/admin/ui';
+import { PageHead, t } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Renter messages', path: '/staff/messages', noindex: true, description: 'Messages with renters.' });
@@ -20,7 +21,7 @@ export default async function Messages({ searchParams }: { searchParams: Promise
   return (
     <>
       <PageHead title="Renter messages" purpose="Every message with a renter, newest first. Open one to read the whole conversation and reply." />
-      <Filters base="/staff/messages" name="dir" value={dir} sp={sp} options={[['', `All (${all.length})`], ['inbound', `From renters (${inbound})`]]} />
+      <ListFilters id="staff-messages-dir" base="/staff/messages" sp={sp} chips={{ name: 'dir', label: 'Show', value: dir, options: [['', `All (${all.length})`], ['inbound', `From renters (${inbound})`]] }} />
       {rows.length ? (
         <ul className="va-msgs" data-testid="messages-inbox" aria-label="Messages">
           {rows.map((r) => {

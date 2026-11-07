@@ -1,6 +1,7 @@
 import type { AdminPage } from '@/server/admin/api';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { Act } from '@/features/admin/Act';
-import { Badge, BookingLink, Filters, PageHead, Search, Table, Tiles, t } from '@/features/admin/ui';
+import { Badge, BookingLink, PageHead, Search, Table, Tiles, t } from '@/features/admin/ui';
 
 type R = Record<string, unknown>;
 
@@ -20,7 +21,7 @@ export async function Emails({ ctx: { list, read }, sp, tab }: { ctx: AdminPage;
       { k: 'Held for the limit', v: String(u.held), href: '/admin/logs?tab=emails&status=delayed', warn: u.held > 0 }, { k: 'Failed today', v: String(u.failed_today), href: '/admin/logs?tab=emails&status=failed', warn: u.failed_today > 0 },
       { k: 'In this list', v: String(count) }]} />}
     {u && <p className={`alert ${u.total >= u.warn_at ? 'alert--warn' : 'alert--info'}`} data-testid="email-usage"><span>Today: {u.total} of {u.cap} emails ({u.outbox} from this list, {u.auth} sign-in emails). From {u.warn_at} the Admins get a notice; digests and marketing wait first, booking and sign-in emails go last. Held for the limit: {u.held}. Failed today: {u.failed_today}.</span></p>}
-    <Filters base="/admin/logs?tab=emails" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['queued', 'Queued'], ['delayed', 'Held'], ['sent', 'Sent'], ['failed', 'Failed']]} />
+    <ListFilters id="admin-logs-emails-status" base="/admin/logs?tab=emails" sp={sp} chips={{ name: 'status', label: 'Status', value: sp.status ?? '', options: [['', 'All'], ['queued', 'Queued'], ['delayed', 'Held'], ['sent', 'Sent'], ['failed', 'Failed']] }} />
     <Table<R> testId="outbox" rows={rows} empty="No emails match. Clear a filter, or search by address or booking." cols={[{ key: 'created_at', label: 'Created', render: (r) => t(r.created_at) }, { key: 'code', label: 'Email' }, { key: 'to_address', label: 'To' }, { key: 'booking_number', label: 'Booking', render: (r) => r.booking_number ? <BookingLink n={r.booking_number} /> : null },
       { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'attempts', label: 'Tries', num: true }, { key: 'sent_at', label: 'Sent', render: (r) => t(r.sent_at) }, { key: 'last_error', label: 'Error', className: 'wrap' },
       { key: 'act', label: '', render: (r) => <span className="ad-actions"><Act action="outbox_resend" payload={{ id: r.id }} label="Resend" refresh={['/admin/logs']} />{['queued', 'delayed'].includes(String(r.status)) && <Act action="outbox_cancel" payload={{ id: r.id }} label="Cancel" refresh={['/admin/logs']} />}

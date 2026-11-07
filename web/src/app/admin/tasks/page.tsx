@@ -1,9 +1,10 @@
 import { pageMeta } from '@/features/seo/meta';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { page } from '@/server/admin/api';
 import Link from '@/components/Link';
 import { Act } from '@/features/admin/Act';
 import { adminTaskHref } from '@/features/va/tasks';
-import { Badge, BookingLink, Filters, PageHead, Table, t, label } from '@/features/admin/ui';
+import { Badge, BookingLink, PageHead, Table, t, label } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Staff tasks', path: '/admin/tasks', noindex: true, description: 'Every queue.' });
@@ -21,7 +22,7 @@ export default async function Tasks({ searchParams }: { searchParams: Promise<Re
   const tomorrow = inADay();
   return (<>
     <PageHead title="Staff tasks" kicker={`${count} shown`} purpose="Every open task in every queue: the Admin's and each staff function's. Your own list is To do." />
-    <Filters base="/admin/tasks" name="queue" value={sp.queue ?? ''} sp={sp} options={[['', 'All queues'], ['admin', 'Admin'], ['cs', 'Customer service'], ['sales', 'Sales'], ['fleet', 'Fleet']]} />
+    <ListFilters id="admin-tasks-queue" base="/admin/tasks" sp={sp} chips={{ name: 'queue', label: 'Queue', value: sp.queue ?? '', options: [['', 'All queues'], ['admin', 'Admin'], ['cs', 'Customer service'], ['sales', 'Sales'], ['fleet', 'Fleet']] }} />
     {/* r32: five chips; Finance's tasks and the done ones are links (the old ?queue= and ?status= still work) */}
     <p className="small"><Link prefetch={false} className="link" href="/admin/tasks?queue=finance">Finance tasks</Link> · <Link prefetch={false} className="link" href="/admin/tasks?status=done">Done tasks</Link></p>
     <Table<R> testId="tasks" rows={rows} empty="No open tasks. Tasks the system raises (and the ones you add) show up here by queue." cols={[{ key: 'due_at', label: 'Due', render: (r) => <span className={typeof r.due_at === 'string' && new Date(r.due_at) < new Date() ? 'ad-late' : undefined}>{t(r.due_at)}</span> },

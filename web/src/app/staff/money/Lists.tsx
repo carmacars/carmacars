@@ -1,7 +1,8 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import type { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, Filters, PageHead, Table, d, t } from '@/features/admin/ui';
+import { $, Badge, PageHead, Table, d, t } from '@/features/admin/ui';
 import { KIND_LABEL, METHOD_LABEL, PURPOSE_LABEL, cardLabel, friendly } from '@/features/money/ledger';
 
 type Ctx = Awaited<ReturnType<typeof vaPage>>;
@@ -18,7 +19,7 @@ export async function Payments({ ctx, status }: { ctx: Ctx; status?: string }) {
   const { rows, count } = await ctx.list<R>('payments', { eq: status ? { status } : {}, limit: 200 });
   return (<>
     <PageHead title="All payments" kicker={`${count} payments`} purpose="Every payment, newest first. By day has the totals by method and the cash drawer." />
-    <Filters base="/staff/money?tab=payments" name="status" value={status ?? ''} sp={{ tab: 'payments', ...(status ? { status } : {}) }} options={[['', 'All'], ['succeeded', 'Succeeded'], ['pending', 'Pending'], ['authorized', 'Authorized'], ['failed', 'Failed']]} />
+    <ListFilters id="staff-money-lists-status" base="/staff/money?tab=payments" sp={{ tab: 'payments', ...(status ? { status } : {}) }} chips={{ name: 'status', label: 'Status', value: status ?? '', options: [['', 'All'], ['succeeded', 'Succeeded'], ['pending', 'Pending'], ['authorized', 'Authorized'], ['failed', 'Failed']] }} />
     <Table<R> testId="payments" rows={rows} empty="No payments." cols={[{ key: 'created_at', label: 'Date', render: (r) => t(r.created_at) }, { key: 'booking_number', label: 'Booking', render: (r) => bk(r.booking_number) },
       { key: 'purpose', label: 'For', render: (r) => friendly(PURPOSE_LABEL, r.purpose) }, { key: 'kind', label: 'Kind', render: (r) => friendly(KIND_LABEL, r.kind) }, { key: 'method', label: 'Method', render: (r) => friendly(METHOD_LABEL, r.method) },
       { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
@@ -30,7 +31,7 @@ export async function Refunds({ ctx, status }: { ctx: Ctx; status?: string }) {
   const { rows } = await ctx.list<R>('refunds', { eq: status ? { status } : {}, limit: 200 });
   return (<>
     <PageHead title="Refunds" purpose="Every refund and where it is. Refunds waiting for a decision are decided on By day, within your limit; above it an Admin decides." />
-    <Filters base="/staff/money?tab=refunds" name="status" value={status ?? ''} sp={{ tab: 'refunds', ...(status ? { status } : {}) }} options={[['', 'All'], ['pending_approval', 'Waiting for approval'], ['approved', 'Approved'], ['paid', 'Paid'], ['failed', 'Failed']]} />
+    <ListFilters id="staff-money-lists-status" base="/staff/money?tab=refunds" sp={{ tab: 'refunds', ...(status ? { status } : {}) }} chips={{ name: 'status', label: 'Status', value: status ?? '', options: [['', 'All'], ['pending_approval', 'Waiting for approval'], ['approved', 'Approved'], ['paid', 'Paid'], ['failed', 'Failed']] }} />
     <Table<R> testId="refunds" rows={rows} empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'booking_number', label: 'Booking', render: (r) => bk(r.booking_number) },
       { key: 'reason', label: 'Reason', render: (r) => friendly(REFUND_REASON, r.reason) }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) },
       { key: 'status', label: 'Status', render: (r) => r.status === 'pending_approval' ? <Link prefetch={false} className="link" href="/staff/money?tab=day">Waiting: decide it on By day</Link> : <Badge s={String(r.status)} /> },

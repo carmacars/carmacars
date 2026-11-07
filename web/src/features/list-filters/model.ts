@@ -2,7 +2,7 @@
 //   one search box across fields; one row of at most 5 chips; at most one date range (where dates matter) and one sort
 //   with 2 or 3 options; nothing else. Old query parameters still work (mapped, or still read by the list).
 export type Opt = readonly [value: string, label: string];
-export interface Group { name: string; label: string; options: ReadonlyArray<Opt> }
+export interface Group { name: string; label: string; options: ReadonlyArray<Opt>; /** the chosen value when it is not sp[name] (a default) */ value?: string }
 
 export const MAX_CHIPS = 5;
 

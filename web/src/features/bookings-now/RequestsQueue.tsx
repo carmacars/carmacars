@@ -1,8 +1,8 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { ReopenOffer } from '@/features/offers/ReopenOffer';
 import { Act } from '@/features/admin/Act';
 import { LiveWait } from '@/features/admin/shell/LiveWait';
-import { Filters } from '@/features/admin/ui';
 import { opensToYou, type ClaimInfo } from '@/features/offers/claim';
 import { CarLine, Chip, Tile, TileBand, Who } from './parts';
 import { Countdown } from './Countdown';
@@ -64,8 +64,7 @@ export function RequestsQueue({ all: every, cards, state, sp, target, at, base, 
         <Tile k="rq-exp" href={`${base}/requests?state=expired`} label="Offers expired" n={all.filter((r) => r.state === 'expired').length} note={old.length ? `${old.length} older in Expired` : 'send again or close'} />
       </TileBand>
       <div className="bn-bar">
-        <Filters base={`${base}/requests`} name="state" value={state} sp={sp} options={[['', `Active (${all.length})`], ['new', `New (${n('new')})`], ['waiting_on_renter', `Asked the renter (${n('waiting_on_renter')})`],
-          ['pushed_back', `Changes asked (${n('pushed_back')})`], ['offer_out', `Offer out (${n('offer_out')})`], ['awaiting_payment', `Not paid (${n('awaiting_payment')})`], ['expired', `Expired (${n('expired')})`]]} />
+        <ListFilters id="bookings-now-requestsqueue-state" base={`${base}/requests`} sp={sp} chips={{ name: 'state', label: 'State', value: state, options: [['', `Active (${all.length})`], ['new', `New (${n('new')})`],           ['pushed_back', `Changes asked (${n('pushed_back')})`], ['offer_out', `Offer out (${n('offer_out')})`], ['expired', `Expired (${n('expired')})`]] }} />
       </div>
       {rows.length ? (
         <div className="rq-list" role="list" data-testid="requests">

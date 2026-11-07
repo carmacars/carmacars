@@ -1,8 +1,9 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { $, BookingLink, Card, Filters, PageHead, Table, Tabs, d, label, t } from '@/features/admin/ui';
+import { $, BookingLink, Card, PageHead, Table, Tabs, d, label, t } from '@/features/admin/ui';
 import { pctBps, statusWords, type CommissionRow, type MonthProgress } from '@/features/sales/Commissions';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +36,7 @@ export default async function StaffCommissions({ searchParams }: { searchParams:
     const o = await read<{ requests: OwnerReq[] }>('owner_recruit_requests', { status: sp.status ?? '' });
     return (<><PageHead title="Owner commission requests" />{tabs}
       <p className="small muted">Each owner a salesperson brings in has one request: a flat amount (earned at the owner&apos;s first paid rental) or a percent of the company&apos;s share or of the cars&apos; rental revenue, for a number of months or for as long as the car is with us. Approve it as asked, approve other terms, or decline it. Nothing accrues before it is approved; the commissions then come here for approval like any other. A CarmaCars expense: the owner&apos;s revenue is unchanged.</p>
-      <Filters base={`${base}?tab=owners`} name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending', 'Waiting'], ['approved', 'Approved'], ['declined', 'Declined']]} />
+      <ListFilters id="admin-money-commissions-status" base={`${base}?tab=owners`} sp={sp} chips={{ name: 'status', label: 'Status', value: sp.status ?? '', options: [['', 'All'], ['pending', 'Waiting'], ['approved', 'Approved'], ['declined', 'Declined']] }} />
       <Table<OwnerReq & R> testId="owner-requests" rows={o.requests as Array<OwnerReq & R>} rowKey={(r) => r.id} empty="No requests." cols={[
         { key: 'owner', label: 'Owner', className: 'wrap', render: (r) => <><Link prefetch={false} className="link" href={`/admin/owners/${r.owner_id}`}>{r.owner}</Link><span className="ad-sub">{STAGE[r.stage] ?? r.stage}, {r.cars} car{r.cars === 1 ? '' : 's'}</span></> },
         { key: 'staff', label: 'Salesperson', render: (r) => <>{r.staff}{r.mode ? <span className="ad-sub">{r.mode === 'remote' ? 'remote' : 'in person'}</span> : null}</> },
@@ -103,7 +104,7 @@ export default async function StaffCommissions({ searchParams }: { searchParams:
               { name: 'paid_on', label: 'Date paid', type: 'date', required: true, value: data.today }, { name: 'pay_period', label: 'Pay statement month (for the pay statement)', type: 'date' }, { name: 'note', label: 'Note', type: 'text' }]} />}
         </span> }]} />
     </Card>
-    <Filters base={base} name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Pending approval'], ['approved', 'Approved'], ['accruing', 'Not earned yet'], ['paid', 'Paid']]} />
+    <ListFilters id="admin-money-commissions-status" base={base} sp={sp} chips={{ name: 'status', label: 'Status', value: sp.status ?? '', options: [['', 'All'], ['pending_approval', 'Pending approval'], ['approved', 'Approved'], ['accruing', 'Not earned yet'], ['paid', 'Paid']] }} />
     <Table<Row & R> testId="commission-list" rows={data.rows as Array<Row & R>} rowKey={(r) => r.id} empty="No commissions with this status." cols={[
       { key: 'name', label: 'Staff member' }, { key: 'booking_number', label: 'Booking', className: 'wrap', render: (r) => <><BookingLink n={r.booking_number} />{r.what ? <span className="ad-sub">{r.what}</span> : null}</> }, { key: 'month_label', label: 'Month' },
       { key: 'rental_days', label: 'Days', num: true, render: (r) => (r.kind === 'commission' ? r.rental_days : '') }, { key: 'base_cents', label: 'Rental charge', num: true, render: (r) => (r.scheme === 'recruit_flat' ? '' : $(r.base_cents)) },

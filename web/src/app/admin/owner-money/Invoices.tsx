@@ -1,12 +1,13 @@
 import type { AdminPage } from '@/server/admin/api';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { door } from '@/server/door';
-import { Filters, PageHead, Search, Tiles } from '@/features/admin/ui';
+import { PageHead, Search, Tiles } from '@/features/admin/ui';
 import { TrackerActions } from '@/features/admin/AdminForms';
 import { Act } from '@/features/admin/Act';
 import { InvoiceList, type InvoiceListData } from '@/features/owner-billing/InvoiceList';
 
 
-const FILTERS: Array<[string, string]> = [['', 'All'], ['draft', 'Drafts'], ['open', 'Open'], ['partly_paid', 'Partly paid'], ['paid', 'Paid'], ['failed', 'Failed'], ['in_arrears', 'In arrears'], ['void', 'Void']];
+const FILTERS: Array<[string, string]> = [['', 'All'], ['open', 'Open'], ['partly_paid', 'Partly paid'], ['failed', 'Failed'], ['in_arrears', 'In arrears']];
 
 // Money > Owner money > Invoices (migration 0067; r27: a tab of Owner money, /admin/invoices redirects): every owner invoice, drafts and voids included, each with its own
 // page; New invoice for any amount; the monthly run and the tracker invoices as before.
@@ -22,7 +23,7 @@ export async function Invoices({ ctx: { user }, sp }: { ctx: AdminPage; sp: Reco
         { k: 'Paid', v: String(data.counts.paid), href: '/admin/owner-money?tab=invoices&status=paid' },
         { k: 'Void', v: String(data.counts.void), href: '/admin/owner-money?tab=invoices&status=void' }]} />
       <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-3)', alignItems: 'center' }}>
-        <Filters base="/admin/owner-money?tab=invoices" name="status" value={status} options={FILTERS} sp={sp} />
+        <ListFilters id="admin-owner-money-invoices-status" base="/admin/owner-money?tab=invoices" sp={sp} chips={{ name: 'status', label: 'Status', value: status, options: FILTERS }} />
         <Search action="/admin/owner-money?tab=invoices" value={sp.q} placeholder="Invoice number or owner" />
       </div>
       <InvoiceList data={data} newHref="/admin/invoices/new" testId="admin-invoices" />

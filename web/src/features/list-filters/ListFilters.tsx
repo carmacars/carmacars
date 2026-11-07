@@ -21,7 +21,7 @@ export function ListFilters({ id, base, sp, search, chips, dates, sort, kept = [
 }) {
   const names = [chips?.name, sort?.name, dates?.from, dates?.to, ...kept].filter(Boolean) as string[];
   const used = activeCount(sp, names);
-  const link = (g: Group, [v, l]: Opt) => <Link prefetch={false} scroll={false} key={v || 'all'} href={hrefWith(base, sp, g.name, v)} aria-current={(sp[g.name] ?? '') === v ? 'page' : undefined}>{l}</Link>;
+  const link = (g: Group, [v, l]: Opt) => <Link prefetch={false} scroll={false} key={v || 'all'} href={hrefWith(base, sp, g.name, v)} aria-current={(g.value ?? sp[g.name] ?? '') === v ? 'page' : undefined}>{l}</Link>;
   const action = search?.action ?? base.split('?')[0]!;
   return (
     <section className="lf" aria-label="Find and filter" data-testid={testId}>

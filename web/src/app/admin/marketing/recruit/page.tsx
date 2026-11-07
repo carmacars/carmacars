@@ -1,8 +1,9 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { Badge, Filters, PageHead, Search, Table, d } from '@/features/admin/ui';
+import { Badge, PageHead, Search, Table, d } from '@/features/admin/ui';
 import { CONTACT_KINDS, LEAD_STATUS, LISTING_SITES, type ConsentState } from '@/features/ads/recruit';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,7 @@ export default async function Recruit({ searchParams }: { searchParams: Promise<
     </PageHead>
     {!r.enabled && <p className="alert small" role="status"><span>Recruitment emails and texts are off in Program settings: nothing sends until they are on.</span></p>}
     <div className="row" style={{ gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-      <Filters base="/admin/marketing/recruit" name="status" value={status} sp={sp} options={[['open', `Open (${r.counts.open})`], ['contacted', 'Contacted'], ['qualified', 'Interested'], ['converted', 'Signed up'], ['do_not_contact', `Do not contact (${r.counts.do_not_contact})`], ['all', `All (${r.counts.all})`]]} />
+      <ListFilters id="admin-marketing-recruit-status" base="/admin/marketing/recruit" sp={sp} chips={{ name: 'status', label: 'Status', value: status, options: [['open', `Open (${r.counts.open})`], ['contacted', 'Contacted'], ['qualified', 'Interested'], ['do_not_contact', `Do not contact (${r.counts.do_not_contact})`], ['all', `All (${r.counts.all})`]] }} />
       <Search action="/admin/marketing/recruit" value={sp.q} placeholder="Search name, phone, car" />
     </div>
     <Table<Lead> testId="rc-leads" rows={r.rows} rowKey={(x) => x.id} empty="No recruitment lead yet. Add one from a classified ad." cols={[

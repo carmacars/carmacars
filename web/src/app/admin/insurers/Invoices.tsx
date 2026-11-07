@@ -1,6 +1,7 @@
 import type { AdminPage } from '@/server/admin/api';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, BookingLink, Filters, PageHead, Table, Tiles, t, d } from '@/features/admin/ui';
+import { $, Badge, BookingLink, PageHead, Table, Tiles, t, d } from '@/features/admin/ui';
 
 type R = Record<string, unknown>;
 // days since a time (outside the component: the clock is read when the page is drawn on the server)
@@ -17,7 +18,7 @@ export async function InsurerInvoices({ ctx: { list }, sp }: { ctx: AdminPage; s
       { k: 'Drafts to send', v: String(rows.filter((r) => r.status === 'draft').length), href: '/admin/insurers?tab=invoices&status=draft', warn: rows.some((r) => r.status === 'draft') },
       { k: 'Out over 30 days', v: String(rows.filter((r) => ['sent', 'part_paid'].includes(String(r.status)) && (days(r.sent_at) ?? 0) > 30).length), warn: rows.some((r) => ['sent', 'part_paid'].includes(String(r.status)) && (days(r.sent_at) ?? 0) > 30) },
       { k: 'Paid', v: String(rows.filter((r) => r.status === 'paid').length) }]} />
-    <Filters base="/admin/insurers?tab=invoices" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['draft', 'Draft'], ['sent', 'Sent'], ['part_paid', 'Part paid'], ['paid', 'Paid']]} />
+    <ListFilters id="admin-insurers-invoices-status" base="/admin/insurers?tab=invoices" sp={sp} chips={{ name: 'status', label: 'Status', value: sp.status ?? '', options: [['', 'All'], ['draft', 'Draft'], ['sent', 'Sent'], ['part_paid', 'Part paid'], ['paid', 'Paid']] }} />
     <Table<R> testId="insurer-invoices" rows={rows} empty="No insurer invoices. They are made from a booking billed to an insurer, once it is returned." cols={[{ key: 'invoice_number', label: 'Invoice' }, { key: 'insurer_name', label: 'Insurer' }, { key: 'claim_number', label: 'Claim' }, { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> },
       { key: 'period', label: 'Period', render: (r) => `${d(r.period_start)} to ${d(r.period_end)}` }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'hst_cents', label: 'HST', num: true, render: (r) => $(r.hst_cents) }, { key: 'total_cents', label: 'Total', num: true, render: (r) => $(r.total_cents) },
       { key: 'paid_cents', label: 'Paid', num: true, render: (r) => $(r.paid_cents) }, { key: 'balance_cents', label: 'Balance', num: true, render: (r) => $(r.balance_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },

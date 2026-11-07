@@ -1,8 +1,9 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { door } from '@/server/door';
-import { Badge, Filters, PageHead, Table, d } from '@/features/admin/ui';
+import { Badge, PageHead, Table, d } from '@/features/admin/ui';
 import { APP_STATUS } from '@/features/admin/applications';
 
 export const dynamic = 'force-dynamic';
@@ -18,14 +19,14 @@ export default async function Applications({ searchParams }: { searchParams: Pro
   const status = sp.status ?? 'new';
   const r = await door<{ rows: Row[]; counts: Record<string, number> }>(user.id, 'ops_read', 'applications', { status: status === 'all' ? '' : status });
   const chips: Array<[string, string]> = [['new', `New (${r.counts.new ?? 0})`], ['waiting_on_owner', `Waiting on owner (${r.counts.waiting_on_owner ?? 0})`],
-    ['approved', `Approved (${r.counts.approved ?? 0})`], ['declined', `Declined (${r.counts.declined ?? 0})`],
+    ['approved', `Approved (${r.counts.approved ?? 0})`], 
     ['account_only', `Account only: no car yet (${r.counts.account_only ?? 0})`], ['all', 'All']];
   return (
     <>
       <PageHead title="Owner applications" kicker="From List your car on the website">
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/list-your-car/apply">Start an application</Link>
       </PageHead>
-      <Filters base="/admin/applications" name="status" value={status} options={chips} sp={sp} />
+      <ListFilters id="admin-applications-status" base="/admin/applications" sp={sp} chips={{ name: 'status', label: 'Status', value: status, options: chips }} />
       <Table<Row> testId="applications" caption="Owner applications" rows={r.rows}
         empty={status === 'new' ? 'No new applications. When an owner applies from List your car, the application shows up here and on your To do list.' : `No ${APP_STATUS[status]?.toLowerCase() ?? ''} applications.`} cols={[
         { key: 'application_number', label: 'Application', render: (x) => <Link prefetch={false} className="link" href={`/admin/applications/${x.id}`}>{x.application_number}</Link> },

@@ -1,6 +1,7 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, Card, Filters, Search, Table, Tiles, t } from '@/features/admin/ui';
+import { $, Badge, Card, Search, Table, Tiles, t } from '@/features/admin/ui';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 
 // Discount games (migration 0069; 0171: plays by prize, the Play again prize as its own row; 0172: a repeat claim shows as the same person, "2nd code"), staff side: who claimed a prize, whether the code was used, their consent and what
@@ -43,7 +44,7 @@ export function GameLeads({ d, base, sp, bookingBase }: { d: GameLeadsData; base
     <Card title={`Discount game leads (${d.rows.length})`} testId="game-leads">
       <div className="ad-actions">
         <Search action={base} value={sp.q} placeholder="Search name, email, phone or code" />
-        <Filters base={base} name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['unused', 'Not used yet'], ['on_request', 'On a request'], ['used', 'Booked'], ['expired', 'Expired']]} />
+        <ListFilters id="games-gameleads-status" base={base} sp={sp} chips={{ name: 'status', label: 'Status', value: sp.status ?? '', options: [['', 'All'], ['unused', 'Not used yet'], ['on_request', 'On a request'], ['used', 'Booked'], ['expired', 'Expired']] }} />
       </div>
       <Table rows={d.rows} rowKey={(r) => String(r.claim_id)} empty="No claims yet. The game shows to visitors who browse a few cars." cols={[
         { key: 'created_at', label: 'Claimed', render: (r) => t(r.created_at) },

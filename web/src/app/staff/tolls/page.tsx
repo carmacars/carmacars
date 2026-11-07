@@ -1,9 +1,10 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { Act } from '@/features/admin/Act';
 import { TollImport } from '@/features/admin/TollImport';
-import { $, Badge, Card, Filters, PageHead, Table, d, t, label } from '@/features/admin/ui';
+import { $, Badge, Card, PageHead, Table, d, t, label } from '@/features/admin/ui';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Tolls and tickets', path: '/staff/tolls', noindex: true, description: 'Toll and ticket matching.' });
@@ -24,7 +25,7 @@ export default async function VaTolls({ searchParams }: { searchParams: Promise<
         {ids('needs_review').length > 0 && <Act action="toll_bulk_confirm" payload={{ ids: ids('needs_review') }} label="Bulk confirm high-confidence" refresh={R} />}
         {ids('matched_not_charged').length > 0 && <Act action="toll_charge" payload={{ ids: ids('matched_not_charged') }} label={`Charge ${ids('matched_not_charged').length} matched`} confirm="Charge every matched notice to its renter." refresh={R} />}
       </PageHead>
-      <Filters base="/staff/tolls" name="bucket" value={sp.bucket ?? ''} sp={sp} options={[['', 'All'], ['unmatched', 'Unmatched'], ['needs_review', 'Needs review'], ['matched_not_charged', 'Matched, not charged'], ['disputed', 'Disputed']]} />
+      <ListFilters id="staff-tolls-bucket" base="/staff/tolls" sp={sp} chips={{ name: 'bucket', label: 'Status', value: sp.bucket ?? '', options: [['', 'All'], ['unmatched', 'Unmatched'], ['needs_review', 'Needs review'], ['matched_not_charged', 'Matched, not charged'], ['disputed', 'Disputed']] }} />
       <Table<Q> testId="va-tolls" rows={data.queue} empty="Nothing in this queue." cols={[{ key: 'notice', label: 'Notice', render: (r) => String(r.notice_number ?? r.external_ref ?? 'open') },
         { key: 'bucket', label: 'Queue', render: (r) => <Badge s={r.bucket === 'unmatched' ? 'failed' : 'open'}>{label(r.bucket)}</Badge> }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) },
         { key: 'plate', label: 'Plate' }, { key: 'occurred_at', label: 'When', render: (r) => t(r.occurred_at) }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) },

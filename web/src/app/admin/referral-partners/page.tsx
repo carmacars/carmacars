@@ -1,8 +1,9 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
-import { $, Badge, BookingLink, Card, Filters, PageHead, Table, Tabs, d } from '@/features/admin/ui';
+import { $, Badge, BookingLink, Card, PageHead, Table, Tabs, d } from '@/features/admin/ui';
 import { EARNING_WORDS, kindLabel, PAYOUT_METHODS, STATUS_WORDS } from '@/features/referral/model';
 import { PARTNER_FIELDS } from '@/features/referral/fields';
 import { PartnerInvoices } from '@/features/partner-invoices/PartnerInvoices';
@@ -39,7 +40,7 @@ export default async function ReferralPartners({ searchParams }: { searchParams:
     const r = await read<{ rows: Ledger[] }>('referral_earnings', { status: sp.status ?? '' });
     return (<>{head}{tabs}
       <p className="small muted">A kickback is earned when the rental is completed and paid in full, on the rental charge after discounts. Approve it, then record how you paid it under Partners. A refund or chargeback after payment comes back as a clawback on the next payment. On a program owner&apos;s car it is deducted before Owner Revenue, with the staff commissions; on a partner&apos;s or CarmaCars&apos; own car CarmaCars pays it.</p>
-      <Filters base={`${base}?tab=ledger`} name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Pending approval'], ['approved', 'Approved'], ['accruing', 'Not earned yet'], ['paid', 'Paid']]} />
+      <ListFilters id="admin-referral-partners-status" base={`${base}?tab=ledger`} sp={sp} chips={{ name: 'status', label: 'Status', value: sp.status ?? '', options: [['', 'All'], ['pending_approval', 'Pending approval'], ['approved', 'Approved'], ['accruing', 'Not earned yet'], ['paid', 'Paid']] }} />
       <Table<Ledger & R> testId="rp-ledger" rows={r.rows as Array<Ledger & R>} rowKey={(x) => x.id} empty="No kickbacks with this status." cols={[
         { key: 'partner', label: 'Partner', render: (x) => <Link prefetch={false} className="link" href={`/admin/referral-partners/${x.partner_id}`}>{x.partner}</Link> },
         { key: 'booking_number', label: 'Booking', render: (x) => <BookingLink n={x.booking_number} /> }, { key: 'first_name', label: 'Renter' }, { key: 'month', label: 'Month' },
