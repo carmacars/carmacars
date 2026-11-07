@@ -5,13 +5,15 @@ import { fieldAct } from '@/server/actions/field';
 import { fieldLicenceLoad } from '@/server/actions/field-licence';
 import type { DocUpload } from '@/features/admin/todo/types';
 import type { LicenceReviewData } from './types';
+import { LicenceChecks, PrimarySwapPanel } from '@/features/licence/LicenceChecks';
 
 // The renter's licence reviewed by field staff (0162): the licence front, back and the selfie of a booking on a job of their
 // own, then "Approve all" or a reason to reject one image (the renter sees the reason and sends a new one). The same
 // decision, audit trail and statuses as customer service's review; the history records the reviewer's role. The images come
 // through one-minute private links, loaded when the panel opens (each opening is logged). Large touch targets.
 const KIND: Record<string, string> = { licence_front: 'Licence, front', licence_back: 'Licence, back', selfie: 'Selfie with the licence' };
-const CHECKS = ['The name and date of birth match the booking', 'Class G2 or G, valid past the return date, no sign of alteration', 'The selfie’s face matches the licence photo'];
+// the reader checks the rest line by line (release 31)
+const CHECKS = ['Each flagged line below: fix it or reject with the reason', 'No sign of alteration; the photo is of the driver', 'The selfie’s face matches the licence photo'];
 const day = (iso: string | null | undefined) => (iso ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(iso.length === 10 ? `${iso}T12:00:00Z` : iso)) : '');
 
 function Reject({ kind, pending, onReject }: { kind: string; pending: boolean; onReject: (reason: string) => void }) {
@@ -99,12 +101,14 @@ export function LicenceReview({ job, waiting, label = 'Review the licence' }: { 
             </>
           )}
           {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'} small`} role={msg.ok ? 'status' : 'alert'} data-testid="licence-review-msg"><span>{msg.text}</span></p>}
+          {d?.primary_swap && <PrimarySwapPanel booking={d.booking_id} swap={d.primary_swap} canDecide={false} onDone={() => undefined} />}
           {d?.drivers.map((dr) => {
             const ups = d.uploads.filter((u) => u.driver_id === dr.driver_id);
             return (
               <section key={dr.driver_id} className="fd-lic__driver stack" aria-label={dr.full_name}>
                 <p><b>{dr.full_name}</b> <span className="small muted">{dr.role.replace(/_/g, ' ')}{dr.verified_on ? ', verified' : ''}</span></p>
                 <p className="small muted">Born {dr.date_of_birth ?? 'not given'} · licence {dr.licence_number ?? 'not given'} {dr.licence_class ?? ''} · expires {dr.licence_expiry ?? 'not given'}</p>
+                <LicenceChecks read={dr.licence_read} checks={dr.licence_checks} />
                 {ups.length ? ups.map((u) => <Shot key={u.id} u={u} pending={pending} reject={(reason) => reject(u.id, u.kind, reason)} />) : <p className="small muted">Nothing uploaded for this driver.</p>}
               </section>);
           })}

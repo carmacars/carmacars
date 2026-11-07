@@ -56,7 +56,8 @@ def build():
     g.steps([
         f'My jobs shows {B("Licences to check")} when the licence front, back or selfie of a renter on one of your jobs waits for a decision. The same check is on the job itself, under {B("Check the licence")}.',
         f'Press {B("Review the licence")}. The images open with the name, date of birth and licence details on the booking.',
-        'Look at each image: the name and date of birth match the booking, class G2 or G and valid past the return date with no sign of alteration, and the selfie matches the licence photo.',
+        'Look at each image and the licence reader\'s lines under each driver (Pass or Flag: valid to the return, class, age, name and date of birth, the Ontario number, front and back): no sign of alteration, and the selfie matches the licence photo.',
+        'A photo you take that is blurry or cut off says so at once: take it again.',
         f'One is wrong? Open {B("Reject this one")} under it, type the reason the renter reads and press {B("Reject")}. The renter is told why and sends a new one.',
         f'Then press {B("Approve all")}: everything still waiting is approved at once.',
     ])

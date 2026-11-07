@@ -207,11 +207,13 @@ def build():
     g.task('Check renter documents', 'The renter\'s licence photos, selfie and proof of coverage, before the handover.')
     g.steps([
         f'Open the task "identity documents or coverage proof to review", or open the booking: {B("Review")} shows the documents of any booking being arranged or under way, with no task needed.',
-        'Every licence image, selfie and proof of coverage of the booking is on one screen, with what to check written once above them: the name and date of birth, class G2 or G and valid past the return, the selfie matches, the coverage is active to the return date.',
+        'Every licence image, selfie and proof of coverage of the booking is on one screen, with what to check written once above them: the selfie matches, no alteration, the coverage is active to the return date.',
+        'Under each driver, the licence reader lists what it read (from the back\'s barcode, else the photo) and one line per check, Pass or Flag: photos sharp and whole, valid to the return, class accepted, old enough at pickup, name and date of birth match the driver, the Ontario number, front and back the same licence, and the main driver\'s Ontario licence. Look closely at each Flag.',
         f'One is wrong? Open {B("Reject this one")} under it, type the reason the renter reads and press {B("Reject")}.',
         f'Then press {B("Approve all")}: everything still waiting is approved at once (the Protection Plan too). A document the system refuses is named with the reason; the rest are approved.',
     ])
     g.tip('Each opening is logged. An Admin can do the same from Admin > To do. Field staff review the licence images (not the coverage) of bookings on their own jobs in the next 7 days from their My jobs: the booking history says the role, field.')
+    g.tip('Main driver: Ontario licence needed. When the main driver\'s licence is from elsewhere, they are moved to additional driver (their photos and checks stay; you still review them) and pickup is blocked until a driver with an Ontario licence is the main driver. The renter adds one from their booking. Only an Admin can undo the swap or let it go with a reason.', label='Good to know')
 
     g.task('Which credit cards include rental car coverage?', f'Renters ask this often. {P("Renters", "Card coverage")} (every function has it under Rentals or Bookings) is your quick reference: what to say, what to check, and the list.')
     g.steps([
@@ -441,7 +443,7 @@ def build():
     g.steps([
         f'On {P("My work", "To do")}, {B("Licences to check")} lists each booking with an image waiting, the longest wait first. Press {B("Review the licence")}.',
         f'On a booking, the card {B("Renter licence")} has the same: press {B("Review the licence")}.',
-        'Look at each image: the name and date of birth match the booking, class G2 or G, valid past the return, no alteration, the selfie matches the licence photo.',
+        'Look at each image and each Flag line of the licence reader under the driver: no alteration, the selfie matches the licence photo.',
         f'One is wrong? Open {B("Reject this one")} under it, type the reason the renter reads and press {B("Reject")}. The renter is told and asked for a new image.',
         f'Then press {B("Approve all")}: every image still waiting is approved at once. An image the system refuses is named with the reason.',
     ])

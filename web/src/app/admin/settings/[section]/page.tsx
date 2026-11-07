@@ -61,6 +61,7 @@ const SITE_GROUPS: Array<[string, string[]]> = [
 const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Company', (k) => k.startsWith('company_') || ['incident_line_phone', 'privacy_officer_name', 'privacy_officer_email', 'signing_officer_name', 'signing_officer_title', 'signing_officer_authorized_on', 'timezone', 'hst_bps'].includes(k)],
   ['Booking requests and offers', (k) => /^(booking_|offer_|request_|max_|min_|standard_min|accepted_licence|other_licence|info_request|tentative|turnaround|non_refundable|verification|early_return|chase_|addon_|extension_|late_fee_)/.test(k)],
+  ['Driver\'s licence reader', (k) => k.startsWith('licence_')],
   ['Owner debits and statement emails', (k) => /^(owner_debit_|billing_day|retry_day|owner_late_fee|owner_statement_email|company_statement_email)/.test(k)],
   ['Deposits, refunds and money', (k) => /^(deposit_|refund_|statement_|holdback|insurer_|liability|deductible|kickback|shareholder|install_fee|owner_late|billing_day|retry_day|payout_day|fleet_report_day|investor_|buyout|take_deposit)/.test(k)],
   ['Delivery', (k) => k.startsWith('delivery_') || ['company_latitude', 'company_longitude'].includes(k)],
@@ -374,7 +375,7 @@ export default async function Section({ params, searchParams }: { params: Promis
     // staff_agreement_defaults has its own form below, by function (0057)
     // 0360: lead-time pricing has its own card (the tiers as a table); 0361: the partner markup is no longer used
     const keys = Object.keys(s.program).filter((k) => !['id', 'effective_from', 'created_by', 'created_at', 'turnaround_block_minutes', 'owner_debit_show_legal_name', 'staff_agreement_defaults',
-      'lead_time_enabled', 'lead_time_tiers', 'lead_time_insurer', 'partner_markup_bps'].includes(k)
+      'lead_time_enabled', 'lead_time_tiers', 'lead_time_insurer', 'partner_markup_bps', 'licence_auto_approver'].includes(k)
       // 0085's booking texts, replaced by Text alerts (0096: Settings > Text alerts)
       && !k.startsWith('phone_sms_'));
     const used = new Set<string>();

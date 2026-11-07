@@ -25,7 +25,8 @@ export function DriverLicence({ token, l, selfie }: { token: string; l: LicenceS
       try { body = await toStandardImage(f); } catch (e) { setErr(e instanceof Error ? e.message : 'We could not read that file.'); return; }
       const fd = new FormData(); fd.set('kind', kind); fd.set('file', body, `${kind}.jpg`);
       const r = await driverLicenceUpload(token, fd);
-      if (!r.ok) setErr(r.message); else router.refresh();
+      // the licence read straight away (release 31): a photo it cannot use is taken again now
+      if (!r.ok) setErr(r.message); else { setErr(r.data?.retake ?? null); router.refresh(); }
     });
   };
   return (

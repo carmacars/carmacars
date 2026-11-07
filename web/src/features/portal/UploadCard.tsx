@@ -24,6 +24,7 @@ export function UploadCard({ number, kind, driverId, title, hint, status, reason
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [retake, setRetake] = useState('');
   const pdf = kind === 'coverage_proof';
   const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -41,6 +42,8 @@ export function UploadCard({ number, kind, driverId, title, hint, status, reason
       if (!put.ok) throw new Error('The upload did not finish. Try again.');
       const c = await confirmUpload(t.data.ticket, details ?? null);
       if (!c.ok) throw new Error(c.message);
+      // the licence read on the server straight away (release 31): a photo it cannot use is taken again now
+      setRetake(c.data?.retake ?? '');
       setDone(true);
       router.refresh();
     } catch (err) {
@@ -61,6 +64,7 @@ export function UploadCard({ number, kind, driverId, title, hint, status, reason
       {/* the camera, or a photo or scan already on the phone or computer (HEIC, WEBP, PDF too) */}
       {!pdf && kind !== 'selfie' && <><label className="btn btn--quiet btn--sm" htmlFor={`${id}-pick`}>Choose a file</label>
         <input id={`${id}-pick`} type="file" accept={PHOTO_ACCEPT} onChange={pick} disabled={busy} aria-describedby={`${id}-hint ${id}-err`} aria-label={`${title}: choose a photo or PDF`} data-testid={`upload-pick-${kind}`} /></>}
+      {retake && <p className="alert alert--warn" role="alert" data-testid={`retake-${kind}`}><span>{retake}</span></p>}
       <p className="error" role="alert" id={`${id}-err`}>{error}</p>
     </div>
   );

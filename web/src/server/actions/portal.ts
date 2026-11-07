@@ -5,6 +5,7 @@ import { DbError, rpc } from '@/lib/db/repo';
 import { env } from '@/lib/env';
 import { payments, fakeOnly } from '@/integrations/payments';
 import { storage, type Bucket } from '@/integrations/storage';
+import { readLicence } from '@/server/licence-read';
 import { consents, CONSENT_VERSION, consentLine, SIGN_STATEMENT } from '@/features/agreement/model';
 import { bookingPath } from '@/features/portal/status';
 import { addedLive, type MyBooking } from '@/features/portal/types';
@@ -554,7 +555,7 @@ function magicOk(bytes: Uint8Array, ct: string): boolean {
   return false;
 }
 
-export async function confirmUpload(ticket: string, details: Record<string, string> | null): Promise<R> {
+export async function confirmUpload(ticket: string, details: Record<string, string> | null): Promise<R<{ retake: string | null; primaryMoved: boolean } | null>> {
   const t = await readToken<{ b: string; n: string; k: Kind; d: string | null; key: string; bucket: Bucket; ct: string; u: string }>('upload', ticket);
   if (!t) return fail('The upload link expired. Choose the file again.', 'expired');
   const user = await requireUser();
@@ -573,8 +574,10 @@ export async function confirmUpload(ticket: string, details: Record<string, stri
     for (const k of ['coverage_option', 'insurer_name', 'policy_number', 'policy_expiry']) if (d[k]) clean[k] = String(d[k]).slice(0, 120);
     const r = (await rpc('renter_register_upload', { p_booking: t.b, p_by: user.id, p_kind: t.k, p_driver: t.d ?? undefined, p_storage_path: t.key, p_sha256: await sha256Hex(bytes), p_mime_type: t.ct, p_details: clean, p_storage_bucket: t.bucket }, SR)) as unknown as { ok: boolean; error?: string };
     if (!r.ok) { await s.remove(t.bucket, t.key); return fail('Too many uploads in the last hour. Try again later.', 'rate_limited'); }
+    // the licence read straight away (release 31): a photo that cannot be used is taken again now
+    const read = t.d && (t.k === 'licence_front' || t.k === 'licence_back') ? await readLicence({ booking_id: t.b, driver_id: t.d }, t.k, bytes) : null;
     refresh(t.n);
-    return { ok: true, data: null };
+    return { ok: true, data: read ? { retake: read.retake, primaryMoved: read.primaryMoved } : null };
   } catch (e) {
     await s.remove(t.bucket, t.key);
     return fail(dbMessage(e));
@@ -687,5 +690,37 @@ export async function submitReview(number: string, input: { rating: number; titl
     await rpc('renter_submit_review', { p_booking: b.id, p_by: userId, p_rating: rating, p_title: title || undefined, p_body: body || undefined, p_publish_consent: Boolean(input?.consent) }, SR);
     refresh(number); revalidatePath(bookingPath(number, 'review'));
     return { ok: true, data: null };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+// ---------------------------------------------------------------- the licence reader (release 31, migration 0602)
+/** The renter confirms the licence details read from the photo (filled into the empty fields). */
+export async function confirmLicenceRead(number: string, driverId: string): Promise<R> {
+  try {
+    const { userId, b } = await mine(number);
+    await rpc('renter_licence_confirm', { p_booking: b.id, p_by: userId, p_driver: driverId }, SR);
+    refresh(number);
+    return { ok: true, data: null };
+  } catch (e) { return fail(dbMessage(e)); }
+}
+
+/** The main driver needs an Ontario licence: the renter adds one (they stay on the booking as an extra driver). The new
+ *  main driver uploads their licence on the verify page (read the same way) and gets their own link to accept and sign. */
+export async function addMainDriver(number: string, p: { full_name: string; email: string; mobile: string; date_of_birth: string }): Promise<R<{ driverId: string }>> {
+  const name = (p.full_name ?? '').trim(); const email = (p.email ?? '').trim(); const mobile = (p.mobile ?? '').trim(); const dob = (p.date_of_birth ?? '').trim();
+  const errs: Record<string, string> = {};
+  if (name.length < 3) errs.full_name = 'Enter their full name, as on the licence.';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = 'Enter their email address.';
+  if (mobile.replace(/\D/g, '').length < 10) errs.mobile = 'Enter their mobile number.';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) errs.date_of_birth = 'Enter their date of birth.';
+  if (Object.keys(errs).length) return { ok: false, code: 'invalid', message: 'Check the highlighted fields.', fieldErrors: errs };
+  try {
+    const { userId, b } = await mine(number);
+    const r = (await rpc('renter_primary_driver_add', { p_booking: b.id, p_by: userId, p: { full_name: name, email, mobile, date_of_birth: dob } }, SR)) as unknown as { driver_id: string };
+    // their link to accept and sign, when the agreement is open (otherwise it goes out when it opens)
+    const { sendFirstDriverLinks } = await import('@/server/portal/driver-links');
+    await sendFirstDriverLinks(b.id, userId).catch(() => undefined);
+    refresh(number);
+    return { ok: true, data: { driverId: r.driver_id } };
   } catch (e) { return fail(dbMessage(e)); }
 }

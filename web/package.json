@@ -35,8 +35,11 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.3",
+    "@zxing/library": "0.23.0",
     "aws4fetch": "^1.0.20",
+    "fast-png": "8.0.0",
     "jose": "^6.2.12",
+    "jpeg-js": "0.4.4",
     "next": "16.3.8",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "4.10.38",

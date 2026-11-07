@@ -1,0 +1,2432 @@
+-- 0602_licence_reader.sql
+-- Release 31, D2 (docs/changes/2026-11-07-licence-reader.md): a driver's licence read on every upload, and the main
+-- driver's Ontario licence.
+--   1. licence_reads: what the server read from each licence photo (the back's PDF417 barcode, else the vision model):
+--      name, date of birth, number, class, issue and expiry dates, province or state, address, and the photo's quality.
+--      Staff only (Admins by policy; staff through the document review), kept as long as the image (deleted with it),
+--      the audit log redacted.
+--   2. app.licence_checks: a pass or flag line each: expired or ending before the return, class not accepted, under the
+--      minimum age at pickup, name or date of birth not the driver's, the Ontario number's format and its letter and
+--      date of birth, front and back not the same licence, a photo blurry or cut off (the renter takes it again).
+--   3. The read fills the driver's empty licence fields (the renter confirms them). Staff still approve; Program
+--      settings "Approve automatically when every check passes" (licence_auto_approve, off) approves the licence photos.
+--   4. The main driver must hold an Ontario licence (licence_primary_ontario, on): a main driver whose licence is from
+--      elsewhere becomes an additional driver (the upload and the checks kept); the booking needs "Primary driver:
+--      Ontario licence needed" before pickup (the readiness and the handover guard). The renter adds a main driver
+--      (name, email, mobile, date of birth; their licence through the same reader, their own driver link) or uploads
+--      their own Ontario licence. An Admin can undo the change or let it go with a reason.
+
+create function pg_temp.copy_grants(p_new regprocedure, p_old regprocedure) returns void
+language plpgsql as $$
+declare g text;
+begin
+  execute format('revoke all on function %s from public, anon, authenticated', p_new);
+  foreach g in array array['anon', 'authenticated', 'service_role'] loop
+    if has_function_privilege(g, p_old, 'execute') then execute format('grant execute on function %s to %I', p_new, g); end if;
+  end loop;
+end $$;
+
+-- ================================================================ settings
+alter table program_settings
+  add column if not exists licence_auto_approve boolean not null default false,
+  add column if not exists licence_primary_ontario boolean not null default true,
+  add column if not exists licence_auto_approver uuid references users (id);
+comment on column program_settings.licence_auto_approve is 'Licence reader (0602): approve the licence photos by themselves when every check passes. Off: staff approve.';
+comment on column program_settings.licence_auto_approver is 'Licence reader (0602): the Admin who turned automatic approval on; the approvals are recorded in their name, marked automatic.';
+comment on column program_settings.licence_primary_ontario is 'Licence reader (0602): the main driver must hold an Ontario licence; a main driver with another licence becomes an additional driver until a main driver with an Ontario licence is added.';
+
+-- the booking history names the new events
+do $$
+declare d text;
+begin
+  select pg_get_constraintdef(oid) into d from pg_constraint where conrelid = 'booking_events'::regclass and conname = 'booking_events_kind_check';
+  if d is not null and d not like '%''primary_driver_moved''%' then
+    execute 'alter table booking_events drop constraint booking_events_kind_check';
+    execute 'alter table booking_events add constraint booking_events_kind_check '
+         || replace(d, 'ARRAY[', 'ARRAY[''primary_driver_moved''::text, ''primary_driver_added''::text, ''primary_driver_decided''::text, ''licence_auto_approved''::text, ');
+  end if;
+end $$;
+
+-- ================================================================ the reads
+create table if not exists licence_reads (
+  id             uuid primary key default gen_random_uuid(),
+  booking_id     uuid not null references bookings (id) on delete cascade,
+  driver_id      uuid not null references drivers (id) on delete cascade,
+  upload_id      uuid references verification_uploads (id) on delete set null,
+  document_id    uuid references documents (id) on delete cascade,
+  side           text not null check (side in ('licence_front', 'licence_back')),
+  source         text not null check (source in ('barcode', 'vision', 'none')),
+  quality        text not null check (quality in ('ok', 'blurry', 'cut_off', 'not_licence', 'unreadable')),
+  first_name     text,
+  last_name      text,
+  full_name      text,
+  date_of_birth  date,
+  licence_number text,
+  licence_class  text,
+  issued_on      date,
+  expires_on     date,
+  issuer         text,
+  country        text,
+  address        text,
+  model          text,
+  created_at     timestamptz not null default now()
+);
+create index if not exists licence_reads_driver_idx on licence_reads (booking_id, driver_id, side, created_at desc);
+alter table licence_reads enable row level security;
+create policy admin_all on licence_reads for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_licence_reads after insert or update or delete on licence_reads for each row execute function app.audit_row('redact');
+comment on table licence_reads is 'Licence reader (0602): what was read from each licence photo, staff only, deleted with the image.';
+
+-- the read goes with its image (the purge job marks the document purged)
+create or replace function app.licence_reads_purge() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if new.purged_at is not null and old.purged_at is null then delete from licence_reads where document_id = new.id; end if;
+  return null;
+end $$;
+drop trigger if exists documents_licence_reads_purge on documents;
+create trigger documents_licence_reads_purge after update of purged_at on documents for each row execute function app.licence_reads_purge();
+
+-- ================================================================ the Ontario number
+-- A1234-56789-01234: a letter, 14 digits; the letter is the family name's first; the last six are the date of birth
+-- (YYMMDD, the month plus 50 on some cards). Null where nothing to compare.
+create or replace function app.ontario_licence_check(p_number text, p_last_name text, p_dob date) returns jsonb
+language sql immutable as $$
+  with x as (select upper(regexp_replace(coalesce(p_number, ''), '[\s-]', '', 'g')) s,
+                    upper(regexp_replace(coalesce(p_last_name, ''), '[^A-Za-z]', '', 'g')) ln)
+  select case when x.s !~ '^[A-Z][0-9]{14}$' then jsonb_build_object('format', false, 'letter', null, 'birth', null)
+         else jsonb_build_object('format', true,
+           'letter', case when x.ln = '' then null else left(x.s, 1) = left(x.ln, 1) end,
+           'birth', case when p_dob is null then null
+                         else right(x.s, 6) in (to_char(p_dob, 'YYMMDD'), to_char(p_dob, 'YY') || lpad((extract(month from p_dob)::int + 50)::text, 2, '0') || to_char(p_dob, 'DD')) end) end
+    from x
+$$;
+
+create or replace function app.licence_is_ontario(p_issuer text) returns boolean
+language sql immutable as $$ select upper(btrim(coalesce(p_issuer, ''))) in ('ON', 'ONT', 'ONTARIO') $$;
+
+-- what is known of a driver's licence: the barcode first, then the front's read, field by field
+create or replace function app.licence_known(p_booking uuid, p_driver uuid) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  with r as (select * from licence_reads where booking_id = p_booking and driver_id = p_driver
+              order by (source = 'barcode') desc, created_at desc)
+  select jsonb_strip_nulls(jsonb_build_object(
+    'first_name', (select first_name from r where first_name is not null limit 1),
+    'last_name', (select last_name from r where last_name is not null limit 1),
+    'full_name', (select full_name from r where full_name is not null limit 1),
+    'date_of_birth', (select date_of_birth from r where date_of_birth is not null limit 1),
+    'licence_number', (select licence_number from r where licence_number is not null limit 1),
+    'licence_class', (select licence_class from r where licence_class is not null limit 1),
+    'issued_on', (select issued_on from r where issued_on is not null limit 1),
+    'expires_on', (select expires_on from r where expires_on is not null limit 1),
+    'issuer', (select issuer from r where issuer is not null limit 1),
+    'country', (select country from r where country is not null limit 1),
+    'address', (select address from r where address is not null limit 1),
+    'source', (select source from r limit 1)))
+$$;
+
+-- ================================================================ the checks
+-- [{key, label, ok (true pass, false flag, null not read), detail}], one line each
+create or replace function app.licence_checks(p_booking uuid, p_driver uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  b bookings;
+  bd booking_drivers;
+  s program_settings;
+  k jsonb := app.licence_known(p_booking, p_driver);
+  fr licence_reads;
+  bk licence_reads;
+  v jsonb := '[]'::jsonb;
+  v_exp date := (k ->> 'expires_on')::date;
+  v_dob date := (k ->> 'date_of_birth')::date;
+  v_pick date;
+  v_ret date;
+  v_age integer;
+  v_on jsonb;
+  v_name_ok boolean;
+  v_bad text;
+begin
+  select * into b from bookings where id = p_booking;
+  select * into bd from booking_drivers where booking_id = p_booking and driver_id = p_driver;
+  s := app.settings(app.local_date(coalesce(b.pickup_at, now())));
+  v_pick := app.local_date(b.pickup_at); v_ret := app.local_date(b.return_at);
+  select * into fr from licence_reads where booking_id = p_booking and driver_id = p_driver and side = 'licence_front' order by created_at desc limit 1;
+  select * into bk from licence_reads where booking_id = p_booking and driver_id = p_driver and side = 'licence_back' order by created_at desc limit 1;
+
+  -- the photos
+  v_bad := case when fr.quality is not null and fr.quality <> 'ok' then 'front' when bk.quality is not null and bk.quality <> 'ok' and bk.source <> 'barcode' then 'back' end;
+  v := v || jsonb_build_object('key', 'photo', 'label', 'Photos sharp and whole',
+    'ok', case when fr.id is null and bk.id is null then null else v_bad is null end,
+    'detail', case when v_bad is not null then format('The %s is %s: the renter was asked to take it again', v_bad,
+                                                      replace(coalesce(case v_bad when 'front' then fr.quality else bk.quality end, ''), '_', ' '))
+                   when bk.source = 'barcode' then 'Back barcode read' else null end);
+  -- expiry
+  v := v || jsonb_build_object('key', 'expiry', 'label', 'Valid to the return',
+    'ok', case when v_exp is null then null else v_exp >= v_ret end,
+    'detail', case when v_exp is null then 'Expiry not read'
+                   when v_exp < v_pick then format('Expired on %s', app.fmt_day(v_exp))
+                   when v_exp < v_ret then format('Expires %s, before the return %s', app.fmt_day(v_exp), app.fmt_day(v_ret))
+                   else format('Expires %s', app.fmt_day(v_exp)) end);
+  -- class
+  v := v || jsonb_build_object('key', 'class', 'label', 'Licence class accepted',
+    'ok', case when k ->> 'licence_class' is null then null else (k ->> 'licence_class') = any (s.accepted_licence_classes) end,
+    'detail', case when k ->> 'licence_class' is null then 'Class not read'
+                   else format('Class %s%s', k ->> 'licence_class',
+                               case when (k ->> 'licence_class') = any (s.accepted_licence_classes) then ''
+                                    else format(' (accepted: %s)', array_to_string(s.accepted_licence_classes, ', ')) end) end);
+  -- age at pickup
+  v_age := case when v_dob is not null then app.age_on(v_dob, v_pick) end;
+  v := v || jsonb_build_object('key', 'age', 'label', format('%s or older at pickup', s.min_renter_age),
+    'ok', case when v_age is null then null else v_age >= s.min_renter_age end,
+    'detail', case when v_age is null then 'Date of birth not read' else format('%s at pickup', v_age) end);
+  -- the driver on the booking
+  v_name_ok := case when k ->> 'last_name' is null or bd.full_name is null then null
+                    else position(lower(regexp_replace(k ->> 'last_name', '[^A-Za-z]', '', 'g')) in lower(regexp_replace(bd.full_name, '[^A-Za-z]', '', 'g'))) > 0 end;
+  v := v || jsonb_build_object('key', 'match', 'label', 'Name and date of birth match the driver',
+    'ok', case when v_name_ok is null and v_dob is null then null
+               else coalesce(v_name_ok, true) and (v_dob is null or bd.date_of_birth is null or v_dob = bd.date_of_birth) end,
+    'detail', case when v_dob is not null and bd.date_of_birth is not null and v_dob <> bd.date_of_birth
+                     then format('Licence %s, booking %s', app.fmt_day(v_dob), app.fmt_day(bd.date_of_birth))
+                   when v_name_ok = false then format('Licence %s, booking %s', k ->> 'full_name', bd.full_name)
+                   else coalesce(k ->> 'full_name', '') end);
+  -- the Ontario number
+  if app.licence_is_ontario(k ->> 'issuer') then
+    v_on := app.ontario_licence_check(k ->> 'licence_number', k ->> 'last_name', v_dob);
+    v := v || jsonb_build_object('key', 'ontario_number', 'label', 'Ontario number',
+      'ok', case when k ->> 'licence_number' is null then null
+                 else (v_on ->> 'format')::boolean and coalesce((v_on ->> 'letter')::boolean, true) and coalesce((v_on ->> 'birth')::boolean, true) end,
+      'detail', case when k ->> 'licence_number' is null then 'Number not read'
+                     when not (v_on ->> 'format')::boolean then 'Not the Ontario format (a letter and 14 digits)'
+                     when (v_on ->> 'letter')::boolean is false then 'The letter is not the family name''s first'
+                     when (v_on ->> 'birth')::boolean is false then 'The last six digits are not the date of birth'
+                     else 'Format, letter and date of birth agree' end);
+  end if;
+  -- front and back the same licence
+  if fr.id is not null and bk.id is not null then
+    v := v || jsonb_build_object('key', 'front_back', 'label', 'Front and back are the same licence',
+      'ok', (fr.licence_number is null or bk.licence_number is null
+               or regexp_replace(fr.licence_number, '[^A-Z0-9]', '', 'g') = regexp_replace(bk.licence_number, '[^A-Z0-9]', '', 'g'))
+            and (fr.date_of_birth is null or bk.date_of_birth is null or fr.date_of_birth = bk.date_of_birth)
+            and (fr.last_name is null or bk.last_name is null or lower(fr.last_name) = lower(bk.last_name)),
+      'detail', null);
+  end if;
+  -- the main driver's Ontario licence
+  if bd.role = 'renter' or exists (select 1 from booking_primary_swaps w where w.booking_id = p_booking and w.from_driver_id = p_driver and w.state = 'needed') then
+    v := v || jsonb_build_object('key', 'ontario_primary', 'label', 'Main driver: Ontario licence',
+      'ok', case when not s.licence_primary_ontario then true when k ->> 'issuer' is null then null else app.licence_is_ontario(k ->> 'issuer') end,
+      'detail', case when k ->> 'issuer' is null then 'Province not read' else format('Issued by %s', k ->> 'issuer') end);
+  end if;
+  return v;
+end $$;
+
+create or replace function app.licence_all_pass(p_checks jsonb) returns boolean
+language sql immutable as $$
+  select jsonb_array_length(coalesce(p_checks, '[]')) > 0 and not exists (select 1 from jsonb_array_elements(p_checks) c where (c ->> 'ok') is distinct from 'true')
+$$;
+
+-- ================================================================ the main driver's Ontario licence
+create table if not exists booking_primary_swaps (
+  id             uuid primary key default gen_random_uuid(),
+  booking_id     uuid not null references bookings (id) on delete cascade,
+  from_driver_id uuid not null references drivers (id),
+  to_driver_id   uuid references drivers (id),
+  issuer         text,
+  state          text not null default 'needed' check (state in ('needed', 'resolved', 'undone', 'overridden')),
+  reason         text,
+  decided_by     uuid references users (id),
+  created_at     timestamptz not null default now(),
+  decided_at     timestamptz
+);
+create unique index if not exists booking_primary_swaps_one_open on booking_primary_swaps (booking_id) where state = 'needed';
+alter table booking_primary_swaps enable row level security;
+create policy admin_all on booking_primary_swaps for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_booking_primary_swaps after insert or update or delete on booking_primary_swaps for each row execute function app.audit_row();
+comment on table booking_primary_swaps is 'Licence reader (0602): a main driver whose licence is not from Ontario, made an additional driver until a main driver with an Ontario licence is on the booking (or an Admin undoes it or lets it go).';
+
+alter table rental_agreement_signers add column if not exists is_primary_driver boolean not null default false;
+comment on column rental_agreement_signers.is_primary_driver is 'Licence reader (0602): this driver''s link is for the main driver (added because the first main driver''s licence is not from Ontario).';
+
+create or replace function app.primary_ontario_needed(p_booking uuid) returns boolean
+language sql stable security definer set search_path = public, app as $$
+  select exists (select 1 from booking_primary_swaps w where w.booking_id = p_booking and w.state = 'needed')
+$$;
+
+-- After a read: the main driver's licence decides. Not from Ontario: they become an additional driver and the booking
+-- needs one; an Ontario licence for the person who was moved, or for the new main driver, settles it.
+create or replace function app.primary_ontario_apply(p_booking uuid, p_driver uuid) returns text
+language plpgsql security definer set search_path = public, app as $$
+declare
+  b bookings;
+  bd booking_drivers;
+  w booking_primary_swaps;
+  v_issuer text := app.licence_known(p_booking, p_driver) ->> 'issuer';
+begin
+  select * into b from bookings where id = p_booking;
+  if not (app.settings()).licence_primary_ontario or v_issuer is null or b.status::text not in ('requested', 'offered', 'tentative', 'pending_payment', 'confirmed') then return null; end if;
+  select * into bd from booking_drivers where booking_id = p_booking and driver_id = p_driver;
+  select * into w from booking_primary_swaps where booking_id = p_booking and state = 'needed';
+  if w.id is not null then
+    if app.licence_is_ontario(v_issuer) and p_driver = w.from_driver_id then
+      -- the person moved has an Ontario licence after all: back as the main driver
+      update booking_drivers set role = 'additional' where booking_id = p_booking and role = 'renter' and driver_id <> p_driver;
+      update booking_drivers set role = 'renter' where booking_id = p_booking and driver_id = p_driver;
+      update booking_primary_swaps set state = 'resolved', decided_at = now() where id = w.id;
+      return 'resolved';
+    elsif app.licence_is_ontario(v_issuer) and p_driver = w.to_driver_id then
+      update booking_primary_swaps set state = 'resolved', decided_at = now() where id = w.id;
+      return 'resolved';
+    end if;
+    return 'needed';
+  end if;
+  if bd.role = 'renter' and not app.licence_is_ontario(v_issuer)
+     and not exists (select 1 from booking_primary_swaps x where x.booking_id = p_booking and x.from_driver_id = p_driver and x.state in ('undone', 'overridden')) then
+    update booking_drivers set role = 'additional' where id = bd.id;
+    insert into booking_primary_swaps (booking_id, from_driver_id, issuer) values (p_booking, p_driver, v_issuer);
+    perform app.log_booking_event(p_booking, 'primary_driver_moved', b.status::text, b.status::text, null,
+      'The main driver''s licence is not from Ontario: made an additional driver', null, 'system', jsonb_build_object('driver_id', p_driver, 'issuer', v_issuer));
+    return 'needed';
+  end if;
+  return null;
+end $$;
+
+-- ================================================================ recording a read
+-- p: booking_id, driver_id, side, source, quality, first_name, last_name, full_name, date_of_birth, licence_number,
+-- licence_class, issued_on, expires_on, issuer, country, address, model, neurons, duration_ms, error (the server's)
+create or replace function app.licence_read_record(p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v_b uuid := (p ->> 'booking_id')::uuid;
+  v_d uuid := (p ->> 'driver_id')::uuid;
+  u verification_uploads;
+  r licence_reads;
+  v_checks jsonb;
+  v_swap text;
+  v_auto boolean := false;
+  v_approver uuid;
+  dt date;
+begin
+  if coalesce(p ->> 'side', '') not in ('licence_front', 'licence_back') then raise exception 'A licence side is needed' using errcode = '22023'; end if;
+  -- the model did not answer: only the call is recorded (its time and neurons), no read
+  if coalesce((p ->> 'call_only')::boolean, false) then
+    insert into provider_calls (provider, purpose, ok, error, duration_ms, cost_microusd, units, unit)
+    values (left(coalesce(p ->> 'model', 'workers-ai'), 120), 'licence_read', false, left(p ->> 'error', 500),
+            greatest(coalesce((p ->> 'duration_ms')::integer, 0), 0), 0, greatest(coalesce((p ->> 'neurons')::integer, 0), 0), 'neurons');
+    return jsonb_build_object('call_only', true);
+  end if;
+  if not exists (select 1 from booking_drivers where booking_id = v_b and driver_id = v_d) then raise exception 'Driver not on this booking' using errcode = 'P0002'; end if;
+  select * into u from verification_uploads where booking_id = v_b and driver_id = v_d and kind = p ->> 'side' and status in ('submitted', 'approved')
+   order by uploaded_at desc limit 1;
+  insert into licence_reads (booking_id, driver_id, upload_id, document_id, side, source, quality, first_name, last_name, full_name, date_of_birth,
+                             licence_number, licence_class, issued_on, expires_on, issuer, country, address, model)
+  values (v_b, v_d, u.id, u.document_id, p ->> 'side', coalesce(nullif(p ->> 'source', ''), 'none'), coalesce(nullif(p ->> 'quality', ''), 'unreadable'),
+          left(p ->> 'first_name', 80), left(p ->> 'last_name', 80), left(p ->> 'full_name', 160), nullif(p ->> 'date_of_birth', '')::date,
+          left(upper(p ->> 'licence_number'), 40), left(upper(p ->> 'licence_class'), 10), nullif(p ->> 'issued_on', '')::date, nullif(p ->> 'expires_on', '')::date,
+          left(upper(p ->> 'issuer'), 40), left(upper(p ->> 'country'), 40), left(p ->> 'address', 200), left(p ->> 'model', 120))
+  returning * into r;
+  if p ->> 'source' = 'vision' then
+    insert into provider_calls (provider, purpose, ok, error, duration_ms, cost_microusd, units, unit)
+    values (left(coalesce(p ->> 'model', 'workers-ai'), 120), 'licence_read', r.quality <> 'unreadable', left(p ->> 'error', 500),
+            greatest(coalesce((p ->> 'duration_ms')::integer, 0), 0), 0, greatest(coalesce((p ->> 'neurons')::integer, 0), 0), 'neurons');
+  end if;
+  -- the driver's empty licence fields from the read (the renter confirms them on the verify page)
+  if r.quality = 'ok' then
+    perform set_config('app.licence_read', 'on', true);
+    update drivers set licence_read_confirmed_at = null, licence_number = coalesce(licence_number, r.licence_number), licence_class = coalesce(licence_class, r.licence_class),
+           licence_issuer = coalesce(licence_issuer, r.issuer), licence_expiry = coalesce(licence_expiry, r.expires_on)
+     where id = v_d and (licence_number is null or licence_class is null or licence_issuer is null or licence_expiry is null);
+    update booking_drivers bd set licence_number = coalesce(bd.licence_number, r.licence_number), licence_class = coalesce(bd.licence_class, r.licence_class),
+           licence_issuer = coalesce(bd.licence_issuer, r.issuer), licence_expiry = coalesce(bd.licence_expiry, r.expires_on)
+     where bd.booking_id = v_b and bd.driver_id = v_d;
+    perform set_config('app.licence_read', '', true);
+  end if;
+  v_swap := app.primary_ontario_apply(v_b, v_d);
+  v_checks := app.licence_checks(v_b, v_d);
+  -- Approve automatically when every check passes (off by default): both licence photos of this driver read sharp and
+  -- whole; never the selfie. Through the review staff use, in the name of the Admin who turned it on.
+  -- the Admin who turned it on (Settings > Program settings saves a dated row in their name)
+  v_approver := coalesce((app.settings()).licence_auto_approver, (app.settings()).created_by);
+  if (app.settings()).licence_auto_approve and v_approver is not null and app.licence_all_pass(v_checks)
+     and exists (select 1 from licence_reads x where x.booking_id = v_b and x.driver_id = v_d and x.side = 'licence_front' and x.quality = 'ok')
+     and exists (select 1 from licence_reads x where x.booking_id = v_b and x.driver_id = v_d and x.side = 'licence_back' and x.quality = 'ok') then
+    for u in select * from verification_uploads where booking_id = v_b and driver_id = v_d and kind in ('licence_front', 'licence_back') and status = 'submitted' loop
+      perform app.review_verification_upload(u.id, v_approver, true);
+      v_auto := true;
+    end loop;
+    if v_auto then
+      perform app.log_booking_event(v_b, 'licence_auto_approved', null, null, null, 'Licence approved automatically: every check passed', v_approver, 'system',
+        jsonb_build_object('driver_id', v_d));
+    end if;
+  end if;
+  return jsonb_build_object('id', r.id, 'quality', r.quality, 'source', r.source, 'checks', v_checks, 'all_pass', app.licence_all_pass(v_checks),
+    'primary', v_swap, 'auto_approved', v_auto,
+    'fields', jsonb_strip_nulls(jsonb_build_object('full_name', r.full_name, 'date_of_birth', r.date_of_birth, 'licence_number', r.licence_number,
+      'licence_class', r.licence_class, 'expires_on', r.expires_on, 'issuer', r.issuer)));
+end $$;
+
+create or replace function public.server_licence_read_record(p jsonb) returns jsonb
+language sql security definer set search_path = public, app as $$
+  -- an additional driver's own link names the signer; the booking and the driver come from it
+  select app.licence_read_record(case when p ? 'signer_id' then p || coalesce((
+    select jsonb_build_object('booking_id', a.booking_id, 'driver_id', s.driver_id)
+      from rental_agreement_signers s join rental_agreements a on a.id = s.agreement_id where s.id = (p ->> 'signer_id')::uuid), '{}'::jsonb) else p end) $$;
+
+-- the server may call the vision model now (the AI allowance, purpose licence_read)
+create or replace function public.server_licence_read_gate() returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare a jsonb;
+begin
+  if not coalesce((app.ai_vision_budget(now()) ->> 'enabled')::boolean, false) then return jsonb_build_object('allowed', false); end if;
+  a := app.ai_allow('licence_read', 150, now());
+  return jsonb_build_object('allowed', coalesce((a ->> 'ok')::boolean, false), 'model', (app.settings()).ai_vision_model,
+                            'fallback_model', (app.settings()).ai_vision_fallback_model);
+end $$;
+
+-- the AI tier and label of the new purpose
+create or replace function app.ai_tier(p_purpose text) returns text
+language sql immutable as $$
+  select case when p_purpose = 'staff_assistant' then 'assistant'
+              when p_purpose in ('chat', 'phone_draft', 'phone_summary', 'toll_read', 'plate_detect', 'guide_review', 'permit_read',
+                                 'interview_transcribe', 'interview_followup', 'vin_read', 'photo_sort', 'licence_read') then 'live'
+              else 'background' end
+$$;
+alter function app.ai_feature_label(text) rename to ai_feature_label_pre0602;
+create function app.ai_feature_label(p_purpose text) returns text
+language sql immutable as $$
+  select case p_purpose when 'licence_read' then 'Driver''s licence reader' else app.ai_feature_label_pre0602(p_purpose) end
+$$;
+select pg_temp.copy_grants('app.ai_feature_label(text)'::regprocedure, 'app.ai_feature_label_pre0602(text)'::regprocedure);
+
+-- ================================================================ the renter: a new main driver
+-- p: full_name, email, mobile, date_of_birth. The booking's renter (or customer service, an Admin). They join as the main
+-- driver; their own driver link follows (the server sends it), and their licence goes through the same reader.
+create or replace function app.primary_driver_add(p_by uuid, p_booking uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  b bookings;
+  w booking_primary_swaps;
+  s program_settings;
+  v_dob date := nullif(p ->> 'date_of_birth', '')::date;
+  v_name text := nullif(btrim(coalesce(p ->> 'full_name', '')), '');
+  v_email text := lower(nullif(btrim(coalesce(p ->> 'email', '')), ''));
+  v_age integer;
+  v_driver uuid;
+  v_bd uuid;
+  v_signer uuid;
+  a rental_agreements;
+begin
+  select * into b from bookings where id = p_booking;
+  if b.id is null then raise exception 'Booking not found' using errcode = 'P0002'; end if;
+  if not (app.is_booking_renter(b.id, p_by) or app.user_is_admin(p_by) or app.user_va_has(p_by, 'cs')) then raise exception 'Not permitted' using errcode = '42501'; end if;
+  select * into w from booking_primary_swaps where booking_id = p_booking and state = 'needed';
+  if w.id is null then raise exception 'This booking already has its main driver' using errcode = '23514'; end if;
+  if w.to_driver_id is not null then raise exception 'A main driver was added already: they have their link' using errcode = '23514'; end if;
+  if v_name is null or v_dob is null or v_email is null or v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then
+    raise exception 'The name, email and date of birth are needed' using errcode = '22023';
+  end if;
+  s := app.settings(app.local_date(b.pickup_at));
+  v_age := app.age_on(v_dob, app.local_date(b.pickup_at));
+  if v_age < s.min_renter_age then raise exception 'Every driver must be % or older at pickup', s.min_renter_age using errcode = '23514'; end if;
+  insert into drivers (renter_id, full_name, date_of_birth, mobile, email)
+  values (b.renter_id, v_name, v_dob, left(nullif(btrim(coalesce(p ->> 'mobile', '')), ''), 30), v_email)
+  returning id into v_driver;
+  update booking_drivers set role = 'additional' where booking_id = p_booking and role = 'renter';
+  insert into booking_drivers (booking_id, driver_id, role, full_name, date_of_birth, age_at_pickup, age_band)
+  values (p_booking, v_driver, 'renter', v_name, v_dob, v_age, app.age_band(v_age)) returning id into v_bd;
+  update booking_primary_swaps set to_driver_id = v_driver where id = w.id;
+  -- their own link to accept and sign, on the open agreement
+  select * into a from rental_agreements where booking_id = p_booking and status <> 'voided' order by period_seq desc nulls last, opened_at desc nulls last limit 1;
+  if a.id is not null then
+    insert into rental_agreement_signers (agreement_id, signer_role, booking_driver_id, driver_id, signer_name, signer_email, is_primary_driver)
+    values (a.id, 'additional_driver', v_bd, v_driver, v_name, v_email, true) returning id into v_signer;
+  end if;
+  perform app.log_booking_event(p_booking, 'primary_driver_added', b.status::text, b.status::text, null, format('%s added as the main driver', v_name), p_by,
+    case when app.is_booking_renter(b.id, p_by) then 'renter' else 'staff' end, jsonb_build_object('driver_id', v_driver));
+  return jsonb_build_object('driver_id', v_driver, 'signer_id', v_signer);
+end $$;
+
+-- An Admin: undo (the first main driver back, the requirement off) or let it go with a reason
+create or replace function app.primary_swap_decide(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  w booking_primary_swaps;
+  v_action text := p ->> 'action';
+  v_reason text := nullif(btrim(coalesce(p ->> 'reason', '')), '');
+begin
+  perform app.assert_admin(p_by);
+  select * into w from booking_primary_swaps where booking_id = (p ->> 'booking')::uuid and state = 'needed';
+  if w.id is null then raise exception 'Nothing to decide on this booking' using errcode = 'P0002'; end if;
+  if v_action not in ('undo', 'override') then raise exception 'Undo or override' using errcode = '22023'; end if;
+  if v_action = 'override' and (v_reason is null or length(v_reason) < 5) then raise exception 'Say why the main driver may keep this licence' using errcode = '22023'; end if;
+  update booking_drivers set role = 'additional' where booking_id = w.booking_id and role = 'renter' and driver_id <> w.from_driver_id;
+  update booking_drivers set role = 'renter' where booking_id = w.booking_id and driver_id = w.from_driver_id;
+  update booking_primary_swaps set state = case v_action when 'undo' then 'undone' else 'overridden' end, reason = v_reason, decided_by = p_by, decided_at = now()
+   where id = w.id;
+  perform app.log_booking_event(w.booking_id, 'primary_driver_decided', null, null, null,
+    case v_action when 'undo' then 'Main driver change undone' else 'Main driver kept with a licence from outside Ontario: ' || v_reason end, p_by, 'staff', null);
+  return jsonb_build_object('state', case v_action when 'undo' then 'undone' else 'overridden' end);
+end $$;
+
+-- the booking's state of it, for the renter's page and staff
+create or replace function app.primary_swap_read(p_booking uuid) returns jsonb
+language sql stable security definer set search_path = public, app as $$
+  select jsonb_build_object('state', w.state, 'from_name', (select full_name from drivers where id = w.from_driver_id), 'from_driver_id', w.from_driver_id,
+    'to_name', (select full_name from drivers where id = w.to_driver_id), 'to_driver_id', w.to_driver_id, 'issuer', w.issuer, 'reason', w.reason, 'at', w.created_at)
+    from booking_primary_swaps w where w.booking_id = p_booking order by (w.state = 'needed') desc, w.created_at desc limit 1
+$$;
+
+-- ================================================================ readiness and the handover
+alter function app.booking_readiness(uuid) rename to booking_readiness_pre0602;
+create function app.booking_readiness(p_booking uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare
+  r jsonb := app.booking_readiness_pre0602(p_booking);
+  v boolean := app.primary_ontario_needed(p_booking);
+begin
+  return r || jsonb_build_object('primary_ontario_needed', v, 'ready_for_handover', coalesce((r ->> 'ready_for_handover')::boolean, false) and not v,
+                                 'missing', case when v and jsonb_typeof(r -> 'missing') = 'array' then (r -> 'missing') || '["primary_driver_ontario_licence"]'::jsonb else r -> 'missing' end);
+end $$;
+select pg_temp.copy_grants('app.booking_readiness(uuid)'::regprocedure, 'app.booking_readiness_pre0602(uuid)'::regprocedure);
+
+create or replace function app.booking_primary_ontario_guard() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if new.status = 'on_rent' and old.status is distinct from 'on_rent' and app.primary_ontario_needed(new.id) then
+    raise exception 'Do not release the car: Primary driver: Ontario licence needed (add a main driver with an Ontario licence, or an Admin decides on the booking)'
+      using errcode = '23514';
+  end if;
+  return new;
+end $$;
+-- named to run before a0_status_flow, so the plain reason comes first
+drop trigger if exists a0_primary_ontario_guard on bookings;
+create trigger a0_primary_ontario_guard before update of status on bookings for each row execute function app.booking_primary_ontario_guard();
+
+-- ================================================================ the document review shows the reads and the checks
+-- a staff read of a booking's drivers (the document review, customer service's verify page, the field licence review):
+-- each driver with what was read and the checks, and the swap
+create or replace function app.licence_enrich(v jsonb) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+declare v_b uuid;
+begin
+  if v is null or jsonb_typeof(v -> 'drivers') <> 'array' or v ->> 'booking_id' is null then return v; end if;
+  v_b := (v ->> 'booking_id')::uuid;
+  v := jsonb_set(v, '{drivers}', coalesce((select jsonb_agg(d || jsonb_build_object('licence_read', app.licence_known(v_b, (d ->> 'driver_id')::uuid),
+                                                                                    'licence_checks', app.licence_checks(v_b, (d ->> 'driver_id')::uuid)) order by o)
+                                             from jsonb_array_elements(v -> 'drivers') with ordinality t(d, o)), '[]'::jsonb));
+  return v || jsonb_build_object('primary_swap', app.primary_swap_read(v_b));
+end $$;
+
+alter function app.doc_review_read(uuid, jsonb) rename to doc_review_read_pre0602;
+create function app.doc_review_read(p_by uuid, p jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+declare
+  v jsonb := app.doc_review_read_pre0602(p_by, p);
+  v_b uuid;
+begin
+  if v is null or jsonb_typeof(v -> 'drivers') <> 'array' then return v; end if;
+  v_b := (v ->> 'booking_id')::uuid;
+  return app.licence_enrich(v) || jsonb_build_object('licence_auto_approve', (app.settings()).licence_auto_approve);
+end $$;
+select pg_temp.copy_grants('app.doc_review_read(uuid, jsonb)'::regprocedure, 'app.doc_review_read_pre0602(uuid, jsonb)'::regprocedure);
+
+-- ================================================================ the doors
+alter function app.door(uuid, text, text, text, jsonb) rename to door_pre0602;
+create function app.door(p_user uuid, p_aal text, p_call text, p_name text, p jsonb default '{}'::jsonb) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if p_call in ('ops_do', 'admin_do') and p_name in ('primary_swap_decide', 'primary_driver_add', 'licence_settings') then
+    perform app.door_begin(p_user, p_aal);
+    if p_name = 'primary_swap_decide' then return app.primary_swap_decide(p_user, coalesce(p, '{}'::jsonb)); end if;
+    if p_name = 'primary_driver_add' then return app.primary_driver_add(p_user, (p ->> 'booking')::uuid, coalesce(p, '{}'::jsonb)); end if;
+    perform app.assert_admin(p_user);
+    update program_settings set licence_auto_approve = coalesce((p ->> 'auto_approve')::boolean, licence_auto_approve),
+           licence_auto_approver = case when (p ->> 'auto_approve')::boolean then p_user else licence_auto_approver end,
+           licence_primary_ontario = coalesce((p ->> 'primary_ontario')::boolean, licence_primary_ontario)
+     where id = (app.settings()).id;
+    return jsonb_build_object('auto_approve', (app.settings()).licence_auto_approve, 'primary_ontario', (app.settings()).licence_primary_ontario);
+  end if;
+  if p_call in ('ops_read', 'admin_read') and p_name = 'licence_settings' then
+    perform app.door_begin(p_user, p_aal);
+    perform app.assert_admin(p_user);
+    return jsonb_build_object('auto_approve', (app.settings()).licence_auto_approve, 'primary_ontario', (app.settings()).licence_primary_ontario);
+  end if;
+  if (p_call = 'va_read' and p_name = 'verification') or (p_call = 'field_read' and p_name = 'licence_review') then
+    return app.licence_enrich(app.door_pre0602(p_user, p_aal, p_call, p_name, p));
+  end if;
+  return app.door_pre0602(p_user, p_aal, p_call, p_name, p);
+end $$;
+select pg_temp.copy_grants('app.door(uuid, text, text, text, jsonb)'::regprocedure, 'app.door_pre0602(uuid, text, text, text, jsonb)'::regprocedure);
+
+-- the renter's own: the state of the main driver and adding one
+create or replace function public.renter_primary_swap(p_booking uuid, p_by uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+begin
+  if not app.is_booking_renter(p_booking, p_by) then raise exception 'Not permitted' using errcode = '42501'; end if;
+  return app.primary_swap_read(p_booking);
+end $$;
+create or replace function public.renter_primary_driver_add(p_booking uuid, p_by uuid, p jsonb) returns jsonb
+language sql security definer set search_path = public, app as $$ select app.primary_driver_add(p_by, p_booking, p) $$;
+
+
+-- ================================================================ the agreement after a swap
+-- The account holder keeps signing as the renter; the new main driver signs on their own driver link as the primary
+-- driver; the account holder is never asked to sign a second time as an additional driver.
+create or replace function app.agreement_signer_primary_swap() returns trigger
+language plpgsql security definer set search_path = public, app as $$
+declare
+  w booking_primary_swaps;
+  v_booking uuid;
+  v_bd uuid;
+begin
+  select booking_id into v_booking from rental_agreements where id = new.agreement_id;
+  select * into w from booking_primary_swaps where booking_id = v_booking and state in ('needed', 'resolved') and to_driver_id is not null
+   order by created_at desc limit 1;
+  if w.id is null then return new; end if;
+  if new.signer_role = 'renter' and new.driver_id is distinct from w.from_driver_id then
+    select id into v_bd from booking_drivers where booking_id = v_booking and driver_id = w.from_driver_id;
+    new.booking_driver_id := v_bd; new.driver_id := w.from_driver_id;
+    if not exists (select 1 from rental_agreement_signers x where x.agreement_id = new.agreement_id and x.driver_id = w.to_driver_id) then
+      insert into rental_agreement_signers (agreement_id, signer_role, booking_driver_id, driver_id, signer_name, signer_email, is_primary_driver)
+      select new.agreement_id, 'additional_driver', bd.id, bd.driver_id, bd.full_name, dv.email, true
+        from booking_drivers bd join drivers dv on dv.id = bd.driver_id where bd.booking_id = v_booking and bd.driver_id = w.to_driver_id;
+    end if;
+  elsif new.signer_role = 'additional_driver' and new.driver_id = w.from_driver_id then
+    return null;
+  elsif new.signer_role = 'additional_driver' and new.driver_id = w.to_driver_id then
+    new.is_primary_driver := true;
+    if exists (select 1 from rental_agreement_signers x where x.agreement_id = new.agreement_id and x.driver_id = w.to_driver_id) then return null; end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists agreement_signer_primary_swap on rental_agreement_signers;
+create trigger agreement_signer_primary_swap before insert on rental_agreement_signers for each row execute function app.agreement_signer_primary_swap();
+
+-- ================================================================ the renter confirms what was read
+alter table drivers add column if not exists licence_read_confirmed_at timestamptz;
+-- each driver on the booking: the licence fields (filled from the read), whether a read filled them, whether confirmed; and the swap
+create or replace function public.renter_licence_read(p_booking uuid, p_by uuid) returns jsonb
+language plpgsql stable security definer set search_path = public, app as $$
+begin
+  if not app.is_booking_renter(p_booking, p_by) then raise exception 'Not permitted' using errcode = '42501'; end if;
+  return jsonb_build_object(
+    'drivers', coalesce((select jsonb_agg(jsonb_build_object('driver_id', d.id, 'role', bd.role, 'name', bd.full_name,
+        'licence_number', d.licence_number, 'licence_class', d.licence_class, 'licence_issuer', d.licence_issuer, 'licence_expiry', d.licence_expiry,
+        'read', exists (select 1 from licence_reads r where r.booking_id = p_booking and r.driver_id = d.id and r.quality = 'ok'),
+        'confirmed_at', d.licence_read_confirmed_at) order by bd.role desc, bd.full_name)
+      from booking_drivers bd join drivers d on d.id = bd.driver_id where bd.booking_id = p_booking), '[]'::jsonb),
+    'swap', app.primary_swap_read(p_booking),
+    'primary_ontario', (app.settings()).licence_primary_ontario);
+end $$;
+create or replace function public.renter_licence_confirm(p_booking uuid, p_by uuid, p_driver uuid) returns jsonb
+language plpgsql security definer set search_path = public, app as $$
+begin
+  if not app.is_booking_renter(p_booking, p_by) then raise exception 'Not permitted' using errcode = '42501'; end if;
+  if not exists (select 1 from booking_drivers where booking_id = p_booking and driver_id = p_driver) then raise exception 'Driver not on this booking' using errcode = 'P0002'; end if;
+  update drivers set licence_read_confirmed_at = now() where id = p_driver;
+  return jsonb_build_object('ok', true);
+end $$;
+-- the renter changes a field: it is theirs, confirmed
+create or replace function app.drivers_licence_confirm_on_change() returns trigger
+language plpgsql as $$
+begin
+  if (new.licence_number, new.licence_class, new.licence_issuer, new.licence_expiry) is distinct from (old.licence_number, old.licence_class, old.licence_issuer, old.licence_expiry)
+     and coalesce(current_setting('app.licence_read', true), '') <> 'on' then
+    new.licence_read_confirmed_at := now();
+  end if;
+  return new;
+end $$;
+drop trigger if exists drivers_licence_confirm_on_change on drivers;
+create trigger drivers_licence_confirm_on_change before update of licence_number, licence_class, licence_issuer, licence_expiry on drivers
+  for each row execute function app.drivers_licence_confirm_on_change();
+
+do $$
+declare f text;
+begin
+  foreach f in array array['app.licence_reads_purge()', 'app.ontario_licence_check(text, text, date)', 'app.licence_is_ontario(text)', 'app.licence_known(uuid, uuid)',
+    'app.licence_checks(uuid, uuid)', 'app.licence_all_pass(jsonb)', 'app.primary_ontario_needed(uuid)', 'app.primary_ontario_apply(uuid, uuid)',
+    'app.licence_read_record(jsonb)', 'public.server_licence_read_record(jsonb)', 'public.server_licence_read_gate()', 'app.primary_driver_add(uuid, uuid, jsonb)',
+    'app.primary_swap_decide(uuid, jsonb)', 'app.primary_swap_read(uuid)', 'app.booking_primary_ontario_guard()', 'public.renter_primary_swap(uuid, uuid)',
+    'public.renter_primary_driver_add(uuid, uuid, jsonb)', 'app.booking_readiness_pre0602(uuid)', 'app.agreement_signer_primary_swap()', 'app.licence_enrich(jsonb)',
+    'public.renter_licence_read(uuid, uuid)', 'public.renter_licence_confirm(uuid, uuid, uuid)', 'app.doc_review_read_pre0602(uuid, jsonb)'] loop
+    execute format('revoke all on function %s from public, anon, authenticated', f);
+    execute format('grant execute on function %s to service_role', f);
+  end loop;
+end $$;
+
+-- ================================================================ the guides (renter, customer service and sales, field, Admin)
+-- GUIDES 0602 START (generated by supabase/seed/0602_gen_guides.mjs from docs/guides/content; do not edit by hand)
+select app.guide_release_section('renter', 'find-a-car-and-send-a-request', 'chapter', 'start-here', 'Every booking starts as a request. A person checks the car and the price, then sends you an offer. Nothing is charged until you approve, sign and pay.
+
+:::flow
+Request | You pick a car and dates
+Offer | We confirm the price
+Sign | The rental agreement
+Pay | Your card is authorized
+Verify | Licence, selfie, coverage
+Pick up | We hand over the keys
+:::
+
+## Find a car
+
+Start on carmacars.ca. You do not need to sign in to look around.
+
+1. Go to `carmacars.ca` and press **Find a car**.
+2. Add your pickup and return dates. The list then shows the cars that are free and what the whole trip costs.
+3. Narrow the list with Filters: type, seats, transmission and daily rate.
+4. Open a car to see its photos, rates, what is included and its own calendar. Its car code (like CC-7F3A) is under the price: quote it when you call or chat with us, and we know the car at once.
+
+![](/guides/img/public-02-cars-desktop-b6cd4fb8.jpg "desktop; size: 1440 880; address: carmacars.ca/cars; pins: 1 86.1 4.0, 2 11.1 56.8, 3 3.0 82.3, 4 34.0 87.5")
+
+## Choose your dates on the car page
+
+1. Under Dates and price, tap your pickup date, then your return date. Hatched days are already booked.
+2. Choose the Pickup time and the Return time.
+3. Want it brought to you? Tick **Deliver it to me** or **Pick it up from me at the end**. Open Add-ons to add a baby seat, flowers, a full tank and more.
+4. Check Your estimate, then press **Request to book**. The add-ons you chose come with you.
+
+![](/guides/img/public-03-car-page-desktop-73be4d63.jpg "desktop; size: 1120 760; address: carmacars.ca/cars/2015-cadillac-cts-luxury; pins: 1 24.4 39.7, 2 12.9 68.2, 3 3.0 76.2, 4 97.0 50.0")
+
+> Watch out: A request does not hold the car. The car is booked only once you approve the offer, sign and pay.
+
+## Send your request
+
+The request has five short steps. Your answers are saved as you go, so you can come back.
+
+1. Step 1, Dates and delivery: check the car and tap your dates in the calendar.
+2. Set the Pickup time and Return time. Any time, day or night, with at least 2 hours of notice.
+3. Your request, on the right, shows the estimated total as you go.
+
+![](/guides/img/public-04-book-1-trip-desktop-63a3738b.jpg "desktop; size: 1440 1002; address: carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&to=2026-12-07&tf=10:00&tt=10:00; pins: 1 9.2 67.1, 2 15.3 91.0, 3 91.1 54.7")
+
+4. Choose where you get the car: **At our location**, **Deliver it to an address** or **At the airport**. Then choose where you return it.
+5. Press **Continue to driver details**.
+
+![](/guides/img/public-04-book-1-trip-desktop-befba4f6.jpg "desktop; size: 760 942; address: carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&to=2026-12-07&tf=10:00&tt=10:00; pins: 4 5.3 26.2, 5 61.8 93.3")
+
+6. Step 2, The driver: fill in your first and last name, email, mobile number and date of birth.
+7. Someone else will drive too? Add them under Additional drivers. Each needs a G2 or G licence and signs the agreement.
+8. Press **Continue to licence**.
+
+![](/guides/img/public-05-book-2-driver-desktop-7b572499.jpg "desktop; size: 980 1032; address: carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&to=2026-12-07&tf=10:00&tt=10:00; pins: 6 30.6 21.1, 7 30.6 64.8, 8 55.6 88.0")
+
+9. Step 3: choose your Licence class, for example Ontario G2.
+10. Choose how the car is covered: Option 1 (OPCF 27 on your own auto policy), Option 2 (rental coverage on your credit card) or Option 3 (the CarmaCars Protection Plan). You can change this any time before pickup. You may also see a link to RentalCoverage, a separate company''s optional product. It is not issued or handled by CarmaCars and does not replace the option you choose here, and we may earn a commission if you buy it, at no extra cost to you.
+11. Choose the Booking type: Standard, or Non-refundable for 10% off with no refund.
+12. Add anything we should know in the notes, for example a flight number. If a body shop, a tow company or a friend sent you, type their name or the referral code from their card in Did someone refer you?.
+13. Press **Continue to add-ons**. Step 4, Add-ons: tick what you want (see Add-ons below), then press **Review request**.
+
+![](/guides/img/public-06-book-3-licence-desktop-22bb144e.jpg "desktop; size: 760 1452; address: carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&to=2026-12-07&tf=10:00&tt=10:00; pins: 9 61.8 11.2, 10 92.1 32.2, 11 92.1 50.4, 12 92.1 66.9, 13 71.7 97.0")
+
+14. Step 5, Check it and send: read every line. Use Edit beside a line to change it.
+15. Tick the box to confirm you are 18 or older and agree to the Terms of use and Privacy policy.
+16. Press **Send request**. Nothing is charged and no card is needed.
+
+![](/guides/img/public-07-book-4-review-desktop-005f4c0b.jpg "desktop; size: 760 492; address: carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&to=2026-12-07&tf=10:00&tt=10:00; pins: 14 92.1 24.8, 15 3.9 59.3, 16 73.7 89.0")
+
+17. The confirmation shows your request number, for example CC-10021. Keep it for any question.
+18. A person checks the calendar, your dates and your place, usually within 2 hours, day or night. Your offer arrives by email and in Trips.
+
+![](/guides/img/public-08-book-5-sent-phone-14a99ccf.jpg "phone; size: 390 755; pins: 17 32.8 12.3")
+
+## Upload your licence
+
+Right after you send your request: the front and back of your licence and a selfie holding it.
+
+1. On the Request sent page, press **Upload your licence** (or open your booking and press **Your licence**).
+2. Take each photo with your phone, or choose it. Add the licence number and expiry date if we ask: it must be valid after your return.
+3. Rented with us before? A licence on file that is still valid is used again; nothing to upload.
+
+> Tip: You need your licence on file to accept the offer.
+
+## Add-ons
+
+Extras for your trip, such as a baby seat, a child or booster seat, flowers waiting in the car, a chauffeur, an umbrella, a phone charger or a full tank of gas.
+
+1. On the car page (under Add-ons) or in step 4 of the request, tick an add-on or use + and − for seats. The estimate shows the price at once.
+2. Each add-on shows its price: a trip, a day (with the most for a trip) or an hour. HST is added.
+3. Some need notice, for example flowers need 24 hours. Seats and other items show how many are left for your dates.
+4. A chauffeur is confirmed by our team in your offer.
+
+With a full tank of gas (prepaid) you can return the car at any fuel level, with no fuel charge.
+
+## A discount code
+
+A code from a game on the site, an offer we sent you, or from our team.
+
+- On the last step of your request, type it in the promo code box. The price shows the discount at once.
+- Every code has a last day. You find it in the email or text that brought the code, and under Your discount codes on Your trips.
+- If you have not used a code, we remind you 3 days before its last day and the day before, by email and text as you chose in Profile. A code you won in a game is always reminded; a reminder of an offer comes only if you agreed to get offers, and every email has an Unsubscribe link.
+- A code that ended is refused with "This code has expired". You can still send the request without it.
+
+## Ask in the chat
+
+The chat button sits in the corner of every page.
+
+1. Press it and write your question: a car, your dates, the price, how booking works. The CarmaCars assistant answers right away with prices from our booking system.
+2. Want a person? Press **Talk to a person**. When our team is away, leave your name and email or phone with **Send my details** and tick "Email me a copy of this chat".
+3. Press **End chat** when you are done. If you gave your email, a copy of the chat arrives by email.
+
+A price in the chat is for the dates you asked. Nothing is booked until you approve an offer, sign and pay.
+
+## Carry on later
+
+- Your name, email and mobile number are saved as you type them, so nothing is lost if you stop. We open an account for you with that email.
+- Every form that saves as you type says so under it: "Saved as you type so you can pick up where you left off.", with a link to the privacy policy.
+- On the same phone or computer, open `carmacars.ca/account` (or the request page again) to carry on, no password needed.
+- We send you one email, "Continue your request". One tap signs you in, confirms your email and opens your request on any device. You need it before you can accept an offer, sign or pay.
+- Already have an account? The form says "You have an account: we sent you a sign-in link".
+
+**Search:** the **Search** button at the top of every page finds cars, places, help and, once you are signed in, your own bookings by number or car.', 'Find a car and send a request', 'Search the fleet, pick dates and add-ons, and send a request in five short steps.',
+  'Every booking starts as a request. A person checks the car and the price, then sends you an offer. Nothing is charged until you approve, sign and pay.
+
+:::flow
+Request | You pick a car and dates
+Offer | We confirm the price
+Sign | The rental agreement
+Pay | Your card is authorized
+Verify | Licence, selfie, coverage
+Pick up | We hand over the keys
+:::
+
+## Find a car
+
+Start on carmacars.ca. You do not need to sign in to look around.
+
+1. Go to `carmacars.ca` and press **Find a car**.
+2. Add your pickup and return dates. The list then shows the cars that are free and what the whole trip costs.
+3. Narrow the list with Filters: type, seats, transmission and daily rate.
+4. Open a car to see its photos, rates, what is included and its own calendar. Its car code (like CC-7F3A) is under the price: quote it when you call or chat with us, and we know the car at once.
+
+![](/guides/img/public-02-cars-desktop-b6cd4fb8.jpg "desktop; size: 1440 880; address: carmacars.ca/cars; pins: 1 86.1 4.0, 2 11.1 56.8, 3 3.0 82.3, 4 34.0 87.5")
+
+## Choose your dates on the car page
+
+1. Under Dates and price, tap your pickup date, then your return date. Hatched days are already booked.
+2. Choose the Pickup time and the Return time.
+3. Want it brought to you? Tick **Deliver it to me** or **Pick it up from me at the end**. Open Add-ons to add a baby seat, flowers, a full tank and more.
+4. Check Your estimate, then press **Request to book**. The add-ons you chose come with you.
+
+![](/guides/img/public-03-car-page-desktop-73be4d63.jpg "desktop; size: 1120 760; address: carmacars.ca/cars/2015-cadillac-cts-luxury; pins: 1 24.4 39.7, 2 12.9 68.2, 3 3.0 76.2, 4 97.0 50.0")
+
+> Watch out: A request does not hold the car. The car is booked only once you approve the offer, sign and pay.
+
+## Send your request
+
+The request has five short steps. Your answers are saved as you go, so you can come back.
+
+1. Step 1, Dates and delivery: check the car and tap your dates in the calendar.
+2. Set the Pickup time and Return time. Any time, day or night, with at least 2 hours of notice.
+3. Your request, on the right, shows the estimated total as you go.
+
+![](/guides/img/public-04-book-1-trip-desktop-63a3738b.jpg "desktop; size: 1440 1002; address: carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&to=2026-12-07&tf=10:00&tt=10:00; pins: 1 9.2 67.1, 2 15.3 91.0, 3 91.1 54.7")
+
+4. Choose where you get the car: **At our location**, **Deliver it to an address** or **At the airport**. Then choose where you return it.
+5. Press **Continue to driver details**.
+
+![](/guides/img/public-04-book-1-trip-desktop-befba4f6.jpg "desktop; size: 760 942; address: carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&to=2026-12-07&tf=10:00&tt=10:00; pins: 4 5.3 26.2, 5 61.8 93.3")
+
+6. Step 2, The driver: fill in your first and last name, email, mobile number and date of birth.
+7. Someone else will drive too? Add them under Additional drivers. Each needs a G2 or G licence and signs the agreement.
+8. Press **Continue to licence**.
+
+![](/guides/img/public-05-book-2-driver-desktop-7b572499.jpg "desktop; size: 980 1032; address: carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&to=2026-12-07&tf=10:00&tt=10:00; pins: 6 30.6 21.1, 7 30.6 64.8, 8 55.6 88.0")
+
+9. Step 3: choose your Licence class, for example Ontario G2.
+10. Choose how the car is covered: Option 1 (OPCF 27 on your own auto policy), Option 2 (rental coverage on your credit card) or Option 3 (the CarmaCars Protection Plan). You can change this any time before pickup. You may also see a link to RentalCoverage, a separate company''s optional product. It is not issued or handled by CarmaCars and does not replace the option you choose here, and we may earn a commission if you buy it, at no extra cost to you.
+11. Choose the Booking type: Standard, or Non-refundable for 10% off with no refund.
+12. Add anything we should know in the notes, for example a flight number. If a body shop, a tow company or a friend sent you, type their name or the referral code from their card in Did someone refer you?.
+13. Press **Continue to add-ons**. Step 4, Add-ons: tick what you want (see Add-ons below), then press **Review request**.
+
+![](/guides/img/public-06-book-3-licence-desktop-22bb144e.jpg "desktop; size: 760 1452; address: carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&to=2026-12-07&tf=10:00&tt=10:00; pins: 9 61.8 11.2, 10 92.1 32.2, 11 92.1 50.4, 12 92.1 66.9, 13 71.7 97.0")
+
+14. Step 5, Check it and send: read every line. Use Edit beside a line to change it.
+15. Tick the box to confirm you are 18 or older and agree to the Terms of use and Privacy policy.
+16. Press **Send request**. Nothing is charged and no card is needed.
+
+![](/guides/img/public-07-book-4-review-desktop-005f4c0b.jpg "desktop; size: 760 492; address: carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&to=2026-12-07&tf=10:00&tt=10:00; pins: 14 92.1 24.8, 15 3.9 59.3, 16 73.7 89.0")
+
+17. The confirmation shows your request number, for example CC-10021. Keep it for any question.
+18. A person checks the calendar, your dates and your place, usually within 2 hours, day or night. Your offer arrives by email and in Trips.
+
+![](/guides/img/public-08-book-5-sent-phone-14a99ccf.jpg "phone; size: 390 755; pins: 17 32.8 12.3")
+
+## Upload your licence
+
+Right after you send your request: the front and back of your licence and a selfie holding it.
+
+1. On the Request sent page, press **Upload your licence** (or open your booking and press **Your licence**).
+2. Take each photo with your phone, or choose it. Add the licence number and expiry date if we ask: it must be valid after your return.
+3. Rented with us before? A licence on file that is still valid is used again; nothing to upload.
+4. We read each photo at once. Blurry or cut off? A message asks you to take it again: do it straight away. The licence details we read are filled in for you: check them and press **These are right**, or **Change them**.
+
+> Tip: You need your licence on file to accept the offer.
+
+## The main driver needs an Ontario licence
+
+The main driver of a booking holds an Ontario licence. Drivers with a licence from elsewhere can drive as extra drivers.
+
+1. If your licence is not from Ontario, your booking shows: "The main driver needs an Ontario licence. Add a driver with an Ontario licence as the main driver. You''ll stay on the booking as an extra driver."
+2. Press **Add main driver**. Enter their name, email, mobile and date of birth, then press **Add main driver** again.
+3. Upload the front and back of their licence on the same page. They get their own link to accept and sign the agreement, which names them as the main driver.
+4. You have an Ontario licence after all? Press **I have an Ontario licence: upload it instead** and upload it.
+
+> Tip: Pickup waits until the main driver has an Ontario licence on file. Your own licence photos stay on the booking: our team still checks them for you as an extra driver.
+
+## Add-ons
+
+Extras for your trip, such as a baby seat, a child or booster seat, flowers waiting in the car, a chauffeur, an umbrella, a phone charger or a full tank of gas.
+
+1. On the car page (under Add-ons) or in step 4 of the request, tick an add-on or use + and − for seats. The estimate shows the price at once.
+2. Each add-on shows its price: a trip, a day (with the most for a trip) or an hour. HST is added.
+3. Some need notice, for example flowers need 24 hours. Seats and other items show how many are left for your dates.
+4. A chauffeur is confirmed by our team in your offer.
+
+With a full tank of gas (prepaid) you can return the car at any fuel level, with no fuel charge.
+
+## A discount code
+
+A code from a game on the site, an offer we sent you, or from our team.
+
+- On the last step of your request, type it in the promo code box. The price shows the discount at once.
+- Every code has a last day. You find it in the email or text that brought the code, and under Your discount codes on Your trips.
+- If you have not used a code, we remind you 3 days before its last day and the day before, by email and text as you chose in Profile. A code you won in a game is always reminded; a reminder of an offer comes only if you agreed to get offers, and every email has an Unsubscribe link.
+- A code that ended is refused with "This code has expired". You can still send the request without it.
+
+## Ask in the chat
+
+The chat button sits in the corner of every page.
+
+1. Press it and write your question: a car, your dates, the price, how booking works. The CarmaCars assistant answers right away with prices from our booking system.
+2. Want a person? Press **Talk to a person**. When our team is away, leave your name and email or phone with **Send my details** and tick "Email me a copy of this chat".
+3. Press **End chat** when you are done. If you gave your email, a copy of the chat arrives by email.
+
+A price in the chat is for the dates you asked. Nothing is booked until you approve an offer, sign and pay.
+
+## Carry on later
+
+- Your name, email and mobile number are saved as you type them, so nothing is lost if you stop. We open an account for you with that email.
+- Every form that saves as you type says so under it: "Saved as you type so you can pick up where you left off.", with a link to the privacy policy.
+- On the same phone or computer, open `carmacars.ca/account` (or the request page again) to carry on, no password needed.
+- We send you one email, "Continue your request". One tap signs you in, confirms your email and opens your request on any device. You need it before you can accept an offer, sign or pay.
+- Already have an account? The form says "You have an account: we sent you a sign-in link".
+
+**Search:** the **Search** button at the top of every page finds cars, places, help and, once you are signed in, your own bookings by number or car.',
+  '<p class="gd-p">Every booking starts as a request. A person checks the car and the price, then sends you an offer. Nothing is charged until you approve, sign and pay.</p><ol class="gd-flow"><li><b>1</b><span>Request</span><em>You pick a car and dates</em></li><li><b>2</b><span>Offer</span><em>We confirm the price</em></li><li><b>3</b><span>Sign</span><em>The rental agreement</em></li><li><b>4</b><span>Pay</span><em>Your card is authorized</em></li><li><b>5</b><span>Verify</span><em>Licence, selfie, coverage</em></li><li><b>6</b><span>Pick up</span><em>We hand over the keys</em></li></ol><section class="gd-task" id="find-a-car-and-send-a-request-find-a-car" data-gd-task><h2 class="gd-h2">Find a car</h2><p class="gd-p">Start on carmacars.ca. You do not need to sign in to look around.</p><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Go to <span class="gd-url">carmacars.ca</span> and press <b class="gd-ui">Find a car</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Add your pickup and return dates. The list then shows the cars that are free and what the whole trip costs.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Narrow the list with Filters: type, seats, transmission and daily rate.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Open a car to see its photos, rates, what is included and its own calendar. Its car code (like CC-7F3A) is under the price: quote it when you call or chat with us, and we know the car at once.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/cars</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/880"><img src="/guides/img/public-02-cars-desktop-b6cd4fb8.jpg" alt="" loading="lazy" decoding="async" width="1440" height="880"><span class="gd-pin" style="left:86.1%;top:4%" aria-hidden="true">1</span><span class="gd-pin" style="left:11.1%;top:56.8%" aria-hidden="true">2</span><span class="gd-pin" style="left:3%;top:82.3%" aria-hidden="true">3</span><span class="gd-pin" style="left:34%;top:87.5%" aria-hidden="true">4</span></div></div></figure></div></section><section class="gd-task" id="find-a-car-and-send-a-request-choose-your-dates-on-the-car-page" data-gd-task><h2 class="gd-h2">Choose your dates on the car page</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Under Dates and price, tap your pickup date, then your return date. Hatched days are already booked.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose the Pickup time and the Return time.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Want it brought to you? Tick <b class="gd-ui">Deliver it to me</b> or <b class="gd-ui">Pick it up from me at the end</b>. Open Add-ons to add a baby seat, flowers, a full tank and more.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Check Your estimate, then press <b class="gd-ui">Request to book</b>. The add-ons you chose come with you.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/cars/2015-cadillac-cts-luxury</span></div><div class="gd-imgwrap" style="aspect-ratio:1120/760"><img src="/guides/img/public-03-car-page-desktop-73be4d63.jpg" alt="" loading="lazy" decoding="async" width="1120" height="760"><span class="gd-pin" style="left:24.4%;top:39.7%" aria-hidden="true">1</span><span class="gd-pin" style="left:12.9%;top:68.2%" aria-hidden="true">2</span><span class="gd-pin" style="left:3%;top:76.2%" aria-hidden="true">3</span><span class="gd-pin" style="left:97%;top:50%" aria-hidden="true">4</span></div></div></figure></div><aside class="gd-box gd-box--warn"><span class="gd-lbl">Watch out</span><div>A request does not hold the car. The car is booked only once you approve the offer, sign and pay.</div></aside></section><section class="gd-task" id="find-a-car-and-send-a-request-send-your-request" data-gd-task><h2 class="gd-h2">Send your request</h2><p class="gd-p">The request has five short steps. Your answers are saved as you go, so you can come back.</p><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Step 1, Dates and delivery: check the car and tap your dates in the calendar.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Set the Pickup time and Return time. Any time, day or night, with at least 2 hours of notice.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Your request, on the right, shows the estimated total as you go.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&amp;to=2026-12-07&amp;tf=10:00&amp;tt=10:00</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/1002"><img src="/guides/img/public-04-book-1-trip-desktop-63a3738b.jpg" alt="" loading="lazy" decoding="async" width="1440" height="1002"><span class="gd-pin" style="left:9.2%;top:67.1%" aria-hidden="true">1</span><span class="gd-pin" style="left:15.3%;top:91%" aria-hidden="true">2</span><span class="gd-pin" style="left:91.1%;top:54.7%" aria-hidden="true">3</span></div></div></figure></div><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol" start="4"><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Choose where you get the car: <b class="gd-ui">At our location</b>, <b class="gd-ui">Deliver it to an address</b> or <b class="gd-ui">At the airport</b>. Then choose where you return it.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Press <b class="gd-ui">Continue to driver details</b>.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&amp;to=2026-12-07&amp;tf=10:00&amp;tt=10:00</span></div><div class="gd-imgwrap" style="aspect-ratio:760/942"><img src="/guides/img/public-04-book-1-trip-desktop-befba4f6.jpg" alt="" loading="lazy" decoding="async" width="760" height="942"><span class="gd-pin" style="left:5.3%;top:26.2%" aria-hidden="true">4</span><span class="gd-pin" style="left:61.8%;top:93.3%" aria-hidden="true">5</span></div></div></figure></div><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol" start="6"><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Step 2, The driver: fill in your first and last name, email, mobile number and date of birth.</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t">Someone else will drive too? Add them under Additional drivers. Each needs a G2 or G licence and signs the agreement.</div></li><li><span class="gd-n" aria-hidden="true">8</span><div class="gd-t">Press <b class="gd-ui">Continue to licence</b>.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&amp;to=2026-12-07&amp;tf=10:00&amp;tt=10:00</span></div><div class="gd-imgwrap" style="aspect-ratio:980/1032"><img src="/guides/img/public-05-book-2-driver-desktop-7b572499.jpg" alt="" loading="lazy" decoding="async" width="980" height="1032"><span class="gd-pin" style="left:30.6%;top:21.1%" aria-hidden="true">6</span><span class="gd-pin" style="left:30.6%;top:64.8%" aria-hidden="true">7</span><span class="gd-pin" style="left:55.6%;top:88%" aria-hidden="true">8</span></div></div></figure></div><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol" start="9"><li><span class="gd-n" aria-hidden="true">9</span><div class="gd-t">Step 3: choose your Licence class, for example Ontario G2.</div></li><li><span class="gd-n" aria-hidden="true">10</span><div class="gd-t">Choose how the car is covered: Option 1 (OPCF 27 on your own auto policy), Option 2 (rental coverage on your credit card) or Option 3 (the CarmaCars Protection Plan). You can change this any time before pickup. You may also see a link to RentalCoverage, a separate company&#39;s optional product. It is not issued or handled by CarmaCars and does not replace the option you choose here, and we may earn a commission if you buy it, at no extra cost to you.</div></li><li><span class="gd-n" aria-hidden="true">11</span><div class="gd-t">Choose the Booking type: Standard, or Non-refundable for 10% off with no refund.</div></li><li><span class="gd-n" aria-hidden="true">12</span><div class="gd-t">Add anything we should know in the notes, for example a flight number. If a body shop, a tow company or a friend sent you, type their name or the referral code from their card in Did someone refer you?.</div></li><li><span class="gd-n" aria-hidden="true">13</span><div class="gd-t">Press <b class="gd-ui">Continue to add-ons</b>. Step 4, Add-ons: tick what you want (see Add-ons below), then press <b class="gd-ui">Review request</b>.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&amp;to=2026-12-07&amp;tf=10:00&amp;tt=10:00</span></div><div class="gd-imgwrap" style="aspect-ratio:760/1452"><img src="/guides/img/public-06-book-3-licence-desktop-22bb144e.jpg" alt="" loading="lazy" decoding="async" width="760" height="1452"><span class="gd-pin" style="left:61.8%;top:11.2%" aria-hidden="true">9</span><span class="gd-pin" style="left:92.1%;top:32.2%" aria-hidden="true">10</span><span class="gd-pin" style="left:92.1%;top:50.4%" aria-hidden="true">11</span><span class="gd-pin" style="left:92.1%;top:66.9%" aria-hidden="true">12</span><span class="gd-pin" style="left:71.7%;top:97%" aria-hidden="true">13</span></div></div></figure></div><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol" start="14"><li><span class="gd-n" aria-hidden="true">14</span><div class="gd-t">Step 5, Check it and send: read every line. Use Edit beside a line to change it.</div></li><li><span class="gd-n" aria-hidden="true">15</span><div class="gd-t">Tick the box to confirm you are 18 or older and agree to the Terms of use and Privacy policy.</div></li><li><span class="gd-n" aria-hidden="true">16</span><div class="gd-t">Press <b class="gd-ui">Send request</b>. Nothing is charged and no card is needed.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/book/2015-cadillac-cts-luxury?from=2026-12-04&amp;to=2026-12-07&amp;tf=10:00&amp;tt=10:00</span></div><div class="gd-imgwrap" style="aspect-ratio:760/492"><img src="/guides/img/public-07-book-4-review-desktop-005f4c0b.jpg" alt="" loading="lazy" decoding="async" width="760" height="492"><span class="gd-pin" style="left:92.1%;top:24.8%" aria-hidden="true">14</span><span class="gd-pin" style="left:3.9%;top:59.3%" aria-hidden="true">15</span><span class="gd-pin" style="left:73.7%;top:89%" aria-hidden="true">16</span></div></div></figure></div><div class="gd-stepblock gd-stepblock--side"><div class="gd-stepcol"><ol class="gd-ol" start="17"><li><span class="gd-n" aria-hidden="true">17</span><div class="gd-t">The confirmation shows your request number, for example CC-10021. Keep it for any question.</div></li><li><span class="gd-n" aria-hidden="true">18</span><div class="gd-t">A person checks the calendar, your dates and your place, usually within 2 hours, day or night. Your offer arrives by email and in Trips.</div></li></ol></div><figure class="gd-fig gd-fig--phone"><div class="gd-phone"><div class="gd-imgwrap" style="aspect-ratio:390/755"><img src="/guides/img/public-08-book-5-sent-phone-14a99ccf.jpg" alt="" loading="lazy" decoding="async" width="390" height="755"><span class="gd-pin" style="left:32.8%;top:12.3%" aria-hidden="true">17</span></div></div></figure></div></section><section class="gd-task" id="find-a-car-and-send-a-request-upload-your-licence" data-gd-task><h2 class="gd-h2">Upload your licence</h2><p class="gd-p">Right after you send your request: the front and back of your licence and a selfie holding it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">On the Request sent page, press <b class="gd-ui">Upload your licence</b> (or open your booking and press <b class="gd-ui">Your licence</b>).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Take each photo with your phone, or choose it. Add the licence number and expiry date if we ask: it must be valid after your return.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Rented with us before? A licence on file that is still valid is used again; nothing to upload.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">We read each photo at once. Blurry or cut off? A message asks you to take it again: do it straight away. The licence details we read are filled in for you: check them and press <b class="gd-ui">These are right</b>, or <b class="gd-ui">Change them</b>.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>You need your licence on file to accept the offer.</div></aside></section><section class="gd-task" id="find-a-car-and-send-a-request-the-main-driver-needs-an-ontario-licence" data-gd-task><h2 class="gd-h2">The main driver needs an Ontario licence</h2><p class="gd-p">The main driver of a booking holds an Ontario licence. Drivers with a licence from elsewhere can drive as extra drivers.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">If your licence is not from Ontario, your booking shows: &quot;The main driver needs an Ontario licence. Add a driver with an Ontario licence as the main driver. You&#39;ll stay on the booking as an extra driver.&quot;</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Press <b class="gd-ui">Add main driver</b>. Enter their name, email, mobile and date of birth, then press <b class="gd-ui">Add main driver</b> again.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Upload the front and back of their licence on the same page. They get their own link to accept and sign the agreement, which names them as the main driver.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">You have an Ontario licence after all? Press <b class="gd-ui">I have an Ontario licence: upload it instead</b> and upload it.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Pickup waits until the main driver has an Ontario licence on file. Your own licence photos stay on the booking: our team still checks them for you as an extra driver.</div></aside></section><section class="gd-task" id="find-a-car-and-send-a-request-add-ons" data-gd-task><h2 class="gd-h2">Add-ons</h2><p class="gd-p">Extras for your trip, such as a baby seat, a child or booster seat, flowers waiting in the car, a chauffeur, an umbrella, a phone charger or a full tank of gas.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">On the car page (under Add-ons) or in step 4 of the request, tick an add-on or use + and − for seats. The estimate shows the price at once.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Each add-on shows its price: a trip, a day (with the most for a trip) or an hour. HST is added.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Some need notice, for example flowers need 24 hours. Seats and other items show how many are left for your dates.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">A chauffeur is confirmed by our team in your offer.</div></li></ol></div><p class="gd-p">With a full tank of gas (prepaid) you can return the car at any fuel level, with no fuel charge.</p></section><section class="gd-task" id="find-a-car-and-send-a-request-a-discount-code" data-gd-task><h2 class="gd-h2">A discount code</h2><p class="gd-p">A code from a game on the site, an offer we sent you, or from our team.</p><ul class="gd-ul"><li>On the last step of your request, type it in the promo code box. The price shows the discount at once.</li><li>Every code has a last day. You find it in the email or text that brought the code, and under Your discount codes on Your trips.</li><li>If you have not used a code, we remind you 3 days before its last day and the day before, by email and text as you chose in Profile. A code you won in a game is always reminded; a reminder of an offer comes only if you agreed to get offers, and every email has an Unsubscribe link.</li><li>A code that ended is refused with &quot;This code has expired&quot;. You can still send the request without it.</li></ul></section><section class="gd-task" id="find-a-car-and-send-a-request-ask-in-the-chat" data-gd-task><h2 class="gd-h2">Ask in the chat</h2><p class="gd-p">The chat button sits in the corner of every page.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Press it and write your question: a car, your dates, the price, how booking works. The CarmaCars assistant answers right away with prices from our booking system.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Want a person? Press <b class="gd-ui">Talk to a person</b>. When our team is away, leave your name and email or phone with <b class="gd-ui">Send my details</b> and tick &quot;Email me a copy of this chat&quot;.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">End chat</b> when you are done. If you gave your email, a copy of the chat arrives by email.</div></li></ol></div><p class="gd-p">A price in the chat is for the dates you asked. Nothing is booked until you approve an offer, sign and pay.</p></section><section class="gd-task" id="find-a-car-and-send-a-request-carry-on-later" data-gd-task><h2 class="gd-h2">Carry on later</h2><ul class="gd-ul"><li>Your name, email and mobile number are saved as you type them, so nothing is lost if you stop. We open an account for you with that email.</li><li>Every form that saves as you type says so under it: &quot;Saved as you type so you can pick up where you left off.&quot;, with a link to the privacy policy.</li><li>On the same phone or computer, open <span class="gd-url">carmacars.ca/account</span> (or the request page again) to carry on, no password needed.</li><li>We send you one email, &quot;Continue your request&quot;. One tap signs you in, confirms your email and opens your request on any device. You need it before you can accept an offer, sign or pay.</li><li>Already have an account? The form says &quot;You have an account: we sent you a sign-in link&quot;.</li></ul><p class="gd-p"><b class="gd-ui">Search:</b> the <b class="gd-ui">Search</b> button at the top of every page finds cars, places, help and, once you are signed in, your own bookings by number or car.</p></section>');
+select app.guide_release_section('admin', 'requests-offers-and-bookings', 'chapter', 'people-and-access', 'A booking starts as a request from the website, or as an offer you send yourself to a customer on the phone. You check it, adjust it and send the offer; an offer that is out is changed in place. After that, the booking page holds the money, documents, changes and history.
+
+## Bookings now: what is out, coming back and owed
+
+Open **Bookings**. It opens on **Now**, one screen that refreshes by itself every 30 seconds. Every time is Toronto time.
+
+1. The numbers at the top: cars out now, due back today, overdue, going out in the next 72 hours, payments due in the next 7 days (with the total) and free cars. Tap one to jump to its list.
+2. **Out now**: every car on rent, overdue returns first in red. Each shows the car (photo, code, plate), the renter with **Call** and **Text**, when it was picked up, when it is due back with a countdown, the payment plan and the next payment, the deposit held, and the km and fuel at pickup. Filter by Overdue, Due today or Payment due.
+3. A confirmed booking whose pickup time has passed with no check-out recorded is listed as out, with **Out (pickup not recorded)**. The car most likely left. Press **Mark picked up**: it records the pickup at the booked time (change it if the car left at another time), the booking goes on rent, and Fleet gets a task to add the photos, km and fuel. The usual checks stay: the deposit taken (or an Admin waives it with the reason), the renter''s signature (or an Admin''s reason), the agreement''s details, every driver verified and the coverage confirmed. If one is missing, the reason is shown.
+4. **Coming back**: overdue, today and tomorrow, by the time each is due.
+5. **Going out**: confirmed pickups in the next 72 hours, delivery or pickup, with ticks and crosses for the licence, the signed agreement, the payment, the deposit (a clock until the morning of the pickup day, when the hold is placed on the card on file) and the check-out photos (done at the handover).
+6. **Money due**: every rental payment due in the next 7 days or overdue, the amount, the plan and which payment it is (for example 3 of 4).
+7. **Free now**: cars available and not out, the longest idle first, with the next pickup; then the cars in maintenance or cleaning. Partners'' cars are counted apart.
+
+> Good to know: Placeholder bookings never show on Now.
+
+### Payment plans
+
+A rental is paid in full at pickup, weekly, every 2 weeks, or monthly. A rental longer than one period (30 days) pays each period by itself. To change it, open the booking, then the **Payment plan** card on Overview or Money, and press **Change the plan**. Each payment is its share of the total by its days, due on the day it starts. An insurer-billed rental shows **Insurer billed** and is never in Money due unless the renter owes a part. Admins, customer service and finance change the plan; fleet sees it.
+
+## All bookings
+
+The **All bookings** tab of Bookings has the search (booking number, name, email, phone, plate or car code), the status (All, Out now, Booked, Returned, Closed, Cancelled) and **Bill to** (All, Renter, Insurer). **Out now** shows the bookings on rent and those whose pickup passed without a check-out, together. Each booking is one row: its number and status in plain words, the car with its photo, the renter with **Call** and **Text**, the dates, the money (paid up, to pay, overdue, insurer billed) and Bill to.
+
+## The request queue
+
+Open **Bookings** > **Requests and offers**. The oldest waiting request is at the top.
+
+1. The numbers at the top: waiting for an offer, past the reply target (red), offers out, accepted but not paid, and offers expired.
+2. One queue, the most urgent first: the longest wait, then offers accepted but not paid, then offers out by when they expire. Each row has the car with its photo, the dates, the price, the renter with **Call** and **Text**, the licence (verified, to review, or not uploaded yet), who is answering it, and one button: **Send offer**, **Follow up** or **Open**. **Decline** sits beside **Send offer**.
+3. Waiting shows how long the renter has waited ("12 min", "3 h", "2 days"); red means past the first reply target (5 minutes, set in Program settings). **Promise** counts down the 2 hours the site promises the renter.
+4. Filter by Active, New, Asked the renter, Changes asked, Offer out, Not paid or Expired. An expired offer leaves the active queue 48 hours after it expired, or once its pickup time passed; Expired lists them all. An offer still out when its pickup time passes expires by itself.
+
+![](/guides/img/admin-02-requests-desktop-6521282d.jpg "desktop; size: 1440 820; address: carmacars.ca/admin/requests; pins: 1 38.9 29.9, 2 22.2 43.3")
+
+> Good to know: A request whose pickup time passes without an offer expires by itself, with a note in its history. The renter is not emailed unless "Email the renter when their request expires that way" is on in Program settings.
+
+## Answer a request with an offer
+
+1. The Review and offer tab shows the request as the renter sent it.
+2. Adjust the car, the dates, the rate type, the places, the rates (under **Show rate card**) and fees, the deposit and extras. A place changed away from a delivery or a collection takes its fee box and its fee with it.
+3. Price on the right updates as you change things.
+4. Add a message, choose how long the offer stays open, then press **Send the offer**.
+
+![](/guides/img/admin-03-booking-review-desktop-353f3707.jpg "desktop; size: 1200 1550; address: carmacars.ca/admin/bookings/CC-10069?tab=review; pins: 1 5.0 6.5, 2 7.5 45.8, 3 74.2 42.6, 4 76.7 98.1")
+
+5. Changed fields but not ready to send? Press **Save changes**. The panel "The offer as the renter sees it" shows the result.
+6. Can''t do it? Press **Decline** and fill in Reason and any alternative.
+7. Need an answer first? Press **Ask the renter** to send a question.
+
+![](/guides/img/admin-03-booking-review-desktop-4dd4ed06.jpg "desktop; size: 500 80; address: carmacars.ca/admin/bookings/CC-10069?tab=review; pins: 6 41.2 52.5, 7 18.0 52.5")
+
+Opening a request takes it for you: everyone else sees "Being answered by" your name and since when, with Send the offer and Decline off, until you send, decline or leave (20 minutes, renewed while you work; Program settings). Press **Take over** to answer one someone else holds; it is noted in the history. A second answer is refused with who answered and when. A request from the website opens to Sales after 15 minutes (Program settings); until then Admins, customer service and fleet answer it.
+
+## Send an offer without a request
+
+Press **Send an offer** at the top of Bookings, or **Send an offer without a request** on Requests and offers. For a customer on the phone, by text or at the counter: no request needed.
+
+The screen is seven short steps, each with one line saying what to do, and the price beside it (on a phone the total sits at the bottom of the screen: press **See every line**). What most offers never need is under each step''s **More options**, which stays open while something in it is used.
+
+1. **Who is renting and when**: find the renter by name, phone or email, or press **Not on file? Add a new customer** (full legal name, mobile, email for the offer link, date of birth). A customer already on file with the same email or phone is shown with Use: one person, one record. Then the pickup and the return.
+2. **Which car**: search by car code, plate or name; each car says Free or Not free for the dates. More options: the rate card and the type and free-only filters.
+3. **Where they pick up and return**: at our location, we deliver or collect (the address and distance), an airport or the owner''s location. The fee each one makes shows under it, Automatic or Set by hand.
+4. **How damage is covered**: the renter''s own insurance, a credit card or the Protection Plan. More options: another Protection Plan price.
+5. **Extras**: add-ons, when the car has any.
+6. **The price**: the rate sheet price is filled in. More options: another price (a total for the trip or a rate a day, with why), Amounts I type (before or after HST), the total the renter pays, kilometres, a promo code, the deposit and a discount (an Admin), and **Fees**: press **Change** to set one by hand, **Reset to automatic** to undo it. Below: how it is paid (card online and a card hold unless you change it under More options).
+7. **Send it**: who found this client (sales and customer service), a message, and Text or Email. More options: how long the offer is open, the owner''s view, who found the client (an Admin) and the internal note. Above the button, **Ready to send** or **Missing:** with what is left; press Send and each missing field says what it needs. Press **Send the offer to** the renter, or **Save without sending** to keep it as a request for later. **The offer as the renter sees it** is under the price.
+
+> Good to know: Choices drive the charges. Take off a delivery, a collection, the Protection Plan or an add-on and its fee goes with it, even a fee set by hand: there is nothing to remove in a second place. Choose it again and the fee starts from the automatic amount.
+
+> Good to know: It makes the same request and offer the website makes: the renter approves, signs and pays (or you record the payment), and only then is the car on the calendar. No "request received" email goes to the renter for an offer you send. Staff commissions and statements count it like any other booking.
+
+## Change an offer that is out
+
+The renter has the offer (Offered), or approved it and has not paid (Signing and payment). Open **More actions** on the booking and press **Edit the offer**.
+
+1. Change anything: the car, the dates, the places, the price, fees, the deposit, add-ons, how it is paid. Each changed field is highlighted and the before and after are listed. Amounts I type (Before tax or After tax) and the Total the renter pays (after tax) work as on Send an offer.
+2. Write what changed in Message to the renter and choose how long the offer is open.
+3. Press **Save and send the update**: the renter gets the new version by email or text (ticked), and the old version no longer counts. Or press **Save without telling the renter** and tell them yourself.
+4. A confirmed booking is changed with **Change the booking** (Propose a change, below).
+
+> Tip: No need to withdraw first. **Withdraw the offer** is only for taking it back for good; **Send again, later expiry** gives the renter more time, and **Renter approved by phone** records a yes given on a call.
+
+## Edit a booking that has started
+
+On a confirmed, on-trip or returned booking (an Admin: a closed one too), Overview, **Edit the booking**, **Edit**.
+
+1. Change the pickup or the return (extend or shorten: the rental charge is worked out again at this booking''s rates), the car (on trip: the car it leaves goes to Out of service for Fleet to check), the rental charge for the trip, each fee, the kilometres a day, the deposit (an Admin) and the note.
+2. Type why, if you like, and tick **Email the renter what changed**, or leave it off for a silent correction. Press **Save the changes**.
+3. What is open now shows at once: **Email a pay link** or **Text a pay link** for exactly that amount, **Charge** the saved card (the renter agreed), or record cash or an e-Transfer on the Money tab.
+
+> Good to know: Each edit is kept with who, when, why, before and after (Edits, under the form) and in the booking''s history. A closed booking''s owner split and the staff commission follow. To have the renter accept and sign first, use Propose a change instead.
+
+## Fees, a forgotten fee and the balance
+
+On the booking''s Money tab, Fees lists each fee. Press **Change or add a fee**.
+
+1. Type a new amount (for the whole trip, before HST) beside any fee, or choose one not on the booking (the young driver fee shows its price for these dates), or add a charge of its own with or without HST.
+2. Press **Save the fees**. The balance shows by part (rental, fees) with the pay link, the saved card and Record a payment beside it.
+3. The renter sees the balance on their booking with a Pay button, and pays by card on Stripe''s form.
+
+> Good to know: Every change is recorded (Changes to the fees): the amount before and after, who and why. Customer service and sales may change fees while Program settings, Staff may change fees, is on.
+
+## A renter with only a debit or prepaid card
+
+A credit card is required by default: the deposit must be on a credit card so the deductible can be charged. The pay page tells a renter with only a debit or prepaid card to contact us.
+
+1. On the booking''s Money tab, press **Allow debit and prepaid cards for this booking** and type the reason. Who and when are kept, and the change is in the booking''s history.
+2. The booking''s pay page, staff pay links and deposit hold then take a debit or prepaid card, and the renter is told the hold lowers the money available on the card until it is released, which can take several business days.
+3. **Require a credit card again** turns it off.
+
+The Money tab shows each card used and its type (credit, debit, prepaid). A booking on credit card rental coverage is always paid on the credit card that carries the coverage, and cannot be allowed. Program settings, **Card types accepted**, can open debit and prepaid cards to every booking.
+
+## Correct a renter''s details
+
+On the renter''s page (People, Renters) or on any of their bookings, **Edit renter**.
+
+1. Correct the name, email, phone, date of birth, licence, home address (start typing to find it) or the staff note.
+2. A new email also becomes their sign-in at once (no confirmation needed for a typo you correct); tick **Email the renter a link to set a password** to send one there. Unsigned agreements and offers go to the new address.
+3. Press **Save the renter**. An email that another renter has is refused with their name; the same phone is a warning.
+4. The same person entered twice? Possible duplicates (same email, same phone, or same name and date of birth) shows under the renter. **Merge into this record** moves the other record''s bookings, licences, cards, payments, documents and messages here and fills any detail missing here; the other record stays, blocked, with the merge in both histories.
+
+## The Money tab: Rental charges and Security deposit
+
+The booking''s Money tab opens on a strip with the three numbers that matter: **Rental due**, **Deposit** (one word: Not collected, Held, Charged, Released or Partly kept) and **Total paid**. Below are two panels, side by side on a computer and one above the other on a phone. Collecting one never touches the other, and every receipt says which one it is.
+
+**Rental charges**: each line of the price and the total, Paid, then Balance due.
+
+1. The one main button, Collect (the amount) rental: choose how. **The card on file** charges it now (Finance or an Admin); **A payment link by text** or **A payment link by email** sends the renter Stripe''s secure form; **On this device: hand it to the renter** opens it for the renter to type; **Cash, e-Transfer or another way (record it)** records money received (an e-Transfer, cheque or transfer needs its reference). For: the rental and fees together by default, or one of them. The renter gets a receipt; **Print** prints one to hand over.
+2. **A later charge**: extra kilometres, fuel, damage or a late return, on the card on file, by a link, on this device, or recorded, with the reason the renter''s receipt shows.
+3. **Save a card** saves the renter''s card without charging it. Card readers, the fees (**Change or add a fee**), failed card payments (**Paid another way**), payments received another way and **Refund** sit in this panel too. The history lists rental payments only.
+4. An offer paid another way: once the renter approved and signed and the money is recorded, the booking is confirmed (or press **Confirm the booking**).
+
+**Security deposit**: the amount, how it is taken (a credit card hold, a debit or prepaid card at the standard multiple, a charge, or cash), its status in one word and the next step.
+
+1. Not collected: the one main button, Collect (the amount) deposit. **Hold on the card on file** places the hold now (Finance or an Admin); **A deposit hold link by text** or **A deposit hold link by email**, or **A hold on this device: hand it to the renter**; **Charge the card on file as the deposit** only when no hold can be placed; **Cash or e-Transfer (record it)**. The rental balance is not touched.
+2. Before every pickup the deposit hold link is texted to the renter on its own: 24 hours before (at once when the pickup is sooner), for a confirmed booking whose deposit is a card hold with no hold yet. The panel says **Deposit link texted** and when it was opened. No mobile number, or the text not sent: a task **Deposit link not sent**. **Settings**, then Site settings, Deposit link by text: on or off, and the hours.
+3. Held, while the car is out: **Release** (an Admin, with the reason), **Keep part (damage/fees)** with the amount and the reason, or **Re-authorize the hold** on the saved card before it lapses (the panel shows when the hold expires).
+4. After the return: **Settle the deposit** (below).
+5. **Waive the deposit** (an Admin, before it is taken), **Change the debit deposit**, and **Allow debit and prepaid cards for this booking** sit in this panel. The history lists deposit payments only.
+6. A deposit taken in cash or by e-Transfer is given back the same way after the return: Finance gets a task; press **Returned** with the reference or receipt number.
+
+> Good to know: Statements, reconciliation and the deposit settlement read each payment with its method: a cash deposit is never refunded to a card.
+
+## Settle the deposit
+
+The deposit is never given back by itself. Finance or an Admin settles it after the return: on the booking''s Money tab, under Deposit, press **Settle the deposit**. Issue the Check-in statement first.
+
+1. The form shows the deposit, what is still available, the charges owed from the statement and what is taken from the deposit for them. What the deposit does not cover is charged to the card on file; with no card (or a card declined), the renter gets a pay link by email and text, and Finance has a task until it is paid.
+2. Tolls and tickets can take up to 7 days to come in. Inside that window the whole rest of the deposit is filled in as the hold-back, until the window ends. To give it back sooner, tick Release now anyway: a toll that comes in later is charged to the card on file.
+3. Something still open keeps the whole deposit: an incident, a claim, new damage at the return not priced, damage found later not billed, a toll or ticket on the car during the rental not matched or not charged, a card dispute, or charges not on a statement yet. The form lists them. Only an Admin can release part of it, with the reason; it is recorded.
+4. Damage: **Keep the whole deposit (damage)** turns what is left of the deposit into a damage charge, with what was damaged and the photos; the renter is told. **Bill damage** adds a damage charge up to the $2,500 deductible (more goes through a claim): the deposit pays first, then the card on file.
+5. Press **Settle**. The money moves at Stripe at once: the charges are collected and what is not owed is refunded or the hold released. A step Stripe refuses is tried again by itself, and Finance gets a task if it keeps failing.
+
+> Good to know: A card hold lapses after about 7 days. While the car is out, or returned and not settled, the hold is collected in full a day and a half before it lapses: that keeps the money, and the settlement refunds what is not owed. A hold that lapses anyway is charged to the saved card, and Finance is told at once.
+
+## A booking
+
+Open **Bookings** > **Bookings**, then a booking number. Or type the number in the search box.
+
+1. Tabs: Overview, Money, Changes, History, and Drivers and documents.
+2. Overview shows the trip, the renter, what is still missing for the handover, and the price.
+3. Open tasks for this booking, with the queue and the due time.
+4. Top right: **Email the renter** and **More actions**, the menu with **Edit the offer**, **Stop blocking the calendar**, **Cancel for the renter**, **Cancel by CarmaCars** and the rest.
+5. Under the booking number: **Next step**, what happens next and who does it, with one button for that step (for example **Send the offer**, **Sign on this device** or **Check out the car**); then where the booking is on its way, from Request to Closed, with the dates, the days, the total and who pays.
+
+![](/guides/img/admin-04-booking-desktop-b56b668a.jpg "desktop; size: 1440 960; address: carmacars.ca/admin/bookings/CC-10065; pins: 2 50.0 46.6, 4 85.4 14.5, 5 22.9 26.8")
+
+## Check a car out or in
+
+From the booking, with your phone or a tablet: the same checklist field staff use.
+
+1. A confirmed booking shows **Check out (pickup)** under Check-out, check-in and signing; a booking on rent shows **Check in (return)**. Today lists the check-outs and check-ins due, each with **Check out** or **Check in**.
+2. The checklist opens: the ready check, the renter and their licence and card, the odometer (km) and fuel or charge, the keys, the photo set (every side, the wheels, the interior, the odometer and fuel gauge, the plate), damage marks with close-ups, then the renter and you sign.
+3. Photos wait on the device without a connection and upload in the background. Each keeps its time, and the place when the device allows location.
+4. A field job of the booking is taken over (the history says so); with no job, one is made for you. When done, press **See the photo report**.
+
+> Tip: Fleet, Sales and Customer service check cars out and in the same way from their own booking page.
+
+## The photo report, late returns and the return charges
+
+Under Check-out, check-in and signing, press **Photo report**.
+
+1. The report shows the due-back time, the actual check-out and check-in, Late by (or Overdue by while the car is out), the odometer and kilometres over the allowance, the fuel or charge out and in, every photo with its time and place, and the damage.
+2. At check-in the late return (after the grace period of the fee defaults), the mileage overage and the fuel or recharging are written to the return charges at once. A gas car with no pump receipt is priced at the refill price per eighth (Program settings) plus the markup until the receipt is entered.
+3. Not charging one? Press **Waive** beside it and give the reason: it stays waived if the charges are worked out again.
+4. The time was wrong? Press **Correct the check-in time** (or the check-out time) with the reason: lateness and the late charges follow, and the history keeps both times.
+5. The renter gets the same report (without these buttons) by email and in their Documents. Late by shows on the booking and in the Bookings list.
+
+### The renter says the car is back
+
+Every overdue email, text and alert (at the return time, at 15 minutes and the final notice) has a one-tap **I''ve returned the car** link, and the renter''s booking page has the button. The renter can add photos, the odometer, the fuel level and the time they returned it. Sending it stops every overdue notice of the booking at once, the booking shows **Returned, waiting for confirmation**, and Fleet gets an urgent To do: "The renter says the car is back".
+
+1. Open the booking. The card **The renter says the car is back** shows what the renter gave, marked renter-provided, with their photos.
+2. Check the car: the return place, the tracker, the photos.
+3. Press **Confirm** to complete the trip. Correct the odometer, fuel or return time first if they are wrong: the late charges follow the time you confirm. The renter''s photos join the check-in report.
+4. Or press **Deny** and say why. The renter gets your reason by email and text, and the overdue notices start again.
+
+Checking the car in the usual way also completes the trip and stops the notices. Admins, Fleet, Sales, Customer service and field staff can Confirm or Deny.
+
+## Signatures on the spot, or by link
+
+The renter or an additional driver signs the rental agreement on your device, or on their own phone.
+
+1. While a signature is missing, the booking shows **Sign now on this device**, **Email the signing link** and **Text the signing link**.
+2. No agreement made yet (the renter has not saved their details at home)? **Sign now on this device** still shows: press **Prepare the agreement to sign now** and it is made on the spot.
+3. **Sign now on this device**: confirm the name matches their licence and that you saw the original licence (photograph it if none is on file), then press **Hand the device to** and their name.
+4. They read both agreements (CarmaCars'' and Blind Spot''s), tick the statements and sign. Then **Back to the staff view** for the next signer.
+5. The record is the same as signing online, and says it was signed in person, collected by you, on your device. It is printed on the signed copy''s signature record page.
+
+## Rental agreements: every version, every field
+
+The booking''s Rental agreements card: the current version of CarmaCars'' and Blind Spot''s agreements, every earlier one, and what is still blank.
+
+1. Once the agreement is signed and countersigned, any change to what it prints makes a new version of both documents by itself: the dates, the price lines, the car, a driver added or corrected, the coverage, the deposit or how it was paid, an address.
+2. A change to the dates, the price, the car, the drivers or the coverage option is signed again: the renter (and each driver it affects) gets their link by email and text, and the card shows "Agreement v3 waiting for signature". A correction (a typo in an address, a plate written differently) is filed without signing; the renter gets the corrected copy by email.
+3. Check-out makes the "as picked up" copy (time out, km out, fuel out, the car''s plate and VIN, the check-out report), countersigned by whoever checked the car out; check-in makes the closing copy (time in, km in, driven and charged, fuel in, late hours, damage, the return charges, the final totals). Both go to the renter by email.
+4. **Every version** lists each one with what changed and both PDFs. **Resend the signing links**, or press the button with their first name beside it to have them sign on your phone or tablet.
+5. The card lists what the agreements still print blank (a licence expiry, the insurer''s policy number, the insured vehicle, a VIN). Type the values and press **Save the missing fields**: the agreements follow.
+6. Check-out stops while a field a claim needs is blank. An Admin can let it go ahead: type the reason and press **Override**; the reason is in the booking''s history.
+7. **Make the agreements again** checks both against the booking at once (they also follow every change by themselves).
+8. **Edit the wording** (Admin only) changes CarmaCars'' agreement text for this booking: press **Change** beside a clause, edit its text, say why and press **Save the wording**; **Add** writes Additional terms at the end of Part 2. Only clauses not required by law or the insurer can be removed; the consents are fixed, and Blind Spot''s form (the insurer''s official form) is never changed. Before the renter signs, the agreement is made again; after, the change is a new version they sign, and **Every version** shows each clause before and after.
+
+## Signing that holds up in a dispute
+
+Every signature on the site is made the same way: rental agreements, amendments and new versions (remotely or on your device), and the owner agreements, schedules and forms, a co-owner''s link, the partner, investment and staff agreements.
+
+1. The licence on file is shown. A 6-digit code to their phone or email on file is optional: the signer may press **Verify by code (optional)**, and Program settings, E-signing, **ask for a one-time code** makes it a required first step again (off by default). Without the code, the certificate says the identity was not confirmed by a code.
+2. They say they read the documents, initial the key terms (each initials box is saved with **Save initials**; **Clear** takes it back to initial again) (damage and the deductible, the deposit and later charges, fuel, kilometres and late returns, their coverage, cancellation), give three consents (to sign electronically, to receive records electronically, to card charges under the agreement) and draw their signature.
+3. Owners, partners, investors and staff do the same for their documents: the code, the reading, the key terms of their documents initialled (for example the Enrollment Agreement''s three confirmations, Form C''s acknowledgments, Schedule C, the staff agreement''s confidentiality), two consents and the drawn signature. Form C''s witness still types their name beside the owner.
+4. Each step is recorded with its time, IP address and device, and the place when the device shares it. The signed PDFs end with a certificate of completion; anyone can check a signed file at `carmacars.ca/verify`.
+5. Typed names are off. For a signer who cannot draw, an Admin can turn on the accessibility fallback: **Settings** > **Program**, Esign typed fallback.
+
+## Card disputes: the evidence pack
+
+Everything that proves the rental, in one PDF for Stripe.
+
+1. When a card payment is disputed, the evidence pack is built by itself: the signed agreements with their certificates, the check-out and check-in reports with photos, kilometres and fuel, the licence, the payments and charges, every message to the renter, and the card checks from Stripe. It is staged in Stripe as the dispute''s evidence, and To do gets an urgent task.
+2. Open the booking: the Rental agreements card shows the pack. Press **Download** to check it, then **Submit to Stripe** before the evidence date.
+3. **Build the dispute evidence pack** makes one at any time (an Admin or Finance).
+
+## The licence before an offer is accepted
+
+Front, back and a selfie, from the request on.
+
+1. After sending a request the renter is asked for their licence. A licence already on file from an earlier booking is used again while it is valid after the return.
+2. The offer cannot be accepted (by the renter, or by you on their word) and nothing is paid until the licence and its expiry date are on file.
+3. Review the images as usual with **Review documents**: the card Renter documents is on Review and offer too.
+4. The switch is in **Settings** > **Program**, Booking requests and offers: Booking licence required (on), with the selfie (on).
+
+## Renter documents: licence and proof of coverage
+
+A renter''s licence photos, selfie and proof of coverage (OPCF 27 or a credit card''s rental coverage) are checked before the handover. You check them yourself; no task is needed.
+
+1. A booking with documents waiting is a line on To do: "Check ''s documents for booking ", marked Now when the pickup is within two days. Press **Review documents**.
+2. The pop-up shows each driver''s images and the coverage: the insurer, policy number and expiry, or the card, its type and whether the name matches.
+3. What to check is written once at the top. One wrong? Open **Reject this one** under it, type the reason the renter reads and press **Reject**: they are asked for a new one.
+4. Then press **Approve all**: every image, the proof of coverage and the Protection Plan still waiting are approved in one step. Anything the system refuses is named with the reason.
+5. The same pop-up is on the booking: the card Renter documents (**Review documents**) on Overview and on Drivers and documents.
+
+> Tip: Each opening of a renter''s documents is logged. The links to the images last one minute. Field staff can also check a licence in person at the check-out (photos and four checks): the history says "checked in person". Field staff also review the licence images (not the coverage) of bookings on their own jobs in the next 7 days from My jobs, with the same Approve all or a reason to reject: the history says the reviewer''s role, field. Sales review the licence images (not the coverage) of any booking being arranged or under way from their To do or the booking, with the same Approve all or a reason to reject: the history says the role, sales.
+
+## Payments by day
+
+**Money** > **Payments**, the **By day** tab: every payment and refund of a day or a range, by method, the cash drawer and the refunds waiting. Finance has the same screen.
+
+1. Choose From and To and the methods (card, e-Transfer, cash, cheque, platform payout, insurer, bank transfer, pre-authorized debit, other), then press **Show**.
+2. Totals by method and for each day; cards read as the card and its last four digits, never a code.
+3. The cash drawer: expected (cash in less cash given back) against the count Finance records with **Record the count**; a difference shows over or short.
+4. Refunds waiting: every refund asked for anywhere with the policy maths. **Approve** or **Decline** with the reason in the row, then **Issue the refund**.
+5. **Export CSV** for the bookkeeper.
+
+## Propose a change to a confirmed booking
+
+The renter gets an email and answers on their booking. The calendar moves only when they accept.
+
+1. Open the booking''s Changes tab. Under Propose a change, set the new pickup, return or car.
+2. To price it by hand, type a New rental charge before tax. Leave it empty to use the car''s rates.
+3. Write the Reason, for the renter. They read it.
+4. Press **Preview the price**, then **Send to the renter**.
+
+![](/guides/img/admin-05-booking-changes-desktop-97008b21.jpg "desktop; size: 1200 520; address: carmacars.ca/admin/bookings/CC-10065?tab=changes; pins: 1 17.5 33.7, 2 9.2 50.0, 3 38.3 71.2, 4 12.9 91.9")
+
+## Who a booking is credited to
+
+Overview (and Review and offer) shows the Sales credit: the staff member the booking counts for in their sales.
+
+1. A quote or a rental is credited to whoever created or added it. A request from the website is credited to whoever sent its first offer.
+2. To give it to someone else, press **Reassign**, choose who (or Nobody), say whether they sourced the client and write the reason. The booking''s history and the audit log keep it, and the deal stays in the same week and month.
+3. Sourced means the staff member chose I sourced this client when they entered it, it came with a field staff referral link, or you credited it. Only a sourced booking earns a staff commission. A website request earns none unless you credit someone.
+4. Someone said they sourced a website request? The credit line shows the claim: press **Credit them** or **Not theirs**, with a reason.
+5. A price typed by hand shows beside the rate-sheet price, with the reason. A price under the floor or past the discount limit is flagged: press **Mark reviewed** once you have looked at it.
+
+> Good to know: A request keeps the lead-time adjustment of the moment it came in ("Short-notice pricing +10%" or "Booked ahead −5%"), through the offer and the payment. To change it, open the booking''s review screen, **More options**, **Lead-time pricing (%)**: a number (0 for none), or empty for the tier of the request. A price typed by hand replaces it.
+
+> Tip: The renter has 48 hours to accept (and sign the amendment) or decline, with one reminder. Any extra is charged to their Card on File; a lower price raises a refund for your approval.
+
+## Review requests
+
+Every renter is asked for a review by email and text, as they chose, only from 9 am to 9 pm Toronto time. Nothing needs setting up.
+
+| Message | When |
+| --- | --- |
+| Mid-trip check-in | Rentals of 2 days or more, 24 hours after the pickup: "How is the car? Reply or call if anything is off." No review ask. |
+| Review request | 1 hour after the check-in. It links the review page: the renter taps what they liked, adds a sentence, and gets a short draft to copy and post on Google. |
+| Reminder | 24 hours after the request. |
+| Final follow-up | 7 days after the request. Nothing more after it. |
+
+1. The booking page has the card Review requests: each message with when it went or when it will go, and why it stopped.
+2. **Ask for a review** sends the request now (or at 9 am if it is later than 9 pm), on any booking on a trip, returned or closed. Not twice in 24 hours.
+3. On hold: a return or later charge (late return, kilometres, fuel, cleaning, smoking, damage, tolls and tickets) is not settled or waived, or an incident or dispute is open. The request goes by itself once they are. Press **Send anyway** to send it now.
+4. **Mark reviewed** stops the messages when the renter tells you they already reviewed.
+
+The messages also stop by themselves when the renter presses "I already left a review", leaves a review on the site, unsubscribes, or a Google review is matched to them. **Bookings** > **Reviews** has the numbers (requests sent, on hold, reviews detected, the average rating), the hold list and the Google reviews to match.
+
+> Tip: The draft is made only from what the renter picked and wrote, and from the booking (the car, how long, delivery or pickup). Everyone gets the Google link, whatever their stars; a renter who gives 3 stars or fewer also sees "Something wasn''t right? Tell us directly".
+
+## What the owner sees, and owner deductions
+
+Each booking on an owner''s or partner''s car shows the card What the owner sees at the top of its page.
+
+1. **Hide from the owner** keeps the booking''s revenue from the owner until the car is returned, or until the owner statement covering it is approved. The owner sees the booking as Booked with its dates, and the calendar still shows the car busy. Add a reason if you like: it is kept in the history.
+2. **Show to the owner** shows it now. Approving the statement shows every hidden booking on it by itself.
+3. Not shown to the owner is for a booking with no owner revenue (an insurance placeholder, a shareholder''s or the owner''s own use at no charge): the owner sees only that the car is unavailable for those dates. A booking with revenue cannot be set this way.
+4. Add a rental and Send an offer have What the owner sees. It starts from Settings > Program, Owners and fleet: Owners see a booking''s revenue (right away by default).
+5. On the Money tab, Owner deductions on this booking: **Add a booking expense** (cleaning, repair, fuel, platform fee or other, the amount, the reason the owner reads, a receipt number) comes off before Owner Revenue.
+6. **Set the Revenue Share for this booking** applies within the car''s signed terms. Above the terms only an Admin can, with Above the signed terms ticked and the reason. **Back to the car''s terms** undoes it.
+7. Add a rental has the same under The car''s owner.
+
+> Good to know: The owner''s statement always includes every booking at its true amounts and lists each deduction with its reason, so the payout is always right. Customer service and sales add deductions only while Program settings let them change fees.
+
+## Email the renter or the adjuster
+
+Press **Email the renter** at the top of a booking, or open its **Messages** tab.
+
+1. Write a **Subject** and a **Message**, or pick a **Quick reply** to start from (Settings > Quick replies keeps them).
+2. Press **Email the renter**. It goes from CarmaCars (bookings@carmacars.ca) and replies come back to the bookings inbox. The renter also sees it in their account and can answer there.
+3. On a booking an insurer pays, choose **From**: CarmaCars, or Blind Spot Car Rental (insurance). **Email the adjuster** writes to the adjuster''s email on the booking (Insurance claim), always from Blind Spot Car Rental.
+
+The Messages tab shows what you and the renter wrote, newest first, with who wrote it, and every email of the booking with its state (waiting, sent, failed). Each email you send is also in the History tab with your name.
+
+> Good to know: Emails go out through the same daily limit as every email (the line under the form shows today''s use). A message to a renter goes before digests and marketing; past the limit it waits until midnight. To write to a renter from **People** > **Renters**, open the renter: Email the renter is at the bottom, about their latest booking or the one you pick.
+
+### Record the pickup or the return now (details later)
+When the car went out or came back but the checklist could not be done (no photos, no time, the renter dropped the keys), the booking''s **Check-out, check-in and signing** card has **Record the pickup now (details later)** on a confirmed booking and **Record the return now (details later)** while the car is on rent. Give the actual time (now, or earlier), the odometer and fuel if you know them, and why. The booking moves on (on rent, or returned), late return charges follow the actual time, and Fleet gets the task **Add the photos and readings for CC-...**. Once returned, the statement can be issued and the deposit settled; releasing the deposit before the photos are in needs an Admin and a reason. A pickup without the deposit taken needs an Admin to waive it with a reason, and without the renter''s signature on the check-out report an Admin''s reason too. Later, **Add the check-out (or check-in) photos and readings** opens the usual checklist (photos, readings, your signature): the task closes when it is saved.
+
+The Agreement card says **Waiting for the renter''s details** when the renter still has blanks to fill (date of birth, address, mobile, licence, coverage): their account asks for them before signing and paying. No email or text is sent.
+
+### Find a booking
+**Bookings** has one search box: type the booking number (CC-1042, cc1042 or just 1042), the renter''s or a driver''s name, an email, a phone number in any format, a plate (spaces do not matter) or a car code, then press Enter. The status filters still apply to what is found.
+
+### Record a card payment taken outside the site
+A card taken in the Stripe Dashboard, or on a card reader, is recorded on the booking''s **Money** tab with **Record card payment**.
+
+1. Choose what it paid: **Rental and fees**, **Rental**, **Fees**, **Later charges** or **Deposit hold**, and where it was taken.
+2. Type the **Last 4 digits** and the amount. A Stripe payment id (pi_... or ch_..., from the payment in the Stripe Dashboard) is optional for a payment: press **Look up** and the amount and last 4 digits are checked against Stripe.
+3. Press **Record it**. A payment confirms a booking waiting for payment, as any payment does.
+
+> Good to know: A deposit hold needs its Stripe payment id, so it can be captured or released from **Settle the deposit**. It is recorded as held, with the usual release reminders. A hold on a reader lapses after 2 days, one made online after 7.
+
+### Charge or hold the deposit on the card reader
+With the S700 paired (Settings > Card reader), the **Money** tab has **Charge on reader** (everything open, the rental, the fees or a later charge) and **Hold deposit on reader**. Press **Send to the reader**: the amount shows on the reader and the renter taps, inserts or swipes the card. The screen updates by itself; **Cancel** stops the reader and nothing is charged. A deposit hold is captured or released from Settle the deposit like any hold.
+
+### Credit card coverage: the same card
+When the renter''s coverage is their credit card, the whole rental (rental and fees) is paid on that same card. The Money tab says which card. Another card on the pay page is refused and refunded at once; on the reader it is refused before the money is taken; a payment by e-Transfer, cash or the like is refused; a card typed by hand needs its last 4 digits and the box **This is the same card**. Deposits and later charges can go on any card. If the renter truly has to use another card or method, press **Allow another card** and give the reason (an Admin).
+
+## Booked as soon as the renter accepts (release 28)
+
+A booking is booked the moment the renter approves the offer. It takes the car on every calendar, the fleet board, the car''s availability and the counts, even before the payment or the pickup is recorded. Payment and the handover show as their own badges: **Booked, payment due** and **Pickup not recorded**. The first renter to approve gets the car: any other open offer on the same car and dates goes back to Requests with a Re-offer To do.
+
+- **Booked, payment due** To do: a booked rental still unpaid within 48 hours of its pickup. Send the pay link, charge the saved card or record the payment.
+- Record the pickup To do: a pickup time that passed with nothing recorded, as before.
+
+When you send an offer, **The offer as the renter sees it** sits right under **Send the offer**: check it before you press it.
+
+## Changes after signing: an amended agreement, no new signature
+
+The rental terms (section 15.4) let CarmaCars update a booking after signing: an extension, new dates or times, a price adjustment, a fee, a car swap. The signed agreement keeps applying. Each change makes a new version of the agreement marked **Amended** with the date, carrying the renter''s original signature, and the renter is sent it. Nobody is asked to sign again, except an additional driver who never signed (they sign before driving).
+
+## Check-out and check-in on one screen
+
+On the booking page, **Check out (pickup)** and **Check in (return)** are one screen: the time (now unless you change it), the odometer, the fuel, the photos and a note. Pick many photos at once from the camera roll or take them; tag an angle on any photo if you like. The suggested angles (front, each corner and side, rear, odometer, fuel gauge, interior front and rear, trunk, wheels, any damage) tick themselves as photos are tagged. Nothing is required but the time; the renter''s own photos are added to the same report, each marked with who took it (the renter or staff) and its angle. The full checklist is still one tap away.
+
+## Type into the Blind Spot agreement
+
+On the **Rental agreements** card, **Type into the Blind Spot agreement** shows each box as the form prints it. Change a value and **Save the corrections**: it is drawn in that box, and the insured vehicle, the claim number, the adjuster and missing km or fuel go back onto the booking. **Preview the filled form** opens it with your corrections.
+
+## Reopen an expired offer (release 28)
+
+An expired offer reopens in one click: **Reopen offer** on the booking or on the **Expired** filter of Requests. The renter gets the usual offer email and text; the offer stays open 24 hours unless you type other hours. When the pickup time has passed, the dialog asks for the new pickup and return first. A renter can also press **Ask to reopen this offer**: you get the To do "Renter wants expired offer reopened" and an alert, as for a new request.
+
+An offer sent after its pickup time no longer expires by itself: it expires at its own expiry time (the pickup only counts when the offer was sent before it and the pickup is 2 hours past). The offer screens say **Pickup time has passed: update it** and do not send until you move the pickup.', 'Requests, offers and bookings', 'See what is out, coming back and owed now; send an offer with or without a request, change it in place, take payments by part, run a booking.',
+  'A booking starts as a request from the website, or as an offer you send yourself to a customer on the phone. You check it, adjust it and send the offer; an offer that is out is changed in place. After that, the booking page holds the money, documents, changes and history.
+
+## Bookings now: what is out, coming back and owed
+
+Open **Bookings**. It opens on **Now**, one screen that refreshes by itself every 30 seconds. Every time is Toronto time.
+
+1. The numbers at the top: cars out now, due back today, overdue, going out in the next 72 hours, payments due in the next 7 days (with the total) and free cars. Tap one to jump to its list.
+2. **Out now**: every car on rent, overdue returns first in red. Each shows the car (photo, code, plate), the renter with **Call** and **Text**, when it was picked up, when it is due back with a countdown, the payment plan and the next payment, the deposit held, and the km and fuel at pickup. Filter by Overdue, Due today or Payment due.
+3. A confirmed booking whose pickup time has passed with no check-out recorded is listed as out, with **Out (pickup not recorded)**. The car most likely left. Press **Mark picked up**: it records the pickup at the booked time (change it if the car left at another time), the booking goes on rent, and Fleet gets a task to add the photos, km and fuel. The usual checks stay: the deposit taken (or an Admin waives it with the reason), the renter''s signature (or an Admin''s reason), the agreement''s details, every driver verified and the coverage confirmed. If one is missing, the reason is shown.
+4. **Coming back**: overdue, today and tomorrow, by the time each is due.
+5. **Going out**: confirmed pickups in the next 72 hours, delivery or pickup, with ticks and crosses for the licence, the signed agreement, the payment, the deposit (a clock until the morning of the pickup day, when the hold is placed on the card on file) and the check-out photos (done at the handover).
+6. **Money due**: every rental payment due in the next 7 days or overdue, the amount, the plan and which payment it is (for example 3 of 4).
+7. **Free now**: cars available and not out, the longest idle first, with the next pickup; then the cars in maintenance or cleaning. Partners'' cars are counted apart.
+
+> Good to know: Placeholder bookings never show on Now.
+
+### Payment plans
+
+A rental is paid in full at pickup, weekly, every 2 weeks, or monthly. A rental longer than one period (30 days) pays each period by itself. To change it, open the booking, then the **Payment plan** card on Overview or Money, and press **Change the plan**. Each payment is its share of the total by its days, due on the day it starts. An insurer-billed rental shows **Insurer billed** and is never in Money due unless the renter owes a part. Admins, customer service and finance change the plan; fleet sees it.
+
+## All bookings
+
+The **All bookings** tab of Bookings has the search (booking number, name, email, phone, plate or car code), the status (All, Out now, Booked, Returned, Closed, Cancelled) and **Bill to** (All, Renter, Insurer). **Out now** shows the bookings on rent and those whose pickup passed without a check-out, together. Each booking is one row: its number and status in plain words, the car with its photo, the renter with **Call** and **Text**, the dates, the money (paid up, to pay, overdue, insurer billed) and Bill to.
+
+## The request queue
+
+Open **Bookings** > **Requests and offers**. The oldest waiting request is at the top.
+
+1. The numbers at the top: waiting for an offer, past the reply target (red), offers out, accepted but not paid, and offers expired.
+2. One queue, the most urgent first: the longest wait, then offers accepted but not paid, then offers out by when they expire. Each row has the car with its photo, the dates, the price, the renter with **Call** and **Text**, the licence (verified, to review, or not uploaded yet), who is answering it, and one button: **Send offer**, **Follow up** or **Open**. **Decline** sits beside **Send offer**.
+3. Waiting shows how long the renter has waited ("12 min", "3 h", "2 days"); red means past the first reply target (5 minutes, set in Program settings). **Promise** counts down the 2 hours the site promises the renter.
+4. Filter by Active, New, Asked the renter, Changes asked, Offer out, Not paid or Expired. An expired offer leaves the active queue 48 hours after it expired, or once its pickup time passed; Expired lists them all. An offer still out when its pickup time passes expires by itself.
+
+![](/guides/img/admin-02-requests-desktop-6521282d.jpg "desktop; size: 1440 820; address: carmacars.ca/admin/requests; pins: 1 38.9 29.9, 2 22.2 43.3")
+
+> Good to know: A request whose pickup time passes without an offer expires by itself, with a note in its history. The renter is not emailed unless "Email the renter when their request expires that way" is on in Program settings.
+
+## Answer a request with an offer
+
+1. The Review and offer tab shows the request as the renter sent it.
+2. Adjust the car, the dates, the rate type, the places, the rates (under **Show rate card**) and fees, the deposit and extras. A place changed away from a delivery or a collection takes its fee box and its fee with it.
+3. Price on the right updates as you change things.
+4. Add a message, choose how long the offer stays open, then press **Send the offer**.
+
+![](/guides/img/admin-03-booking-review-desktop-353f3707.jpg "desktop; size: 1200 1550; address: carmacars.ca/admin/bookings/CC-10069?tab=review; pins: 1 5.0 6.5, 2 7.5 45.8, 3 74.2 42.6, 4 76.7 98.1")
+
+5. Changed fields but not ready to send? Press **Save changes**. The panel "The offer as the renter sees it" shows the result.
+6. Can''t do it? Press **Decline** and fill in Reason and any alternative.
+7. Need an answer first? Press **Ask the renter** to send a question.
+
+![](/guides/img/admin-03-booking-review-desktop-4dd4ed06.jpg "desktop; size: 500 80; address: carmacars.ca/admin/bookings/CC-10069?tab=review; pins: 6 41.2 52.5, 7 18.0 52.5")
+
+Opening a request takes it for you: everyone else sees "Being answered by" your name and since when, with Send the offer and Decline off, until you send, decline or leave (20 minutes, renewed while you work; Program settings). Press **Take over** to answer one someone else holds; it is noted in the history. A second answer is refused with who answered and when. A request from the website opens to Sales after 15 minutes (Program settings); until then Admins, customer service and fleet answer it.
+
+## Send an offer without a request
+
+Press **Send an offer** at the top of Bookings, or **Send an offer without a request** on Requests and offers. For a customer on the phone, by text or at the counter: no request needed.
+
+The screen is seven short steps, each with one line saying what to do, and the price beside it (on a phone the total sits at the bottom of the screen: press **See every line**). What most offers never need is under each step''s **More options**, which stays open while something in it is used.
+
+1. **Who is renting and when**: find the renter by name, phone or email, or press **Not on file? Add a new customer** (full legal name, mobile, email for the offer link, date of birth). A customer already on file with the same email or phone is shown with Use: one person, one record. Then the pickup and the return.
+2. **Which car**: search by car code, plate or name; each car says Free or Not free for the dates. More options: the rate card and the type and free-only filters.
+3. **Where they pick up and return**: at our location, we deliver or collect (the address and distance), an airport or the owner''s location. The fee each one makes shows under it, Automatic or Set by hand.
+4. **How damage is covered**: the renter''s own insurance, a credit card or the Protection Plan. More options: another Protection Plan price.
+5. **Extras**: add-ons, when the car has any.
+6. **The price**: the rate sheet price is filled in. More options: another price (a total for the trip or a rate a day, with why), Amounts I type (before or after HST), the total the renter pays, kilometres, a promo code, the deposit and a discount (an Admin), and **Fees**: press **Change** to set one by hand, **Reset to automatic** to undo it. Below: how it is paid (card online and a card hold unless you change it under More options).
+7. **Send it**: who found this client (sales and customer service), a message, and Text or Email. More options: how long the offer is open, the owner''s view, who found the client (an Admin) and the internal note. Above the button, **Ready to send** or **Missing:** with what is left; press Send and each missing field says what it needs. Press **Send the offer to** the renter, or **Save without sending** to keep it as a request for later. **The offer as the renter sees it** is under the price.
+
+> Good to know: Choices drive the charges. Take off a delivery, a collection, the Protection Plan or an add-on and its fee goes with it, even a fee set by hand: there is nothing to remove in a second place. Choose it again and the fee starts from the automatic amount.
+
+> Good to know: It makes the same request and offer the website makes: the renter approves, signs and pays (or you record the payment), and only then is the car on the calendar. No "request received" email goes to the renter for an offer you send. Staff commissions and statements count it like any other booking.
+
+## Change an offer that is out
+
+The renter has the offer (Offered), or approved it and has not paid (Signing and payment). Open **More actions** on the booking and press **Edit the offer**.
+
+1. Change anything: the car, the dates, the places, the price, fees, the deposit, add-ons, how it is paid. Each changed field is highlighted and the before and after are listed. Amounts I type (Before tax or After tax) and the Total the renter pays (after tax) work as on Send an offer.
+2. Write what changed in Message to the renter and choose how long the offer is open.
+3. Press **Save and send the update**: the renter gets the new version by email or text (ticked), and the old version no longer counts. Or press **Save without telling the renter** and tell them yourself.
+4. A confirmed booking is changed with **Change the booking** (Propose a change, below).
+
+> Tip: No need to withdraw first. **Withdraw the offer** is only for taking it back for good; **Send again, later expiry** gives the renter more time, and **Renter approved by phone** records a yes given on a call.
+
+## Edit a booking that has started
+
+On a confirmed, on-trip or returned booking (an Admin: a closed one too), Overview, **Edit the booking**, **Edit**.
+
+1. Change the pickup or the return (extend or shorten: the rental charge is worked out again at this booking''s rates), the car (on trip: the car it leaves goes to Out of service for Fleet to check), the rental charge for the trip, each fee, the kilometres a day, the deposit (an Admin) and the note.
+2. Type why, if you like, and tick **Email the renter what changed**, or leave it off for a silent correction. Press **Save the changes**.
+3. What is open now shows at once: **Email a pay link** or **Text a pay link** for exactly that amount, **Charge** the saved card (the renter agreed), or record cash or an e-Transfer on the Money tab.
+
+> Good to know: Each edit is kept with who, when, why, before and after (Edits, under the form) and in the booking''s history. A closed booking''s owner split and the staff commission follow. To have the renter accept and sign first, use Propose a change instead.
+
+## Fees, a forgotten fee and the balance
+
+On the booking''s Money tab, Fees lists each fee. Press **Change or add a fee**.
+
+1. Type a new amount (for the whole trip, before HST) beside any fee, or choose one not on the booking (the young driver fee shows its price for these dates), or add a charge of its own with or without HST.
+2. Press **Save the fees**. The balance shows by part (rental, fees) with the pay link, the saved card and Record a payment beside it.
+3. The renter sees the balance on their booking with a Pay button, and pays by card on Stripe''s form.
+
+> Good to know: Every change is recorded (Changes to the fees): the amount before and after, who and why. Customer service and sales may change fees while Program settings, Staff may change fees, is on.
+
+## A renter with only a debit or prepaid card
+
+A credit card is required by default: the deposit must be on a credit card so the deductible can be charged. The pay page tells a renter with only a debit or prepaid card to contact us.
+
+1. On the booking''s Money tab, press **Allow debit and prepaid cards for this booking** and type the reason. Who and when are kept, and the change is in the booking''s history.
+2. The booking''s pay page, staff pay links and deposit hold then take a debit or prepaid card, and the renter is told the hold lowers the money available on the card until it is released, which can take several business days.
+3. **Require a credit card again** turns it off.
+
+The Money tab shows each card used and its type (credit, debit, prepaid). A booking on credit card rental coverage is always paid on the credit card that carries the coverage, and cannot be allowed. Program settings, **Card types accepted**, can open debit and prepaid cards to every booking.
+
+## Correct a renter''s details
+
+On the renter''s page (People, Renters) or on any of their bookings, **Edit renter**.
+
+1. Correct the name, email, phone, date of birth, licence, home address (start typing to find it) or the staff note.
+2. A new email also becomes their sign-in at once (no confirmation needed for a typo you correct); tick **Email the renter a link to set a password** to send one there. Unsigned agreements and offers go to the new address.
+3. Press **Save the renter**. An email that another renter has is refused with their name; the same phone is a warning.
+4. The same person entered twice? Possible duplicates (same email, same phone, or same name and date of birth) shows under the renter. **Merge into this record** moves the other record''s bookings, licences, cards, payments, documents and messages here and fills any detail missing here; the other record stays, blocked, with the merge in both histories.
+
+## The Money tab: Rental charges and Security deposit
+
+The booking''s Money tab opens on a strip with the three numbers that matter: **Rental due**, **Deposit** (one word: Not collected, Held, Charged, Released or Partly kept) and **Total paid**. Below are two panels, side by side on a computer and one above the other on a phone. Collecting one never touches the other, and every receipt says which one it is.
+
+**Rental charges**: each line of the price and the total, Paid, then Balance due.
+
+1. The one main button, Collect (the amount) rental: choose how. **The card on file** charges it now (Finance or an Admin); **A payment link by text** or **A payment link by email** sends the renter Stripe''s secure form; **On this device: hand it to the renter** opens it for the renter to type; **Cash, e-Transfer or another way (record it)** records money received (an e-Transfer, cheque or transfer needs its reference). For: the rental and fees together by default, or one of them. The renter gets a receipt; **Print** prints one to hand over.
+2. **A later charge**: extra kilometres, fuel, damage or a late return, on the card on file, by a link, on this device, or recorded, with the reason the renter''s receipt shows.
+3. **Save a card** saves the renter''s card without charging it. Card readers, the fees (**Change or add a fee**), failed card payments (**Paid another way**), payments received another way and **Refund** sit in this panel too. The history lists rental payments only.
+4. An offer paid another way: once the renter approved and signed and the money is recorded, the booking is confirmed (or press **Confirm the booking**).
+
+**Security deposit**: the amount, how it is taken (a credit card hold, a debit or prepaid card at the standard multiple, a charge, or cash), its status in one word and the next step.
+
+1. Not collected: the one main button, Collect (the amount) deposit. **Hold on the card on file** places the hold now (Finance or an Admin); **A deposit hold link by text** or **A deposit hold link by email**, or **A hold on this device: hand it to the renter**; **Charge the card on file as the deposit** only when no hold can be placed; **Cash or e-Transfer (record it)**. The rental balance is not touched.
+2. Before every pickup the deposit hold link is texted to the renter on its own: 24 hours before (at once when the pickup is sooner), for a confirmed booking whose deposit is a card hold with no hold yet. The panel says **Deposit link texted** and when it was opened. No mobile number, or the text not sent: a task **Deposit link not sent**. **Settings**, then Site settings, Deposit link by text: on or off, and the hours.
+3. Held, while the car is out: **Release** (an Admin, with the reason), **Keep part (damage/fees)** with the amount and the reason, or **Re-authorize the hold** on the saved card before it lapses (the panel shows when the hold expires).
+4. After the return: **Settle the deposit** (below).
+5. **Waive the deposit** (an Admin, before it is taken), **Change the debit deposit**, and **Allow debit and prepaid cards for this booking** sit in this panel. The history lists deposit payments only.
+6. A deposit taken in cash or by e-Transfer is given back the same way after the return: Finance gets a task; press **Returned** with the reference or receipt number.
+
+> Good to know: Statements, reconciliation and the deposit settlement read each payment with its method: a cash deposit is never refunded to a card.
+
+## Settle the deposit
+
+The deposit is never given back by itself. Finance or an Admin settles it after the return: on the booking''s Money tab, under Deposit, press **Settle the deposit**. Issue the Check-in statement first.
+
+1. The form shows the deposit, what is still available, the charges owed from the statement and what is taken from the deposit for them. What the deposit does not cover is charged to the card on file; with no card (or a card declined), the renter gets a pay link by email and text, and Finance has a task until it is paid.
+2. Tolls and tickets can take up to 7 days to come in. Inside that window the whole rest of the deposit is filled in as the hold-back, until the window ends. To give it back sooner, tick Release now anyway: a toll that comes in later is charged to the card on file.
+3. Something still open keeps the whole deposit: an incident, a claim, new damage at the return not priced, damage found later not billed, a toll or ticket on the car during the rental not matched or not charged, a card dispute, or charges not on a statement yet. The form lists them. Only an Admin can release part of it, with the reason; it is recorded.
+4. Damage: **Keep the whole deposit (damage)** turns what is left of the deposit into a damage charge, with what was damaged and the photos; the renter is told. **Bill damage** adds a damage charge up to the $2,500 deductible (more goes through a claim): the deposit pays first, then the card on file.
+5. Press **Settle**. The money moves at Stripe at once: the charges are collected and what is not owed is refunded or the hold released. A step Stripe refuses is tried again by itself, and Finance gets a task if it keeps failing.
+
+> Good to know: A card hold lapses after about 7 days. While the car is out, or returned and not settled, the hold is collected in full a day and a half before it lapses: that keeps the money, and the settlement refunds what is not owed. A hold that lapses anyway is charged to the saved card, and Finance is told at once.
+
+## A booking
+
+Open **Bookings** > **Bookings**, then a booking number. Or type the number in the search box.
+
+1. Tabs: Overview, Money, Changes, History, and Drivers and documents.
+2. Overview shows the trip, the renter, what is still missing for the handover, and the price.
+3. Open tasks for this booking, with the queue and the due time.
+4. Top right: **Email the renter** and **More actions**, the menu with **Edit the offer**, **Stop blocking the calendar**, **Cancel for the renter**, **Cancel by CarmaCars** and the rest.
+5. Under the booking number: **Next step**, what happens next and who does it, with one button for that step (for example **Send the offer**, **Sign on this device** or **Check out the car**); then where the booking is on its way, from Request to Closed, with the dates, the days, the total and who pays.
+
+![](/guides/img/admin-04-booking-desktop-b56b668a.jpg "desktop; size: 1440 960; address: carmacars.ca/admin/bookings/CC-10065; pins: 2 50.0 46.6, 4 85.4 14.5, 5 22.9 26.8")
+
+## Check a car out or in
+
+From the booking, with your phone or a tablet: the same checklist field staff use.
+
+1. A confirmed booking shows **Check out (pickup)** under Check-out, check-in and signing; a booking on rent shows **Check in (return)**. Today lists the check-outs and check-ins due, each with **Check out** or **Check in**.
+2. The checklist opens: the ready check, the renter and their licence and card, the odometer (km) and fuel or charge, the keys, the photo set (every side, the wheels, the interior, the odometer and fuel gauge, the plate), damage marks with close-ups, then the renter and you sign.
+3. Photos wait on the device without a connection and upload in the background. Each keeps its time, and the place when the device allows location.
+4. A field job of the booking is taken over (the history says so); with no job, one is made for you. When done, press **See the photo report**.
+
+> Tip: Fleet, Sales and Customer service check cars out and in the same way from their own booking page.
+
+## The photo report, late returns and the return charges
+
+Under Check-out, check-in and signing, press **Photo report**.
+
+1. The report shows the due-back time, the actual check-out and check-in, Late by (or Overdue by while the car is out), the odometer and kilometres over the allowance, the fuel or charge out and in, every photo with its time and place, and the damage.
+2. At check-in the late return (after the grace period of the fee defaults), the mileage overage and the fuel or recharging are written to the return charges at once. A gas car with no pump receipt is priced at the refill price per eighth (Program settings) plus the markup until the receipt is entered.
+3. Not charging one? Press **Waive** beside it and give the reason: it stays waived if the charges are worked out again.
+4. The time was wrong? Press **Correct the check-in time** (or the check-out time) with the reason: lateness and the late charges follow, and the history keeps both times.
+5. The renter gets the same report (without these buttons) by email and in their Documents. Late by shows on the booking and in the Bookings list.
+
+### The renter says the car is back
+
+Every overdue email, text and alert (at the return time, at 15 minutes and the final notice) has a one-tap **I''ve returned the car** link, and the renter''s booking page has the button. The renter can add photos, the odometer, the fuel level and the time they returned it. Sending it stops every overdue notice of the booking at once, the booking shows **Returned, waiting for confirmation**, and Fleet gets an urgent To do: "The renter says the car is back".
+
+1. Open the booking. The card **The renter says the car is back** shows what the renter gave, marked renter-provided, with their photos.
+2. Check the car: the return place, the tracker, the photos.
+3. Press **Confirm** to complete the trip. Correct the odometer, fuel or return time first if they are wrong: the late charges follow the time you confirm. The renter''s photos join the check-in report.
+4. Or press **Deny** and say why. The renter gets your reason by email and text, and the overdue notices start again.
+
+Checking the car in the usual way also completes the trip and stops the notices. Admins, Fleet, Sales, Customer service and field staff can Confirm or Deny.
+
+## Signatures on the spot, or by link
+
+The renter or an additional driver signs the rental agreement on your device, or on their own phone.
+
+1. While a signature is missing, the booking shows **Sign now on this device**, **Email the signing link** and **Text the signing link**.
+2. No agreement made yet (the renter has not saved their details at home)? **Sign now on this device** still shows: press **Prepare the agreement to sign now** and it is made on the spot.
+3. **Sign now on this device**: confirm the name matches their licence and that you saw the original licence (photograph it if none is on file), then press **Hand the device to** and their name.
+4. They read both agreements (CarmaCars'' and Blind Spot''s), tick the statements and sign. Then **Back to the staff view** for the next signer.
+5. The record is the same as signing online, and says it was signed in person, collected by you, on your device. It is printed on the signed copy''s signature record page.
+
+## Rental agreements: every version, every field
+
+The booking''s Rental agreements card: the current version of CarmaCars'' and Blind Spot''s agreements, every earlier one, and what is still blank.
+
+1. Once the agreement is signed and countersigned, any change to what it prints makes a new version of both documents by itself: the dates, the price lines, the car, a driver added or corrected, the coverage, the deposit or how it was paid, an address.
+2. A change to the dates, the price, the car, the drivers or the coverage option is signed again: the renter (and each driver it affects) gets their link by email and text, and the card shows "Agreement v3 waiting for signature". A correction (a typo in an address, a plate written differently) is filed without signing; the renter gets the corrected copy by email.
+3. Check-out makes the "as picked up" copy (time out, km out, fuel out, the car''s plate and VIN, the check-out report), countersigned by whoever checked the car out; check-in makes the closing copy (time in, km in, driven and charged, fuel in, late hours, damage, the return charges, the final totals). Both go to the renter by email.
+4. **Every version** lists each one with what changed and both PDFs. **Resend the signing links**, or press the button with their first name beside it to have them sign on your phone or tablet.
+5. The card lists what the agreements still print blank (a licence expiry, the insurer''s policy number, the insured vehicle, a VIN). Type the values and press **Save the missing fields**: the agreements follow.
+6. Check-out stops while a field a claim needs is blank. An Admin can let it go ahead: type the reason and press **Override**; the reason is in the booking''s history.
+7. **Make the agreements again** checks both against the booking at once (they also follow every change by themselves).
+8. **Edit the wording** (Admin only) changes CarmaCars'' agreement text for this booking: press **Change** beside a clause, edit its text, say why and press **Save the wording**; **Add** writes Additional terms at the end of Part 2. Only clauses not required by law or the insurer can be removed; the consents are fixed, and Blind Spot''s form (the insurer''s official form) is never changed. Before the renter signs, the agreement is made again; after, the change is a new version they sign, and **Every version** shows each clause before and after.
+
+## Signing that holds up in a dispute
+
+Every signature on the site is made the same way: rental agreements, amendments and new versions (remotely or on your device), and the owner agreements, schedules and forms, a co-owner''s link, the partner, investment and staff agreements.
+
+1. The licence on file is shown. A 6-digit code to their phone or email on file is optional: the signer may press **Verify by code (optional)**, and Program settings, E-signing, **ask for a one-time code** makes it a required first step again (off by default). Without the code, the certificate says the identity was not confirmed by a code.
+2. They say they read the documents, initial the key terms (each initials box is saved with **Save initials**; **Clear** takes it back to initial again) (damage and the deductible, the deposit and later charges, fuel, kilometres and late returns, their coverage, cancellation), give three consents (to sign electronically, to receive records electronically, to card charges under the agreement) and draw their signature.
+3. Owners, partners, investors and staff do the same for their documents: the code, the reading, the key terms of their documents initialled (for example the Enrollment Agreement''s three confirmations, Form C''s acknowledgments, Schedule C, the staff agreement''s confidentiality), two consents and the drawn signature. Form C''s witness still types their name beside the owner.
+4. Each step is recorded with its time, IP address and device, and the place when the device shares it. The signed PDFs end with a certificate of completion; anyone can check a signed file at `carmacars.ca/verify`.
+5. Typed names are off. For a signer who cannot draw, an Admin can turn on the accessibility fallback: **Settings** > **Program**, Esign typed fallback.
+
+## Card disputes: the evidence pack
+
+Everything that proves the rental, in one PDF for Stripe.
+
+1. When a card payment is disputed, the evidence pack is built by itself: the signed agreements with their certificates, the check-out and check-in reports with photos, kilometres and fuel, the licence, the payments and charges, every message to the renter, and the card checks from Stripe. It is staged in Stripe as the dispute''s evidence, and To do gets an urgent task.
+2. Open the booking: the Rental agreements card shows the pack. Press **Download** to check it, then **Submit to Stripe** before the evidence date.
+3. **Build the dispute evidence pack** makes one at any time (an Admin or Finance).
+
+## The licence before an offer is accepted
+
+Front, back and a selfie, from the request on.
+
+1. After sending a request the renter is asked for their licence. A licence already on file from an earlier booking is used again while it is valid after the return.
+2. The offer cannot be accepted (by the renter, or by you on their word) and nothing is paid until the licence and its expiry date are on file.
+3. Review the images as usual with **Review documents**: the card Renter documents is on Review and offer too.
+4. The switch is in **Settings** > **Program**, Booking requests and offers: Booking licence required (on), with the selfie (on).
+
+## The licence reader
+
+Every licence photo is read on upload: the back''s barcode first, else the vision model (within the day''s AI allowance).
+
+1. The renter''s empty licence fields are filled from the read; the renter confirms them. A blurry or cut-off photo is taken again at once.
+2. **Review documents** shows what was read and one line per check, Pass or Flag: photos, valid to the return, class accepted, age at pickup, name and date of birth, the Ontario number, front and back, and the main driver''s Ontario licence. Staff still approve.
+3. **Settings** > **Program**, Driver''s licence reader: **Approve automatically when every check passes** (off). On: a driver whose front and back both read sharp and every check passes is approved in your name; anything flagged waits for a person.
+4. **Primary driver must hold an Ontario licence** (on): a main driver with a licence from elsewhere becomes an additional driver, the booking needs "Primary driver: Ontario licence needed" and pickup is blocked. The renter adds a main driver, who signs on their own link. On the document review, **Admin: undo or let it go**: undo puts the first main driver back; let it go needs a reason.
+
+> Tip: What was read is staff only and is deleted with the licence image. The licence number is never written to the logs.
+
+## Renter documents: licence and proof of coverage
+
+A renter''s licence photos, selfie and proof of coverage (OPCF 27 or a credit card''s rental coverage) are checked before the handover. You check them yourself; no task is needed.
+
+1. A booking with documents waiting is a line on To do: "Check ''s documents for booking ", marked Now when the pickup is within two days. Press **Review documents**.
+2. The pop-up shows each driver''s images and the coverage: the insurer, policy number and expiry, or the card, its type and whether the name matches.
+3. What to check is written once at the top. One wrong? Open **Reject this one** under it, type the reason the renter reads and press **Reject**: they are asked for a new one.
+4. Then press **Approve all**: every image, the proof of coverage and the Protection Plan still waiting are approved in one step. Anything the system refuses is named with the reason.
+5. The same pop-up is on the booking: the card Renter documents (**Review documents**) on Overview and on Drivers and documents.
+
+> Tip: Each opening of a renter''s documents is logged. The links to the images last one minute. Field staff can also check a licence in person at the check-out (photos and four checks): the history says "checked in person". Field staff also review the licence images (not the coverage) of bookings on their own jobs in the next 7 days from My jobs, with the same Approve all or a reason to reject: the history says the reviewer''s role, field. Sales review the licence images (not the coverage) of any booking being arranged or under way from their To do or the booking, with the same Approve all or a reason to reject: the history says the role, sales.
+
+## Payments by day
+
+**Money** > **Payments**, the **By day** tab: every payment and refund of a day or a range, by method, the cash drawer and the refunds waiting. Finance has the same screen.
+
+1. Choose From and To and the methods (card, e-Transfer, cash, cheque, platform payout, insurer, bank transfer, pre-authorized debit, other), then press **Show**.
+2. Totals by method and for each day; cards read as the card and its last four digits, never a code.
+3. The cash drawer: expected (cash in less cash given back) against the count Finance records with **Record the count**; a difference shows over or short.
+4. Refunds waiting: every refund asked for anywhere with the policy maths. **Approve** or **Decline** with the reason in the row, then **Issue the refund**.
+5. **Export CSV** for the bookkeeper.
+
+## Propose a change to a confirmed booking
+
+The renter gets an email and answers on their booking. The calendar moves only when they accept.
+
+1. Open the booking''s Changes tab. Under Propose a change, set the new pickup, return or car.
+2. To price it by hand, type a New rental charge before tax. Leave it empty to use the car''s rates.
+3. Write the Reason, for the renter. They read it.
+4. Press **Preview the price**, then **Send to the renter**.
+
+![](/guides/img/admin-05-booking-changes-desktop-97008b21.jpg "desktop; size: 1200 520; address: carmacars.ca/admin/bookings/CC-10065?tab=changes; pins: 1 17.5 33.7, 2 9.2 50.0, 3 38.3 71.2, 4 12.9 91.9")
+
+## Who a booking is credited to
+
+Overview (and Review and offer) shows the Sales credit: the staff member the booking counts for in their sales.
+
+1. A quote or a rental is credited to whoever created or added it. A request from the website is credited to whoever sent its first offer.
+2. To give it to someone else, press **Reassign**, choose who (or Nobody), say whether they sourced the client and write the reason. The booking''s history and the audit log keep it, and the deal stays in the same week and month.
+3. Sourced means the staff member chose I sourced this client when they entered it, it came with a field staff referral link, or you credited it. Only a sourced booking earns a staff commission. A website request earns none unless you credit someone.
+4. Someone said they sourced a website request? The credit line shows the claim: press **Credit them** or **Not theirs**, with a reason.
+5. A price typed by hand shows beside the rate-sheet price, with the reason. A price under the floor or past the discount limit is flagged: press **Mark reviewed** once you have looked at it.
+
+> Good to know: A request keeps the lead-time adjustment of the moment it came in ("Short-notice pricing +10%" or "Booked ahead −5%"), through the offer and the payment. To change it, open the booking''s review screen, **More options**, **Lead-time pricing (%)**: a number (0 for none), or empty for the tier of the request. A price typed by hand replaces it.
+
+> Tip: The renter has 48 hours to accept (and sign the amendment) or decline, with one reminder. Any extra is charged to their Card on File; a lower price raises a refund for your approval.
+
+## Review requests
+
+Every renter is asked for a review by email and text, as they chose, only from 9 am to 9 pm Toronto time. Nothing needs setting up.
+
+| Message | When |
+| --- | --- |
+| Mid-trip check-in | Rentals of 2 days or more, 24 hours after the pickup: "How is the car? Reply or call if anything is off." No review ask. |
+| Review request | 1 hour after the check-in. It links the review page: the renter taps what they liked, adds a sentence, and gets a short draft to copy and post on Google. |
+| Reminder | 24 hours after the request. |
+| Final follow-up | 7 days after the request. Nothing more after it. |
+
+1. The booking page has the card Review requests: each message with when it went or when it will go, and why it stopped.
+2. **Ask for a review** sends the request now (or at 9 am if it is later than 9 pm), on any booking on a trip, returned or closed. Not twice in 24 hours.
+3. On hold: a return or later charge (late return, kilometres, fuel, cleaning, smoking, damage, tolls and tickets) is not settled or waived, or an incident or dispute is open. The request goes by itself once they are. Press **Send anyway** to send it now.
+4. **Mark reviewed** stops the messages when the renter tells you they already reviewed.
+
+The messages also stop by themselves when the renter presses "I already left a review", leaves a review on the site, unsubscribes, or a Google review is matched to them. **Bookings** > **Reviews** has the numbers (requests sent, on hold, reviews detected, the average rating), the hold list and the Google reviews to match.
+
+> Tip: The draft is made only from what the renter picked and wrote, and from the booking (the car, how long, delivery or pickup). Everyone gets the Google link, whatever their stars; a renter who gives 3 stars or fewer also sees "Something wasn''t right? Tell us directly".
+
+## What the owner sees, and owner deductions
+
+Each booking on an owner''s or partner''s car shows the card What the owner sees at the top of its page.
+
+1. **Hide from the owner** keeps the booking''s revenue from the owner until the car is returned, or until the owner statement covering it is approved. The owner sees the booking as Booked with its dates, and the calendar still shows the car busy. Add a reason if you like: it is kept in the history.
+2. **Show to the owner** shows it now. Approving the statement shows every hidden booking on it by itself.
+3. Not shown to the owner is for a booking with no owner revenue (an insurance placeholder, a shareholder''s or the owner''s own use at no charge): the owner sees only that the car is unavailable for those dates. A booking with revenue cannot be set this way.
+4. Add a rental and Send an offer have What the owner sees. It starts from Settings > Program, Owners and fleet: Owners see a booking''s revenue (right away by default).
+5. On the Money tab, Owner deductions on this booking: **Add a booking expense** (cleaning, repair, fuel, platform fee or other, the amount, the reason the owner reads, a receipt number) comes off before Owner Revenue.
+6. **Set the Revenue Share for this booking** applies within the car''s signed terms. Above the terms only an Admin can, with Above the signed terms ticked and the reason. **Back to the car''s terms** undoes it.
+7. Add a rental has the same under The car''s owner.
+
+> Good to know: The owner''s statement always includes every booking at its true amounts and lists each deduction with its reason, so the payout is always right. Customer service and sales add deductions only while Program settings let them change fees.
+
+## Email the renter or the adjuster
+
+Press **Email the renter** at the top of a booking, or open its **Messages** tab.
+
+1. Write a **Subject** and a **Message**, or pick a **Quick reply** to start from (Settings > Quick replies keeps them).
+2. Press **Email the renter**. It goes from CarmaCars (bookings@carmacars.ca) and replies come back to the bookings inbox. The renter also sees it in their account and can answer there.
+3. On a booking an insurer pays, choose **From**: CarmaCars, or Blind Spot Car Rental (insurance). **Email the adjuster** writes to the adjuster''s email on the booking (Insurance claim), always from Blind Spot Car Rental.
+
+The Messages tab shows what you and the renter wrote, newest first, with who wrote it, and every email of the booking with its state (waiting, sent, failed). Each email you send is also in the History tab with your name.
+
+> Good to know: Emails go out through the same daily limit as every email (the line under the form shows today''s use). A message to a renter goes before digests and marketing; past the limit it waits until midnight. To write to a renter from **People** > **Renters**, open the renter: Email the renter is at the bottom, about their latest booking or the one you pick.
+
+### Record the pickup or the return now (details later)
+When the car went out or came back but the checklist could not be done (no photos, no time, the renter dropped the keys), the booking''s **Check-out, check-in and signing** card has **Record the pickup now (details later)** on a confirmed booking and **Record the return now (details later)** while the car is on rent. Give the actual time (now, or earlier), the odometer and fuel if you know them, and why. The booking moves on (on rent, or returned), late return charges follow the actual time, and Fleet gets the task **Add the photos and readings for CC-...**. Once returned, the statement can be issued and the deposit settled; releasing the deposit before the photos are in needs an Admin and a reason. A pickup without the deposit taken needs an Admin to waive it with a reason, and without the renter''s signature on the check-out report an Admin''s reason too. Later, **Add the check-out (or check-in) photos and readings** opens the usual checklist (photos, readings, your signature): the task closes when it is saved.
+
+The Agreement card says **Waiting for the renter''s details** when the renter still has blanks to fill (date of birth, address, mobile, licence, coverage): their account asks for them before signing and paying. No email or text is sent.
+
+### Find a booking
+**Bookings** has one search box: type the booking number (CC-1042, cc1042 or just 1042), the renter''s or a driver''s name, an email, a phone number in any format, a plate (spaces do not matter) or a car code, then press Enter. The status filters still apply to what is found.
+
+### Record a card payment taken outside the site
+A card taken in the Stripe Dashboard, or on a card reader, is recorded on the booking''s **Money** tab with **Record card payment**.
+
+1. Choose what it paid: **Rental and fees**, **Rental**, **Fees**, **Later charges** or **Deposit hold**, and where it was taken.
+2. Type the **Last 4 digits** and the amount. A Stripe payment id (pi_... or ch_..., from the payment in the Stripe Dashboard) is optional for a payment: press **Look up** and the amount and last 4 digits are checked against Stripe.
+3. Press **Record it**. A payment confirms a booking waiting for payment, as any payment does.
+
+> Good to know: A deposit hold needs its Stripe payment id, so it can be captured or released from **Settle the deposit**. It is recorded as held, with the usual release reminders. A hold on a reader lapses after 2 days, one made online after 7.
+
+### Charge or hold the deposit on the card reader
+With the S700 paired (Settings > Card reader), the **Money** tab has **Charge on reader** (everything open, the rental, the fees or a later charge) and **Hold deposit on reader**. Press **Send to the reader**: the amount shows on the reader and the renter taps, inserts or swipes the card. The screen updates by itself; **Cancel** stops the reader and nothing is charged. A deposit hold is captured or released from Settle the deposit like any hold.
+
+### Credit card coverage: the same card
+When the renter''s coverage is their credit card, the whole rental (rental and fees) is paid on that same card. The Money tab says which card. Another card on the pay page is refused and refunded at once; on the reader it is refused before the money is taken; a payment by e-Transfer, cash or the like is refused; a card typed by hand needs its last 4 digits and the box **This is the same card**. Deposits and later charges can go on any card. If the renter truly has to use another card or method, press **Allow another card** and give the reason (an Admin).
+
+## Booked as soon as the renter accepts (release 28)
+
+A booking is booked the moment the renter approves the offer. It takes the car on every calendar, the fleet board, the car''s availability and the counts, even before the payment or the pickup is recorded. Payment and the handover show as their own badges: **Booked, payment due** and **Pickup not recorded**. The first renter to approve gets the car: any other open offer on the same car and dates goes back to Requests with a Re-offer To do.
+
+- **Booked, payment due** To do: a booked rental still unpaid within 48 hours of its pickup. Send the pay link, charge the saved card or record the payment.
+- Record the pickup To do: a pickup time that passed with nothing recorded, as before.
+
+When you send an offer, **The offer as the renter sees it** sits right under **Send the offer**: check it before you press it.
+
+## Changes after signing: an amended agreement, no new signature
+
+The rental terms (section 15.4) let CarmaCars update a booking after signing: an extension, new dates or times, a price adjustment, a fee, a car swap. The signed agreement keeps applying. Each change makes a new version of the agreement marked **Amended** with the date, carrying the renter''s original signature, and the renter is sent it. Nobody is asked to sign again, except an additional driver who never signed (they sign before driving).
+
+## Check-out and check-in on one screen
+
+On the booking page, **Check out (pickup)** and **Check in (return)** are one screen: the time (now unless you change it), the odometer, the fuel, the photos and a note. Pick many photos at once from the camera roll or take them; tag an angle on any photo if you like. The suggested angles (front, each corner and side, rear, odometer, fuel gauge, interior front and rear, trunk, wheels, any damage) tick themselves as photos are tagged. Nothing is required but the time; the renter''s own photos are added to the same report, each marked with who took it (the renter or staff) and its angle. The full checklist is still one tap away.
+
+## Type into the Blind Spot agreement
+
+On the **Rental agreements** card, **Type into the Blind Spot agreement** shows each box as the form prints it. Change a value and **Save the corrections**: it is drawn in that box, and the insured vehicle, the claim number, the adjuster and missing km or fuel go back onto the booking. **Preview the filled form** opens it with your corrections.
+
+## Reopen an expired offer (release 28)
+
+An expired offer reopens in one click: **Reopen offer** on the booking or on the **Expired** filter of Requests. The renter gets the usual offer email and text; the offer stays open 24 hours unless you type other hours. When the pickup time has passed, the dialog asks for the new pickup and return first. A renter can also press **Ask to reopen this offer**: you get the To do "Renter wants expired offer reopened" and an alert, as for a new request.
+
+An offer sent after its pickup time no longer expires by itself: it expires at its own expiry time (the pickup only counts when the offer was sent before it and the pickup is 2 hours past). The offer screens say **Pickup time has passed: update it** and do not send until you move the pickup.',
+  '<p class="gd-p">A booking starts as a request from the website, or as an offer you send yourself to a customer on the phone. You check it, adjust it and send the offer; an offer that is out is changed in place. After that, the booking page holds the money, documents, changes and history.</p><section class="gd-task" id="requests-offers-and-bookings-bookings-now-what-is-out-coming-back-and-owed" data-gd-task><h2 class="gd-h2">Bookings now: what is out, coming back and owed</h2><p class="gd-p">Open <b class="gd-ui">Bookings</b>. It opens on <b class="gd-ui">Now</b>, one screen that refreshes by itself every 30 seconds. Every time is Toronto time.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The numbers at the top: cars out now, due back today, overdue, going out in the next 72 hours, payments due in the next 7 days (with the total) and free cars. Tap one to jump to its list.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Out now</b>: every car on rent, overdue returns first in red. Each shows the car (photo, code, plate), the renter with <b class="gd-ui">Call</b> and <b class="gd-ui">Text</b>, when it was picked up, when it is due back with a countdown, the payment plan and the next payment, the deposit held, and the km and fuel at pickup. Filter by Overdue, Due today or Payment due.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">A confirmed booking whose pickup time has passed with no check-out recorded is listed as out, with <b class="gd-ui">Out (pickup not recorded)</b>. The car most likely left. Press <b class="gd-ui">Mark picked up</b>: it records the pickup at the booked time (change it if the car left at another time), the booking goes on rent, and Fleet gets a task to add the photos, km and fuel. The usual checks stay: the deposit taken (or an Admin waives it with the reason), the renter&#39;s signature (or an Admin&#39;s reason), the agreement&#39;s details, every driver verified and the coverage confirmed. If one is missing, the reason is shown.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t"><b class="gd-ui">Coming back</b>: overdue, today and tomorrow, by the time each is due.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t"><b class="gd-ui">Going out</b>: confirmed pickups in the next 72 hours, delivery or pickup, with ticks and crosses for the licence, the signed agreement, the payment, the deposit (a clock until the morning of the pickup day, when the hold is placed on the card on file) and the check-out photos (done at the handover).</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t"><b class="gd-ui">Money due</b>: every rental payment due in the next 7 days or overdue, the amount, the plan and which payment it is (for example 3 of 4).</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t"><b class="gd-ui">Free now</b>: cars available and not out, the longest idle first, with the next pickup; then the cars in maintenance or cleaning. Partners&#39; cars are counted apart.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Placeholder bookings never show on Now.</div></aside><h3 class="gd-h3">Payment plans</h3><p class="gd-p">A rental is paid in full at pickup, weekly, every 2 weeks, or monthly. A rental longer than one period (30 days) pays each period by itself. To change it, open the booking, then the <b class="gd-ui">Payment plan</b> card on Overview or Money, and press <b class="gd-ui">Change the plan</b>. Each payment is its share of the total by its days, due on the day it starts. An insurer-billed rental shows <b class="gd-ui">Insurer billed</b> and is never in Money due unless the renter owes a part. Admins, customer service and finance change the plan; fleet sees it.</p></section><section class="gd-task" id="requests-offers-and-bookings-all-bookings" data-gd-task><h2 class="gd-h2">All bookings</h2><p class="gd-p">The <b class="gd-ui">All bookings</b> tab of Bookings has the search (booking number, name, email, phone, plate or car code), the status (All, Out now, Booked, Returned, Closed, Cancelled) and <b class="gd-ui">Bill to</b> (All, Renter, Insurer). <b class="gd-ui">Out now</b> shows the bookings on rent and those whose pickup passed without a check-out, together. Each booking is one row: its number and status in plain words, the car with its photo, the renter with <b class="gd-ui">Call</b> and <b class="gd-ui">Text</b>, the dates, the money (paid up, to pay, overdue, insurer billed) and Bill to.</p></section><section class="gd-task" id="requests-offers-and-bookings-the-request-queue" data-gd-task><h2 class="gd-h2">The request queue</h2><p class="gd-p">Open <b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Requests and offers</b>. The oldest waiting request is at the top.</p><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The numbers at the top: waiting for an offer, past the reply target (red), offers out, accepted but not paid, and offers expired.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">One queue, the most urgent first: the longest wait, then offers accepted but not paid, then offers out by when they expire. Each row has the car with its photo, the dates, the price, the renter with <b class="gd-ui">Call</b> and <b class="gd-ui">Text</b>, the licence (verified, to review, or not uploaded yet), who is answering it, and one button: <b class="gd-ui">Send offer</b>, <b class="gd-ui">Follow up</b> or <b class="gd-ui">Open</b>. <b class="gd-ui">Decline</b> sits beside <b class="gd-ui">Send offer</b>.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Waiting shows how long the renter has waited (&quot;12 min&quot;, &quot;3 h&quot;, &quot;2 days&quot;); red means past the first reply target (5 minutes, set in Program settings). <b class="gd-ui">Promise</b> counts down the 2 hours the site promises the renter.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Filter by Active, New, Asked the renter, Changes asked, Offer out, Not paid or Expired. An expired offer leaves the active queue 48 hours after it expired, or once its pickup time passed; Expired lists them all. An offer still out when its pickup time passes expires by itself.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/admin/requests</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/820"><img src="/guides/img/admin-02-requests-desktop-6521282d.jpg" alt="" loading="lazy" decoding="async" width="1440" height="820"><span class="gd-pin" style="left:38.9%;top:29.9%" aria-hidden="true">1</span><span class="gd-pin" style="left:22.2%;top:43.3%" aria-hidden="true">2</span></div></div></figure></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>A request whose pickup time passes without an offer expires by itself, with a note in its history. The renter is not emailed unless &quot;Email the renter when their request expires that way&quot; is on in Program settings.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-answer-a-request-with-an-offer" data-gd-task><h2 class="gd-h2">Answer a request with an offer</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The Review and offer tab shows the request as the renter sent it.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Adjust the car, the dates, the rate type, the places, the rates (under <b class="gd-ui">Show rate card</b>) and fees, the deposit and extras. A place changed away from a delivery or a collection takes its fee box and its fee with it.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Price on the right updates as you change things.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Add a message, choose how long the offer stays open, then press <b class="gd-ui">Send the offer</b>.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/admin/bookings/CC-10069?tab=review</span></div><div class="gd-imgwrap" style="aspect-ratio:1200/1550"><img src="/guides/img/admin-03-booking-review-desktop-353f3707.jpg" alt="" loading="lazy" decoding="async" width="1200" height="1550"><span class="gd-pin" style="left:5%;top:6.5%" aria-hidden="true">1</span><span class="gd-pin" style="left:7.5%;top:45.8%" aria-hidden="true">2</span><span class="gd-pin" style="left:74.2%;top:42.6%" aria-hidden="true">3</span><span class="gd-pin" style="left:76.7%;top:98.1%" aria-hidden="true">4</span></div></div></figure></div><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol" start="5"><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Changed fields but not ready to send? Press <b class="gd-ui">Save changes</b>. The panel &quot;The offer as the renter sees it&quot; shows the result.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Can&#39;t do it? Press <b class="gd-ui">Decline</b> and fill in Reason and any alternative.</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t">Need an answer first? Press <b class="gd-ui">Ask the renter</b> to send a question.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/admin/bookings/CC-10069?tab=review</span></div><div class="gd-imgwrap" style="aspect-ratio:500/80"><img src="/guides/img/admin-03-booking-review-desktop-4dd4ed06.jpg" alt="" loading="lazy" decoding="async" width="500" height="80"><span class="gd-pin" style="left:41.2%;top:52.5%" aria-hidden="true">6</span><span class="gd-pin" style="left:18%;top:52.5%" aria-hidden="true">7</span></div></div></figure></div><p class="gd-p">Opening a request takes it for you: everyone else sees &quot;Being answered by&quot; your name and since when, with Send the offer and Decline off, until you send, decline or leave (20 minutes, renewed while you work; Program settings). Press <b class="gd-ui">Take over</b> to answer one someone else holds; it is noted in the history. A second answer is refused with who answered and when. A request from the website opens to Sales after 15 minutes (Program settings); until then Admins, customer service and fleet answer it.</p></section><section class="gd-task" id="requests-offers-and-bookings-send-an-offer-without-a-request" data-gd-task><h2 class="gd-h2">Send an offer without a request</h2><p class="gd-p">Press <b class="gd-ui">Send an offer</b> at the top of Bookings, or <b class="gd-ui">Send an offer without a request</b> on Requests and offers. For a customer on the phone, by text or at the counter: no request needed.</p><p class="gd-p">The screen is seven short steps, each with one line saying what to do, and the price beside it (on a phone the total sits at the bottom of the screen: press <b class="gd-ui">See every line</b>). What most offers never need is under each step&#39;s <b class="gd-ui">More options</b>, which stays open while something in it is used.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Who is renting and when</b>: find the renter by name, phone or email, or press <b class="gd-ui">Not on file? Add a new customer</b> (full legal name, mobile, email for the offer link, date of birth). A customer already on file with the same email or phone is shown with Use: one person, one record. Then the pickup and the return.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Which car</b>: search by car code, plate or name; each car says Free or Not free for the dates. More options: the rate card and the type and free-only filters.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t"><b class="gd-ui">Where they pick up and return</b>: at our location, we deliver or collect (the address and distance), an airport or the owner&#39;s location. The fee each one makes shows under it, Automatic or Set by hand.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t"><b class="gd-ui">How damage is covered</b>: the renter&#39;s own insurance, a credit card or the Protection Plan. More options: another Protection Plan price.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t"><b class="gd-ui">Extras</b>: add-ons, when the car has any.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t"><b class="gd-ui">The price</b>: the rate sheet price is filled in. More options: another price (a total for the trip or a rate a day, with why), Amounts I type (before or after HST), the total the renter pays, kilometres, a promo code, the deposit and a discount (an Admin), and <b class="gd-ui">Fees</b>: press <b class="gd-ui">Change</b> to set one by hand, <b class="gd-ui">Reset to automatic</b> to undo it. Below: how it is paid (card online and a card hold unless you change it under More options).</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t"><b class="gd-ui">Send it</b>: who found this client (sales and customer service), a message, and Text or Email. More options: how long the offer is open, the owner&#39;s view, who found the client (an Admin) and the internal note. Above the button, <b class="gd-ui">Ready to send</b> or <b class="gd-ui">Missing:</b> with what is left; press Send and each missing field says what it needs. Press <b class="gd-ui">Send the offer to</b> the renter, or <b class="gd-ui">Save without sending</b> to keep it as a request for later. <b class="gd-ui">The offer as the renter sees it</b> is under the price.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Choices drive the charges. Take off a delivery, a collection, the Protection Plan or an add-on and its fee goes with it, even a fee set by hand: there is nothing to remove in a second place. Choose it again and the fee starts from the automatic amount.</div></aside><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>It makes the same request and offer the website makes: the renter approves, signs and pays (or you record the payment), and only then is the car on the calendar. No &quot;request received&quot; email goes to the renter for an offer you send. Staff commissions and statements count it like any other booking.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-change-an-offer-that-is-out" data-gd-task><h2 class="gd-h2">Change an offer that is out</h2><p class="gd-p">The renter has the offer (Offered), or approved it and has not paid (Signing and payment). Open <b class="gd-ui">More actions</b> on the booking and press <b class="gd-ui">Edit the offer</b>.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Change anything: the car, the dates, the places, the price, fees, the deposit, add-ons, how it is paid. Each changed field is highlighted and the before and after are listed. Amounts I type (Before tax or After tax) and the Total the renter pays (after tax) work as on Send an offer.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Write what changed in Message to the renter and choose how long the offer is open.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Save and send the update</b>: the renter gets the new version by email or text (ticked), and the old version no longer counts. Or press <b class="gd-ui">Save without telling the renter</b> and tell them yourself.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">A confirmed booking is changed with <b class="gd-ui">Change the booking</b> (Propose a change, below).</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>No need to withdraw first. <b class="gd-ui">Withdraw the offer</b> is only for taking it back for good; <b class="gd-ui">Send again, later expiry</b> gives the renter more time, and <b class="gd-ui">Renter approved by phone</b> records a yes given on a call.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-edit-a-booking-that-has-started" data-gd-task><h2 class="gd-h2">Edit a booking that has started</h2><p class="gd-p">On a confirmed, on-trip or returned booking (an Admin: a closed one too), Overview, <b class="gd-ui">Edit the booking</b>, <b class="gd-ui">Edit</b>.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Change the pickup or the return (extend or shorten: the rental charge is worked out again at this booking&#39;s rates), the car (on trip: the car it leaves goes to Out of service for Fleet to check), the rental charge for the trip, each fee, the kilometres a day, the deposit (an Admin) and the note.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Type why, if you like, and tick <b class="gd-ui">Email the renter what changed</b>, or leave it off for a silent correction. Press <b class="gd-ui">Save the changes</b>.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">What is open now shows at once: <b class="gd-ui">Email a pay link</b> or <b class="gd-ui">Text a pay link</b> for exactly that amount, <b class="gd-ui">Charge</b> the saved card (the renter agreed), or record cash or an e-Transfer on the Money tab.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Each edit is kept with who, when, why, before and after (Edits, under the form) and in the booking&#39;s history. A closed booking&#39;s owner split and the staff commission follow. To have the renter accept and sign first, use Propose a change instead.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-fees-a-forgotten-fee-and-the-balance" data-gd-task><h2 class="gd-h2">Fees, a forgotten fee and the balance</h2><p class="gd-p">On the booking&#39;s Money tab, Fees lists each fee. Press <b class="gd-ui">Change or add a fee</b>.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Type a new amount (for the whole trip, before HST) beside any fee, or choose one not on the booking (the young driver fee shows its price for these dates), or add a charge of its own with or without HST.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Press <b class="gd-ui">Save the fees</b>. The balance shows by part (rental, fees) with the pay link, the saved card and Record a payment beside it.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">The renter sees the balance on their booking with a Pay button, and pays by card on Stripe&#39;s form.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Every change is recorded (Changes to the fees): the amount before and after, who and why. Customer service and sales may change fees while Program settings, Staff may change fees, is on.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-a-renter-with-only-a-debit-or-prepaid-card" data-gd-task><h2 class="gd-h2">A renter with only a debit or prepaid card</h2><p class="gd-p">A credit card is required by default: the deposit must be on a credit card so the deductible can be charged. The pay page tells a renter with only a debit or prepaid card to contact us.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">On the booking&#39;s Money tab, press <b class="gd-ui">Allow debit and prepaid cards for this booking</b> and type the reason. Who and when are kept, and the change is in the booking&#39;s history.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The booking&#39;s pay page, staff pay links and deposit hold then take a debit or prepaid card, and the renter is told the hold lowers the money available on the card until it is released, which can take several business days.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t"><b class="gd-ui">Require a credit card again</b> turns it off.</div></li></ol></div><p class="gd-p">The Money tab shows each card used and its type (credit, debit, prepaid). A booking on credit card rental coverage is always paid on the credit card that carries the coverage, and cannot be allowed. Program settings, <b class="gd-ui">Card types accepted</b>, can open debit and prepaid cards to every booking.</p></section><section class="gd-task" id="requests-offers-and-bookings-correct-a-renter-s-details" data-gd-task><h2 class="gd-h2">Correct a renter&#39;s details</h2><p class="gd-p">On the renter&#39;s page (People, Renters) or on any of their bookings, <b class="gd-ui">Edit renter</b>.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Correct the name, email, phone, date of birth, licence, home address (start typing to find it) or the staff note.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">A new email also becomes their sign-in at once (no confirmation needed for a typo you correct); tick <b class="gd-ui">Email the renter a link to set a password</b> to send one there. Unsigned agreements and offers go to the new address.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Save the renter</b>. An email that another renter has is refused with their name; the same phone is a warning.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">The same person entered twice? Possible duplicates (same email, same phone, or same name and date of birth) shows under the renter. <b class="gd-ui">Merge into this record</b> moves the other record&#39;s bookings, licences, cards, payments, documents and messages here and fills any detail missing here; the other record stays, blocked, with the merge in both histories.</div></li></ol></div></section><section class="gd-task" id="requests-offers-and-bookings-the-money-tab-rental-charges-and-security-deposit" data-gd-task><h2 class="gd-h2">The Money tab: Rental charges and Security deposit</h2><p class="gd-p">The booking&#39;s Money tab opens on a strip with the three numbers that matter: <b class="gd-ui">Rental due</b>, <b class="gd-ui">Deposit</b> (one word: Not collected, Held, Charged, Released or Partly kept) and <b class="gd-ui">Total paid</b>. Below are two panels, side by side on a computer and one above the other on a phone. Collecting one never touches the other, and every receipt says which one it is.</p><p class="gd-p"><b class="gd-ui">Rental charges</b>: each line of the price and the total, Paid, then Balance due.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The one main button, Collect (the amount) rental: choose how. <b class="gd-ui">The card on file</b> charges it now (Finance or an Admin); <b class="gd-ui">A payment link by text</b> or <b class="gd-ui">A payment link by email</b> sends the renter Stripe&#39;s secure form; <b class="gd-ui">On this device: hand it to the renter</b> opens it for the renter to type; <b class="gd-ui">Cash, e-Transfer or another way (record it)</b> records money received (an e-Transfer, cheque or transfer needs its reference). For: the rental and fees together by default, or one of them. The renter gets a receipt; <b class="gd-ui">Print</b> prints one to hand over.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">A later charge</b>: extra kilometres, fuel, damage or a late return, on the card on file, by a link, on this device, or recorded, with the reason the renter&#39;s receipt shows.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t"><b class="gd-ui">Save a card</b> saves the renter&#39;s card without charging it. Card readers, the fees (<b class="gd-ui">Change or add a fee</b>), failed card payments (<b class="gd-ui">Paid another way</b>), payments received another way and <b class="gd-ui">Refund</b> sit in this panel too. The history lists rental payments only.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">An offer paid another way: once the renter approved and signed and the money is recorded, the booking is confirmed (or press <b class="gd-ui">Confirm the booking</b>).</div></li></ol></div><p class="gd-p"><b class="gd-ui">Security deposit</b>: the amount, how it is taken (a credit card hold, a debit or prepaid card at the standard multiple, a charge, or cash), its status in one word and the next step.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Not collected: the one main button, Collect (the amount) deposit. <b class="gd-ui">Hold on the card on file</b> places the hold now (Finance or an Admin); <b class="gd-ui">A deposit hold link by text</b> or <b class="gd-ui">A deposit hold link by email</b>, or <b class="gd-ui">A hold on this device: hand it to the renter</b>; <b class="gd-ui">Charge the card on file as the deposit</b> only when no hold can be placed; <b class="gd-ui">Cash or e-Transfer (record it)</b>. The rental balance is not touched.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Before every pickup the deposit hold link is texted to the renter on its own: 24 hours before (at once when the pickup is sooner), for a confirmed booking whose deposit is a card hold with no hold yet. The panel says <b class="gd-ui">Deposit link texted</b> and when it was opened. No mobile number, or the text not sent: a task <b class="gd-ui">Deposit link not sent</b>. <b class="gd-ui">Settings</b>, then Site settings, Deposit link by text: on or off, and the hours.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Held, while the car is out: <b class="gd-ui">Release</b> (an Admin, with the reason), <b class="gd-ui">Keep part (damage/fees)</b> with the amount and the reason, or <b class="gd-ui">Re-authorize the hold</b> on the saved card before it lapses (the panel shows when the hold expires).</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">After the return: <b class="gd-ui">Settle the deposit</b> (below).</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t"><b class="gd-ui">Waive the deposit</b> (an Admin, before it is taken), <b class="gd-ui">Change the debit deposit</b>, and <b class="gd-ui">Allow debit and prepaid cards for this booking</b> sit in this panel. The history lists deposit payments only.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">A deposit taken in cash or by e-Transfer is given back the same way after the return: Finance gets a task; press <b class="gd-ui">Returned</b> with the reference or receipt number.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Statements, reconciliation and the deposit settlement read each payment with its method: a cash deposit is never refunded to a card.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-settle-the-deposit" data-gd-task><h2 class="gd-h2">Settle the deposit</h2><p class="gd-p">The deposit is never given back by itself. Finance or an Admin settles it after the return: on the booking&#39;s Money tab, under Deposit, press <b class="gd-ui">Settle the deposit</b>. Issue the Check-in statement first.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The form shows the deposit, what is still available, the charges owed from the statement and what is taken from the deposit for them. What the deposit does not cover is charged to the card on file; with no card (or a card declined), the renter gets a pay link by email and text, and Finance has a task until it is paid.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Tolls and tickets can take up to 7 days to come in. Inside that window the whole rest of the deposit is filled in as the hold-back, until the window ends. To give it back sooner, tick Release now anyway: a toll that comes in later is charged to the card on file.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Something still open keeps the whole deposit: an incident, a claim, new damage at the return not priced, damage found later not billed, a toll or ticket on the car during the rental not matched or not charged, a card dispute, or charges not on a statement yet. The form lists them. Only an Admin can release part of it, with the reason; it is recorded.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Damage: <b class="gd-ui">Keep the whole deposit (damage)</b> turns what is left of the deposit into a damage charge, with what was damaged and the photos; the renter is told. <b class="gd-ui">Bill damage</b> adds a damage charge up to the $2,500 deductible (more goes through a claim): the deposit pays first, then the card on file.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Press <b class="gd-ui">Settle</b>. The money moves at Stripe at once: the charges are collected and what is not owed is refunded or the hold released. A step Stripe refuses is tried again by itself, and Finance gets a task if it keeps failing.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>A card hold lapses after about 7 days. While the car is out, or returned and not settled, the hold is collected in full a day and a half before it lapses: that keeps the money, and the settlement refunds what is not owed. A hold that lapses anyway is charged to the saved card, and Finance is told at once.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-a-booking" data-gd-task><h2 class="gd-h2">A booking</h2><p class="gd-p">Open <b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Bookings</b>, then a booking number. Or type the number in the search box.</p><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Tabs: Overview, Money, Changes, History, and Drivers and documents.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Overview shows the trip, the renter, what is still missing for the handover, and the price.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Open tasks for this booking, with the queue and the due time.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Top right: <b class="gd-ui">Email the renter</b> and <b class="gd-ui">More actions</b>, the menu with <b class="gd-ui">Edit the offer</b>, <b class="gd-ui">Stop blocking the calendar</b>, <b class="gd-ui">Cancel for the renter</b>, <b class="gd-ui">Cancel by CarmaCars</b> and the rest.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Under the booking number: <b class="gd-ui">Next step</b>, what happens next and who does it, with one button for that step (for example <b class="gd-ui">Send the offer</b>, <b class="gd-ui">Sign on this device</b> or <b class="gd-ui">Check out the car</b>); then where the booking is on its way, from Request to Closed, with the dates, the days, the total and who pays.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/admin/bookings/CC-10065</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/960"><img src="/guides/img/admin-04-booking-desktop-b56b668a.jpg" alt="" loading="lazy" decoding="async" width="1440" height="960"><span class="gd-pin" style="left:50%;top:46.6%" aria-hidden="true">2</span><span class="gd-pin" style="left:85.4%;top:14.5%" aria-hidden="true">4</span><span class="gd-pin" style="left:22.9%;top:26.8%" aria-hidden="true">5</span></div></div></figure></div></section><section class="gd-task" id="requests-offers-and-bookings-check-a-car-out-or-in" data-gd-task><h2 class="gd-h2">Check a car out or in</h2><p class="gd-p">From the booking, with your phone or a tablet: the same checklist field staff use.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">A confirmed booking shows <b class="gd-ui">Check out (pickup)</b> under Check-out, check-in and signing; a booking on rent shows <b class="gd-ui">Check in (return)</b>. Today lists the check-outs and check-ins due, each with <b class="gd-ui">Check out</b> or <b class="gd-ui">Check in</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The checklist opens: the ready check, the renter and their licence and card, the odometer (km) and fuel or charge, the keys, the photo set (every side, the wheels, the interior, the odometer and fuel gauge, the plate), damage marks with close-ups, then the renter and you sign.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Photos wait on the device without a connection and upload in the background. Each keeps its time, and the place when the device allows location.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">A field job of the booking is taken over (the history says so); with no job, one is made for you. When done, press <b class="gd-ui">See the photo report</b>.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Fleet, Sales and Customer service check cars out and in the same way from their own booking page.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-the-photo-report-late-returns-and-the-return-charges" data-gd-task><h2 class="gd-h2">The photo report, late returns and the return charges</h2><p class="gd-p">Under Check-out, check-in and signing, press <b class="gd-ui">Photo report</b>.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The report shows the due-back time, the actual check-out and check-in, Late by (or Overdue by while the car is out), the odometer and kilometres over the allowance, the fuel or charge out and in, every photo with its time and place, and the damage.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">At check-in the late return (after the grace period of the fee defaults), the mileage overage and the fuel or recharging are written to the return charges at once. A gas car with no pump receipt is priced at the refill price per eighth (Program settings) plus the markup until the receipt is entered.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Not charging one? Press <b class="gd-ui">Waive</b> beside it and give the reason: it stays waived if the charges are worked out again.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">The time was wrong? Press <b class="gd-ui">Correct the check-in time</b> (or the check-out time) with the reason: lateness and the late charges follow, and the history keeps both times.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">The renter gets the same report (without these buttons) by email and in their Documents. Late by shows on the booking and in the Bookings list.</div></li></ol></div><h3 class="gd-h3">The renter says the car is back</h3><p class="gd-p">Every overdue email, text and alert (at the return time, at 15 minutes and the final notice) has a one-tap <b class="gd-ui">I&#39;ve returned the car</b> link, and the renter&#39;s booking page has the button. The renter can add photos, the odometer, the fuel level and the time they returned it. Sending it stops every overdue notice of the booking at once, the booking shows <b class="gd-ui">Returned, waiting for confirmation</b>, and Fleet gets an urgent To do: &quot;The renter says the car is back&quot;.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open the booking. The card <b class="gd-ui">The renter says the car is back</b> shows what the renter gave, marked renter-provided, with their photos.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Check the car: the return place, the tracker, the photos.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Confirm</b> to complete the trip. Correct the odometer, fuel or return time first if they are wrong: the late charges follow the time you confirm. The renter&#39;s photos join the check-in report.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Or press <b class="gd-ui">Deny</b> and say why. The renter gets your reason by email and text, and the overdue notices start again.</div></li></ol></div><p class="gd-p">Checking the car in the usual way also completes the trip and stops the notices. Admins, Fleet, Sales, Customer service and field staff can Confirm or Deny.</p></section><section class="gd-task" id="requests-offers-and-bookings-signatures-on-the-spot-or-by-link" data-gd-task><h2 class="gd-h2">Signatures on the spot, or by link</h2><p class="gd-p">The renter or an additional driver signs the rental agreement on your device, or on their own phone.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">While a signature is missing, the booking shows <b class="gd-ui">Sign now on this device</b>, <b class="gd-ui">Email the signing link</b> and <b class="gd-ui">Text the signing link</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">No agreement made yet (the renter has not saved their details at home)? <b class="gd-ui">Sign now on this device</b> still shows: press <b class="gd-ui">Prepare the agreement to sign now</b> and it is made on the spot.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t"><b class="gd-ui">Sign now on this device</b>: confirm the name matches their licence and that you saw the original licence (photograph it if none is on file), then press <b class="gd-ui">Hand the device to</b> and their name.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">They read both agreements (CarmaCars&#39; and Blind Spot&#39;s), tick the statements and sign. Then <b class="gd-ui">Back to the staff view</b> for the next signer.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">The record is the same as signing online, and says it was signed in person, collected by you, on your device. It is printed on the signed copy&#39;s signature record page.</div></li></ol></div></section><section class="gd-task" id="requests-offers-and-bookings-rental-agreements-every-version-every-field" data-gd-task><h2 class="gd-h2">Rental agreements: every version, every field</h2><p class="gd-p">The booking&#39;s Rental agreements card: the current version of CarmaCars&#39; and Blind Spot&#39;s agreements, every earlier one, and what is still blank.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Once the agreement is signed and countersigned, any change to what it prints makes a new version of both documents by itself: the dates, the price lines, the car, a driver added or corrected, the coverage, the deposit or how it was paid, an address.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">A change to the dates, the price, the car, the drivers or the coverage option is signed again: the renter (and each driver it affects) gets their link by email and text, and the card shows &quot;Agreement v3 waiting for signature&quot;. A correction (a typo in an address, a plate written differently) is filed without signing; the renter gets the corrected copy by email.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Check-out makes the &quot;as picked up&quot; copy (time out, km out, fuel out, the car&#39;s plate and VIN, the check-out report), countersigned by whoever checked the car out; check-in makes the closing copy (time in, km in, driven and charged, fuel in, late hours, damage, the return charges, the final totals). Both go to the renter by email.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t"><b class="gd-ui">Every version</b> lists each one with what changed and both PDFs. <b class="gd-ui">Resend the signing links</b>, or press the button with their first name beside it to have them sign on your phone or tablet.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">The card lists what the agreements still print blank (a licence expiry, the insurer&#39;s policy number, the insured vehicle, a VIN). Type the values and press <b class="gd-ui">Save the missing fields</b>: the agreements follow.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Check-out stops while a field a claim needs is blank. An Admin can let it go ahead: type the reason and press <b class="gd-ui">Override</b>; the reason is in the booking&#39;s history.</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t"><b class="gd-ui">Make the agreements again</b> checks both against the booking at once (they also follow every change by themselves).</div></li><li><span class="gd-n" aria-hidden="true">8</span><div class="gd-t"><b class="gd-ui">Edit the wording</b> (Admin only) changes CarmaCars&#39; agreement text for this booking: press <b class="gd-ui">Change</b> beside a clause, edit its text, say why and press <b class="gd-ui">Save the wording</b>; <b class="gd-ui">Add</b> writes Additional terms at the end of Part 2. Only clauses not required by law or the insurer can be removed; the consents are fixed, and Blind Spot&#39;s form (the insurer&#39;s official form) is never changed. Before the renter signs, the agreement is made again; after, the change is a new version they sign, and <b class="gd-ui">Every version</b> shows each clause before and after.</div></li></ol></div></section><section class="gd-task" id="requests-offers-and-bookings-signing-that-holds-up-in-a-dispute" data-gd-task><h2 class="gd-h2">Signing that holds up in a dispute</h2><p class="gd-p">Every signature on the site is made the same way: rental agreements, amendments and new versions (remotely or on your device), and the owner agreements, schedules and forms, a co-owner&#39;s link, the partner, investment and staff agreements.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The licence on file is shown. A 6-digit code to their phone or email on file is optional: the signer may press <b class="gd-ui">Verify by code (optional)</b>, and Program settings, E-signing, <b class="gd-ui">ask for a one-time code</b> makes it a required first step again (off by default). Without the code, the certificate says the identity was not confirmed by a code.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">They say they read the documents, initial the key terms (each initials box is saved with <b class="gd-ui">Save initials</b>; <b class="gd-ui">Clear</b> takes it back to initial again) (damage and the deductible, the deposit and later charges, fuel, kilometres and late returns, their coverage, cancellation), give three consents (to sign electronically, to receive records electronically, to card charges under the agreement) and draw their signature.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Owners, partners, investors and staff do the same for their documents: the code, the reading, the key terms of their documents initialled (for example the Enrollment Agreement&#39;s three confirmations, Form C&#39;s acknowledgments, Schedule C, the staff agreement&#39;s confidentiality), two consents and the drawn signature. Form C&#39;s witness still types their name beside the owner.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Each step is recorded with its time, IP address and device, and the place when the device shares it. The signed PDFs end with a certificate of completion; anyone can check a signed file at <span class="gd-url">carmacars.ca/verify</span>.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Typed names are off. For a signer who cannot draw, an Admin can turn on the accessibility fallback: <b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Program</b>, Esign typed fallback.</div></li></ol></div></section><section class="gd-task" id="requests-offers-and-bookings-card-disputes-the-evidence-pack" data-gd-task><h2 class="gd-h2">Card disputes: the evidence pack</h2><p class="gd-p">Everything that proves the rental, in one PDF for Stripe.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">When a card payment is disputed, the evidence pack is built by itself: the signed agreements with their certificates, the check-out and check-in reports with photos, kilometres and fuel, the licence, the payments and charges, every message to the renter, and the card checks from Stripe. It is staged in Stripe as the dispute&#39;s evidence, and To do gets an urgent task.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Open the booking: the Rental agreements card shows the pack. Press <b class="gd-ui">Download</b> to check it, then <b class="gd-ui">Submit to Stripe</b> before the evidence date.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t"><b class="gd-ui">Build the dispute evidence pack</b> makes one at any time (an Admin or Finance).</div></li></ol></div></section><section class="gd-task" id="requests-offers-and-bookings-the-licence-before-an-offer-is-accepted" data-gd-task><h2 class="gd-h2">The licence before an offer is accepted</h2><p class="gd-p">Front, back and a selfie, from the request on.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">After sending a request the renter is asked for their licence. A licence already on file from an earlier booking is used again while it is valid after the return.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The offer cannot be accepted (by the renter, or by you on their word) and nothing is paid until the licence and its expiry date are on file.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Review the images as usual with <b class="gd-ui">Review documents</b>: the card Renter documents is on Review and offer too.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">The switch is in <b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Program</b>, Booking requests and offers: Booking licence required (on), with the selfie (on).</div></li></ol></div></section><section class="gd-task" id="requests-offers-and-bookings-the-licence-reader" data-gd-task><h2 class="gd-h2">The licence reader</h2><p class="gd-p">Every licence photo is read on upload: the back&#39;s barcode first, else the vision model (within the day&#39;s AI allowance).</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The renter&#39;s empty licence fields are filled from the read; the renter confirms them. A blurry or cut-off photo is taken again at once.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Review documents</b> shows what was read and one line per check, Pass or Flag: photos, valid to the return, class accepted, age at pickup, name and date of birth, the Ontario number, front and back, and the main driver&#39;s Ontario licence. Staff still approve.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t"><b class="gd-ui">Settings</b> &gt; <b class="gd-ui">Program</b>, Driver&#39;s licence reader: <b class="gd-ui">Approve automatically when every check passes</b> (off). On: a driver whose front and back both read sharp and every check passes is approved in your name; anything flagged waits for a person.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t"><b class="gd-ui">Primary driver must hold an Ontario licence</b> (on): a main driver with a licence from elsewhere becomes an additional driver, the booking needs &quot;Primary driver: Ontario licence needed&quot; and pickup is blocked. The renter adds a main driver, who signs on their own link. On the document review, <b class="gd-ui">Admin: undo or let it go</b>: undo puts the first main driver back; let it go needs a reason.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>What was read is staff only and is deleted with the licence image. The licence number is never written to the logs.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-renter-documents-licence-and-proof-of-coverage" data-gd-task><h2 class="gd-h2">Renter documents: licence and proof of coverage</h2><p class="gd-p">A renter&#39;s licence photos, selfie and proof of coverage (OPCF 27 or a credit card&#39;s rental coverage) are checked before the handover. You check them yourself; no task is needed.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">A booking with documents waiting is a line on To do: &quot;Check &#39;s documents for booking &quot;, marked Now when the pickup is within two days. Press <b class="gd-ui">Review documents</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The pop-up shows each driver&#39;s images and the coverage: the insurer, policy number and expiry, or the card, its type and whether the name matches.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">What to check is written once at the top. One wrong? Open <b class="gd-ui">Reject this one</b> under it, type the reason the renter reads and press <b class="gd-ui">Reject</b>: they are asked for a new one.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Then press <b class="gd-ui">Approve all</b>: every image, the proof of coverage and the Protection Plan still waiting are approved in one step. Anything the system refuses is named with the reason.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">The same pop-up is on the booking: the card Renter documents (<b class="gd-ui">Review documents</b>) on Overview and on Drivers and documents.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Each opening of a renter&#39;s documents is logged. The links to the images last one minute. Field staff can also check a licence in person at the check-out (photos and four checks): the history says &quot;checked in person&quot;. Field staff also review the licence images (not the coverage) of bookings on their own jobs in the next 7 days from My jobs, with the same Approve all or a reason to reject: the history says the reviewer&#39;s role, field. Sales review the licence images (not the coverage) of any booking being arranged or under way from their To do or the booking, with the same Approve all or a reason to reject: the history says the role, sales.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-payments-by-day" data-gd-task><h2 class="gd-h2">Payments by day</h2><p class="gd-p"><b class="gd-ui">Money</b> &gt; <b class="gd-ui">Payments</b>, the <b class="gd-ui">By day</b> tab: every payment and refund of a day or a range, by method, the cash drawer and the refunds waiting. Finance has the same screen.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Choose From and To and the methods (card, e-Transfer, cash, cheque, platform payout, insurer, bank transfer, pre-authorized debit, other), then press <b class="gd-ui">Show</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Totals by method and for each day; cards read as the card and its last four digits, never a code.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">The cash drawer: expected (cash in less cash given back) against the count Finance records with <b class="gd-ui">Record the count</b>; a difference shows over or short.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Refunds waiting: every refund asked for anywhere with the policy maths. <b class="gd-ui">Approve</b> or <b class="gd-ui">Decline</b> with the reason in the row, then <b class="gd-ui">Issue the refund</b>.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t"><b class="gd-ui">Export CSV</b> for the bookkeeper.</div></li></ol></div></section><section class="gd-task" id="requests-offers-and-bookings-propose-a-change-to-a-confirmed-booking" data-gd-task><h2 class="gd-h2">Propose a change to a confirmed booking</h2><p class="gd-p">The renter gets an email and answers on their booking. The calendar moves only when they accept.</p><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open the booking&#39;s Changes tab. Under Propose a change, set the new pickup, return or car.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">To price it by hand, type a New rental charge before tax. Leave it empty to use the car&#39;s rates.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Write the Reason, for the renter. They read it.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Preview the price</b>, then <b class="gd-ui">Send to the renter</b>.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/admin/bookings/CC-10065?tab=changes</span></div><div class="gd-imgwrap" style="aspect-ratio:1200/520"><img src="/guides/img/admin-05-booking-changes-desktop-97008b21.jpg" alt="" loading="lazy" decoding="async" width="1200" height="520"><span class="gd-pin" style="left:17.5%;top:33.7%" aria-hidden="true">1</span><span class="gd-pin" style="left:9.2%;top:50%" aria-hidden="true">2</span><span class="gd-pin" style="left:38.3%;top:71.2%" aria-hidden="true">3</span><span class="gd-pin" style="left:12.9%;top:91.9%" aria-hidden="true">4</span></div></div></figure></div></section><section class="gd-task" id="requests-offers-and-bookings-who-a-booking-is-credited-to" data-gd-task><h2 class="gd-h2">Who a booking is credited to</h2><p class="gd-p">Overview (and Review and offer) shows the Sales credit: the staff member the booking counts for in their sales.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">A quote or a rental is credited to whoever created or added it. A request from the website is credited to whoever sent its first offer.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">To give it to someone else, press <b class="gd-ui">Reassign</b>, choose who (or Nobody), say whether they sourced the client and write the reason. The booking&#39;s history and the audit log keep it, and the deal stays in the same week and month.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Sourced means the staff member chose I sourced this client when they entered it, it came with a field staff referral link, or you credited it. Only a sourced booking earns a staff commission. A website request earns none unless you credit someone.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Someone said they sourced a website request? The credit line shows the claim: press <b class="gd-ui">Credit them</b> or <b class="gd-ui">Not theirs</b>, with a reason.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">A price typed by hand shows beside the rate-sheet price, with the reason. A price under the floor or past the discount limit is flagged: press <b class="gd-ui">Mark reviewed</b> once you have looked at it.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>A request keeps the lead-time adjustment of the moment it came in (&quot;Short-notice pricing +10%&quot; or &quot;Booked ahead −5%&quot;), through the offer and the payment. To change it, open the booking&#39;s review screen, <b class="gd-ui">More options</b>, <b class="gd-ui">Lead-time pricing (%)</b>: a number (0 for none), or empty for the tier of the request. A price typed by hand replaces it.</div></aside><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The renter has 48 hours to accept (and sign the amendment) or decline, with one reminder. Any extra is charged to their Card on File; a lower price raises a refund for your approval.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-review-requests" data-gd-task><h2 class="gd-h2">Review requests</h2><p class="gd-p">Every renter is asked for a review by email and text, as they chose, only from 9 am to 9 pm Toronto time. Nothing needs setting up.</p><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">Message</th><th scope="col">When</th></tr></thead><tbody><tr><td>Mid-trip check-in</td><td>Rentals of 2 days or more, 24 hours after the pickup: &quot;How is the car? Reply or call if anything is off.&quot; No review ask.</td></tr><tr><td>Review request</td><td>1 hour after the check-in. It links the review page: the renter taps what they liked, adds a sentence, and gets a short draft to copy and post on Google.</td></tr><tr><td>Reminder</td><td>24 hours after the request.</td></tr><tr><td>Final follow-up</td><td>7 days after the request. Nothing more after it.</td></tr></tbody></table></div><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The booking page has the card Review requests: each message with when it went or when it will go, and why it stopped.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Ask for a review</b> sends the request now (or at 9 am if it is later than 9 pm), on any booking on a trip, returned or closed. Not twice in 24 hours.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">On hold: a return or later charge (late return, kilometres, fuel, cleaning, smoking, damage, tolls and tickets) is not settled or waived, or an incident or dispute is open. The request goes by itself once they are. Press <b class="gd-ui">Send anyway</b> to send it now.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t"><b class="gd-ui">Mark reviewed</b> stops the messages when the renter tells you they already reviewed.</div></li></ol></div><p class="gd-p">The messages also stop by themselves when the renter presses &quot;I already left a review&quot;, leaves a review on the site, unsubscribes, or a Google review is matched to them. <b class="gd-ui">Bookings</b> &gt; <b class="gd-ui">Reviews</b> has the numbers (requests sent, on hold, reviews detected, the average rating), the hold list and the Google reviews to match.</p><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The draft is made only from what the renter picked and wrote, and from the booking (the car, how long, delivery or pickup). Everyone gets the Google link, whatever their stars; a renter who gives 3 stars or fewer also sees &quot;Something wasn&#39;t right? Tell us directly&quot;.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-what-the-owner-sees-and-owner-deductions" data-gd-task><h2 class="gd-h2">What the owner sees, and owner deductions</h2><p class="gd-p">Each booking on an owner&#39;s or partner&#39;s car shows the card What the owner sees at the top of its page.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Hide from the owner</b> keeps the booking&#39;s revenue from the owner until the car is returned, or until the owner statement covering it is approved. The owner sees the booking as Booked with its dates, and the calendar still shows the car busy. Add a reason if you like: it is kept in the history.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Show to the owner</b> shows it now. Approving the statement shows every hidden booking on it by itself.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Not shown to the owner is for a booking with no owner revenue (an insurance placeholder, a shareholder&#39;s or the owner&#39;s own use at no charge): the owner sees only that the car is unavailable for those dates. A booking with revenue cannot be set this way.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Add a rental and Send an offer have What the owner sees. It starts from Settings &gt; Program, Owners and fleet: Owners see a booking&#39;s revenue (right away by default).</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">On the Money tab, Owner deductions on this booking: <b class="gd-ui">Add a booking expense</b> (cleaning, repair, fuel, platform fee or other, the amount, the reason the owner reads, a receipt number) comes off before Owner Revenue.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t"><b class="gd-ui">Set the Revenue Share for this booking</b> applies within the car&#39;s signed terms. Above the terms only an Admin can, with Above the signed terms ticked and the reason. <b class="gd-ui">Back to the car&#39;s terms</b> undoes it.</div></li><li><span class="gd-n" aria-hidden="true">7</span><div class="gd-t">Add a rental has the same under The car&#39;s owner.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>The owner&#39;s statement always includes every booking at its true amounts and lists each deduction with its reason, so the payout is always right. Customer service and sales add deductions only while Program settings let them change fees.</div></aside></section><section class="gd-task" id="requests-offers-and-bookings-email-the-renter-or-the-adjuster" data-gd-task><h2 class="gd-h2">Email the renter or the adjuster</h2><p class="gd-p">Press <b class="gd-ui">Email the renter</b> at the top of a booking, or open its <b class="gd-ui">Messages</b> tab.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Write a <b class="gd-ui">Subject</b> and a <b class="gd-ui">Message</b>, or pick a <b class="gd-ui">Quick reply</b> to start from (Settings &gt; Quick replies keeps them).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Press <b class="gd-ui">Email the renter</b>. It goes from CarmaCars (bookings@carmacars.ca) and replies come back to the bookings inbox. The renter also sees it in their account and can answer there.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">On a booking an insurer pays, choose <b class="gd-ui">From</b>: CarmaCars, or Blind Spot Car Rental (insurance). <b class="gd-ui">Email the adjuster</b> writes to the adjuster&#39;s email on the booking (Insurance claim), always from Blind Spot Car Rental.</div></li></ol></div><p class="gd-p">The Messages tab shows what you and the renter wrote, newest first, with who wrote it, and every email of the booking with its state (waiting, sent, failed). Each email you send is also in the History tab with your name.</p><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Emails go out through the same daily limit as every email (the line under the form shows today&#39;s use). A message to a renter goes before digests and marketing; past the limit it waits until midnight. To write to a renter from <b class="gd-ui">People</b> &gt; <b class="gd-ui">Renters</b>, open the renter: Email the renter is at the bottom, about their latest booking or the one you pick.</div></aside><h3 class="gd-h3">Record the pickup or the return now (details later)</h3><p class="gd-p">When the car went out or came back but the checklist could not be done (no photos, no time, the renter dropped the keys), the booking&#39;s <b class="gd-ui">Check-out, check-in and signing</b> card has <b class="gd-ui">Record the pickup now (details later)</b> on a confirmed booking and <b class="gd-ui">Record the return now (details later)</b> while the car is on rent. Give the actual time (now, or earlier), the odometer and fuel if you know them, and why. The booking moves on (on rent, or returned), late return charges follow the actual time, and Fleet gets the task <b class="gd-ui">Add the photos and readings for CC-...</b>. Once returned, the statement can be issued and the deposit settled; releasing the deposit before the photos are in needs an Admin and a reason. A pickup without the deposit taken needs an Admin to waive it with a reason, and without the renter&#39;s signature on the check-out report an Admin&#39;s reason too. Later, <b class="gd-ui">Add the check-out (or check-in) photos and readings</b> opens the usual checklist (photos, readings, your signature): the task closes when it is saved.</p><p class="gd-p">The Agreement card says <b class="gd-ui">Waiting for the renter&#39;s details</b> when the renter still has blanks to fill (date of birth, address, mobile, licence, coverage): their account asks for them before signing and paying. No email or text is sent.</p><h3 class="gd-h3">Find a booking</h3><p class="gd-p"><b class="gd-ui">Bookings</b> has one search box: type the booking number (CC-1042, cc1042 or just 1042), the renter&#39;s or a driver&#39;s name, an email, a phone number in any format, a plate (spaces do not matter) or a car code, then press Enter. The status filters still apply to what is found.</p><h3 class="gd-h3">Record a card payment taken outside the site</h3><p class="gd-p">A card taken in the Stripe Dashboard, or on a card reader, is recorded on the booking&#39;s <b class="gd-ui">Money</b> tab with <b class="gd-ui">Record card payment</b>.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Choose what it paid: <b class="gd-ui">Rental and fees</b>, <b class="gd-ui">Rental</b>, <b class="gd-ui">Fees</b>, <b class="gd-ui">Later charges</b> or <b class="gd-ui">Deposit hold</b>, and where it was taken.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Type the <b class="gd-ui">Last 4 digits</b> and the amount. A Stripe payment id (pi_... or ch_..., from the payment in the Stripe Dashboard) is optional for a payment: press <b class="gd-ui">Look up</b> and the amount and last 4 digits are checked against Stripe.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Record it</b>. A payment confirms a booking waiting for payment, as any payment does.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>A deposit hold needs its Stripe payment id, so it can be captured or released from <b class="gd-ui">Settle the deposit</b>. It is recorded as held, with the usual release reminders. A hold on a reader lapses after 2 days, one made online after 7.</div></aside><h3 class="gd-h3">Charge or hold the deposit on the card reader</h3><p class="gd-p">With the S700 paired (Settings &gt; Card reader), the <b class="gd-ui">Money</b> tab has <b class="gd-ui">Charge on reader</b> (everything open, the rental, the fees or a later charge) and <b class="gd-ui">Hold deposit on reader</b>. Press <b class="gd-ui">Send to the reader</b>: the amount shows on the reader and the renter taps, inserts or swipes the card. The screen updates by itself; <b class="gd-ui">Cancel</b> stops the reader and nothing is charged. A deposit hold is captured or released from Settle the deposit like any hold.</p><h3 class="gd-h3">Credit card coverage: the same card</h3><p class="gd-p">When the renter&#39;s coverage is their credit card, the whole rental (rental and fees) is paid on that same card. The Money tab says which card. Another card on the pay page is refused and refunded at once; on the reader it is refused before the money is taken; a payment by e-Transfer, cash or the like is refused; a card typed by hand needs its last 4 digits and the box <b class="gd-ui">This is the same card</b>. Deposits and later charges can go on any card. If the renter truly has to use another card or method, press <b class="gd-ui">Allow another card</b> and give the reason (an Admin).</p></section><section class="gd-task" id="requests-offers-and-bookings-booked-as-soon-as-the-renter-accepts-release-28" data-gd-task><h2 class="gd-h2">Booked as soon as the renter accepts (release 28)</h2><p class="gd-p">A booking is booked the moment the renter approves the offer. It takes the car on every calendar, the fleet board, the car&#39;s availability and the counts, even before the payment or the pickup is recorded. Payment and the handover show as their own badges: <b class="gd-ui">Booked, payment due</b> and <b class="gd-ui">Pickup not recorded</b>. The first renter to approve gets the car: any other open offer on the same car and dates goes back to Requests with a Re-offer To do.</p><ul class="gd-ul"><li><b class="gd-ui">Booked, payment due</b> To do: a booked rental still unpaid within 48 hours of its pickup. Send the pay link, charge the saved card or record the payment.</li><li>Record the pickup To do: a pickup time that passed with nothing recorded, as before.</li></ul><p class="gd-p">When you send an offer, <b class="gd-ui">The offer as the renter sees it</b> sits right under <b class="gd-ui">Send the offer</b>: check it before you press it.</p></section><section class="gd-task" id="requests-offers-and-bookings-changes-after-signing-an-amended-agreement-no-new-signature" data-gd-task><h2 class="gd-h2">Changes after signing: an amended agreement, no new signature</h2><p class="gd-p">The rental terms (section 15.4) let CarmaCars update a booking after signing: an extension, new dates or times, a price adjustment, a fee, a car swap. The signed agreement keeps applying. Each change makes a new version of the agreement marked <b class="gd-ui">Amended</b> with the date, carrying the renter&#39;s original signature, and the renter is sent it. Nobody is asked to sign again, except an additional driver who never signed (they sign before driving).</p></section><section class="gd-task" id="requests-offers-and-bookings-check-out-and-check-in-on-one-screen" data-gd-task><h2 class="gd-h2">Check-out and check-in on one screen</h2><p class="gd-p">On the booking page, <b class="gd-ui">Check out (pickup)</b> and <b class="gd-ui">Check in (return)</b> are one screen: the time (now unless you change it), the odometer, the fuel, the photos and a note. Pick many photos at once from the camera roll or take them; tag an angle on any photo if you like. The suggested angles (front, each corner and side, rear, odometer, fuel gauge, interior front and rear, trunk, wheels, any damage) tick themselves as photos are tagged. Nothing is required but the time; the renter&#39;s own photos are added to the same report, each marked with who took it (the renter or staff) and its angle. The full checklist is still one tap away.</p></section><section class="gd-task" id="requests-offers-and-bookings-type-into-the-blind-spot-agreement" data-gd-task><h2 class="gd-h2">Type into the Blind Spot agreement</h2><p class="gd-p">On the <b class="gd-ui">Rental agreements</b> card, <b class="gd-ui">Type into the Blind Spot agreement</b> shows each box as the form prints it. Change a value and <b class="gd-ui">Save the corrections</b>: it is drawn in that box, and the insured vehicle, the claim number, the adjuster and missing km or fuel go back onto the booking. <b class="gd-ui">Preview the filled form</b> opens it with your corrections.</p></section><section class="gd-task" id="requests-offers-and-bookings-reopen-an-expired-offer-release-28" data-gd-task><h2 class="gd-h2">Reopen an expired offer (release 28)</h2><p class="gd-p">An expired offer reopens in one click: <b class="gd-ui">Reopen offer</b> on the booking or on the <b class="gd-ui">Expired</b> filter of Requests. The renter gets the usual offer email and text; the offer stays open 24 hours unless you type other hours. When the pickup time has passed, the dialog asks for the new pickup and return first. A renter can also press <b class="gd-ui">Ask to reopen this offer</b>: you get the To do &quot;Renter wants expired offer reopened&quot; and an alert, as for a new request.</p><p class="gd-p">An offer sent after its pickup time no longer expires by itself: it expires at its own expiry time (the pickup only counts when the offer was sent before it and the pickup is 2 hours past). The offer screens say <b class="gd-ui">Pickup time has passed: update it</b> and do not send until you move the pickup.</p></section>');
+select app.guide_release_section('va', 'customer-service', 'chapter', 'your-workday', 'You answer requests with offers, quote callers, reply to renters, look renters up, and review owner forms. You are often the renter''s first person.
+
+Your rail: Queue, Today, Requests, New quote, Renter messages, Find a renter, Calendar, Listings, Similar cars, Owners and enquiries, Owner forms and Scorecard.
+
+## Answer a request
+
+1. Open **Requests and offers**: one queue, the most urgent first, with how long each renter has waited, the countdown to the 2 hours the site promises, the car''s photo, the renter with **Call** and **Text**, the licence and one button (**Send offer**, **Follow up** or **Open**). Filter by Active, New, Asked the renter, Changes asked, Offer out, Not paid or Expired; an expired offer moves to Expired after 48 hours.
+2. Waiting shows how long the renter has waited. Open the booking number.
+
+![](/guides/img/va-cs-03-requests-desktop-b3c66d25.jpg "desktop; size: 1440 640; address: carmacars.ca/va/requests; pins: 1 27.1 17.5, 2 52.8 32.8")
+
+3. On the Review tab, check the request: the car is free, the renter, the places.
+4. Press **Adjust the booking** to change the car, dates, places, price or extras, then **Save changes**.
+5. Add a message and press **Send the offer**. Within your limit you can also use **Approve (within my limit)** or **Approve and send the pay link**.
+6. Can''t do it? **Decline** with Reason and any alternative. Need to know more? **Ask the renter**.
+
+![](/guides/img/va-cs-04-booking-review-desktop-52c68a73.jpg "desktop; size: 1440 1000; address: carmacars.ca/va/bookings/CC-10069?tab=review; pins: 3 69.4 24.0, 4 95.8 98.0")
+
+> Tip: Reply within 5 minutes: send the offer, or ask the renter what you need. That is the "First reply in opening hours" measure on your scorecard. Requests waiting longer show in red.
+
+Opening a request takes it for you: the others see "Being answered by" your name and cannot answer it until you send, decline or leave (20 minutes, renewed while you work). One someone else holds shows who, with the buttons off; it opens to you when their claim runs out, or ask an Admin to take it over. Sales: a request from the website shows "Opens to you at" a time for its first 15 minutes, and a To do task says when it opens; after that whoever opens it first answers it, customer service included.
+
+## An enquiry on an example car
+
+Some cars on the site are marked "Example car": samples that show the kind of cars we rent. A request on one is an enquiry, never a booking.
+
+1. The task Suggest a similar real car comes to To do with the enquiry number (EQ-1001 and up), the car asked for, the dates and the contact. When a real car was free for those dates, the task names it after **Free:** (the same make and model first, else the same class and body at a similar price), and the person was told we have a similar car and will confirm it within 2 hours.
+2. Check the named car is still right for them (or find a real car of the same kind and price that is free for those dates), and make a **New quote** for it.
+3. Call or email the person with the car and the price, then mark the task done.
+
+> Tip: Reply within the first reply target, as for any request. Never offer the example car itself: it does not exist.
+
+## A request from a vehicle page
+
+Every make, model, year and trim page (carmacars.ca/cars/toyota/rav4/2023/xle, for example) has Request it, for the exact car the person wants.
+
+1. The request arrives as an enquiry with the car named in the message ("About the car: 2023 Toyota RAV4 XLE") and an Enquiry task in To do.
+2. If we have that car, or one close to it, free for their dates, make a **New quote** for it. If not, suggest the nearest car of the same kind and price.
+3. Reply by email or phone, then mark the task done.
+
+> Tip: The pages say only what the data says: EPA fuel use, the Canadian trims and our own cars. Never promise equipment the page does not list.
+
+## A buyer lead from a /buy page
+
+Every vehicle page has a for-sale twin (carmacars.ca/buy/toyota/rav4/2023/xle) with "Find me this car", and twins for financing, detailing and body shop work with their own request: a name, an email or phone, and when.
+
+1. The lead is in **Buyer leads** (customer service: **Owners and enquiries**), Buyer leads (kind buyer, finance, detailing or body shop), with the car and what they asked, and a To do line for Sales: A buyer asked us to find a car, Someone asked about financing or leasing a car, A detailing request, or A body shop request.
+2. If one of our cars of that kind is for sale (an Admin flags it with its price), offer it. If not, offer to rent them the car for a week first, and say what we can find. We do not lend or lease: on a financing question, say so and offer the rental. For detailing or body shop work, give a time and a price, and always offer a rental while their car is in (an insurance replacement rental when it is a claim). For mechanical work (a "Mechanical work to arrange" task: an oil change, brakes, tires, a tow and the like), CarmaCars does not do the work: book it with a trusted shop or recommend one, never promise the shop''s price or time, and offer a rental while their car is in.
+3. Press **Take it**, then **Update** as you go: contacted, qualified, converted or closed with the reason.
+
+> Tip: We mostly rent cars. Never say a car is for sale unless an Admin flagged it; the page shows it with its price when one is.
+
+## Send an offer to a caller
+
+Open **Send an offer** (or **Send an offer** beside a car in Find a car). No request needed: one screen, and the renter has the link.
+
+1. Find the customer by name, phone or email, or press **Add a new customer**: full legal name, mobile, email and date of birth. Already on file with that email or phone? Use them: never a second record.
+2. Choose the car (by car code, plate or name; each says Free or Not free), the dates and the places.
+3. The price: the rate sheet, a total or a rate per day, with the reason for a price you type. The deposit, discounts and fees are set by an Admin; customer service sets the Protection Plan price. Amounts I type, at the top of the price: Before tax, or After tax (HST included) to type what the renter pays, worked back to before tax for you. Or type the Total the renter pays (after tax): the rental charge is worked out from it.
+4. How the rental and the deposit are paid (card online, e-Transfer, cash, platform payout, the insurer; deposit by card hold, cash or e-Transfer), who found this client, the message, how long it is open (48 hours at most) and Email, Text or both.
+5. Check the offer as the renter will see it on the right, then press **Send the offer**.
+
+> Tip: An offer that is out is changed in place: **More actions** > **Edit the offer**, change it, then **Save and send the update** or **Save without telling the renter**. No need to withdraw it first.
+
+## New quote for a caller
+
+1. Open **New quote**. Choose the Car, the Pickup and Return (at least 2 hours from now).
+2. Choose how the lead came in, then the caller''s Full legal name, Email, Mobile and Date of birth.
+3. Set the Licence class and Damage cover, and note places, extras and what they asked.
+4. Press **Create the request**. It opens like any request; send the offer from there.
+
+![](/guides/img/va-cs-05-new-quote-desktop-4e386b1c.jpg "desktop; size: 1220 1260; address: carmacars.ca/va/quotes/new; pins: 1 72.1 15.6, 2 72.1 41.7, 3 72.1 72.7, 4 63.9 85.5")
+
+## Edit a booking, a fee or the renter
+
+A booking that is confirmed, on trip or returned is edited directly; the renter''s details are corrected from the booking.
+
+1. Overview, **Edit the booking**: the return (extend or shorten), the car, the rental charge, each fee, the kilometres and the note. Tick **Email the renter what changed**, or leave it off for a silent correction.
+2. Money tab, Fees, **Change or add a fee**: a fee forgotten (the young driver fee shows its price for the dates) or a charge of its own.
+3. What is open shows at once: **Email a pay link** or **Text a pay link** for exactly that amount, or record cash or an e-Transfer (Rental charges, Collect (the amount) rental, **Cash, e-Transfer or another way (record it)**).
+4. **Edit renter**: a wrong email, phone, name, licence or address. A new email is their sign-in at once.
+5. The same renter twice? Under the renter, Possible duplicates: **Merge into this record** moves everything of the other record here.
+
+> Good to know: Each edit is recorded with your name, the time, the reason and the before and after.
+
+## Renter messages and Find a renter
+
+1. **Renter messages** lists the latest messages with their booking. Open the booking to reply, then press **Send**.
+2. **Find a renter**: search by name, email, phone or booking number.
+3. To open a renter''s private details, press **Open with a reason**. The reason is kept in the access log.
+
+![](/guides/img/va-cs-06-messages-desktop-3441fa91.jpg "desktop; size: 1440 260; address: carmacars.ca/va/messages; pins: 1 32.6 48.5")
+
+## Add a car for an owner
+
+Open **Owners** > **Add a car for an owner** (fleet: under Cars). You enter everything for the owner; they never fill in the application.
+
+1. The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.
+2. The car: type the VIN. The car is looked up at once and shown in one line with the year, make, model, trim and details (Edit if something is wrong). No VIN at hand: add it by its plate and choose the year, make and model. Tap the colour and check the class. Upload the ownership permit, the insurance slip and the lender''s information if you have them. Photos are optional.
+3. Terms and first invoice: what was agreed with the owner, to the cent. An Admin checks them before anything is sent.
+4. Who sourced the owner: Entered for CarmaCars, or I sourced this owner. How the owner signs: by email, or on paper.
+5. Press **Add the car and send to an Admin**. The application waits in the Admin''s Applications, marked Entered by staff with your name. When the Admin approves, the owner gets one email to review and sign.
+
+## Owner forms (Forms C and D)
+
+1. Open **Owner forms**. Each row is a scan an owner uploaded, with the witnesses and the status.
+2. Press Open to read the scan. Check every page is there and signed, with each witness''s signature and name.
+3. Press **Approve**, or **Send back** with What to fix (the owner reads this).
+
+![](/guides/img/va-cs-08-owner-forms-desktop-eceaee0b.jpg "desktop; size: 1440 300; address: carmacars.ca/va/owner-forms; pins: 2 68.6 36.7, 3 76.7 36.7")
+
+## A rental agreement signed on paper
+
+1. Open the booking. Under Signed on paper, press **Record paper signature**.
+2. Choose the Rental agreement, or the booking change the renter signed.
+3. Check Signed by and Date signed, and upload the scan of every signed page.
+4. Press **Record signature**. It counts as signed, and the renter is not asked to sign again.
+
+## Signatures on the spot, or by link
+
+A renter or an additional driver who has not signed yet.
+
+1. On the booking, press **Sign now on this device**. Confirm the name and that you saw the original licence, then **Hand the device to** the signer.
+2. Or press **Email the signing link** or **Text the signing link**: they sign on their own phone.
+3. The licence comes first: the renter uploads it from the request, and the offer cannot be accepted without it.
+
+## The booking''s rental agreements
+
+The Rental agreements card keeps both agreements in step with the booking.
+
+1. Any change after signing makes a new version by itself. A change to the dates, the price, the car, the drivers or the coverage waits for the renter''s signature: they get the link by email and text, and the card says "Agreement v3 waiting for signature".
+2. **Resend the signing links**, or press the button with their first name beside it to have them sign on your device.
+3. Fields still blank (a licence expiry, an insurer''s policy number) are listed: type them and press **Save the missing fields**. Check-out stops on a field a claim needs until it is filled or an Admin overrides.
+4. Every signature: a code to the signer''s phone or email, the key terms initialled, three consents, a drawn signature.
+
+## Check renter documents
+
+The renter''s licence photos, selfie and proof of coverage, before the handover.
+
+1. Open the task "identity documents or coverage proof to review", or open the booking: **Review** shows the documents of any booking being arranged or under way, with no task needed.
+2. Every licence image, selfie and proof of coverage of the booking is on one screen, with what to check written once above them: the name and date of birth, class G2 or G and valid past the return, the selfie matches, the coverage is active to the return date.
+3. One is wrong? Open **Reject this one** under it, type the reason the renter reads and press **Reject**.
+4. Then press **Approve all**: everything still waiting is approved at once (the Protection Plan too). A document the system refuses is named with the reason; the rest are approved.
+
+> Tip: Each opening is logged. An Admin can do the same from Admin > To do. Field staff review the licence images (not the coverage) of bookings on their own jobs in the next 7 days from their My jobs: the booking history says the role, field.
+
+## Which credit cards include rental car coverage?
+
+Renters ask this often. **Renters** > **Card coverage** (every function has it under Rentals or Bookings) is your quick reference: what to say, what to check, and the list.
+
+1. Send the renter `carmacars.ca/credit-card-rental-coverage`: each card''s car value limit (MSRP), longest rental, key exclusions, its official guide and the day we last checked it.
+2. Ask which car they want. Most Canadian cards stop at a car priced $65,000 or $85,000, and many luxury models are priced higher. Give them the car''s model year and trim so they can check.
+3. Never tell a renter they are covered. Their card''s issuer decides that: ask them to call the number on the back of their card about this car and these dates. CarmaCars does not decide claims.
+4. Over the limit, an excluded make, a debit card or a longer rental than the card allows: offer OPCF 27 on their own auto policy or the CarmaCars Protection Plan.
+
+> Tip: A card marked Unverified came from a published summary, not the issuer''s guide. Something wrong or out of date in the list? Tell an Admin: they correct it in Settings > Card coverage.
+
+## Review requests
+
+Renters are asked for a review by email and text after each trip. **Renters** > **Review requests** shows the ones on hold and the Google reviews to match.
+
+1. On hold: the booking has a charge that is not settled or waived yet (late return, kilometres, fuel, cleaning, smoking, damage, tolls) or an open incident. It leaves the list by itself once the charges are settled or waived.
+2. The renter should be asked now anyway? Press **Send anyway**. Should never be asked? Press **Do not ask**.
+3. Google reviews: a possible match to a renter shows "possible match". Press **Confirm** if it is them, **Not this renter** if not, or **Match to a booking** with the booking number.
+4. On a booking, the card Review requests has **Ask for a review** (for example after a call that went well) and **Mark reviewed** when the renter says they already left one.
+
+> Tip: Never offer anything for a review and never ask only happy renters: everyone gets the same message and the same Google link.
+
+## A change to a confirmed booking
+
+On a booking''s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, write the reason, press **Preview the price**, then **Send to the renter**. The renter has 48 hours to accept and sign the amendment. You also send a new signing link to an additional driver from the booking screen.
+
+## A late return
+
+A booking past its return time shows the late return panel. The renter can still extend in their booking while they have the car: the extension counts from the original return time, it is approved at once when the car is free, and paying it stops the late notices. Point them to **Extend** first. Otherwise work it in order:
+
+| Button | When |
+| --- | --- |
+| **Log a call** | Record each call to the renter and what they said. |
+| **Send T13** | The first late notice email. |
+| **Send T14 (final notice)** | The final notice. |
+| **Request disable** | Ask an Admin to approve disabling the car. |
+| **Open an incident** | When the car is not coming back as planned. |
+
+## Booked when the renter accepts (release 28)
+
+A renter who approves the offer has booked the car, even before paying: the booking shows **Booked, payment due** and holds the car everywhere. Collect the payment before the pickup (a **Booked, payment due** To do comes 48 hours before). When you send an offer, the renter''s view is right under **Send the offer**.', 'Customer service', 'Requests and offers, new quotes, renter messages, find a renter, owner forms, late returns.',
+  'You answer requests with offers, quote callers, reply to renters, look renters up, and review owner forms. You are often the renter''s first person.
+
+Your rail: Queue, Today, Requests, New quote, Renter messages, Find a renter, Calendar, Listings, Similar cars, Owners and enquiries, Owner forms and Scorecard.
+
+## Answer a request
+
+1. Open **Requests and offers**: one queue, the most urgent first, with how long each renter has waited, the countdown to the 2 hours the site promises, the car''s photo, the renter with **Call** and **Text**, the licence and one button (**Send offer**, **Follow up** or **Open**). Filter by Active, New, Asked the renter, Changes asked, Offer out, Not paid or Expired; an expired offer moves to Expired after 48 hours.
+2. Waiting shows how long the renter has waited. Open the booking number.
+
+![](/guides/img/va-cs-03-requests-desktop-b3c66d25.jpg "desktop; size: 1440 640; address: carmacars.ca/va/requests; pins: 1 27.1 17.5, 2 52.8 32.8")
+
+3. On the Review tab, check the request: the car is free, the renter, the places.
+4. Press **Adjust the booking** to change the car, dates, places, price or extras, then **Save changes**.
+5. Add a message and press **Send the offer**. Within your limit you can also use **Approve (within my limit)** or **Approve and send the pay link**.
+6. Can''t do it? **Decline** with Reason and any alternative. Need to know more? **Ask the renter**.
+
+![](/guides/img/va-cs-04-booking-review-desktop-52c68a73.jpg "desktop; size: 1440 1000; address: carmacars.ca/va/bookings/CC-10069?tab=review; pins: 3 69.4 24.0, 4 95.8 98.0")
+
+> Tip: Reply within 5 minutes: send the offer, or ask the renter what you need. That is the "First reply in opening hours" measure on your scorecard. Requests waiting longer show in red.
+
+Opening a request takes it for you: the others see "Being answered by" your name and cannot answer it until you send, decline or leave (20 minutes, renewed while you work). One someone else holds shows who, with the buttons off; it opens to you when their claim runs out, or ask an Admin to take it over. Sales: a request from the website shows "Opens to you at" a time for its first 15 minutes, and a To do task says when it opens; after that whoever opens it first answers it, customer service included.
+
+## An enquiry on an example car
+
+Some cars on the site are marked "Example car": samples that show the kind of cars we rent. A request on one is an enquiry, never a booking.
+
+1. The task Suggest a similar real car comes to To do with the enquiry number (EQ-1001 and up), the car asked for, the dates and the contact. When a real car was free for those dates, the task names it after **Free:** (the same make and model first, else the same class and body at a similar price), and the person was told we have a similar car and will confirm it within 2 hours.
+2. Check the named car is still right for them (or find a real car of the same kind and price that is free for those dates), and make a **New quote** for it.
+3. Call or email the person with the car and the price, then mark the task done.
+
+> Tip: Reply within the first reply target, as for any request. Never offer the example car itself: it does not exist.
+
+## A request from a vehicle page
+
+Every make, model, year and trim page (carmacars.ca/cars/toyota/rav4/2023/xle, for example) has Request it, for the exact car the person wants.
+
+1. The request arrives as an enquiry with the car named in the message ("About the car: 2023 Toyota RAV4 XLE") and an Enquiry task in To do.
+2. If we have that car, or one close to it, free for their dates, make a **New quote** for it. If not, suggest the nearest car of the same kind and price.
+3. Reply by email or phone, then mark the task done.
+
+> Tip: The pages say only what the data says: EPA fuel use, the Canadian trims and our own cars. Never promise equipment the page does not list.
+
+## A buyer lead from a /buy page
+
+Every vehicle page has a for-sale twin (carmacars.ca/buy/toyota/rav4/2023/xle) with "Find me this car", and twins for financing, detailing and body shop work with their own request: a name, an email or phone, and when.
+
+1. The lead is in **Buyer leads** (customer service: **Owners and enquiries**), Buyer leads (kind buyer, finance, detailing or body shop), with the car and what they asked, and a To do line for Sales: A buyer asked us to find a car, Someone asked about financing or leasing a car, A detailing request, or A body shop request.
+2. If one of our cars of that kind is for sale (an Admin flags it with its price), offer it. If not, offer to rent them the car for a week first, and say what we can find. We do not lend or lease: on a financing question, say so and offer the rental. For detailing or body shop work, give a time and a price, and always offer a rental while their car is in (an insurance replacement rental when it is a claim). For mechanical work (a "Mechanical work to arrange" task: an oil change, brakes, tires, a tow and the like), CarmaCars does not do the work: book it with a trusted shop or recommend one, never promise the shop''s price or time, and offer a rental while their car is in.
+3. Press **Take it**, then **Update** as you go: contacted, qualified, converted or closed with the reason.
+
+> Tip: We mostly rent cars. Never say a car is for sale unless an Admin flagged it; the page shows it with its price when one is.
+
+## Send an offer to a caller
+
+Open **Send an offer** (or **Send an offer** beside a car in Find a car). No request needed: one screen, and the renter has the link.
+
+1. Find the customer by name, phone or email, or press **Add a new customer**: full legal name, mobile, email and date of birth. Already on file with that email or phone? Use them: never a second record.
+2. Choose the car (by car code, plate or name; each says Free or Not free), the dates and the places.
+3. The price: the rate sheet, a total or a rate per day, with the reason for a price you type. The deposit, discounts and fees are set by an Admin; customer service sets the Protection Plan price. Amounts I type, at the top of the price: Before tax, or After tax (HST included) to type what the renter pays, worked back to before tax for you. Or type the Total the renter pays (after tax): the rental charge is worked out from it.
+4. How the rental and the deposit are paid (card online, e-Transfer, cash, platform payout, the insurer; deposit by card hold, cash or e-Transfer), who found this client, the message, how long it is open (48 hours at most) and Email, Text or both.
+5. Check the offer as the renter will see it on the right, then press **Send the offer**.
+
+> Tip: An offer that is out is changed in place: **More actions** > **Edit the offer**, change it, then **Save and send the update** or **Save without telling the renter**. No need to withdraw it first.
+
+## New quote for a caller
+
+1. Open **New quote**. Choose the Car, the Pickup and Return (at least 2 hours from now).
+2. Choose how the lead came in, then the caller''s Full legal name, Email, Mobile and Date of birth.
+3. Set the Licence class and Damage cover, and note places, extras and what they asked.
+4. Press **Create the request**. It opens like any request; send the offer from there.
+
+![](/guides/img/va-cs-05-new-quote-desktop-4e386b1c.jpg "desktop; size: 1220 1260; address: carmacars.ca/va/quotes/new; pins: 1 72.1 15.6, 2 72.1 41.7, 3 72.1 72.7, 4 63.9 85.5")
+
+## Edit a booking, a fee or the renter
+
+A booking that is confirmed, on trip or returned is edited directly; the renter''s details are corrected from the booking.
+
+1. Overview, **Edit the booking**: the return (extend or shorten), the car, the rental charge, each fee, the kilometres and the note. Tick **Email the renter what changed**, or leave it off for a silent correction.
+2. Money tab, Fees, **Change or add a fee**: a fee forgotten (the young driver fee shows its price for the dates) or a charge of its own.
+3. What is open shows at once: **Email a pay link** or **Text a pay link** for exactly that amount, or record cash or an e-Transfer (Rental charges, Collect (the amount) rental, **Cash, e-Transfer or another way (record it)**).
+4. **Edit renter**: a wrong email, phone, name, licence or address. A new email is their sign-in at once.
+5. The same renter twice? Under the renter, Possible duplicates: **Merge into this record** moves everything of the other record here.
+
+> Good to know: Each edit is recorded with your name, the time, the reason and the before and after.
+
+## Renter messages and Find a renter
+
+1. **Renter messages** lists the latest messages with their booking. Open the booking to reply, then press **Send**.
+2. **Find a renter**: search by name, email, phone or booking number.
+3. To open a renter''s private details, press **Open with a reason**. The reason is kept in the access log.
+
+![](/guides/img/va-cs-06-messages-desktop-3441fa91.jpg "desktop; size: 1440 260; address: carmacars.ca/va/messages; pins: 1 32.6 48.5")
+
+## Add a car for an owner
+
+Open **Owners** > **Add a car for an owner** (fleet: under Cars). You enter everything for the owner; they never fill in the application.
+
+1. The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.
+2. The car: type the VIN. The car is looked up at once and shown in one line with the year, make, model, trim and details (Edit if something is wrong). No VIN at hand: add it by its plate and choose the year, make and model. Tap the colour and check the class. Upload the ownership permit, the insurance slip and the lender''s information if you have them. Photos are optional.
+3. Terms and first invoice: what was agreed with the owner, to the cent. An Admin checks them before anything is sent.
+4. Who sourced the owner: Entered for CarmaCars, or I sourced this owner. How the owner signs: by email, or on paper.
+5. Press **Add the car and send to an Admin**. The application waits in the Admin''s Applications, marked Entered by staff with your name. When the Admin approves, the owner gets one email to review and sign.
+
+## Owner forms (Forms C and D)
+
+1. Open **Owner forms**. Each row is a scan an owner uploaded, with the witnesses and the status.
+2. Press Open to read the scan. Check every page is there and signed, with each witness''s signature and name.
+3. Press **Approve**, or **Send back** with What to fix (the owner reads this).
+
+![](/guides/img/va-cs-08-owner-forms-desktop-eceaee0b.jpg "desktop; size: 1440 300; address: carmacars.ca/va/owner-forms; pins: 2 68.6 36.7, 3 76.7 36.7")
+
+## A rental agreement signed on paper
+
+1. Open the booking. Under Signed on paper, press **Record paper signature**.
+2. Choose the Rental agreement, or the booking change the renter signed.
+3. Check Signed by and Date signed, and upload the scan of every signed page.
+4. Press **Record signature**. It counts as signed, and the renter is not asked to sign again.
+
+## Signatures on the spot, or by link
+
+A renter or an additional driver who has not signed yet.
+
+1. On the booking, press **Sign now on this device**. Confirm the name and that you saw the original licence, then **Hand the device to** the signer.
+2. Or press **Email the signing link** or **Text the signing link**: they sign on their own phone.
+3. The licence comes first: the renter uploads it from the request, and the offer cannot be accepted without it.
+
+## The booking''s rental agreements
+
+The Rental agreements card keeps both agreements in step with the booking.
+
+1. Any change after signing makes a new version by itself. A change to the dates, the price, the car, the drivers or the coverage waits for the renter''s signature: they get the link by email and text, and the card says "Agreement v3 waiting for signature".
+2. **Resend the signing links**, or press the button with their first name beside it to have them sign on your device.
+3. Fields still blank (a licence expiry, an insurer''s policy number) are listed: type them and press **Save the missing fields**. Check-out stops on a field a claim needs until it is filled or an Admin overrides.
+4. Every signature: a code to the signer''s phone or email, the key terms initialled, three consents, a drawn signature.
+
+## Check renter documents
+
+The renter''s licence photos, selfie and proof of coverage, before the handover.
+
+1. Open the task "identity documents or coverage proof to review", or open the booking: **Review** shows the documents of any booking being arranged or under way, with no task needed.
+2. Every licence image, selfie and proof of coverage of the booking is on one screen, with what to check written once above them: the selfie matches, no alteration, the coverage is active to the return date.
+3. Under each driver, the licence reader lists what it read (from the back''s barcode, else the photo) and one line per check, Pass or Flag: photos sharp and whole, valid to the return, class accepted, old enough at pickup, name and date of birth match the driver, the Ontario number, front and back the same licence, and the main driver''s Ontario licence. Look closely at each Flag.
+4. One is wrong? Open **Reject this one** under it, type the reason the renter reads and press **Reject**.
+5. Then press **Approve all**: everything still waiting is approved at once (the Protection Plan too). A document the system refuses is named with the reason; the rest are approved.
+
+> Tip: Each opening is logged. An Admin can do the same from Admin > To do. Field staff review the licence images (not the coverage) of bookings on their own jobs in the next 7 days from their My jobs: the booking history says the role, field.
+
+> Good to know: Main driver: Ontario licence needed. When the main driver''s licence is from elsewhere, they are moved to additional driver (their photos and checks stay; you still review them) and pickup is blocked until a driver with an Ontario licence is the main driver. The renter adds one from their booking. Only an Admin can undo the swap or let it go with a reason.
+
+## Which credit cards include rental car coverage?
+
+Renters ask this often. **Renters** > **Card coverage** (every function has it under Rentals or Bookings) is your quick reference: what to say, what to check, and the list.
+
+1. Send the renter `carmacars.ca/credit-card-rental-coverage`: each card''s car value limit (MSRP), longest rental, key exclusions, its official guide and the day we last checked it.
+2. Ask which car they want. Most Canadian cards stop at a car priced $65,000 or $85,000, and many luxury models are priced higher. Give them the car''s model year and trim so they can check.
+3. Never tell a renter they are covered. Their card''s issuer decides that: ask them to call the number on the back of their card about this car and these dates. CarmaCars does not decide claims.
+4. Over the limit, an excluded make, a debit card or a longer rental than the card allows: offer OPCF 27 on their own auto policy or the CarmaCars Protection Plan.
+
+> Tip: A card marked Unverified came from a published summary, not the issuer''s guide. Something wrong or out of date in the list? Tell an Admin: they correct it in Settings > Card coverage.
+
+## Review requests
+
+Renters are asked for a review by email and text after each trip. **Renters** > **Review requests** shows the ones on hold and the Google reviews to match.
+
+1. On hold: the booking has a charge that is not settled or waived yet (late return, kilometres, fuel, cleaning, smoking, damage, tolls) or an open incident. It leaves the list by itself once the charges are settled or waived.
+2. The renter should be asked now anyway? Press **Send anyway**. Should never be asked? Press **Do not ask**.
+3. Google reviews: a possible match to a renter shows "possible match". Press **Confirm** if it is them, **Not this renter** if not, or **Match to a booking** with the booking number.
+4. On a booking, the card Review requests has **Ask for a review** (for example after a call that went well) and **Mark reviewed** when the renter says they already left one.
+
+> Tip: Never offer anything for a review and never ask only happy renters: everyone gets the same message and the same Google link.
+
+## A change to a confirmed booking
+
+On a booking''s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, write the reason, press **Preview the price**, then **Send to the renter**. The renter has 48 hours to accept and sign the amendment. You also send a new signing link to an additional driver from the booking screen.
+
+## A late return
+
+A booking past its return time shows the late return panel. The renter can still extend in their booking while they have the car: the extension counts from the original return time, it is approved at once when the car is free, and paying it stops the late notices. Point them to **Extend** first. Otherwise work it in order:
+
+| Button | When |
+| --- | --- |
+| **Log a call** | Record each call to the renter and what they said. |
+| **Send T13** | The first late notice email. |
+| **Send T14 (final notice)** | The final notice. |
+| **Request disable** | Ask an Admin to approve disabling the car. |
+| **Open an incident** | When the car is not coming back as planned. |
+
+## Booked when the renter accepts (release 28)
+
+A renter who approves the offer has booked the car, even before paying: the booking shows **Booked, payment due** and holds the car everywhere. Collect the payment before the pickup (a **Booked, payment due** To do comes 48 hours before). When you send an offer, the renter''s view is right under **Send the offer**.',
+  '<p class="gd-p">You answer requests with offers, quote callers, reply to renters, look renters up, and review owner forms. You are often the renter&#39;s first person.</p><p class="gd-p">Your rail: Queue, Today, Requests, New quote, Renter messages, Find a renter, Calendar, Listings, Similar cars, Owners and enquiries, Owner forms and Scorecard.</p><section class="gd-task" id="customer-service-answer-a-request" data-gd-task><h2 class="gd-h2">Answer a request</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Requests and offers</b>: one queue, the most urgent first, with how long each renter has waited, the countdown to the 2 hours the site promises, the car&#39;s photo, the renter with <b class="gd-ui">Call</b> and <b class="gd-ui">Text</b>, the licence and one button (<b class="gd-ui">Send offer</b>, <b class="gd-ui">Follow up</b> or <b class="gd-ui">Open</b>). Filter by Active, New, Asked the renter, Changes asked, Offer out, Not paid or Expired; an expired offer moves to Expired after 48 hours.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Waiting shows how long the renter has waited. Open the booking number.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/requests</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/640"><img src="/guides/img/va-cs-03-requests-desktop-b3c66d25.jpg" alt="" loading="lazy" decoding="async" width="1440" height="640"><span class="gd-pin" style="left:27.1%;top:17.5%" aria-hidden="true">1</span><span class="gd-pin" style="left:52.8%;top:32.8%" aria-hidden="true">2</span></div></div></figure></div><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol" start="3"><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">On the Review tab, check the request: the car is free, the renter, the places.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Adjust the booking</b> to change the car, dates, places, price or extras, then <b class="gd-ui">Save changes</b>.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Add a message and press <b class="gd-ui">Send the offer</b>. Within your limit you can also use <b class="gd-ui">Approve (within my limit)</b> or <b class="gd-ui">Approve and send the pay link</b>.</div></li><li><span class="gd-n" aria-hidden="true">6</span><div class="gd-t">Can&#39;t do it? <b class="gd-ui">Decline</b> with Reason and any alternative. Need to know more? <b class="gd-ui">Ask the renter</b>.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/bookings/CC-10069?tab=review</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/1000"><img src="/guides/img/va-cs-04-booking-review-desktop-52c68a73.jpg" alt="" loading="lazy" decoding="async" width="1440" height="1000"><span class="gd-pin" style="left:69.4%;top:24%" aria-hidden="true">3</span><span class="gd-pin" style="left:95.8%;top:98%" aria-hidden="true">4</span></div></div></figure></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Reply within 5 minutes: send the offer, or ask the renter what you need. That is the &quot;First reply in opening hours&quot; measure on your scorecard. Requests waiting longer show in red.</div></aside><p class="gd-p">Opening a request takes it for you: the others see &quot;Being answered by&quot; your name and cannot answer it until you send, decline or leave (20 minutes, renewed while you work). One someone else holds shows who, with the buttons off; it opens to you when their claim runs out, or ask an Admin to take it over. Sales: a request from the website shows &quot;Opens to you at&quot; a time for its first 15 minutes, and a To do task says when it opens; after that whoever opens it first answers it, customer service included.</p></section><section class="gd-task" id="customer-service-an-enquiry-on-an-example-car" data-gd-task><h2 class="gd-h2">An enquiry on an example car</h2><p class="gd-p">Some cars on the site are marked &quot;Example car&quot;: samples that show the kind of cars we rent. A request on one is an enquiry, never a booking.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The task Suggest a similar real car comes to To do with the enquiry number (EQ-1001 and up), the car asked for, the dates and the contact. When a real car was free for those dates, the task names it after <b class="gd-ui">Free:</b> (the same make and model first, else the same class and body at a similar price), and the person was told we have a similar car and will confirm it within 2 hours.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Check the named car is still right for them (or find a real car of the same kind and price that is free for those dates), and make a <b class="gd-ui">New quote</b> for it.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Call or email the person with the car and the price, then mark the task done.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Reply within the first reply target, as for any request. Never offer the example car itself: it does not exist.</div></aside></section><section class="gd-task" id="customer-service-a-request-from-a-vehicle-page" data-gd-task><h2 class="gd-h2">A request from a vehicle page</h2><p class="gd-p">Every make, model, year and trim page (carmacars.ca/cars/toyota/rav4/2023/xle, for example) has Request it, for the exact car the person wants.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The request arrives as an enquiry with the car named in the message (&quot;About the car: 2023 Toyota RAV4 XLE&quot;) and an Enquiry task in To do.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">If we have that car, or one close to it, free for their dates, make a <b class="gd-ui">New quote</b> for it. If not, suggest the nearest car of the same kind and price.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Reply by email or phone, then mark the task done.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The pages say only what the data says: EPA fuel use, the Canadian trims and our own cars. Never promise equipment the page does not list.</div></aside></section><section class="gd-task" id="customer-service-a-buyer-lead-from-a-buy-page" data-gd-task><h2 class="gd-h2">A buyer lead from a /buy page</h2><p class="gd-p">Every vehicle page has a for-sale twin (carmacars.ca/buy/toyota/rav4/2023/xle) with &quot;Find me this car&quot;, and twins for financing, detailing and body shop work with their own request: a name, an email or phone, and when.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The lead is in <b class="gd-ui">Buyer leads</b> (customer service: <b class="gd-ui">Owners and enquiries</b>), Buyer leads (kind buyer, finance, detailing or body shop), with the car and what they asked, and a To do line for Sales: A buyer asked us to find a car, Someone asked about financing or leasing a car, A detailing request, or A body shop request.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">If one of our cars of that kind is for sale (an Admin flags it with its price), offer it. If not, offer to rent them the car for a week first, and say what we can find. We do not lend or lease: on a financing question, say so and offer the rental. For detailing or body shop work, give a time and a price, and always offer a rental while their car is in (an insurance replacement rental when it is a claim). For mechanical work (a &quot;Mechanical work to arrange&quot; task: an oil change, brakes, tires, a tow and the like), CarmaCars does not do the work: book it with a trusted shop or recommend one, never promise the shop&#39;s price or time, and offer a rental while their car is in.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Take it</b>, then <b class="gd-ui">Update</b> as you go: contacted, qualified, converted or closed with the reason.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>We mostly rent cars. Never say a car is for sale unless an Admin flagged it; the page shows it with its price when one is.</div></aside></section><section class="gd-task" id="customer-service-send-an-offer-to-a-caller" data-gd-task><h2 class="gd-h2">Send an offer to a caller</h2><p class="gd-p">Open <b class="gd-ui">Send an offer</b> (or <b class="gd-ui">Send an offer</b> beside a car in Find a car). No request needed: one screen, and the renter has the link.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Find the customer by name, phone or email, or press <b class="gd-ui">Add a new customer</b>: full legal name, mobile, email and date of birth. Already on file with that email or phone? Use them: never a second record.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose the car (by car code, plate or name; each says Free or Not free), the dates and the places.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">The price: the rate sheet, a total or a rate per day, with the reason for a price you type. The deposit, discounts and fees are set by an Admin; customer service sets the Protection Plan price. Amounts I type, at the top of the price: Before tax, or After tax (HST included) to type what the renter pays, worked back to before tax for you. Or type the Total the renter pays (after tax): the rental charge is worked out from it.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">How the rental and the deposit are paid (card online, e-Transfer, cash, platform payout, the insurer; deposit by card hold, cash or e-Transfer), who found this client, the message, how long it is open (48 hours at most) and Email, Text or both.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Check the offer as the renter will see it on the right, then press <b class="gd-ui">Send the offer</b>.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>An offer that is out is changed in place: <b class="gd-ui">More actions</b> &gt; <b class="gd-ui">Edit the offer</b>, change it, then <b class="gd-ui">Save and send the update</b> or <b class="gd-ui">Save without telling the renter</b>. No need to withdraw it first.</div></aside></section><section class="gd-task" id="customer-service-new-quote-for-a-caller" data-gd-task><h2 class="gd-h2">New quote for a caller</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">New quote</b>. Choose the Car, the Pickup and Return (at least 2 hours from now).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose how the lead came in, then the caller&#39;s Full legal name, Email, Mobile and Date of birth.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Set the Licence class and Damage cover, and note places, extras and what they asked.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Create the request</b>. It opens like any request; send the offer from there.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/quotes/new</span></div><div class="gd-imgwrap" style="aspect-ratio:1220/1260"><img src="/guides/img/va-cs-05-new-quote-desktop-4e386b1c.jpg" alt="" loading="lazy" decoding="async" width="1220" height="1260"><span class="gd-pin" style="left:72.1%;top:15.6%" aria-hidden="true">1</span><span class="gd-pin" style="left:72.1%;top:41.7%" aria-hidden="true">2</span><span class="gd-pin" style="left:72.1%;top:72.7%" aria-hidden="true">3</span><span class="gd-pin" style="left:63.9%;top:85.5%" aria-hidden="true">4</span></div></div></figure></div></section><section class="gd-task" id="customer-service-edit-a-booking-a-fee-or-the-renter" data-gd-task><h2 class="gd-h2">Edit a booking, a fee or the renter</h2><p class="gd-p">A booking that is confirmed, on trip or returned is edited directly; the renter&#39;s details are corrected from the booking.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Overview, <b class="gd-ui">Edit the booking</b>: the return (extend or shorten), the car, the rental charge, each fee, the kilometres and the note. Tick <b class="gd-ui">Email the renter what changed</b>, or leave it off for a silent correction.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Money tab, Fees, <b class="gd-ui">Change or add a fee</b>: a fee forgotten (the young driver fee shows its price for the dates) or a charge of its own.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">What is open shows at once: <b class="gd-ui">Email a pay link</b> or <b class="gd-ui">Text a pay link</b> for exactly that amount, or record cash or an e-Transfer (Rental charges, Collect (the amount) rental, <b class="gd-ui">Cash, e-Transfer or another way (record it)</b>).</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t"><b class="gd-ui">Edit renter</b>: a wrong email, phone, name, licence or address. A new email is their sign-in at once.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">The same renter twice? Under the renter, Possible duplicates: <b class="gd-ui">Merge into this record</b> moves everything of the other record here.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Each edit is recorded with your name, the time, the reason and the before and after.</div></aside></section><section class="gd-task" id="customer-service-renter-messages-and-find-a-renter" data-gd-task><h2 class="gd-h2">Renter messages and Find a renter</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Renter messages</b> lists the latest messages with their booking. Open the booking to reply, then press <b class="gd-ui">Send</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Find a renter</b>: search by name, email, phone or booking number.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">To open a renter&#39;s private details, press <b class="gd-ui">Open with a reason</b>. The reason is kept in the access log.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/messages</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/260"><img src="/guides/img/va-cs-06-messages-desktop-3441fa91.jpg" alt="" loading="lazy" decoding="async" width="1440" height="260"><span class="gd-pin" style="left:32.6%;top:48.5%" aria-hidden="true">1</span></div></div></figure></div></section><section class="gd-task" id="customer-service-add-a-car-for-an-owner" data-gd-task><h2 class="gd-h2">Add a car for an owner</h2><p class="gd-p">Open <b class="gd-ui">Owners</b> &gt; <b class="gd-ui">Add a car for an owner</b> (fleet: under Cars). You enter everything for the owner; they never fill in the application.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The owner: find them by name, email or phone, or choose New owner and enter the name, email, phone and address.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The car: type the VIN. The car is looked up at once and shown in one line with the year, make, model, trim and details (Edit if something is wrong). No VIN at hand: add it by its plate and choose the year, make and model. Tap the colour and check the class. Upload the ownership permit, the insurance slip and the lender&#39;s information if you have them. Photos are optional.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Terms and first invoice: what was agreed with the owner, to the cent. An Admin checks them before anything is sent.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Who sourced the owner: Entered for CarmaCars, or I sourced this owner. How the owner signs: by email, or on paper.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Press <b class="gd-ui">Add the car and send to an Admin</b>. The application waits in the Admin&#39;s Applications, marked Entered by staff with your name. When the Admin approves, the owner gets one email to review and sign.</div></li></ol></div></section><section class="gd-task" id="customer-service-owner-forms-forms-c-and-d" data-gd-task><h2 class="gd-h2">Owner forms (Forms C and D)</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open <b class="gd-ui">Owner forms</b>. Each row is a scan an owner uploaded, with the witnesses and the status.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Press Open to read the scan. Check every page is there and signed, with each witness&#39;s signature and name.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Approve</b>, or <b class="gd-ui">Send back</b> with What to fix (the owner reads this).</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/owner-forms</span></div><div class="gd-imgwrap" style="aspect-ratio:1440/300"><img src="/guides/img/va-cs-08-owner-forms-desktop-eceaee0b.jpg" alt="" loading="lazy" decoding="async" width="1440" height="300"><span class="gd-pin" style="left:68.6%;top:36.7%" aria-hidden="true">2</span><span class="gd-pin" style="left:76.7%;top:36.7%" aria-hidden="true">3</span></div></div></figure></div></section><section class="gd-task" id="customer-service-a-rental-agreement-signed-on-paper" data-gd-task><h2 class="gd-h2">A rental agreement signed on paper</h2><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open the booking. Under Signed on paper, press <b class="gd-ui">Record paper signature</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose the Rental agreement, or the booking change the renter signed.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Check Signed by and Date signed, and upload the scan of every signed page.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Record signature</b>. It counts as signed, and the renter is not asked to sign again.</div></li></ol></div></section><section class="gd-task" id="customer-service-signatures-on-the-spot-or-by-link" data-gd-task><h2 class="gd-h2">Signatures on the spot, or by link</h2><p class="gd-p">A renter or an additional driver who has not signed yet.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">On the booking, press <b class="gd-ui">Sign now on this device</b>. Confirm the name and that you saw the original licence, then <b class="gd-ui">Hand the device to</b> the signer.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Or press <b class="gd-ui">Email the signing link</b> or <b class="gd-ui">Text the signing link</b>: they sign on their own phone.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">The licence comes first: the renter uploads it from the request, and the offer cannot be accepted without it.</div></li></ol></div></section><section class="gd-task" id="customer-service-the-booking-s-rental-agreements" data-gd-task><h2 class="gd-h2">The booking&#39;s rental agreements</h2><p class="gd-p">The Rental agreements card keeps both agreements in step with the booking.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Any change after signing makes a new version by itself. A change to the dates, the price, the car, the drivers or the coverage waits for the renter&#39;s signature: they get the link by email and text, and the card says &quot;Agreement v3 waiting for signature&quot;.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Resend the signing links</b>, or press the button with their first name beside it to have them sign on your device.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Fields still blank (a licence expiry, an insurer&#39;s policy number) are listed: type them and press <b class="gd-ui">Save the missing fields</b>. Check-out stops on a field a claim needs until it is filled or an Admin overrides.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Every signature: a code to the signer&#39;s phone or email, the key terms initialled, three consents, a drawn signature.</div></li></ol></div></section><section class="gd-task" id="customer-service-check-renter-documents" data-gd-task><h2 class="gd-h2">Check renter documents</h2><p class="gd-p">The renter&#39;s licence photos, selfie and proof of coverage, before the handover.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Open the task &quot;identity documents or coverage proof to review&quot;, or open the booking: <b class="gd-ui">Review</b> shows the documents of any booking being arranged or under way, with no task needed.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Every licence image, selfie and proof of coverage of the booking is on one screen, with what to check written once above them: the selfie matches, no alteration, the coverage is active to the return date.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Under each driver, the licence reader lists what it read (from the back&#39;s barcode, else the photo) and one line per check, Pass or Flag: photos sharp and whole, valid to the return, class accepted, old enough at pickup, name and date of birth match the driver, the Ontario number, front and back the same licence, and the main driver&#39;s Ontario licence. Look closely at each Flag.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">One is wrong? Open <b class="gd-ui">Reject this one</b> under it, type the reason the renter reads and press <b class="gd-ui">Reject</b>.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Then press <b class="gd-ui">Approve all</b>: everything still waiting is approved at once (the Protection Plan too). A document the system refuses is named with the reason; the rest are approved.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Each opening is logged. An Admin can do the same from Admin &gt; To do. Field staff review the licence images (not the coverage) of bookings on their own jobs in the next 7 days from their My jobs: the booking history says the role, field.</div></aside><aside class="gd-box"><span class="gd-lbl">Good to know</span><div>Main driver: Ontario licence needed. When the main driver&#39;s licence is from elsewhere, they are moved to additional driver (their photos and checks stay; you still review them) and pickup is blocked until a driver with an Ontario licence is the main driver. The renter adds one from their booking. Only an Admin can undo the swap or let it go with a reason.</div></aside></section><section class="gd-task" id="customer-service-which-credit-cards-include-rental-car-coverage" data-gd-task><h2 class="gd-h2">Which credit cards include rental car coverage?</h2><p class="gd-p">Renters ask this often. <b class="gd-ui">Renters</b> &gt; <b class="gd-ui">Card coverage</b> (every function has it under Rentals or Bookings) is your quick reference: what to say, what to check, and the list.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Send the renter <span class="gd-url">carmacars.ca/credit-card-rental-coverage</span>: each card&#39;s car value limit (MSRP), longest rental, key exclusions, its official guide and the day we last checked it.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Ask which car they want. Most Canadian cards stop at a car priced $65,000 or $85,000, and many luxury models are priced higher. Give them the car&#39;s model year and trim so they can check.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Never tell a renter they are covered. Their card&#39;s issuer decides that: ask them to call the number on the back of their card about this car and these dates. CarmaCars does not decide claims.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Over the limit, an excluded make, a debit card or a longer rental than the card allows: offer OPCF 27 on their own auto policy or the CarmaCars Protection Plan.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>A card marked Unverified came from a published summary, not the issuer&#39;s guide. Something wrong or out of date in the list? Tell an Admin: they correct it in Settings &gt; Card coverage.</div></aside></section><section class="gd-task" id="customer-service-review-requests" data-gd-task><h2 class="gd-h2">Review requests</h2><p class="gd-p">Renters are asked for a review by email and text after each trip. <b class="gd-ui">Renters</b> &gt; <b class="gd-ui">Review requests</b> shows the ones on hold and the Google reviews to match.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">On hold: the booking has a charge that is not settled or waived yet (late return, kilometres, fuel, cleaning, smoking, damage, tolls) or an open incident. It leaves the list by itself once the charges are settled or waived.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The renter should be asked now anyway? Press <b class="gd-ui">Send anyway</b>. Should never be asked? Press <b class="gd-ui">Do not ask</b>.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Google reviews: a possible match to a renter shows &quot;possible match&quot;. Press <b class="gd-ui">Confirm</b> if it is them, <b class="gd-ui">Not this renter</b> if not, or <b class="gd-ui">Match to a booking</b> with the booking number.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">On a booking, the card Review requests has <b class="gd-ui">Ask for a review</b> (for example after a call that went well) and <b class="gd-ui">Mark reviewed</b> when the renter says they already left one.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Never offer anything for a review and never ask only happy renters: everyone gets the same message and the same Google link.</div></aside></section><section class="gd-task" id="customer-service-a-change-to-a-confirmed-booking" data-gd-task><h2 class="gd-h2">A change to a confirmed booking</h2><p class="gd-p">On a booking&#39;s Changes tab you can propose new dates, times or another car, as an Admin does: set the change, write the reason, press <b class="gd-ui">Preview the price</b>, then <b class="gd-ui">Send to the renter</b>. The renter has 48 hours to accept and sign the amendment. You also send a new signing link to an additional driver from the booking screen.</p></section><section class="gd-task" id="customer-service-a-late-return" data-gd-task><h2 class="gd-h2">A late return</h2><p class="gd-p">A booking past its return time shows the late return panel. The renter can still extend in their booking while they have the car: the extension counts from the original return time, it is approved at once when the car is free, and paying it stops the late notices. Point them to <b class="gd-ui">Extend</b> first. Otherwise work it in order:</p><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">Button</th><th scope="col">When</th></tr></thead><tbody><tr><td><b class="gd-ui">Log a call</b></td><td>Record each call to the renter and what they said.</td></tr><tr><td><b class="gd-ui">Send T13</b></td><td>The first late notice email.</td></tr><tr><td><b class="gd-ui">Send T14 (final notice)</b></td><td>The final notice.</td></tr><tr><td><b class="gd-ui">Request disable</b></td><td>Ask an Admin to approve disabling the car.</td></tr><tr><td><b class="gd-ui">Open an incident</b></td><td>When the car is not coming back as planned.</td></tr></tbody></table></div></section><section class="gd-task" id="customer-service-booked-when-the-renter-accepts-release-28" data-gd-task><h2 class="gd-h2">Booked when the renter accepts (release 28)</h2><p class="gd-p">A renter who approves the offer has booked the car, even before paying: the booking shows <b class="gd-ui">Booked, payment due</b> and holds the car everywhere. Collect the payment before the pickup (a <b class="gd-ui">Booked, payment due</b> To do comes 48 hours before). When you send an offer, the renter&#39;s view is right under <b class="gd-ui">Send the offer</b>.</p></section>');
+select app.guide_release_section('va', 'sales', 'chapter', 'fleet', 'You turn enquiries into bookings and owners into fleet: requests and offers, quotes for callers, and owner leads.
+
+Your menu: To do, Today, My scorecard and My sales, then Requests and offers, Send an offer, Add a rental, New quote, Calendar and Buyer leads. The owners you bring in are on My sales.
+
+## Requests, offers and new quotes
+
+1. **Requests and offers**: the same queue customer service works, showing only what you can answer now. A request still with customer service is folded under "more not open to you yet", with the time it opens to you.
+2. **Rentals** > **Bookings**: **My bookings**, every booking credited to you, offered by you or added by you, from the offer to the return, with its status, money and your commission (counting this month, waiting for approval, approved, paid).
+3. **Send an offer**: one screen for a caller, sent at once, as in chapter 2. **New quote** still makes a request to offer later.
+3. An offer that is out: **More actions** > **Edit the offer**, then **Save and send the update**.
+
+![](/guides/img/va-sales-02-requests-desktop-2ab1d17d.jpg "desktop; size: 1230 580; address: carmacars.ca/va/requests; pins: 1 39.8 59.5")
+
+> Tip: Your first reply target is 5 minutes, the "Quote sent" measure on your scorecard. Follow every offer out before it expires.
+
+## Check the renter''s licence
+
+Sales approve the renter''s licence like customer service: the licence front, the licence back and the selfie. The proof of coverage and the Protection Plan stay with customer service and Admins.
+
+1. On **To do**, **Licences to check** lists each booking with an image waiting, the longest wait first. Press **Review the licence**.
+2. On a booking, the card **Renter licence** has the same: press **Review the licence**.
+3. Look at each image: the name and date of birth match the booking, class G2 or G, valid past the return, no alteration, the selfie matches the licence photo.
+4. One is wrong? Open **Reject this one** under it, type the reason the renter reads and press **Reject**. The renter is told and asked for a new image.
+5. Then press **Approve all**: every image still waiting is approved at once. An image the system refuses is named with the reason.
+
+> Tip: The booking history says who decided and the role, sales. Each opening of the images is logged and the links last one minute.
+
+## In person or remote
+
+Every Sales person works in one of two modes, on the same Sales screens. An Admin sets yours; it shows at the top of To do and on My sales.
+
+|  | In person (Toronto) | Remote (anywhere) |
+| --- | --- | --- |
+| Commission | Under 50 rental days in the month 10%, from 50 days 15%, from 100 days 20% | Under 50 rental days 5%, from 50 days 10%, from 100 days 15% |
+| Credit | Walk-ins, handovers you close, partner visits and the rentals you source | Only the rentals you source. A website request you answer with the first offer during one of your blocks counts as yours. Walk-ins and partner deals earn nothing |
+| Hours | You choose | At least 20 hours a week of Thursday to Sunday afternoons (noon to 6 pm, Toronto time), replying within 15 minutes to the chats, texts and calls assigned to you |
+| Every day | Nothing set | Marketplace and classified reposts, social media DM replies, three follow-ups on every quote, long-term and business outreach |
+| Every month | Nothing set | 400 touches. Under 400 when the month ends, the month''s rate is one tier lower: 15% becomes 10%, 10% becomes 5%, 5% becomes 2.5% |
+
+## Remote: your duties
+
+On **To do**, **Remote duties** shows this month''s touches against 400, today''s checklist, the peak hours you scheduled this week and your reply time.
+
+1. Most touches count by themselves: an offer you send, a message or text you send from the portal, a live chat you answer (once a day for each chat), a call or text from the phone line, an ad you post, a call or message to a car owner.
+2. For anything else press **Log a touch**: choose the type and add the link of the post, profile or listing if there is one.
+3. The checklist ticks itself as the day''s touches come in. Three follow-ups on every quote stays open while a deal of yours has fewer than three.
+4. Under My availability choose this week or next, press **Add a block** for each time you will be on, then **Save the week**. Days already past stay as they were.
+5. A website request you answer with the first offer during a block is credited to you as sourced, even if you chose Entered for CarmaCars. Off your blocks it stays a claim for an Admin.
+
+> Tip: An Admin can void a touch logged by mistake. Once an Admin approves a month, its mode, its rates and its touches no longer change; a refund can still lower the tier, as for everyone.
+
+## My sales
+
+Open **Me**, the **My sales** tab. It shows your own sales and commissions only.
+
+1. Commissions comes first. Your rate depends on your mode and the rental days of the month: in person 10%, 15% from 50 days, 20% from 100; remote 5%, 10% and 15%. The bar shows your days against the target of 100, and says when your rate rises. By month gives each month in one line: the mode, the days, the rate and, for remote, the touches and any drop.
+2. The tiles show this week: quotes created, offers sent, rentals added, bookings confirmed, conversion, booked revenue and follow-ups due. Press **By month** for months, **By week** for weeks.
+3. By week (or By month) lists each period with the same figures, newest first.
+4. Follow-ups due lists your open deals with what to do next: send the offer, follow up before the offer expires, or follow up while the renter signs and pays. Red means it is past due.
+5. Deals lists every booking you created, added or sent an offer on in the last 180 days, with its status and what it counts. Open a request, an offer or a rental you added from its number.
+
+| Figure | How it is counted |
+| --- | --- |
+| Credited to you | A quote you created, a rental you added, or a website request whose first offer you sent. An Admin can give a deal to someone else. |
+| Quotes created, offers sent, rentals added | Counted on the day they happened. |
+| Bookings confirmed, booked revenue | Counted on the day the booking was confirmed. |
+| Conversion | Of the deals credited to you in the period, the share confirmed so far. |
+| Booked revenue | The rental charge before tax, after discounts. A cancelled booking counts only what was kept; refunds come off. |
+| Rental days (Sales) | The days of the completed, paid rentals you sourced that end in the month. The month''s tier applies to all of that month''s rentals. |
+
+> Tip: Sales commissions are approved after the month ends, when the month''s tier is known. A refund that drops the month under a tier lowers every commission of that month; anything already paid comes off your next payment.
+
+## Owners you bring in
+
+Bring in car owners on **My work** > **My sales**, card **Owners you bring in**. Every owner you bring in is credited to you as "sourced by", with their cars. Only an Admin can change that later.
+
+1. **Invite an owner**: enter their name, email and phone, tick **The owner asked me to send it**, then press **Send the invitation**. They get an email with your link to apply.
+2. **Copy my owner link**: your own link to the application, for a message or a post. Anyone who applies with it is credited to you.
+3. **Start an application**: you fill in the owner and the car for them, with **Take a photo** (or **Choose a photo**) of the ownership permit to fill in the car. It goes to an Admin as an application to approve. The terms and invoices are the Admin''s.
+4. The row of five figures follows your owners: **Invited**, **Applied**, **Approved**, **Car live** and **First paid rental**. Below, each owner shows their stage and their cars.
+
+5. Someone who starts the application on the website and stops for 30 minutes comes to you: a task "Unfinished owner application" and their row on My sales (Lead). Call or text them; the follow-up emails go by themselves until they finish.
+
+> Tip: An owner already on file, or invited first by another salesperson, cannot be invited again. Ask an Admin if you brought them in.
+
+## Ask for your commission on an owner
+
+There is no set amount. For each owner you bring in, you ask for one, and an Admin decides.
+
+1. On the owner''s row press **Ask for a commission**.
+2. Choose **A flat amount** and type it, or **A percent**: type the percent, choose what it is of (the company''s share of their cars'' rentals, or their cars'' rental revenue) and for how long (a number of months, or as long as the car is with us).
+3. Add a note for the Admin if you like, then press **Send to an Admin**.
+4. While it waits you can press **Change my request**. Once an Admin approves, changes or declines it, the row says so, with their note.
+
+| Approved as | When it is earned |
+| --- | --- |
+| A flat amount | Once, at the owner''s first paid rental: the first completed rental of any of their cars, paid in full |
+| A percent | On each completed, paid rental of their cars that ends after the approval, from the month of the first one, for the months approved |
+
+> Tip: Nothing is earned before an Admin approves the request, and nothing on CarmaCars'' own cars, a partner''s, a shareholder''s or your own. Each commission then goes through the usual steps on My sales: pending approval, approved, paid.
+
+## Buyer leads
+
+1. **Buyer leads**: each request from the /buy pages, with the car, budget and timing.
+2. Press **Take it** to make it yours, then call them.
+3. Press **Update** to set the status. When you close a lead, say why.
+
+> Tip: Owner leads are not here. The owners you invite or add are on **My sales**, **Owners you bring in**, and you see only your own. Customer service works the full owner pipeline.
+
+**Reopen offer** on an expired booking (or the **Expired** filter of Requests) sends the offer again in one click, open 24 hours unless you set the hours; a pickup time that has passed asks for new dates first. "Renter wants expired offer reopened" To dos come from the renter''s own button. The offer screens block **Send** with **Pickup time has passed: update it** until the pickup is moved.
+', 'Sales', 'Requests and offers, new quotes and owner leads.',
+  'You turn enquiries into bookings and owners into fleet: requests and offers, quotes for callers, and owner leads.
+
+Your menu: To do, Today, My scorecard and My sales, then Requests and offers, Send an offer, Add a rental, New quote, Calendar and Buyer leads. The owners you bring in are on My sales.
+
+## Requests, offers and new quotes
+
+1. **Requests and offers**: the same queue customer service works, showing only what you can answer now. A request still with customer service is folded under "more not open to you yet", with the time it opens to you.
+2. **Rentals** > **Bookings**: **My bookings**, every booking credited to you, offered by you or added by you, from the offer to the return, with its status, money and your commission (counting this month, waiting for approval, approved, paid).
+3. **Send an offer**: one screen for a caller, sent at once, as in chapter 2. **New quote** still makes a request to offer later.
+3. An offer that is out: **More actions** > **Edit the offer**, then **Save and send the update**.
+
+![](/guides/img/va-sales-02-requests-desktop-2ab1d17d.jpg "desktop; size: 1230 580; address: carmacars.ca/va/requests; pins: 1 39.8 59.5")
+
+> Tip: Your first reply target is 5 minutes, the "Quote sent" measure on your scorecard. Follow every offer out before it expires.
+
+## Check the renter''s licence
+
+Sales approve the renter''s licence like customer service: the licence front, the licence back and the selfie. The proof of coverage and the Protection Plan stay with customer service and Admins.
+
+1. On **To do**, **Licences to check** lists each booking with an image waiting, the longest wait first. Press **Review the licence**.
+2. On a booking, the card **Renter licence** has the same: press **Review the licence**.
+3. Look at each image and each Flag line of the licence reader under the driver: no alteration, the selfie matches the licence photo.
+4. One is wrong? Open **Reject this one** under it, type the reason the renter reads and press **Reject**. The renter is told and asked for a new image.
+5. Then press **Approve all**: every image still waiting is approved at once. An image the system refuses is named with the reason.
+
+> Tip: The booking history says who decided and the role, sales. Each opening of the images is logged and the links last one minute.
+
+## In person or remote
+
+Every Sales person works in one of two modes, on the same Sales screens. An Admin sets yours; it shows at the top of To do and on My sales.
+
+|  | In person (Toronto) | Remote (anywhere) |
+| --- | --- | --- |
+| Commission | Under 50 rental days in the month 10%, from 50 days 15%, from 100 days 20% | Under 50 rental days 5%, from 50 days 10%, from 100 days 15% |
+| Credit | Walk-ins, handovers you close, partner visits and the rentals you source | Only the rentals you source. A website request you answer with the first offer during one of your blocks counts as yours. Walk-ins and partner deals earn nothing |
+| Hours | You choose | At least 20 hours a week of Thursday to Sunday afternoons (noon to 6 pm, Toronto time), replying within 15 minutes to the chats, texts and calls assigned to you |
+| Every day | Nothing set | Marketplace and classified reposts, social media DM replies, three follow-ups on every quote, long-term and business outreach |
+| Every month | Nothing set | 400 touches. Under 400 when the month ends, the month''s rate is one tier lower: 15% becomes 10%, 10% becomes 5%, 5% becomes 2.5% |
+
+## Remote: your duties
+
+On **To do**, **Remote duties** shows this month''s touches against 400, today''s checklist, the peak hours you scheduled this week and your reply time.
+
+1. Most touches count by themselves: an offer you send, a message or text you send from the portal, a live chat you answer (once a day for each chat), a call or text from the phone line, an ad you post, a call or message to a car owner.
+2. For anything else press **Log a touch**: choose the type and add the link of the post, profile or listing if there is one.
+3. The checklist ticks itself as the day''s touches come in. Three follow-ups on every quote stays open while a deal of yours has fewer than three.
+4. Under My availability choose this week or next, press **Add a block** for each time you will be on, then **Save the week**. Days already past stay as they were.
+5. A website request you answer with the first offer during a block is credited to you as sourced, even if you chose Entered for CarmaCars. Off your blocks it stays a claim for an Admin.
+
+> Tip: An Admin can void a touch logged by mistake. Once an Admin approves a month, its mode, its rates and its touches no longer change; a refund can still lower the tier, as for everyone.
+
+## My sales
+
+Open **Me**, the **My sales** tab. It shows your own sales and commissions only.
+
+1. Commissions comes first. Your rate depends on your mode and the rental days of the month: in person 10%, 15% from 50 days, 20% from 100; remote 5%, 10% and 15%. The bar shows your days against the target of 100, and says when your rate rises. By month gives each month in one line: the mode, the days, the rate and, for remote, the touches and any drop.
+2. The tiles show this week: quotes created, offers sent, rentals added, bookings confirmed, conversion, booked revenue and follow-ups due. Press **By month** for months, **By week** for weeks.
+3. By week (or By month) lists each period with the same figures, newest first.
+4. Follow-ups due lists your open deals with what to do next: send the offer, follow up before the offer expires, or follow up while the renter signs and pays. Red means it is past due.
+5. Deals lists every booking you created, added or sent an offer on in the last 180 days, with its status and what it counts. Open a request, an offer or a rental you added from its number.
+
+| Figure | How it is counted |
+| --- | --- |
+| Credited to you | A quote you created, a rental you added, or a website request whose first offer you sent. An Admin can give a deal to someone else. |
+| Quotes created, offers sent, rentals added | Counted on the day they happened. |
+| Bookings confirmed, booked revenue | Counted on the day the booking was confirmed. |
+| Conversion | Of the deals credited to you in the period, the share confirmed so far. |
+| Booked revenue | The rental charge before tax, after discounts. A cancelled booking counts only what was kept; refunds come off. |
+| Rental days (Sales) | The days of the completed, paid rentals you sourced that end in the month. The month''s tier applies to all of that month''s rentals. |
+
+> Tip: Sales commissions are approved after the month ends, when the month''s tier is known. A refund that drops the month under a tier lowers every commission of that month; anything already paid comes off your next payment.
+
+## Owners you bring in
+
+Bring in car owners on **My work** > **My sales**, card **Owners you bring in**. Every owner you bring in is credited to you as "sourced by", with their cars. Only an Admin can change that later.
+
+1. **Invite an owner**: enter their name, email and phone, tick **The owner asked me to send it**, then press **Send the invitation**. They get an email with your link to apply.
+2. **Copy my owner link**: your own link to the application, for a message or a post. Anyone who applies with it is credited to you.
+3. **Start an application**: you fill in the owner and the car for them, with **Take a photo** (or **Choose a photo**) of the ownership permit to fill in the car. It goes to an Admin as an application to approve. The terms and invoices are the Admin''s.
+4. The row of five figures follows your owners: **Invited**, **Applied**, **Approved**, **Car live** and **First paid rental**. Below, each owner shows their stage and their cars.
+
+5. Someone who starts the application on the website and stops for 30 minutes comes to you: a task "Unfinished owner application" and their row on My sales (Lead). Call or text them; the follow-up emails go by themselves until they finish.
+
+> Tip: An owner already on file, or invited first by another salesperson, cannot be invited again. Ask an Admin if you brought them in.
+
+## Ask for your commission on an owner
+
+There is no set amount. For each owner you bring in, you ask for one, and an Admin decides.
+
+1. On the owner''s row press **Ask for a commission**.
+2. Choose **A flat amount** and type it, or **A percent**: type the percent, choose what it is of (the company''s share of their cars'' rentals, or their cars'' rental revenue) and for how long (a number of months, or as long as the car is with us).
+3. Add a note for the Admin if you like, then press **Send to an Admin**.
+4. While it waits you can press **Change my request**. Once an Admin approves, changes or declines it, the row says so, with their note.
+
+| Approved as | When it is earned |
+| --- | --- |
+| A flat amount | Once, at the owner''s first paid rental: the first completed rental of any of their cars, paid in full |
+| A percent | On each completed, paid rental of their cars that ends after the approval, from the month of the first one, for the months approved |
+
+> Tip: Nothing is earned before an Admin approves the request, and nothing on CarmaCars'' own cars, a partner''s, a shareholder''s or your own. Each commission then goes through the usual steps on My sales: pending approval, approved, paid.
+
+## Buyer leads
+
+1. **Buyer leads**: each request from the /buy pages, with the car, budget and timing.
+2. Press **Take it** to make it yours, then call them.
+3. Press **Update** to set the status. When you close a lead, say why.
+
+> Tip: Owner leads are not here. The owners you invite or add are on **My sales**, **Owners you bring in**, and you see only your own. Customer service works the full owner pipeline.
+
+**Reopen offer** on an expired booking (or the **Expired** filter of Requests) sends the offer again in one click, open 24 hours unless you set the hours; a pickup time that has passed asks for new dates first. "Renter wants expired offer reopened" To dos come from the renter''s own button. The offer screens block **Send** with **Pickup time has passed: update it** until the pickup is moved.
+',
+  '<p class="gd-p">You turn enquiries into bookings and owners into fleet: requests and offers, quotes for callers, and owner leads.</p><p class="gd-p">Your menu: To do, Today, My scorecard and My sales, then Requests and offers, Send an offer, Add a rental, New quote, Calendar and Buyer leads. The owners you bring in are on My sales.</p><section class="gd-task" id="sales-requests-offers-and-new-quotes" data-gd-task><h2 class="gd-h2">Requests, offers and new quotes</h2><div class="gd-stepblock gd-stepblock--below"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Requests and offers</b>: the same queue customer service works, showing only what you can answer now. A request still with customer service is folded under &quot;more not open to you yet&quot;, with the time it opens to you.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Rentals</b> &gt; <b class="gd-ui">Bookings</b>: <b class="gd-ui">My bookings</b>, every booking credited to you, offered by you or added by you, from the offer to the return, with its status, money and your commission (counting this month, waiting for approval, approved, paid).</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t"><b class="gd-ui">Send an offer</b>: one screen for a caller, sent at once, as in chapter 2. <b class="gd-ui">New quote</b> still makes a request to offer later.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">An offer that is out: <b class="gd-ui">More actions</b> &gt; <b class="gd-ui">Edit the offer</b>, then <b class="gd-ui">Save and send the update</b>.</div></li></ol></div><figure class="gd-fig gd-fig--desk"><div class="gd-browser"><div class="gd-bar" aria-hidden="true"><i></i><i></i><i></i><span class="gd-addr">carmacars.ca/va/requests</span></div><div class="gd-imgwrap" style="aspect-ratio:1230/580"><img src="/guides/img/va-sales-02-requests-desktop-2ab1d17d.jpg" alt="" loading="lazy" decoding="async" width="1230" height="580"><span class="gd-pin" style="left:39.8%;top:59.5%" aria-hidden="true">1</span></div></div></figure></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Your first reply target is 5 minutes, the &quot;Quote sent&quot; measure on your scorecard. Follow every offer out before it expires.</div></aside></section><section class="gd-task" id="sales-check-the-renter-s-licence" data-gd-task><h2 class="gd-h2">Check the renter&#39;s licence</h2><p class="gd-p">Sales approve the renter&#39;s licence like customer service: the licence front, the licence back and the selfie. The proof of coverage and the Protection Plan stay with customer service and Admins.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">On <b class="gd-ui">To do</b>, <b class="gd-ui">Licences to check</b> lists each booking with an image waiting, the longest wait first. Press <b class="gd-ui">Review the licence</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">On a booking, the card <b class="gd-ui">Renter licence</b> has the same: press <b class="gd-ui">Review the licence</b>.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Look at each image and each Flag line of the licence reader under the driver: no alteration, the selfie matches the licence photo.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">One is wrong? Open <b class="gd-ui">Reject this one</b> under it, type the reason the renter reads and press <b class="gd-ui">Reject</b>. The renter is told and asked for a new image.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Then press <b class="gd-ui">Approve all</b>: every image still waiting is approved at once. An image the system refuses is named with the reason.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The booking history says who decided and the role, sales. Each opening of the images is logged and the links last one minute.</div></aside></section><section class="gd-task" id="sales-in-person-or-remote" data-gd-task><h2 class="gd-h2">In person or remote</h2><p class="gd-p">Every Sales person works in one of two modes, on the same Sales screens. An Admin sets yours; it shows at the top of To do and on My sales.</p><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col"></th><th scope="col">In person (Toronto)</th><th scope="col">Remote (anywhere)</th></tr></thead><tbody><tr><td>Commission</td><td>Under 50 rental days in the month 10%, from 50 days 15%, from 100 days 20%</td><td>Under 50 rental days 5%, from 50 days 10%, from 100 days 15%</td></tr><tr><td>Credit</td><td>Walk-ins, handovers you close, partner visits and the rentals you source</td><td>Only the rentals you source. A website request you answer with the first offer during one of your blocks counts as yours. Walk-ins and partner deals earn nothing</td></tr><tr><td>Hours</td><td>You choose</td><td>At least 20 hours a week of Thursday to Sunday afternoons (noon to 6 pm, Toronto time), replying within 15 minutes to the chats, texts and calls assigned to you</td></tr><tr><td>Every day</td><td>Nothing set</td><td>Marketplace and classified reposts, social media DM replies, three follow-ups on every quote, long-term and business outreach</td></tr><tr><td>Every month</td><td>Nothing set</td><td>400 touches. Under 400 when the month ends, the month&#39;s rate is one tier lower: 15% becomes 10%, 10% becomes 5%, 5% becomes 2.5%</td></tr></tbody></table></div></section><section class="gd-task" id="sales-remote-your-duties" data-gd-task><h2 class="gd-h2">Remote: your duties</h2><p class="gd-p">On <b class="gd-ui">To do</b>, <b class="gd-ui">Remote duties</b> shows this month&#39;s touches against 400, today&#39;s checklist, the peak hours you scheduled this week and your reply time.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Most touches count by themselves: an offer you send, a message or text you send from the portal, a live chat you answer (once a day for each chat), a call or text from the phone line, an ad you post, a call or message to a car owner.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">For anything else press <b class="gd-ui">Log a touch</b>: choose the type and add the link of the post, profile or listing if there is one.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">The checklist ticks itself as the day&#39;s touches come in. Three follow-ups on every quote stays open while a deal of yours has fewer than three.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Under My availability choose this week or next, press <b class="gd-ui">Add a block</b> for each time you will be on, then <b class="gd-ui">Save the week</b>. Days already past stay as they were.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">A website request you answer with the first offer during a block is credited to you as sourced, even if you chose Entered for CarmaCars. Off your blocks it stays a claim for an Admin.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>An Admin can void a touch logged by mistake. Once an Admin approves a month, its mode, its rates and its touches no longer change; a refund can still lower the tier, as for everyone.</div></aside></section><section class="gd-task" id="sales-my-sales" data-gd-task><h2 class="gd-h2">My sales</h2><p class="gd-p">Open <b class="gd-ui">Me</b>, the <b class="gd-ui">My sales</b> tab. It shows your own sales and commissions only.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Commissions comes first. Your rate depends on your mode and the rental days of the month: in person 10%, 15% from 50 days, 20% from 100; remote 5%, 10% and 15%. The bar shows your days against the target of 100, and says when your rate rises. By month gives each month in one line: the mode, the days, the rate and, for remote, the touches and any drop.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The tiles show this week: quotes created, offers sent, rentals added, bookings confirmed, conversion, booked revenue and follow-ups due. Press <b class="gd-ui">By month</b> for months, <b class="gd-ui">By week</b> for weeks.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">By week (or By month) lists each period with the same figures, newest first.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Follow-ups due lists your open deals with what to do next: send the offer, follow up before the offer expires, or follow up while the renter signs and pays. Red means it is past due.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Deals lists every booking you created, added or sent an offer on in the last 180 days, with its status and what it counts. Open a request, an offer or a rental you added from its number.</div></li></ol></div><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">Figure</th><th scope="col">How it is counted</th></tr></thead><tbody><tr><td>Credited to you</td><td>A quote you created, a rental you added, or a website request whose first offer you sent. An Admin can give a deal to someone else.</td></tr><tr><td>Quotes created, offers sent, rentals added</td><td>Counted on the day they happened.</td></tr><tr><td>Bookings confirmed, booked revenue</td><td>Counted on the day the booking was confirmed.</td></tr><tr><td>Conversion</td><td>Of the deals credited to you in the period, the share confirmed so far.</td></tr><tr><td>Booked revenue</td><td>The rental charge before tax, after discounts. A cancelled booking counts only what was kept; refunds come off.</td></tr><tr><td>Rental days (Sales)</td><td>The days of the completed, paid rentals you sourced that end in the month. The month&#39;s tier applies to all of that month&#39;s rentals.</td></tr></tbody></table></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Sales commissions are approved after the month ends, when the month&#39;s tier is known. A refund that drops the month under a tier lowers every commission of that month; anything already paid comes off your next payment.</div></aside></section><section class="gd-task" id="sales-owners-you-bring-in" data-gd-task><h2 class="gd-h2">Owners you bring in</h2><p class="gd-p">Bring in car owners on <b class="gd-ui">My work</b> &gt; <b class="gd-ui">My sales</b>, card <b class="gd-ui">Owners you bring in</b>. Every owner you bring in is credited to you as &quot;sourced by&quot;, with their cars. Only an Admin can change that later.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Invite an owner</b>: enter their name, email and phone, tick <b class="gd-ui">The owner asked me to send it</b>, then press <b class="gd-ui">Send the invitation</b>. They get an email with your link to apply.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t"><b class="gd-ui">Copy my owner link</b>: your own link to the application, for a message or a post. Anyone who applies with it is credited to you.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t"><b class="gd-ui">Start an application</b>: you fill in the owner and the car for them, with <b class="gd-ui">Take a photo</b> (or <b class="gd-ui">Choose a photo</b>) of the ownership permit to fill in the car. It goes to an Admin as an application to approve. The terms and invoices are the Admin&#39;s.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">The row of five figures follows your owners: <b class="gd-ui">Invited</b>, <b class="gd-ui">Applied</b>, <b class="gd-ui">Approved</b>, <b class="gd-ui">Car live</b> and <b class="gd-ui">First paid rental</b>. Below, each owner shows their stage and their cars.</div></li></ol></div><div class="gd-stepblock"><ol class="gd-ol" start="5"><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Someone who starts the application on the website and stops for 30 minutes comes to you: a task &quot;Unfinished owner application&quot; and their row on My sales (Lead). Call or text them; the follow-up emails go by themselves until they finish.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>An owner already on file, or invited first by another salesperson, cannot be invited again. Ask an Admin if you brought them in.</div></aside></section><section class="gd-task" id="sales-ask-for-your-commission-on-an-owner" data-gd-task><h2 class="gd-h2">Ask for your commission on an owner</h2><p class="gd-p">There is no set amount. For each owner you bring in, you ask for one, and an Admin decides.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">On the owner&#39;s row press <b class="gd-ui">Ask for a commission</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Choose <b class="gd-ui">A flat amount</b> and type it, or <b class="gd-ui">A percent</b>: type the percent, choose what it is of (the company&#39;s share of their cars&#39; rentals, or their cars&#39; rental revenue) and for how long (a number of months, or as long as the car is with us).</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Add a note for the Admin if you like, then press <b class="gd-ui">Send to an Admin</b>.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">While it waits you can press <b class="gd-ui">Change my request</b>. Once an Admin approves, changes or declines it, the row says so, with their note.</div></li></ol></div><div class="gd-tablewrap"><table class="gd-table"><thead><tr><th scope="col">Approved as</th><th scope="col">When it is earned</th></tr></thead><tbody><tr><td>A flat amount</td><td>Once, at the owner&#39;s first paid rental: the first completed rental of any of their cars, paid in full</td></tr><tr><td>A percent</td><td>On each completed, paid rental of their cars that ends after the approval, from the month of the first one, for the months approved</td></tr></tbody></table></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Nothing is earned before an Admin approves the request, and nothing on CarmaCars&#39; own cars, a partner&#39;s, a shareholder&#39;s or your own. Each commission then goes through the usual steps on My sales: pending approval, approved, paid.</div></aside></section><section class="gd-task" id="sales-buyer-leads" data-gd-task><h2 class="gd-h2">Buyer leads</h2><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t"><b class="gd-ui">Buyer leads</b>: each request from the /buy pages, with the car, budget and timing.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Press <b class="gd-ui">Take it</b> to make it yours, then call them.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Press <b class="gd-ui">Update</b> to set the status. When you close a lead, say why.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Owner leads are not here. The owners you invite or add are on <b class="gd-ui">My sales</b>, <b class="gd-ui">Owners you bring in</b>, and you see only your own. Customer service works the full owner pipeline.</div></aside><p class="gd-p"><b class="gd-ui">Reopen offer</b> on an expired booking (or the <b class="gd-ui">Expired</b> filter of Requests) sends the offer again in one click, open 24 hours unless you set the hours; a pickup time that has passed asks for new dates first. &quot;Renter wants expired offer reopened&quot; To dos come from the renter&#39;s own button. The offer screens block <b class="gd-ui">Send</b> with <b class="gd-ui">Pickup time has passed: update it</b> until the pickup is moved.</p></section>');
+select app.guide_release_section('field', 'my-jobs', 'chapter', 'start-here', 'Your day, in order: handovers, returns, deliveries, moves and photo shoots. Each job card has the car, the plate, the place and the time.
+
+## Your job list
+
+1. The menu: **My jobs**, **Cars now**, **Map** (where the cars of your jobs are now, with their trips and alerts), **My hours** and **Me** (My sales, Referrals, Profile and Academy, as a row on top). **Add a rental** and **Report a problem** are buttons at the top of My jobs. **Sign out** is top right.
+2. Switch between **Today** and **Tomorrow**. Jobs are in time order.
+3. The next job is the big card at the top: its time and how long until it, the car and its plate, the place with **Open in maps** and a button to call the renter, and what to put in the car. The rest of the day follows in time order.
+4. A handover or a return has its own button: **Check out (pickup)** or **Check in (return)**. One tap acknowledges and starts the job and opens its photo checklist. Other jobs: press **Open the job**.
+5. Moving a car that has no job? Use Vehicle moves (see below).
+
+![](/guides/img/field-01-today-phone-b31e25fb.jpg "phone; size: 390 1530; pins: 1 91.0 15.0, 2 89.7 53.3, 3 89.7 61.4, 4 89.7 88.2")
+
+> Tip: Need help on a job? Call CarmaCars at 289-312-5991. The link is at the bottom of My jobs.
+
+## Open a job
+
+1. The card shows the kind, the time, the car, the plate and colour.
+2. The address, with **Open in maps** for directions, and a button to call the renter.
+3. For a handover: the booking, the renter''s name and phone, the Card on File and the licence on file.
+4. Press **Acknowledge** so the office knows you have it. Then press **Start** when you are with the car.
+
+![](/guides/img/field-02-job-phone-c6780f54.jpg "phone; size: 390 1530; pins: 1 94.9 34.0, 2 94.9 44.1, 3 94.9 52.6, 4 94.9 95.8")
+
+## Check the renter''s licence
+
+The renter''s licence photos and selfie are checked before the handover. You can check them yourself, for a booking on one of your own jobs today or in the next 7 days. Everything you do is recorded with your name and "field staff".
+
+1. My jobs shows **Licences to check** when the licence front, back or selfie of a renter on one of your jobs waits for a decision. The same check is on the job itself, under **Check the licence**.
+2. Press **Review the licence**. The images open with the name, date of birth and licence details on the booking.
+3. Look at each image: the name and date of birth match the booking, class G2 or G and valid past the return date with no sign of alteration, and the selfie matches the licence photo.
+4. One is wrong? Open **Reject this one** under it, type the reason the renter reads and press **Reject**. The renter is told why and sends a new one.
+5. Then press **Approve all**: everything still waiting is approved at once.
+
+> Tip: The renter''s proof of coverage stays with the office. Meeting the renter at the handover? You can still check the original licence in person from the ready check (see A handover).
+
+## Move a car
+
+1. Under Vehicle moves, press **Start a move**. Choose the Car and Why (for example Reposition).
+2. Fill in From and the Odometer (km), then press **Start the move now**.
+3. When you arrive, press **End the move**, fill in Now at and the odometer, then press **End the move now**.
+
+## Documents to sign
+
+Your staff agreement, when CarmaCars sends it.
+
+1. My jobs shows "You have a document to sign". Press **Read and sign**.
+2. Check the key values at the top (your role, wage and start date), then press **Read the PDF** and read it.
+3. Sign in a few steps: press **Send the code** and type the 6-digit code from your phone or email, tick that you read it, draw your initials beside the key terms (confidentiality, the rules on money, keys and cars, ending the agreement), tick the two consents and draw your signature.
+4. Press **Sign**. The signed copy, with its certificate of completion, stays on the same page.
+
+## Cars now
+
+**Field work** > **Cars now** shows which cars are out, coming back today and tomorrow, going out in the next 72 hours and free, with no money. The renter''s phone shows only on your own jobs.
+
+
+## Call and text the renter
+
+**Call** on a job opens the Quo app with the renter''s number, so the call comes from the CarmaCars number; **Text** opens a small window that sends from the CarmaCars number and keeps the text with the booking. Without the Quo app, use **Use this phone** in the window that opens.
+
+**Search:** the **Search** button at the top finds your jobs by booking number, plate or car.', 'My jobs', 'Your job list, a job card, maps and car moves.',
+  'Your day, in order: handovers, returns, deliveries, moves and photo shoots. Each job card has the car, the plate, the place and the time.
+
+## Your job list
+
+1. The menu: **My jobs**, **Cars now**, **Map** (where the cars of your jobs are now, with their trips and alerts), **My hours** and **Me** (My sales, Referrals, Profile and Academy, as a row on top). **Add a rental** and **Report a problem** are buttons at the top of My jobs. **Sign out** is top right.
+2. Switch between **Today** and **Tomorrow**. Jobs are in time order.
+3. The next job is the big card at the top: its time and how long until it, the car and its plate, the place with **Open in maps** and a button to call the renter, and what to put in the car. The rest of the day follows in time order.
+4. A handover or a return has its own button: **Check out (pickup)** or **Check in (return)**. One tap acknowledges and starts the job and opens its photo checklist. Other jobs: press **Open the job**.
+5. Moving a car that has no job? Use Vehicle moves (see below).
+
+![](/guides/img/field-01-today-phone-b31e25fb.jpg "phone; size: 390 1530; pins: 1 91.0 15.0, 2 89.7 53.3, 3 89.7 61.4, 4 89.7 88.2")
+
+> Tip: Need help on a job? Call CarmaCars at 289-312-5991. The link is at the bottom of My jobs.
+
+## Open a job
+
+1. The card shows the kind, the time, the car, the plate and colour.
+2. The address, with **Open in maps** for directions, and a button to call the renter.
+3. For a handover: the booking, the renter''s name and phone, the Card on File and the licence on file.
+4. Press **Acknowledge** so the office knows you have it. Then press **Start** when you are with the car.
+
+![](/guides/img/field-02-job-phone-c6780f54.jpg "phone; size: 390 1530; pins: 1 94.9 34.0, 2 94.9 44.1, 3 94.9 52.6, 4 94.9 95.8")
+
+## Check the renter''s licence
+
+The renter''s licence photos and selfie are checked before the handover. You can check them yourself, for a booking on one of your own jobs today or in the next 7 days. Everything you do is recorded with your name and "field staff".
+
+1. My jobs shows **Licences to check** when the licence front, back or selfie of a renter on one of your jobs waits for a decision. The same check is on the job itself, under **Check the licence**.
+2. Press **Review the licence**. The images open with the name, date of birth and licence details on the booking.
+3. Look at each image and the licence reader''s lines under each driver (Pass or Flag: valid to the return, class, age, name and date of birth, the Ontario number, front and back): no sign of alteration, and the selfie matches the licence photo. A photo you take that is blurry or cut off says so at once: take it again.
+4. One is wrong? Open **Reject this one** under it, type the reason the renter reads and press **Reject**. The renter is told why and sends a new one.
+5. Then press **Approve all**: everything still waiting is approved at once.
+
+> Tip: The renter''s proof of coverage stays with the office. Meeting the renter at the handover? You can still check the original licence in person from the ready check (see A handover).
+
+## Move a car
+
+1. Under Vehicle moves, press **Start a move**. Choose the Car and Why (for example Reposition).
+2. Fill in From and the Odometer (km), then press **Start the move now**.
+3. When you arrive, press **End the move**, fill in Now at and the odometer, then press **End the move now**.
+
+## Documents to sign
+
+Your staff agreement, when CarmaCars sends it.
+
+1. My jobs shows "You have a document to sign". Press **Read and sign**.
+2. Check the key values at the top (your role, wage and start date), then press **Read the PDF** and read it.
+3. Sign in a few steps: press **Send the code** and type the 6-digit code from your phone or email, tick that you read it, draw your initials beside the key terms (confidentiality, the rules on money, keys and cars, ending the agreement), tick the two consents and draw your signature.
+4. Press **Sign**. The signed copy, with its certificate of completion, stays on the same page.
+
+## Cars now
+
+**Field work** > **Cars now** shows which cars are out, coming back today and tomorrow, going out in the next 72 hours and free, with no money. The renter''s phone shows only on your own jobs.
+
+
+## Call and text the renter
+
+**Call** on a job opens the Quo app with the renter''s number, so the call comes from the CarmaCars number; **Text** opens a small window that sends from the CarmaCars number and keeps the text with the booking. Without the Quo app, use **Use this phone** in the window that opens.
+
+**Search:** the **Search** button at the top finds your jobs by booking number, plate or car.',
+  '<p class="gd-p">Your day, in order: handovers, returns, deliveries, moves and photo shoots. Each job card has the car, the plate, the place and the time.</p><section class="gd-task" id="my-jobs-your-job-list" data-gd-task><h2 class="gd-h2">Your job list</h2><div class="gd-stepblock gd-stepblock--side"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The menu: <b class="gd-ui">My jobs</b>, <b class="gd-ui">Cars now</b>, <b class="gd-ui">Map</b> (where the cars of your jobs are now, with their trips and alerts), <b class="gd-ui">My hours</b> and <b class="gd-ui">Me</b> (My sales, Referrals, Profile and Academy, as a row on top). <b class="gd-ui">Add a rental</b> and <b class="gd-ui">Report a problem</b> are buttons at the top of My jobs. <b class="gd-ui">Sign out</b> is top right.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Switch between <b class="gd-ui">Today</b> and <b class="gd-ui">Tomorrow</b>. Jobs are in time order.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">The next job is the big card at the top: its time and how long until it, the car and its plate, the place with <b class="gd-ui">Open in maps</b> and a button to call the renter, and what to put in the car. The rest of the day follows in time order.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">A handover or a return has its own button: <b class="gd-ui">Check out (pickup)</b> or <b class="gd-ui">Check in (return)</b>. One tap acknowledges and starts the job and opens its photo checklist. Other jobs: press <b class="gd-ui">Open the job</b>.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Moving a car that has no job? Use Vehicle moves (see below).</div></li></ol></div><figure class="gd-fig gd-fig--phone"><div class="gd-phone"><div class="gd-imgwrap" style="aspect-ratio:390/1530"><img src="/guides/img/field-01-today-phone-b31e25fb.jpg" alt="" loading="lazy" decoding="async" width="390" height="1530"><span class="gd-pin" style="left:91%;top:15%" aria-hidden="true">1</span><span class="gd-pin" style="left:89.7%;top:53.3%" aria-hidden="true">2</span><span class="gd-pin" style="left:89.7%;top:61.4%" aria-hidden="true">3</span><span class="gd-pin" style="left:89.7%;top:88.2%" aria-hidden="true">4</span></div></div></figure></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>Need help on a job? Call CarmaCars at 289-312-5991. The link is at the bottom of My jobs.</div></aside></section><section class="gd-task" id="my-jobs-open-a-job" data-gd-task><h2 class="gd-h2">Open a job</h2><div class="gd-stepblock gd-stepblock--side"><div class="gd-stepcol"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">The card shows the kind, the time, the car, the plate and colour.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">The address, with <b class="gd-ui">Open in maps</b> for directions, and a button to call the renter.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">For a handover: the booking, the renter&#39;s name and phone, the Card on File and the licence on file.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Acknowledge</b> so the office knows you have it. Then press <b class="gd-ui">Start</b> when you are with the car.</div></li></ol></div><figure class="gd-fig gd-fig--phone"><div class="gd-phone"><div class="gd-imgwrap" style="aspect-ratio:390/1530"><img src="/guides/img/field-02-job-phone-c6780f54.jpg" alt="" loading="lazy" decoding="async" width="390" height="1530"><span class="gd-pin" style="left:94.9%;top:34%" aria-hidden="true">1</span><span class="gd-pin" style="left:94.9%;top:44.1%" aria-hidden="true">2</span><span class="gd-pin" style="left:94.9%;top:52.6%" aria-hidden="true">3</span><span class="gd-pin" style="left:94.9%;top:95.8%" aria-hidden="true">4</span></div></div></figure></div></section><section class="gd-task" id="my-jobs-check-the-renter-s-licence" data-gd-task><h2 class="gd-h2">Check the renter&#39;s licence</h2><p class="gd-p">The renter&#39;s licence photos and selfie are checked before the handover. You can check them yourself, for a booking on one of your own jobs today or in the next 7 days. Everything you do is recorded with your name and &quot;field staff&quot;.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">My jobs shows <b class="gd-ui">Licences to check</b> when the licence front, back or selfie of a renter on one of your jobs waits for a decision. The same check is on the job itself, under <b class="gd-ui">Check the licence</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Press <b class="gd-ui">Review the licence</b>. The images open with the name, date of birth and licence details on the booking.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Look at each image and the licence reader&#39;s lines under each driver (Pass or Flag: valid to the return, class, age, name and date of birth, the Ontario number, front and back): no sign of alteration, and the selfie matches the licence photo. A photo you take that is blurry or cut off says so at once: take it again.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">One is wrong? Open <b class="gd-ui">Reject this one</b> under it, type the reason the renter reads and press <b class="gd-ui">Reject</b>. The renter is told why and sends a new one.</div></li><li><span class="gd-n" aria-hidden="true">5</span><div class="gd-t">Then press <b class="gd-ui">Approve all</b>: everything still waiting is approved at once.</div></li></ol></div><aside class="gd-box"><span class="gd-lbl">Tip</span><div>The renter&#39;s proof of coverage stays with the office. Meeting the renter at the handover? You can still check the original licence in person from the ready check (see A handover).</div></aside></section><section class="gd-task" id="my-jobs-move-a-car" data-gd-task><h2 class="gd-h2">Move a car</h2><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">Under Vehicle moves, press <b class="gd-ui">Start a move</b>. Choose the Car and Why (for example Reposition).</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Fill in From and the Odometer (km), then press <b class="gd-ui">Start the move now</b>.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">When you arrive, press <b class="gd-ui">End the move</b>, fill in Now at and the odometer, then press <b class="gd-ui">End the move now</b>.</div></li></ol></div></section><section class="gd-task" id="my-jobs-documents-to-sign" data-gd-task><h2 class="gd-h2">Documents to sign</h2><p class="gd-p">Your staff agreement, when CarmaCars sends it.</p><div class="gd-stepblock"><ol class="gd-ol"><li><span class="gd-n" aria-hidden="true">1</span><div class="gd-t">My jobs shows &quot;You have a document to sign&quot;. Press <b class="gd-ui">Read and sign</b>.</div></li><li><span class="gd-n" aria-hidden="true">2</span><div class="gd-t">Check the key values at the top (your role, wage and start date), then press <b class="gd-ui">Read the PDF</b> and read it.</div></li><li><span class="gd-n" aria-hidden="true">3</span><div class="gd-t">Sign in a few steps: press <b class="gd-ui">Send the code</b> and type the 6-digit code from your phone or email, tick that you read it, draw your initials beside the key terms (confidentiality, the rules on money, keys and cars, ending the agreement), tick the two consents and draw your signature.</div></li><li><span class="gd-n" aria-hidden="true">4</span><div class="gd-t">Press <b class="gd-ui">Sign</b>. The signed copy, with its certificate of completion, stays on the same page.</div></li></ol></div></section><section class="gd-task" id="my-jobs-cars-now" data-gd-task><h2 class="gd-h2">Cars now</h2><p class="gd-p"><b class="gd-ui">Field work</b> &gt; <b class="gd-ui">Cars now</b> shows which cars are out, coming back today and tomorrow, going out in the next 72 hours and free, with no money. The renter&#39;s phone shows only on your own jobs.</p></section><section class="gd-task" id="my-jobs-call-and-text-the-renter" data-gd-task><h2 class="gd-h2">Call and text the renter</h2><p class="gd-p"><b class="gd-ui">Call</b> on a job opens the Quo app with the renter&#39;s number, so the call comes from the CarmaCars number; <b class="gd-ui">Text</b> opens a small window that sends from the CarmaCars number and keeps the text with the booking. Without the Quo app, use <b class="gd-ui">Use this phone</b> in the window that opens.</p><p class="gd-p"><b class="gd-ui">Search:</b> the <b class="gd-ui">Search</b> button at the top finds your jobs by booking number, plate or car.</p></section>');
+-- GUIDES 0602 END
