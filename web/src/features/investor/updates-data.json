@@ -100,6 +100,125 @@
   ]
  },
  {
+  "release": "r28",
+  "title": "Release 28",
+  "date": "2026-11-06",
+  "seq": 0,
+  "summary": "Bookings shown as booked from the moment they are accepted, renter self check-in and checkout, the new logo everywhere, site-wide search and VIN scanning.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "A booking shows as booked as soon as it is accepted, with payment and pickup shown as separate steps",
+     "Renters can do their own check-in and checkout from the booking page in one screen",
+     "Pickup and return photos uploaded many at a time from the camera roll, with a suggested-angles checklist",
+     "Deposits held on the card instead of charged, and released by staff when the trip is settled",
+     "Agreements update with booking changes without signing again"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Pickup and return records with photos when we collect a car from its owner or bring it back",
+     "Owner agreement terms clarified",
+     "Owners can see the cars of owners they referred, without personal details"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Check-in and checkout collapsed into one screen for every staff role",
+     "The offer preview shown right under the send button",
+     "A cleaning fee set in Admin and billable from the booking",
+     "The partner rental agreement filled in completely, with an editable view",
+     "Scan a VIN with the camera or read it from a photo wherever a VIN is entered",
+     "API access and a connector for the founders to update bookings, owners and requests, with every change logged"
+    ]
+   },
+   {
+    "area": "Partners",
+    "items": [
+     "An invoice builder for body shop, towing and storage partners, with sending, reminders and payment tracking"
+    ]
+   },
+   {
+    "area": "Website & search",
+    "items": [
+     "The CarmaCars logo on every page, email, document and app icon",
+     "One search box on the website and in every portal",
+     "Real cars rotating in the home page photos",
+     "Place pages with more local detail, and search engines told about changes right away",
+     "Listing photos in any order, up to 30 at once, framed on the studio background with a light touch-up"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements: the platform learns from past fixes and applies them by itself"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r29",
+  "title": "Release 29",
+  "date": "2026-11-06",
+  "seq": 0,
+  "summary": "A clearer booking money screen with the rental and the deposit collected separately, an Updates page for investors, and repair costs tracked per car.",
+  "areas": [
+   {
+    "area": "Owners",
+    "items": [
+     "Owners can be shown the repair costs and partner credits on their own cars",
+     "Every debit email explains each amount: the car, the fee, the month and how it was worked out"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Staff alerts by email come together in one digest an hour, urgent ones on their own",
+     "The booking money screen in two panels, rental charges and security deposit, each collected on its own",
+     "The deposit can be held on the card on file in one step",
+     "Staff emails about owner payments say what happened, how much and what to do, with one button",
+     "A debit preview before each debit day, with a hold per owner, and a check of each month's owner invoices against the signed terms",
+     "Repair costs recorded per car and per claim, with receipts",
+     "Partner credits and repair costs shown per car, per owner and for the business, with a date range and export"
+    ]
+   },
+   {
+    "area": "Partners",
+    "items": [
+     "An Updates page in the investor portal: every release of the platform and what it added, with search and a filter by area"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements: emails go out at a steady pace within one daily limit",
+     "Job applicants can record their interview answers out loud again"
+    ]
+   }
+  ]
+ },
+ {
+  "release": "r30",
+  "title": "Release 30",
+  "date": "2026-11-06",
+  "seq": 0,
+  "summary": "Interviews for remote assistant roles are now recorded on video, with a time limit per answer and a camera check first.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "Recorded interviews for remote assistant roles now capture each answer on video, with a camera and microphone check first",
+     "Each answer has a set time with a visible countdown; recording stops by itself when the time is up",
+     "Hiring can set the answer time, the retakes allowed and how long interview videos are kept (90 days by default)",
+     "Each answer's video plays beside its transcript and score, and all answers can be watched in one go"
+    ]
+   }
+  ]
+ },
+ {
   "release": "hotfix-2026-11-02",
   "title": "Listing photos update",
   "date": "2026-11-02",

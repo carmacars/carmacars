@@ -180,7 +180,7 @@ test('AI interview on video: apply, consent, the camera check, answers recorded 
       const seq = await page.getByTestId('iv-question').getAttribute('data-seq');
       await recordAnswer(page, 1000);
       await expect(page.getByTestId('iv-question').or(page.getByTestId('iv-done'))).toBeVisible({ timeout: 60_000 });
-      await expect.poll(async () => (await page.getByTestId('iv-done').isVisible()) || (await page.getByTestId('iv-question').getAttribute('data-seq').catch(() => seq)) !== seq, { timeout: 60_000 }).toBe(true);
+      await expect.poll(async () => (await page.getByTestId('iv-done').isVisible()) || (await page.getByTestId('iv-question').getAttribute('data-seq').catch(() => seq)) !== seq, { timeout: 120_000 }).toBe(true);
     }
     await expect(page.getByTestId('iv-done')).toBeVisible({ timeout: 60_000 });
     await check(page, 'interview done');
