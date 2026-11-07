@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { DateInput } from '@/components/DateInput';
 import { activeCount, hrefWith, MAX_CHIPS, type Group, type Opt } from './model';
 import { RememberFilters } from './RememberFilters';
 
@@ -32,8 +33,8 @@ export function ListFilters({ id, base, sp, search, chips, dates, sort, kept = [
           {search && <><label className="vh" htmlFor={`${id}-q`}>{search.placeholder}</label>
             <input className="input" id={`${id}-q`} name="q" type="search" defaultValue={sp.q} placeholder={search.placeholder} data-shortcut="/" /></>}
           {dates && <span className="lf__dates"><span className="small">{dates.label}</span>
-            <label className="vh" htmlFor={`${id}-from`}>From</label><input className="input" id={`${id}-from`} name={dates.from} type="date" defaultValue={sp[dates.from]} />
-            <label className="vh" htmlFor={`${id}-to`}>To</label><input className="input" id={`${id}-to`} name={dates.to} type="date" defaultValue={sp[dates.to]} /></span>}
+            <label className="vh" htmlFor={`${id}-from`}>From</label><DateInput className="input" id={`${id}-from`} name={dates.from} type="date" defaultValue={sp[dates.from]} />
+            <label className="vh" htmlFor={`${id}-to`}>To</label><DateInput className="input" id={`${id}-to`} name={dates.to} type="date" defaultValue={sp[dates.to]} /></span>}
           <button className="btn btn--ghost btn--sm" type="submit">{search ? 'Search' : 'Show'}</button>
         </form>
       )}

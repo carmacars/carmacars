@@ -103,7 +103,7 @@ export default async function StaffCommissions({ searchParams }: { searchParams:
               { name: 'paid_on', label: 'Date paid', type: 'date', required: true, value: data.today }, { name: 'pay_period', label: 'Pay statement month (for the pay statement)', type: 'date' }, { name: 'note', label: 'Note', type: 'text' }]} />}
         </span> }]} />
     </Card>
-    <Filters base={base} name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Pending approval'], ['approved', 'Approved'], ['accruing', 'Not earned yet'], ['paid', 'Paid'], ['reversed', 'Reversed']]} />
+    <Filters base={base} name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Pending approval'], ['approved', 'Approved'], ['accruing', 'Not earned yet'], ['paid', 'Paid']]} />
     <Table<Row & R> testId="commission-list" rows={data.rows as Array<Row & R>} rowKey={(r) => r.id} empty="No commissions with this status." cols={[
       { key: 'name', label: 'Staff member' }, { key: 'booking_number', label: 'Booking', className: 'wrap', render: (r) => <><BookingLink n={r.booking_number} />{r.what ? <span className="ad-sub">{r.what}</span> : null}</> }, { key: 'month_label', label: 'Month' },
       { key: 'rental_days', label: 'Days', num: true, render: (r) => (r.kind === 'commission' ? r.rental_days : '') }, { key: 'base_cents', label: 'Rental charge', num: true, render: (r) => (r.scheme === 'recruit_flat' ? '' : $(r.base_cents)) },

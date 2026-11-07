@@ -1,6 +1,6 @@
-# Release 32 "Simple": fewer pages and tabs, one page per job (audit and plan)
+# Release 31 "Simple" (planned as r32): fewer pages and tabs, one page per job (audit and plan)
 
-Branch `r32` from main (e6aaed93). No migration in the first slice.
+Branch `r31` (first pushed as r32) from main (e6aaed93). Migration 0600 (the guide chapters only; numbered clear of r30 and r31). SCHEMA_MARKER 0600.
 
 ## Plan
 
@@ -122,7 +122,7 @@ investor/sign investor/sign/[id] investor/statements investor/statements/[id]
 - Approve a licence: booking > Drivers & documents (one screen already).
 - Invoice a partner: Referral partners > Invoices (one screen already, r28).
 
-## Filters (the headline of r32)
+## Filters (the headline of the release)
 
 Rule for every list (owner, Nov 7): one search box across fields (name, booking number, plate, phone, email, VIN), one
 row of at most 5 chips (statuses that need action), at most one date range and only where dates matter (bookings,
@@ -179,7 +179,8 @@ the staff queue 3).
 
 ## Guides
 
-No guide change in this slice yet: the chapters that name the booking and vehicle tabs follow when the sections land.
+`admin/requests-offers-and-bookings` (the six sections, the filter bar, the Bookings chips), `admin/fleet-and-listings`
+(Owner & documents), `va/customer-service` (Messages & history). Published by 0600.
 
 ## Filters after (first lists)
 

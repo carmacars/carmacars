@@ -147,6 +147,8 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
       <ClaimBanner />
       {late?.late && <LatePanel l={late} fleet={fn === 'fleet'} refresh={R} />}
       {fn === 'fleet' && ['on_rent', 'returned', 'closed'].includes(b.status) && <p className="small"><Link prefetch={false} className="link" href={`/staff/review/${encodeURIComponent(n)}`} data-testid="photo-review-link">Photo review: pickup and return side by side</Link></p>}
+      {/* r32: the six sections right under the summary */}
+      <Tabs current={`${base}?tab=${section}`} items={tabs} />
       {(section === 'overview' || section === 'car') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} aal={aal} base={base} canHandover={fn !== 'finance'} canSign={fn !== 'finance'}
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       {section === 'activity' && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} aal={aal} refresh={[base]} />}
@@ -164,7 +166,6 @@ export default async function VaBooking({ params, searchParams }: { params: Prom
       {/* what the owner sees of this booking (0156) */}
       {section === 'car' && <OwnerVisibilityPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={R} />}
       {section === 'car' && <BookingCarSection base={base} number={b.booking_number} vehicleId={b.vehicle_id} vehicleName={b.vehicle?.name ?? null} vehicleHref={fn === 'fleet' || fn === 'cs' ? `/staff/vehicles/${b.vehicle_id}` : null} status={b.status} />}
-      <Tabs current={`${base}?tab=${section}`} items={tabs} />
       {on('review') && arranging && (
         <>
           <Card title="The request as sent">

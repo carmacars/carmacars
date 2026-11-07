@@ -154,6 +154,8 @@ export default async function Booking({ params, searchParams }: { params: Promis
         : <NextStepPanel s={step} />}
       <ClaimBanner />
       <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />
+      {/* r32: the six sections right under the summary */}
+      <Tabs current={`${base}?tab=${section}`} items={BOOKING_SECTIONS.map(([k, l]) => [`${base}?tab=${k}`, k === 'overview' && arranging ? 'Overview: review and offer' : l, k === 'extras' ? pendingChanges.length + pendingExt.length : undefined] as [string, string, number?])} />
       {(section === 'overview' || section === 'car') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} base={base} canHandover canSign
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       {section === 'activity' && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} refresh={[base]} />}
@@ -161,7 +163,6 @@ export default async function Booking({ params, searchParams }: { params: Promis
       {/* what the owner sees of this booking (0156) */}
       {section === 'car' && <OwnerVisibilityPanel userId={user.id} booking={b.booking_number} refresh={refresh} />}
       {section === 'car' && <BookingCarSection base={base} number={b.booking_number} vehicleId={b.vehicle_id} vehicleName={b.vehicle?.name ?? null} vehicleHref={`/admin/vehicles/${b.vehicle_id}`} status={b.status} />}
-      <Tabs current={`${base}?tab=${section}`} items={BOOKING_SECTIONS.map(([k, l]) => [`${base}?tab=${k}`, k === 'overview' && arranging ? 'Overview: review and offer' : l, k === 'extras' ? pendingChanges.length + pendingExt.length : undefined] as [string, string, number?])} />
       {on('review') && (
         <>
           <div className="ad-cols ad-cols--2">

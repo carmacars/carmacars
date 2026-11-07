@@ -39,7 +39,7 @@ export default async function ReferralPartners({ searchParams }: { searchParams:
     const r = await read<{ rows: Ledger[] }>('referral_earnings', { status: sp.status ?? '' });
     return (<>{head}{tabs}
       <p className="small muted">A kickback is earned when the rental is completed and paid in full, on the rental charge after discounts. Approve it, then record how you paid it under Partners. A refund or chargeback after payment comes back as a clawback on the next payment. On a program owner&apos;s car it is deducted before Owner Revenue, with the staff commissions; on a partner&apos;s or CarmaCars&apos; own car CarmaCars pays it.</p>
-      <Filters base={`${base}?tab=ledger`} name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Pending approval'], ['approved', 'Approved'], ['accruing', 'Not earned yet'], ['paid', 'Paid'], ['reversed', 'Reversed']]} />
+      <Filters base={`${base}?tab=ledger`} name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Pending approval'], ['approved', 'Approved'], ['accruing', 'Not earned yet'], ['paid', 'Paid']]} />
       <Table<Ledger & R> testId="rp-ledger" rows={r.rows as Array<Ledger & R>} rowKey={(x) => x.id} empty="No kickbacks with this status." cols={[
         { key: 'partner', label: 'Partner', render: (x) => <Link prefetch={false} className="link" href={`/admin/referral-partners/${x.partner_id}`}>{x.partner}</Link> },
         { key: 'booking_number', label: 'Booking', render: (x) => <BookingLink n={x.booking_number} /> }, { key: 'first_name', label: 'Renter' }, { key: 'month', label: 'Month' },

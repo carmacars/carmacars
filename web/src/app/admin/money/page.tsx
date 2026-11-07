@@ -32,7 +32,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
   if (tab === 'refunds') {
     const { rows } = await list('refunds', { eq: sp.status ? { status: sp.status } : {}, limit: 200 });
     return (<><PageHead title="Refunds" />
-      <Filters base="/admin/money?tab=refunds" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Waiting for approval'], ['approved', 'Approved'], ['paid', 'Paid'], ['rejected', 'Rejected'], ['failed', 'Failed']]} />
+      <Filters base="/admin/money?tab=refunds" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['pending_approval', 'Waiting for approval'], ['approved', 'Approved'], ['paid', 'Paid'], ['failed', 'Failed']]} />
       <p className="small muted">Approving is checked against your approval limit and the second-approver rule; the payments module then issues the refund. <Link prefetch={false} className="link" href="/admin/money?tab=day">By day</Link> lists the refunds waiting with the policy maths, decided in the same row.</p>
       <Table<R> testId="refunds" rows={rows} empty="No refunds waiting for approval." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'booking_number', label: 'Booking', render: (r) => <BookingLink n={r.booking_number} /> }, { key: 'reason', label: 'Reason', render: (r) => friendly(REFUND_REASON, r.reason) },
         { key: 'refund_bps', label: '%', num: true, render: (r) => r.refund_bps !== null ? `${Number(r.refund_bps) / 100}%` : '' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },
@@ -57,7 +57,7 @@ export default async function Money({ searchParams }: { searchParams: Promise<Re
   }
   const { rows, count } = await list('payments', { eq: { ...(sp.status ? { status: sp.status } : {}), ...(sp.purpose ? { purpose: sp.purpose } : {}) }, limit: 200 });
   return (<><PageHead title="All payments" kicker={`${count} payments`} purpose="Every payment, newest first. By day has the totals by method and the cash drawer." />
-    <Filters base="/admin/money?tab=payments" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['succeeded', 'Succeeded'], ['pending', 'Pending'], ['authorized', 'Authorized'], ['failed', 'Failed'], ['cancelled', 'Cancelled']]} />
+    <Filters base="/admin/money?tab=payments" name="status" value={sp.status ?? ''} sp={sp} options={[['', 'All'], ['succeeded', 'Succeeded'], ['pending', 'Pending'], ['authorized', 'Authorized'], ['failed', 'Failed']]} />
     <Table<R> testId="payments" rows={rows} empty="No payments." cols={[{ key: 'created_at', label: 'Date', render: (r) => t(r.created_at) }, { key: 'who', label: 'Booking or owner', render: (r) => r.booking_number ? <BookingLink n={r.booking_number} /> : String(r.owner_name ?? '') },
       { key: 'purpose', label: 'For', render: (r) => friendly(PURPOSE_LABEL, r.purpose) }, { key: 'kind', label: 'Kind', render: (r) => friendly(KIND_LABEL, r.kind) }, { key: 'method', label: 'Method', render: (r) => friendly(METHOD_LABEL, r.method) },
       { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> },

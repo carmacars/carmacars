@@ -50,7 +50,8 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
   const { read, list, user } = await page(`/admin/vehicles/${id}`);
   const v = await read<V | null>('vehicle', { id });
   if (!v) notFound();
-  const tab = sp.tab ?? 'overview';
+  // r32: six sections; Rates and Fees are one (an old ?tab=fees opens Rates & fees)
+  const tab = sp.tab === 'fees' ? 'rates' : sp.tab ?? 'overview';
   const base = `/admin/vehicles/${id}`;
   const rc = v.rate_card ?? {};
   const P = { vehicle: id };
@@ -79,7 +80,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
         title={<>{v.name} {v.retired_at ? <Badge s="retired">Retired</Badge> : <Badge s={v.status} />}{usingSamples && <> <Badge s="needs_review">Using sample photos</Badge></>}</>}>
         {slug && v.listing?.status === 'published' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/cars/${slug}`} target="_blank">Public page</Link>}
       </PageHead>
-      <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=overview`, 'Overview'], [`${base}?tab=rates`, 'Rates'], [`${base}?tab=fees`, 'Fees and Protection Plan'], [`${base}?tab=calendar`, 'Calendar'], [`${base}?tab=listing`, 'Listing'], [`${base}?tab=maintenance`, 'Maintenance'], [`${base}?tab=records`, 'Owner, documents, tracker']]} />
+      <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=overview`, 'Overview'], [`${base}?tab=rates`, 'Rates & fees'], [`${base}?tab=calendar`, 'Calendar'], [`${base}?tab=listing`, 'Listing'], [`${base}?tab=maintenance`, 'Maintenance'], [`${base}?tab=records`, 'Owner & documents']]} />
       {tab === 'maintenance' && <CarMaintenancePanel m={await door<CarMaintenance>(user.id, 'ops_read', 'maint_vehicle', { vehicle_id: id })} base="/admin" autoRecord={sp.record === '1'} />}
       {/* 0264: a car added before its VIN or plate: an onboarding draft until one is added */}
       {v.id_pending === true && <div className="alert alert--warn" role="status" data-testid="vehicle-id-needed"><span className="alert__title">VIN or plate needed</span>
@@ -174,7 +175,7 @@ export default async function Vehicle({ params, searchParams }: { params: Promis
             { key: 'monthly_rate_cents', label: 'Monthly (30 days)', num: true, render: (r) => $(r.monthly_rate_cents) }, { key: 'km_allowance_per_day', label: 'Km a day', num: true }, { key: 'overage_cents_per_km', label: 'Extra km', num: true, render: (r) => $(r.overage_cents_per_km) }, { key: 'deposit_cents', label: 'Deposit', num: true, render: (r) => $(r.deposit_cents) }, { key: 'set_by_name', label: 'Set by' }]} /></Card>
         </div>
       )}
-      {tab === 'fees' && (
+      {tab === 'rates' && (
         <div className="stack">
           <Card title="Fees for this car" aside={<Act action="vehicle_deposit" payload={P} label="Deposit tier" fields={[{ name: 'amount_cents', label: 'Deposit', type: 'money', required: true, value: rc.deposit_cents }]} refresh={refresh} />}>
             <Table rows={v.fee_types} rowKey={(r) => r.code} cols={[{ key: 'label', label: 'Fee' }, { key: 'unit', label: 'Per' },
