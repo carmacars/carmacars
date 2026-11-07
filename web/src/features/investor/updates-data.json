@@ -1,5 +1,20 @@
 [
  {
+  "release": "r30-stale",
+  "title": "Update of November 7",
+  "date": "2026-11-07",
+  "seq": 0,
+  "summary": "Reliability improvements to email.",
+  "areas": [
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Reliability improvements: emails that no longer apply are not sent late"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r27b",
   "title": "Release 27b",
   "date": "2026-11-06",
