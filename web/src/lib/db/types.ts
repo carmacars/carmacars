@@ -26923,6 +26923,7 @@ export type Database = {
       server_open_agreement_companion: { Args: { p_booking: string; p_by: string; p_template: string; p_storage_path: string; p_sha256: string }; Returns: string };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
       server_open_by_content: { Args: { p_by: string; p_keys: string[] }; Returns: Json };
+      server_outbox_stale_report: { Args: { p_since?: string }; Returns: Json };
       server_owner_agreement_extras: { Args: { p_owner: string }; Returns: Json };
       server_owner_agreement_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
       server_owner_agreement_preview_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };

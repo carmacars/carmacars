@@ -15,6 +15,9 @@ select test.mk_vehicle('ODASHARE', 'oda_olga', 'managed', 45000, 2500, 9000, dat
 select test.mk_vehicle('ODAFLAT', 'oda_olga', 'managed', 45000, 2500, 3500, date '2026-09-01');
 select test.mk_vehicle('ODAZERO', 'oda_olga', 'managed', 0, 0, 3500, date '2026-09-01');
 select test.mk_vehicle('ODACO', 'oda_olga', 'managed', 45000, 2500, 3500, date '2026-09-01');
+-- no tracker installed yet: no Tracker Fee (0239); the fee check agrees (0601)
+select test.mk_vehicle('ODANOTRK', 'oda_olga', 'managed', 45000, 2500, 3500, date '2026-09-01');
+update vehicles set tracker_installed_on = null where id = test.id('vehicle:ODANOTRK');
 update vehicles set supply_type = 'company' where id = test.id('vehicle:ODACO');
 select app.door(test.id('oda_admin'), 'aal2', 'ops_do', 'car_pay_set', jsonb_build_object('vehicle_id', test.id('vehicle:ODAFLAT'), 'arrangement', 'flat_monthly',
   'monthly_cents', 90000, 'from', '2026-09-01', 'reason', 'Cohost wants a flat amount'));
@@ -22,11 +25,12 @@ select app.door(test.id('oda_admin'), 'aal2', 'ops_do', 'car_pay_set', jsonb_bui
 select app.generate_owner_invoices(date '2026-11-15');
 create temp table oda_inv as
   select v.plate_label, i.* from owner_invoices i
-    join (values ('ODAFULL'), ('ODAPART'), ('ODATURO'), ('ODASHARE'), ('ODAFLAT'), ('ODAZERO'), ('ODACO')) v(plate_label) on i.vehicle_id = test.id('vehicle:' || v.plate_label)
+    join (values ('ODAFULL'), ('ODAPART'), ('ODATURO'), ('ODASHARE'), ('ODAFLAT'), ('ODAZERO'), ('ODACO'), ('ODANOTRK')) v(plate_label) on i.vehicle_id = test.id('vehicle:' || v.plate_label)
    where i.kind = 'monthly' and i.period_month = date '2026-11-01' and i.status <> 'void';
 
 select test.eq('a flat-rate or no-fee plan is never invoiced a monthly fee: only the two cars with fees are',
-  (select string_agg(plate_label, ',' order by plate_label) from oda_inv), 'ODAFULL,ODAPART');
+  (select string_agg(plate_label, ',' order by plate_label) from oda_inv), 'ODAFULL,ODANOTRK,ODAPART');
+select test.eq('no tracker installed: the Insurance Fee only', (select fees_cents from oda_inv where plate_label = 'ODANOTRK'), 45000::bigint);
 select test.eq('the car enrolled on the 11th: 20 of 30 days', (select days_billed || '/' || days_in_month from oda_inv where plate_label = 'ODAPART'), '20/30');
 
 -- ================================================================ the plain line
@@ -47,16 +51,16 @@ begin
 end $$;
 update owner_invoices set status = 'issued', issued_at = now() where id in (select id from oda_inv) and status = 'draft';
 select test.ok('the owner''s email: each amount with its car, fee, period, how and link',
-  (select bool_and(e ? 'line' and e ? 'how' and e ? 'url' and e ? 'period') and count(*) = 2
+  (select bool_and(e ? 'line' and e ? 'how' and e ? 'url' and e ? 'period') and count(*) = 3
      from jsonb_array_elements(test.oda_payload('owner_debit_setup_needed', null) -> 'debit_items') e));
 select test.ok('the staff email too, with the Admin link',
-  (select bool_and(e ->> 'url' like '%/admin/owners/%') and count(*) = 2 from jsonb_array_elements(test.oda_payload('staff_owner_debit_exception', 'no_mandate') -> 'debit_items') e));
+  (select bool_and(e ->> 'url' like '%/admin/owners/%') and count(*) = 3 from jsonb_array_elements(test.oda_payload('staff_owner_debit_exception', 'no_mandate') -> 'debit_items') e));
 
 -- ================================================================ the fee check
 create temp table oda_ref as select 'owner ' || left(md5(test.id('owner:oda_olga')::text), 6) as ref;
 create temp table oda_audit as select app.owner_fee_audit(date '2026-11-01') a;
-select test.eq('the fee check lists the owner''s November invoices', (select count(*) from oda_audit, jsonb_array_elements(a -> 'rows') e, oda_ref where e ->> 'owner' = ref and e ->> 'kind' = 'monthly'), 2::bigint);
-select test.eq('and finds nothing wrong with them', (select count(*) from oda_audit, jsonb_array_elements(a -> 'problems') e, oda_ref where e ->> 'owner' = ref), 0::bigint);
+select test.eq('the fee check lists the owner''s November invoices', (select count(*) from oda_audit, jsonb_array_elements(a -> 'rows') e, oda_ref where e ->> 'owner' = ref and e ->> 'kind' = 'monthly'), 3::bigint);
+select test.eq('and finds nothing wrong with them (no Tracker Fee before the tracker is installed, as billed)', (select count(*) from oda_audit, jsonb_array_elements(a -> 'problems') e, oda_ref where e ->> 'owner' = ref), 0::bigint);
 select test.ok('it never names an owner', (select not (a::text ~* 'oda olga|oda_olga|example\.test') from oda_audit));
 -- an invoice that should not be: a monthly fee on the Turo-Only car and on the flat car, and a wrong amount (written
 -- around the invoice rules, as a bad production row would be)
@@ -86,5 +90,5 @@ reset session_replication_role;
 create temp table oda_prev as select app.door(test.id('oda_fin'), 'aal2', 'ops_read', 'owner_debit_preview', jsonb_build_object('on', '2026-11-15')) p;
 select test.eq('each owner: the invoices, why each is charged, whether a bank debit is set up',
   (select jsonb_array_length(o -> 'invoices') || ':' || (o ->> 'debit_set_up') || ':' || ((o -> 'invoices' -> 0) ? 'how')::text
-     from oda_prev, jsonb_array_elements(p -> 'owners') o where (o ->> 'id')::uuid = test.id('owner:oda_olga')), '2:false:true');
+     from oda_prev, jsonb_array_elements(p -> 'owners') o where (o ->> 'id')::uuid = test.id('owner:oda_olga')), '3:false:true');
 select test.throws('Sales do not see it', format($$select app.door(%L, 'aal2', 'ops_read', 'owner_debit_preview', '{}')$$, test.id('oda_sales')), 'Not permitted');
