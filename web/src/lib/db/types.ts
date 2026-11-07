@@ -4388,6 +4388,9 @@ export type Database = {
           opened_by: string | null;
           created_at: string;
           updated_at: string;
+          fleet_terms_id: string | null;
+          fleet_share_bps: number | null;
+          fleet_service_months: number | null;
         };
         Insert: {
           id?: string;
@@ -4432,6 +4435,9 @@ export type Database = {
           opened_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          fleet_terms_id?: string | null;
+          fleet_share_bps?: number | null;
+          fleet_service_months?: number | null;
         };
         Update: {
           id?: string;
@@ -4476,6 +4482,9 @@ export type Database = {
           opened_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          fleet_terms_id?: string | null;
+          fleet_share_bps?: number | null;
+          fleet_service_months?: number | null;
         };
         Relationships: [];
       };
@@ -11034,6 +11043,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      owner_agreement_sends: {
+        Row: {
+          id: string;
+          owner_id: string;
+          doc_key: string;
+          referral_link_id: string | null;
+          to_address: string;
+          outbox_id: string | null;
+          sent_by: string | null;
+          sent_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          doc_key: string;
+          referral_link_id?: string | null;
+          to_address: string;
+          outbox_id?: string | null;
+          sent_by?: string | null;
+          sent_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          doc_key?: string;
+          referral_link_id?: string | null;
+          to_address?: string;
+          outbox_id?: string | null;
+          sent_by?: string | null;
+          sent_at?: string;
+        };
+        Relationships: [];
+      };
       owner_agreements: {
         Row: {
           id: string;
@@ -11281,6 +11323,7 @@ export type Database = {
           created_at: string;
           flat_arrangement_id: string | null;
           flat_month: string | null;
+          claim_id: string | null;
         };
         Insert: {
           id?: string;
@@ -11297,6 +11340,7 @@ export type Database = {
           created_at?: string;
           flat_arrangement_id?: string | null;
           flat_month?: string | null;
+          claim_id?: string | null;
         };
         Update: {
           id?: string;
@@ -11313,6 +11357,7 @@ export type Database = {
           created_at?: string;
           flat_arrangement_id?: string | null;
           flat_month?: string | null;
+          claim_id?: string | null;
         };
         Relationships: [];
       };
@@ -11520,6 +11565,8 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           booking_owner_expense_id: string | null;
+          upkeep_cost_type: string | null;
+          upkeep_ref: string | null;
         };
         Insert: {
           id?: string;
@@ -11538,6 +11585,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           booking_owner_expense_id?: string | null;
+          upkeep_cost_type?: string | null;
+          upkeep_ref?: string | null;
         };
         Update: {
           id?: string;
@@ -11556,6 +11605,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           booking_owner_expense_id?: string | null;
+          upkeep_cost_type?: string | null;
+          upkeep_ref?: string | null;
         };
         Relationships: [];
       };
@@ -11586,6 +11637,60 @@ export type Database = {
           revenue_share_bps?: number;
           tracker_fee_cents?: number;
           effective_from?: string;
+        };
+        Relationships: [];
+      };
+      owner_fleet_lease_terms: {
+        Row: {
+          id: string;
+          owner_id: string;
+          regular_cents: number;
+          troubled_cents: number;
+          claim_profit_bps: number;
+          early_writeoff_bps: number;
+          writeoff_months: number;
+          later_writeoff_bps: number;
+          notice_days: number;
+          effective_from: string;
+          effective_to: string | null;
+          awaiting_signature: boolean;
+          note: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          regular_cents: number;
+          troubled_cents: number;
+          claim_profit_bps: number;
+          early_writeoff_bps: number;
+          writeoff_months: number;
+          later_writeoff_bps: number;
+          notice_days: number;
+          effective_from: string;
+          effective_to?: string | null;
+          awaiting_signature?: boolean;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          regular_cents?: number;
+          troubled_cents?: number;
+          claim_profit_bps?: number;
+          early_writeoff_bps?: number;
+          writeoff_months?: number;
+          later_writeoff_bps?: number;
+          notice_days?: number;
+          effective_from?: string;
+          effective_to?: string | null;
+          awaiting_signature?: boolean;
+          note?: string | null;
+          created_by?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -12094,6 +12199,10 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          agreement_status: string;
+          agreement_signed_at: string | null;
+          agreement_method: string | null;
+          agreement_document_id: string | null;
         };
         Insert: {
           id?: string;
@@ -12107,6 +12216,10 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          agreement_status?: string;
+          agreement_signed_at?: string | null;
+          agreement_method?: string | null;
+          agreement_document_id?: string | null;
         };
         Update: {
           id?: string;
@@ -12120,6 +12233,10 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          agreement_status?: string;
+          agreement_signed_at?: string | null;
+          agreement_method?: string | null;
+          agreement_document_id?: string | null;
         };
         Relationships: [];
       };
@@ -12471,6 +12588,30 @@ export type Database = {
           note?: string | null;
           created_by?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      owner_upkeep_split: {
+        Row: {
+          owner_id: string;
+          cost_type: string;
+          party: string;
+          set_by: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          owner_id: string;
+          cost_type: string;
+          party: string;
+          set_by?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          owner_id?: string;
+          cost_type?: string;
+          party?: string;
+          set_by?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -15447,6 +15588,8 @@ export type Database = {
           licence_auto_approve: boolean;
           licence_primary_ontario: boolean;
           licence_auto_approver: string | null;
+          fleet_lease_agreements_awaiting_lawyer: boolean;
+          referral_agreements_awaiting_lawyer: boolean;
         };
         Insert: {
           id?: string;
@@ -16074,6 +16217,8 @@ export type Database = {
           licence_auto_approve?: boolean;
           licence_primary_ontario?: boolean;
           licence_auto_approver?: string | null;
+          fleet_lease_agreements_awaiting_lawyer?: boolean;
+          referral_agreements_awaiting_lawyer?: boolean;
         };
         Update: {
           id?: string;
@@ -16701,6 +16846,8 @@ export type Database = {
           licence_auto_approve?: boolean;
           licence_primary_ontario?: boolean;
           licence_auto_approver?: string | null;
+          fleet_lease_agreements_awaiting_lawyer?: boolean;
+          referral_agreements_awaiting_lawyer?: boolean;
         };
         Relationships: [];
       };
@@ -19268,6 +19415,7 @@ export type Database = {
           voided_by: string | null;
           void_reason: string | null;
           vehicle_id: string | null;
+          referral_link_id: string | null;
         };
         Insert: {
           id?: string;
@@ -19297,6 +19445,7 @@ export type Database = {
           voided_by?: string | null;
           void_reason?: string | null;
           vehicle_id?: string | null;
+          referral_link_id?: string | null;
         };
         Update: {
           id?: string;
@@ -19326,6 +19475,7 @@ export type Database = {
           voided_by?: string | null;
           void_reason?: string | null;
           vehicle_id?: string | null;
+          referral_link_id?: string | null;
         };
         Relationships: [];
       };
@@ -23583,6 +23733,8 @@ export type Database = {
           cancelled_by: string | null;
           cancelled_at: string | null;
           cancelled_reason: string | null;
+          lease_tier: string | null;
+          fleet_terms_id: string | null;
         };
         Insert: {
           id?: string;
@@ -23601,6 +23753,8 @@ export type Database = {
           cancelled_by?: string | null;
           cancelled_at?: string | null;
           cancelled_reason?: string | null;
+          lease_tier?: string | null;
+          fleet_terms_id?: string | null;
         };
         Update: {
           id?: string;
@@ -23619,6 +23773,8 @@ export type Database = {
           cancelled_by?: string | null;
           cancelled_at?: string | null;
           cancelled_reason?: string | null;
+          lease_tier?: string | null;
+          fleet_terms_id?: string | null;
         };
         Relationships: [];
       };
@@ -23954,6 +24110,7 @@ export type Database = {
           voided_at: string | null;
           voided_by: string | null;
           void_reason: string | null;
+          cost_type: string | null;
         };
         Insert: {
           id?: string;
@@ -23974,6 +24131,7 @@ export type Database = {
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
+          cost_type?: string | null;
         };
         Update: {
           id?: string;
@@ -23994,6 +24152,7 @@ export type Database = {
           voided_at?: string | null;
           voided_by?: string | null;
           void_reason?: string | null;
+          cost_type?: string | null;
         };
         Relationships: [];
       };
@@ -26659,7 +26818,6 @@ export type Database = {
       owner_witnessed_forms: { Args: { p_by: string }; Returns: Json };
       partner_agreement_facts: { Args: { p_by: string }; Returns: Json };
       partner_agreement_open: { Args: { p_by: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
-      referral_agreement_open: { Args: { p_by: string; p_link: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       partner_agreement_state: { Args: { p_by: string }; Returns: Json };
       partner_referral_code_ok: { Args: { p_code: string }; Returns: boolean };
       place_directory_index: { Args: never; Returns: Json };
@@ -26675,6 +26833,7 @@ export type Database = {
       quote_booking: { Args: { p_vehicle: string; p_pickup: string; p_return: string; p_options?: Json }; Returns: Json };
       record_cookie_choice: { Args: { p_visitor_id: string; p_choice: string; p_wording_version: string; p_analytics?: boolean; p_user_agent?: string }; Returns: Json };
       record_cookie_notice: { Args: { p_visitor_id: string; p_wording_version: string; p_region?: string; p_user_agent?: string }; Returns: Json };
+      referral_agreement_open: { Args: { p_by: string; p_link: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       referral_partner_code_ok: { Args: { p_code: string }; Returns: boolean };
       referral_program_public: { Args: never; Returns: Json };
       register_account: { Args: { p_user: string; p_email: string; p_full_name: string; p_phone?: string }; Returns: Json };
@@ -26945,8 +27104,6 @@ export type Database = {
       server_owner_program_facts: { Args: never; Returns: Json };
       server_owner_record_debit_setup: { Args: { p_by: string; p: Json }; Returns: Json };
       server_owner_referred_cars: { Args: { p_by: string }; Returns: Json };
-      server_referral_agreement_facts: { Args: { p_by: string; p_link: string }; Returns: Json };
-      server_referral_agreements: { Args: { p_by: string }; Returns: Json };
       server_owner_review: { Args: { p_by: string }; Returns: Json };
       server_owner_review_correct: { Args: { p_by: string; p: Json }; Returns: Json };
       server_owner_sales_credit: { Args: { p_application: string; p_staff: string; p_lead?: string }; Returns: Json };
@@ -27031,6 +27188,8 @@ export type Database = {
       server_record_booking_payment: { Args: { p_booking: string; p_processor: Json; p_amount_cents: number; p_offer_version: number; p_card: Json; p_event_id: string; p_by: string }; Returns: Json };
       server_record_owner_invoice_payment: { Args: { p_invoice: string; p: Json; p_by?: string }; Returns: Json };
       server_record_vin_decode: { Args: { p_vin: string; p_provider: string; p_output: Json }; Returns: Json };
+      server_referral_agreement_facts: { Args: { p_by: string; p_link: string }; Returns: Json };
+      server_referral_agreements: { Args: { p_by: string }; Returns: Json };
       server_referral_partner_portal: { Args: { p_partner: string }; Returns: Json };
       server_referral_partner_signup: { Args: { p: Json; p_ip?: string }; Returns: Json };
       server_renter_ask_reopen: { Args: { p_number: string; p_by?: string; p_pickup?: string }; Returns: Json };
