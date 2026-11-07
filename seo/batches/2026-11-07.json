@@ -1,0 +1,83 @@
+{
+  "batch": "2026-11-07",
+  "items": [
+    {
+      "kind": "car",
+      "id": "443db7d7-8cc0-49a8-916a-510621e17047",
+      "prompt_version": "car-copy-v2",
+      "copy": {
+        "intro": "Room for eight, with a third row and four-wheel drive. A practical pick when the whole family needs one vehicle for the weekend.",
+        "highlights": [
+          "Third-row seating",
+          "Four-wheel drive",
+          "Adaptive cruise control",
+          "Blind spot assist",
+          "Automatic emergency braking",
+          "Backup camera"
+        ],
+        "good_for": [
+          "Family visits with the whole group",
+          "Airport runs with extra passengers",
+          "Winter weekends out of the city"
+        ],
+        "faq": [
+          {
+            "question": "How many seats does the Palisade have?",
+            "answer": "Eight seats, including a third row, so a large group can travel together in one car."
+          },
+          {
+            "question": "Does it have four-wheel drive?",
+            "answer": "Yes. It is four-wheel drive, which helps with grip on snowy and slushy roads."
+          },
+          {
+            "question": "What driver aids does it have?",
+            "answer": "Adaptive cruise control, lane keeping assist, blind spot assist and automatic emergency braking."
+          },
+          {
+            "question": "Can I have it delivered?",
+            "answer": "Yes. You can collect it from us or have it delivered to your address. The delivery fee is shown on the booking page."
+          }
+        ],
+        "alt_texts": {}
+      }
+    },
+    {
+      "kind": "car",
+      "id": "d3bded5d-3730-4b37-a67e-b816c106bca5",
+      "prompt_version": "car-copy-v2",
+      "copy": {
+        "intro": "A compact blue SUV with four-wheel drive and a simple, easy-to-drive setup. Handy for city errands and weekends out of town.",
+        "highlights": [
+          "Four-wheel drive",
+          "Bluetooth",
+          "Air conditioning",
+          "Cruise control"
+        ],
+        "good_for": [
+          "Errands and trips around Toronto",
+          "Weekly and monthly rentals",
+          "Winter days when grip matters"
+        ],
+        "faq": [
+          {
+            "question": "Is the Jeep Patriot four-wheel drive?",
+            "answer": "Yes. This Patriot Sport is four-wheel drive, which helps on wet and snowy roads."
+          },
+          {
+            "question": "What engine does it have?",
+            "answer": "A 2.4 L four-cylinder gas engine."
+          },
+          {
+            "question": "Does it have Bluetooth and cruise control?",
+            "answer": "Yes. It has Bluetooth, cruise control and air conditioning."
+          },
+          {
+            "question": "Can I rent it by the week or month?",
+            "answer": "Yes. Weekly and monthly rentals are available. Send a request and we confirm before you pay."
+          }
+        ],
+        "alt_texts": {}
+      }
+    }
+  ]
+}

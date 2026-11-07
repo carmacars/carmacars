@@ -1,0 +1,45 @@
+{
+  "batch": "2026-11-07-2",
+  "items": [
+    {
+      "kind": "car",
+      "id": "443db7d7-8cc0-49a8-916a-510621e17047",
+      "prompt_version": "car-copy-v2",
+      "copy": {
+        "intro": "Seats for eight and a roomy cabin, with power to every wheel. A sensible pick when the whole family needs one vehicle for the weekend.",
+        "highlights": [
+          "Third-row seating",
+          "Adaptive cruise control",
+          "Blind spot assist",
+          "Lane keeping assist",
+          "Automatic emergency braking",
+          "Backup camera"
+        ],
+        "good_for": [
+          "Family visits with the whole group",
+          "Airport runs with extra passengers",
+          "Winter weekends out of the city"
+        ],
+        "faq": [
+          {
+            "question": "How many seats does the Palisade have?",
+            "answer": "It has 8 seats with third-row seating, so a large group can travel together in one car."
+          },
+          {
+            "question": "Is it good on snowy roads?",
+            "answer": "It sends power to every wheel, which helps with grip on snowy and slushy roads."
+          },
+          {
+            "question": "What driver aids does it have?",
+            "answer": "Adaptive cruise control, lane keeping assist, blind spot assist and automatic emergency braking."
+          },
+          {
+            "question": "Can I have it delivered?",
+            "answer": "Yes. You can collect it from us or have it delivered to your address. The delivery fee is shown on the booking page."
+          }
+        ],
+        "alt_texts": {}
+      }
+    }
+  ]
+}
