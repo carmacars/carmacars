@@ -173,7 +173,7 @@ async function pressToggles(page, errors) {
   const out = [];
   for (let i = 0; i < Math.min(n, 8); i++) {
     const b = page.locator('button[aria-expanded]:visible, button[aria-haspopup]:visible').nth(i);
-    const label = ((await b.textContent().catch(() => '')) || (await b.getAttribute('aria-label')) || '').trim().slice(0, 50);
+    const label = ((await b.textContent().catch(() => '')) || (await b.getAttribute('aria-label', { timeout: 3000 }).catch(() => '')) || '').trim().slice(0, 50);
     const before = await page.evaluate(() => document.body.innerHTML.length + ':' + document.querySelectorAll('dialog[open], [aria-expanded="true"]').length).catch(() => '');
     const errs = errors.length;
     try { await b.click({ timeout: 3000 }); } catch { continue; }
@@ -238,7 +238,7 @@ async function overlayOverflow(page) {
   };
   for (let i = 0; i < Math.min(n, 8); i++) {
     const b = page.locator('button[aria-expanded]:visible, button[aria-haspopup]:visible').nth(i);
-    const label = ((await b.textContent().catch(() => '')) || (await b.getAttribute('aria-label')) || '').trim().slice(0, 40);
+    const label = ((await b.textContent().catch(() => '')) || (await b.getAttribute('aria-label', { timeout: 3000 }).catch(() => '')) || '').trim().slice(0, 40);
     try { await b.click({ timeout: 3000 }); } catch { continue; }
     await page.waitForTimeout(450); // past the opening animation
     const o = await overflow(page);

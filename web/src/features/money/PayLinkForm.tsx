@@ -93,7 +93,7 @@ export function PayLinkForm({ token, kind, amountCents, legalName, backTo = null
             <div className="field"><label className="label" htmlFor="pl-cvc">Security code</label><input className="input" id="pl-cvc" inputMode="numeric" autoComplete="cc-csc" value={card.cvc} onChange={(e) => setCard({ ...card, cvc: e.target.value })} /></div>
           </div>
         </div>
-      ) : <div className="pt-cardbox" ref={mount} aria-label="Card details">{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
+      ) : <div className="pt-cardbox" ref={mount} role="group" aria-label="Card details">{!p && <div className="skeleton sk-line" aria-hidden="true" />}</div>}
       {debitOk && kind !== 'setup' && <p className="small muted" data-testid="paylink-debit-note">With a debit or prepaid card, {kind === 'hold' ? 'this hold lowers' : 'a deposit hold lowers'} the money available on the card or account until it is released, and the release can take several business days.{debitDepositCents ? ` The deposit is ${money(debitDepositCents, { cents: true })} with a debit or prepaid card.` : ''}</p>}
       {msg && <p className="alert alert--error" role="alert" data-testid="paylink-message"><span>{msg}</span></p>}
       <button className="btn btn--primary btn--lg btn--block" type="submit" disabled={!p || busy} data-testid="paylink-submit">{busy ? 'Working' : kind === 'hold' ? `Place the hold of ${money(amountCents, { cents: true })}` : kind === 'setup' ? 'Save the card' : `Pay ${money(amountCents, { cents: true })}`}</button>

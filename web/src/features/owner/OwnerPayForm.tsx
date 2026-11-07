@@ -165,7 +165,7 @@ export function OwnerPayForm({ number, amountCents, ownerType, hasDebit, terms }
             {input('ccvc', 'Security code', card.cvc, (v) => setCard({ ...card, cvc: v }), { inputMode: 'numeric', autoComplete: 'cc-csc', placeholder: '123' })}
           </div>
         </div>
-      ) : <div className="pt-cardbox" ref={mount} aria-label="Card details" />)}
+      ) : <div className="pt-cardbox" ref={mount} role="group" aria-label="Card details" />)}
       {method === 'acss_debit' && p && (
         <>
           {p.provider === 'fake' ? (
