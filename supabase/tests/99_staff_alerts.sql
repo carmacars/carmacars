@@ -47,6 +47,10 @@ select test.eq('an unknown rule makes no alert', app.staff_alert('no_such_rule',
 
 -- the phone: urgent at once; normal waits for the staff quiet hours; digest never; the topic is the rule's
 select test.sta_sub('sta_admin1', test.id('sta_admin'), 'admin');
+-- earlier files' payments make payment_received alerts within the burst window, and a burst sends no push of its own
+-- (0466): their alerts are moved out of the window, so this one is the first
+update app_events set created_at = created_at - interval '1 day'
+ where code like 'staff\_alert\_%' and payload ->> 'rule' in ('payment_received', 'review_low', 'toll_received') and created_at > now() - interval '1 day';
 select test.eq('a normal alert is held to the end of the quiet hours when it comes in them; an urgent one never',
   (select app.sms_quiet_end(timestamptz '2030-01-02 03:00+00') > timestamptz '2030-01-02 03:00+00'), true);
 select app.staff_alert('payment_received', 'sa', test.id('sta_p1'), 'ok', 'Payment received: sa', 'b');
