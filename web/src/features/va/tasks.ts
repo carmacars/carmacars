@@ -34,8 +34,8 @@ export function taskHref(t: Task): string {
   if (['owner_intake', 'check_owner_document', 'enquiry', 'lost_property'].includes(t.task_type)) return '/staff/leads';
   if (['turo_expiry', 'safety_certificate_window', 'plate_renewal', 'book_registry'].includes(t.task_type)) return '/staff/fleet#expiry';
   // maintenance (0089): the car's Maintenance with the record pop-up open
-  if (['maintenance_due', 'maintenance_backfill'].includes(t.task_type) && t.vehicle_id) return `/staff/vehicles/${t.vehicle_id}?record=1#maintenance`;
-  if (t.task_type === 'maintenance_bill' && t.vehicle_id) return `/staff/vehicles/${t.vehicle_id}#maintenance`;
+  if (['maintenance_due', 'maintenance_backfill'].includes(t.task_type) && t.vehicle_id) return `/staff/vehicles/${t.vehicle_id}?tab=maintenance&record=1`;
+  if (t.task_type === 'maintenance_bill' && t.vehicle_id) return `/staff/vehicles/${t.vehicle_id}?tab=maintenance`;
   return `/staff/tasks/${t.id}`;
 }
 

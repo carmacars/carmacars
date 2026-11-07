@@ -6,7 +6,7 @@ import { GameLeads, GameReportTiles, type GameLeadsData } from '@/features/games
 
 // People > Renters > Leads (migration 0069; r27: a tab of Renters, /admin/leads redirects): contacts typed into the site's
 // forms, the discount game leads and the game's report.
-export async function Leads({ ctx: { read }, sp }: { ctx: AdminPage; sp: Record<string, string | undefined> }) {
+export async function Leads({ ctx: { read }, sp }: { ctx: Pick<AdminPage, 'read'>; sp: Record<string, string | undefined> }) {
   const [d, cap] = await Promise.all([read<GameLeadsData>('game_leads', { q: sp.q, status: sp.status, days: 30 }),
     read<CapturedData>('captured_contacts', { q: sp.q, days: 30 }).catch(() => ({ open: 0, rows: [] }))]);
   return (<><PageHead title="Renter leads" purpose="People who are not renters yet: contact details typed into the site's forms, and discount game leads." />

@@ -1,6 +1,6 @@
 # Release 31 "Simple" (planned as r32): fewer pages and tabs, one page per job (audit and plan)
 
-Branch `r31` (first pushed as r32) from main (e6aaed93). Migration 0600 (the guide chapters only; numbered clear of r30 and r31). SCHEMA_MARKER 0600.
+Branch `r31` (first pushed as r32) from main (e6aaed93). Migrations 0600 (the guide chapters; numbered clear of r30 and r31) and 0620 (the Fleet alert link; clear of 0601-0619, the licence reader). SCHEMA_MARKER 0620.
 
 ## Plan
 
@@ -130,8 +130,12 @@ bounce staff at the Admin gate, and the staff layout is what puts every button o
 | Object | Shared component | Loader | Staff address |
 |---|---|---|---|
 | Booking | `features/booking-page/BookingPage.tsx` | `features/shared-pages/context.ts` (adminCtx, staffCtx) | renders it |
-| Vehicle | `features/vehicle-page/VehiclePage.tsx` | the same | renders it (one section for staff) |
+| Vehicle | `features/vehicle-page/VehiclePage.tsx` | the same | renders it (the Admin's tabs the function uses) |
 | Listing review | `features/listing-page/ListingPage.tsx` | the same | renders it |
+| Requests queue | `features/requests-page/RequestsPage.tsx` | the same | renders it |
+| Bookings (Now, All, Find a booking) | `features/bookings-page/BookingsPage.tsx` | the same | renders it |
+| Renters (Find a renter for staff) | `features/renters-page/RentersPage.tsx` | the same | renders it |
+| Add a car for an owner | `features/add-owner-car-page/AddOwnerCarPage.tsx` | the same | renders it |
 | Handover job, photo report, sign now | `features/handover/*` (already shared) | | unchanged |
 
 Who sees what: `features/shared-pages/viewer.ts` (`bookingCan`, `vehicleCan`, `listingCan`), the same as each staff
@@ -139,12 +143,25 @@ copy at 2a7ed386. Small unifications: Withdraw the offer asks the same confirmat
 and customer service get a link to the car on the booking's Trip card (they could open the car already); the
 Cancel for the renter payload names `renter_request` for an Admin too (the database default, so no change).
 
-Not done (each its own move, in this order): requests queue and Bookings list (the queue's claim and timer),
-renters, owners and owners/add-car, money and owner money, payments and reconciliation, tolls (4 routes), live,
-visitors and chat, calendar and calendar-sync, maintenance, marketing, leads, reviews, messages, alerts, chauffeur,
-offers/new and bookings/new, similar cars, academy, guide, no-access. The vehicle page's staff view moves to tabs
-once the task links stop using `#maintenance` (owner's call: one line in `features/va/tasks.ts` and the maintenance
-views).
+The vehicle page's staff view has the Admin's tabs the function uses (Fleet: Overview, Rates & fees, Listing,
+Maintenance, Documents; customer service: Overview, Listing, Documents; Finance: Maintenance). Old `#maintenance` links
+move to the tab in the browser (`vehicle-page/HashTab`), `?record=1` without a tab opens Maintenance, and the task and
+maintenance links now carry `?tab=maintenance` (`va/tasks.ts`, `maintenance/Views.tsx`).
+
+The Bookings and Renters pages keep two shapes in one component: staff search with every search logged and no full
+list (05-va.md section 4.4), an Admin sees the lists. That difference is the access rule, not a copy.
+
+Fleet alert link (0620): "a listing waits for review" linked `/staff/listings/<car id>`, a 404 (that page takes a listing
+review id). The link template and the links already written (notifications, digest items, push outbox; only car ids)
+now open `/staff/vehicles/<id>?tab=listing`. SCHEMA_MARKER 0620.
+
+Access check for every merged page: what each role sees (test ids, headings, buttons) on the old build (2a7ed386)
+and the new one, compared (`tests/e2e/shared-pages.spec.ts`, FINGERPRINT_OUT).
+
+Not done (each its own move, in this order): owners and owners/[id] (Admin only today; staff have no owner page),
+money and owner money, payments and reconciliation, tolls (4 routes), live, visitors and chat, calendar and
+calendar-sync, maintenance, marketing, leads, reviews, messages, alerts, chauffeur, offers/new and bookings/new,
+similar cars, academy, guide, no-access.
 
 ## Filters (the headline of the release)
 
@@ -204,7 +221,7 @@ the staff queue 3).
 ## Guides
 
 `admin/requests-offers-and-bookings` (the six sections, the filter bar, the Bookings chips), `admin/fleet-and-listings`
-(Owner & documents), `va/customer-service` (Messages & history), `va/shared-tools` (the shared booking, car and listing pages). Published by 0600.
+(Owner & documents), `va/customer-service` (Messages & history), `va/shared-tools` (the shared booking, car and listing pages, the car page tabs), `va/fleet` (Rates & fees tab). Published by 0600.
 
 ## Filters after (first lists)
 

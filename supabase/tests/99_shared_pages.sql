@@ -67,3 +67,9 @@ select test.throws('listing: Finance does not review listings',
   format($$select public.door(%L, null, 'va_read', 'listing', jsonb_build_object('id', %L, '_va', 'finance'))$$, test.id('shp_fin'), test.id('intake:shpV')), 'Listings are reviewed by customer service and fleet');
 select test.throws('listing: nor does Sales',
   format($$select public.door(%L, null, 'va_read', 'listing', jsonb_build_object('id', %L, '_va', 'sales'))$$, test.id('shp_sales'), test.id('intake:shpV')), 'Listings are reviewed by customer service and fleet');
+
+-- ---------------------------------------------------------------- the Fleet alert's link (0620)
+select test.ok('link: "a listing waits for review" opens the car''s page on its Listing tab, which staff can open',
+  app.ntf_link('va_fleet_listing', jsonb_build_object('vehicle_id', test.id('vehicle:shpV'))) like '%/staff/vehicles/' || test.id('vehicle:shpV') || '?tab=listing');
+select test.eq('link: no notification template links a car id to the listing review page',
+  (select count(*) from notification_catalogue where link_path = '/staff/listings/{{vehicle_id}}'), 0::bigint);

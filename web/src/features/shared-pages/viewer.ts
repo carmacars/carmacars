@@ -169,5 +169,9 @@ export function listingCan(v: Viewer): ListingCan | null {
 export const STAFF_SHARED: Record<string, { admin: string; shared: string }> = {
   '/staff/bookings/[number]': { admin: '/admin/bookings/[number]', shared: 'features/booking-page/BookingPage' },
   '/staff/vehicles/[id]': { admin: '/admin/vehicles/[id]', shared: 'features/vehicle-page/VehiclePage' },
-  '/staff/listings/[id]': { admin: '/admin/listings/[id]', shared: 'features/listing-page/ListingPage' }
+  '/staff/listings/[id]': { admin: '/admin/listings/[id]', shared: 'features/listing-page/ListingPage' },
+  '/staff/requests': { admin: '/admin/requests', shared: 'features/requests-page/RequestsPage' },
+  '/staff/bookings': { admin: '/admin/bookings', shared: 'features/bookings-page/BookingsPage' },
+  '/staff/renters': { admin: '/admin/renters', shared: 'features/renters-page/RentersPage' },
+  '/staff/owners/add-car': { admin: '/admin/owners/add-car', shared: 'features/add-owner-car-page/AddOwnerCarPage' }
 };

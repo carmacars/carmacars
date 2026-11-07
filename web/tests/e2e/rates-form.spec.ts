@@ -158,7 +158,7 @@ test('post a car with its rates and kilometres in one pass: Add a car (three sup
   // Fleet enters rates on the car's page
   const fleet = await mkStaff(sql, 'fleet');
   const fp = await signedIn(browser, fleet.email, '/staff');
-  await fp.goto(`/staff/vehicles/${partnerCar}`, { waitUntil: 'networkidle' });
+  await fp.goto(`/staff/vehicles/${partnerCar}?tab=rates`, { waitUntil: 'networkidle' });
   await fp.getByTestId('va-rate-form-daily').fill('72');
   await expect(fp.getByTestId('va-rate-form-example-friday_sunday')).toBeVisible({ timeout: 15_000 });
   await check(fp, 'fleet rates');

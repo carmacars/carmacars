@@ -32,7 +32,7 @@ export function FleetMaintenance({ data, base, sp }: { data: Overview; base: '/a
     unknown: data.cars.filter((c) => c.unknown > 0).length, ok: data.cars.filter((c) => c.worst === 'ok').length
   };
   const href = (q: Record<string, string>) => { const u = new URLSearchParams(Object.entries({ ...sp, ...q }).filter(([, v]) => v) as Array<[string, string]>); const s = u.toString(); return s ? `${base}/maintenance?${s}` : `${base}/maintenance`; };
-  const carHref = (id: string) => base === '/admin' ? `/admin/vehicles/${id}?tab=maintenance` : `/staff/vehicles/${id}#maintenance`;
+  const carHref = (id: string) => base === '/admin' ? `/admin/vehicles/${id}?tab=maintenance` : `/staff/vehicles/${id}?tab=maintenance`;
   const auto = sp.record && /^[0-9a-f-]{36}$/.test(sp.record) ? sp.record : null;
   return (
     <div className="stack" data-testid="maint-overview">

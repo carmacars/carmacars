@@ -24,6 +24,8 @@ import type { CarMaintenance } from '@/features/maintenance/model';
 import { OwnerHandoffs } from '@/features/handover/OwnerHandoffs';
 import type { PageCtx } from '@/features/shared-pages/context';
 import { vehicleCan } from '@/features/shared-pages/viewer';
+import { vehicleTab, vehicleTabs } from './tabs';
+import { HashTab } from './HashTab';
 
 type R = Record<string, unknown>;
 type V = R & { id: string; name: string; plate: string | null; vin: string; status: string; management_mode: string; class: string | null; colour: string | null; odometer_km: number | null;
@@ -42,17 +44,18 @@ function Auto({ source, id }: { source: string | null; id: string }) {
 // r31 "Simple": one vehicle page for Admin and staff (03-admin.md section 8.2, 05-va.md). An Admin gets every tab; Fleet
 // and customer service the car, its listing state and its documents, Fleet also the rates, the owner handoffs and the
 // maintenance (owner terms, fees and Revenue Share stay with an Admin: the database leaves them out of the staff read);
-// Finance opens a car only for its maintenance and bills (0089). The staff view stays one section: its task links open
-// it at #maintenance, which a tab cannot read.
+// Finance opens a car only for its maintenance and bills (0089). The tabs are the Admin's, each where the viewer's
+// function uses it (./tabs); an old #maintenance link moves to its tab (HashTab).
 export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Record<string, string | undefined> }) {
   const { viewer, read, list, user, ops } = ctx;
   const can = vehicleCan(viewer);
   if (!can) notFound();
-  if (!can.admin) return <StaffVehicle ctx={ctx} id={id} sp={sp} />;
+  if (!can.admin) return StaffVehicle({ ctx, id, sp }); // called, so its 404 answers as a 404
   const v = await read<V | null>('vehicle', { id });
   if (!v) notFound();
-  // r32: six sections; Rates and Fees are one (an old ?tab=fees opens Rates & fees)
-  const tab = sp.tab === 'fees' ? 'rates' : sp.tab ?? 'overview';
+  // six tabs; Rates and Fees are one (an old ?tab=fees opens Rates & fees)
+  const tabs = vehicleTabs(can);
+  const tab = vehicleTab(tabs, sp.tab, sp.record);
   const base = `/admin/vehicles/${id}`;
   const rc = v.rate_card ?? {};
   const P = { vehicle: id };
@@ -81,7 +84,8 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
         title={<>{v.name} {v.retired_at ? <Badge s="retired">Retired</Badge> : <Badge s={v.status} />}{usingSamples && <> <Badge s="needs_review">Using sample photos</Badge></>}</>}>
         {slug && v.listing?.status === 'published' && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/cars/${slug}`} target="_blank">Public page</Link>}
       </PageHead>
-      <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=overview`, 'Overview'], [`${base}?tab=rates`, 'Rates & fees'], [`${base}?tab=calendar`, 'Calendar'], [`${base}?tab=listing`, 'Listing'], [`${base}?tab=maintenance`, 'Maintenance'], [`${base}?tab=records`, 'Owner & documents']]} />
+      <Tabs current={`${base}?tab=${tab}`} items={tabs.map(([k, l]) => [`${base}?tab=${k}`, l] as [string, string])} />
+      <HashTab tabs={tabs.map(([k]) => k)} current={tab} />
       {tab === 'maintenance' && <CarMaintenancePanel m={await ops<CarMaintenance>('maint_vehicle', { vehicle_id: id })} base="/admin" autoRecord={sp.record === '1'} />}
       {/* 0264: a car added before its VIN or plate: an onboarding draft until one is added */}
       {v.id_pending === true && <div className="alert alert--warn" role="status" data-testid="vehicle-id-needed"><span className="alert__title">VIN or plate needed</span>
@@ -283,11 +287,13 @@ function classOptions(classes: Array<{ code: string; label: string }>, current: 
 
 type StaffListingState = { public: boolean; can_publish: boolean; can_act: boolean; path: string | null; checklist: Array<{ code: string; label: string; action: string }>; missing: Array<{ code: string; label: string; action: string }> };
 
-// The staff view of the same page: one section, read through the staff door in the page's function.
+// The staff view of the same page: the Admin's tabs where the function uses them, read through the staff door.
 async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Record<string, string | undefined> }) {
   const { viewer, read, user, aal, own, ops } = ctx;
   const can = vehicleCan(viewer)!;
   const base = `/staff/vehicles/${id}`;
+  const tabs = vehicleTabs(can);
+  const tab = vehicleTab(tabs, sp.tab, sp.record);
   if (can.maintenanceOnly) {
     const m = await ops<CarMaintenance>('maint_vehicle', { vehicle_id: id }).catch(() => null);
     if (!m) notFound();
@@ -297,27 +303,30 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
   if (!c?.id) notFound();
   const [rates, maint, ls] = await Promise.all([
     // Fleet enters the rates (0064): the form shows only to Fleet (the database refuses anyone else)
-    can.rates ? ops<{ current: R | null }>('rate_card_form', { vehicle: id }).catch(() => null) : null,
+    can.rates && tab === 'rates' ? ops<{ current: R | null }>('rate_card_form', { vehicle: id }).catch(() => null) : null,
     // the car's maintenance (0089), for Fleet
-    can.maintenance ? ops<CarMaintenance>('maint_vehicle', { vehicle_id: id }).catch(() => null) : null,
+    can.maintenance && tab === 'maintenance' ? ops<CarMaintenance>('maint_vehicle', { vehicle_id: id }).catch(() => null) : null,
     // the listing (0070): Publish now and what is still open, for Fleet and customer service
-    own<StaffListingState>('listing_state', { vehicle_id: id }).catch(() => null)]);
+    tab === 'listing' ? own<StaffListingState>('listing_state', { vehicle_id: id }).catch(() => null) : null]);
   return (
     <>
       <PageHead title={`${String(c.year ?? '')} ${String(c.make ?? '')} ${String(c.model ?? '')}`} kicker={String(c.plate ?? '')} />
-      <div className="ad-cols ad-cols--2">
-        {ls && <Card title={ls.public ? 'On the site' : 'Not on the site yet'} testId="va-listing">
-          {ls.missing.length > 0 && <ul className="small">{ls.missing.map((m) => <li key={m.code}><b>{m.label}</b>: {m.action}</li>)}</ul>}
-          {ls.checklist.length > 0 && <><p className="pt-kicker">Open items (the car stays listed)</p><ul className="small">{ls.checklist.map((m) => <li key={m.code}><b>{m.label}</b>: {m.action}</li>)}</ul></>}
-          {can.publish && ls.can_publish && ls.can_act && <Act ops action="listing_publish_now" payload={{ vehicle_id: id }} label="Publish now" variant="primary" refresh={[base]} testId="va-publish" done="Published." />}
-        </Card>}
+      <Tabs current={`${base}?tab=${tab}`} items={tabs.map(([k, l]) => [`${base}?tab=${k}`, l] as [string, string])} />
+      <HashTab tabs={tabs.map(([k]) => k)} current={tab} />
+      {tab === 'overview' && <div className="ad-cols ad-cols--2">
         <Card title="Vehicle"><Kv rows={[['Plate', String(c.plate ?? '')], ['Colour', String(c.colour ?? '')], ['Status', label(c.status)], ['Odometer', c.odometer_km ? `${String(c.odometer_km)} km` : ''], ['Class', String(c.class ?? '')]]} /></Card>
-        {rates && <Card title="Rates and kilometres" testId="va-rates"><p className="small muted">Rates, kilometres and deposit save together. Bookings already made keep their rates.</p>
-          <RateCardForm vehicleId={id} card={rates.current} refresh={[base]} testId="va-rate-form" /></Card>}
         {can.ownerHandoffs && <OwnerHandoffs vehicleId={id} userId={user.id} aal={aal} refresh={[base]} />}
-        <Card title="Documents"><Table rows={c.documents ?? []} empty="No documents." cols={[{ key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>
-      </div>
-      {maint && <><h2 className="d4 mt-h">Maintenance</h2><CarMaintenancePanel m={maint} base="/staff" autoRecord={sp.record === '1'} /></>}
+      </div>}
+      {tab === 'rates' && rates && <Card title="Rates and kilometres" testId="va-rates"><p className="small muted">Rates, kilometres and deposit save together. Bookings already made keep their rates.</p>
+        <RateCardForm vehicleId={id} card={rates.current} refresh={[base]} testId="va-rate-form" /></Card>}
+      {tab === 'listing' && ls && <Card title={ls.public ? 'On the site' : 'Not on the site yet'} testId="va-listing">
+        {ls.missing.length > 0 && <ul className="small">{ls.missing.map((m) => <li key={m.code}><b>{m.label}</b>: {m.action}</li>)}</ul>}
+        {ls.checklist.length > 0 && <><p className="pt-kicker">Open items (the car stays listed)</p><ul className="small">{ls.checklist.map((m) => <li key={m.code}><b>{m.label}</b>: {m.action}</li>)}</ul></>}
+        {!ls.missing.length && !ls.checklist.length && <p className="small muted">Nothing open.</p>}
+        {can.publish && ls.can_publish && ls.can_act && <Act ops action="listing_publish_now" payload={{ vehicle_id: id }} label="Publish now" variant="primary" refresh={[base]} testId="va-publish" done="Published." />}
+      </Card>}
+      {tab === 'maintenance' && maint && <CarMaintenancePanel m={maint} base="/staff" autoRecord={sp.record === '1'} />}
+      {tab === 'records' && <Card title="Documents"><Table rows={c.documents ?? []} empty="No documents." cols={[{ key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>}
     </>
   );
 }

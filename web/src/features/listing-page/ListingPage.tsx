@@ -31,7 +31,7 @@ export async function ListingPage({ ctx, id }: { ctx: PageCtx; id: string }) {
   const usingSamples = (samples ?? []).some((x) => x.vehicle_id === l.vehicle_id);
   return (
     <>
-      <PageHead kicker={<><Link prefetch={false} className="link" href={`${portal}/listings`}>Listings</Link>{can.carLink && <> · <Link prefetch={false} className="link" href={`${portal}/vehicles/${l.vehicle_id}`} data-testid={can.admin ? undefined : 'va-listing-car'}>{can.admin ? l.vehicle.plate : 'The car and its rates'}</Link></>}</>}
+      <PageHead kicker={<><Link prefetch={false} className="link" href={`${portal}/listings`}>Listings</Link>{can.carLink && <> · <Link prefetch={false} className="link" href={`${portal}/vehicles/${l.vehicle_id}${can.admin ? '' : '?tab=rates'}`} data-testid={can.admin ? undefined : 'va-listing-car'}>{can.admin ? l.vehicle.plate : 'The car and its rates'}</Link></>}</>}
         title={<>{l.vehicle.name} <Badge s={l.state} /></>}>
         {can.admin && ['failed'].includes(l.state) && <Act action="listing_retry" payload={{ intake: l.id }} label="Retry" />}
         {can.admin && l.listing?.status === 'published' && <Act action="listing_unlist" payload={{ vehicle: l.vehicle_id }} label="Unlist" variant="danger" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }, { name: 'to_path', label: 'Redirect to (empty: the model page or 410)', type: 'text' }]} />}

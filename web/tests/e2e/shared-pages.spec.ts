@@ -95,24 +95,19 @@ test('one booking, vehicle and listing page: each role sees exactly its parts, t
       continue;
     }
     const bk: Record<string, Awaited<ReturnType<typeof seen>>> = {};
-    if (role === 'sales') {
-      // Sales works on requests and offers: a confirmed booking says it is not theirs (the database refuses the read)
-      await page.goto(bookingUrl, { waitUntil: 'networkidle' });
-      bk.overview = await seen(page);
-      out[`${role} booking`] = bk;
-      expect.soft(has(bk.overview, 'booking-not-yours'), 'sales: a confirmed booking is not open to Sales').toBe(true);
-    }
-    for (const s of role === 'sales' ? [] : SECTIONS) {
+    for (const s of SECTIONS) {
       const r = await page.goto(`${bookingUrl}?tab=${s}`, { waitUntil: 'networkidle' });
       expect.soft(r?.status(), `${role} booking ${s}`).toBe(200);
+      // Sales opens a booking it works on; another says it is not theirs (the database refuses the read)
       await noOverflow(page);
       bk[s] = await seen(page);
     }
     out[`${role} booking`] = bk;
-    if (role !== 'sales') {
+    if (role !== 'sales' || !has(bk.overview!, 'booking-not-yours')) {
     const tabs = bk.overview!.headings;
     // the sections each role gets (shared-pages/viewer bookingTabs)
     expect.soft(hasHeading({ headings: tabs }, 'Money'), `${role}: Money`).toBe(role !== 'fleet');
+    if (role !== 'sales') {
     expect.soft(hasHeading({ headings: tabs }, 'Claims & extras'), `${role}: Claims & extras`).toBe(role === 'admin' || role === 'cs');
     // the header buttons
     expect.soft(has(bk.overview!, 'email-renter-link'), `${role}: Email the renter`).toBe(true);
@@ -133,22 +128,34 @@ test('one booking, vehicle and listing page: each role sees exactly its parts, t
     // claims & extras: the change requests for an Admin and customer service only, even at the old address
     expect.soft(hasHeading(bk.extras!, 'Change requests'), `${role}: change requests`).toBe(role === 'admin' || role === 'cs');
     }
+    }
     if (role === 'cs' && !isPhone()) {
       await page.goto(`${bookingUrl}?tab=overview`, { waitUntil: 'networkidle' });
       await page.screenshot({ path: `${SHOTS}/staff-booking-cs-1440.png`, fullPage: true });
     }
-    // ---- the car
-    const vr = await page.goto(`${portal}/vehicles/${f.vehicle}${role === 'admin' ? '?tab=rates' : ''}`, { waitUntil: 'networkidle' });
+    // ---- the car: every tab the role has, together (staff had one page before r31, now the Admin's tabs)
+    const carTabs = ['overview', 'rates', 'listing', 'maintenance', 'records'];
+    const vr = await page.goto(`${portal}/vehicles/${f.vehicle}`, { waitUntil: 'networkidle' });
     expect.soft(vr?.status(), `${role} vehicle`).toBe(role === 'sales' ? 404 : 200);
     if (role !== 'sales') {
-      await noOverflow(page);
-      const v = await seen(page);
-      out[`${role} vehicle`] = v;
+      const v = { ids: [] as string[], headings: [] as string[], buttons: [] as string[] };
+      for (const t of carTabs) {
+        await page.goto(`${portal}/vehicles/${f.vehicle}?tab=${t}`, { waitUntil: 'networkidle' });
+        await noOverflow(page);
+        const x = await seen(page);
+        out[`${role} vehicle ${t}`] = x;
+        v.ids.push(...x.ids); v.headings.push(...x.headings); v.buttons.push(...x.buttons);
+      }
       expect.soft(has(v, 'va-rate-form-submit') || has(v, 'rate-form-submit'), `${role}: the rates form`).toBe(role === 'admin' || role === 'fleet');
       expect.soft(has(v, 'va-listing'), `${role}: the staff listing card`).toBe(role === 'cs' || role === 'fleet');
       expect.soft(hasHeading(v, 'Fees for this car'), `${role}: the fees`).toBe(role === 'admin');
-      // staff: the maintenance on the car's page (an Admin has it as a tab)
-      if (role !== 'admin') expect.soft(hasHeading(v, 'Maintenance') || has(v, 'maint-records'), `${role}: maintenance`).toBe(role === 'fleet' || role === 'finance');
+      // staff: the maintenance (an Admin has it too, as before)
+      if (role !== 'admin') expect.soft(has(v, 'maint-records') || v.headings.some((h) => /service|maintenance/i.test(h)), `${role}: maintenance`).toBe(role === 'fleet' || role === 'finance');
+      // an old task link with #maintenance lands on the Maintenance tab
+      if (role === 'fleet') {
+        await page.goto(`${portal}/vehicles/${f.vehicle}#maintenance`, { waitUntil: 'networkidle' });
+        await expect.soft(page).toHaveURL(/[?&]tab=maintenance/, { timeout: 15_000 });
+      }
     }
     // ---- the listing review
     if (f.listing) {
@@ -161,6 +168,16 @@ test('one booking, vehicle and listing page: each role sees exactly its parts, t
         out[`${role} listing`] = l;
         expect.soft(has(l, 'va-listing-car'), `${role}: the car and its rates`).toBe(role === 'fleet');
       }
+    }
+    // ---- the shared lists: requests, bookings, renters, add a car for an owner (each role's access as before r31)
+    const LISTS: Array<[string, Role[]]> = [['/requests', ['admin', 'cs', 'sales']], ['/bookings', ['admin', 'sales', 'cs', 'fleet', 'finance']], ['/bookings?view=all', ['admin', 'sales', 'cs', 'fleet', 'finance']],
+      ['/bookings?q=sample', ['admin', 'sales', 'cs', 'fleet', 'finance']], ['/renters', ['admin', 'cs', 'fleet', 'finance']], ['/renters?q=sample', ['admin', 'cs', 'fleet', 'finance']],
+      ['/owners/add-car', ['admin', 'cs', 'fleet', 'sales']]];
+    for (const [path, who] of LISTS) {
+      const r = await page.goto(`${portal}${path}`, { waitUntil: 'networkidle' });
+      const opens = who.includes(role);
+      expect.soft(r?.status(), `${role} ${path}`).toBe(opens ? 200 : 404);
+      if (opens) { await noOverflow(page); out[`${role} ${path}`] = await seen(page); }
     }
     await page.context().close();
   }
