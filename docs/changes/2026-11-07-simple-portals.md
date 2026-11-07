@@ -122,6 +122,30 @@ investor/sign investor/sign/[id] investor/statements investor/statements/[id]
 - Approve a licence: booking > Drivers & documents (one screen already).
 - Invoice a partner: Referral partners > Invoices (one screen already, r28).
 
+## One page per object (shared pages)
+
+Done for the three biggest objects; the staff addresses render the shared page (a redirect to `/admin/...` would
+bounce staff at the Admin gate, and the staff layout is what puts every button on the staff door).
+
+| Object | Shared component | Loader | Staff address |
+|---|---|---|---|
+| Booking | `features/booking-page/BookingPage.tsx` | `features/shared-pages/context.ts` (adminCtx, staffCtx) | renders it |
+| Vehicle | `features/vehicle-page/VehiclePage.tsx` | the same | renders it (one section for staff) |
+| Listing review | `features/listing-page/ListingPage.tsx` | the same | renders it |
+| Handover job, photo report, sign now | `features/handover/*` (already shared) | | unchanged |
+
+Who sees what: `features/shared-pages/viewer.ts` (`bookingCan`, `vehicleCan`, `listingCan`), the same as each staff
+copy at 2a7ed386. Small unifications: Withdraw the offer asks the same confirmation for staff as for an Admin; Fleet
+and customer service get a link to the car on the booking's Trip card (they could open the car already); the
+Cancel for the renter payload names `renter_request` for an Admin too (the database default, so no change).
+
+Not done (each its own move, in this order): requests queue and Bookings list (the queue's claim and timer),
+renters, owners and owners/add-car, money and owner money, payments and reconciliation, tolls (4 routes), live,
+visitors and chat, calendar and calendar-sync, maintenance, marketing, leads, reviews, messages, alerts, chauffeur,
+offers/new and bookings/new, similar cars, academy, guide, no-access. The vehicle page's staff view moves to tabs
+once the task links stop using `#maintenance` (owner's call: one line in `features/va/tasks.ts` and the maintenance
+views).
+
 ## Filters (the headline of the release)
 
 Rule for every list (owner, Nov 7): one search box across fields (name, booking number, plate, phone, email, VIN), one
@@ -180,7 +204,7 @@ the staff queue 3).
 ## Guides
 
 `admin/requests-offers-and-bookings` (the six sections, the filter bar, the Bookings chips), `admin/fleet-and-listings`
-(Owner & documents), `va/customer-service` (Messages & history). Published by 0600.
+(Owner & documents), `va/customer-service` (Messages & history), `va/shared-tools` (the shared booking, car and listing pages). Published by 0600.
 
 ## Filters after (first lists)
 

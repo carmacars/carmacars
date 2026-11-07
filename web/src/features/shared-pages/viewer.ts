@@ -1,0 +1,173 @@
+// r31 "Simple": one page per object for Admin and staff. The Admin and staff addresses render the same component tree;
+// what a viewer sees and may press comes from these pure tables, so each staff function keeps exactly the data and the
+// actions it had on its own copy, and an Admin keeps everything. The database still decides (admin_read, va_read and
+// ops_read refuse what a function may not read); these tables only decide what the page shows.
+// Pure: the pages, the unit tests and the access e2e read it.
+
+export type StaffFn = 'finance' | 'fleet' | 'cs' | 'sales';
+export type Viewer = { role: 'admin' } | { role: 'staff'; fn: StaffFn };
+
+export const ADMIN: Viewer = { role: 'admin' };
+export const staffViewer = (fn: StaffFn): Viewer => ({ role: 'staff', fn });
+
+/** The portal the page is rendered in: its links stay in that portal (the staff layout gives the staff door to buttons). */
+export function portalBase(v: Viewer): '/admin' | '/staff' {
+  return v.role === 'admin' ? '/admin' : '/staff';
+}
+
+const fnOf = (v: Viewer): StaffFn | null => (v.role === 'staff' ? v.fn : null);
+
+/** The booking page (`/admin/bookings/[number]`, `/staff/bookings/[number]`). */
+export interface BookingCan {
+  /** Admin-only parts: placeholder and calendar switches, cancel by CarmaCars, swap the car, insurer invoice and claim,
+   * the price, sales credit and marketing source, the debit card switch, the pay plan, the full deposit, statements,
+   * offers, status history, emails, documents, waive the deposit, withdraw an approved change. */
+  admin: boolean;
+  /** review the request, send, edit, withdraw or re-open the offer, ask the renter, decline */
+  offer: boolean;
+  /** Edit the offer while the renter pays (Sales only while it is still offered) */
+  editOfferPending: boolean;
+  /** the Money section */
+  money: boolean;
+  /** the Claims & extras section: changes, extensions, questions; Change the booking */
+  extras: boolean;
+  cancelForRenter: boolean;
+  /** schedule a field job from the booking */
+  scheduleJob: boolean;
+  /** the late-return panel while the car is out past its time */
+  latePanel: boolean;
+  /** the photo review link (pickup and return side by side) */
+  photoReview: boolean;
+  handover: boolean;
+  sign: boolean;
+  /** the agreement panel's money lines */
+  agreementMoney: boolean;
+  /** the renter's licence card (Sales: the licence only, not the coverage) */
+  licenceReview: boolean;
+  /** the full renter documents card (licence, selfie and coverage) */
+  renterDocs: boolean;
+  /** the plain upload card (staff; an Admin uploads from the renter documents card) */
+  staffUpload: boolean;
+  /** a link to the car's page */
+  carLink: boolean;
+  /** record a payment received another way */
+  manualPayments: boolean;
+  /** correct or void a payment received another way, or a paper signature */
+  voidRecords: boolean;
+  /** upload a document signed on paper */
+  paperSignatures: boolean;
+  /** the additional drivers' signing links */
+  driverLinks: boolean;
+  /** ask for a refund (Finance: up to its limit, above it an Admin approves) */
+  refund: boolean;
+  /** approve a refund within the function's limit (Finance) */
+  refundApprove: boolean;
+  settleDeposit: boolean;
+  /** issue the final statement after the return */
+  statement: boolean;
+  /** the texts inbox for the Text button */
+  inbox: boolean;
+  /** verify a driver in person */
+  verifyInPerson: boolean;
+}
+
+export function bookingCan(v: Viewer): BookingCan {
+  const admin = v.role === 'admin';
+  const fn = fnOf(v);
+  const office = admin || fn === 'cs' || fn === 'sales';
+  return {
+    admin,
+    offer: office,
+    editOfferPending: admin || fn === 'cs',
+    money: office || fn === 'finance',
+    extras: admin || fn === 'cs',
+    cancelForRenter: admin || fn === 'cs',
+    scheduleJob: fn === 'fleet',
+    latePanel: fn === 'fleet' || fn === 'cs',
+    photoReview: fn === 'fleet',
+    handover: fn !== 'finance',
+    sign: fn !== 'finance',
+    agreementMoney: admin || fn === 'finance',
+    licenceReview: fn === 'sales',
+    renterDocs: admin,
+    staffUpload: !admin,
+    carLink: admin || fn === 'fleet' || fn === 'cs',
+    manualPayments: admin || fn === 'finance',
+    voidRecords: admin,
+    paperSignatures: admin || fn === 'cs',
+    driverLinks: admin || fn === 'cs',
+    refund: admin || fn === 'finance',
+    refundApprove: fn === 'finance',
+    settleDeposit: admin || fn === 'finance',
+    statement: admin || fn === 'finance',
+    inbox: office,
+    verifyInPerson: admin
+  };
+}
+
+/** The sections a viewer gets as tabs on the booking page. */
+export function bookingTabs(v: Viewer): string[] {
+  const c = bookingCan(v);
+  return ['overview', 'money', 'documents', 'car', 'activity', 'extras'].filter((k) => (k !== 'money' || c.money) && (k !== 'extras' || c.extras));
+}
+
+/** The vehicle page (`/admin/vehicles/[id]`, `/staff/vehicles/[id]`). */
+export interface VehicleCan {
+  /** the full Admin car page: every tab, owner terms, fees, Revenue Share, status and retire */
+  admin: boolean;
+  /** Finance opens a car for its maintenance and bills only */
+  maintenanceOnly: boolean;
+  /** the car, its listing state and its documents */
+  car: boolean;
+  /** enter the rates (Fleet) */
+  rates: boolean;
+  /** the maintenance panel next to the car (Fleet) */
+  maintenance: boolean;
+  /** the owner's handoffs (Fleet) */
+  ownerHandoffs: boolean;
+  /** Publish now when the listing may go up */
+  publish: boolean;
+}
+
+export function vehicleCan(v: Viewer): VehicleCan | null {
+  const admin = v.role === 'admin';
+  const fn = fnOf(v);
+  if (fn === 'sales') return null; // the staff vehicle page is for Fleet, customer service and Finance
+  return {
+    admin,
+    maintenanceOnly: fn === 'finance',
+    car: admin || fn === 'fleet' || fn === 'cs',
+    rates: admin || fn === 'fleet',
+    maintenance: admin || fn === 'fleet',
+    ownerHandoffs: admin || fn === 'fleet',
+    publish: admin || fn === 'fleet' || fn === 'cs'
+  };
+}
+
+/** The listing review page (`/admin/listings/[id]`, `/staff/listings/[id]`). */
+export interface ListingCan {
+  /** Retry a failed listing and Unlist a published one */
+  admin: boolean;
+  /** the link to the car's page in the header */
+  carLink: boolean;
+  /** the sample photos note */
+  samplesNote: boolean;
+}
+
+export function listingCan(v: Viewer): ListingCan | null {
+  const admin = v.role === 'admin';
+  const fn = fnOf(v);
+  if (!admin && fn !== 'cs' && fn !== 'fleet') return null; // the staff listing page is for customer service and Fleet
+  return { admin, carLink: admin || fn === 'fleet', samplesNote: admin };
+}
+
+/**
+ * The staff addresses that render the shared page (not a redirect: the staff layout gives the page the staff door, so
+ * every button acts as the staff member, with their function's limits). Each maps to the Admin address of the same
+ * page; `shared` names the component both render.
+ */
+export const STAFF_SHARED: Record<string, { admin: string; shared: string }> = {
+  '/staff/bookings/[number]': { admin: '/admin/bookings/[number]', shared: 'features/booking-page/BookingPage' },
+  '/staff/vehicles/[id]': { admin: '/admin/vehicles/[id]', shared: 'features/vehicle-page/VehiclePage' },
+  '/staff/listings/[id]': { admin: '/admin/listings/[id]', shared: 'features/listing-page/ListingPage' }
+};
