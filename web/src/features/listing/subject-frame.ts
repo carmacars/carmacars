@@ -275,3 +275,17 @@ export function placeSubject(f: { width: number; height: number; ground: number;
   const bottom = Math.max(0, Math.round(H * STUDIO.floor - height * f.ground));
   return { width, height, left: Math.round((W - width) / 2), bottom, carShare: carW / W };
 }
+
+/** r33 (0700): the cut-out editor's move and size, on top of placeSubject: dx and dy are shares of the frame (right and
+ *  down), scale is about the car's bottom centre (the wheels stay on their line unless moved). Held inside the frame: at
+ *  most the frame's width, never below the bottom edge, at least a quarter of the car inside on either side. Pure. */
+export interface Adjust { dx: number; dy: number; scale: number }
+export function adjustPlace(pl: { width: number; height: number; left: number; bottom: number; carShare: number }, a: Adjust | null, W: number, H: number) {
+  if (!a || (!a.dx && !a.dy && (a.scale ?? 1) === 1)) return pl;
+  const k = Math.min(Math.max(Number.isFinite(a.scale) ? a.scale : 1, 0.4), 1.6, W / Math.max(1, pl.width));
+  const width = Math.round(pl.width * k), height = Math.round(pl.height * k);
+  const cx = pl.left + pl.width / 2 + (Number.isFinite(a.dx) ? a.dx : 0) * W;
+  const left = Math.round(Math.min(Math.max(cx - width / 2, -width * 0.75), W - width * 0.25));
+  const bottom = Math.round(Math.min(Math.max(pl.bottom - (Number.isFinite(a.dy) ? a.dy : 0) * H, 0), H - height * 0.25));
+  return { width, height, left, bottom, carShare: pl.carShare * k };
+}

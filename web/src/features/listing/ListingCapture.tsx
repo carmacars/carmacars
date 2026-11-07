@@ -12,6 +12,8 @@ import { PHOTO, shrinkImage } from '@/lib/image-shrink';
 export interface Capture {
   intake_id: string; vehicle_id: string; vehicle_name: string; state: string; submitted: boolean; reason: string | null; may_upload: boolean; may_remove?: boolean;
   missing: string[];
+  /** 0700: the photos the database counts toward the minimum (public shots, not rejected, no mark on them), and the minimum */
+  counted?: number; min_photos?: number;
   shots: Array<{ code: string; label: string; seq: number; required: boolean; max_count: number; guide: string | null; rebackground: boolean;
     photos: Array<{ id: string; status: string; background_status: string; original_path?: string | null; processed_path?: string | null }> }>;
 }
@@ -62,14 +64,16 @@ export function ListingCapture({ initial, refresh = [] }: { initial: Capture; re
     router.refresh();
   });
   // release 28 (0566): no shot is required; the listing needs 10 photos that can go on the site (not the odometer)
-  const MIN = 10;
-  const done = c.shots.filter((s) => s.code !== 'odometer').reduce((n, s) => n + s.photos.length, 0);
+  // 0700: counted as the database counts (a photo with a mark on it does not count until replaced)
+  const MIN = c.min_photos ?? 10;
+  const done = c.counted ?? c.shots.filter((s) => s.code !== 'odometer').reduce((n, s) => n + s.photos.length, 0);
   const required = { length: MIN };
   const pct = Math.min(100, Math.round((100 * done) / MIN));
   // Add photos: many at once, one after another (each is sorted to its shot on the server: two at once could take the same shot)
   const [batch, setBatch] = useState<{ at: number; of: number } | null>(null);
-  const addMany = async (files: FileList | null) => {
-    const list = Array.from(files ?? []).slice(0, 30);
+  // r33 (0700): any number at once; "auto" sorts each to its shot, an extra shot ("exterior_more", "other") files them all there
+  const addMany = async (files: FileList | null, shot = 'auto') => {
+    const list = Array.from(files ?? []);
     if (!list.length) return;
     setMsg(null);
     let failedN = 0, flagged = 0;
@@ -78,7 +82,7 @@ export function ListingCapture({ initial, refresh = [] }: { initial: Capture; re
       try {
         const { blob, width, height } = await prepare(list[i]!);
         const fd = new FormData();
-        fd.set('intake', c.intake_id); fd.set('shot', 'auto'); fd.set('file', blob, `photo-${i + 1}.jpg`);
+        fd.set('intake', c.intake_id); fd.set('shot', shot); fd.set('file', blob, `photo-${i + 1}.jpg`);
         if (width) { fd.set('width', String(width)); fd.set('height', String(height)); }
         const r = await fetch('/api/listing/upload', { method: 'POST', body: fd }).catch(() => null);
         const j = (r ? await r.json().catch(() => ({ ok: false })) : { ok: false }) as { ok: boolean; similar?: number; watermark?: boolean };
@@ -87,7 +91,7 @@ export function ListingCapture({ initial, refresh = [] }: { initial: Capture; re
     }
     setBatch(null); setBusy(null);
     setMsg(failedN ? { ok: false, text: `${list.length - failedN} of ${list.length} photos added; ${failedN} did not upload. Add those again.` }
-      : { ok: true, text: `${list.length} photos added and sorted to their shots.${flagged ? ` ${flagged} with a watermark or text on it: kept off the site until replaced.` : ''}` });
+      : { ok: true, text: `${list.length} photo${list.length === 1 ? '' : 's'} added${shot === 'auto' ? ' and sorted to their shots' : shot === 'exterior_more' ? ' as extra outside photos (studio background)' : ' as extra inside and detail photos'}.${flagged ? ` ${flagged} with a watermark or text on it: kept off the site until replaced.` : ''}` });
     await reload();
     router.refresh();
   };
@@ -102,7 +106,23 @@ export function ListingCapture({ initial, refresh = [] }: { initial: Capture; re
             <input className="vh" type="file" accept="image/jpeg,image/png,image/heic,image/heif" multiple disabled={!!busy}
               onChange={(e) => { void addMany(e.target.files); e.target.value = ''; }} data-testid="listing-add-photos-input" />
           </label>
-          <span className="small muted">Up to 30 at once from the camera roll, in any order. Each is sorted to its shot; outside photos get the studio background, inside and detail photos are kept as taken.</span>
+          <span className="small muted">As many as you like from the camera roll, in any order. Each is sorted to its shot; outside photos get the studio background, inside and detail photos are touched up.</span>
+        </div>)}
+      {c.may_upload && (
+        <div className="lc__drop lc__extras" data-testid="listing-add-extras">
+          <span className="small"><b>Extra photos</b> that fit no shot, any number. They go after the standard shots on the car page; set their order in the review.</span>
+          <span className="row">
+            <label className="btn btn--ghost btn--sm">
+              <span>Extra outside photos</span>
+              <input className="vh" type="file" accept="image/jpeg,image/png,image/heic,image/heif" multiple disabled={!!busy}
+                onChange={(e) => { void addMany(e.target.files, 'exterior_more'); e.target.value = ''; }} data-testid="listing-add-extra-outside" />
+            </label>
+            <label className="btn btn--ghost btn--sm">
+              <span>Extra inside and detail photos</span>
+              <input className="vh" type="file" accept="image/jpeg,image/png,image/heic,image/heif" multiple disabled={!!busy}
+                onChange={(e) => { void addMany(e.target.files, 'other'); e.target.value = ''; }} data-testid="listing-add-extra-inside" />
+            </label>
+          </span>
         </div>)}
       <div className="lc__progress" role="progressbar" aria-valuemin={0} aria-valuemax={required.length} aria-valuenow={done} aria-label="Photos added" data-testid="capture-progress">
         <span style={{ width: `${pct}%` }} />
@@ -136,8 +156,8 @@ export function ListingCapture({ initial, refresh = [] }: { initial: Capture; re
                 </label>
                 <label className="btn btn--quiet btn--sm lc__pick">
                   <span>From photos<span className="vh"> for {s.label}</span></span>
-                  <input className="vh" type="file" accept="image/jpeg,image/png" disabled={!!busy} data-testid={`shot-pick-${s.code}`}
-                    onChange={(e) => { void upload(s.code, e.target.files?.[0]); e.target.value = ''; }} />
+                  <input className="vh" type="file" accept="image/jpeg,image/png" multiple={s.max_count > 1} disabled={!!busy} data-testid={`shot-pick-${s.code}`}
+                    onChange={(e) => { const f = e.target.files; if (s.max_count > 1 && f && f.length > 1) void addMany(f, s.code); else void upload(s.code, f?.[0]); e.target.value = ''; }} />
                 </label>
                 {failed[s.code] && <button className="btn btn--primary btn--sm" type="button" disabled={!!busy} onClick={() => void upload(s.code, failed[s.code])} data-testid={`shot-retry-${s.code}`}>Send again</button>}
               </span>}

@@ -139,15 +139,18 @@ test('photo: an exterior is cut out, placed on the backdrop with the shadow, sto
   assert.equal(r.ok, true);
   const o = r.output as Record<string, unknown>;
   assert.equal(o.processed_path, 'vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg');
-  assert.equal(o.preset_version, 'studio_v4');
-  // r31: no model name lettered behind a real car (it showed as a large faint word around the car)
-  assert.ok(!f.pub.has('site/backdrop/lettering-v1-rav4.png'), 'no model-name band is made for a real photo');
+  assert.equal(o.preset_version, 'studio_v5');
+  // r33: the model's name lettered behind a real car again, as on the sample photos (one band per model)
+  assert.ok(f.pub.has('site/backdrop/lettering-v2-rav4.png'), 'the model-name band is made for a named outside view');
+  assert.equal(o.lettered, true);
+  assert.equal(o.mask_path, 'vehicles/v1/work/p1-mask.png');
+  assert.ok(f.priv.has('vehicles/v1/work/p1-mask.png'), 'the segmenter\'s cut-out (the mask) is kept privately');
   // a cut-out that cannot be read is placed the old way, and flagged
   assert.deepEqual(o.flags, ['not_framed']);
   assert.deepEqual([o.width, o.height], [1800, 1200]);
   assert.ok(f.pub.has('vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg'));
   assert.ok(f.priv.has('vehicles/v1/work/p1-cutout.png'), 'the cut-out stays private');
-  assert.equal(calls[0], 'pub:site/backdrop/studio_v2.png|-@-|pub:site/backdrop/shadow_v1.png|priv:vehicles/v1/work/p1-cutout.png');
+  assert.equal(calls[0], 'pub:site/backdrop/studio_v2.png|pub:site/backdrop/lettering-v2-rav4.png@348|pub:site/backdrop/shadow_v1.png|priv:vehicles/v1/work/p1-cutout.png');
   assert.deepEqual([r.units, r.unit, r.cost_microusd], [2, 'transformations', 0]);
 });
 
@@ -165,7 +168,7 @@ test('photo: a readable cut-out is framed to the car and placed big on the floor
     composite: async (r: { place?: { width: number; height: number; left: number; bottom: number } | null }) => { placed.push(r.place); return { ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }; } };
   const r = await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, watermark: true } }), budget);
   const o = r.output as Record<string, unknown>;
-  assert.equal(o.preset_version, 'studio_v4');
+  assert.equal(o.preset_version, 'studio_v5');
   assert.deepEqual(o.flags, []);
   assert.equal(o.watermark_removed, true);
   assert.equal((o.framing as { dropped: number }).dropped, 1);
@@ -316,4 +319,71 @@ test('the run: a job that throws is reported as a retryable failure, not lost', 
   const s = await runListingWorker(d);
   assert.equal(s.failed, 1);
   assert.deepEqual([reported[0]!.ok, reported[0]!.retryable, reported[0]!.error], [false, true, 'boom']);
+});
+
+// r33 (0700): the lettering on the cover and the named outside views only; the cut-out editor's edit and mask jobs
+test('photo r33: the model name behind the cover and the named outside views, not behind an extra outside photo', async () => {
+  const { letterThis } = await import('./worker.ts');
+  assert.equal(letterThis({ rebackground: true, shot_type: 'left' }), true);
+  assert.equal(letterThis({ rebackground: true, shot_type: 'exterior_more' }), false);
+  assert.equal(letterThis({ rebackground: true, shot_type: 'exterior_more', is_cover: true }), true, 'the cover, whatever its shot');
+  assert.equal(letterThis({ rebackground: false, shot_type: 'dashboard', is_cover: true }), false, 'never behind an inside photo');
+  const f = files();
+  const lett: Array<string | null> = [];
+  const photos = { ...fakePhotos(getter(f)), name: 'cloudflare-images' as const,
+    composite: async (r: { lettering?: { url: string } | null }) => { lett.push(r.lettering?.url ?? null); return { ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }; },
+    cutout: async () => ({ ok: true as const, bytes: new Uint8Array(20000), contentType: 'image/png', transformations: 1 }) };
+  const r = await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, shot_type: 'exterior_more', model: 'CLA-Class' } }), budget);
+  assert.equal((r.output as Record<string, unknown>).lettered, false);
+  assert.deepEqual(lett, [null]);
+  await runJob(deps({ photos }, f), job('process_photo', { photo: { ...job('process_photo').photo!, model: 'CLA-Class' } }), budget);
+  assert.equal(lett[1], 'pub:site/backdrop/lettering-v2-cla.png', 'CLA-Class is lettered CLA');
+});
+
+test('photo r33: an edit is made from the edited cut-out (no segmenter call), moved and sized; the old file is kept', async () => {
+  const { encodePng } = await import('./subject-frame.ts');
+  const W = 1000, H = 650, data = new Uint8ClampedArray(W * H * 4);
+  for (let y = 250; y < 420; y++) for (let x = 320; x < 680; x++) data[(y * W + x) * 4 + 3] = 255;
+  const png = await encodePng({ width: W, height: H, data });
+  const f = files();
+  f.priv.set('vehicles/v1/work/p1-edit-abc123.png', png);
+  f.pub.set('vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg', JPEG);
+  let cut = 0;
+  const placed: Array<{ width: number; left: number; bottom: number } | null | undefined> = [];
+  const photos = { ...fakePhotos(getter(f)), name: 'cloudflare-images' as const,
+    cutout: async () => { cut++; return { ok: true as const, bytes: png, contentType: 'image/png', transformations: 1 }; },
+    composite: async (r: { place?: { width: number; height: number; left: number; bottom: number } | null }) => { placed.push(r.place); return { ok: true as const, bytes: JPEG, contentType: 'image/jpeg', transformations: 1 }; } };
+  const base = job('process_photo').photo!;
+  const plain = await runJob(deps({ photos }, f), job('process_photo', { photo: base }), budget);
+  const edited = await runJob(deps({ photos }, f), job('process_photo', { input: { edit: { cutout_path: 'vehicles/v1/work/p1-edit-abc123.png', adjust: { dx: 0.05, dy: 0, scale: 0.9 } } },
+    photo: { ...base, file_base: `${base.file_base}-v1` } }), budget);
+  assert.equal(cut, 1, 'the edit does not call the segmenter');
+  const o = edited.output as Record<string, unknown>;
+  assert.equal(o.edited, true);
+  assert.equal(o.processed_path, 'vehicles/v1/2023-toyota-rav4-front-left-abcd1234-v1.jpg', 'a new file name: the version before stays');
+  assert.ok(f.pub.has('vehicles/v1/2023-toyota-rav4-front-left-abcd1234.jpg'));
+  assert.equal('mask_path' in o, false, 'the automatic mask is not replaced by the edit');
+  const [a, b] = [placed[0]!, placed[1]!];
+  assert.equal(b.width, Math.round(a.width * 0.9));
+  assert.ok(Math.abs((b.left + b.width / 2) - (a.left + a.width / 2 + 90)) <= 1, 'moved right by 5% of the frame');
+  assert.equal(b.bottom, a.bottom, 'the wheels stay on their line');
+  assert.deepEqual(o.place, { width: b.width, height: (b as { height?: number }).height, left: b.left, bottom: b.bottom });
+  assert.ok((plain.output as Record<string, unknown>).place);
+  // the edited cut-out gone: tried again, never the original put on the site in its place
+  const lost = await runJob(deps({ photos }, f), job('process_photo', { attempts: 4, input: { edit: { cutout_path: 'vehicles/v1/work/p1-edit-gone12.png' } } }), budget);
+  assert.deepEqual([lost.ok, lost.retryable], [false, false]);
+  const paused = await runJob(deps({ photos }, f), job('process_photo', { input: { edit: { cutout_path: 'vehicles/v1/work/p1-edit-abc123.png' } } }), { ...budget, images_paused: true });
+  assert.deepEqual([paused.ok, paused.retryable], [false, true]);
+});
+
+test('photo r33: a mask asked for by the editor is the segmenter\'s cut-out only; the photo is not made again', async () => {
+  const f = files();
+  const photos = { ...fakePhotos(getter(f)), name: 'cloudflare-images' as const,
+    composite: async () => { throw new Error('not drawn'); },
+    cutout: async () => ({ ok: true as const, bytes: new Uint8Array(20000), contentType: 'image/png', transformations: 1 }) };
+  const r = await runJob(deps({ photos }, f), job('process_photo', { input: { mask_only: true } }), budget);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.output, { mask_only: true, mask_path: 'vehicles/v1/work/p1-mask.png' });
+  assert.equal(f.pub.size, 0, 'nothing public is written');
+  assert.equal(r.units, 1);
 });

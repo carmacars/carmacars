@@ -23868,6 +23868,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_photo_versions: {
+        Row: {
+          id: string;
+          photo_id: string;
+          version: number;
+          processed_path: string | null;
+          variants: Json | null;
+          preset_version: string | null;
+          uncovered_path: string | null;
+          plate_status: string | null;
+          plate_boxes: Json | null;
+          plate_style: string | null;
+          cutout: Json | null;
+          reason: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          photo_id: string;
+          version: number;
+          processed_path?: string | null;
+          variants?: Json | null;
+          preset_version?: string | null;
+          uncovered_path?: string | null;
+          plate_status?: string | null;
+          plate_boxes?: Json | null;
+          plate_style?: string | null;
+          cutout?: Json | null;
+          reason?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          photo_id?: string;
+          version?: number;
+          processed_path?: string | null;
+          variants?: Json | null;
+          preset_version?: string | null;
+          uncovered_path?: string | null;
+          plate_status?: string | null;
+          plate_boxes?: Json | null;
+          plate_style?: string | null;
+          cutout?: Json | null;
+          reason?: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       vehicle_photos: {
         Row: {
           id: string;
@@ -23908,6 +23959,9 @@ export type Database = {
           enhance: Json | null;
           enhance_off: boolean;
           reframed_at: string | null;
+          cutout: Json | null;
+          edit_version: number;
+          plate_carry: Json | null;
         };
         Insert: {
           id?: string;
@@ -23948,6 +24002,9 @@ export type Database = {
           enhance?: Json | null;
           enhance_off?: boolean;
           reframed_at?: string | null;
+          cutout?: Json | null;
+          edit_version?: number;
+          plate_carry?: Json | null;
         };
         Update: {
           id?: string;
@@ -23988,6 +24045,9 @@ export type Database = {
           enhance?: Json | null;
           enhance_off?: boolean;
           reframed_at?: string | null;
+          cutout?: Json | null;
+          edit_version?: number;
+          plate_carry?: Json | null;
         };
         Relationships: [];
       };

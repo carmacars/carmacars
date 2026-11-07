@@ -50,3 +50,18 @@ test('body, colour and name mapping', () => {
   assert.equal(studioName('CR-V'), 'CR-V');
   assert.equal(studioName('<script>'), 'SCRIPT');
 });
+
+test('r33 letteringName: the word behind the car from the model', async () => {
+  const { letteringName } = await import('./studio.ts');
+  assert.equal(letteringName('CLA-Class'), 'CLA');
+  assert.equal(letteringName('C-Class'), 'C CLASS');
+  assert.equal(letteringName('A-Class'), 'A CLASS');
+  assert.equal(letteringName('GLA-Class'), 'GLA');
+  assert.equal(letteringName('AMG GT'), 'AMG GT');
+  assert.equal(letteringName('CTS'), 'CTS');
+  assert.equal(letteringName('CR-V'), 'CR-V');
+  assert.equal(letteringName('F-150'), 'F-150');
+  assert.equal(letteringName('C CLASS'), 'C CLASS', 'idempotent');
+  assert.equal(letteringName('CLA CLASS'), 'CLA');
+  assert.equal(letteringName('E-Class Cabriolet'), 'E CLASS CABRIOLET');
+});
