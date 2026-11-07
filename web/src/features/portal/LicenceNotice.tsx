@@ -31,3 +31,9 @@ export function LicenceNotice({ number, missing, when }: { number: string; missi
     </section>
   );
 }
+
+/** The licence reader for the renter (release 31): each driver's details as read, whether confirmed; the main driver swap. */
+export interface LicenceReadState { drivers: import('./MainDriver').ReadDriver[]; swap: { state: string; to_driver_id: string | null; from_driver_id: string } | null; primary_ontario: boolean }
+export async function licenceReadState(bookingId: string, userId: string): Promise<LicenceReadState | null> {
+  return (await rpc('renter_licence_read', { p_booking: bookingId, p_by: userId }, { role: 'service_role' }).catch(() => null)) as unknown as LicenceReadState | null;
+}

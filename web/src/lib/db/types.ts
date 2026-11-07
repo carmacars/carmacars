@@ -2577,6 +2577,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_primary_swaps: {
+        Row: {
+          id: string;
+          booking_id: string;
+          from_driver_id: string;
+          to_driver_id: string | null;
+          issuer: string | null;
+          state: string;
+          reason: string | null;
+          decided_by: string | null;
+          created_at: string;
+          decided_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          from_driver_id: string;
+          to_driver_id?: string | null;
+          issuer?: string | null;
+          state?: string;
+          reason?: string | null;
+          decided_by?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          from_driver_id?: string;
+          to_driver_id?: string | null;
+          issuer?: string | null;
+          state?: string;
+          reason?: string | null;
+          decided_by?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+        };
+        Relationships: [];
+      };
       booking_renewals: {
         Row: {
           id: string;
@@ -6118,6 +6157,7 @@ export type Database = {
           city: string | null;
           province: string | null;
           postal_code: string | null;
+          licence_read_confirmed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -6140,6 +6180,7 @@ export type Database = {
           city?: string | null;
           province?: string | null;
           postal_code?: string | null;
+          licence_read_confirmed_at?: string | null;
         };
         Update: {
           id?: string;
@@ -6162,6 +6203,7 @@ export type Database = {
           city?: string | null;
           province?: string | null;
           postal_code?: string | null;
+          licence_read_confirmed_at?: string | null;
         };
         Relationships: [];
       };
@@ -9543,6 +9585,78 @@ export type Database = {
           replied_at?: string | null;
           referred_by_owner_id?: string | null;
           sourced_by?: string | null;
+        };
+        Relationships: [];
+      };
+      licence_reads: {
+        Row: {
+          id: string;
+          booking_id: string;
+          driver_id: string;
+          upload_id: string | null;
+          document_id: string | null;
+          side: string;
+          source: string;
+          quality: string;
+          first_name: string | null;
+          last_name: string | null;
+          full_name: string | null;
+          date_of_birth: string | null;
+          licence_number: string | null;
+          licence_class: string | null;
+          issued_on: string | null;
+          expires_on: string | null;
+          issuer: string | null;
+          country: string | null;
+          address: string | null;
+          model: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          driver_id: string;
+          upload_id?: string | null;
+          document_id?: string | null;
+          side: string;
+          source: string;
+          quality: string;
+          first_name?: string | null;
+          last_name?: string | null;
+          full_name?: string | null;
+          date_of_birth?: string | null;
+          licence_number?: string | null;
+          licence_class?: string | null;
+          issued_on?: string | null;
+          expires_on?: string | null;
+          issuer?: string | null;
+          country?: string | null;
+          address?: string | null;
+          model?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          driver_id?: string;
+          upload_id?: string | null;
+          document_id?: string | null;
+          side?: string;
+          source?: string;
+          quality?: string;
+          first_name?: string | null;
+          last_name?: string | null;
+          full_name?: string | null;
+          date_of_birth?: string | null;
+          licence_number?: string | null;
+          licence_class?: string | null;
+          issued_on?: string | null;
+          expires_on?: string | null;
+          issuer?: string | null;
+          country?: string | null;
+          address?: string | null;
+          model?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -15330,6 +15444,9 @@ export type Database = {
           hiring_ai_answer_seconds: number;
           hiring_ai_retakes: number;
           hiring_ai_video_days: number;
+          licence_auto_approve: boolean;
+          licence_primary_ontario: boolean;
+          licence_auto_approver: string | null;
         };
         Insert: {
           id?: string;
@@ -15954,6 +16071,9 @@ export type Database = {
           hiring_ai_answer_seconds?: number;
           hiring_ai_retakes?: number;
           hiring_ai_video_days?: number;
+          licence_auto_approve?: boolean;
+          licence_primary_ontario?: boolean;
+          licence_auto_approver?: string | null;
         };
         Update: {
           id?: string;
@@ -16578,6 +16698,9 @@ export type Database = {
           hiring_ai_answer_seconds?: number;
           hiring_ai_retakes?: number;
           hiring_ai_video_days?: number;
+          licence_auto_approve?: boolean;
+          licence_primary_ontario?: boolean;
+          licence_auto_approver?: string | null;
         };
         Relationships: [];
       };
@@ -17734,6 +17857,7 @@ export type Database = {
           link_sent_at: string | null;
           link_sent_count: number;
           link_sent_by: string | null;
+          is_primary_driver: boolean;
         };
         Insert: {
           id?: string;
@@ -17753,6 +17877,7 @@ export type Database = {
           link_sent_at?: string | null;
           link_sent_count?: number;
           link_sent_by?: string | null;
+          is_primary_driver?: boolean;
         };
         Update: {
           id?: string;
@@ -17772,6 +17897,7 @@ export type Database = {
           link_sent_at?: string | null;
           link_sent_count?: number;
           link_sent_by?: string | null;
+          is_primary_driver?: boolean;
         };
         Relationships: [];
       };
@@ -26562,8 +26688,12 @@ export type Database = {
       renter_decline_booking_change: { Args: { p_request: string; p_by: string; p_reason?: string }; Returns: undefined };
       renter_extend_option: { Args: { p_booking: string; p_by: string; p_option: string }; Returns: Json };
       renter_extension_payreq: { Args: { p_extension: string; p_by: string; p_token_sha256: string }; Returns: Json };
+      renter_licence_confirm: { Args: { p_booking: string; p_by: string; p_driver: string }; Returns: Json };
+      renter_licence_read: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_offline_pay_facts: { Args: { p_booking: string }; Returns: Json };
       renter_open_agreement: { Args: { p_booking: string; p_by: string; p_template_version: string; p_document_sha256: string; p_storage_path: string }; Returns: string };
+      renter_primary_driver_add: { Args: { p_booking: string; p_by: string; p: Json }; Returns: Json };
+      renter_primary_swap: { Args: { p_booking: string; p_by: string }; Returns: Json };
       renter_register_upload: { Args: { p_booking: string; p_by: string; p_kind: string; p_storage_path: string; p_sha256: string; p_mime_type: string; p_storage_bucket: string; p_driver?: string; p_details?: Json }; Returns: Json };
       renter_reply_booking_info: { Args: { p_request: string; p_by: string; p_reply: string }; Returns: undefined };
       renter_request_booking_change: { Args: { p_booking: string; p_by: string; p_changes: Json; p_note?: string }; Returns: string };
@@ -26769,6 +26899,8 @@ export type Database = {
       server_indexnow_report: { Args: { p: Json }; Returns: Json };
       server_indexnow_sent: { Args: { p: Json }; Returns: number };
       server_jobs_due: { Args: never; Returns: Json };
+      server_licence_read_gate: { Args: never; Returns: Json };
+      server_licence_read_record: { Args: { p: Json }; Returns: Json };
       server_licence_state: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_listing_budget: { Args: never; Returns: Json };
       server_listing_claim: { Args: { p_worker: string; p_limit?: number }; Returns: Json };

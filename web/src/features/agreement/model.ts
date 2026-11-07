@@ -210,7 +210,10 @@ export function agreementBlocks(f: AgreementFacts, o: BuildOptions): Block[] {
     ['Booking number / made on', `${b.booking_number} / ${when(b.booked_at ?? b.requested_at)}`],
     ['Booking type', `${BOOKING_TYPE[b.booking_type] ?? b.booking_type}${b.renews_booking_id ? ', renewal of an earlier agreement' : ''}`],
     ['Renter', `Name: ${or(r?.legal_name)}  Date of birth: ${or(day(r?.date_of_birth ?? renter?.date_of_birth))}  Address: ${or(address)}  Mobile: ${or(phone(r?.mobile))}  Email: ${or(r?.email)}`],
-    ['Renter licence', licence(renter)],
+    // the main driver is another person when the renter's licence is not from Ontario (release 31): named as the primary driver
+    ...(renter && r?.legal_name && renter.full_name.trim().toLowerCase() !== r.legal_name.trim().toLowerCase()
+      ? [['Primary driver', `Name: ${renter.full_name}  Date of birth: ${or(day(renter.date_of_birth))}  Licence: ${licence(renter)}`]]
+      : [['Renter licence', licence(renter)]]),
     ...(extra.length ? extra.map((d) => ['Additional Driver', `Name: ${d.full_name}  Date of birth: ${or(day(d.date_of_birth))}${x ? `  Address: ${or(x.drivers[d.id]?.address)}` : ''}  Licence: ${licence(d)}`]) : [['Additional Drivers', 'None']]),
     ['Identity verified', f.drivers.map((d) => `${d.full_name}: ${d.identity_verified_on ? `${d.identity_method === 'identity_service' ? 'identity check service' : 'staff review'}, ${day(d.identity_verified_on)}` : 'before pickup'}`).join('; ')],
     ['Vehicle', v ? `${v.year} ${v.make} ${v.model}${v.trim ? ` ${v.trim}` : ''}${v.colour ? `, ${v.colour}` : ''}${v.fuel ? `, ${v.fuel.replace(/_/g, ' ')}` : ''}  Plate: ${or(v.plate, 'given at pickup')}  VIN: ${or(v.vin, 'given at pickup')}${x?.vehicle?.fleet_number ? `  Fleet no.: ${x.vehicle.fleet_number}` : ''}` : ''],

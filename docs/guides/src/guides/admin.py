@@ -324,6 +324,15 @@ def build():
         f'The switch is in {P("Settings", "Program")}, Booking requests and offers: Booking licence required (on), with the selfie (on).',
     ])
 
+    g.task('The licence reader', 'Every licence photo is read on upload: the back\'s barcode first, else the vision model (within the day\'s AI allowance).')
+    g.steps([
+        'The renter\'s empty licence fields are filled from the read; the renter confirms them. A blurry or cut-off photo is taken again at once.',
+        f'{B("Review documents")} shows what was read and one line per check, Pass or Flag: photos, valid to the return, class accepted, age at pickup, name and date of birth, the Ontario number, front and back, and the main driver\'s Ontario licence. Staff still approve.',
+        f'{P("Settings", "Program")}, Driver\'s licence reader: {B("Approve automatically when every check passes")} (off). On: a driver whose front and back both read sharp and every check passes is approved in your name; anything flagged waits for a person.',
+        f'{B("Primary driver must hold an Ontario licence")} (on): a main driver with a licence from elsewhere becomes an additional driver, the booking needs "Primary driver: Ontario licence needed" and pickup is blocked. The renter adds a main driver, who signs on their own link. On the document review, {B("Admin: undo or let it go")}: undo puts the first main driver back; let it go needs a reason.',
+    ])
+    g.tip('What was read is staff only and is deleted with the licence image. The licence number is never written to the logs.')
+
     g.task('Renter documents: licence and proof of coverage', 'A renter\'s licence photos, selfie and proof of coverage (OPCF 27 or a credit card\'s rental coverage) are checked before the handover. You check them yourself; no task is needed.')
     g.steps([
         f'A booking with documents waiting is a line on To do: "Check <renter>\'s documents for booking <number>", marked Now when the pickup is within two days. Press {B("Review documents")}.',

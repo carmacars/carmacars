@@ -48,13 +48,21 @@ export interface Todo {
 export interface DocUpload { id: string; kind: string; driver_id: string | null; status: string; uploaded_at: string; reject_reason: string | null; mime_type: string | null;
   bucket?: string | null; path?: string | null; url?: string | null }
 type ReviewProof = NonNullable<ReviewCoverage['proof']>;
+export interface LicenceCheck { key: string; label: string; ok: boolean | null; detail: string | null }
+export interface LicenceRead { full_name?: string; date_of_birth?: string; licence_number?: string; licence_class?: string; issued_on?: string; expires_on?: string; issuer?: string; country?: string; address?: string; source?: string }
+export interface PrimarySwap { state: 'needed' | 'resolved' | 'undone' | 'overridden'; from_name: string | null; from_driver_id: string; to_name: string | null; to_driver_id: string | null; issuer: string | null; reason: string | null; at: string }
 export interface DocReview {
   booking_id: string; booking_number: string; status: string; pickup_at: string; return_at: string; coverage_option: number | null; renter_name: string | null; vehicle_name: string | null;
   readiness: { all_drivers_verified?: boolean; coverage_confirmed?: boolean; identity_and_coverage_confirmed?: boolean };
   /** 0169: Sales see the licence front, back and selfie only (no coverage) */
   licence_only?: boolean;
-  drivers: Array<{ driver_id: string; full_name: string; role: string; date_of_birth: string | null; licence_number: string | null; licence_class: string | null; licence_expiry: string | null; verified_on: string | null }>;
+  drivers: Array<{ driver_id: string; full_name: string; role: string; date_of_birth: string | null; licence_number: string | null; licence_class: string | null; licence_expiry: string | null; verified_on: string | null;
+    /** release 31 (0602): what the licence reader read (staff only) and the checks, one line each */
+    licence_read?: LicenceRead | null; licence_checks?: LicenceCheck[] }>;
   uploads: DocUpload[];
+  /** release 31: the main driver's Ontario licence (the swap to additional driver), and automatic approval */
+  primary_swap?: PrimarySwap | null;
+  licence_auto_approve?: boolean;
   coverage: (Omit<ReviewCoverage, 'proof'> & { proof: (Omit<ReviewProof, 'pages'> & { pages: Array<ReviewProof['pages'][number] & { url?: string | null }> }) | null }) | null;
   waiting: number;
 }

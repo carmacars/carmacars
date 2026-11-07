@@ -38,7 +38,9 @@ export function StaffDocUpload({ bookingId, drivers }: { bookingId: string; driv
       r = await staffDocumentUpload(form);
     }
     if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
-    setMsg({ ok: true, text: 'Uploaded. It is on the booking; review it with Review documents.' });
+    // the licence reader (release 31): a photo it could not use is taken again now
+    const retake = (r.data as { retake?: string | null } | null)?.retake ?? null;
+    setMsg(retake ? { ok: false, text: retake } : { ok: true, text: 'Uploaded. It is on the booking; review it with Review documents.' });
     setFile(null); setF({ insurer_name: '', policy_number: '', policy_expiry: '', title: '' }); setResets((n) => n + 1); router.refresh();
   });
   if (!open) return <button className="btn btn--ghost btn--sm" type="button" onClick={() => setOpen(true)} data-testid="sdu-open">Upload a document</button>;

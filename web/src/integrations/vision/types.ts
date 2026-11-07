@@ -10,7 +10,7 @@ export interface VisionRequest {
   imageDataUrl: string;
   schema?: Record<string, unknown>;
   maxOutputTokens: number;
-  purpose: 'toll_read' | 'plate_detect' | 'guide_review' | 'colour_read' | 'permit_read' | 'vin_read' | 'photo_sort';
+  purpose: 'toll_read' | 'plate_detect' | 'guide_review' | 'colour_read' | 'permit_read' | 'vin_read' | 'photo_sort' | 'licence_read';
 }
 
 export type VisionResult =

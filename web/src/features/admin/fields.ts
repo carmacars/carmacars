@@ -173,6 +173,7 @@ const LABELS: Record<string, string> = {
   field_pay_anchor: 'Field pay: the first day of a pay period (every period is two weeks from it)', field_default_hourly_cents: 'Field pay: the hourly rate of a field staff member with no rate of their own',
   field_overtime_on: 'Field pay: pay overtime', field_overtime_weekly_hours: 'Field pay: overtime starts after this many hours in a week', field_overtime_bps: 'Field pay: overtime is paid at this share of the hourly rate',
   field_vacation_pay_bps: 'Field pay: vacation pay added to each pay statement (0 is off)', field_shift_max_hours: 'Field pay: the longest shift (hours)',
+  licence_auto_approve: 'Approve automatically when every check passes', licence_primary_ontario: 'Primary driver must hold an Ontario licence',
   ai_vision_enabled: 'Vision model on', ai_vision_model: 'Vision model', ai_vision_fallback_model: 'Vision model if the first is not available', ai_vision_daily_neurons: 'Vision model: neurons a day',
   esign_code_required: 'E-signing: ask for a one-time code by text or email first', esign_strict: 'E-signing: sign only after reading, initialling, consenting and drawing the signature',
   esign_typed_fallback: 'E-signing: a signer who cannot draw may type their name and initials', esign_code_minutes: 'E-signing: the code works for (minutes)'

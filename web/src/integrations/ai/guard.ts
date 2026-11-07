@@ -21,7 +21,7 @@ export type Tier = 'assistant' | 'live' | 'background';
 /** The tier of a purpose, as app.ai_tier (migration 0133) has it. */
 export function tierOf(purpose: string): Tier {
   if (purpose === 'staff_assistant') return 'assistant';
-  if (['chat', 'phone_draft', 'phone_summary', 'toll_read', 'plate_detect', 'guide_review', 'permit_read', 'vin_read', 'photo_sort', 'interview_transcribe', 'interview_followup'].includes(purpose)) return 'live';
+  if (['chat', 'phone_draft', 'phone_summary', 'toll_read', 'plate_detect', 'guide_review', 'permit_read', 'vin_read', 'photo_sort', 'licence_read', 'interview_transcribe', 'interview_followup'].includes(purpose)) return 'live';
   return 'background';
 }
 /** The purpose each text task is recorded with in provider_calls. */

@@ -7,23 +7,38 @@ import { UploadCard } from '@/features/portal/UploadCard';
 import { CoverageSection } from '@/features/portal/CoverageSection';
 import { myBooking, myCoverage, myTripPhotos } from '@/server/portal/data';
 import { StepHeader } from '@/features/portal/trip';
-import { licenceState } from '@/features/portal/LicenceNotice';
+import { licenceReadState, licenceState } from '@/features/portal/LicenceNotice';
+import { LicenceReadConfirm, MainDriverNeeded } from '@/features/portal/MainDriver';
 import { LicenceForm } from '@/features/portal/LicenceForm';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Licence, selfie and coverage', path: '/account/bookings', noindex: true, description: 'Upload your licence, a selfie and proof of coverage before pickup.' });
 
-const MISSING: Record<string, string> = { identity: 'Licence photos and selfie for every driver', coverage: 'Proof of coverage', additional_driver_acceptance: 'Each additional driver accepts the agreement', deposit: 'Deposit, a hold on the day of pickup', calendar_switch: 'Final check by our team', agreement: 'Signed agreement', pickup_condition_report: 'Condition Report, done at pickup' };
+const MISSING: Record<string, string> = { primary_driver_ontario_licence: 'A main driver with an Ontario licence', identity: 'Licence photos and selfie for every driver', coverage: 'Proof of coverage', additional_driver_acceptance: 'Each additional driver accepts the agreement', deposit: 'Deposit, a hold on the day of pickup', calendar_switch: 'Final check by our team', agreement: 'Signed agreement', pickup_condition_report: 'Condition Report, done at pickup' };
 
 // Identity and coverage (02 section 7.3, 08-forms.md section 7): three photos per driver and the proof
 // for the chosen coverage option, each reviewed by our team. Status from booking_readiness.
-export default async function VerifyPage({ params }: { params: Promise<{ number: string }> }) {
+export default async function VerifyPage({ params, searchParams }: { params: Promise<{ number: string }>; searchParams: Promise<{ own?: string; change?: string }> }) {
   const { b, user } = await myBooking((await params).number, 'verify');
+  const q = await searchParams;
   // licence photos, the selfie and the coverage proof: before pickup, or while a rental added already underway is out (0074)
   // the licence from the request on (0130): requested and offered show the licence alone, the coverage comes after approval
   const early = ['requested', 'offered'].includes(b.status);
   if (!early && !['pending_payment', 'confirmed'].includes(b.status) && !(b.status === 'on_rent' && b.added_mode === 'in_progress')) redirect(bookingPath(b.booking_number));
-  const [lic, photos] = await Promise.all([licenceState(b.id, user.id), myTripPhotos(user)]);
+  const [lic, photos, rd] = await Promise.all([licenceState(b.id, user.id), myTripPhotos(user), licenceReadState(b.id, user.id)]);
+  // release 31: the main driver's licence is not from Ontario and nobody has been added yet: one plain screen
+  const swapNeeded = rd?.swap?.state === 'needed' && !rd.swap.to_driver_id;
+  const here = `${bookingPath(b.booking_number, 'verify')}`;
+  if (swapNeeded && !q.own) {
+    return (
+      <>
+        <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
+        <StepHeader b={b} photo={photos[b.vehicle_id] ?? null} title="Main driver" />
+        <MainDriverNeeded number={b.booking_number} own={`${here}?own=1`} />
+      </>
+    );
+  }
+  const toConfirm = (rd?.drivers ?? []).filter((d) => d.read && !d.confirmed_at);
   const me = lic?.drivers.find((d) => d.role === 'renter');
   const up = (kind: string, driver: string | null) => b.uploads.filter((u) => u.kind === kind && u.driver_id === driver).pop();
   const missing = b.readiness?.missing ?? [];
@@ -37,16 +52,17 @@ export default async function VerifyPage({ params }: { params: Promise<{ number:
           : `Needed by ${when(new Date(new Date(b.pickup_at).getTime() - 24 * 3600e3).toISOString())}, 24 hours before pickup.`}</p>
       </header>
       <p className="pt-note">You agreed to identity verification when you signed. Our staff who verify drivers, and our insurer where required, see these images. We delete licence and face photos 90 days after your rental ends.</p>
-      {me && !me.licence.expiry_ok && (
+      {toConfirm.map((d) => <LicenceReadConfirm key={d.driver_id} number={b.booking_number} d={d} onChange={d.driver_id === me?.driver_id ? `${here}?change=1#pt-licd` : undefined} />)}
+      {me && (!me.licence.expiry_ok || q.change) && (
         <section className="pt-card pt-card--next" aria-labelledby="pt-licd" data-testid="licence-details"><h2 className="d4" id="pt-licd">Licence details</h2>
           <p className="small">{me.licence.expiry ? 'Your licence must be valid after your return date. Check the expiry date.' : 'The number and the expiry date of your licence.'}</p>
-          <LicenceForm number={b.booking_number} initial={{ licence_number: '', licence_class: 'G', licence_issuer: 'ON', licence_expiry: me.licence.expiry ?? '' }} />
+          <LicenceForm number={b.booking_number} initial={{ licence_number: rd?.drivers.find((x) => x.driver_id === me.driver_id)?.licence_number ?? '', licence_class: rd?.drivers.find((x) => x.driver_id === me.driver_id)?.licence_class ?? 'G', licence_issuer: rd?.drivers.find((x) => x.driver_id === me.driver_id)?.licence_issuer ?? 'ON', licence_expiry: me.licence.expiry ?? '' }} />
         </section>
       )}
       {me && me.licence.complete && early && <p className="alert alert--ok" role="status" data-testid="licence-complete"><span className="alert__title">Licence received</span><span>Nothing more is needed before you accept the offer.</span></p>}
       {!early && b.readiness && (
         <section className="pt-card" aria-labelledby="pt-ready" data-testid="readiness"><h2 className="d4" id="pt-ready">Before pickup</h2>
-          <ol className="pt-steps">{Object.keys(MISSING).filter((k) => k !== 'agreement').map((k) => <li key={k} className={missing.includes(k) ? '' : 'is-done'}>{MISSING[k]}<span className="vh">{missing.includes(k) ? ', to do' : ', done'}</span></li>)}</ol>
+          <ol className="pt-steps">{Object.keys(MISSING).filter((k) => k !== 'agreement' && (k !== 'primary_driver_ontario_licence' || missing.includes(k))).map((k) => <li key={k} className={missing.includes(k) ? '' : 'is-done'}>{MISSING[k]}<span className="vh">{missing.includes(k) ? ', to do' : ', done'}</span></li>)}</ol>
         </section>
       )}
       {b.drivers.filter((d) => !early || d.role === 'renter').map((d) => (

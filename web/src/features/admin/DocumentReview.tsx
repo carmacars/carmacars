@@ -3,6 +3,7 @@ import { useId, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { docReviewLoad, guidedAct } from '@/server/actions/guided';
 import type { DocReview, DocUpload } from '@/features/admin/todo/types';
+import { LicenceChecks, PrimarySwapPanel } from '@/features/licence/LicenceChecks';
 
 // Renter documents of one booking (migration 0078), on one screen (0151): every licence image, selfie, proof of coverage
 // and the Protection Plan side by side, what to check said once, then one "Approve all" (each item through the function
@@ -10,7 +11,8 @@ import type { DocReview, DocUpload } from '@/features/admin/todo/types';
 // renter sees. An Admin or customer service, with no review task. The images come through one-minute private links,
 // loaded when the pop-up opens (each opening is logged). Sales (0169) see the licence front, back and selfie only: no coverage.
 const KIND: Record<string, string> = { licence_front: 'Licence, front', licence_back: 'Licence, back', selfie: 'Selfie' };
-const CHECKS = ['The name and date of birth match the booking', 'Class G2 or G (escalate a licence from outside Ontario), valid past the return date, no sign of alteration',
+// the reader checks the rest line by line (release 31): what staff still look at themselves
+const CHECKS = ['Each flagged line below: fix it or reject with the reason', 'No sign of alteration; the photo is of the driver',
   'The selfie’s face matches the licence photo'];
 const COVERAGE_CHECK = 'The coverage is active to the return date and covers this car and every driver';
 const day = (iso: string | null | undefined) => (iso ? new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(iso.length === 10 ? `${iso}T12:00:00Z` : iso)) : '');
@@ -101,12 +103,15 @@ export function DocumentReview({ booking, label = 'Review documents', variant = 
                   <span className="small muted">One wrong? Reject that one first, with the reason.</span></div>
               </div>)}
             {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid="doc-review-msg"><span>{msg.text}</span></p>}
+            {d.primary_swap && <PrimarySwapPanel booking={d.booking_id} swap={d.primary_swap} onDone={async (m) => { await reload(); setMsg(m); changed.current = true; }} />}
+            {d.licence_auto_approve && <p className="small muted" data-testid="licence-auto-on">Licences are approved automatically when every check passes (Admin setting). Anything flagged waits here.</p>}
             {d.drivers.map((dr) => {
               const ups = d.uploads.filter((u) => u.driver_id === dr.driver_id);
               return (
                 <section key={dr.driver_id} className="gd-driver" aria-label={dr.full_name}>
                   <h3 className="pt-kicker">{dr.full_name} ({dr.role.replace(/_/g, ' ')}){dr.verified_on ? ', verified' : ''}</h3>
                   <p className="small muted">Born {dr.date_of_birth ?? 'not given'} · licence {dr.licence_number ?? 'not given'} {dr.licence_class ?? ''} · expires {dr.licence_expiry ?? 'not given'}</p>
+                  <LicenceChecks read={dr.licence_read} checks={dr.licence_checks} />
                   {ups.length ? <div className="gd-docs">{ups.map((u) => <Upload key={u.id} u={u} pending={pending} reject={(reason) => act('doc_review_upload', { upload: u.id, approve: false, reason }, `${KIND[u.kind] ?? 'Document'} rejected. The renter is told why.`)} />)}</div>
                     : <p className="small muted">Nothing uploaded for this driver.</p>}
                 </section>);
