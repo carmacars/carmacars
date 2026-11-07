@@ -1,4 +1,5 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
@@ -41,7 +42,6 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
     <p key={w.slug} className="alert alert--warn" role="status" data-testid={`hiring-no-day-${w.slug}`}><span>{w.count} applicant{w.count === 1 ? '' : 's'} invited but no interview day is open for {w.title}. <Link prefetch={false} className="link" href={`${base}?tab=days`}>Add an interview day</Link></span></p>));
   // R23 (0226): the decisions of the calls and the emails they send, all at once
   if (tab === 'emails') return (<>{head}{tabs}<DecisionEmails d={await read<DecisionsData>('hiring_decisions')} /></>);
-  const roleOptions: Array<[string, string]> = [['', 'All roles'], ...data.roles.map((r) => [r.slug, r.short_title] as [string, string])];
 
   if (tab === 'calls') {
     const s = await read<{ day: string; today: string; days: string[]; phone_enabled: boolean; free: number; calls: Array<App & { ends_at: string; meet_url: string | null; confirm?: string | null }>;
@@ -140,12 +140,8 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
   const aiWaiting = data.ai_interviews?.waiting ?? 0;
   return (<>{head}{noDay}{tabs}
     {aiWaiting > 0 && <p className="alert" role="status" data-testid="hiring-ai-waiting"><span>{aiWaiting} AI interview{aiWaiting === 1 ? '' : 's'} done and waiting for your decision. <Link prefetch={false} className="link" href={`${base}?tab=pipeline&status=interviewed`}>Show interviewed</Link></span></p>}
-    <div className="row" style={{ gap: '1rem', flexWrap: 'wrap' }}>
-      <Filters base={`${base}?tab=pipeline`} name="role" value={sp.role ?? ''} sp={sp} options={roleOptions} />
-      <Filters base={`${base}?tab=pipeline`} name="status" value={sp.status ?? ''} sp={sp} options={STATUS_FILTERS} />
-      <Filters base={`${base}?tab=pipeline`} name="source" value={sp.source ?? ''} sp={sp} options={[['', 'Any source'], ...Object.entries(SOURCE_WORDS)]} />
-      <Filters base={`${base}?tab=pipeline`} name="min_score" value={sp.min_score ?? ''} sp={sp} options={[['', 'Any score'], ['60', '60 or more'], ['75', '75 or more'], ['90', '90 or more']]} />
-    </div>
+    <ListFilters id="admin-hiring" base={`${base}?tab=pipeline`} sp={sp} chips={{ name: 'status', label: 'Status', options: STATUS_FILTERS.filter(([v]) => ['', 'open', 'invited', 'booked', 'interviewed'].includes(v)) }}
+      kept={['role', 'source', 'min_score']} />
     <Card title={`Applications (${data.applications.length})`} testId="hiring-apps">
       <Table<App & R> rows={data.applications as Array<App & R>} rowKey={(x) => x.id} empty="No applications match. Paste the apply link of a role into Indeed messages (Roles and links)." cols={[
         { key: 'full_name', label: 'Candidate', render: (x) => <span><Link prefetch={false} className="link" href={`${base}/${x.id}`} data-testid={`app-${x.email ?? x.id}`}>{x.full_name}</Link>

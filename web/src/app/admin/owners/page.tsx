@@ -9,6 +9,7 @@ import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/Account
 import { ViewAsButton } from '@/features/admin/ViewAs';
 import { door } from '@/server/door';
 import { PageHead } from '@/features/admin/ui';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { ChecklistItems, OwnerChecklist, type OwnerChecklistRow } from '@/features/manual/OwnerChecklist';
 import { AddOwnerForm } from '@/features/owner-billing/AddOwnerForm';
 
@@ -17,15 +18,22 @@ type Acct = { id: string; email: string; name: string; status: string };
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner applications', path: '/admin/owners', noindex: true, description: 'Owner applications.' });
 
-export default async function AdminOwners({ searchParams }: { searchParams: Promise<{ view?: string; show?: string }> }) {
+export default async function AdminOwners({ searchParams }: { searchParams: Promise<{ view?: string; show?: string; q?: string; status?: string }> }) {
   const [{ user }, sp] = await Promise.all([requireAdmin('/admin/owners'), searchParams]);
   if (sp.view === 'checklist') return <Checklists userId={user.id} show={sp.show === 'all' ? 'all' : 'open'} />;
-  const [rows, idx] = await Promise.all([adminOwners(user),
+  const [every, idx] = await Promise.all([adminOwners(user),
     rpc('admin_account_index', { p_admin: user.id }, { role: 'service_role' }) as unknown as Promise<{ owners: Record<string, Acct> }>]);
+  // r32: one search across the name, email and applications; chips for what needs action
+  const q = (sp.q ?? '').trim().toLowerCase();
+  const rows = every.filter((o) => (!q || `${o.legal_name} ${o.email} ${o.applications.join(' ')}`.toLowerCase().includes(q))
+    && (sp.status === 'terms' ? o.pending_terms > 0 : sp.status === 'invoices' ? o.invoices_open > 0 : sp.status === 'no_account' ? !idx.owners[o.owner_id] : true));
   return (
     <>
       <PageHead title="Owners" purpose="Every owner with their cars, applications, terms and invoices.">
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/owners/add-car" data-testid="add-car-for-owner">Add a car for an owner</Link></PageHead>
+      <ListFilters id="admin-owners" base="/admin/owners" sp={sp} search={{ placeholder: 'Name, email or car' }}
+        chips={{ name: 'status', label: 'Needs', options: [['', `All (${every.length})`], ['terms', 'Terms to approve'], ['invoices', 'Invoices open'], ['no_account', 'Not invited yet']] }} />
+      <p className="small"><Link prefetch={false} className="link" href="/admin/owners?view=checklist">What each owner has left to pay or sign</Link></p>
       <div className="pt-split">
         <section className="stack" aria-labelledby="ad-list"><h2 className="pt-section-title" id="ad-list">{rows.length} owners</h2>
           {rows.length ? <ul className="ow-rows" data-testid="admin-owners">{rows.map((o) => (

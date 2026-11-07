@@ -644,3 +644,12 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 /* r28: the offer as the renter sees it, right below the send button (A6) */
 .oc-renter-below { display: grid; gap: var(--s-2); margin-top: var(--s-3); }
 .oc-renter-below > .pt-kicker { margin: 0; }
+
+/* r32: the one filter bar of every list (features/list-filters) */
+.lf { display: flex; flex-direction: column; gap: 0.5rem; margin: 0 0 1rem; }
+.lf__row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.lf__chips { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; }
+.lf__more { display: inline-block; }
+.lf__more > summary { cursor: pointer; list-style: none; padding: 0.25rem 0.6rem; border: 1px solid var(--line, #ddd); border-radius: 999px; font-size: 0.875rem; }
+.lf__more[open] > div { margin-top: 0.4rem; }
+.lf__clear { align-self: flex-start; }

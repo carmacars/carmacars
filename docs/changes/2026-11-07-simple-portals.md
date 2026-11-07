@@ -124,10 +124,11 @@ investor/sign investor/sign/[id] investor/statements investor/statements/[id]
 
 ## Filters (the headline of r32)
 
-Rule for every list: one search box across fields (name, booking number, plate, phone, email, VIN); one row of at most
-5 status chips plus More; at most 2 other filters (usually dates and car or owner); everything else in one collapsed
-More filters panel; no tab that is only a filter; the default shows what needs action now; the last choice is
-remembered per person with a one-tap Clear; old query parameters map to the new ones. One shared `ListFilters`.
+Rule for every list (owner, Nov 7): one search box across fields (name, booking number, plate, phone, email, VIN), one
+row of at most 5 chips (statuses that need action), at most one date range and only where dates matter (bookings,
+money), one sort of 2 or 3 options where useful. No "More filters" panel and no "More" chip. A filter that does not fit
+is served by the search, or kept as a link (a saved view) when a real job needs it; old query parameters still work
+(the list still reads them, Clear removes them). One shared `ListFilters` (`features/list-filters`).
 
 Audit (static count from the code: chip groups, their fixed options, a search box, tabs, date fields, dropdowns):
 
@@ -179,3 +180,16 @@ the staff queue 3).
 ## Guides
 
 No guide change in this slice yet: the chapters that name the booking and vehicle tabs follow when the sections land.
+
+## Filters after (first lists)
+
+| List | Before | After |
+|---|---|---|
+| Admin Bookings (all) | search, status 6, bill to 3, More: supply 4, added 2 | search (also the insurer), status 5 |
+| Admin Vehicles | search, every status, More: supply 4, retired 3, mode 4 | search (also supplier and mode), status 5; Retired cars a link |
+| Admin Owners | nothing (no search) | search (name, email, car), 4 chips: terms to approve, invoices open, not invited |
+| Staff To do queue | 4 chips, More: when 4, type n | 4 chips |
+| Admin Hiring | 5 groups: role n, status 12, source n, score 4 | status 5 (open, invited, booked, interviewed) |
+
+The old parameters (`bill`, `supply`, `added`, `mode`, `retired`, `only`, `type`, `role`, `source`, `min_score`) still
+filter when a link carries them; Clear removes them.

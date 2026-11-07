@@ -1,9 +1,10 @@
 import Link from '@/components/Link';
+import { ListFilters } from '@/features/list-filters/ListFilters';
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage, FN_LABEL } from '@/server/va';
 import { door } from '@/server/door';
 import { Act } from '@/features/admin/Act';
-import { Badge, Filters, MoreFilters, Table, t, label } from '@/features/admin/ui';
+import { Badge, Table, t } from '@/features/admin/ui';
 import { PortalHero } from '@/components/portal-ui/PortalHero';
 import { StatCard } from '@/components/portal-ui/StatCard';
 import { ProgressRing } from '@/components/portal-ui/ProgressRing';
@@ -91,7 +92,6 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
     && (!sp.only || (sp.only === 'overdue' ? r.overdue : sp.only === 'escalated' ? r.escalated : sp.only === 'today' ? day(r.due_at) === today : true))
     && (!sp.type || r.task_type === sp.type)
     && (!laneDef || laneOf(fn, r.task_type) === laneDef.key));
-  const types = [...new Set(all.map((r) => r.task_type))].sort();
   const count = (b: string) => all.filter((r) => r.bucket === b).length;
   const dateWords = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(now));
   const needs = lanes.reduce((n, l) => n + l.count, 0);
@@ -176,11 +176,9 @@ export default async function Queue({ searchParams }: { searchParams: Promise<Re
         <div className="va-section__head"><h2 className="va-section__title" id="va-all-h">Every open task</h2>
           <p className="va-section__note">{all.length} open, most urgent first. Open a task to do it, or take one nobody has yet.</p></div>
         {laneDef && <p className="va-chip" data-testid="va-lane-filter">Showing {laneDef.label.toLowerCase()} <Link prefetch={false} className="link" href="/staff">Show every task</Link></p>}
-        <Filters base="/staff" name="tab" value={tab} sp={sp} options={[['all', `All (${all.length})`], ['mine', `Mine (${count('mine')})`], ['unassigned', `Unassigned (${count('unassigned')})`], ['waiting', `Waiting (${count('waiting')})`]]} />
-        <MoreFilters active={!!(sp.only || sp.type)}>
-          <Filters base="/staff" name="only" value={sp.only ?? ''} sp={sp} options={[['', 'Any time'], ['overdue', 'Overdue'], ['today', 'Due today'], ['escalated', 'Escalated']]} />
-          {types.length > 1 && <Filters base="/staff" name="type" value={sp.type ?? ''} sp={sp} options={[['', 'Every type'], ...types.map((x) => [x, label(x)] as [string, string])]} />}
-        </MoreFilters>
+        <ListFilters id="staff-queue" base="/staff" sp={sp.tab === 'all' ? { ...sp, tab: undefined } : sp}
+          chips={{ name: 'tab', label: 'Whose', options: [['', `All (${all.length})`], ['mine', `Mine (${count('mine')})`], ['unassigned', `Unassigned (${count('unassigned')})`], ['waiting', `Waiting (${count('waiting')})`]] }}
+          kept={['only', 'type']} />
         <Table<Task & Record<string, unknown>> testId="queue" caption="Open tasks" rows={rows as Array<Task & Record<string, unknown>>} empty={all.length ? 'No task matches these filters. Choose All to see every open task.' : 'Queue clear: nothing is waiting for you. New tasks appear here as they come in.'} cols={[
           { key: 'priority', label: 'Priority', render: (r) => <Badge s={r.priority === 'urgent' ? 'failed' : r.priority === 'high' ? 'needs_review' : 'open'}>{r.priority}</Badge> },
           { key: 'title', label: 'Task', className: 'wrap', render: (r) => <><Link prefetch={false} className="link" href={taskHref(r)} data-testid={`task-${r.task_type}`}>{r.title}</Link>{r.escalated ? <span className="ad-flag ad-flag--red">escalated</span> : null}</> },
