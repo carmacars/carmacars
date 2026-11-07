@@ -82,7 +82,7 @@ function Licence({ s, g }: { s: SigningState; g: Signer }) {
       if (!file) { try { file = new File([await toStandardImage(f)], `${kind}.jpg`, { type: 'image/jpeg' }); } catch (e) { setErr(e instanceof Error ? e.message : 'We could not read that file.'); return; } }
       const fd = new FormData(); fd.set('booking', s.booking_id); fd.set('driver', driver); fd.set('kind', kind);
       fd.set('file', file);
-      const r = await staffLicenceUpload(fd); setErr(r.ok ? null : r.message); if (r.ok) router.refresh(); });
+      const r = await staffLicenceUpload(fd); setErr(r.ok ? (r.data?.retake ?? null) : r.message); if (r.ok) router.refresh(); });
   };
   return (
     <div className="stack" style={{ gap: 'var(--s-2)' }} data-testid="sn-licence-state">

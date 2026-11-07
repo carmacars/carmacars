@@ -92,8 +92,17 @@ def build():
         f'On the Request sent page, press {B("Upload your licence")} (or open your booking and press {B("Your licence")}).',
         'Take each photo with your phone, or choose it. Add the licence number and expiry date if we ask: it must be valid after your return.',
         'Rented with us before? A licence on file that is still valid is used again; nothing to upload.',
+        f'We read each photo at once. Blurry or cut off? A message asks you to take it again: do it straight away. The licence details we read are filled in for you: check them and press {B("These are right")}, or {B("Change them")}.',
     ])
     g.tip('You need your licence on file to accept the offer.')
+    g.task('The main driver needs an Ontario licence', 'The main driver of a booking holds an Ontario licence. Drivers with a licence from elsewhere can drive as extra drivers.')
+    g.steps([
+        'If your licence is not from Ontario, your booking shows: "The main driver needs an Ontario licence. Add a driver with an Ontario licence as the main driver. You\'ll stay on the booking as an extra driver."',
+        f'Press {B("Add main driver")}. Enter their name, email, mobile and date of birth, then press {B("Add main driver")} again.',
+        'Upload the front and back of their licence on the same page. They get their own link to accept and sign the agreement, which names them as the main driver.',
+        f'You have an Ontario licence after all? Press {B("I have an Ontario licence: upload it instead")} and upload it.',
+    ])
+    g.tip('Pickup waits until the main driver has an Ontario licence on file. Your own licence photos stay on the booking: our team still checks them for you as an extra driver.')
 
     g.task('Add-ons', 'Extras for your trip, such as a baby seat, a child or booster seat, flowers waiting in the car, a chauffeur, an umbrella, a phone charger or a full tank of gas.')
     g.steps([

@@ -98,6 +98,7 @@ function DriverCheck({ j, r, d }: { j: FieldJob; r: Resolve; d: Resolve['drivers
       fd.set('file', file);
       const x = await staffLicenceUpload(fd);
       if (!x.ok) { setMsg({ ok: false, text: x.message }); return; }
+      if (x.data?.retake) setMsg({ ok: false, text: x.data.retake });
       router.refresh();
     });
   };

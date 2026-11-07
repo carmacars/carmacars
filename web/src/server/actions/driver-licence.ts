@@ -4,6 +4,7 @@ import { DbError, rpc } from '@/lib/db/repo';
 import type { ActionResult } from '@/features/forms/schemas';
 import { storage } from '@/integrations/storage';
 import { readToken, sha256Hex } from '@/server/links';
+import { readLicence } from '@/server/licence-read';
 
 // An additional driver's licence on their own signing link (migration 0130): no account, the signed token names their
 // signer row. The photo is checked (a JPEG or PNG under 10 MB), stored privately and registered for staff review.
@@ -17,7 +18,7 @@ async function signer(token: string): Promise<string> {
   return t.s;
 }
 
-export async function driverLicenceUpload(token: string, form: FormData): Promise<R> {
+export async function driverLicenceUpload(token: string, form: FormData): Promise<R<{ retake: string | null }>> {
   try {
     const s = await signer(token);
     const kind = String(form.get('kind') ?? ''); const file = form.get('file');
@@ -33,8 +34,9 @@ export async function driverLicenceUpload(token: string, form: FormData): Promis
     try {
       await rpc('server_driver_register_upload', { p_signer: s, p_kind: kind, p_storage_path: key, p_sha256: await sha256Hex(bytes), p_mime_type: jpg ? 'image/jpeg' : 'image/png' }, SR);
     } catch (e) { await st.remove('identity', key).catch(() => undefined); throw e; }
+    const read = kind === 'selfie' ? null : await readLicence({ signer_id: s }, kind, bytes);
     revalidatePath(`/sign/driver/${token}`);
-    return { ok: true, data: null };
+    return { ok: true, data: { retake: read?.retake ?? null } };
   } catch (e) { return fail(e); }
 }
 

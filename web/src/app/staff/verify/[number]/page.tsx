@@ -4,6 +4,8 @@ import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { Badge, Card, Kv, PageHead, d, label } from '@/features/admin/ui';
 import { VerifyUpload } from '@/features/va/VerifyUpload';
+import { LicenceChecks, PrimarySwapBox } from '@/features/licence/LicenceChecks';
+import type { LicenceCheck, LicenceRead, PrimarySwap } from '@/features/admin/todo/types';
 import { Act } from '@/features/admin/Act';
 import type { ReviewCoverage } from '@/features/coverage/types';
 import { storage, type Bucket } from '@/integrations/storage';
@@ -13,7 +15,8 @@ export const metadata = pageMeta({ title: 'Identity review', path: '/staff', noi
 
 type U = { id: string; kind: string; driver_id: string | null; status: string; uploaded_at: string; bucket: string; path: string; mime_type: string | null };
 type V = { coverage?: ReviewCoverage | null; booking_id: string; booking_number: string; return_at: string; coverage_option: number | null; readiness: { all_drivers_verified: boolean; coverage_confirmed?: boolean };
-  drivers: Array<{ driver_id: string; full_name: string; role: string; date_of_birth: string | null; licence_number: string | null; licence_class: string | null; licence_expiry: string | null; verified_on: string | null }>; uploads: U[] };
+  drivers: Array<{ driver_id: string; full_name: string; role: string; date_of_birth: string | null; licence_number: string | null; licence_class: string | null; licence_expiry: string | null; verified_on: string | null;
+    licence_read?: LicenceRead | null; licence_checks?: LicenceCheck[] }>; uploads: U[]; primary_swap?: PrimarySwap | null };
 
 // Identity document review (05-va.md section 4.2). The database opens it only while customer service has
 // the review task for this booking, and logs every opening; images come through one-minute signed links and
@@ -41,12 +44,14 @@ export default async function Verify({ params }: { params: Promise<{ number: str
       <p className="small muted">Identity {v.readiness.all_drivers_verified ? 'verified' : 'not verified yet'}{sales ? '' : ` · coverage ${v.readiness.coverage_confirmed ? 'confirmed' : 'not confirmed yet'}`} · return {d(v.return_at)}</p>
       {(v.uploads.some((u) => u.status === 'submitted') || (!sales && ((cp && cp.status === 'submitted') || (cov?.option === 3 && !cov.confirmed && cov.protection_plan_line)))) && (
         <Card title="Everything waiting, in one step" testId="va-approve-all">
-          <p className="small">Look at each document below: the name and date of birth match, class G2 or G, valid past the return, no alteration, the selfie matches{sales ? '' : ', the coverage is active to the return date'}. Reject the wrong one first, with its reason.</p>
+          <p className="small">Look at each document below and each flagged line of the licence reader: no alteration, the selfie matches{sales ? '' : ', the coverage is active to the return date'}. Reject the wrong one first, with its reason.</p>
           <Act ops action="doc_review_approve_all" payload={{ booking: n }} label="Approve all" variant="primary" refresh={[`/staff/verify/${n}`]} testId="va-approve-all-go" done="Approved." />
         </Card>)}
+      {v.primary_swap && <PrimarySwapBox booking={v.booking_id} swap={v.primary_swap} />}
       {v.drivers.map((dr) => (
         <Card key={dr.driver_id} title={<>{dr.full_name} <span className="muted small">{label(dr.role)}</span> {dr.verified_on ? <Badge s="approved">Verified</Badge> : null}</>}>
           <Kv rows={[['Date of birth', dr.date_of_birth ?? ''], ['Licence number', dr.licence_number ?? ''], ['Class', dr.licence_class ?? ''], ['Expiry', dr.licence_expiry ?? '']]} />
+          <LicenceChecks read={dr.licence_read} checks={dr.licence_checks} />
           <div className="ad-cols ad-cols--3">{forDriver(dr.driver_id).map((u) => (
             <div key={u.id}><p className="pt-kicker">{label(u.kind)} <Badge s={u.status === 'submitted' ? 'needs_review' : u.status} /></p>
               {u.status === 'submitted' && links.get(u.id) ? <VerifyUpload id={u.id} kind={u.kind} src={links.get(u.id)!} pdf={u.mime_type === 'application/pdf'} /> : <p className="small muted">Decided.</p>}</div>))}

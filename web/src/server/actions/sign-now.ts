@@ -5,6 +5,7 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { consents, CONSENT_VERSION, consentLine, SIGN_STATEMENT } from '@/features/agreement/model';
 import { currentUser } from '@/server/portal/data';
 import { door, rolesOf, sessionAal } from '@/server/door';
+import { readLicence } from '@/server/licence-read';
 import { storage } from '@/integrations/storage';
 import { requestMeta } from '@/server/request';
 import { enqueuePdfJobs, kickPdfJobs } from '@/server/pdf-jobs';
@@ -82,7 +83,7 @@ export async function signInPerson(input: SignNowInput): Promise<R<{ role: strin
 }
 
 /** The licence photographed on the spot by the staff member (front, back or the selfie), stored privately. */
-export async function staffLicenceUpload(form: FormData): Promise<R> {
+export async function staffLicenceUpload(form: FormData): Promise<R<{ retake: string | null }>> {
   try {
     const { user, aal } = await staff();
     const booking = String(form.get('booking') ?? ''); const driver = String(form.get('driver') ?? ''); const kind = String(form.get('kind') ?? '');
@@ -99,7 +100,9 @@ export async function staffLicenceUpload(form: FormData): Promise<R> {
     try {
       await door(user.id, 'ops_do', 'staff_licence_register', { booking, driver, kind, path: key, sha256: await sha256Hex(bytes), mime: jpg ? 'image/jpeg' : 'image/png' }, aal);
     } catch (e) { await s.remove('identity', key).catch(() => undefined); throw e; }
-    return { ok: true, data: null };
+    // read straight away (release 31): the checks show on the verify page; a photo that cannot be used is said now
+    const read = kind === 'selfie' ? null : await readLicence({ booking_id: booking, driver_id: driver }, kind, bytes);
+    return { ok: true, data: { retake: read?.retake ?? null } };
   } catch (e) { return fail(e); }
 }
 

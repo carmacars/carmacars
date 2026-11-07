@@ -67,4 +67,4 @@ export interface Resolve {
 export interface LicenceCard { field_job_id: string; kind: string; status: string; scheduled_at: string; place: string | null; vehicle_id: string; vehicle_label: string; plate: string | null;
   booking_id: string; booking_number: string; renter_first_name: string | null; waiting: number }
 export interface LicenceReviewData { job_id: string; booking_id: string; booking_number: string; status: string; pickup_at: string; return_at: string; renter_name: string | null; vehicle_name: string | null;
-  readiness: { all_drivers_verified?: boolean }; drivers: DocReview['drivers']; uploads: DocUpload[]; waiting: number }
+  readiness: { all_drivers_verified?: boolean }; drivers: DocReview['drivers']; uploads: DocUpload[]; waiting: number; primary_swap?: DocReview['primary_swap'] }
