@@ -33,7 +33,7 @@ export function OwnerHandoffForm({ vehicleId, addTo, refresh = [] }: { vehicleId
   });
   return (
     <details data-testid={addTo ? 'owner-handoff-add' : 'owner-handoff-new'}>
-      <summary className={addTo ? 'small link' : 'btn btn--ghost btn--sm'}>{addTo ? 'Add photos' : 'Record a pickup from or return to the owner'}</summary>
+      <summary className={addTo ? 'small link' : 'btn btn--ghost btn--sm'}>{addTo ? 'Add photos' : 'Record an owner handoff'}</summary>
       <div className="stack">
         {!addTo && <div className="field-row">
           <div className="field"><label className="label" htmlFor={`ohf-kind-${vehicleId}`}>What</label>

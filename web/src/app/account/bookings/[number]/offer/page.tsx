@@ -9,6 +9,7 @@ import { bookingPath, carName, offerChanges } from '@/features/portal/status';
 import { Back, Dl, PriceBreakdown, placeText } from '@/features/portal/Blocks';
 import { Countdown } from '@/features/portal/Countdown';
 import { OfferActions } from '@/features/portal/OfferActions';
+import { AskReopen } from '@/features/portal/AskReopen';
 import { LicenceNotice, licenceState, renterMissing } from '@/features/portal/LicenceNotice';
 import { myBooking } from '@/server/portal/data';
 
@@ -41,9 +42,10 @@ export default async function OfferPage({ params }: { params: Promise<{ number: 
         <Back href={bookingPath(b.booking_number)}>Booking {b.booking_number}</Back>
         <h1 className="d2">{b.status === 'expired' || last?.status === 'expired' ? 'This offer has expired' : taken ? 'This offer was withdrawn' : 'No offer to review'}</h1>
         <div className="pt-card pt-card--next">
-          <p>{b.status === 'expired' || last?.status === 'expired' ? 'The offer was not approved in time. Call or message us and we will send it again.'
+          <p>{b.status === 'expired' || last?.status === 'expired' ? 'The offer was not approved in time. Ask us to reopen it below, or call or message us.'
             : taken ? 'Someone else confirmed this car for these dates first, or we changed the terms. Nothing was charged. We will send you a new offer.'
             : b.status === 'requested' ? 'We are preparing your offer. It arrives by email and here.' : 'This booking has moved on from the offer.'}</p>
+          {b.status === 'expired' && <AskReopen number={b.booking_number} />}
           <p><Link prefetch={false} className="btn btn--primary" href={bookingPath(b.booking_number)}>Back to the booking</Link></p>
         </div>
       </>

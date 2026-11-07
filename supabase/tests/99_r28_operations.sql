@@ -215,3 +215,46 @@ update program_settings set weekend_premium_bps = 1500 where id = (app.settings(
 update program_settings set weekend_premium_bps = (select weekend_premium_bps from test.r8_premium) where id = (app.settings()).id;
 update rate_cards set weekend_rate_cents = daily_rate_cents + 1000
  where effective_to is null and weekend_rate_cents <= daily_rate_cents and vehicle_id in (select test.r8car('car' || i) from generate_series(1, 3) i);
+
+-- ================================================================ P0 (0569): an offer sent after its pickup stays open
+select test.mk_user('r8_sales', 'va', 'sales');
+insert into test.r8 select 'p1', app.door(test.id('r8_cs'), 'aal2', 'ops_do', 'offer_create', test.r8req('car3', interval '30 days', interval '33 days', 'pia', '{"rental_pay_method": "e_transfer"}'));
+insert into test.r8 select 'p2', app.door(test.id('r8_cs'), 'aal2', 'ops_do', 'offer_create', test.r8req('car3', interval '40 days', interval '43 days', 'pete', '{"rental_pay_method": "e_transfer"}'));
+-- p1: the outage case, its pickup 3 hours ago and the offer sent 1 hour ago; p2: sent the day before a pickup 3 hours ago
+set session_replication_role = replica;
+update bookings set pickup_at = now() - interval '3 hours', return_at = now() - interval '3 hours' + interval '3 days' where id = (test.r8b('p1')).id;
+update booking_offers set sent_at = now() - interval '1 hour' where booking_id = (test.r8b('p1')).id;
+update bookings set pickup_at = now() - interval '3 hours', return_at = now() - interval '3 hours' + interval '3 days' where id = (test.r8b('p2')).id;
+update booking_offers set sent_at = now() - interval '1 day' where booking_id = (test.r8b('p2')).id;
+reset session_replication_role;
+select app.expire_offers(now());
+select test.eq('P0: an offer sent after its pickup stays open; one sent before a pickup 2 hours past expires (0569)',
+  (test.r8b('p1')).status::text || ':' || (test.r8b('p2')).status::text, 'offered:expired');
+select test.r8_licence('p1');
+select public.renter_approve_offer((test.r8b('p1')).id, (test.r8b('p1')).current_offer_version, test.r8u('p1'));
+select test.eq('P0: the renter accepts the offer sent after its pickup', (test.r8b('p1')).status::text, 'pending_payment');
+
+-- Reopen offer: Sales can; a pickup already past needs new dates; reopened with the usual offer email, open 24 hours
+select test.throws('P0: reopen with the pickup past and no new dates is refused', format($$select app.door(%L, 'aal2', 'va_do', 'reopen_expired', %L)$$, test.id('r8_sales'),
+  jsonb_build_object('booking', (test.r8b('p2')).booking_number)), 'pickup time has passed');
+select app.door(test.id('r8_sales'), 'aal2', 'va_do', 'reopen_expired', jsonb_build_object('booking', (test.r8b('p2')).booking_number,
+  'pickup_at', date_trunc('hour', now()) + interval '50 days', 'return_at', date_trunc('hour', now()) + interval '52 days'));
+select test.flush();
+select test.eq('P0: reopened by Sales: offered again with the new dates, a new version, open about 24 hours, the renter emailed',
+  (test.r8b('p2')).status::text || ':' || ((test.r8b('p2')).pickup_at = date_trunc('hour', now()) + interval '50 days') || ':' || (test.r8b('p2')).current_offer_version
+  || ':' || ((test.r8b('p2')).offer_expires_at between now() + interval '23 hours' and now() + interval '25 hours')
+  || ':' || (select count(*) from notification_outbox where code = 'renter_offer_ready' and entity_id = (test.r8b('p2')).id and created_at > now() - interval '1 minute') || ':'
+  || (select count(*) from tasks where booking_id = (test.r8b('p2')).id and task_type = 'offer_expired' and status = 'open'),
+  'offered:true:2:true:1:0');
+
+-- the renter asks to reopen: a To do and an alert, once per 6 hours
+set session_replication_role = replica;
+update bookings set status = 'expired', offer_expires_at = null where id = (test.r8b('p2')).id;
+reset session_replication_role;
+select test.throws('P0: only the renter of the booking asks', format($$select public.server_renter_ask_reopen(%L, %L)$$, (test.r8b('p2')).booking_number, test.r8u('p1')));
+insert into test.r8 select 'ask1', public.server_renter_ask_reopen((test.r8b('p2')).booking_number, test.r8u('p2'), now() + interval '60 days');
+insert into test.r8 select 'ask2', public.server_renter_ask_reopen((test.r8b('p2')).booking_number, test.r8u('p2'));
+select test.eq('P0: the renter''s ask makes one "Renter wants expired offer reopened" To do; a second within 6 hours does nothing new',
+  (test.r8v('ask1') ->> 'already') || ':' || (test.r8v('ask2') ->> 'already') || ':'
+  || (select count(*) from tasks where booking_id = (test.r8b('p2')).id and task_type = 'offer_reopen_ask' and status = 'open' and title like '%Renter wants expired offer reopened%'),
+  'false:true:1');

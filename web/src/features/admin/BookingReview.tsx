@@ -1,5 +1,6 @@
 'use client';
 import { Info } from '@/features/forms/Info';
+import { PICKUP_PASSED, pickupPassed } from '@/features/offers/pickup-passed';
 import { infoText } from '@/features/info/text';
 import { lineHelp } from '@/features/offers/help';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useTransition } from 'react';
@@ -478,7 +479,7 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
           {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
         </div>
         {(b.status === 'requested') && (
-          <form className="pt-card ad-card ad-form ad-form--narrow" aria-label="Send the offer" onSubmit={(e) => { e.preventDefault(); act('send_offer'); }}>
+          <form className="pt-card ad-card ad-form ad-form--narrow" aria-label="Send the offer" onSubmit={(e) => { e.preventDefault(); if (!pickupPassed(String(v.pickup_at ?? ''))) act('send_offer'); }}>
             <h2 className="d4">Send the offer</h2>
             <div className="field ad-field"><label className="label" htmlFor="rv-msg">Message to the renter</label>
               <textarea className="input ad-textarea" id="rv-msg" maxLength={1000} value={String(v.message)} onChange={(e) => set('message')(e.target.value)} aria-describedby="rv-msg-h" />
@@ -488,7 +489,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
                 {[...new Set([6, 12, 24, 48, 72, offerHours])].filter((h) => !va || h <= 48).sort((a, z) => a - z).map((h) => <option key={h} value={h}>{h} hours</option>)}</select></div>
             {needChoice && <SourcedChoice id="rv" value={choice} onChange={setChoice} optional={!va} />}
             {!needChoice && <p className="small muted" data-testid="review-choice">{b.sales_claim_by ? 'Someone said they sourced this client: an Admin decides.' : b.sales_choice === 'sourced' ? 'Marked "I sourced this client".' : 'Entered for CarmaCars.'}</p>}
-            <button className="btn btn--primary" type="submit" disabled={pending} data-testid="review-send">{pending ? 'Sending' : dirty ? 'Save and send the offer' : 'Send the offer'}</button>
+            {pickupPassed(String(v.pickup_at ?? '')) && <p className="alert alert--error" role="alert" data-testid="review-pickup-passed"><span>{PICKUP_PASSED}</span></p>}
+            <button className="btn btn--primary" type="submit" disabled={pending || pickupPassed(String(v.pickup_at ?? ''))} data-testid="review-send">{pending ? 'Sending' : dirty ? 'Save and send the offer' : 'Send the offer'}</button>
           </form>
         )}
         <aside className="ad-renter-view" aria-label="The offer as the renter sees it" data-testid="renter-preview">

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { PICKUP_PASSED, pickupPassed } from './pickup-passed';
 import { scrollOption } from '@/lib/nav/same-page';
 import Link from '@/components/Link';
 import { useRouter } from 'next/navigation';
@@ -346,7 +347,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
 
   return (
     <div className="oc-flow" data-testid="offer-composer">
-      <form className="pt-card ad-card ad-form ad-form--narrow oc-form" aria-label="The offer" noValidate onSubmit={(e) => { e.preventDefault(); send(); }}>
+      <form className="pt-card ad-card ad-form ad-form--narrow oc-form" aria-label="The offer" noValidate onSubmit={(e) => { e.preventDefault(); if (!pickupPassed(f.pickup_at)) send(); }}>
         <p className="small muted" role="status" aria-live="polite" data-testid="oc-draft-status">{savedAt ? `Saved as a draft at ${new Date(savedAt).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}: finish it later from Unfinished rentals.` : 'Saved as a draft as you type.'}
           {draftId && <> <button className="btn btn--quiet btn--sm" type="button" onClick={() => run(async () => { await draftClose(draftId, 'discarded'); router.push(`${base}/offers/new`, scrollOption(`${base}/offers/new`)); })} data-testid="oc-discard-draft">Discard the draft</button></>}</p>
 
@@ -521,8 +522,9 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
               <textarea className="input ad-textarea" id="oc-note" value={f.note} onChange={(e) => set('note')(e.target.value)} /></div></>)}
           <p className={`oc-ready${missingList.length ? ' is-missing' : ' is-ready'}`} role="status" aria-live="polite" data-testid="oc-ready">{missingList.length ? <>Missing: {missingList.map((m) => m.short).join(', ')}</> : <>Ready to send</>}</p>
           {err && <p className="alert alert--error" role="alert" data-testid="oc-error"><span>{err}</span></p>}
+          {pickupPassed(f.pickup_at) && <p className="alert alert--error" role="alert" data-testid="oc-pickup-passed"><span>{PICKUP_PASSED}</span></p>}
           <div className="oc-actions">
-            <button className="btn btn--primary" type="submit" disabled={pending} data-testid="oc-send">{pending ? 'Sending' : f.by_email || f.by_text ? `Send the offer${who ? ` to ${who}` : ''}` : 'Make the offer (not sent)'}</button>
+            <button className="btn btn--primary" type="submit" disabled={pending || pickupPassed(f.pickup_at)} data-testid="oc-send">{pending ? 'Sending' : f.by_email || f.by_text ? `Send the offer${who ? ` to ${who}` : ''}` : 'Make the offer (not sent)'}</button>
             <button className="btn btn--quiet" type="button" disabled={pending} onClick={() => send(true)} data-testid="oc-draft">Save without sending</button>
           </div>
           <section className="oc-renter-below" data-testid="oc-renter-view-d"><p className="pt-kicker">The offer as the renter sees it</p>

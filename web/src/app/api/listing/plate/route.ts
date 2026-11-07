@@ -28,8 +28,10 @@ export async function GET(req: Request) {
   try { ctx = await door<Ctx>(user.id, 'ops_read', 'photo_plate_context', { photo }, await sessionAal()); }
   catch { return new NextResponse('Not permitted.', { status: 403 }); }
   if (!ctx?.processed_path) return new NextResponse('This photo is not ready.', { status: 409 });
-  const bytes = await (await storage()).get('vehicle-public', ctx.processed_path).catch(() => null);
-  if (!bytes) return new NextResponse('The photo could not be read.', { status: 404 });
+  const st = await storage();
+  const bytes = await st.get('vehicle-public', ctx.processed_path).catch(() => null);
+  // not readable here (a store that serves the public files elsewhere): the public address, as before r28
+  if (!bytes) return NextResponse.redirect(new URL(st.publicUrl(ctx.processed_path), req.url), { status: 302, headers: { 'cache-control': 'private, no-store' } });
   return new NextResponse(bytes as unknown as BodyInit, { headers: { 'content-type': type(ctx.processed_path), 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' } });
 }
 
