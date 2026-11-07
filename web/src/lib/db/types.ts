@@ -27082,6 +27082,7 @@ export type Database = {
       server_my_unpaid_addons: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_my_walkthrough: { Args: { p_booking: string; p_by: string }; Returns: Json };
       server_my_walkthrough_ack: { Args: { p_booking: string; p_by: string; p_step: string }; Returns: Json };
+      server_notify_kick: { Args: { p_kinds?: string[] }; Returns: Json };
       server_onboarding_options: { Args: { p_held_by: string; p_title_status: string; p_mode?: string }; Returns: Json };
       server_open_agreement_companion: { Args: { p_booking: string; p_by: string; p_template: string; p_storage_path: string; p_sha256: string }; Returns: string };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
