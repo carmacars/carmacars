@@ -282,6 +282,9 @@ function Row({ c, data, paths }: { c: CarTermsRow; data: CarTermsData; paths: st
                   {higher && <div className="field"><label className="label" htmlFor={`${uid}-why`}>Reason (the owner reads it)</label>
                     <input className="input" id={`${uid}-why`} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="car-terms-reason" /></div>}
                 </div>)}
+              {plan && c.state !== 'signed' && higher && (
+                <div className="field"><label className="label" htmlFor={`${uid}-why`}>Reason (the owner reads it)</label>
+                  <input className="input" id={`${uid}-why`} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="car-terms-reason" /></div>)}
               {plan && (
                 <div className="ct-plan stack" data-testid="car-terms-plan" aria-live="polite">
                   {plan.fields.length > 0 && <ul className="ct-fields">{plan.fields.map((f) => (
