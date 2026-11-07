@@ -46,12 +46,13 @@
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DOQueueHandler"] }],
   // Workers AI for the listing copy drafts (free daily neurons), and the cron trigger that runs the listing
-  // pipeline's worker every five minutes (custom-worker.ts scheduled -> /api/jobs/listing).
+  // pipeline's worker (custom-worker.ts scheduled -> /api/jobs/listing): every minute since r32, the jobs on every fifth minute,
+  // the minutes between only send the notices due (src/lib/edge/notify-kick.ts tickPlan).
   "ai": { "binding": "AI" },
   // r27b: Bytespider paced at the edge (custom-worker.ts, src/lib/edge/bot-shield.ts RATE_LIMITED_BOT): 60 pages a minute
   // per data centre; the binding is free
   "ratelimits": [{ "name": "CRAWL_RL", "namespace_id": "2701", "simple": { "limit": 60, "period": 60 } }],
-  "triggers": { "crons": ["*/5 * * * *"] },
+  "triggers": { "crons": ["* * * * *"] },
   "vars": {
     "APP_ENV": "production",
     "DATA_BACKEND": "supabase",
