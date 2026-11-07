@@ -95,10 +95,10 @@ Found on the live database on October 19, 2026 (read only; nothing was changed):
 
 | Invoice | Owner | Application | Status | Amount |
 | --- | --- | --- | --- | --- |
-| INV-1044 | Mahad Hussain | OA-1001 | issued, unpaid | $1,017.00 (2 x $450.00 + HST) |
-| INV-1045 | Celeste Rodriguez | OA-1002 | issued, unpaid | $1,017.00 |
-| INV-1046, INV-1047, INV-1048 | Karan vakil | OA-1003 | issued, unpaid | $904.00 each (2 x $400.00 + HST, the 3-car grid) |
-| INV-1049, INV-1050, INV-1051 | max gorin | OA-1004 | issued, unpaid | $904.00 each |
+| INV-1044 | Owner A | OA-1001 | issued, unpaid | $1,017.00 (2 x $450.00 + HST) |
+| INV-1045 | Owner B | OA-1002 | issued, unpaid | $1,017.00 |
+| INV-1046, INV-1047, INV-1048 | Owner C | OA-1003 | issued, unpaid | $904.00 each (2 x $400.00 + HST, the 3-car grid) |
+| INV-1049, INV-1050, INV-1051 | Owner D | OA-1004 | issued, unpaid | $904.00 each |
 
 They stay as they are. Where an owner agreed another amount: Admin > the owner > Invoices > the invoice > Void ("Make a
 corrected invoice" ticked), fix the amount, Save and issue (or record the payment received). The owner is emailed by

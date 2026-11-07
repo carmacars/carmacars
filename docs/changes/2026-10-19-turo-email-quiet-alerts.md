@@ -127,7 +127,7 @@ source): staff and investment agreements `person-475a128136` (was `person-7571e7
 `rental-v3-8574950085`, owner agreements `owner-v3-8a1ad30011`. Signed documents keep the version they were signed
 with; new ones get the new version. The investment agreement's PDF is generated from this text when an Admin sends it,
 so it no longer shows the banner. **An investment agreement generated and sent before this deploy and not signed yet still
-shows the old banner: send it again.** `docs/source/v2_shareholder.md` (the shareholders' own agreement, not a platform
+shows the old banner: send it again.** the shareholders' own agreement (kept out of the repository, not a platform
 document) keeps its banner.
 
 ## 4. Settings (Program settings)

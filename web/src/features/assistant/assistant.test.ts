@@ -21,12 +21,12 @@ function stub(step: Step | ((text: string) => Step), service: 'workers_ai' | 'cl
   return m;
 }
 const ROWS: Record<string, Array<Record<string, unknown>>> = {
-  invoice: [{ id: 'i1', invoice_number: 'INV-1053', owner: 'Karan Vakil', status: 'issued', balance_cents: 90000, total_cents: 90000 }],
+  invoice: [{ id: 'i1', invoice_number: 'INV-1053', owner: 'Jordan Price', status: 'issued', balance_cents: 90000, total_cents: 90000 }],
   car: [{ id: 'v1', name: '2023 Toyota Corolla LE', plate: 'CBXT123', status: 'available' }, { id: 'v2', name: '2022 Toyota Corolla SE', plate: 'CDEF456', status: 'available' }],
   booking: [{ id: 'b1', booking_number: 'R-000123', renter: 'Maya Chen', status: 'offered' }],
   toll: [{ id: 't1', notice_number: 'N12345', plate: 'CBXT123', booking_number: 'R-000123', matched_to: 'renter' }],
   car_now: [{ car: '2023 Tesla Model 3', plate: 'TES123', booking_number: 'R-000200', renter: 'Ali', due_back: '2026-10-25T14:00:00Z', car_status: 'on_rent' }],
-  owner_balance: [{ owner_id: 'o1', owner: 'Karan Vakil', balance_cents: 90000, open_invoices: [{ invoice_number: 'INV-1053', balance_cents: 90000, status: 'issued' }] }]
+  owner_balance: [{ owner_id: 'o1', owner: 'Jordan Price', balance_cents: 90000, open_invoices: [{ invoice_number: 'INV-1053', balance_cents: 90000, status: 'issued' }] }]
 };
 function deps(model: AssistantModel, o: Partial<Deps> = {}) {
   const proposed: Array<Record<string, unknown>> = [];
@@ -91,8 +91,8 @@ describe('argument checks', () => {
 
 describe('the card text of a change', () => {
   it('a payment reads as the owner asked: amount, method, invoice, owner, date', () => {
-    assert.equal(summary('record_payment', { invoice: 'INV-1053', amount: 900, method: 'e_transfer', received_on: '2026-10-15' }, { owner: 'Karan Vakil' }),
-      'Record a $900 e-Transfer on INV-1053 for Karan Vakil, dated Oct 15?');
+    assert.equal(summary('record_payment', { invoice: 'INV-1053', amount: 900, method: 'e_transfer', received_on: '2026-10-15' }, { owner: 'Jordan Price' }),
+      'Record a $900 e-Transfer on INV-1053 for Jordan Price, dated Oct 15?');
   });
   it('rates, a task, a payment link and dates', () => {
     assert.equal(summary('set_rates', { car: 'x', daily: 89, weekly: 500 }, { car: '2023 Toyota Corolla LE' }), 'Set the rates of the 2023 Toyota Corolla LE: $89 a day, $500 a week?');
@@ -115,7 +115,7 @@ describe('the flow', () => {
     const m = stub({ action: 'tool', tool: 'record_payment', args: { invoice: 'inv-1053', amount: '$900', method: 'e_transfer', reference: 'CA1234', received_on: '2026-10-15' } });
     const { d, proposed } = deps(m);
     const r = await ask(d, { text: 'Record a $900 e-transfer on INV-1053 for Karan, dated Oct 15' });
-    assert.deepEqual(r.out, [{ type: 'proposal', id: 'act-1', summary: 'Record a $900 e-Transfer on INV-1053 for Karan Vakil, dated Oct 15, reference CA1234?' }]);
+    assert.deepEqual(r.out, [{ type: 'proposal', id: 'act-1', summary: 'Record a $900 e-Transfer on INV-1053 for Jordan Price, dated Oct 15, reference CA1234?' }]);
     assert.equal(proposed.length, 1);
     assert.equal(proposed[0]!.name, 'manual_payment_record');
     assert.deepEqual((proposed[0]!.args as Record<string, unknown>).amount_cents, 90000);

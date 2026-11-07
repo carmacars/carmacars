@@ -15,6 +15,56 @@
   ]
  },
  {
+  "release": "r31",
+  "title": "Release 31",
+  "date": "2026-11-07",
+  "seq": 0,
+  "summary": "Simpler portals with one page per task for Admin and staff, licences read and checked on upload, and a signed agreement for every kind of owner deal.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Licence photos are read the moment they are uploaded: a blurry or cut-off photo is retaken straight away, and the licence details are filled in for the renter to confirm",
+     "When the main driver's licence is not from Ontario, the renter adds a main driver with an Ontario licence in one step and stays on the booking as an extra driver",
+     "Listing photos are framed the same way on every car: centred, filling the frame, with the wheels on the floor line"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Owner agreements: a new fleet lease for suppliers who lease many cars to us: a fixed monthly lease per car by tier, paid in arrears on the 10th with the owner payouts",
+     "Each leased car's tier is set once when it is onboarded; part months are paid by the day, with the calculation shown on the statement",
+     "Suppliers pay us no fees, and the platform never invoices or debits them; claim profit shares and write-off payouts follow their agreement",
+     "Upkeep costs are billed to the party the agreement names, and come off the supplier's lease payments when they are the supplier's",
+     "A Referral Override Agreement for owners who refer other owners, signed in the owner portal",
+     "The standard owner agreement now covers onboarding costs taken from payouts and shareholders' own cars",
+     "A new Agreements checklist in Admin shows each owner's required agreements, whether each is sent or signed, with one-click Send",
+     "Open legal points are marked for the lawyer's review before the new agreements are final"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Every list has one filter bar: one search box across fields and at most five chips for what needs action",
+     "The booking page is grouped into six sections: Overview, Money, Drivers & documents, Car & handovers, Messages & history, Claims & extras",
+     "The vehicle page has fewer tabs, with rates and fees together",
+     "Admin and staff now share one booking page, vehicle page, listing review, requests queue, bookings list, renters list and Add a car page, so a fix lands for everyone at once while each role still sees only what it uses",
+     "The alert for a listing waiting for review now opens the car's listing instead of a missing page",
+     "Each driver's licence shows what was read and one pass or flag line per check: expiry, class, age, name and date of birth, the Ontario number, front and back",
+     "Staff still approve licences; an Admin setting can approve them automatically when every check passes (off by default)",
+     "A booking whose main driver lacks an Ontario licence cannot go out until it is fixed; only an Admin can undo the change or let it go with a reason",
+     "A higher fee on a car can now be saved with its reason before the owner has signed the car's terms"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Plate covering on listing photos finds the plate on the reworked photo, never on an older version"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r27b",
   "title": "Release 27b",
   "date": "2026-11-06",

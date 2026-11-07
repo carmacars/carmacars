@@ -118,7 +118,7 @@ task; `web/src/features/va/tasks.test.ts`; `web/tests/e2e/guided-actions.spec.ts
 
 ## Data to check
 
-- Mahad Hussain is not marked as a shareholder (`owners.is_shareholder` is false), so his car gets the first and last month
+- One shareholder owner is not marked as a shareholder (`owners.is_shareholder` is false), so that car gets the first and last month
   and terms prompts; press Not needed / These are correct, or mark him a shareholder.
 
 ## Not done here

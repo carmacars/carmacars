@@ -1702,7 +1702,7 @@ def build():
     g.task('Changes: a card to confirm')
     g.steps([
         'Ask for a change, for example "Record a $900 e-Transfer on INV-1053 dated 2026-10-15 reference CA12345".',
-        f'The assistant shows a card: "Record a $900 e-Transfer on INV-1053 for Karan Vakil, dated Oct 15?". Read it, then press {B("Confirm")} or {B("Cancel")}.',
+        f'The assistant shows a card: "Record a $900 e-Transfer on INV-1053 for Jordan Price, dated Oct 15?". Read it, then press {B("Confirm")} or {B("Cancel")}.',
         'Confirmed, it runs the same step as the screen and its pop-up, with the same checks. If the step is not allowed for you, or a detail is wrong, it says why and nothing changes.',
         'Every change is in the audit log under your name, marked "via assistant". A card older than 30 minutes no longer runs: ask again.',
     ])
