@@ -3,6 +3,10 @@
 -- Fixtures start with "rbs"; every address is example.test.
 select test.suite('99 reframed photos back on the site (0661)');
 
+-- the plate check before publishing on (Program settings; on in production)
+create temp table rbs_prev as select listing_plate_check_required as v from app.settings();
+update program_settings set listing_plate_check_required = true where id = (select id from app.settings());
+
 select test.mk_user('rbs_admin', 'admin');
 select test.mk_owner('rbs_olive');
 select test.mk_vehicle('rbs_car', 'rbs_olive');
@@ -41,3 +45,5 @@ select test.ok('plate covered: approved and back on the site',
 update vehicle_photos set plate_status = 'not_visible' where id = (select never_approved from rbsp);
 select test.ok('a photo never approved stays off the site after its plate check',
   (select status = 'processed' and not is_public from vehicle_photos where id = (select never_approved from rbsp)));
+
+update program_settings set listing_plate_check_required = (select v from rbs_prev) where id = (select id from app.settings());
