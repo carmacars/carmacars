@@ -33,6 +33,17 @@ test('a rough plate box from the model is moved onto the plate (as the live mode
   assert.ok(Math.abs(cy - (plate.y + plate.h / 2)) < 0.035, `centre y ${cy.toFixed(3)}`);
   assert.ok(Math.abs(cx - (plate.x + plate.w / 2)) < 0.04, `centre x ${cx.toFixed(3)}`);
 });
+// r31 (the CLA's front left photo): the box went to the right of the plate, onto the bumper's intake, whose slats have
+// denser edges than the plate's characters
+test('a grille beside the plate does not pull the box off the plate', () => {
+  const W = 360, H = 230, plate = { x: 0.3, y: 0.7, w: 0.14, h: 0.078 };
+  const g = photo(W, H, plate);
+  const y0 = Math.round(H * 0.7), y1 = Math.round(H * 0.778);
+  for (let x = Math.round(W * 0.47); x < Math.round(W * 0.61); x += 4) for (let y = y0; y < y1; y++) { g.data[y * W + x] = 255; g.data[y * W + x + 1] = 255; }
+  const r = refineBox(g, { x: 0.31, y: 0.75, w: 0.12, h: 0.05 });
+  const cx = r.box.x + r.box.w / 2;
+  assert.ok(Math.abs(cx - (plate.x + plate.w / 2)) < 0.04, `centre x ${cx.toFixed(3)} (the plate's is ${(plate.x + plate.w / 2).toFixed(3)})`);
+});
 test('with nothing plate-like near it, the model\'s box stays', () => {
   const blank = { width: 200, height: 120, data: new Uint8ClampedArray(200 * 120).fill(128) };
   const g = { x: 0.4, y: 0.6, w: 0.2, h: 0.08 };

@@ -34,6 +34,7 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<string | null>(null);
   const [sure, setSure] = useState(false);
+  const [reframe, setReframe] = useState(false);
   const plateCheck = (p: Photo) => !!plates && !plates.private_shots.includes(p.shot_type) && !!p.processed_path && ['processed', 'approved'].includes(p.status) && (ph[p.id] ?? '') !== 'reject';
   const toCheck = l.photos.filter((p) => plateCheck(p) && p.plate_status === 'unchecked');
   const reviewable = ['needs_review', 'approved'].includes(l.state);
@@ -64,6 +65,15 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
             : <><span className="small">No plate can be read on any of these {toCheck.length} photos?</span>
               <button className="btn btn--primary btn--sm" type="button" disabled={pending} data-testid="plates-none-visible-yes" onClick={() => { setSure(false); noneVisible(); }}>Yes, none visible</button>
               <button className="btn btn--ghost btn--sm" type="button" onClick={() => setSure(false)}>Cancel</button></>}</p>}
+          {/* r31 (0660): photos made before the studio_v4 framing (the car small and floating) are framed again on request */}
+          {l.photos.some((p) => exterior.includes(p.shot_type) && p.processed_path && p.processed_path !== p.original_path) && <p className="row">{!reframe
+            ? <button className="btn btn--ghost btn--sm" type="button" disabled={pending} data-testid="photos-reframe" onClick={() => setReframe(true)}>Frame the outside photos again</button>
+            : <><span className="small">Make the outside photos again with the newest framing? They leave the site until you approve them again, and their plates are checked again.</span>
+              <button className="btn btn--primary btn--sm" type="button" disabled={pending} data-testid="photos-reframe-yes" onClick={() => { setReframe(false); start(async () => {
+                const r = await staffDo<{ queued: number }>('listing_photos_reframe', { intake: l.id });
+                setRes(r.ok ? { ok: true, text: r.data.queued ? `${r.data.queued} outside photo${r.data.queued === 1 ? ' is' : 's are'} being made again. Approve ${r.data.queued === 1 ? 'it' : 'them'} again when ready, then cover the plates.` : 'Every outside photo already has the newest framing.' } : { ok: false, text: r.message });
+                if (r.ok && r.data.queued) router.refresh(); }); }}>Yes, frame again</button>
+              <button className="btn btn--ghost btn--sm" type="button" onClick={() => setReframe(false)}>Cancel</button></>}</p>}
           {/* a shot kept as taken (the odometer, never published) stays in the private originals: shown through its signed link */}
           <ul className="ad-photos">{l.photos.map((p) => { const path = p.processed_path && p.processed_path !== p.original_path ? photoUrl(p.processed_path) : p.original_url ?? null; return (
             <li key={p.id} className={`${cover === p.id ? 'is-cover' : ''}${(ph[p.id] ?? p.status) === 'reject' ? ' is-rejected' : ''}`}>
