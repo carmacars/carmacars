@@ -362,6 +362,8 @@ export interface ServeDeps extends EdgeDeps {
   waitMs?: number; giveUpMs?: number; refreshAfterMs?: number;
   /** a timer that can be cancelled (tests pass their own) */
   timer?: (ms: number) => { done: Promise<void>; cancel(): void };
+  /** r32: the place pages' global copy (global-store.ts): tried first, and every render is kept in it */
+  global?: { match(): Promise<Response | null>; keep(r: Response): Response };
 }
 
 const realTimer = (ms: number) => {
@@ -379,9 +381,13 @@ const failed = (status: number) => new Response(null, { status });
  * none by the busy page (HTML) or the error itself (RSC, sitemaps).
  */
 export async function serveEdge(req: EdgeRequestLike, key: string | null, sKey: string | null, pathname: string, d: ServeDeps): Promise<Response> {
-  if (key) { const hit = await edgeMatch(key, d); if (hit) return hit; }
-  if (d.crawler && sKey && req.headers.get('rsc') !== '1') { const c = await crawlerCopy(sKey, d.crawler.ifModifiedSince, d); if (c) return c; }
-  const keep = (r: Response) => { let out = key ? edgeKeep(key, pathname, r, d) : r; if (sKey) out = staleKeep(sKey, out, d); return out; };
+  // r32: a place page from its global copy (the data centre's mirror, then R2), 30 days whatever the deploys
+  // (with it, the data centre's fresh copy and the crawler copy are skipped: the mirror holds the same render, and each
+  // costs a tag store read on the miss path)
+  if (d.global) { const g = await d.global.match(); if (g) return g; }
+  if (key && !d.global) { const hit = await edgeMatch(key, d); if (hit) return hit; }
+  if (d.crawler && sKey && !d.global && req.headers.get('rsc') !== '1') { const c = await crawlerCopy(sKey, d.crawler.ifModifiedSince, d); if (c) return c; }
+  const keep = (r: Response) => { let out = key && !d.global ? edgeKeep(key, pathname, r, d) : r; if (sKey) out = staleKeep(sKey, out, d); if (d.global) out = d.global.keep(out); return out; };
   if (!sKey) return keep(await d.origin());
   const timer = d.timer ?? realTimer;
   const rsc = req.headers.get('rsc') === '1';

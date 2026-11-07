@@ -17,6 +17,8 @@ import { RATE_LIMITED_BOT, isCrawler, keptToScope, shield, shieldResponse } from
 import { CPU_GUARD_KEY, SEARCH_SCOPE_KEY, FLEET_SIG_CONFIRM_KEY, FLEET_SIG_KEY, fleetRows, signatureOf } from './src/lib/edge/fleet-sig';
 import { WARM_KEY, warmBatch, warmDone, warmPaths, warmValue } from './src/lib/edge/warm';
 import { readNumber, writeNumber } from './src/lib/edge/page-cache';
+import { globalKeep, globalKey, globalMatch, type R2Like } from './src/lib/edge/global-store';
+import { kickNow, notifyKick, tickPlan } from './src/lib/edge/notify-kick';
 
 /** The deployment last rebuilt for (a number from the Worker's version id), in the tag store next to the fleet's signature. */
 const DEPLOY_SEEN_KEY = 'carmacars/deploy-seen';
@@ -35,6 +37,18 @@ async function busyUntil(env: Env): Promise<number> {
   const now = Date.now();
   if (now - busySeen.at > 15_000) busySeen = { at: now, until: (await readNumber(env, BUSY_KEY).catch(() => 0)) ?? 0 };
   return busySeen.until;
+}
+
+/** r32: the crawler flags (search scope, crawler guard) read at most every 30 s per isolate: a crawler on a place page
+ *  asked the tag store (D1) on every request */
+const flagSeen = new Map<string, { at: number; v: boolean }>();
+async function flag(env: Env, key: string): Promise<boolean> {
+  const now = Date.now();
+  const f = flagSeen.get(key);
+  if (f && now - f.at < 30_000) return f.v;
+  const v = (await readNumber(env, key).catch(() => null)) === 1;
+  flagSeen.set(key, { at: now, v });
+  return v;
 }
 
 class NonceAdder {
@@ -183,6 +197,17 @@ async function warmUp(request: Request, env: Env, ctx: { waitUntil(p: Promise<un
   return json({ ok: true, pages: warmPaths(rows).length }, 202);
 }
 
+/** r32: runs one of the app's job routes in this invocation (the instant notifications, src/lib/edge/notify-kick.ts) */
+function runJob(env: Env, ctx: { waitUntil(p: Promise<unknown>): void }) {
+  return async (path: string): Promise<void> => {
+    const secret = typeof env.LINK_SIGNING_KEY === 'string' ? env.LINK_SIGNING_KEY : '';
+    if (!secret) return;
+    const base = (typeof env.NEXT_PUBLIC_APP_URL === 'string' ? env.NEXT_PUBLIC_APP_URL : 'https://carmacars.ca').replace(/\/$/, '');
+    const r: Response = await handler.fetch(new Request(`${base}${path}`, { method: 'POST', headers: { authorization: `Bearer ${await workerToken(secret)}` } }), env, ctx);
+    await r.text();
+  };
+}
+
 const worker = {
   async email(message: InboundEmail, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
     const secret = typeof env.LINK_SIGNING_KEY === 'string' ? env.LINK_SIGNING_KEY : '';
@@ -198,12 +223,16 @@ const worker = {
     if (!r.ok) throw new Error(`inbound email: the app answered ${r.status}`);
   },
 
-  // Cloudflare cron trigger (wrangler.jsonc triggers.crons, every five minutes): the listing pipeline's
+  // Cloudflare cron trigger (wrangler.jsonc triggers.crons, every minute since r32; the jobs below on every fifth): the listing pipeline's
   // sweep and, hourly, the statement emails, through the app's own protected routes so they run with the
   // app's code and bindings.
-  async scheduled(_event: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
+  async scheduled(event: { scheduledTime?: number }, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<void> {
     const secret = typeof env.LINK_SIGNING_KEY === 'string' ? env.LINK_SIGNING_KEY : '';
     if (!secret) return;
+    // r32: the cron runs every minute; the minutes between the five-minute ticks only send the notices due (one small
+    // database call, the app loaded only when a push or a text is due: src/lib/edge/notify-kick.ts)
+    const plan = tickPlan(Number(event?.scheduledTime ?? Date.now()));
+    if (!plan.full) { ctx.waitUntil(kickNow(env, runJob(env, ctx)).catch(() => undefined)); return; }
     const base = typeof env.NEXT_PUBLIC_APP_URL === 'string' ? env.NEXT_PUBLIC_APP_URL : 'https://carmacars.ca';
     const auth = { authorization: `Bearer ${await workerToken(secret)}` };
     const run = (path: string) => ctx.waitUntil(handler.fetch(new Request(`${base.replace(/\/$/, '')}${path}`, { method: 'POST', headers: auth }), env, ctx)
@@ -261,7 +290,7 @@ const worker = {
       await warmTick(env, rows!, deployed, warmed, self, base);
     })().catch(() => undefined));
     // the monthly statement emails (PDF first), once an hour: the first tick of each hour
-    if (new Date().getUTCMinutes() < 5) run('/api/jobs/statements');
+    if (plan.minute < 5) run('/api/jobs/statements');
     // signed copies waiting (0077): through the Worker's own service binding, so each run is its own invocation
     const pdfJobs = new Request(`${base.replace(/\/$/, '')}/api/jobs/pdf`, { method: 'POST', headers: auth });
     if (due.pdf) ctx.waitUntil((self ? self.fetch(pdfJobs) : handler.fetch(pdfJobs, env, ctx)).then((r: Response) => r.text()).catch(() => undefined));
@@ -274,9 +303,9 @@ const worker = {
     // the deposit guard (0155): card holds captured before they lapse, money steps waiting for Stripe, balances followed up
     if (due.deposits) run('/api/jobs/deposits');
     // the retention purge of private files (0071), once an hour on the second tick
-    if (new Date().getUTCMinutes() >= 5 && new Date().getUTCMinutes() < 10) run('/api/jobs/purge');
+    if (plan.minute >= 5 && plan.minute < 10) run('/api/jobs/purge');
     // the usage guard (0080): Cloudflare's figures when the Worker has an analytics token, the alerts, once an hour on the third tick
-    if (new Date().getUTCMinutes() >= 10 && new Date().getUTCMinutes() < 15) run('/api/jobs/usage');
+    if (plan.minute >= 10 && plan.minute < 15) run('/api/jobs/usage');
   },
 
   async fetch(request: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
@@ -300,7 +329,7 @@ const worker = {
     // the database's projected CPU cost above crawler_guard_usd), a crawler that is not a search or answer crawler is kept
     // to the crawl scope (bot-shield.ts keptToScope)
     const ua0 = request.headers.get('user-agent');
-    const core = await keptToScope(ua0, path, async () => (await readNumber(env, SEARCH_SCOPE_KEY)) === 1, async () => (await readNumber(env, CPU_GUARD_KEY)) === 1);
+    const core = await keptToScope(ua0, path, () => flag(env, SEARCH_SCOPE_KEY), () => flag(env, CPU_GUARD_KEY));
     const sh = shield(request.method, request.url, ua0, core);
     if (sh.kind !== 'pass') return shieldResponse(sh, securityHeaders());
     // r27b: Bytespider reads every page, paced (Cloudflare's rate limiting binding, per data centre); never refused outright
@@ -358,11 +387,20 @@ const worker = {
     const key = version ? edgeKey(req, version) : null;
     const sKey = version ? staleKey(req) : null;
     const origin = () => handler.fetch(new Request(req), env, ctx) as Promise<Response>;
+    const crawler = isCrawler(request.headers.get('user-agent'));
+    // r32: the place pages' global copy (src/lib/edge/global-store.ts): one copy for the whole network in R2, 30 days
+    const bucket = env.NEXT_INC_CACHE_R2_BUCKET as R2Like | undefined;
+    const gKey = bucket ? globalKey(req) : null;
+    const gDeps = { bucket: bucket!, cache: () => caches.open(EDGE_CACHE_NAME), waitUntil: (p: Promise<unknown>) => ctx.waitUntil(p) };
+    const global = gKey ? { match: () => globalMatch(gKey, { ...gDeps, crawler, ifModifiedSince: request.headers.get('if-modified-since') }), keep: (r: Response) => globalKeep(gKey, r, gDeps) } : undefined;
     const response: Response = guardCopy ? guardCopy : version && (key || sKey)
-      ? await serveEdge(req, key, sKey, path, { cache: () => caches.open(EDGE_CACHE_NAME), env, version, origin, waitUntil: (p: Promise<unknown>) => ctx.waitUntil(p),
+      ? await serveEdge(req, key, sKey, path, { cache: () => caches.open(EDGE_CACHE_NAME), env, version, origin, waitUntil: (p: Promise<unknown>) => ctx.waitUntil(p), global,
           // 0321: a crawler gets the page's last good copy (under 3 days old) or a 304, never a render when one is kept
-          crawler: isCrawler(request.headers.get('user-agent')) ? { ifModifiedSince: request.headers.get('if-modified-since') } : undefined })
+          crawler: crawler ? { ifModifiedSince: request.headers.get('if-modified-since') } : undefined })
       : await origin();
+    // r32: a write (a server action, a form, a webhook) may have queued an alert, a text or an urgent email: the send is
+    // asked for at once instead of on the next cron tick (src/lib/edge/notify-kick.ts)
+    if (request.method === 'POST' && response.status < 500) notifyKick(path, env, ctx, runJob(env, ctx));
     // a failed render of a long-tail page counts toward cached-only mode (BusyMeter: 5 within a minute in this isolate)
     if (tail && !guardCopy && renderFailed(response.status, response.headers.get(STALE_HEADER)) && busyMeter.failed(Date.now())) {
       busySeen = { at: Date.now(), until: Date.now() + BUSY_MS };
