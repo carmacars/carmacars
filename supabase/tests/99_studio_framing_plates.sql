@@ -23,12 +23,12 @@ update vehicle_photos set preset_version = 'normalize_v1', background_status = '
 select test.throws('finance may not frame photos again',
   format($$select app.door(%L, 'aal2', 'ops_do', 'listing_photos_reframe', '{"intake": "%s"}')$$, test.id('sfp_fin'), (select i from s60i)), 'edits listing photos');
 select test.eq('an Admin frames the listing''s outside photos again: the one outside photo is queued',
-  (select app.door(test.id('sfp_admin'), 'aal2', 'ops_do', 'listing_photos_reframe', jsonb_build_object('intake', (select i from s60i))) ->> 'queued'), '1');
+  (select app.door(test.id('sfp_admin'), 'aal2', 'ops_do', 'listing_photos_reframe', jsonb_build_object('intake', (select i from s60i), 'preset', 'studio_v4')) ->> 'queued'), '1');
 select test.ok('off the site, its plate to check again, its old suggestion gone',
   (select not is_public and background_status = 'pending' and plate_status = 'unchecked' and plate_suggestion is null from vehicle_photos where id = (select outside from s60p)));
 select test.ok('the inside photo is left alone', (select is_public from vehicle_photos where id = (select inside from s60p)));
 select test.eq('asked again while it is queued: nothing more',
-  (select app.door(test.id('sfp_admin'), 'aal2', 'ops_do', 'listing_photos_reframe', jsonb_build_object('intake', (select i from s60i))) ->> 'queued'), '0');
+  (select app.door(test.id('sfp_admin'), 'aal2', 'ops_do', 'listing_photos_reframe', jsonb_build_object('intake', (select i from s60i), 'preset', 'studio_v4')) ->> 'queued'), '0');
 
 -- the review sends the photo as it was to the vision model meanwhile: the answer is not kept
 select test.eq('no suggestion kept while the photo is being made',
@@ -43,6 +43,6 @@ select app.worker_listing_result((select id from s60c), jsonb_build_object('ok',
 select test.ok('the new photo drops the suggestion made on the old one', (select plate_suggestion is null and preset_version = 'studio_v4' from vehicle_photos where id = (select outside from s60p)));
 select test.eq('a suggestion asked now is kept',
   (select app.photo_plate_suggestion(test.id('sfp_admin'), jsonb_build_object('photo', (select outside from s60p), 'suggestion', jsonb_build_object('answer', '{}'::jsonb))) ->> 'stored'), 'true');
-select test.eq('framed with studio_v4 already: nothing to do', (select app.listing_photos_reframe(test.id('sfp_admin'), jsonb_build_object('vehicle', test.id('vehicle:sfp_car'))) ->> 'queued'), '0');
+select test.eq('framed with studio_v4 already: nothing to do', (select app.listing_photos_reframe(test.id('sfp_admin'), jsonb_build_object('vehicle', test.id('vehicle:sfp_car'), 'preset', 'studio_v4')) ->> 'queued'), '0');  -- 0700: the default is studio_v5 since
 select test.ok('the service role only', not has_function_privilege('authenticated', 'app.listing_photos_reframe(uuid, jsonb)', 'execute')
   and has_function_privilege('service_role', 'app.listing_photos_reframe(uuid, jsonb)', 'execute'));

@@ -43,6 +43,8 @@ create table if not exists vehicle_photo_versions (
 );
 comment on table vehicle_photo_versions is 'A listing photo as it was before staff saved the cut-out editor (0700): its files stay in storage.';
 alter table vehicle_photo_versions enable row level security;
+create policy admin_all on vehicle_photo_versions for all to authenticated using (app.is_admin()) with check (app.is_admin());
+create trigger audit_vehicle_photo_versions after insert or update or delete on vehicle_photo_versions for each row execute function app.audit_row();
 revoke all on vehicle_photo_versions from anon, authenticated;
 grant select, insert, update, delete on vehicle_photo_versions to service_role;
 
