@@ -23,7 +23,7 @@ export interface Fees {
 }
 const fmt = (c: number | null | undefined) => (c === null || c === undefined ? 'none' : money(Number(c), { cents: true }));
 
-export function BookingFees({ x }: { x: Fees }) {
+export function BookingFees({ x, withBalance = true }: { x: Fees; /** r29: false inside the Money tab's Rental charges panel, whose Collect button takes what is open */ withBalance?: boolean }) {
   const router = useRouter();
   const [edit, setEdit] = useState(false);
   const [typed, setTyped] = useState<Record<string, string>>({});
@@ -87,7 +87,7 @@ export function BookingFees({ x }: { x: Fees }) {
         <div className="row"><button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={save} data-testid="bf-save">{pending ? 'Saving' : 'Save the fees'}</button>
           <button className="btn btn--quiet btn--sm" type="button" onClick={() => { setEdit(false); setTyped({}); setAdd(''); }}>Cancel</button></div></div>}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'} data-testid="bf-msg"><span>{msg.text}</span></p>}
-      {x.parts && <BalanceActions booking={x.booking_number} open={x.parts.balance} rental={x.parts.rental} fees={x.parts.fees} card={x.card} reach={x.renter_reach} why={why} />}
+      {withBalance && x.parts && <BalanceActions booking={x.booking_number} open={x.parts.balance} rental={x.parts.rental} fees={x.parts.fees} card={x.card} reach={x.renter_reach} why={why} />}
       {x.history.length > 0 && <details data-testid="bf-history"><summary className="link small">Changes to the fees ({x.history.length})</summary>
         <ul className="stack small">{x.history.map((h, i) => <li key={i}>{when(h.at)}: {h.label} {fmt(h.before_cents)} to {fmt(h.after_cents)}{h.by ? `, by ${h.by}` : ''}{h.reason ? ` (${h.reason})` : ''}, booking {h.status.replace(/_/g, ' ')}</li>)}</ul></details>}
     </section>

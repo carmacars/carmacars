@@ -151,19 +151,20 @@ test('admin: an offer without a request, edited in place, paid by part, confirme
   // payments by part: the rental by e-Transfer confirms it; the deposit in cash
   await page.goto(`/admin/bookings/${b!.booking_number}?tab=money`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('booking-money')).toBeVisible();
-  await expect(page.getByTestId('bm-parts')).toContainText('$282.50');
-  await page.getByTestId('bm-record-open').click();
-  await page.getByTestId('bm-covers').selectOption('rental');
-  await page.getByTestId('bm-method').selectOption('e_transfer');
-  await page.getByTestId('bm-ref').fill(`CA${tag().toUpperCase()}`);
-  await page.getByTestId('bm-record-save').click();
-  await expect(page.getByTestId('bm-message')).toContainText('The booking is confirmed', { timeout: 20_000 });
-  await page.getByTestId('bm-record-open').click();
-  await page.getByTestId('bm-covers').selectOption('deposit');
-  await page.getByTestId('bm-method').selectOption('cash');
-  await page.getByTestId('bm-record-save').click();
-  await expect(page.getByTestId('bm-message')).toContainText('Recorded', { timeout: 20_000 });
-  await expect(page.getByTestId('bm-deposit')).toContainText('taken by cash');
+  await expect(page.getByTestId('bm-rental-due')).toContainText('$282.50');
+  await page.getByTestId('bm-rental-collect').click();
+  await page.getByTestId('bm-rhow-record').check();
+  await page.getByTestId('bm-rcovers').selectOption('rental');
+  await page.getByTestId('bm-rmethod').selectOption('e_transfer');
+  await page.getByTestId('bm-rref').fill(`CA${tag().toUpperCase()}`);
+  await page.getByTestId('bm-rcollect-go').click();
+  await expect(page.getByTestId('bm-message-rental')).toContainText('The booking is confirmed', { timeout: 20_000 });
+  await page.getByTestId('bm-deposit-collect').click();
+  await page.getByTestId('bm-dhow-record').check();
+  await page.getByTestId('bm-dmethod').selectOption('cash');
+  await page.getByTestId('bm-dcollect-go').click();
+  await expect(page.getByTestId('bm-message-deposit')).toContainText('Deposit recorded', { timeout: 20_000 });
+  await expect(page.getByTestId('bm-deposit-word')).toHaveText('Charged');
   await check(page, 'money by part');
   const pays = await sql`select method, purpose from payments where booking_id = ${b!.id} order by purpose`;
   expect(pays.map((p) => `${p.method}:${p.purpose}`).join(',')).toBe('e_transfer:booking_total,cash:deposit');
@@ -214,13 +215,11 @@ test('a rental input fast: Turo, paid on the platform, deposit by e-Transfer, si
 
   // a card collected on this device: the fake Stripe form on the pay page, for a later charge
   await page.goto(`/admin/bookings/${(await sql`select booking_number from bookings where id = ${b!.id}`)[0]!.booking_number}?tab=money`, { waitUntil: 'networkidle' });
-  await page.getByTestId('bm-collect-open').click();
-  await page.getByTestId('bm-kind').selectOption('charge');
-  await page.locator('#bm-ccovers').selectOption('later');
-  await page.getByTestId('bm-camount').fill('45');
-  await page.getByTestId('bm-creason').fill('Fuel');
-  await page.getByTestId('bm-ch-device').check();
-  await page.getByTestId('bm-collect-go').click();
+  await page.getByTestId('bm-later-open').click();
+  await page.getByTestId('bm-lhow-device').check();
+  await page.getByTestId('bm-lamount').fill('45');
+  await page.getByTestId('bm-lreason').fill('Fuel');
+  await page.getByTestId('bm-later-go').click();
   await page.waitForURL(/\/pay\/[A-Za-z0-9_-]{20,}/, { timeout: 20_000 });
   await expect(page.getByTestId('paylink-what')).toContainText('$45.00 for fuel');
   await page.locator('#pl-name').fill('Tess Turo');

@@ -233,7 +233,7 @@ select test.eq('the fourth alert email of the day is held: the daily limit', tes
   '3 Daily limit of 3 alert emails reached');
 select test.eq('Site health shows it held, with the rules', (select string_agg((o ->> 'label') || ':' || (o ->> 'emailed') || ':' || coalesce(o ->> 'held', '-'), ' ' order by o ->> 'label')
   from jsonb_array_elements(app.site_health(test.id('t63_admin')) -> 'open') o),
-  'A car page:true:- Sign-in page:true:- Site health check (/api/health):false:Daily limit of 3 alert emails reached');
+  'A car page:true:- Sign-in page:true:- Site health check:false:Daily limit of 3 alert emails reached');
 select test.pg63('sign_in', true, '2031-06-10 15:00'); select test.pg63('car_page', true, '2031-06-10 15:00'); select test.pg63('health', true, '2031-06-10 15:00');
 select test.eq('the two emailed recover with one email each; the held one sends nothing', test.mails63('staff_site_recovered'), 3::bigint);
 -- the quiet hours: nothing from 23:00 to 07:00 unless the whole site is down for an hour
@@ -278,7 +278,7 @@ select test.eq('the next day it goes (still failing)', (select emailed from site
 select test.eq('the day in one line', (app.site_check_day_line(test.at63('2031-06-10 00:00'), test.at63('2031-06-11 00:00')) ->> 'line'),
   'Site check: 20 failed checks in the last 24 hours, 3 alert emails');
 select test.eq('with the checks and Error 1102 counted', (app.site_check_day_line(test.at63('2031-06-10 00:00'), test.at63('2031-06-11 00:00')) ->> 'meta'),
-  'Home page 8 (Error 1102: 8), A car page 4 (Error 1102: 4), Sign-in page 4 (Error 1102: 4), Site health check (/api/health) 4 (Error 1102: 4); 1 held by the quiet hours or the daily limit');
+  'Home page 8 (Error 1102: 8), A car page 4 (Error 1102: 4), Sign-in page 4 (Error 1102: 4), Site health check 4 (Error 1102: 4); 1 held by the quiet hours or the daily limit');
 select test.eq('a quiet day has no line', app.site_check_day_line(test.at63('2031-01-01 00:00'), test.at63('2031-01-02 00:00')) is null, true);
 update program_settings set notify_digest_morning = '08:00';
 select app.notify_digests('morning', gen_random_uuid(), test.at63('2031-06-11 08:00'));

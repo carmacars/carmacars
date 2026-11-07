@@ -611,6 +611,9 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .ai-answers { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
 .ai-answers > li { display: grid; gap: var(--s-2); padding-top: var(--s-3); border-top: var(--bw) solid var(--line); }
 .ai-answers > li.is-follow { margin-left: var(--s-4); padding-left: var(--s-3); border-left: 3px solid var(--line); }
+.ai-video { display: block; width: 100%; max-width: 36rem; background: #000; border-radius: var(--r-2); }
+.ai-watch { display: grid; gap: var(--s-2); padding: var(--s-3); border: var(--bw) solid var(--line-strong); border-radius: var(--r-2); }
+.ai-watch > * { margin: 0; }
 .ai-answers p { margin: 0; }
 .ai-q { font-weight: 600; }
 .ai-said { white-space: pre-wrap; }
@@ -653,3 +656,19 @@ ul.sd-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .lf__more > summary { cursor: pointer; list-style: none; padding: 0.25rem 0.6rem; border: 1px solid var(--line, #ddd); border-radius: 999px; font-size: 0.875rem; }
 .lf__more[open] > div { margin-top: 0.4rem; }
 .lf__clear { align-self: flex-start; }
+
+/* r29 C0: the booking's Money tab: the strip, then Rental charges and Security deposit side by side (stacked on a phone) */
+.bm-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); padding: var(--s-3); border: 1px solid var(--line, #e3e3e3); border-radius: 12px; background: var(--surface-2, #f7f7f7); }
+.bm-strip > div { display: flex; flex-direction: column; min-width: 0; }
+.bm-strip__k { font-size: 0.8rem; color: var(--muted, #666); text-transform: uppercase; letter-spacing: 0.04em; }
+.bm-strip__v { font-size: 1.25rem; overflow-wrap: anywhere; }
+.bm-panels { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s-3); align-items: start; }
+.bm-panel { min-width: 0; }
+@media (max-width: 900px) { .bm-panels { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .bm-strip { grid-template-columns: minmax(0, 1fr); } }
+
+/* r29 C4: the debit preview (Owner money > Debits) */
+.ad-preview { list-style: none; margin: 0; padding: 0; }
+.ad-preview > li { padding: var(--s-2) 0; border-bottom: 1px solid var(--grey-200); }
+.ad-preview__head { flex-wrap: wrap; gap: var(--s-2); align-items: center; margin: 0 0 var(--s-1); }
+.ad-preview ul { margin: 0; padding-left: 1.1rem; overflow-wrap: anywhere; }

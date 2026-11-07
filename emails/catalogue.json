@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 208,
+  "count": 209,
   "emails": [
     {
       "code": "account_password_reset",
@@ -10195,22 +10195,34 @@
           "sample": [
             {
               "invoice_number": "INV-1042",
-              "vehicle": "2023 Toyota RAV4 XLE",
-              "covers": "November 2026",
-              "amount": "$536.75"
+              "amount": "$536.75",
+              "car": "2023 Toyota RAV4 XLE",
+              "fee": "monthly fee",
+              "period": "November 2026",
+              "how": "full month, plus HST",
+              "line": "$536.75: 2023 Toyota RAV4 XLE, monthly fee, November 2026",
+              "url": "https://carmacars.ca/owner/invoices/INV-1042"
             },
             {
               "invoice_number": "INV-1043",
-              "vehicle": "2022 Hyundai Elantra Preferred",
-              "covers": "November 2026",
-              "amount": "$536.75"
+              "amount": "$536.75",
+              "car": "2022 Hyundai Elantra Preferred",
+              "fee": "monthly fee",
+              "period": "November 2026",
+              "how": "full month, plus HST",
+              "line": "$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026",
+              "url": "https://carmacars.ca/owner/invoices/INV-1043"
             }
           ],
           "fields": [
             "invoice_number",
-            "vehicle",
-            "covers",
-            "amount"
+            "amount",
+            "car",
+            "fee",
+            "period",
+            "how",
+            "line",
+            "url"
           ]
         },
         {
@@ -10292,6 +10304,32 @@
           "name": "amount",
           "type": "string",
           "sample": "$536.75"
+        },
+        {
+          "name": "amount_items",
+          "type": "list",
+          "sample": [
+            {
+              "invoice_number": "INV-2026-11-0042",
+              "amount": "$536.75",
+              "car": "2022 Hyundai Elantra Preferred",
+              "fee": "monthly fee",
+              "period": "November 2026",
+              "how": "prorated: 20 of 30 days, plus HST",
+              "line": "$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026",
+              "url": "https://carmacars.ca/owner/invoices/INV-2026-11-0042"
+            }
+          ],
+          "fields": [
+            "invoice_number",
+            "amount",
+            "car",
+            "fee",
+            "period",
+            "how",
+            "line",
+            "url"
+          ]
         },
         {
           "name": "balance",
@@ -10429,16 +10467,24 @@
           "sample": [
             {
               "invoice_number": "INV-1042",
-              "vehicle": "2023 Toyota RAV4 XLE",
-              "covers": "November 2026",
-              "amount": "$536.75"
+              "amount": "$536.75",
+              "car": "2023 Toyota RAV4 XLE",
+              "fee": "monthly fee",
+              "period": "November 2026",
+              "how": "prorated: 20 of 30 days, plus HST",
+              "line": "$536.75: 2023 Toyota RAV4 XLE, monthly fee, November 2026",
+              "url": "https://carmacars.ca/owner/invoices/INV-1042"
             }
           ],
           "fields": [
             "invoice_number",
-            "vehicle",
-            "covers",
-            "amount"
+            "amount",
+            "car",
+            "fee",
+            "period",
+            "how",
+            "line",
+            "url"
           ]
         },
         {
@@ -11345,6 +11391,32 @@
           "name": "amount",
           "type": "string",
           "sample": "$536.75"
+        },
+        {
+          "name": "amount_items",
+          "type": "list",
+          "sample": [
+            {
+              "invoice_number": "INV-2026-11-0042",
+              "amount": "$536.75",
+              "car": "2022 Hyundai Elantra Preferred",
+              "fee": "monthly fee",
+              "period": "November 2026",
+              "how": "prorated: 20 of 30 days, plus HST",
+              "line": "$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026",
+              "url": "https://carmacars.ca/owner/invoices/INV-2026-11-0042"
+            }
+          ],
+          "fields": [
+            "invoice_number",
+            "amount",
+            "car",
+            "fee",
+            "period",
+            "how",
+            "line",
+            "url"
+          ]
         },
         {
           "name": "arrears_amount",
@@ -12438,6 +12510,32 @@
           "name": "amount",
           "type": "string",
           "sample": "$536.75"
+        },
+        {
+          "name": "amount_items",
+          "type": "list",
+          "sample": [
+            {
+              "invoice_number": "INV-2026-11-0042",
+              "amount": "$536.75",
+              "car": "2022 Hyundai Elantra Preferred",
+              "fee": "monthly fee",
+              "period": "November 2026",
+              "how": "prorated: 20 of 30 days, plus HST",
+              "line": "$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026",
+              "url": "https://carmacars.ca/owner/invoices/INV-2026-11-0042"
+            }
+          ],
+          "fields": [
+            "invoice_number",
+            "amount",
+            "car",
+            "fee",
+            "period",
+            "how",
+            "line",
+            "url"
+          ]
         },
         {
           "name": "company_address",
@@ -14380,6 +14478,91 @@
       "template_text": "templates/staff_digest_eod_admin.txt"
     },
     {
+      "code": "staff_digest_hourly",
+      "audience": "staff_admin",
+      "category": "transactional",
+      "trigger": "Staff and Admin alerts by email (migration 0583): each alert that is not urgent is kept for this digest instead of its own email; at most one digest an hour per person (or one a day at 07:00 Toronto time, or none, as each person chooses under Profile, Notifications), with every alert since the last one. Urgent alerts (a payment declined, documents to review for a pickup within 2 hours, the site down) still go on their own, at most 3 an hour per person. Every alert is also an in-app notice and a phone alert at once.",
+      "timing": "At most hourly",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your CarmaCars alerts: {{digest_count}} since {{digest_since}}",
+      "preheader": "{{digest_summary}}",
+      "sample_subject": "Your CarmaCars alerts: 3 since 5:00 pm",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "digest_count",
+          "type": "string",
+          "sample": "3"
+        },
+        {
+          "name": "digest_date",
+          "type": "string",
+          "sample": "Fri, Nov 6"
+        },
+        {
+          "name": "digest_next",
+          "type": "string",
+          "sample": "7:00 pm"
+        },
+        {
+          "name": "digest_since",
+          "type": "string",
+          "sample": "5:00 pm"
+        },
+        {
+          "name": "digest_summary",
+          "type": "string",
+          "sample": "3 alerts: a new request, a review and a listing to review."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Abbas",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_items",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "items",
+          "type": "list",
+          "sample": [
+            {
+              "line": "New request CC-10511: 2024 Honda Civic Sport, Nov 9",
+              "meta": "5:12 pm",
+              "url": "https://carmacars.ca/admin/bookings/CC-10511"
+            },
+            {
+              "line": "New review: 5 of 5 for the 2023 Toyota RAV4 XLE",
+              "meta": "5:40 pm",
+              "url": "https://carmacars.ca/admin/reviews"
+            },
+            {
+              "line": "Listing ready for review: 2022 Hyundai Elantra Preferred",
+              "meta": "5:55 pm",
+              "url": "https://carmacars.ca/admin/listings"
+            }
+          ],
+          "fields": [
+            "line",
+            "meta",
+            "url"
+          ]
+        }
+      ],
+      "template_html": "templates/staff_digest_hourly.html",
+      "template_text": "templates/staff_digest_hourly.txt"
+    },
+    {
       "code": "staff_digest_morning_admin",
       "audience": "staff_admin",
       "category": "transactional",
@@ -14790,14 +14973,14 @@
       "code": "staff_job_failed",
       "audience": "staff_admin",
       "category": "transactional",
-      "trigger": "A scheduled job run is marked failed in job_runs (which also raises one urgent admin task). Sent to both admins once per job per day. Immediate.",
+      "trigger": "An automatic task (a scheduled job) is marked failed (which also raises one urgent admin task). Sent to both admins once per job per day. Immediate.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",
       "reply_to": "contact@carmacars.ca",
-      "subject": "JOB FAILED: {{job_name}}, {{job_run_date}}",
+      "subject": "Automatic task failed: {{job_label}}, {{job_run_date}}",
       "preheader": "{{job_effect}}",
-      "sample_subject": "JOB FAILED: owner-billing, Sun, Nov 15, 2026 at 6:10 am",
+      "sample_subject": "Automatic task failed: owner billing, Sun, Nov 15, 2026 at 6:10 am",
       "variables": [
         {
           "name": "company_address",
@@ -14808,7 +14991,7 @@
         {
           "name": "job_effect",
           "type": "string",
-          "sample": "Owner fee debits for November were not submitted and invoice emails were not sent."
+          "sample": "The automatic owner billing task did not finish, so its work has not happened yet."
         },
         {
           "name": "job_error",
@@ -14816,9 +14999,9 @@
           "sample": "Payment processor timeout after 30 seconds"
         },
         {
-          "name": "job_name",
+          "name": "job_label",
           "type": "string",
-          "sample": "owner-billing"
+          "sample": "owner billing"
         },
         {
           "name": "job_run_date",
@@ -14992,14 +15175,14 @@
       "code": "staff_owner_debit_exception",
       "audience": "staff_admin",
       "category": "transactional",
-      "trigger": "An owner's automatic debit cannot go ahead: no active pre-authorized debit on file at the notice or on the debit day, the agreement was cancelled at the bank (Stripe mandate inactive), the balance grew after the notice, or the invoice is blocked for another reason. Paused invoices are not reported. Immediate to the Admins; an Admin task opens for a missing debit agreement.",
+      "trigger": "An owner's automatic debit cannot go ahead: no bank debit set up at the notice or on the debit day, the owner cancelled the debit at their bank, the amount went up after the notice, the bank sent the payment back, or the invoice is held for another reason. Paused invoices are not reported. Immediate to the Admins; an Admin task opens for a missing debit agreement.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <billing@carmacars.ca>",
       "reply_to": "contact@carmacars.ca",
-      "subject": "Owner debit exception: {{owner_name}}, {{exception_title}}",
-      "preheader": "{{debit_count_text}}, {{debit_total}}, due {{debit_date}}.",
-      "sample_subject": "Owner debit exception: Daniel Rossi, No pre-authorized debit on file",
+      "subject": "Can't collect {{debit_total}} from {{owner_name}}: {{reason_plain}}",
+      "preheader": "{{fix_text}}",
+      "sample_subject": "Can't collect $536.75 from Daniel Rossi: no bank debit set up",
       "variables": [
         {
           "name": "company_address",
@@ -15008,14 +15191,14 @@
           "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
         },
         {
-          "name": "debit_count_text",
-          "type": "string",
-          "sample": "1 invoice"
-        },
-        {
           "name": "debit_date",
           "type": "string",
           "sample": "Sun, Nov 15, 2026"
+        },
+        {
+          "name": "debit_for",
+          "type": "string",
+          "sample": "invoice INV-1042 (2023 Toyota RAV4 XLE)"
         },
         {
           "name": "debit_items",
@@ -15023,14 +15206,24 @@
           "sample": [
             {
               "invoice_number": "INV-1042",
-              "vehicle": "2023 Toyota RAV4 XLE",
-              "amount": "$536.75"
+              "amount": "$536.75",
+              "car": "2023 Toyota RAV4 XLE",
+              "fee": "monthly fee",
+              "period": "November 2026",
+              "how": "prorated: 20 of 30 days, plus HST",
+              "line": "$536.75: 2023 Toyota RAV4 XLE, monthly fee, November 2026",
+              "url": "https://carmacars.ca/admin/owners/00000000-0000-0000-0000-000000000000#inv-INV-1042"
             }
           ],
           "fields": [
             "invoice_number",
-            "vehicle",
-            "amount"
+            "amount",
+            "car",
+            "fee",
+            "period",
+            "how",
+            "line",
+            "url"
           ]
         },
         {
@@ -15039,19 +15232,29 @@
           "sample": "$536.75"
         },
         {
-          "name": "exception_detail",
+          "name": "fix_label",
           "type": "string",
-          "sample": "The owner has no active pre-authorized debit. They were emailed a link to set it up in Banking. Nothing is debited until they do; they can also pay from each invoice page."
+          "sample": "Send the sign-up link"
         },
         {
-          "name": "exception_title",
+          "name": "fix_text",
           "type": "string",
-          "sample": "No pre-authorized debit on file"
+          "sample": "Send the owner the link to set up their bank debit. Nothing is taken until they do."
+        },
+        {
+          "name": "fix_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/admin/owner-money?tab=debits&owner=00000000-0000-0000-0000-000000000000&fix=setup"
         },
         {
           "name": "owner_name",
           "type": "string",
           "sample": "Daniel Rossi"
+        },
+        {
+          "name": "reason_plain",
+          "type": "string",
+          "sample": "no bank debit set up"
         }
       ],
       "template_html": "templates/staff_owner_debit_exception.html",
@@ -15097,22 +15300,40 @@
           "sample": [
             {
               "owner": "Daniel Rossi",
+              "status": "Sent, waiting for the bank",
               "invoice_number": "INV-1042",
               "amount": "$536.75",
-              "status": "Sent, processing"
+              "car": "2023 Toyota RAV4 XLE",
+              "fee": "monthly fee",
+              "period": "November 2026",
+              "how": "prorated: 20 of 30 days, plus HST",
+              "line": "$536.75: 2023 Toyota RAV4 XLE, monthly fee, November 2026",
+              "url": "https://carmacars.ca/admin/owners/00000000-0000-0000-0000-000000000000#inv-INV-1042"
             },
             {
               "owner": "Lena Park",
+              "status": "Not sent: no bank debit set up",
               "invoice_number": "INV-1044",
               "amount": "$536.75",
-              "status": "Not sent: no pre-authorized debit mandate"
+              "car": "2022 Hyundai Elantra Preferred",
+              "fee": "monthly fee",
+              "period": "November 2026",
+              "how": "full month, plus HST",
+              "line": "$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026",
+              "url": "https://carmacars.ca/admin/owners/00000000-0000-0000-0000-000000000000#inv-INV-1044"
             }
           ],
           "fields": [
             "owner",
+            "status",
             "invoice_number",
             "amount",
-            "status"
+            "car",
+            "fee",
+            "period",
+            "how",
+            "line",
+            "url"
           ]
         },
         {
@@ -16043,9 +16264,9 @@
       "digest_slot": "next",
       "from": "CarmaCars <billing@carmacars.ca>",
       "reply_to": "contact@carmacars.ca",
-      "subject": "Owner debit {{failure_stage}}: {{owner_name}}, {{vehicle_name}}, {{amount}}",
-      "preheader": "Invoice {{invoice_number}}. {{failure_next_step}}",
-      "sample_subject": "Owner debit first failure: Daniel Rossi, 2022 Hyundai Elantra Preferred, $536.75",
+      "subject": "Owner payment bounced: {{amount}} from {{owner_name}}, {{vehicle_name}}",
+      "preheader": "{{fix_text}}",
+      "sample_subject": "Owner payment bounced: $536.75 from Daniel Rossi, 2022 Hyundai Elantra Preferred",
       "variables": [
         {
           "name": "amount",
@@ -16053,9 +16274,30 @@
           "sample": "$536.75"
         },
         {
-          "name": "arrears_amount",
-          "type": "string",
-          "sample": "$586.75"
+          "name": "amount_items",
+          "type": "list",
+          "sample": [
+            {
+              "invoice_number": "INV-2026-11-0042",
+              "amount": "$536.75",
+              "car": "2022 Hyundai Elantra Preferred",
+              "fee": "monthly fee",
+              "period": "November 2026",
+              "how": "prorated: 20 of 30 days, plus HST",
+              "line": "$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026",
+              "url": "https://carmacars.ca/admin/owners/00000000-0000-0000-0000-000000000000#inv-INV-2026-11-0042"
+            }
+          ],
+          "fields": [
+            "invoice_number",
+            "amount",
+            "car",
+            "fee",
+            "period",
+            "how",
+            "line",
+            "url"
+          ]
         },
         {
           "name": "bank_reason",
@@ -16069,19 +16311,9 @@
           "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
         },
         {
-          "name": "failure_next_step",
+          "name": "fix_text",
           "type": "string",
-          "sample": "Retry on November 18 for $586.75."
-        },
-        {
-          "name": "failure_stage",
-          "type": "string",
-          "sample": "first failure"
-        },
-        {
-          "name": "invoice_month",
-          "type": "string",
-          "sample": "November"
+          "sample": "Nothing to do yet: we try again on Wed, Nov 18, 2026 for $586.75, late fee included. Record the payment on the invoice if they pay another way."
         },
         {
           "name": "invoice_number",
@@ -16089,26 +16321,9 @@
           "sample": "INV-2026-11-0042"
         },
         {
-          "name": "late_fee",
-          "type": "string",
-          "sample": "$50.00"
-        },
-        {
           "name": "owner_name",
           "type": "string",
           "sample": "Daniel Rossi"
-        },
-        {
-          "name": "payout_day",
-          "type": "string",
-          "sample": "10th",
-          "note": "The owner payout day (program_settings.payout_day) as an ordinal."
-        },
-        {
-          "name": "retry_day",
-          "type": "string",
-          "sample": "18th",
-          "note": "The retry day of a returned owner debit (program_settings.retry_day) as an ordinal."
         },
         {
           "name": "vehicle_name",
@@ -16602,7 +16817,7 @@
       "from": "CarmaCars <hello@carmacars.ca>",
       "reply_to": "contact@carmacars.ca",
       "subject": "Calendar link not working: {{vehicle_name}} on {{platform}}",
-      "preheader": "{{failures}} failed tries in a row. {{feed_error}}",
+      "preheader": "{{failures}} tries in a row. New {{platform}} trips do not block the car until it works again.",
       "sample_subject": "Calendar link not working: 2024 Mercedes-Benz C 300 on Turo",
       "variables": [
         {

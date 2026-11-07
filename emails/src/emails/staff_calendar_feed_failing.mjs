@@ -11,7 +11,7 @@ export default {
   trigger: 'Calendar sync: an imported calendar link (Turo, Getaround or another platform) failed this many times in a row (calendar_feed_alert_failures in Program settings, 3 by default). Sent once per run of failures; it also raises a Fleet task. The trips already imported stay on the calendar until the link works again. Immediate.',
   timing: 'Immediate',
   subject: 'Calendar link not working: {{vehicle_name}} on {{platform}}',
-  preheader: '{{failures}} failed tries in a row. {{feed_error}}',
+  preheader: '{{failures}} tries in a row. New {{platform}} trips do not block the car until it works again.',
   ref: 'Calendar sync',
   body: [
     hero('Calendar sync', 'A calendar link stopped working', 'We could not read the {{platform}} calendar of the {{vehicle_name}} {{failures}} times in a row. New trips on {{platform}} are not blocking the car on CarmaCars until it works again.'),

@@ -763,6 +763,11 @@ export type Database = {
           transcribe_attempts: number;
           audio_purged_at: string | null;
           created_at: string;
+          video_key: string | null;
+          video_type: string | null;
+          video_bytes: number | null;
+          video_purged_at: string | null;
+          retakes_used: number;
         };
         Insert: {
           id?: string;
@@ -782,6 +787,11 @@ export type Database = {
           transcribe_attempts?: number;
           audio_purged_at?: string | null;
           created_at?: string;
+          video_key?: string | null;
+          video_type?: string | null;
+          video_bytes?: number | null;
+          video_purged_at?: string | null;
+          retakes_used?: number;
         };
         Update: {
           id?: string;
@@ -801,6 +811,11 @@ export type Database = {
           transcribe_attempts?: number;
           audio_purged_at?: string | null;
           created_at?: string;
+          video_key?: string | null;
+          video_type?: string | null;
+          video_bytes?: number | null;
+          video_purged_at?: string | null;
+          retakes_used?: number;
         };
         Relationships: [];
       };
@@ -12396,6 +12411,7 @@ export type Database = {
           added_alone_by: string | null;
           recruited_at: string | null;
           recruited_via: string | null;
+          show_profit_extras: boolean;
         };
         Insert: {
           id?: string;
@@ -12447,6 +12463,7 @@ export type Database = {
           added_alone_by?: string | null;
           recruited_at?: string | null;
           recruited_via?: string | null;
+          show_profit_extras?: boolean;
         };
         Update: {
           id?: string;
@@ -12498,6 +12515,7 @@ export type Database = {
           added_alone_by?: string | null;
           recruited_at?: string | null;
           recruited_via?: string | null;
+          show_profit_extras?: boolean;
         };
         Relationships: [];
       };
@@ -13045,6 +13063,8 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          vehicle_id: string | null;
+          claim_id: string | null;
         };
         Insert: {
           id?: string;
@@ -13079,6 +13099,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          vehicle_id?: string | null;
+          claim_id?: string | null;
         };
         Update: {
           id?: string;
@@ -13113,6 +13135,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          vehicle_id?: string | null;
+          claim_id?: string | null;
         };
         Relationships: [];
       };
@@ -15303,6 +15327,9 @@ export type Database = {
           api_access_enabled: boolean;
           api_calls_per_minute: number;
           listing_photo_enhance: boolean;
+          hiring_ai_answer_seconds: number;
+          hiring_ai_retakes: number;
+          hiring_ai_video_days: number;
         };
         Insert: {
           id?: string;
@@ -15924,6 +15951,9 @@ export type Database = {
           api_access_enabled?: boolean;
           api_calls_per_minute?: number;
           listing_photo_enhance?: boolean;
+          hiring_ai_answer_seconds?: number;
+          hiring_ai_retakes?: number;
+          hiring_ai_video_days?: number;
         };
         Update: {
           id?: string;
@@ -16545,6 +16575,9 @@ export type Database = {
           api_access_enabled?: boolean;
           api_calls_per_minute?: number;
           listing_photo_enhance?: boolean;
+          hiring_ai_answer_seconds?: number;
+          hiring_ai_retakes?: number;
+          hiring_ai_video_days?: number;
         };
         Relationships: [];
       };
@@ -20055,6 +20088,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_email_digest_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          audience: string;
+          outbox_id: string | null;
+          code: string;
+          line: string;
+          url: string | null;
+          created_at: string;
+          digested_at: string | null;
+          digest_outbox_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          audience: string;
+          outbox_id?: string | null;
+          code: string;
+          line: string;
+          url?: string | null;
+          created_at?: string;
+          digested_at?: string | null;
+          digest_outbox_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          audience?: string;
+          outbox_id?: string | null;
+          code?: string;
+          line?: string;
+          url?: string | null;
+          created_at?: string;
+          digested_at?: string | null;
+          digest_outbox_id?: string | null;
+        };
+        Relationships: [];
+      };
       staff_profiles: {
         Row: {
           user_id: string;
@@ -22069,6 +22141,7 @@ export type Database = {
           greeting_name: string | null;
           is_test: boolean | null;
           alerts_asked_at: string | null;
+          staff_email_digest: string;
         };
         Insert: {
           id?: string;
@@ -22091,6 +22164,7 @@ export type Database = {
           greeting_name?: string | null;
           is_test?: boolean | null;
           alerts_asked_at?: string | null;
+          staff_email_digest?: string;
         };
         Update: {
           id?: string;
@@ -22113,6 +22187,7 @@ export type Database = {
           greeting_name?: string | null;
           is_test?: boolean | null;
           alerts_asked_at?: string | null;
+          staff_email_digest?: string;
         };
         Relationships: [];
       };
@@ -23730,6 +23805,69 @@ export type Database = {
           retransferred_on?: string | null;
           retransferred_to?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_repair_costs: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          claim_id: string | null;
+          spent_on: string;
+          vendor_partner_id: string | null;
+          vendor_name: string | null;
+          description: string;
+          amount_cents: number;
+          tax_cents: number;
+          receipt_path: string | null;
+          paid_by: string;
+          created_by: string | null;
+          created_at: string;
+          updated_by: string | null;
+          updated_at: string;
+          voided_at: string | null;
+          voided_by: string | null;
+          void_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          claim_id?: string | null;
+          spent_on: string;
+          vendor_partner_id?: string | null;
+          vendor_name?: string | null;
+          description: string;
+          amount_cents: number;
+          tax_cents?: number;
+          receipt_path?: string | null;
+          paid_by: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          claim_id?: string | null;
+          spent_on?: string;
+          vendor_partner_id?: string | null;
+          vendor_name?: string | null;
+          description?: string;
+          amount_cents?: number;
+          tax_cents?: number;
+          receipt_path?: string | null;
+          paid_by?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
         };
         Relationships: [];
       };
@@ -26486,11 +26624,14 @@ export type Database = {
       server_ai_budget: { Args: never; Returns: Json };
       server_ai_interview: { Args: { p_token: string }; Returns: Json };
       server_ai_interview_answer: { Args: { p_token: string; p: Json }; Returns: Json };
+      server_ai_interview_answer_pre0585: { Args: { p_token: string; p: Json }; Returns: Json };
       server_ai_interview_followup: { Args: { p_token: string; p: Json }; Returns: Json };
       server_ai_interview_scored: { Args: { p: Json }; Returns: Json };
       server_ai_interview_start: { Args: { p_token: string; p?: Json }; Returns: Json };
       server_ai_interview_transcript: { Args: { p: Json }; Returns: Json };
       server_ai_interviews_due: { Args: { p_limit?: number }; Returns: Json };
+      server_ai_interviews_due_pre0585: { Args: { p_limit?: number }; Returns: Json };
+      server_ai_video_purged: { Args: { p_ids: string[] }; Returns: number };
       server_alert_feed: { Args: { p_user: string; p_limit?: number; p_filter?: string }; Returns: Json };
       server_alert_prefs: { Args: { p_user: string }; Returns: Json };
       server_alert_read: { Args: { p_user: string; p_ids?: string[] }; Returns: number };
@@ -26650,6 +26791,7 @@ export type Database = {
       server_open_agreement_companion: { Args: { p_booking: string; p_by: string; p_template: string; p_storage_path: string; p_sha256: string }; Returns: string };
       server_open_amendment: { Args: { p_request: string; p_by: string; p_sha256: string; p_storage_path: string; p_template_version: string }; Returns: Json };
       server_open_by_content: { Args: { p_by: string; p_keys: string[] }; Returns: Json };
+      server_outbox_stale_report: { Args: { p_since?: string }; Returns: Json };
       server_owner_agreement_extras: { Args: { p_owner: string }; Returns: Json };
       server_owner_agreement_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
       server_owner_agreement_preview_facts: { Args: { p_owner: string; p_by: string }; Returns: Json };
@@ -26661,6 +26803,7 @@ export type Database = {
       server_owner_debit_setup_facts: { Args: { p_by: string }; Returns: Json };
       server_owner_debit_setup_verified: { Args: { p_method: string; p_mandate: string }; Returns: Json };
       server_owner_debit_terms: { Args: never; Returns: Json };
+      server_owner_fee_audit: { Args: { p_month?: string }; Returns: Json };
       server_owner_form_ab_facts: { Args: { p_by: string; p_code: string }; Returns: Json };
       server_owner_handoffs: { Args: { p_by: string; p_vehicle: string }; Returns: Json };
       server_owner_invoice_id: { Args: { p_number: string }; Returns: string };

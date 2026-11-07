@@ -21,14 +21,84 @@ const inv = (r: R) => <Link prefetch={false} className="link" href={`/admin/owne
 
 // The automatic monthly owner debit (migration 0037, docs/changes/2026-10-14-owner-debit.md): what is scheduled, what
 // went to the bank and what came back, the run log, and the pauses. The schedule and the retry policy are Program settings.
-export async function Debits({ ctx: { read } }: { ctx: AdminPage }) {
-  const x = await read<Debits>('owner_debits');
+// The fix card (r29 C4): an owner debit that cannot go ahead emails the Admins one button that opens this tab on that
+// owner (?owner=<id>&fix=setup|notice) with the one action that fixes it.
+function FixCard({ x, sp }: { x: Debits; sp: Record<string, string | undefined> }) {
+  const o = sp.owner ? x.owners.find((r) => String(r.id) === sp.owner) : undefined;
+  if (!o || (sp.fix !== 'setup' && sp.fix !== 'notice')) return null;
+  const name = String(o.name);
+  if (sp.fix === 'setup') return (
+    <Card title={`${name}: no bank debit set up`} tone="warn" testId="debit-fix">
+      {o.mandate
+        ? <p className="small">{name} has a bank debit set up now. Nothing else to do.</p>
+        : <><p className="small">Send {name} the link to set up their bank debit. Nothing is taken until they do.</p>
+          <Act action="owner_debit_setup_link" payload={{ owner: o.id }} label="Send the sign-up link" variant="primary" testId="debit-fix-go" refresh={R} /></>}
+    </Card>);
+  return (
+    <Card title={`${name}: amount went up after the notice`} tone="warn" testId="debit-fix">
+      <p className="small">Send {name} a new notice for the new amount. The debit goes ahead after the notice period.</p>
+      <Act action="owner_debit_schedule" payload={{ owner: o.id }} label="Send a new notice" variant="primary" testId="debit-fix-go" refresh={R} />
+    </Card>);
+}
+
+interface Preview { debit_on: string; owners: Array<R & { invoices: R[] }> }
+interface Audit { month: string; invoices: number; owners: number; total: string; problems: R[] }
+
+// The debit preview (r29 C4, the owner on November 6: "what are these random amounts"): before the debit day, each owner's
+// invoices with why each is charged, whether a bank debit is set up, and Hold (pauses that owner's automatic debit).
+function PreviewCard({ p }: { p: Preview }) {
+  return (
+    <Card title={`Debit preview: ${d(p.debit_on)}`} testId="debit-preview">
+      {p.owners.length === 0 ? <p className="ad-empty" data-testid="debit-preview-empty">Nothing to debit on {d(p.debit_on)}.</p> : (
+        <ul className="ad-preview">
+          {p.owners.map((o) => (
+            <li key={String(o.id)} data-testid={`debit-preview-${String(o.id)}`}>
+              <div className="row ad-preview__head">
+                <Link prefetch={false} className="link" href={`/admin/owners/${String(o.id)}`}><strong>{String(o.name)}</strong></Link>
+                <strong>{$(o.total_cents)}</strong>
+                {o.debit_set_up ? <Badge s="active">Bank debit set up, ending {String(o.bank_last4 ?? '')}</Badge> : <Badge s="failed">No bank debit set up</Badge>}
+                {o.noticed ? <Badge s="sent">Notice sent</Badge> : <Badge s="draft">No notice yet</Badge>}
+                {o.paused ? <Badge s="failed">On hold</Badge> : null}
+                {o.paused
+                  ? <Act action="owner_debit_resume" payload={{ owner: o.id }} label="Resume" refresh={R} />
+                  : <Act action="owner_debit_pause" payload={{ owner: o.id }} label="Hold" title={`Hold ${String(o.name)}'s automatic debit`}
+                      fields={[{ name: 'reason', label: 'Reason', required: true }]} testId={`debit-hold-${String(o.id)}`} refresh={R} />}
+              </div>
+              <ul className="small">
+                {o.invoices.map((i) => (
+                  <li key={String(i.id)}>
+                    <Link prefetch={false} className="link" href={`/admin/owners/${String(o.id)}#inv-${String(i.invoice_number)}`}>{String(i.line)}</Link>
+                    {`. ${String(i.how)}. Invoice ${String(i.invoice_number)}${i.scheduled ? '' : ', not on a notice yet'}.`}
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>)}
+    </Card>);
+}
+
+function AuditCard({ a }: { a: Audit }) {
+  return (
+    <Card title={`Fee check: ${a.month}`} testId="debit-fee-check">
+      <p className="small">{a.invoices} invoices to {a.owners} owners, {a.total}, checked against each car&apos;s signed terms. Nothing here is changed automatically.</p>
+      <Table testId="debit-fee-problems" rows={a.problems} rowKey={(r) => String(r.invoice)} empty="Every invoice matches the agreement." cols={[
+        { key: 'invoice', label: 'Invoice' }, { key: 'car', label: 'Car' }, { key: 'total', label: 'Total', num: true }, { key: 'problem', label: 'Does not match' }]} />
+    </Card>);
+}
+
+export async function Debits({ ctx: { read }, sp = {} }: { ctx: AdminPage; sp?: Record<string, string | undefined> }) {
+  const [x, preview] = await Promise.all([read<Debits>('owner_debits'), read<Preview>('owner_debit_preview')]);
+  const audit = await read<Audit>('owner_fee_audit', { month: preview.debit_on });
   const photos = await carPhotos(x.upcoming);
   const s = x.settings;
   return (<>
     <PageHead title="Owner debits" purpose="The automatic monthly debit of owner invoices: what is scheduled, what went to the bank and what came back.">
       <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/settings/program">Debit settings</Link>
     </PageHead>
+    <FixCard x={x} sp={sp} />
+    <PreviewCard p={preview} />
+    <AuditCard a={audit} />
     {!s.enabled && <Card title="Automatic debits are off" tone="warn"><p className="small">Nothing is scheduled or sent. Turn on owner_debit_enabled in Program settings.</p></Card>}
     <Tiles items={[
       { k: 'Next debit day', v: d(x.next_debit_on), sub: `Notices on ${d(x.next_notice_on)}` },
@@ -64,7 +134,7 @@ export async function Debits({ ctx: { read } }: { ctx: AdminPage }) {
     <Card title="Owners">
       <Table testId="debit-owners" rows={x.owners} rowKey={(r) => String(r.id)} empty="No owner has an invoice yet. Fee invoices appear here on the notice day each month." cols={[
         { key: 'name', label: 'Owner', render: (r) => <><Link prefetch={false} className="link" href={`/admin/owners/${String(r.id)}`}>{String(r.name)}</Link>{r.is_test ? <> <Badge s="draft">test</Badge></> : null}</> },
-        { key: 'mandate', label: 'Debit agreement', render: (r) => r.mandate ? `Active, ending ${String(r.bank_last4 ?? '')}` : <Badge s="failed">None</Badge> },
+        { key: 'mandate', label: 'Bank debit', render: (r) => r.mandate ? `Set up, ending ${String(r.bank_last4 ?? '')}` : <Badge s="failed">No bank debit set up</Badge> },
         { key: 'open_invoices', label: 'Open invoices', num: true },
         { key: 'open_cents', label: 'Open', num: true, render: (r) => $(r.open_cents) },
         { key: 'paused', label: 'Automatic debit', render: (r) => r.paused ? <Badge s="failed">Paused</Badge> : 'On' },
@@ -72,6 +142,7 @@ export async function Debits({ ctx: { read } }: { ctx: AdminPage }) {
           {r.paused
             ? <Act action="owner_debit_resume" payload={{ owner: r.id }} label="Resume" refresh={R} />
             : <Act action="owner_debit_pause" payload={{ owner: r.id }} label="Pause" title={`Pause automatic debits for ${String(r.name)}`} fields={[{ name: 'reason', label: 'Reason', required: true }]} refresh={R} />}
+          {!r.mandate && <Act action="owner_debit_setup_link" payload={{ owner: r.id }} label="Send the sign-up link" title={`Email ${String(r.name)} the link to set up their bank debit`} refresh={R} />}
           {s.enabled && !r.paused && Number(r.open_invoices) > 0 && <Act action="owner_debit_schedule" payload={{ owner: r.id }} label="Send a notice now" title={`Schedule ${String(r.name)}'s open invoices`}
             confirm={`Sends the pre-debit notice today for the open invoices not yet scheduled. The debit is ${s.notice_days} days from today unless you choose a later day.`}
             fields={[{ name: 'debit_on', label: 'Debit day (empty: the earliest the notice allows)', type: 'date' }]} refresh={R} />}

@@ -26,3 +26,12 @@
 .iv-deck__cta { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--white); color: var(--black); border-color: var(--white); }
 .iv-deck__cta:hover { background: var(--grey-100); border-color: var(--grey-100); color: var(--black); }
 .iv-deck__cta svg { width: 1rem; height: 1rem; }
+
+/* r29: the Updates page */
+.iv-updates__tools { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--s-3); margin-top: var(--s-3); }
+@media (max-width: 560px) { .iv-updates__tools { grid-template-columns: minmax(0, 1fr); } }
+.iv-updates__tools .input, .iv-updates__tools .select { width: 100%; }
+.iv-release__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s-2); }
+.iv-release__area { margin-top: var(--s-3); }
+.iv-release__area ul { margin: var(--s-1) 0 0; padding-left: 1.2em; }
+.iv-release__area li + li { margin-top: 2px; }

@@ -147,7 +147,7 @@ Set on every response by the Worker (`middleware.ts`), except object responses f
 | `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
-| `Permissions-Policy` | `camera=(self), geolocation=(self), microphone=(), payment=(self "https://js.stripe.com"), usb=(), interest-cohort=()` |
+| `Permissions-Policy` | `camera=(self), geolocation=(self), microphone=(self), payment=(self "https://js.stripe.com"), usb=(), interest-cohort=()` |
 | `X-Frame-Options` and `frame-ancestors` | `DENY` and `'none'`: the site cannot be framed |
 | `Cross-Origin-Opener-Policy` | `same-origin` |
 | `Cache-Control` | Public pages: cacheable. Every portal route and every response containing personal data: `no-store` |

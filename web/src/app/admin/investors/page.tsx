@@ -16,7 +16,7 @@ export default async function Investors() {
   const { rows } = await list('investors', { order: 'legal_name', asc: true, limit: 300 });
   const last = new Date(); last.setUTCDate(1); last.setUTCMonth(last.getUTCMonth() - 1);
   return (<>
-    <PageHead title="Investors"><Link className="btn btn--ghost btn--sm" href="/admin/investors/deck" prefetch={false} data-testid="admin-deck-link">Investor deck{deck ? (deck.show_to_investors ? ' (shown to investors)' : ' (hidden)') : ''}</Link>
+    <PageHead title="Investors"><Link className="btn btn--ghost btn--sm" href="/investor/updates" prefetch={false} data-testid="admin-updates-link">Updates (as investors see it)</Link><Link className="btn btn--ghost btn--sm" href="/admin/investors/deck" prefetch={false} data-testid="admin-deck-link">Investor deck{deck ? (deck.show_to_investors ? ' (shown to investors)' : ' (hidden)') : ''}</Link>
       {deck && <Act action="deck_settings_save" payload={{ show_to_investors: !deck.show_to_investors }} label={deck.show_to_investors ? 'Hide the deck from investors' : 'Show the deck to investors'}
         confirm={deck.show_to_investors ? 'Investors will no longer see the deck.' : 'Signed-in investors will see the deck in their portal.'} refresh={['/admin/investors', '/admin/investors/deck']} testId="deck-toggle" />}<Act action="investor_returns_accrue" label="Accrue returns for a month" fields={[{ name: 'month', label: 'Month (first day)', type: 'date', required: true, value: last.toISOString().slice(0, 10) }]} refresh={['/admin/investors']} /></PageHead>
     <AddInvestor defaultBps={deck?.deck_return_bps ?? 3000} />

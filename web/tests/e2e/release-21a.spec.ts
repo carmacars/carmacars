@@ -130,7 +130,8 @@ test('the card reader is paired, a deposit is held on it, a Dashboard payment is
   await expect(page.getByTestId('card-rule')).toContainText('Visa ending 4242');
   await page.getByTestId('ct-reader-hold-open').click();
   await page.getByTestId('ct-reader-go').click();
-  await expect(page.getByTestId('ct-message')).toContainText('held on the card', { timeout: 30_000 });
+  // r29: the Money tab has a panel each for the rental and the deposit, each with its card tools and message
+  await expect(page.getByTestId('bm-deposit-panel').getByTestId('ct-message')).toContainText('held on the card', { timeout: 30_000 });
   const [dep] = await sql`select d.status, d.method, (d.hold_expires_at < now() + interval '49 hours') as two_days from deposits d where d.booking_id = ${b.id}`;
   expect([dep?.status, dep?.method, dep?.two_days]).toEqual(['held', 'card_hold', true]);
 
@@ -141,7 +142,7 @@ test('the card reader is paired, a deposit is held on it, a Dashboard payment is
   await page.getByTestId('ct-lookup').click();
   await expect(page.getByTestId('ct-found')).toContainText('$25.00 paid on visa ending 4242');
   await page.getByTestId('ct-record-save').click();
-  await expect(page.getByTestId('ct-message')).toContainText('Recorded.');
+  await expect(page.getByTestId('bm-rental').getByTestId('ct-message')).toContainText('Recorded.');
 
   // another card for the rental: refused with the reason
   await page.getByTestId('ct-record-open').click();
@@ -149,7 +150,7 @@ test('the card reader is paired, a deposit is held on it, a Dashboard payment is
   await page.getByTestId('ct-last4').fill('1111');
   await page.getByTestId('ct-amount').fill('10');
   await page.getByTestId('ct-record-save').click();
-  await expect(page.getByTestId('ct-message')).toContainText('the whole rental is paid on that same card (Visa ending 4242). This card ends 1111');
+  await expect(page.getByTestId('bm-rental').getByTestId('ct-message')).toContainText('the whole rental is paid on that same card (Visa ending 4242). This card ends 1111');
   await check(page, 'booking money card tools');
   expect(errors.filter((x) => !/favicon|Failed to load resource|net::ERR/.test(x))).toEqual([]);
   await sql.end();

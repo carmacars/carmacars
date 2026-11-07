@@ -7,6 +7,12 @@ Your fee payment did not go through
 
 The debit for your {{vehicle_name}} was returned by your bank, {{first_name}}.
 
+{{#each amount_items}}
+- {{line}}
+  {{how}}. Invoice {{invoice_number}}.
+  {{url}}
+{{/each}}
+
   Invoice {{invoice_number}}, {{invoice_month}} fees: {{amount}}
   Late fee: {{late_fee}}
 

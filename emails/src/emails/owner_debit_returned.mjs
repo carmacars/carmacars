@@ -1,4 +1,4 @@
-import { hero, p, small, facts, button, notice, when } from '../components.mjs';
+import { hero, p, small, facts, button, notice, when, rows } from '../components.mjs';
 import { FROM } from '../brand.mjs';
 
 export default {
@@ -14,6 +14,8 @@ export default {
   ref: 'Invoice {{invoice_number}}',
   body: [
     hero('Debit returned', 'Your bank returned the debit', 'The debit for your {{vehicle_name}} did not go through, {{first_name}}.'),
+    // r29 C4: the amount in one plain line: the car, the fee, the period, how it was worked out, the invoice
+    rows('amount_items', '{{line}}', '{{how}}. Invoice {{invoice_number}}.', '{{url}}'),
     notice('alert', 'What happened', 'The debit of {{debit_date}} was returned: {{bank_reason}}'),
     p('Pay this invoice from its page or update your bank account under Banking. We will not debit this invoice again.'),
     facts(
@@ -28,6 +30,8 @@ export default {
     button('Pay this invoice', '@owner_invoice'),
   ],
   sample: {
+    amount_items: [{ invoice_number: 'INV-2026-11-0042', amount: '$536.75', car: '2022 Hyundai Elantra Preferred', fee: 'monthly fee', period: 'November 2026', how: 'prorated: 20 of 30 days, plus HST',
+        line: '$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026', url: 'https://carmacars.ca/owner/invoices/INV-2026-11-0042' }],
     invoice_number: 'INV-2026-11-0042', debit_date: 'Sun, Nov 15, 2026', bank_reason: 'the account is closed', amount: '$536.75', balance: '$536.75',
     has_late_fee: false, late_fee: '$50.00',
   },

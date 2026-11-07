@@ -161,6 +161,19 @@ for (const f of [...walk('src'), 'build.mjs', 'shots.mjs', 'check.mjs']) written
   check('copy rules: no banned words, no exclamation marks, no emoji, plain ASCII punctuation', p);
 }
 
+// 8b. Staff emails in plain words (r29 C4, the owner on November 6: "Owner debit exception" was insanely confusing): no
+// subject, preheader or body of a staff email uses the system's own words.
+{
+  const p = [];
+  const INTERNAL = [/\bexceptions?\b/i, /\bmandates?\b/i, /\boutbox\b/i, /\bfingerprints?\b/i, /\bPAD\b/, /\bwebhooks?\b/i, /\brun key\b/i,
+    /\bpayment ?intents?\b/i, /\bidempoten/i, /\bjob_runs\b/i, /\bdedupe/i, /\bpayload\b/i, /\bstatus code\b/i, /\busage guard\b/i];
+  for (const e of cat.emails.filter((x) => x.audience.startsWith('staff_'))) {
+    const t = read('dist', e.code + '.txt');
+    for (const [k, v] of [['subject', e.subject], ['preheader', e.preheader], ['body', t]]) for (const re of INTERNAL) { const m = String(v).match(re); if (m) p.push(`${e.code}: ${k} says "${m[0]}"`); }
+  }
+  check('staff emails use plain words: no exception, mandate, outbox, fingerprint, PAD, webhook or run key', p);
+}
+
 // 9. One primary button per rendered email.
 {
   const p = [];

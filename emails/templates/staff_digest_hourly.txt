@@ -1,0 +1,37 @@
+CarmaCars  |  {{digest_date}}
+
+========================================
+
+[Your alerts]
+Since {{digest_since}}, {{first_name}}
+
+{{digest_summary}}
+
+Alerts: {{digest_count}}
+Next digest: {{digest_next}}
+
+{{#if has_items}}
+{{#each items}}
+- {{line}}
+  {{meta}}
+  {{url}}
+{{/each}}
+{{else}}
+Nothing new
+No alert since the last digest.
+{{/if}}
+
+Open my queue:
+https://carmacars.ca/admin
+
+Urgent alerts still come on their own. Change how often this digest comes under Profile, Notifications.
+
+----------------------------------------
+
+If this notice looks wrong, tell an admin.
+
+Internal CarmaCars notice. It may contain customer information. Do not forward it.
+
+CarmaCars
+{{#if company_address}}{{company_address}}
+{{/if}}https://carmacars.ca/

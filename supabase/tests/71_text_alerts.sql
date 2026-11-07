@@ -146,7 +146,8 @@ select test.tmail('investor_statement_ready', 'ta-14', test.id('ta_ivy'), null, 
 select test.eq('an investor without a verified phone: email only', test.tstatus('ta-14') || ' ' || (select count(*) from test.ttext('ta-14')), 'queued 0');
 insert into notification_outbox (code, category, priority, audience, recipient_user_id, to_address, payload, dedupe_key)
 values ('staff_booking_request_new', 'transactional', 3, 'staff_va_cs', test.id('ta_otto'), 'ta_otto@example.test', '{}', 'ta-15');
-select test.eq('a staff notice is never routed', (select coalesce(channel, 'none') || ' ' || status from notification_outbox where dedupe_key = 'ta-15') || ' ' || (select count(*) from test.ttext('ta-15')), 'none queued 0');
+-- (0583: a staff alert that is not urgent goes into the person's email digest, so its own email row is skipped)
+select test.eq('a staff notice is never routed', (select coalesce(channel, 'none') || ' ' || status from notification_outbox where dedupe_key = 'ta-15') || ' ' || (select count(*) from test.ttext('ta-15')), 'none skipped 0');
 select test.eq('the same notification twice makes one text', (select count(*) from phone_outbox where dedupe_key = 'sms:ta-1'), 1::bigint);
 
 -- an additional driver's link: texted to the driver's own account (Eve here), never to the renter (Tess)

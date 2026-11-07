@@ -114,12 +114,24 @@ test('owner debit: set up banking, notice, the debit day, one cleared and one re
   await signIn(admin, adminEmail, '/admin/owner-money?tab=debits');
   await check(admin, 'admin debits');
   const row = admin.getByTestId('debit-owners').locator('tr', { hasText: `Dora ${last}` });
-  await expect(row).toContainText('Active, ending 6789');
+  await expect(row).toContainText('Set up, ending 6789');
   await row.getByRole('button', { name: 'Send a notice now' }).click();
   await admin.locator('dialog[open]').getByRole('button', { name: 'Send a notice now' }).click();
   await expect(admin.getByTestId('debit-upcoming')).toContainText(invoices[0]!.invoice_number as string, { timeout: 15_000 });
   await expect(admin.getByTestId('debit-upcoming')).toContainText(invoices[1]!.invoice_number as string);
   await admin.screenshot({ path: `${SHOTS}/admin-scheduled-${info.project.name}.png`, fullPage: true });
+  // r29 C4: the debit preview names each amount (car, fee, period, how) and holds an owner; the fix card from the email
+  const prev = admin.getByTestId(`debit-preview-${owner}`);
+  await expect(prev).toContainText('Bank debit set up, ending 6789');
+  await expect(prev).toContainText(/first and last month|monthly fee|tracker install/);
+  await expect(prev).toContainText(invoices[0]!.invoice_number as string);
+  await expect(admin.getByTestId('debit-fee-check')).toBeVisible();
+  await check(admin, 'admin debit preview');
+  await admin.screenshot({ path: `${SHOTS}/admin-preview-${info.project.name}.png`, fullPage: true });
+  await admin.goto(`/admin/debits?owner=${owner}&fix=setup`, { waitUntil: 'networkidle' });
+  await expect(admin.getByTestId('debit-fix')).toContainText('has a bank debit set up now');
+  await check(admin, 'admin debit fix card');
+  await admin.goto('/admin/owner-money?tab=debits', { waitUntil: 'networkidle' });
   const notice = await sql`select debit_on::text d, cardinality(invoice_ids)::int n from owner_debit_notices where owner_id = ${owner}`;
   expect(notice[0]!.n).toBe(2);
   expect((await sql`select count(*)::int n from app_events where code = 'owner_debit_notice' and entity_id in (select id from owner_debit_notices where owner_id = ${owner})`)[0]!.n).toBe(1);

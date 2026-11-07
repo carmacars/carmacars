@@ -12,11 +12,12 @@ import { METHODS, STATE_WORDS } from './model';
 type L = { invoices: Array<Record<string, unknown>>; by_partner: Array<Record<string, unknown>>; by_claim: Array<Record<string, unknown>>;
   totals: { invoiced_cents: number; received_cents: number; outstanding_cents: number; overdue: number }; partners: Partner[] };
 type One = InvoiceIn & { id: string; invoice_number: string | null; status: string; state: string; total_cents: number; paid_cents: number; balance_cents: number; sent_to: string | null; sends: number;
-  view_token: string; partner: { business_name: string; email: string | null }; payments: Array<{ id: string; method: string; amount_cents: number; received_on: string; reference: string | null; photo_path: string | null; voided_at: string | null }> };
+  view_token: string; car?: string | null; partner: { business_name: string; email: string | null }; payments: Array<{ id: string; method: string; amount_cents: number; received_on: string; reference: string | null; photo_path: string | null; voided_at: string | null }> };
 
 export async function PartnerInvoices({ userId, aal, base, sp, partner }: { userId: string; aal?: 'aal1' | 'aal2' | null; base: string; sp: Record<string, string | undefined>; partner?: string }) {
   const l = await door<L>(userId, 'ops_read', 'partner_invoices', { partner: partner ?? sp.partner ?? '', claim: sp.claim ?? '' }, aal);
   const refresh = [base.split('?')[0]!];
+  const cars = await door<Array<{ id: string; name: string }>>(userId, 'ops_read', 'profit_cars', {}, aal).catch(() => []);
   const one = sp.invoice ? await door<One>(userId, 'ops_read', 'partner_invoices', { id: sp.invoice }, aal).catch(() => null) : null;
   const link = (q: string) => `${base}${base.includes('?') ? '&' : '?'}${q}`;
   return (
@@ -24,17 +25,19 @@ export async function PartnerInvoices({ userId, aal, base, sp, partner }: { user
       <p className="small">Invoiced {$(l.totals.invoiced_cents)} · received {$(l.totals.received_cents)} · <b>outstanding {$(l.totals.outstanding_cents)}</b>{l.totals.overdue ? ` · ${l.totals.overdue} overdue` : ''} · <a className="link" href="/api/staff/partner-invoice?csv=1">CSV for the bookkeeper</a></p>
       {one ? <Card title={`Invoice ${one.invoice_number ?? '(draft)'} · ${one.partner.business_name}`} testId="pi-one">
         <p>{STATE_WORDS[one.state] ?? one.state} · total {$(one.total_cents)} · received {$(one.paid_cents)} · balance <b>{$(one.balance_cents)}</b>{one.sent_to ? ` · sent to ${one.sent_to} (${one.sends}x)` : ''}</p>
-        <p className="row"><a className="btn btn--ghost btn--sm" href={`/api/staff/partner-invoice?id=${one.id}`} target="_blank" rel="noreferrer">PDF</a>
+        <div className="row"><a className="btn btn--ghost btn--sm" href={`/api/staff/partner-invoice?id=${one.id}`} target="_blank" rel="noreferrer">PDF</a>
           {one.status !== 'void' && <Act ops action="partner_invoice_send" payload={{ id: one.id }} label={one.status === 'draft' ? 'Send to the partner' : 'Send again'} refresh={refresh} done="Sent."
             fields={[{ name: 'to', label: 'To (empty: the partner\'s email)', type: 'email', value: one.partner.email ?? '' }]} />}
           {one.status === 'sent' && <RecordPayment id={one.id} balanceCents={one.balance_cents} refresh={refresh} />}
-          {one.status !== 'void' && <Act ops action="partner_invoice_void" payload={{ id: one.id }} label="Void" variant="danger" refresh={refresh} done="Void." fields={[{ name: 'reason', label: 'Why', required: true }]} />}</p>
+          <Act ops action="partner_invoice_car" payload={{ id: one.id }} label={one.car ? `Car: ${one.car}` : 'Choose the car'} refresh={refresh} done="Saved." testId="pi-car-set"
+            fields={[{ name: 'vehicle_id', label: 'Car (the kickback counts on it)', type: 'select', required: true, value: one.vehicle_id ?? '', options: cars.map((c) => [c.id, c.name] as [string, string]) }]} />
+          {one.status !== 'void' && <Act ops action="partner_invoice_void" payload={{ id: one.id }} label="Void" variant="danger" refresh={refresh} done="Void." fields={[{ name: 'reason', label: 'Why', required: true }]} />}</div>
         {one.payments.length > 0 && <Table rows={one.payments as unknown as Array<Record<string, unknown>>} cols={[{ key: 'received_on', label: 'Received', render: (r) => d(r.received_on) }, { key: 'method', label: 'How', render: (r) => METHODS.find(([k]) => k === r.method)?.[1] ?? String(r.method) },
           { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'reference', label: 'Reference' },
           { key: 'photo_path', label: 'Cheque photo', render: (r) => (r.photo_path ? <a className="link" href={`/api/staff/partner-invoice?id=${one.id}&photo=${encodeURIComponent(String(r.photo_path))}`} target="_blank" rel="noreferrer">View</a> : '') }, { key: 'voided_at', label: '', render: (r) => (r.voided_at ? 'Voided' : <Act ops action="partner_invoice_pay" payload={{ id: one.id, void_payment: r.id }} label="Void" confirm="Void this payment?" refresh={refresh} />) }]} />}
-        {one.status === 'draft' && <Builder partners={l.partners} inv={one} refresh={refresh} base={base} />}
+        {one.status === 'draft' && <Builder partners={l.partners} inv={one} refresh={refresh} base={base} cars={cars} />}
         <p><Link prefetch={false} className="link" href={base}>All invoices</Link></p>
-      </Card> : <Card title="New invoice to a partner" testId="pi-new"><Builder partners={l.partners} refresh={refresh} base={base} /></Card>}
+      </Card> : <Card title="New invoice to a partner" testId="pi-new"><Builder partners={l.partners} refresh={refresh} base={base} cars={cars} /></Card>}
       <Card title="Invoices"><Table rows={l.invoices} empty="No invoices to partners yet." cols={[
         { key: 'invoice_number', label: 'Invoice', render: (r) => <Link prefetch={false} className="link" href={link(`invoice=${String(r.id)}`)}>{String(r.invoice_number ?? 'Draft')}</Link> },
         { key: 'partner', label: 'Partner' }, { key: 'claim_number', label: 'Claim', render: (r) => (r.claim_number ? <Link prefetch={false} className="link" href={link(`claim=${encodeURIComponent(String(r.claim_number))}`)}>{String(r.claim_number)}</Link> : '') },

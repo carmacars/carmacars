@@ -11,7 +11,7 @@ import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
 import type { PhoneTimelineData } from '@/features/phone/client';
 import { Act } from '@/features/admin/Act';
 import { DepositSettle } from '@/features/admin/DepositSettle';
-import { depositMethod, depositStatus } from '@/features/money/deposit-words';
+import { depositStatus } from '@/features/money/deposit-words';
 import { DocumentReview } from '@/features/admin/DocumentReview';
 import '@/features/admin/todo/todo.css';
 import { GeneratedFiles } from '@/features/admin/GeneratedFiles';
@@ -21,7 +21,7 @@ import { DriverLinks, ProposeChange, type DriverLinkRow } from '@/features/admin
 import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatureList, type ManualRow, type PaperDoc, type PaperRow } from '@/features/manual/ManualRecords';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { REFUND_OF } from '@/features/admin/refunds';
-import { BookingMoney, type Money } from '@/features/money/BookingMoney';
+import { BookingMoney, type Money, type PanelLine } from '@/features/money/BookingMoney';
 import { BookingFees, type Fees } from '@/features/money/BookingFees';
 import { BookingEdit, type EditForm } from '@/features/money/BookingEdit';
 import { BookingPeriods, type PeriodRow } from '@/features/money/BookingPeriods';
@@ -285,44 +285,41 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       )}
       {on('money') && (
         <div className="stack">
-          {moneyByPart && <BookingMoney m={moneyByPart} />}
-          {/* 0230: an Admin may allow a debit or prepaid card for this booking (never on card coverage) */}
-          {can.admin && moneyByPart?.debit && !moneyByPart.debit.coverage && <div className="ad-actions" data-testid="booking-debit-override">
-            {moneyByPart.debit.allowed_at
-              ? <Act action="booking_allow_debit" payload={{ booking: b.booking_number, allow: false }} label="Require a credit card again" refresh={refresh} testId="booking-debit-off"
-                  confirm="The pay page, pay links and the deposit hold of this booking take a credit card only again." />
-              : <Act action="booking_allow_debit" payload={{ booking: b.booking_number, allow: true }} label="Allow debit and prepaid cards for this booking" refresh={refresh} testId="booking-debit-on"
-                  confirm="The pay page, staff pay links and the deposit hold of this booking will take a debit or prepaid card. The renter is told the hold lowers the money available on the card until it is released. The deductible may not be chargeable on such a card."
-                  fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} />}
-            {/* 0262: the deposit with a debit or prepaid card, for this booking */}
-            {moneyByPart.debit_deposit?.takes && <Act action="booking_debit_deposit" payload={{ booking: b.booking_number }} label="Change the debit deposit" refresh={refresh} testId="booking-debit-deposit"
-              fields={[{ name: 'amount_cents', label: 'Deposit with a debit or prepaid card (empty: the standard multiple)', type: 'money' }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} />}
-          </div>}
+          {/* r29 C0: Rental charges and Security deposit, two panels; every money tool sits in the panel it belongs to, and the
+              database decides who may do each */}
+          {moneyByPart && <BookingMoney m={moneyByPart} lines={(b.lines as PanelLine[] | undefined) ?? []} totalCents={(b.total_due_at_booking_cents as number | null | undefined) ?? null}
+            waived={!!(b as unknown as R).deposit_waived_at}
+            rentalExtras={<>
+              {fees && <BookingFees x={fees} withBalance={false} />}
+              {payments?.some((r) => r.status === 'failed') && <Card title="Card payments that failed"><Table rows={payments.filter((r) => r.status === 'failed')} empty="No payments."
+                cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, ...(can.admin ? [{ key: 'method', label: 'Method' }] : []), { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'card_last4', label: 'Card' },
+                  { key: 'act', label: '', render: (r) => can.manualPayments && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={[base]} label="Paid another way" /> : null }]} /></Card>}
+              {payments && can.manualPayments && manual.length > 0 && <details className="pt-card ad-card" data-testid="booking-manual-payments"><summary className="small">{can.voidRecords ? 'Correct or void a payment received another way' : 'Payments received another way'} ({manual.length})</summary>
+                <ManualPaymentList rows={manual} canVoid={can.voidRecords} {...(can.voidRecords ? { refresh: [base] } : { docBase: '/staff/documents' })} /></details>}
+              {payments && <div className="stack" data-testid="bm-refunds"><div className="row"><b className="small">Refunds</b>
+                {can.admin ? (payments.length > 0 && <Act action="request_refund" payload={P} label="Refund" testId="new-refund" fields={refundFields()} refresh={[base]} />)
+                  : can.refund && <Act action="request_refund" payload={P} label="Refund" testId="request-refund" fields={refundFields()} refresh={[base]} done="Refund requested." />}</div>
+                {(b.refunds ?? []).length > 0 && <Table rows={b.refunds ?? []} testId="refunds" empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason', render: (r) => (can.admin ? String(r.reason ?? '') : label(r.reason)) }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) },
+                  { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)}>{!can.admin && r.status === 'pending_approval' ? 'Waiting for an Admin' : undefined}</Badge> }, { key: 'due_by', label: 'Due by' },
+                  ...(can.refundApprove ? [{ key: 'act', label: '', render: (r: R) => r.status === 'pending_approval' ? <Act action="refund_approve" payload={{ id: r.id }} label="Approve (within my limit)" refresh={[base]} /> : null }] : [])]} />}</div>}
+            </>}
+            depositExtras={can.admin ? <div className="ad-actions" data-testid="booking-debit-override">
+              {['confirmed', 'pending_payment'].includes(b.status) && !b.deposit && !(b as unknown as R).deposit_waived_at && <Act action="waive_deposit" payload={P} label="Waive the deposit" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} testId="bm-waive" />}
+              {/* 0262: the deposit with a debit or prepaid card, for this booking */}
+              {moneyByPart.debit_deposit?.takes && <Act action="booking_debit_deposit" payload={{ booking: b.booking_number }} label="Change the debit deposit" refresh={refresh} testId="booking-debit-deposit"
+                fields={[{ name: 'amount_cents', label: 'Deposit with a debit or prepaid card (empty: the standard multiple)', type: 'money' }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} />}
+              {/* 0230: an Admin may allow a debit or prepaid card for this booking (never on card coverage) */}
+              {moneyByPart.debit && !moneyByPart.debit.coverage && (moneyByPart.debit.allowed_at
+                ? <Act action="booking_allow_debit" payload={{ booking: b.booking_number, allow: false }} label="Require a credit card again" refresh={refresh} testId="booking-debit-off"
+                    confirm="The pay page, pay links and the deposit hold of this booking take a credit card only again." />
+                : <Act action="booking_allow_debit" payload={{ booking: b.booking_number, allow: true }} label="Allow debit and prepaid cards for this booking" refresh={refresh} testId="booking-debit-on"
+                    confirm="The pay page, staff pay links and the deposit hold of this booking will take a debit or prepaid card. The renter is told the hold lowers the money available on the card until it is released. The deductible may not be chargeable on such a card."
+                    fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} />)}
+            </div> : undefined}
+            depositSettle={can.settleDeposit ? <DepositSettle bookingId={b.id} bookingNumber={b.booking_number} refresh={[base]} /> : undefined} />}
+          {!moneyByPart && payments && <Card title="Payments"><Table rows={payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, ...(can.admin ? [{ key: 'method', label: 'Method' }] : []), { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }]} />
+            {can.manualPayments && <><ManualPaymentList rows={manual} canVoid={can.voidRecords} {...(can.voidRecords ? { refresh: [base] } : { docBase: '/staff/documents' })} /><ManualPaymentForm booking={b.id} number={b.booking_number} balance={0} today={today} refresh={[base]} label="Record a payment received another way" /></>}</Card>}
           <OwnerDeductionsPanel userId={user.id} aal={aal} va={fn} booking={b.booking_number} refresh={refresh} />
-          {fees && <BookingFees x={fees} />}
-          {/* the payments themselves: the booking read answers them to an Admin and Finance only */}
-          {payments && (!moneyByPart || payments.some((r) => r.status === 'failed')) && <Card title={moneyByPart ? 'Card payments that failed' : 'Payments'}><Table rows={moneyByPart ? payments.filter((r) => r.status === 'failed') : payments} empty="No payments."
-            cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, ...(can.admin ? [{ key: 'method', label: 'Method' }] : []), { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'card_last4', label: 'Card' },
-              { key: 'act', label: '', render: (r) => can.manualPayments && r.status === 'failed' && r.kind === 'charge' ? <ManualPaymentForm prefix="bk-rp" booking={b.id} settlesPayment={String(r.id)} number={String(r.id).slice(0, 8)} balance={Number(r.amount_cents)} today={today} refresh={[base]} label="Paid another way" /> : null }]} /></Card>}
-          {payments && can.manualPayments && (can.voidRecords && moneyByPart
-            ? manual.length > 0 && <details className="pt-card ad-card" data-testid="booking-manual-payments"><summary className="small">Correct or void a payment received another way ({manual.length})</summary><ManualPaymentList rows={manual} canVoid refresh={[base]} /></details>
-            : <Card title="Paid another way" testId="booking-manual-payments">
-              <ManualPaymentList rows={manual} canVoid={can.voidRecords} {...(can.voidRecords ? { refresh: [base] } : { docBase: '/staff/documents' })} />
-              <ManualPaymentForm booking={b.id} number={b.booking_number} balance={0} today={today} refresh={[base]} label="Record a payment received another way" />
-            </Card>)}
-          {payments && <Card title="Refunds" aside={can.admin ? (payments.length ? <Act action="request_refund" payload={P} label="New refund" testId="new-refund" fields={refundFields()} refresh={[base]} /> : null)
-            : can.refund ? <Act action="request_refund" payload={P} label="Request a refund" testId="request-refund" fields={refundFields()} refresh={[base]} done="Refund requested." /> : null}>
-            <Table rows={b.refunds ?? []} testId="refunds" empty="No refunds." cols={[{ key: 'created_at', label: 'Requested', render: (r) => t(r.created_at) }, { key: 'reason', label: 'Reason', render: (r) => (can.admin ? String(r.reason ?? '') : label(r.reason)) }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) },
-              { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)}>{!can.admin && r.status === 'pending_approval' ? 'Waiting for an Admin' : undefined}</Badge> }, { key: 'due_by', label: 'Due by' },
-              ...(can.refundApprove ? [{ key: 'act', label: '', render: (r: R) => r.status === 'pending_approval' ? <Act action="refund_approve" payload={{ id: r.id }} label="Approve (within my limit)" refresh={[base]} /> : null }] : [])]} />
-          </Card>}
-          {payments && <Card title="Deposit" aside={can.settleDeposit && (b.deposit || ['returned', 'closed'].includes(b.status)) ? <DepositSettle bookingId={b.id} bookingNumber={b.booking_number} refresh={[base]} />
-            : can.admin && b.status === 'confirmed' ? <Act action="waive_deposit" payload={P} label="Waive the deposit" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} /> : null}>
-            {b.deposit ? <Kv rows={[['Amount', $(b.deposit.amount_cents)], ['Method', depositMethod(b.deposit.method)], ['Status', depositStatus(b.deposit.status)],
-              ...(can.admin ? [['Applied', $(b.deposit.applied_cents)], ['Held back', $(b.deposit.held_back_cents)], ['Released', $(b.deposit.released_cents)]] as Array<[string, string]> : []), ['Release due', String(b.deposit.release_due_on ?? '')]]} />
-              : <p className="small muted">No deposit taken yet ({$(b.deposit_cents)} at pickup).</p>}
-            {can.admin && <p className="small muted">The deposit is never released by itself: Finance or an Admin settles it after the return. A card hold is collected before it lapses, and what is not owed is refunded at the settlement.</p>}
-          </Card>}
           {payments && !can.admin && can.statement && b.status === 'returned' && <Card title="Statement"><Act action="issue_booking_statement" payload={P} label="Issue the final statement" confirm="Issue the Check-in statement from the assessed lines. Damage lines wait for an Admin." refresh={[base]} /></Card>}
           {can.admin && <Card title="Documents"><GeneratedFiles bookingId={b.id} /></Card>}
           {can.admin && <Card title="Statements"><Table rows={b.statements ?? []} empty="No statements." cols={[{ key: 'statement_number', label: 'Number' }, { key: 'kind', label: 'Kind' }, { key: 'issued_at', label: 'Issued', render: (r) => t(r.issued_at) }, { key: 'charges_cents', label: 'Charges', num: true, render: (r) => $(r.charges_cents) }, { key: 'charged_to_card_cents', label: 'To card', num: true, render: (r) => $(r.charged_to_card_cents) }]} /></Card>}

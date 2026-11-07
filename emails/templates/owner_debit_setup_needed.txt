@@ -8,7 +8,9 @@ Set up your pre-authorized debit
 Your fees are paid by pre-authorized debit on the {{debit_day}} of each month, {{first_name}}, but we have no active bank account on file for you. Nothing was debited.
 
 {{#each debit_items}}
-  Invoice: {{invoice_number}} | Vehicle: {{vehicle}} | Covers: {{covers}} | Amount: {{amount}}
+- {{line}}
+  {{how}}. Invoice {{invoice_number}}.
+  {{url}}
 {{/each}}
 
 Total due: {{debit_total}}

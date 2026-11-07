@@ -2,13 +2,13 @@
 // hash links (#maintenance from task links and bookmarks) mapped to the tab that holds that part now. Pure.
 import type { VehicleCan } from '../shared-pages/viewer.ts';
 
-export type VehicleTab = 'overview' | 'rates' | 'calendar' | 'listing' | 'maintenance' | 'records';
-const ALL: ReadonlyArray<readonly [VehicleTab, string]> = [['overview', 'Overview'], ['rates', 'Rates & fees'], ['calendar', 'Calendar'], ['listing', 'Listing'], ['maintenance', 'Maintenance'], ['records', 'Owner & documents']];
+export type VehicleTab = 'overview' | 'rates' | 'calendar' | 'listing' | 'maintenance' | 'profit' | 'records';
+const ALL: ReadonlyArray<readonly [VehicleTab, string]> = [['overview', 'Overview'], ['rates', 'Rates & fees'], ['calendar', 'Calendar'], ['listing', 'Listing'], ['maintenance', 'Maintenance'], ['profit', 'Kickbacks and repairs'], ['records', 'Owner & documents']];
 
 export function vehicleTabs(c: VehicleCan): Array<readonly [VehicleTab, string]> {
   if (c.admin) return [...ALL];
   if (c.maintenanceOnly) return [['maintenance', 'Maintenance']];
-  return ALL.filter(([k]) => k === 'overview' || k === 'listing' || (k === 'rates' && c.rates) || (k === 'maintenance' && c.maintenance) || k === 'records')
+  return ALL.filter(([k]) => k === 'overview' || k === 'listing' || (k === 'rates' && c.rates) || (k === 'maintenance' && c.maintenance) || (k === 'profit' && c.maintenance) || k === 'records')
     .map(([k, l]) => (k === 'records' ? [k, 'Documents'] as const : [k, l] as const));
 }
 
@@ -21,7 +21,7 @@ export function vehicleTab(tabs: ReadonlyArray<readonly [VehicleTab, string]>, t
   return keys[0]!;
 }
 
-export const HASH_TAB: Record<string, VehicleTab> = { maintenance: 'maintenance', rates: 'rates', fees: 'rates', listing: 'listing', documents: 'records', records: 'records', calendar: 'calendar' };
+export const HASH_TAB: Record<string, VehicleTab> = { maintenance: 'maintenance', rates: 'rates', fees: 'rates', listing: 'listing', documents: 'records', records: 'records', calendar: 'calendar', profit: 'profit' };
 
 export function tabForHash(hash: string, tabs: readonly string[]): VehicleTab | null {
   const t = HASH_TAB[hash.replace(/^#/, '')];

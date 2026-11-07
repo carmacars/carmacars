@@ -331,11 +331,12 @@ test('waiting for payment and not signed: sign now on this device; the rental an
   await check(page, 'waiting for payment, sign now');
 
   await page.goto(`${base}?tab=money`, { waitUntil: 'networkidle' });
-  await page.getByTestId('bm-record-open').click();
-  await expect(page.getByTestId('bm-covers')).toHaveValue('both');
-  await page.getByTestId('bm-method').selectOption('cash');
-  await page.getByTestId('bm-record-save').click();
-  await expect(page.getByTestId('bm-message')).toContainText('CarmaCars countersigns the rental agreement when the renter signs', { timeout: 20_000 });
+  await page.getByTestId('bm-rental-collect').click();
+  await page.getByTestId('bm-rhow-record').check();
+  await expect(page.getByTestId('bm-rcovers')).toHaveValue('balance');
+  await page.getByTestId('bm-rmethod').selectOption('cash');
+  await page.getByTestId('bm-rcollect-go').click();
+  await expect(page.getByTestId('bm-message-rental')).toContainText('CarmaCars countersigns the rental agreement when the renter signs', { timeout: 20_000 });
   const [b1] = await sql`select b.status, app.booking_part_open(b.id, 'rental') + app.booking_part_open(b.id, 'fees') as open,
     (select count(*) from manual_payments m where m.booking_id = b.id and m.voided_at is null) as n, app.booking_awaiting_signature(b.id) as awaiting from bookings b where b.id = ${req.booking_id}`;
   expect(`${b1!.status}/${Number(b1!.open)}/${Number(b1!.n) >= 1}/${b1!.awaiting}`).toBe('confirmed/0/true/true');

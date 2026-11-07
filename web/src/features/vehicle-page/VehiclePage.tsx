@@ -22,6 +22,7 @@ import { CarMaintenancePanel } from '@/features/maintenance/Views';
 import { CarTermsTable, type CarTermsData } from '@/features/owner-billing/CarTerms';
 import type { CarMaintenance } from '@/features/maintenance/model';
 import { OwnerHandoffs } from '@/features/handover/OwnerHandoffs';
+import { ProfitExtras } from '@/features/profit-extras/ProfitExtras';
 import type { PageCtx } from '@/features/shared-pages/context';
 import { vehicleCan } from '@/features/shared-pages/viewer';
 import { vehicleTab, vehicleTabs } from './tabs';
@@ -87,6 +88,8 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
       <Tabs current={`${base}?tab=${tab}`} items={tabs.map(([k, l]) => [`${base}?tab=${k}`, l] as [string, string])} />
       <HashTab tabs={tabs.map(([k]) => k)} current={tab} />
       {tab === 'maintenance' && <CarMaintenancePanel m={await ops<CarMaintenance>('maint_vehicle', { vehicle_id: id })} base="/admin" autoRecord={sp.record === '1'} />}
+      {/* r29 (0581): the car's kickbacks and repair costs */}
+      {tab === 'profit' && <ProfitExtras userId={user.id} level="vehicle" id={id} sp={sp} base={`${base}?tab=profit`} />}
       {/* 0264: a car added before its VIN or plate: an onboarding draft until one is added */}
       {v.id_pending === true && <div className="alert alert--warn" role="status" data-testid="vehicle-id-needed"><span className="alert__title">VIN or plate needed</span>
         <span>Added before its VIN or plate was known. Until one is added it is not listed, not bookable and not put on the fleet policy.</span>
@@ -297,7 +300,9 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
   if (can.maintenanceOnly) {
     const m = await ops<CarMaintenance>('maint_vehicle', { vehicle_id: id }).catch(() => null);
     if (!m) notFound();
-    return (<><PageHead title={m.name} kicker={m.plate ?? ''} /><CarMaintenancePanel m={m} base="/staff" autoRecord={sp.record === '1'} /></>);
+    return (<><PageHead title={m.name} kicker={m.plate ?? ''} /><CarMaintenancePanel m={m} base="/staff" autoRecord={sp.record === '1'} />
+      {/* r29 (0581): the car's kickbacks and repair costs */}
+      <h2 className="d4 mt-h">Kickbacks and repairs</h2><ProfitExtras userId={user.id} aal={aal} level="vehicle" id={id} sp={sp} base={base} /></>);
   }
   const c = await read<R & { id?: string; documents?: R[] } | null>('vehicle', { id }).catch(() => null);
   if (!c?.id) notFound();
@@ -326,6 +331,7 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
         {can.publish && ls.can_publish && ls.can_act && <Act ops action="listing_publish_now" payload={{ vehicle_id: id }} label="Publish now" variant="primary" refresh={[base]} testId="va-publish" done="Published." />}
       </Card>}
       {tab === 'maintenance' && maint && <CarMaintenancePanel m={maint} base="/staff" autoRecord={sp.record === '1'} />}
+      {tab === 'profit' && <ProfitExtras userId={user.id} aal={aal} level="vehicle" id={id} sp={sp} base={`${base}?tab=profit`} />}
       {tab === 'records' && <Card title="Documents"><Table rows={c.documents ?? []} empty="No documents." cols={[{ key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>}
     </>
   );

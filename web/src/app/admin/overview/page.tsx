@@ -5,6 +5,7 @@ import { page } from '@/server/admin/api';
 import { door } from '@/server/door';
 import { $, ago, BookingLink, Card, PageHead, t, Tiles, label } from '@/features/admin/ui';
 import { TeamSales, type Team } from '@/features/va/TeamSales';
+import type { EmailPace } from '@/features/usage/UsageCards';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Overview', path: '/admin/overview', noindex: true, description: 'Money, fleet, approvals and queues at a glance.' });
@@ -35,6 +36,8 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
   const [d, team] = await Promise.all([read<Dash>('dashboard'),
     read<Team>('team_sales', { month: /^\d{4}-\d{2}$/.test(sp.sales_month ?? '') ? sp.sales_month : '' }).catch(() => null)]);
   // 0547: money partners owe on invoices sent to them (the tile; the detail is under Referral partners > Invoices)
+  // r29 (0583): the one daily email cap and today's use, every provider
+  const pace = await door<EmailPace>(user.id, 'ops_read', 'email_pace', {}).catch(() => null);
   const pi = await door<{ totals: { invoiced_cents: number; received_cents: number; outstanding_cents: number; overdue: number } }>(user.id, 'ops_read', 'partner_invoices', {}).catch(() => null);
   const target = d.target_minutes >= 60 && d.target_minutes % 60 === 0 ? `${d.target_minutes / 60}-hour` : `${d.target_minutes}-minute`;
   const over = d.requests.filter((r) => !r.awaiting_renter && r.waiting_minutes > d.target_minutes).length;
@@ -111,7 +114,7 @@ export default async function AdminOverview({ searchParams }: { searchParams: Pr
               <li><Link prefetch={false} className="link" href="/admin/listings">Listings</Link><span>{d.approvals.listings}</span></li>
               <li><Link prefetch={false} className="link" href="/admin/tolls">Tolls to match</Link><span>{d.approvals.tolls}</span></li>
             </ul>
-            <p className="small muted" data-testid="email-use">Email sent today: {d.email_today} of {d.email_cap ?? 100}{d.email ? ` (${d.email.auth} sign-in emails)` : ''}. <Link prefetch={false} className="link" href="/admin/messages">Email</Link></p>
+            <p className="small muted" data-testid="email-use">Email sent today: {pace ? `${pace.day_used} of ${pace.day_cap}` : `${d.email_today} of ${d.email_cap ?? 100}`}{d.email ? ` (${d.email.auth} sign-in emails)` : ''}. <Link prefetch={false} className="link" href="/admin/messages">Email</Link></p>
           </Card>
         </div>
       </div>

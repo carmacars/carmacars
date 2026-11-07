@@ -7,6 +7,12 @@ Your bank returned the debit
 
 The debit for your {{vehicle_name}} did not go through, {{first_name}}.
 
+{{#each amount_items}}
+- {{line}}
+  {{how}}. Invoice {{invoice_number}}.
+  {{url}}
+{{/each}}
+
 IMPORTANT: What happened
 The debit of {{debit_date}} was returned: {{bank_reason}}
 

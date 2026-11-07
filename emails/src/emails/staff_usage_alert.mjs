@@ -11,7 +11,7 @@ export default {
   timing: 'Immediate',
   subject: '{{usage_title}}',
   preheader: '{{usage_used}} of {{usage_included}} used. {{usage_effect}}',
-  ref: 'Usage guard',
+  ref: 'Usage',
   body: [
     hero('Usage', '{{usage_title}}', '{{usage_effect}}'),
     facts(
@@ -23,7 +23,7 @@ export default {
     ),
     button('Open Usage', '@admin_usage'),
     notice('info', 'What to do', '{{usage_advice}}'),
-    small('Sent by the usage guard, once per service and period. Change the address in Program settings, "Site check".'),
+    small('Sent once per service and period. Change the address in Program settings, "Site check".'),
   ],
   sample: {
     usage_title: 'Included Workers AI used up for today', service_label: 'Workers AI (assistant, live chat, copy)', usage_used: '10,000 neurons', usage_included: '10,000 neurons', usage_share: '100%',

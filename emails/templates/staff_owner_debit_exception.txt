@@ -2,23 +2,22 @@ CarmaCars  |  Owner debits
 
 ========================================
 
-[Owner debit exception]
-{{exception_title}}
+[Owner payment]
+Can't collect {{debit_total}} from {{owner_name}}
 
-{{owner_name}}: {{exception_detail}}
+We were going to take {{debit_total}} from {{owner_name}}'s bank on {{debit_date}} for {{debit_for}}, and we can't: {{reason_plain}}.
 
 {{#each debit_items}}
-  Invoice: {{invoice_number}} | Vehicle: {{vehicle}} | Amount: {{amount}}
+- {{line}}
+  {{how}}. Invoice {{invoice_number}}.
+  {{url}}
 {{/each}}
 
-Owner: {{owner_name}}
-Debit date: {{debit_date}}
-Total: {{debit_total}}
+What to do
+{{fix_text}}
 
-Open owner debits:
-https://carmacars.ca/admin/debits
-
-From Owner debits you can pause the debit, send a new notice once the owner has set up banking, or record a payment received another way.
+{{fix_label}}:
+{{fix_url}}
 
 ----------------------------------------
 

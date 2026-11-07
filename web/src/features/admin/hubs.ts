@@ -25,7 +25,7 @@ export const ADMIN_HUBS: Hub[] = [
   { key: 'insurers', label: 'Insurers', tabs: [{ href: '/admin/insurers?tab=rates', label: 'Rates' }, { href: '/admin/insurers?tab=invoices', label: 'Invoices' }] },
   // Company accounts and Staff pay were two pages of the Money row: one now
   { key: 'company', label: 'Company', tabs: [{ href: '/admin/reports', label: 'Monthly statements' }, { href: '/admin/money/model', label: 'Company model' }, { href: '/admin/expenses', label: 'Expenses' },
-    { href: '/admin/money/commissions', label: 'Commissions' }, { href: '/admin/money/field-pay', label: 'Field pay' }] },
+    { href: '/admin/money/commissions', label: 'Commissions' }, { href: '/admin/money/field-pay', label: 'Field pay' }, { href: '/admin/money/kickbacks', label: 'Kickbacks and repairs' }] },
   { key: 'problems', label: 'Damage and claims', tabs: [
     { href: '/admin/damages?tab=damage', label: 'Damage' }, { href: '/admin/damages?tab=incidents', label: 'Incidents' }, { href: '/admin/damages?tab=claims', label: 'Claims' }] },
   { key: 'logs', label: 'Logs', tabs: [
@@ -59,7 +59,7 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'money', label: 'Money', tabs: [{ href: '/staff/money', label: 'To handle', fns: 'finance' }, { href: '/staff/money?tab=day', label: 'By day', fns: 'finance' },
     { href: '/staff/money?tab=payments', label: 'All payments', fns: 'finance' }, { href: '/staff/money?tab=refunds', label: 'Refunds', fns: 'finance' },
     { href: '/staff/money?tab=deposits', label: 'Deposits', fns: 'finance' }, { href: '/staff/money?tab=reconciliation', label: 'Reconciliation', fns: 'finance' },
-    { href: '/staff/money?tab=partners', label: 'Partner invoices', fns: 'finance' }] },
+    { href: '/staff/money?tab=partners', label: 'Partner invoices', fns: 'finance' }, { href: '/staff/money?tab=kickbacks', label: 'Kickbacks and repairs', fns: 'finance' }] },
   { key: 'owner-money', label: 'Owner money', tabs: [{ href: '/staff/owner-money?tab=invoices', label: 'Invoices', fns: 'finance' }, { href: '/staff/owner-money?tab=statements', label: 'Statements', fns: 'finance' }] },
   { key: 'renters', label: 'Renters', tabs: [{ href: '/staff/messages', label: 'Messages', fns: 'cs' }, { href: '/staff/review-requests', label: 'Review requests', fns: 'cs' }, { href: '/staff/game-leads', label: 'Leads', fns: 'cs sales' }] },
   { key: 'owners', label: 'Owners', tabs: [{ href: '/staff/leads', label: 'Owner and buyer leads', fns: 'cs sales' }, { href: '/staff/owner-pipeline', label: 'Owner pipeline', fns: 'cs' },

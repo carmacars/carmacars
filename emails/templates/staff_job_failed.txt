@@ -3,19 +3,15 @@ CarmaCars  |  System
 ========================================
 
 [System alert]
-The {{job_name}} job failed
+The {{job_label}} task failed
 
-It will try again on the next hourly run today. Until it succeeds, the work below has not happened.
+{{job_effect}} It failed at {{job_run_date}} and tries again on its next run.
 
-Job: {{job_name}}
-Run: {{job_run_date}}
-What did not happen: {{job_effect}}
-Error: {{job_error}}
+What to do
+Nothing yet. If it still fails in a few hours, forward this email to your developer. The error was: {{job_error}}
 
-Open the job log:
+See the automatic tasks:
 https://carmacars.ca/admin/jobs
-
-If it has not recovered within a few hours, send this email to the developer. Do not run money jobs by hand without checking the run key.
 
 ----------------------------------------
 

@@ -10,6 +10,12 @@ We tried the debit for your {{vehicle_name}} a second time, {{first_name}}, and 
 Owing: {{arrears_amount}}
 Invoice {{invoice_number}}: fees {{amount}} plus the {{late_fee}} late fee.
 
+{{#each amount_items}}
+- {{line}}
+  {{how}}. Invoice {{invoice_number}}.
+  {{url}}
+{{/each}}
+
 What happens now
 ------------------------
 

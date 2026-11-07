@@ -59,7 +59,11 @@ select test.bn_set('BN-BIWK', 280000, 140000, 'biweekly');
 select test.mk_booking('BN-LATE', 'bn_late', 'bn_ivan', test.bnt(interval '-5 days'), test.bnt(interval '-3 hours'), 'on_rent');
 select test.bn_set('BN-LATE', 60000, 60000);
 -- insurer-billed: nothing for the renter
-select test.mk_booking('BN-INS', 'bn_ins', 'bn_ivan', test.bnt(interval '-3 days'), test.bnt(interval '1 day 2 hours'), 'on_rent');
+-- back tomorrow at 14:00 on the board's own day (bn_now is two hours ago in a late-evening run: an interval from it can land two days on)
+create or replace function test.bnd(p_days integer, p_time time) returns text language sql stable as $$
+  select to_char(((test.bn_now() at time zone 'America/Toronto')::date + p_days) + p_time, 'YYYY-MM-DD HH24:MI')
+$$;
+select test.mk_booking('BN-INS', 'bn_ins', 'bn_ivan', test.bnt(interval '-3 days'), test.bnd(1, time '14:00'), 'on_rent');
 select test.bn_set('BN-INS', 50000, 0);
 update bookings set bill_to = 'insurer', insurer_id = test.id('insurer:bn'), insurer_claim_number = 'CLM-BN-1', insurer_share_cents = 44248, insurer_hst_cents = 5752
  where id = test.id('booking:BN-INS');
@@ -77,7 +81,7 @@ select test.mk_booking('BN-LONG', 'bn_long', 'bn_ivan', test.bnt(interval '-40 d
 select test.bn_set('BN-LONG', 540000, 360000);
 select app.booking_periods_sync(test.id('booking:BN-LONG'));
 -- going out tomorrow afternoon by delivery, paid, the licence and the agreement not done yet
-select test.mk_booking('BN-GO', 'bn_go', 'bn_rita', test.bnt(interval '1 day 3 hours'), test.bnt(interval '5 days'), 'confirmed');
+select test.mk_booking('BN-GO', 'bn_go', 'bn_rita', test.bnd(1, time '15:00'), test.bnt(interval '5 days'), 'confirmed');
 select test.bn_set('BN-GO', 50000, 50000);
 update bookings set pickup_location_kind = 'delivery', pickup_place = '1 Example Street, Toronto' where id = test.id('booking:BN-GO');
 -- confirmed, picked up 2 hours before both the board's time and the clock (whichever is earlier, so the suite passes at any

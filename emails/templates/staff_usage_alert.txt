@@ -1,4 +1,4 @@
-CarmaCars  |  Usage guard
+CarmaCars  |  Usage
 
 ========================================
 
@@ -19,7 +19,7 @@ https://carmacars.ca/admin/settings/usage
 What to do
 {{usage_advice}}
 
-Sent by the usage guard, once per service and period. Change the address in Program settings, "Site check".
+Sent once per service and period. Change the address in Program settings, "Site check".
 
 ----------------------------------------
 

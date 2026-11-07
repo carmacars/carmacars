@@ -11,30 +11,22 @@ export default {
   digestSlot: 'next',
   trigger: 'An owner invoice changes to failed (first debit returned) or in_arrears (retry on the 18th returned). Queued for the next finance digest. The in_arrears case is also sent immediately to both admins.',
   timing: 'Next digest. Immediate to admins when the retry fails',
-  subject: 'Owner debit {{failure_stage}}: {{owner_name}}, {{vehicle_name}}, {{amount}}',
-  preheader: 'Invoice {{invoice_number}}. {{failure_next_step}}',
+  subject: 'Owner payment bounced: {{amount}} from {{owner_name}}, {{vehicle_name}}',
+  preheader: '{{fix_text}}',
   ref: 'Invoice {{invoice_number}}',
+  // r29 C4 (migration 0583): what happened, how much, what to do, one button
   body: [
-    hero('Owner invoice failed', 'A fee debit was returned', '{{owner_name}}\'s debit for the {{vehicle_name}} did not clear. Stage: {{failure_stage}}.'),
-    facts(
-      ['Invoice', '{{invoice_number}}, {{invoice_month}}'],
-      ['Amount', '{{amount}}'],
-      ['Late fee', '{{late_fee}}'],
-      ['Now owing', '{{arrears_amount}}'],
-      ['Bank reason', '{{bank_reason}}'],
-      ['Next step', '{{failure_next_step}}'],
-    ),
+    hero('Owner payment', 'The bank sent back {{amount}}', 'We took {{amount}} from {{owner_name}}\'s bank for invoice {{invoice_number}} ({{vehicle_name}}), and the bank sent it back: {{bank_reason}}.'),
+    // r29 C4: the amount in one plain line: the car, the fee, the period, how it was worked out, the invoice
+    rows('amount_items', '{{line}}', '{{how}}. Invoice {{invoice_number}}.', '{{url}}'),
+    notice('info', 'What to do', '{{fix_text}}'),
     button('Open the invoice', '@va_finance_invoice'),
-    list(
-      '**First failure:** late fee added per vehicle, owner told, retry on the {{retry_day}}.',
-      '**Retry fails:** deduct from that vehicle\'s revenue at the next payout. Do not enable a Self-Managed car for new bookings. Tell an admin.',
-      '**Balance left at the next payout, the {{payout_day}}:** debt payable on demand. Deduct from the owner\'s other vehicles.',
-      '**30 days after the failed retry:** an admin may remove the vehicle.',
-    ),
   ],
   sample: {
-    failure_stage: 'first failure', invoice_number: 'INV-2026-11-0042', invoice_month: 'November', amount: '$536.75', late_fee: '$50.00',
-    arrears_amount: '$586.75', bank_reason: 'Insufficient funds', failure_next_step: 'Retry on November 18 for $586.75.',
+    amount_items: [{ invoice_number: 'INV-2026-11-0042', amount: '$536.75', car: '2022 Hyundai Elantra Preferred', fee: 'monthly fee', period: 'November 2026', how: 'prorated: 20 of 30 days, plus HST',
+        line: '$536.75: 2022 Hyundai Elantra Preferred, monthly fee, November 2026', url: 'https://carmacars.ca/admin/owners/00000000-0000-0000-0000-000000000000#inv-INV-2026-11-0042' }],
+    owner_name: 'Daniel Rossi', invoice_number: 'INV-2026-11-0042', amount: '$536.75', bank_reason: 'Insufficient funds',
+    fix_text: 'Nothing to do yet: we try again on Wed, Nov 18, 2026 for $586.75, late fee included. Record the payment on the invoice if they pay another way.',
     vehicle_name: '2022 Hyundai Elantra Preferred',
   },
 };

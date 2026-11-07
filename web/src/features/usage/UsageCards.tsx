@@ -91,13 +91,20 @@ export function UsageBannerView({ rows }: { rows: BannerRow[] }) {
 }
 
 /** Settings > Usage: whether Cloudflare Email Service sends the outbox, and the exact steps when it does not (0320). */
+/** r29 (0583): the day's emails against the one daily cap, and the hour's pace */
+export interface EmailPace { day_cap: number; day_used: number; hour_cap: number; hour_used: number; cf_ever_sent: boolean; setting: number; cf_budget: number; resend_budget: number; waiting: number }
+export function paceLine(p: EmailPace): string {
+  return `Today: ${p.day_used} of ${p.day_cap} emails (Emails a day: ${p.setting}; Cloudflare ${p.cf_budget} + Resend ${p.resend_budget}${p.cf_ever_sent ? '' : ', Resend\'s alone until Cloudflare has sent one'}). This hour: ${p.hour_used} of ${p.hour_cap}.${p.waiting ? ` ${p.waiting} waiting: they go out at that pace, the rest tomorrow.` : ''}`;
+}
+
 export async function EmailSetup({ userId }: { userId: string }) {
-  const c = await door<CfEmail>(userId, 'ops_read', 'usage_email_setup').catch(() => null);
+  const [c, pace] = await Promise.all([door<CfEmail>(userId, 'ops_read', 'usage_email_setup').catch(() => null), door<EmailPace>(userId, 'ops_read', 'email_pace').catch(() => null)]);
   if (!c) return null;
   const line = cfEmailSentence(c);
   return (
     <section id="email-setup" className={`pt-card ad-card${line ? ' ad-card--warn' : ''}`} aria-labelledby="email-setup-h" data-testid="usage-email-setup" data-state={c.state}>
       <div className="pt-card__head"><h2 className="d4" id="email-setup-h">{line ? 'Emails: Cloudflare Email Service is not sending' : 'Emails: Cloudflare Email Service sends them'}</h2></div>
+      {pace && <p className="small" data-testid="usage-email-pace">{paceLine(pace)}</p>}
       {line ? (
         <>
           <p className="small">{line} Until then a busy day holds emails once Resend&apos;s 100 are used.</p>

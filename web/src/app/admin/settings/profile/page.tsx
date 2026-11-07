@@ -3,6 +3,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { Card, Kv, PageHead } from '@/features/admin/ui';
+import { StaffDigestChoice } from '@/features/notifications/StaffDigestChoice';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'My profile', path: '/admin/settings/profile', noindex: true, description: 'How To do and the assistant greet you.' });
@@ -10,7 +11,7 @@ export const metadata = pageMeta({ title: 'My profile', path: '/admin/settings/p
 // Settings > My profile (migration 0324): the greeting name of the signed-in Admin. To do and the staff assistant greet
 // it whole ("Abbas and Mahad" for a login the owners share); empty, the first name of the account.
 export default async function MyProfile() {
-  const { read } = await page('/admin/settings/profile');
+  const { read, user } = await page('/admin/settings/profile');
   const p = await read<{ email: string; name: string | null; greeting_name: string | null; greeting: string | null }>('my_profile');
   return (
     <>
@@ -22,6 +23,7 @@ export default async function MyProfile() {
           fields={[{ name: 'greeting_name', label: 'Greeting name', value: p.greeting_name ?? '', placeholder: 'For example: Abbas and Mahad',
             hint: 'Shown whole on To do ("Good morning, Abbas and Mahad") and in the assistant. Empty: the first name of the account.' }]} />
       </Card>
+      <StaffDigestChoice userId={user.id} refresh={['/admin/settings/profile']} />
     </>
   );
 }

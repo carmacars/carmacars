@@ -8,6 +8,8 @@ import { door, sessionAal, VA_FN_COOKIE } from '@/server/door';
 import { payments } from '@/integrations/payments';
 import { siteUrl } from '@/lib/site';
 import { newPayToken, payTokenHash } from '@/server/pay-token';
+import { autoHoldStep } from '@/server/deposit-auto';
+import { settlePayreq } from '@/server/paylink';
 
 // Offers and rentals made easy (migration 0129), through the staff door (ops calls): an offer sent without a request,
 // an offer edited in place, payments by part and method, and the card actions staff start from a booking. The database
@@ -136,6 +138,41 @@ export async function reauthorizeHold(p: { booking: string }): Promise<R<{ ok: b
     if (r.ok && b.old_intent) await pay.cancelIntent(b.old_intent, `hold-reauth-release:${b.old_intent}`).catch(() => undefined);
     refreshAll([`/admin/bookings/${b.booking_number}`, `/staff/bookings/${b.booking_number}`]);
     return { ok: true, data: r };
+  } catch (e) { return fail(e); }
+}
+
+/** r29 (0582): "Collect the deposit" with the card on file: a hold (manual capture) for the deposit only, never the
+ *  rental. The database makes the request (Finance or an Admin; one open deposit request per booking), Stripe
+ *  authorizes off-session, and the hold is recorded as every hold (settlePayreq); a refusal is recorded with its reason. */
+export async function holdSavedCard(p: { booking: string }): Promise<R<{ ok: boolean; message?: string; amount_cents?: number }>> {
+  try {
+    const { user, aal, va } = await me();
+    const b = await door<{ ok: boolean; id: string; booking_id: string; booking_number: string; amount_cents: number; customer_id: string; method_id: string }>(
+      user.id, 'ops_do', 'deposit_hold_saved_begin', withFn({ ...p, token_sha256: await payTokenHash(newPayToken()) }, va), aal);
+    const pay = await payments();
+    let intent: Awaited<ReturnType<typeof pay.chargeOffSession>> | null = null;
+    let err: unknown = null;
+    try {
+      intent = await pay.chargeOffSession({ customerId: b.customer_id, paymentMethodId: b.method_id, amountCents: b.amount_cents, capture: 'manual',
+        extendedHold: Boolean(await rpc('server_deposit_extended_holds' as never, {} as never, SR).catch(() => false)),
+        description: `CarmaCars booking ${b.booking_number}: deposit hold`,
+        metadata: { booking_id: b.booking_id, booking_number: b.booking_number, purpose: 'staff_request', payment_request_id: b.id, covers: 'deposit' }, idempotencyKey: `payreq:${b.id}` });
+    } catch (e) { err = e; }
+    if (intent) await rpc('server_payreq_attach' as never, { p_id: b.id, p_intent: intent.id } as never, SR);
+    const step = autoHoldStep(intent, err);
+    let res: { ok: boolean; message?: string; amount_cents?: number };
+    if (step.next === 'settle' && intent) {
+      const r = await settlePayreq(b.id, intent.id, 'hold', intent);
+      res = r.ok ? { ok: true, amount_cents: b.amount_cents } : { ok: false, message: r.message ?? 'The hold was not recorded.' };
+      if (!r.ok) await door(user.id, 'ops_do', 'deposit_hold_saved_failed', withFn({ id: b.id, error: r.message ?? r.reason ?? 'the hold was not recorded' }, va), aal).catch(() => undefined);
+    } else {
+      const reason = step.next === 'failed' ? step.reason : 'the card was declined';
+      if (step.next === 'failed' && step.cancel && intent) await pay.cancelIntent(intent.id, `void:${intent.id}`).catch(() => undefined);
+      await door(user.id, 'ops_do', 'deposit_hold_saved_failed', withFn({ id: b.id, error: reason }, va), aal).catch(() => undefined);
+      res = { ok: false, message: `Not held: ${reason}. Send the deposit link instead.` };
+    }
+    refreshAll([`/admin/bookings/${b.booking_number}`, `/staff/bookings/${b.booking_number}`]);
+    return { ok: true, data: res };
   } catch (e) { return fail(e); }
 }
 

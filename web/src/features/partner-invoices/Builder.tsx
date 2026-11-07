@@ -13,17 +13,17 @@ export interface Partner { id: string; name: string; kind: string; default_kickb
 export interface InvoiceIn {
   id?: string; partner_id?: string; kind?: string; claim_number?: string | null; insurer_name?: string | null; vehicle?: string | null; renter_name?: string | null;
   booking_number?: string | null; partner_total_cents?: number | null; kickback_bps?: number | null; due_on?: string | null; notes?: string | null;
-  remind_before_days?: number; remind_after_days?: number;
+  remind_before_days?: number; remind_after_days?: number; vehicle_id?: string | null;
   lines?: Array<{ description: string; quantity: number; unit_cents: number; percent_bps: number | null; base_cents: number | null; hst: boolean }>;
 }
 const d = (c: number | null | undefined) => (c ? (c / 100).toFixed(2) : '');
 const kindOfPartner = (k: string) => (k === 'tow_truck' ? 'towing' : k === 'body_shop' ? 'repair' : 'other');
 
-export function Builder({ partners, inv, refresh, base }: { partners: Partner[]; inv?: InvoiceIn; refresh: string[]; base: string }) {
+export function Builder({ partners, inv, refresh, base, cars = [] }: { partners: Partner[]; inv?: InvoiceIn; refresh: string[]; base: string; cars?: Array<{ id: string; name: string }> }) {
   const router = useRouter();
   const [f, setF] = useState({ partner_id: inv?.partner_id ?? '', kind: inv?.kind ?? 'repair', claim_number: inv?.claim_number ?? '', insurer_name: inv?.insurer_name ?? '',
     vehicle: inv?.vehicle ?? '', renter_name: inv?.renter_name ?? '', booking: inv?.booking_number ?? '', partner_total: d(inv?.partner_total_cents), due_on: inv?.due_on ?? '',
-    notes: inv?.notes ?? '', remind_before_days: String(inv?.remind_before_days ?? 3), remind_after_days: String(inv?.remind_after_days ?? 7) });
+    notes: inv?.notes ?? '', vehicle_id: inv?.vehicle_id ?? '', remind_before_days: String(inv?.remind_before_days ?? 3), remind_after_days: String(inv?.remind_after_days ?? 7) });
   const [lines, setLines] = useState<DraftLine[]>(() => inv?.lines?.length ? inv.lines.map((l) => ({ description: l.description, quantity: String(l.quantity), unit: d(l.unit_cents),
     percent: l.percent_bps != null ? String(l.percent_bps / 100) : '', base: d(l.base_cents), hst: l.hst })) : [{ description: DEFAULT_LINE.repair ?? 'Outsourced repair services', quantity: '1', unit: '', percent: '', base: '', hst: true }]);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -60,6 +60,10 @@ export function Builder({ partners, inv, refresh, base }: { partners: Partner[];
           <select className="select" id="pi-kind" value={f.kind} onChange={(e) => set('kind')(e.target.value)}>{KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
         {([['claim_number', 'Claim number'], ['insurer_name', 'Insurer'], ['vehicle', 'Vehicle'], ['renter_name', 'Customer (renter)'], ['booking', 'Booking number (optional)']] as const).map(([k, l]) => (
           <div className="field ad-field" key={k}><label className="label" htmlFor={`pi-${k}`}>{l}</label><input className="input" id={`pi-${k}`} value={f[k]} onChange={(e) => set(k)(e.target.value)} data-testid={`pi-${k}`} /></div>))}
+        {/* r29 (0581): the car the kickback belongs to (filled by itself from the booking or the claim when empty) */}
+        {cars.length > 0 && <div className="field ad-field"><label className="label" htmlFor="pi-car">Car (empty: from the booking or the claim)</label>
+          <select className="select" id="pi-car" value={f.vehicle_id} onChange={(e) => set('vehicle_id')(e.target.value)} data-testid="pi-car"><option value="">From the booking or the claim</option>
+            {cars.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>}
         <div className="field ad-field"><label className="label" htmlFor="pi-ptotal">The partner&apos;s claim, tow or storage total ($)</label>
           <input className="input" id="pi-ptotal" inputMode="decimal" value={f.partner_total} onChange={(e) => set('partner_total')(e.target.value)} data-testid="pi-partner-total" /></div>
         <div className="field ad-field"><label className="label" htmlFor="pi-due">Due (empty: set when sent)</label><DateInput className="input" id="pi-due" type="date" value={f.due_on} onChange={(e) => set('due_on')(e.target.value)} /></div>

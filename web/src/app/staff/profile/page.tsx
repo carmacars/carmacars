@@ -6,6 +6,7 @@ import { HomeAddressSection, homeAddressOf } from '@/features/staff/HomeAddress'
 import { SignInSettings } from '@/features/portal/SignInSettings';
 import { notifyReach, signInState } from '@/server/sign-in-settings';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
+import { StaffDigestChoice } from '@/features/notifications/StaffDigestChoice';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
 
@@ -26,6 +27,7 @@ export default async function VaProfile() {
         {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="va" state={home} />}
         {si && <SignInSettings state={si} className="pt-card stack" />}
         {nc && <NotifyChannelCard reach={nc} className="pt-card stack" />}
+        <StaffDigestChoice userId={user.id} ops refresh={['/staff/profile']} className="pt-card stack" />
         <PushAlerts userId={user.id} portal="staff" className="pt-card stack" />
         <AppProfile userId={user.id} lock className="pt-card stack" />
         <section className="pt-card stack" aria-labelledby="sec-t"><h2 className="d4" id="sec-t">Sign-in</h2>

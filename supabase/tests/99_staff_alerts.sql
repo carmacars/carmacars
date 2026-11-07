@@ -47,6 +47,10 @@ select test.eq('an unknown rule makes no alert', app.staff_alert('no_such_rule',
 
 -- the phone: urgent at once; normal waits for the staff quiet hours; digest never; the topic is the rule's
 select test.sta_sub('sta_admin1', test.id('sta_admin'), 'admin');
+-- earlier files' payments make payment_received alerts within the burst window, and a burst sends no push of its own
+-- (0466): their alerts are moved out of the window, so this one is the first
+update app_events set created_at = created_at - interval '1 day'
+ where code like 'staff\_alert\_%' and payload ->> 'rule' in ('payment_received', 'review_low', 'toll_received') and created_at > now() - interval '1 day';
 select test.eq('a normal alert is held to the end of the quiet hours when it comes in them; an urgent one never',
   (select app.sms_quiet_end(timestamptz '2030-01-02 03:00+00') > timestamptz '2030-01-02 03:00+00'), true);
 select app.staff_alert('payment_received', 'sa', test.id('sta_p1'), 'ok', 'Payment received: sa', 'b');
@@ -248,7 +252,10 @@ insert into sales_availability (staff_id, day, from_minute, until_minute)
 select app.sa_scheduled();
 select app.process_events(1000);
 select test.eq('staff: Sales who did not start their block (when the block started 15 minutes ago or more)',
-  (select count(*) from notifications where user_id = test.id('sta_admin') and title = 'Not started: Sta Sales') = case when app.local_hour(now()) * 60 - 30 >= 0 then 1 else 0 end, true);
+  -- the block starts at 00:00 in the first hour after midnight: late once 15 minutes of it have gone
+  (select count(*) from notifications where user_id = test.id('sta_admin') and title = 'Not started: Sta Sales')
+    = case when (extract(hour from now() at time zone 'America/Toronto') * 60 + extract(minute from now() at time zone 'America/Toronto'))
+                - greatest(0, app.local_hour(now()) * 60 - 30) >= 15 then 1 else 0 end, true);
 -- wins: an owner's first payout
 insert into payouts (id, payee_type, owner_id, kind, amount_cents, method, scheduled_for, status, approved_by) values (test.id('sta_po1'), 'owner', test.id('owner:sta_owner'), 'other', 80000, 'bank_transfer', current_date, 'sent', test.id('sta_admin'));
 update payouts set status = 'paid', paid_at = now() where id = test.id('sta_po1');

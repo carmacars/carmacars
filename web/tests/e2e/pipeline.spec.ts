@@ -70,6 +70,7 @@ async function mkOwnerCar(sql: Sql) {
 }
 
 /** A closed booking of a seeded car for a new renter, with its card payment and the processor's ids. */
+// returned 10 days ago: past the 7-day toll window on any clock (7 days ago fell on its edge late in a Toronto evening)
 async function mkPaidBooking(sql: Sql, status: 'closed' | 'returned' = 'closed') {
   const r = await mkUser(sql, 'renter');
   const [renter] = await sql`insert into renters (user_id, legal_name, date_of_birth, mobile, email, identity_status)
@@ -81,8 +82,8 @@ async function mkPaidBooking(sql: Sql, status: 'closed' | 'returned' = 'closed')
               handed_over_at, checked_in_at, daily_rate_cents, weekend_rate_cents, weekly_rate_cents, monthly_rate_cents, rate_applied, daily_days, weekend_days,
               rental_charge_cents, discount_cents, km_allowance_per_day, km_allowance_total, overage_cents_per_km, deposit_cents,
               subtotal_at_booking_cents, hst_at_booking_cents, total_due_at_booking_cents)
-            values (${id}, ${n}, 'standard', ${status}, ${car!.id}, ${renter!.id}, now() - interval '20 days', now() - interval '10 days', now() - interval '7 days', now() - interval '7 days', 3,
-              now() - interval '10 days', now() - interval '7 days', 10000, 12000, 56000, 180000, 'daily', 3, 0, 30000, 0, 200, 600, 35, 100000, 30000, 3900, 33900)`;
+            values (${id}, ${n}, 'standard', ${status}, ${car!.id}, ${renter!.id}, now() - interval '20 days', now() - interval '13 days', now() - interval '10 days', now() - interval '10 days', 3,
+              now() - interval '13 days', now() - interval '10 days', 10000, 12000, 56000, 180000, 'daily', 3, 0, 30000, 0, 200, 600, 35, 100000, 30000, 3900, 33900)`;
   await sql`insert into payments (id, booking_id, renter_id, purpose, kind, method, amount_cents, status, processed_at, card_brand, card_last4)
             values (${pay}, ${id}, ${renter!.id}, 'booking_total', 'charge', 'card', 33900, 'succeeded', now() - interval '20 days', 'visa', '4242')`;
   await sql`insert into payment_processor_details (payment_id, processor, processor_payment_id, processor_charge_id) values (${pay}, 'stripe', ${`pi_e2e_${tag()}`}, ${`ch_e2e_${tag()}`})`;
@@ -255,7 +256,8 @@ test('money: the guided Deposit settlement holds back an amount with its reason 
     await expect(page.getByTestId('deposit-release')).toContainText('$800.00');
     await check(page, 'deposit settlement 1440');
     await page.getByTestId('deposit-submit').click();
-    await expect(page.getByTestId('deposit-form').getByRole('status')).toBeVisible({ timeout: 20_000 });
+    // r29: the settled deposit's panel shows its new state (the settle form is gone once it is settled)
+    await expect.poll(async () => Number((await sql`select held_back_cents from deposits where booking_id = ${b.booking}`)[0]?.held_back_cents ?? 0), { timeout: 20_000 }).toBe(20000);
     const [d] = await sql`select held_back_cents, held_back_reason, released_cents from deposits where booking_id = ${b.booking}`;
     expect(Number(d!.held_back_cents)).toBe(20000);
     expect(String(d!.held_back_reason)).toContain('Parking ticket expected');

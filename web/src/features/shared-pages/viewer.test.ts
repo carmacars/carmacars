@@ -87,8 +87,8 @@ describe('the vehicle page tabs', async () => {
   const { vehicleTabs, vehicleTab, tabForHash } = await import('../vehicle-page/tabs.ts');
   const keys = (v: Parameters<typeof vehicleCan>[0]) => vehicleTabs(vehicleCan(v)!).map(([k]) => k);
   it('gives staff the Admin\'s tabs their function uses', () => {
-    assert.deepEqual(keys(ADMIN), ['overview', 'rates', 'calendar', 'listing', 'maintenance', 'records']);
-    assert.deepEqual(keys(staffViewer('fleet')), ['overview', 'rates', 'listing', 'maintenance', 'records']);
+    assert.deepEqual(keys(ADMIN), ['overview', 'rates', 'calendar', 'listing', 'maintenance', 'profit', 'records']);
+    assert.deepEqual(keys(staffViewer('fleet')), ['overview', 'rates', 'listing', 'maintenance', 'profit', 'records']);
     assert.deepEqual(keys(staffViewer('cs')), ['overview', 'listing', 'records']);
     assert.deepEqual(keys(staffViewer('finance')), ['maintenance']);
   });

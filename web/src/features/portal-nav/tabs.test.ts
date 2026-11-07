@@ -20,10 +20,10 @@ const TABS: Record<string, PageTab[]> = {
 };
 
 describe('menus', () => {
-  it('has at most six links in each portal, five for the owner and investor, four for the renter', () => {
+  it('has at most six links in each portal, five for the owner, six for the investor, four for the renter', () => {
     assert.equal(RENTER_MENU.length, 4);
     assert.equal(OWNER_MENU.length, 5);
-    assert.equal(INVESTOR_MENU.length, 5);
+    assert.equal(INVESTOR_MENU.length, 6);
     for (const m of [RENTER_MENU, OWNER_MENU, INVESTOR_MENU]) assert.ok(m.length <= 6);
   });
   it('marks one link current on the home, a merged page, its old address and a detail page', () => {
@@ -45,8 +45,8 @@ describe('menus', () => {
     assert.equal(at(OWNER_MENU, '/account'), undefined);
   });
   it('shows the deck and the live sheets only when the frame says so', () => {
-    assert.deepEqual(menuFor(INVESTOR_MENU, {}).map((l) => l.label), ['Home', 'Documents', 'Account']);
-    assert.deepEqual(menuFor(INVESTOR_MENU, { investor: true, deck: true }).map((l) => l.label), ['Home', 'Live sheets', 'Documents', 'Investor deck', 'Account']);
+    assert.deepEqual(menuFor(INVESTOR_MENU, {}).map((l) => l.label), ['Home', 'Documents', 'Updates', 'Account']);
+    assert.deepEqual(menuFor(INVESTOR_MENU, { investor: true, deck: true }).map((l) => l.label), ['Home', 'Live sheets', 'Documents', 'Updates', 'Investor deck', 'Account']);
   });
   it('gives a partner rental company no Invoices tab', () => {
     assert.deepEqual(tabsFor(OWNER_MONEY_TABS, { partner: true }).map((t) => t.key), ['statements', 'payouts']);

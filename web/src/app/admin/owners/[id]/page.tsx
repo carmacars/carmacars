@@ -25,6 +25,7 @@ import { Tabs } from '@/features/admin/ui';
 import { InvoiceList, type InvoiceListData } from '@/features/owner-billing/InvoiceList';
 import { TermsPanel, type TermsData } from '@/features/owner-billing/TermsPanel';
 import { CarTermsTable, type CarTermsData } from '@/features/owner-billing/CarTerms';
+import { ProfitExtras } from '@/features/profit-extras/ProfitExtras';
 import { ReferralLinks, type ReferralLinksData } from '@/features/admin/ReferralLinks';
 
 export const dynamic = 'force-dynamic';
@@ -47,8 +48,8 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   const src = await door<{ staff_id: string | null; name: string | null; via: string | null; options: Array<{ id: string; name: string }> } | null>(user.id, 'admin_read', 'owner_sourced', { owner_id: id }).catch(() => null);
   if (!d) notFound();
   // the tabs of 0067: Overview (as before), Terms (negotiated per owner and car), Invoices (every invoice, drafts included)
-  const tab = sp.tab === 'terms' || sp.tab === 'invoices' ? sp.tab : 'overview';
-  const tabs: Array<[string, string, number?]> = [[`/admin/owners/${id}`, 'Overview'], [`/admin/owners/${id}?tab=terms`, 'Terms'], [`/admin/owners/${id}?tab=invoices`, 'Invoices', d.invoices.length]];
+  const tab = sp.tab === 'terms' || sp.tab === 'invoices' || sp.tab === 'profit' ? sp.tab : 'overview';
+  const tabs: Array<[string, string, number?]> = [[`/admin/owners/${id}`, 'Overview'], [`/admin/owners/${id}?tab=terms`, 'Terms'], [`/admin/owners/${id}?tab=invoices`, 'Invoices', d.invoices.length], [`/admin/owners/${id}?tab=profit`, 'Kickbacks and repairs']];
   const head = (
     <>
       <Back href="/admin/owners">Owner applications</Back>
@@ -83,6 +84,8 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
             { name: 'fees', label: 'Only these fees (their names, separated by commas; empty: all the agreed ones)', type: 'list' }]} />
       </Card>}</>;
   }
+  // r29 (0581): the owner's cars' kickbacks and repair costs, and whether the owner sees them
+  if (tab === 'profit') return <>{head}<ProfitExtras userId={user.id} level="owner" id={id} sp={sp} base={`/admin/owners/${id}?tab=profit`} carLink={(v) => `/admin/vehicles/${v}?tab=profit`} /></>;
   if (tab === 'invoices') {
     const list = await door<InvoiceListData>(user.id, 'ops_read', 'owner_invoices_admin', { owner_id: id });
     return <>{head}<InvoiceList data={list} owner={false} newHref={`/admin/invoices/new?owner=${id}`} testId="owner-invoice-list" /></>;
