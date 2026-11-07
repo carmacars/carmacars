@@ -53,7 +53,7 @@ function PreviewCard({ p }: { p: Preview }) {
         <ul className="ad-preview">
           {p.owners.map((o) => (
             <li key={String(o.id)} data-testid={`debit-preview-${String(o.id)}`}>
-              <p className="row ad-preview__head">
+              <div className="row ad-preview__head">
                 <Link prefetch={false} className="link" href={`/admin/owners/${String(o.id)}`}><strong>{String(o.name)}</strong></Link>
                 <strong>{$(o.total_cents)}</strong>
                 {o.debit_set_up ? <Badge s="active">Bank debit set up, ending {String(o.bank_last4 ?? '')}</Badge> : <Badge s="failed">No bank debit set up</Badge>}
@@ -63,7 +63,7 @@ function PreviewCard({ p }: { p: Preview }) {
                   ? <Act action="owner_debit_resume" payload={{ owner: o.id }} label="Resume" refresh={R} />
                   : <Act action="owner_debit_pause" payload={{ owner: o.id }} label="Hold" title={`Hold ${String(o.name)}'s automatic debit`}
                       fields={[{ name: 'reason', label: 'Reason', required: true }]} testId={`debit-hold-${String(o.id)}`} refresh={R} />}
-              </p>
+              </div>
               <ul className="small">
                 {o.invoices.map((i) => (
                   <li key={String(i.id)}>

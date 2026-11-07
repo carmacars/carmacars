@@ -38,9 +38,9 @@ export async function ProfitExtras({ userId, aal, level, id, sp, base, claimId, 
           <div><dt><b>Net (kickbacks less repair costs)</b></dt><dd><b>{$(x.net_cents)}</b></dd></div>
         </dl>
         {!!x.unassigned_kickback_cents && <p className="small alert alert--warn"><span>{$(x.unassigned_kickback_cents)} of kickbacks is on invoices with no car: choose the car on each invoice (Money &gt; Partner invoices).</span></p>}
-        {level === 'owner' && id && <p className="row small" data-testid="px-owner-visibility">The owner {x.show_to_owner ? 'sees' : 'does not see'} these lines in their portal.
+        {level === 'owner' && id && <div className="row small" data-testid="px-owner-visibility">The owner {x.show_to_owner ? 'sees' : 'does not see'} these lines in their portal.
           <Act ops action="owner_profit_extras_visibility" payload={{ owner: id, on: !x.show_to_owner }} label={x.show_to_owner ? 'Hide from this owner' : 'Show repair costs and kickbacks to this owner'}
-            confirm={x.show_to_owner ? undefined : 'The owner will see the kickbacks and repair costs of their own cars in their portal.'} refresh={refresh} testId="px-owner-toggle" /></p>}
+            confirm={x.show_to_owner ? undefined : 'The owner will see the kickbacks and repair costs of their own cars in their portal.'} refresh={refresh} testId="px-owner-toggle" /></div>}
       </Card>}
       {x.by_owner && x.by_owner.length > 0 && <Card title="By owner"><Table<R> rows={x.by_owner as unknown as R[]} cols={[{ key: 'name', label: 'Owner' },
         { key: 'kickback_cents', label: 'Kickbacks', num: true, render: (r) => $(r.kickback_cents) }, { key: 'repair_cents', label: 'Repair costs', num: true, render: (r) => $(r.repair_cents) }]} /></Card>}

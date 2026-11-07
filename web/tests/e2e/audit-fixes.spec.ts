@@ -109,7 +109,7 @@ test('a refund says what it gives back', async ({ page }) => {
       for (const name of ['Money', 'Payments']) { const tab = page.getByRole('link', { name, exact: true }).or(page.getByRole('tab', { name, exact: true })); if (await tab.count()) { await tab.first().click(); break; } }
     }
     await open.click();
-    const dlg = page.getByRole('dialog', { name: 'New refund' });
+    const dlg = page.getByRole('dialog', { name: 'Refund', exact: true }); // r29: the Money tab's rental panel names it Refund
     await expect(dlg).toBeVisible();
     const kind = dlg.getByLabel('What it refunds');
     await expect(kind).toHaveValue('rental');
