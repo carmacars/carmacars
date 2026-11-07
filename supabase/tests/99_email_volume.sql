@@ -64,6 +64,7 @@ select test.ev_staff('ev_admin', 'staff_payment_failed', 'p3');
 select test.eq('a 4th urgent one in the hour joins the digest', test.ev_staff('ev_admin', 'staff_payment_failed', 'p4'), 'skipped:in the staff email digest');
 select test.eq('the digest holds both, with their lines', (select count(*) || ':' || bool_and(line <> '') from staff_email_digest_items where user_id = test.id('ev_admin') and digested_at is null), '2:true');
 select test.ok('one digest email for the person', app.staff_email_digests(now()) >= 1);
+select test.ok('it carries the mailing address every email shows', (select payload ? 'company_address' from notification_outbox where code = 'staff_digest_hourly' and recipient_user_id = test.id('ev_admin')));
 select test.eq('it is queued with the two alerts', (select (payload ->> 'digest_count') || ':' || status from notification_outbox where code = 'staff_digest_hourly' and recipient_user_id = test.id('ev_admin')), '2:queued');
 select test.ev_staff('ev_admin', 'staff_review_received', 'r2');
 select app.staff_email_digests(now() + interval '10 minutes');

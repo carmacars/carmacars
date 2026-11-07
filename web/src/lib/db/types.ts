@@ -12396,6 +12396,7 @@ export type Database = {
           added_alone_by: string | null;
           recruited_at: string | null;
           recruited_via: string | null;
+          show_profit_extras: boolean;
         };
         Insert: {
           id?: string;
@@ -12447,6 +12448,7 @@ export type Database = {
           added_alone_by?: string | null;
           recruited_at?: string | null;
           recruited_via?: string | null;
+          show_profit_extras?: boolean;
         };
         Update: {
           id?: string;
@@ -12498,6 +12500,7 @@ export type Database = {
           added_alone_by?: string | null;
           recruited_at?: string | null;
           recruited_via?: string | null;
+          show_profit_extras?: boolean;
         };
         Relationships: [];
       };
@@ -13045,6 +13048,8 @@ export type Database = {
           created_by: string | null;
           created_at: string;
           updated_at: string;
+          vehicle_id: string | null;
+          claim_id: string | null;
         };
         Insert: {
           id?: string;
@@ -13079,6 +13084,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          vehicle_id?: string | null;
+          claim_id?: string | null;
         };
         Update: {
           id?: string;
@@ -13113,6 +13120,8 @@ export type Database = {
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          vehicle_id?: string | null;
+          claim_id?: string | null;
         };
         Relationships: [];
       };
@@ -20055,6 +20064,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_email_digest_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          audience: string;
+          outbox_id: string | null;
+          code: string;
+          line: string;
+          url: string | null;
+          created_at: string;
+          digested_at: string | null;
+          digest_outbox_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          audience: string;
+          outbox_id?: string | null;
+          code: string;
+          line: string;
+          url?: string | null;
+          created_at?: string;
+          digested_at?: string | null;
+          digest_outbox_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          audience?: string;
+          outbox_id?: string | null;
+          code?: string;
+          line?: string;
+          url?: string | null;
+          created_at?: string;
+          digested_at?: string | null;
+          digest_outbox_id?: string | null;
+        };
+        Relationships: [];
+      };
       staff_profiles: {
         Row: {
           user_id: string;
@@ -22069,6 +22117,7 @@ export type Database = {
           greeting_name: string | null;
           is_test: boolean | null;
           alerts_asked_at: string | null;
+          staff_email_digest: string;
         };
         Insert: {
           id?: string;
@@ -22091,6 +22140,7 @@ export type Database = {
           greeting_name?: string | null;
           is_test?: boolean | null;
           alerts_asked_at?: string | null;
+          staff_email_digest?: string;
         };
         Update: {
           id?: string;
@@ -22113,6 +22163,7 @@ export type Database = {
           greeting_name?: string | null;
           is_test?: boolean | null;
           alerts_asked_at?: string | null;
+          staff_email_digest?: string;
         };
         Relationships: [];
       };
@@ -23730,6 +23781,69 @@ export type Database = {
           retransferred_on?: string | null;
           retransferred_to?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      vehicle_repair_costs: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          claim_id: string | null;
+          spent_on: string;
+          vendor_partner_id: string | null;
+          vendor_name: string | null;
+          description: string;
+          amount_cents: number;
+          tax_cents: number;
+          receipt_path: string | null;
+          paid_by: string;
+          created_by: string | null;
+          created_at: string;
+          updated_by: string | null;
+          updated_at: string;
+          voided_at: string | null;
+          voided_by: string | null;
+          void_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          claim_id?: string | null;
+          spent_on: string;
+          vendor_partner_id?: string | null;
+          vendor_name?: string | null;
+          description: string;
+          amount_cents: number;
+          tax_cents?: number;
+          receipt_path?: string | null;
+          paid_by: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          claim_id?: string | null;
+          spent_on?: string;
+          vendor_partner_id?: string | null;
+          vendor_name?: string | null;
+          description?: string;
+          amount_cents?: number;
+          tax_cents?: number;
+          receipt_path?: string | null;
+          paid_by?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_by?: string | null;
+          updated_at?: string;
+          voided_at?: string | null;
+          voided_by?: string | null;
+          void_reason?: string | null;
         };
         Relationships: [];
       };
@@ -26661,6 +26775,7 @@ export type Database = {
       server_owner_debit_setup_facts: { Args: { p_by: string }; Returns: Json };
       server_owner_debit_setup_verified: { Args: { p_method: string; p_mandate: string }; Returns: Json };
       server_owner_debit_terms: { Args: never; Returns: Json };
+      server_owner_fee_audit: { Args: { p_month?: string }; Returns: Json };
       server_owner_form_ab_facts: { Args: { p_by: string; p_code: string }; Returns: Json };
       server_owner_handoffs: { Args: { p_by: string; p_vehicle: string }; Returns: Json };
       server_owner_invoice_id: { Args: { p_number: string }; Returns: string };

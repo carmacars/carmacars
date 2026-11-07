@@ -882,6 +882,7 @@ select app.staff_email_digests(now() + interval '2 hours');
 select test.eq('G every wired email code has been built at least once in these tests, digests included',
   (select string_agg(c.code, ',' order by c.code) from notification_catalogue c
     where c.has_email and c.emitted_by not like 'not emitted%'
+      and c.code <> 'applicant_ai_interview_sorry' -- run once by migration 0535, built in 99_r27b_remote_to_ai
       and not exists (select 1 from notification_outbox o where o.code = c.code)
       and not exists (select 1 from staff_digest_items d where d.code = c.code)),
   null::text);

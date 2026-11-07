@@ -195,7 +195,7 @@ begin
     v_id := gen_random_uuid();
     insert into notification_outbox (id, code, category, priority, audience, recipient_user_id, to_address, to_name, payload, dedupe_key, status, send_after)
     values (v_id, 'staff_digest_hourly', 'transactional', 3, u.audience, u.user_id, lower(btrim(u.email)), u.full_name,
-            jsonb_build_object('first_name', split_part(coalesce(u.full_name, ''), ' ', 1), 'digest_count', v_n::text,
+            app.ntf_contact() || jsonb_build_object('first_name', split_part(coalesce(u.full_name, ''), ' ', 1), 'digest_count', v_n::text,
               'digest_since', app.fmt_time(v_since), 'digest_date', to_char(v_local, 'Dy, Mon FMDD'),
               'digest_next', case u.pref when 'daily' then 'tomorrow 7:00 am' else app.fmt_time(p_now + interval '1 hour') end,
               'digest_summary', v_n || ' alert' || case when v_n <> 1 then 's' else '' end || ' since ' || app.fmt_time(v_since) || '.',
