@@ -65,6 +65,21 @@
   ]
  },
  {
+  "release": "r31b",
+  "title": "Update of November 7 (photos)",
+  "date": "2026-11-07",
+  "seq": 0,
+  "summary": "Reworked listing photos return to the site as soon as their plates are checked.",
+  "areas": [
+   {
+    "area": "Staff tools",
+    "items": [
+     "Listing photos framed again go back on the site by themselves once their licence plates are checked"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r27b",
   "title": "Release 27b",
   "date": "2026-11-06",

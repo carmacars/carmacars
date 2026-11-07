@@ -71,7 +71,7 @@ export function ListingReview({ l, plates, copy, exterior = [] }: { l: L; plates
             : <><span className="small">Make the outside photos again with the newest framing? They leave the site until you approve them again, and their plates are checked again.</span>
               <button className="btn btn--primary btn--sm" type="button" disabled={pending} data-testid="photos-reframe-yes" onClick={() => { setReframe(false); start(async () => {
                 const r = await staffDo<{ queued: number }>('listing_photos_reframe', { intake: l.id });
-                setRes(r.ok ? { ok: true, text: r.data.queued ? `${r.data.queued} outside photo${r.data.queued === 1 ? ' is' : 's are'} being made again. Approve ${r.data.queued === 1 ? 'it' : 'them'} again when ready, then cover the plates.` : 'Every outside photo already has the newest framing.' } : { ok: false, text: r.message });
+                setRes(r.ok ? { ok: true, text: r.data.queued ? `${r.data.queued} outside photo${r.data.queued === 1 ? ' is' : 's are'} being made again. When ready, check the plate on each: on a listing that is on the site, each goes back on by itself once its plate is checked.` : 'Every outside photo already has the newest framing.' } : { ok: false, text: r.message });
                 if (r.ok && r.data.queued) router.refresh(); }); }}>Yes, frame again</button>
               <button className="btn btn--ghost btn--sm" type="button" onClick={() => setReframe(false)}>Cancel</button></>}</p>}
           {/* a shot kept as taken (the odometer, never published) stays in the private originals: shown through its signed link */}
