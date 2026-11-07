@@ -167,11 +167,18 @@ test('apply from Indeed and pass, book a call, the Admin scores it, the rank fol
   const rankAfter = Number(/Rank (\d+) in Field staff/.exec((await ad.getByTestId('cand-status').textContent()) ?? '')?.[1]);
   expect(rankAfter).toBeGreaterThan(rankBefore);
 
-  // Hire: the staff invitation into the field staff portal, then the staff agreement to send
-  ad.once('dialog', (d) => void d.accept());
+  // one-step Hire (r33, 0730): the form with the role's standard pay, one confirm, then the onboarding card
   await ad.getByTestId('hire').click();
-  await expect(ad.getByTestId('hire-done')).toBeVisible({ timeout: 60_000 });
-  await expect(ad.getByTestId('send-generated')).toBeVisible();
+  await expect(ad.getByTestId('hire-form')).toBeVisible();
+  await expect(ad.getByTestId('hire-function')).toHaveValue('field');
+  await expect(ad.getByTestId('hire-pay')).toHaveValue(/^\d+\.\d{2}$/);
+  await ad.getByTestId('hire-confirm').click();
+  await expect(ad.getByTestId('hire-status')).toBeVisible({ timeout: 60_000 });
+  await expect(ad.getByTestId('hire-step-account')).toHaveAttribute('data-state', 'done');
+  await expect(ad.getByTestId('hire-step-hired')).toHaveAttribute('data-state', 'done');
+  // a field hire's agreement waits for their licence number (they enter it themselves)
+  await expect(ad.getByTestId('hire-step-agreement')).toContainText('Waiting for');
+  await expect(ad.getByTestId('hire-step-academy')).toContainText('Field work');
   const [hired] = await sql`select a.status, u.email, r.role from job_applications a join users u on u.id = a.hired_user_id join user_roles r on r.user_id = u.id where a.id = ${app!.id}`;
   expect(hired?.status).toBe('hired');
   expect(hired?.email).toBe(email);

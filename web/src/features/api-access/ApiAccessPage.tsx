@@ -1,6 +1,6 @@
 import { rpc } from '@/lib/db/repo';
 import { siteUrl } from '@/lib/site';
-import { TOOLS, WRITABLE } from './tools';
+import { CONNECTOR_URL, TOOLS, WRITABLE } from './tools';
 import { NewKey, RevokeKey, type KeyRow } from './ApiAccessAdmin';
 
 // Admin > Settings > API access (release 28, B3; migration 0562): how to connect Claude, the keys and connections, and
@@ -19,7 +19,8 @@ export async function ApiAccessPage({ adminId }: { adminId: string }) {
       {!v.enabled && <p className="alert alert--warn" role="status">API access is off (Settings &gt; Program, api_access_enabled): every key and connection is refused.</p>}
       <section className="pt-card ad-card stack" aria-labelledby="api-h-setup">
         <div className="pt-card__head"><h2 className="d4" id="api-h-setup">Connect Claude</h2></div>
-        <p>Claude can read and adjust bookings, requests and owners for you, as you. Only Admins can connect. Every call is logged below with the values before and after; at most {v.per_minute} calls a minute per connection.</p>
+        <p className="alert alert--info" role="note" data-testid="api-connect-claude"><b>Connect from Claude:</b> in Claude, Settings &gt; Connectors &gt; Add custom connector, paste <code className="pt-mono">{CONNECTOR_URL}</code>, press Connect and sign in here as an Admin.</p>
+        <p>Claude can then run CarmaCars for you, as you: bookings, offers, payments, refunds, returns, cars, rates, listings, owners, invoices, staff and hiring. Every change is previewed first and done only when confirmed. Only Admins can connect. Every call is logged below with the values before and after; at most {v.per_minute} calls a minute per connection.</p>
         <ol className="stack">
           <li><b>Claude (claude.ai, Desktop or the phone app):</b> Settings &gt; Connectors &gt; Add custom connector. Name it CarmaCars and paste the address <code className="pt-mono">{mcp}</code>. Press Connect: Claude opens CarmaCars, you sign in (with your second step), choose what it may do and press Allow. It stays connected for 30 days of use; disconnect it here or in Claude.</li>
           <li><b>Claude Code:</b> run <code className="pt-mono">claude mcp add --transport http carmacars {mcp}</code>, then <code className="pt-mono">/mcp</code> in Claude Code to sign in the same way. Or, with a key made below: <code className="pt-mono">claude mcp add --transport http carmacars {mcp} --header &quot;Authorization: Bearer cc_live_...&quot;</code>.</li>

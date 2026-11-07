@@ -5,6 +5,8 @@ import { auth } from '@/lib/auth';
 import { signOut } from '@/server/actions/auth';
 import { FieldButton } from '@/features/field/FieldButton';
 import { HomeAddressSection, homeAddressOf } from '@/features/staff/HomeAddress';
+import { PayDetails } from '@/features/staff/PayDetails';
+import type { PayDetailsView } from '@/features/staff/pay-details';
 import { SignInSettings } from '@/features/portal/SignInSettings';
 import { notifyReach, signInState } from '@/server/sign-in-settings';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
@@ -19,7 +21,8 @@ type P = { name: string; email: string; phone: string | null; field_function: st
 // /field/profile (06-field.md section 10): name, phone, home address (0059), password, two-step sign-in, sign out.
 export default async function Profile() {
   const { user } = await requireStaff('field', '/staff/field/profile');
-  const [p, factors, home, si] = await Promise.all([door<P>(user.id, 'field_read', 'profile'), (await auth()).mfaFactors().catch(() => []), homeAddressOf(user.id, 'field'), signInState(user.id)]);
+  const [p, factors, home, si, pay] = await Promise.all([door<P>(user.id, 'field_read', 'profile'), (await auth()).mfaFactors().catch(() => []), homeAddressOf(user.id, 'field'), signInState(user.id),
+    door<PayDetailsView>(user.id, 'field_read', 'my_pay_details').catch(() => null)]);
   const nc = await notifyReach(user.id);
   const twoStep = factors.some((f) => f.verified);
   return (
@@ -31,6 +34,7 @@ export default async function Profile() {
         <FieldButton action="profile_save" payload={{}} label="Save my phone" testId="profile-save" fields={[{ name: 'phone', label: 'Mobile phone', required: true }]} />
       </section>
       {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="field" state={home} />}
+        <PayDetails portal="field" view={pay} />
       {si && <SignInSettings state={si} className="fd-card stack" />}
       {nc && <NotifyChannelCard reach={nc} className="fd-card stack" />}
       <PushAlerts userId={user.id} portal="field" className="fd-card stack" />
