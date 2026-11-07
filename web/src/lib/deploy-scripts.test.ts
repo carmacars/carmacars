@@ -8,7 +8,7 @@ import { join } from 'node:path';
 
 const ROOT = join(import.meta.dirname, '../../..');
 const run = (script: string, args: string[], env: Record<string, string> = {}) =>
-  execFileSync('bash', [join(ROOT, script), ...args], { encoding: 'utf8', env: { ...process.env, CF_EMAIL_BINDING: '', OWNER_STEPS_JSON: '', FEE_AUDIT_JSON: '', GITHUB_STEP_SUMMARY: '', ...env } });
+  execFileSync('bash', [join(ROOT, script), ...args], { encoding: 'utf8', env: { ...process.env, CF_EMAIL_BINDING: '', OWNER_STEPS_JSON: '', FEE_AUDIT_JSON: '', OUTBOX_STALE_JSON: '', GITHUB_STEP_SUMMARY: '', ...env } });
 
 test('logical backups: the last 7 nights and the Sundays of the last 4 weeks', () => {
   const out = run('scripts/backup/keep.sh', ['--now', '2026-11-01T07:30Z', '--days', '7', '--weeks', '4',
@@ -36,6 +36,14 @@ test('the fee check: one annotation, owners by reference, each invoice that does
   assert.match(out, /^::warning title=fee check \(1 to look at\)::November 2026: 3 invoices to 1 owners, \$1,610\.25\. 1 do not match/);
   assert.match(out, /INV-1050 \(car F-12, owner a1b2c3\), \$536\.75: every day on a flat monthly payment: no monthly fee/);
   assert.match(run('scripts/deploy/fee-audit.sh', ['--offline'], { FEE_AUDIT_JSON: '' }), /::warning title=fee check::the owner invoices could not be read/);
+});
+
+test('stale emails: one notice with the counts by audience and code, never an address', () => {
+  const j = JSON.stringify({ total: 3, waiting: 12, by_audience: { staff_admin: 2, renter: 1 }, by_code: [{ code: 'staff_review_received', n: 2 }, { code: 'renter_offer_ready', n: 1 }] });
+  const out = run('scripts/deploy/outbox-stale.sh', ['--offline'], { OUTBOX_STALE_JSON: j }).trim();
+  assert.equal(out, '::notice title=stale emails::3 emails skipped as stale in the last day (never sent late); 12 still waiting.%0ABy audience: staff_admin 2, renter 1%0ABy code:%0A- staff_review_received: 2%0A- renter_offer_ready: 1');
+  assert.doesNotMatch(out, /@/);
+  assert.match(run('scripts/deploy/outbox-stale.sh', ['--offline'], { OUTBOX_STALE_JSON: '' }), /::warning title=stale emails::/);
 });
 
 test('the email binding: 1, true, yes, on or EMAIL (any case) add it, once, and say so; anything else says why not', async () => {

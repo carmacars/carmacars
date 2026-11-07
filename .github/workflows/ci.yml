@@ -440,6 +440,11 @@ jobs:
         env:
           CF_EMAIL_BINDING: ${{ vars.CF_EMAIL_BINDING }}
         run: scripts/deploy/owner-steps.sh
+      # 0601: the emails skipped as stale in the last day, by audience and code (counts only)
+      - name: Stale emails (counts skipped as stale)
+        if: inputs.environment == 'production'
+        continue-on-error: true
+        run: scripts/deploy/outbox-stale.sh
       # r29 C4 (0584): the month's owner invoices against each car's signed terms, read only (owners by a short reference)
       - name: Fee check (owner invoices against the signed terms)
         if: inputs.environment == 'production'
