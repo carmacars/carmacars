@@ -133,7 +133,8 @@ export function CutoutEditor({ photo, onClose }: { photo: { id: string; shot_lab
   const drawStudio = useCallback(() => {
     const c = studioCanvas.current, w = work.current;
     if (!c || !w) return;
-    const dw = Math.round(Math.min(1400, c.parentElement?.clientWidth ?? 640)), dh = Math.round((dw * FH) / FW);
+    // drawn at the screen's pixel density (sharp on a phone); shown at the frame's width by CSS
+    const dw = Math.round(Math.min(1400, c.parentElement?.clientWidth ?? 640) * Math.min(2, window.devicePixelRatio || 1)), dh = Math.round((dw * FH) / FW);
     if (c.width !== dw || c.height !== dh) { c.width = dw; c.height = dh; }
     const g = c.getContext('2d')!, s = dw / FW;
     g.drawImage(w.backdrop, 0, 0, dw, dh);
