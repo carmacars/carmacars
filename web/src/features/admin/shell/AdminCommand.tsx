@@ -54,10 +54,8 @@ export function AdminCommand({ groups }: { groups: NavGroup[] }) {
   const list = `${idp}-list`;
   return (
     <>
-      <button type="button" className="ad-jump" onClick={open} aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" data-testid="admin-jump">
-        <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M8.5 3a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM12.5 12.5 17 17" /></svg>
-        <span>Jump to a page</span>
-        <kbd className="ad-kbd" aria-hidden="true">Ctrl K</kbd>
+      <button type="button" className="ad-jump" onClick={open} aria-haspopup="dialog" aria-keyshortcuts="Control+K Meta+K" aria-label="Quick list of pages and records (Ctrl K)" title="Quick list (Ctrl K)" data-testid="admin-jump">
+        <svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 5h14M3 10h14M3 15h9" /></svg>
       </button>
       <dialog ref={dlg} className="ad-cmd" aria-labelledby={`${idp}-t`} data-testid="admin-jump-dialog" onClick={(e) => { if (e.target === dlg.current) dlg.current?.close(); }}>
         <h2 className="vh" id={`${idp}-t`}>Jump to a page</h2>

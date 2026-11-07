@@ -2,6 +2,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { agreementWordingSave } from '@/server/actions/agreements';
+import { useTool } from '@/features/admin/MoreMenu';
 
 // "Edit the wording" on the booking's Agreement card (migration 0198): an Admin rewords a clause of CarmaCars' rental
 // agreement for this booking, adds additional terms, or removes a clause that is not required, always with a reason.
@@ -14,7 +15,10 @@ const ACTION: Record<string, string> = { edit: 'reworded', add: 'written', remov
 
 export function AgreementWording({ booking, clauses, now, history, refresh }: { booking: string; clauses: WordingClause[]; now: Now; history: WordingChange[]; refresh: string[] }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const tool = useTool('wording');
+  const [openLocal, setOpenLocal] = useState(false);
+  const open = tool ? tool.open : openLocal;
+  const setOpen = (v: boolean) => { if (tool) { if (v) tool.show(); else tool.hide(); } else setOpenLocal(v); };
   const [code, setCode] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [reason, setReason] = useState('');
@@ -32,6 +36,7 @@ export function AgreementWording({ booking, clauses, now, history, refresh }: { 
       : 'Saved. The agreement is made again with this wording.' });
     setCode(null); router.refresh();
   });
+  if (!open && tool) return changed > 0 ? <p className="small" data-testid="agreement-wording-count">{changed} clause{changed === 1 ? '' : 's'} worded for this booking</p> : null;
   if (!open) return (
     <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'center' }}>
       <button className="btn btn--ghost btn--sm" type="button" onClick={() => setOpen(true)} data-testid="agreement-wording-open">Edit the wording</button>
@@ -44,7 +49,7 @@ export function AgreementWording({ booking, clauses, now, history, refresh }: { 
   const isAdd = c?.code === 'additional';
   return (
     <div className="stack" data-testid="agreement-wording">
-      <p className="small">The wording of <b>CarmaCars&apos; rental agreement</b> for this booking only. Blind Spot&apos;s agreement is the insurer&apos;s official form: its printed terms are not changed. Clauses marked <b>required</b> are needed by law or the insurer: they can be reworded, not removed. Before the renter signs, the agreement is simply made again; after signing, a change is a new version the renter signs.</p>
+      <p className="small muted">CarmaCars&apos; agreement, this booking only (Blind Spot&apos;s form is not changed). Required clauses can be reworded, not removed. After signing, a change is a new version to sign.</p>
       <ul className="stack" style={{ paddingLeft: 0, listStyle: 'none' }}>
         {list.map((x) => (
           <li key={x.code} className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)', alignItems: 'center' }} data-testid={`wording-clause-${x.code}`}>

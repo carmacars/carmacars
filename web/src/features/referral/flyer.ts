@@ -1,5 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import qrcode from 'qrcode-generator';
+import { drawBrandLogo } from '../brand/draw-logo.ts';
 
 // The one-page flyer for a partner's counter (migration 0164): who sent you, the QR code of the partner's link and the short
 // address, in words a renter can follow at a body shop or in a tow truck's cab. Plain Latin text only (the standard fonts).
@@ -34,7 +35,7 @@ export async function flyerPdf(i: FlyerInput): Promise<Uint8Array> {
     return out;
   };
   page.drawRectangle({ x: 0, y: 700, width: W, height: 92, color: ink });
-  centre('CarmaCars', 738, 34, bold, rgb(1, 1, 1));
+  drawBrandLogo(page, (W - 250) / 2, 770, 250, true);   // r32: the brand logo (white letters on the black band)
   centre('Car rentals in Toronto and the GTA', 714, 13, reg, rgb(0.85, 0.87, 0.9));
   const heading = i.kind === 'tow_truck' ? 'Need a car after your tow?' : 'Need a car while yours is being repaired?';
   centre(heading, 650, 27, bold);

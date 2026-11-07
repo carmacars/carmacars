@@ -252,7 +252,7 @@ test('cars: the registration saved on a car, a wrong VIN refused, the ownership 
   // a program owner's car offers Move to another owner on the Overview
   if ((await sql`select supply_type from vehicles where id = ${car!.id}`)[0]!.supply_type === 'program_owner') {
     await page.goto(`/admin/vehicles/${car!.id}`, { waitUntil: 'networkidle' });
-    await expect(page.getByTestId('vehicle-move-owner')).toBeVisible();
+    await expect(page.getByTestId('vehicle-move-owner')).toBeAttached();   // r32: behind the card's More menu
   }
   await sql`update vehicles set permit_number = null, sticker_expires_on = null, ssc_number = null, ssc_issued_on = null, ssc_expires_on = null where id = ${car!.id}`;
   expect(quiet(errors)).toEqual([]);
@@ -272,12 +272,12 @@ test('money: a credit card by default; an Admin allows debit and prepaid cards f
   await signIn(page, a.email, '/admin');
   await page.goto(`/admin/bookings/${b!.booking_number}?tab=money`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('bm-debit')).toContainText(/credit card is required|takes a debit/);
-  await expect(page.getByTestId('booking-debit-on')).toBeVisible();
+  await expect(page.getByTestId('booking-debit-on')).toBeAttached();   // r32: behind the deposit's More menu
   await check(page, 'money-debit');
   await sql`select app.booking_allow_debit(${a.id}::uuid, ${sql.json({ booking_id: b!.id, reason: 'e2e: debit only' })})`;
   await page.reload({ waitUntil: 'networkidle' });
   await expect(page.getByTestId('bm-debit')).toContainText('Debit and prepaid cards allowed for this booking');
-  await expect(page.getByTestId('booking-debit-off')).toBeVisible();
+  await expect(page.getByTestId('booking-debit-off')).toBeAttached();
   await sql`update bookings set debit_allowed_at = null, debit_allowed_by = null, debit_allowed_reason = null where id = ${b!.id}`;
   expect(quiet(errors)).toEqual([]);
   await sql.end();

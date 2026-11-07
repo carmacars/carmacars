@@ -1,5 +1,6 @@
 'use client';
 import { useState, useTransition } from 'react';
+import { useTool } from '@/features/admin/MoreMenu';
 import { useRouter } from 'next/navigation';
 import { staffDo } from '@/server/actions/staff-tools';
 
@@ -8,6 +9,8 @@ export function BlindSpotBoxesForm({ booking, boxes, refresh }: { booking: strin
   const [v, setV] = useState<Record<string, string>>(() => Object.fromEntries(boxes.map((b) => [b.box, b.value])));
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  const tool = useTool('blindspot');
+  const Wrap = (tool ? 'div' : 'details') as 'div';
   const changed = boxes.filter((b) => (v[b.box] ?? '') !== b.value);
   const save = () => start(async () => {
     const r = await staffDo<{ saved: number; written_back: string[] }>('blindspot_boxes_save', { booking, boxes: Object.fromEntries(changed.map((b) => [b.box, v[b.box] ?? ''])) }, refresh);
@@ -15,9 +18,9 @@ export function BlindSpotBoxesForm({ booking, boxes, refresh }: { booking: strin
     if (r.ok) router.refresh();
   });
   return (
-    <details className="stack" data-testid="blindspot-boxes">
-      <summary className="link">Type into the Blind Spot agreement</summary>
-      <p className="small muted">Each box as the form prints it now. Change a value and save: it is drawn on the form in place of the booking&apos;s, and the booking takes it where it has a place for it. Empty a box you typed to go back to the booking&apos;s value.</p>
+    <Wrap className="stack" data-testid="blindspot-boxes">
+      {tool ? <p className="pt-kicker">Type into the Blind Spot agreement</p> : <summary className="link">Type into the Blind Spot agreement</summary>}
+      <p className="small muted">Each box as the form prints it; a saved value is drawn in place of the booking&apos;s. Empty a typed box to go back.</p>
       <div className="ad-fields">
         {boxes.map((b) => (
           <div className="field ad-field" key={b.box}>
@@ -30,7 +33,8 @@ export function BlindSpotBoxesForm({ booking, boxes, refresh }: { booking: strin
       <div className="row">
         <button className="btn btn--primary btn--sm" type="button" disabled={pending || !changed.length} onClick={save} data-testid="bsb-save">{pending ? 'Saving' : 'Save the corrections'}</button>
         <a className="btn btn--ghost btn--sm" href={`/api/staff/blindspot/${booking}`} target="_blank" rel="noreferrer" data-testid="bsb-preview">Preview the filled form</a>
+        {tool && <button className="btn btn--quiet btn--sm" type="button" onClick={() => tool.hide()}>Close</button>}
       </div>
-    </details>
+    </Wrap>
   );
 }

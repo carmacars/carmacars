@@ -8,6 +8,7 @@ import { appPathOf } from '@/lib/native/shell';
 import { cameraOptions, cancelled, factsOf, photoFile, photoModeFor } from '@/lib/native/camera';
 import { refreshAppToken } from '@/features/push/usePushDevice';
 import { UNLOCK_KEY, UNLOCK_AFTER_MS, lockDue } from './unlock';
+import { BrandMark } from '@/components/BrandMark';
 
 // The store app's layer over the site (migration 0390), loaded only inside the CarmaCars app (AppShellMount):
 //   - the splash screen goes once the first page has painted, and the status bar is light on black;
@@ -143,7 +144,7 @@ export default function AppShell() {
       {lock !== 'off' && (
         <div className={`as-lock${lock === 'veil' ? ' as-lock--veil' : ''}`} data-app-lock role="dialog" aria-modal="true" aria-labelledby="as-lock-t" data-testid="app-lock">
           <div className="as-lock__in">
-            <div className="as-lock__mark" aria-hidden="true">C<span>C</span></div>
+            <div className="as-lock__mark" aria-hidden="true"><BrandMark size={72} /></div>
             <div className="as-lock__rule" aria-hidden="true" />
             <h1 className="as-lock__title" id="as-lock-t">CarmaCars is locked</h1>
             <p className="as-lock__text">Use {label} to open your account.</p>

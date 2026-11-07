@@ -74,7 +74,7 @@ export function Gallery({ name, photos, gate }: { name: string; photos: Photo[];
         onPointerMove={zoomAt}
         onKeyDown={(e) => { if (e.key === 'ArrowRight') { e.preventDefault(); go(cur + 1); } if (e.key === 'ArrowLeft') { e.preventDefault(); go(cur - 1); } }}>
         {photos.map((g, i) => (
-          <li key={g.path} aria-label={`${i + 1} of ${photos.length}`}>
+          <li key={g.path} aria-label={`${i + 1} of ${photos.length}`} data-wm={g.sample ? undefined : ""}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={photoUrl(g.path)} srcSet={srcSetOf(g)} width={g.width ?? 1800} height={g.height ?? 1200} alt={g.alt} sizes="(min-width: 64rem) 62vw, 100vw"
               loading={i === 0 ? 'eager' : 'lazy'} fetchPriority={i === 0 ? 'high' : undefined} decoding="async" />

@@ -126,6 +126,7 @@ test('the Rental agreements card: missing fields filled; a material change signe
   await sql`update program_settings set amend_without_signature = false`;
   await sql`update bookings set coverage_option = 3 where id = ${bk.booking}`;
   await page.reload({ waitUntil: 'networkidle' });
+  await page.getByTestId('agreement-more').getByText('More').click();
   await page.getByTestId('agreement-regenerate').click();
   await expect.poll(async () => (await sql`select count(*)::int n from agreement_versions where booking_id = ${bk.booking} and status = 'awaiting_signature'`)[0]!.n, { timeout: 90_000 }).toBe(1);
   const [ver] = await sql`select v.version_no, v.kind, v.changes from agreement_versions v where v.booking_id = ${bk.booking} and v.status = 'awaiting_signature'`;

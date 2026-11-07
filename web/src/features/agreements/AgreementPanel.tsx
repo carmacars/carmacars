@@ -5,7 +5,9 @@ import { when } from '@/features/agreement/model';
 import { AgreementActions, AgreementEditAll, MissingFields, type AgreementCurrent, type Missing } from './AgreementActions';
 import { AgreementWording, type WordingChange } from './AgreementWording';
 import { CLAUSES, standardText } from '@/features/agreement/wording';
-import { BlindSpotBoxes } from './BlindSpotBoxes';
+import { blindSpotBoxes } from './BlindSpotBoxes';
+import { BlindSpotBoxesForm } from './BlindSpotBoxesForm';
+import { ToolPane, ToolsProvider } from '@/features/admin/MoreMenu';
 
 // The booking page's Agreement card (migration 0154), for an Admin and the assistants: the current version of the two
 // rental agreements and every earlier one (what changed, both PDFs, who signed or countersigned), a version waiting for
@@ -39,10 +41,11 @@ export async function AgreementPanel({ b, base, userId, aal, docBase, finance, o
   const required = s.missing.filter((m) => m.required);
   const current = s.versions.find((v) => v.status !== 'superseded' && v.status !== 'awaiting_signature') ?? s.versions[0];
   const refresh = [base];
+  const bsBoxes = openDocs ? await blindSpotBoxes(s.booking_id, userId) : null;
   return (
     <Card title="Rental agreements" testId="agreement-panel" tone={s.waiting || required.length ? 'warn' : undefined}>
-      <div className="stack">
-        {s.versions.length === 0 ? <p className="small muted">The versions start once the rental agreement is signed and countersigned. Until then the open agreement follows the booking by itself.</p> : <>
+      <ToolsProvider><div className="stack">
+        {s.versions.length === 0 ? <p className="small muted">Versions start once the agreement is signed; until then it follows the booking.</p> : <>
           {current && <p data-testid="agreement-current">Current: <b>version {current.version_no}</b> ({KIND[current.kind] ?? current.kind}), {STATUS[current.status] ?? current.status} {when(current.signed_at ?? current.created_at)}.
             {openDocs && current.carmacars && <> <a className="link" href={`${docBase}/${current.carmacars}`} target="_blank" rel="noreferrer">CarmaCars PDF</a></>}
             {openDocs && current.blindspot && <> · <a className="link" href={`${docBase}/${current.blindspot}`} target="_blank" rel="noreferrer">Blind Spot PDF</a></>}</p>}
@@ -67,15 +70,16 @@ export async function AgreementPanel({ b, base, userId, aal, docBase, finance, o
               </li>))}</ol>
           </details>
         </>}
-        {(s.renter_missing?.length ?? 0) > 0 && ['pending_payment', 'confirmed', 'on_rent'].includes(s.status) && <p className="small" role="status" data-testid="agreement-renter-waiting"><b>Waiting for the renter&apos;s details:</b> {s.renter_missing!.map((m) => m.label).join('; ')}. Their account asks for them before signing and paying (no email or text is sent). You can also fill them below.</p>}
+        {(s.renter_missing?.length ?? 0) > 0 && ['pending_payment', 'confirmed', 'on_rent'].includes(s.status) && <p className="small" role="status" data-testid="agreement-renter-waiting"><b>Waiting for the renter&apos;s details:</b> {s.renter_missing!.map((m) => m.label).join('; ')}. Their account asks before they sign and pay; you can fill them below.</p>}
         <MissingFields booking={s.booking_id} missing={s.missing} refresh={refresh} isAdmin={s.is_admin} overrides={s.overrides} />
         {s.wording?.is_admin ? <AgreementWording booking={s.booking_id} refresh={refresh} now={s.wording.wording} history={s.wording.history}
             clauses={CLAUSES.map((c) => ({ code: c.code, part: c.part, title: c.title, removable: c.removable, editable: c.editable, standard: standardText(c.code) }))} />
           : s.wording && Object.keys(s.wording.wording).length > 0 && <p className="small" data-testid="agreement-wording-note">{Object.keys(s.wording.wording).length} clause{Object.keys(s.wording.wording).length === 1 ? ' is' : 's are'} worded for this booking by an Admin.</p>}
         {s.current && <AgreementEditAll booking={s.booking_id} current={s.current} refresh={refresh} isAdmin={s.is_admin} />}
-        {openDocs && <BlindSpotBoxes bookingId={s.booking_id} userId={userId} refresh={refresh} />}
-        <AgreementActions booking={s.booking_id} refresh={refresh} waiting={!!s.waiting} finance={finance || s.is_admin} disputes={s.disputes} docBase={openDocs ? docBase : ''} />
-      </div>
+        {bsBoxes && <ToolPane id="blindspot"><BlindSpotBoxesForm booking={s.booking_id} boxes={bsBoxes} refresh={refresh} /></ToolPane>}
+        <AgreementActions booking={s.booking_id} refresh={refresh} waiting={!!s.waiting} finance={finance || s.is_admin} disputes={s.disputes} docBase={openDocs ? docBase : ''}
+          edit={!!s.current} wording={!!s.wording?.is_admin} blindspot={!!bsBoxes} />
+      </div></ToolsProvider>
     </Card>
   );
 }

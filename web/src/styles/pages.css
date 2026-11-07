@@ -658,3 +658,10 @@ code { font: 500 var(--fs-xs)/1.4 var(--font-text); color: var(--grey-600); font
   .hero__media .hero__slide { animation: none !important; }
   .hero__media .hero__slide:first-child, .hero__media style + .hero__slide { opacity: 1; }
 }
+
+/* r32: a small CarmaCars watermark in the bottom right corner of a public car photo, drawn when the photo is shown (the
+   stored file is untouched; Admin review views do not use it). Not on a representative (sample) photo. */
+[data-wm] { position: relative; }
+[data-wm]::before { content: ""; position: absolute; z-index: 1; right: 3%; bottom: 4%; width: clamp(52px, 14%, 112px); aspect-ratio: 857 / 152; pointer-events: none;
+  background: url('/brand/carma-logo-white.svg') center / contain no-repeat; opacity: 0.7; filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5)); }
+@media print { [data-wm]::before { display: none; } }

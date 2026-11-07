@@ -10,9 +10,9 @@ import { PORTAL_HOME, portalsFor, type PortalKey } from '@/server/portals';
 
 /** Sign out. 0325: while an Admin views as someone the frame looks exactly as theirs (Sign out shown, and inert: it would
  *  sign the Admin out); the way back is Exit on the red banner, the only thing view-as adds. */
-export async function SignOutOrExit({ className = 'btn btn--quiet btn--sm' }: { className?: string }) {
-  if (await viewAs()) return <button className={className} type="button" aria-disabled="true" title="Read only while viewing: use Exit on the red banner" data-testid="sign-out-viewing">Sign out</button>;
-  return <form action={signOut}><button className={className} type="submit">Sign out</button></form>;
+export async function SignOutOrExit({ className = 'btn btn--quiet btn--sm hd-act' }: { className?: string }) {
+  if (await viewAs()) return <button className={className} type="button" aria-disabled="true" title="Read only while viewing: use Exit on the red banner" data-testid="sign-out-viewing"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9M15 8l4 4-4 4M19 12H9" /></svg><span className="hd-lbl">Sign out</span></button>;
+  return <form action={signOut}><button className={className} type="submit" title="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9M15 8l4 4-4 4M19 12H9" /></svg><span className="hd-lbl">Sign out</span></button></form>;
 }
 
 /** Links to the account's other portals (nothing when it has only this one). */

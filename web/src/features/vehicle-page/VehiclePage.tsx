@@ -5,6 +5,7 @@ import { CarInterest, type Interest } from '@/features/live/CarInterest';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { Act } from '@/features/admin/Act';
+import { MoreActions } from '@/features/admin/NextStep';
 import { Registration, type RegistrationData } from '@/features/vehicles/Registration';
 import { MasterCalendar, type CalData } from '@/features/admin/MasterCalendar';
 import { rangeFrom } from '@/features/admin/range';
@@ -109,10 +110,12 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
             <div className="ad-actions">
               {ls?.can_insure && <InsurerConfirm vehicleId={id} name={v.name} refresh={refresh} label="Insurer confirmed" testId="vehicle-insurer-confirm" />}
               {v.transitions.length > 0 && <Act action="vehicle_status" payload={P} label="Change status" fields={[{ name: 'status', label: 'New status', type: 'select', required: true, options: v.transitions.map((s) => [s, label(s)]) }]} refresh={refresh} />}
+              <MoreActions start testId="vehicle-more-identity">
               {/* 0352: the fleet page opens on Trending; a pinned car leads it (1 first), whatever its score */}
               <Act action="fleet_pin" payload={{ vehicle_id: id }} label={v.listing?.pinned_rank ? `Pinned to the top (${String(v.listing.pinned_rank)})` : 'Pin to the top of /cars'} testId="vehicle-pin"
                 fields={[{ name: 'rank', label: 'Place at the top of the fleet page (1 first; empty to unpin)', type: 'number', value: v.listing?.pinned_rank ? String(v.listing.pinned_rank) : '' }]} refresh={refresh} />
               <Act action="vehicle_classes" payload={P} label="Classes" fields={[{ name: 'classes', label: 'Classes (comma separated codes)', type: 'list', value: v.classes, hint: classes.map((c) => c.code).join(', ') }]} refresh={refresh} />
+              </MoreActions>
             </div>
           </Card>
           <Card title="Edit details">
@@ -124,7 +127,7 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
               { name: 'extension_offers', label: 'Renters extend themselves', type: 'bool', value: v.extension_offers ?? true, hint: 'At the extension discount, approved at once when the car is free. Off: renters of this car ask and staff approve, at the regular price.' }]} />
           </Card>
           <Card title="For sale" testId="vehicle-for-sale">
-            <p className="small muted">Flag the car for sale with its asking price: it then shows at the top of its /buy pages with the price (and a schema.org Offer). Without the flag no page says the car is for sale.</p>
+            <p className="small muted">With the flag and a price, the car shows at the top of its /buy pages.</p>
             <Kv rows={[['For sale', v.for_sale ? `Yes, ${v.asking_price_cents ? `$${(Number(v.asking_price_cents) / 100).toLocaleString('en-CA', { minimumFractionDigits: 2 })}` : 'no price'}` : 'No']]} />
             <Act inline action="vehicle_for_sale" payload={{ vehicle_id: id }} label="Save" refresh={refresh} testId="vehicle-for-sale-save" fields={[
               { name: 'for_sale', label: 'For sale', type: 'bool', value: !!v.for_sale }, { name: 'asking_price_cents', label: 'Asking price', type: 'money', value: (v.asking_price_cents as number | null) ?? null }]} />
@@ -135,19 +138,21 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
               ['Commission', `${(v.commission_effective_bps ?? 0) / 100}%${v.commission_bps == null ? ' (the partner\'s)' : ' (this car\'s own)'}`] as [string, React.ReactNode]] : []),
               ['Revenue to CarmaCars', v.supply_type === 'company' ? '100%: no owner, no owner statement, fees or payouts' : v.supply_type === 'partner' ? 'The commission; the partner gets the rest' : 'The management fee (Revenue Share) in the owner\'s schedule']]} />
             <div className="ad-actions">
-              {v.supply_type === 'partner' && <Act ops action="vehicle_set_commission" payload={{ vehicle_id: id }} label="Commission for this car" testId="vehicle-commission" refresh={refresh}
-                fields={[{ name: 'commission_bps', label: 'Commission (empty: the partner\'s)', type: 'percent', value: v.commission_bps }]} />}
               <Act ops action="vehicle_set_supply" payload={{ vehicle_id: id }} label="Change who supplies it" refresh={refresh} testId="vehicle-set-supply"
                 confirm="Only for a car with no booking under way and no owner schedule or invoices. Bookings already made keep their split."
                 fields={[{ name: 'supply_type', label: 'Supplied by', type: 'select', required: true, value: v.supply_type, options: [['program_owner', 'A program owner'], ['company', 'CarmaCars (company fleet)'], ['partner', 'A partner rental company']] },
                   { name: 'partner_id', label: 'Partner (for a partner car)', type: 'select', options: partners.map((x) => [x.id, x.business_name] as [string, string]) },
                   { name: 'commission_bps', label: 'Commission (partner car; empty: the partner\'s)', type: 'percent' },
                   { name: 'owner_id', label: 'Owner (for a program owner\'s car)', type: 'select', options: owners.map((o) => [o.owner_id, o.legal_name] as [string, string]) }]} />
+              <MoreActions start testId="vehicle-more-supply">
+              {v.supply_type === 'partner' && <Act ops action="vehicle_set_commission" payload={{ vehicle_id: id }} label="Commission for this car" testId="vehicle-commission" refresh={refresh}
+                fields={[{ name: 'commission_bps', label: 'Commission (empty: the partner\'s)', type: 'percent', value: v.commission_bps }]} />}
               {/* 0237: a car added under the wrong owner moves, while nothing for it is signed, issued or paid */}
               {v.supply_type === 'program_owner' && <Act action="vehicle_move_owner" payload={{ vehicle_id: id }} label="Move to another owner" refresh={refresh} testId="vehicle-move-owner"
                 confirm="For a car added under the wrong owner. Its unsigned owner application and vehicle schedule are withdrawn (kept in the history) and its draft owner invoices deleted. Nobody is notified. Refused once anything for the car is signed, issued or paid."
                 fields={[{ name: 'owner_id', label: 'Move to', type: 'select', required: true,
                   options: [['company', 'CarmaCars (owner not known yet)'] as [string, string], ...owners.filter((o) => o.owner_id !== v.owner?.id).map((o) => [o.owner_id, o.legal_name] as [string, string])] }]} />}
+              </MoreActions>
             </div>
           </Card>
           <Card title="Retire or delete" testId="vehicle-retire-card">
@@ -155,7 +160,7 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
               <p className="small" data-testid="vehicle-retired">Retired on {d(v.retired_at)}: {v.retired_reason}. It takes no bookings and is off the calendars; its bookings, statements and payments stay.</p>
               <div className="ad-actions"><Act ops action="vehicle_restore" payload={{ vehicle_id: id }} label="Restore" confirm="The car takes bookings again. Publish its listing again when it is ready." refresh={refresh} testId="vehicle-restore" /></div>
             </> : <>
-              <p className="small muted">Retire a car that leaves the fleet: its listing is unpublished and it leaves the calendars from now on, and everything it earned stays. {v.bookings_ahead > 0 ? `First cancel or move its ${v.bookings_ahead} confirmed booking(s) ahead.` : ''}</p>
+              <p className="small muted">For a car that leaves the fleet: unlisted, off the calendars, earnings stay.{v.bookings_ahead > 0 ? ` First cancel or move its ${v.bookings_ahead} booking(s) ahead.` : ''}</p>
               <div className="ad-actions"><Act ops action="vehicle_retire" payload={{ vehicle_id: id }} label="Retire this car" variant="danger" refresh={refresh} testId="vehicle-retire"
                 fields={[{ name: 'reason', label: 'Reason (sold, returned to the owner, written off)', type: 'text', required: true }]} /></div>
             </>}
@@ -208,8 +213,10 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
               {v.intake && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/listings/${String(v.intake.id)}`}>Open the listing review</Link>}
               {!v.intake && <Act action="listing_start" payload={{ vehicle_id: id }} label="Start a listing" go="/admin/listings/{intake_id}" />}
               {ls?.can_publish && ls.can_act && <Act action="listing_publish_now" payload={{ vehicle_id: id }} label="Publish now" variant="primary" refresh={refresh} testId="vehicle-publish" done={ls.needs_default_rates ? 'Published with the default rates. Change them on the Rates tab.' : 'Published.'} />}
+              <MoreActions start testId="vehicle-more-listing">
               {v.is_sample && <Act action="vehicle_sample" payload={{ ...P, is_sample: false }} label="Not a sample" confirm="This car is real: its page goes into search results and the sitemap." refresh={refresh} testId="vehicle-sample-clear" />}
               {v.listing?.status === 'published' && <Act action="listing_unlist" payload={P} label="Unlist" variant="danger" refresh={refresh} fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }, { name: 'to_path', label: 'Redirect to (empty: the model page or 410)', type: 'text' }]} />}
+              </MoreActions>
             </div>
           </Card>
           <ListingWarnings w={ls} vehicleId={id} name={v.name} ownerId={v.owner?.id ?? null} intakeId={v.intake ? String(v.intake.id) : null} refresh={refresh} />

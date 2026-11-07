@@ -4,14 +4,13 @@ import '@/styles/admin.css';
 import '@/styles/admin-ui.css';
 import { realUser as currentUser } from '@/server/portal/data';
 import { signOut } from '@/server/actions/auth';
-import { AdminNav, AdminSearch, GROUPS } from '@/features/admin/AdminNav';
+import { AdminNav, AdminSearch } from '@/features/admin/AdminNav';
+import { JUMP } from '@/features/admin/jumpPages';
+import { ADMIN_HUBS, ADMIN_SECTIONS } from '@/features/admin/hubs';
 import { HubBar } from '@/features/admin/HubBar';
-import { ADMIN_HUBS, ADMIN_SECTIONS, pagesOf } from '@/features/admin/hubs';
-import { VISITOR_TABS } from '@/features/visitors/tabs';
 import { RevampScope } from '@/features/admin/revamp/RevampScope';
 import { REVAMP_ADMIN } from '@/features/admin/revamp/scope';
 import { AdminCommand } from '@/features/admin/shell/AdminCommand';
-import { SECTIONS } from './settings/sections';
 import { adminGate } from '@/server/admin/data';
 import { rpc } from '@/lib/db/repo';
 import { door } from '@/server/door';
@@ -21,16 +20,9 @@ import { StuckHelp } from '@/features/help/StuckHelp';
 import { PushInvite } from '@/features/push/PushAlerts';
 import { AssistantPanel } from '@/features/assistant/AssistantPanel';
 import { greetName } from '@/features/admin/today/greeting';
+import { BrandMark } from '@/components/BrandMark';
 import { AlertsBell } from '@/features/alerts/AlertsBell';
 
-// Ctrl+K reaches every page of the menu, every tab of a page group and every settings page (the menu lists none of them)
-// r27 consolidation: the groups' actions (Add a car, Rates for many cars...) and the Visitors page's tabs too
-const JUMP = [...GROUPS, ...ADMIN_HUBS.map((h) => ({ key: `hub-${h.key}`, label: h.label, links: pagesOf(h).map((t) => ({ href: t.href, label: `${h.label}: ${t.label}` })) })),
-  { key: 'visitors', label: 'Visitors', links: VISITOR_TABS.admin.map((t) => ({ href: t.href, label: `Visitors: ${t.label}` })) },
-  { key: 'actions', label: 'Actions', links: [{ href: '/admin/offers/new', label: 'Send an offer' }, { href: '/admin/bookings/new', label: 'Add a rental' }] },
-  // the sections' own pages (Maintenance, Applications, Investors, Tolls and tickets, Settings)
-  ...ADMIN_SECTIONS.map((x) => ({ key: `sec-${x.key}`, label: x.label, links: x.items.flatMap((i) => (typeof i === 'string' ? [] : [{ href: i.href, label: i.label }])) })),
-  { key: 'settings-all', label: 'Settings', links: SECTIONS.map(([k, title]) => ({ href: `/admin/settings/${k}`, label: title })) }];
 
 // The admin portal's frame (docs/blueprint/03-admin.md; simpler since October 16, 2026): who is signed in, one search
 // box, seven groups of pages with the counts that need someone. Every page checks the Admin role and two-step sign-in itself (requireAdmin);
@@ -58,8 +50,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <div className="ad__frame">
         {gate?.admin ? (
           <aside className="ad__rail">
-            <div className="ad__who"><span className="muted">Admin · <b data-testid="account-email">{gate.name ?? user?.email}</b></span>
-              <span className="gd-frame-links">{user ? <AlertsBell userId={user.id} href="/admin/alerts" /> : null}<AssistantPanel portal="admin" greeting={greetName(gate)} /><GuideLink portal="admin" /><form action={signOut}><button className="btn btn--quiet btn--sm" type="submit">Sign out</button></form></span></div>
+            <div className="ad__who"><span className="muted"><BrandMark size={22} className="ad__mark" />Admin · <b data-testid="account-email">{gate.name ?? user?.email}</b></span>
+              <span className="gd-frame-links">{user ? <AlertsBell userId={user.id} href="/admin/alerts" /> : null}<AssistantPanel portal="admin" greeting={greetName(gate)} /><GuideLink portal="admin" /><form action={signOut}><button className="btn btn--quiet btn--sm hd-act" type="submit" title="Sign out"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H9M15 8l4 4-4 4M19 12H9" /></svg><span className="hd-lbl">Sign out</span></button></form></span></div>
             <PortalSwitch current="admin" />
             <div className="ad__find"><AdminSearch /><AdminCommand groups={JUMP} /></div>
             <AdminNav counts={counts} />
