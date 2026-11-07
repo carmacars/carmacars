@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { acceptCookies, watch } from './helpers';
+import { acceptCookies, db, watch } from './helpers';
 
 // The car card's photos (src/lib/card-photos.ts, docs/changes/2026-11-06-stale-chunks-car-card-photos.md): a mouse
 // resting on a card shows the car's other photos in turn and leaving puts the cover back; a swipe on a phone moves
@@ -45,8 +45,12 @@ test('hover cycles the photos, leaving goes back to the cover; no console error'
 
 test('a swipe on a phone moves to the next photo and opens nothing; a tap opens the car', async ({ page }, ti) => {
   test.skip(ti.project.name !== 'phone-375', 'a finger');
+  // the photo list is a public read: the reads earlier tests made from this address must not have used up its limit
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  await sql.end();
   const errors = watch(page);
-  await page.goto('/cars');
+  await page.goto('/cars', { waitUntil: 'networkidle' });
   await acceptCookies(page);
   const card = firstCard(page);
   await card.scrollIntoViewIfNeeded();
