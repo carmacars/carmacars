@@ -210,7 +210,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {/* the renter's licence front, back and selfie, reviewed by Sales (0169); the coverage stays with customer service and Admin */}
       {can.licenceReview && ['requested', 'offered', 'tentative', 'pending_payment', 'confirmed', 'on_rent'].includes(b.status) && (
         <Card title="Renter licence" testId="booking-doc-review" aside={<DocumentReview booking={b.booking_number} refresh={refresh} label="Review the licence" />}>
-          <p className="small">Approve or reject the licence front, back and selfie the renter sent; a rejection tells them why. The proof of coverage and the Protection Plan are reviewed by customer service or an Admin.</p>
+          <p className="small muted">Licence front, back and selfie; a rejection tells the renter why. Coverage is reviewed by customer service or an Admin.</p>
         </Card>)}
       {/* staff upload the renter's documents: licence, insurance policy or pink card, insurer letters (0183) */}
       {can.staffUpload && ['pending_payment', 'confirmed', 'on_rent', 'returned'].includes(b.status) && notOwner && (
@@ -305,6 +305,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
             </>}
             depositExtras={can.admin ? <div className="ad-actions" data-testid="booking-debit-override">
               {['confirmed', 'pending_payment'].includes(b.status) && !b.deposit && !(b as unknown as R).deposit_waived_at && <Act action="waive_deposit" payload={P} label="Waive the deposit" fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} refresh={[base]} testId="bm-waive" />}
+              <MoreActions start label="More" testId="deposit-more">
               {/* 0262: the deposit with a debit or prepaid card, for this booking */}
               {moneyByPart.debit_deposit?.takes && <Act action="booking_debit_deposit" payload={{ booking: b.booking_number }} label="Change the debit deposit" refresh={refresh} testId="booking-debit-deposit"
                 fields={[{ name: 'amount_cents', label: 'Deposit with a debit or prepaid card (empty: the standard multiple)', type: 'money' }, { name: 'reason', label: 'Reason', type: 'text', required: true }]} />}
@@ -315,6 +316,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
                 : <Act action="booking_allow_debit" payload={{ booking: b.booking_number, allow: true }} label="Allow debit and prepaid cards for this booking" refresh={refresh} testId="booking-debit-on"
                     confirm="The pay page, staff pay links and the deposit hold of this booking will take a debit or prepaid card. The renter is told the hold lowers the money available on the card until it is released. The deductible may not be chargeable on such a card."
                     fields={[{ name: 'reason', label: 'Reason', type: 'text', required: true }]} />)}
+              </MoreActions>
             </div> : undefined}
             depositSettle={can.settleDeposit ? <DepositSettle bookingId={b.id} bookingNumber={b.booking_number} refresh={[base]} /> : undefined} />}
           {!moneyByPart && payments && <Card title="Payments"><Table rows={payments} empty="No payments." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'purpose', label: 'Purpose' }, { key: 'kind', label: 'Kind' }, ...(can.admin ? [{ key: 'method', label: 'Method' }] : []), { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }]} />

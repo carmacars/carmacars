@@ -32,7 +32,7 @@
 .ad__find .gn-search { padding: 0; }
 .ad .gn-search .input { border-radius: 10px; background: var(--grey-50); border-color: var(--grey-300); }
 .ad .gn-search .input:focus { background: var(--white); }
-.ad-jump { display: none; }
+.ad-jump { display: none; } /* Ctrl K still opens the quick list; the one search box is the way in by touch */
 .ad__rail .portal-switch { padding: 0 var(--gutter) var(--s-3); }
 @media (min-width: 64rem) {
   .ad .ad__frame { grid-template-columns: 15rem minmax(0, 1fr); }
@@ -40,11 +40,6 @@
   .ad__find { padding: 0 var(--s-3) var(--s-3); }
   .ad .ad__who { padding-inline: var(--s-4); }
   .ad__rail .portal-switch { padding-inline: var(--s-4); }
-  .ad-jump { display: flex; align-items: center; gap: var(--s-2); width: 100%; min-height: 36px; padding: 0 var(--s-2) 0 var(--s-3); border: 1px solid var(--grey-200); border-radius: 10px;
-    background: var(--white); color: var(--text-2); font: inherit; font-size: var(--fs-xs); text-align: left; cursor: pointer; }
-  .ad-jump:hover { border-color: var(--black); color: var(--text); }
-  .ad-jump svg { width: 15px; height: 15px; flex: none; }
-  .ad-jump span { flex: 1; }
   .ad .ad__main { padding: var(--s-5) var(--s-6) var(--section); max-width: 96rem; }
 }
 .ad-kbd { display: inline-grid; place-items: center; min-width: 1.6em; height: 1.55em; padding: 0 0.4em; border: 1px solid var(--grey-300); border-bottom-width: 2px; border-radius: 5px;
@@ -325,3 +320,46 @@ td .ad-sub { display: block; font-size: var(--fs-2xs); color: var(--text-2); mar
 .si__head { display: grid; gap: 2px; padding-left: var(--s-3); border-left: 4px solid var(--red-600); }
 .si__head h2, .si__head p { margin: 0; }
 @media (max-width: 47.99rem) { .si__bar { position: static; } .si__jump a { min-height: 44px; } }
+
+/* ---------------------------------------------------------------- the menu's top (r32)
+   One row for who is signed in, then one row of equal icon buttons (alerts, profile, assistant, guide, sign out) that
+   share a baseline at 375 and at 1440; then ONE search box (pages and records). */
+.ad .ad__who { flex-direction: column; align-items: stretch; gap: var(--s-2); padding-block: var(--s-3) var(--s-2); }
+.ad .ad__who > .muted { flex: none; min-width: 0; overflow-wrap: anywhere; font-size: var(--fs-sm); line-height: 1.25; }
+.ad .ad__who .gd-frame-links { flex: none; display: flex; flex-wrap: nowrap; align-items: stretch; justify-content: space-between; gap: 2px; width: 100%; min-width: 0; }
+.ad .ad__who .gd-frame-links > form { display: contents; }
+.ad .ad__who .hd-act { flex: 1 1 0; min-width: 0; width: auto; height: auto; min-height: 52px; margin: 0; padding: 6px 2px; border-radius: 10px; flex-direction: column; justify-content: center; gap: 3px;
+  font-size: var(--fs-2xs); font-weight: 600; line-height: 1.1; color: var(--text-2); background: transparent; border: 0; text-decoration: none; position: relative; white-space: nowrap; cursor: pointer; }
+.ad .ad__who .hd-act:hover { background: var(--grey-100); color: var(--text); }
+.ad .ad__who .hd-act svg { width: 20px; height: 20px; }
+.ad .ad__who .hd-act .hd-lbl { display: block; }
+.ad .ad__who .al-bell__n { top: 3px; right: auto; left: calc(50% + 2px); min-width: 1rem; height: 1rem; padding: 0 0.25rem; font-size: 0.625rem; line-height: 1rem; }
+.ad__find .gn-search { position: relative; }
+.ad__find .gn-search .input { padding-right: 2.6rem; }
+.ad__find .gn-search .gn-search__go { border-color: transparent; background: transparent; display: inline-grid !important; place-items: center; position: absolute; right: 2px; top: 2px; min-height: 36px; width: 36px; padding: 0; }
+.ad__find .gn-search { flex-direction: row; }
+@media (min-width: 64rem) {
+  /* the rail is narrow: icons only, each named by its tooltip and its accessible name */
+  .ad .ad__who .hd-act .hd-lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .ad .ad__who .hd-act { min-height: 40px; }
+}
+@media (max-width: 63.99rem) {
+  .ad .ad__who { padding-inline: var(--s-4); }
+  .ad__find { padding-inline: var(--s-4); }
+  .ad .ad__who .hd-act { min-height: 48px; }
+}
+
+.ad-more--start .ad-more__menu { right: auto; left: 0; }
+/* ---------------------------------------------------------------- "More" menu (r32): one primary action, the rest behind it */
+.mm { position: relative; display: inline-block; }
+.mm__btn { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4em; }
+.mm__btn::-webkit-details-marker { display: none; }
+.mm[open] > .mm__btn svg { transform: rotate(180deg); }
+.mm__list { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; min-width: 15rem; max-width: min(22rem, calc(100vw - 2 * var(--gutter))); display: grid; padding: var(--s-1);
+  background: var(--white); border: 1px solid var(--grey-200); border-radius: 10px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14); }
+.mm__item { display: flex; align-items: center; min-height: 44px; padding: 0 var(--s-3); border: 0; border-radius: 8px; background: transparent; color: var(--text); font: inherit; font-size: var(--fs-sm); text-align: left; cursor: pointer; text-decoration: none; }
+.mm__item:hover, .mm__item:focus-visible { background: var(--grey-100); }
+.mm__item:disabled { color: var(--text-2); cursor: default; }
+@media (max-width: 30rem) { .mm__list { left: auto; right: 0; } }
+.ad__find .gn-search .gn-search__kbd { display: none; position: absolute; right: 44px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+@media (min-width: 64rem) { .ad__find .gn-search .gn-search__kbd { display: inline-grid; } .ad__find .gn-search .input { padding-right: 5.6rem; } }

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 import { agreementFill, agreementOverride, agreementRegenerate, agreementResend, disputePackBuild, disputePackSubmit } from '@/server/actions/agreements';
 import { TypedInput } from '@/components/DateInput';
+import { MoreMenu, ToolItem, useTool } from '@/features/admin/MoreMenu';
 
 export interface Missing { key: string; label: string; where: string; required: boolean; driver_id?: string }
 
@@ -19,7 +20,7 @@ export function MissingFields({ booking, missing, refresh, isAdmin, overrides }:
   const [reason, setReason] = useState('');
   const [pending, start] = useTransition();
   const fillable = missing.filter((m) => m.where !== 'settings');
-  if (!missing.length) return <p className="small fd-line is-ok" data-testid="agreement-complete"><span aria-hidden="true">✓</span> Every field of both agreements has its value.</p>;
+  if (!missing.length) return <p className="small fd-line is-ok" data-testid="agreement-complete"><span aria-hidden="true">✓</span> Every field of both agreements is filled.</p>;
   const inputs = (m: Missing): Array<{ name: string; label: string; type: string }> => {
     const leaf = m.key.split('.').pop()!;
     if (leaf === 'address') return [['address_line1', 'Street'], ['city', 'City'], ['province', 'Province'], ['postal_code', 'Postal code']].map(([n, l]) => ({ name: `${m.key}.${n}`, label: `${m.label}: ${l}`, type: 'text' }));
@@ -41,7 +42,7 @@ export function MissingFields({ booking, missing, refresh, isAdmin, overrides }:
   const required = missing.filter((m) => m.required);
   return (
     <div className="stack" data-testid="agreement-missing">
-      <p className="small"><b>{required.length ? `${required.length} field${required.length === 1 ? '' : 's'} a claim needs ${required.length === 1 ? 'is' : 'are'} blank` : 'Recommended'}</b>: the agreements print these blank until they are filled.{required.length ? ' Check-out stops until they are, unless an Admin overrides.' : ''}</p>
+      <p className="small"><b>{required.length ? `${required.length} field${required.length === 1 ? '' : 's'} a claim needs ${required.length === 1 ? 'is' : 'are'} blank` : 'Recommended'}</b>: printed blank until filled.{required.length ? ' Check-out waits for them unless an Admin overrides.' : ''}</p>
       <form className="stack" onSubmit={(e) => { e.preventDefault(); start(async () => { const r = await agreementFill(booking, payload(), refresh); setMsg(r.ok ? { ok: true, text: 'Saved. The agreements follow in a moment.' } : { ok: false, text: r.message }); if (r.ok) { setVals({}); router.refresh(); } }); }}>
         <div className="grid-2" style={{ display: 'grid', gap: 'var(--s-2)', gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))' }}>
           {fillable.flatMap(inputs).map((f) => f.name === 'coverage.insurer_name'
@@ -66,18 +67,33 @@ export function MissingFields({ booking, missing, refresh, isAdmin, overrides }:
   );
 }
 
-export function AgreementActions({ booking, refresh, waiting, finance, disputes, docBase }: { booking: string; refresh: string[]; waiting: boolean; finance: boolean; docBase: string;
-  disputes: Array<{ id: string; status: string; built_at: string | null; submitted_at: string | null; document_id: string | null; error: string | null }> }) {
+export function AgreementActions({ booking, refresh, waiting, finance, disputes, docBase, edit = false, wording = false, blindspot = false }: { booking: string; refresh: string[]; waiting: boolean; finance: boolean; docBase: string;
+  disputes: Array<{ id: string; status: string; built_at: string | null; submitted_at: string | null; document_id: string | null; error: string | null }>;
+  /** the panels the More menu can open (r32): Edit the agreement, Edit the wording, Type into the Blind Spot agreement */
+  edit?: boolean; wording?: boolean; blindspot?: boolean }) {
   const router = useRouter();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  const editTool = useTool('edit');
   const act = (f: () => Promise<{ ok: true } | { ok: false; message: string }>, ok: string) => start(async () => { const r = await f(); setMsg(r.ok ? { ok: true, text: ok } : { ok: false, text: r.message }); if (r.ok) router.refresh(); });
+  const regenerate = () => act(() => agreementRegenerate(booking, refresh), 'The agreements are checked against the booking now.');
+  // r32: one primary action (resend the links while a version waits, else Edit the agreement) and the rest behind More
+  const primary = waiting
+    ? <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={() => act(() => agreementResend(booking, refresh), 'The links went again by email and text.')} data-testid="agreement-resend">Resend the signing links</button>
+    : edit ? <button className="btn btn--primary btn--sm" type="button" onClick={() => editTool?.show()} data-testid="agreement-edit-open">Edit the agreement</button>
+    : <button className="btn btn--primary btn--sm" type="button" disabled={pending} onClick={regenerate} data-testid="agreement-regenerate">Make the agreements again</button>;
+  const regenInMenu = waiting || edit;
   return (
     <div className="stack">
-      <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
-        {waiting && <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => act(() => agreementResend(booking, refresh), 'The links went again by email and text.')} data-testid="agreement-resend">Resend the signing links</button>}
-        <button className="btn btn--quiet btn--sm" type="button" disabled={pending} onClick={() => act(() => agreementRegenerate(booking, refresh), 'The agreements are checked against the booking now.')} data-testid="agreement-regenerate">Make the agreements again</button>
-        {finance && <button className="btn btn--quiet btn--sm" type="button" disabled={pending} onClick={() => act(() => disputePackBuild(booking, refresh), 'The evidence pack is being built; it shows here in a minute.')} data-testid="dispute-pack-build">Build the dispute evidence pack</button>}
+      <div className="ad-actions">
+        {primary}
+        {((waiting && edit) || wording || blindspot || regenInMenu || finance) && <MoreMenu testId="agreement-more">
+          {waiting && edit && <ToolItem id="edit">Edit the agreement</ToolItem>}
+          {wording && <ToolItem id="wording" testId="agreement-wording-open">Edit the wording</ToolItem>}
+          {blindspot && <ToolItem id="blindspot" testId="blindspot-open">Type into the Blind Spot agreement</ToolItem>}
+          {regenInMenu && <button className="mm__item" role="menuitem" type="button" disabled={pending} onClick={regenerate} data-testid="agreement-regenerate">Make the agreements again</button>}
+          {finance && <button className="mm__item" role="menuitem" type="button" disabled={pending} onClick={() => act(() => disputePackBuild(booking, refresh), 'The evidence pack is being built; it shows here in a minute.')} data-testid="dispute-pack-build">Build the dispute evidence pack</button>}
+        </MoreMenu>}
       </div>
       {disputes.map((d) => <p key={d.id} className="small" data-testid="dispute-pack">Dispute evidence pack: {d.status}{d.built_at ? `, built ${d.built_at.slice(0, 16).replace('T', ' ')}` : ''}{d.submitted_at ? `, submitted ${d.submitted_at.slice(0, 10)}` : ''}.
         {docBase && d.document_id && <> <a className="link" href={`${docBase}/${d.document_id}`} target="_blank" rel="noreferrer">Download</a></>}
@@ -114,7 +130,10 @@ export function AgreementEditAll({ booking, current, refresh, isAdmin }: { booki
   const init: Record<string, string> = {};
   for (const g of GROUPS) for (const [k] of g.fields) { const v = current[g.group]?.[k]; init[`${g.group}.${k}`] = v == null ? '' : String(v); }
   for (const d of current.drivers ?? []) for (const [k] of DRIVER_FIELDS) init[`drivers.${d.driver_id}.${k}`] = (d as unknown as Record<string, string | null>)[k] ?? '';
-  const [open, setOpen] = useState(false);
+  const tool = useTool('edit');
+  const [openLocal, setOpenLocal] = useState(false);
+  const open = tool ? tool.open : openLocal;
+  const setOpen = (v: boolean) => { if (tool) { if (v) tool.show(); else tool.hide(); } else setOpenLocal(v); };
   const [vals, setVals] = useState(init);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -140,7 +159,7 @@ export function AgreementEditAll({ booking, current, refresh, isAdmin }: { booki
     if (!r.ok) { setMsg({ ok: false, text: r.message }); return; }
     setMsg({ ok: true, text: 'Saved. The agreements follow in a moment (a new version to sign when the change is material).' }); setOpen(false); router.refresh();
   });
-  if (!open) return <button className="btn btn--ghost btn--sm" type="button" onClick={() => setOpen(true)} data-testid="agreement-edit-open">Edit the agreement</button>;
+  if (!open) return tool ? null : <button className="btn btn--ghost btn--sm" type="button" onClick={() => setOpen(true)} data-testid="agreement-edit-open">Edit the agreement</button>;
   const grid = { display: 'grid', gap: 'var(--s-2)', gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))' } as const;
   return (
     <div className="stack" data-testid="agreement-edit-all">

@@ -653,3 +653,17 @@ html[data-shell="app"] body { overscroll-behavior-y: none; }
   .site-header .wordmark img { max-width: 38vw; }
 }
 @media (max-width: 22.49rem) { .header-actions .btn--primary { display: none; } }
+
+/* header action buttons (r32): an icon with its label; the Admin and staff frames line them up in one row (admin-ui.css) */
+.hd-act svg { width: 18px; height: 18px; flex: none; }
+.hd-act { display: inline-flex; align-items: center; gap: 0.4em; }
+
+/* the brand icon on loading screens and in the menu header (r32) */
+.brand-mark { display: inline-block; border-radius: 22%; flex: none; }
+.brand-wait { display: grid; place-items: center; min-height: 40vh; }
+.brand-wait .brand-mark { animation: brand-pulse 1.4s ease-in-out infinite; }
+.pu-sk__mark { display: flex; justify-content: center; padding-bottom: var(--s-3); }
+.pu-sk__mark .brand-mark { animation: brand-pulse 1.4s ease-in-out infinite; }
+.ad__mark { width: 22px; height: 22px; vertical-align: -6px; margin-right: 8px; }
+@keyframes brand-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) { .brand-wait .brand-mark, .pu-sk__mark .brand-mark { animation: none; } }

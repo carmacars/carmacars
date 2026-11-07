@@ -16,7 +16,7 @@ export function CarCard({ c, labels, tag: Tag = 'h3', href, price, unit, booked 
 }) {
   return (
     <article className="car-card">
-      <div className="car-card__media photo photo--32">
+      <div className="car-card__media photo photo--32" data-wm={c.cover && !c.cover.sample ? "" : undefined}>
         <CarImage p={c.cover} />
         {c.cover && !c.cover.sample && (photosMax ?? 5) > 1
           && <span className="car-card__deck" data-slug={c.slug} data-max={photosMax} aria-hidden="true" dangerouslySetInnerHTML={{ __html: '' }} />}

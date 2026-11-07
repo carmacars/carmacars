@@ -23,13 +23,14 @@ export function NextStepPanel({ s }: { s: NextStep }) {
 
 // The other actions of the booking in one menu (details and summary: opens with Enter or Space, every action inside is
 // a normal button or link). Nothing shows when no action applies.
-export function MoreActions({ children }: { children: ReactNode }) {
+/** `label` and `testId` name a second menu on a page (a card's own More); `start` opens it to the right of its button (in a card). */
+export function MoreActions({ children, label = 'More actions', testId = 'more-actions', start = false }: { children: ReactNode; label?: string; testId?: string; start?: boolean }) {
   const items = (Array.isArray(children) ? children : [children]).flat(Infinity).filter((c) => c !== null && c !== undefined && c !== false && c !== '');
   if (!items.length) return null;
   return (
-    <details className="ad-more" data-testid="more-actions">
-      <summary className="btn btn--ghost btn--sm" data-testid="more-actions-open">More actions</summary>
-      <div className="ad-more__menu" role="group" aria-label="More actions">{children}</div>
+    <details className={`ad-more${start ? ' ad-more--start' : ''}`} data-testid={testId}>
+      <summary className="btn btn--ghost btn--sm" data-testid={`${testId}-open`}>{label}</summary>
+      <div className="ad-more__menu" role="group" aria-label={label}>{children}</div>
     </details>
   );
 }

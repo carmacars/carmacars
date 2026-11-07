@@ -34,11 +34,13 @@ export const GROUPS: NavGroup[] = [
 export const NAV: Array<[string, Array<[string, string, string?]>]> = GROUPS.map((g) => [g.label, g.links.map((l) => [l.href, l.label, l.key] as [string, string, string?])]);
 
 export function AdminSearch() {
+  // ONE box (r32): pages and records. Enter searches both; Ctrl K opens the quick list (AdminCommand), / focuses the box
   return (
     <form className="gn-search" action="/admin/search" role="search" data-testid="admin-search">
-      <label className="vh" htmlFor="gn-q">Search bookings, cars, owners, partners and renters</label>
-      <input className="input" id="gn-q" name="q" type="search" placeholder="Search: booking, plate, VIN, name, email" data-shortcut="/" autoComplete="off" />
-      <button className="btn btn--ghost btn--sm" type="submit">Search</button>
+      <label className="vh" htmlFor="gn-q">Search pages, bookings, cars, owners, partners and renters</label>
+      <input className="input" id="gn-q" name="q" type="search" placeholder="Search pages and records" data-shortcut="/" autoComplete="off" />
+      <kbd className="ad-kbd gn-search__kbd" aria-hidden="true">Ctrl K</kbd>
+      <button className="btn btn--ghost btn--sm gn-search__go" type="submit" aria-label="Search" title="Search"><svg viewBox="0 0 20 20" aria-hidden="true" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M8.5 3a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM12.5 12.5 17 17" /></svg></button>
     </form>
   );
 }

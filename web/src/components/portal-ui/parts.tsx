@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { PortalIcon, type PortalIconName } from './icons';
+import { BrandMark } from '@/components/BrandMark';
 
 // Small portal-ui pieces: a panel with a title row, a smooth disclosure, an empty state and the loading shapes.
 const cx = (...c: Array<string | false | null | undefined>) => c.filter(Boolean).join(' ');
@@ -36,6 +37,7 @@ export function HeroSkeleton() {
   return (
     <div className="pu-sk" role="status">
       <span className="vh">Loading</span>
+      <div className="pu-sk__mark" aria-hidden="true"><BrandMark size={28} /></div>
       <div className="pu-sk__hero skeleton" aria-hidden="true" />
       <div className="pu-stats" aria-hidden="true">{[0, 1, 2, 3].map((i) => <div key={i} className="pu-sk__stat skeleton" />)}</div>
       <div className="pu-sk__card skeleton" aria-hidden="true" />

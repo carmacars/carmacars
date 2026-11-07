@@ -6,6 +6,7 @@ import { env } from '@/lib/env';
 import { storage, type Bucket } from '@/integrations/storage';
 import { sha256Hex } from '@/server/links';
 import { money } from '@/lib/format';
+import { drawBrandLogo } from '@/features/brand/draw-logo';
 import { stamp, type CertSigner } from '@/features/signing/certificate';
 
 // The dispute evidence pack (migration 0154): one PDF that proves the rental, for Stripe's dispute evidence (or to
@@ -64,7 +65,8 @@ async function chargeFacts(chargeId: string | null | undefined): Promise<StripeC
 class Writer {
   page!: PDFPage; y = 0; readonly M = 48; readonly W = 612; readonly H = 792;
   constructor(public doc: PDFDocument, public reg: PDFFont, public bold: PDFFont) { this.newPage(); }
-  newPage() { this.page = this.doc.addPage([this.W, this.H]); this.y = this.H - this.M; }
+  /** r32: the brand logo at the top of the first page */
+  newPage() { this.page = this.doc.addPage([this.W, this.H]); this.y = this.H - this.M; if (this.doc.getPageCount() === 1) { drawBrandLogo(this.page, this.M, this.H - this.M + 10, 110); this.y -= 26; } }
   safe(s: string) { return s.replace(/[^\x20-\x7E\xA0-\xFF]/g, ''); }
   line(text: string, size = 9, bold = false, gap = 0) {
     const f = bold ? this.bold : this.reg;

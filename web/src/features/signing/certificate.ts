@@ -7,6 +7,7 @@
 // pdf-lib only (works in the Worker and in Node). Relative imports with their extension: the unit tests run it directly.
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 import { DOC_TERM_LABELS } from './terms.ts';
+import { drawBrandLogo } from '../brand/draw-logo.ts';
 
 export interface CertEvent { at: string; kind: string; detail?: Record<string, unknown> | null; ip_address?: string | null; user_agent?: string | null }
 export interface CertSigner {
@@ -132,6 +133,7 @@ export async function appendCertificate(bytes: Uint8Array, c: Certificate): Prom
   let page: PDFPage = doc.addPage([W, H]);
   let y = H - M;
   const pages: PDFPage[] = [page];
+  drawBrandLogo(page, M, H - M + 10, 110); y -= 26;   // r32: the brand logo
   for (const l of certificateLines(c)) {
     const size = l.size ?? 9;
     const font = l.bold ? bold : reg;
@@ -157,7 +159,8 @@ export async function appendSignaturePage(bytes: Uint8Array, title: string, lead
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const M = 48;
   const page = doc.addPage([W, H]);
-  let y = H - M - 16;
+  drawBrandLogo(page, M, H - M + 10, 110);   // r32: the brand logo
+  let y = H - M - 36;
   page.drawText(safe(title), { x: M, y, size: 14, font: bold });
   y -= 18;
   for (const t of wrap(reg, lead, 9, W - 2 * M)) { page.drawText(t, { x: M, y, size: 9, font: reg }); y -= 12; }

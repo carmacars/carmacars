@@ -8,11 +8,11 @@ import { SEEN_COOKIE } from './constants';
 // first-visit banner. The banner asks the database once per device: after it is dismissed, or the guide is opened, a
 // cookie on the device says so and the frame stops asking.
 
-export function GuideLink({ portal, className = 'btn btn--quiet btn--sm gd-link' }: { portal: GuidePortal; className?: string }) {
+export function GuideLink({ portal, className = 'btn btn--quiet btn--sm gd-link hd-act' }: { portal: GuidePortal; className?: string }) {
   return (
-    <a className={className} href={GUIDE_PATH[portal]} data-testid="guide-link">
+    <a className={className} href={GUIDE_PATH[portal]} title="Guide" data-testid="guide-link">
       <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" /><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5A2.5 2.5 0 0 1 4 20.5z" /></svg>
-      Guide
+      <span className="hd-lbl">Guide</span>
     </a>
   );
 }
