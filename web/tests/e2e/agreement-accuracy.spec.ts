@@ -119,7 +119,11 @@ test('the Rental agreements card: missing fields filled; a material change signe
   await expect(card.getByText('Saved. The agreements follow in a moment.')).toBeVisible({ timeout: 15_000 });
   await expect.poll(async () => (await sql`select licence_expiry::text e from booking_drivers where booking_id = ${bk.booking} and role = 'renter'`)[0]!.e).toBe('2032-03-14');
 
-  // a material change: the coverage option; the agreements are made again at once (the card's button kicks the job)
+  // a material change: the coverage option; the agreements are made again at once (the card's button kicks the job).
+  // r28 (0542): by default a change after signing is an amendment that is not signed again; this test covers the
+  // signing path, with Program settings > amended agreements turned off for its length
+  const [amend] = await sql`select amend_without_signature a from program_settings limit 1`;
+  await sql`update program_settings set amend_without_signature = false`;
   await sql`update bookings set coverage_option = 3 where id = ${bk.booking}`;
   await page.reload({ waitUntil: 'networkidle' });
   await page.getByTestId('agreement-regenerate').click();
@@ -164,5 +168,6 @@ test('the Rental agreements card: missing fields filled; a material change signe
   await rp.getByTestId('verify-file').setInputFiles({ name: 'changed.pdf', mimeType: 'application/pdf', buffer: Buffer.concat([file, Buffer.from(' ')]) });
   await expect(rp.getByTestId('verify-not-found')).toBeVisible({ timeout: 15_000 });
   await rp.context().close();
+  await sql`update program_settings set amend_without_signature = ${amend?.a ?? true}`;
   await sql.end();
 });

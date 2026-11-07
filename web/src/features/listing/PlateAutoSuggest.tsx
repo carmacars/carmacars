@@ -32,14 +32,16 @@ export function PlateAutoSuggest({ photos, exterior, on }: { photos: P[]; exteri
     ran.current = true;
     void (async () => {
       const { askVision } = await import('@/features/tolls/pdf');
+      let n = 0;
       for (const p of todo) {
         const f = await frame(p.id);
         if (!f) continue;
         const r = await askVision('plate_detect', f.data, { photo: p.id, vehicle: p.vehicle_id, width: f.width, height: f.height });
         if (!r.ok) { setStopped(r.message); break; }
-        setDone((n) => n + 1);
+        n += 1; setDone((x) => x + 1);
       }
-      router.refresh();
+      // only when a box was kept: a refresh with nothing new would just ask again
+      if (n) router.refresh();
     })();
   }, [on, todo, router]);
   if (!on || !todo.length && !done) return null;
