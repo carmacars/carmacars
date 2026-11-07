@@ -68,7 +68,7 @@ function One({ f }: { f: WForm }) {
         <div className="row">
           <label className="btn btn--primary btn--sm" htmlFor={`${id}-cam`}>{busy ? 'Uploading' : 'Take a photo of the signed page'}</label>
           <input id={`${id}-cam`} className="vh" type="file" accept="image/*" capture="environment" onChange={pick} disabled={busy} aria-label={`${f.title}: take a photo of the signed page`} data-testid="witnessed-camera" />
-          <label className="btn btn--ghost btn--sm" htmlFor={`${id}-file`}>Or choose a file</label>
+          <label className="btn btn--ghost btn--sm" htmlFor={`${id}-file`}>Choose from my photos</label>
           <input id={`${id}-file`} className="vh" type="file" accept="application/pdf,image/jpeg,image/png" onChange={pick} disabled={busy} aria-label={`${f.title}: choose the signed form`} data-testid="witnessed-file" />
         </div>
         {err.form && <p className="error" role="alert">{err.form}</p>}

@@ -63,7 +63,7 @@ export function StaffDocUpload({ bookingId, drivers }: { bookingId: string; driv
         {(kind === 'insurer_document' || kind === 'other') && <div className="field ad-field"><label className="label" htmlFor="sdu-title">Name (optional)</label>
           <input className="input" id="sdu-title" value={f.title} onChange={(e) => setF((s) => ({ ...s, title: e.target.value }))} /></div>}
         <div className="field ad-field"><label className="label" htmlFor="sdu-file">File (photo or PDF, up to 15 MB)</label>
-          <input className="input" id="sdu-file" type="file" accept={licence ? 'image/jpeg,image/png' : 'image/jpeg,image/png,application/pdf'} capture={licence ? 'environment' : undefined}
+          <input className="input" id="sdu-file" type="file" accept={licence ? 'image/jpeg,image/png' : 'image/jpeg,image/png,application/pdf'}
             onChange={(e) => setFile(e.target.files?.[0] ?? null)} data-testid="sdu-file" /></div>
       </div>
       <div className="row"><button className="btn btn--sm" type="button" disabled={pending} onClick={upload} data-testid="sdu-save">{pending ? 'Uploading…' : 'Upload'}</button>

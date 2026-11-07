@@ -24,7 +24,8 @@ export interface Money {
   deposit: { method: string; paid_method: string | null; status: string; amount_cents: number; captured_cents: number; released_cents: number; hold_expires_at: string | null; hold_days_left: number | null } | null;
   card: { brand: string; last4: string; exp_month: number; exp_year: number } | null;
   payments: Array<{ id: string; created_at: string; processed_at: string | null; purpose: string; kind: string; method: string; amount_cents: number; status: string; card_last4: string | null; card_brand: string | null;
-    covers: string | null; reference: string | null; note: string | null; manual_id: string | null; voided: boolean; by: string | null }>;
+    covers: string | null; reference: string | null; note: string | null; manual_id: string | null; voided: boolean; by: string | null;
+    /** 0680: one card charge for the rental and the fees, split (the rental first) */ parts?: { rental?: number; fees?: number } | null }>;
   requests: Array<{ id: string; kind: string; covers: string; amount_cents: number; channel: string; status: string; created_at: string; expires_at: string; last_error: string | null }>;
   /** 0213: the latest deposit hold link sent to the renter (texted by the job before pickup, or by staff) */
   /** 2026-11-01: Collect a card sends by text first when the renter has a mobile number */
@@ -44,6 +45,8 @@ export interface Money {
   card_rule?: CardRule | null; readers?: Array<{ id: string; label: string }>; is_admin?: boolean;
 }
 const fmt = (c: number | null | undefined) => money(Number(c ?? 0), { cents: true });
+// 0680: the split of one charge of the rental and the fees, in words
+const splitWords = (x?: { rental?: number; fees?: number } | null) => (x && (x.rental || x.fees) ? ` (${[x.rental ? `rental ${fmt(x.rental)}` : '', x.fees ? `fees ${fmt(x.fees)}` : ''].filter(Boolean).join(', ')})` : '');
 const PART: Record<string, string> = { rental: 'Rental', fees: 'Fees', later: 'Later charges', deposit: 'Security deposit', card: 'Card on file', balance: 'Rental and fees' };
 // what each payment was for and where it stands, in words (sim item 7: no raw codes)
 const PURPOSE: Record<string, string> = { booking_total: 'Rental and fees', deposit: 'Security deposit', extension: 'Extension', change: 'Booking change', later_charge: 'Later charge', damage: 'Damage', addon: 'Add-on', balance: 'Balance' };
@@ -108,7 +111,7 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
   const history = (rows: Money['payments'], id: string, caption: string, empty: string) => (
     <Table testId={id} caption={caption} empty={empty} rows={rows as unknown as Array<Record<string, unknown>>} cols={[
       { key: 'when', label: 'When', render: (r) => when(String(r.processed_at ?? r.created_at)) },
-      { key: 'covers', label: 'For', render: (r) => `${PART[String(r.covers ?? '')] ?? words(PURPOSE, r.purpose)}${r.kind !== 'charge' ? ` (${words(KIND, r.kind)})` : ''}` },
+      { key: 'covers', label: 'For', render: (r) => `${PART[String(r.covers ?? '')] ?? words(PURPOSE, r.purpose)}${splitWords(r.parts as Money['payments'][number]['parts'])}${r.kind !== 'charge' ? ` (${words(KIND, r.kind)})` : ''}` },
       { key: 'method', label: 'By', render: (r) => `${METHOD[String(r.method)] ?? String(r.method)}${r.card_last4 ? ` ${String(r.card_last4)}` : ''}` },
       { key: 'amount_cents', label: 'Amount', num: true, render: (r) => fmt(Number(r.amount_cents)) },
       { key: 'status', label: 'Status', render: (r) => (r.voided ? 'Voided' : words(STATUS, r.status)) },
@@ -128,13 +131,11 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
       return;
     }
     if (rc.how === 'saved') {
-      // the card on file: the rental, then the fees, each its own charge with its own receipt
-      const parts = (rc.covers === 'balance' ? ['rental', 'fees'] : [rc.covers]).filter((c) => openPart(c) > 0);
-      if (!parts.length) { done('rental', false, 'Nothing is open for the rental.'); return; }
-      for (const c of parts) {
-        const r = await chargeSavedCard({ booking: m.booking_number, covers: c as 'rental' | 'fees', amount_cents: parts.length === 1 && amount !== null ? amount : openPart(c), reason: c === 'rental' ? 'Rental' : 'Fees' });
-        if (!r.ok || !r.data.ok) { done('rental', false, r.ok ? `Declined: ${r.data.message}` : r.message); return; }
-      }
+      // r32 (0680): the card on file is charged once for what is open (the rental and fees: one Stripe charge, one
+      // receipt listing both); the database splits it across the rental and the fees, the rental first
+      if (openPart(rc.covers) <= 0) { done('rental', false, 'Nothing is open for the rental.'); return; }
+      const r = await chargeSavedCard({ booking: m.booking_number, covers: rc.covers, amount_cents: amount, reason: rc.covers === 'rental' ? 'Rental' : rc.covers === 'fees' ? 'Fees' : 'Rental and fees' });
+      if (!r.ok || !r.data.ok) { done('rental', false, r.ok ? `Declined: ${r.data.message}` : r.message); return; }
       done('rental', true, 'Rental charged to the card on file. The renter has the receipt by email.');
       return;
     }

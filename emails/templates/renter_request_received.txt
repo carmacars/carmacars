@@ -29,7 +29,16 @@ What happens next
 View my request:
 https://carmacars.ca/account/bookings/{{booking_number}}/request
 
-To save time at pickup, you can upload your licence photos and a selfie from the same page.
+{{#if licence_missing}}
+IMPORTANT: Upload your driver's licence
+We need the front and back of your licence and a selfie holding it before you can accept the offer. It takes a minute: upload your licence (https://carmacars.ca/account/bookings/{{booking_number}}/verify).
+{{/if}}
+
+{{#if licence_missing}}
+
+{{else}}
+Your licence is on file. Nothing more is needed from you until our offer arrives.
+{{/if}}
 
 ----------------------------------------
 

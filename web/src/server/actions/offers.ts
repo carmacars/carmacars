@@ -78,7 +78,7 @@ export async function startCardRequest(p: { booking: string; kind: 'charge' | 'h
 }
 
 /** Charge the saved card (Finance, an Admin): a later charge with its reason, or the deposit of a long rental. */
-export async function chargeSavedCard(p: { booking: string; amount_cents?: number | null; reason: string; covers?: 'later' | 'deposit' | 'rental' | 'fees' }): Promise<R<{ ok: boolean; message?: string }>> {
+export async function chargeSavedCard(p: { booking: string; amount_cents?: number | null; reason: string; covers?: 'later' | 'deposit' | 'rental' | 'fees' | 'balance' }): Promise<R<{ ok: boolean; message?: string }>> {
   try {
     const { user, aal, va } = await me();
     const b = await door<{ payment_id: string; amount_cents: number; customer_id: string; method_id: string; booking_id: string; booking_number: string; reason: string; covers: string; idempotency_key: string }>(

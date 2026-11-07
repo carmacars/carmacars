@@ -4,6 +4,7 @@ import { Card } from '@/features/admin/ui';
 import { door } from '@/server/door';
 import { when } from '@/features/agreement/model';
 import { fmtDuration } from './late';
+import { ReturnedButton } from './ReturnedButton';
 
 type Row = { booking_number: string; kind: 'pickup' | 'return'; at: string; vehicle: string; renter: string | null; late: boolean; minutes_late?: number };
 
@@ -21,6 +22,8 @@ export async function HandoversToday({ userId, aal, base }: { userId: string; aa
             <span className="ad-sub">{r.vehicle}</span>
             <Act ops action="handover_open" payload={{ booking: r.booking_number, kind: r.kind }} label={r.kind === 'pickup' ? 'Check out' : 'Check in'} variant="primary"
               go={`${b}/handover/{job}`} testId={`today-${r.kind}-${r.booking_number}`} />
+            {/* r32: the car is back: one tap, the time and readings if known, the photos later */}
+            {r.kind === 'return' && <ReturnedButton booking={r.booking_number} number={r.booking_number} variant="ghost" refresh={[base]} testId={`today-returned-${r.booking_number}`} />}
           </li>);
       })}</ul> : <p className="small muted">No check-out or check-in due today.</p>}
     </Card>

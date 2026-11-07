@@ -89,8 +89,8 @@ function Licence({ s, g }: { s: SigningState; g: Signer }) {
       <p className="small">{l.complete ? <>Licence on file{l.verified ? ', verified' : ', in review'}{l.expiry ? `, expires ${l.expiry}` : ''}.</> : <>Licence still needed: {l.missing.join(', ')}.</>}</p>
       {!l.complete && g.driver_id && <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
         {KINDS.filter(([k]) => !(l as unknown as Record<string, string | null>)[k] || (l as unknown as Record<string, string | null>)[k] === 'rejected').map(([k, t]) => (
-          <label key={k} className="btn btn--ghost btn--sm">{pending ? 'Uploading' : `Photograph: ${t}`}
-            <input className="vh" type="file" accept={k === 'selfie' ? 'image/*' : PHOTO_ACCEPT} capture={k === 'selfie' ? 'user' : 'environment'} data-testid={`sn-photo-${k}`} onChange={(e) => { up(k, e.target.files?.[0]); e.target.value = ''; }} /></label>
+          <label key={k} className="btn btn--ghost btn--sm">{pending ? 'Uploading' : k === 'selfie' ? `Photograph: ${t}` : `Add: ${t} (camera or photos)`}
+            <input className="vh" type="file" accept={k === 'selfie' ? 'image/*' : PHOTO_ACCEPT} capture={k === 'selfie' ? 'user' : undefined} data-testid={`sn-photo-${k}`} onChange={(e) => { up(k, e.target.files?.[0]); e.target.value = ''; }} /></label>
         ))}
       </div>}
       {err && <p className="error" role="alert">{err}</p>}

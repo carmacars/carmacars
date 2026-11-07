@@ -43,6 +43,8 @@ import { PayPlanCard } from '@/features/bookings-now/PayPlanCard';
 import type { Pay } from '@/features/bookings-now/model';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 import { LatePanel, type Late } from '@/features/va/LatePanel';
+import { ReturnedButton } from '@/features/handover/ReturnedButton';
+import { showReturned } from '@/features/handover/returned';
 import type { PageCtx } from '@/features/shared-pages/context';
 import { bookingCan, portalBase } from '@/features/shared-pages/viewer';
 
@@ -167,6 +169,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     <RequestClaim booking={b.id} status={b.status} answering={b.status === 'requested' && on('review') && can.offer} va={fn}>
       <PageHead kicker={<>{can.admin ? <Link prefetch={false} className="link" href="/admin/bookings">Bookings</Link> : <Link prefetch={false} className="link" href="/staff">Queue</Link>} · {b.vehicle?.name} · {b.renter?.legal_name}</>}
         title={<>{b.booking_number} <Badge s={b.status} />{can.admin && b.readiness?.awaiting_signature === true && <> <Badge s="awaiting_signature" /></>} {can.admin && (b.placeholder?.on ? <span className="ad-flag ad-flag--ph" data-testid="placeholder-flag">placeholder</span> : !b.blocks_calendar && <span className="ad-flag">not blocking</span>)}</>}>
+        {/* r32: one tap when the car is back (overdue or due today), the late return alert's page included */}
+        {can.handover && showReturned(b) && <ReturnedButton booking={b.id} number={b.booking_number} refresh={refresh} testId="returned-top" />}
         {b.renter && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`${base}?tab=messages`} data-testid="email-renter-link">Email the renter</Link>}
         <MoreActions>
         {can.offer && b.status === 'requested' && <ClaimGate testId="claim-gate-head"><Act action="ask_info" payload={P} label="Ask the renter" fields={[{ name: 'question', label: 'Question', type: 'textarea', required: true }]} refresh={refresh} done="Question sent." />

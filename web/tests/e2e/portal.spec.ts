@@ -221,7 +221,7 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await expect(page.getByTestId('coverage-card-confirmed')).toBeVisible({ timeout: 15_000 });
   // and adds the card's benefit document (optional)
   const proof = Buffer.from('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n');
-  await page.getByTestId('upload-coverage_proof').locator('input[type="file"]').setInputFiles({ name: 'benefits.pdf', mimeType: 'application/pdf', buffer: proof });
+  await page.getByTestId('upload-coverage_proof').getByTestId('upload-pick-coverage_proof').setInputFiles({ name: 'benefits.pdf', mimeType: 'application/pdf', buffer: proof });
   await expect(page.getByTestId('upload-coverage_proof').getByText('In review')).toBeVisible({ timeout: 15_000 });
   // a file that is not what it says is refused and deleted
   await page.locator('[data-testid^="upload-selfie-"]').first().getByTestId('upload-camera-selfie').setInputFiles({ name: 'x.png', mimeType: 'image/png', buffer: Buffer.from('not an image at all') });

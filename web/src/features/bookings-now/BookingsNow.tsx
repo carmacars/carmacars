@@ -4,6 +4,7 @@ import Link from '@/components/Link';
 import { useCallback, useEffect, useState } from 'react';
 import { CarLine, Tile, Time, Who, Photo } from './parts';
 import { Act, type Field } from '@/features/admin/Act';
+import { ReturnedButton } from '@/features/handover/ReturnedButton';
 import {
   BILL_WORDS, KIND, billed, countdown, day, depositWords, filterOut, fuel, km, money, nextPay, planWords, when,
   type BillFilter, type Board, type FreeCar, type OutFilter, type Rental
@@ -123,6 +124,7 @@ export function BookingsNow({ initial: first, at, src, base }: { initial: Board 
                     <CarLine car={r.car} number={r.number} href={href(r.number)} compact />
                     <Who r={r.renter} booking={r.number} />
                     <span className="bn-tag">{r.return_kind === 'delivery' ? 'We collect' : r.return_kind === 'airport' ? 'Airport' : 'Drop-off'}</span>
+                    {g !== 'Tomorrow' && !r.unrecorded && <ReturnedButton booking={r.booking_id} number={r.number} refresh={base ? [`${base}/bookings`] : []} testId={`bn-back-returned-${r.number}`} />}
                   </li>);
               })}</ul>
             </div>)) : <p className="bn-none">Nothing due back today or tomorrow.</p>}
@@ -235,7 +237,9 @@ function OutRow({ r, now, href, full, mark, refresh }: { r: Rental; now: number;
         <span className="bn-sub">{planWords(r.pay)}{p.sub ? ` · ${p.sub}` : ''}{r.bill_to && r.bill_to !== 'renter' && r.pay?.plan !== 'insurer' ? ` · ${BILL_WORDS[r.bill_to]}` : ''}</span>
       </div>}
       {full && <div className="bn-out__dep"><span className="bn-k">Deposit</span><span className={dep.ok ? '' : 'bn-red'}>{dep.text}</span></div>}
-      <div className="bn-out__at"><span className="bn-k">Out at</span><span>{[km(r.km_out), fuel(r.fuel_out) && `fuel ${fuel(r.fuel_out)}`].filter(Boolean).join(' · ') || 'not recorded'}</span></div>
+      <div className="bn-out__at"><span className="bn-k">Out at</span><span>{[km(r.km_out), fuel(r.fuel_out) && `fuel ${fuel(r.fuel_out)}`].filter(Boolean).join(' · ') || 'not recorded'}</span>
+        {/* r32: one tap when the car is back (overdue or due today); the database decides who may */}
+        {!r.unrecorded && (r.due === 'overdue' || r.due === 'today') && <ReturnedButton booking={r.booking_id} number={r.number} refresh={refresh} testId={`bn-returned-${r.number}`} />}</div>
     </article>
   );
 }

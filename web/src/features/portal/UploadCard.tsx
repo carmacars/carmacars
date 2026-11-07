@@ -58,12 +58,13 @@ export function UploadCard({ number, kind, driverId, title, hint, status, reason
       <div className="pt-card__head"><h3 className="d4">{title}</h3>{shown && <span className={`badge ${shown === 'approved' ? '' : shown === 'rejected' ? 'badge--red' : 'badge--outline'}`}>{STATE[shown] ?? shown}</span>}</div>
       <p className="small muted" id={`${id}-hint`}>{hint}</p>
       {shown === 'rejected' && reason && <p className="small" role="note"><b>What to fix:</b> {reason}</p>}
-      <label className={`btn ${shown ? 'btn--ghost' : 'btn--primary'} btn--sm`} htmlFor={`${id}-file`}>{busy ? 'Uploading' : shown ? 'Replace' : kind === 'selfie' ? 'Take selfie' : pdf ? 'Upload proof' : 'Take photo'}</label>
-      <input id={`${id}-file`} type="file" accept={kind === 'selfie' ? 'image/*' : PHOTO_ACCEPT} capture={kind === 'selfie' ? 'user' : pdf ? undefined : 'environment'}
-        onChange={pick} disabled={busy} aria-describedby={`${id}-hint ${id}-err`} aria-label={`${title}: ${pdf ? 'choose a photo or PDF' : 'take a photo'}`} data-testid={`upload-camera-${kind}`} />
-      {/* the camera, or a photo or scan already on the phone or computer (HEIC, WEBP, PDF too) */}
-      {!pdf && kind !== 'selfie' && <><label className="btn btn--quiet btn--sm" htmlFor={`${id}-pick`}>Choose a file</label>
-        <input id={`${id}-pick`} type="file" accept={PHOTO_ACCEPT} onChange={pick} disabled={busy} aria-describedby={`${id}-hint ${id}-err`} aria-label={`${title}: choose a photo or PDF`} data-testid={`upload-pick-${kind}`} /></>}
+      {/* r32: two choices on a phone: the camera, or a photo or scan already on it (HEIC, WEBP, PDF too); a forced camera
+          hides the photo library on an iPhone. A selfie is the camera only. */}
+      <label className={`btn ${shown ? 'btn--ghost' : 'btn--primary'} btn--sm`} htmlFor={`${id}-file`}>{busy ? 'Uploading' : kind === 'selfie' ? (shown ? 'Retake selfie' : 'Take selfie') : shown ? 'Replace: take a photo' : 'Take a photo'}</label>
+      <input id={`${id}-file`} type="file" accept={kind === 'selfie' ? 'image/*' : PHOTO_ACCEPT} capture={kind === 'selfie' ? 'user' : 'environment'}
+        onChange={pick} disabled={busy} aria-describedby={`${id}-hint ${id}-err`} aria-label={`${title}: take a photo`} data-testid={`upload-camera-${kind}`} />
+      {kind !== 'selfie' && <><label className="btn btn--quiet btn--sm" htmlFor={`${id}-pick`}>Choose from my photos</label>
+        <input id={`${id}-pick`} type="file" accept={PHOTO_ACCEPT} onChange={pick} disabled={busy} aria-describedby={`${id}-hint ${id}-err`} aria-label={`${title}: choose from my photos${pdf ? ' or a PDF' : ''}`} data-testid={`upload-pick-${kind}`} /></>}
       {retake && <p className="alert alert--warn" role="alert" data-testid={`retake-${kind}`}><span>{retake}</span></p>}
       <p className="error" role="alert" id={`${id}-err`}>{error}</p>
     </div>

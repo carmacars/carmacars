@@ -50,9 +50,9 @@ export function DriverLicence({ token, l, selfie }: { token: string; l: LicenceS
           return (
             <div key={k} className="pt-up" data-testid={`dl-${k}`}>
               <div className="pt-card__head"><h3 className="d4">{t}</h3>{st && <span className={`badge ${st === 'approved' ? '' : st === 'rejected' ? 'badge--red' : 'badge--outline'}`}>{STATE[st] ?? st}</span>}</div>
-              <label className="btn btn--ghost btn--sm">{pending ? 'Uploading' : st && st !== 'rejected' ? 'Replace' : 'Take or choose a photo'}
+              <label className="btn btn--ghost btn--sm">{pending ? 'Uploading' : st && st !== 'rejected' ? 'Replace' : k === 'selfie' ? 'Take a selfie' : 'Take a photo'}
                 <input className="vh" type="file" accept={k === 'selfie' ? 'image/*' : PHOTO_ACCEPT} capture={cam as 'user' | 'environment'} onChange={(e) => { up(k, e.target.files?.[0]); e.target.value = ''; }} data-testid={`dl-file-${k}`} /></label>
-              {k !== 'selfie' && <label className="btn btn--quiet btn--sm">Choose a file (photo, HEIC or PDF)
+              {k !== 'selfie' && <label className="btn btn--quiet btn--sm">Choose from my photos
                 <input className="vh" type="file" accept={PHOTO_ACCEPT} onChange={(e) => { up(k, e.target.files?.[0]); e.target.value = ''; }} data-testid={`dl-pick-${k}`} /></label>}
             </div>
           );

@@ -18,6 +18,9 @@ export default {
     trip(),
     figure('Total to pay now', '{{total_amount}}', 'HST included. The {{deposit_amount}} security deposit is separate: a hold on the day of pickup.'),
     button('Approve and pay', '@booking_offer'),
+    when('licence_missing', [
+      notice('alert', 'Upload your driver\'s licence', 'We need the front and back of your licence and a selfie holding it before you can accept the offer. It takes a minute: [upload your licence](@booking_verify).'),
+    ]),
     small('If the dates no longer work, [ask for a change](@booking_change). If you have changed your mind, do nothing and the offer will expire. No charge either way.'),
     small('The car is booked for you once you approve. Until then, if another renter approves the same car and dates first, we withdraw the offer and tell you.'),
   ],

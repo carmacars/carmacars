@@ -20,7 +20,7 @@ export function BalanceActions({ booking, open, rental, fees, card, reach, why }
     router.refresh();
   });
   const charge = () => run(async () => {
-    const r = await chargeSavedCard({ booking, amount_cents: open, reason: why ?? 'The balance of the booking', covers: 'rental' });
+    const r = await chargeSavedCard({ booking, amount_cents: open, reason: why ?? 'The balance of the booking', covers: 'balance' });
     setMsg(r.ok ? { ok: r.data.ok, text: r.data.ok ? `${money(open, { cents: true })} charged to the saved card.` : `Not charged: ${r.data.message}` } : { ok: false, text: r.message });
     router.refresh();
   });

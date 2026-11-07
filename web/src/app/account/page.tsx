@@ -15,6 +15,9 @@ import { placeText } from '@/features/portal/Blocks';
 import { renterNow } from '@/features/portal/now';
 import { NowPanel } from '@/features/portal-nav/NowPanel';
 import { EmptyState, PortalIcon } from '@/components/portal-ui';
+import { licenceState, renterMissing } from '@/features/portal/LicenceNotice';
+import { quickLinks } from '@/features/portal/quick-links';
+import { QuickLinks } from '@/features/portal/QuickLinks';
 
 type Links = { verified: boolean; new: Array<{ kind: string; detail: string | null; booking_number: string | null }>; driver_trips: Array<{ booking_number: string; status: string; pickup_at: string; return_at: string; vehicle_name: string; accepted: boolean }> };
 
@@ -42,6 +45,9 @@ export default async function Account({ searchParams }: { searchParams: Promise<
   // what is still owing on the nearest trip after a change or a charge (tolls, damage, a late return: 0132), with Pay
   const balance = full && ['confirmed', 'on_rent', 'returned'].includes(full.status) && !full.link_due
     ? Number(((await rpc('renter_balance', { p_booking: full.id, p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { balance_cents?: number } | null)?.balance_cents ?? 0) : 0;
+  // r32: the licence, the proof of insurance and the card coverage checker, one tap each while the booking needs them
+  const lic = full && ['requested', 'offered', 'pending_payment', 'confirmed', 'on_rent'].includes(full.status) ? await licenceState(full.id, user.id) : null;
+  const quick = full ? quickLinks({ ...full, missing: full.readiness?.missing ?? null }, (renterMissing(lic)?.length ?? 0) > 0) : [];
   const addr = ourAddress(settings);
   const now = full && step ? renterNow(full, step, { pickupPlace: placeText(full.pickup_place ?? addr, full.pickup_method, true), returnPlace: placeText(full.return_place ?? addr, full.return_method, false), balanceCents: balance }) : null;
   const phone = settings?.phone_display ?? settings?.phone ?? null;
@@ -61,6 +67,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         <div className="pu-home">
           {now && <NowPanel testId="next-step" titleId="now-renter" kicker={now.kicker} headline={now.headline} detail={now.detail} urgent={now.urgent} actions={now.actions}
             extra={phone && ['confirmed', 'on_rent'].includes(full!.status) ? <a className="btn now__btn" href={`tel:${settings?.phone ?? phone}`} data-testid="now-call">Call us</a> : null} />}
+          {full && <QuickLinks number={full.booking_number} links={quick} />}
           {full && <TripHero b={full} photo={photo(full)} titleAs="h2" settings={settings} href={bookingPath(full.booking_number)} />}
           {others.length > 0 && (
             <section className="stack" aria-labelledby="pt-more-trips">

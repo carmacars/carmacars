@@ -29,7 +29,10 @@ export default {
       ['You approve, sign and pay', 'Only then is the car booked. Until then it is not held, and another renter can book it first. A security deposit hold is taken later, on the day of pickup.'],
     ),
     button('View my request', '@booking_request'),
-    small('To save time at pickup, you can upload your licence photos and a selfie from the same page.'),
+    when('licence_missing', [
+      notice('alert', 'Upload your driver\'s licence', 'We need the front and back of your licence and a selfie holding it before you can accept the offer. It takes a minute: [upload your licence](@booking_verify).'),
+    ]),
+    when('licence_missing', [], [small('Your licence is on file. Nothing more is needed from you until our offer arrives.')]),
   ],
   sample: { estimate_amount: '$468.95' },
 };

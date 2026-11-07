@@ -44,6 +44,9 @@ export default {
       ['Security deposit', '{{deposit_amount}}, a hold on the day of pickup, separate from the total'],
     ),
     button('Review, approve and pay', '@booking_offer'),
+    when('licence_missing', [
+      notice('alert', 'Upload your driver\'s licence', 'We need the front and back of your licence and a selfie holding it before you can accept the offer. It takes a minute: [upload your licence](@booking_verify).'),
+    ]),
     notice('info', 'This offer is open until {{offer_expires_at}}', 'The car is booked for you as soon as you approve. Until then the offer does not hold it: if another renter approves the same car and dates first, we withdraw the offer and tell you.'),
     small('For different dates or another car, [ask for a change](@booking_change) before you approve. To pass on this offer, do nothing and it will expire.'),
   ],

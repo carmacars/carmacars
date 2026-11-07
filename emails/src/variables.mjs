@@ -20,6 +20,7 @@ export const SAMPLES = {
 
   // Booking
   booking_number: v('CC-10482', 'Agreement and booking number shown to the customer.'),
+  licence_missing: v(true, 'True while the renter\'s driver\'s licence (front, back, selfie) is not all on the booking (r32, migration 0681): the email links to the upload.'),
   vehicle_name: v('2024 Honda Civic Sport', 'Year, make, model and trim.'),
   vehicle_image_url: v('', 'Public listing photo, 1200px wide or more. Leave empty when there is none; the dark name block shows instead.'),
   vehicle_plate: v('CMCR 482'),

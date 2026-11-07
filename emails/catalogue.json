@@ -5174,6 +5174,12 @@
           "note": "Allowance per day times billable days."
         },
         {
+          "name": "licence_missing",
+          "type": "boolean",
+          "sample": true,
+          "note": "True while the renter's driver's licence (front, back, selfie) is not all on the booking (r32, migration 0681): the email links to the upload."
+        },
+        {
           "name": "line_items",
           "type": "list",
           "sample": [
@@ -5336,6 +5342,12 @@
           "type": "url",
           "sample": "https://instagram.com/carmacars.ca",
           "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "licence_missing",
+          "type": "boolean",
+          "sample": true,
+          "note": "True while the renter's driver's licence (front, back, selfie) is not all on the booking (r32, migration 0681): the email links to the upload."
         },
         {
           "name": "offer_expires_at",
@@ -7305,6 +7317,12 @@
           "type": "url",
           "sample": "https://instagram.com/carmacars.ca",
           "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "licence_missing",
+          "type": "boolean",
+          "sample": true,
+          "note": "True while the renter's driver's licence (front, back, selfie) is not all on the booking (r32, migration 0681): the email links to the upload."
         },
         {
           "name": "opening_hours",
