@@ -145,7 +145,8 @@ test('the deposit is held for the toll window, kept whole while a toll is open, 
   await ad.getByTestId('damage-photos').fill('Return report photo 7\nClose-up 21');
   await check(ad, 'keep the whole deposit');
   await ad.getByTestId('damage-go').click();
-  await expect(ad.getByTestId('deposit-done')).toContainText('The whole deposit');
+  // r29: once the whole deposit is kept the settle form may close with the page's refresh: the damage line is the proof
+  await expect.poll(async () => Number((await sql`select count(*)::int n from booking_line_items where booking_id = ${b.id} and charge_type = 'damage_at_cost'`)[0]!.n), { timeout: 20_000 }).toBe(1);
   const [line] = await sql`select amount_cents, description, statement_id is not null as issued from booking_line_items where booking_id = ${b.id} and charge_type = 'damage_at_cost'`;
   expect(line).toMatchObject({ amount_cents: String(rest), description: 'Damage: Dent in the rear door, left side', issued: true });
   const [d2] = await sql`select d.applied_cents, d.released_cents, (select count(*) from payments p where p.booking_id = d.booking_id and p.kind in ('release', 'refund'))::int as given_back from deposits d where d.booking_id = ${b.id}`;
