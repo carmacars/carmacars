@@ -73,10 +73,12 @@ select test.throws('the map is for Admins: a renter is refused',
 create temp table s99lm as select app.door(test.id('lm_admin'), 'aal2', 'admin_read', 'live_map', jsonb_build_object('who', jsonb_build_array(
   test.id('renter:lm_rita'), test.id('renter:lm_omar'), test.id('renter:lm_paula'), test.id('renter:lm_quinn'),
   test.lmvid('lena'), test.lmvid('dora'), test.lmvid('anon'), test.lmvid('junk')))) as v;
-create temp table s99lm_all as select app.door(test.id('lm_admin'), 'aal2', 'admin_read', 'live_map') as v;
--- the visitors on the site, counted at the same moment (a session near the end of the live window must not count on one side only)
-create temp table s99lm_active as select count(*) as n from visitor_sessions
- where last_seen_at > now() - make_interval(mins => (app.settings()).visitor_live_minutes) and ended_at is null and exclude_reason is null;
+-- the map and the visitors on the site in one statement: the same now() for both (a session near the end of the live
+-- window must not count on one side only; two statements apart, earlier suites' sessions crossed it in CI)
+create temp table s99lm_both as select app.door(test.id('lm_admin'), 'aal2', 'admin_read', 'live_map') as v,
+  (select count(*) from visitor_sessions where last_seen_at > now() - make_interval(mins => (app.settings()).visitor_live_minutes) and ended_at is null and exclude_reason is null) as n;
+create temp table s99lm_all as select v from s99lm_both;
+create temp table s99lm_active as select n from s99lm_both;
 create or replace function test.lm() returns jsonb language sql stable as $$ select v from pg_temp.s99lm $$;
 create or replace function test.lmpin(p_where text, p_val text) returns jsonb language sql stable as $$
   select x from jsonb_array_elements(test.lm() -> 'pins') x where x ->> p_where = p_val limit 1 $$;
