@@ -2,6 +2,8 @@ import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
 import { PageHead } from '@/features/admin/ui';
 import { AddOwnerCar } from '@/features/owner-billing/AddOwnerCar';
+import type { FleetLeaseData } from '@/features/owner-agreements/FleetLease';
+import { door } from '@/server/door';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Add a car for an owner', path: '/staff/owners/add-car', noindex: true, description: 'Add a car for an owner.' });
@@ -10,7 +12,7 @@ export const metadata = pageMeta({ title: 'Add a car for an owner', path: '/staf
 // they propose; the owner then gets one email. Sales start the application for a new owner they bring in (0340): the same
 // form with the permit reader, without the terms, sourced by them, always for an Admin to approve.
 export default async function VaAddCar({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ read, fn }, sp] = await Promise.all([vaPage('/staff/owners/add-car', ['cs', 'fleet', 'sales']), searchParams]);
+  const [{ read, fn, user, aal }, sp] = await Promise.all([vaPage('/staff/owners/add-car', ['cs', 'fleet', 'sales']), searchParams]);
   if (fn === 'sales') {
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
     return (
@@ -23,11 +25,13 @@ export default async function VaAddCar({ searchParams }: { searchParams: Promise
   }
   const owner = /^[0-9a-f-]{36}$/.test(sp.owner ?? '') ? sp.owner! : null;
   const facts = await read<Parameters<typeof AddOwnerCar>[0]['initial']>('owner_add_car_facts', { owner_id: owner });
+  // 0640: a fleet lease owner's car needs its tier
+  const fleet = owner ? (await door<FleetLeaseData>(user.id, 'ops_read', 'fleet_lease', { owner }, aal).catch(() => null))?.terms ?? null : null;
   return (
     <>
       <PageHead title={facts.owner ? `Add another car for ${facts.owner.legal_name}` : 'Add a car for an owner'} />
       <p className="small muted" style={{ maxWidth: '48rem' }}>Enter everything for the owner. An Admin checks the terms and first invoice, then approves; the owner gets one email to review and sign.</p>
-      <div style={{ maxWidth: '60rem' }}><AddOwnerCar initial={facts} base="/staff" /></div>
+      <div style={{ maxWidth: '60rem' }}><AddOwnerCar initial={facts} base="/staff" fleet={fleet ? { regular_cents: fleet.regular_cents, troubled_cents: fleet.troubled_cents } : null} /></div>
     </>
   );
 }

@@ -20,6 +20,10 @@ export const DOC_TERMS: Term[] = [
   { code: 'partner_money', title: 'Money', text: 'CarmaCars keeps its share set out in section 4 and pays me the rest on the monthly statement, less the deductions that section allows.' },
   { code: 'partner_insurance', title: 'Insurance and condition', text: 'I keep each car insured and in good condition as section 5 says; CarmaCars may end this agreement at once if a car\'s insurance lapses.' },
   { code: 'partner_ending', title: 'Ending the agreement', text: 'Either party may end this agreement with 30 days\' written notice; bookings confirmed before the end are completed (section 10).' },
+  // the Referral Override Agreement (0640)
+  { code: 'referral_override', title: 'The Override', text: 'The Company pays me the Override Rate of the Owner Revenue of the Referred Vehicles, out of its own share, on the Payout Date (section 2).' },
+  { code: 'referral_confidential', title: 'What I see', text: 'I see the Referred Vehicles read only, keep what I see confidential and use it only to follow the Override (section 3).' },
+  { code: 'referral_ending', title: 'Ending', text: 'Either party may end this agreement with 30 days\' written notice; Overrides already earned are still paid (section 4).' },
   // an updated Vehicle Schedule
   { code: 'schedule_terms', title: 'The updated terms', text: 'The fees and Revenue Share above apply from the date shown. Everything else in my Vehicle Schedule and Enrollment Agreement stays the same.' }
 ];

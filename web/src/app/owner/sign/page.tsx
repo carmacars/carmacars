@@ -4,7 +4,7 @@ import { money, pct } from '@/lib/format';
 import { rpc } from '@/lib/db/repo';
 import { Back } from '@/features/portal/Blocks';
 import { AgreementView } from '@/features/agreement/AgreementView';
-import { CONFIRMATIONS, confirmationsOf, documentBlocks, packetKeys, PENDING, PREVIEW_NOTICE, TITLES, type OwnerAgreementFacts, type PacketKey } from '@/features/owner-agreement/model';
+import { CONFIRMATIONS, confirmationsOf, documentBlocks, packetKeys, PENDING, PREVIEW_NOTICE, titleOf, type OwnerAgreementFacts, type PacketKey } from '@/features/owner-agreement/model';
 import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE } from '@/features/partner/agreement';
 import { OwnerPackage } from '@/features/signing/OwnerPackage';
 import type { EsignDoc } from '@/features/signing/types';
@@ -85,7 +85,7 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
   // before approval (0192): the agreements filled in from the application, read only, the terms pending
   const preview = !docs.length && !partner && home.vehicles.some((v) => v.onboarding_status === 'intake')
     ? await ownerAgreementPreviewFacts(home.owner.id, user.id).catch(() => null) : null;
-  const previewDocs = preview?.preview ? packetKeys(preview).map((key) => ({ key, title: TITLES[key], blocks: documentBlocks(preview, key) })) : [];
+  const previewDocs = preview?.preview ? packetKeys(preview).map((key) => ({ key, title: titleOf(preview, key), blocks: documentBlocks(preview, key) })) : [];
   const items: ProgressItem[] = (checklist?.items ?? []).map((i, n) => ({
     key: `${i.code}-${i.vehicle_id ?? ''}-${n}`, label: `${i.label}${i.vehicle_name && i.code !== 'registry_form' ? `, ${i.vehicle_name}` : ''}`, done: i.status === 'done',
     note: i.status === 'done' ? null : i.how === 'paper' ? 'print it filled in, sign it with your witness, then take a photo of the signed page' : i.how === 'banking' ? 'set up in Banking'

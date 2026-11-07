@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 209,
+  "count": 210,
   "emails": [
     {
       "code": "account_password_reset",
@@ -9324,6 +9324,86 @@
       ],
       "template_html": "templates/owner_agreement_signed.html",
       "template_text": "templates/owner_agreement_signed.txt"
+    },
+    {
+      "code": "owner_agreement_to_sign",
+      "audience": "owner",
+      "category": "transactional",
+      "trigger": "An Admin presses Send on an owner's line of the Agreements checklist (Admin > Owners > Agreements, migration 0640): the agreement that owner's deal needs (the Vehicle Enrollment Agreement, the Flat-Rate or Fleet Supplier Lease Agreement with the Title-Holding and Lease Agreement, an Additional Vehicle Schedule, the Partner agreement or a Referral Override Agreement) is ready to read and sign in the owner portal. Sent again each time Send is pressed.",
+      "timing": "When an Admin presses Send",
+      "digest": false,
+      "from": "CarmaCars <owners@carmacars.ca>",
+      "reply_to": "owners@carmacars.ca",
+      "subject": "Please sign your {{agreement_title}}",
+      "preheader": "It is ready in your owner portal. One signature, on screen.",
+      "sample_subject": "Please sign your Fleet Supplier Lease Agreement",
+      "variables": [
+        {
+          "name": "agreement_title",
+          "type": "string",
+          "sample": "Fleet Supplier Lease Agreement"
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Daniel",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "note",
+          "type": "string",
+          "sample": "It covers every car in your Vehicle Schedule. You sign once for all of them."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "sign_url",
+          "type": "url",
+          "sample": "https://carmacars.ca/owner/sign"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/owner_agreement_to_sign.html",
+      "template_text": "templates/owner_agreement_to_sign.txt"
     },
     {
       "code": "owner_application_approved",

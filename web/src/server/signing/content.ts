@@ -18,14 +18,15 @@ export async function contentKey(blocks: Block[], x: PdfInput): Promise<string> 
 }
 
 /** A document to prepare, as the browser names it (the server builds it from the person's own records). */
-export type PrepTarget = { t: 'packet'; key: PacketKey } | { t: 'form'; code: 'A' | 'B' } | { t: 'partner' } | { t: 'form_c'; vehicle: string };
-export const targetId = (t: PrepTarget) => (t.t === 'packet' ? `packet-${t.key}` : t.t === 'form' ? `form-${t.code}` : t.t === 'form_c' ? `form_c-${t.vehicle}` : 'partner');
+export type PrepTarget = { t: 'packet'; key: PacketKey } | { t: 'form'; code: 'A' | 'B' } | { t: 'partner' } | { t: 'form_c'; vehicle: string } | { t: 'referral'; link: string };
+export const targetId = (t: PrepTarget) => (t.t === 'packet' ? `packet-${t.key}` : t.t === 'form' ? `form-${t.code}` : t.t === 'form_c' ? `form_c-${t.vehicle}` : t.t === 'referral' ? `referral-${t.link}` : 'partner');
 
 export function parseTarget(x: unknown): PrepTarget | null {
   const o = (x ?? {}) as Record<string, unknown>;
   if (o.t === 'packet' && (o.key === 'enrollment' || o.key === 'title_holding' || o.key === 'additional')) return { t: 'packet', key: o.key };
   if (o.t === 'form' && (o.code === 'A' || o.code === 'B')) return { t: 'form', code: o.code };
   if (o.t === 'partner') return { t: 'partner' };
+  if (o.t === 'referral' && typeof o.link === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(o.link)) return { t: 'referral', link: o.link };
   if (o.t === 'form_c' && typeof o.vehicle === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(o.vehicle)) return { t: 'form_c', vehicle: o.vehicle };
   return null;
 }

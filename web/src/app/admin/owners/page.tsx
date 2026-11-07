@@ -11,6 +11,7 @@ import { door } from '@/server/door';
 import { PageHead } from '@/features/admin/ui';
 import { ChecklistItems, OwnerChecklist, type OwnerChecklistRow } from '@/features/manual/OwnerChecklist';
 import { AddOwnerForm } from '@/features/owner-billing/AddOwnerForm';
+import { AgreementsChecklist, openCount, type AgreementOwner } from '@/features/owner-agreements/AgreementsChecklist';
 
 type Acct = { id: string; email: string; name: string; status: string };
 
@@ -20,12 +21,14 @@ export const metadata = pageMeta({ title: 'Owner applications', path: '/admin/ow
 export default async function AdminOwners({ searchParams }: { searchParams: Promise<{ view?: string; show?: string }> }) {
   const [{ user }, sp] = await Promise.all([requireAdmin('/admin/owners'), searchParams]);
   if (sp.view === 'checklist') return <Checklists userId={user.id} show={sp.show === 'all' ? 'all' : 'open'} />;
+  if (sp.view === 'agreements') return <Agreements userId={user.id} show={sp.show === 'all' ? 'all' : 'open'} />;
   const [rows, idx] = await Promise.all([adminOwners(user),
     rpc('admin_account_index', { p_admin: user.id }, { role: 'service_role' }) as unknown as Promise<{ owners: Record<string, Acct> }>]);
   return (
     <>
       <PageHead title="Owners" purpose="Every owner with their cars, applications, terms and invoices.">
-        <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/owners/add-car" data-testid="add-car-for-owner">Add a car for an owner</Link></PageHead>
+        <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/owners/add-car" data-testid="add-car-for-owner">Add a car for an owner</Link>
+        <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/owners?view=agreements" data-testid="owners-agreements">Agreements</Link></PageHead>
       <div className="pt-split">
         <section className="stack" aria-labelledby="ad-list"><h2 className="pt-section-title" id="ad-list">{rows.length} owners</h2>
           {rows.length ? <ul className="ow-rows" data-testid="admin-owners">{rows.map((o) => (
@@ -71,6 +74,22 @@ async function Checklists({ userId, show }: { userId: string; show: 'open' | 'al
               : <details><summary className="link small">Checklist</summary><ChecklistItems items={r.items} /></details>}
           </div>
         </li>))}</ul> : <p className="pt-empty muted">Every owner has paid and signed everything.</p>}
+    </>
+  );
+}
+
+// 0640: who still needs to sign. Each owner's required agreements for their deal, sent, signed or missing, with Send.
+async function Agreements({ userId, show }: { userId: string; show: 'open' | 'all' }) {
+  const all = await door<AgreementOwner[]>(userId, 'ops_read', 'owner_agreements_checklist', {});
+  const rows = show === 'all' ? all : all.filter((r) => openCount(r) > 0);
+  return (
+    <>
+      <PageHead title="Agreements" purpose="Each owner's agreements for their deal: signed, sent or still to send.">
+        <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/owners">Owners</Link></PageHead>
+      <p className="small">{all.filter((r) => openCount(r) > 0).length} of {all.length} owners have an agreement to sign. {show === 'all'
+        ? <Link prefetch={false} className="link" href="/admin/owners?view=agreements">Show only those</Link>
+        : <Link prefetch={false} className="link" href="/admin/owners?view=agreements&show=all">Show every owner</Link>}</p>
+      <AgreementsChecklist rows={rows} refresh={['/admin/owners']} />
     </>
   );
 }

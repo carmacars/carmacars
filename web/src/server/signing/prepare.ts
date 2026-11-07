@@ -7,6 +7,7 @@ import { documentBlocks, packetKeys, templateVersionOf, titleOf, type OwnerAgree
 import { screenFormBlocks, SCREEN_FORMS_VERSION, SCREEN_FORM_TITLE, type ScreenFormFacts } from '@/features/owner-agreement/screen-forms';
 import { FORM_C_SCREEN_VERSION, FORM_TITLE, screenFormCBlocks, type WitnessedFacts } from '@/features/owner-agreement/witnessed';
 import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE, PARTNER_AGREEMENT_VERSION, type PartnerFacts } from '@/features/partner/agreement';
+import { referralAgreementBlocks, REFERRAL_AGREEMENT_TITLE, REFERRAL_TEMPLATE_VERSION, type ReferralFacts } from '@/features/referral-agreement/agreement';
 import { sha256Hex } from '@/server/links';
 import { contentKey, type PdfInput, type PrepTarget } from './content';
 
@@ -91,6 +92,21 @@ export async function partnerSpec(userId: string, facts: PartnerFacts): Promise<
   };
 }
 
+/** The Referral Override Agreement of one of the signed-in referrer's own links (0640); null for anyone else. */
+export async function referralFacts(userId: string, linkId: string): Promise<ReferralFacts | null> {
+  return (await rpc('server_referral_agreement_facts', { p_by: userId, p_link: linkId }, SR)) as unknown as ReferralFacts | null;
+}
+export async function referralSpec(userId: string, facts: ReferralFacts): Promise<DocSpec> {
+  const name = facts.referrer.legal_name;
+  const blocks = referralAgreementBlocks(facts);
+  const pdf: PdfInput = { title: `${REFERRAL_AGREEMENT_TITLE}, ${name}`, createdAt: UNSIGNED_DATE, footer: `${REFERRAL_AGREEMENT_TITLE} for ${name}. ${REFERRAL_TEMPLATE_VERSION}` };
+  return {
+    target: { t: 'referral', link: facts.link_id }, title: REFERRAL_AGREEMENT_TITLE, blocks, pdf, key: await contentKey(blocks, pdf),
+    path: (sha) => `owners/${facts.owner_id}/referral/referral-agreement-${facts.link_id.slice(0, 8)}-${sha.slice(0, 16)}.pdf`,
+    open: async (sha, path) => ({ id: ((await rpc('referral_agreement_open', { p_by: userId, p_link: facts.link_id, p_sha256: sha, p_path: path, p_template_version: REFERRAL_TEMPLATE_VERSION }, SR)) as unknown as { id: string }).id })
+  };
+}
+
 export async function formCFacts(userId: string, vehicleId: string): Promise<WitnessedFacts | null> {
   return (await rpc('server_witnessed_form_facts', { p_by: userId, p_code: 'C', p_vehicle: vehicleId }, SR).catch(() => null)) as unknown as WitnessedFacts | null;
 }
@@ -140,6 +156,7 @@ export async function specFor(userId: string, ownerId: string, t: PrepTarget): P
   }
   if (t.t === 'form') return formSpec(userId, t.code, await formABFacts(userId, t.code));
   if (t.t === 'partner') { const f = await partnerFacts(userId); return f ? partnerSpec(userId, f) : null; }
+  if (t.t === 'referral') { const f = await referralFacts(userId, t.link); return f ? referralSpec(userId, f) : null; }
   const f = await formCFacts(userId, t.vehicle);
   return f ? formCSpec(userId, ownerId, t.vehicle, f) : null;
 }
