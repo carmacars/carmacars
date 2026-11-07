@@ -126,7 +126,7 @@ test('admin: 20 menu links, the merged pages and their tabs, the old addresses, 
   await page.waitForURL(/\/admin\/owner-money\?tab=payouts/);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Payouts');
   // a filter on a tab keeps the tab
-  await page.getByRole('navigation', { name: 'Filter by status' }).getByRole('link', { name: 'Paid' }).click();
+  await page.getByRole('navigation', { name: 'Status' }).getByRole('link', { name: 'Paid', exact: true }).click();
   await page.waitForURL((u) => u.searchParams.get('tab') === 'payouts' && u.searchParams.get('status') === 'paid');
   // a search on a tab keeps the tab
   await page.goto('/admin/logs?tab=changes', { waitUntil: 'networkidle' });
