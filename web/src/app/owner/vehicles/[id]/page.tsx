@@ -48,7 +48,9 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   // the car's service history (0089), read only, while the car is with us
   const service = !['declined', 'exited', 'total_loss'].includes(v.status) ? await door<OwnerHistory>(user.id, 'ops_read', 'maint_owner', { vehicle_id: id }).catch(() => null) : null;
   // the car's terms over time and the notices (0135)
-  const terms = ((await rpc('server_owner_car_terms', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as CarTermsData | null)?.cars.find((c) => c.vehicle_id === id) ?? null;
+  // 0710: a fleet supplier's car: its lease (tier, a month, next payment), the ownership copy only, no fees or invoices
+  const fleetCar = home.fleet_supplier ? home.fleet_lease?.cars.find((c) => c.vehicle_id === id) ?? null : null;
+  const terms = fleetCar ? null : ((await rpc('server_owner_car_terms', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as CarTermsData | null)?.cars.find((c) => c.vehicle_id === id) ?? null;
   return (
     <>
       <Back href="/owner/vehicles">Cars</Back>
@@ -67,11 +69,12 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
             {v.status === 'onboarding' && (
               <div className="pt-uploads">
                 <OwnerUpload vehicleId={id} kind="ownership_permit" title="Ownership permit" hint="Both sides, flat and readable. Photos or a PDF." done={v.checklist.some((c) => c.code === 'documents' && c.status === 'done')} />
+                {!home.fleet_supplier && <>
                 <OwnerUpload vehicleId={id} kind="finance_party_permission" title="Lender or lessor permission" hint="If your vehicle is financed or leased: their written permission." done={false} />
-                <OwnerUpload vehicleId={id} kind="owner_insurance_proof" title="Your insurance" hint="Your current insurance card. Keep your insurance until we confirm in writing." done={false} />
+                <OwnerUpload vehicleId={id} kind="owner_insurance_proof" title="Your insurance" hint="Your current insurance card. Keep your insurance until we confirm in writing." done={false} /></>}
               </div>
             )}
-            {v.estimate_cents !== null && <p className="small muted">Registry and inspection estimate: about {money(v.estimate_cents)}, which you pay directly to ServiceOntario and the inspection station, not to CarmaCars. Amounts may vary.</p>}
+            {v.estimate_cents !== null && !home.fleet_supplier && <p className="small muted">Registry and inspection estimate: about {money(v.estimate_cents)}, which you pay directly to ServiceOntario and the inspection station, not to CarmaCars. Amounts may vary.</p>}
           </section>}
           {listable && !current?.open && <section className="pt-card" aria-labelledby="ow-list"><h2 className="d4" id="ow-list">Listing photos</h2>
             <p className="small">{v.listing_path ? 'Your car is on the website. New photos replace the current ones once our team approves them.' : 'Take the photos for the website: 13 set angles and the odometer. We write the details, edit the backgrounds and publish the car after a review.'}</p>
@@ -92,14 +95,18 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
             <p><Link prefetch={false} className="btn btn--ghost btn--sm" href={`/owner/vehicles?tab=bookings&vehicle=${id}#book-own`}>Book it for myself</Link></p>
           </section>
           {service && <ServiceHistory h={service} />}
-          <section className="pt-card" aria-labelledby="ow-inv"><h2 className="d4" id="ow-inv">Invoices</h2><InvoiceRows items={home.invoices.filter((i) => i.vehicle_id === id)} /></section>
+          {!home.fleet_supplier && <section className="pt-card" aria-labelledby="ow-inv"><h2 className="d4" id="ow-inv">Invoices</h2><InvoiceRows items={home.invoices.filter((i) => i.vehicle_id === id)} /></section>}
         </div>
         <aside className="pt-split__aside stack-lg">
-          <section className="pt-card" aria-labelledby="ow-terms"><h2 className="d4" id="ow-terms">Terms</h2>
+          {fleetCar ? <section className="pt-card" aria-labelledby="ow-terms" data-testid="vehicle-fleet-lease"><h2 className="d4" id="ow-terms">Fleet lease</h2>
+            <Dl rows={[['Tier', fleetCar.tier === 'troubled' ? 'Troubled' : 'Regular'], ['Lease a month', fleetCar.monthly_cents !== null ? money(fleetCar.monthly_cents) : ''],
+              ['On the lease since', fleetCar.delivered_on ? day(fleetCar.delivered_on) : 'When we approve the car'], ['Next payment', fleetCar.next_payment_on ? day(fleetCar.next_payment_on) : 'After approval']]} />
+            <p className="small muted">The tier was set when you added the car and does not change. You pay CarmaCars no fees.</p>
+          </section> : <section className="pt-card" aria-labelledby="ow-terms"><h2 className="d4" id="ow-terms">Terms</h2>
             <Dl rows={[['Insurance Fee', v.insurance_fee_cents !== null ? `${money(v.insurance_fee_cents)} a month` : 'Being set', 'insurance_fee'], ...(home.trackers_available ? [['Tracker Fee', v.tracker_fee_cents !== null ? `${money(v.tracker_fee_cents)} a month` : '', 'tracker_fee']] as Array<[string, string, string]> : []), ['Revenue Share', v.revenue_share_bps !== null ? pct(v.revenue_share_bps) : '', 'revenue_share'], ['Enrollment Date', v.enrollment_date ? day(v.enrollment_date) : 'When we confirm in writing'], ['Listing', v.listing_path ? <Link prefetch={false} key="l" href={v.listing_path}>See the listing</Link> : 'Not listed yet']]} />
             {!home.trackers_available && home.tracker_pending.includes(id) && <p className="small muted">{TRACKER_LATER}</p>}
             {terms && <OwnerTermsHistory car={terms} />}
-          </section>
+          </section>}
           <section className="pt-card" aria-labelledby="ow-exit"><h2 className="d4" id="ow-exit">Leaving</h2>
             {exit ? <p>Notice given. Exit Date <b>{day(exit.exit_date)}</b>. Transfer-back fees are paid by {exit.retransfer_fees_paid_by === 'carmacars' ? 'CarmaCars' : 'you'}.</p>
               : EXIT_ALLOWED.includes(v.status) ? <ExitNoticeForm vehicleId={id} />

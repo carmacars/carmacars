@@ -11,7 +11,7 @@ import { PermitScan } from '@/features/vehicles/PermitScan';
 import { carName, detailLine, vinMessage, vinState } from '@/features/vin/vin';
 import { VinScan } from '@/features/vin/VinScan';
 import { CaptureNote, SavedAsYouType, useCapture } from '@/features/capture/useCapture';
-import { blankVehicle, cleanVin, ownerErrors, planErrors, startErrors, STEPS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle } from './apply-schema';
+import { blankVehicle, cleanVin, isFleet, ownerErrors, planErrors, REGISTERED_TO, startErrors, STEPS, TIERS, vehicleErrors, type ApplyOwner, type ApplyState, type ApplyVehicle, type FleetTransfer } from './apply-schema';
 import { DateInput } from '@/components/DateInput';
 
 // The owner application (04-owner.md section 3, steps 1 to 3): about you once, then each vehicle,
@@ -62,7 +62,12 @@ function Choice<T extends string>({ name, legend, value, options, onChange, err 
   );
 }
 
-export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial: ApplyState; facts: ProgramFacts; signedIn: boolean; ownerOnFile: boolean }) {
+/** 0710: the fleet supplier route's lease a month by tier (Program settings), shown beside the tier choice. */
+export interface FleetFacts { regular_cents: number; troubled_cents: number }
+
+export function ApplyWizard({ initial, facts, signedIn, ownerOnFile, fleetOnFile = false, fleetFacts = null }: { initial: ApplyState; facts: ProgramFacts; signedIn: boolean; ownerOnFile: boolean;
+  /** 0710: the owner on file is a fleet supplier: his next cars come in on the same route. */
+  fleetOnFile?: boolean; fleetFacts?: FleetFacts | null }) {
   const [s, setS] = useState<ApplyState>(initial);
   const [errs, setErrs] = useState<Errs>({});
   const [saved, setSaved] = useState<{ at: string | null; state: 'idle' | 'saving' | 'saved' | 'error' }>({ at: null, state: 'idle' });
@@ -91,6 +96,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
   }, [s, done]);
 
   const o = s.owner;
+  const fleet = fleetOnFile || isFleet(o);
   // contact capture (0090): the name, email and phone are saved as each becomes valid; the server finds this draft by its cookie
   const cap = useCapture('owner_application');
   const setOwner = (p: Partial<ApplyOwner>) => setS((x) => ({ ...x, owner: { ...x.owner, ...p } }));
@@ -117,7 +123,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     if (!s.vehicles.length) setS((x) => ({ ...x, vehicles: [blankVehicle(uid())], active: 0 }));
     go(1);
   };
-  const vehicleErr = (i: number) => vehicleErrors(s.vehicles[i]!, o.owner_type);
+  const vehicleErr = (i: number) => vehicleErrors(s.vehicles[i]!, o.owner_type, fleet);
   const saveVehicle = (i: number): boolean => {
     const e = vehicleErr(i);
     const prefixed = Object.fromEntries(Object.entries(e).map(([k, v]) => [`v${i}.${k}`, v]));
@@ -134,7 +140,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     const bad = s.vehicles.findIndex((_, i) => Object.keys(vehicleErr(i)).length);
     if (bad >= 0) { setS((x) => ({ ...x, active: bad })); saveVehicle(bad); return; }
     setS((x) => ({ ...x, active: -1, later: false }));
-    go(2);
+    go(fleet ? 3 : 2);
   };
   const nextFromPlan = () => {
     const e: Errs = {};
@@ -229,7 +235,9 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
       <div className="pt-card pt-card--next" tabIndex={-1} ref={top} data-testid="apply-done">
         <p className="pt-kicker">{done.accountOnly ? 'Owner account' : 'Application'} {done.applicationNumber}</p>
         <h2 className="d2">{done.accountOnly ? 'Your owner account is open' : 'Application received'}</h2>
-        {done.accountOnly ? <p data-testid="apply-account-only">Add your first car from your owner portal whenever you are ready. We will also be in touch to help.</p> : <p>{done.vehicles - done.declined} vehicle{done.vehicles - done.declined === 1 ? '' : 's'} with our team. We reply within 1 business day with the terms for each one; then you sign your agreements and pay the upfront invoice in your owner portal.</p>}
+        {done.accountOnly ? <p data-testid="apply-account-only">Add your first car from your owner portal whenever you are ready. We will also be in touch to help.</p>
+          : done.fleet ? <p data-testid="apply-fleet-done">{done.vehicles} car{done.vehicles === 1 ? '' : 's'} with our team, each at the tier you chose. Next, in your owner portal: upload each car&apos;s ownership (registration) copy under Cars; the ServiceOntario forms each car needs are already filled in for you under Documents. We check each car, then you sign your Fleet Supplier Lease Agreement in the portal. You pay CarmaCars nothing.</p>
+          : <p>{done.vehicles - done.declined} vehicle{done.vehicles - done.declined === 1 ? '' : 's'} with our team. We reply within 1 business day with the terms for each one; then you sign your agreements and pay the upfront invoice in your owner portal.</p>}
         {done.declined > 0 && <p className="ow-warn">{done.declined} vehicle{done.declined === 1 ? ' was' : 's were'} not accepted: a rebuilt, salvage or irreparable brand is not eligible (Enrollment Agreement 3.1).</p>}
         {done.checkEmail
           ? <p className="pt-note" data-testid="apply-check-email">We already had your email from an earlier booking request, so your sign-in is set up on that record. Open the email we just sent and choose your password: your owner portal and your earlier requests are there. The link works for 24 hours.</p>
@@ -246,7 +254,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
     <div className="stack-lg">
       <div ref={top} tabIndex={-1} className="stack" style={{ outline: 'none' }}>
         <ol className="ow-progress" aria-label="Steps">
-          {(['Start', ...STEPS] as string[]).map((t, i) => { const at = s.started ? s.step + 1 : 0; return <li key={t} className={i < at ? 'is-done' : i === at ? 'is-on' : ''} aria-current={i === at ? 'step' : undefined}><div>{i + 1}<span>. {t}</span></div></li>; })}
+          {(['Start', ...STEPS] as string[]).map((t, i) => { const at = s.started ? s.step + 1 : 0; if (fleet && i === 3) return null; return <li key={t} className={i < at ? 'is-done' : i === at ? 'is-on' : ''} aria-current={i === at ? 'step' : undefined}><div>{i + 1}<span>. {t}</span></div></li>; })}
         </ol>
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <h2 className="d3" style={{ margin: 0 }}>{s.started ? STEPS[s.step] : 'Start with you and your car'}</h2>
@@ -292,20 +300,37 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
       {s.started && s.step === 0 && (
         <section className="pt-card" aria-label="About you" onBlur={() => cap.capture({ name: [o.first_name, o.middle_name, o.last_name].map((x) => x.trim()).filter(Boolean).join(' '), email: o.email, phone: o.phone })}>
           {ownerOnFile && <p className="pt-note">You already have an owner account. These vehicles are added to it; details you change here update your record.</p>}
-          <Choice name="ow_type" legend="I am enrolling as" value={o.owner_type} options={[['individual', 'An individual'], ['corporation', 'A corporation']] as const} onChange={(v) => { setOwner({ owner_type: v }); clearErr('owner_type'); }} err={errs.owner_type} />
+          {fleetOnFile ? <p className="pt-note" data-testid="apply-fleet-on-file">Fleet supplier: each car you add is leased to CarmaCars at the tier you choose.</p>
+            : <Choice name="ow_type" legend="I am enrolling as" value={o.owner_type} options={[['individual', 'An individual'], ['corporation', 'A corporation']] as const} onChange={(v) => { setOwner({ owner_type: v, ...(v === 'individual' ? { route: '' } : {}) }); clearErr('owner_type'); }} err={errs.owner_type} />}
+          {o.owner_type === 'corporation' && !fleetOnFile && !ownerOnFile && (
+            <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }} data-testid="apply-route">
+              <legend className="label">How your corporation works with CarmaCars</legend>
+              <div className="stack">
+                <label className="option"><input type="radio" name="ap-route" checked={o.route !== 'fleet_supplier'} onChange={() => setOwner({ route: '' })} data-testid="apply-route-standard" />
+                  <span className="option__title">Enrol my cars</span><span className="option__body">We rent your cars; you are paid each month less the fees. You choose how each car is rented next.</span></label>
+                <label className="option"><input type="radio" name="ap-route" checked={o.route === 'fleet_supplier'} onChange={() => setOwner({ route: 'fleet_supplier' })} data-testid="apply-route-fleet" />
+                  <span className="option__title">Fleet supplier: lease your cars to CarmaCars</span><span className="option__body">A fixed lease a month for each car by its tier, paid on the 10th for the month before. You pay CarmaCars no fees. The cars stay registered to your corporation.</span></label>
+              </div>
+            </fieldset>
+          )}
           <p className="small" data-testid="apply-you">{[o.first_name, o.last_name].filter(Boolean).join(' ')} · {o.phone} · {o.email} <button type="button" className="link" onClick={() => setS((x) => ({ ...x, started: false }))}>Change</button></p>
           {(errs.first_name || errs.last_name || errs.email || errs.phone) && <p className="error" role="alert">{errs.first_name || errs.last_name || errs.email || errs.phone}</p>}
           <Field id="ap-middle" label="Middle name" optional><input className="input" id="ap-middle" value={o.middle_name} onChange={(e) => setOwner({ middle_name: e.target.value })} autoComplete="additional-name" /></Field>
           {o.owner_type === 'corporation' && (
             <>
               <div className="field-row">
-                <Field id="ap-corp" label="Corporation name" err={errs.corporation_name}><input className="input" {...aria('ap-corp', errs.corporation_name)} value={o.corporation_name} onChange={(e) => { setOwner({ corporation_name: e.target.value }); clearErr('corporation_name'); }} autoComplete="organization" /></Field>
+                <Field id="ap-corp" label={fleet ? 'Corporation legal name' : 'Corporation name'} err={errs.corporation_name}><input className="input" {...aria('ap-corp', errs.corporation_name)} value={o.corporation_name} onChange={(e) => { setOwner({ corporation_name: e.target.value }); clearErr('corporation_name'); }} autoComplete="organization" /></Field>
                 <Field id="ap-corpno" label="Corporation number" err={errs.corporation_number}><input className="input" {...aria('ap-corpno', errs.corporation_number)} value={o.corporation_number} onChange={(e) => { setOwner({ corporation_number: e.target.value }); clearErr('corporation_number'); }} /></Field>
               </div>
-              <Field id="ap-title" label="Your title at the corporation" err={errs.signing_officer_title} hint="You sign for the corporation and confirm you have authority to bind it."><input className="input" {...aria('ap-title', errs.signing_officer_title, 'hint')} value={o.signing_officer_title} onChange={(e) => { setOwner({ signing_officer_title: e.target.value }); clearErr('signing_officer_title'); }} placeholder="Director" autoComplete="organization-title" /></Field>
+              {fleet ? (
+                <div className="field-row">
+                  <Field id="ap-officer" label="Signing officer" err={errs.signing_officer_name} hint="The officer who signs the agreements for the corporation, in the owner portal."><input className="input" {...aria('ap-officer', errs.signing_officer_name, 'hint')} value={o.signing_officer_name || [o.first_name, o.last_name].filter(Boolean).join(' ')} onChange={(e) => { setOwner({ signing_officer_name: e.target.value }); clearErr('signing_officer_name'); }} autoComplete="name" data-testid="apply-officer" /></Field>
+                  <Field id="ap-title" label="Signing officer's title" err={errs.signing_officer_title}><input className="input" {...aria('ap-title', errs.signing_officer_title)} value={o.signing_officer_title} onChange={(e) => { setOwner({ signing_officer_title: e.target.value }); clearErr('signing_officer_title'); }} placeholder="Director" autoComplete="organization-title" /></Field>
+                </div>
+              ) : <Field id="ap-title" label="Your title at the corporation" err={errs.signing_officer_title} hint="You sign for the corporation and confirm you have authority to bind it."><input className="input" {...aria('ap-title', errs.signing_officer_title, 'hint')} value={o.signing_officer_title} onChange={(e) => { setOwner({ signing_officer_title: e.target.value }); clearErr('signing_officer_title'); }} placeholder="Director" autoComplete="organization-title" /></Field>}
             </>
           )}
-          <Field id="ap-addr" label="Find your address" hint="Start typing and choose it. Then check each line below.">
+          <Field id="ap-addr" label={fleet ? 'Find the corporation\'s registered address' : 'Find your address'} hint="Start typing and choose it. Then check each line below.">
             <AddressInput id="ap-addr" name="address" value={{ label: o.address, placeId: '' }} describedBy="ap-addr-hint"
               onChange={(v) => setOwner({ address: v.label })}
               onParts={(p, label) => {
@@ -388,6 +413,42 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
                   <YearMakeModel value={{ year: v.year, make: v.make, model: v.model }} onChange={(x) => { set({ year: x.year ?? '', make: x.make ?? '', model: x.model ?? '' }); ['year', 'make', 'model'].forEach((k) => clearErr(`v${i}.${k}`)); }}
                     prefix="apply" errs={{ year: e('year'), make: e('make'), model: e('model') }} />
                 ) : (e('year') || e('make') || e('model')) ? <p className="error" role="alert">Enter the VIN: we fill in the year, make and model from it.</p> : null}
+                {fleet ? (
+                  <div className="stack" data-testid="apply-fleet-car">
+                    <Field id={id('plate')} label="Plate" err={e('plate')}><input className="input" {...aria(id('plate'), e('plate'))} value={v.plate} onChange={(ev) => set({ plate: ev.target.value.toUpperCase() }, 'plate')} autoCapitalize="characters" data-testid="apply-plate" /></Field>
+                    <fieldset className={`field${e('lease_tier') ? ' has-error' : ''}`} style={{ border: 0, padding: 0, margin: 0 }} aria-describedby={`${id('tier')}-err`}>
+                      <legend className="label">The car&apos;s tier</legend>
+                      <div className="stack">{TIERS.map(([k, t, b]) => (
+                        <label key={k} className="option"><input type="radio" name={id('tier')} checked={v.lease_tier === k} onChange={() => set({ lease_tier: k }, 'lease_tier')} data-testid={`apply-tier-${k}`} />
+                          <span className="option__title">{t}{fleetFacts ? `, ${money(k === 'regular' ? fleetFacts.regular_cents : fleetFacts.troubled_cents)} a month` : ''}</span><span className="option__body">{b}</span></label>))}</div>
+                      <p className="hint">Set now and locked: it does not change after you add the car. We check each car before it goes on the lease.</p>
+                      <p className="error" role="alert" id={`${id('tier')}-err`}>{e('lease_tier') ?? ''}</p>
+                    </fieldset>
+                    {(() => {
+                      const t: FleetTransfer = v.fleet_transfer ?? { registered_to: '', name: '', address: '', date: '' };
+                      const setT = (x: Partial<FleetTransfer>, k: string) => set({ fleet_transfer: { ...t, ...x } }, k);
+                      return (
+                        <fieldset className={`field${e('registered_to') ? ' has-error' : ''}`} style={{ border: 0, padding: 0, margin: 0 }} data-testid="apply-registered-to">
+                          <legend className="label">Who is the car registered to now?</legend>
+                          <div className="stack">{REGISTERED_TO.map(([k, l, b]) => (
+                            <label key={k} className="option"><input type="radio" name={id('reg')} checked={t.registered_to === k} onChange={() => setT({ registered_to: k }, 'registered_to')} data-testid={`apply-reg-${k}`} />
+                              <span className="option__title">{l}</span><span className="option__body">{b}</span></label>))}</div>
+                          <p className="error" role="alert">{e('registered_to') ?? ''}</p>
+                          {(t.registered_to === 'officer' || t.registered_to === 'seller') && (
+                            <div className="stack">
+                              <div className="field-row">
+                                <Field id={id('tname')} label={t.registered_to === 'seller' ? 'Seller\'s name, as on the ownership' : 'Name on the ownership now'} err={e('transfer_name')}><input className="input" {...aria(id('tname'), e('transfer_name'))} value={t.name} onChange={(ev) => setT({ name: ev.target.value }, 'transfer_name')} data-testid="apply-transfer-name" /></Field>
+                                <Field id={id('tdate')} label={t.registered_to === 'seller' ? 'Sale date' : 'Transfer date'} err={e('transfer_date')}><DateInput className="input" type="date" {...aria(id('tdate'), e('transfer_date'))} value={t.date} onChange={(ev) => setT({ date: ev.target.value }, 'transfer_date')} data-testid="apply-transfer-date" /></Field>
+                              </div>
+                              <Field id={id('taddr')} label="Address on the ownership" err={e('transfer_address')}><input className="input" {...aria(id('taddr'), e('transfer_address'))} value={t.address} onChange={(ev) => setT({ address: ev.target.value }, 'transfer_address')} data-testid="apply-transfer-address" /></Field>
+                            </div>
+                          )}
+                        </fieldset>
+                      );
+                    })()}
+                    <p className="small muted">Ownership (registration) copy: upload it for this car in your owner portal, under Cars, once you submit. The ServiceOntario forms this car needs are filled in for you at once, in Documents.</p>
+                  </div>
+                ) : (<>
                 <ColourSwatches value={v.colour} onChange={(c) => set({ colour: c }, 'colour')} prefix="apply" err={e('colour')} />
                 <div className="field-row field-row--3">
                   <Field id={id('plate')} label="Plate" err={e('plate')}><input className="input" {...aria(id('plate'), e('plate'))} value={v.plate} onChange={(ev) => set({ plate: ev.target.value.toUpperCase() }, 'plate')} autoCapitalize="characters" /></Field>
@@ -406,6 +467,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
                 {v.branded === 'yes' && <p className="ow-warn">A vehicle with a rebuilt, salvage or irreparable brand is not eligible (Enrollment Agreement 3.1). You can still submit your other vehicles.</p>}
                 <Choice name={id('damage')} legend="Any open recall, or structural, flood or fire damage?" value={v.damage} options={[['no', 'No'], ['yes', 'Yes']] as const} onChange={(x) => set({ damage: x }, 'damage')} err={e('damage')} />
                 {v.damage === 'yes' && <Field id={id('dmg')} label="What was it?" err={e('damage_details')}><textarea className="textarea" {...aria(id('dmg'), e('damage_details'))} value={v.damage_details} onChange={(ev) => set({ damage_details: ev.target.value }, 'damage_details')} /></Field>}
+                </>)}
               </div>
             );
           })()}
@@ -492,7 +554,7 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
         <form className="stack-lg" noValidate onSubmit={submit} aria-label="Review and submit">
           <section className="pt-card" aria-label="You">
             <div className="pt-card__head"><h3 className="d4">{[o.first_name, o.middle_name, o.last_name].filter(Boolean).join(' ')}</h3><button type="button" className="btn btn--quiet btn--sm" onClick={() => go(0)}>Edit</button></div>
-            <p className="small">{o.owner_type === 'corporation' ? `For ${o.corporation_name} (no. ${o.corporation_number}), as ${o.signing_officer_title}. ` : ''}{[o.address_line1, o.address_line2, o.city, o.province, o.postal_code].filter(Boolean).join(', ')}. {o.email}, {o.phone}.</p>
+            <p className="small">{o.owner_type === 'corporation' ? `For ${o.corporation_name} (no. ${o.corporation_number}), ${fleet ? `fleet supplier, signed by ${o.signing_officer_name || [o.first_name, o.last_name].filter(Boolean).join(' ')}, ` : ''}as ${o.signing_officer_title}. ` : ''}{[o.address_line1, o.address_line2, o.city, o.province, o.postal_code].filter(Boolean).join(', ')}. {o.email}, {o.phone}.</p>
             {o.owner_type === 'individual' && !o.licence_number && <p className="ow-warn">Enter your driver&apos;s licence number again in step 1 (it is never kept in a saved draft).</p>}
           </section>
           {s.later && !s.vehicles.length && (
@@ -504,7 +566,8 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
           {s.vehicles.map((v, i) => (
             <section key={v.key} className="pt-card" aria-label={vName(v)}>
               <div className="pt-card__head"><h3 className="d4">{vName(v)}</h3><button type="button" className="btn btn--quiet btn--sm" onClick={() => { setS((x) => ({ ...x, active: i })); go(1); }}>Edit</button></div>
-              <p className="small">{cleanVin(v.vin)} · {v.plate.toUpperCase()} · {v.colour} · {Number(v.odometer_km || 0).toLocaleString('en-CA')} km · {MODES.find((m) => m.v === v.management_mode)?.t}{v.onboarding_method && v.onboarding_method !== 'none' ? ` · ${optsFor(v)?.find((m) => m.method === v.onboarding_method)?.label ?? v.onboarding_method.replace(/_/g, ' ')}` : ''}</p>
+              {fleet ? <p className="small" data-testid="apply-review-fleet">{cleanVin(v.vin)} · {v.plate.toUpperCase()} · {v.lease_tier === 'troubled' ? 'Troubled' : 'Regular'}{fleetFacts ? `, ${money(v.lease_tier === 'troubled' ? fleetFacts.troubled_cents : fleetFacts.regular_cents)} a month` : ''} · {v.fleet_transfer?.registered_to === 'corporation' ? 'registered to your corporation' : v.fleet_transfer?.registered_to === 'seller' ? `bought from ${v.fleet_transfer.name}` : `moving in from ${v.fleet_transfer?.name ?? ''}`}</p>
+                : <p className="small">{cleanVin(v.vin)} · {v.plate.toUpperCase()} · {v.colour} · {Number(v.odometer_km || 0).toLocaleString('en-CA')} km · {MODES.find((m) => m.v === v.management_mode)?.t}{v.onboarding_method && v.onboarding_method !== 'none' ? ` · ${optsFor(v)?.find((m) => m.method === v.onboarding_method)?.label ?? v.onboarding_method.replace(/_/g, ' ')}` : ''}</p>}
             </section>
           ))}
           {!signedIn && (
@@ -515,11 +578,11 @@ export function ApplyWizard({ initial, facts, signedIn, ownerOnFile }: { initial
               <p className="small muted">Already have an account? <Link href={`/sign-in?next=${encodeURIComponent('/list-your-car/apply')}`}>Sign in</Link> and your answers are kept.</p>
             </section>
           )}
-          <p className="small muted">By submitting you confirm the answers are true. Nothing is charged now. We set the terms for each vehicle, then you sign and pay the upfront invoice in your owner portal.</p>
+          <p className="small muted">{fleet ? 'By submitting you confirm the answers are true. You pay CarmaCars nothing, now or later. We check each car, then you sign your Fleet Supplier Lease Agreement in your owner portal.' : 'By submitting you confirm the answers are true. Nothing is charged now. We set the terms for each vehicle, then you sign and pay the upfront invoice in your owner portal.'}</p>
           <Turnstile action="owner_application" />
           {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}
           <div className="ow-actions">
-            <button className="btn btn--ghost" type="button" onClick={() => go(s.later && !s.vehicles.length ? 1 : 2)}>Back</button>
+            <button className="btn btn--ghost" type="button" onClick={() => go(s.later && !s.vehicles.length ? 1 : fleet ? 1 : 2)}>Back</button>
             <button className="btn btn--primary btn--lg" type="submit" disabled={busy}>{busy ? 'Sending' : s.later && !s.vehicles.length ? 'Open my owner account' : 'Submit application'}</button>
           </div>
         </form>

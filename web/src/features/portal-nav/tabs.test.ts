@@ -49,8 +49,8 @@ describe('menus', () => {
     assert.deepEqual(menuFor(INVESTOR_MENU, { investor: true, deck: true }).map((l) => l.label), ['Home', 'Live sheets', 'Documents', 'Updates', 'Investor deck', 'Account']);
   });
   it('gives a partner rental company no Invoices tab', () => {
-    assert.deepEqual(tabsFor(OWNER_MONEY_TABS, { partner: true }).map((t) => t.key), ['statements', 'payouts']);
-    assert.deepEqual(tabsFor(OWNER_MONEY_TABS, { partner: false }).map((t) => t.key), ['statements', 'payouts', 'invoices']);
+    assert.deepEqual(tabsFor(OWNER_MONEY_TABS, { nofees: true }).map((t) => t.key), ['statements', 'payouts']);
+    assert.deepEqual(tabsFor(OWNER_MONEY_TABS, { nofees: false }).map((t) => t.key), ['statements', 'payouts', 'invoices']);
   });
   it('names nothing about the fleet in the investor menu', () => {
     for (const l of [...INVESTOR_MENU, ...INVESTOR_DOCUMENT_TABS]) assert.doesNotMatch(l.label, /fleet|utili|insurance|premium|cost/i);

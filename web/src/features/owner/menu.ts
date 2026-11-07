@@ -15,11 +15,11 @@ export const OWNER_CARS_TABS: PageTab[] = [
   { key: 'cars', href: '/owner/vehicles', label: 'Your cars' },
   { key: 'bookings', href: '/owner/vehicles?tab=bookings', label: 'Bookings' }
 ];
-/** Money: what you earned (statements), what we sent (payouts), what you owe (invoices; a partner pays no fees). */
+/** Money: what you earned (statements), what we sent (payouts), what you owe (invoices; a partner or a fleet supplier, 0710, pays no fees). */
 export const OWNER_MONEY_TABS: PageTab[] = [
   { key: 'statements', href: '/owner/money', label: 'Statements' },
   { key: 'payouts', href: '/owner/money?tab=payouts', label: 'Payouts' },
-  { key: 'invoices', href: '/owner/money?tab=invoices', label: 'Invoices', not: 'partner' }
+  { key: 'invoices', href: '/owner/money?tab=invoices', label: 'Invoices', not: 'nofees' }
 ];
 export const OWNER_ACCOUNT_TABS: PageTab[] = [
   { key: 'profile', href: '/owner/account', label: 'Profile' },

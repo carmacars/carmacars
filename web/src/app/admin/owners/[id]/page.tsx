@@ -152,7 +152,8 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
           {checklist && (
             <section className="pt-card stack" id="checklist" aria-labelledby="ad-ck"><h2 className="d4" id="ad-ck">Paid and signed</h2>
               <p className="small">Everything this owner signs and pays to get their cars on the road, and how each was done. A payment received by e-Transfer, cheque, cash or bank transfer, or a document signed on paper, is recorded here and counts everywhere.</p>
-              <OwnerChecklist row={checklist} signer={o.owner_type === 'corporation' ? String(o.signing_officer_name ?? o.legal_name) : o.legal_name} today={today} refresh={here} />
+              <OwnerChecklist row={checklist} signer={o.owner_type === 'corporation' ? String(o.signing_officer_name ?? o.legal_name) : o.legal_name} today={today} refresh={here}
+                portalOnly={(o as { onboarding_route?: string | null }).onboarding_route === 'fleet_supplier'} />
               <h3 className="d5">Paper signatures</h3>
               <PaperSignatureList rows={paper} canVoid refresh={here} />
             </section>

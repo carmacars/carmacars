@@ -6,7 +6,8 @@ import { addOwner } from '@/server/actions/owner-billing';
 import { TypedInput } from '@/components/DateInput';
 
 // Owners > Add an owner (0264): on file without a car, with the owner's default terms if agreed. Nothing is emailed
-// unless "Invite the owner now" is ticked.
+// unless "Invite the owner now" is ticked. 0710: a corporation can be added on the fleet supplier route (the default lease
+// terms and Upkeep Table at once, no fee terms).
 const cents = (s: string) => (s.trim() === '' ? null : Math.round(Number(s.replace(/[$,\s]/g, '')) * 100));
 const bps = (s: string) => (s.trim() === '' ? null : Math.round(Number(s.replace(/[%\s]/g, '')) * 100));
 
@@ -14,7 +15,8 @@ export function AddOwnerForm() {
   const uid = useId();
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [f, setF] = useState({ legal_name: '', email: '', phone: '', owner_type: 'individual', corporation_name: '', ins: '', trk: '', share: '' });
+  const [f, setF] = useState({ legal_name: '', email: '', phone: '', owner_type: 'individual', corporation_name: '', ins: '', trk: '', share: '', route: '' });
+  const fleet = f.owner_type === 'corporation' && f.route === 'fleet_supplier';
   const [invite, setInvite] = useState(false);
   const [err, setErr] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -28,7 +30,7 @@ export function AddOwnerForm() {
     setMsg(null); setErr({});
     start(async () => {
       const r = await addOwner({ legal_name: f.legal_name, email: f.email.trim() || undefined, phone: f.phone.trim() || undefined, owner_type: f.owner_type as 'individual' | 'corporation',
-        corporation_name: f.corporation_name || undefined, terms: { insurance_fee_cents: cents(f.ins), tracker_fee_cents: cents(f.trk), revenue_share_bps: bps(f.share) }, invite });
+        corporation_name: f.corporation_name || undefined, ...(fleet ? { route: 'fleet_supplier' as const } : { terms: { insurance_fee_cents: cents(f.ins), tracker_fee_cents: cents(f.trk), revenue_share_bps: bps(f.share) } }), invite });
       if (!r.ok) { setErr(r.fieldErrors ?? {}); setMsg({ ok: false, text: r.message }); return; }
       setMsg({ ok: true, text: r.data.note ?? 'Added. Nothing was emailed: invite the owner when ready.' });
       router.push(`/admin/owners/${r.data.owner_id}`, scrollOption(`/admin/owners/${r.data.owner_id}`));
@@ -42,9 +44,12 @@ export function AddOwnerForm() {
       <div className="field"><label className="label" htmlFor={`${uid}-type`}>The owner is</label>
         <select className="select" id={`${uid}-type`} value={f.owner_type} onChange={set('owner_type')} data-testid="addowner-owner_type"><option value="individual">An individual</option><option value="corporation">A corporation</option></select></div>
       {f.owner_type === 'corporation' && field('corporation_name', 'Corporation name')}
-      <fieldset className="stack"><legend className="label">Terms agreed (optional, an Admin)</legend>
+      {f.owner_type === 'corporation' && <div className="field"><label className="label" htmlFor={`${uid}-route`}>Route</label>
+        <select className="select" id={`${uid}-route`} value={f.route} onChange={set('route')} data-testid="addowner-route"><option value="">Enrol the cars (the standard terms)</option><option value="fleet_supplier">Fleet supplier: leases the cars to CarmaCars</option></select>
+        {fleet && <p className="hint">The default lease terms and Upkeep Table are set at once (Program settings; change them on the owner&apos;s Terms tab). No fees; he signs in the owner portal only.</p>}</div>}
+      {!fleet && <fieldset className="stack"><legend className="label">Terms agreed (optional, an Admin)</legend>
         {field('ins', 'Insurance Fee ($ per month)', { mode: 'decimal' })}{field('trk', 'Tracker Fee ($ per month)', { mode: 'decimal' })}{field('share', 'Revenue Share to the owner (%)', { mode: 'decimal' })}
-        <p className="hint">Empty: the standard terms. They become the default for the owner&apos;s cars.</p></fieldset>
+        <p className="hint">Empty: the standard terms. They become the default for the owner&apos;s cars.</p></fieldset>}
       <label className="check"><input type="checkbox" checked={invite} onChange={(e) => setInvite(e.target.checked)} data-testid="addowner-invite" /> <span>Invite the owner now (they get an email to choose a password). Unticked: nothing is sent.</span></label>
       <button className="btn btn--primary" type="submit" disabled={pending} data-testid="addowner-save">{pending ? 'Saving' : 'Add the owner'}</button>
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}

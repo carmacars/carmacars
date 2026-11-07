@@ -11,6 +11,7 @@ import { ApplicationTask, type AppTask } from '@/features/owner/ApplicationTask'
 import { amountText, carThisMonth, nextPayout, upcoming, viewOf } from '@/features/owner/insights';
 import { OwnerMonths } from '@/features/owner/OwnerMonths';
 import { PageHeader } from '@/features/portal/Chrome';
+import { FleetLeaseCard } from '@/features/owner/FleetLeaseCard';
 import { ActionTiles, PortalHero, Sparkline, StatCard, Timeline, TimelineItem, type ActionTileItem } from '@/components/portal-ui';
 
 export const dynamic = 'force-dynamic';
@@ -103,7 +104,9 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
             sub={earned.cents === null ? undefined : earned.final ? 'Statement approved' : 'Provisional until the statement'} />
           <StatCard label="Cars out now" value={`${onRent} of ${enrolled.length}`} testId="owner-cars-out" sub={<Sparkline values={months.map((m) => m.days)} className="ow-hero-spark" />} />
           <StatCard label="Next payout" value={payout.cents !== null ? payout.cents : day(payout.date)} format="cents" testId="owner-next-payout" sub={payout.cents !== null ? `On ${day(payout.date)}` : 'Amount on your statement'} />
-          {partner
+          {home.fleet_lease
+            ? <StatCard label="Next lease payment" value={home.fleet_lease.next_payment_on ? day(home.fleet_lease.next_payment_on) : 'After our check'} testId="owner-fleet-payment" sub="No fees: no invoices or debits" />
+            : partner
             ? <StatCard label="CarmaCars commission" value={`${(partner.commission_effective_bps / 100).toFixed(partner.commission_effective_bps % 100 ? 2 : 0)}%`} testId="partner-commission" />
             : <StatCard label="Fees due now" value={dueCents} format="cents" testId="owner-due" sub={home.auto_debit.next_debit_on ? `Next debit ${money(home.auto_debit.next_debit_cents, { cents: true })} on ${day(home.auto_debit.next_debit_on)}` : `Next billing ${day(home.next_billing_date)}`} />}
         </>}
@@ -123,6 +126,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
           </ul>
         } />
       <ActionTiles items={attention} title={next ? 'Also needs you' : 'Needs your attention'} />
+      {home.fleet_lease && <FleetLeaseCard lease={home.fleet_lease} />}
       <div className="pu-grid-2 pu-grid-2--wide">
         <section className="pu-panel" aria-labelledby="ow-coming" data-testid="owner-coming-up">
           <div className="pu-panel__head"><h2 className="pu-title" id="ow-coming">Coming up</h2><Link prefetch={false} className="link small" href="/owner/vehicles?tab=bookings">All bookings</Link></div>

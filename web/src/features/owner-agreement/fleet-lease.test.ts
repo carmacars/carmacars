@@ -44,7 +44,7 @@ test('no deal amount is written into a template', () => {
 });
 
 test('the lawyer\'s open points are listed, not printed', () => {
-  assert.ok(FLEET_LAWYER_NOTES.length >= 6 && REFERRAL_LAWYER_NOTES.length >= 2 && ENROLLMENT_LAWYER_NOTES.length === 2);
+  assert.ok(FLEET_LAWYER_NOTES.length === 0 && REFERRAL_LAWYER_NOTES.length >= 2 && ENROLLMENT_LAWYER_NOTES.length === 2);
   for (const s of [FLEET_ARTICLES, REFERRAL_ARTICLES, ENROLLMENT_ARTICLES]) assert.doesNotMatch(s, /LAWYER/);
 });
 

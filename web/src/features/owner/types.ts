@@ -75,6 +75,16 @@ export interface OwnerHome {
   next_payout_date: string; next_billing_date: string;
   trackers_available: boolean; tracker_pending: string[];
   auto_debit: AutoDebit;
+  /** 0710: the fleet supplier route: his cars are leased to CarmaCars at their tier; no fees, invoices or debits. */
+  fleet_supplier?: boolean;
+  /** 0710: his lease (also for a supplier Admin put on the fleet lease): the cars, tier, monthly lease, next payment date. */
+  fleet_lease?: FleetLeaseView | null;
+}
+export interface FleetLeaseView {
+  terms: { regular_cents: number; troubled_cents: number; effective_from: string; awaiting_signature: boolean } | null;
+  cars: Array<{ vehicle_id: string; name: string; plate: string | null; tier: 'regular' | 'troubled' | null; monthly_cents: number | null; delivered_on: string | null;
+    next_payment_on: string | null; status: 'waiting_approval' | 'on_lease'; registered_to?: 'corporation' | 'officer' | 'seller'; forms?: string[] }>;
+  next_payment_on: string | null; route: string | null;
 }
 /** What the owner may see of a booking (0156): full; booked (the dates and status, no amount: shown on the statement once
  *  approved); unavailable (a booking with no owner revenue: only that the car is unavailable, no number). */

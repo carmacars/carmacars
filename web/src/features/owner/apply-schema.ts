@@ -13,12 +13,24 @@ export interface ApplyVehicle {
   permit_number?: string; sticker_expires_on?: string;
   /** the decode's details in one line ("Sedan · 5 seats · Gas"), and whether the owner opened the fields to edit (0082) */
   details?: string; editing?: boolean;
+  /** 0710: the fleet supplier route: the car's tier, chosen when it is added and locked from then on. */
+  lease_tier?: '' | 'regular' | 'troubled';
+  /** 0710: who the car is registered to now: his corporation, an officer moving it in, or a seller (name, address, date) */
+  fleet_transfer?: FleetTransfer;
 }
+export interface FleetTransfer { registered_to: '' | 'corporation' | 'officer' | 'seller'; name: string; address: string; date: string }
+export const REGISTERED_TO = [
+  ['corporation', 'My corporation', 'Only the lease forms: CarmaCars holds the plates while it leases the car.'],
+  ['officer', 'Me or another officer, personally', 'We also fill the forms that move it into your corporation.'],
+  ['seller', 'A seller: the corporation is buying it', 'The seller signs the transfer on the back of the ownership; we fill the rest.']
+] as const;
 export interface ApplyOwner {
   owner_type: '' | 'individual' | 'corporation'; first_name: string; middle_name: string; last_name: string;
   corporation_name: string; corporation_number: string; signing_officer_name: string; signing_officer_title: string;
   address: string; address_line1: string; address_line2: string; city: string; province: string; postal_code: string;
   email: string; phone: string; hst_number: string; licence_number: string; date_of_birth: string; referred_by: string;
+  /** 0710: "Fleet supplier: lease your cars to CarmaCars" (a corporation only); empty: the standard routes. */
+  route?: '' | 'fleet_supplier';
 }
 export interface ApplyState { step: number; owner: ApplyOwner; vehicles: ApplyVehicle[]; active: number;
   /** "I'll add my car later" (0087): the account and the owner record now, the first car from the owner portal */
@@ -87,6 +99,12 @@ export const blankOwner = (): ApplyOwner => ({
 });
 export const DRAFT_COOKIE = 'cc-owner-draft';
 export const STEPS = ['About you', 'Your vehicles', 'How it will work', 'Review and submit'] as const;
+/** 0710: the fleet supplier route skips "How it will work": every car is leased to CarmaCars at its tier, with no fees. */
+export const isFleet = (o: Pick<ApplyOwner, 'owner_type' | 'route'>) => o.owner_type === 'corporation' && o.route === 'fleet_supplier';
+export const TIERS = [
+  ['regular', 'Regular', 'In good running order, ready to rent.'],
+  ['troubled', 'Troubled', 'Needs work before it can be rented.']
+] as const;
 
 const VIN = /^[A-HJ-NPR-Z0-9]{17}$/;
 export const cleanVin = (v: string) => v.toUpperCase().replace(/[\s-]/g, '');
@@ -97,10 +115,12 @@ export function ownerErrors(o: ApplyOwner): Record<string, string> {
   if (!o.owner_type) e.owner_type = 'Choose an individual or a corporation.';
   if (!o.first_name.trim()) e.first_name = 'Enter your first name as on your licence.';
   if (!o.last_name.trim()) e.last_name = 'Enter your last name as on your licence.';
+  if (o.route === 'fleet_supplier' && o.owner_type !== 'corporation') e.owner_type = 'The fleet supplier route is for a corporation.';
   if (o.owner_type === 'corporation') {
-    if (!o.corporation_name.trim()) e.corporation_name = 'Enter the corporation\'s name.';
+    if (!o.corporation_name.trim()) e.corporation_name = o.route === 'fleet_supplier' ? 'Enter the corporation\'s legal name.' : 'Enter the corporation\'s name.';
     if (!o.corporation_number.trim()) e.corporation_number = 'Enter the corporation number.';
     if (!o.signing_officer_title.trim()) e.signing_officer_title = 'Enter your title, for example Director.';
+    if (o.route === 'fleet_supplier' && !(o.signing_officer_name ?? '').trim() && !o.first_name.trim()) e.signing_officer_name = 'Enter the name of the officer who signs for the corporation.';
   }
   if (!o.address_line1.trim()) e.address_line1 = 'Enter the street address.';
   if (!o.city.trim()) e.city = 'Enter the city.';
@@ -115,12 +135,25 @@ export function ownerErrors(o: ApplyOwner): Record<string, string> {
   return e;
 }
 
-export function vehicleErrors(v: ApplyVehicle, ownerType: ApplyOwner['owner_type']): Record<string, string> {
+export function vehicleErrors(v: ApplyVehicle, ownerType: ApplyOwner['owner_type'], fleet = false): Record<string, string> {
   const e: Record<string, string> = {};
   if (!VIN.test(cleanVin(v.vin))) e.vin = 'The VIN is 17 letters and numbers (no I, O or Q). It is on the ownership permit and the driver\'s door frame.';
   if (!/^(19[89]\d|20\d\d)$/.test(v.year)) e.year = 'Enter the year.';
   if (!v.make.trim()) e.make = 'Enter the make.';
   if (!v.model.trim()) e.model = 'Enter the model.';
+  // 0710: a fleet supplier's car: the VIN (its year, make and model), the plate and the tier; the ownership copy is uploaded in the portal
+  if (fleet) {
+    if (!/^[A-Z0-9 ]{2,8}$/i.test(v.plate.trim())) e.plate = 'Enter the plate as on the ownership.';
+    if (v.lease_tier !== 'regular' && v.lease_tier !== 'troubled') e.lease_tier = 'Choose Regular or Troubled. It is set now and does not change.';
+    const t = v.fleet_transfer;
+    if (!t?.registered_to) e.registered_to = 'Say who the car is registered to now.';
+    else if (t.registered_to !== 'corporation') {
+      if (!t.name.trim()) e.transfer_name = t.registered_to === 'seller' ? 'Enter the seller\'s name, as on the ownership.' : 'Enter the name on the ownership now.';
+      if (!t.address.trim()) e.transfer_address = 'Enter the address on the ownership.';
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(t.date)) e.transfer_date = t.registered_to === 'seller' ? 'Enter the sale date.' : 'Enter the transfer date.';
+    }
+    return e;
+  }
   if (!v.colour.trim()) e.colour = 'Tap the colour.';
   if (!/^[A-Z0-9 ]{2,8}$/i.test(v.plate.trim())) e.plate = 'Enter the plate as on the permit.';
   if (!/^\d{1,6}$/.test(v.odometer_km.replace(/[\s,]/g, ''))) e.odometer_km = 'Enter the kilometres on the odometer.';
@@ -142,6 +175,18 @@ export function planErrors(v: ApplyVehicle): Record<string, string> {
   if (v.title_status && v.title_status !== 'owned_outright' && !v.finance_permission) e.finance_permission = 'Answer this question.';
   if (v.onboarding_method === 'lease_new_owner_corporation' && !v.new_corporation_name.trim()) e.new_corporation_name = 'Enter the proposed name, or "numbered".';
   return e;
+}
+
+/** 0710: a fleet supplier's car as app.submit_owner_application reads it (the database sets the rest: Managed, held by
+ *  the corporation, the forms its route needs). */
+export function fleetVehiclePayload(v: ApplyVehicle) {
+  return {
+    vin: cleanVin(v.vin), plate: v.plate.toUpperCase().replace(/\s/g, ''), year: Number(v.year), make: v.make.trim(), model: v.model.trim(), trim: v.trim.trim() || null,
+    colour: v.colour.trim() || null, fuel: v.fuel || undefined, lease_tier: v.lease_tier || null,
+    fleet_transfer: v.fleet_transfer?.registered_to === 'corporation' || !v.fleet_transfer ? { registered_to: v.fleet_transfer?.registered_to || null }
+      : { registered_to: v.fleet_transfer.registered_to, name: v.fleet_transfer.name.trim(), address: v.fleet_transfer.address.trim(), date: v.fleet_transfer.date },
+    ...(v.permit_number ? { permit_number: v.permit_number } : {}), ...(v.sticker_expires_on ? { sticker_expires_on: v.sticker_expires_on } : {})
+  };
 }
 
 /** The vehicle as app.add_owner_vehicle reads it. */

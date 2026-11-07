@@ -3,7 +3,7 @@ import { Crumbs } from '@/components/Crumbs';
 import { EarningsCalculator } from '@/features/owner/EarningsCalculator';
 import { pageMeta, type Trail } from '@/features/seo/meta';
 import { rpc } from '@/lib/db/repo';
-import { ApplyWizard, type ProgramFacts } from '@/features/owner/ApplyWizard';
+import { ApplyWizard, type FleetFacts, type ProgramFacts } from '@/features/owner/ApplyWizard';
 import { blankOwner, blankVehicle, DRAFT_COOKIE, readCalc, type ApplyState } from '@/features/owner/apply-schema';
 import { currentUser } from '@/server/portal/data';
 import { ownerHome } from '@/server/owner/data';
@@ -28,7 +28,7 @@ export default async function Apply({ searchParams }: { searchParams: Promise<Re
     return (mine ?? (token ? await rpc('load_form_draft', { p_form_code: 'owner_application', p_token: token }, SR).catch(() => null) : null)) as unknown as { data: ApplyState } | null;
   };
   const [facts, draft, home, invite] = await Promise.all([
-    rpc('server_owner_program_facts', {}, SR) as unknown as Promise<ProgramFacts>,
+    rpc('server_owner_program_facts', {}, SR) as unknown as Promise<ProgramFacts & { fleet_lease?: FleetFacts }>,
     loadDraft(),
     user ? ownerHome(user).catch(() => null) : Promise.resolve(null),
     readToken<{ e?: string; n?: string; s?: string; l?: string }>('owner-invite', sp.invite ?? null)
@@ -42,6 +42,11 @@ export default async function Apply({ searchParams }: { searchParams: Promise<Re
       email: owner.email || o.email || '', phone: owner.phone || o.phone || '', hst_number: owner.hst_number || o.hst_number || '' });
   }
   if (!owner.email && user) owner.email = user.email;
+  // 0710: the fleet supplier route: an owner on file who is a supplier adds his next cars on it; ?route=fleet chooses it
+  const fleetOnFile = !!home?.fleet_supplier;
+  if (fleetOnFile) Object.assign(owner, { owner_type: 'corporation', route: 'fleet_supplier' });
+  else if (!home && sp.route === 'fleet' && !owner.owner_type) Object.assign(owner, { owner_type: 'corporation', route: 'fleet_supplier' });
+  const fleetFacts: FleetFacts | null = home?.fleet_lease?.terms ? { regular_cents: home.fleet_lease.terms.regular_cents, troubled_cents: home.fleet_lease.terms.troubled_cents } : facts.fleet_lease ?? null;
   if (invite?.e) owner.email ||= invite.e;
   if (invite?.n) {
     const [first, ...rest] = invite.n.split(' ');
@@ -74,7 +79,7 @@ export default async function Apply({ searchParams }: { searchParams: Promise<Re
         </header>
         {/* 0354: what the car could earn, before the questions (the numbers come from the database API in the browser) */}
         <EarningsCalculator compact />
-        <ApplyWizard initial={initial} facts={facts} signedIn={!!user} ownerOnFile={!!home} />
+        <ApplyWizard initial={initial} facts={facts} signedIn={!!user} ownerOnFile={!!home} fleetOnFile={fleetOnFile} fleetFacts={fleetFacts} />
       </div>
     </div>
   );

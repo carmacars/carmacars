@@ -44,7 +44,11 @@ export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { in
   const [signing, setSigning] = useState<'email' | 'paper'>('email');
   const [tier, setTier] = useState<'' | 'regular' | 'troubled'>('');
   const [delivered, setDelivered] = useState(initial.today);
-  const isFleet = !!fleet && !isNew && owner?.id === initial.owner?.id;
+  // 0710: who a supplier's car is registered to now: the forms to fill follow (the lease, and the transfer into his corporation)
+  const [transfer, setTransfer] = useState<{ registered_to: string; name: string; address: string; date: string }>({ registered_to: 'corporation', name: '', address: '', date: initial.today });
+  // 0640: an owner on the fleet lease; 0710: a new owner on the fleet supplier route (a corporation)
+  const isFleetRoute = isNew && o.owner_type === 'corporation' && o.route === 'fleet_supplier';
+  const isFleet = (!!fleet && !isNew && owner?.id === initial.owner?.id) || isFleetRoute;
   const t0 = initial.terms ?? (initial.standard ? { ...initial.standard, first_last_cents: initial.standard.insurance_fee_cents * 2, sources: {} } : null);
   const [terms, setTerms] = useState<Record<string, string>>({ ins: dollars(t0?.insurance_fee_cents), trk: dollars(t0?.tracker_fee_cents), share: pctOf(t0?.revenue_share_bps), inst: dollars(t0?.install_fee_cents), fl: dollars(t0?.first_last_cents) });
   const [fl, setFl] = useState<Inv>(inv(initial.today, true, dollars(t0?.first_last_cents), 'draft'));
@@ -108,15 +112,17 @@ export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { in
       invoices.push({ type: 'registration', amount_cents: toCents(reg.amount), hst: reg.hst, action: reg.action, title: 'Registration fee', ...pay(reg) });
     }
     if (isFleet && !tier) { setProblem('Choose the car\'s tier: Regular or Troubled. It is set once and does not change.'); return; }
+    if (isFleet && transfer.registered_to !== 'corporation' && (!transfer.name.trim() || !transfer.address.trim() || !transfer.date)) { setProblem('Enter the name and address on the ownership now, and the transfer or sale date.'); return; }
     if (isFleet) invoices.length = 0; // the supplier pays no fees
+    const sign = isFleet ? 'email' : signing; // 0710: a supplier signs in the owner portal only
     const payload = {
-      ...(isFleet ? { fleet: { tier, delivered_on: delivered } } : {}),
+      ...(isFleet ? { fleet: { tier, delivered_on: delivered, transfer: transfer.registered_to === 'corporation' ? { registered_to: 'corporation' } : transfer } } : {}),
       owner_id: isNew ? undefined : owner!.id,
-      owner: isNew ? { ...o, email: (o.email ?? '').trim().toLowerCase(), first_name: (o.legal_name ?? '').trim().split(/\s+/)[0] } : undefined,
+      owner: isNew ? { ...o, ...(isFleetRoute ? { route: 'fleet_supplier' } : { route: undefined }), email: (o.email ?? '').trim().toLowerCase(), first_name: (o.legal_name ?? '').trim().split(/\s+/)[0] } : undefined,
       vehicle: { ...v, ...vinPayload(car), plate: car.mode === 'plate' ? car.plate.toUpperCase().replace(/\s/g, '') : v.plate || undefined,
         odometer_km: v.odometer_km ? Number(v.odometer_km) : undefined, title_brand_clear: true },
-      sourced: sales || sourced, signing,
-      ...(sales ? { as_sales: true } : { plan: { terms: { management_mode: v.management_mode, insurance_fee_cents: n.ins, tracker_fee_cents: n.trk, revenue_share_bps: n.share, install_fee_cents: n.inst, first_last_cents: n.fl }, invoices } })
+      sourced: sales || sourced, signing: sign,
+      ...(sales ? { as_sales: true } : isFleet ? { plan: { invoices: [] } } : { plan: { terms: { management_mode: v.management_mode, insurance_fee_cents: n.ins, tracker_fee_cents: n.trk, revenue_share_bps: n.share, install_fee_cents: n.inst, first_last_cents: n.fl }, invoices } })
     };
     const fd = new FormData();
     fd.set('payload', JSON.stringify(payload));
@@ -158,7 +164,10 @@ export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { in
           ) : (
             <div className="ad-fields ob-terms">
               <div className="field"><label className="label" htmlFor={`${uid}-ot`}>Owner type</label>
-                <select className="select" id={`${uid}-ot`} value={o.owner_type} onChange={(e) => setO({ ...o, owner_type: e.target.value })}><option value="individual">An individual</option><option value="corporation">A corporation</option></select></div>
+                <select className="select" id={`${uid}-ot`} value={o.owner_type} onChange={(e) => setO({ ...o, owner_type: e.target.value, ...(e.target.value === 'individual' ? { route: '' } : {}) })}><option value="individual">An individual</option><option value="corporation">A corporation</option></select></div>
+              {o.owner_type === 'corporation' && <div className="field"><label className="label" htmlFor={`${uid}-rt`}>Route</label>
+                <select className="select" id={`${uid}-rt`} value={o.route ?? ''} onChange={(e) => setO({ ...o, route: e.target.value })} data-testid="addcar-route"><option value="">Enrol the cars (the standard terms)</option><option value="fleet_supplier">Fleet supplier: leases the cars to CarmaCars</option></select>
+                {isFleetRoute && <p className="hint">The default lease terms and Upkeep Table are set at once (Program settings). No fees; each car&apos;s ServiceOntario forms are filled in at once; he signs in the owner portal only.</p>}</div>}
               {f('legal_name', 'Full legal name', { req: true, obj: 'o' })}
               {o.owner_type === 'corporation' && f('corporation_name', 'Corporation name', { req: true, obj: 'o' })}
               {f('email', 'Email', { req: signing === 'email', obj: 'o', mode: 'email', type: 'email', hint: 'The set-up email goes here, with the invitation to choose a password.' })}
@@ -177,25 +186,27 @@ export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { in
         <div className="ad-fields ob-terms">
           {car.mode === 'vin' && f('plate', 'Plate')}{f('odometer_km', 'Odometer (km)', { mode: 'numeric' })}{f('current_insurer', 'Current insurer')}
           {f('permit_number', 'Ontario permit number')}{f('sticker_expires_on', 'Plate sticker expires', { type: 'date', hint: 'Fleet gets a task 30 and 7 days before.' })}
+          {!isFleet && <>
           <div className="field"><label className="label" htmlFor={`${uid}-ts`}>It is</label>
             <select className="select" id={`${uid}-ts`} value={v.title_status} onChange={(e) => setV({ ...v, title_status: e.target.value })} data-testid="addcar-title_status"><option value="owned_outright">Owned outright</option><option value="financed">Financed</option><option value="leased">Leased</option></select></div>
           {v.title_status !== 'owned_outright' && f('finance_party_name', v.title_status === 'leased' ? 'Lease company' : 'Lender', { req: true })}
           <div className="field"><label className="label" htmlFor={`${uid}-mm`}>How it is rented</label>
             <select className="select" id={`${uid}-mm`} value={v.management_mode} onChange={(e) => setV({ ...v, management_mode: e.target.value })}><option value="managed">Managed</option><option value="self_managed">Self-Managed</option><option value="turo_only">Turo-Only</option></select></div>
+          </>}
         </div>
         <div className="field"><label className="label" htmlFor={`${uid}-notes`}>Notes (optional)</label>
           <textarea className="input ad-textarea" rows={3} id={`${uid}-notes`} maxLength={4000} value={v.notes ?? ''} onChange={(e) => setV({ ...v, notes: e.target.value })} data-testid="addcar-notes" />
           <p className="hint">For staff: what the owner said, what is still to come. Shown on the car page.</p></div>
         <p className="small muted">Photos are optional: the listing shows sample photos until real ones are added on the car&apos;s listing.</p>
         <fieldset className="stack"><legend className="label">Documents (optional)</legend>
-          {DOCS.filter(([k]) => k !== 'finance_party_permission' || v.title_status !== 'owned_outright').map(([k, l, h]) => (
+          {DOCS.filter(([k]) => (k !== 'finance_party_permission' || v.title_status !== 'owned_outright') && (!isFleet || k === 'ownership_permit')).map(([k, l, h]) => (
             <div key={k} className={`field${a.err(`doc_${k}`) ? ' has-error' : ''}`}><label className="label" htmlFor={`${uid}-d-${k}`}>{l}</label>
               <input className="input" type="file" id={`${uid}-d-${k}`} accept="application/pdf,image/jpeg,image/png" onChange={(e) => { setFiles({ ...files, [k]: e.target.files?.[0] ?? null }); if (k === 'ownership_permit') setPermitPhoto(false); }} data-testid={`addcar-doc-${k}`} aria-describedby={`${uid}-d-${k}-h`} />
               <p className="hint" id={`${uid}-d-${k}-h`}>{k === 'ownership_permit' && permitPhoto ? <b data-testid="addcar-permit-attached">The permit photo you read is attached. Choose a file to replace it.</b> : h}</p><p className="error" role="alert">{a.err(`doc_${k}`) ?? ''}</p></div>))}
         </fieldset>
       </section>
 
-      {!sales && <section className="pt-card stack" aria-labelledby={`${uid}-t`}><h2 className="d4" id={`${uid}-t`}>3. Terms and first invoice</h2>
+      {!sales && !isFleet && <section className="pt-card stack" aria-labelledby={`${uid}-t`}><h2 className="d4" id={`${uid}-t`}>3. Terms and first invoice</h2>
         {!facts.admin && <p className="small muted">An Admin checks these and approves; they are your proposal.</p>}
         {v.management_mode !== 'turo_only' && (<>
           <div className="ad-fields ob-terms">
@@ -211,12 +222,21 @@ export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { in
         </>)}
       </section>}
 
-      {isFleet && fleet && <section className="pt-card stack" aria-labelledby={`${uid}-fl`} data-testid="addcar-fleet"><h2 className="d4" id={`${uid}-fl`}>Fleet lease: the car&apos;s tier</h2>
-        <p className="small">This owner leases cars to CarmaCars. The tier is required and set once: it does not change later. The supplier pays no fees, so no invoice is made for this car.</p>
+      {isFleet && <section className="pt-card stack" aria-labelledby={`${uid}-fl`} data-testid="addcar-fleet"><h2 className="d4" id={`${uid}-fl`}>Fleet lease: the car&apos;s tier</h2>
+        <p className="small">This owner leases cars to CarmaCars. The tier is required and set once: it does not change later. The supplier pays no fees, so no invoice is made for this car.{facts.admin ? '' : ' An Admin approves the car; it goes on the lease then.'}</p>
         <div className="row" role="radiogroup" aria-label="Tier" style={{ gap: 'var(--s-3)', flexWrap: 'wrap' }}>
-          <label className="check" htmlFor={`${uid}-t-r`}><input type="radio" id={`${uid}-t-r`} checked={tier === 'regular'} onChange={() => setTier('regular')} data-testid="addcar-tier-regular" /><span>Regular, {money(fleet.regular_cents)} a month</span></label>
-          <label className="check" htmlFor={`${uid}-t-t`}><input type="radio" id={`${uid}-t-t`} checked={tier === 'troubled'} onChange={() => setTier('troubled')} data-testid="addcar-tier-troubled" /><span>Troubled (needs work), {money(fleet.troubled_cents)} a month</span></label>
+          <label className="check" htmlFor={`${uid}-t-r`}><input type="radio" id={`${uid}-t-r`} checked={tier === 'regular'} onChange={() => setTier('regular')} data-testid="addcar-tier-regular" /><span>Regular{fleet ? `, ${money(fleet.regular_cents)} a month` : ''}</span></label>
+          <label className="check" htmlFor={`${uid}-t-t`}><input type="radio" id={`${uid}-t-t`} checked={tier === 'troubled'} onChange={() => setTier('troubled')} data-testid="addcar-tier-troubled" /><span>Troubled (needs work){fleet ? `, ${money(fleet.troubled_cents)} a month` : ''}</span></label>
         </div>
+        <div className="field"><label className="label" htmlFor={`${uid}-reg`}>Registered to now</label>
+          <select className="select" id={`${uid}-reg`} value={transfer.registered_to} onChange={(e) => setTransfer({ ...transfer, registered_to: e.target.value })} data-testid="addcar-registered-to">
+            <option value="corporation">The supplier&apos;s corporation (the lease forms only)</option><option value="officer">An officer personally (moving it into the corporation)</option><option value="seller">A seller (the corporation is buying it)</option></select>
+          <p className="hint">The ServiceOntario forms the car needs are filled in at once.</p></div>
+        {transfer.registered_to !== 'corporation' && <div className="ad-fields ob-terms">
+          <div className="field"><label className="label" htmlFor={`${uid}-tn`}>Name on the ownership now</label><input className="input" id={`${uid}-tn`} value={transfer.name} onChange={(e) => setTransfer({ ...transfer, name: e.target.value })} data-testid="addcar-transfer-name" /></div>
+          <div className="field"><label className="label" htmlFor={`${uid}-ta`}>Address on the ownership</label><input className="input" id={`${uid}-ta`} value={transfer.address} onChange={(e) => setTransfer({ ...transfer, address: e.target.value })} data-testid="addcar-transfer-address" /></div>
+          <div className="field"><label className="label" htmlFor={`${uid}-td`}>{transfer.registered_to === 'seller' ? 'Sale date' : 'Transfer date'}</label><DateInput className="input" id={`${uid}-td`} type="date" value={transfer.date} onChange={(e) => setTransfer({ ...transfer, date: e.target.value })} data-testid="addcar-transfer-date" /></div>
+        </div>}
         <label className="field"><span className="field__label">Delivered on</span><DateInput className="input" type="date" value={delivered} onChange={(e) => setDelivered(e.target.value)} data-testid="addcar-delivered" /></label>
       </section>}
 
@@ -226,8 +246,9 @@ export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { in
           <label className="check" htmlFor={`${uid}-src-me`}><input type="radio" id={`${uid}-src-me`} checked={sourced} onChange={() => setSourced(true)} data-testid="addcar-sourced" /><span>I sourced this owner</span></label>
         </div>}
         <div className="row" role="radiogroup" aria-label="How the owner signs" style={{ gap: 'var(--s-3)', flexWrap: 'wrap' }}>
-          <label className="check" htmlFor={`${uid}-sg-e`}><input type="radio" id={`${uid}-sg-e`} checked={signing === 'email'} onChange={() => setSigning('email')} /><span>Email the owner to review and sign (one email)</span></label>
-          <label className="check" htmlFor={`${uid}-sg-p`}><input type="radio" id={`${uid}-sg-p`} checked={signing === 'paper'} onChange={() => setSigning('paper')} data-testid="addcar-paper" /><span>The owner signs on paper (no email now)</span></label>
+          <label className="check" htmlFor={`${uid}-sg-e`}><input type="radio" id={`${uid}-sg-e`} checked={isFleet || signing === 'email'} onChange={() => setSigning('email')} /><span>Email the owner to review and sign (one email)</span></label>
+          {isFleet ? <span className="small muted" data-testid="addcar-portal-only">A fleet supplier signs in the owner portal only.</span>
+            : <label className="check" htmlFor={`${uid}-sg-p`}><input type="radio" id={`${uid}-sg-p`} checked={signing === 'paper'} onChange={() => setSigning('paper')} data-testid="addcar-paper" /><span>The owner signs on paper (no email now)</span></label>}
         </div>
       </section>
       {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}

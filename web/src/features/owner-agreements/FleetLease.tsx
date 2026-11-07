@@ -4,7 +4,8 @@ import { pct } from '@/lib/format';
 
 // The fleet lease of a supplier (migration 0640): the supplier's lease terms (the Regular and Troubled Rates, the claim
 // and write-off shares, the notice), each car's tier and delivery, the Upkeep Table, and upkeep costs billed to the right
-// party. Nothing is preset: every number is the one agreed with this supplier.
+// party. A supplier who came in on the fleet supplier route (0710) starts with the default terms of Program settings and the
+// default Upkeep Table; each car's tier is the one he chose when he added it, and approval puts the car on the lease.
 export interface FleetLeaseData {
   pay_model: string;
   terms: { regular_cents: number; troubled_cents: number; claim_profit_bps: number; early_writeoff_bps: number; writeoff_months: number; later_writeoff_bps: number;
@@ -12,8 +13,12 @@ export interface FleetLeaseData {
   history: Array<{ id: string; regular_cents: number; troubled_cents: number; effective_from: string; effective_to: string | null; awaiting_signature: boolean }>;
   upkeep: Array<{ cost_type: string; label: string; party: 'supplier' | 'company' | null }>;
   cars: Array<{ vehicle_id: string; name: string; plate: string | null; delivered_on: string | null; first_payout: string | null; tier: string | null; monthly_cents: number | null;
-    periods: Array<{ kind: string; tier: string | null; monthly_cents: number; starts_on: string; ends_on: string | null; reason: string | null }> }>;
+    periods: Array<{ kind: string; tier: string | null; monthly_cents: number; starts_on: string; ends_on: string | null; reason: string | null }>;
+    /** 0710: the tier the supplier chose when he added the car (locked), and the car's onboarding status */
+    requested_tier?: 'regular' | 'troubled' | null; onboarding_status?: string | null }>;
   awaiting_lawyer: boolean;
+  /** 0710: fleet_supplier when the supplier signed up on the route (or staff added him on it) */
+  route?: string | null;
 }
 
 const tierOpts: Array<[string, string]> = [['regular', 'Regular'], ['troubled', 'Troubled (needs work)']];
@@ -36,6 +41,7 @@ export function FleetLease({ data, ownerId }: { data: FleetLeaseData; ownerId: s
   ];
   return (
     <Card title="Fleet lease" testId="fleet-lease" aside={data.awaiting_lawyer ? <span className="badge badge--outline" data-testid="fleet-lease-lawyer">Agreement awaiting lawyer OK</span> : undefined}>
+      {data.route === 'fleet_supplier' && <p className="small" data-testid="fleet-lease-route"><span className="badge badge--outline">Fleet supplier route</span> He signed up on the route: the default terms and Upkeep Table were set at once (change them here), he chose each car&apos;s tier, and he signs in the owner portal only. Each car&apos;s ServiceOntario forms (the lease, and the transfer into his corporation when needed) are filled in at once; no fees.</p>}
       <p className="small">For a supplier&apos;s corporation that leases cars to CarmaCars: a fixed lease a month per car by tier, paid in arrears on the 10th with the owner payouts (the first payment one full month after delivery), part months by the day. Each car&apos;s tier is set once, when it is onboarded. CarmaCars keeps the rentals; the supplier pays no fee of any kind (no owner invoice or debit is ever made for these cars). The supplier signs the Fleet Supplier Lease Agreement, filled from these terms. {data.pay_model === 'fleet_lease' ? 'Every car of this owner is on the lease.' : 'Put each car on the lease below; the agreement switches once every car is.'}</p>
       {t ? <dl className="ad-kv small" data-testid="fleet-lease-terms">
         <dt>Regular / Troubled</dt><dd>{$(t.regular_cents)} / {$(t.troubled_cents)} a month per car</dd>
@@ -49,8 +55,13 @@ export function FleetLease({ data, ownerId }: { data: FleetLeaseData; ownerId: s
         done={t ? 'Saved. Once the supplier has signed, new terms wait for the supplier to sign the new agreement.' : 'Saved.'} />
       <h3 className="d5">Cars</h3>
       {data.cars.length ? <ul className="ad-list" data-testid="fleet-lease-cars">{data.cars.map((c) => (
-        <li key={c.vehicle_id}><span><b>{c.name}</b>{c.plate ? ` · ${c.plate}` : ''} · {c.tier ? <><span data-testid={`fleet-tier-${c.vehicle_id}`}>{cap(c.tier)}</span>, {$(c.monthly_cents)} a month · delivered {d(c.delivered_on)} · first payment {d(c.first_payout)}</> : 'not on the lease'}</span>
-          {c.tier
+        <li key={c.vehicle_id}><span><b>{c.name}</b>{c.plate ? ` · ${c.plate}` : ''} · {c.tier ? <><span data-testid={`fleet-tier-${c.vehicle_id}`}>{cap(c.tier)}</span>, {$(c.monthly_cents)} a month · delivered {d(c.delivered_on)} · first payment {d(c.first_payout)}</> : c.requested_tier ? <><span data-testid={`fleet-tier-${c.vehicle_id}`}>{cap(c.requested_tier)}</span> (chosen by the supplier), on the lease when you approve the car</> : 'not on the lease'}</span>
+          {!c.tier && c.requested_tier
+            ? <Act action="fleet_onboarding_tier_correct" payload={{ vehicle_id: c.vehicle_id }} label="Correct the tier" variant="quiet" refresh={refresh} title="Correct a tier chosen by mistake" submitLabel="Correct"
+                done="Corrected. Approval puts the car on the lease at this tier."
+                fields={[{ name: 'tier', label: 'The correct tier', type: 'select', required: true, options: tierOpts, value: c.requested_tier === 'regular' ? 'troubled' : 'regular' },
+                  { name: 'reason', label: 'What was chosen by mistake (kept in the audit log)', required: true, hint: 'Only for a mistake: the supplier chose the tier when he added the car, and it does not change.' }]} />
+            : c.tier
             ? <Act action="fleet_lease_tier_correct" payload={{ vehicle_id: c.vehicle_id }} label="Correct the tier" variant="quiet" refresh={refresh} title="Correct a tier entered by mistake" submitLabel="Correct"
                 done="Corrected from the delivery (or from the day after the last approved statement)."
                 fields={[{ name: 'tier', label: 'The correct tier', type: 'select', required: true, options: tierOpts, value: c.tier === 'regular' ? 'troubled' : 'regular' },

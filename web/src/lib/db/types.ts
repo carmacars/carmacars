@@ -12667,6 +12667,7 @@ export type Database = {
           recruited_at: string | null;
           recruited_via: string | null;
           show_profit_extras: boolean;
+          onboarding_route: string | null;
         };
         Insert: {
           id?: string;
@@ -12719,6 +12720,7 @@ export type Database = {
           recruited_at?: string | null;
           recruited_via?: string | null;
           show_profit_extras?: boolean;
+          onboarding_route?: string | null;
         };
         Update: {
           id?: string;
@@ -12771,6 +12773,7 @@ export type Database = {
           recruited_at?: string | null;
           recruited_via?: string | null;
           show_profit_extras?: boolean;
+          onboarding_route?: string | null;
         };
         Relationships: [];
       };
@@ -15611,6 +15614,13 @@ export type Database = {
           licence_auto_approver: string | null;
           fleet_lease_agreements_awaiting_lawyer: boolean;
           referral_agreements_awaiting_lawyer: boolean;
+          fleet_lease_default_regular_cents: number;
+          fleet_lease_default_troubled_cents: number;
+          fleet_lease_default_claim_profit_bps: number;
+          fleet_lease_default_early_writeoff_bps: number;
+          fleet_lease_default_writeoff_months: number;
+          fleet_lease_default_later_writeoff_bps: number;
+          fleet_lease_default_notice_days: number;
         };
         Insert: {
           id?: string;
@@ -16240,6 +16250,13 @@ export type Database = {
           licence_auto_approver?: string | null;
           fleet_lease_agreements_awaiting_lawyer?: boolean;
           referral_agreements_awaiting_lawyer?: boolean;
+          fleet_lease_default_regular_cents?: number;
+          fleet_lease_default_troubled_cents?: number;
+          fleet_lease_default_claim_profit_bps?: number;
+          fleet_lease_default_early_writeoff_bps?: number;
+          fleet_lease_default_writeoff_months?: number;
+          fleet_lease_default_later_writeoff_bps?: number;
+          fleet_lease_default_notice_days?: number;
         };
         Update: {
           id?: string;
@@ -16869,6 +16886,13 @@ export type Database = {
           licence_auto_approver?: string | null;
           fleet_lease_agreements_awaiting_lawyer?: boolean;
           referral_agreements_awaiting_lawyer?: boolean;
+          fleet_lease_default_regular_cents?: number;
+          fleet_lease_default_troubled_cents?: number;
+          fleet_lease_default_claim_profit_bps?: number;
+          fleet_lease_default_early_writeoff_bps?: number;
+          fleet_lease_default_writeoff_months?: number;
+          fleet_lease_default_later_writeoff_bps?: number;
+          fleet_lease_default_notice_days?: number;
         };
         Relationships: [];
       };
@@ -23605,6 +23629,8 @@ export type Database = {
           insured_before_paperwork_from: Database["public"]["Enums"]["vehicle_onboarding_status"] | null;
           insurer_confirmed_by: string | null;
           insurer_confirmation_note: string | null;
+          lease_tier: string | null;
+          fleet_transfer: Json | null;
         };
         Insert: {
           id?: string;
@@ -23669,6 +23695,8 @@ export type Database = {
           insured_before_paperwork_from?: Database["public"]["Enums"]["vehicle_onboarding_status"] | null;
           insurer_confirmed_by?: string | null;
           insurer_confirmation_note?: string | null;
+          lease_tier?: string | null;
+          fleet_transfer?: Json | null;
         };
         Update: {
           id?: string;
@@ -23733,6 +23761,8 @@ export type Database = {
           insured_before_paperwork_from?: Database["public"]["Enums"]["vehicle_onboarding_status"] | null;
           insurer_confirmed_by?: string | null;
           insurer_confirmation_note?: string | null;
+          lease_tier?: string | null;
+          fleet_transfer?: Json | null;
         };
         Relationships: [];
       };
@@ -27127,6 +27157,7 @@ export type Database = {
       server_owner_invoice_payment_facts: { Args: { p_invoice: string; p_by: string }; Returns: Json };
       server_owner_mandate_inactive: { Args: { p_mandate: string }; Returns: Json };
       server_owner_program_facts: { Args: never; Returns: Json };
+      server_owner_program_facts_pre0710: { Args: never; Returns: Json };
       server_owner_record_debit_setup: { Args: { p_by: string; p: Json }; Returns: Json };
       server_owner_referred_cars: { Args: { p_by: string }; Returns: Json };
       server_owner_review: { Args: { p_by: string }; Returns: Json };

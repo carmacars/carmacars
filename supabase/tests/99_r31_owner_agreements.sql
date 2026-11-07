@@ -137,9 +137,9 @@ insert into vehicle_onboardings (vehicle_id, status) values (test.id('vehicle:Q3
 create table test.q31list as select app.door(test.id('q31_admin'), 'aal2', 'ops_read', 'owner_agreements_checklist', '{}') j;
 select test.eq('the referrer needs a Referral Override Agreement, not sent',
   (select i ->> 'title' || ':' || (i ->> 'status') from test.q31list, jsonb_array_elements(j) o, jsonb_array_elements(o -> 'items') i where o ->> 'owner_id' = test.id('owner:q31_ref')::text and i ->> 'doc' = 'referral'), 'Referral Override Agreement:not_sent');
-select test.eq('the supplier''s agreement shows as signed, flagged for the lawyer',
+select test.eq('the supplier''s agreement shows as signed (the lawyer approved the text, 0710: no flag)',
   (select i ->> 'title' || ':' || (i ->> 'status') || ':' || (i ->> 'awaiting_lawyer') from test.q31list, jsonb_array_elements(j) o, jsonb_array_elements(o -> 'items') i
-    where o ->> 'owner_id' = test.id('owner:q31_sup')::text and i ->> 'kind' = 'enrollment'), 'Fleet Supplier Lease Agreement:signed:true');
+    where o ->> 'owner_id' = test.id('owner:q31_sup')::text and i ->> 'kind' = 'enrollment'), 'Fleet Supplier Lease Agreement:signed:false');
 select test.lives('Send emails the referrer', format($$select test.q31do('owner_agreement_send', '{"owner": "%s", "doc": "referral", "link": "%s"}')$$, test.id('owner:q31_ref'), test.id('link:q31')));
 select test.eq('the email is queued with the link', (select payload ->> 'sign_url' from notification_outbox where code = 'owner_agreement_to_sign' and owner_id = test.id('owner:q31_ref')),
   rtrim(coalesce((app.settings()).notify_base_url, 'https://carmacars.ca'), '/') || '/owner/referral-agreement/' || test.id('link:q31'));

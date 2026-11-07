@@ -14,9 +14,13 @@ type Terms = { insurance_fee_cents: number; tracker_fee_cents: number; revenue_s
   sources: Record<string, string>; standard: Record<string, number>; one_off_fees: Array<{ description: string; amount_cents: number; hst: boolean }> };
 export interface PlanCar { vehicle_id: string; name: string; onboarding_status: string; mode: string; method: string | null; shareholder: boolean;
   options: Array<{ method: string; label: string; recommended: boolean }>; terms: Terms; pending_terms: Record<string, unknown> | null;
-  invoices: Array<{ invoice_number: string; status: string; total_cents: number; kind: string }> }
+  invoices: Array<{ invoice_number: string; status: string; total_cents: number; kind: string }>;
+  /** 0710: a fleet supplier's car: the tier he chose (locked) and its lease a month */
+  lease_tier?: 'regular' | 'troubled' | null; lease_cents?: number | null }
 export interface Plan { id: string; application_number: string; status: string; trackers_available: boolean; today: string; entered_by_name: string | null; signing_method: string | null;
-  plan: Record<string, { terms?: Record<string, number>; invoices?: Array<Record<string, unknown>> }> | null; cars: PlanCar[] }
+  plan: Record<string, { terms?: Record<string, number>; invoices?: Array<Record<string, unknown>> }> | null; cars: PlanCar[];
+  /** 0710: the owner is on the fleet supplier route: no terms or invoices, each car on the lease at its tier */
+  fleet_supplier?: boolean }
 
 export type Action = 'send' | 'draft' | 'paid' | 'none' | 'deduct';
 export interface Inv { on: boolean; amount: string; hst: boolean; action: Action; method: string; on_date: string; reference: string; paid: string; title: string }
@@ -74,7 +78,39 @@ export function InvoiceChoice({ uid, label, v, set, hstBps, children, testId, al
   );
 }
 
-export function ApproveStep({ plan, owner, isTest, hstBps }: { plan: Plan; owner: string; isTest: boolean; hstBps: number }) {
+export function ApproveStep(props: { plan: Plan; owner: string; isTest: boolean; hstBps: number }) {
+  return props.plan.fleet_supplier ? <FleetApprove plan={props.plan} owner={props.owner} /> : <StandardApprove {...props} />;
+}
+
+// 0710: a fleet supplier's application: no terms or invoices (he pays no fees). Each car goes on the lease at the tier he
+// chose, from the delivery date; an Admin corrects a tier chosen by mistake on the owner's Fleet lease card first.
+function FleetApprove({ plan, owner }: { plan: Plan; owner: string }) {
+  const router = useRouter();
+  const a = useAct<{ note: string | null }>();
+  const uid = `fa-${useId().replace(/[^\w-]/g, '')}`;
+  const cars = plan.cars.filter((c) => c.onboarding_status === 'intake');
+  const [on, setOn] = useState(plan.today);
+  if (!cars.length) return <p className="small">No car is waiting for approval.</p>;
+  const submit = () => {
+    if (!window.confirm(`Approve ${owner}? ${cars.map((c) => `${c.name}: ${c.lease_tier === 'troubled' ? 'Troubled' : 'Regular'}, ${money(c.lease_cents ?? 0)} a month`).join('; ')}. No invoice is made; the supplier signs in the owner portal.`)) return;
+    a.run(() => approveWithTerms(plan.id, cars.map((c) => ({ vehicle_id: c.vehicle_id, terms: {}, invoices: [], delivered_on: on }))), (r) => { if (r.ok) router.refresh(); });
+  };
+  return (
+    <form className="stack" noValidate aria-label="Approve the fleet supplier's cars" data-testid="approve-fleet" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      <p className="small">Fleet supplier: each car goes on the lease at the tier the supplier chose. No fees and no invoice: he is paid the lease a month on the 10th, for the month before. He signs his agreements in the owner portal only.</p>
+      <ul className="ad-list" data-testid="approve-fleet-cars">{cars.map((c) => (
+        <li key={c.vehicle_id}><span><b>{c.name}</b></span><span>{c.lease_tier ? `${c.lease_tier === 'troubled' ? 'Troubled' : 'Regular'}, ${money(c.lease_cents ?? 0)} a month` : 'No tier yet'}</span></li>))}</ul>
+      <div className="field"><label className="label" htmlFor={`${uid}-on`}>Delivered on (the lease starts)</label>
+        <DateInput className="input" id={`${uid}-on`} type="date" value={on} onChange={(e) => setOn(e.target.value)} data-testid="approve-fleet-delivered" /></div>
+      <p className="small muted">A tier chosen by mistake: correct it on the owner&apos;s Terms tab (Fleet lease) before you approve.</p>
+      {a.res && !a.res.ok && <p className="alert alert--error" role="alert"><span>{a.res.message}</span></p>}
+      {a.res?.ok && <p className="alert alert--ok" role="status"><span>Approved: the cars are on the lease.{a.res.data.note ? ` ${a.res.data.note}` : ''}</span></p>}
+      <div className="row"><button className="btn btn--primary" type="submit" disabled={a.pending || cars.some((c) => !c.lease_tier)} data-testid="approve-fleet-submit">{a.pending ? 'Approving' : 'Approve'}</button></div>
+    </form>
+  );
+}
+
+function StandardApprove({ plan, owner, isTest, hstBps }: { plan: Plan; owner: string; isTest: boolean; hstBps: number }) {
   const router = useRouter();
   const a = useAct<{ invoices: Array<Record<string, unknown>>; note: string | null }>();
   const uid = `as-${useId().replace(/[^\w-]/g, '')}`;

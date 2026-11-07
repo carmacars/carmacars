@@ -157,7 +157,7 @@ export async function sendSetupEmail(applicationId: string) {
 }
 
 // ---------------------------------------------------------------- Approve: terms and the first invoices per car
-export interface ApproveCar { vehicle_id: string; terms: J; invoices: J[]; first_last?: J }
+export interface ApproveCar { vehicle_id: string; terms: J; invoices: J[]; first_last?: J; /** 0710: a fleet supplier's car: the delivery date its lease starts */ delivered_on?: string }
 export async function approveWithTerms(applicationId: string, cars: ApproveCar[]) {
   try {
     const { user, aal } = await me();
@@ -281,7 +281,9 @@ export async function signScheduleChange(changeId: string, name: string, sha256:
 
 // ---------------------------------------------------------------- 0264: an owner on their own, a car's notes and VIN
 export interface AddOwnerInput { legal_name: string; email?: string; phone?: string; owner_type: 'individual' | 'corporation'; corporation_name?: string;
-  terms?: { insurance_fee_cents?: number | null; tracker_fee_cents?: number | null; revenue_share_bps?: number | null }; invite?: boolean }
+  terms?: { insurance_fee_cents?: number | null; tracker_fee_cents?: number | null; revenue_share_bps?: number | null }; invite?: boolean;
+  /** 0710: the fleet supplier route (a corporation): the lease structure at once, no fee terms */
+  route?: 'fleet_supplier' }
 /** Owners > Add an owner: on file without a car; nothing is emailed unless Invite is chosen (then the usual invitation). */
 export async function addOwner(p: AddOwnerInput): Promise<R<{ owner_id: string; invited: boolean; note: string | null }>> {
   const fe: Record<string, string> = {};
@@ -290,13 +292,14 @@ export async function addOwner(p: AddOwnerInput): Promise<R<{ owner_id: string; 
   if (!p.email?.trim() && !p.phone?.trim()) fe.email = 'Enter the email or the phone.';
   if (p.invite && !p.email?.trim()) fe.email = 'An invitation needs the email.';
   if (p.owner_type === 'corporation' && !p.corporation_name?.trim()) fe.corporation_name = 'Enter the corporation\'s name.';
+  if (p.route === 'fleet_supplier' && p.owner_type !== 'corporation') fe.owner_type = 'The fleet supplier route is for a corporation.';
   if (Object.keys(fe).length) return invalid(fe);
   try {
     const { user, aal } = await me();
     const roles = await rolesOf(user.id);
     const terms = Object.fromEntries(Object.entries(p.terms ?? {}).filter(([, x]) => x !== null && x !== undefined && !Number.isNaN(x)));
     const r = await door<{ owner_id: string }>(user.id, roles.admin ? 'ops_do' : 'va_do', 'owner_add', { legal_name: p.legal_name, email: p.email || null, phone: p.phone || null,
-      owner_type: p.owner_type, corporation_name: p.corporation_name || null, terms }, aal);
+      owner_type: p.owner_type, corporation_name: p.corporation_name || null, ...(p.route === 'fleet_supplier' ? { route: 'fleet_supplier' } : { terms }) }, aal);
     let note: string | null = null;
     let invited = false;
     if (p.invite && p.email) {

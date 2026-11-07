@@ -53,12 +53,15 @@ export function ChecklistItems({ items }: { items: ChecklistItem[] }) {
 }
 
 /** The full checklist of one owner with the actions (the owner screen and the bulk view). */
-export function OwnerChecklist({ row, signer, today, refresh }: { row: OwnerChecklistRow; signer: string; today: string; refresh: string[] }) {
+export function OwnerChecklist({ row, signer, today, refresh, portalOnly = false }: { row: OwnerChecklistRow; signer: string; today: string; refresh: string[];
+  /** 0710: a fleet supplier signs in the owner portal only: no paper signature is offered (the database refuses one) */
+  portalOnly?: boolean }) {
   const pay = row.items.filter((i) => i.group === 'pay' && i.payable && i.invoice_id);
-  const docs = paperDocs(row.items, signer);
+  const docs = portalOnly ? [] : paperDocs(row.items, signer);
   return (
     <div className="stack" data-testid="owner-checklist" data-owner={row.owner_id}>
       <ChecklistItems items={row.items} />
+      {portalOnly && <p className="small muted" data-testid="owner-checklist-portal-only">A fleet supplier signs in the owner portal only (the e-signature with its audit trail): no paper signature is recorded.</p>}
       {(pay.length > 0 || docs.length > 0) && (
         <div className="stack">
           {pay.map((i) => (
@@ -67,7 +70,7 @@ export function OwnerChecklist({ row, signer, today, refresh }: { row: OwnerChec
               <ManualPaymentForm prefix="ck-pay" invoice={i.invoice_id} number={i.invoice_number!} balance={i.balance_cents ?? 0} today={today} refresh={refresh} />
             </div>
           ))}
-          <PaperSignatureForm docs={docs} today={today} refresh={refresh} />
+          {docs.length > 0 && <PaperSignatureForm docs={docs} today={today} refresh={refresh} />}
         </div>
       )}
     </div>
