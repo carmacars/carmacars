@@ -635,6 +635,19 @@ code { font: 500 var(--fs-xs)/1.4 var(--font-text); color: var(--grey-600); font
 .iv-live { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem; font-weight: 600; margin: 0; }
 .iv-time { font-variant-numeric: tabular-nums; }
 .iv-audio { width: 100%; max-width: 28rem; }
+/* release 30 (0585): the answer on video: the camera, the sound level, the clock (red for the last 15 seconds) */
+.iv-cam { position: relative; width: 100%; max-width: 32rem; border-radius: var(--r-2); overflow: hidden; background: #000; aspect-ratio: 16 / 9; }
+.iv-cam.is-rec { box-shadow: 0 0 0 3px var(--red-600); }
+.iv-video { display: block; width: 100%; max-width: 32rem; height: auto; background: #000; border-radius: var(--r-2); }
+.iv-cam .iv-video { height: 100%; object-fit: cover; border-radius: 0; transform: scaleX(-1); }
+.iv-cam__rec { position: absolute; top: var(--s-2); left: var(--s-2); display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 999px;
+  background: rgba(0, 0, 0, 0.7); color: #fff; font-size: var(--fs-xs); font-weight: 700; }
+.iv-meter { width: 100%; max-width: 32rem; height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+.iv-meter > span { display: block; height: 100%; background: var(--text); transition: width 0.08s linear; }
+.iv-timer { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.iv-timer__n { font-size: 1.6rem; margin-right: 0.35rem; }
+.iv-timer.is-low { color: var(--red-600); }
+.iv-up { margin: 0; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { .iv-dot.is-on { animation: none; } }
 @keyframes iv-pulse { 50% { opacity: 0.35; } }
 

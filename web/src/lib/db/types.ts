@@ -763,6 +763,11 @@ export type Database = {
           transcribe_attempts: number;
           audio_purged_at: string | null;
           created_at: string;
+          video_key: string | null;
+          video_type: string | null;
+          video_bytes: number | null;
+          video_purged_at: string | null;
+          retakes_used: number;
         };
         Insert: {
           id?: string;
@@ -782,6 +787,11 @@ export type Database = {
           transcribe_attempts?: number;
           audio_purged_at?: string | null;
           created_at?: string;
+          video_key?: string | null;
+          video_type?: string | null;
+          video_bytes?: number | null;
+          video_purged_at?: string | null;
+          retakes_used?: number;
         };
         Update: {
           id?: string;
@@ -801,6 +811,11 @@ export type Database = {
           transcribe_attempts?: number;
           audio_purged_at?: string | null;
           created_at?: string;
+          video_key?: string | null;
+          video_type?: string | null;
+          video_bytes?: number | null;
+          video_purged_at?: string | null;
+          retakes_used?: number;
         };
         Relationships: [];
       };
@@ -15312,6 +15327,9 @@ export type Database = {
           api_access_enabled: boolean;
           api_calls_per_minute: number;
           listing_photo_enhance: boolean;
+          hiring_ai_answer_seconds: number;
+          hiring_ai_retakes: number;
+          hiring_ai_video_days: number;
         };
         Insert: {
           id?: string;
@@ -15933,6 +15951,9 @@ export type Database = {
           api_access_enabled?: boolean;
           api_calls_per_minute?: number;
           listing_photo_enhance?: boolean;
+          hiring_ai_answer_seconds?: number;
+          hiring_ai_retakes?: number;
+          hiring_ai_video_days?: number;
         };
         Update: {
           id?: string;
@@ -16554,6 +16575,9 @@ export type Database = {
           api_access_enabled?: boolean;
           api_calls_per_minute?: number;
           listing_photo_enhance?: boolean;
+          hiring_ai_answer_seconds?: number;
+          hiring_ai_retakes?: number;
+          hiring_ai_video_days?: number;
         };
         Relationships: [];
       };
@@ -26600,11 +26624,14 @@ export type Database = {
       server_ai_budget: { Args: never; Returns: Json };
       server_ai_interview: { Args: { p_token: string }; Returns: Json };
       server_ai_interview_answer: { Args: { p_token: string; p: Json }; Returns: Json };
+      server_ai_interview_answer_pre0585: { Args: { p_token: string; p: Json }; Returns: Json };
       server_ai_interview_followup: { Args: { p_token: string; p: Json }; Returns: Json };
       server_ai_interview_scored: { Args: { p: Json }; Returns: Json };
       server_ai_interview_start: { Args: { p_token: string; p?: Json }; Returns: Json };
       server_ai_interview_transcript: { Args: { p: Json }; Returns: Json };
       server_ai_interviews_due: { Args: { p_limit?: number }; Returns: Json };
+      server_ai_interviews_due_pre0585: { Args: { p_limit?: number }; Returns: Json };
+      server_ai_video_purged: { Args: { p_ids: string[] }; Returns: number };
       server_alert_feed: { Args: { p_user: string; p_limit?: number; p_filter?: string }; Returns: Json };
       server_alert_prefs: { Args: { p_user: string }; Returns: Json };
       server_alert_read: { Args: { p_user: string; p_ids?: string[] }; Returns: number };

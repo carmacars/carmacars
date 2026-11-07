@@ -100,3 +100,24 @@ test('the usage guard: transcripts and follow-ups are live work, the scores back
   assert.equal((await open.transcribe({ audio: new Uint8Array([1]), type: 'audio/webm', seconds: 10 })).ok, true);
   assert.deepEqual(spent, [['interview_transcribe', 5]]);
 });
+
+// ---------------------------------------------------------------- release 30 (0585): the answer on video
+test('video: the types kept, the type each recording is served with, the clock, why a browser cannot record', async () => {
+  const m = await import('./ai-interview.ts');
+  assert.equal(m.videoExt('video/webm;codecs=vp8,opus'), 'webm');
+  assert.equal(m.videoExt('video/mp4;codecs=avc1,mp4a'), 'mp4');
+  assert.equal(m.videoExt('audio/webm'), null);
+  assert.equal(m.recordingMime('hiring/interviews/x/1-abc-v.webm'), 'video/webm');
+  assert.equal(m.recordingMime('hiring/interviews/x/1-abc-v.mp4'), 'video/mp4');
+  assert.equal(m.recordingMime('hiring/interviews/x/1-abc.m4a'), 'audio/mp4');
+  assert.equal(m.clock(120), '2:00');
+  assert.equal(m.clock(14.2), '0:15');
+  assert.equal(m.clock(-3), '0:00');
+  assert.equal(m.DEFAULT_ANSWER_SECONDS, 120);
+  assert.match(m.cannotRecordWhy({ name: 'NotAllowedError' }, true), /blocked/);
+  assert.match(m.cannotRecordWhy({ name: 'NotFoundError' }, true), /could not find a camera/);
+  assert.match(m.cannotRecordWhy(null, false), /cannot record video/);
+  for (const n of ['NotAllowedError', 'NotFoundError', 'NotReadableError', 'Other']) assert.doesNotMatch(m.cannotRecordWhy({ name: n }, true), /[—–]|Error|getUserMedia/);
+  // the scoring reads an answer the time ran out on as no answer
+  assert.match(m.scorePrompt({ role_title: 'R', va_function: 'cs', hours: null, pay_text: 'P', answers: [{ seq: 1, kind: 'question', key: 'k', prompt: 'Q?', mode: 'none', transcript: 'No answer: the time ran out.' }] }), /A1 \(no answer\)/);
+});

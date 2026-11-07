@@ -8,6 +8,8 @@ export interface NextQuestion { seq: number; kind: 'question' | 'followup'; key:
 export interface InterviewView {
   ok: true; id: string; state: InterviewState; first_name: string; role_title: string; expires_at: string; consent_needed: boolean; consent_text: string;
   total: number; answered: number; next: NextQuestion | null;
+  /** 0585: the seconds for each answer (Admin > Hiring, Answer time) and the retakes allowed. */
+  answer_seconds?: number; retakes?: number;
 }
 export interface Topic { key: string; label: string; weight: number; good: string }
 
@@ -29,6 +31,43 @@ export function audioExt(type: string): string | null {
   return AUDIO_TYPES[(type || '').split(';')[0]!.trim().toLowerCase()] ?? null;
 }
 export const AUDIO_MIME: Record<string, string> = { webm: 'audio/webm', ogg: 'audio/ogg', m4a: 'audio/mp4', mp3: 'audio/mpeg', wav: 'audio/wav' };
+
+// ---------------------------------------------------------------- the video of an answer (release 30, migration 0585)
+/** The answer time when the database gives none (Admin > Hiring, Answer time: 1 to 3 minutes), and the red last seconds. */
+export const DEFAULT_ANSWER_SECONDS = 120;
+export const LOW_SECONDS = 15;
+/** The largest video accepted: 3 minutes at the bitrate asked (about 1 Mbps at 720p) leaves room for a browser that records more. */
+export const MAX_VIDEO_BYTES = 60 * 1024 * 1024;
+/** What the browser is asked for: about 720p, the sizes it records at, compressed. */
+export const VIDEO_CONSTRAINTS = { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24, max: 30 }, facingMode: 'user' } as const;
+export const VIDEO_BITS = 1_000_000;
+export const AUDIO_BITS = 64_000;
+/** The video types a browser records (Chrome and Firefox webm, Safari mp4), first supported wins. */
+export const VIDEO_TYPES = ['video/mp4;codecs=avc1,mp4a', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+export const AUDIO_TYPES_PREFERRED = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/webm'];
+/** The extension of a video's type, or null for a type we do not keep. */
+export function videoExt(type: string): 'webm' | 'mp4' | null {
+  const t = (type || '').split(';')[0]!.trim().toLowerCase();
+  return t === 'video/webm' ? 'webm' : t === 'video/mp4' || t === 'video/quicktime' ? 'mp4' : null;
+}
+/** The content type a stored recording is served with: videos end in -v.webm or -v.mp4 (0585), audio by its extension. */
+export function recordingMime(key: string): string | null {
+  if (/-v\.webm$/.test(key)) return 'video/webm';
+  if (/-v\.mp4$/.test(key)) return 'video/mp4';
+  return AUDIO_MIME[key.split('.').pop() ?? ''] ?? null;
+}
+/** The clock of an answer: minutes and seconds, never below 0:00. */
+export const clock = (s: number) => { const x = Math.max(0, Math.ceil(s)); return `${Math.floor(x / 60)}:${String(x % 60).padStart(2, '0')}`; };
+/** Why the browser cannot record, in plain words (the error of getUserMedia, or none of MediaRecorder). */
+export function cannotRecordWhy(err: { name?: string } | null, hasRecorder: boolean): string {
+  if (!hasRecorder) return 'This browser cannot record video. Update it, or open the link in Chrome, Safari or Edge.';
+  switch (err?.name) {
+    case 'NotAllowedError': case 'SecurityError': return 'The camera or microphone is blocked. Allow both for carmacars.ca in your browser (the icon in the address bar), then press Try again.';
+    case 'NotFoundError': case 'OverconstrainedError': return 'We could not find a camera and a microphone on this device.';
+    case 'NotReadableError': case 'AbortError': return 'Another app is using the camera or the microphone. Close it, then press Try again.';
+    default: return 'We could not start the camera and the microphone. Press Try again, or open the link on another device.';
+  }
+}
 
 export const words = (s: string | null | undefined) => (s ?? '').trim().split(/\s+/).filter(Boolean).length;
 /** Never call the interview a test (the owner's rule: interview, then hire). */
@@ -93,7 +132,7 @@ export function scoreSystem(topics: Topic[], salesRole: boolean): string {
   ].join('\n');
 }
 export function scorePrompt(x: ScoreInput): string {
-  const qa = x.answers.map((a) => `Q${a.seq}${a.kind === 'followup' ? ' (follow-up)' : ''} [${a.key}]: ${a.prompt}\nA${a.seq} (${a.mode === 'voice' ? 'spoken' : 'typed'}): ${a.transcript.slice(0, 2500)}`).join('\n\n');
+  const qa = x.answers.map((a) => `Q${a.seq}${a.kind === 'followup' ? ' (follow-up)' : ''} [${a.key}]: ${a.prompt}\nA${a.seq} (${a.mode === 'voice' ? 'spoken' : a.mode === 'none' ? 'no answer' : 'typed'}): ${a.transcript.slice(0, 2500)}`).join('\n\n');
   return `<role>${x.role_title}. Hours: ${x.hours ?? 'see the job page'} Pay: ${x.pay_text}</role>\n<interview>\n${qa}\n</interview>`;
 }
 
@@ -110,7 +149,7 @@ export function fakeFollowup(prompt: string): { vague: boolean; followup: string
 }
 /** Deterministic scores from the answers' lengths, each with a real quote: the first words of the answer to its question. */
 export function fakeScores(prompt: string, topics: Array<Pick<Topic, 'key'>>): Record<string, unknown> {
-  const answers = [...prompt.matchAll(/^Q\d+(?: \(follow-up\))? \[([a-z_]+)\]: [^\n]*\nA\d+ \([a-z]+\): ([^\n]*)$/gm)].map((m) => ({ key: m[1]!, text: m[2]! }));
+  const answers = [...prompt.matchAll(/^Q\d+(?: \(follow-up\))? \[([a-z_]+)\]: [^\n]*\nA\d+ \([a-z ]+\): ([^\n]*)$/gm)].map((m) => ({ key: m[1]!, text: m[2]! }));
   const by = (k: string) => answers.filter((a) => a.key === k).map((a) => a.text).join(' ');
   const map: Record<string, string> = { internet: 'internet', english: 'experience', social: 'social', skills: 'skills', experience: 'experience', understanding: 'understanding',
     hours_pay: 'hours_pay', other_jobs: 'other_jobs', education: 'other_jobs', career: 'career', canada: 'career' };

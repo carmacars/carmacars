@@ -26,7 +26,7 @@ interface Detail {
   score: { scores: Record<string, number>; interview_score: number | null; final_score: number | null; notes: string | null; decision: string | null; interviewer: string | null; updated_at: string } | null;
   linked: Array<{ id: string; role: string; status: string; score: number | null; created_at: string; referred_from: string | null }>;
   phone_enabled: boolean;
-  ai_interview?: (Omit<AiInterviewData, 'answers'> & { answers: Array<Omit<AiInterviewData['answers'][number], 'audio_url'> & { audio_key: string | null }> }) | null;
+  ai_interview?: (Omit<AiInterviewData, 'answers'> & { answers: Array<Omit<AiInterviewData['answers'][number], 'audio_url' | 'video_url'> & { audio_key: string | null; video_key?: string | null }> }) | null;
   decision?: (Pick<DecisionRow, 'outcome' | 'send_email' | 'email_code' | 'subject' | 'sales_role' | 'send_after' | 'sent_at'>) | null;
 }
 
@@ -42,14 +42,15 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
   const tel = a.phone ? a.phone.replace(/[^\d+]/g, '') : null;
   const portal = x.role.staff_kind === 'field' ? 'field staff' : 'assistant';
   const canScore = ['booked', 'interviewed', 'invited', 'no_show'].includes(a.status);
-  // 0380: the AI interview, each recording on a signed link of an hour
+  // 0380: the AI interview, each recording on a signed link of an hour (0585: and each answer's video)
   const ai = x.ai_interview ?? null;
   let aiData: AiInterviewData | null = null;
   if (ai) {
-    const keys = ai.answers.filter((w) => w.audio_key);
+    const keys = ai.answers.filter((w) => w.audio_key || w.video_key);
     const s = keys.length ? await (await import('@/integrations/storage')).storage() : null;
-    const urls = new Map(await Promise.all(keys.map(async (w) => [w.id, await s!.signedDownloadUrl('documents', w.audio_key!, 3600).catch(() => null)] as const)));
-    aiData = { ...ai, answers: ai.answers.map((w) => ({ ...w, audio_url: urls.get(w.id) ?? null })) };
+    const link = (k: string | null | undefined) => (k ? s!.signedDownloadUrl('documents', k, 3600).catch(() => null) : Promise.resolve(null));
+    const urls = new Map(await Promise.all(keys.map(async (w) => [w.id, { audio: await link(w.audio_key), video: await link(w.video_key) }] as const)));
+    aiData = { ...ai, answers: ai.answers.map((w) => ({ ...w, audio_url: urls.get(w.id)?.audio ?? null, video_url: urls.get(w.id)?.video ?? null })) };
   }
   const aiOpen = ai && !ai.live_call_at && (ai.state === 'sent' || ai.state === 'started' || ai.state === 'expired');
   // the calls of the same day in time order: Previous and Next go straight to the neighbour's rubric

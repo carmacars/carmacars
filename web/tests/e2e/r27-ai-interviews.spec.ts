@@ -5,19 +5,23 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { acceptCookies, db, noOverflow, watch } from './helpers';
 
-// Release 27 (migration 0380, docs/changes/2026-11-07-ai-interviews.md), at both widths, with the fake AI and the fake
-// speech to text: a remote assistant applies and passes, gets "Start my interview" (the email too, never the booking
-// link), agrees to the recording, answers out loud (a stand-in microphone whose recording the fake hears) and in writing,
-// gets a follow-up after a vague answer, finishes; the interviews job transcribes nothing left and scores it; the Admin
-// sees the recommendation, plays the answer and reads the transcript, and invites the candidate to a live call. Never the
-// word "test" on the candidate's pages. Fictional people only.
+// Release 27 (migration 0380, docs/changes/2026-11-07-ai-interviews.md) and release 30 (migration 0585, video), at both
+// widths, with the fake AI and the fake speech to text, in a Chrome with a fake camera and microphone (its own browser,
+// launched with --use-fake-device-for-media-stream): a remote assistant applies and passes, gets "Start my interview"
+// (the email too, never the booking link), agrees to the video recording, checks the camera and the microphone (the
+// preview and the level), then answers every question on video: the question is read, the clock starts, Record, Stop
+// and send (the video and its audio track uploaded to private storage); one answer is left to run to 0:00, where the
+// clock turns red, recording stops by itself and the answer goes. A follow-up after a vague answer. The interviews job
+// transcribes and scores it; the Admin sees the recommendation, plays each video (a byte range, video/webm), watches
+// them all, reads the transcript, sees the interview settings, and invites the candidate to a live call. Never the word
+// "test" on the candidate's pages. Fictional people only.
 const PW = 'correct horse battery';
 type Sql = ReturnType<typeof db>;
 const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${salt.toString('base64')}$${scryptSync(pw, salt, 64).toString('base64')}`; };
 const tag = () => randomBytes(3).toString('hex');
 const quiet = (errors: string[]) => errors.filter((x) => !/favicon|Failed to load resource|net::ERR/.test(x));
-const SPOKEN = 'I worked two years as a chat and phone agent for an internet provider in Texas, about sixty chats a day in Zendesk, with refunds, outages and billing questions every shift.';
-const LONG = 'I have done this kind of work every day for two years for a company in the United States, with clear notes in the ticket, a reply inside fifteen minutes and the office told at once when something is unclear.';
+// what the fake speech to text hears in a recording without its marker (integrations/transcribe/fake.ts)
+const FAKE_SENTENCE = 'I worked two years in customer support for a company in the United States, answering calls and chats every day with Zendesk.';
 
 async function check(page: Page, where: string) {
   await noOverflow(page);
@@ -47,26 +51,22 @@ function jobToken() {
   return createHmac('sha256', /^LINK_SIGNING_KEY=(.*)$/m.exec(env)![1]!.trim()).update('carmacars-listing-worker-v1').digest('hex');
 }
 async function ctx(browser: Browser, phone: boolean) {
-  const c = await browser.newContext({ viewport: phone ? { width: 375, height: 812 } : { width: 1440, height: 900 }, hasTouch: phone, baseURL: test.info().project.use.baseURL });
-  // a stand-in microphone: the recording carries the words the fake speech to text "hears" (window.__say)
+  const c = await browser.newContext({ viewport: phone ? { width: 375, height: 812 } : { width: 1440, height: 900 }, hasTouch: phone, baseURL: test.info().project.use.baseURL,
+    permissions: ['camera', 'microphone'] });
+  // the browser's voice is quick and always says it is done (the clock then starts), whatever the machine has
   await c.addInitScript(() => {
-    const w = window as unknown as { __say: string; MediaRecorder: unknown };
-    w.__say = '';
-    class FakeRecorder {
-      mimeType = 'audio/webm;codecs=opus'; state = 'inactive';
-      ondataavailable: ((e: { data: Blob }) => void) | null = null; onstop: (() => void) | null = null;
-      static isTypeSupported(t: string) { return t.startsWith('audio/webm'); }
-      start() { this.state = 'recording'; }
-      stop() {
-        this.state = 'inactive';
-        this.ondataavailable?.({ data: new Blob([`OggS${'.'.repeat(400)}FAKE-TRANSCRIPT:${w.__say}`], { type: 'audio/webm;codecs=opus' }) });
-        this.onstop?.();
-      }
-    }
-    w.MediaRecorder = FakeRecorder;
-    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: async () => ({ getTracks: () => [{ stop() {} }] }) } });
+    const synth = { speaking: false, cancel() {}, speak(u: { onend?: (() => void) | null }) { setTimeout(() => u.onend?.(), 200); }, getVoices: () => [] };
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: synth });
   });
   return c.newPage();
+}
+/** Wait for the question's clock to start, then record for a moment and stop: the answer goes. */
+async function recordAnswer(page: Page, ms = 1500) {
+  await expect(page.getByTestId('iv-record')).toBeVisible({ timeout: 40_000 });
+  await page.getByTestId('iv-record').click();
+  await expect(page.getByTestId('iv-question')).toHaveAttribute('data-phase', 'recording');
+  await page.waitForTimeout(ms);
+  await page.getByTestId('iv-stop').click();
 }
 const VA_PASS = {
   schedule: 'Yes, I can work this schedule every week', pay: 'Yes, I understand the rate is firm and I accept it', internet: 'Fiber or cable, 25 Mbps or faster, plus a backup connection',
@@ -90,15 +90,18 @@ async function noTestWord(page: Page, where: string) {
   expect((await page.locator('main').innerText()).match(/\b(test|tests|exam|quiz)\b/i)?.[0], `${where}: never a test`).toBeUndefined();
 }
 
-test('AI interview: apply, consent, answer out loud and typed, a follow-up, scored by the job; the Admin plays it and invites to a live call', async ({ browser }, info) => {
-  test.setTimeout(420_000);
+test('AI interview on video: apply, consent, the camera check, answers recorded and uploaded, one stopped by the clock at 0:00, a follow-up, scored by the job; the Admin watches them and invites to a live call', async ({ playwright }, info) => {
+  test.setTimeout(600_000);
   const phone = info.project.name.startsWith('phone');
   const sql = db();
   await sql`delete from app.rate_limit_hits where key like 'hire:%'`;
   const a = await mkAdmin(sql);
   const email = `ivy.${tag()}@example.test`;
   await sql`update hiring_roles set active = true where slug = 'va-finance-billing'`;
-  await sql`update program_settings set hiring_ai_interviews = true where id = (select id from app.settings())`;
+  await sql`update program_settings set hiring_ai_interviews = true, hiring_ai_answer_seconds = 60, hiring_ai_retakes = 0 where id = (select id from app.settings())`;
+  // a Chrome of its own with a fake camera and microphone (PW_CHROMIUM: another build of Chrome, for a local run)
+  const browser = await playwright.chromium.launch({ args: ['--no-proxy-server', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'],
+    ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}) });
   try {
     const page = await ctx(browser, phone);
     const errors = watch(page);
@@ -125,51 +128,66 @@ test('AI interview: apply, consent, answer out loud and typed, a follow-up, scor
 
     // 2. the consent before anything is recorded
     await expect(page.getByTestId('iv-intro')).toBeVisible();
-    await expect(page.getByTestId('iv-consent')).toContainText('This interview is recorded');
+    await expect(page.getByTestId('iv-consent')).toContainText('This interview is recorded on video');
     await expect(page.getByTestId('iv-start')).toBeDisabled();
     await check(page, 'interview intro');
     await noTestWord(page, 'interview intro');
     await page.getByTestId('iv-agree').check();
     await page.getByTestId('iv-start').click();
-    await expect(page.getByTestId('iv-question')).toHaveAttribute('data-seq', '1', { timeout: 30_000 });
+
+    // 3. the camera and microphone check: the preview and the level, before the first question
+    await expect(page.getByTestId('iv-check')).toBeVisible({ timeout: 30_000 });
     expect((await sql`select consent_at from ai_interviews where application_id = ${app!.id}`)[0]!.consent_at).not.toBeNull();
+    await page.getByTestId('iv-check-start').click();
+    await expect(page.getByTestId('iv-preview')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('iv-level')).toBeVisible();
+    await expect.poll(() => page.getByTestId('iv-preview').evaluate((v: HTMLVideoElement) => v.videoWidth), { timeout: 20_000 }).toBeGreaterThan(0);
+    await check(page, 'camera check');
+    await noTestWord(page, 'camera check');
+    await page.getByTestId('iv-check-go').click();
 
-    // 3. question 1 out loud: record, stop, listen back, send; the fake hears it
-    await page.evaluate((s) => { (window as unknown as { __say: string }).__say = s; }, SPOKEN);
-    await page.getByTestId('iv-record').click();
-    await expect(page.getByTestId('iv-stop')).toBeVisible();
-    await check(page, 'recording');
-    await page.getByTestId('iv-stop').click();
-    await expect(page.getByTestId('iv-send')).toBeVisible();
-    await page.getByTestId('iv-send').click();
+    // 4. question 1: read, then the clock (1:00 here); Record, Stop and send: the video and its audio track are uploaded
+    await expect(page.getByTestId('iv-question')).toHaveAttribute('data-seq', '1', { timeout: 30_000 });
+    await expect(page.getByTestId('iv-timer')).toContainText(/1:00|0:5\d/, { timeout: 30_000 });
+    await check(page, 'question');
+    await recordAnswer(page);
     await expect(page.getByTestId('iv-question')).toHaveAttribute('data-seq', '2', { timeout: 60_000 });
-    const [w1] = await sql`select w.audio_key, w.transcript, w.transcript_state from ai_interview_answers w join ai_interviews i on i.id = w.interview_id where i.application_id = ${app!.id} and w.seq = 1`;
-    expect(w1!.audio_key).toMatch(/^hiring\/interviews\/[0-9a-f-]+\/1-[a-z0-9]+\.webm$/);
-    expect(`${w1!.transcript_state}: ${w1!.transcript}`).toBe(`done: ${SPOKEN}`);
-
-    // 4. question 2 typed and vague: a follow-up comes next
-    await page.getByTestId('iv-toggle').click();
-    await page.getByTestId('iv-typed').fill('Excel.');
-    await page.getByTestId('iv-send-typed').click();
-    await expect(page.getByTestId('iv-question')).toHaveAttribute('data-kind', 'followup', { timeout: 60_000 });
+    const [w1] = await sql`select w.mode, w.audio_key, w.video_key, w.video_bytes, w.transcript, w.transcript_state from ai_interview_answers w join ai_interviews i on i.id = w.interview_id where i.application_id = ${app!.id} and w.seq = 1`;
+    expect(w1!.mode).toBe('voice');
+    expect(w1!.video_key).toMatch(/^hiring\/interviews\/[0-9a-f-]+\/1-[a-z0-9]+-v\.(webm|mp4)$/);
+    expect(w1!.audio_key).toMatch(/^hiring\/interviews\/[0-9a-f-]+\/1-[a-z0-9]+\.(webm|m4a|ogg)$/);
+    expect(Number(w1!.video_bytes)).toBeGreaterThan(1000);
+    expect(w1!.transcript_state).toBe('done');
+    // the fake speech to text hears its plain sentence in the fake microphone's tone: short, so a follow-up comes
+    await expect(page.getByTestId('iv-question')).toHaveAttribute('data-kind', 'followup');
     await expect(page.getByTestId('iv-text')).toContainText('specific example');
-    await check(page, 'follow-up');
     await noTestWord(page, 'follow-up');
-    await page.getByTestId('iv-typed').fill(LONG);
-    await page.getByTestId('iv-send-typed').click();
-    await expect(page.getByTestId('iv-question')).toHaveAttribute('data-seq', '4', { timeout: 60_000 });
-    await expect(page.getByTestId('iv-question')).toHaveAttribute('data-kind', 'question');
 
-    // 5. the other seven typed, in full: no more follow-ups; then done
-    for (let i = 0; i < 7; i++) {
-      await page.getByTestId('iv-typed').fill(LONG);
-      await page.getByTestId('iv-send-typed').click();
-      if (i < 6) await expect(page.getByTestId('iv-question')).toHaveAttribute('data-seq', String(5 + i), { timeout: 60_000 });
+    // 5. the follow-up: Record and let the clock run out: red for the last 15 seconds, recording stops at 0:00, the answer goes
+    await expect(page.getByTestId('iv-record')).toBeVisible({ timeout: 40_000 });
+    await page.getByTestId('iv-record').click();
+    await expect(page.getByTestId('iv-timer')).toHaveAttribute('data-low', '1', { timeout: 60_000 });
+    await expect(page.getByTestId('iv-timer')).toHaveClass(/is-low/);
+    await expect(page.getByTestId('iv-question')).toHaveAttribute('data-phase', 'recording');
+    await check(page, 'the last seconds');
+    await expect(page.getByTestId('iv-question')).toHaveAttribute('data-seq', '3', { timeout: 60_000 });
+    const [w2] = await sql`select w.kind, w.mode, w.video_key, w.audio_seconds from ai_interview_answers w join ai_interviews i on i.id = w.interview_id where i.application_id = ${app!.id} and w.seq = 2`;
+    expect(`${w2!.kind}/${w2!.mode}/${w2!.video_key ? 'video' : 'none'}`).toBe('followup/voice/video');
+    expect(Number(w2!.audio_seconds)).toBeGreaterThan(40);
+
+    // 6. the rest, each recorded and sent (one more follow-up may come: at most two an interview)
+    for (let i = 0; i < 12 && await page.getByTestId('iv-question').isVisible(); i++) {
+      const seq = await page.getByTestId('iv-question').getAttribute('data-seq');
+      await recordAnswer(page, 1000);
+      await expect(page.getByTestId('iv-question').or(page.getByTestId('iv-done'))).toBeVisible({ timeout: 60_000 });
+      await expect.poll(async () => (await page.getByTestId('iv-done').isVisible()) || (await page.getByTestId('iv-question').getAttribute('data-seq').catch(() => seq)) !== seq, { timeout: 60_000 }).toBe(true);
     }
     await expect(page.getByTestId('iv-done')).toBeVisible({ timeout: 60_000 });
     await check(page, 'interview done');
     const [st] = await sql`select a.status, i.state, (select count(*)::int from ai_interview_answers w where w.interview_id = i.id) n from job_applications a join ai_interviews i on i.application_id = a.id where a.id = ${app!.id}`;
-    expect(`${st!.status}/${st!.state}/${st!.n}`).toBe('interviewed/submitted/10');
+    expect(`${st!.status}/${st!.state}`).toBe('interviewed/submitted');
+    expect(st!.n).toBe(11);
+    expect((await sql`select count(*)::int n from ai_interview_answers w join ai_interviews i on i.id = w.interview_id where i.application_id = ${app!.id} and (w.video_key is null or w.mode <> 'voice')`)[0]!.n).toBe(0);
 
     // 6. the interviews job scores it (the fake model), and the AI decides nothing
     const token = jobToken();
@@ -188,14 +206,19 @@ test('AI interview: apply, consent, answer out loud and typed, a follow-up, scor
     await page.goto(`/admin/hiring/${app!.id}`, { waitUntil: 'networkidle' });
     await expect(page.getByTestId('cand-ai-rec')).toContainText('AI recommends');
     await expect(page.getByTestId('cand-ai-topics')).toBeVisible();
-    await expect(page.getByTestId('cand-ai-answers')).toContainText(SPOKEN);
+    await expect(page.getByTestId('cand-ai-answers')).toContainText(FAKE_SENTENCE);
     await expect(page.getByTestId('cand-ai-answers')).toContainText('Follow-up');
+    await expect(page.getByTestId('cand-ai-video')).toHaveCount(11);
     await expect(page.getByTestId('cand-ai-hint')).toContainText('You decide');
-    const src = await page.getByTestId('cand-ai-audio').first().getAttribute('src');
+    const src = await page.getByTestId('cand-ai-video').first().getAttribute('src');
     expect(src).toBeTruthy();
-    const audio = await page.request.get(src!, { headers: { range: 'bytes=0-9' } });
-    expect(audio.status()).toBe(206);
-    expect(audio.headers()['content-type']).toBe('audio/webm');
+    const video = await page.request.get(src!, { headers: { range: 'bytes=0-9' } });
+    expect(video.status()).toBe(206);
+    expect(video.headers()['content-type']).toMatch(/^video\/(webm|mp4)$/);
+    await page.getByTestId('cand-ai-watch-all').click();
+    await expect(page.getByTestId('cand-ai-watch-video')).toBeVisible();
+    await page.getByTestId('cand-ai-watch-next').click();
+    await expect(page.getByTestId('cand-ai-watch')).toContainText('Follow-up');
     await check(page, 'candidate');
     await page.goto(`/admin/hiring?tab=pipeline&role=va-finance-billing`, { waitUntil: 'networkidle' });
     await expect(page.getByTestId(`app-ai-${app!.id}`)).toContainText('AI interview done');
@@ -207,10 +230,14 @@ test('AI interview: apply, consent, answer out loud and typed, a follow-up, scor
     expect((await sql`select status from job_applications where id = ${app!.id}`)[0]!.status).toBe('invited');
     await page.goto('/admin/hiring?tab=roles', { waitUntil: 'networkidle' });
     await expect(page.getByTestId('hiring-ai-setting')).toContainText('On');
+    await expect(page.getByTestId('hiring-ai-setting')).toContainText('Answer time');
+    await expect(page.getByTestId('hiring-ai-setting')).toContainText('Keep interview videos');
     await check(page, 'roles');
     expect(quiet(errors)).toEqual([]);
     await sql`update job_applications set status = 'withdrawn' where id = ${app!.id}`;
   } finally {
+    await browser.close();
+    await sql`update program_settings set hiring_ai_answer_seconds = 120, hiring_ai_retakes = 0 where id = (select id from app.settings())`;
     await sql`update hiring_roles set active = false where slug = 'va-finance-billing'`;
     await sql.end();
   }

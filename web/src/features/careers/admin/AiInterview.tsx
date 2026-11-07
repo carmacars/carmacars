@@ -1,15 +1,18 @@
 import { Badge, Card, Kv, Table, t } from '@/features/admin/ui';
 import { AI_STATE_WORDS, RECOMMENDATION_WORDS, type InterviewState, type Recommendation } from '../ai-interview';
+import { WatchAll } from './WatchAll';
 
 // The AI interview on the candidate page (migration 0380): the AI's recommendation, scores with the quote each one rests
 // on, the spoken English and the red flags, then every answer in the order asked with its recording and transcript. The
 // AI only recommends: the Admin decides with the rubric beside it.
-export interface AiAnswer { id: string; seq: number; kind: 'question' | 'followup'; key: string; prompt: string; mode: 'voice' | 'typed'; audio_url: string | null;
-  audio_seconds: number | null; transcript: string | null; transcript_state: 'pending' | 'done' | 'failed' }
+export interface AiAnswer { id: string; seq: number; kind: 'question' | 'followup'; key: string; prompt: string; mode: 'voice' | 'typed' | 'none'; audio_url: string | null;
+  audio_seconds: number | null; transcript: string | null; transcript_state: 'pending' | 'done' | 'failed';
+  /** 0585: the answer's video (a signed link of an hour), gone after the setting's days */
+  video_url?: string | null; video_purged?: boolean; retakes_used?: number }
 export interface AiInterviewData {
   id: string; state: InterviewState; sent_at: string; expires_at: string; links_sent: number; consent_at: string | null; consent_text: string | null; started_at: string | null;
   submitted_at: string | null; scored_at: string | null; followups_used: number; interview_score: number | null; recommendation: Recommendation | null; score_model: string | null;
-  score_attempts: number; last_error: string | null; purged: boolean; questions_total: number; live_call_at: string | null;
+  score_attempts: number; last_error: string | null; purged: boolean; questions_total: number; live_call_at: string | null; video_days?: number;
   result: { topics: Array<{ key: string; label: string; weight: number; score: number | null; evidence: string | null }>; english: { level: string | null; score: number | null; notes: string | null };
     red_flags: string[]; summary: string | null; reason: string | null } | null;
   answers: AiAnswer[];
@@ -22,6 +25,12 @@ const secs = (n: number | null) => (n ? `${Math.floor(n / 60)}:${String(Math.rou
 export function AiInterview({ x }: { x: AiInterviewData }) {
   const r = x.result;
   const asked = x.answers.filter((a) => a.kind === 'question').length;
+  const label = (a: AiAnswer) => (a.kind === 'followup' ? 'Follow-up' : `Question ${x.answers.filter((b) => b.kind === 'question' && b.seq <= a.seq).length}`);
+  // the rubric topic an answer speaks to: the same key, or the topic whose quote is from this answer
+  const scoreOf = (a: AiAnswer) => {
+    const t = r?.topics.find((tp) => tp.score && (tp.key === a.key || (tp.evidence && a.transcript && a.transcript.includes(tp.evidence))));
+    return t ? { label: t.label, score: t.score } : null;
+  };
   return (
     <Card title="AI interview" testId="cand-ai" aside={<Badge s={tone(x.state)}>{AI_STATE_WORDS[x.state]}</Badge>}>
       {x.state === 'scored' && x.recommendation && r && (
@@ -42,15 +51,25 @@ export function AiInterview({ x }: { x: AiInterviewData }) {
         { key: 'score', label: 'AI score', num: true, render: (tp) => (tp.score ? `${String(tp.score)} / 5` : '-') },
         { key: 'evidence', label: 'From the answers', className: 'wrap', render: (tp) => (tp.evidence ? <q>{String(tp.evidence)}</q> : <span className="muted">no quote</span>) }]} />}
       {x.answers.length > 0 && <>
-        <h3 className="d4">Answers and transcript</h3>
+        <h3 className="d4">Answers, videos and transcript</h3>
+        {x.answers.some((a) => a.video_url) && <WatchAll items={x.answers.filter((a) => a.video_url).map((a) => ({ id: a.id, url: a.video_url!, label: label(a), prompt: a.prompt }))} />}
         <ol className="ai-answers" data-testid="cand-ai-answers">
-          {x.answers.map((a) => (
-            <li key={a.id} className={a.kind === 'followup' ? 'is-follow' : undefined}>
-              <p className="small muted">{a.kind === 'followup' ? 'Follow-up' : `Question ${x.answers.filter((b) => b.kind === 'question' && b.seq <= a.seq).length}`}{a.mode === 'typed' ? ' · typed' : a.audio_seconds ? ` · ${secs(a.audio_seconds)}` : ''}</p>
+          {x.answers.map((a) => {
+            const score = scoreOf(a);
+            return (
+            <li key={a.id} className={a.kind === 'followup' ? 'is-follow' : undefined} data-testid={`cand-ai-answer-${a.seq}`}>
+              <p className="small muted">{label(a)}{a.mode === 'typed' ? ' · typed' : a.mode === 'none' ? ' · no answer in the time' : a.audio_seconds ? ` · ${secs(a.audio_seconds)}` : ''}{a.retakes_used ? ` · recorded ${a.retakes_used + 1} times` : ''}</p>
               <p className="ai-q">{a.prompt}</p>
-              {a.mode === 'voice' && (a.audio_url ? <audio controls preload="none" src={a.audio_url} className="iv-audio" aria-label={`Recording of answer ${a.seq}`} data-testid="cand-ai-audio" /> : <p className="small muted">Recording removed.</p>)}
-              <p className="ai-said">{a.transcript ?? <span className="muted">{a.transcript_state === 'failed' ? 'No transcript: listen to the recording.' : 'Transcript on its way.'}</span>}</p>
-            </li>))}
+              {a.mode === 'voice' && (a.video_url
+                ? <video controls preload="metadata" playsInline src={a.video_url} className="ai-video" aria-label={`Video of answer ${a.seq}`} data-testid="cand-ai-video" />
+                : a.audio_url
+                  ? <>{a.video_purged && <p className="small muted">Video deleted after {x.video_days ?? 90} days; the sound is kept.</p>}
+                    <audio controls preload="none" src={a.audio_url} className="iv-audio" aria-label={`Recording of answer ${a.seq}`} data-testid="cand-ai-audio" /></>
+                  : <p className="small muted">Recording removed.</p>)}
+              {a.mode !== 'none' && <p className="ai-said">{a.transcript ?? <span className="muted">{a.transcript_state === 'failed' ? 'No transcript: watch the video.' : 'Transcript on its way.'}</span>}</p>}
+              {score && <p className="small" data-testid="cand-ai-answer-score">AI score, {score.label}: <b>{score.score} / 5</b></p>}
+            </li>);
+          })}
         </ol></>}
       <Kv rows={[['Sent', `${t(x.sent_at)}${x.links_sent > 1 ? ` (link ${x.links_sent})` : ''}`], ['Consent to the recording', x.consent_at ? t(x.consent_at) : 'Not yet'],
         ['Follow-ups asked', String(x.followups_used)], ...(x.scored_at ? [['Scored', t(x.scored_at)] as [string, string]] : [])]} />

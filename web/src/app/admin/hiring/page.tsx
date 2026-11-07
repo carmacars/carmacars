@@ -3,7 +3,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Act } from '@/features/admin/Act';
 import { DecisionEmails, type DecisionsData } from '@/features/careers/admin/DecisionEmails';
-import { Badge, Card, Filters, PageHead, Table, Tabs, d, t } from '@/features/admin/ui';
+import { Badge, Card, Filters, Kv, PageHead, Table, Tabs, d, t } from '@/features/admin/ui';
 import { CopyText } from '@/features/ads/CopyText';
 import { applyPath, DECISIONS, fmtSlot, inviteMessage, SOURCE_WORDS, STATUS_FILTERS, STATUS_WORDS } from '@/features/careers/model';
 import { siteUrl } from '@/lib/site';
@@ -30,7 +30,7 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
   const tab = sp.tab ?? 'pipeline';
   const base = '/admin/hiring';
   const data = await read<{ today: string; phone_enabled: boolean; roles: Role[]; applications: App[]; days: Day[]; waiting?: Array<{ slug: string; title: string; count: number }>; decisions_waiting?: number;
-    ai_interviews?: { enabled: boolean; days: number; followups: number; waiting: number } }>('hiring',
+    ai_interviews?: { enabled: boolean; days: number; followups: number; waiting: number; answer_seconds?: number; retakes?: number; video_days?: number } }>('hiring',
     { role: sp.role ?? '', status: sp.status ?? '', source: sp.source ?? '', min_score: sp.min_score ?? '' });
   const waiting = data.roles.reduce((n, r) => n + (r.counts.below_bar ?? 0), 0);
   const tabs = <Tabs current={`${base}?tab=${tab}`} items={[[`${base}?tab=pipeline`, 'Applications', waiting], [`${base}?tab=calls`, 'Calls'], [`${base}?tab=shortlist`, 'Shortlist'],
@@ -112,10 +112,16 @@ export default async function Hiring({ searchParams }: { searchParams: Promise<R
     return (<>{head}{noDay}{tabs}
       {ai && <Card title="AI interviews for the remote roles" testId="hiring-ai-setting" aside={<Badge s={ai.enabled ? 'published' : 'closed'}>{ai.enabled ? 'On' : 'Off'}</Badge>}>
         <p className="small">{ai.enabled
-          ? `A remote assistant who passes screening (customer service, fleet, finance, remote sales) gets a link to a recorded interview instead of a live call: ${ai.days} days to take it, up to ${ai.followups} follow-up questions. The AI scores it and recommends; you decide. In-person roles keep their phone calls.`
+          ? `A remote assistant who passes screening (customer service, fleet, finance, remote sales) gets a link to an interview recorded on video instead of a live call: ${ai.days} days to take it, up to ${ai.followups} follow-up questions. The AI scores it and recommends; you decide. In-person roles keep their phone calls.`
           : 'Off: remote assistants who pass screening get the link to book a live call, as the in-person roles do.'}</p>
+        <Kv rows={[['Answer time', `${(ai.answer_seconds ?? 120) / 60} minute${(ai.answer_seconds ?? 120) === 60 ? '' : 's'} for each answer`],
+          ['Retakes allowed', String(ai.retakes ?? 0)], ['Keep interview videos', `${ai.video_days ?? 90} days, then deleted`]]} />
         <div className="row"><Act action="hiring_ai_settings" payload={{ enabled: !ai.enabled }} label={ai.enabled ? 'Turn off' : 'Turn on'} variant={ai.enabled ? 'ghost' : 'primary'} testId="hiring-ai-toggle"
-          refresh={[base]} done={ai.enabled ? 'AI interviews are off.' : 'AI interviews are on.'} /></div>
+          refresh={[base]} done={ai.enabled ? 'AI interviews are off.' : 'AI interviews are on.'} />
+          <Act action="hiring_ai_settings" payload={{}} label="Interview settings" testId="hiring-ai-settings" refresh={[base]} done="Saved."
+            fields={[{ name: 'answer_minutes', label: 'Answer time (minutes, 1 to 3)', type: 'number', min: 1, max: 3, value: (ai.answer_seconds ?? 120) / 60, required: true },
+              { name: 'retakes', label: 'Retakes allowed (0 to 3)', type: 'number', min: 0, max: 3, value: ai.retakes ?? 0, required: true },
+              { name: 'video_days', label: 'Keep interview videos (days)', type: 'number', min: 1, max: 365, value: ai.video_days ?? 90, required: true }]} /></div>
       </Card>}
       {data.roles.map((r) => {
         const src = r.remote ? 'onlinejobs' : 'indeed';
