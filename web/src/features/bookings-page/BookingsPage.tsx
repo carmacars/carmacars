@@ -20,7 +20,7 @@ export async function BookingsPage({ ctx, sp }: { ctx: PageCtx; sp: Record<strin
   return ctx.viewer.role === 'admin' ? AdminBookings({ ctx, sp }) : FindBooking({ ctx, sp });
 }
 
-// Out now (0330): on rent, and confirmed with the pickup time passed and no check-out recorded, in one list (the owner:
+// Out now (0330): on rent, and confirmed with the pickup time passed and no check-in recorded, in one list (the owner:
 // "some of the confirmed ones are on rent"). An old ?status=on_rent link opens it.
 // r32: five chips, the ones that need action first; Closed and Cancelled are found with the search (or ?status=, kept)
 const STATUSES: Array<[string, string]> = [['', 'All'], ['out', 'Out now'], ['confirmed', 'Booked'], ['returned', 'Returned'], ['cancelled', 'Cancelled']];

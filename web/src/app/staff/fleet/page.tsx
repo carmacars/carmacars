@@ -14,7 +14,7 @@ export const metadata = pageMeta({ title: 'Field jobs', path: '/staff/fleet', no
 
 type R = Record<string, unknown>;
 type Board = { staff: Array<{ id: string; name: string }>; jobs: R[]; unscheduled: R[]; expiry: R[]; documents: R[] };
-const KIND: Record<string, string> = { handover: 'Handover', return_check_in: 'Return check-in' };
+const KIND: Record<string, string> = { handover: 'Handover', return_check_in: 'Return check-out' };
 
 // Fleet Operations (05-va.md section 3): every confirmed booking gets its handover and return jobs by itself, at the
 // booking's times and place, given to the least busy field staff member (0151); Fleet changes the time, the place or

@@ -7,7 +7,7 @@ export default {
   category: 'transactional',
   from: FROM.bookings,
   digest: false,
-  trigger: 'A new version of the booking\'s two rental agreements (CarmaCars\' and Blind Spot\'s) is made after the agreement was signed (migration 0154): the car checked out (the "as picked up" copy), checked in (the closing copy), a correction, or a material change (dates, price, car, drivers, coverage option) that the renter and the affected drivers sign again with their own link. Also sent with the signed copies once every signature of a changed version is in. Both PDFs are attached.',
+  trigger: 'A new version of the booking\'s two rental agreements (CarmaCars\' and Blind Spot\'s) is made after the agreement was signed (migration 0154): the car checked in (the "as picked up" copy), checked out (the closing copy), a correction, or a material change (dates, price, car, drivers, coverage option) that the renter and the affected drivers sign again with their own link. Also sent with the signed copies once every signature of a changed version is in. Both PDFs are attached.',
   timing: 'Immediate',
   subject: '{{version_title}}, booking {{booking_number}}',
   preheader: '{{kind_line}}',

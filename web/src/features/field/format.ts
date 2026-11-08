@@ -2,8 +2,8 @@
 // split so the hour can be set large, and how far away it is in words a driver reads at a glance.
 const TZ = 'America/Toronto';
 
-export const KIND: Record<string, string> = { handover: 'Handover', delivery: 'Delivery', return_check_in: 'Return check-in', pickup_from_renter: 'Pickup from renter', detail: 'Detail', photo_shoot: 'Photo shoot', tracker_install: 'Tracker install', tracker_removal: 'Tracker removal', registry_run: 'Registry run', recovery: 'Recovery', other: 'Other' };
-export const CHECK: Record<string, string> = { handover: 'Check out (pickup)', delivery: 'Check out (pickup)', return_check_in: 'Check in (return)', pickup_from_renter: 'Check in (return)' };
+export const KIND: Record<string, string> = { handover: 'Handover', delivery: 'Delivery', return_check_in: 'Return check-out', pickup_from_renter: 'Pickup from renter', detail: 'Detail', photo_shoot: 'Photo shoot', tracker_install: 'Tracker install', tracker_removal: 'Tracker removal', registry_run: 'Registry run', recovery: 'Recovery', other: 'Other' };
+export const CHECK: Record<string, string> = { handover: 'Check in (pickup)', delivery: 'Check in (pickup)', return_check_in: 'Check out (return)', pickup_from_renter: 'Check out (return)' };
 export const STATUS: Record<string, string> = { scheduled: 'Not acknowledged', acknowledged: 'Acknowledged', in_progress: 'In progress', done: 'Done', blocked: 'Stopped' };
 
 export const maps = (p: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p)}`;

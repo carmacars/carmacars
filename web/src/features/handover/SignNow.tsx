@@ -43,7 +43,7 @@ export function SignNow({ s, base, agreement, consents, staffName, terms, pickup
   );
   return (
     <div className="stack-lg" data-testid="sign-now-staff">
-      {waiting.length > 0 && <p className="small" data-testid="sign-now-pickup">{pickupPrinted ? 'The agreement shows the check-out readings (time, kilometres and fuel out): signing now makes them part of the signed copy.' : 'Signing at pickup? Record the odometer and fuel on the check-out first: the agreement then shows them and the signed copy holds them.'}</p>}
+      {waiting.length > 0 && <p className="small" data-testid="sign-now-pickup">{pickupPrinted ? 'The agreement shows the check-in readings (time, kilometres and fuel out): signing now makes them part of the signed copy.' : 'Signing at pickup? Record the odometer and fuel on the check-in first: the agreement then shows them and the signed copy holds them.'}</p>}
       {waiting.length === 0 && <p className="alert alert--ok" role="status" data-testid="sign-now-all-signed"><span className="alert__title">Everyone has signed</span><span><Link prefetch={false} className="link" href={base}>Back to the booking</Link></span></p>}
       {s.signers.map((g) => (
         <section key={g.id} className={`pt-card${g.signed_at ? '' : ' pt-card--next'}`} aria-labelledby={`sn-${g.id}`} data-testid={`sign-now-signer-${g.role}`}>

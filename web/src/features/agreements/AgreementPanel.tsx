@@ -11,7 +11,7 @@ import { ToolPane, ToolsProvider } from '@/features/admin/MoreMenu';
 
 // The booking page's Agreement card (migration 0154), for an Admin and the assistants: the current version of the two
 // rental agreements and every earlier one (what changed, both PDFs, who signed or countersigned), a version waiting for
-// signatures (resend the links, or sign on this device), what the agreements still print blank (fill it here; check-out
+// signatures (resend the links, or sign on this device), what the agreements still print blank (fill it here; check-in
 // stops on what a claim needs unless an Admin overrides with a reason), and the dispute evidence pack.
 interface Version {
   id: string; version_no: number; kind: string; material: boolean; status: string; created_at: string; signed_at: string | null; note: string | null;

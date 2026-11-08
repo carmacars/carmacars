@@ -113,6 +113,23 @@ export async function setSignInMethod(method: 'phone' | 'email'): Promise<R<{ pr
   return { ok: true, data: { preferred: method } };
 }
 
+/** Change the sign-in email (r33; migration 0742): the sign-in service emails a link to the new address and tells the old one; nothing changes on the
+ *  account until the link is opened (the callback then updates the contact records, app.account_email_changed). Everyone signed in: renter, owner,
+ *  investor, staff and field staff. */
+export async function changeAccountEmail(email: string): Promise<R<{ email: string }>> {
+  const e = String(email ?? '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) || e.length > 200) return { ok: false, code: 'invalid', message: 'Enter an email address like name@example.com.', fieldErrors: { email: 'Enter an email address like name@example.com.' } };
+  const a = await auth();
+  const user = await a.currentUser();
+  if (!user) return { ok: false, code: 'auth', message: 'Sign in first.' };
+  let c: { ok: boolean; error?: string; message?: string };
+  try { c = (await rpc('server_account_email_change_check', { p_user: user.id, p_email: e }, SR)) as unknown as typeof c; } catch (x) { return { ok: false, code: 'refused', message: x instanceof DbError ? x.message : 'Try again.' }; }
+  if (!c.ok) return { ok: false, code: c.error ?? 'refused', message: c.message ?? 'We could not change the email.', fieldErrors: { email: c.message ?? 'Use another email.' } };
+  const s = await a.changeEmail(e);
+  if (!s.ok) return { ok: false, code: s.code ?? 'refused', message: s.message, fieldErrors: { email: s.message } };
+  return { ok: true, data: { email: e } };
+}
+
 /** An account made by phone gives its email (the pay page asks before the first payment: receipts go there). */
 export async function saveAccountEmail(email: string, path?: string | null): Promise<R<{ email: string }>> {
   const e = String(email ?? '').trim().toLowerCase();

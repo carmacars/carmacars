@@ -12,7 +12,7 @@ export default digest({
   sections: [
     { title: 'Approvals waiting', items: [
       { line: 'Refund outside the table: booking CC-10482, $468.95', meta: 'Asked by Grace, Mon 11:40 am Decide by Thu.', url: 'https://carmacars.ca/admin/approvals' },
-      { line: 'Deposit hold-back: booking CC-10431, $150.00', meta: 'Toll expected. 8 business days since check-in.', url: 'https://carmacars.ca/admin/approvals' },
+      { line: 'Deposit hold-back: booking CC-10431, $150.00', meta: 'Toll expected. 8 business days since check-out.', url: 'https://carmacars.ca/admin/approvals' },
     ] },
     { title: 'Incidents and disputes', items: [
       { line: 'INC-2041: accident, 2023 Toyota RAV4 XLE', meta: 'Estimate due today from the shop.', url: 'https://carmacars.ca/admin/incidents/INC-2041' },

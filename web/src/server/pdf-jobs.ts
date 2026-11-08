@@ -76,8 +76,8 @@ export async function runPdfJobs(o: { maxJobs?: number; deadlineMs?: number } = 
     const jobs = (await rpc('server_pdf_jobs_claim', { p_worker: worker, p_limit: 1 }, SR)) as unknown as PdfJob[];
     const job = jobs[0];
     if (!job) {
-      // 0154: then the agreements' work (runAgreementJobs, the one path: missing agreements, new versions, check-out and
-      // check-in copies, signed copies, dispute packs); a job due in the next seconds (a change waits ten seconds) is waited for
+      // 0154: then the agreements' work (runAgreementJobs, the one path: missing agreements, new versions, check-in and
+      // check-out copies, signed copies, dispute packs); a job due in the next seconds (a change waits ten seconds) is waited for
       const { runAgreementJobs } = await import('@/server/agreement-auto');
       const a = await runAgreementJobs({ max: (o.maxJobs ?? 2) - n, deadlineMs: Math.max(1000, (o.deadlineMs ?? 20_000) - (Date.now() - start)), aheadSeconds: 12 });
       done += a.done; failed += a.failed; more = more || a.more;

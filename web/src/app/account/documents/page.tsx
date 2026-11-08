@@ -13,7 +13,7 @@ const ID = ['id_front', 'id_back', 'face'];
 export default async function Documents() {
   const user = await requireUser('/account/documents');
   const [docs, trips] = await Promise.all([myDocuments(user), myBookings(user).catch(() => [])]);
-  // the photo report of each rental checked out (0130): the check-out and check-in photos, times, kilometres and fuel
+  // the photo report of each rental checked in (0130): the check-in and check-out photos, times, kilometres and fuel
   const reports = trips.filter((b) => ['on_rent', 'returned', 'closed'].includes(b.status));
   return (
     <>
@@ -21,7 +21,7 @@ export default async function Documents() {
       {reports.length > 0 && (
         <section className="pt-card" aria-labelledby="pt-reports" data-testid="photo-reports">
           <h2 className="d4" id="pt-reports">Photo reports</h2>
-          <ul className="pt-list">{reports.map((b) => <li key={b.booking_number} className="pt-card__head"><span>Check-out and check-in, booking {b.booking_number}</span><Link prefetch={false} className="link" href={`/account/bookings/${encodeURIComponent(b.booking_number)}/condition-report`}>View</Link></li>)}</ul>
+          <ul className="pt-list">{reports.map((b) => <li key={b.booking_number} className="pt-card__head"><span>Check-in and check-out, booking {b.booking_number}</span><Link prefetch={false} className="link" href={`/account/bookings/${encodeURIComponent(b.booking_number)}/condition-report`}>View</Link></li>)}</ul>
         </section>
       )}
       {!docs.length ? <div className="pt-empty"><p className="d4">No documents yet.</p><p className="muted">Agreements, receipts and statements appear here once you book.</p></div> : (

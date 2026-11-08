@@ -19,7 +19,7 @@ Deposit: {{deposit_amount}} {{deposit_method}}, release due {{deposit_release_du
 Bill this booking:
 https://carmacars.ca/staff/bookings/{{booking_number}}
 
-Price each finding from the charge table, before HST. Email the itemized statement with the record for each line. Release the deposit balance within 7 business days of check-in, target 2. Any damage line goes to an admin.
+Price each finding from the charge table, before HST. Email the itemized statement with the record for each line. Release the deposit balance within 7 business days of check-out, target 2. Any damage line goes to an admin.
 
 ----------------------------------------
 

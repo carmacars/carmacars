@@ -33,6 +33,7 @@ create table if not exists local_auth.mailbox (
 -- emailed to it (local_auth.mailbox) before it can sign in. Rows inserted directly (tests, seeds) are confirmed.
 alter table local_auth.users add column if not exists email_confirmed_at timestamptz default now();
 alter table local_auth.reset_tokens add column if not exists kind text not null default 'recovery';
+alter table local_auth.users add column if not exists pending_email text;  -- r33: a change of sign-in email waiting for its link
 
 -- Two-step sign-in: TOTP factors (Supabase Auth keeps these in auth.mfa_factors).
 create table if not exists local_auth.factors (

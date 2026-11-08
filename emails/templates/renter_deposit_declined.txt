@@ -19,7 +19,7 @@ What you can do now
 Use another card:
 https://carmacars.ca/account/bookings/{{booking_number}}/pay
 
-The deposit is separate from what you paid at booking. It comes back within 7 business days of check-in, less any charges. If you cannot arrange it today, call {{support_phone}} before you leave so we can talk through your options.
+The deposit is separate from what you paid at booking. It comes back within 7 business days of check-out, less any charges. If you cannot arrange it today, call {{support_phone}} before you leave so we can talk through your options.
 
 ----------------------------------------
 

@@ -34,7 +34,7 @@ export function ReviewsDashboard({ o, base, bookingBase, admin, canMatch }: { o:
     <div className="stack" data-testid="reviews-dashboard">
       {!o.enabled && <p className="alert alert--warn" role="note"><span>Review requests are off.{admin ? <> Turn them on in <Link prefetch={false} className="link" href="/admin/settings/reviews">Settings, Reviews</Link>.</> : null}</span></p>}
       <Tiles items={[
-        { k: `Requests sent, ${o.days} days`, v: String(sent), sub: `${o.sent.ask} requests, ${o.sent.reminder} reminders, ${o.sent.final} final; ${o.sent.checkin} check-ins` },
+        { k: `Requests sent, ${o.days} days`, v: String(sent), sub: `${o.sent.ask} requests, ${o.sent.reminder} reminders, ${o.sent.final} final; ${o.sent.checkin} mid-trip checks` },
         { k: 'On hold', v: String(o.on_hold), sub: 'charges still open', warn: o.on_hold > 0 },
         { k: `Reviews detected, ${o.days} days`, v: String(detected), sub: `${o.detected.onsite} on the site, ${o.detected.google_matched} Google matched, ${o.detected.renter_said} said so, ${o.detected.staff_marked} marked` },
         { k: 'Average rating', v: avg(o.rating.all_avg), sub: `Google ${avg(o.rating.google_avg)} (${o.rating.google_n}), site ${avg(o.rating.onsite_avg)} (${o.rating.onsite_n})` }

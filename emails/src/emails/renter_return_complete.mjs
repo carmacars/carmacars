@@ -11,10 +11,10 @@ export default {
   trigger: 'Booking status changes to returned (keys taken, return condition report signed).',
   timing: 'Immediate',
   subject: 'Returned. Thanks for renting the {{vehicle_name}}',
-  preheader: 'Checked in at {{checkin_time}}. Your statement follows within 7 business days.',
+  preheader: 'Checked out at {{checkin_time}}. Your statement follows within 7 business days.',
   ref: 'Booking {{booking_number}}',
   body: [
-    hero('Check-in complete', 'The car is back. Thank you, {{first_name}}.', 'We checked in the {{vehicle_name}} on {{checkin_date}} at {{checkin_time}}. Your signed return report is saved to your booking.'),
+    hero('Check-out complete', 'The car is back. Thank you, {{first_name}}.', 'We checked out the {{vehicle_name}} on {{checkin_date}} at {{checkin_time}}. Your signed return report is saved to your booking.'),
     facts(
       ['Odometer, out and in', '{{odometer_out}} to {{odometer_in}}'],
       ['Distance driven', '{{km_driven}} of {{km_allowance}} included'],
@@ -25,7 +25,7 @@ export default {
     steps(
       ['We review the photos', 'If we find damage that was not visible at hand-back, we tell you within 48 hours, with photos.'],
       ['You get an itemized statement', 'Within 7 business days, with the record for every line.'],
-      ['Your deposit is released', 'The {{deposit_amount}} deposit comes back within {{deposit_release_days}} business days of check-in, less any charges. Tolls and tickets can arrive later and are billed with a copy of the notice.'],
+      ['Your deposit is released', 'The {{deposit_amount}} deposit comes back within {{deposit_release_days}} business days of check-out, less any charges. Tolls and tickets can arrive later and are billed with a copy of the notice.'],
     ),
     button('View the return report', '@booking_condition_report'),
   ],

@@ -25,7 +25,7 @@ export interface NextStepInput {
   insurerBilled?: boolean;
   /** Release 24b: every driver's licence approved (readiness.all_drivers_verified); false puts the licence first */
   licenceOk?: boolean | null;
-  /** Release 24b: the pickup Condition Report's photos are complete (after the check-out) */
+  /** Release 24b: the pickup Condition Report's photos are complete (after the check-in) */
   checkoutPhotosOk?: boolean | null;
   /** Release 24b: the return Condition Report has its photos, km and fuel */
   checkinOk?: boolean | null;
@@ -54,9 +54,9 @@ export function essentials(x: NextStepInput): Essential[] | undefined {
     { key: 'licence', label: 'Driver\'s licence approved', done: x.licenceOk !== false },
     { key: 'agreement', label: 'Rental agreement signed', done: x.status !== 'pending_payment' && !x.awaitingSignature },
     { key: 'deposit', label: 'Deposit taken (or waived by an Admin)', done: depositDone },
-    { key: 'checkout_photos', label: 'Check-out photos', done: x.status === 'on_rent' || x.checkoutPhotosOk === true }
+    { key: 'checkout_photos', label: 'Check-in photos', done: x.status === 'on_rent' || x.checkoutPhotosOk === true }
   ];
-  if (x.status === 'on_rent') out.push({ key: 'checkin', label: 'Check-in photos, km and fuel', done: x.checkinOk === true });
+  if (x.status === 'on_rent') out.push({ key: 'checkin', label: 'Check-out photos, km and fuel', done: x.checkinOk === true });
   return out;
 }
 
@@ -104,17 +104,17 @@ function nextStepOnly(x: NextStepInput): NextStep {
       if (x.awaitingSignature) return { step: 'sign', who: 'The renter', text: 'Booked and paid. The renter signs the rental agreement: on this device, or from the link in their email.',
         ...btn('sign', 'Sign on this device', `${x.base}/sign-now`, 'next-step-sign') };
       if (pickupDay <= today) return { step: 'checkout', who: 'The person at the pickup',
-        text: `Pickup ${pickupDay < today ? 'was' : 'is'} ${when(x.pickupAt)}. ${depositNeeded && !x.insurerBilled ? `No deposit yet: take the ${money(Number(x.depositCents))} deposit hold now, then check out the car` : 'Check out the car'}.`,
-        ...btn('handover', 'Check out the car', '#c-check-out-check-in-and-signing', 'next-step-checkout') };
+        text: `Pickup ${pickupDay < today ? 'was' : 'is'} ${when(x.pickupAt)}. ${depositNeeded && !x.insurerBilled ? `No deposit yet: take the ${money(Number(x.depositCents))} deposit hold now, then check in the car` : 'Check in the car'}.`,
+        ...btn('handover', 'Check in the car', '#c-check-in-check-out-and-signing', 'next-step-checkout') };
       if (depositNeeded && !x.insurerBilled) return { step: 'deposit', who: 'The person at the pickup',
-        text: `Booked, paid and signed. At the pickup (${when(x.pickupAt)}), take the ${money(Number(x.depositCents))} deposit hold, then check out the car.` };
-      return { step: 'checkout', who: 'The person at the pickup', text: `Booked, paid and signed. Check out the car at the pickup: ${when(x.pickupAt)}.` };
+        text: `Booked, paid and signed. At the pickup (${when(x.pickupAt)}), take the ${money(Number(x.depositCents))} deposit hold, then check in the car.` };
+      return { step: 'checkout', who: 'The person at the pickup', text: `Booked, paid and signed. Check in the car at the pickup: ${when(x.pickupAt)}.` };
     }
     case 'on_rent': {
       const late = new Date(x.returnAt).getTime() < x.now.getTime();
       return { step: 'checkin', who: 'The person at the return',
         text: late ? `The return was due ${when(x.returnAt)}. Check the car in as soon as it is back.` : `The renter has the car. Return due ${when(x.returnAt)}: check the car in when it is back.`,
-        ...btn('handover', 'Check in the car', '#c-check-out-check-in-and-signing', 'next-step-checkin') };
+        ...btn('handover', 'Check out the car', '#c-check-in-check-out-and-signing', 'next-step-checkin') };
     }
     case 'returned':
       return { step: 'settle', who: 'Finance', text: Number(x.depositCents ?? 0) > 0 || x.depositStatus

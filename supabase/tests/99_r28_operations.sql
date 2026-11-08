@@ -156,7 +156,7 @@ select test.eq('A2: the renter''s own checkout with km, fuel and photos complete
 select test.mk_booking('R8-R2', 'R8V', 'r8_ret', to_char((now() - interval '30 days') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'),
                        to_char((now() - interval '28 days') at time zone 'America/Toronto', 'YYYY-MM-DD HH24:MI'), 'on_rent');
 select test.throws('A2: one screen: Finance does not hand cars over', format($$select app.door(%L, 'aal2', 'ops_do', 'handover_one_screen', %L)$$, test.id('r8_fin'),
-  jsonb_build_object('booking', 'R8-R2', 'kind', 'return')), 'record a check-out or check-in');
+  jsonb_build_object('booking', 'R8-R2', 'kind', 'return')), 'record a check-in or check-out');
 select app.door(test.id('r8_fleet'), 'aal2', 'ops_do', 'handover_one_screen', jsonb_build_object('booking', 'R8-R2', 'kind', 'return', 'odometer_km', 12000, 'fuel_pct', 100,
   'photos', jsonb_build_array(test.r8_photo('R8-R2', 'one-screen', 'rear'), test.r8_photo('R8-R2', 'one-screen', null))));
 select test.eq('A2: one screen: returned, the report complete with its photos and who took them, no "add the details" To do',

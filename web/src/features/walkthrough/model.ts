@@ -58,7 +58,7 @@ function copy(k: StepKey, f: Facts, s: DbStep): Omit<View, 'key' | 'stage' | 'st
     case 'return_prep': return { icon: 'clock', title: 'Before you bring it back', body: `Return by ${f.returnWhen}${f.returnPlace ? `, ${f.returnPlace}` : ''}. Need more time? Ask to extend before then.`,
       points: [f.prepaidFuel ? 'Fuel is prepaid: no need to fill up' : 'Fill the tank to the level it had at pickup', 'Take your things out: check the glovebox, the trunk and under the seats', 'Remove any garbage, so no cleaning is charged'],
       cta: f.status === 'on_rent' ? { href: path(f.number, 'extend'), label: 'Ask for more time' } : undefined };
-    case 'checkin': return { icon: 'camera', title: 'The check-in', body: 'We go around the car with you again: the same photos, the kilometres and the fuel. You see the difference from the pickup on your phone.',
+    case 'checkin': return { icon: 'camera', title: 'The check-out', body: 'We go around the car with you again: the same photos, the kilometres and the fuel. You see the difference from the pickup on your phone.',
       points: [], cta: s.done ? { href: path(f.number, 'condition-report'), label: 'See the photo report' } : undefined };
     case 'deposit_back': return { icon: 'shield', title: 'Your deposit back', body: 'Once the car is back and checked, the hold is released. Your bank shows it again within a few business days. Any toll or ticket that arrives later is charged with a receipt.',
       points: [] };

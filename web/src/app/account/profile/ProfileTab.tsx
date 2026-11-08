@@ -19,7 +19,7 @@ export async function ProfileTab({ user }: { user: SessionUser }) {
       <div className="stack-lg">
         <section className="pt-card" aria-labelledby="pt-me"><h2 className="d4" id="pt-me">You</h2>
           <Dl rows={[['Legal name', r?.legal_name ?? p.user?.full_name ?? ''], ['Email', p.user?.email ?? user.email ?? ''], ['Identity', r ? STATUS[r.identity_status] ?? r.identity_status : 'Checked with your first booking']]} />
-          <p className="small muted">Your legal name is locked once you are verified. To change it or your email, call or message us.</p>
+          <p className="small muted">Your legal name is locked once you are verified. To change it, call or message us. You change your email under Sign-in below.</p>
         </section>
         <section className="pt-card" aria-labelledby="pt-contact"><h2 className="d4" id="pt-contact">Contact details</h2>
           {r ? <ProfileForm initial={{ mobile: r.mobile ?? p.user?.phone ?? '', address_line1: r.address_line1 ?? '', address_line2: r.address_line2 ?? '', city: r.city ?? '', province: r.province ?? '', postal_code: r.postal_code ?? '', country: r.country ?? 'Canada' }} />

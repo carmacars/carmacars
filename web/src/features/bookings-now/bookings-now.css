@@ -348,3 +348,4 @@
 .mcal.mcal .mcal__item.is-turo, .mcal.mcal .mcal__item.is-move, .mcal.mcal .mcal__item.is-job { font-size: 0; padding: 0; }
 .mcal.mcal .mcal__akind.is-turo, .mcal.mcal .mcal__akind.is-move, .mcal.mcal .mcal__akind.is-job { font-size: 0.6875rem; padding: 2px 8px; height: auto; width: auto !important; bottom: auto;
   background: var(--grey-100); border: 1px solid var(--grey-300); border-radius: 999px; color: var(--text); }
+.bn-tile.is-current { background: var(--grey-900); box-shadow: inset 0 -4px 0 var(--red-600); }

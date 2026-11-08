@@ -56,7 +56,7 @@ export default {
       { label: 'Vehicles on the fleet policy', value: '13', previous: '13' },
     ],
     overdue_items: [
-      { line: 'Deposit not released: booking CC-10431', meta: '8 business days since check-in. Limit is 7.', url: 'https://carmacars.ca/admin/bookings/CC-10431' },
+      { line: 'Deposit not released: booking CC-10431', meta: '8 business days since check-out. Limit is 7.', url: 'https://carmacars.ca/admin/bookings/CC-10431' },
       { line: 'Charge unpaid: booking CC-10418, $80.57', meta: 'Declined twice. Next retry Thu.', url: 'https://carmacars.ca/admin/bookings/CC-10418' },
       { line: 'Owner in arrears: 2022 Hyundai Elantra Preferred', meta: '$586.75 since Nov 18. Deduct at the Dec 10 payout.', url: 'https://carmacars.ca/admin/approvals' },
     ],

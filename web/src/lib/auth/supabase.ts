@@ -228,6 +228,15 @@ export function supabaseAuth(): AuthAdapter {
       const f = failure(error, 'We could not save this email.');
       return f.code === 'exists' ? { ok: false, code: 'exists', message: 'This email is already used by another account. Sign in with it instead, or use another email.' } : { ok: false, code: f.code, message: f.message };
     },
+    async changeEmail(email) {
+      const s = await supabaseServer();
+      const { env } = await import('@/lib/env');
+      const base = env().NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+      const { error } = await s.auth.updateUser({ email: email.trim().toLowerCase() }, { emailRedirectTo: `${base}/auth/callback?next=/account` });
+      if (!error) return { ok: true };
+      const f = failure(error, 'We could not start the change of email.');
+      return f.code === 'exists' ? { ok: false, code: 'exists', message: 'This email is already used by another account. Sign in with it instead, or use another email.' } : { ok: false, code: f.code, message: f.message };
+    },
     async oauthStart(provider, redirectTo) {
       const s = await supabaseServer();
       // PKCE: supabase-js writes the code verifier to its cookie on this browser; the code comes back to redirectTo

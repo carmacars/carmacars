@@ -4,7 +4,7 @@
 // measured on the form (A4, 595.28 x 841.89 points). Coordinates here are from the top of the page, in points.
 // This file maps a booking to what goes in each box; fill.ts draws it. Never invents: a box with no value stays blank.
 // Relative imports with their extension: the unit tests run this file in Node directly.
-// 0154: the pickup copy fills the time out, K/M out and fuel out from the check-out; the closing copy fills boxes 25 to
+// 0154: the pickup copy fills the time out, K/M out and fuel out from the check-in; the closing copy fills boxes 25 to
 // 31 (time and date in, K/M in, driven, allowed, charged), the hours late, the extra days, damages, fuel, the other
 // return charges, the deposit received, the balance and what was paid; a car swapped during the rental fills the
 // replacement vehicle column; the insurance replacement fills the insured vehicle and box 13 (OPCF 27: the renter's own
@@ -51,7 +51,7 @@ export interface BlindSpotFacts {
       coverage_provider?: string | null; activation_ref?: string | null } | null;
     /** 0154: the card on file's expiry */
     card_expiry?: string | null;
-    /** 0544: the booking's own readings (the check-out and check-in, however they were recorded): the fallback of the
+    /** 0544: the booking's own readings (the check-in and check-out, however they were recorded): the fallback of the
      *  pickup and return records, so km out and in and fuel out and in are always filled once known */
     readings?: { odometer_out_km: number | null; fuel_out_pct: number | null; odometer_in_km: number | null; fuel_in_pct: number | null } | null;
     /** 0544: the booking's late fee per started hour (the per-hour late charge, box 34) */
@@ -81,7 +81,7 @@ export const COVERS: Cover[] = [
   // 40: the printed "T B D" under M, DD and YYYY, where the due-back date goes
   { box: '40', x: 291, y: 440.8, w: 87.5, h: 8.8, color: 'pink' },
   // the fuel gauges: the printed circles of FUEL OUT (pink row) and FUEL IN (white row) touch and read as "8 8 8 8 8";
-  // covered, and the level of the check-out (and check-in) report written in words instead (blank with no reading)
+  // covered, and the level of the check-in (and check-out) report written in words instead (blank with no reading)
   // (the FUEL IN circles run over the rule under their row: covered too, the rule drawn again)
   { box: 'fuel-out', x: 320.5, y: 674.5, w: 135.8, h: 8.6, color: 'pink' },
   { box: 'fuel-in', x: 320.5, y: 683.0, w: 135.8, h: 12.0, color: 'white' },
@@ -538,7 +538,7 @@ export function layout(f0: BlindSpotFacts): Layout {
     }
     if (more.deposit.released_cents) t.push(T('refund', dollars(more.deposit.released_cents).replace('$', ''), 446, 797, 55, { size: 7.5 }));
   }
-  // the fuel: out (the check-out report), in (the check-in report), in words over the covered gauges; blank with no reading
+  // the fuel: out (the check-in report), in (the check-out report), in words over the covered gauges; blank with no reading
   t.push(T('fuel-out', fuelText(more?.pickup?.fuel_pct ?? rd?.fuel_out_pct), FUEL_TEXT.x, FUEL_TEXT.out, FUEL_TEXT.w, { size: 7 }));
   t.push(T('fuel-in', fuelText(ret?.fuel_pct ?? rd?.fuel_in_pct), FUEL_TEXT.x, FUEL_TEXT.in, FUEL_TEXT.w, { size: 7 }));
 

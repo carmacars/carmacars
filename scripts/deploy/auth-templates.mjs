@@ -36,10 +36,13 @@ const patch = {
   mailer_templates_recovery_content: wrap('Choose a new password', 'We received a request to reset the password on your CarmaCars account.', 'Choose a new password', cb('recovery', '/update-password'), 'The link works once and expires in 24 hours. If you did not ask for this, ignore this email; your password stays the same.'),
   mailer_subjects_magic_link: 'Your CarmaCars sign-in link',
   mailer_templates_magic_link_content: wrap('Sign in to CarmaCars', 'Tap the button to sign in. No password needed.', 'Sign in', cb('magiclink', ''), 'The link works once and expires in 24 hours.'),
-  mailer_subjects_email_change: 'Confirm your new CarmaCars email',
+  // r33: everyone changes their own sign-in email from their profile. Secure email change on: the new address gets a link and the old address one too
+  // (it is told, and the change is made only when both are opened). The same message goes to both, so it names both addresses.
+  mailer_secure_email_change_enabled: true,
+  mailer_subjects_email_change: 'Confirm the change of your CarmaCars email',
   // not sent while reauthentication is off (security_update_password_require_reauthentication), branded all the same
   mailer_subjects_reauthentication: 'Your CarmaCars verification code',
   mailer_templates_reauthentication_content: wrap('Your verification code', 'Enter this code on CarmaCars to confirm it is you:', '{{ .Token }}', null, 'The code expires shortly. If you did not ask for it, change your password.'),
-  mailer_templates_email_change_content: wrap('Confirm your new email address', 'Confirm this address to use it for your CarmaCars account.', 'Confirm new email', cb('email_change', '/account'), 'If you did not ask for this change, contact us at privacy@carmacars.ca.')
+  mailer_templates_email_change_content: wrap('Confirm the change of your email', 'The sign-in email of this CarmaCars account is being changed from {{ .Email }} to {{ .NewEmail }}. It changes once the link sent to each address is opened.', 'Confirm the change', cb('email_change', '/account'), 'If you did not ask for this change, contact us at privacy@carmacars.ca.')
 };
 process.stdout.write(JSON.stringify(patch));

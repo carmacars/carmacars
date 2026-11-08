@@ -25,7 +25,7 @@ export function ReturnedForm({ token }: { token: string }) {
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  // the same picker as a check-out (0545): many at once, the suggested angles, smaller JPEGs made on the phone
+  // the same picker as a check-in (0545): many at once, the suggested angles, smaller JPEGs made on the phone
   const upload = async (blob: Blob) => {
     const fd = new FormData();
     fd.append('file', blob, 'photo.jpg');

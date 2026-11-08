@@ -10,7 +10,7 @@ import { kickPdfJobs } from '@/server/pdf-jobs';
 import { SIGN_STATEMENT } from '@/features/agreement/model';
 
 // The Agreement card of a booking (migration 0154): fill what the agreements are missing, an Admin's override of the
-// check-out check, resend the links of a version waiting, make the agreements again, the dispute evidence pack; and the
+// check-in check, resend the links of a version waiting, make the agreements again, the dispute evidence pack; and the
 // signer's signature on a new version (their link). The database checks who may do each.
 type R<T = null> = ActionResult<T>;
 const SR = { role: 'service_role' as const };

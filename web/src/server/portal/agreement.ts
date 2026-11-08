@@ -12,7 +12,7 @@ import type { Certificate, CertSigner } from '@/features/signing/certificate';
 // the PDF in the private agreements bucket and opens it with its SHA-256; after confirmation it renders
 // the signed copy (signature images, the initials, the signature record and the certificate of completion, 0154).
 // 0154: both documents print everything the booking holds (server/agreements/bundle.ts); an agreement opened while
-// the check-out readings are in (signed at pickup) prints them, and the database keeps what it printed.
+// the check-in readings are in (signed at pickup) prints them, and the database keeps what it printed.
 const SR = { role: 'service_role' as const };
 
 export { privacyUrl };
@@ -53,8 +53,8 @@ export async function openAgreement(bookingId: string, by: string): Promise<stri
   const key = `bookings/${bookingId}/agreement-v${b.f.booking.offer_approved_version ?? 'owner'}-${sha.slice(0, 16)}.pdf`;
   await (await storage()).put('agreements', key, pdf, 'application/pdf');
   const id = (await rpc('renter_open_agreement', { p_booking: bookingId, p_by: by, p_template_version: AGREEMENT_TEMPLATE_VERSION, p_document_sha256: sha, p_storage_path: key }, SR)) as unknown as string;
-  // what the document printed of the check-out (an agreement signed at pickup after the readings): the database
-  // compares it with the completed check-out, so no separate pickup copy is made when they match
+  // what the document printed of the check-in (an agreement signed at pickup after the readings): the database
+  // compares it with the completed check-in, so no separate pickup copy is made when they match
   const p = b.x.pickup;
   await rpc('server_agreement_rendered', { p_booking: bookingId, p_pickup: (p ? { report_id: p.report_id, odometer_km: p.odometer_km, fuel_pct: p.fuel_pct, completed: p.completed } : null) as unknown as Json }, SR).catch(() => undefined);
   // the second agreement (Blind Spot's, 0127) beside it, when its template is in use; never in the way of this one

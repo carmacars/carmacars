@@ -134,7 +134,7 @@ select test.eq('identity: the driver is verified, the uploads approved by the fi
   'true/F1234-56789-01234/2031-06-30/3:true');
 select test.eq('identity: recorded as an in-person check, in the history and the resolutions',
   (select (iv.checks ->> 'in_person') from identity_verifications iv join booking_drivers bd on bd.identity_verification_id = iv.id where bd.booking_id = test.ffb('FF-1')) || '/' ||
-  (select count(*) from booking_events where booking_id = test.ffb('FF-1') and note like '%checked in person at the check-out%') || '/' ||
+  (select count(*) from booking_events where booking_id = test.ffb('FF-1') and note like '%checked in person at the check-in%') || '/' ||
   (select count(*) from handover_resolutions where booking_id = test.ffb('FF-1') and kind = 'identity_in_person' and created_by = test.id('fq_field_a')), 'true/1/1');
 select test.eq('identity: the acting-as setting does not outlive the step', coalesce(current_setting('app.field_as_cs', true), ''), '');
 select test.eq('identity: the ready check says so', (select x #>> '{ready,identity}' from app.door(test.id('fq_field_a'), 'aal2', 'field_read', 'job', jsonb_build_object('id', test.ffjid())) x), 'true');

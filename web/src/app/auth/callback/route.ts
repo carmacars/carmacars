@@ -27,6 +27,26 @@ async function verified(id: string | undefined, email: string | undefined) {
 const TYPES = new Set(['invite', 'recovery', 'email', 'signup', 'magiclink', 'email_change']);
 const CONFIRM = new Set(['signup', 'email', 'magiclink']);
 
+/** r33: a link of a change of sign-in email was opened. With both links needed (the old address is told with a link of its own) the first one
+ *  leaves the change waiting for the other; once the sign-in holds the new address the contact records follow it (migration 0742) and the
+ *  person lands in their own portal with a note. */
+async function emailChanged(user: { id?: string; email?: string; new_email?: string | null } | null | undefined, asked: string | null): Promise<string> {
+  const id = user?.id;
+  if (!id) return '/account';
+  const landing = landingFor(await rolesOf(id).catch(() => ({}) as never));
+  // the person's profile, where the form that started the change says what happened (?email=changed or waiting)
+  const where = asked && asked !== '/account' ? asked
+    : landing.startsWith('/staff/field') ? '/staff/field/profile' : landing.startsWith('/staff') ? '/staff/profile' : landing.startsWith('/owner') ? '/owner/account'
+    : landing.startsWith('/investor') ? '/investor/profile' : landing.startsWith('/account') ? '/account/profile' : landing;
+  const note = (v: string) => `${where}${where.includes('?') ? '&' : '?'}email=${v}`;
+  if (user?.new_email) return note('waiting');
+  if (user?.email) {
+    const r = (await rpc('server_account_email_changed', { p_user: id, p_email: user.email }, { role: 'service_role' }).catch(() => null)) as unknown as { ok?: boolean } | null;
+    if (r?.ok) { await verified(id, user.email); return note('changed'); }
+  }
+  return note('waiting');
+}
+
 /** Where the link goes once it has signed the person in. */
 async function target(type: string, asked: string | null, userId: string | undefined): Promise<string> {
   if (asked && !(CONFIRM.has(type) && asked === '/account')) return asked;
@@ -60,6 +80,7 @@ export async function GET(req: Request) {
     const s = await supabaseServer();
     const { data, error } = await s.auth.verifyOtp({ token_hash: tokenHash, type: type as 'invite' });
     if (!error) {
+      if (type === 'email_change') return NextResponse.redirect(new URL(await emailChanged(data.user, asked), u.origin));
       await verified(data.user?.id, data.user?.email);
       return NextResponse.redirect(new URL(await target(type, asked, data.user?.id), u.origin));
     }
@@ -71,6 +92,9 @@ export async function GET(req: Request) {
       await verified(data.user?.id, data.user?.email);
       return NextResponse.redirect(new URL(await target(type || 'signup', asked, data.user?.id), u.origin));
     }
+  } else if (backend !== 'supabase' && tokenHash && type === 'email_change') {
+    const r = await (await auth()).confirmEmailChange?.(tokenHash);
+    if (r?.ok) return NextResponse.redirect(new URL(await emailChanged({ id: r.user.id, email: r.user.email }, asked), u.origin));
   } else if (backend !== 'supabase' && tokenHash && CONFIRM.has(type)) {
     // the local stand-in for Supabase Auth (src/lib/auth/local.ts): the same confirmation link, checked locally
     const r = await (await auth()).confirmEmail?.(tokenHash);

@@ -23,14 +23,14 @@ create function test.rn_do(p_user text, p_name text, p jsonb) returns jsonb lang
 select test.rq_new('rnA', 'rn_r', 'RNV', test.ho_local(interval '3 hours'), test.ho_local(interval '2 days 3 hours'));
 select test.op_confirm('rnA', 'rn_r');
 select test.throws('pickup now: Finance does not record a pickup',
-  format($$select test.rn_do('rn_fin', 'handover_record_now', jsonb_build_object('booking', %L, 'kind', 'pickup', 'reason', 'Phone died'))$$, test.b('rnA')), 'check-out or check-in');
+  format($$select test.rn_do('rn_fin', 'handover_record_now', jsonb_build_object('booking', %L, 'kind', 'pickup', 'reason', 'Phone died'))$$, test.b('rnA')), 'check-in or check-out');
 select test.throws('pickup now: the reason is asked',
   format($$select test.rn_do('rn_admin', 'handover_record_now', jsonb_build_object('booking', %L, 'kind', 'pickup', 'reason', ''))$$, test.b('rnA')), 'Say why');
 select test.throws('pickup now: the deposit not taken stops Fleet',
   format($$select test.rn_do('rn_fleet', 'handover_record_now', jsonb_build_object('booking', %L, 'kind', 'pickup', 'reason', 'Phone died at the lot'))$$, test.b('rnA')), 'deposit is not taken');
 select app.record_deposit_taken(test.b('rnA'), test.op_deposit_payment('rnA'), test.id('rn_fin'));
 select test.throws('pickup now: without the renter''s signature only an Admin, with a reason',
-  format($$select test.rn_do('rn_fleet', 'handover_record_now', jsonb_build_object('booking', %L, 'kind', 'pickup', 'reason', 'Phone died at the lot'))$$, test.b('rnA')), 'has not signed the check-out report');
+  format($$select test.rn_do('rn_fleet', 'handover_record_now', jsonb_build_object('booking', %L, 'kind', 'pickup', 'reason', 'Phone died at the lot'))$$, test.b('rnA')), 'has not signed the check-in report');
 create temp table rn_p as select test.rn_do('rn_admin', 'handover_record_now', jsonb_build_object('booking', test.b('rnA'), 'kind', 'pickup',
   'reason', 'Phone died at the lot', 'signature_override_reason', 'Renter signed on paper', 'odometer_km', 20000, 'at', now() - interval '10 minutes')) r;
 select test.eq('pickup now: on rent, the report waits for its details, one Fleet task, the history says why',
@@ -40,7 +40,7 @@ select test.eq('pickup now: on rent, the report waits for its details, one Fleet
   || '/' || (select count(*) from booking_events where booking_id = test.b('rnA') and kind = 'recorded_now' and note like '%Renter signed on paper%'),
   'on_rent:20000:true/true:true:Renter signed on paper/1:fleet:Add the photos and readings for ' || (select booking_number from bookings where id = test.b('rnA')) || '/1');
 select test.eq('pickup now: the task cannot be closed by hand while the details wait',
-  (select app.task_completion_problem(id) from tasks where booking_id = test.b('rnA') and task_type = 'handover_details'), 'Add the photos and readings first: open the check-out or check-in from the booking');
+  (select app.task_completion_problem(id) from tasks where booking_id = test.b('rnA') and task_type = 'handover_details'), 'Add the photos and readings first: open the check-in or check-out from the booking');
 
 -- the details later, through the usual checklist (handover_open gives the job; the completion does not move the booking)
 create temp table rn_pj as select (test.rn_do('rn_fleet', 'handover_open', jsonb_build_object('booking', test.b('rnA'), 'kind', 'pickup')) ->> 'job')::uuid as id;

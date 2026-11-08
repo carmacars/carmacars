@@ -27078,6 +27078,8 @@ export type Database = {
       seo_page: { Args: { p_slug: string }; Returns: Json };
       seo_pages_public: { Args: never; Returns: Json };
       server_account_deletion_state: { Args: { p_user: string }; Returns: Json };
+      server_account_email_change_check: { Args: { p_user: string; p_email: string }; Returns: Json };
+      server_account_email_changed: { Args: { p_user: string; p_email: string }; Returns: Json };
       server_account_email_verified: { Args: { p_user: string; p_email: string }; Returns: Json };
       server_account_gate: { Args: { p_user: string; p_step: string }; Returns: Json };
       server_account_set_email: { Args: { p_user: string; p_email: string }; Returns: Json };

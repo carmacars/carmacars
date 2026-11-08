@@ -106,8 +106,8 @@ function NextJob({ j, detail }: { j: FieldCard; detail: FieldJob | null }) {
       </div>}
       {j.status === 'scheduled' && <p className="fd-next__ack">Please acknowledge this job.</p>}
       <div className="fd-next__do">
-        {/* a check-out or a check-in: one tap starts the job and opens its photo checklist (0130) */}
-        {check && <StartChecklist job={j.field_job_id} status={j.status} label={check} testId={check === 'Check out (pickup)' ? 'field-checkout' : 'field-checkin'} />}
+        {/* a check-in or a check-out: one tap starts the job and opens its photo checklist (0130) */}
+        {check && <StartChecklist job={j.field_job_id} status={j.status} label={check} testId={check === 'Check in (pickup)' ? 'field-checkout' : 'field-checkin'} />}
         {j.status === 'scheduled' && <FieldButton action="acknowledge" payload={{ job: j.field_job_id }} label="Acknowledge" primary={!check} testId="acknowledge" />}
         <Link prefetch={false} className={`btn ${j.status === 'scheduled' || check ? 'btn--ghost' : 'btn--primary'} fd-wide`} href={`/staff/field/jobs/${j.field_job_id}`} data-testid="open-job">Open the job</Link>
       </div>
@@ -129,7 +129,7 @@ function TimelineJob({ j }: { j: FieldCard }) {
         <div className="fd-next__id">{j.plate && <Plate plate={j.plate} small />}<span className="small">{[j.renter_first_name, j.booking_number].filter(Boolean).join(', ')}</span></div>
         {j.place && <p className="fd-tl__place"><FdIcon name="pin" /><span>{j.place}</span> <a className="link" href={maps(j.place)} target="_blank" rel="noreferrer">Open in maps</a></p>}
         {!isDone && <div className="fd-tl__do">
-          {check && <StartChecklist job={j.field_job_id} status={j.status} label={check} testId={check === 'Check out (pickup)' ? 'field-checkout' : 'field-checkin'} />}
+          {check && <StartChecklist job={j.field_job_id} status={j.status} label={check} testId={check === 'Check in (pickup)' ? 'field-checkout' : 'field-checkin'} />}
           {j.status === 'scheduled' && <><p className="small"><b>Please acknowledge this job.</b></p><FieldButton action="acknowledge" payload={{ job: j.field_job_id }} label="Acknowledge" primary={!check} testId="acknowledge" /></>}
           <Link prefetch={false} className="btn btn--ghost fd-wide" href={`/staff/field/jobs/${j.field_job_id}`} data-testid="open-job">Open the job</Link>
         </div>}

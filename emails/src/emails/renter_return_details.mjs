@@ -22,7 +22,7 @@ export default {
       { label: 'Meeting note', value: '{{meeting_note}}', when: 'meeting_note' },
     ),
     steps(
-      ['Hand over the car and all keys', 'That moment is your check-in time.'],
+      ['Hand over the car and all keys', 'That moment is your check-out time.'],
       ['Walk around the car together', 'We record odometer, fuel, cleanliness and any new marks, with photos.'],
       ['Sign the condition report', 'You get a copy by email right after.'],
     ),

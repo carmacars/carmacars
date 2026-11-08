@@ -3,7 +3,7 @@
 // what staff and the renter read: "Late by 2 h 10 min", "Overdue by 45 min".
 export interface LateFacts { status: string; return_at: string; checked_in_at?: string | null; minutes_late?: number | null }
 
-/** Minutes between the due-back time and the check-in (or now, while the car is still out); 0 when on time. */
+/** Minutes between the due-back time and the check-out (or now, while the car is still out); 0 when on time. */
 export function lateMinutes(b: LateFacts, now: Date = new Date()): number {
   if (b.checked_in_at) {
     if (typeof b.minutes_late === 'number') return Math.max(0, b.minutes_late);

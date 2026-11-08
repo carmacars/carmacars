@@ -141,3 +141,9 @@ export type BillFilter = 'all' | 'renter' | 'insurer';
 /** Bill to: the renter, or an insurer (billed in full or split with the renter). */
 export const billed = (r: Rental, f: BillFilter) => f === 'all' || (f === 'renter' ? (r.bill_to ?? 'renter') === 'renter' : (r.bill_to ?? 'renter') !== 'renter');
 export const BILL_WORDS: Record<string, string> = { renter: 'Renter', insurer: 'Insurer', split: 'Insurer and renter' };
+
+/** r33: an expired offer stays in Requests and offers (the Expired filter) for 7 days; after that it is a renter lead (migration 0741). */
+export const EXPIRED_KEEP_DAYS = 7;
+export function expiredForLong(status: string, expiredAt: string | null | undefined, now: number): boolean {
+  return status === 'expired' && !!expiredAt && now - new Date(expiredAt).getTime() >= EXPIRED_KEEP_DAYS * 86_400_000;
+}

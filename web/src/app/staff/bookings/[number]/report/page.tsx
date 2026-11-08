@@ -8,7 +8,7 @@ import { HandoverReport } from '@/features/handover/HandoverReport';
 import type { HandoverReportData } from '@/features/handover/types';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Photo report', path: '/staff', noindex: true, description: 'The check-out and check-in of a booking: times, readings, photos, damage and the return charges.' });
+export const metadata = pageMeta({ title: 'Photo report', path: '/staff', noindex: true, description: 'The check-in and check-out of a booking: times, readings, photos, damage and the return charges.' });
 
 export default async function VaReport({ params }: { params: Promise<{ number: string }> }) {
   const n = decodeURIComponent((await params).number);
@@ -17,7 +17,7 @@ export default async function VaReport({ params }: { params: Promise<{ number: s
   if (!r?.booking_id) notFound();
   const base = `/staff/bookings/${encodeURIComponent(n)}`;
   return (<>
-    <PageHead kicker={<><Link prefetch={false} className="link" href="/staff">Queue</Link> · <Link prefetch={false} className="link" href={base}>{n}</Link></>} title="Photo report" purpose="The check-out and the check-in: times, kilometres, fuel, photos, damage and the return charges." />
+    <PageHead kicker={<><Link prefetch={false} className="link" href="/staff">Queue</Link> · <Link prefetch={false} className="link" href={base}>{n}</Link></>} title="Photo report" purpose="The check-in and the check-out: times, kilometres, fuel, photos, damage and the return charges." />
     <HandoverReport r={r} staff canWaive={fn === 'finance' || fn === 'fleet'} refresh={[`${base}/report`, base]} />
   </>);
 }

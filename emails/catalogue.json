@@ -789,7 +789,7 @@
       "code": "renter_agreement_version",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "A new version of the booking's two rental agreements (CarmaCars' and Blind Spot's) is made after the agreement was signed (migration 0154): the car checked out (the \"as picked up\" copy), checked in (the closing copy), a correction, or a material change (dates, price, car, drivers, coverage option) that the renter and the affected drivers sign again with their own link. Also sent with the signed copies once every signature of a changed version is in. Both PDFs are attached.",
+      "trigger": "A new version of the booking's two rental agreements (CarmaCars' and Blind Spot's) is made after the agreement was signed (migration 0154): the car checked in (the \"as picked up\" copy), checked out (the closing copy), a correction, or a material change (dates, price, car, drivers, coverage option) that the renter and the affected drivers sign again with their own link. Also sent with the signed copies once every signature of a changed version is in. Both PDFs are attached.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <bookings@carmacars.ca>",
@@ -2841,7 +2841,7 @@
       "code": "renter_damage_found",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "An incident of type damage is recorded on a returned booking from the photo review after hand-back (damage not noted on the signed return report). Must be sent within 48 hours of check-in. (Message template T8.)",
+      "trigger": "An incident of type damage is recorded on a returned booking from the photo review after hand-back (damage not noted on the signed return report). Must be sent within 48 hours of check-out. (Message template T8.)",
       "timing": "Immediate, within 48 hours of return",
       "digest": false,
       "source": "T8",
@@ -3044,7 +3044,7 @@
       "code": "renter_deposit_released",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "A deposit amount that was held back after the final statement is released or applied (deposit released_at is set, or the hold-back is applied to a charge). Happens within 30 days of check-in.",
+      "trigger": "A deposit amount that was held back after the final statement is released or applied (deposit released_at is set, or the hold-back is applied to a charge). Happens within 30 days of check-out.",
       "timing": "Immediate",
       "digest": false,
       "from": "CarmaCars <billing@carmacars.ca>",
@@ -3830,8 +3830,8 @@
       "code": "renter_final_statement",
       "audience": "renter",
       "category": "transactional",
-      "trigger": "A renter statement for a returned booking is issued (statement sent_at is set by Finance), which captures charges from the deposit and releases the balance. Due within 7 business days of check-in. (Message template T9.)",
-      "timing": "When the statement is issued, within 7 business days of check-in",
+      "trigger": "A renter statement for a returned booking is issued (statement sent_at is set by Finance), which captures charges from the deposit and releases the balance. Due within 7 business days of check-out. (Message template T9.)",
+      "timing": "When the statement is issued, within 7 business days of check-out",
       "digest": false,
       "source": "T9",
       "from": "CarmaCars <billing@carmacars.ca>",
@@ -3925,7 +3925,7 @@
           "name": "holdback_days",
           "type": "string",
           "sample": "30",
-          "note": "Days after check-in within which a held-back Deposit is applied or released (deposit_holdback_days)."
+          "note": "Days after check-out within which a held-back Deposit is applied or released (deposit_holdback_days)."
         },
         {
           "name": "holdback_reason",
@@ -7404,7 +7404,7 @@
       "from": "CarmaCars <bookings@carmacars.ca>",
       "reply_to": "bookings@carmacars.ca",
       "subject": "We could not confirm the return of the {{vehicle_name}}",
-      "preheader": "The car is not checked in yet. Please return it now or call {{support_phone}}.",
+      "preheader": "The car is not checked out yet. Please return it now or call {{support_phone}}.",
       "sample_subject": "We could not confirm the return of the 2024 Honda Civic Sport",
       "variables": [
         {
@@ -7506,7 +7506,7 @@
       "from": "CarmaCars <bookings@carmacars.ca>",
       "reply_to": "bookings@carmacars.ca",
       "subject": "Returned. Thanks for renting the {{vehicle_name}}",
-      "preheader": "Checked in at {{checkin_time}}. Your statement follows within 7 business days.",
+      "preheader": "Checked out at {{checkin_time}}. Your statement follows within 7 business days.",
       "sample_subject": "Returned. Thanks for renting the 2024 Honda Civic Sport",
       "variables": [
         {
@@ -7547,7 +7547,7 @@
           "name": "deposit_release_days",
           "type": "string",
           "sample": "7",
-          "note": "Business days after check-in within which the Deposit is released (deposit_release_business_days)."
+          "note": "Business days after check-out within which the Deposit is released (deposit_release_business_days)."
         },
         {
           "name": "first_name",
@@ -8050,8 +8050,8 @@
       "code": "renter_review_ask",
       "audience": "renter",
       "category": "marketing",
-      "trigger": "Review requests (migration 0138, app.job_review_requests every 10 minutes): review_ask_after_minutes (60 by default) after the car is checked in (booking status returned or closed). Only from 9 am to 9 pm Toronto time (Program settings). Never while a return or later charge (late, kilometres, fuel, cleaning, smoking, damage, tolls) is not settled or waived, nor with an open incident or dispute: the booking waits on the hold list and is released by itself, or by staff with Send anyway. Not sent when the renter already reviewed (on the site, on Google matched by name, \"I already left a review\", or marked by staff) or unsubscribed. Staff can also send it from the booking (Ask for a review). Never depends on a rating and offers nothing for a review. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.",
-      "timing": "1 hour after the check-in, 9 am to 9 pm",
+      "trigger": "Review requests (migration 0138, app.job_review_requests every 10 minutes): review_ask_after_minutes (60 by default) after the car is checked out (booking status returned or closed). Only from 9 am to 9 pm Toronto time (Program settings). Never while a return or later charge (late, kilometres, fuel, cleaning, smoking, damage, tolls) is not settled or waived, nor with an open incident or dispute: the booking waits on the hold list and is released by itself, or by staff with Send anyway. Not sent when the renter already reviewed (on the site, on Google matched by name, \"I already left a review\", or marked by staff) or unsubscribed. Staff can also send it from the booking (Ask for a review). Never depends on a rating and offers nothing for a review. Relies on the existing business relationship for consent, so it carries the unsubscribe link and mailing address.",
+      "timing": "1 hour after the check-out, 9 am to 9 pm",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",
       "reply_to": "contact@carmacars.ca",
@@ -14719,7 +14719,7 @@
                 },
                 {
                   "line": "Deposit hold-back: booking CC-10431, $150.00",
-                  "meta": "Toll expected. 8 business days since check-in.",
+                  "meta": "Toll expected. 8 business days since check-out.",
                   "url": "https://carmacars.ca/admin/approvals"
                 }
               ],
@@ -15826,7 +15826,7 @@
           "sample": [
             {
               "line": "Deposit not released: booking CC-10431",
-              "meta": "8 business days since check-in. Limit is 7.",
+              "meta": "8 business days since check-out. Limit is 7.",
               "url": "https://carmacars.ca/admin/bookings/CC-10431"
             },
             {
@@ -16146,7 +16146,7 @@
       "code": "staff_digest_morning_va_finance",
       "audience": "staff_va_finance",
       "category": "transactional",
-      "trigger": "Scheduled digest for Finance. Sent every day at 07:30 Toronto time to each active staff member with this role, even when nothing is waiting, so a missing digest is itself a warning sign. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: returns waiting for a statement, deposits near 7 business days since check-in, hold-backs near 30 days, card retries due today, declined payments, tolls and tickets to match and charge, refunds to process, owner invoices failed. Each line links to the item. One email replaces the separate notices.",
+      "trigger": "Scheduled digest for Finance. Sent every day at 07:30 Toronto time to each active staff member with this role, even when nothing is waiting, so a missing digest is itself a warning sign. It carries every notice queued for this role with digest true since the last digest, plus these lists computed at send time: returns waiting for a statement, deposits near 7 business days since check-out, hold-backs near 30 days, card retries due today, declined payments, tolls and tickets to match and charge, refunds to process, owner invoices failed. Each line links to the item. One email replaces the separate notices.",
       "timing": "Daily 07:30",
       "digest": false,
       "from": "CarmaCars <hello@carmacars.ca>",
@@ -16207,12 +16207,12 @@
               "items": [
                 {
                   "line": "Booking CC-10466: fuel short, no damage",
-                  "meta": "Checked in yesterday 9:52 am",
+                  "meta": "Checked out yesterday 9:52 am",
                   "url": "https://carmacars.ca/staff/bookings/CC-10466"
                 },
                 {
                   "line": "Booking CC-10459: 84 km over the allowance",
-                  "meta": "Checked in yesterday 4:10 pm",
+                  "meta": "Checked out yesterday 4:10 pm",
                   "url": "https://carmacars.ca/staff/bookings/CC-10459"
                 }
               ],
@@ -16526,7 +16526,7 @@
       "from": "CarmaCars <bookings@carmacars.ca>",
       "reply_to": "contact@carmacars.ca",
       "subject": "Return findings: booking {{booking_number}}, {{findings_headline}}",
-      "preheader": "{{vehicle_name}}. Statement due within 7 business days of check-in.",
+      "preheader": "{{vehicle_name}}. Statement due within 7 business days of check-out.",
       "sample_subject": "Return findings: booking CC-10482, fuel short, no damage",
       "variables": [
         {

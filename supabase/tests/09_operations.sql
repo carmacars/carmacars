@@ -489,7 +489,7 @@ select test.eq('D a Check-in statement is issued even when there is nothing to c
 -- damage found in the 48-hour photo review (Check-in was July 6, 10:20)
 select test.throws('L damage found later needs a description', format($$select app.record_late_damage(%L, %L, '{"location": "roof"}')$$, test.b('opD'), test.id('op_fleet')), 'Describe the damage');
 select test.throws('L after 48 hours Fleet can no longer record it against the renter',
-  format($$select app.record_late_damage(%L, %L, '{"location": "roof", "description": "scratch"}', test.at('2031-07-08 10:21'))$$, test.b('opD'), test.id('op_fleet')), '48 hours after Check-in have passed');
+  format($$select app.record_late_damage(%L, %L, '{"location": "roof", "description": "scratch"}', test.at('2031-07-08 10:21'))$$, test.b('opD'), test.id('op_fleet')), '48 hours after Check-out have passed');
 insert into test.rq_ids values ('incD', app.record_late_damage(test.b('opD'), test.id('op_fleet'),
   '{"location": "roof", "description": "long scratch", "kind": "scratch", "photos": [{"storage_path": "bookings/opD/late/1.jpg"}]}', test.at('2031-07-07 15:00')));
 select test.eq('L inside 48 hours: a damage mark on the return report (found later) with its close-up, an incident, and the renter is told once',

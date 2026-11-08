@@ -3,7 +3,7 @@ import { vaPage } from '@/server/va';
 import { HandoverRun } from '@/features/handover/HandoverRun';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Check-out or check-in', path: '/staff', noindex: true, description: 'The check-out or check-in checklist of a booking.' });
+export const metadata = pageMeta({ title: 'Check-in or check-out', path: '/staff', noindex: true, description: 'The check-in or check-out checklist of a booking.' });
 
 export default async function VaHandover({ params }: { params: Promise<{ number: string; job: string }> }) {
   const { number, job } = await params;

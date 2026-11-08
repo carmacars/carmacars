@@ -9,9 +9,9 @@ import { ContactButtons } from '@/features/phone/QuoButtons';
 // the dark count tiles, the car with its photo, the renter with Call and Text, a time with its countdown, a status chip.
 // No state, so server pages and client components use the same ones.
 
-export function Tile({ k, href, label, n, note, urgent }: { k: string; href: string; label: string; n: number; note: ReactNode; urgent?: boolean }) {
+export function Tile({ k, href, label, n, note, urgent, current }: { k: string; href: string; current?: boolean; label: string; n: number; note: ReactNode; urgent?: boolean }) {
   return (
-    <li><a className={`bn-tile${urgent ? ' is-urgent' : ''}${n === 0 ? ' is-zero' : ''}`} href={href} data-testid={`bn-tile-${k}`}>
+    <li><a aria-current={current ? 'page' : undefined} className={`bn-tile${current ? ' is-current' : ''}${urgent ? ' is-urgent' : ''}${n === 0 ? ' is-zero' : ''}`} href={href} data-testid={`bn-tile-${k}`}>
       <span className="bn-tile__label">{label}</span><b className="bn-tile__n">{n}</b><span className="bn-tile__note">{urgent && <span className="vh">Needs you: </span>}{note}</span>
     </a></li>
   );

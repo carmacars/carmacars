@@ -7,7 +7,7 @@ import type { FieldJob } from '@/features/field/types';
 import { when } from '@/features/agreement/model';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 
-// Check-out or check-in from the booking page (migration 0130): the field portal's checklist, run by an Admin or an
+// Check-in or check-out from the booking page (migration 0130): the field portal's checklist, run by an Admin or an
 // assistant on the job the database assigned to them (app.handover_open). The same screens, the same rules: the ready
 // check, the readings, the photo set with its upload queue, damage marks, signatures; the database completes it.
 export async function HandoverRun({ userId, aal, job, number, base }: { userId: string; aal?: 'aal1' | 'aal2' | null; job: string; number: string; base: string }) {
@@ -19,7 +19,7 @@ export async function HandoverRun({ userId, aal, job, number, base }: { userId: 
     <div className="stack fd-staff" data-testid="handover-run">
       <p><Link prefetch={false} className="link" href={base}>Booking {number}</Link></p>
       <header className="fd-card" data-testid="job-head">
-        <p className="pt-kicker">{pickup ? 'Check out (pickup)' : 'Check in (return)'} · due {when(pickup ? j.booking.pickup_at : j.booking.return_at)}</p>
+        <p className="pt-kicker">{pickup ? 'Check in (pickup)' : 'Check out (return)'} · due {when(pickup ? j.booking.pickup_at : j.booking.return_at)}</p>
         <h1 className="d3">{j.vehicle.name}</h1>
         <p><b className="fd-big">{j.vehicle.plate}</b>{j.vehicle.colour ? ` · ${j.vehicle.colour}` : ''}</p>
         <p>{j.booking.renter?.name}{j.booking.renter?.mobile ? <> · <ContactButtons phone={j.booking.renter.mobile} name={j.booking.renter.name} booking={number} look="link" testId="ho-renter">{j.booking.renter.mobile}</ContactButtons></> : null}</p>
@@ -29,8 +29,8 @@ export async function HandoverRun({ userId, aal, job, number, base }: { userId: 
           as the checklist's own, so the message is not lost (release 5) */}
       {j.job.status === 'done'
         ? <div className="fd-screen stack" role="status" data-testid="field-done">
-            <h2 className="d3">{pickup ? 'Checked out. The rental has started; the renter gets the photo report by email.'
-              : 'Checked in. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos.'}</h2>
+            <h2 className="d3">{pickup ? 'Checked in. The rental has started; the renter gets the photo report by email.'
+              : 'Checked out. The late, kilometre and fuel charges are on the return statement; Fleet reviews the photos.'}</h2>
             <p className="fd-line is-ok" data-testid="job-done"><span aria-hidden="true">✓</span> Done {j.job.completed_at ? when(j.job.completed_at) : ''}</p>
             <Link prefetch={false} className="btn btn--primary fd-wide" href={`${base}/report`} data-testid="checklist-back">See the photo report</Link></div>
         : <Checklist j={j} back={`${base}/report`} backLabel="See the photo report" here={{ signNow: `${base}/sign-now`, self: `${base}/handover/${job}` }} />}
