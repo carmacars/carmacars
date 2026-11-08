@@ -320,3 +320,7 @@ alter table program_settings alter column cf_email_enabled set default false;
 update program_settings set cf_email_enabled = false;
 -- 0533: the public reads' kept copy is off for the suites, which change the data and read it back at once
 do $$ begin execute format('alter database %I set app.read_cache = %L', current_database(), 'off'); end $$;
+
+-- 0873: no HST on the owner Insurance Fee by default (the owner, November 8, 2026). The older suites were written when
+-- HST applied to it and assert those totals; they run with it on, and 99_r35_no_hst_on_insurance checks the default.
+update program_settings set insurance_fee_hst = true;
