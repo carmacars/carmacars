@@ -24,6 +24,10 @@
 .ob-photo__acts { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
 .ob-photo__acts input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .ob-forms { width: 100%; }
+/* the forms and the VIN list wrap their long names (a dense table keeps one line otherwise); on a phone each row is a
+   card (.ad-table--cards, portal.css), so nothing passes the screen's edge at 375 */
+table.ad-table.ob-forms th, table.ad-table.ob-forms td, table.ad-table.ob-vins th, table.ad-table.ob-vins td { white-space: normal; overflow-wrap: anywhere; }
+table.ad-table.ob-vins code { overflow-wrap: anywhere; word-break: break-all; }
 .ob-vins td, .ob-vins th { vertical-align: top; }
 .ob-vins .ob-bad { color: var(--red-600); }
 .ob-textarea { width: 100%; min-height: 8rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }

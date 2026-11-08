@@ -248,10 +248,10 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await page.goto('/account/profile');
   await expect(page.locator('#pt-p-address_line1')).toHaveValue('100 Queen Street West');
   await page.locator('#pt-p-mobile').fill('416-555-0199');
-  await page.getByRole('button', { name: 'Save' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Saved.')).toBeVisible();
   // the button fades back from its disabled grey: check the contrast once it is settled, not mid-transition
-  await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
   await page.mouse.move(0, 0);
   await page.waitForTimeout(400);
   await axe(page, 'profile');

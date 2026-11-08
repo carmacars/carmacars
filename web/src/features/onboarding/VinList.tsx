@@ -49,20 +49,20 @@ export function VinList({ ownerId, viewer, refresh, done }: { ownerId: string; v
       {extra > 0 && <p className="small" role="status">Only the first {VIN_LIST_MAX} are read; {extra} more were left for the next list.</p>}
       {err && <p className="alert alert--error" role="alert"><span>{err}</span></p>}
       {rows && (
-        <div className="table-scroll" tabIndex={0} role="region" aria-label="The VINs read">
-          <table className="ad-table ad-table--dense ob-vins" data-testid="vin-list-table">
-            <thead><tr><th scope="col">VIN</th><th scope="col">Car</th><th scope="col">It is</th><th scope="col">Result</th></tr></thead>
-            <tbody>{rows.map((r, i) => (
-              <tr key={`${r.vin}-${i}`} data-testid="vin-list-row" data-ok={r.ok ? 'yes' : 'no'}>
-                <th scope="row"><code>{r.vin}</code></th>
-                <td>{r.year ? `${r.year} ${r.make ?? ''} ${r.model ?? ''}${r.trim ? ` ${r.trim}` : ''}` : <span className="muted">Not read</span>}</td>
-                <td>{r.ok && !made ? <span className="stack">
+        <div className="table-scroll ad-scroll" tabIndex={0} role="region" aria-label="The VINs read">
+          <table className="ad-table ad-table--dense ad-table--cards ob-vins" role="table" data-testid="vin-list-table">
+            <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">VIN</th><th role="columnheader" scope="col">Car</th><th role="columnheader" scope="col">It is</th><th role="columnheader" scope="col">Result</th></tr></thead>
+            <tbody role="rowgroup">{rows.map((r, i) => (
+              <tr key={`${r.vin}-${i}`} role="row" data-testid="vin-list-row" data-ok={r.ok ? 'yes' : 'no'}>
+                <th role="rowheader" scope="row"><code>{r.vin}</code></th>
+                <td role="cell" data-label="Car">{r.year ? `${r.year} ${r.make ?? ''} ${r.model ?? ''}${r.trim ? ` ${r.trim}` : ''}` : <span className="muted">Not read</span>}</td>
+                <td role="cell" data-label="It is">{r.ok && !made ? <span className="stack">
                   <label className="vh" htmlFor={`${id}-s-${i}`}>Owned, financed or leased: {r.vin}</label>
                   <select className="select select--sm" id={`${id}-s-${i}`} value={r.title_status ?? 'owned_outright'} onChange={(e) => set(r.vin, 'title_status', e.target.value)}>{TITLE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
                   {r.title_status && r.title_status !== 'owned_outright' && <><label className="vh" htmlFor={`${id}-l-${i}`}>{r.title_status === 'leased' ? 'Lease company' : 'Lender'}: {r.vin}</label>
                     <input className="input input--sm" id={`${id}-l-${i}`} placeholder={r.title_status === 'leased' ? 'Lease company' : 'Lender'} value={r.finance_party_name ?? ''} onChange={(e) => set(r.vin, 'finance_party_name', e.target.value)} /></>}
                 </span> : <span className="small">{TITLE.find(([k]) => k === r.title_status)?.[1] ?? ''}</span>}</td>
-                <td className={r.ok ? '' : 'ob-bad'}>{r.ok ? (made ? 'Added' : 'Will be added') : r.why}</td>
+                <td role="cell" data-label="Result" className={r.ok ? undefined : 'ob-bad'}>{r.ok ? (made ? 'Added' : 'Will be added') : r.why}</td>
               </tr>))}</tbody>
           </table>
         </div>)}

@@ -65,7 +65,7 @@ export const INFO: Record<string, string> = {
   // discounts
   discount_scope: 'What the discount comes off: the rental charge only, never add-ons, fees, the deposit or taxes. A percentage code is capped (for example $75).',
   // settings
-  academy_gate: 'Off (the default): the academy only tracks progress. On: a staff member must pass their path before the parts of the portal it covers open.',
+  academy_gate: 'On (the default): a new hire from one-step Hire, or a person an Admin enrolled, must pass their path before the parts of the portal it covers open; staff already working are never held. Off: the academy only tracks progress.',
   deposit_release_reminder_days: 'With no check-out recorded, a deposit is due back this many business days after the return, and Finance gets a reminder.',
   take_deposit_lead_minutes: 'How long before pickup the deposit hold is taken on the card on file.',
   offer_expiry_hours: 'How long an offer stays open. An offer does not hold the car: the first to pay gets it.',

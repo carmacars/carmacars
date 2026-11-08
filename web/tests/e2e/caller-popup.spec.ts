@@ -55,6 +55,13 @@ async function ring(page: Page, ours: string, theirs: string): Promise<number> {
   return (await page.request.post('/api/webhooks/quo', { data: raw, headers: { 'content-type': 'application/json', ...(await signQuo(raw, SECRET, `msg_${randomUUID()}`)) } })).status();
 }
 
+// the calls a test rang are hung up when it ends: a ringing call shows on every Admin and customer service page for 30
+// minutes (app.caller_live), which would cover the other tests' pages in the shared test database
+async function hangUp(sql: ReturnType<typeof db>, numbers: string[]) {
+  await sql`update phone_activity a set started_at = now() - interval '40 minutes', ended_at = now() - interval '35 minutes' from phone_threads t
+             where t.id = a.thread_id and a.kind = 'call' and a.ended_at is null and t.number = any (${numbers})`;
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test('Customer service: a renter calls, the pop-up shows who it is, a note from the pop-up is on their record; an unknown caller becomes a lead', async ({ browser }) => {
@@ -68,7 +75,7 @@ test('Customer service: a renter calls, the pop-up shows who it is, a note from 
   const cs = await mkUser(sql, 'va', 'cs');
   const page = await ctx(browser);
   await signIn(page, cs.email, '/staff');
-  await page.goto('/staff/tasks', { waitUntil: 'networkidle' });
+  await page.goto('/staff/renters', { waitUntil: 'networkidle' });
   expect(await ring(page, ours, mobile)).toBe(200);
   const card = page.getByTestId('caller-card').filter({ hasText: `Callum Caller ${t}` });
   await expect(card, 'the pop-up comes within one poll').toBeVisible({ timeout: 25_000 });
@@ -97,6 +104,7 @@ test('Customer service: a renter calls, the pop-up shows who it is, a note from 
   await expect(unk.getByRole('status').filter({ hasText: 'Lead created.' })).toBeVisible();
   const [lead] = await sql<Array<{ kind: string }>>`select l.kind from leads l join phone_threads p on p.lead_id = l.id where p.number = ${stranger}`;
   expect(lead?.kind).toBe('phone');
+  await hangUp(sql, [mobile, stranger]);
   await sql.end();
 });
 
@@ -126,5 +134,6 @@ test('Admin: the pop-up on any Admin page, and the renter page\'s notes with Rem
   await expect(notes.getByRole('status').filter({ hasText: 'Note removed.' })).toBeVisible();
   const [x] = await sql<Array<{ removed_reason: string }>>`select removed_reason from renter_notes where renter_id = ${r!.id}`;
   expect(x?.removed_reason).toBe('Duplicate');
+  await hangUp(sql, [mobile]);
   await sql.end();
 });

@@ -1,5 +1,6 @@
 import Link from '@/components/Link';
 import { money } from '@/lib/format';
+import { readableDetail } from '@/features/onboarding/missing';
 import { ManualPaymentForm, PaperSignatureForm, type PaperDoc } from './ManualRecords';
 
 // What each owner signs and pays to get their cars on the road (app.owner_signables, migration 0044), with how each
@@ -22,7 +23,7 @@ const WITNESSES: Record<string, 0 | 1 | 2> = { form_c: 1, form_d: 2 };
 export function itemStatus(i: ChecklistItem): string {
   if (i.status === 'not_needed') return 'Not needed';
   if (i.status === 'done') return `${i.group === 'pay' ? 'Paid' : 'Signed'}${i.method && HOW[i.method] ? ` ${HOW[i.method]}` : ''}${i.date ? `, ${day(i.date)}` : ''}`;
-  return i.detail || (i.group === 'pay' ? 'Not paid' : 'Not signed');
+  return (i.detail ? readableDetail(i.detail) : '') || (i.group === 'pay' ? 'Not paid' : 'Not signed');
 }
 
 /** What can still be recorded as signed in ink (0720): the official ServiceOntario forms only, which the government

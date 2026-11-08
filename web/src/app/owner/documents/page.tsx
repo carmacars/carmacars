@@ -6,6 +6,7 @@ import { ownerDocuments, ownerForms, requireOwner } from '@/server/owner/data';
 import { rpc } from '@/lib/db/repo';
 import { WitnessedForms, type WForm } from '@/features/owner/WitnessedForms';
 import { DocumentList, DocumentRow } from '@/components/portal-ui';
+import { readableMissing } from '@/features/onboarding/missing';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Documents', path: '/owner/documents', noindex: true, description: 'Your agreements, schedules and registry form data.' });
@@ -57,7 +58,7 @@ export default async function OwnerDocuments() {
             <p className="small">The ServiceOntario registration forms of each car, filled in by themselves from your application once its terms are approved, and again when a value changes.</p>
             {forms.length ? <DocumentList testId="owner-gov-forms" label="Government forms">{forms.map((f) => (
               <DocumentRow key={f.id} external href={f.official ? `/owner/documents/forms/${f.id}/official` : `/owner/documents/forms/${f.id}`} badge="FORM" title={f.form_code}
-                meta={<><span>{f.official ? (f.status === 'signed' || f.status === 'filed' ? 'Official form, signed' : 'Official form, filled for you') : f.has_pdf ? 'Pre-filled PDF' : 'Data sheet'}</span><span>{f.vehicle_name}</span><span data-testid="owner-gov-form-made">Made {day(f.generated_at)}</span>{f.missing.length > 0 && <span>Missing: {f.missing.join(', ')}</span>}</>} />))}
+                meta={<><span>{f.official ? (f.status === 'signed' || f.status === 'filed' ? 'Official form, signed' : 'Official form, filled for you') : f.has_pdf ? 'Pre-filled PDF' : 'Data sheet'}</span><span>{f.vehicle_name}</span><span data-testid="owner-gov-form-made">Made {day(f.generated_at)}</span>{f.missing.length > 0 && <span>Missing: {readableMissing(f.missing).join(', ')}</span>}</>} />))}
             </DocumentList>
               : <p className="small muted">Made by themselves for each car once its terms are approved.</p>}
             <p className="small muted">You pay ServiceOntario, the inspection station and the appraiser directly. CarmaCars does not collect these amounts.</p>

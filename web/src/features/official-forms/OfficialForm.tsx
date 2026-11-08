@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import type { Spec } from './fill';
+import { readableMissing } from '@/features/onboarding/missing';
 
 // The owner's official registry form (migration 0042): the publisher's PDF, unchanged except its empty text boxes,
 // filled in this browser from the values on record (0122). It is printed and signed in ink: an official ServiceOntario
@@ -31,7 +32,7 @@ export function OfficialForm({ f, templateHref, docBase }: { f: Official; templa
   return (
     <div className="stack" data-testid="official-form">
       <section className="pt-card stack" aria-labelledby="of-what"><h2 className="d4" id="of-what">{staff ? 'The form, filled from the owner\'s records' : 'Your form, filled from your records'}</h2>
-        {f.missing.length > 0 && <p className="alert alert--error" role="alert"><span>Still missing: {f.missing.join(', ')}. Ask us to add it before you print it.</span></p>}
+        {f.missing.length > 0 && <p className="alert alert--error" role="alert"><span>Still missing: {(staff ? f.missing : readableMissing(f.missing)).join(', ')}. Ask us to add it before you print it.</span></p>}
         <p className="small">This is the official ServiceOntario form, exactly as ServiceOntario publishes it. Only its empty text boxes are filled in, from your application and your vehicle.</p>
         <p className="small" data-testid="official-ink"><strong>Print it and sign it in ink.</strong> It is not signed on screen. Tick its boxes and sign it by hand, at the registry office or before you go, as we tell you.</p>
         <div className="row"><button type="button" className="btn btn--primary" disabled={busy} onClick={download} data-testid="official-download">{busy ? 'Preparing' : 'Download the filled form'}</button>

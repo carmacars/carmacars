@@ -49,7 +49,7 @@ test('A new hire is held on Welcome until the academy is passed; an Admin waives
   await sql`select app.academy_enroll(${cs.id}::uuid, ${admin.id}::uuid, 'hire', now())`;
   const page = await ctx(browser);
   await signIn(page, cs.email, '/staff');
-  await page.goto('/staff/tasks', { waitUntil: 'networkidle' });
+  await page.goto('/staff/renters', { waitUntil: 'networkidle' });
   await page.waitForURL(/\/staff\/welcome$/);
   const w = page.getByTestId('staff-welcome');
   await expect(w.getByTestId('welcome-locked')).toBeVisible();
@@ -74,7 +74,7 @@ test('A new hire is held on Welcome until the academy is passed; an Admin waives
   const [wv] = await sql<Array<{ reason: string }>>`select reason from academy_waivers where user_id = ${cs.id} and revoked_at is null`;
   expect(wv?.reason).toBe('Two years of rental desk work');
 
-  await page.goto('/staff/tasks', { waitUntil: 'networkidle' });
-  expect(new URL(page.url()).pathname, 'waived: the work pages open').toBe('/staff/tasks');
+  await page.goto('/staff/renters', { waitUntil: 'networkidle' });
+  expect(new URL(page.url()).pathname, 'waived: the work pages open').toBe('/staff/renters');
   await sql.end();
 });

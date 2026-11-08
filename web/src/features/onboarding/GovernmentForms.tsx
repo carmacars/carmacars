@@ -1,6 +1,7 @@
 import Link from '@/components/Link';
 import './onboarding.css';
 import { MakeAgain } from './MakeAgain';
+import { readableMissing } from './missing';
 import type { Viewer } from './steps';
 
 // The government (ServiceOntario) registration forms of an owner's cars, or of one car (r34, 0822): each form the car
@@ -35,18 +36,18 @@ export function GovernmentForms({ data, viewer, refresh, title = 'Government for
             : !c.due ? <p className="small muted" data-testid="government-forms-later">Made by themselves once the terms are approved.</p>
             : c.needed.length === 0 ? <p className="small muted" data-testid="government-forms-none">No registry form is needed for this method{c.method === 'transfer' ? ': the ownership is transferred on the back of the permit' : ''}.</p>
             : (
-              <div className="table-scroll" tabIndex={0} role="region" aria-label={`Government forms of the ${c.name}`}>
-                <table className="ad-table ad-table--dense ob-forms">
-                  <thead><tr><th scope="col">Form</th><th scope="col">Status</th><th scope="col">Made</th><th scope="col"><span className="vh">Download</span></th></tr></thead>
-                  <tbody>{c.needed.map((code) => {
+              <div className="table-scroll ad-scroll" tabIndex={0} role="region" aria-label={`Government forms of the ${c.name}`}>
+                <table className="ad-table ad-table--dense ad-table--cards ob-forms" role="table">
+                  <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Form</th><th role="columnheader" scope="col">Status</th><th role="columnheader" scope="col">Made</th><th role="columnheader" scope="col"><span className="vh">Download</span></th></tr></thead>
+                  <tbody role="rowgroup">{c.needed.map((code) => {
                     const f = c.forms.find((x) => x.form_code === code);
                     return (
-                      <tr key={code} data-testid="government-form" data-code={code}>
-                        <th scope="row"><b>{code}</b>{f?.title ? <><br /><span className="small">{f.title.replace(code, '').replace(/^[\s:,-]+/, '')}</span></> : null}</th>
-                        <td>{f ? <><span className={`badge ${f.status === 'draft' ? 'badge--red' : 'badge--outline'}`} data-testid="government-form-status">{STATUS[f.status] ?? f.status}</span>
-                          {f.missing.length > 0 && <><br /><span className="small">Missing: {f.missing.join(', ')}</span></>}</> : <span className="small muted">Not made yet</span>}</td>
-                        <td className="small" data-testid="government-form-made">{f ? <>{when(f.generated_at)}<br /><span className="muted">{f.by === 'automatic' ? 'by itself' : `by ${f.by}`}</span></> : ''}</td>
-                        <td>{f && <Link prefetch={false} className="btn btn--ghost btn--sm" href={formHref(viewer, f)} data-testid="government-form-download">{f.official ? 'Official form' : 'Data sheet (PDF)'}</Link>}</td>
+                      <tr key={code} role="row" data-testid="government-form" data-code={code}>
+                        <th role="rowheader" scope="row"><b>{code}</b>{f?.title ? <><br /><span className="small">{f.title.replace(code, '').replace(/^[\s:,-]+/, '')}</span></> : null}</th>
+                        <td role="cell" data-label="Status">{f ? <><span className={`badge ${f.status === 'draft' ? 'badge--red' : 'badge--outline'}`} data-testid="government-form-status">{STATUS[f.status] ?? f.status}</span>
+                          {f.missing.length > 0 && <><br /><span className="small">Missing: {readableMissing(f.missing).join(', ')}</span></>}</> : <span className="small muted">Not made yet</span>}</td>
+                        <td role="cell" data-label="Made" className="small" data-testid="government-form-made">{f ? <>{when(f.generated_at)}<br /><span className="muted">{f.by === 'automatic' ? 'by itself' : `by ${f.by}`}</span></> : ''}</td>
+                        <td role="cell" data-label="Download">{f && <Link prefetch={false} className="btn btn--ghost btn--sm" href={formHref(viewer, f)} data-testid="government-form-download">{f.official ? 'Official form' : 'Data sheet (PDF)'}</Link>}</td>
                       </tr>);
                   })}</tbody>
                 </table>

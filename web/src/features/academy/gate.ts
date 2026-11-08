@@ -38,5 +38,5 @@ export function gateWords(g: GateState): string {
   if (g.waiver) return `Waived by ${g.waiver.by ?? 'an Admin'}: ${g.waiver.reason}. Their portal is open (${g.passed} of ${g.sections} sections passed).`;
   if (g.done) return `Passed: ${g.passed} of ${g.sections} sections. Their portal is open.`;
   if (g.locked) return `Held: ${g.passed} of ${g.sections} sections passed. Until they pass, they open only the academy, the guide, their profile and Welcome.`;
-  return `${g.passed} of ${g.sections} sections passed. Not held yet${g.lock_from ? ` (the hold starts ${new Date(g.lock_from).toLocaleDateString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' })})` : ''}.`;
+  return `${g.passed} of ${g.sections} sections passed. ${g.lock_from ? `Not held yet (the hold starts ${new Date(g.lock_from).toLocaleDateString('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric' })}).` : 'Not held: only a hire from one-step Hire or a person an Admin enrolled is held.'}`;
 }

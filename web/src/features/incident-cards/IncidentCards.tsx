@@ -28,6 +28,7 @@ function Card({ car, d, site, docBase }: { car: CardCar; d: CardData; site: stri
         <section className="ic-slip" aria-label="Fleet insurance slip" data-testid="incident-card-slip">
           <h2>Insurance slip</h2>
           {!p ? <p className="ic-none">Insurance slip: ask {d.company.trade_name}.</p>
+            // eslint-disable-next-line @next/next/no-img-element -- private signed document on a printed card
             : slip === 'image' ? <img className="ic-slip__file" src={`${docBase}/${p.slip_document_id}`} alt={`Insurance slip, policy ${p.policy_number}`} />
             : slip === 'pdf' ? <object className="ic-slip__file" data={`${docBase}/${p.slip_document_id}#toolbar=0&view=FitH`} type="application/pdf" aria-label="Insurance slip">
                 <SlipFields p={p} />

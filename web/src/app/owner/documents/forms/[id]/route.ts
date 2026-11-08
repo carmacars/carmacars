@@ -2,6 +2,7 @@ import { agreementPdf } from '@/features/agreement/pdf';
 import type { Block } from '@/features/agreement/model';
 import { currentUser } from '@/server/portal/data';
 import { ownerForms } from '@/server/owner/data';
+import { readableMissing } from '@/features/onboarding/missing';
 
 // A government form's data sheet as a PDF (08-forms.md section 9.3): every value the owner copies onto
 // the registry form, in the form's order, from public.owner_portal_forms. Used until a template is
@@ -18,7 +19,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const blocks: Block[] = [
     { t: 'title', text: `${f.form_code}${f.title ? `: ${f.title}` : ''}` },
     { t: 'p', text: `Data sheet for ${f.vehicle_name}. Copy each value onto the official form, in this order. Bring the form unsigned if you are not sure; we check it with you at the registry visit.` },
-    ...(f.missing.length ? [{ t: 'p', text: `**Still missing:** ${f.missing.join(', ')}.` } as Block] : []),
+    ...(f.missing.length ? [{ t: 'p', text: `**Still missing:** ${readableMissing(f.missing).join(', ')}.` } as Block] : []),
     { t: 'table', head: ['Field', 'Value'], rows, kv: true }
   ];
   const pdf = await agreementPdf(blocks, { title: `${f.form_code} data sheet`, createdAt: new Date(f.generated_at), footer: `CarmaCars data sheet ${f.form_code} for ${f.vehicle_name}` });

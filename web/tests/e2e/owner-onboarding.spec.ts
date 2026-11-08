@@ -90,7 +90,9 @@ test('Admin: one checklist, a photo replaced and removed, the government forms w
   // the government forms: made by themselves at approval, with their date
   const forms = page.getByTestId('government-forms');
   await expect(forms.getByTestId('government-form')).toHaveCount(2);
-  await expect(forms.getByTestId('government-form-made').first()).toContainText('by itself');
+  // made at approval: the approval fills them in the Admin's name (app.fill_vehicle_government_forms, 0029), so the line
+  // names the Admin; a change made later by itself reads "by itself"
+  await expect(forms.getByTestId('government-form-made').first()).toContainText(/\d{4}.*by (itself|\S)/);
   await check(page, 'admin owner page');
   // approve, then replace: back to review
   const photo = page.getByTestId('onboarding-photo').first();

@@ -70,9 +70,9 @@ select test.eq('an Admin verifies them: the step is done', (select s ->> 'state'
 select test.eq('the gate is on by default', (select column_default from information_schema.columns where table_name = 'program_settings' and column_name = 'academy_gate'), 'true');
 insert into academy_enrollments (user_id, path_code, lock_from, source) values (test.id('rqg_cs'), 'cs', now() + interval '7 days', 'existing');
 select test.ok('staff already working get their week before the hold', not app.academy_locked(test.id('rqg_cs')));
-select test.ok('the home read says when it starts', (app.academy_home(test.id('rqg_cs')) ->> 'lock_from') is not null);
+select test.ok('the home read shows no hold date for staff already working (0840)', (app.academy_home(test.id('rqg_cs')) ->> 'lock_from') is null);
 update academy_enrollments set lock_from = now() - interval '1 minute' where user_id = test.id('rqg_cs');
-select test.ok('then held until they pass', app.academy_locked(test.id('rqg_cs')));
+select test.ok('an existing enrollment never holds, even past its date (0840: only Hire or an Admin holds)', not app.academy_locked(test.id('rqg_cs')));
 select test.eq('the new sections end each role''s path', (select string_agg(ps.path_code || ':' || s.slug, ' ' order by ps.path_code) from academy_path_sections ps join academy_sections s on s.id = ps.section_id
   where s.slug = 'new-bookings-r28-r32' and ps.sort = (select max(x.sort) - 1 from academy_path_sections x join academy_sections y on y.id = x.section_id where x.path_code = ps.path_code and ps.path_code in ('cs', 'field') and y.slug not like 'new-r3%')), 'cs:new-bookings-r28-r32 field:new-bookings-r28-r32');
 select test.eq('every role has a new section', (select count(distinct ps.path_code) from academy_path_sections ps join academy_sections s on s.id = ps.section_id where s.slug like 'new-%-r28-r32'), 7::bigint);

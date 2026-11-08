@@ -12,12 +12,15 @@ select test.mk_user('zag_other', 'va', 'cs');
 update program_settings set academy_gate = true;
 select app.academy_enroll(test.id('zag_cs'), test.id('zag_admin'), 'hire', now());
 select app.academy_enroll(test.id('zag_field'), test.id('zag_admin'), 'hire', now());
+select app.academy_enroll(test.id('zag_other'), test.id('zag_admin'), 'hire', now());
+select test.mk_user('zag_old', 'va', 'cs');
 create function test.zag_locked(p text) returns boolean language sql as $$ select (app.my_roles(test.id(p)) ->> 'academy_locked')::boolean $$;
 
 -- ================================================================ 1. the gate
 select test.eq('gate: a new customer service hire is held', test.zag_locked('zag_cs'), true);
 select test.eq('gate: a new field hire is held', test.zag_locked('zag_field'), true);
 select test.eq('gate: an Admin is never held', test.zag_locked('zag_admin'), false);
+select test.eq('gate: staff already working, with no enrollment from Hire or an Admin, are never held (0840)', test.zag_locked('zag_old'), false);
 
 -- ================================================================ 2. the content of releases 33 and 34
 select test.eq('content: the four new sections are on the paths of the roles that use them',

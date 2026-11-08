@@ -27,7 +27,8 @@
 .cp-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; }
 @media (max-width: 37.49rem) {
   .cp { right: 8px; left: 8px; bottom: 8px; width: auto; }
-  .cp-panel { max-height: 70vh; }
+  /* at most half the screen, so the page's own menu and buttons stay reachable under a ringing call */
+  .cp-panel { max-height: 50vh; }
 }
 
 .rn { display: grid; gap: 10px; }

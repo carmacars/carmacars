@@ -23,7 +23,7 @@ export default async function StaffOwners({ searchParams }: { searchParams: Prom
       <input className="input" id="so-q" name="q" defaultValue={q} placeholder="Name, email, plate or VIN" data-testid="staff-owners-q" />
       <button className="btn btn--ghost btn--sm" type="submit">Search</button></form>
     {rows.length ? <ul className="ad-list" data-testid="staff-owners">{rows.map((o) => (
-      <li key={o.id}><Link prefetch={false} className="link" href={`/staff/owners/${o.id}`}><b>{o.name}</b></Link> <span className="small muted">{[o.email, `${o.cars} car${o.cars === 1 ? '' : 's'}`, o.onboarding ? `${o.onboarding} onboarding` : null].filter(Boolean).join(' · ')}</span></li>))}</ul>
+      <li key={o.id}><Link prefetch={false} className="link" href={`/staff/owners/${o.id}`}><b>{o.name}</b></Link><span className="ad-sub">{[o.email, `${o.cars} car${o.cars === 1 ? '' : 's'}`, o.onboarding ? `${o.onboarding} onboarding` : null].filter(Boolean).join(' · ')}</span></li>))}</ul>
       : <p className="pt-empty muted">{q ? 'No owner matches.' : 'No owner has a car onboarding.'}</p>}
   </>);
 }
