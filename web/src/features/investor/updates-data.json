@@ -1,5 +1,59 @@
 [
  {
+  "release": "r33",
+  "title": "Release 33",
+  "date": "2026-11-08",
+  "seq": 0,
+  "summary": "Renters sign and pay on one page, staff charge after a return in one step, fleet suppliers onboard themselves, and every signature is electronic.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "One Sign and pay page: the agreement, the signature and the card form together, with exactly what is left and the amount",
+     "A signature for an older version of an offer opens the current agreement to sign instead of a dead end",
+     "A debit or prepaid deposit shows its card processing fee before paying; the refund returns the full deposit",
+     "Anyone can change their own sign-in email, confirmed by a link"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "Fleet suppliers apply, choose the fleet route, sign the lease and the power of attorney in their portal and set each car's tier",
+     "Every owner route fills its government registration forms automatically",
+     "Paper signatures are gone: every agreement is signed electronically",
+     "Updated terms are accepted once in the portal before carrying on"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Charge the renter after a return in one step: choose the reason, the amount, and the platform takes it from the deposit, the card on file or a pay link",
+     "Deposit holds renew by themselves before they expire; an expired hold is shown as such with the card on file offered instead",
+     "Reasons for keeping part of a deposit come from one list, shown on the renter's receipt",
+     "Listing photos import from a Google Drive link, one car or a whole folder of cars at once",
+     "Hiring in one step: role, start date and pay, the account, the welcome and the agreement",
+     "Requests and offers: every summary box filters, a new Accepted, not paid filter, old expired offers become leads and duplicates are hidden",
+     "Pickup and return wording is the same everywhere: check-in is the pickup, check-out the return",
+     "Owner invoices can be issued without an email and marked as already paid outside the platform",
+     "Approve all in the document review approves exactly what it shows"
+    ]
+   },
+   {
+    "area": "Partners",
+    "items": [
+     "The Claude connector can now act as the Admin, with a preview and a confirmation for every change"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "The listing studio letters the model name on the cover and every outside angle, with a manual cut-out editor",
+     "The Drive photo key is never shown in full or written to the audit log"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r30-stale",
   "title": "Update of November 7",
   "date": "2026-11-07",
