@@ -86,6 +86,51 @@
   ]
  },
  {
+  "release": "r34",
+  "title": "Release 34",
+  "date": "2026-11-08",
+  "seq": 0,
+  "summary": "Customer service sees who is calling with their whole file, new staff pass the Academy before they start, and owner onboarding is one clear checklist.",
+  "areas": [
+   {
+    "area": "Renters",
+    "items": [
+     "Change your name, password and phone from your profile; a legal name change is a request an Admin approves"
+    ]
+   },
+   {
+    "area": "Owners",
+    "items": [
+     "One onboarding checklist: each step shows what is done, who it waits on and the one thing to do next",
+     "Replace or remove any onboarding photo yourself",
+     "Add many cars at once from a list of VINs",
+     "Government registration forms are made automatically and listed with your documents"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Customer service and Admins see who is calling, live: their booking, what they owe, the deposit, open requests and notes",
+     "Notes on each renter, kept with the author and time, from the call pop-up or the renter's page",
+     "New hires land on a welcome page and must pass their Academy path before their work pages open; an Admin can waive it with a reason",
+     "New Academy sections with quizzes cover the newest workflows, and a section is flagged for review when its guide changes",
+     "A printable card for every car with the steps to follow after an accident and the coverage details",
+     "Book it now from the AI assistant, with a preview and a confirmation",
+     "A booking that replaced a duplicate request links to it, both ways",
+     "A visitor who comes back for the same car raises an alert on its own",
+     "Staff and Admins can replace onboarding photos, make the government forms again and add cars from a VIN list"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "Alerts to many staff are sent several times faster",
+     "A government form is no longer made again when nothing on it changed"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r30-stale",
   "title": "Update of November 7",
   "date": "2026-11-07",

@@ -25,7 +25,7 @@ for (const p of ['renter', 'owner', 'admin', 'va', 'field', 'investor']) {
   for (const s of d.sections) chapters.add(`${p}/${s.slug}`);
 }
 const problems = [];
-const LONG = /[–—]/;
+const LONG = /[\u2013\u2014]/;
 for (const s of SECTIONS) {
   if (!/^[a-z0-9-]{2,60}$/.test(s.slug)) problems.push(`${s.slug}: bad slug`);
   for (const g of s.guides) if (!chapters.has(g)) problems.push(`${s.slug}: guide chapter ${g} does not exist`);
