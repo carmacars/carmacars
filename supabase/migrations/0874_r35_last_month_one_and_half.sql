@@ -62,5 +62,6 @@ begin
   return v_n;
 end $$;
 revoke all on function app.r35_last_month_one_and_half(uuid) from public;
+grant execute on function app.r35_last_month_one_and_half(uuid) to service_role;
 
 select app.r35_last_month_one_and_half();
