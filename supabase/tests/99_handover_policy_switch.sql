@@ -14,8 +14,10 @@ values (test.id('vehicle:HPS1'), test.id('owner:hps_own'), 2025, 'Hyundai', 'Ela
 select test.ok('neither car is on the fleet policy', not app.vehicle_on_policy(test.id('vehicle:HPS1')) and not app.vehicle_on_policy(test.id('vehicle:HPS2')));
 
 select test.mk_booking('HPS-1', 'HPS1', 'hps_rita', '2031-04-02 10:00', '2031-04-05 10:00', 'confirmed');
-update bookings set status = 'on_rent', handed_over_at = now() where id = test.id('booking:HPS-1');
-select test.eq('setting off: the car is handed over', (select status::text from bookings where id = test.id('booking:HPS-1')), 'on_rent');
+-- the fixture renter is not verified: the identity check (0011) answers instead of the insurer rule, so the insurer rule let it through
+select test.throws('setting off: the insurer rule no longer stops the handover (the next check, identity, answers)',
+  $$update bookings set status = 'on_rent', handed_over_at = now() where id = test.id('booking:HPS-1')$$, '%identity%');
+select test.ok('setting off: no manual rental tick needed', not app.vehicle_needs_policy_confirm(test.id('vehicle:HPS1')));
 select test.ok('the staff warning stays', (app.listing_state(test.id('hps_fleet'), jsonb_build_object('vehicle_id', test.id('vehicle:HPS1'))) ->> 'handover_note') like 'Not on the fleet insurance policy yet%');
 
 update program_settings set field_handover_requires_fleet_policy = true where id = (select id from app.settings());

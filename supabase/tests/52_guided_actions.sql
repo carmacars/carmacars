@@ -69,8 +69,11 @@ select test.ok('the car''s listing state: the warning names the button, and an A
   and (app.listing_state(test.id('gx_fleet'), jsonb_build_object('vehicle_id', test.id('vehicle:GX1'))) ->> 'can_insure')::boolean
   and not (app.listing_state(test.id('gx_cs'), jsonb_build_object('vehicle_id', test.id('vehicle:GX1'))) ->> 'can_insure')::boolean);
 select test.mk_booking('GX-H', 'GX3', 'gx_rita', test.gx_day(-1), test.gx_day(2), 'confirmed');
+-- 0683: the rule is a Program setting, off by default; on here
+update program_settings set field_handover_requires_fleet_policy = true;
 select test.throws('the handover of a car not on the policy is refused, and the message names the button',
   format('update bookings set status = ''on_rent'', handed_over_at = now() where id = %L', test.id('booking:GX-H')), 'press Insurer confirmed');
+update program_settings set field_handover_requires_fleet_policy = false;
 
 -- ================================================================ 2. the prompts before
 select test.ok('each car waiting for the insurer has a prompt, with a booking named when one is near (urgent); a Turo-only car has none',

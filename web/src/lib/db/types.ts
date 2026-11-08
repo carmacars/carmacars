@@ -15611,6 +15611,7 @@ export type Database = {
           licence_auto_approver: string | null;
           fleet_lease_agreements_awaiting_lawyer: boolean;
           referral_agreements_awaiting_lawyer: boolean;
+          field_handover_requires_fleet_policy: boolean;
         };
         Insert: {
           id?: string;
@@ -16240,6 +16241,7 @@ export type Database = {
           licence_auto_approver?: string | null;
           fleet_lease_agreements_awaiting_lawyer?: boolean;
           referral_agreements_awaiting_lawyer?: boolean;
+          field_handover_requires_fleet_policy?: boolean;
         };
         Update: {
           id?: string;
@@ -16869,6 +16871,7 @@ export type Database = {
           licence_auto_approver?: string | null;
           fleet_lease_agreements_awaiting_lawyer?: boolean;
           referral_agreements_awaiting_lawyer?: boolean;
+          field_handover_requires_fleet_policy?: boolean;
         };
         Relationships: [];
       };
