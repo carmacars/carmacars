@@ -63,7 +63,7 @@ export const STAFF_HUBS: Hub[] = [
   { key: 'owner-money', label: 'Owner money', tabs: [{ href: '/staff/owner-money?tab=invoices', label: 'Invoices', fns: 'finance' }, { href: '/staff/owner-money?tab=statements', label: 'Statements', fns: 'finance' }] },
   { key: 'renters', label: 'Renters', tabs: [{ href: '/staff/messages', label: 'Messages', fns: 'cs' }, { href: '/staff/review-requests', label: 'Review requests', fns: 'cs' }, { href: '/staff/game-leads', label: 'Leads', fns: 'cs sales' }] },
   { key: 'owners', label: 'Owners', tabs: [{ href: '/staff/owners', label: 'Owners', fns: 'cs fleet' }, { href: '/staff/leads', label: 'Owner and buyer leads', fns: 'cs sales' }, { href: '/staff/owner-pipeline', label: 'Owner pipeline', fns: 'cs' },
-    { href: '/staff/owner-forms', label: 'Owner forms', fns: 'cs' }], actions: [{ href: '/staff/owners/add-car', label: 'Add a car for an owner', fns: 'cs fleet' }] },
+    { href: '/staff/owner-forms', label: 'Owner forms', fns: 'cs' }, { href: '/staff/government-forms', label: 'Government forms', fns: 'fleet' }], actions: [{ href: '/staff/owners/add-car', label: 'Add a car for an owner', fns: 'cs fleet' }] },
   { key: 'listings', label: 'Listings', tabs: [{ href: '/staff/listings', label: 'Listings', fns: 'cs fleet' }, { href: '/staff/similar-cars', label: 'Similar cars', fns: 'cs fleet' },
     { href: '/staff/calendar-sync', label: 'Calendar sync', fns: 'fleet' }, { href: '/staff/addons', label: 'Add-ons', fns: 'fleet' }],
     actions: [{ href: '/staff/owners/add-car', label: 'Add a car', fns: 'fleet' }, { href: '/staff/listings/import-photos', label: 'Import photos from Drive', fns: 'cs fleet' }] },

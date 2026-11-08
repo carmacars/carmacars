@@ -11,8 +11,11 @@ import { FormReview } from './FormReview';
 // sign or download instead of the data sheet.
 type Tpl = { id: string; version: string; kind?: 'acroform' | 'overlay' | 'generated'; notes?: string | null; title: string | null; file_key: string | null; file_name: string | null; page_count: number | null; field_names: PdfField[]; field_map: Record<string, Spec | string>;
   verified: boolean; verified_at: string | null; verified_by_name: string | null; mapped_at: string | null; mapped_by_name: string | null };
-export type FormsData = { forms: Array<{ form_code: string; current: Tpl | null; versions: number; fills: { pdf: number; data_sheet: number } }>;
-  sources: Array<{ path: string; label: string; section: string }>; transforms: string[]; vehicles: Array<{ id: string; name: string; owner: string }> };
+/** r35 (0870): every saved mapping of the current template */
+export type MapSave = { id: string; saved_at: string; verified: boolean; note: string | null; by: string | null; fields: number; field_map: Record<string, Spec | string> };
+export type FormsData = { forms: Array<{ form_code: string; current: Tpl | null; versions: number; fills: { pdf: number; data_sheet: number }; history?: MapSave[]; official?: boolean }>;
+  sources: Array<{ path: string; label: string; section: string }>; transforms: string[]; vehicles: Array<{ id: string; name: string; owner: string }>;
+  /** r35: only an Admin uploads a form; fleet maps them */ can_upload?: boolean };
 const TRANSFORM: Record<string, string> = { upper: 'CAPITALS', lower: 'lower case', postal: 'Postal code (A1A 1A1)', phone: 'Phone ((416) 555-0100)', yesno: 'Yes or No',
   'date:YYYY-MM-DD': 'Date 2026-10-14', 'date:DD/MM/YYYY': 'Date 14/10/2026', 'date:MM/DD/YYYY': 'Date 10/14/2026', 'date:YYYY': 'Year only', 'date:MM': 'Month only', 'date:DD': 'Day only' };
 const spec = (s: Spec | string | undefined): Spec => (typeof s === 'string' ? { source: s } : s ?? {});
@@ -43,31 +46,36 @@ function Upload({ code }: { code: string }) {
   );
 }
 
-function Mapping({ code, t, d }: { code: string; t: Tpl; d: FormsData }) {
+const when = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+
+function Mapping({ code, t, d, history, path }: { code: string; t: Tpl; d: FormsData; history: MapSave[]; path: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   // a coordinates-based template (a form with no fillable field): each value is drawn in the box the field list gives
   const [map, setMap] = useState<Record<string, Spec>>(() => Object.fromEntries(t.field_names.map((f) => [f.name,
     t.kind === 'overlay' && f.rect && f.page ? { ...spec(t.field_map[f.name]), box: { page: f.page, rect: f.rect } } : spec(t.field_map[f.name])])));
   const [vehicle, setVehicle] = useState(d.vehicles[0]?.id ?? '');
+  const [note, setNote] = useState('');
+  const load = (h: MapSave) => setMap(Object.fromEntries(t.field_names.map((f) => [f.name, spec(h.field_map[f.name])])));
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const sections = useMemo(() => [...new Set(d.sources.map((s) => s.section))], [d.sources]);
   const yesNo = d.sources.filter((s) => /\(yes or no\)/.test(s.label));
   const cleaned = () => Object.fromEntries(Object.entries(map).filter(([, s]) => s.type === 'signature' || s.source).map(([k, s]) => [k, Object.fromEntries(Object.entries(s).filter(([, v]) => v !== undefined && v !== '' && v !== false))]));
   const mapped = Object.keys(cleaned()).length;
   const save = (verify: boolean) => start(async () => {
-    const r = await staffDo<{ refilled: number }>('form_template_map', { template: t.id, field_map: cleaned(), verify }, ['/admin/settings/forms']);
+    const r = await staffDo<{ refilled: number }>('form_template_map', { template: t.id, field_map: cleaned(), verify, note: note.trim() || undefined }, [path]);
+    if (r.ok) setNote('');
     setMsg(r.ok ? { ok: true, text: verify ? `Checked and in use: ${r.data.refilled} owner form(s) filled again from it.` : 'Mapping saved. Owners keep the data sheet until you use it for owners.' } : { ok: false, text: r.message });
     if (r.ok) router.refresh();
   });
   const preview = () => start(async () => {
     setMsg(null);
-    const v = await staffRead<{ values: Record<string, string | null>; field_map: Record<string, Spec> }>('form_template_preview', { template: t.id, vehicle });
+    // r35: the mapping on screen, saved or not, for a real car or the sample car (made-up values)
+    const v = await staffRead<{ values: Record<string, string | null>; field_map: Record<string, Spec> }>('form_template_preview', { template: t.id, vehicle, field_map: cleaned() });
     if (!v.ok) { setMsg({ ok: false, text: v.message }); return; }
     const file = await fetch(`/api/staff/form-template/${t.id}`);
     if (!file.ok) { setMsg({ ok: false, text: 'The PDF could not be opened.' }); return; }
     const { fillPdf } = await import('./fill');
-    // the preview uses the mapping on screen once saved; before that the values of the saved mapping
     const out = await fillPdf(await file.arrayBuffer(), v.data.values, v.data.field_map);
     const url = URL.createObjectURL(new Blob([out.bytes as unknown as BlobPart], { type: 'application/pdf' }));
     const a = document.createElement('a'); a.href = url; a.download = `${code}-preview.pdf`; a.click();
@@ -94,6 +102,8 @@ function Mapping({ code, t, d }: { code: string; t: Tpl; d: FormsData }) {
               <td><label className="check" htmlFor={`${idb}-r`}><input id={`${idb}-r`} type="checkbox" checked={!!s.required} disabled={s.type === 'signature'} onChange={(e) => set({ required: e.target.checked || undefined })} /> <span className="vh">{f.name} is needed</span></label></td>
             </tr>); })}</tbody></table></div>
       <p className="small muted">{mapped} of {t.field_names.length} fields filled from the records. A needed field left empty keeps the owner&apos;s form waiting, with the reason.</p>
+      <div className="field"><label className="label" htmlFor={`fn-${code}`}>What you changed (kept with this mapping)</label>
+        <input className="input" id={`fn-${code}`} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} data-testid={`form-note-${code}`} /></div>
       <div className="row">
         <button className="btn btn--ghost btn--sm" type="button" disabled={pending} onClick={() => save(false)} data-testid={`form-save-${code}`}>Save the mapping</button>
         <button className="btn btn--primary btn--sm" type="button" disabled={pending || !mapped} onClick={() => save(true)} data-testid={`form-verify-${code}`}>{t.verified ? 'Save and keep in use' : 'Checked: use for owners'}</button>
@@ -104,6 +114,10 @@ function Mapping({ code, t, d }: { code: string; t: Tpl; d: FormsData }) {
         <button className="btn btn--ghost btn--sm" type="button" disabled={pending || !vehicle} onClick={preview} data-testid={`form-preview-${code}`}>Download a filled preview</button>
       </div>}
       {msg && <p className={`alert ${msg.ok ? 'alert--ok' : 'alert--error'}`} role={msg.ok ? 'status' : 'alert'}><span>{msg.text}</span></p>}
+      {history.length > 0 && <details data-testid={`form-history-${code}`}><summary className="link">Earlier mappings</summary><span className="small muted"> {history.length} saved</span>
+        <ul className="ad-list small">{history.map((h) => (
+          <li key={h.id}>{when(h.saved_at)}, {h.by ?? 'CarmaCars'}: {h.fields} field{h.fields === 1 ? '' : 's'}{h.verified ? ', in use for owners' : ''}{h.note ? `. ${h.note}` : ''}
+            {' '}<button type="button" className="btn btn--ghost btn--sm" onClick={() => { load(h); setMsg({ ok: true, text: 'Loaded on screen: preview it, then save it to use it again.' }); }}>Load</button></li>))}</ul></details>}
     </div>
   );
 }
@@ -115,7 +129,7 @@ function FieldsPanel({ startOpen, children }: { startOpen: boolean; children: Re
   return <details open={open} onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}><summary className="link">Fields and what goes in them</summary>{children}</details>;
 }
 
-export function OfficialForms({ d }: { d: FormsData }) {
+export function OfficialForms({ d, path = '/admin/settings/forms' }: { d: FormsData; /** the page to refresh (Admin settings, or the staff page for fleet) */ path?: string }) {
   return (
     <div className="stack" data-testid="official-forms">
       <p className="small muted">Until a form&apos;s official PDF is uploaded, mapped and checked, owners get a data sheet with every value to copy onto the form. Upload the fillable PDF from ServiceOntario, choose what goes in each field, download a preview for one car, then use it for owners. Only the form&apos;s empty text boxes are filled; the PDF is otherwise kept exactly as published, and its checkboxes and signatures are done by hand, in ink.</p>
@@ -124,14 +138,14 @@ export function OfficialForms({ d }: { d: FormsData }) {
         return (
           <section key={f.form_code} id={`form-card-${f.form_code}`} className="pt-card ad-card" aria-labelledby={`of-${f.form_code}`} data-testid={`form-${f.form_code}`}>
             <div className="pt-card__head"><h2 className="d4" id={`of-${f.form_code}`}>{f.form_code}{t?.title && !t.title.startsWith(f.form_code) ? `: ${t.title}` : t?.title ? `: ${t.title.slice(f.form_code.length).trim()}` : ''}</h2>
-              <span className={`ad-b ${t?.verified && official ? 'ad-b--dark' : official ? 'ad-b--amber' : 'ad-b--light'}`}>{t?.verified && official ? 'Official PDF in use' : official ? 'Mapping to check' : 'Data sheet in use'}</span></div>
+              <span className={`ad-b ${t?.verified && official && f.official !== false ? 'ad-b--dark' : official ? 'ad-b--amber' : 'ad-b--light'}`}>{t?.verified && official && f.official !== false ? 'Official PDF in use' : t?.verified && official ? 'Not the publisher\'s PDF: data sheet in use' : official ? 'Mapping to check' : 'Data sheet in use'}</span></div>
             <p className="small">{official ? `${t!.file_name ?? 'PDF'}, ${t!.field_names.length} fields${t!.page_count ? ` on ${t!.page_count} page(s)` : ''}, version ${t!.version}` : 'No official PDF yet.'}
               {t?.verified_at ? ` Checked by ${t.verified_by_name ?? 'an Admin'}.` : ''} Owners now: {f.fills.pdf} with the official PDF, {f.fills.data_sheet} with the data sheet.</p>
             {official && t!.kind === 'overlay' && <p className="small" data-testid={`form-overlay-${f.form_code}`}>A laid-out copy of an Adobe form, no longer used: owners get the data sheet until the publisher&apos;s PDF is stored (the forms-fetch workflow).</p>}
             {official && t!.notes && <p className="small muted">{t!.notes}</p>}
             {official && !t!.verified && t!.kind !== 'overlay' && t!.field_names.length > 0 && <FormReview code={f.form_code} templateId={t!.id} fieldMap={t!.field_map} vehicles={d.vehicles} />}
-            <Upload code={f.form_code} />
-            {official && t!.field_names.length > 0 && <FieldsPanel startOpen={!t!.verified}><Mapping key={t!.id} code={f.form_code} t={t!} d={d} /></FieldsPanel>}
+            {d.can_upload !== false && <Upload code={f.form_code} />}
+            {official && t!.field_names.length > 0 && <FieldsPanel startOpen={!t!.verified}><Mapping key={t!.id} code={f.form_code} t={t!} d={d} history={f.history ?? []} path={path} /></FieldsPanel>}
           </section>);
       })}
     </div>

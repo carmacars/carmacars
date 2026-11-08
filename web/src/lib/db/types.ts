@@ -7897,6 +7897,7 @@ export type Database = {
           filed_at: string | null;
           superseded_at: string | null;
           signed_method: string | null;
+          overrides: Json;
         };
         Insert: {
           id?: string;
@@ -7922,6 +7923,7 @@ export type Database = {
           filed_at?: string | null;
           superseded_at?: string | null;
           signed_method?: string | null;
+          overrides?: Json;
         };
         Update: {
           id?: string;
@@ -7947,6 +7949,52 @@ export type Database = {
           filed_at?: string | null;
           superseded_at?: string | null;
           signed_method?: string | null;
+          overrides?: Json;
+        };
+        Relationships: [];
+      };
+      government_form_overrides: {
+        Row: {
+          id: string;
+          vehicle_id: string;
+          form_code: string;
+          target: string;
+          field: string;
+          value: string | null;
+          reason: string;
+          created_by: string | null;
+          created_at: string;
+          ended_at: string | null;
+          ended_by: string | null;
+          end_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          vehicle_id: string;
+          form_code: string;
+          target: string;
+          field: string;
+          value?: string | null;
+          reason: string;
+          created_by?: string | null;
+          created_at?: string;
+          ended_at?: string | null;
+          ended_by?: string | null;
+          end_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          vehicle_id?: string;
+          form_code?: string;
+          target?: string;
+          field?: string;
+          value?: string | null;
+          reason?: string;
+          created_by?: string | null;
+          created_at?: string;
+          ended_at?: string | null;
+          ended_by?: string | null;
+          end_reason?: string | null;
         };
         Relationships: [];
       };
@@ -14664,6 +14712,39 @@ export type Database = {
           last_error?: string | null;
           created_at?: string;
           done_at?: string | null;
+        };
+        Relationships: [];
+      };
+      pdf_template_map_history: {
+        Row: {
+          id: string;
+          template_id: string;
+          form_code: string;
+          field_map: Json;
+          verified: boolean;
+          saved_by: string | null;
+          saved_at: string;
+          note: string | null;
+        };
+        Insert: {
+          id?: string;
+          template_id: string;
+          form_code: string;
+          field_map: Json;
+          verified: boolean;
+          saved_by?: string | null;
+          saved_at?: string;
+          note?: string | null;
+        };
+        Update: {
+          id?: string;
+          template_id?: string;
+          form_code?: string;
+          field_map?: Json;
+          verified?: boolean;
+          saved_by?: string | null;
+          saved_at?: string;
+          note?: string | null;
         };
         Relationships: [];
       };

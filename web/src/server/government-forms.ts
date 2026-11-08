@@ -12,7 +12,12 @@ import { fileResponse } from '@/server/files';
 // PDF the browser fills, and the page that fills it. The database decides who may read it (app.government_form_fill_read).
 export interface StaffFill { id: string; form_code: string; title: string | null; vehicle_id: string; vehicle_name: string; owner_id: string; owner_name: string; status: string; mode: string;
   missing: string[]; data_sheet: Array<{ label: string; value: string | null }>; generated_at: string; current: boolean; official: boolean; file_key: string | null;
-  field_values: Record<string, string | null>; field_map: Record<string, Spec | string>; signed_document_id: string | null }
+  field_values: Record<string, string | null>; field_map: Record<string, Spec | string>; signed_document_id: string | null;
+  /** r35 (0870): this version's number, every version, the boxes that may be changed and the changes made by hand */
+  version?: number; can_edit?: boolean; versions?: GovVersion[]; fields?: GovField[]; edits?: GovEdit[] }
+export interface GovVersion { id: string; version: number; generated_at: string; status: string; current: boolean; edits: number; official: boolean; by: string }
+export interface GovField { target: 'pdf' | 'sheet'; name: string; label: string; page?: number | null; max_length?: number | null; value: string | null; records?: string | null; edited: boolean }
+export interface GovEdit { id: string; target: 'pdf' | 'sheet'; field: string; label: string; value: string | null; reason: string; at: string; by: string | null; ended_at: string | null; end_reason: string | null }
 
 export async function staffFill(id: string): Promise<StaffFill | null> {
   if (!/^[0-9a-f-]{36}$/.test(id)) return null;
