@@ -221,7 +221,7 @@ test('money: an Admin issues an approved refund through the payments module, onc
     const row = page.getByTestId('refunds').locator('tr', { hasText: b.number });
     await row.getByTestId('refund-issue').click();
     await check(page, 'refund confirm 1440');
-    await page.getByTestId('refund-issue-submit').click();
+    await page.getByRole('dialog', { name: 'Issue the refund' }).getByTestId('refund-issue-submit').click();
     const status = await waitFor(async () => (await sql`select status from refunds where id = ${rf!.id}`)[0]!.status as string, (x) => x === 'paid', 20_000);
     expect(status).toBe('paid');
     const pays = await sql`select p.kind, p.status, p.amount_cents, d.processor_refund_id from payments p join payment_processor_details d on d.payment_id = p.id where p.parent_payment_id = ${b.payment}`;
