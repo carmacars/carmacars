@@ -1,56 +1,65 @@
 import Link from '@/components/Link';
+import { requestNow } from '@/features/va/lanes';
 import { pageMeta } from '@/features/seo/meta';
 import { door, requireStaff } from '@/server/door';
 import { FieldButton } from '@/features/field/FieldButton';
-import { StartChecklist } from '@/features/field/StartChecklist';
 import { Plate } from '@/features/field/Plate';
 import { FdIcon } from '@/features/field/icons';
 import { LicenceReview } from '@/features/field/LicenceReview';
-import { CHECK, KIND, STATUS, clock, dayLabel, fromNow, maps, tel } from '@/features/field/format';
-import type { FieldCard, FieldJob, FieldList, LicenceCard } from '@/features/field/types';
+import { KIND, clock, dayLabel, tel } from '@/features/field/format';
+import type { FieldList, LicenceCard } from '@/features/field/types';
 import { when } from '@/features/agreement/model';
 import { getTokens } from '@/lib/site';
 import { signCount } from '@/features/manual/SignPages';
-import { ContactButtons } from '@/features/phone/QuoButtons';
-
-interface MyShifts { locked: boolean; mine: Array<{ id: string; starts_at: string; ends_at: string; note: string | null }>; open: Array<{ id: string; starts_at: string; ends_at: string; capacity: number; taken: number; mine: boolean; note: string | null }> }
-const shiftWhen = (a: string, b: string) => `${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(a)).replace('a.m.', 'AM').replace('p.m.', 'PM')} to ${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' }).format(new Date(b)).replace('a.m.', 'AM').replace('p.m.', 'PM')}`;
+import { ShiftStrip } from '@/features/field-portal/ShiftStrip';
+import { WorkCard } from '@/features/field-portal/WorkCard';
+import { AddButton } from '@/features/field-portal/AddButton';
+import type { OpenMust, Today } from '@/features/field-portal/model';
 
 export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'My jobs', path: '/staff/field', noindex: true, description: 'Today\'s and tomorrow\'s field jobs.' });
+export const metadata = pageMeta({ title: 'Today', path: '/staff/field', noindex: true, description: 'Your shift and your work list for the day.' });
 
-const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
+const dateText = (d: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' }).format(new Date(`${d}T12:00:00Z`));
+const TODO_HREF: Record<string, string> = { field_receipt_missing: '/staff/field/shifts#spending', field_pay_details: '/staff/field/pay#pay-details', first_day: '/staff/welcome' };
+const tomorrowIso = () => { const d = new Date(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto' }).format(new Date()) + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
 
-// Today and tomorrow (06-field.md section 2): the field staff member's own jobs in time order. The next job is the
-// big card at the top (its time, the car's plate, the place with Maps and a call to the renter, what to bring and the
-// one button that starts it); the rest follow as a timeline. Vehicle moves below. (2026-10-25 design pass.)
-export default async function Field({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const [{ user, roles }, sp] = await Promise.all([requireStaff('field', '/staff/field'), searchParams]);
-  const office = !!roles.va;
-  // 0162: the licences of the renters on their upcoming jobs (today and the next 7 days) that wait for a decision
-  const [d, tk, toSign, licences, shifts] = await Promise.all([door<FieldList>(user.id, 'field_read', 'jobs'), getTokens(), signCount(user.id),
+// Today (r35 part X; 06-field.md section 2): the shift and Clock in at the top, then one ordered list of the day's work built from
+// the data (0930): each pickup and return of the person with its add-ons and clean check as one card, onboarding prep, then the
+// cars to clean, the cars needing service and listing photos when there is time. One Add button for money spent, a service
+// record, photos and a problem. Tomorrow shows what is planned so far.
+export default async function FieldToday({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const [{ user }, sp] = await Promise.all([requireStaff('field', '/staff/field'), searchParams]);
+  const tomorrow = sp.day === 'tomorrow';
+  const [t, open, list, tk, toSign, licences, report] = await Promise.all([
+    door<Today>(user.id, 'field_read', 'today', tomorrow ? { day: tomorrowIso() } : {}),
+    tomorrow ? Promise.resolve([] as OpenMust[]) : door<OpenMust[]>(user.id, 'field_read', 'open_musts').catch(() => [] as OpenMust[]),
+    door<FieldList>(user.id, 'field_read', 'jobs').catch(() => null), getTokens(), signCount(user.id),
     door<LicenceCard[]>(user.id, 'field_read', 'licences').catch(() => [] as LicenceCard[]),
-    roles.admin ? Promise.resolve(null) : door<MyShifts>(user.id, 'field_read', 'my_shifts').catch(() => null)]);
-  const day = sp.day === 'tomorrow' ? 'tomorrow' : 'today';
-  const jobs = d[day];
-  const next = jobs.find((j) => !['done'].includes(j.status));
-  // the next job's details (the renter's phone, what goes in the car, the office's note): the same read as the job page
-  const nj = next ? await door<FieldJob | null>(user.id, 'field_read', 'job', { id: next.field_job_id }).catch(() => null) : null;
-  const rest = jobs.filter((j) => j !== next);
-  const done = jobs.filter((j) => j.status === 'done').length;
+    door<{ vehicles: Array<{ id: string; name: string; job: string }> }>(user.id, 'field_read', 'report_form').catch(() => ({ vehicles: [] }))]);
+  const musts = t.cards.filter((c) => c.must);
+  const spare = t.cards.filter((c) => !c.must);
+  const now = requestNow();
+  const cars = [...new Map(t.cards.map((c) => [c.vehicle.id, { id: c.vehicle.id, name: `${c.vehicle.name}${c.vehicle.plate ? `, ${c.vehicle.plate}` : ''}` }])).values()];
+  const bookings = t.cards.filter((c) => c.booking).map((c) => ({ id: c.booking!.id, number: c.booking!.number, vehicle: c.vehicle.id }));
+  const preps = Object.fromEntries(t.cards.filter((c) => c.type === 'prep' && !c.done && c.id).map((c) => [c.vehicle.id, c.id!]));
+  const first = list?.name?.split(' ')[0];
   return (
     <>
-      <header className="fd-home">
-        <h1 className="fd-home__h">My jobs{d.name ? <span className="fd-home__name">, {d.name.split(' ')[0]}</span> : ''}</h1>
-        <p className="fd-home__sub">{today()}{d.today.length ? <>. {done && day === 'today' ? `${done} of ${d.today.length} done` : `${d.today.length} today`}</> : null}</p>
-        {/* r27 consolidation: actions are buttons here, not menu items (an office holder adds rentals from Bookings) */}
-        <p className="fd-home__acts">{!office && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/field/rentals/new" data-testid="field-add-rental">Add a rental</Link>}
-          <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/field/report" data-testid="field-report">Report a problem</Link></p>
+      <header className="fp-hello">
+        <h1>{tomorrow ? 'Tomorrow' : `Today${first ? `, ${first}` : ''}`}</h1>
+        <p>{dateText(t.day)}</p>
       </header>
-      {toSign > 0 && <p className="alert alert--warn" role="status" data-testid="field-to-sign"><span>You have {toSign === 1 ? 'a document' : `${toSign} documents`} to sign. <Link prefetch={false} className="link" href="/staff/field/sign">Read and sign</Link></span></p>}
-      {licences.length > 0 && <section className="fd-licences" aria-labelledby="lic-t" data-testid="field-licences">
-        <h2 className="fd-section-h" id="lic-t">Licences to check <span className="fd-days__n">{licences.length}</span></h2>
-        <p className="small">The renter&apos;s licence and selfie on your next jobs wait for a decision. Look at them and approve, or reject with a reason.</p>
+      <nav className="fd-days" aria-label="Day">
+        <Link prefetch={false} href="/staff/field" aria-current={!tomorrow ? 'page' : undefined}>Today</Link>
+        <Link prefetch={false} href="/staff/field?day=tomorrow" aria-current={tomorrow ? 'page' : undefined}>Tomorrow</Link>
+      </nav>
+      {!tomorrow && <ShiftStrip t={t} open={open} />}
+      {(t.todo.length > 0 || toSign > 0) && <ul className="fp-todo" aria-label="To do" data-testid="field-todo">
+        {toSign > 0 && <li data-testid="field-to-sign"><Link prefetch={false} href="/staff/field/sign"><FdIcon name="alert" />{toSign === 1 ? 'A document' : `${toSign} documents`} to read and sign</Link></li>}
+        {t.todo.map((x) => <li key={x.id}><Link prefetch={false} href={TODO_HREF[x.type] ?? '/staff/field'}><FdIcon name="alert" />{x.title}</Link></li>)}
+      </ul>}
+      {licences.length > 0 && <section aria-labelledby="lic-t" data-testid="field-licences" className="fp-stack">
+        <h2 className="fp-group-h" id="lic-t">Licences to check <span className="fd-days__n">{licences.length}</span></h2>
         <ul className="fd-lic-list">{licences.map((l) => <li key={l.field_job_id} className="fd-lic-card" data-testid="licence-card">
           <p className="fd-lic-card__when">{dayLabel(l.scheduled_at)}, {clock(l.scheduled_at).time} {clock(l.scheduled_at).half}<span className="small"> · {KIND[l.kind] ?? l.kind}</span></p>
           <p className="fd-lic-card__car">{l.vehicle_label}</p>
@@ -58,99 +67,26 @@ export default async function Field({ searchParams }: { searchParams: Promise<Re
           <LicenceReview job={l.field_job_id} waiting={l.waiting} />
         </li>)}</ul>
       </section>}
-      {shifts && <section className="fd-licences" aria-labelledby="shifts-t" data-testid="field-shifts">
-        <h2 className="fd-section-h" id="shifts-t">Your shifts <span className="fd-days__n">{shifts.mine.length}</span></h2>
-        {shifts.mine.length ? <ul className="fd-lic-list">{shifts.mine.map((s) => <li key={s.id} className="fd-lic-card" data-testid="my-shift">
-          <p className="fd-lic-card__when">{shiftWhen(s.starts_at, s.ends_at)}</p>{s.note && <p className="small">{s.note}</p>}
-          <FieldButton action="shift_drop" payload={{ id: s.id }} label="Give this shift up" testId={`drop-${s.id}`} /></li>)}</ul>
-          : <p className="small">You have no shifts yet. Jobs are given only to people on a shift that day: take the open shifts below.</p>}
-        {shifts.open.filter((o) => !o.mine).length > 0 && <>
-          <h3 className="small"><b>Open shifts</b></h3>
-          <ul className="fd-lic-list">{shifts.open.filter((o) => !o.mine).map((o) => <li key={o.id} className="fd-lic-card" data-testid="open-shift">
-            <p className="fd-lic-card__when">{shiftWhen(o.starts_at, o.ends_at)}</p><p className="small">{o.taken} of {o.capacity} taken{o.note ? `. ${o.note}` : ''}</p>
-            {o.taken >= o.capacity ? <p className="small">Full</p> : <FieldButton action="shift_take" payload={{ slot: o.id }} label="Take this shift" primary testId={`take-${o.id}`} />}</li>)}</ul></>}
-      </section>}
-      <nav className="fd-days" aria-label="Day">
-        <Link prefetch={false} href="/staff/field" aria-current={day === 'today' ? 'page' : undefined}>Today <span className="fd-days__n">{d.today.length}</span></Link>
-        <Link prefetch={false} href="/staff/field?day=tomorrow" aria-current={day === 'tomorrow' ? 'page' : undefined}>Tomorrow <span className="fd-days__n">{d.tomorrow.length}</span></Link>
-      </nav>
-      {!jobs.length && <div className="fd-empty" data-testid="no-jobs"><FdIcon name="car" className="fd-empty__ico" /><p className="fd-empty__h">No jobs {day}.</p><p className="small">{day === 'today' ? 'New jobs show up here as CarmaCars books them. Tomorrow shows what is coming.' : 'Jobs for tomorrow show up here as they are booked.'}</p></div>}
-      {next && <NextJob j={next} detail={nj} />}
-      {rest.length > 0 && <section aria-labelledby="later-t" className="fd-later">
-        <h2 className="fd-section-h" id="later-t">{next ? (day === 'today' ? 'Also today' : 'Also tomorrow') : 'Done'}</h2>
-        <ol className="fd-tl">{rest.map((j) => <TimelineJob key={j.field_job_id} j={j} />)}</ol>
-      </section>}
-      {/* vehicle moves: shown when there is a car to move or a move to end (an empty card with nothing to press is clutter) */}
-      {(d.vehicles.length > 0 || d.moves.length > 0) && <section className="fd-card fd-moves" aria-labelledby="moves-t">
-        <h2 className="fd-section-h" id="moves-t">Vehicle moves</h2>
-        {d.moves.map((m) => <div key={m.id} className="fd-move">
+      <h2 className="fp-group-h">{tomorrow ? 'Planned so far' : 'Your work'}<span className="small">{musts.length ? `${musts.length} ${musts.length === 1 ? 'card' : 'cards'}` : ''}</span></h2>
+      {musts.length ? <ol className="fp-list" data-testid="work-list">{musts.map((c) => <WorkCard key={c.key} c={c} now={now} />)}</ol>
+        : <div className="fd-empty" data-testid="no-jobs"><FdIcon name="car" className="fd-empty__ico" /><p className="fd-empty__h">No pickups or returns {tomorrow ? 'tomorrow yet' : 'today'}.</p>
+          <p className="small">{t.on_shift || tomorrow ? 'New work shows up here as bookings come in.' : 'Jobs go to people on a shift: claim one on My shifts.'}</p></div>}
+      {spare.length > 0 && <>
+        <h2 className="fp-group-h">When you have time<span className="small">{spare.length}</span></h2>
+        <ol className="fp-list" data-testid="spare-list">{spare.map((c) => <WorkCard key={c.key} c={c} now={now} />)}</ol>
+      </>}
+      {!tomorrow && <p><Link prefetch={false} className="btn btn--ghost fd-wide" href="/staff/field/help" data-testid="help-find"><FdIcon name="search" />Help a renter: find a booking</Link></p>}
+      {list && (list.vehicles.length > 0 || list.moves.length > 0) && <section className="fd-card fd-moves" aria-labelledby="moves-t">
+        <h2 className="fd-section-h" id="moves-t">Moving a car</h2>
+        {list.moves.map((m) => <div key={m.id} className="fd-move">
           <p className="fd-move__what"><FdIcon name="car" /><span><b>{m.vehicle_name}</b><span className="small"> on the move since {when(m.started_at)}{m.from_place ? `, from ${m.from_place}` : ''}</span></span></p>
           <FieldButton action="move_end" payload={{ move: m.id }} label="End the move" sheet={{ confirm: 'End the move now', title: `End the move: ${m.vehicle_name}` }} primary testId="move-end" fields={[{ name: 'to_place', label: 'Now at', address: true }, { name: 'odometer', label: 'Odometer (km)', numeric: true }]} /></div>)}
-        {d.vehicles.length > 0 && <FieldButton action="move_start" payload={{}} label="Start a move" sheet={{ confirm: 'Start the move now', title: 'Start a move' }} testId="move-start" fields={[{ name: 'vehicle', label: 'Car', options: d.vehicles.map((v) => [v.id, v.name] as [string, string]) },
+        {list.vehicles.length > 0 && <FieldButton action="move_start" payload={{}} label="Start a move" sheet={{ confirm: 'Start the move now', title: 'Start a move' }} testId="move-start" fields={[{ name: 'vehicle', label: 'Car', options: list.vehicles.map((v) => [v.id, v.name] as [string, string]) },
           { name: 'purpose', label: 'Why', options: [['repositioning', 'Reposition'], ['service', 'Service or repair'], ['detail', 'To the detailer'], ['other', 'Other']] }, { name: 'from_place', label: 'From', address: true }, { name: 'odometer', label: 'Odometer (km)', numeric: true }]} />}
       </section>}
-      {tk.phone && <a className="btn btn--ghost fd-wide fd-call" href={tel(tk.phone)}><FdIcon name="phone" />Call CarmaCars, {tk.phone}</a>}
+      <p className="small fp-links"><Link prefetch={false} className="link" href="/staff/field/now">Cars now</Link> · <Link prefetch={false} className="link" href="/staff/field/map">Map of your cars</Link>
+        {tk.phone ? <> · <a className="link" href={tel(tk.phone)}>Call CarmaCars, {tk.phone}</a></> : null}</p>
+      {!tomorrow && <AddButton cars={cars} bookings={bookings} reportCars={report.vehicles} preps={preps} startOpen={sp.add === 'problem' ? 'problem' : sp.add === 'money' ? 'money' : null} />}
     </>
-  );
-}
-
-// The job to do next: everything needed to get there and start, in reading order, with the button at the bottom.
-function NextJob({ j, detail }: { j: FieldCard; detail: FieldJob | null }) {
-  const c = clock(j.scheduled_at);
-  const rel = fromNow(j.scheduled_at, detail?.now ?? new Date());
-  const check = CHECK[j.kind];
-  const b = detail?.booking ?? null;
-  const bring = [...(b?.addons ?? []).map((a) => `${a.quantity > 1 ? `${a.quantity} x ` : ''}${a.name}${a.handover_note ? `: ${a.handover_note}` : ''}`), ...(b?.prepaid_fuel ? ['Prepaid fuel: no fuel charge at the return'] : [])];
-  return (
-    <section className={`fd-next is-${j.status}`} aria-labelledby={`j-${j.field_job_id}`} data-testid="job-card">
-      <div className="fd-next__when">
-        <p className="fd-next__time"><span className="vh">Next job at </span>{c.time}<span className="fd-next__half">{c.half}</span></p>
-        <p className={`fd-next__rel${rel.late && j.status !== 'in_progress' ? ' is-late' : ''}`}>{j.status === 'in_progress' ? 'In progress' : rel.text}</p>
-      </div>
-      <p className="fd-next__kind">{KIND[j.kind] ?? j.kind}<span className={`fd-chip is-${j.status}`}>{STATUS[j.status] ?? j.status.replace(/_/g, ' ')}</span></p>
-      <h2 className="fd-next__car" id={`j-${j.field_job_id}`}>{j.vehicle_label}</h2>
-      <div className="fd-next__id">{j.plate && <Plate plate={j.plate} />}<span className="small">{[j.renter_first_name, j.booking_number].filter(Boolean).join(', ')}</span></div>
-      {j.place && <p className="fd-next__place"><FdIcon name="pin" /><span>{j.place}</span></p>}
-      {(j.place || b?.renter?.mobile) && <div className="fd-next__go">
-        {j.place && <a className="btn fd-go" href={maps(j.place)} target="_blank" rel="noreferrer"><FdIcon name="pin" />Open in maps</a>}
-        {b?.renter?.mobile && <ContactButtons phone={b.renter.mobile} name={j.renter_first_name} booking={j.booking_number} btnClass="btn fd-go" testId="fd-next-renter">Call {j.renter_first_name ?? 'the renter'}</ContactButtons>}
-      </div>}
-      {(bring.length > 0 || detail?.job.instructions) && <div className="fd-bring">
-        <p className="fd-bring__h"><FdIcon name="bag" />{bring.length ? 'Put in the car' : 'From the office'}</p>
-        {bring.length > 0 && <ul>{bring.map((x) => <li key={x}>{x}</li>)}</ul>}
-        {detail?.job.instructions && <p className="small">{detail.job.instructions}</p>}
-      </div>}
-      {j.status === 'scheduled' && <p className="fd-next__ack">Please acknowledge this job.</p>}
-      <div className="fd-next__do">
-        {/* a check-in or a check-out: one tap starts the job and opens its photo checklist (0130) */}
-        {check && <StartChecklist job={j.field_job_id} status={j.status} label={check} testId={check === 'Check in (pickup)' ? 'field-checkout' : 'field-checkin'} />}
-        {j.status === 'scheduled' && <FieldButton action="acknowledge" payload={{ job: j.field_job_id }} label="Acknowledge" primary={!check} testId="acknowledge" />}
-        <Link prefetch={false} className={`btn ${j.status === 'scheduled' || check ? 'btn--ghost' : 'btn--primary'} fd-wide`} href={`/staff/field/jobs/${j.field_job_id}`} data-testid="open-job">Open the job</Link>
-      </div>
-    </section>
-  );
-}
-
-// One more job of the day: its time on the rail, the car and the place, and its own buttons.
-function TimelineJob({ j }: { j: FieldCard }) {
-  const c = clock(j.scheduled_at);
-  const check = CHECK[j.kind];
-  const isDone = j.status === 'done';
-  return (
-    <li className={`fd-tl__item is-${j.status}`}>
-      <p className="fd-tl__time">{c.time}<span>{c.half}</span></p>
-      <section className="fd-tl__card" aria-labelledby={`j-${j.field_job_id}`} data-testid="job-card">
-        <p className="fd-tl__kind">{KIND[j.kind] ?? j.kind}<span className={`fd-chip is-${j.status}`}>{isDone ? <><FdIcon name="check" />Done</> : STATUS[j.status] ?? j.status.replace(/_/g, ' ')}</span></p>
-        <h3 className="fd-tl__car" id={`j-${j.field_job_id}`}>{j.vehicle_label}</h3>
-        <div className="fd-next__id">{j.plate && <Plate plate={j.plate} small />}<span className="small">{[j.renter_first_name, j.booking_number].filter(Boolean).join(', ')}</span></div>
-        {j.place && <p className="fd-tl__place"><FdIcon name="pin" /><span>{j.place}</span> <a className="link" href={maps(j.place)} target="_blank" rel="noreferrer">Open in maps</a></p>}
-        {!isDone && <div className="fd-tl__do">
-          {check && <StartChecklist job={j.field_job_id} status={j.status} label={check} testId={check === 'Check in (pickup)' ? 'field-checkout' : 'field-checkin'} />}
-          {j.status === 'scheduled' && <><p className="small"><b>Please acknowledge this job.</b></p><FieldButton action="acknowledge" payload={{ job: j.field_job_id }} label="Acknowledge" primary={!check} testId="acknowledge" /></>}
-          <Link prefetch={false} className="btn btn--ghost fd-wide" href={`/staff/field/jobs/${j.field_job_id}`} data-testid="open-job">Open the job</Link>
-        </div>}
-        {isDone && <Link prefetch={false} className="link small" href={`/staff/field/jobs/${j.field_job_id}`} data-testid="open-job">Open the job</Link>}
-      </section>
-    </li>
   );
 }

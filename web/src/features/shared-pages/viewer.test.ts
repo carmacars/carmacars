@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { ADMIN, STAFF_SHARED, bookingCan, bookingTabs, listingCan, portalBase, staffViewer, vehicleCan, type BookingCan, type StaffFn } from './viewer.ts';
+import { ADMIN, FIELD, STAFF_SHARED, bookingCan, bookingTabs, listingCan, portalBase, staffViewer, vehicleCan, type BookingCan, type StaffFn } from './viewer.ts';
 
 // r31 "Simple": the shared Admin and staff pages. These tables are what each staff function saw on its own copy of the
 // page before r31 (app/staff/bookings/[number], vehicles/[id], listings/[id] at 2a7ed386); a change here is a change of
@@ -38,6 +38,12 @@ describe('the shared booking page', () => {
       assert.equal(c.renterDocs, false, `${fn}: the coverage review stays with an Admin and customer service's own queue`);
       assert.equal(c.verifyInPerson, false, fn);
     }
+  });
+  it('gives field staff on the spot payment, the deposit, the licence in person and the signature only (r35 part X)', () => {
+    assert.deepEqual(yes(bookingCan(FIELD)), ['handover', 'money', 'paperSignatures', 'sign', 'verifyInPerson']);
+    assert.equal(bookingCan(FIELD).refund, false);
+    assert.equal(bookingCan(FIELD).voidRecords, false);
+    assert.equal(vehicleCan(FIELD), null);
   });
   it('shows the tabs each function had', () => {
     assert.deepEqual(bookingTabs(staffViewer('sales')), ['overview', 'money', 'documents', 'car', 'activity']);

@@ -1,13 +1,4 @@
-import { pageMeta } from '@/features/seo/meta';
-import { door, requireStaff } from '@/server/door';
-import { FieldReport } from '@/features/field/FieldReport';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-export const metadata = pageMeta({ title: 'Report a problem', path: '/staff/field/report', noindex: true, description: 'Report something from a car.' });
-
-// /field/report (06-field.md section 9).
-export default async function Report() {
-  const { user } = await requireStaff('field', '/staff/field/report');
-  const f = await door<{ vehicles: Array<{ id: string; name: string; job: string }> }>(user.id, 'field_read', 'report_form');
-  return (<><h1 className="d3">Report a problem</h1><p className="small muted">New damage, a warning light, a collision, a ticket, lost property or anything else about a car.</p><FieldReport vehicles={f.vehicles} /></>);
-}
+// r35 part X: a problem with a car is reported from the one Add button on Today.
+export default function Report() { redirect('/staff/field?add=problem'); }

@@ -7,6 +7,7 @@ import { FieldJobsBoard, type Board } from '@/features/va/FieldJobs';
 import type { CalVehicle } from '@/features/va/carboard';
 import { requestNow } from '@/features/va/lanes';
 import { carPhotos } from '@/server/car-photos';
+import { PrepPanel, WorkListsPanel, type PrepList, type WorkLists } from '@/features/field-portal/FleetPanels';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Field jobs', path: '/staff/fleet', noindex: true, description: 'Field job scheduling and assignment.' });
@@ -23,5 +24,7 @@ export default async function Fleet() {
   const [b, cal] = await Promise.all([door<Board>(user.id, 'ops_read', 'field_board', {}, aal),
     read<{ vehicles: CalVehicle[] }>('calendar', { from: new Date(now - 86_400_000).toISOString(), to: new Date(now + 2 * 86_400_000).toISOString() }).then((c) => c.vehicles).catch(() => [] as CalVehicle[])]);
   const photos = await carPhotos([...b.unscheduled, ...b.jobs]);
-  return <FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/staff" />;
+  // r35 part X (0930): each person's list of the day with its completion, and the onboarding prep
+  const [wl, prep] = await Promise.all([door<WorkLists>(user.id, 'ops_read', 'field_work_lists', {}, aal).catch(() => null), door<PrepList>(user.id, 'ops_read', 'field_prep', {}, aal).catch(() => null)]);
+  return <>{wl && <WorkListsPanel w={wl} />}<FieldJobsBoard b={b} cal={cal} now={now} photos={photos} base="/staff" />{prep && <PrepPanel p={prep} />}</>;
 }
