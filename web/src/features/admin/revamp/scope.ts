@@ -7,7 +7,7 @@ export const REVAMP_ADMIN: string[] = [
   '/admin/money', '/admin/owner-money', '/admin/invoices', '/admin/statements', '/admin/payouts', '/admin/debits', '/admin/payments', '/admin/reconciliation',
   '/admin/insurers', '/admin/insurer-invoices', '/admin/reports', '/admin/expenses', '/admin/tolls',
   '/admin/damages', '/admin/incidents', '/admin/logs', '/admin/messages', '/admin/audit', '/admin/alerts', '/admin/settings',
-  '/admin/vehicles', '/admin/listings', '/admin/maintenance', '/admin/calendar-sync', '/admin/similar-cars',
+  '/admin/vehicles', '/admin/listings', '/admin/maintenance', '/admin/field-jobs', '/admin/calendar-sync', '/admin/similar-cars',
   '/admin/applications', '/admin/owners', '/admin/owner-forms', '/admin/partners', '/admin/referral-partners', '/admin/renters', '/admin/leads',
   '/admin/academy', '/admin/hiring', '/admin/portals', '/admin/investors', '/admin/marketing', '/admin/reviews'
 ];

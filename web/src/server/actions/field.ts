@@ -12,7 +12,7 @@ import { kickPdfJobs } from '@/server/pdf-jobs';
 type R<T = unknown> = ActionResult<T>;
 const fail = (e: unknown): R<never> => ({ ok: false, code: 'refused', message: e instanceof DbError || e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'Something went wrong.' });
 const ACTIONS = ['acknowledge', 'start', 'save_report', 'complete_handover', 'complete_return', 'block_handover', 'move_start', 'move_end', 'late_damage',
-  'checklist_save', 'complete_job', 'reshoot_photo', 'report', 'profile_save', 'identity_in_person', 'deposit_offline', 'tracker_override', 'licence_approve_all', 'licence_reject'] as const;
+  'checklist_save', 'complete_job', 'reshoot_photo', 'report', 'profile_save', 'identity_in_person', 'deposit_offline', 'tracker_override', 'licence_approve_all', 'licence_reject', 'shift_take', 'shift_drop'] as const;
 // the steps of a check-in that staff other than field staff may take on a job of their own (0130, 0151)
 const HANDOVER = ['save_report', 'complete_handover', 'complete_return', 'block_handover', 'identity_in_person', 'deposit_offline', 'tracker_override'];
 

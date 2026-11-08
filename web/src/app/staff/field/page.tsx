@@ -13,6 +13,9 @@ import { getTokens } from '@/lib/site';
 import { signCount } from '@/features/manual/SignPages';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 
+interface MyShifts { locked: boolean; mine: Array<{ id: string; starts_at: string; ends_at: string; note: string | null }>; open: Array<{ id: string; starts_at: string; ends_at: string; capacity: number; taken: number; mine: boolean; note: string | null }> }
+const shiftWhen = (a: string, b: string) => `${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(a)).replace('a.m.', 'AM').replace('p.m.', 'PM')} to ${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' }).format(new Date(b)).replace('a.m.', 'AM').replace('p.m.', 'PM')}`;
+
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'My jobs', path: '/staff/field', noindex: true, description: 'Today\'s and tomorrow\'s field jobs.' });
 
@@ -25,8 +28,9 @@ export default async function Field({ searchParams }: { searchParams: Promise<Re
   const [{ user, roles }, sp] = await Promise.all([requireStaff('field', '/staff/field'), searchParams]);
   const office = !!roles.va;
   // 0162: the licences of the renters on their upcoming jobs (today and the next 7 days) that wait for a decision
-  const [d, tk, toSign, licences] = await Promise.all([door<FieldList>(user.id, 'field_read', 'jobs'), getTokens(), signCount(user.id),
-    door<LicenceCard[]>(user.id, 'field_read', 'licences').catch(() => [] as LicenceCard[])]);
+  const [d, tk, toSign, licences, shifts] = await Promise.all([door<FieldList>(user.id, 'field_read', 'jobs'), getTokens(), signCount(user.id),
+    door<LicenceCard[]>(user.id, 'field_read', 'licences').catch(() => [] as LicenceCard[]),
+    roles.admin ? Promise.resolve(null) : door<MyShifts>(user.id, 'field_read', 'my_shifts').catch(() => null)]);
   const day = sp.day === 'tomorrow' ? 'tomorrow' : 'today';
   const jobs = d[day];
   const next = jobs.find((j) => !['done'].includes(j.status));
@@ -53,6 +57,18 @@ export default async function Field({ searchParams }: { searchParams: Promise<Re
           <div className="fd-lic-card__id">{l.plate && <Plate plate={l.plate} small />}<span className="small">{[l.renter_first_name, l.booking_number].filter(Boolean).join(', ')}, {l.waiting} image{l.waiting === 1 ? '' : 's'} waiting</span></div>
           <LicenceReview job={l.field_job_id} waiting={l.waiting} />
         </li>)}</ul>
+      </section>}
+      {shifts && <section className="fd-licences" aria-labelledby="shifts-t" data-testid="field-shifts">
+        <h2 className="fd-section-h" id="shifts-t">Your shifts <span className="fd-days__n">{shifts.mine.length}</span></h2>
+        {shifts.mine.length ? <ul className="fd-lic-list">{shifts.mine.map((s) => <li key={s.id} className="fd-lic-card" data-testid="my-shift">
+          <p className="fd-lic-card__when">{shiftWhen(s.starts_at, s.ends_at)}</p>{s.note && <p className="small">{s.note}</p>}
+          <FieldButton action="shift_drop" payload={{ id: s.id }} label="Give this shift up" testId={`drop-${s.id}`} /></li>)}</ul>
+          : <p className="small">You have no shifts yet. Jobs are given only to people on a shift that day: take the open shifts below.</p>}
+        {shifts.open.filter((o) => !o.mine).length > 0 && <>
+          <h3 className="small"><b>Open shifts</b></h3>
+          <ul className="fd-lic-list">{shifts.open.filter((o) => !o.mine).map((o) => <li key={o.id} className="fd-lic-card" data-testid="open-shift">
+            <p className="fd-lic-card__when">{shiftWhen(o.starts_at, o.ends_at)}</p><p className="small">{o.taken} of {o.capacity} taken{o.note ? `. ${o.note}` : ''}</p>
+            {o.taken >= o.capacity ? <p className="small">Full</p> : <FieldButton action="shift_take" payload={{ slot: o.id }} label="Take this shift" primary testId={`take-${o.id}`} />}</li>)}</ul></>}
       </section>}
       <nav className="fd-days" aria-label="Day">
         <Link prefetch={false} href="/staff/field" aria-current={day === 'today' ? 'page' : undefined}>Today <span className="fd-days__n">{d.today.length}</span></Link>
