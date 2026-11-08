@@ -8,6 +8,7 @@ import { agoWords, clock, dayClock, EVENT_WORDS } from '../live/staff';
 import { phoneDo, phoneRead, CallBody, type PhoneInboxData, type PhoneThreadData, type PhoneThreadRow } from './client';
 import { poller } from '@/lib/poll/poll';
 import { ContactButtons } from '@/features/phone/QuoButtons';
+import { RenterNotesLoader } from '@/features/caller/RenterNotes';
 
 // Live chat > Texts and calls (migration 0085): every number that called or texted the CarmaCars Quo line, newest first;
 // Unknown callers with Create lead and Link to a renter; the thread with calls and texts, the reply box (sent through
@@ -180,7 +181,8 @@ function Who({ t, portal, fn, bookingBase, onLinked }: { t: PhoneThreadData; por
   return (
     <div className="small stack">
       {t.renter && <div><p><b>{t.renter.name}</b> <span className="muted">renter</span>{portal === 'admin' && <> · <Link prefetch={false} className="link" href={`/admin/renters/${t.renter.id}`}>Renter page</Link></>}</p>
-        {t.renter.bookings.length > 0 && <ul className="lc-bk">{t.renter.bookings.map((b) => <li key={b.number}>{portal === 'va' && fn === 'sales' && !SALES_OPENS.includes(b.status) ? <span>{b.number}</span> : <Link prefetch={false} className="link" href={`${bookingBase}${encodeURIComponent(b.number)}`}>{b.number}</Link>} <span className="muted">{b.status.replace(/_/g, ' ')}</span></li>)}</ul>}</div>}
+        {t.renter.bookings.length > 0 && <ul className="lc-bk">{t.renter.bookings.map((b) => <li key={b.number}>{portal === 'va' && fn === 'sales' && !SALES_OPENS.includes(b.status) ? <span>{b.number}</span> : <Link prefetch={false} className="link" href={`${bookingBase}${encodeURIComponent(b.number)}`}>{b.number}</Link>} <span className="muted">{b.status.replace(/_/g, ' ')}</span></li>)}</ul>}
+        {/* r34 (0800): the renter's notes beside the conversation */}<RenterNotesLoader key={t.renter.id} renterId={t.renter.id} /></div>}
       {t.owner && <p><b>{t.owner.name}</b> <span className="muted">owner</span>{portal === 'admin' && <> · <Link prefetch={false} className="link" href={`/admin/owners/${t.owner.id}`}>Owner page</Link></>}</p>}
       {t.lead && <p><b>{t.lead.name ?? 'Lead'}</b> <span className="muted">lead ({t.lead.kind.replace(/_/g, ' ')}, {t.lead.status})</span></p>}
       {t.staff && <p><b>{t.staff.name}</b> <span className="muted">staff</span></p>}

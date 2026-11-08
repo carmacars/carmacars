@@ -1,0 +1,43 @@
+/* Who is calling and renter notes (migration 0800): the caller panel docked bottom right (a sheet across the bottom on a
+   phone), black on white with the portals' red for a live call, and the notes list. */
+.cp { position: fixed; right: 16px; bottom: 16px; z-index: 60; width: min(24rem, calc(100vw - 32px)); pointer-events: none; }
+.cp-panel { display: grid; gap: 10px; max-height: calc(100vh - 32px); overflow-y: auto; pointer-events: auto; }
+.cp-card { background: var(--white); color: var(--text); border: 1px solid var(--grey-300); border-top: 4px solid var(--grey-700); border-radius: 14px;
+  box-shadow: 0 18px 48px -18px rgb(0 0 0 / 0.45); padding: 12px 14px; display: grid; gap: 10px; overflow-wrap: anywhere; }
+.cp-card.is-live { border-top-color: var(--red-600); }
+.cp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.cp-head p { margin: 0; }
+.cp-title { margin: 2px 0; font-size: 1.15rem; line-height: 1.25; }
+.cp-state { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.cp-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--grey-500); flex: none; }
+.cp-card.is-live .cp-dot { background: var(--red-600); }
+@media (prefers-reduced-motion: no-preference) { .cp-card.is-live .cp-dot { animation: cp-pulse 1.4s ease-in-out infinite; } }
+@keyframes cp-pulse { 50% { opacity: 0.35; } }
+.cp-x { border: 0; background: none; font-size: 1.5rem; line-height: 1; width: 44px; height: 44px; margin: -8px -8px 0 0; cursor: pointer; color: var(--grey-700); border-radius: 50%; flex: none; }
+.cp-x:hover { background: var(--grey-100); }
+.cp-x:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.cp-body { display: grid; gap: 10px; }
+.cp-body > p { margin: 0; }
+.cp-kv { display: grid; gap: 4px; margin: 0; }
+.cp-kv > div { display: grid; grid-template-columns: 6.5rem 1fr; gap: 8px; font-size: 0.9rem; }
+.cp-kv dt { color: var(--grey-700); }
+.cp-kv dd { margin: 0; min-width: 0; }
+.cp-reqs { margin: 0; padding-left: 1.1em; }
+.cp-warn { color: var(--red-700, var(--red-600)); font-weight: 600; }
+.cp-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; }
+@media (max-width: 37.49rem) {
+  .cp { right: 8px; left: 8px; bottom: 8px; width: auto; }
+  .cp-panel { max-height: 70vh; }
+}
+
+.rn { display: grid; gap: 10px; }
+.rn-form { display: grid; gap: 6px; margin: 0; }
+.rn-body { width: 100%; resize: vertical; font-size: 16px; }
+.rn-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.rn-err { color: var(--red-700, var(--red-600)); }
+.rn-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rn-list li { border-left: 3px solid var(--grey-200); padding-left: 8px; display: grid; gap: 2px; }
+.rn-list p { margin: 0; }
+.rn-text { white-space: pre-wrap; }
+.rn-remove { border: 0; background: none; padding: 0; cursor: pointer; font: inherit; text-decoration: underline; color: inherit; }
+.rn--compact .rn-list li { font-size: 0.9rem; }

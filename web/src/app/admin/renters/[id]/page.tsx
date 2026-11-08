@@ -14,6 +14,8 @@ import { door } from '@/server/door';
 import { BookingConversation } from '@/features/messages/BookingConversation';
 import type { Conversation } from '@/features/messages/email-choices';
 import { ContactButtons } from '@/features/phone/QuoButtons';
+import { RenterNotes } from '@/features/caller/RenterNotes';
+import type { NotesRead } from '@/features/caller/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Renter', path: '/admin/renters', noindex: true, description: 'One renter: details, bookings and visits on the site.' });
@@ -29,7 +31,7 @@ export default async function Renter({ params, searchParams }: { params: Promise
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { read, user } = await page(`/admin/renters/${id}`);
   const [r, calls] = await Promise.all([read<R>('renter_live', { renter_id: id }).catch(() => null), read<PhoneTimelineData>('phone_timeline', { renter_id: id }).catch(() => null)]);
-  const reach = await read<Reach>('notify_reach', { renter_id: id }).catch(() => null);
+  const [reach, notes] = await Promise.all([read<Reach>('notify_reach', { renter_id: id }).catch(() => null), read<NotesRead>('renter_notes', { renter_id: id }).catch(() => null)]);
   if (!r) notFound();
   // correct the renter's details (0132)
   const rf = await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { renter: id }).catch(() => null);
@@ -58,6 +60,8 @@ export default async function Renter({ params, searchParams }: { params: Promise
             { key: 'car', label: 'Car' }, { key: 'status', label: 'Status', render: (b) => <Badge s={b.status} /> }, { key: 'pickup_at', label: 'Pickup', render: (b) => t(b.pickup_at) }]} /></Card>
         </div>
         <div className="stack">
+          {/* r34 (0800): renter notes, also on the caller pop-up and the staff portal's renter */}
+          <Card title="Notes" testId="renter-notes-card">{notes ? <RenterNotes renterId={id} initial={notes.notes} canRemove={notes.can_remove} /> : <p className="small muted">The notes could not be read. Reload the page.</p>}</Card>
           <ReachCard reach={reach} who={{ renter_id: id }} />
           <Card title="Calls and texts" testId="renter-calls"><PhoneTimeline t={calls} inbox="/admin/visitors?view=chat" /></Card>
           <Card title="On the site" testId="renter-visits"><VisitorTimeline t={r.timeline} chatBase="/admin/visitors?view=chat" /></Card>

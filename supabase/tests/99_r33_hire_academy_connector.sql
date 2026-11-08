@@ -74,7 +74,7 @@ select test.ok('the home read says when it starts', (app.academy_home(test.id('r
 update academy_enrollments set lock_from = now() - interval '1 minute' where user_id = test.id('rqg_cs');
 select test.ok('then held until they pass', app.academy_locked(test.id('rqg_cs')));
 select test.eq('the new sections end each role''s path', (select string_agg(ps.path_code || ':' || s.slug, ' ' order by ps.path_code) from academy_path_sections ps join academy_sections s on s.id = ps.section_id
-  where s.slug = 'new-bookings-r28-r32' and ps.sort = (select max(x.sort) - 1 from academy_path_sections x where x.path_code = ps.path_code and ps.path_code in ('cs', 'field'))), 'cs:new-bookings-r28-r32 field:new-bookings-r28-r32');
+  where s.slug = 'new-bookings-r28-r32' and ps.sort = (select max(x.sort) - 1 from academy_path_sections x join academy_sections y on y.id = x.section_id where x.path_code = ps.path_code and ps.path_code in ('cs', 'field') and y.slug not like 'new-r3%')), 'cs:new-bookings-r28-r32 field:new-bookings-r28-r32');
 select test.eq('every role has a new section', (select count(distinct ps.path_code) from academy_path_sections ps join academy_sections s on s.id = ps.section_id where s.slug like 'new-%-r28-r32'), 7::bigint);
 select test.eq('9 lessons and 20 questions, every answer one of the options', (select count(*) from academy_lessons l join academy_sections s on s.id = l.section_id where s.slug like 'new-%-r28-r32')
   || '/' || (select count(*) from academy_questions q join academy_sections s on s.id = q.section_id where s.slug like 'new-%-r28-r32' and q.answer < jsonb_array_length(q.options)), '9/20');

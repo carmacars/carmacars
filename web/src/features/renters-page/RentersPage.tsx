@@ -4,6 +4,8 @@ import { Badge, Card, Kv, PageHead, Search, Table, d, t } from '@/features/admin
 import { tabOf } from '@/features/admin/hubs';
 import { Leads } from '@/app/admin/renters/Leads';
 import type { PageCtx } from '@/features/shared-pages/context';
+import { RenterNotes } from '@/features/caller/RenterNotes';
+import type { NotesRead } from '@/features/caller/model';
 
 // r31 "Simple": one Renters page for Admin and staff. An Admin sees every renter (and the Leads tab); staff find a renter
 // (05-va.md section 4.4): there is no customer list for them, at least 3 characters, at most 10 names, every search
@@ -46,6 +48,8 @@ async function FindRenter({ ctx, sp }: { ctx: PageCtx; sp: Record<string, string
   const [found, view] = await Promise.all([
     q.length >= 3 ? read<Found[]>('find_renter', { q }).catch(() => [] as Found[]) : Promise.resolve([] as Found[]),
     sp.id && /^[0-9a-f-]{36}$/.test(sp.id) ? read<View | null>('renter', { id: sp.id }).catch(() => null) : Promise.resolve(null)]);
+  // r34 (0800): the renter's notes, as on the Admin's renter page (staff add, an Admin removes)
+  const notes = view ? await read<NotesRead>('renter_notes', { renter_id: view.id }).catch(() => null) : null;
   return (<>
     <PageHead title="Find a renter" purpose="Search by name, email or booking number. Every search is logged, and a record outside its window opens for 24 hours with a reason."><Search action="/staff/renters" value={q} placeholder="Name, email or booking number" /></PageHead>
     {!q && !view && <p className="ad-empty" data-testid="renter-hint">Type at least 3 characters of a name, email or booking number, then press Enter. Press / to jump to the search box.</p>}
@@ -60,5 +64,6 @@ async function FindRenter({ ctx, sp }: { ctx: PageCtx; sp: Record<string, string
       <Table rows={view.bookings as unknown as Array<Record<string, unknown>>} empty="No bookings." cols={[{ key: 'booking_number', label: 'Booking', render: (r) => <Link prefetch={false} className="link" href={`/staff/bookings/${encodeURIComponent(String(r.booking_number))}`}>{String(r.booking_number)}</Link> },
         { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'vehicle', label: 'Car' }, { key: 'pickup_at', label: 'Pickup', render: (r) => t(r.pickup_at) }]} />
     </Card>}
+    {view && notes && <Card title="Notes" testId="renter-notes-card"><RenterNotes renterId={view.id} initial={notes.notes} canRemove={notes.can_remove} /></Card>}
   </>);
 }

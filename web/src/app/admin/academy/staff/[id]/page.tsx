@@ -6,6 +6,8 @@ import { adminRead } from '@/server/admin/api';
 import { Card, PageHead, Table } from '@/features/admin/ui';
 import { Act } from '@/features/admin/Act';
 import { pct, type PathRow, type SectionRow } from '@/features/academy/model';
+import { AcademyGateCard } from '@/features/academy/GateCard';
+import type { GateState } from '@/features/academy/gate';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Academy progress', path: '/admin/academy', noindex: true, description: 'One staff member\'s training progress.' });
@@ -18,9 +20,12 @@ export default async function AcademyPerson({ params }: { params: Promise<{ id: 
   const p = await adminRead<{ user: { id: string; name: string; email: string } | null; paths: PathRow[]; attempts: Array<{ section: string; score_bps: number; passed: boolean; at: string }> }>(user.id, 'academy_progress', { user_id: id });
   if (!p.user) notFound();
   const here = `/admin/academy/staff/${id}`;
+  // 0802: held or open, and the waiver
+  const gate = await adminRead<GateState>(user.id, 'academy_gate_state', { user_id: id }).catch(() => null);
   return (
     <>
       <PageHead title={p.user.name} kicker="Academy" purpose={p.user.email}><Link prefetch={false} className="btn btn--sm btn--quiet" href="/admin/academy">All staff</Link></PageHead>
+      {gate && gate.sections > 0 && <AcademyGateCard g={gate} refresh={[here]} />}
       {!p.paths.length && <p className="muted">No path: give this person a staff function in Settings &gt; Staff.</p>}
       {p.paths.map((path) => (
         <Card key={path.code} title={`${path.title}${path.passed ? ' (passed)' : ''}`}>

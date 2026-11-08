@@ -203,6 +203,11 @@ export type Database = {
           blurb: string;
           updated_at: string;
           updated_by: string | null;
+          guide_refs: string[];
+          review_due_at: string | null;
+          review_note: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
         };
         Insert: {
           id?: string;
@@ -211,6 +216,11 @@ export type Database = {
           blurb?: string;
           updated_at?: string;
           updated_by?: string | null;
+          guide_refs?: string[];
+          review_due_at?: string | null;
+          review_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
         };
         Update: {
           id?: string;
@@ -219,6 +229,11 @@ export type Database = {
           blurb?: string;
           updated_at?: string;
           updated_by?: string | null;
+          guide_refs?: string[];
+          review_due_at?: string | null;
+          review_note?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
         };
         Relationships: [];
       };
@@ -243,6 +258,33 @@ export type Database = {
           unlocked_by?: string;
           reason?: string;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      academy_waivers: {
+        Row: {
+          user_id: string;
+          waived_by: string;
+          reason: string;
+          waived_at: string;
+          revoked_at: string | null;
+          revoked_by: string | null;
+        };
+        Insert: {
+          user_id: string;
+          waived_by: string;
+          reason: string;
+          waived_at?: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
+        };
+        Update: {
+          user_id?: string;
+          waived_by?: string;
+          reason?: string;
+          waived_at?: string;
+          revoked_at?: string | null;
+          revoked_by?: string | null;
         };
         Relationships: [];
       };
@@ -18636,6 +18678,51 @@ export type Database = {
           before?: Json;
           after?: Json;
           email_changed?: boolean;
+        };
+        Relationships: [];
+      };
+      renter_notes: {
+        Row: {
+          id: string;
+          renter_id: string;
+          body: string;
+          author_user_id: string | null;
+          author_name: string;
+          author_role: string;
+          booking_id: string | null;
+          call_id: string | null;
+          created_at: string;
+          removed_at: string | null;
+          removed_by: string | null;
+          removed_reason: string | null;
+        };
+        Insert: {
+          id?: string;
+          renter_id: string;
+          body: string;
+          author_user_id?: string | null;
+          author_name: string;
+          author_role: string;
+          booking_id?: string | null;
+          call_id?: string | null;
+          created_at?: string;
+          removed_at?: string | null;
+          removed_by?: string | null;
+          removed_reason?: string | null;
+        };
+        Update: {
+          id?: string;
+          renter_id?: string;
+          body?: string;
+          author_user_id?: string | null;
+          author_name?: string;
+          author_role?: string;
+          booking_id?: string | null;
+          call_id?: string | null;
+          created_at?: string;
+          removed_at?: string | null;
+          removed_by?: string | null;
+          removed_reason?: string | null;
         };
         Relationships: [];
       };

@@ -10,8 +10,10 @@ import { staffCompose, staffDoor, staffDraft, staffReply } from '@/server/phone'
 // from the CarmaCars number, kept in the conversation) and phone_call_log (a call started from the site).
 export const dynamic = 'force-dynamic';
 const H = { 'cache-control': 'no-store' };
-const READS = new Set(['phone_inbox', 'phone_thread', 'phone_timeline', 'phone_renter_search', 'phone_buttons']);
-const ACTS = new Set(['phone_read', 'phone_reply', 'phone_link', 'phone_create_lead', 'phone_opt_out', 'phone_draft', 'phone_compose', 'phone_call_log']);
+// r34 (0800): caller_live (the caller pop-up of Admins and customer service) and the renter notes; the database decides who
+const READS = new Set(['phone_inbox', 'phone_thread', 'phone_timeline', 'phone_renter_search', 'phone_buttons', 'caller_live', 'renter_notes']);
+const ACTS = new Set(['phone_read', 'phone_reply', 'phone_link', 'phone_create_lead', 'phone_opt_out', 'phone_draft', 'phone_compose', 'phone_call_log',
+  'renter_note_add', 'renter_note_remove', 'caller_open']);
 // the buttons are for every staff member; the inbox stays Admins', customer service's and Sales's (the database decides)
 const BUTTONS = new Set(['phone_buttons', 'phone_compose', 'phone_call_log']);
 const msg = (e: unknown) => (e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '').slice(0, 200) : 'Something went wrong');
