@@ -48,6 +48,9 @@ test('hide a booking\'s revenue from the owner, and a booking expense the owner 
   const [up] = await sql`select booking_number, rental_charge_cents::int c from bookings where vehicle_id = ${o.cars[0]!.id} and status = 'confirmed' order by pickup_at limit 1`;
   const [done] = await sql`select booking_number from bookings where vehicle_id = ${o.cars[0]!.id} and status = 'closed' order by return_at desc limit 1`;
   const hidden = up!.booking_number as string; const amount = money(up!.c as number);
+  // 0791: only an insurance replacement can be hidden from the owner, so this booking is billed to an insurer
+  const [ins] = await sql`insert into insurers (name) values (${`Oh Example Insurance ${Date.now()}`}) returning id`;
+  await sql`update bookings set bill_to = 'insurer', insurer_id = ${ins!.id as string} where booking_number = ${hidden}`;
 
   // the Admin hides it, with a reason
   const a = await ctx(browser, false);
