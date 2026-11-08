@@ -602,3 +602,19 @@ a.pu-trip:hover { border-color: var(--pu-hair-strong); box-shadow: var(--pu-shad
 .wk-step.is-done .wk-actions:not(:has(a)) { display: none; }
 .wk-step.is-now .wk-ico { background: var(--red-50); color: var(--red-600); box-shadow: 0 0 0 2px var(--red-600); }
 .wk-foot { margin: 0; text-align: center; }
+
+/* r33 (0750): Sign and pay, one page, two steps at most; the one card on the booking and home */
+.sp-steps { display: flex; gap: var(--s-2); list-style: none; margin: 0; padding: 0; counter-reset: sp; }
+.sp-steps li { flex: 1 1 0; display: flex; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--s-3); border-radius: 999px; border: 1px solid var(--pu-hair); background: var(--pu-card); font-weight: 600; min-height: 44px; counter-increment: sp; }
+.sp-steps li::before { content: counter(sp); display: inline-grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 2px solid currentColor; font-size: .85rem; flex: none; }
+.sp-steps li[data-state="now"] { border-color: var(--pu-accent); color: var(--pu-accent); }
+.sp-steps li[data-state="done"] { color: var(--pu-ink-2); }
+.sp-steps li[data-state="done"]::before { content: "\2713"; background: var(--pu-ink); color: #fff; border-color: var(--pu-ink); }
+.sp-steps li[data-state="next"] { color: var(--grey-600, #666); }
+.sp-left { display: grid; gap: var(--s-2); padding: var(--s-4); border-radius: var(--pu-radius); border: 2px solid var(--pu-accent); background: var(--pu-card); }
+.sp-left__title { margin: 0; font-size: 1.25rem; font-weight: 700; }
+.sp-left__text { margin: 0; font-size: 1.05rem; }
+.sp-left .btn { justify-self: start; min-height: 48px; }
+.sp-section { scroll-margin-top: var(--s-6); }
+.sp-locked { opacity: .75; }
+@media (max-width: 40rem) { .sp-left .btn { justify-self: stretch; } }

@@ -1,3 +1,4 @@
+import { signPayOf, signPayOpen } from '@/features/portal/sign-pay';
 import Link from '@/components/Link';
 import { InfoTip } from '@/components/InfoTip';
 import { seoMeta } from '@/features/seo/meta';
@@ -85,7 +86,9 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
   const roadside = s.roadside_phone ?? null;
   const card = b.payments.find((p) => p.purpose === 'booking_total' && p.card_last4);
   const photo = tripPhoto(photos, b, fleet.find((c) => c.slug === b.slug)?.cover ?? null);
-  const signed = !!b.agreement?.renter_signed_at;
+  // 0750: the one rule (the Sign and pay page and the payment read the same)
+  const rule = signPayOf(b);
+  const signed = rule.signed || (!signPayOpen(rule) && !!b.agreement?.renter_signed_at);
   const actionable = !!step.href && step.href !== bookingPath(b.booking_number);
   // the hero's next step names the action the tests and the guide know (live-sign, live-pay)
   const stepId = b.status === 'on_rent' && b.added_live && !signed ? 'live-sign' : b.link_due && signed ? 'live-pay' : 'booking-next-step-cta';
@@ -215,7 +218,7 @@ export default async function BookingPage({ params, searchParams }: { params: Pr
             paid={<AnimatedNumber value={m.paidCents} format="cents" />}
             owing={owingCents > 0 ? <AnimatedNumber value={owingCents} format="cents" /> : null}
             parts={parts}
-            pay={firstOwing?.sub ? { href: bookingPath(b.booking_number, firstOwing.sub), label: `${firstOwing.sub === 'sign' ? 'Sign, then pay' : 'Pay'} ${money(firstOwing.cents, { cents: true })}` } : null}>
+            pay={firstOwing?.sub ? { href: bookingPath(b.booking_number, firstOwing.sub), label: `${firstOwing.key === 'owe-booking' && !signed ? 'Sign and pay' : 'Pay'} ${money(firstOwing.cents, { cents: true })}` } : null}>
             <Disclosure summary="Price details" testId="price-details" open={['offered', 'pending_payment', 'requested'].includes(b.status)}>
               <PriceBreakdown lines={b.lines.filter((l) => l.stage === 'booking' && !laterLines.has(l.id))} hst={b.hst_at_booking_cents} total={b.renter_due_at_booking_cents} totalLabel={b.link_due ? 'Due now' : b.status === 'confirmed' || b.status === 'on_rent' || b.status === 'returned' || b.status === 'closed' ? 'Paid at booking' : 'Due at booking'} insurer={b.insurer_pays_cents || undefined} deposit={b.deposit_cents} />
             </Disclosure>

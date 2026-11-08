@@ -6,6 +6,7 @@ import { newPayToken, payTokenHash } from '@/server/pay-token';
 import { outcomeOf, settlementOrder, stepFor, type MoneyFacts, type MoneyOutcome } from '@/server/money-steps';
 import { autoHoldStep } from '@/server/deposit-auto';
 import { settlePayreq } from '@/server/paylink';
+import { plainProcessorError } from '@/features/money/charge-reasons';
 
 // The deposit guard's runner (migration 0155). The database decides every money step and marks it on a payment
 // (payments.server_action); this runs it at Stripe once (the idempotency key is the payment's) and records the answer.
@@ -124,8 +125,11 @@ export async function runDepositGuard(limit = 40) {
   // 0261: the holds of the pickup day first; a try that fails makes its booking's link due at once, sent just below
   const holds = await placeDepositHolds().catch((e) => ({ held: 0, failed: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
   const links = await sendDepositLinks().catch((e) => ({ sent: 0, not_sent: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
+  // r33 (0750): a hold about 24 hours from its expiry, re-authorized before it lapses (an alert when it cannot be)
+  const reauth = await reauthorizeDueHolds().catch((e) => ({ renewed: 0, failed: 0, errors: [(e instanceof Error ? e.message : String(e)).slice(0, 200)] }));
   return { ...out, deposit_holds: holds.held, deposit_holds_failed: holds.failed, deposit_links: links.sent, deposit_links_not_sent: links.not_sent,
-    errors: [...out.errors, ...holds.errors, ...links.errors] };
+    holds_reauthorized: reauth.renewed, holds_reauth_failed: reauth.failed,
+    errors: [...out.errors, ...holds.errors, ...links.errors, ...reauth.errors] };
 }
 
 /** 0261: the deposit hold on the morning of the pickup day (Program settings, Deposit timing), off-session on the card on
@@ -187,6 +191,40 @@ export async function sendDepositLinks(limit = 20): Promise<{ sent: number; not_
       await call('server_payreq_attach', { p_id: q.id, p_intent: intent.id });
       const r = (await call('server_deposit_link_send', { p_id: q.id, p_link: `${siteUrl()}/pay/${token}` })) as { ok: boolean } | null;
       if (r?.ok) out.sent++; else out.not_sent++;
+    } catch (e) { out.errors.push(`${d.booking_number}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200)); }
+  }
+  return out;
+}
+
+/** r33 (0750): the deposit holds of bookings not settled, about 24 hours before they expire: a new hold on the saved card
+ *  for what is still held (off-session, extended if Program settings allow), then the old hold released, exactly as Re-
+ *  authorize the hold does for a person; run as the system. One try per hold every 6 hours; a failure is recorded on
+ *  the booking in plain words and alerts Finance and an Admin (deposit_reauth_failed). */
+export async function reauthorizeDueHolds(limit = 10): Promise<{ renewed: number; failed: number; errors: string[] }> {
+  const due = ((await call('server_deposit_reauth_due', { p_limit: limit })) as Array<{ deposit_id: string; booking_number: string }> | null) ?? [];
+  const out = { renewed: 0, failed: 0, errors: [] as string[] };
+  for (const d of due) {
+    try {
+      const b = (await call('server_deposit_reauth_begin', { p_deposit: d.deposit_id })) as
+        { ok: boolean; skip?: boolean; deposit_id: string; booking_id: string; booking_number: string; amount_cents: number; customer_id: string; method_id: string; old_intent: string | null; extended: boolean; idempotency_key: string } | null;
+      if (!b?.ok) { if (b && !b.skip) out.failed++; continue; }
+      const pay = await payments();
+      let fin: Record<string, unknown> = { deposit: b.deposit_id, amount_cents: b.amount_cents, ok: false };
+      try {
+        const i = await pay.chargeOffSession({ customerId: b.customer_id, paymentMethodId: b.method_id, amountCents: b.amount_cents, capture: 'manual', extendedHold: b.extended,
+          description: `CarmaCars booking ${b.booking_number}: deposit hold (re-authorized)`, metadata: { booking_id: b.booking_id, booking_number: b.booking_number, purpose: 'deposit_reauth', deposit_id: b.deposit_id },
+          idempotencyKey: b.idempotency_key });
+        if (i.status === 'requires_capture') fin = { ...fin, ok: true, intent_id: i.id, charge_id: i.chargeId, capture_before: i.captureBefore ?? null, extended: Boolean(i.extendedAuth) };
+        else {
+          if (i.status !== 'canceled') await pay.cancelIntent(i.id, `void:${i.id}`).catch(() => undefined);
+          fin = { ...fin, error: plainProcessorError(i.lastError ?? `status ${i.status}`, 'hold') };
+        }
+      } catch (e) { fin = { ...fin, error: plainProcessorError(e instanceof Error ? e.message : null, 'hold') }; }
+      const r = (await call('server_deposit_reauth_finish', { p: fin })) as { ok: boolean } | null;
+      if (r?.ok) {
+        out.renewed++;
+        if (b.old_intent) await pay.cancelIntent(b.old_intent, `hold-reauth-release:${b.old_intent}`).catch(() => undefined);
+      } else out.failed++;
     } catch (e) { out.errors.push(`${d.booking_number}: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200)); }
   }
   return out;

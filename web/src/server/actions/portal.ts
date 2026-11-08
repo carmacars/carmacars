@@ -51,7 +51,8 @@ export async function approveOffer(number: string, version: number): Promise<R> 
     await rpc('renter_approve_offer', { p_booking: b.id, p_version: version, p_by: userId }, SR);
     await openAgreement(b.id, userId);
     refresh(number);
-    target = bookingPath(number, 'sign');
+    // r33: one page signs and pays
+    target = bookingPath(number, 'checkout');
   } catch (e) {
     const m = dbMessage(e);
     return fail(/stale|version|expired|superseded|no longer/i.test(m) ? 'This offer was updated. Review the new version.' : m, 'stale');
@@ -131,6 +132,7 @@ export async function completeAgreementDetails(number: string, p: Record<string,
     refresh(number);
     revalidatePath(bookingPath(number, 'sign'));
     revalidatePath(bookingPath(number, 'pay'));
+    revalidatePath(bookingPath(number, 'checkout'));
     return { ok: true, data: r };
   } catch (e) { return fail(dbMessage(e)); }
 }
@@ -219,7 +221,8 @@ export async function signAgreement(number: string, input: SignInput): Promise<R
     if (declined) return fail(`Your agreement is signed, but your card was not charged: ${declined} We will contact you to arrange the payment.`, 'payment');
     // a rental staff added by hand (0046) is confirmed already: back to the booking, signed and countersigned; one added
     // while already underway with a payment link (0074) goes on to pay online
-    target = (added && !b.link_due) || b.paid_unsigned ? `${bookingPath(number)}?signed=1` : bookingPath(number, 'pay');
+    // r33: back to the same Sign and pay page, at the card form (no payment step after: the booking)
+    target = (added && !b.link_due) || b.paid_unsigned ? `${bookingPath(number)}?signed=1` : `${bookingPath(number, 'checkout')}?signed=1#pay`;
   } catch (e) { return fail(dbMessage(e)); }
   redirect(target);
 }
@@ -261,7 +264,12 @@ export async function startPayment(number: string): Promise<R<StartedPayment>> {
     // a rental added while already underway with a payment link (0074) is paid here too, on trip
     if (b.status !== 'pending_payment' && !b.link_due) return fail(b.status === 'confirmed' ? 'This booking is already confirmed.' : reasonMessage('not_awaiting_payment'), b.status === 'confirmed' ? 'confirmed' : 'pushed_back');
     const f = await paymentFacts(b.id);
-    if (!f.agreement_signed) return fail('Sign the rental agreement first.', 'unsigned');
+    // the one rule (0750): the same answer the Sign and pay page shows
+    if (!f.agreement_signed) {
+      const sp = (f as { sign_pay?: { step?: string; stale?: boolean; waiting?: string[] } }).sign_pay;
+      return fail(sp?.step === 'drivers' ? `${(sp.waiting ?? []).join(', ') || 'Another driver'} must sign the agreement before you pay.`
+        : sp?.stale ? 'Your offer was updated after you signed. Sign the updated agreement first.' : 'Sign the rental agreement first.', 'unsigned');
+    }
     // the licence before payment (0130: the switch in Program settings)
     if (f.licence_missing?.length) return fail(`Upload your driver's licence before you pay: ${f.licence_missing.join(', ')} still needed.`, 'licence');
     if (f.renter_due_at_booking_cents <= 0) return fail('Nothing is due now. We will confirm the booking on your signature.', 'nothing_due');

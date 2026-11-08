@@ -47,6 +47,9 @@ import { ReturnedButton } from '@/features/handover/ReturnedButton';
 import { showReturned } from '@/features/handover/returned';
 import type { PageCtx } from '@/features/shared-pages/context';
 import { bookingCan, portalBase } from '@/features/shared-pages/viewer';
+import { rpc } from '@/lib/db/repo';
+import { signPayOf, signPayWords } from '@/features/portal/sign-pay';
+import type { ChargeReasons } from '@/features/money/charge-reasons';
 
 // r31 "Simple": one booking page for Admin and staff (03-admin.md section 4, 05-va.md sections 2 to 5). The loader picks
 // the access path from the viewer (PageCtx) and reads only what the viewer's function uses; every section and button
@@ -152,12 +155,18 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     .filter(([k]) => (k !== 'money' || can.money) && (k !== 'extras' || can.extras))
     .map(([k, l]) => [`${base}?tab=${k}`, k === 'overview' && arranging ? 'Overview: review and offer' : l, k === 'extras' ? extrasCount : undefined]);
   const payments = b.payments;
+  // r33 (0750): the renter's Sign and pay state from the one rule, and the reasons of the charges (the Money tab)
+  const SR = { role: 'service_role' as const };
+  const [renterRule, reasons] = await Promise.all([
+    ['pending_payment', 'confirmed', 'on_rent'].includes(String(b.status)) ? rpc('server_booking_sign_pay', { p_booking: b.id }, SR).then((x) => signPayOf({ sign_pay: x as never })).catch(() => null) : null,
+    on('money') ? rpc('server_booking_charge_reasons', { p_booking: b.id }, SR).then((x) => x as unknown as ChargeReasons).catch(() => null) : null]);
+  const renterWords = renterRule ? signPayWords(renterRule) : null;
   // the next step under the status (2026-10-30): one sentence, and a button only when the viewer can do the step
   const step = nextStep({ status: b.status, base, now: new Date(), pickupAt: b.pickup_at, returnAt: b.return_at, offerExpiresAt: b.offer_expires_at,
     dueCents: Number(b.renter_due_at_booking_cents ?? b.total_due_at_booking_cents ?? 0),
     paidCents: (payments ?? []).filter((r) => r.kind === 'charge' && r.status === 'succeeded').reduce((a, r) => a + Number(r.amount_cents ?? 0), 0),
     awaitingSignature: b.readiness?.awaiting_signature === true, licenceOk: (b.readiness?.all_drivers_verified as boolean | undefined) ?? null, depositCents: Number(b.deposit_cents ?? 0), depositStatus: (b.deposit?.status as string | undefined) ?? null,
-    insurerBilled: b.bill_to !== 'renter',
+    insurerBilled: b.bill_to !== 'renter', renterLeft: renterWords?.left ?? null, renterStep: renterRule?.step ?? null,
     ...(can.admin ? {} : { can: { offer: can.offer, money: can.money, sign: can.sign, handover: can.handover, settle: can.settleDeposit } }) });
   const renterContact = b.renter && can.admin
     ? (testId: string) => <>{b.renter!.legal_name} · {b.renter!.email} · <ContactButtons phone={b.renter!.mobile} name={b.renter!.legal_name} booking={b.booking_number} look="link" inbox={inbox} testId={testId}>{b.renter!.mobile}</ContactButtons></>
@@ -289,7 +298,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
         <div className="stack">
           {/* r29 C0: Rental charges and Security deposit, two panels; every money tool sits in the panel it belongs to, and the
               database decides who may do each */}
-          {moneyByPart && <BookingMoney m={moneyByPart} lines={(b.lines as PanelLine[] | undefined) ?? []} totalCents={(b.total_due_at_booking_cents as number | null | undefined) ?? null}
+          {moneyByPart && <BookingMoney m={moneyByPart} reasons={reasons} lines={(b.lines as PanelLine[] | undefined) ?? []} totalCents={(b.total_due_at_booking_cents as number | null | undefined) ?? null}
             waived={!!(b as unknown as R).deposit_waived_at}
             rentalExtras={<>
               {fees && <BookingFees x={fees} withBalance={false} />}

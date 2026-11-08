@@ -8,6 +8,8 @@ test('the deposit in one word', () => {
   assert.equal(depositWord(null, 50000, true), 'Waived');
   assert.equal(depositWord({ method: 'card_hold', status: 'failed', amount_cents: 50000 }, 50000), 'Not collected');
   assert.equal(depositWord({ method: 'card_hold', status: 'held', amount_cents: 50000 }, 50000), 'Held');
+  assert.equal(depositWord({ method: 'card_hold', status: 'held', amount_cents: 50000, hold_expires_at: '2020-01-01T00:00:00Z' }, 50000), 'Hold expired');
+  assert.equal(depositNext('Hold expired', 'returned'), 'expired');
   assert.equal(depositWord({ method: 'charged', status: 'captured', amount_cents: 50000 }, 50000), 'Charged');
   assert.equal(depositWord({ method: 'offline', paid_method: 'cash', status: 'captured', amount_cents: 50000 }, 50000), 'Charged');
   assert.equal(depositWord({ method: 'card_hold', status: 'settled', amount_cents: 50000, released_cents: 50000 }, 50000), 'Released');

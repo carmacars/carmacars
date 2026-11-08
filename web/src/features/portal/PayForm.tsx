@@ -85,7 +85,7 @@ export function PayForm({ number, amountCents, depositCents, coverageOption = nu
         if (c.data.status !== 'requires_capture') { setMsg({ kind: 'error', text: c.data.error ?? 'Your card was declined.' }); setBusy(false); return; }
         await finish(p.intentId);
       } else if (stripe.current) {
-        const r = await stripe.current.js.confirmPayment({ elements: stripe.current.elements, redirect: 'if_required', confirmParams: { payment_method_data: { billing_details: { name } }, return_url: `${location.origin}/account/bookings/${encodeURIComponent(number)}/pay` } });
+        const r = await stripe.current.js.confirmPayment({ elements: stripe.current.elements, redirect: 'if_required', confirmParams: { payment_method_data: { billing_details: { name } }, return_url: `${location.origin}/account/bookings/${encodeURIComponent(number)}/checkout` } });
         if (r.error) { setMsg({ kind: 'error', text: r.error.message ?? 'Your card was declined.' }); setBusy(false); return; }
         await finish(r.paymentIntent?.id ?? p.intentId);
       }

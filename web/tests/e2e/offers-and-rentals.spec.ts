@@ -218,7 +218,7 @@ test('a rental input fast: Turo, paid on the platform, deposit by e-Transfer, se
   await page.getByTestId('bm-later-open').click();
   await page.getByTestId('bm-lhow-device').check();
   await page.getByTestId('bm-lamount').fill('45');
-  await page.getByTestId('bm-lreason').fill('Fuel');
+  await page.getByTestId('bm-lreason-code').selectOption('fuel');
   await page.getByTestId('bm-later-go').click();
   await page.waitForURL(/\/pay\/[A-Za-z0-9_-]{20,}/, { timeout: 20_000 });
   await expect(page.getByTestId('paylink-what')).toContainText('$45.00 for fuel');

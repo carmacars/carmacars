@@ -128,7 +128,7 @@ begin
   update bookings set total_due_at_booking_cents = 24000, bill_to = 'renter', card_on_file_id = (test.rfb('R32F-4')).card_on_file_id where id = v_b;
 end $$;
 -- $30 of the fees paid in cash: never charged to the card
-select public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'record_booking_payment', jsonb_build_object('booking', 'R32F-5', 'covers', 'fees', 'method', 'cash', 'amount_cents', 3000, 'received_on', app.today()));
+select public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'record_booking_payment', jsonb_build_object('booking', 'R32F-5', 'covers', 'fees', 'method', 'cash', 'amount_cents', 3000, 'received_on', (now() at time zone 'America/Toronto')::date));
 select test.eq('open after the cash: $200 rental, $10 fees', app.booking_part_open(test.id('booking:R32F-5'), 'rental') || '/' || app.booking_part_open(test.id('booking:R32F-5'), 'fees'), '20000/1000');
 insert into test.rf select 'c2', public.door(test.id('r32f_fin'), 'aal2', 'ops_do', 'card_charge_begin', jsonb_build_object('booking', 'R32F-5', 'covers', 'balance', 'reason', 'Rental and fees'));
 select test.eq('the balance leaves out what was paid in cash', (select (v ->> 'amount_cents') || '/' || (v #>> '{parts,rental}') || '/' || (v #>> '{parts,fees}') from test.rf where k = 'c2'), '21000/20000/1000');

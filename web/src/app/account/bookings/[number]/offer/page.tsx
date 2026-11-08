@@ -21,7 +21,7 @@ export const metadata = pageMeta({ title: 'Review your offer', path: '/account/b
 export default async function OfferPage({ params }: { params: Promise<{ number: string }> }) {
   const { b, user } = await myBooking((await params).number, 'offer');
   const missing = renterMissing(await licenceState(b.id, user.id));
-  if (b.status === 'pending_payment') redirect(bookingPath(b.booking_number, b.agreement?.renter_signed_at ? 'pay' : 'sign'));
+  if (b.status === 'pending_payment') redirect(bookingPath(b.booking_number, 'checkout'));
   const o = b.offers.find((x) => x.version === b.current_offer_version);
   // 0262: the deposit with a debit or prepaid card, once the booking takes one
   const debitDeposit = (await rpc('server_booking_debit_deposit', { p_booking: b.id }, { role: 'service_role' }).catch(() => null)) as number | null;

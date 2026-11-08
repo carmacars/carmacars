@@ -122,8 +122,16 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
 
   // 4. approve: the agreement for the approved version is opened, then the signing page
   await page.getByRole('button', { name: 'Approve and continue' }).click();
-  await page.waitForURL(/\/sign$/, { timeout: 30_000 });
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign your rental agreement');
+  // r33: one page signs and pays
+  await page.waitForURL(/\/checkout$/, { timeout: 30_000 });
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sign and pay for your booking');
+  await expect(page.getByTestId('sign-pay-left-text')).toContainText('Two steps left: sign the rental agreement, then pay $');
+  // the old addresses (emails, texts, bookmarks) land on the same page
+  await page.goto(page.url().replace(/\/checkout$/, '/sign'), { waitUntil: 'networkidle' });
+  await expect(page).toHaveURL(/\/checkout#sign$/);
+  await page.goto(page.url().replace(/\/checkout#sign$/, '/pay'), { waitUntil: 'networkidle' });
+  await expect(page).toHaveURL(/\/checkout#pay$/);
+  await expect(page.getByTestId('sign-pay-pay-locked')).toBeVisible();
   await page.locator('#pt-d-address_line1').fill('100 Queen Street West');
   await page.locator('#pt-d-city').fill('Toronto');
   await page.locator('#pt-d-postal_code').fill('M5H 2N2');
@@ -140,13 +148,13 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await axe(page, 'sign');
   await page.screenshot({ path: `${SHOTS}-${info.project.name}-sign.png`, fullPage: true });
   // the four statements are required (one tap on "All four" ticks them, each stays on screen), then a drawn signature
-  await page.getByRole('button', { name: 'Sign and continue to payment' }).click();
+  await page.getByRole('button', { name: /^Sign, then pay/ }).click();
   await expect(page.getByText('Tick the four statements (one tap on "All four").')).toBeVisible();
   await page.getByTestId('consents-all').check();
   for (const c of await page.locator('.pk-statements input[type="checkbox"]').all()) await expect(c).toBeChecked();
   await strongSign(page);
-  await page.getByRole('button', { name: 'Sign and continue to payment' }).click();
-  await page.waitForURL(/\/pay$/, { timeout: 30_000 });
+  await page.getByRole('button', { name: /^Sign, then pay/ }).click();
+  await page.waitForURL(/\/checkout\?signed=1/, { timeout: 30_000 });
   const [sig] = await sql`select r.method, r.provider_signature, host(r.ip_address) ip, r.user_agent, (select count(*)::int from consents c where c.booking_id = ${bk!.id} and c.consent_code in ('tracking_disabling','identity_verification','electronic_signature','card_authorization')) consents
     from signature_records r join bookings b on b.signature_request_id = r.signature_request_id where b.id = ${bk!.id} and r.signer_role = 'renter'`;
   expect(sig?.method).toBe('drawn');
@@ -344,8 +352,8 @@ test('race (r28 A1): the first renter to accept gets the car; the other offer go
   // the legal name on file is the signature: one tap for the statements, one to sign
   await page.getByTestId('consents-all').check();
   await strongSign(page);
-  await page.getByRole('button', { name: 'Sign and continue to payment' }).click();
-  await page.waitForURL(/\/pay$/, { timeout: 30_000 });
+  await page.getByRole('button', { name: /^Sign, then pay/ }).click();
+  await page.waitForURL(/\/checkout\?signed=1/, { timeout: 30_000 });
   await expect(page.getByTestId('fake-card')).toBeVisible();
   await page.waitForTimeout(500); // the intent is created when the form loads
 

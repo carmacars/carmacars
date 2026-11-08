@@ -56,10 +56,11 @@ test('money: what is open, each with where to pay it', () => {
     extensions: [{ id: 'e1', status: 'approved', total_cents: 12000, paid_at: null, new_return_at: '2026-10-30T20:00:00Z' }],
     addons: [{ after_booking: true, paid: false, status: 'confirmed', amount_cents: 500, hst_cents: 65 }, { after_booking: true, paid: false, status: 'pending', amount_cents: 9000, hst_cents: 0 }],
     changes: [{ status: 'approved', total_difference_cents: 4000 }] });
-  assert.deepEqual(m.parts.filter((p) => p.state === 'owing').map((p) => `${p.label}:${p.cents}:${p.sub}`), ['Rental:79100:pay', 'Extension:12000:extend', 'Add-ons:565:addons/pay', 'Date change:4000:change']);
+  assert.deepEqual(m.parts.filter((p) => p.state === 'owing').map((p) => `${p.label}:${p.cents}:${p.sub}`), ['Rental:79100:checkout', 'Extension:12000:extend', 'Add-ons:565:addons/pay', 'Date change:4000:change']);
   assert.equal(m.owingCents, 79100 + 12000 + 565 + 4000);
   const unsigned = moneyParts({ ...base, status: 'pending_payment', signed: false });
-  assert.equal(unsigned.parts[0]?.sub, 'sign');
+  assert.equal(unsigned.parts[0]?.sub, 'checkout');
+  assert.equal(unsigned.parts[0]?.cta, 'Sign and pay');
   const offer = moneyParts({ ...base, status: 'offered' });
   assert.deepEqual(offer.parts.map((p) => p.state), ['info']);
   assert.equal(offer.owingCents, 0);

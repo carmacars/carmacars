@@ -30,6 +30,8 @@ export interface BookingSummary {
   coverage_confirmed_at: string | null; confirmed_at: string | null; handed_over_at: string | null; checked_in_at: string | null;
   request_note: string | null; km_allowance_total: number | null; overage_cents_per_km: number | null; deductible_cents: number | null;
   agreement_number: string | null; requested_at: string | null; booked_at: string | null;
+  /** 0750: the one rule for signing and paying (app.sign_pay_state) */
+  sign_pay?: import('./sign-pay').SignPay | null;
 }
 
 export interface MyBooking extends BookingSummary {

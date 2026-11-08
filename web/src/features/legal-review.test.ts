@@ -73,7 +73,7 @@ test('signatures: the owner statement, the amendment section 4 and refund line, 
   assert.match(am, /CarmaCars refunds \*\*\$\{money/);
   assert.ok(read('web/src/features/owner-agreement/witnessed.ts').includes('`I witnessed ${owner} sign in my presence.`'));
   assert.ok(read('supabase/migrations/0053_legal_review.sql').includes("'Read and sign your rental agreement; your card is charged when you sign.'"));
-  assert.match(read('web/src/app/account/bookings/[number]/sign/page.tsx'), /'Accept and sign'/);
+  assert.match(read('web/src/app/account/bookings/[number]/checkout/page.tsx'), /'Accept and sign'/);
 });
 
 test('emails: the failed debit (7.4), the void notice (6.2), the returned debit and the confirmation carry the approved lines', () => {

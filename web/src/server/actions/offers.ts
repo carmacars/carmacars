@@ -10,6 +10,7 @@ import { siteUrl } from '@/lib/site';
 import { newPayToken, payTokenHash } from '@/server/pay-token';
 import { autoHoldStep } from '@/server/deposit-auto';
 import { settlePayreq } from '@/server/paylink';
+import { isLapsedError, plainProcessorError } from '@/features/money/charge-reasons';
 
 // Offers and rentals made easy (migration 0129), through the staff door (ops calls): an offer sent without a request,
 // an offer edited in place, payments by part and method, and the card actions staff start from a booking. The database
@@ -78,7 +79,7 @@ export async function startCardRequest(p: { booking: string; kind: 'charge' | 'h
 }
 
 /** Charge the saved card (Finance, an Admin): a later charge with its reason, or the deposit of a long rental. */
-export async function chargeSavedCard(p: { booking: string; amount_cents?: number | null; reason: string; covers?: 'later' | 'deposit' | 'rental' | 'fees' | 'balance' }): Promise<R<{ ok: boolean; message?: string }>> {
+export async function chargeSavedCard(p: { booking: string; amount_cents?: number | null; reason: string; covers?: 'later' | 'deposit' | 'rental' | 'fees' | 'balance'; reason_code?: string; reason_note?: string }): Promise<R<{ ok: boolean; message?: string }>> {
   try {
     const { user, aal, va } = await me();
     const b = await door<{ payment_id: string; amount_cents: number; customer_id: string; method_id: string; booking_id: string; booking_number: string; reason: string; covers: string; idempotency_key: string }>(
@@ -87,29 +88,39 @@ export async function chargeSavedCard(p: { booking: string; amount_cents?: numbe
     try {
       const i = await (await payments()).chargeOffSession({ customerId: b.customer_id, paymentMethodId: b.method_id, amountCents: b.amount_cents, description: `CarmaCars booking ${b.booking_number}: ${b.reason}`,
         metadata: { booking_id: b.booking_id, purpose: 'staff_charge', payment_id: b.payment_id, covers: b.covers }, idempotencyKey: b.idempotency_key });
-      ok = i.status === 'succeeded'; intentId = i.id; chargeId = i.chargeId; message = ok ? undefined : i.lastError ?? 'The card was declined.';
-    } catch (e) { message = e instanceof Error ? e.message : 'The card could not be charged.'; }
+      ok = i.status === 'succeeded'; intentId = i.id; chargeId = i.chargeId; message = ok ? undefined : plainProcessorError(i.lastError ?? 'The card was declined.');
+    } catch (e) { message = plainProcessorError(e instanceof Error ? e.message : null); }
     await door(user.id, 'ops_do', 'card_charge_finish', withFn({ payment: b.payment_id, ok, error: message, intent_id: intentId, charge_id: chargeId, reason: b.reason }, va), aal);
     refreshAll([`/admin/bookings/${b.booking_number}`, `/staff/bookings/${b.booking_number}`]);
     return { ok: true, data: { ok, message } };
   } catch (e) { return fail(e); }
 }
 
-/** A deposit hold: capture all or part (with the reason), or release it. */
-export async function holdAction(p: { booking: string; action: 'capture' | 'release'; amount_cents?: number | null; reason?: string }): Promise<R<{ ok: boolean; message?: string }>> {
+/** A deposit hold: capture all or part (with the reason: r33, a code from the list and a note), or release it. A hold
+ *  that lapsed (Stripe ended it: canceled) is marked Hold expired; staff see a plain sentence, never Stripe's error. */
+export async function holdAction(p: { booking: string; action: 'capture' | 'release'; amount_cents?: number | null; reason?: string; reason_code?: string; reason_note?: string }): Promise<R<{ ok: boolean; message?: string; lapsed?: boolean }>> {
   try {
     const { user, aal, va } = await me();
     const b = await door<{ deposit_id: string; intent_id: string; amount_cents: number; action: string; idempotency_key: string; booking_id: string }>(user.id, 'ops_do', 'hold_action_begin', withFn(p, va), aal);
-    let ok = false; let message: string | undefined;
+    let ok = false; let message: string | undefined; let lapsed = false;
+    const pay = await payments();
     try {
-      const pay = await payments();
       const i = p.action === 'capture' ? await pay.captureIntent(b.intent_id, b.idempotency_key, b.amount_cents) : await pay.cancelIntent(b.intent_id, b.idempotency_key);
       ok = p.action === 'capture' ? i.status === 'succeeded' : i.status === 'canceled';
-      message = ok ? undefined : i.lastError ?? `Stripe answered ${i.status}`;
-    } catch (e) { message = e instanceof Error ? e.message : 'Stripe refused.'; }
-    await door(user.id, 'ops_do', 'hold_action_finish', withFn({ deposit: b.deposit_id, action: p.action, amount_cents: b.amount_cents, ok, error: message, reason: p.reason }, va), aal);
+      lapsed = p.action === 'capture' && i.status === 'canceled';
+      message = ok ? undefined : i.lastError ?? `status ${i.status}`;
+    } catch (e) {
+      message = e instanceof Error ? e.message : 'refused';
+      // the hold may already be gone: Stripe says canceled (it lapsed); a release then has nothing left to do
+      const st = await pay.retrieveIntent(b.intent_id).then((i) => i.status).catch(() => null);
+      if (st === 'canceled') { if (p.action === 'release') { ok = true; message = undefined; } else lapsed = true; }
+      else if (isLapsedError(message)) lapsed = p.action === 'capture';
+    }
+    const plain = ok ? undefined : plainProcessorError(lapsed ? 'status of canceled' : message, p.action === 'capture' ? 'keep' : 'release');
+    const fin = await door<{ ok: boolean; lapsed?: boolean; reason?: string }>(user.id, 'ops_do', 'hold_action_finish', withFn({ deposit: b.deposit_id, action: p.action, amount_cents: b.amount_cents, ok, error: plain, lapsed,
+      reason: p.reason, reason_code: p.reason_code, reason_note: p.reason_note }, va), aal);
     refreshAll(['/admin/bookings', '/staff/bookings']);
-    return { ok: true, data: { ok, message } };
+    return { ok: true, data: { ok, message: ok ? undefined : fin?.reason ?? plain, lapsed: lapsed || !!fin?.lapsed } };
   } catch (e) { return fail(e); }
 }
 
@@ -130,9 +141,9 @@ export async function reauthorizeHold(p: { booking: string }): Promise<R<{ ok: b
       if (i.status === 'requires_capture') fin = { ...fin, ok: true, intent_id: i.id, charge_id: i.chargeId, capture_before: i.captureBefore ?? null, extended: Boolean(i.extendedAuth) };
       else {
         if (i.status !== 'canceled') await pay.cancelIntent(i.id, `void:${i.id}`).catch(() => undefined);
-        fin = { ...fin, error: i.lastError ?? `Stripe answered ${i.status}` };
+        fin = { ...fin, error: plainProcessorError(i.lastError ?? `status ${i.status}`, 'hold') };
       }
-    } catch (e) { fin = { ...fin, error: e instanceof Error ? e.message : 'Stripe refused the hold.' }; }
+    } catch (e) { fin = { ...fin, error: plainProcessorError(e instanceof Error ? e.message : null, 'hold') }; }
     const r = await door<{ ok: boolean; message?: string; hold_expires_at?: string }>(user.id, 'ops_do', 'hold_reauth_finish', withFn(fin, va), aal);
     // the new hold is recorded: the old one is released at Stripe (a failure here leaves it to lapse by itself)
     if (r.ok && b.old_intent) await pay.cancelIntent(b.old_intent, `hold-reauth-release:${b.old_intent}`).catch(() => undefined);
