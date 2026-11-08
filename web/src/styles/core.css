@@ -144,6 +144,7 @@ button.link { background: none; border: 0; padding: 0; font: inherit; color: inh
 .btn--quiet { --btn-bg: transparent; --btn-fg: var(--text); --btn-bd: transparent; padding-inline: 0.75rem; }
 .btn--quiet:hover { --btn-bg: var(--surface); }
 .btn--sm { min-height: 40px; padding: 0.45rem 0.9rem; font-size: var(--fs-sm); white-space: nowrap; }
+@media (max-width: 480px) { .btn--sm { white-space: normal; max-width: 100%; text-align: center; } }
 .btn--lg { min-height: 56px; padding: 0.9rem 1.75rem; font-size: 1.0625rem; }
 .btn--block { display: flex; width: 100%; }
 .btn[disabled], .btn[aria-disabled="true"] { --btn-bg: var(--grey-200); --btn-fg: var(--grey-600); --btn-bd: var(--grey-200); cursor: not-allowed; }
