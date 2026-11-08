@@ -19,6 +19,7 @@
 // as before. The daily and monthly holds of 0018 then apply only when Cloudflare cannot send either.
 import postgres from 'npm:postgres@3.4.5';
 import { render, renderText } from './engine.mjs';
+import { combineEmails } from './combine.ts';
 
 const TOKEN = Deno.env.get('OUTBOX_JOB_TOKEN') ?? '';
 const RESEND = Deno.env.get('RESEND_API_KEY') ?? '';
@@ -29,6 +30,7 @@ const BATCH = 20;
 
 const sql = postgres(Deno.env.get('SUPABASE_DB_URL')!, { max: 1, prepare: false, idle_timeout: 20, onnotice: () => {} });
 
+interface Merge { subject: string | null; parts: Array<{ id: string; code: string; subject: string; payload: Record<string, unknown>; template_html: string | null; template_text: string | null }> }
 interface Row {
   id: string; code: string; category: string; to_address: string; to_name: string | null; from_address: string | null;
   reply_to: string | null; subject: string; payload: Record<string, unknown>; attempts: number; unsubscribe_url: string | null;
@@ -48,7 +50,7 @@ async function signDoc(k: string, key: string): Promise<string> {
   return `${APP_URL}/d/${body}.${b64url(new Uint8Array(await crypto.subtle.sign('HMAC', hk, enc.encode(body))))}`;
 }
 
-async function senderValues(r: Row): Promise<Record<string, unknown>> {
+async function senderValues(r: { id: string; code: string }): Promise<Record<string, unknown>> {
   const portal = r.code.startsWith('owner_') ? `${APP_URL}/owner` : r.code.startsWith('investor_') ? `${APP_URL}/investor/statements` : `${APP_URL}/account`;
   const out: Record<string, unknown> = {
     link_expiry: '7 days',
@@ -69,7 +71,7 @@ async function senderValues(r: Row): Promise<Record<string, unknown>> {
 // when it is not yet). A file that cannot be fetched holds the email back for a retry; from the third attempt the
 // email goes without it (its 7-day link still opens the file).
 const b64 = (u: Uint8Array) => { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
-async function attachments(r: Row): Promise<Array<{ filename: string; content: string; content_type: string }>> {
+async function attachments(r: { id: string; attempts: number }): Promise<Array<{ filename: string; content: string; content_type: string }>> {
   if (!LINK_KEY) return [];
   const [{ list }] = (await sql`select app.outbox_attachments(${r.id}::uuid) as list`) as unknown as [{ list: Array<{ k: string; key: string; filename: string }> }];
   const out: Array<{ filename: string; content: string; content_type: string }> = [];
@@ -154,6 +156,29 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
     } catch (e) {
       throw Object.assign(new Error('Template: ' + (e as Error).message), { permanent: true });
     }
+    // r35 (0900): emails to the same person for the same booking queued within a short window go as one email, each a
+    // section with its own buttons, every attachment kept (app.outbox_merge_parts; a lone email has no merged parts)
+    let subject = r.subject;
+    let more: Array<{ id: string; attempts: number }> = [];
+    try {
+      const [{ m }] = (await sql`select app.outbox_merge_parts(${r.id}::uuid) as m`) as unknown as [{ m: Merge }];
+      if (m && m.subject && m.parts.length > 1) {
+        const rendered = [{ subject, html, text }];
+        for (const p of m.parts.slice(1)) {
+          if (!p.template_html || !p.template_text) continue;
+          const v = { ...(await senderValues(p)), ...p.payload };
+          try {
+            rendered.push({ subject: p.subject, html: tagLinks({ ...p, category: r.category }, render(p.template_html, v)), text: tagLinks({ ...p, category: r.category }, renderText(p.template_text, v)) });
+            more.push({ id: p.id, attempts: r.attempts });
+          } catch {
+            // a part that cannot render is taken out and goes on its own (its own error then shows on its row)
+            await sql`select app.outbox_merge_detach(${p.id}::uuid)`;
+          }
+        }
+        if (rendered.length > 1) ({ subject, html, text } = combineEmails(m.subject, rendered));
+        else more = [];
+      }
+    } catch { /* an older database: each email on its own */ }
     const headers: Record<string, string> = {};
     if (r.category === 'marketing') {
       if (!r.unsubscribe_url) throw Object.assign(new Error('A marketing email needs its unsubscribe link'), { permanent: true });
@@ -164,6 +189,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
     }
     const files = await attachments(r);
+    for (const p of more) files.push(...(await attachments(p)));
     if (cfOn && budget.cfLeft <= 0) cfOn = false;
     if (!cfOn && budget.resendLeft <= 0) {
       // 0535: Resend's budget is used and Cloudflare cannot send right now. With Cloudflare budget left today (it rests 15
@@ -178,7 +204,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       return new Held('the day\'s email budget is used', 'later', true);
     }
     if (cfOn) {
-      const cf = await viaCloudflare({ from: fromHeader(r.from_address), to: r.to_address, reply_to: r.reply_to || undefined, subject: r.subject, html, text,
+      const cf = await viaCloudflare({ from: fromHeader(r.from_address), to: r.to_address, reply_to: r.reply_to || undefined, subject, html, text,
         headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined });
       if ('id' in cf) {
         await sql`select public.server_cf_email_result(${JSON.stringify({ ok: true })}::jsonb)`;
@@ -193,7 +219,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${RESEND}`, 'content-type': 'application/json', 'Idempotency-Key': `outbox-${r.id}-${r.attempts}` },
-      body: JSON.stringify({ from: fromHeader(r.from_address), to: [r.to_address], reply_to: r.reply_to || undefined, subject: r.subject, html, text,
+      body: JSON.stringify({ from: fromHeader(r.from_address), to: [r.to_address], reply_to: r.reply_to || undefined, subject, html, text,
         headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined })
     });
     if (!res.ok) {
@@ -203,7 +229,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
         // 2026-11-06: Resend refused for its rate or quota: the Cloudflare email binding sends this one instead (the site's
         // Worker), and the rest of the batch goes there too; only when that fails too the row waits, attempts untouched
         if (LINK_KEY) {
-          const cf = await viaCloudflare({ from: fromHeader(r.from_address), to: r.to_address, reply_to: r.reply_to || undefined, subject: r.subject, html, text,
+          const cf = await viaCloudflare({ from: fromHeader(r.from_address), to: r.to_address, reply_to: r.reply_to || undefined, subject, html, text,
             headers: Object.keys(headers).length ? headers : undefined, attachments: files.length ? files : undefined });
           if ('id' in cf) {
             cfOn = true;

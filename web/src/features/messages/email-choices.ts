@@ -4,6 +4,8 @@
 //     all or part of the booking, from Blind Spot Car Rental (insurance).
 //   - The adjuster: only on an insurer-billed booking with the adjuster's email recorded, always from Blind Spot Car Rental.
 
+import { emailBudgetLine } from '../usage/model.ts';
+
 export type Recipient = 'renter' | 'adjuster';
 export type Sender = 'carmacars' | 'blindspot';
 
@@ -15,7 +17,7 @@ export interface Conversation {
   messages: Array<{ id: string; direction: 'inbound' | 'outbound'; channel: string; subject: string | null; body: string | null; at: string; by: string; from: string | null; to: string | null; adjuster: boolean }>;
   emails: Array<{ id: string; code: string; subject: string; to: string | null; audience: string; from: string | null; status: string; reason: string | null; at: string; sent_at: string | null }>;
   quick_replies: Array<{ id: string; title: string; body: string }>;
-  usage: { total: number; cap: number };
+  usage: { total: number; cap: number; cf_state?: string | null; cf_counted?: boolean | null; cf_budget?: number | null; resend_budget?: number | null };
 }
 
 export const SENDERS: Record<Sender, { label: string; address: string }> = {
@@ -63,7 +65,12 @@ export function emailKind(code: string): string {
 }
 
 /** Where today's emails stand against the daily limit, in a line; a warning from 80%. */
-export function usageLine(u: { total: number; cap: number }): { text: string; warn: boolean } {
+export function usageLine(u: Conversation['usage']): { text: string; warn: boolean } {
   const warn = u.cap > 0 && u.total >= Math.ceil(u.cap * 0.8);
-  return { text: `${u.total} of ${u.cap} emails used today. ${warn ? 'Close to the limit: an email past it waits until midnight.' : 'Messages to renters go before digests and marketing.'}`, warn };
+  const tail = warn ? 'Close to the limit: an email past it waits until midnight.' : 'Messages to renters go before digests and marketing.';
+  // r35 (0900): with the pace read's budgets the line says why the cap is that number
+  if (typeof u.cf_budget === 'number' && typeof u.resend_budget === 'number') {
+    return { text: `${emailBudgetLine({ used: u.total, cap: u.cap, cf_state: u.cf_state, cf_counted: u.cf_counted, cf_budget: u.cf_budget, resend_budget: u.resend_budget })}. ${tail}`, warn };
+  }
+  return { text: `${u.total} of ${u.cap} emails used today. ${tail}`, warn };
 }
