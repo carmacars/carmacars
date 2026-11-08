@@ -111,7 +111,8 @@ export async function saveDraft(d: DraftInput, paths: string[] = []) {
   if (Object.keys(fe).length) return invalid(fe);
   return act<{ id: string; invoice_number: string; status: string; total_cents: number }>('owner_invoice_draft_save', { ...d, lines: d.lines.map((l) => ({ ...l, quantity: String(l.quantity) })) } as J, ['/admin/owner-money', ...paths]);
 }
-export async function issueInvoice(id: string, paths: string[] = []) { return act('owner_invoice_issue', { id }, ['/admin/owner-money', ...paths]); }
+// email false: issued without the invoice email (0067's quiet issue), for a bill the owner already paid outside the platform
+export async function issueInvoice(id: string, paths: string[] = [], email = true) { return act('owner_invoice_issue', email ? { id } : { id, quiet: true }, ['/admin/owner-money', ...paths]); }
 export async function voidInvoice(id: string, reason: string, reissue: boolean, paths: string[] = []) {
   if (!reason.trim()) return invalid({ reason: 'Give the reason. The owner reads it.' });
   return act<{ replacement_id: string | null; replacement_number: string | null }>('owner_invoice_void', { id, reason: reason.trim(), reissue }, ['/admin/owner-money', ...paths]);

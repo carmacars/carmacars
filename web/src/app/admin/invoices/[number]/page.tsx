@@ -47,7 +47,7 @@ export default async function AdminInvoice({ params, searchParams }: { params: P
         <Badge s={i.partly_paid ? 'sent' : INVOICE_BADGE[i.status] ?? i.status}>{statusText(i.status, i.partly_paid, i.from_statement)}</Badge>
       </PageHead>
       {sp.replaces && <p className="alert alert--ok" role="status" data-testid="invoice-replacement-note"><span>{sp.replaces} is void. This is the corrected invoice, a draft: check the lines, then issue it.</span></p>}
-      {sp.issued && <p className="alert alert--ok" role="status"><span>Issued. The owner was emailed.</span></p>}
+      {sp.issued && <p className="alert alert--ok" role="status"><span>{sp.issued === 'quiet' ? 'Issued without an email. Record the payment below if it is already paid.' : 'Issued. The owner was emailed.'}</span></p>}
       {i.status === 'void' && <p className="alert alert--warn" role="status" data-testid="invoice-void-note"><span>Void{i.voided_at ? ` since ${t(i.voided_at)}` : ''}{i.voided_by ? ` (${i.voided_by})` : ''}: {i.void_reason}{i.replaced_by ? `. Replaced by ${i.replaced_by}.` : ''}</span></p>}
       <div className="ad-cols ad-cols--main">
         <div className="stack">

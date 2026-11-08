@@ -35,16 +35,17 @@ export function InvoiceEditor({ draft, cars, applicationId, hstBps, paths = [], 
   const sub = rows.reduce((s, r) => s + amount(r), 0);
   const hst = rows.reduce((s, r) => s + (r.hst ? hstOf(amount(r), hstBps) : 0), 0);
   const kept = (draft?.lines ?? []).filter((l) => KEEP.has(l.kind ?? ''));
+  const [emailOwner, setEmailOwner] = useState(true);
   const save = (issue: boolean) => {
     setMsg(null);
     const lines: LineInput[] = rows.map((r) => ({ kind: r.kind, description: r.description, quantity: r.quantity, unit_amount_cents: toCents(r.unit), hst: r.hst, note: r.note || undefined }));
     a.run(() => saveDraft({ id: draft?.id, vehicle_id: draft ? undefined : vehicle, kind: draft ? undefined : kind, title, notes, due_on: due || undefined, application_id: applicationId, lines }, paths), async (r) => {
       if (!r.ok) return;
       if (issue) {
-        const x = await issueInvoice(r.data.id, paths);
+        const x = await issueInvoice(r.data.id, paths, emailOwner);
         if (!x.ok) { setMsg(x.message); return; }
       }
-      if (!stay) router.push(`/admin/invoices/${r.data.invoice_number}${issue ? '?issued=1' : '?saved=1'}`, scrollOption(`/admin/invoices/${r.data.invoice_number}${issue ? '?issued=1' : '?saved=1'}`));
+      if (!stay) router.push(`/admin/invoices/${r.data.invoice_number}${issue ? (emailOwner ? '?issued=1' : '?issued=quiet') : '?saved=1'}`, scrollOption(`/admin/invoices/${r.data.invoice_number}${issue ? (emailOwner ? '?issued=1' : '?issued=quiet') : '?saved=1'}`));
       else router.refresh();
     });
   };
@@ -99,7 +100,8 @@ export function InvoiceEditor({ draft, cars, applicationId, hstBps, paths = [], 
       {msg && <p className="alert alert--error" role="alert"><span>{msg}</span></p>}
       <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
         <button className="btn btn--ghost" type="submit" disabled={a.pending} data-testid="invoice-save">{a.pending ? 'Saving' : 'Save as draft'}</button>
-        <button className="btn btn--primary" type="button" disabled={a.pending} onClick={() => { if (window.confirm('Issue this invoice? The owner is emailed and an issued invoice cannot be edited.')) save(true); }} data-testid="invoice-save-issue">Save and issue</button>
+        <button className="btn btn--primary" type="button" disabled={a.pending} onClick={() => { if (window.confirm(emailOwner ? 'Issue this invoice? The owner is emailed and an issued invoice cannot be edited.' : 'Issue this invoice without emailing the owner? An issued invoice cannot be edited.')) save(true); }} data-testid="invoice-save-issue">Save and issue</button>
+        <label className="row small" style={{ gap: 'var(--s-1)' }}><input type="checkbox" checked={emailOwner} onChange={(e) => setEmailOwner(e.target.checked)} data-testid="invoice-email-owner" /> Email the owner (untick for a bill already paid outside the platform)</label>
       </div>
     </form>
   );

@@ -23,6 +23,8 @@ export function InvoiceActions({ id, number, can, paths = [] }: { id: string; nu
       <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
         {can.issue && <button type="button" className="btn btn--primary btn--sm" disabled={a.pending} data-testid="invoice-issue"
           onClick={() => { if (window.confirm(`Issue ${number}? The owner is emailed and it cannot be edited after.`)) a.run(() => issueInvoice(id, all), (r) => { if (r.ok) { setNote('Issued. The owner was emailed.'); router.refresh(); } }); }}>Issue and email</button>}
+        {can.issue && <button type="button" className="btn btn--ghost btn--sm" disabled={a.pending} data-testid="invoice-issue-quiet"
+          onClick={() => { if (window.confirm(`Issue ${number} without emailing the owner? Use it for a bill already paid outside the platform, then record the payment below. It cannot be edited after.`)) a.run(() => issueInvoice(id, all, false), (r) => { if (r.ok) { setNote('Issued without an email.'); router.refresh(); } }); }}>Issue without email</button>}
         {can.resend && <button type="button" className="btn btn--ghost btn--sm" disabled={a.pending} data-testid="invoice-resend"
           onClick={() => a.run(() => resendInvoice(id, all), (r) => { if (r.ok) { setNote('The invoice email was sent again.'); router.refresh(); } })}>Resend email</button>}
         {can.void && <button type="button" className="btn btn--ghost btn--sm" aria-expanded={mode === 'void'} onClick={() => setMode(mode === 'void' ? '' : 'void')} data-testid="invoice-void-open">Void</button>}
