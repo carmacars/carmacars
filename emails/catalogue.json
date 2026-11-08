@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 210,
+  "count": 211,
   "emails": [
     {
       "code": "account_password_reset",
@@ -584,6 +584,76 @@
       ],
       "template_html": "templates/renter_account_created.html",
       "template_text": "templates/renter_account_created.txt"
+    },
+    {
+      "code": "renter_accounts_merged",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Two renter records of the same person were merged (automatically, or by staff with Merge into this record). Once per merge: the renter learns they can sign in with any of their emails or their phone number. Nothing else is sent about a merge.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <hello@carmacars.ca>",
+      "reply_to": "contact@carmacars.ca",
+      "subject": "Your CarmaCars accounts are now one",
+      "preheader": "Sign in with {{sign_in_emails}} or your phone number.",
+      "sample_subject": "Your CarmaCars accounts are now one",
+      "variables": [
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "sign_in_emails",
+          "type": "string",
+          "sample": "sam@example.com or sam.work@example.com"
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_accounts_merged.html",
+      "template_text": "templates/renter_accounts_merged.txt"
     },
     {
       "code": "renter_agreement_ready",

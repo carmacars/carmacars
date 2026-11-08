@@ -31,7 +31,9 @@ export const ADMIN_HUBS: Hub[] = [
   { key: 'logs', label: 'Logs', tabs: [
     { href: '/admin/logs?tab=emails', label: 'Emails' }, { href: '/admin/logs?tab=blocked', label: 'Blocked addresses' },
     { href: '/admin/logs?tab=changes', label: 'Changes' }, { href: '/admin/logs?tab=access', label: 'Data access' }] },
-  { key: 'renters', label: 'Renters', tabs: [{ href: '/admin/renters?tab=renters', label: 'Renters' }, { href: '/admin/renters?tab=leads', label: 'Leads' }] },
+  // r35 (0950): every lead in one place (renters, owners, partners), with the Sales team's numbers
+  { key: 'renters', label: 'Renters', tabs: [{ href: '/admin/renters?tab=renters', label: 'Renters' }, { href: '/admin/renters?tab=leads', label: 'Leads' },
+    { href: '/admin/sales-leads', label: 'All leads' }, { href: '/admin/sales-leads?tab=team', label: 'Sales team' }] },
   { key: 'vehicles', label: 'Vehicles', tabs: [
     { href: '/admin/vehicles', label: 'All cars' }, { href: '/admin/vehicles/tracking', label: 'Fleet tracking' }, { href: '/admin/calendar-sync', label: 'Calendar sync' }],
     actions: [{ href: '/admin/vehicles/new', label: 'Add a car' }, { href: '/admin/vehicles/bulk-rates', label: 'Rates for many cars' }, { href: '/admin/vehicles/samples', label: 'Retire or delete' }, { href: '/admin/vehicles/import-photos', label: 'Import photos from Drive' }] },
@@ -39,7 +41,7 @@ export const ADMIN_HUBS: Hub[] = [
   // the owner: "People -> Owners (tabs: Applications, Owners, Owner forms, Paid and signed; Add a car for an owner as a button)"
   { key: 'owners', label: 'Owners', tabs: [
     { href: '/admin/applications', label: 'Applications' }, { href: '/admin/owners', label: 'Owners' }, { href: '/admin/owner-forms', label: 'Owner forms' },
-    { href: '/admin/owners?view=checklist', label: 'Paid and signed' }],
+    { href: '/admin/owners?view=checklist', label: 'Paid and signed' }, { href: '/admin/owners?view=leads', label: 'Leads' }],
     actions: [{ href: '/admin/owners/add-car', label: 'Add a car for an owner' }] },
   { key: 'partners', label: 'Partners', tabs: [{ href: '/admin/partners', label: 'Rental partners' }, { href: '/admin/referral-partners', label: 'Referral partners' }] },
   { key: 'team', label: 'Team', tabs: [
@@ -61,8 +63,9 @@ export const STAFF_HUBS: Hub[] = [
     { href: '/staff/money?tab=deposits', label: 'Deposits', fns: 'finance' }, { href: '/staff/money?tab=reconciliation', label: 'Reconciliation', fns: 'finance' },
     { href: '/staff/money?tab=partners', label: 'Partner invoices', fns: 'finance' }, { href: '/staff/money?tab=kickbacks', label: 'Kickbacks and repairs', fns: 'finance' }] },
   { key: 'owner-money', label: 'Owner money', tabs: [{ href: '/staff/owner-money?tab=invoices', label: 'Invoices', fns: 'finance' }, { href: '/staff/owner-money?tab=statements', label: 'Statements', fns: 'finance' }] },
+  { key: 'leads', label: 'Leads', tabs: [{ href: '/staff/sales-leads', label: 'All leads', fns: 'cs sales' }, { href: '/staff/sales-leads?mine=1', label: 'Mine', fns: 'cs sales' }] },
   { key: 'renters', label: 'Renters', tabs: [{ href: '/staff/messages', label: 'Messages', fns: 'cs' }, { href: '/staff/review-requests', label: 'Review requests', fns: 'cs' }, { href: '/staff/game-leads', label: 'Leads', fns: 'cs sales' }] },
-  { key: 'owners', label: 'Owners', tabs: [{ href: '/staff/owners', label: 'Owners', fns: 'cs fleet' }, { href: '/staff/leads', label: 'Owner and buyer leads', fns: 'cs sales' }, { href: '/staff/owner-pipeline', label: 'Owner pipeline', fns: 'cs' },
+  { key: 'owners', label: 'Owners', tabs: [{ href: '/staff/owners', label: 'Owners', fns: 'cs fleet' }, { href: '/staff/owner-leads', label: 'Leads', fns: 'cs sales' }, { href: '/staff/leads', label: 'Owner and buyer leads', fns: 'cs sales' }, { href: '/staff/owner-pipeline', label: 'Owner pipeline', fns: 'cs' },
     { href: '/staff/owner-forms', label: 'Owner forms', fns: 'cs' }, { href: '/staff/government-forms', label: 'Government forms', fns: 'fleet' }], actions: [{ href: '/staff/owners/add-car', label: 'Add a car for an owner', fns: 'cs fleet' }] },
   { key: 'listings', label: 'Listings', tabs: [{ href: '/staff/listings', label: 'Listings', fns: 'cs fleet' }, { href: '/staff/similar-cars', label: 'Similar cars', fns: 'cs fleet' },
     { href: '/staff/calendar-sync', label: 'Calendar sync', fns: 'fleet' }, { href: '/staff/addons', label: 'Add-ons', fns: 'fleet' }],
@@ -142,8 +145,8 @@ export const ADMIN_SECTIONS: Section[] = [
 const OFFICE = 'cs fleet finance sales';
 export const STAFF_SECTIONS: Section[] = [
   { key: 'todo', label: 'To do', items: [{ href: '/staff', label: 'To do', fns: OFFICE }, { href: '/staff/today', label: 'Today at a glance', fns: OFFICE }] },
-  { key: 'cs', label: 'Customer service', items: ['renters', 'owners', 'listings', { href: '/staff/chauffeur', label: 'Chauffeur', fns: 'cs' }] },
-  { key: 'sales', label: 'Sales', items: ['renters', 'owners', { href: '/staff/chauffeur', label: 'Chauffeur', fns: 'sales' }] },
+  { key: 'cs', label: 'Customer service', items: ['leads', 'renters', 'owners', 'listings', { href: '/staff/chauffeur', label: 'Chauffeur', fns: 'cs' }] },
+  { key: 'sales', label: 'Sales', items: ['leads', 'renters', 'owners', { href: '/staff/chauffeur', label: 'Chauffeur', fns: 'sales' }] },
   { key: 'fleet', label: 'Fleet', items: ['field-jobs', { href: '/staff/fleet/map', label: 'Fleet map', fns: 'fleet' }, 'checks', { href: '/staff/maintenance', label: 'Maintenance', fns: 'fleet' }, 'listings'] },
   { key: 'finance', label: 'Finance', items: ['money', 'owner-money', { href: '/staff/tolls', label: 'Tolls and tickets', fns: 'finance' }, { href: '/staff/turo', label: 'Turo trips', fns: 'finance' }, { href: '/staff/maintenance', label: 'Maintenance bills', fns: 'finance' }] },
   { key: 'bookings', label: 'Bookings', items: [{ href: '/staff/bookings', label: 'Bookings', fns: OFFICE }, { href: '/staff/calendar', label: 'Calendar', fns: OFFICE }, { href: '/staff/cars', label: 'Find a car', fns: OFFICE },

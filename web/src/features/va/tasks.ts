@@ -31,6 +31,8 @@ export function taskHref(t: Task): string {
   if (t.task_type === 'account_link_review') return '/staff/renters';
   // an unfinished owner application (0344): the lead is the Sales person's, on My sales
   if (t.task_type === 'owner_unfinished_application') return '/staff/my-sales#owners';
+  // r35 (0950): a task about a lead (a new owner program enquiry, a website enquiry, a game lead, an expired offer) opens that lead
+  if (t.related_table === 'leads' && t.related_id) return `/staff/sales-leads/${t.related_id}`;
   if (['owner_intake', 'check_owner_document', 'enquiry', 'lost_property'].includes(t.task_type)) return '/staff/leads';
   if (['turo_expiry', 'safety_certificate_window', 'plate_renewal', 'book_registry'].includes(t.task_type)) return '/staff/fleet#expiry';
   // maintenance (0089): the car's Maintenance with the record pop-up open
@@ -45,6 +47,8 @@ export function adminTaskHref(t: Pick<Task, 'task_type' | 'booking_number' | 've
   const n = t.booking_number ? encodeURIComponent(t.booking_number) : null;
   const rel = (table: string) => (t.related_table === table && t.related_id ? t.related_id : null);
   if (['live_chat_waiting', 'chat_request', 'chat_contact', 'visitor_follow_up'].includes(t.task_type)) return rel('chat_conversations') ? `/admin/visitors?view=chat&id=${rel('chat_conversations')}` : '/admin/visitors?view=chat';
+  // r35 (0950): a task about a lead opens that lead
+  if (rel('leads')) return `/admin/sales-leads/${rel('leads')}`;
   if (n && BOOKING_REVIEW.includes(t.task_type)) return `/admin/bookings/${n}?tab=review`;
   if (n && (VERIFY.includes(t.task_type) || t.task_type === 'live_rental_agreement')) return `/admin/bookings/${n}?tab=documents`;
   if (n && CHANGES.includes(t.task_type)) return `/admin/bookings/${n}?tab=changes`;

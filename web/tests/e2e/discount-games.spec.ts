@@ -496,6 +496,9 @@ test('Admin: Bookings > Leads shows the claims and the report; Settings > Discou
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL((u) => u.pathname.startsWith('/admin'), { timeout: 20_000 });
   await page.goto('/admin/renters?tab=leads', { waitUntil: 'networkidle' });
+  // r35: the new leads come first; the game leads are folded below them
+  await expect(page.getByTestId('new-renter-leads')).toBeVisible();
+  await page.getByTestId('older-leads-games').locator('summary').click();
   await expect(page.getByTestId('game-leads')).toContainText('WIN-');
   await expect(page.getByText(/Plays, 30 days/)).toBeVisible();
   await noOverflow(page);

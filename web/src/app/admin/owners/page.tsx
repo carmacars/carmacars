@@ -13,6 +13,8 @@ import { ListFilters } from '@/features/list-filters/ListFilters';
 import { ChecklistItems, OwnerChecklist, type OwnerChecklistRow } from '@/features/manual/OwnerChecklist';
 import { AddOwnerForm } from '@/features/owner-billing/AddOwnerForm';
 import { AgreementsChecklist, openCount, type AgreementOwner } from '@/features/owner-agreements/AgreementsChecklist';
+import { SalesLeadsPage } from '@/features/sales-leads/pages';
+import { adminCtx } from '@/features/shared-pages/context';
 
 type Acct = { id: string; email: string; name: string; status: string };
 
@@ -23,6 +25,9 @@ export default async function AdminOwners({ searchParams }: { searchParams: Prom
   const [{ user }, sp] = await Promise.all([requireAdmin('/admin/owners'), searchParams]);
   if (sp.view === 'checklist') return <Checklists userId={user.id} show={sp.show === 'all' ? 'all' : 'open'} />;
   if (sp.view === 'agreements') return <Agreements userId={user.id} show={sp.show === 'all' ? 'all' : 'open'} />;
+  // r35 (0950): Owners > Leads, the lead list with owner leads only
+  if (sp.view === 'leads') return <SalesLeadsPage ctx={await adminCtx('/admin/owners?view=leads')} sp={sp as Record<string, string | undefined>} base="/admin/sales-leads" listBase="/admin/owners?view=leads" type="owner" title="Owner leads"
+    purpose="Owner program enquiries, owner applications started and not finished, owner form contacts and earnings calculator contacts. Assign them to Sales, claim one, and record the outcome: contacted, call booked, applied, won or lost." />;
   const [every, idx] = await Promise.all([adminOwners(user),
     rpc('admin_account_index', { p_admin: user.id }, { role: 'service_role' }) as unknown as Promise<{ owners: Record<string, Acct> }>]);
   // r32: one search across the name, email and applications; chips for what needs action

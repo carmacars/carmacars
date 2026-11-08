@@ -56,9 +56,10 @@ select test.eq('a contact form lead: the Admin and customer service and Sales on
   test.lal_who('staff_lead_new', 'New lead: Contact form'), 'lal_admin,lal_cs,lal_sales');
 select test.eq('it names the source and the person',
   (select title || ' | ' || body from notifications where user_id = test.id('lal_cs') and code = 'staff_lead_new' and title like 'New lead: Contact%'), 'New lead: Contact form | Lena Contact: 4165550101, lal_lena@example.test');
-select test.eq('the Admin''s link is Admin > Leads, an assistant''s Leads',
-  (select url from notifications where user_id = test.id('lal_admin') and code = 'staff_lead_new' and title like 'New lead: Contact%') ~ '/admin/leads$'
-  and (select url from notifications where user_id = test.id('lal_cs') and code = 'staff_lead_new' and title like 'New lead: Contact%') ~ '/staff/leads$', true);
+-- r35 (0950): the alert opens that lead
+select test.eq('the Admin''s link is that lead on Admin, an assistant''s that lead on the staff portal',
+  (select url from notifications where user_id = test.id('lal_admin') and code = 'staff_lead_new' and title like 'New lead: Contact%') ~ '/admin/sales-leads/[0-9a-f-]{36}$'
+  and (select url from notifications where user_id = test.id('lal_cs') and code = 'staff_lead_new' and title like 'New lead: Contact%') ~ '/staff/sales-leads/[0-9a-f-]{36}$', true);
 -- once per lead
 select app.lead_alert_lead((select l from leads l where id = test.id('lal_l1')), 'INSERT', null);
 select app.process_events(1000);
@@ -128,8 +129,8 @@ select app.process_events(1000);
 select test.eq('an owner lead: the Admin and the Sales person it is assigned to, not other Sales or customer service',
   test.lal_who('staff_owner_lead_new', 'New owner lead: Website form') , 'lal_admin,lal_sales');
 select test.eq('an unassigned owner lead: the Admin only', test.lal_n('lal_admin', 'staff_owner_lead_new', 'New owner lead%') || '/' || test.lal_n('lal_sales', 'staff_owner_lead_new', 'New owner lead%') || '/' || test.lal_n('lal_cs', 'staff_owner_lead_new'), '2/1/0');
-select test.eq('an owner lead''s link is the owner pipeline',
-  (select url from notifications where user_id = test.id('lal_sales') and code = 'staff_owner_lead_new' and title like 'New owner lead%') ~ '/staff/owner-pipeline$', true);
+select test.eq('an owner lead''s link is that lead (r35, 0950)',
+  (select url from notifications where user_id = test.id('lal_sales') and code = 'staff_owner_lead_new' and title like 'New owner lead%') ~ '/staff/sales-leads/[0-9a-f-]{36}$', true);
 -- the unfinished application: a capture's lead made as "other", then an owner lead, then the 30-minute chase
 insert into leads (id, kind, name, email, source, payload) values (test.id('lal_o3'), 'other', 'Ula Unfinished', 'lal_ula@example.test', 'unfinished_form', jsonb_build_object('form', 'owner_application'));
 select test.eq('an unfinished application is not an owner alert until it becomes an owner lead', (select count(*) from app_events where code in ('staff_lead_new', 'staff_owner_lead_new') and payload ->> 'lead_id' = test.id('lal_o3')::text), 0::bigint);

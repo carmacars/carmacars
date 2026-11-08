@@ -21,6 +21,7 @@ export const PATHS = {
   careers: '/careers',
 
   // Renter portal
+  account: '/account',
   booking: '/account/bookings/{{booking_number}}',
   booking_messages: '/account/bookings/{{booking_number}}#messages',
   booking_offer: '/account/bookings/{{booking_number}}/offer',

@@ -30,6 +30,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['quo-contacts', 'Quo contacts', 'Everyone on the site with a phone number as a contact in Quo, under the same name: up to date, waiting, errors, the last run, Sync everyone again'],
   ['text-alerts', 'Text alerts', 'Email, text or both: the defaults, quiet hours, opt-outs, the text of each notification, and phone alerts on or off'],
   ['email', 'Email aliases and reply-to', 'Sending addresses and where replies go'],
+  ['sales', 'Sales', 'Leads: how long a claim holds for each lead type, how far each call, text, email or note extends it, the leads one person may hold, and when a lead stops being hot'],
   ['profile', 'My profile', 'Your greeting name on To do and in the assistant (for a login you share: both names)'],
   ['staff', 'Staff and roles', 'Invite, set limits, end access'],
   ['api', 'API access', 'Connect Claude to bookings, requests and owners: keys, connections and every call with before and after'],

@@ -74,6 +74,14 @@ export async function verifyPhoneCode(input: { phone: string; code: string; purp
   }
   const r = await a.verifyPhoneCode(phone, code);
   if (!r.ok) return { ok: false, code: r.code ?? 'credentials', message: r.message, fieldErrors: { code: r.message } };
+  // 0955: the number of a sign-in merged into another account signs in to the kept account (by a one-time link)
+  const kept = (await rpc('server_sign_in_alias', { p_user: r.user.id }, SR).catch(() => null)) as unknown as { user_id: string; email: string | null } | null;
+  if (kept && kept.user_id !== r.user.id) {
+    await a.signOut();
+    const l = kept.email && a.continueLink ? await a.continueLink(kept.email, safeNext(input.next ?? null) ?? '/account') : null;
+    if (l?.ok) redirect(l.link);
+    return { ok: false, code: 'refused', message: 'Your CarmaCars accounts are now one. Sign in with your email instead.' };
+  }
   await clearSessionCookies(false);
   await rememberSignIn('phone');
   let needsName = false;
