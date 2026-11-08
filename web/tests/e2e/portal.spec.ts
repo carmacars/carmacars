@@ -132,13 +132,10 @@ test('renter portal: offer, approve, sign, pay, confirmed, documents, uploads, s
   await page.goto(page.url().replace(/\/checkout#sign$/, '/pay'), { waitUntil: 'networkidle' });
   await expect(page).toHaveURL(/\/checkout#pay$/);
   await expect(page.getByTestId('sign-pay-pay-locked')).toBeVisible();
-  await page.locator('#pt-d-address_line1').fill('100 Queen Street West');
-  await page.locator('#pt-d-city').fill('Toronto');
-  await page.locator('#pt-d-postal_code').fill('M5H 2N2');
-  await page.locator('#pt-d-licence_number').fill('P1234-56789-01234');
-  await page.locator('#pt-d-licence_expiry').fill('2031-06-30');
-  await page.getByRole('button', { name: 'Save details' }).click();
-  await completeAgreementDetails(page);
+  // the details the agreement needs are asked once, in one form on the same page (address, licence, the coverage card)
+  await expect(page.getByTestId('complete-details')).toBeVisible();
+  await expect(page.locator('#pt-d-address_line1')).toBeHidden();
+  await completeAgreementDetails(page, { address: '100 Queen Street West', licence: 'P1234-56789-01234' });
   await expect(page.locator('.agreement')).toContainText('100 Queen Street West', { timeout: 15_000 });
   await expect(page.locator('.agreement')).toContainText('P1234-56789-01234');
   await expect(page.locator('.agreement')).toContainText('Part 6: Booking Consents');
@@ -340,14 +337,8 @@ test('race (r28 A1): the first renter to accept gets the car; the other offer go
   await signIn(page, emailA, `/account/bookings/${a.booking_number}/offer`);
   await page.waitForURL(/\/offer$/);
   await page.getByRole('button', { name: 'Approve and continue' }).click();
-  await page.waitForURL(/\/sign$/, { timeout: 30_000 });
-  await page.locator('#pt-d-address_line1').fill('1 Yonge Street');
-  await page.locator('#pt-d-city').fill('Toronto');
-  await page.locator('#pt-d-postal_code').fill('M5E 1E5');
-  await page.locator('#pt-d-licence_number').fill('S1234-56789-01234');
-  await page.locator('#pt-d-licence_expiry').fill('2030-01-31');
-  await page.getByRole('button', { name: 'Save details' }).click();
-  await completeAgreementDetails(page);
+  await page.waitForURL(/\/checkout$/, { timeout: 30_000 });
+  await completeAgreementDetails(page, { address: '1 Yonge Street', postal: 'M5E 1E5', licence: 'S1234-56789-01234', expiry: '2030-01-31' });
   await expect(page.locator('.agreement')).toContainText('1 Yonge Street', { timeout: 15_000 });
   // the legal name on file is the signature: one tap for the statements, one to sign
   await page.getByTestId('consents-all').check();

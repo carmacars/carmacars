@@ -244,7 +244,7 @@ test('Recovery: a renter opens her offer and does not answer; one reminder is qu
   await giveLicence(sql, v.booking_id);
   await page.goto(`/account/bookings/${v.booking_number}/offer`, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Approve and continue' }).click();
-  await page.waitForURL(/\/sign$/, { timeout: 30_000 });
+  await page.waitForURL(/\/checkout$/, { timeout: 30_000 });
   await sql`select app.job_booking_recovery(${new Date(at.getTime() + 10 * 60_000).toISOString()}::timestamptz)`;
   const [after] = await sql`select status, status_reason from notification_outbox where id = ${ob!.id}`;
   expect(`${after!.status}: ${after!.status_reason}`).toBe('skipped: Not sent: the offer was answered, expired or withdrawn');

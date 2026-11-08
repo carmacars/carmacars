@@ -134,6 +134,8 @@ test('sign-in: an Admin account that also rents has no renter portal (0720), its
   const sql = db();
   await sql`delete from app.rate_limit_hits`;
   const p = await mkPerson(sql, 'Admin Renter', ['admin', 'renter']);
+  // the renter profile a past rental made (a sign-up alone makes none: the first booking request does)
+  await sql`insert into renters (user_id, legal_name, email, mobile, date_of_birth) values (${p.id}, ${p.name}, ${p.email}, '+14165550142', '1990-05-05')`;
   const page = await newPage(browser, phone);
   await signIn(page, p.email);
   expect(path(page)).toBe('/admin');

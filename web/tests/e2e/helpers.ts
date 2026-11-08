@@ -232,27 +232,47 @@ export async function strongSign(page: Page, scope: Page | Locator = page, chann
   await page.waitForTimeout(300);
 }
 
-/** "Complete your details" (migration 0195): the rental agreement's blanks the renter fills before signing or paying
- *  (the coverage card or policy, a licence or address left blank). Fills whichever fields the panel asks for; does
- *  nothing when the agreement is already complete. */
-export async function completeAgreementDetails(page: Page) {
+/** The renter's details on the Sign and pay page (r33: one page): "Complete your details" (migration 0195), the rental
+ *  agreement's blanks (the coverage card or policy, a licence or address left blank), and, when the agreement still
+ *  lacks the address or licence after it, "Your details". Fills whichever form the page shows (the address, city,
+ *  postal code and licence can be given); does nothing when the agreement is already complete. */
+export async function completeAgreementDetails(page: Page, o: { address?: string; city?: string; postal?: string; licence?: string; expiry?: string } = {}) {
   const panel = page.getByTestId('complete-details');
-  await expect(page.locator('#pt-d-address_line1')).toBeHidden({ timeout: 30_000 });
-  await expect(panel.or(page.locator('.agreement')).first()).toBeAttached({ timeout: 20_000 });
-  if (!(await panel.count())) return;
-  const values: Record<string, string> = { card_issuer: 'Example Bank', card_last4: '4242', policy_number: 'POL-123456', policy_expiry: '2031-06-30',
-    licence_number: 'P1234-56789-01234', licence_expiry: '2031-06-30', date_of_birth: '1990-01-15', mobile: '4165550123' };
-  const insurer = panel.getByTestId('complete-insurer');
-  if (await insurer.count()) await insurer.selectOption({ index: 1 });
-  for (const [k, v] of Object.entries(values)) { const f = panel.getByTestId(`complete-${k}`); if (await f.count()) await f.fill(v); }
-  if (await panel.locator('#pt-cd-address_line1').isVisible()) {
-    await panel.locator('#pt-cd-address_line1').fill('100 Queen Street West');
-    await panel.locator('#pt-cd-city').fill('Toronto');
-    await panel.locator('#pt-cd-postal_code').fill('M5H 2N2');
+  const form = page.locator('#pt-d-address_line1');
+  const address = o.address ?? '100 Queen Street West', city = o.city ?? 'Toronto', postal = o.postal ?? 'M5H 2N2';
+  const licence = o.licence ?? 'P1234-56789-01234', expiry = o.expiry ?? '2031-06-30';
+  for (let i = 0; i < 3; i++) {
+    await expect(panel.or(form).or(page.locator('.agreement')).first()).toBeAttached({ timeout: 30_000 });
+    if (await panel.count()) {
+      const values: Record<string, string> = { card_issuer: 'Example Bank', card_last4: '4242', policy_number: 'POL-123456', policy_expiry: '2031-06-30',
+        licence_number: licence, licence_expiry: expiry, date_of_birth: '1990-01-15', mobile: '4165550123' };
+      const insurer = panel.getByTestId('complete-insurer');
+      if (await insurer.count()) await insurer.selectOption({ index: 1 });
+      for (const [k, v] of Object.entries(values)) { const f = panel.getByTestId(`complete-${k}`); if (await f.count()) await f.fill(v); }
+      if (await panel.locator('#pt-cd-address_line1').isVisible()) {
+        await panel.locator('#pt-cd-address_line1').fill(address);
+        await panel.locator('#pt-cd-city').fill(city);
+        await panel.locator('#pt-cd-postal_code').fill(postal);
+      }
+      await panel.getByTestId('complete-details-save').click();
+      await expect(panel).toHaveCount(0, { timeout: 20_000 });
+      continue;
+    }
+    // "Your details" open (needed): the address and licence the agreement still lacks
+    if (await form.isVisible()) {
+      await form.fill(address);
+      await page.locator('#pt-d-city').fill(city);
+      await page.locator('#pt-d-postal_code').fill(postal);
+      await page.locator('#pt-d-licence_number').fill(licence);
+      await page.locator('#pt-d-licence_expiry').fill(expiry);
+      await page.getByRole('button', { name: 'Save details' }).click();
+      await expect(form).toBeHidden({ timeout: 30_000 });
+      continue;
+    }
+    return;
   }
-  await panel.getByTestId('complete-details-save').click();
-  await expect(panel).toHaveCount(0, { timeout: 20_000 });
 }
+
 
 /** A complete signing session for the documents (migration 0193: every signature on the site goes through one), as
  *  the signer would make it on screen: the code, the documents read, the initials and consents the documents need,

@@ -77,7 +77,8 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
   const ub = bundle ? unsignedBundle(bundle) : null;
   const blocks = ub ? blocksFor(ub.f, undefined, ub) : [];
   const legal = r?.legal_name ?? me?.full_name ?? '';
-  // a rental staff added with the saved card (0053): charged on "Accept and sign", never before
+  // a rental staff added with the saved card (0053): charged on "Accept and sign", never before; the note says so in the
+  // reviewed words of the email (0053 legal review), with the amount and the card
   const charge = added && signing ? ((await rpc('server_manual_rental_sign_charge', { p_booking: b.id, p_by: user.id }, SR).catch(() => null)) as unknown as { amount_cents: number; brand: string | null; last4: string | null } | null) : null;
   const live = !!b.link_due;
   const payOffline = !!offline && offline.rental_pay_method !== 'card' && b.status === 'pending_payment' && !live;
@@ -141,7 +142,7 @@ export default async function SignAndPayPage({ params, searchParams }: { params:
                 <section className="pt-card" aria-labelledby="pt-sign">
                   <h3 className="d4" id="pt-sign">Your signature</h3>
                   {needDetails && <p className="alert alert--warn" role="note"><span>Add your details above first, so the agreement shows them.</span></p>}
-                  {charge && <p className="small" data-testid="sign-charge-note">Your card is charged when you sign: {money(charge.amount_cents, { cents: true })} to the card ending {charge.last4 ?? 'on file'} when you press Accept and sign.</p>}
+                  {charge && <p className="small" data-testid="sign-charge-note">Read and sign your rental agreement; your card is charged when you sign. We charge {money(charge.amount_cents, { cents: true })} to the card ending {charge.last4 ?? 'on file'} when you press Accept and sign.</p>}
                   <SignForm number={b.booking_number} sha={b.agreement.document_sha256} companionSha={companion?.status === 'open' ? companion.document_sha256 : null} consents={consents()} legalName={legal} fixNameHref="#pt-details" terms={bundle ? keyTerms(bundle) : []}
                     button={charge ? 'Accept and sign' : noPay ? 'Sign the agreement' : `Sign, then pay ${due} below`} />
                   <p className="xs muted">We record the time, your IP address and device with your signature. CarmaCars countersigns {noPay ? 'as soon as you sign' : 'when you pay'}. <Link prefetch={false} className="link" href="/privacy">Privacy</Link></p>

@@ -74,6 +74,8 @@ test('signatures: the owner statement, the amendment section 4 and refund line, 
   assert.ok(read('web/src/features/owner-agreement/witnessed.ts').includes('`I witnessed ${owner} sign in my presence.`'));
   assert.ok(read('supabase/migrations/0053_legal_review.sql').includes("'Read and sign your rental agreement; your card is charged when you sign.'"));
   assert.match(read('web/src/app/account/bookings/[number]/checkout/page.tsx'), /'Accept and sign'/);
+  // the Sign and pay page's note for a rental added with the saved card keeps the reviewed sentence of the email
+  assert.ok(read('web/src/app/account/bookings/[number]/checkout/page.tsx').includes('Read and sign your rental agreement; your card is charged when you sign.'));
 });
 
 test('emails: the failed debit (7.4), the void notice (6.2), the returned debit and the confirmation carry the approved lines', () => {

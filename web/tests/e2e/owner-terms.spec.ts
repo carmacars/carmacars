@@ -114,7 +114,8 @@ test('approve with custom terms, the first and last paid by e-Transfer, a regist
   const [m] = await sql`select method, reference from manual_payments m join owner_invoices i on i.id = m.owner_invoice_id where i.owner_id = ${app.ownerId}`;
   expect(`${m!.method}/${m!.reference}`).toBe('e_transfer/CAxE2E725');
   const ev = await sql`select code from app_events where payload ->> 'owner_id' = ${app.ownerId} and code in ('owner_upfront_invoice', 'owner_invoice_issued', 'owner_payment_recorded', 'owner_application_approved') order by code`;
-  expect(ev.map((e) => e.code)).toEqual(['owner_application_approved', 'owner_invoice_issued', 'owner_payment_recorded']);
+  // 0780: recorded as already paid, no receipt email unless the Admin asks for one (the step's payment.receipt)
+  expect(ev.map((e) => e.code)).toEqual(['owner_application_approved', 'owner_invoice_issued']);
   // the application's Invoices tab
   await page.goto(`/admin/applications/${app.appId}?tab=invoices`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('app-invoice-list').locator('li')).toHaveCount(2);

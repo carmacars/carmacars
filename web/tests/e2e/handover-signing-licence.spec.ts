@@ -392,7 +392,7 @@ test('the licence is uploaded from the request before the offer can be accepted'
   await page.goto(`/account/bookings/${req.booking_number}/offer`, { waitUntil: 'networkidle' });
   await expect(page.getByTestId('licence-needed')).toHaveCount(0);
   await page.getByRole('button', { name: 'Approve and continue' }).click();
-  await page.waitForURL(/\/sign$/, { timeout: 30_000 });
+  await page.waitForURL(/\/checkout$/, { timeout: 30_000 });
   await sql.end();
 });
 

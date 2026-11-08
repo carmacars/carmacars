@@ -119,14 +119,8 @@ test('the Blind Spot agreement: uploaded and checked by an Admin, filled for the
     await signIn(page, email, `/account/bookings/${bk.booking_number}/offer`);
     await page.waitForURL(/\/offer$/);
     await page.getByRole('button', { name: 'Approve and continue' }).click();
-    await page.waitForURL(/\/sign$/, { timeout: 30_000 });
-    await page.locator('#pt-d-address_line1').fill('200 Example Avenue');
-    await page.locator('#pt-d-city').fill('Toronto');
-    await page.locator('#pt-d-postal_code').fill('M4M 1A1');
-    await page.locator('#pt-d-licence_number').fill('S1234-56789-03144');
-    await page.locator('#pt-d-licence_expiry').fill('2031-03-14');
-    await page.getByRole('button', { name: 'Save details' }).click();
-    await completeAgreementDetails(page);
+    await page.waitForURL(/\/checkout$/, { timeout: 30_000 });
+    await completeAgreementDetails(page, { address: '200 Example Avenue', postal: 'M4M 1A1', licence: 'S1234-56789-03144', expiry: '2031-03-14' });
     await expect(page.locator('.agreement')).toContainText('200 Example Avenue', { timeout: 15_000 });
     const second = page.getByTestId('sign-companion');
     await expect(second).toContainText('Blind Spot Car Rental agreement');

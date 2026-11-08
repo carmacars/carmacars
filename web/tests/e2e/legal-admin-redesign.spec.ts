@@ -337,7 +337,7 @@ test('legal: a rental added with the saved card is charged only when the renter 
     await expect(rp.locator('.agreement')).toContainText('100 Queen Street West', { timeout: 15_000 });
   }
   await completeAgreementDetails(rp);
-  await expect(rp.getByTestId('sign-charge-note')).toContainText('Read and sign your rental agreement; your card is charged when you sign.');
+  await expect(rp.getByTestId('sign-charge-note')).toContainText(/^Read and sign your rental agreement; your card is charged when you sign\. We charge \$[\d,]+\.\d\d to the card ending 4242 when you press Accept and sign\.$/);
   await check(rp, 'sign and be charged');
   await rp.getByTestId('consents-all').check();
   await strongSign(rp);

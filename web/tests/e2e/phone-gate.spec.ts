@@ -43,16 +43,17 @@ async function codeFor(sql: Sql, phone: string): Promise<string> {
   }
   throw new Error(`no code texted to ${phone}`);
 }
-/** A car on the site with at least `min` photos (read from its page, as a visitor sees it). */
+/** A car on the site with at least `min` photos that takes requests (its page has the dates and price box, where the
+ *  full availability is), read from its page as a visitor sees it. A car listed but not taking requests has no box. */
 async function carWithPhotos(page: Page, min: number): Promise<{ slug: string; photos: number }> {
   const list = await (await page.request.get('/cars')).text();
   const slugs = [...new Set([...list.matchAll(/href="\/cars\/([a-z0-9-]+)"/g)].map((m) => m[1]!))].slice(0, 25);
   for (const slug of slugs) {
     const html = await (await page.request.get(`/cars/${slug}`)).text();
     const n = Number(/aria-label="1 of (\d+)"/.exec(html)?.[1] ?? 0);
-    if (n >= min) return { slug, photos: n };
+    if (n >= min && html.includes('id="dates"')) return { slug, photos: n };
   }
-  throw new Error(`no car with ${min} photos`);
+  throw new Error(`no car taking requests with ${min} photos`);
 }
 /** Two taps on Next photo: to the third photo (past the 2 free ones in this test). */
 async function toThird(page: Page) {
