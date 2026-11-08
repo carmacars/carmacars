@@ -63,6 +63,7 @@ const LABELS: Record<string, string> = {
   fleet_lease_default_writeoff_months: 'Fleet supplier route: Write-Off Period (months in service)', fleet_lease_default_later_writeoff_bps: 'Fleet supplier route: write-off share after the Write-Off Period (basis points)',
   fleet_lease_default_notice_days: 'Fleet supplier route: Notice Period (days)',
   email_limit_texts: 'Email limit: text booking and pickup messages', deposit_link_auto: 'Deposit link by text before pickup', deposit_link_hours: 'Deposit link: hours before pickup', email_limit_text_codes: 'Email limit: the emails texted while held',
+  google_drive_api_key: 'Google Drive photo import: a Google API key with the Drive API on (optional). Set: the import lists and downloads through the Drive API and reads folders of any size. Empty: it reads the public folder pages (first 50 files of a folder only if the embedded view fails).',
   academy_gate: 'Academy gate: staff open only the academy until they pass their paths', academy_pass_bps: 'Academy: pass mark of a quiz',
   request_response_target_minutes: 'First reply target for customer service and sales (minutes)',
   request_claim_minutes: 'Booking requests: the person answering a request holds it for (minutes)',

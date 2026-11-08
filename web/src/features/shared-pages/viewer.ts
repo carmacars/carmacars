@@ -173,5 +173,6 @@ export const STAFF_SHARED: Record<string, { admin: string; shared: string }> = {
   '/staff/requests': { admin: '/admin/requests', shared: 'features/requests-page/RequestsPage' },
   '/staff/bookings': { admin: '/admin/bookings', shared: 'features/bookings-page/BookingsPage' },
   '/staff/renters': { admin: '/admin/renters', shared: 'features/renters-page/RentersPage' },
-  '/staff/owners/add-car': { admin: '/admin/owners/add-car', shared: 'features/add-owner-car-page/AddOwnerCarPage' }
+  '/staff/owners/add-car': { admin: '/admin/owners/add-car', shared: 'features/add-owner-car-page/AddOwnerCarPage' },
+  '/staff/listings/import-photos': { admin: '/admin/vehicles/import-photos', shared: 'features/drive-import/DriveImportPage' }
 };

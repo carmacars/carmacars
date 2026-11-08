@@ -92,6 +92,7 @@ const PROGRAM_GROUPS: Array<[string, (k: string) => boolean]> = [
   ['Google Maps daily caps', (k) => k.startsWith('maps_')],
   ['Facebook Marketplace', (k) => k.startsWith('marketplace_')],
   ['Stuck? help', (k) => k.startsWith('stuck_')],
+  ['Photo import from Google Drive', (k) => k === 'google_drive_api_key'],
   ['Staff, privacy and housekeeping', () => true]
 ];
 const yes = (v: unknown) => (v ? 'Yes' : 'No');

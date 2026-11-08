@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { runListingWorkerNow, workerToken } from '@/server/listing-worker';
 import { runCarDetailsNow } from '@/server/car-details';
+import { kickDriveImportIfDue } from '@/server/drive-import';
 
 // The listing worker's door (docs/blueprint/09-listing-pipeline.md section 5.1). Called by the Worker's
 // Cloudflare cron trigger (custom-worker.ts, every five minutes) with the bearer token derived from
@@ -18,6 +19,8 @@ export async function POST(req: Request) {
     const s = await runListingWorkerNow({ maxJobs: 16, deadlineMs: 25_000 });
     // then the car details that come later (0082): a VIN decoded again, the colour from a cover photo
     const c = await runCarDetailsNow({ vins: 3, colours: 2 }).catch((e) => ({ decoded: 0, filled: 0, colours: 0, errors: [String(e).slice(0, 200)] }));
+    // and a Google Drive photo import with work to do (0760) is started in its own request
+    await kickDriveImportIfDue().catch(() => false);
     return NextResponse.json({ ok: true, claimed: s.claimed, succeeded: s.succeeded, failed: s.failed, held: s.held, due: s.due, errors: [...s.errors, ...c.errors].slice(0, 5),
       details: { decoded: c.decoded, filled: c.filled, colours: c.colours } });
   } catch (e) {

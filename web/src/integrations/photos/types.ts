@@ -30,6 +30,8 @@ export interface PhotoProcessor {
   preview?(r: { sourceUrl: string; width: number }): Promise<PhotoOut>;
   /** r28 B9: the light touch-up (JPEG, same size). */
   enhance?(r: { sourceUrl: string; width: number; height: number; values: { brightness: number; contrast: number; gamma: number; saturation: number; sharpen: number } }): Promise<PhotoOut>;
+  /** r33 (0760): a photo in a format the listing takes only as JPEG (HEIC from a phone, WebP), as a JPEG at most `width` pixels wide. */
+  toJpeg?(r: { sourceUrl: string; width: number }): Promise<PhotoOut>;
   /** One size variant (WebP). */
   resize(r: { sourceUrl: string; width: number }): Promise<PhotoOut>;
 }

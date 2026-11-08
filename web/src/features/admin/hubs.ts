@@ -34,7 +34,7 @@ export const ADMIN_HUBS: Hub[] = [
   { key: 'renters', label: 'Renters', tabs: [{ href: '/admin/renters?tab=renters', label: 'Renters' }, { href: '/admin/renters?tab=leads', label: 'Leads' }] },
   { key: 'vehicles', label: 'Vehicles', tabs: [
     { href: '/admin/vehicles', label: 'All cars' }, { href: '/admin/vehicles/tracking', label: 'Fleet tracking' }, { href: '/admin/calendar-sync', label: 'Calendar sync' }],
-    actions: [{ href: '/admin/vehicles/new', label: 'Add a car' }, { href: '/admin/vehicles/bulk-rates', label: 'Rates for many cars' }, { href: '/admin/vehicles/samples', label: 'Retire or delete' }] },
+    actions: [{ href: '/admin/vehicles/new', label: 'Add a car' }, { href: '/admin/vehicles/bulk-rates', label: 'Rates for many cars' }, { href: '/admin/vehicles/samples', label: 'Retire or delete' }, { href: '/admin/vehicles/import-photos', label: 'Import photos from Drive' }] },
   { key: 'listings', label: 'Listings', tabs: [{ href: '/admin/listings', label: 'Listings' }, { href: '/admin/similar-cars', label: 'Similar cars' }] },
   // the owner: "People -> Owners (tabs: Applications, Owners, Owner forms, Paid and signed; Add a car for an owner as a button)"
   { key: 'owners', label: 'Owners', tabs: [
@@ -66,7 +66,7 @@ export const STAFF_HUBS: Hub[] = [
     { href: '/staff/owner-forms', label: 'Owner forms', fns: 'cs' }], actions: [{ href: '/staff/owners/add-car', label: 'Add a car for an owner', fns: 'cs fleet' }] },
   { key: 'listings', label: 'Listings', tabs: [{ href: '/staff/listings', label: 'Listings', fns: 'cs fleet' }, { href: '/staff/similar-cars', label: 'Similar cars', fns: 'cs fleet' },
     { href: '/staff/calendar-sync', label: 'Calendar sync', fns: 'fleet' }, { href: '/staff/addons', label: 'Add-ons', fns: 'fleet' }],
-    actions: [{ href: '/staff/owners/add-car', label: 'Add a car', fns: 'fleet' }] },
+    actions: [{ href: '/staff/owners/add-car', label: 'Add a car', fns: 'fleet' }, { href: '/staff/listings/import-photos', label: 'Import photos from Drive', fns: 'cs fleet' }] },
   { key: 'field-jobs', label: 'Field jobs', tabs: [{ href: '/staff/fleet', label: 'Jobs', fns: 'fleet' }, { href: '/staff/field-hours', label: 'Field hours', fns: 'fleet' }] },
   { key: 'checks', label: 'Checks', tabs: [{ href: '/staff/checks', label: 'Daily checks', fns: 'fleet' }, { href: '/staff/reviews', label: 'Photo reviews', fns: 'fleet' }] },
   { key: 'numbers', label: 'My numbers', tabs: [{ href: '/staff/scorecard', label: 'Scorecard', fns: 'cs fleet finance sales' }, { href: '/staff/my-sales', label: 'My sales', fns: 'cs fleet finance sales' }] }

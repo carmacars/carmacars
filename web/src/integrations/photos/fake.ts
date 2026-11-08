@@ -18,6 +18,7 @@ export function fakePhotos(get: (url: string) => Promise<Uint8Array | null>, mod
     layer: (r) => pass(r.overlayUrl, 'image/jpeg'),
     preview: (r) => pass(r.sourceUrl, 'image/png'),
     enhance: (r) => pass(r.sourceUrl, 'image/jpeg'),
+    toJpeg: (r) => pass(r.sourceUrl, 'image/jpeg'),
     resize: (r) => pass(r.sourceUrl, 'image/webp')
   };
 }
