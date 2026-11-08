@@ -6263,6 +6263,14 @@ export type Database = {
           investor_id: string | null;
           staff_user_id: string | null;
           content_key: string | null;
+          review_status: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_note: string | null;
+          removed_at: string | null;
+          removed_by: string | null;
+          removed_reason: string | null;
+          replaced_by: string | null;
         };
         Insert: {
           id?: string;
@@ -6289,6 +6297,14 @@ export type Database = {
           investor_id?: string | null;
           staff_user_id?: string | null;
           content_key?: string | null;
+          review_status?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_note?: string | null;
+          removed_at?: string | null;
+          removed_by?: string | null;
+          removed_reason?: string | null;
+          replaced_by?: string | null;
         };
         Update: {
           id?: string;
@@ -6315,6 +6331,14 @@ export type Database = {
           investor_id?: string | null;
           staff_user_id?: string | null;
           content_key?: string | null;
+          review_status?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          review_note?: string | null;
+          removed_at?: string | null;
+          removed_by?: string | null;
+          removed_reason?: string | null;
+          replaced_by?: string | null;
         };
         Relationships: [];
       };
