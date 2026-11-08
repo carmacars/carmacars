@@ -1,6 +1,6 @@
 import 'server-only';
 import { companySignature } from '@/server/signature-lines';
-import { screenFormCBlocks, type WitnessedFacts } from '@/features/owner-agreement/witnessed';
+import { screenFormCBlocks, screenFormDBlocks, type WitnessedFacts } from '@/features/owner-agreement/witnessed';
 import { rpc } from '@/lib/db/repo';
 import { storage } from '@/integrations/storage';
 import { PDFDocument } from 'pdf-lib';
@@ -12,7 +12,7 @@ import { requestMeta } from '@/server/request';
 import { sha256Hex } from '@/server/links';
 import { SIGN_STATEMENT } from '@/features/manual/constants';
 import { partnerAgreementBlocks, type PartnerFacts } from '@/features/partner/agreement';
-import { formABFacts, formCFacts, formCSpec, formSpec, partnerFacts, partnerSpec, prepareSpec, referralFacts } from '@/server/signing/prepare';
+import { companySigners, formABFacts, formCFacts, formCSpec, formSpec, partnerFacts, partnerSpec, prepareSpec, referralFacts } from '@/server/signing/prepare';
 import { referralAgreementBlocks } from '@/features/referral-agreement/agreement';
 import { enqueuePdfJobs } from '@/server/pdf-jobs';
 import { withRequestCertificate } from '@/server/signing/certified';
@@ -55,7 +55,7 @@ function pngBytes(dataUrl: string): Uint8Array | null {
 }
 
 export interface SignedRequest {
-  id: string; signature_request_id: string; doc_type: 'form_a' | 'form_b' | 'form_c' | 'investment_agreement' | 'staff_agreement' | 'partner_agreement' | 'referral_agreement'; vehicle_id?: string | null; referral_link_id?: string | null; witness_record_id?: string | null; title: string; owner_id: string | null; investor_id: string | null; staff_user_id: string | null;
+  id: string; signature_request_id: string; doc_type: 'form_a' | 'form_b' | 'form_c' | 'form_d' | 'investment_agreement' | 'staff_agreement' | 'partner_agreement' | 'referral_agreement'; vehicle_id?: string | null; referral_link_id?: string | null; witness_record_id?: string | null; title: string; owner_id: string | null; investor_id: string | null; staff_user_id: string | null;
   signer_name: string; signer_role: string; signed_at: string; method: string; document_sha256: string;
   record: { signer_role: string; signer_name: string; method: string; signed_at: string; ip_address: string | null; user_agent: string | null; provider_signature: string | null; typed_name: string | null; initials: Record<string, string> | null };
 }
@@ -113,6 +113,7 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
   const row: SignatureRow = { party: rec.signer_role === 'investor' ? 'Investor' : rec.signer_role === 'partner' ? 'Partner' : rec.signer_role === 'staff' ? 'Staff member' : 'Owner', name: rec.signer_name,
     signature: rec.method === 'typed' ? `Typed: ${rec.typed_name ?? rec.signer_name}` : 'Drawn signature', when: when(rec.signed_at) };
   let blocks: Block[];
+  const extraLines: string[][] = []; // 0720: Form D's witnesses (company.lines names only the first typed witness)
   let whole = false; // the document itself goes in front of the signature page (investment, staff and uploaded agreements)
   if (r.doc_type === 'form_a' || r.doc_type === 'form_b') {
     const code = r.doc_type === 'form_a' ? 'A' : 'B';
@@ -123,6 +124,19 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
     const w = company.witness;
     blocks = screenFormCBlocks(facts, { owner: { ...row, party: 'Owner' }, witness: w ? { party: 'Witness', name: w.name, signature: `Typed: ${w.name}`, when: w.when } : undefined,
       initials: rec.initials ? Object.values(rec.initials)[0] : undefined });
+  } else if (r.doc_type === 'form_d') {
+    // 0720: Part 1 signed by the owner and the two witnesses on screen; Part 2 for CarmaCars from the stored signatures
+    const facts = (await rpc('server_witnessed_form_facts', { p_by: userId, p_code: 'D1' }, SR)) as unknown as WitnessedFacts;
+    const rows = ((await rpc('server_form_d_signers', { p_request: r.id }, SR).catch(() => [])) ?? []) as unknown as Array<{ role: string; name: string; title: string | null; method: string; signed_at: string | null; consent_text: string | null }>;
+    const wit = rows.filter((x) => x.role === 'witness' && x.method === 'typed');
+    const co = rows.find((x) => x.role === 'carmacars');
+    const cw = rows.find((x) => x.role === 'witness' && x.method === 'stored_signature');
+    const typed = (party: string, x?: { name: string; signed_at: string | null }) => (x ? { party, name: x.name, signature: `Typed: ${x.name}`, when: x.signed_at ? when(x.signed_at) : '' } : undefined);
+    const stored = (party: string, x?: { name: string; title: string | null; signed_at: string | null; consent_text: string | null }) => (x ? { party, name: `${x.name}${x.title ? `, ${x.title}` : ''}`, signature: x.consent_text ?? 'Signed electronically.', when: x.signed_at ? when(x.signed_at) : '' } : undefined);
+    blocks = screenFormDBlocks(facts, await companySigners(), { owner: { ...row, party: 'Owner' }, w1: typed('Witness 1', wit[0]), w2: typed('Witness 2', wit[1]),
+      company: co ? { party: 'CarmaCars', name: companyName ?? co.name, signature: company.text ?? co.consent_text ?? 'Signed electronically for CarmaCars.', when: co.signed_at ? when(co.signed_at) : '' } : undefined,
+      companyWitness: stored('Witness (CarmaCars)', cw) });
+    for (const x of [...wit, ...(cw ? [cw] : [])]) extraLines.push([`Witness: ${x.name}`, `${x.method === 'typed' ? 'typed on screen in person' : 'applied from the stored signature'}; ${x.consent_text ?? ''}`]);
   } else if (r.doc_type === 'partner_agreement') {
     const facts = await partnerFacts(userId);
     blocks = facts ? partnerAgreementBlocks(facts, { partner: row, carmacars: { party: 'CarmaCars', name: companyName ?? (facts.company.legal_name || facts.company.brand), signature: company.text ?? `Signed electronically for ${facts.company.legal_name || facts.company.brand}.`, when: when(rec.signed_at) } })
@@ -141,7 +155,8 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
     ['Document', `${r.title}`],
     ['Document SHA-256', r.document_sha256],
     [`${rec.signer_role.replace(/_/g, ' ')}: ${rec.signer_name}`, `${when(rec.signed_at)}; method ${rec.method}${rec.ip_address ? `; IP address ${rec.ip_address}` : ''}${rec.user_agent ? `; device ${rec.user_agent}` : ''}${rec.initials ? `; initials ${Object.values(rec.initials).join(', ')}` : ''}`],
-    ...company.lines
+    ...(r.doc_type === 'form_d' ? company.lines.filter((l) => !l[0]!.startsWith('Witness: ')) : company.lines),
+    ...extraLines
   ];
   let pdf = await agreementPdf(blocks, { title: `${r.title}, signed`, createdAt: new Date(rec.signed_at), images, record: { heading: 'Signature record', lines }, footer: `CarmaCars ${r.title}, signed.` });
   if (whole) pdf = await withDocument(s, r.id, pdf, r.document_sha256);
@@ -149,7 +164,7 @@ export async function attachSignedRecord(userId: string, r: SignedRequest, drawn
   pdf = await withRequestCertificate(pdf, r.signature_request_id, r.title, company.officer && r.doc_type !== 'investment_agreement'
     ? { name: companyName ?? company.officer, at: rec.signed_at, text: company.text ?? 'Countersigned automatically when the document was signed.' } : null);
   const sha = await sha256Hex(pdf);
-  const base = r.doc_type === 'partner_agreement' ? `owners/${r.owner_id}/partner` : r.doc_type === 'form_c' ? `owners/${r.owner_id}/forms` : r.owner_id ? `owners/${r.owner_id}/forms` : r.investor_id ? `investors/${r.investor_id}/signed` : `staff/${r.staff_user_id}/signed`;
+  const base = r.doc_type === 'partner_agreement' ? `owners/${r.owner_id}/partner` : r.doc_type === 'form_c' || r.doc_type === 'form_d' ? `owners/${r.owner_id}/forms` : r.owner_id ? `owners/${r.owner_id}/forms` : r.investor_id ? `investors/${r.investor_id}/signed` : `staff/${r.staff_user_id}/signed`;
   const path = `${base}/${r.doc_type}-${r.id.slice(0, 8)}-signed.pdf`;
   await s.put('agreements', path, pdf, 'application/pdf');
   await rpc('server_sign_request_attach', { p_id: r.id, p_path: path, p_sha256: sha }, SR);

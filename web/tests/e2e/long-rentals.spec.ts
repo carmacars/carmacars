@@ -99,7 +99,7 @@ test('the owner\'s case: picked up yesterday, six weeks, young driver, rent in c
   await page.getByTestId('mr-part-0-amount').fill('2480.50');
   await page.getByTestId('mr-deposit-by').selectOption('e_transfer');
   await page.getByTestId('mr-deposit_reference').fill('ETDEP-4410');
-  await page.getByTestId('mr-agreement-paper').check();
+  await expect(page.getByTestId('mr-agreement-send')).toContainText('sign online'); // 0720: never on paper
   await expect(page.getByTestId('mr-summary')).toContainText('2 monthly periods');
   await expect(page.getByTestId('mr-sum-paid')).toContainText('$5,480.50 received');
   await expect(page.getByTestId('mr-sum-deposit')).toContainText('e-transfer (ETDEP-4410)');

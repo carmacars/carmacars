@@ -119,8 +119,8 @@ test('one booking, vehicle and listing page: each role sees exactly its parts, t
     expect.soft(has(bk.money!, 'request-refund'), `${role}: Request a refund`).toBe(role === 'finance');
     if (role !== 'admin') expect.soft(has(bk.money!, 'booking-manual-payments'), `${role}: paid another way`).toBe(role === 'finance');
     expect.soft(hasHeading(bk.money!, 'Offers'), `${role}: the offers table`).toBe(role === 'admin');
-    // documents: paper signatures for an Admin and customer service; the full renter documents card for an Admin
-    expect.soft(has(bk.documents!, 'booking-paper'), `${role}: signed on paper`).toBe(role === 'admin' || role === 'cs');
+    // documents: no paper signature card unless one was recorded before 0720 (none here); the full renter documents card for an Admin
+    expect.soft(has(bk.documents!, 'booking-paper'), `${role}: signed on paper`).toBe(false);
     expect.soft(has(bk.documents!, 'booking-doc-review') && hasHeading(bk.documents!, 'Renter documents'), `${role}: renter documents`).toBe(role === 'admin');
     // history: the status history and the emails stay with an Admin
     expect.soft(hasHeading(bk.activity!, 'Status history'), `${role}: status history`).toBe(role === 'admin');

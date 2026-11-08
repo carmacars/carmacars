@@ -2,6 +2,8 @@
 -- entered, Quick start at pickup (a task to finish it, the readings kept), and the draft closed when the rental is added.
 -- Fixtures start with "dr".
 select test.suite('86 long rentals 2');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 
 select test.mk_user('dr_admin', 'admin');
 select test.mk_user('dr_cs', 'va', 'cs');

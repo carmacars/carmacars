@@ -5,7 +5,7 @@ export interface SettingsGroup { id: string; title: string; about: string; keys:
 
 export const SETTINGS_GROUPS: SettingsGroup[] = [
   { id: 'website', title: 'Website', about: 'What visitors see and the extras that bring them back',
-    keys: ['site', 'content', 'vehicle-pages', 'sample-photos', 'search', 'phone-gate', 'discount-games', 'rewards', 'guides'] },
+    keys: ['site', 'content', 'vehicle-pages', 'sample-photos', 'search', 'phone-gate', 'discount-games', 'rewards', 'guides', 'terms'] },
   { id: 'rentals', title: 'Rentals and rules', about: 'Timings, fees, classes, delivery and the extras renters buy',
     keys: ['program', 'fees', 'deposits', 'km', 'classes', 'class-rules', 'airports', 'coverage', 'addons', 'promo-codes', 'forms'] },
   { id: 'payments', title: 'Payments and coverage', about: 'The card reader, credit card coverage and insurers',

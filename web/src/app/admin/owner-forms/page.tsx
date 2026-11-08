@@ -12,7 +12,7 @@ export default async function OwnerForms() {
   return (
     <>
       <PageHead title="Owner forms" kicker={`${rows.filter((r) => r.status === 'uploaded').length} waiting for review`} />
-      <p className="small muted">Form C for each financed or leased car and Form D once per owner, signed on paper with witnesses and uploaded by the owner.</p>
+      <p className="small muted">Form C for each financed or leased car and Form D once per owner. Since November 2026 both are signed on screen with the witnesses beside the owner (approved at once); the queue holds only photos of paper copies sent before then.</p>
       <OwnerFormsTable rows={rows} base="/admin" refresh={['/admin/owner-forms']} />
     </>
   );

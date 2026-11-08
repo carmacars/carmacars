@@ -110,8 +110,9 @@ function VoidButton({ what, onVoid }: { what: 'payment' | 'signature'; onVoid: (
 
 export interface PaperDoc { doc_type: string; target_id: string; label: string; signer?: string; witnesses?: 0 | 1 | 2 }
 
-/** Record a signature on paper: which document, who signed, the date, any witness, a note, and the scan. */
-export function PaperSignatureForm({ docs, today, refresh = [], label = 'Record paper signature', startOpen = false, testId = 'paper-signature' }: { docs: PaperDoc[]; today: string; refresh?: string[]; label?: string; startOpen?: boolean; testId?: string }) {
+/** Record an official ServiceOntario form signed in ink (the only paper signature since 0720): which form, who signed,
+ *  the date, a note, and the scan. Our own agreements are signed with the e-signature only. */
+export function PaperSignatureForm({ docs, today, refresh = [], label = 'Record an official form signed in ink', startOpen = false, testId = 'paper-signature' }: { docs: PaperDoc[]; today: string; refresh?: string[]; label?: string; startOpen?: boolean; testId?: string }) {
   const router = useRouter();
   const a = useAct<{ id: string }>();
   const [open, setOpen] = useState(startOpen);

@@ -2,6 +2,8 @@
 -- Admin and Finance, the owner's month to date (migration 0151, docs/changes/2026-10-24-field-finance-owner-mtd.md).
 -- Fixtures start with "fq".
 select test.suite('96 field, finance, owner month to date');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 grant usage on schema test to service_role;
 grant execute on all functions in schema test to authenticated, anon, service_role;
 

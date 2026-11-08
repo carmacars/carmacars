@@ -3,6 +3,8 @@
 -- 06 (test.rq_new, test.b), 09 (test.op_confirm, test.op_photos, test.op_deposit_payment) and 82 (test.ho_local).
 -- Fixtures start with "rn".
 select test.suite('99 record now, renter details, VLF');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 update program_settings set booking_return_auto_charges = true, statement_fuel_cents_per_eighth = 1000;
 
 select test.mk_user('rn_admin', 'admin');

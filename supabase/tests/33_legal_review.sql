@@ -1,6 +1,8 @@
 -- 33: the owner's legal review (migrations 0052 and 0053), "CarmaCars: legal text changes before launch". Fixtures start
 -- with "lr". Each block quotes the approved item it checks. Instants are Toronto times through test.lr_at.
 select test.suite('33 legal review');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 grant usage on schema test to service_role;
 create or replace function test.lr_at(p text) returns timestamptz language sql immutable as $$ select (p::timestamp at time zone 'America/Toronto') $$;
 grant execute on function test.lr_at(text) to service_role, authenticated;

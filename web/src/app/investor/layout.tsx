@@ -8,6 +8,7 @@ import { currentUser } from '@/server/portal/data';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { StuckHelp } from '@/features/help/StuckHelp';
 import { PushInvite } from '@/features/push/PushAlerts';
+import { TermsGate } from '@/features/terms/TermsGate';
 import { door, rolesOf } from '@/server/door';
 
 // The investor area (07-investor.md): statements for existing investors only. Not linked from anywhere
@@ -31,7 +32,7 @@ export default async function InvestorLayout({ children }: { children: React.Rea
             {investor && <PushInvite portal="investor" home="/investor" />}
           </div>
         )}
-        <div className="iv-body">{children}</div>
+        <div className="iv-body">{user && investor ? <TermsGate userId={user.id} portal="investor">{children}</TermsGate> : children}</div>
       </div>
     </div>
   );

@@ -1,15 +1,14 @@
-import { PaperSignatureForm } from './ManualRecords';
 import { SendGenerated, SendToSign } from './SignRequests';
 
-// Each staff member's agreement: on file and how it was signed (in the portal or on paper), or waiting; with "Send the
-// agreement to sign" (generated from the staff profile, 0049), "Send a PDF to sign" (signed in the VA or Field portal) and
-// "Record paper signature" (migration 0044).
+// Each staff member's agreement: on file and how it was signed (in the portal, or on paper before 0720), or waiting; with
+// "Send the agreement to sign" (generated from the staff profile, 0049) and "Send a PDF to sign" (signed in the staff
+// portal). No signature on paper is recorded since 0720: every agreement is signed with the e-signature.
 export interface StaffAgreementRow { user_id: string; name: string; email: string; staff_type: string; function: string | null; is_active: boolean; agreement_document_id: string | null;
   signed: { method: string; on: string; paper_id: string | null; document_id: string | null } | null; open: { id: string; title: string; sent_at: string } | null }
 const day = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(`${iso.slice(0, 10)}T12:00:00Z`));
 const REFRESH = ['/admin/settings/staff'];
 
-export function StaffAgreements({ rows, today }: { rows: StaffAgreementRow[]; today: string }) {
+export function StaffAgreements({ rows }: { rows: StaffAgreementRow[]; today?: string }) {
   if (!rows.length) return <p className="small muted">No staff yet.</p>;
   return (
     <ul className="mr-list">
@@ -19,7 +18,6 @@ export function StaffAgreements({ rows, today }: { rows: StaffAgreementRow[]; to
           {(r.signed?.document_id ?? r.agreement_document_id) && <a className="link small" href={`/admin/documents/${r.signed?.document_id ?? r.agreement_document_id}`} target="_blank" rel="noreferrer">Agreement</a>}
           {!r.open && !r.signed && <SendGenerated docType="staff_agreement" who={r.user_id} refresh={REFRESH} />}
           {!r.open && <SendToSign docType="staff_agreement" who={r.user_id} defaultTitle={`Staff agreement, ${r.name}`} refresh={REFRESH} />}
-          <PaperSignatureForm docs={[{ doc_type: 'staff_agreement', target_id: r.user_id, label: `Staff agreement, ${r.name}`, signer: r.name }]} today={today} refresh={REFRESH} testId={`paper-staff-${r.email}`} />
         </li>
       ))}
     </ul>

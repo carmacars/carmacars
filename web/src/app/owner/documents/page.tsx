@@ -40,7 +40,7 @@ export default async function OwnerDocuments() {
               status={<span className={`badge ${f.status === 'signed' ? 'badge--outline' : 'badge--red'}`} data-testid="screen-form-status">{f.status === 'signed' ? `Signed ${f.method === 'paper' ? 'on paper' : 'on screen'}` : 'To sign'}</span>} />))}
           </DocumentList></section>}
         {witnessed.length > 0 && <section className="stack" aria-labelledby="ow-wit"><h2 className="pt-section-title" id="ow-wit">Forms to sign with witnesses</h2>
-          <p className="small muted">Form D of your Title Agreement is signed on paper in front of two witnesses. Form C is signed on paper in front of one witness, or on screen with your witness beside you. {witnessed.every((f) => f.status === 'approved') ? 'All approved.' : `${witnessed.filter((f) => f.status !== 'approved').length} still to finish.`}</p>
+          <p className="small muted">Form D of your Title Agreement is signed on screen with two witnesses beside you, and Form C with one, on the same device. {witnessed.every((f) => f.status === 'approved') ? 'All approved.' : `${witnessed.filter((f) => f.status !== 'approved').length} still to finish.`}</p>
           <WitnessedForms forms={witnessed} />
         </section>}
         <section className="stack" aria-labelledby="ow-docs"><h2 className="pt-section-title" id="ow-docs">Agreements and files</h2>

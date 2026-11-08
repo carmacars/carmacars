@@ -5,6 +5,8 @@
 -- with the rates in one step; tasks closed by rule; assistant tasks and staff emails falling back to the Admin while no
 -- real assistant holds the function; privileges. Fixtures start with "gx".
 select test.suite('52 guided actions');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 
 select test.mk_user('gx_admin', 'admin');
 select test.mk_user('gx_cs', 'va', 'cs');

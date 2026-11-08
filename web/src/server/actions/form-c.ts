@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { DbError } from '@/lib/db/repo';
 import type { ActionResult } from '@/features/forms/schemas';
 import type { FormCInput } from '@/features/owner/FormCSignForm';
+import type { FormDInput } from '@/features/owner/FormDSignForm';
 import { requireOwnerUser } from '@/server/owner/data';
 import { signDocument } from '@/server/sign-requests';
 
@@ -23,5 +24,21 @@ export async function signFormC(id: string, sha: string, input: FormCInput): Pro
       extra: { witness_name: input.witnessName, witness_statement: input.witnessStatement, acknowledgments: input.acknowledgments } });
     for (const p of ['/owner', '/owner/documents', '/owner/sign']) revalidatePath(p);
     return { ok: true, data: { next: '/owner/documents?signed=c' } };
+  } catch (e) { return { ok: false, code: 'refused', message: msg(e) }; }
+}
+
+// Form D on screen (0720): the owner's signature (the signing session), and the two witnesses' typed names and statements;
+// Part 2 is signed for CarmaCars from its stored signatures. The database checks every one again.
+export async function signFormD(id: string, sha: string, input: FormDInput): Promise<ActionResult<{ next: string }>> {
+  try {
+    const user = await requireOwnerUser();
+    const e = input.esign;
+    const drawnPath = e?.method === 'drawn' && e.drawnPath ? e.drawnPath : undefined;
+    const typedName = e?.method === 'typed' && e.typedName?.trim() ? e.typedName.trim() : undefined;
+    if (!e?.session || (!drawnPath && !typedName)) return { ok: false, code: 'invalid', message: 'Check the highlighted part.', fieldErrors: { signature: 'Finish the owner\'s signing steps: the code, the reading, the consents and the signature.' } };
+    await signDocument(user.id, { id, sha, typedName, drawnPath, consent: 'I sign Form D electronically, in the presence of my two witnesses.',
+      extra: { witness_name: input.witness1, witness_2_name: input.witness2, witness_statement: input.statement, witness_2_statement: input.statement } });
+    for (const p of ['/owner', '/owner/documents', '/owner/sign']) revalidatePath(p);
+    return { ok: true, data: { next: '/owner/documents?signed=d' } };
   } catch (e) { return { ok: false, code: 'refused', message: msg(e) }; }
 }

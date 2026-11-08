@@ -1,5 +1,7 @@
 -- 99: the fleet supplier route (migration 0710, docs/changes/2026-11-07-r33-fleet-supplier.md). Fixtures "q33".
 select test.suite('99 r33 fleet supplier route: signup, lease structure, tier lock, no fees, portal signing');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 select test.mk_user('q33_admin', 'admin');
 select test.mk_user('q33_cs', 'va', 'cs');
 select test.mk_user('q33_sales', 'va', 'sales');
@@ -73,10 +75,10 @@ select test.ok('the RIN form is for his corporation', exists (select 1 from gove
     where v.plate = 'Q33B' and g.form_code = 'ON00453' and g.superseded_at is null and e.value = 'NORTHSHORE HOLDINGS LTD.'));
 select test.eq('what is still missing is listed as on the other routes (draft until the RINs and the odometer are in)', (select 'Odometer (km)' = any (g.missing) from government_form_fills g join vehicles v on v.id = g.vehicle_id
     where v.plate = 'Q33A' and g.form_code = 'SR-LV-006' and g.superseded_at is null), true);
-select test.eq('the portal lists the 7 forms; no Forms C and D, no upfront payment on the checklist',
+select test.eq('the portal lists the 7 forms; Form D only (0720: in his packet after all, signed on screen), no Form C, no upfront payment on the checklist',
   jsonb_array_length(app.owner_portal_forms(test.id('q33_web'))) || '/' || jsonb_array_length(app.owner_witnessed_forms(test.q33owner())) || '/'
   || (select count(*) from app.onboarding_checklist((select id from vehicles where plate = 'Q33A')) c where c.code = 'upfront_payment'),
-  '7/0/0');
+  '7/1/0');
 select test.eq('the portal shows his lease before approval: both cars waiting, at their tier''s rate',
   (select string_agg(c ->> 'tier' || '=' || (c ->> 'monthly_cents') || ':' || (c ->> 'status'), ',' order by c ->> 'plate')
      from jsonb_array_elements(app.owner_portal_home(test.id('q33_web')) #> '{fleet_lease,cars}') c), 'regular=58000:waiting_approval,troubled=20000:waiting_approval');
@@ -156,9 +158,9 @@ select test.eq('the supplier has the lease structure; the car waits for an Admin
 select test.eq('no invoice was made from the proposal', (select count(*) from owner_invoices i join owners o on o.id = i.owner_id where o.email = 'q33-lake@example.test' and i.status <> 'void'), 0::bigint);
 select test.lives('an Admin approves it', format($$select app.application_approve(test.id('q33_admin'), '{"id": "%s"}')$$,
   (select a.id from owner_applications a join owners o on o.id = a.owner_id where o.email = 'q33-lake@example.test')));
-select test.eq('the car is on the lease; staff left who it is registered to: his corporation, the lease forms filled; no Forms C and D', (select app.fleet_car(v.id) || ':' || array_to_string(ob.government_forms, ',') || ':'
+select test.eq('the car is on the lease; staff left who it is registered to: his corporation, the lease forms filled; Form D only (0720)', (select app.fleet_car(v.id) || ':' || array_to_string(ob.government_forms, ',') || ':'
   || (select count(*) from government_form_fills g where g.vehicle_id = v.id and g.superseded_at is null) || ':' || jsonb_array_length(app.owner_witnessed_forms(o.id))
-  from owners o join vehicles v on v.owner_id = o.id join vehicle_onboardings ob on ob.vehicle_id = v.id where o.email = 'q33-lake@example.test'), 'true:SR-LV-006,SR-LV-012:2:0');
+  from owners o join vehicles v on v.owner_id = o.id join vehicle_onboardings ob on ob.vehicle_id = v.id where o.email = 'q33-lake@example.test'), 'true:SR-LV-006,SR-LV-012:2:1');
 select test.lives('Owners > Add an owner offers the route (customer service)', $$select test.q33do('owner_add', jsonb_build_object('route', 'fleet_supplier', 'owner_type', 'corporation',
   'legal_name', 'Kim Example', 'corporation_name', 'Harbour Cars Ltd.', 'email', 'q33-harbour@example.test'), 'q33_cs')$$);
 select test.eq('with the lease structure at once', (select o.onboarding_route || ':' || (select count(*) from owner_fleet_lease_terms t where t.owner_id = o.id) || ':' || (select count(*) from owner_upkeep_split s where s.owner_id = o.id)

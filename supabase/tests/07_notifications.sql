@@ -3,6 +3,8 @@
 -- (real business actions of 0016 to 0022) are processed here first and checked for duplicates.
 -- Times used by this file's own fixtures are in 2031, Toronto time, so nothing collides with them.
 select test.suite('07 notifications');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 
 create or replace function test.at(p_local text) returns timestamptz
 language sql immutable as $$ select p_local::timestamp at time zone 'America/Toronto' $$;

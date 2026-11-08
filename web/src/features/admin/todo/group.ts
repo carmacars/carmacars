@@ -6,7 +6,7 @@ const GROUP_TITLE: Partial<Record<string, string>> = {
   photos: 'Add real photos', plates: 'Check the plates', trim: 'Pick the trim', specs: 'Confirm gearbox and seats', insurer: 'Confirm with the insurer',
   publish: 'Set rates and publish', documents: 'Check renters\' documents', chat: 'Visitors waiting in live chat', requests: 'Answer booking requests',
   changes: 'Changes renters asked for', applications: 'Decide owner applications', invoice_payment: 'Owner invoices waiting for payment',
-  invoice_draft: 'Draft invoices to send or void', paper: 'Record paper signatures', forms: 'Check the official forms', terms: 'Enter agreed owner terms',
+  invoice_draft: 'Draft invoices to send or void', paper: 'Owners waiting to sign', forms: 'Check the official forms', terms: 'Enter agreed owner terms',
   first_last_paid: 'Record the first and last month paid'
 };
 const groupKey = (p: Prompt) => (p.kind === 'task' ? `task:${p.task_type ?? ''}` : p.kind);

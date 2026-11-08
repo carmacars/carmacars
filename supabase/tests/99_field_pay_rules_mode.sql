@@ -5,6 +5,8 @@
 -- rules screen (validation, audit, the test); a Management Mode change (at the owner's request: at once or on its date; against
 -- the owner: a signature and the notice period; cancel, and the owner's email). Fixtures start with "fp", "cr" and "md".
 select test.suite('99 field pay, class rules, management mode');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 grant usage on schema test to service_role;
 create function test.fp_do(p_user text, p_name text, p jsonb default '{}') returns jsonb language sql as $$ select public.door(test.id(p_user), null, 'ops_do', p_name, p) $$;
 create function test.fp_read(p_user text, p_name text, p jsonb default '{}') returns jsonb language sql as $$ select public.door(test.id(p_user), null, 'ops_read', p_name, p) $$;

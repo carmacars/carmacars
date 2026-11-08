@@ -319,18 +319,18 @@ describe('offers and rentals through the assistant (0133)', () => {
     assert.deepEqual(r.out[0], { type: 'question', text: 'More than one customer matches "Chen". Which one?', options: ['Maya Chen, m@example.com', 'Leo Chen, l@example.com'] });
     assert.equal(proposed.length, 0);
   });
-  it('add a rental: the same card with price lines and the payments (paid by e-Transfer, deposit in cash, signed on paper)', async () => {
-    const m = stub({ action: 'tool', tool: 'add_rental', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'maya@example.com', payment: 'other_way', method: 'e_transfer', reference: 'CA99', amount: 226, deposit_method: 'cash', agreement: 'paper' } });
+  it('add a rental: the same card with price lines and the payments (paid by e-Transfer, deposit in cash, sent to sign online)', async () => {
+    const m = stub({ action: 'tool', tool: 'add_rental', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'maya@example.com', payment: 'other_way', method: 'e_transfer', reference: 'CA99', amount: 226, deposit_method: 'cash', agreement: 'send' } });
     const { d, proposed } = staffDeps(m, { find_customers: [{ id: 'r1', legal_name: 'Maya Chen', email: 'maya@example.com', mobile: '4165550100', date_of_birth: '1990-01-01' }] });
     const r = await ask(d, { text: 'add a rental' });
     const card = r.out[0] as { summary: string; details: Array<{ rows: Array<{ label: string; value: string }> }> };
     const rows = Object.fromEntries(card.details.flatMap((x) => x.rows.map((y) => [y.label, y.value])));
     assert.match(card.summary, /^Add a rental of the 2023 Toyota Corolla LE for Maya Chen, Nov 2, 10:00 am to Nov 4, 10:00 am, paid by e-Transfer \(\$226\)/);
     assert.equal(rows.Rental, 'Paid by e-Transfer ($226), reference CA99');
-    assert.equal(rows.Deposit, 'By cash ($500.00)'); assert.match(rows.Agreement!, /paper/);
+    assert.equal(rows.Deposit, 'By cash ($500.00)'); assert.match(rows.Agreement!, /Signing link emailed/);
     assert.equal(proposed[0]!.name, 'manual_rental_create');
     const a = proposed[0]!.args as Record<string, unknown>;
-    assert.deepEqual([a.renter_id, a.deposit, a.agreement, (a.payment as Record<string, unknown>).amount_cents], ['r1', { method: 'cash' }, 'paper', 22600]);
+    assert.deepEqual([a.renter_id, a.deposit, a.agreement, (a.payment as Record<string, unknown>).amount_cents], ['r1', { method: 'cash' }, 'send', 22600]);
   });
   it('field staff (no offer screen): the rental card says the price is worked out when added', async () => {
     const m = stub({ action: 'tool', tool: 'add_rental', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', renter_name: 'New Person', renter_email: 'np@example.com', renter_mobile: '4165550199' } });

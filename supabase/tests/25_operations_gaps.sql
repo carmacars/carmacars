@@ -2,6 +2,8 @@
 -- renter signs, the cleaning block after each trip, the listing similarity check, earlier requests on a verified
 -- sign-in, the additional driver's link, Forms C and D, the doors and the emails. Fixtures start with "og".
 select test.suite('25 operations gaps');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 create table test.og (k text primary key, v uuid);
 grant select on test.og to service_role, authenticated;
 create or replace function test.og(p text) returns uuid language sql stable as $$ select v from test.og where k = p $$;

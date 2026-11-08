@@ -1,9 +1,9 @@
-// Forms C and D of the Title Agreement, pre-filled from the owner's records (migration 0040). Form D stays on paper: it
-// calls for two witnesses who sign in person, and it is a power of attorney, which Ontario's Electronic Commerce Act
-// leaves out of electronic signing. The owner prints the PDF (every spot to sign or initial is marked, 0049), signs it
-// with the witnesses and takes a photo of each page with the phone; staff review it. Form C may also be signed on screen
-// (the legal review, 0053): the owner signs and initials, and the witness, in person on the same device, types their
-// name and the statement that they witnessed the owner sign in their presence.
+// Forms C and D of the Title Agreement, pre-filled from the owner's records (migration 0040). Since 0720 (the owner's
+// decision of November 7, 2026: no paper signature for anyone) both are signed on screen only: the owner signs with the
+// signing steps of every signature, and the witnesses (one for Form C, two for Form D), in person on the same device,
+// type their names and the statement that they witnessed the owner sign in their presence. Part 2 of Form D is signed
+// for CarmaCars from the stored signatures: the signing officer, and the second signing officer as CarmaCars' witness
+// (Program settings). witnessedBlocks is the printable copy (every spot marked), kept for reading.
 // Relative imports with their extension: the unit tests render these documents in Node directly (render.test.ts).
 import { markdown, type Block, type SignatureRow } from '../agreement/model.ts';
 import { endSentence } from '../../lib/format.ts';
@@ -20,6 +20,7 @@ export interface WitnessedFacts {
 
 export const FORM_TITLE = { C: 'Form C: lender or lessor permission acknowledgment', D1: 'Form D: limited power of attorney' } as const;
 export const FORM_C_SCREEN_VERSION = `${WITNESSED_FORMS_VERSION}-screen`;
+export const FORM_D_SCREEN_VERSION = `${WITNESSED_FORMS_VERSION}-d-screen`;
 export const witnessStatement = (owner: string) => `I witnessed ${owner} sign in my presence.`;
 
 /** Form C signed on screen: the same text, the initials and the two signatures (the owner's and the witness's). */
@@ -34,6 +35,28 @@ export function screenFormCBlocks(f: WitnessedFacts, sig?: { owner?: SignatureRo
     { t: 'signatures', rows: [sig?.owner ?? blank('Owner', f.owner.legal_name), sig?.witness ?? blank('Witness', 'Signs on screen beside the owner')] },
     { t: 'p', text: `Witness statement: ${witnessStatement(f.owner.legal_name)}` }
   ];
+}
+
+/** Who signs Form D's Part 2 for CarmaCars (Program settings): the signing officer and the second signing officer. */
+export interface CompanySigners { officer: string | null; officer_title: string | null; second: string | null; second_title: string | null }
+
+/** Form D signed on screen (0720): the same text; Part 1 signed by the owner and the two witnesses, Part 2 by CarmaCars
+ *  (the signing officer) and its witness (the second signing officer), each from the signatures given or blank. */
+export function screenFormDBlocks(f: WitnessedFacts, c: CompanySigners, sig?: { owner?: SignatureRow; w1?: SignatureRow; w2?: SignatureRow; company?: SignatureRow; companyWitness?: SignatureRow }): Block[] {
+  const blocks = witnessedBlocks({ ...f, code: 'D1' });
+  const how = blocks.findIndex((b) => b.t === 'h3' && b.text === 'How to complete this form');
+  const company = f.company.legal_name || f.company.brand;
+  const blank = (party: string, name: string): SignatureRow => ({ party, name, signature: '', when: '' });
+  const titled = (n: string | null, t: string | null) => (n ? `${n}${t ? `, ${t}` : ''}` : null);
+  let part = 0;
+  return blocks.slice(0, how < 0 ? blocks.length : how).map((b): Block => {
+    if (b.t !== 'table' || b.head[0] !== 'Signer') return b;
+    part += 1;
+    return part === 1
+      ? { t: 'signatures', rows: [sig?.owner ?? blank('Owner', f.owner.legal_name), sig?.w1 ?? blank('Witness 1', 'Signs on screen beside the owner'), sig?.w2 ?? blank('Witness 2', 'Signs on screen beside the owner')] }
+      : { t: 'signatures', rows: [sig?.company ?? blank('CarmaCars', titled(c.officer, c.officer_title) ?? company),
+          sig?.companyWitness ?? blank('Witness (CarmaCars)', titled(c.second, c.second_title) ?? 'The second CarmaCars signer (to be set in Program settings)')] };
+  }).concat([{ t: 'p', text: `Witness statement (Part 1): ${witnessStatement(f.owner.legal_name)} Part 2 is signed for ${company} from its stored signatures when the owner signs.` }]);
 }
 
 // A car added before its VIN is known (VIN-first entry allows a draft without one): a blank to fill in by hand, never a crash

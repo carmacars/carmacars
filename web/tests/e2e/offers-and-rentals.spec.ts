@@ -7,7 +7,7 @@ import { acceptCookies, db, noOverflow, readyEsign, storeFixtureJpeg, storeFixtu
 // Migration 0129 end to end, at both widths: an Admin sends an offer without a request (a new customer, a price typed,
 // the rental by e-Transfer and the deposit in cash), edits it in place (version 2, no "withdraw to edit"), the renter
 // approves and signs, the e-Transfer and the cash deposit are recorded by part and the booking is confirmed; a rental
-// input fast (Turo quick start, the platform payout, the deposit by e-Transfer, signed on paper, not blocking the
+// input fast (Turo quick start, the platform payout, the deposit by e-Transfer, sent to sign online (0720), not blocking the
 // calendar); a sales assistant's offer saved without telling the renter; a card collected on the staff device through the
 // pay page (the fake Stripe). Each screen is checked with axe, for overflow and for the copy rules.
 const PW = 'correct horse battery';
@@ -178,7 +178,7 @@ test('admin: an offer without a request, edited in place, paid by part, confirme
   await sql.end();
 });
 
-test('a rental input fast: Turo, paid on the platform, deposit by e-Transfer, signed on paper, not blocking', async ({ browser }) => {
+test('a rental input fast: Turo, paid on the platform, deposit by e-Transfer, sent to sign online, not blocking', async ({ browser }) => {
   test.setTimeout(180_000);
   const sql = db();
   const admin = await mkStaff(sql, 'admin', null, `Ada Rentals ${tag()}`);
@@ -201,7 +201,7 @@ test('a rental input fast: Turo, paid on the platform, deposit by e-Transfer, si
   await page.getByTestId('mr-reference').fill('TURO-12345');
   await page.getByTestId('mr-deposit-by').selectOption('e_transfer');
   await page.getByTestId('mr-deposit_reference').fill('DEP-778');
-  await page.getByTestId('mr-agreement-paper').check();
+  await expect(page.getByTestId('mr-agreement-send')).toContainText('sign online'); // 0720: never on paper
   await page.getByTestId('mr-blocks').uncheck();
   await page.getByTestId('mr-blocks_reason').fill('Turo holds the dates');
   await check(page, 'add a rental');
@@ -209,7 +209,7 @@ test('a rental input fast: Turo, paid on the platform, deposit by e-Transfer, si
   await page.getByTestId('mr-submit').click();
   await expect(page.getByTestId('mr-done')).toBeVisible({ timeout: 20_000 });
   const [b] = await sql`select b.id, b.status, b.rental_pay_method, b.deposit_pay_method, b.agreement_on_paper, b.blocks_calendar from bookings b join renters r on r.id = b.renter_id where lower(r.email) = ${email}`;
-  expect(`${b!.status}/${b!.rental_pay_method}/${b!.deposit_pay_method}/${b!.agreement_on_paper}/${b!.blocks_calendar}`).toBe('confirmed/platform_payout/e_transfer/true/false');
+  expect(`${b!.status}/${b!.rental_pay_method}/${b!.deposit_pay_method}/${b!.agreement_on_paper}/${b!.blocks_calendar}`).toBe('confirmed/platform_payout/e_transfer/false/false');
   const pays = await sql`select method, purpose from payments where booking_id = ${b!.id} order by purpose`;
   expect(pays.map((p) => `${p.method}:${p.purpose}`).join(',')).toBe('platform_payout:booking_total,e_transfer:deposit');
 

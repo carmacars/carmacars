@@ -7,7 +7,6 @@ import { Act } from '@/features/admin/Act';
 import { $, Badge, BookingLink, Card, Kv, PageHead, Table, t, d } from '@/features/admin/ui';
 import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/AccountTools';
 import { ViewAsButton } from '@/features/admin/ViewAs';
-import { PaperSignatureForm } from '@/features/manual/ManualRecords';
 import { PARTNER_FIELDS } from '@/features/supply/partner-fields';
 import { PartnerPayoutForm } from '@/features/supply/PartnerPayoutForm';
 
@@ -35,7 +34,6 @@ export default async function Partner({ params }: { params: Promise<{ id: string
   const p = await door<P | null>(user.id, 'ops_read', 'partner', { id });
   if (!p) notFound();
   const refresh = [`/admin/partners/${id}`, '/admin/partners'];
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Toronto' });
   return (
     <>
       <PageHead kicker={<><Link prefetch={false} className="link" href="/admin/partners">Partners</Link> · {p.partner_number}</>} title={<>{p.business_name} <Badge s={p.status} /></>}>
@@ -52,13 +50,12 @@ export default async function Partner({ params }: { params: Promise<{ id: string
           {p.insurance_warning && <p className="alert alert--warn" role="note"><span>{p.insurance_warning}. Ask the partner for their current insurance.</span></p>}
         </Card>
         <Card title="Portal and agreement">
-          <p className="small muted">The partner uses the owner portal: their cars, bookings, statements and payouts, and the partner agreement to sign on screen. Or sign it on paper and record it here.</p>
+          <p className="small muted">The partner uses the owner portal: their cars, bookings, statements and payouts, and the partner agreement, signed on screen with the e-signature (a signature on paper is not recorded).</p>
           <div className="ad-actions">
             {p.portal_user_id ? <><ViewAsButton user={p.portal_user_id} portal="owner" testId="partner-view-as" /><PasswordLinkButton userId={p.portal_user_id} /></>
               : <InviteRecordButton role="owner" recordId={p.owner_id} email={p.email} name={p.business_name} testId="partner-invite" />}
           </div>
-          {p.agreement_status !== 'signed' && <p className="small"><a className="link" href={`/admin/partners/${id}/agreement`} target="_blank" rel="noopener" data-testid="partner-agreement-print">Print the partner agreement</a> to sign on paper.</p>}
-          {p.agreement_status !== 'signed' && <PaperSignatureForm docs={[{ doc_type: 'partner_agreement', target_id: id, label: 'Partner agreement', signer: p.contact_name ?? p.business_name }]} today={today} refresh={refresh} testId="partner-paper" />}
+          {p.agreement_status !== 'signed' && <p className="small"><a className="link" href={`/admin/partners/${id}/agreement`} target="_blank" rel="noopener" data-testid="partner-agreement-print">Read the partner agreement</a> as the partner will sign it in the portal.</p>}
           {p.agreement_document_id && <p className="small"><Link prefetch={false} className="link" href={`/admin/documents/${p.agreement_document_id}`}>Open the signed agreement</Link></p>}
         </Card>
         <Card title="Pricing" testId="partner-pricing" aside={<Act ops action="partner_pricing_save" payload={{ id }} label="Edit pricing" testId="partner-pricing-edit" refresh={refresh} fields={[

@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 // how many times this browser tab prepared and reloaded without the documents opening (a guard against a loop)
 let cycles = 0;
 
-export type PrepTarget = { t: 'packet'; key: string } | { t: 'form'; code: 'A' | 'B' } | { t: 'partner' } | { t: 'form_c'; vehicle: string } | { t: 'referral'; link: string };
+export type PrepTarget = { t: 'packet'; key: string } | { t: 'form'; code: 'A' | 'B' } | { t: 'partner' } | { t: 'form_c'; vehicle: string } | { t: 'form_d' } | { t: 'referral'; link: string };
 
 export function PrepareDocs({ targets, titles, testId = 'prepare-docs' }: { targets: PrepTarget[]; titles: string[]; testId?: string }) {
   const router = useRouter();

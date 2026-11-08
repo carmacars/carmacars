@@ -15621,6 +15621,8 @@ export type Database = {
           fleet_lease_default_writeoff_months: number;
           fleet_lease_default_later_writeoff_bps: number;
           fleet_lease_default_notice_days: number;
+          second_signing_officer_name: string | null;
+          second_signing_officer_title: string | null;
         };
         Insert: {
           id?: string;
@@ -16257,6 +16259,8 @@ export type Database = {
           fleet_lease_default_writeoff_months?: number;
           fleet_lease_default_later_writeoff_bps?: number;
           fleet_lease_default_notice_days?: number;
+          second_signing_officer_name?: string | null;
+          second_signing_officer_title?: string | null;
         };
         Update: {
           id?: string;
@@ -16893,6 +16897,8 @@ export type Database = {
           fleet_lease_default_writeoff_months?: number;
           fleet_lease_default_later_writeoff_bps?: number;
           fleet_lease_default_notice_days?: number;
+          second_signing_officer_name?: string | null;
+          second_signing_officer_title?: string | null;
         };
         Relationships: [];
       };
@@ -20772,6 +20778,78 @@ export type Database = {
           paired_at?: string;
           removed_at?: string | null;
           removed_by?: string | null;
+        };
+        Relationships: [];
+      };
+      terms_acceptances: {
+        Row: {
+          id: string;
+          version_id: string;
+          user_id: string;
+          accepted_at: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          body_sha256: string;
+          portal: string | null;
+        };
+        Insert: {
+          id?: string;
+          version_id: string;
+          user_id: string;
+          accepted_at?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          body_sha256: string;
+          portal?: string | null;
+        };
+        Update: {
+          id?: string;
+          version_id?: string;
+          user_id?: string;
+          accepted_at?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          body_sha256?: string;
+          portal?: string | null;
+        };
+        Relationships: [];
+      };
+      terms_versions: {
+        Row: {
+          id: string;
+          doc_key: string;
+          version: string;
+          title: string;
+          summary: string;
+          body: string;
+          body_sha256: string;
+          requires_acceptance: boolean;
+          published_at: string;
+          published_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          doc_key: string;
+          version: string;
+          title: string;
+          summary: string;
+          body: string;
+          body_sha256: string;
+          requires_acceptance?: boolean;
+          published_at?: string;
+          published_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          doc_key?: string;
+          version?: string;
+          title?: string;
+          summary?: string;
+          body?: string;
+          body_sha256?: string;
+          requires_acceptance?: boolean;
+          published_at?: string;
+          published_by?: string | null;
         };
         Relationships: [];
       };
@@ -26849,6 +26927,7 @@ export type Database = {
       owner_calc_data: { Args: never; Returns: Json };
       owner_form_ab_open: { Args: { p_by: string; p_code: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       owner_form_c_open: { Args: { p_by: string; p_vehicle: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
+      owner_form_d_open: { Args: { p_by: string; p_sha256: string; p_path: string; p_template_version: string }; Returns: Json };
       owner_form_official: { Args: { p_by: string; p_fill: string }; Returns: Json };
       owner_form_signed: { Args: { p_by: string; p_fill: string; p: Json }; Returns: Json };
       owner_give_exit_notice: { Args: { p_by: string; p_vehicle: string; p?: Json }; Returns: Json };
@@ -27037,6 +27116,7 @@ export type Database = {
       server_client_error_pre0532: { Args: { p: Json }; Returns: string };
       server_colour_read_due: { Args: { p_limit?: number }; Returns: Json };
       server_colour_read_record: { Args: { p: Json }; Returns: Json };
+      server_company_signers: { Args: never; Returns: Json };
       server_complete_signature_request: { Args: { p_request: string; p_signed_storage_path: string; p_signed_sha256: string }; Returns: string };
       server_confirm_extension_payment: { Args: { p_extension: string; p_processor: Json; p_amount_cents: number; p_by: string }; Returns: Json };
       server_coverage_click: { Args: { p: Json; p_ip?: string }; Returns: Json };
@@ -27088,6 +27168,7 @@ export type Database = {
       server_file_access: { Args: { p_user: string; p_kind: string; p_key: string }; Returns: boolean };
       server_file_record: { Args: { p_kind: string; p_key: string; p_bucket: string; p_path: string; p_sha256: string; p_title: string }; Returns: string };
       server_file_stored: { Args: { p_kind: string; p_key: string }; Returns: Json };
+      server_form_d_signers: { Args: { p_request: string }; Returns: Json };
       server_game_claim: { Args: { p: Json; p_user?: string }; Returns: Json };
       server_game_start: { Args: { p: Json; p_user?: string }; Returns: Json };
       server_gsc_coverage_trend: { Args: { p_admin: string }; Returns: Json };
@@ -27293,6 +27374,8 @@ export type Database = {
       server_stripe_refund_event_pre0155: { Args: { p: Json }; Returns: Json };
       server_stripe_requires_action: { Args: { p: Json }; Returns: Json };
       server_submit_owner_application: { Args: { p: Json; p_by?: string }; Returns: Json };
+      server_terms_accept: { Args: { p_by: string; p: Json }; Returns: Json };
+      server_terms_pending: { Args: { p_by: string }; Returns: Json };
       server_tracker_ingest: { Args: { p: Json }; Returns: Json };
       server_tracker_ingest_key: { Args: never; Returns: string };
       server_unsubscribe: { Args: { p_token: string }; Returns: boolean };

@@ -2,7 +2,7 @@
 import { Fragment, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAct } from '@/features/portal/useAct';
-import { carModeChange, carPaySet, carTermsCancel, carTermsChange, scheduleChange, type CarPayInput, type CarPayPlan, type CarTermsInput, type CarTermsPlan, type ModeChangeInput, type ModeChangePlan } from '@/server/actions/owner-billing';
+import { carModeChange, carPaySet, carTermsCancel, carTermsChange, type CarPayInput, type CarPayPlan, type CarTermsInput, type CarTermsPlan, type ModeChangeInput, type ModeChangePlan } from '@/server/actions/owner-billing';
 import { MODE_LABEL } from '@/features/owner/types';
 import { dollars, pctOf, toCents } from './shared';
 import './car-terms.css';
@@ -21,13 +21,12 @@ type Vals = { ins: string; trk: string; share: string; inst: string; mode: strin
 const valsOf = (c: CarTermsRow): Vals => ({ ins: dollars(c.current.insurance_fee_cents), trk: dollars(c.current.tracker_fee_cents), share: pctOf(c.current.revenue_share_bps),
   inst: dollars(c.current.install_fee_cents), mode: c.mode, method: c.method ?? '' });
 
-function History({ c, today, paths }: { c: CarTermsRow; today: string; paths: string[] }) {
+function History({ c, paths }: { c: CarTermsRow; today: string; paths: string[] }) {
   const router = useRouter();
   const a = useAct<Record<string, unknown>>();
   const uid = `ch-${useId().replace(/[^\w-]/g, '')}`;
   const [cancel, setCancel] = useState<string | null>(null);
   const [reason, setReason] = useState('');
-  const [paper, setPaper] = useState(today);
   return (
     <div className="ct-history stack" data-testid="car-terms-history">
       <h3 className="d5">Terms over time</h3>
@@ -51,13 +50,7 @@ function History({ c, today, paths }: { c: CarTermsRow; today: string; paths: st
               {x.reason ? ` Why: ${x.reason}.` : ''}{x.cancelled_reason ? ` Cancelled: ${x.cancelled_reason}.` : ''}{x.owner_signed_at ? ` Signed ${x.signed_method === 'paper' ? 'on paper' : 'in the portal'} ${fmtDay(x.owner_signed_at)}.` : ''}</span>
             <span className="row ct-actions">
               {x.notice && <a className="link small" href={`/files/terms_notice/${x.id}`} target="_blank" rel="noopener" data-testid="car-terms-notice">Notice (PDF)</a>}
-              {x.status === 'awaiting_signature' && (
-                <span className="row ct-inline">
-                  <label className="vh" htmlFor={`${uid}-p-${x.id}`}>Signed on paper on</label>
-                  <DateInput className="input input--sm" type="date" id={`${uid}-p-${x.id}`} value={paper} max={today} onChange={(e) => setPaper(e.target.value)} />
-                  <button type="button" className="btn btn--ghost btn--sm" disabled={a.pending} data-testid="car-terms-paper"
-                    onClick={() => a.run(() => scheduleChange({ change_id: x.id, do: 'paper', signed_on: paper }, paths), (r) => { if (r.ok) router.refresh(); })}>Record signed on paper</button>
-                </span>)}
+              {x.status === 'awaiting_signature' && <span className="small muted" data-testid="car-terms-portal">The owner signs it in the owner portal (a signature on paper is not recorded).</span>}
               {x.can_cancel && cancel !== x.id && <button type="button" className="btn btn--quiet btn--sm" onClick={() => { setCancel(x.id); setReason(''); }} data-testid="car-terms-cancel">{x.status === 'awaiting_signature' ? 'Withdraw it' : 'Cancel'}</button>}
             </span>
             {cancel === x.id && (

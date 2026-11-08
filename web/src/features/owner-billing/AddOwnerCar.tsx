@@ -17,7 +17,7 @@ import { TypedInput } from '@/components/DateInput';
 // flow: the owner (found, or new), the car (VIN first since 0082: decoded at once into one summary line, the class
 // inferred, the colour in one tap; the copy is written right after), the documents, who sourced the owner, how the owner signs, and
 // for an Admin the terms and first invoices (an assistant's go to an Admin as a proposal). The owner then gets one
-// email to review, correct and sign (or signs on paper). Sales (0340, `sales`): a new owner only, no terms or invoices (an
+// email to review, correct and sign (always in the owner portal, 0720). Sales (0340, `sales`): a new owner only, no terms or invoices (an
 // Admin's), always sourced by them and always an application for an Admin.
 type Owner = { id: string; legal_name: string; email: string | null; phone: string | null; cars?: number };
 type Facts = { admin: boolean; today: string; hst_bps: number; trackers_available: boolean; owner: (Owner & { has_account: boolean }) | null;
@@ -41,7 +41,7 @@ export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { in
   const [v, setV] = useState<Record<string, string>>({ title_status: 'owned_outright', management_mode: 'managed' });
   const [car, setCar] = useState<VinValue>(emptyVin());
   const [sourced, setSourced] = useState(sales);
-  const [signing, setSigning] = useState<'email' | 'paper'>('email');
+  const signing = 'email' as const; // 0720: the owner always signs in the owner portal (no paper)
   const [tier, setTier] = useState<'' | 'regular' | 'troubled'>('');
   const [delivered, setDelivered] = useState(initial.today);
   // 0710: who a supplier's car is registered to now: the forms to fill follow (the lease, and the transfer into his corporation)
@@ -114,7 +114,7 @@ export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { in
     if (isFleet && !tier) { setProblem('Choose the car\'s tier: Regular or Troubled. It is set once and does not change.'); return; }
     if (isFleet && transfer.registered_to !== 'corporation' && (!transfer.name.trim() || !transfer.address.trim() || !transfer.date)) { setProblem('Enter the name and address on the ownership now, and the transfer or sale date.'); return; }
     if (isFleet) invoices.length = 0; // the supplier pays no fees
-    const sign = isFleet ? 'email' : signing; // 0710: a supplier signs in the owner portal only
+    const sign = signing; // 0710, 0720: every owner signs in the owner portal only
     const payload = {
       ...(isFleet ? { fleet: { tier, delivered_on: delivered, transfer: transfer.registered_to === 'corporation' ? { registered_to: 'corporation' } : transfer } } : {}),
       owner_id: isNew ? undefined : owner!.id,
@@ -134,7 +134,7 @@ export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { in
     return (
       <div className="stack" data-testid="addcar-done">
         <p className="alert alert--ok" role="status"><span className="alert__title">{r.approved ? 'The car is set up' : 'Sent to an Admin to approve'}</span>
-          <span>Application {r.application_number}{r.docs ? `, ${r.docs} document${r.docs === 1 ? '' : 's'} filed` : ''}. {r.approved ? (r.note ?? (signing === 'paper' ? 'Record the paper signatures on the owner page when they are signed.' : '')) : 'An Admin checks the terms and first invoices you entered, then approves; the owner gets one email then.'}</span></p>
+          <span>Application {r.application_number}{r.docs ? `, ${r.docs} document${r.docs === 1 ? '' : 's'} filed` : ''}. {r.approved ? (r.note ?? '') : 'An Admin checks the terms and first invoices you entered, then approves; the owner gets one email then.'}</span></p>
         <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
           {base === '/admin' && <><Link prefetch={false} className="btn btn--primary btn--sm" href={`/admin/applications/${r.application_id}`}>Open the application</Link>
             <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/owners/${r.owner_id}`}>Open the owner</Link></>}
@@ -246,9 +246,8 @@ export function AddOwnerCar({ initial, base, sales = false, fleet = null }: { in
           <label className="check" htmlFor={`${uid}-src-me`}><input type="radio" id={`${uid}-src-me`} checked={sourced} onChange={() => setSourced(true)} data-testid="addcar-sourced" /><span>I sourced this owner</span></label>
         </div>}
         <div className="row" role="radiogroup" aria-label="How the owner signs" style={{ gap: 'var(--s-3)', flexWrap: 'wrap' }}>
-          <label className="check" htmlFor={`${uid}-sg-e`}><input type="radio" id={`${uid}-sg-e`} checked={isFleet || signing === 'email'} onChange={() => setSigning('email')} /><span>Email the owner to review and sign (one email)</span></label>
-          {isFleet ? <span className="small muted" data-testid="addcar-portal-only">A fleet supplier signs in the owner portal only.</span>
-            : <label className="check" htmlFor={`${uid}-sg-p`}><input type="radio" id={`${uid}-sg-p`} checked={signing === 'paper'} onChange={() => setSigning('paper')} data-testid="addcar-paper" /><span>The owner signs on paper (no email now)</span></label>}
+          <label className="check" htmlFor={`${uid}-sg-e`}><input type="radio" id={`${uid}-sg-e`} checked readOnly /><span>Email the owner to review and sign (one email)</span></label>
+          <span className="small muted" data-testid="addcar-portal-only">{isFleet ? 'A fleet supplier' : 'The owner'} signs in the owner portal only (the e-signature with its audit trail).</span>
         </div>
       </section>
       {problem && <p className="alert alert--error" role="alert"><span>{problem}</span></p>}

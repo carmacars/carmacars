@@ -11,7 +11,8 @@ export const PORTAL_LABEL: Record<PortalKey, string> = {
 export const FN_NAME: Record<string, string> = { finance: 'Finance', fleet: 'Fleet', cs: 'Customer service', sales: 'Sales' };
 export const PORTAL_HOME: Record<PortalKey, string> = { admin: '/admin', va: '/staff', field: '/staff/field', investor: '/investor', owner: '/owner', account: '/account' };
 
-/** Every portal the person has, in this order: Admin, staff (every function, field work included), investor, owner, rentals. */
+/** Every portal the person has, in this order: Admin, staff (every function, field work included), investor, owner, rentals
+ *  (never for an Admin). */
 export function portalsFor(r: Roles): PortalLink[] {
   const out: PortalLink[] = [];
   if (r.admin) out.push({ key: 'admin', label: PORTAL_LABEL.admin, href: '/admin' });
@@ -20,7 +21,9 @@ export function portalsFor(r: Roles): PortalLink[] {
   if (r.va || r.field) out.push({ key: 'va', label: PORTAL_LABEL.va, href: r.va ? '/staff' : '/staff/field' });
   if (r.investor) out.push({ key: 'investor', label: PORTAL_LABEL.investor, href: '/investor' });
   if (r.owner) out.push({ key: 'owner', label: PORTAL_LABEL.owner, href: '/owner' });
-  if (r.renter) out.push({ key: 'account', label: PORTAL_LABEL.account, href: '/account' });
+  // 0720 (the owner, November 7): an Admin account never gets the renter portal, even with a renter profile (the shared
+  // admin login rents too); the profile and its bookings stay on file
+  if (r.renter && !r.admin) out.push({ key: 'account', label: PORTAL_LABEL.account, href: '/account' });
   return out;
 }
 

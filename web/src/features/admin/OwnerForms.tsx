@@ -1,7 +1,7 @@
 import { Act } from './Act';
 import { Badge, Table, t } from './ui';
 
-// Forms C and D signed on paper with witnesses (migration 0040): the owner uploads the scan, customer service or an
+// Forms C and D signed on paper with witnesses (migration 0040; none since 0720, both are signed on screen): the owner uploaded the scan, customer service or an
 // Admin approves it or sends it back with what to fix. The owner is emailed either way.
 export type FormRow = {
   id: string; code: 'C' | 'D1'; status: 'uploaded' | 'approved' | 'rejected'; owner_id: string; owner_name: string; vehicle_name: string | null;

@@ -24,6 +24,7 @@ export const SECTIONS: Array<[string, string, string]> = [
   ['search', 'Search', 'Car copy written by AI, landing pages, guides, IndexNow, and the day\'s AI use'],
   ['sample-photos', 'Sample photos', 'Stock photos for cars listed before their real photos, by make, model or body type'],
   ['usage', 'Usage', 'What the plans include (AI, website, images, emails, database, storage), what is used, and paid usage'],
+  ['terms', 'Updated terms', 'Publish a new version of the terms, the privacy policy or an agreement template; with Requires acceptance, people accept it before using their portal; who accepted'],
   ['guides', 'Guides', 'The user guide of each portal: edit, screenshots, publish, PDF, who read it'],
   ['reviews', 'Reviews', 'Review requests by email and text: timings, sending hours, the hold while charges are open, the Google review link and the Google Business Profile connection'],
   ['quo-contacts', 'Quo contacts', 'Everyone on the site with a phone number as a contact in Quo, under the same name: up to date, waiting, errors, the last run, Sync everyone again'],

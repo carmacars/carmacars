@@ -72,12 +72,13 @@ function Control({ p }: { p: Prompt }) {
     case 'invoice_draft':
       return go(`/admin/invoices/${encodeURIComponent(p.invoice_number!)}`, 'Open the draft', tid);
     case 'paper': {
+      // 0720: no agreement is recorded as signed on paper; the owner signs in the portal. Only an official ServiceOntario
+      // form signed in ink can still be recorded.
       const docs = paperDocs((p.docs ?? []) as unknown as ChecklistItem[], p.owner ?? '');
       return (
-        <Pop label="Record paper signature" title={`Signed on paper: ${p.owner}`} testId={tid}>
-          <p className="small">Only if they signed on paper: choose the document, the date and attach the scan. It then counts as signed.</p>
-          <PaperSignatureForm docs={docs} today={today()} refresh={R} startOpen />
-          <p className="small"><Link prefetch={false} className="link" href={`/admin/owners/${p.owner_id}`}>Open the owner</Link> to send the signing link again.</p>
+        <Pop label="Waiting to sign" title={`Waiting for ${p.owner} to sign`} testId={tid}>
+          <p className="small">The owner signs every agreement in the owner portal (the e-signature with its audit trail). <Link prefetch={false} className="link" href={`/admin/owners/${p.owner_id}`}>Open the owner</Link> to send the signing link again.</p>
+          {docs.length > 0 && <><p className="small">An official ServiceOntario form they signed in ink: attach the scan.</p><PaperSignatureForm docs={docs} today={today()} refresh={R} startOpen /></>}
         </Pop>
       );
     }

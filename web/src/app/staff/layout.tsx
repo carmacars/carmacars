@@ -22,6 +22,7 @@ import { staffHubs, staffSections } from '@/features/staff/nav';
 import { RevampScope } from '@/features/admin/revamp/RevampScope';
 import { REVAMP_STAFF } from '@/features/admin/revamp/scope';
 import { heldFunctions, STAFF_FN_LABEL } from '@/features/staff/nav';
+import { TermsGate } from '@/features/terms/TermsGate';
 import { HomeAddressCard, homeAddressOf } from '@/features/staff/HomeAddress';
 
 // The staff portal's frame (0197; docs/blueprint/05-va.md and 06-field.md): one portal for every kind of staff work. The
@@ -69,7 +70,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             <StaffNav functions={held} open={open} chat={chat} hot={hot} />
           </aside>
         ) : <div />}
-        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} userId={user.id} /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{children}</RevampScope></DoorProvider></div>
+        <div className="ad__main">{needsAddress ? <HomeAddressCard portal={portal} /> : null}{staff && user ? <GuideBanner portal={portal} userId={user.id} /> : null}{staff && user ? <StuckHelp portal={portal} /> : null}{staff && user && !needsAddress ? <PushInvite portal={office ? 'staff' : 'field'} home={office ? '/staff' : ['/staff', '/staff/field']} userId={user.id} /> : null}{staff ? <HubBar hubs={staffHubs(held)} sections={staffSections(held)} /> : null}<DoorProvider kind="va"><RevampScope list={REVAMP_STAFF}>{staff && user ? <TermsGate userId={user.id} portal={office ? 'staff' : 'field'}>{children}</TermsGate> : children}</RevampScope></DoorProvider></div>
       </div>
     </div>
   );

@@ -27,9 +27,8 @@ const MODE: Record<string, string> = { managed: 'Managed', self_managed: 'Self-M
 // Signing, simply (migration 0049): every document the owner still signs, filled from what they already gave us, in one
 // package. A short list of the key values with a Fix link for each, the full text one tap away, then the signing steps of
 // every signature (0193: a code to the phone or email, the reading, the confirmations initialled, the consents, the drawn
-// signature), one button. Forms
-// C and D are signed on paper in front of witnesses (the forms ask for witnesses, and a power of attorney cannot be
-// signed electronically in Ontario): they show in the checklist with their own page.
+// signature), one button. Forms C and D are signed on screen with the witnesses beside the owner on the same device
+// (0720, the owner's decision of November 7: no paper signature for anyone): they show in the checklist with their own page.
 export default async function OwnerSign() {
   const { user, home } = await requireOwner('/owner/sign');
   try {
@@ -88,9 +87,9 @@ async function SignPage({ user, home }: Awaited<ReturnType<typeof requireOwner>>
   const previewDocs = preview?.preview ? packetKeys(preview).map((key) => ({ key, title: titleOf(preview, key), blocks: documentBlocks(preview, key) })) : [];
   const items: ProgressItem[] = (checklist?.items ?? []).map((i, n) => ({
     key: `${i.code}-${i.vehicle_id ?? ''}-${n}`, label: `${i.label}${i.vehicle_name && i.code !== 'registry_form' ? `, ${i.vehicle_name}` : ''}`, done: i.status === 'done',
-    note: i.status === 'done' ? null : i.how === 'paper' ? 'print it filled in, sign it with your witness, then take a photo of the signed page' : i.how === 'banking' ? 'set up in Banking'
+    note: i.status === 'done' ? null : i.how === 'paper' ? (i.code === 'form_d' ? 'sign it on screen with your two witnesses beside you' : 'sign it on screen with your witness beside you') : i.how === 'banking' ? 'set up in Banking'
       : i.how === 'registry' ? i.detail ?? 'print it filled in and sign it in ink' : i.detail ?? null,
-    href: i.preview && previewDocs.length ? '#ow-preview' : i.how === 'paper' ? '/owner/documents#ow-wit' : i.how === 'banking' ? '/owner/account?tab=banking' : i.how === 'registry' ? '/owner/documents' : null,
+    href: i.preview && previewDocs.length ? '#ow-preview' : i.how === 'paper' ? (i.code === 'form_d' ? '/owner/documents/form-d' : i.vehicle_id ? `/owner/documents/form-c/${i.vehicle_id}` : '/owner/documents#ow-wit') : i.how === 'banking' ? '/owner/account?tab=banking' : i.how === 'registry' ? '/owner/documents' : null,
     here: i.status !== 'done' && inPackage(i.code)
   }));
   if (previewDocs.length && preview) return <PreviewPage facts={preview} docs={previewDocs} items={items} />;

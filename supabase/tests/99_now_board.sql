@@ -3,6 +3,8 @@
 -- The board is read at noon Toronto time today (app.fleet_board takes the time), so "today" and "tomorrow" never depend
 -- on when the suite runs. It runs after 99_live_map (its file name sorts later): the Live map's suite counts every pin.
 select test.suite('99 bookings now');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 -- earlier suites switch the automatic field jobs on; the deposit is placed the morning of the pickup day (0261's default)
 update program_settings set field_jobs_auto = false, deposit_timing = 'pickup_day' where id = (app.settings()).id;
 

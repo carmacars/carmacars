@@ -18,7 +18,6 @@ const PW = 'correct horse battery';
 const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/18122211(?! Canada Inc\.)|(?<!18122211 )Canada Inc\b/i, 'numbered company name (allowed only as the party, "18122211 Canada Inc.", 0122)'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b|\bCarmaCar\b(?!s)/, 'brand misspelled']];
 type Sql = ReturnType<typeof db>;
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
-const PDF = Buffer.from('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n');
 const VIN_CHARS = 'ABCDEFGHJKLMNPRSTUVWXYZ0123456789';
 const vin = (prefix: string) => prefix + Array.from({ length: 17 - prefix.length }, () => VIN_CHARS[Math.floor(Math.random() * VIN_CHARS.length)]).join('');
 /** A VIN with a right check digit (position 9): a near copy of a real VIN is what the similarity check flags. */
@@ -407,51 +406,28 @@ test('listings and owners: a possible duplicate is cleared; Form D is sent back,
     await act(desk, row.getByTestId('flag-clear-vin'), 'flag-clear-vin', async (d) => { await d.getByLabel('What you checked').fill('Different VINs on the two ownership permits.'); });
     await expect.poll(async () => (await sql`select status from listing_similarity_flags where id = ${fl!.id}`)[0]!.status, { timeout: 15_000 }).toBe('cleared');
 
-    // Form D: the owner downloads it pre-filled, uploads the signed scan; customer service sends it back, then approves
+    // Form D (0720): signed on screen only, with the two witnesses beside the owner; no photo of a paper copy is taken
     const op = await ctx(browser, phone);
-    const wit = `Wanda ${Array.from({ length: 8 }, () => "abcdefghjkmnpqrstuvwxyz"[Math.floor(Math.random() * 23)]).join("").replace(/^./, (c) => c.toUpperCase())}`;
     const oerrors = watch(op);
     await signIn(op, a.user.email, '/owner');
     await op.goto('/owner/documents');
     const form = op.getByTestId('witnessed-D1');
-    await expect(form).toContainText('To do');
-    const dl = await op.request.get(await form.getByTestId('witnessed-download').getAttribute('href') as string);
-    expect(dl.status()).toBe(200);
-    expect((await dl.body()).subarray(0, 4).toString()).toBe('%PDF');
+    await expect(form).toContainText('To sign');
+    await expect(form.getByTestId('witnessed-file')).toHaveCount(0);
     await check(op, 'owner documents forms');
-    await form.getByLabel(/^First witness|^Witness/).fill(wit);
-    const second = form.getByLabel('Second witness, full name');
-    if (await second.count()) await second.fill('Walter Witness');
-    await form.getByTestId('witnessed-file').setInputFiles({ name: 'form-d.pdf', mimeType: 'application/pdf', buffer: PDF });
-    await expect(form).toContainText('We review it within one business day', { timeout: 15_000 });
-    const [up] = await sql`select id, status from owner_agreement_forms where owner_id = ${a.owner} and form_code = 'D1' order by uploaded_at desc limit 1`;
-    expect(up!.status).toBe('uploaded');
-    expect((await sql`select count(*)::int n from app_events where code = 'staff_owner_form_uploaded' and entity_id = ${up!.id}`)[0]!.n).toBe(1);
-
+    await form.getByTestId('form-d-screen-link').click();
+    await op.waitForURL((u) => u.pathname === '/owner/documents/form-d');
+    await expect(op.locator('h1')).toContainText('Form D');
+    await expect(op.getByText('Part 2: From CarmaCars to the Owner')).toBeVisible();
+    await check(op, 'owner form d on screen');
+    await expect(sql`select public.server_witnessed_form_facts(${a.user.id}, 'D1')`).resolves.toBeTruthy();
+    await expect(sql`insert into owner_agreement_forms (owner_id, form_code, document_id, status, signed_method, uploaded_by)
+      select ${a.owner}, 'D1', id, 'uploaded', 'upload', ${a.user.id} from documents limit 1`).rejects.toThrow(/signed on screen/);
     const va = await ctx(browser, phone);
     const verrors = watch(va);
     await signIn(va, cs.email, '/staff');
     await va.goto('/staff/owner-forms');
-    const frow = va.getByTestId('owner-forms').locator('tr', { hasText: wit }).first();
-    await expect(frow).toContainText('Form D');
     await check(va, 'va owner forms');
-    await act(va, frow.getByTestId('form-reject-D1'), 'form-reject-D1', async (d) => { await d.getByLabel('What to fix (the owner reads this)').fill('The second page is missing the witness signature.'); });
-    await expect.poll(async () => (await sql`select status from owner_agreement_forms where id = ${up!.id}`)[0]!.status, { timeout: 15_000 }).toBe('rejected');
-    expect((await outbox(sql, 'owner_form_rejected', { to: a.user.email })).length).toBe(1);
-    await op.reload();
-    await expect(form).toContainText('The second page is missing the witness signature.');
-    await check(op, 'owner form sent back');
-    await form.getByLabel(/^First witness|^Witness/).fill(wit);
-    if (await second.count()) await second.fill('Walter Witness');
-    await form.getByTestId('witnessed-file').setInputFiles({ name: 'form-d-2.pdf', mimeType: 'application/pdf', buffer: PDF });
-    await expect(form).toContainText('We review it within one business day', { timeout: 15_000 });
-    await va.reload();
-    const again = va.getByTestId('owner-forms').locator('tr', { hasText: wit }).filter({ has: va.getByTestId('form-approve-D1') }).first();
-    await act(va, again.getByTestId('form-approve-D1'), 'form-approve-D1');
-    await expect.poll(async () => (await sql`select status from owner_agreement_forms where owner_id = ${a.owner} and form_code = 'D1' order by uploaded_at desc limit 1`)[0]!.status, { timeout: 15_000 }).toBe('approved');
-    expect((await outbox(sql, 'owner_form_approved', { to: a.user.email })).length).toBe(1);
-    await op.reload();
-    await expect(form).toContainText('Approved');
 
     // a field photographer: the photo-shoot job takes the listing photos with the camera and submits them
     const field = await mkUser(sql, 'field');

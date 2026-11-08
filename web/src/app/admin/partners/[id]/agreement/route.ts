@@ -3,8 +3,8 @@ import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE, PARTNER_AGREEMENT_VERS
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 
-// The partner agreement to print and sign on paper (Admins, migration 0046): filled from the partner record, the same
-// text the partner signs in the portal. The signed paper copy is then recorded on the partner's page.
+// The partner agreement to read (Admins, migration 0046): filled from the partner record, the same text the partner
+// signs in the portal. Since 0720 it is signed in the portal only (no paper copy is recorded).
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {

@@ -5,6 +5,8 @@
 -- allowance, the invoice with its rate and taxes note, the billing history by class, and who may do what.
 -- Fixtures start with "ir".
 select test.suite('99 insurer rate sheet');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 
 select test.mk_user('ir_admin', 'admin');
 select test.mk_user('ir_cs', 'va', 'cs');

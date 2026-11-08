@@ -1,6 +1,8 @@
 -- 99: the handover essentials (migration 0263): the list, the renter's reminder before the pickup day, the evening task,
 -- and the gates of the handover kept. Fixtures start with "he"; 555 numbers.
 select test.suite('99 handover essentials');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 select test.mk_user('he_admin', 'admin');
 select test.mk_owner('he_o');
 select test.mk_vehicle('HEA', 'he_o');

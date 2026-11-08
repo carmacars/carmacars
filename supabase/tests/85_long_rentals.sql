@@ -3,6 +3,8 @@
 -- record and who may), the rental paid in parts with the deposit its own way, and the periods of a long rental (their
 -- agreements, invoices, payments and the deposit carried over). Fixtures start with "lr".
 select test.suite('85 long rentals');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 
 select test.mk_user('lng_admin', 'admin');
 select test.mk_user('lng_cs', 'va', 'cs');

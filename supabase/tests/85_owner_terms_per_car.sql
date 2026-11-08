@@ -4,6 +4,8 @@
 -- notice and an updated Vehicle Schedule the owner signs; cancel what has not started; the reads (Admin and owner
 -- portal), the notice email and document; the monthly invoice billed per day at each rate. Fixtures start with "ct".
 select test.suite('85 owner terms per car');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 grant usage on schema test to service_role;
 create table test.ct (k text primary key, v jsonb);
 create function test.ctv(p text) returns jsonb language sql stable as $$ select v from test.ct where k = p $$;

@@ -1,6 +1,8 @@
 -- 31: simple signing, partner insurance reminders, guide upkeep and the official form sources (migrations 0047 and 0049).
 -- Fixtures start with "su".
 select test.suite('31 signing, insurance reminders, guide upkeep');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 
 select test.mk_user('su_admin', 'admin');
 select test.mk_user('su_cs', 'va', 'cs');

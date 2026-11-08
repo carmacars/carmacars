@@ -5,6 +5,8 @@
 -- with the deposit method, a platform payout, paper and the calendar switch, card requests (hold, charge) and the
 -- Protection Plan wording. Fixtures start with "of".
 select test.suite('82 offers and rentals');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 
 select test.mk_user('of_admin', 'admin');
 select test.mk_user('of_cs', 'va', 'cs');

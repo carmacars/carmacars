@@ -19,7 +19,7 @@ type Row = { link_id: string; referred: string; status: string; signed_at: strin
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 // The Referral Override Agreement (migration 0640): the owner who referred another owner reads it, filled from the
-// referral link an Admin set, and signs it here. The Company countersigns at once. Signed on paper instead? Staff keep the scan.
+// referral link an Admin set, and signs it here. The Company countersigns at once. Signed here only (0720: no paper signature).
 export default async function ReferralAgreementPage({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, { user }] = await Promise.all([params, requireOwner('/owner/referral-agreement')]);
   if (!UUID.test(id)) notFound();
@@ -56,7 +56,7 @@ export default async function ReferralAgreementPage({ params }: { params: Promis
             consent="By pressing Sign you sign the Referral Override Agreement electronically, with the same effect as signing on paper. We record the time, your IP address and device. The Company countersigns at the same moment."
             button="Sign" action={signOwnerPackage.bind(null, { packet: [], requests: [{ id: open.id, sha: open.sha, title: REFERRAL_AGREEMENT_TITLE }], next })} testId="portal-sign-form" /></section>
           : viewing ? <p className="small muted">Read only.</p> : <PrepareDocs targets={[spec.target]} titles={[spec.title]} />}
-        <p className="small muted">Prefer paper? Ask us for a copy, sign it and send us the scan. Your documents are in <Link prefetch={false} className="link" href="/owner/documents">Documents</Link>.</p>
+        <p className="small muted">Every agreement is signed here, with the e-signature. Your documents are in <Link prefetch={false} className="link" href="/owner/documents">Documents</Link>.</p>
       </div>
     </>
   );

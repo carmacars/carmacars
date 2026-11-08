@@ -77,7 +77,7 @@ const PHASE_NOTE: Record<Phase, string> = {
 
 /** What a draft keeps (0148): every field of the form as typed. */
 export interface MrDraft { f?: Record<string, string>; flags?: { do_not_email: boolean; new_renter: boolean; policy: boolean }; paid_by?: RentalPaidBy; deposit_by?: DepositPay;
-  agreement?: 'send' | 'paper'; blocks?: boolean; fees?: Record<string, string>; parts?: PayPart[]; customs?: Array<{ label: string; amount: string; hst: boolean }>;
+  /** 'paper': a draft saved before 0720 (read as 'send') */ agreement?: 'send' | 'paper'; blocks?: boolean; fees?: Record<string, string>; parts?: PayPart[]; customs?: Array<{ label: string; amount: string; hst: boolean }>;
   rent_mode?: 'trip' | 'day'; rent_day?: string; renter?: Renter | null; renter_id?: string | null; drivers?: Array<{ full_name: string; date_of_birth: string; email: string }>; addons?: AddonChoice[]; choice?: Choice;
   /** 2026-10-27: how the amounts were typed (before or after tax), and the total the renter pays typed */
   tax_mode?: TaxMode; total?: string;
@@ -100,7 +100,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
   // 0129: the rental and the deposit each paid its own way, paper or online signing, the calendar switch
   const [paidBy, setPaidBy] = useState<RentalPaidBy>(field ? 'link' : 'e_transfer');
   const [depositBy, setDepositBy] = useState<DepositPay>('card');
-  const [agreement, setAgreement] = useState<'send' | 'paper'>('send');
+  const agreement = 'send' as const; // 0720: every rental agreement is signed online
   const [blocks, setBlocks] = useState(true);
   // 0283: the Placeholder quick start (the source says so, so a draft opened again keeps it)
   const placeholder = isAdmin && f.source === 'other' && (f.source_note ?? '').startsWith('Placeholder');
@@ -338,7 +338,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     if (k === 'insurer') { setF((x) => ({ ...x, source: 'insurer' })); setPaidBy('insurer'); setBlocks(true); }
     if (k === 'owner') { setF((x) => ({ ...x, source: 'other', source_note: 'The owner using their own car', rental_charge: '0', price_reason: 'Owner using their own car' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); setBlocks(true); }
     // 0283: a placeholder never blocks the calendar, is never handed over and is never matched to a toll or ticket
-    if (k === 'dummy') { setOwnerChoice((x) => ({ ...x, visibility: 'never' })); setF((x) => ({ ...x, source: 'other', source_note: 'Placeholder booking (insurance or a hold)', rental_charge: '0', price_reason: 'Placeholder booking', blocks_reason: 'Placeholder booking (insurance or a hold)' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); setBlocks(false); setAgreement('paper'); }
+    if (k === 'dummy') { setOwnerChoice((x) => ({ ...x, visibility: 'never' })); setF((x) => ({ ...x, source: 'other', source_note: 'Placeholder booking (insurance or a hold)', rental_charge: '0', price_reason: 'Placeholder booking', blocks_reason: 'Placeholder booking (insurance or a hold)' })); setPaidBy(isAdmin ? 'unpaid' : 'e_transfer'); if (isAdmin) setDepositBy('none'); setFlags((x) => ({ ...x, do_not_email: true })); setBlocks(false); }
   };
 
   // a draft opened again: every field as it was left
@@ -351,7 +351,6 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
     if (d.flags) setFlags(d.flags);
     if (d.paid_by) setPaidBy(d.paid_by);
     if (d.deposit_by) setDepositBy(d.deposit_by);
-    if (d.agreement) setAgreement(d.agreement);
     if (typeof d.blocks === 'boolean') setBlocks(d.blocks);
     if (d.fees) setFees(d.fees);
     if (d.parts) setParts(d.parts);
@@ -459,7 +458,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
         {done.charge_on_sign && <p className="alert alert--ok" role="status" data-testid="mr-charge-on-sign"><span>Awaiting signature. The saved card is charged when the renter signs the rental agreement (Accept and sign), not before.</span></p>}
         {done.card && <p className={`alert ${done.card.ok ? 'alert--ok' : 'alert--warn'}`} role="status"><span>{done.card.ok ? 'The saved card was charged.' : `The saved card was not charged: ${done.card.message ?? 'declined'}. Finance has a task; send a payment link or record a payment received another way.`}</span></p>}
         {totalCents !== undefined && done.total_cents !== totalCents && <p className="alert alert--warn" role="status" data-testid="mr-done-diff"><span>{totalDifference(done.total_cents, totalCents, fmt)} Check the booking&apos;s price.</span></p>}
-        <p className="small" data-testid="mr-done-total">Total {fmt(done.total_cents)}.{done.open_cents ? ` Still to collect: ${fmt(done.open_cents)} (the booking's Money tab).` : ''} The renter signs the rental agreement in their portal, or you record a signature on paper from the booking.</p>
+        <p className="small" data-testid="mr-done-total">Total {fmt(done.total_cents)}.{done.open_cents ? ` Still to collect: ${fmt(done.open_cents)} (the booking's Money tab).` : ''} The renter signs the rental agreement in their portal (the e-signature; never on paper).</p>
         <p className="row">{field ? <Link prefetch={false} className="btn btn--primary" href="/staff/field/sales" data-testid="mr-open">Open My sales</Link>
           : <Link prefetch={false} className="btn btn--primary" href={`${base}/bookings/${done.booking_number}`} data-testid="mr-open">Open the booking</Link>}
           <button className="btn btn--ghost" type="button" onClick={() => { setDone(null); setQuote(null); setRenter(null); setChoice(isAdmin ? 'for_carmacars' : ''); }}>Add another</button></p>
@@ -727,8 +726,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
           {depositBy === 'e_transfer' && text('deposit_reference', 'Deposit e-Transfer reference')}
           {(depositBy === 'e_transfer' || depositBy === 'cash') && text('deposit_received_on', 'Deposit received on', { type: 'date', hint: 'Empty: the same day as the rental payment' })}
           <div className="field ad-field"><span className="label">The rental agreement</span>
-            <label className="check" htmlFor={id('agr-send')}><input type="radio" id={id('agr-send')} name="mr-agr" checked={agreement === 'send'} onChange={() => setAgreement('send')} data-testid="mr-agreement-send" /> <span>Send it to sign online</span></label>
-            <label className="check" htmlFor={id('agr-paper')}><input type="radio" id={id('agr-paper')} name="mr-agr" checked={agreement === 'paper'} onChange={() => setAgreement('paper')} data-testid="mr-agreement-paper" /> <span>Already signed on paper (upload the scan on the booking)</span></label></div>
+            <p className="small" data-testid="mr-agreement-send">Sent to the renter to sign online (the e-signature). A rental agreement signed on paper is not accepted.</p></div>
           <div className="field ad-field"><span className="label">The calendar</span>
             <label className="check" htmlFor={id('blocks')}><input type="checkbox" id={id('blocks')} checked={blocks && !placeholder} disabled={placeholder} onChange={(e) => setBlocks(e.target.checked)} data-testid="mr-blocks" /> <span>Blocks the car&apos;s calendar</span></label>
             {placeholder ? <p className="hint">A placeholder never blocks the calendar.</p> : !blocks && <p className="hint">For dates not known yet (an insurance replacement) or a trip another calendar holds.</p>}</div>
@@ -758,7 +756,7 @@ export function ManualRentalForm({ cars, base, isAdmin, draft = null, owner = nu
             {difference && <div><dt>Check</dt><dd data-testid="mr-sum-diff"><b>{difference}</b></dd></div>}
             <div><dt>Rental paid</dt><dd data-testid="mr-sum-paid">{payWords}{offline ? `: ${fmt(paid)} received${left > 0 ? `, ${fmt(left)} still to collect` : ''}` : ''}</dd></div>
             <div><dt>Deposit</dt><dd data-testid="mr-sum-deposit">{depositBy === 'none' ? 'No deposit' : `${fmt(cents(f.deposit ?? '') ?? quote.quote.deposit_cents)} by ${DEPOSIT_PAY.find(([v]) => v === depositBy)?.[1].toLowerCase()}${f.deposit_reference ? ` (${f.deposit_reference})` : ''}`}</dd></div>
-            <div><dt>Agreement</dt><dd>{agreement === 'paper' ? 'Signed on paper' : 'Sent to sign online'}</dd></div>
+            <div><dt>Agreement</dt><dd>Sent to sign online</dd></div>
           </dl></section>; })()}
       {err && <p className="alert alert--error" role="alert" data-testid="mr-error"><span>{err}</span></p>}
       <div className="row"><button className="btn btn--primary" type="submit" disabled={pending || !quote} data-testid="mr-submit">{pending ? 'Working' : past ? 'Record the past rental' : phase === 'in_progress' ? 'Add the rental already underway' : 'Add the rental'}</button>

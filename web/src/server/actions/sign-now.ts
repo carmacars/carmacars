@@ -143,7 +143,7 @@ export async function prepareAgreementNow(bookingId: string): Promise<R<{ ready:
     const r = (await rpc('server_sign_now_prepare', { p_booking: bookingId, p_by: user.id }, { role: 'service_role' })) as unknown as { ready: boolean; renter_user_id?: string };
     if (!r.ready && r.renter_user_id) {
       const { ensureAgreement } = await import('@/server/agreement-auto');
-      if (!(await ensureAgreement(bookingId, r.renter_user_id, 'sign_now'))) throw new Error('The agreement could not be made just now: try again, or record a paper signature.');
+      if (!(await ensureAgreement(bookingId, r.renter_user_id, 'sign_now'))) throw new Error('The agreement could not be made just now: try again in a minute.');
     }
     revalidatePath('/admin/bookings'); revalidatePath('/staff/bookings'); revalidatePath('/staff/field');
     return { ok: true, data: { ready: true } };

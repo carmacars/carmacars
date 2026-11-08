@@ -105,9 +105,18 @@ test('sign-in: several portals: choose one, and each frame links to the others',
   await signIn(page, p.email);
   expect(path(page)).toBe('/choose-portal');
   const list = page.getByTestId('choose-portal');
-  // one staff portal (0197) for every function held; the frame's switcher picks the one worked in
-  await expect(list.getByRole('link')).toHaveText(['Admin', 'Staff portal', 'Owner portal']);
-  await list.getByRole('link', { name: 'Staff portal' }).click();
+  // one staff portal (0197) for every function held; the frame's switcher picks the one worked in. 0720: one card per
+  // portal (its name, what is there and the role), the brand mark at the top
+  await expect(list.locator('.cp-card__name')).toHaveText(['Admin', 'Staff portal', 'Owner portal']);
+  await expect(page.getByTestId('portal-card-va')).toContainText('Staff: Finance');
+  await expect(page.getByTestId('portal-card-owner')).toContainText('Car owner');
+  await page.getByTestId('portal-card-va').click();
+  await page.waitForURL((u) => u.pathname === '/staff');
+  // the portal used last comes first next time
+  await page.goto('/choose-portal');
+  await expect(page.getByTestId('choose-portal').locator('.cp-card__name').first()).toContainText('Staff portal');
+  await expect(page.getByTestId('portal-card-va')).toContainText('Last used');
+  await page.getByTestId('portal-card-va').click();
   await page.waitForURL((u) => u.pathname === '/staff');
   await page.getByTestId('fn-switch').getByRole('button', { name: 'Fleet' }).click();
   await expect(page.getByTestId('fn-switch').getByRole('button', { name: 'Fleet' })).toHaveAttribute('aria-pressed', 'true');
@@ -116,6 +125,24 @@ test('sign-in: several portals: choose one, and each frame links to the others',
   await page.getByTestId('portal-switch').getByRole('link', { name: 'Admin' }).click();
   await page.waitForURL((u) => u.pathname === '/admin');
   expect(clean(errors)).toEqual([]);
+  await page.context().close();
+  await sql.end();
+});
+
+test('sign-in: an Admin account that also rents has no renter portal (0720), its rentals stay on file', async ({ browser }, info) => {
+  const phone = info.project.name.startsWith('phone');
+  const sql = db();
+  await sql`delete from app.rate_limit_hits`;
+  const p = await mkPerson(sql, 'Admin Renter', ['admin', 'renter']);
+  const page = await newPage(browser, phone);
+  await signIn(page, p.email);
+  expect(path(page)).toBe('/admin');
+  await expect(page.getByTestId('portal-switch')).toHaveCount(0);
+  await page.goto('/account');
+  await page.waitForURL((u) => u.pathname === '/admin');
+  await page.goto('/choose-portal');
+  await page.waitForURL((u) => u.pathname === '/admin');
+  expect((await sql`select count(*)::int n from renters where user_id = ${p.id}`)[0]!.n).toBe(1); // the renter profile stays
   await page.context().close();
   await sql.end();
 });

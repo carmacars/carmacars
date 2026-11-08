@@ -42,7 +42,8 @@ export async function saveTerms(t: TermsInput, paths: string[] = []) {
   if (t.revenue_share_bps !== undefined && t.revenue_share_bps !== null && (t.revenue_share_bps < 0 || t.revenue_share_bps > 10000)) return invalid({ share: 'Between 0% and 100%.' });
   return act<{ saved: string | null; needs_resign: boolean; message?: string; note?: string; change_id?: string }>('owner_terms_save', t as J, paths);
 }
-export async function scheduleChange(p: { change_id: string; do: 'paper' | 'cancel'; signed_on?: string; reason?: string }, paths: string[] = []) {
+/** Withdraw an updated Vehicle Schedule waiting for the owner's signature (0720: it is never recorded as signed on paper). */
+export async function scheduleChange(p: { change_id: string; do: 'cancel'; reason?: string }, paths: string[] = []) {
   return act('schedule_change_admin', p, paths);
 }
 
@@ -208,7 +209,8 @@ export async function staffAddOwnerCar(form: FormData): Promise<R<{ application_
   const fe: Record<string, string> = {};
   if (!p.owner_id) {
     if (!String(o.legal_name ?? '').trim()) fe.legal_name = 'Enter the owner\'s full legal name.';
-    if (p.signing !== 'paper' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(o.email ?? ''))) fe.email = 'Enter the owner\'s email: the set-up email goes there.';
+    if (p.signing === 'paper') fe.form = 'The owner signs in the owner portal only (the e-signature with its audit trail): a signature on paper is not recorded.';
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(o.email ?? ''))) fe.email = 'Enter the owner\'s email: the set-up email goes there.';
     if (!String(o.phone ?? '').trim()) fe.phone = 'Enter the owner\'s phone.';
     if (o.owner_type === 'corporation' && !String(o.corporation_name ?? '').trim()) fe.corporation_name = 'Enter the corporation\'s name.';
   }

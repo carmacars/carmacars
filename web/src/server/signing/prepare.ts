@@ -5,7 +5,7 @@ import { agreementPdf } from '@/features/agreement/pdf';
 import type { Block } from '@/features/agreement/model';
 import { documentBlocks, packetKeys, templateVersionOf, titleOf, type OwnerAgreementFacts, type PacketKey } from '@/features/owner-agreement/model';
 import { screenFormBlocks, SCREEN_FORMS_VERSION, SCREEN_FORM_TITLE, type ScreenFormFacts } from '@/features/owner-agreement/screen-forms';
-import { FORM_C_SCREEN_VERSION, FORM_TITLE, screenFormCBlocks, type WitnessedFacts } from '@/features/owner-agreement/witnessed';
+import { FORM_C_SCREEN_VERSION, FORM_D_SCREEN_VERSION, FORM_TITLE, screenFormCBlocks, screenFormDBlocks, type CompanySigners, type WitnessedFacts } from '@/features/owner-agreement/witnessed';
 import { partnerAgreementBlocks, PARTNER_AGREEMENT_TITLE, PARTNER_AGREEMENT_VERSION, type PartnerFacts } from '@/features/partner/agreement';
 import { referralAgreementBlocks, REFERRAL_AGREEMENT_TITLE, REFERRAL_TEMPLATE_VERSION, type ReferralFacts } from '@/features/referral-agreement/agreement';
 import { sha256Hex } from '@/server/links';
@@ -120,6 +120,23 @@ export async function formCSpec(userId: string, ownerId: string, vehicleId: stri
   };
 }
 
+// Form D on screen (0720): the owner's facts, and who signs Part 2 for CarmaCars (Program settings).
+export async function formDFacts(userId: string): Promise<WitnessedFacts | null> {
+  return (await rpc('server_witnessed_form_facts', { p_by: userId, p_code: 'D1' }, SR).catch(() => null)) as unknown as WitnessedFacts | null;
+}
+export async function companySigners(): Promise<CompanySigners> {
+  return ((await rpc('server_company_signers', {}, SR).catch(() => null)) ?? { officer: null, officer_title: null, second: null, second_title: null }) as unknown as CompanySigners;
+}
+export async function formDSpec(userId: string, ownerId: string, facts: WitnessedFacts, signers: CompanySigners): Promise<DocSpec> {
+  const blocks = screenFormDBlocks(facts, signers);
+  const pdf: PdfInput = { title: `${FORM_TITLE.D1}, ${facts.owner.legal_name}`, createdAt: UNSIGNED_DATE, footer: `CarmaCars ${FORM_TITLE.D1} for ${facts.owner.legal_name}. ${FORM_D_SCREEN_VERSION}` };
+  return {
+    target: { t: 'form_d' }, title: FORM_TITLE.D1, blocks, pdf, key: await contentKey(blocks, pdf),
+    path: (sha) => `owners/${ownerId}/forms/form-d-${sha.slice(0, 16)}.pdf`,
+    open: async (sha, path) => ({ id: ((await rpc('owner_form_d_open', { p_by: userId, p_sha256: sha, p_path: path, p_template_version: FORM_D_SCREEN_VERSION }, SR)) as unknown as { id: string }).id })
+  };
+}
+
 // ---------------------------------------------------------------- open requests, without rendering
 interface Found { content_key: string; sha256: string; signature_request_id: string; sign_request_id: string | null }
 
@@ -157,6 +174,7 @@ export async function specFor(userId: string, ownerId: string, t: PrepTarget): P
   if (t.t === 'form') return formSpec(userId, t.code, await formABFacts(userId, t.code));
   if (t.t === 'partner') { const f = await partnerFacts(userId); return f ? partnerSpec(userId, f) : null; }
   if (t.t === 'referral') { const f = await referralFacts(userId, t.link); return f ? referralSpec(userId, f) : null; }
+  if (t.t === 'form_d') { const f = await formDFacts(userId); return f ? formDSpec(userId, ownerId, f, await companySigners()) : null; }
   const f = await formCFacts(userId, t.vehicle);
   return f ? formCSpec(userId, ownerId, t.vehicle, f) : null;
 }

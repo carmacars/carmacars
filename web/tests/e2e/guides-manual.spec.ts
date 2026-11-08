@@ -6,7 +6,7 @@ import { acceptCookies, db, noOverflow, strongSign, watch } from './helpers';
 
 // Migration 0044 end to end: the guide of every portal (the Guide link, the first-visit banner, the page with its
 // contents, search and PDF); a payment received by e-Transfer and cheque recorded by an Admin, then voided; a signature
-// on paper recorded from the owner checklist; and signing in the portals: Forms A and B (owner), an investment agreement
+// on paper refused from the owner checklist (0720); and signing in the portals: Forms A and B (owner), an investment agreement
 // (investor) and a staff agreement (VA). Every page is checked with axe, for overflow and for the copy rules.
 const SHOTS = 'test-results/guides-manual';
 const PW = 'correct horse battery';
@@ -208,8 +208,8 @@ test('manual payment: an Admin records an e-Transfer in part and a cheque for th
   await sql.end();
 });
 
-// ---------------------------------------------------------------- 3. a signature on paper, from the owner checklist
-test('paper signature: an Admin records the debit agreement signed on paper from the checklist, it counts as signed, then it is voided', async ({ browser }, info) => {
+// ---------------------------------------------------------------- 3. no signature on paper (0720), from the owner checklist
+test('no paper signature: the checklist offers none for an agreement, and the database refuses one', async ({ browser }, info) => {
   test.setTimeout(150_000);
   const phone = info.project.name.startsWith('phone');
   const sql = db();
@@ -226,30 +226,12 @@ test('paper signature: an Admin records the debit agreement signed on paper from
   await ap.goto(`/admin/owners/${o.owner}#checklist`, { waitUntil: 'networkidle' });
   const ck = ap.locator('#checklist');
   await expect(ck.locator('li[data-code="debit_agreement"]')).toHaveAttribute('data-status', 'open');
-  await ck.getByTestId('paper-signature').click();
-  const form = ck.getByTestId('paper-signature-form');
-  await form.getByLabel('Document', { exact: true }).selectOption({ label: 'Pre-authorized debit agreement' });
-  await form.getByLabel('Scan of the signed document').setInputFiles({ name: 'debit-signed.pdf', mimeType: 'application/pdf', buffer: PDF });
-  await form.getByLabel('Note (optional)').fill('Signed at the office');
-  // the pointer last rested on a button (its hover colours): move it away and let the transition settle before the contrast check
-  await ap.mouse.move(0, 0);
-  await ap.waitForTimeout(400);
-  await check(ap, 'admin paper signature form');
-  await form.getByRole('button', { name: 'Record signature' }).click();
-  await expect(form.getByTestId('paper-signature-done')).toBeVisible({ timeout: 15_000 });
-  await expect(ck.locator('li[data-code="debit_agreement"]')).toHaveAttribute('data-status', 'done', { timeout: 15_000 });
-  await expect(ck.locator('li[data-code="debit_agreement"] [data-testid="checklist-status"]')).toContainText('Signed on paper');
-  const ps = await sql`select id, document_id, signed_on::text from paper_signatures where owner_id = ${o.owner} and doc_type = 'debit_agreement' and voided_at is null`;
-  expect(ps.length).toBe(1);
-  expect(ps[0]!.signed_on).toBe(today());
-  const doc = await sql`select storage_bucket, owner_id from documents where id = ${ps[0]!.document_id}`;
-  expect([doc[0]!.storage_bucket, doc[0]!.owner_id]).toEqual(['agreements', o.owner]);
-  // void it: the item is open again
-  await ck.getByTestId('paper-signatures').getByTestId('void-signature').click();
-  await ck.getByPlaceholder(/Why\?/).fill('Wrong form scanned');
-  await ck.getByRole('button', { name: 'Void the signature' }).click();
-  await expect(ck.locator('li[data-code="debit_agreement"]')).toHaveAttribute('data-status', 'open', { timeout: 15_000 });
-  expect((await sql`select count(*)::int n from audit_log where action like '%paper_signature%' and entity_id = ${ps[0]!.id}::text`)[0]!.n).toBeGreaterThanOrEqual(1);
+  // every agreement is signed in the owner portal: no "Record paper signature" for it (only an official form signed in ink)
+  await expect(ck.getByTestId('owner-checklist-portal-only')).toContainText('signs every agreement in the owner portal only');
+  await expect(ck.getByRole('option', { name: 'Pre-authorized debit agreement' })).toHaveCount(0);
+  await check(ap, 'admin checklist without paper');
+  await expect(sql`select app.record_paper_signature(${admin.id}, ${sql.json({ doc_type: 'debit_agreement', target_id: o.owner, signer_name: 'Pat Example', signed_on: today() })})`).rejects.toThrow(/signed in the portal only/);
+  expect((await sql`select count(*)::int n from paper_signatures where owner_id = ${o.owner} and doc_type = 'debit_agreement'`)[0]!.n).toBe(0);
   await ap.context().close();
   await sql.end();
 });

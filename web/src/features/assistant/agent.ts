@@ -342,7 +342,7 @@ async function prepare(d: Deps, tool: ToolName, a: Record<string, unknown>): Pro
         { title: 'Payments', rows: [
           { label: 'Rental', value: a.payment === 'other_way' ? `Paid by ${PAY_WORDS[String(a.method)] ?? 'another way'}${a.amount ? ` (${dollars(Number(a.amount))})` : ''}${a.reference ? `, reference ${String(a.reference)}` : ''}` : 'Payment link emailed to the renter' },
           { label: 'Deposit', value: `By ${PAY_WORDS[String(a.deposit_method ?? 'card')]}${priced.ok && priced.booking.deposit_cents ? ` (${money(priced.booking.deposit_cents)})` : ''}` },
-          { label: 'Agreement', value: a.agreement === 'paper' ? 'Signed on paper (a task asks for the scan)' : 'Signing link emailed to the renter' }] }];
+          { label: 'Agreement', value: 'Signing link emailed to the renter' }] }];
       return { name: 'manual_rental_create', summary: summary(tool, a, k), args, details };
     }
     case 'create_offer': {

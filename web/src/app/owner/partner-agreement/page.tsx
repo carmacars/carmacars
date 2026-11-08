@@ -18,7 +18,7 @@ export const metadata = pageMeta({ title: 'Partner agreement', path: '/owner/par
 type State = { status: string; method: string | null; signed_at: string | null; document_id: string | null } | null;
 
 // The partner agreement (migration 0046): a partner rental company reads it, filled from its record, and signs it here.
-// CarmaCars countersigns automatically. Signed on paper instead? Staff record it and it counts the same.
+// CarmaCars countersigns automatically. It is signed here only (0720: no paper signature).
 export default async function PartnerAgreementPage() {
   const { user } = await requireOwner('/owner/partner-agreement');
   const state = (await rpc('partner_agreement_state', { p_by: user.id }, { role: 'service_role' })) as unknown as State;
@@ -53,7 +53,7 @@ export default async function PartnerAgreementPage() {
             consent="By pressing Sign you sign the partner agreement electronically, with the same effect as signing on paper. We record the time, your IP address and device. CarmaCars countersigns at the same moment."
             button="Sign" action={signOwnerPackage.bind(null, { packet: [], requests: [{ id: open.id, sha: open.sha, title: PARTNER_AGREEMENT_TITLE }], next: '/owner/partner-agreement' })} testId="portal-sign-form" /></section>
           : viewing ? <p className="small muted">Read only.</p> : <PrepareDocs targets={[spec.target]} titles={[spec.title]} />}
-        <p className="small muted">Prefer paper? Ask us for a copy, sign it and send us the scan. We record it and it counts the same. Your documents are in <Link prefetch={false} className="link" href="/owner/documents">Documents</Link>.</p>
+        <p className="small muted">Every agreement is signed here, with the e-signature. Your documents are in <Link prefetch={false} className="link" href="/owner/documents">Documents</Link>.</p>
       </div>
     </>
   );

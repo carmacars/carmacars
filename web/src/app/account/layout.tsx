@@ -1,13 +1,16 @@
 import '@/styles/portal.css';
 import '@/components/portal-ui/portal-ui.css';
 import '@/styles/portal-revamp.css';
+import { redirect } from 'next/navigation';
 import { rpc } from '@/lib/db/repo';
+import { rolesOf } from '@/server/door';
 import { PortalNav } from '@/features/portal/PortalNav';
 import { currentUser } from '@/server/portal/data';
 import { viewAs } from '@/server/view-as';
 import { PortalSwitch, SignOutOrExit } from '@/features/access/Access';
 import { GuideBanner, GuideLink } from '@/features/guides/GuideFrame';
 import { StuckHelp } from '@/features/help/StuckHelp';
+import { TermsGate } from '@/features/terms/TermsGate';
 import { PushInvite } from '@/features/push/PushAlerts';
 
 // The renter portal shell (02-booking-and-renter.md section 7): phone-first tabs, then the page.
@@ -15,10 +18,13 @@ import { PushInvite } from '@/features/push/PushAlerts';
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   if (!user) return <>{children}</>;
-  const [unread, v] = await Promise.all([
+  const [unread, v, roles] = await Promise.all([
     rpc('my_unread_count', {}, { role: 'authenticated', userId: user.id }).then(Number).catch(() => 0),
-    viewAs()
+    viewAs(),
+    rolesOf(user.id).catch(() => null)
   ]);
+  // an Admin account has no renter portal (the owner, November 7): its renter profile and bookings stay on file
+  if (roles?.admin && !v) redirect('/admin');
   return (
     <div className="pt pt--lux pt--rv pt--renter">
       <div className="wrap pt__top">
@@ -31,7 +37,7 @@ export default async function AccountLayout({ children }: { children: React.Reac
         <GuideBanner portal="renter" userId={user.id} /><StuckHelp portal="renter" />
         <PushInvite portal="renter" home="/account" />
       </div>
-      <div className="wrap pt__body">{children}</div>
+      <div className="wrap pt__body"><TermsGate userId={user.id} portal="renter">{children}</TermsGate></div>
     </div>
   );
 }

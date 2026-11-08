@@ -3,7 +3,8 @@ import { money } from '@/lib/format';
 import { ManualPaymentForm, PaperSignatureForm, type PaperDoc } from './ManualRecords';
 
 // What each owner signs and pays to get their cars on the road (app.owner_signables, migration 0044), with how each
-// was done and the two quick actions: Record payment (an invoice) and Record paper signature (a document).
+// was done and the two quick actions: Record payment (an invoice) and, for an official ServiceOntario form signed in ink only, its
+// scan (0720: every agreement is signed with the e-signature).
 export interface ChecklistItem {
   code: string; group: 'sign' | 'pay'; label: string; status: 'done' | 'open' | 'not_needed'; method: string | null; date: string | null; detail?: string | null;
   vehicle_name?: string | null; doc_type?: string; target_id: string; invoice_id?: string; invoice_number?: string; balance_cents?: number; payable?: boolean; document_id?: string | null;
@@ -24,17 +25,19 @@ export function itemStatus(i: ChecklistItem): string {
   return i.detail || (i.group === 'pay' ? 'Not paid' : 'Not signed');
 }
 
-/** The paper documents an owner can sign: every open signable item (agreement, schedules, forms, debit agreement). */
+/** What can still be recorded as signed in ink (0720): the official ServiceOntario forms only, which the government
+ *  requires signed in ink. Every agreement of ours (the agreements, schedules, Forms A to D, the debit agreement) is
+ *  signed in the owner portal with the e-signature. */
 export function paperDocs(items: ChecklistItem[], signer: string): PaperDoc[] {
   const seen = new Set<string>();
   const out: PaperDoc[] = [];
   for (const i of items) {
-    if (i.group !== 'sign' || i.status !== 'open' || !i.doc_type) continue;
+    if (i.group !== 'sign' || i.status !== 'open' || i.doc_type !== 'registry_form') continue;
     const key = `${i.doc_type}:${i.target_id}`;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ doc_type: i.doc_type, target_id: i.target_id, signer, witnesses: WITNESSES[i.doc_type] ?? 0,
-      label: i.doc_type === 'owner_agreement' ? 'Owner program agreement with its schedules (every open schedule)' : `${i.label}${i.vehicle_name ? `, ${i.vehicle_name}` : ''}` });
+      label: `${i.label}${i.vehicle_name ? `, ${i.vehicle_name}` : ''}` });
   }
   return out;
 }
@@ -61,7 +64,7 @@ export function OwnerChecklist({ row, signer, today, refresh, portalOnly = false
   return (
     <div className="stack" data-testid="owner-checklist" data-owner={row.owner_id}>
       <ChecklistItems items={row.items} />
-      {portalOnly && <p className="small muted" data-testid="owner-checklist-portal-only">A fleet supplier signs in the owner portal only (the e-signature with its audit trail): no paper signature is recorded.</p>}
+      <p className="small muted" data-testid="owner-checklist-portal-only">{portalOnly ? 'A fleet supplier' : 'The owner'} signs every agreement in the owner portal only (the e-signature with its audit trail). Only an official ServiceOntario form signed in ink is recorded here.</p>
       {(pay.length > 0 || docs.length > 0) && (
         <div className="stack">
           {pay.map((i) => (
@@ -70,7 +73,7 @@ export function OwnerChecklist({ row, signer, today, refresh, portalOnly = false
               <ManualPaymentForm prefix="ck-pay" invoice={i.invoice_id} number={i.invoice_number!} balance={i.balance_cents ?? 0} today={today} refresh={refresh} />
             </div>
           ))}
-          {docs.length > 0 && <PaperSignatureForm docs={docs} today={today} refresh={refresh} />}
+          {docs.length > 0 && <PaperSignatureForm docs={docs} today={today} refresh={refresh} label="Record an official form signed in ink" />}
         </div>
       )}
     </div>

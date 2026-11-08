@@ -9,6 +9,8 @@
 -- late return $25 per started hour and the daily rate per extra day, fuel at pump price plus 25%
 -- plus $25, cleaning $75, administration $50 or $75, deductible $2,500, Deposit $1,000 (premium).
 select test.suite('09 operations');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 
 -- ------------------------------------------------------------------ helpers and fixture
 create or replace function test.at(p_local text) returns timestamptz

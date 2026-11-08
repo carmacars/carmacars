@@ -43,7 +43,7 @@ export default async function FormCScreen({ params }: { params: Promise<{ vehicl
     <>
       <Back href="/owner/documents">Documents</Back>
       <header className="stack"><p className="pt-kicker">{f.vehicle_name}</p><h1 className="d2">{FORM_TITLE.C}</h1>
-        <p className="muted">Filled in from your records. Sign it here with your witness beside you on the same device, or print it and sign on paper from <Link prefetch={false} className="link" href="/owner/documents">Documents</Link>.</p></header>
+        <p className="muted">Filled in from your records. Sign it here with your witness beside you on the same device.</p></header>
       <div className="stack-lg" style={{ maxWidth: '48rem' }}>
         <AgreementView blocks={blocks} id="form-c" label={FORM_TITLE.C} />
         {open ? <section className="pt-card stack" aria-labelledby="fc-sign"><h2 className="d4" id="fc-sign">Sign Form C</h2>

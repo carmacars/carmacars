@@ -5,13 +5,12 @@ import { acceptCookies, db, noOverflow, storeFixturePdf } from './helpers';
 
 // Migration 0078 end to end, at 375 and 1440: Admin > Today lists each piece of work as one line (what to do, why) whose
 // pop-up does it in place, pre-filled: Insurer confirmed (one car, several at once, and on the car's checklist), rates and
-// Publish now, renter documents, a payment received another way, a paper signature, an official form, a chat waiting, an
+// Publish now, renter documents, a payment received another way, an owner waiting to sign (no paper since 0720), an official form, a chat waiting, an
 // assistant task while no assistant holds the function. Each line is gone once its work is done.
 const PW = 'correct horse battery';
 const hash = (pw: string) => { const salt = randomBytes(16); return `scrypt$${salt.toString('base64')}$${scryptSync(pw, salt, 64).toString('base64')}`; };
 const tag = () => randomBytes(3).toString('hex');
 type Sql = ReturnType<typeof db>;
-const PDF = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
 
 async function check(page: Page, where: string) {
   await noOverflow(page);
@@ -191,18 +190,14 @@ test('owner money and paperwork: a payment received by e-Transfer and a paper si
   await expect.poll(async () => (await sql`select status::text s from owner_invoices where id = ${inv!.id}`)[0]!.s, { timeout: 20_000 }).toBe('paid');
   await today(page);
   await expect(prompt(page, `invoice:${inv!.id}`)).toHaveCount(0);
-  // the paper signature
+  // the owner waiting to sign (0720: no paper signature is recorded; the line points to the owner to send the link again)
   const paper = prompt(page, `paper:${o}`);
-  await expect(paper).toContainText('record a paper signature if they signed on paper');
+  await expect(paper).toContainText('waiting for their signature in the owner portal');
   await paper.getByTestId(`todo-act-paper:${o}`).click();
   const sd = page.getByTestId(`todo-act-paper:${o}-dialog`);
-  await expect(sd.getByTestId('paper-signature-form')).toBeVisible();
-  await expect(sd.getByLabel('Signed by')).toHaveValue(/Pat Paper/);
-  await check(page, 'paper signature pop-up');
-  await sd.getByLabel('Scan of the signed document').setInputFiles({ name: 'signed.pdf', mimeType: 'application/pdf', buffer: PDF });
-  await sd.getByRole('button', { name: 'Record signature' }).click();
-  await expect(sd.getByTestId('paper-signature-done')).toBeVisible({ timeout: 20_000 });
-  expect((await sql`select count(*)::int n from paper_signatures where target_id = ${o} and voided_at is null`)[0]!.n).toBeGreaterThan(0);
+  await expect(sd).toContainText('signs every agreement in the owner portal');
+  await expect(sd.getByRole('link', { name: 'Open the owner' })).toBeVisible();
+  await check(page, 'waiting to sign pop-up');
   await sql.end();
 });
 

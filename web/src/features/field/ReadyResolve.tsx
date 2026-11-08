@@ -5,7 +5,6 @@ import { useState, useTransition } from 'react';
 import Link from '@/components/Link';
 import { useRouter } from 'next/navigation';
 import { fieldAct } from '@/server/actions/field';
-import { fieldPaperScan } from '@/server/actions/field-paper';
 import { staffLicenceUpload } from '@/server/actions/sign-now';
 import { startCardRequest } from '@/server/actions/offers';
 import { preparePhoto } from './queue';
@@ -35,33 +34,12 @@ function Msg({ m }: { m: { ok: boolean; text: string } | null }) {
   return m ? <p className={`alert ${m.ok ? 'alert--ok' : 'alert--error'} small`} role={m.ok ? 'status' : 'alert'}><span>{m.text}</span></p> : null;
 }
 
-/** The agreement is not signed: sign on this phone, or scan the paper copy. */
-export function ResolveSignature({ j, signNow }: { j: FieldJob; signNow: string }) {
-  const { msg, pending, run } = useAct();
-  const [pages, setPages] = useState<File[]>([]);
-  const b = j.booking!;
-  const send = () => run(async () => {
-    const fd = new FormData(); fd.set('job', j.job.id); fd.set('booking', b.id); fd.set('signer_name', b.renter?.name ?? '');
-    for (const p of pages) { const x = p.type === 'application/pdf' ? null : await preparePhoto(p, ID_PHOTO).catch(() => null); fd.append('page', x ? new File([x.blob], 'page.jpg', { type: 'image/jpeg' }) : p); }
-    const r = await fieldPaperScan(fd);
-    if (r.ok) setPages([]);
-    return r;
-  }, 'The paper copy is recorded. The agreement counts as signed.');
+/** The agreement is not signed: the renter signs on this phone (the e-signature; a paper copy is no longer recorded, 0720). */
+export function ResolveSignature({ signNow }: { j: FieldJob; signNow: string }) {
   return (
     <div className="fd-fix stack" data-testid="fix-signature">
       <Link prefetch={false} className="btn btn--primary fd-wide" href={signNow} data-testid="fix-sign-now">Sign now on this device</Link>
-      <details className="fd-fix__more">
-        <summary>Signed on paper instead? Scan it</summary>
-        <div className="stack">
-          <p className="small">Photograph every page of the signed agreement, in order. They become one PDF on the booking.</p>
-          <label className="btn btn--ghost fd-wide">{pages.length ? `Add a page (${pages.length} taken)` : 'Take a photo of page 1'}
-            <input className="vh" type="file" accept="image/*,application/pdf" capture="environment" data-testid="fix-paper-page"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) setPages((p) => [...p, f]); e.target.value = ''; }} /></label>
-          {pages.length > 0 && <p className="small" data-testid="fix-paper-count">{pages.length} page{pages.length > 1 ? 's' : ''} ready. <button type="button" className="link" onClick={() => setPages([])}>Start again</button></p>}
-          <button type="button" className="btn btn--primary fd-wide" disabled={pending || !pages.length} onClick={send} data-testid="fix-paper-send">{pending ? 'Sending' : 'Record the signed paper copy'}</button>
-        </div>
-      </details>
-      <Msg m={msg} />
+      <p className="small muted">The renter signs on screen with the e-signature. A signature on paper is not accepted.</p>
     </div>
   );
 }

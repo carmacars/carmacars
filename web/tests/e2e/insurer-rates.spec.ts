@@ -108,7 +108,7 @@ test('the insurers\' rate sheet: set and raise a rate, Add a rental filled from 
   const pickup = new Date(Date.now() + 2 * 86_400_000); pickup.setMinutes(0, 0, 0);
   const [mr] = await sql`select app.door(${admin.id}, 'aal2', 'ops_do', 'manual_rental_create', ${sql.json({
     vehicle_id: car, pickup_at: pickup.toISOString(), return_at: new Date(pickup.getTime() + 10 * 86_400_000).toISOString(), coverage_option: 3, source: 'insurer',
-    sales_choice: 'for_carmacars', agreement: 'paper', renter: { full_name: 'Remy Replacement', email: `remy.${tag()}@example.test`, mobile: '4165550163', date_of_birth: '1984-02-03', licence_number: 'R1234-12345-12345' },
+    sales_choice: 'for_carmacars', agreement: 'send', renter: { full_name: 'Remy Replacement', email: `remy.${tag()}@example.test`, mobile: '4165550163', date_of_birth: '1984-02-03', licence_number: 'R1234-12345-12345' },
     payment: { mode: 'unpaid', method: 'insurer' }, deposit: { method: 'cash' }, insurance: { insurer_id: insId, claim_number: 'CLM-E2E-163', pays: 'insurer' } })}) as r`;
   const bookingId = (mr!.r as { booking_id: string }).booking_id;
   const [bk] = await sql`select booking_number, insurer_authorized_daily_rate_cents::int rate, status from bookings where id = ${bookingId}`;

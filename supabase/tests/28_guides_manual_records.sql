@@ -1,6 +1,8 @@
 -- 28: guides in every portal, payments recorded by hand, signatures on paper, and signing in the portals (migration 0044).
 -- Every fixture label starts with "gm".
 select test.suite('28 guides manual records');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 grant usage on schema test to service_role;
 
 select test.mk_user('gm_admin', 'admin');

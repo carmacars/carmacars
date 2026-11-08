@@ -33,7 +33,7 @@ export async function AddOwnerCarPage({ ctx, sp }: { ctx: PageCtx; sp: Record<st
         ? <PageHead kicker={<Link prefetch={false} className="link" href={owner ? `/admin/owners/${owner}` : '/admin/owners'}>{facts.owner ? facts.owner.legal_name : 'Owners'}</Link>} title={facts.owner ? 'Add another car' : 'Add a car for an owner'} />
         : <PageHead title={facts.owner ? `Add another car for ${facts.owner.legal_name}` : 'Add a car for an owner'} />}
       <p className="small muted" style={{ maxWidth: '48rem' }}>{admin
-        ? 'Everything the owner would enter in their application, entered for them. The owner gets one email to review the details, correct anything and sign; or they sign on paper and you record it.'
+        ? 'Everything the owner would enter in their application, entered for them. The owner gets one email to review the details, correct anything and sign in the owner portal (no paper signature).'
         : 'Enter everything for the owner. An Admin checks the terms and first invoice, then approves; the owner gets one email to review and sign.'}</p>
       <div style={{ maxWidth: '60rem' }}><AddOwnerCar initial={facts} base={base} fleet={fleet ? { regular_cents: fleet.regular_cents, troubled_cents: fleet.troubled_cents } : null} /></div>
     </>

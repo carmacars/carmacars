@@ -18,7 +18,7 @@ import { GeneratedFiles } from '@/features/admin/GeneratedFiles';
 import { BookingReview, type B } from '@/features/admin/BookingReview';
 import { BookingAddons } from '@/features/addons/BookingAddons';
 import { DriverLinks, ProposeChange, type DriverLinkRow } from '@/features/admin/BookingChanges';
-import { ManualPaymentForm, ManualPaymentList, PaperSignatureForm, PaperSignatureList, type ManualRow, type PaperDoc, type PaperRow } from '@/features/manual/ManualRecords';
+import { ManualPaymentForm, ManualPaymentList, PaperSignatureList, type ManualRow, type PaperRow } from '@/features/manual/ManualRecords';
 import { $, Badge, Card, Kv, PageHead, Table, Tabs, t, label } from '@/features/admin/ui';
 import { REFUND_OF } from '@/features/admin/refunds';
 import { BookingMoney, type Money, type PanelLine } from '@/features/money/BookingMoney';
@@ -146,8 +146,6 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     (on('overview') || on('review')) && renterForm?.may_edit ? ops<DuplicateRow[]>('renter_duplicates', { renter: renterForm.renter_id }).catch(none([] as DuplicateRow[])) : null]);
 
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-  const paperDocs: PaperDoc[] = [{ doc_type: 'rental_agreement', target_id: b.id, label: 'Rental agreement', signer: b.renter?.legal_name ?? '' },
-    ...b.change_requests.filter((c) => ['proposed', 'approved'].includes(String(c.status)) && !c.renter_agreed_at).map((c) => ({ doc_type: 'rental_amendment', target_id: String(c.id), label: `Booking change of ${t(c.created_at)}`, signer: b.renter?.legal_name ?? '' }))];
   const insurerBilled = b.bill_to !== 'renter' && !!b.insurer_id;
   const extrasCount = b.change_requests.filter((c) => ['requested', 'proposed'].includes(String(c.status))).length + b.extensions.filter((x) => x.status === 'requested').length;
   const tabs: Array<[string, string, number?]> = BOOKING_SECTIONS
@@ -368,9 +366,10 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
                   fields={[{ name: 'note', label: 'What you checked (the licence seen, its number, the face matched)', type: 'text', required: true }]} /> : 'Not verified' }] : [])]} /></Card>
           {can.admin && <Card title="Documents"><Table rows={b.documents ?? []} empty="No documents." cols={[{ key: 'title', label: 'Title', render: (r) => <Link prefetch={false} className="link" href={`/admin/documents/${r.id}`}>{String(r.title ?? label(r.kind))}</Link> }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>}
           {can.driverLinks && <Card title="Additional drivers' signing links"><DriverLinks rows={driverLinks} refresh={[base]} /></Card>}
-          {can.paperSignatures && <Card title="Signed on paper" testId="booking-paper"><div className="stack">
-            {!can.voidRecords && <p className="small muted">The renter signed the rental agreement or a change on paper: upload the scan and it counts as signed. Only an Admin can void it.</p>}
-            <PaperSignatureList rows={paper} canVoid={can.voidRecords} {...(can.voidRecords ? { refresh: [base] } : { docBase: '/staff/documents' })} /><PaperSignatureForm docs={paperDocs} today={today} refresh={[base]} /></div></Card>}
+          {/* 0720: no new signature on paper (every agreement is signed in the portal); one recorded before stays readable */}
+          {can.paperSignatures && paper.length > 0 && <Card title="Signed on paper (before November 2026)" testId="booking-paper"><div className="stack">
+            <p className="small muted">Recorded before every agreement moved to the e-signature. A new signature is never recorded on paper: send the renter the signing link.</p>
+            <PaperSignatureList rows={paper} canVoid={can.voidRecords} {...(can.voidRecords ? { refresh: [base] } : { docBase: '/staff/documents' })} /></div></Card>}
         </div>
       )}
     </RequestClaim>

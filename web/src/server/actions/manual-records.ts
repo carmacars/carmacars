@@ -82,8 +82,12 @@ export async function voidManualPayment(id: string, reason: string, paths: strin
 }
 
 // ---------------------------------------------------------------- signatures on paper
+// 0720: every agreement is signed with the e-signature; only an official ServiceOntario form, which the government
+// requires signed in ink, is still recorded here (the database refuses anything else too).
+const PAPER_REFUSED = 'Every agreement is signed in the portal only (the e-signature with its audit trail): a signature on paper is no longer recorded. Send the person their signing link instead.';
 export async function recordPaperSignature(form: FormData): Promise<R<{ id: string }>> {
   const docType = String(form.get('doc_type') ?? '');
+  if (docType && docType !== 'registry_form') return { ok: false, code: 'refused', message: PAPER_REFUSED };
   const target = String(form.get('target_id') ?? '');
   const signer = String(form.get('signer_name') ?? '').trim();
   const signedOn = String(form.get('signed_on') ?? '');

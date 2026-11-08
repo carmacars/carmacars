@@ -5,6 +5,8 @@
 -- for the rental only) and its invoice lists each one.
 -- Fixtures start with "xf".
 select test.suite('99 insurer extra fees');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 
 select test.mk_user('xf_admin', 'admin');
 select test.mk_user('xf_cs', 'va', 'cs');

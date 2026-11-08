@@ -6,6 +6,8 @@
 --
 -- Every fixture label starts with "ofl" so nothing collides with the other test files.
 select test.suite('11 owners forms listings');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 
 -- ------------------------------------------------------------------ fixtures
 select test.mk_user('ofl_admin', 'admin');

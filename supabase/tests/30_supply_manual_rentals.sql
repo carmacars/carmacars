@@ -1,6 +1,8 @@
 -- 30: vehicle supply types, partners, rentals added by hand, retiring and deleting cars, toll matching around
 -- placeholder bookings (migration 0046). Fixtures start with "sm".
 select test.suite('30 supply and manual rentals');
+-- 0720 refuses new paper signatures; this file's fixtures signed on paper before it (a superuser session only)
+select set_config('app.paper_fixture', 'on', false);
 
 select test.mk_user('sm_admin', 'admin');
 select test.mk_user('sm_cs', 'va', 'cs');

@@ -6,7 +6,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { monthOf } from '@/features/owner/Blocks';
 import { door } from '@/server/door';
-import { PaperSignatureForm, PaperSignatureList, type PaperRow } from '@/features/manual/ManualRecords';
+import { PaperSignatureList, type PaperRow } from '@/features/manual/ManualRecords';
 import { SendGenerated, SendToSign, SignRequestList, type SignRequestRow } from '@/features/manual/SignRequests';
 import { $, Badge, Card, Kv, PageHead, Table, d, t } from '@/features/admin/ui';
 import { InvestmentCountersign, type CountersignRow } from '@/features/admin/LegalActions';
@@ -24,7 +24,6 @@ export default async function Investor({ params }: { params: Promise<{ id: strin
     door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { investor: id }).catch(() => [] as PaperRow[]),
     door<CountersignRow[]>(user.id, 'ops_read', 'investment_countersign_state', { investor_id: id }).catch(() => [] as CountersignRow[])]);
   const reach = await door<Reach>(user.id, 'admin_read', 'notify_reach', { investor_id: id }).catch(() => null);
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const here = [`/admin/investors/${id}`];
   return (<>
     <PageHead kicker={<Link prefetch={false} className="link" href="/admin/investors">Investors</Link>} title={<>{String(i.legal_name)} <Badge s={String(i.status)} /></>} />
@@ -38,14 +37,13 @@ export default async function Investor({ params }: { params: Promise<{ id: strin
         <Table rows={i.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }, { key: 'paid_at', label: 'Paid', render: (r) => t(r.paid_at) }]} /></Card>
       <Card title="Investment agreement" testId="investor-signing">
         <div className="stack">
-          <p className="small">Send the agreement to sign in the investor portal (filled in from this record, or a PDF of your own), or record one signed on paper. Either way it counts as signed by the investor. It is not countersigned automatically: the signing officer countersigns it here, and CarmaCars is bound once it has countersigned and the funds clear.</p>
+          <p className="small">Send the agreement to sign in the investor portal (filled in from this record, or a PDF of your own). The investor signs it there with the e-signature (the identity code, the IP address and the audit trail); a signature on paper is not recorded. It is not countersigned automatically: the signing officer countersigns it here, and CarmaCars is bound once it has countersigned and the funds clear.</p>
           <InvestmentCountersign investorId={id} rows={countersign} />
           <SignRequestList rows={requests} refresh={here} />
           <PaperSignatureList rows={paper} canVoid refresh={here} />
           <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}>
             {!requests.some((r) => r.status === 'sent' || r.status === 'signed') && <SendGenerated docType="investment_agreement" who={id} refresh={here} />}
             <SendToSign docType="investment_agreement" who={id} defaultTitle="Investment agreement" refresh={here} />
-            <PaperSignatureForm docs={[{ doc_type: 'investment_agreement', target_id: id, label: 'Investment agreement', signer: String(i.legal_name ?? '') }]} today={today} refresh={here} />
           </div>
         </div>
       </Card>

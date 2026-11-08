@@ -18,7 +18,7 @@ export const metadata = pageMeta({ title: 'Sign a form', path: '/owner/documents
 type ScreenForm = { code: 'A' | 'B'; title: string; status: 'needed' | 'signed'; document_id: string | null; signed_at: string | null; method: string | null };
 
 // Forms A and B of the Title-Holding and Lease Agreement (migration 0044): filled from your records, read on screen
-// and signed with the same signature as your agreements. No witness is needed. Signed on paper instead? We record it.
+// and signed with the same signature as your agreements. No witness is needed. Signed here only (0720: no paper signature).
 export default async function ScreenForm({ params }: { params: Promise<{ code: string }> }) {
   const code = (await params).code.toUpperCase();
   if (code !== 'A' && code !== 'B') notFound();
@@ -57,7 +57,7 @@ export default async function ScreenForm({ params }: { params: Promise<{ code: s
             consent={`By pressing Sign you sign ${title} electronically, with the same effect as signing on paper. We record the time, your IP address and device. CarmaCars countersigns at the same moment.`}
             button="Sign" action={signOwnerPackage.bind(null, { packet: [], requests: [{ id: open.id, sha: open.sha, title }], next: `/owner/documents/screen/${code.toLowerCase()}` })} testId="portal-sign-form" /></section>
           : viewing ? <p className="small muted">Read only.</p> : <PrepareDocs targets={[spec.target]} titles={[spec.title]} />}
-        <p className="small muted">Prefer paper? Print it from <Link prefetch={false} className="link" href="/owner/documents">Documents</Link>, sign it and send us the scan. We record it and it counts the same.</p>
+        <p className="small muted">Every agreement is signed here, with the e-signature. Your documents are in <Link prefetch={false} className="link" href="/owner/documents">Documents</Link>.</p>
       </div>
     </>
   );
