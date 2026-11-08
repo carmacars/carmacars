@@ -131,37 +131,6 @@
   ]
  },
  {
-  "release": "r35",
-  "title": "Release 35",
-  "date": "2026-11-08",
-  "seq": 0,
-  "summary": "Government registration forms can be corrected like rental agreements, and a missed owner debit comes off the next statement by itself.",
-  "areas": [
-   {
-    "area": "Owners",
-    "items": [
-     "A corrected government form replaces the earlier one in your documents",
-     "A debit that was missed comes off your next monthly statement, shown with its invoice number"
-    ]
-   },
-   {
-    "area": "Staff tools",
-    "items": [
-     "Admins and fleet change a value on a government form with a reason; each change is a new version and earlier versions stay downloadable",
-     "The forms' mapping is previewed on a sample car, every save is kept and can be loaded again, and fleet can map the forms too",
-     "Making a car's forms again keeps the values changed by hand unless you choose to discard them"
-    ]
-   },
-   {
-    "area": "Reliability & security",
-    "items": [
-     "Government forms are only ever the official government PDF with its boxes filled; anything else gives the data sheet",
-     "No missed owner debit is left waiting for staff: the next statement recovers it"
-    ]
-   }
-  ]
- },
- {
   "release": "r30-stale",
   "title": "Update of November 7",
   "date": "2026-11-07",
