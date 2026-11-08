@@ -58,6 +58,39 @@
   ]
  },
  {
+  "release": "r34",
+  "title": "Release 34",
+  "date": "2026-11-08",
+  "seq": 0,
+  "summary": "Owners, staff and Admins see one onboarding checklist, change onboarding photos, find every government form, and add cars from a list of VINs.",
+  "areas": [
+   {
+    "area": "Owners",
+    "items": [
+     "One onboarding checklist for each car: what is done, who each step waits on, and the one thing to do next",
+     "A wrong onboarding photo is replaced or removed in the portal, and checked again",
+     "Government registration forms are filled in by themselves and kept up to date, with the date each was made",
+     "Add several cars at once from a list of VINs"
+    ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "Staff and Admins see the same onboarding checklist on every owner's page",
+     "Staff and Admins replace, remove, approve or reject an owner's onboarding photos",
+     "Every car's government forms on the owner page and the car page, with Make again for an Admin",
+     "Add cars for an owner from a pasted or uploaded list of VINs"
+    ]
+   },
+   {
+    "area": "Reliability & security",
+    "items": [
+     "A car moved to a new owner keeps only that owner's terms, so edits on the terms tab show at once"
+    ]
+   }
+  ]
+ },
+ {
   "release": "r30-stale",
   "title": "Update of November 7",
   "date": "2026-11-07",

@@ -28,6 +28,7 @@ import type { PageCtx } from '@/features/shared-pages/context';
 import { vehicleCan } from '@/features/shared-pages/viewer';
 import { vehicleTab, vehicleTabs } from './tabs';
 import { HashTab } from './HashTab';
+import { GovernmentForms, type GovData } from '@/features/onboarding/GovernmentForms';
 
 type R = Record<string, unknown>;
 type V = R & { id: string; name: string; plate: string | null; vin: string; status: string; management_mode: string; class: string | null; colour: string | null; odometer_km: number | null;
@@ -231,6 +232,8 @@ export async function VehiclePage({ ctx, id, sp }: { ctx: PageCtx; id: string; s
         ssc: { number: ((v as Record<string, unknown>).ssc_number as string | null) ?? null, issued_on: ((v as Record<string, unknown>).ssc_issued_on as string | null) ?? null,
           expires_on: ((v as Record<string, unknown>).ssc_expires_on as string | null) ?? null },
         documents: await ops<RegistrationData['documents']>('vehicle_documents', { vehicle_id: id }).catch(() => []) }} />}
+      {/* r34 (0822): the car's government forms, made by themselves, with their download and Make again */}
+      {tab === 'records' && v.supply_type === 'program_owner' && <GovernmentForms data={await ops<GovData>('government_forms', { vehicle_id: id }).catch(() => null)} viewer="admin" refresh={refresh} only={id} />}
       {tab === 'records' && (
         <div className="ad-cols ad-cols--2">
           {/* a program owner's car: the owner terms editor (0135), the same as the owner page's; others: their fixed terms */}
@@ -339,6 +342,7 @@ async function StaffVehicle({ ctx, id, sp }: { ctx: PageCtx; id: string; sp: Rec
       </Card>}
       {tab === 'maintenance' && maint && <CarMaintenancePanel m={maint} base="/staff" autoRecord={sp.record === '1'} />}
       {tab === 'profit' && <ProfitExtras userId={user.id} aal={aal} level="vehicle" id={id} sp={sp} base={`${base}?tab=profit`} />}
+      {tab === 'records' && (c.supply_type ?? 'program_owner') === 'program_owner' && <GovernmentForms data={await own<GovData>('government_forms', { vehicle_id: id }).catch(() => null)} viewer="staff" refresh={[base]} only={id} />}
       {tab === 'records' && <Card title="Documents"><Table rows={c.documents ?? []} empty="No documents." cols={[{ key: 'title', label: 'Title' }, { key: 'kind', label: 'Kind', render: (r) => label(r.kind) }, { key: 'created_at', label: 'Added', render: (r) => t(r.created_at) }]} /></Card>}
     </>
   );

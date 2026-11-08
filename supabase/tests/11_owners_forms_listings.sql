@@ -314,7 +314,13 @@ create temp table ofl_fill2 as select * from app.fill_vehicle_government_forms(t
 grant all on ofl_fill2 to authenticated, anon;
 select test.eq('E with the RIN in the settings the fills are ready and replace the drafts',
   (select string_agg(status || ':' || cardinality(missing), ' ' order by form_code) from ofl_fill2)
-  || '/' || (select count(*) from government_form_fills where vehicle_id = test.ofl_v(1) and superseded_at is not null), 'ready:0 ready:0/2');
+  || '/' || (select count(*) from government_form_fills where id in (select fill_id from ofl_fill1) and superseded_at is not null), 'ready:0 ready:0/2');
+-- 0822 makes a car's forms by themselves once its terms are set; a later change that does not alter a form keeps it
+select test.eq('E the forms made by themselves are not made again when nothing on them changed (0822)',
+  (select count(*) from government_form_fills a join government_form_fills b on b.vehicle_id = a.vehicle_id and b.form_code = a.form_code and b.id <> a.id
+     and b.generated_at > a.generated_at and b.pdf_template_id = a.pdf_template_id and b.mode = a.mode and b.field_values = a.field_values
+     and b.data_sheet = a.data_sheet and b.missing = a.missing
+   where a.vehicle_id in (test.ofl_v(1), test.ofl_v(2), test.ofl_v(3)) and b.generated_by is null), 0::bigint);
 select test.eq('E data sheet complete: every applicable row has a value; individual rows (licence, birth date) present, corporation and lender rows absent',
   (select count(*) filter (where (e ->> 'value') is null and (e ->> 'required')::boolean) || '/'
           || bool_or(e ->> 'label' = 'Driver''s licence number' and e ->> 'value' = 'T1234-56789-01234')::text || '/'

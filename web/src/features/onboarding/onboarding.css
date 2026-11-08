@@ -1,0 +1,29 @@
+/* r34: the Onboarding checklist, the onboarding photos, the government forms and the VIN list (src/features/onboarding). */
+.ob-steps { list-style: none; margin: 0; padding: 0; display: grid; }
+.ob-step { display: grid; grid-template-columns: 1.25rem minmax(0, 1fr) auto; gap: var(--s-3); align-items: center; padding: var(--s-2) 0; border-bottom: 1px solid var(--grey-200); }
+.ob-step:last-child { border-bottom: 0; }
+.ob-step__mark { width: 1rem; height: 1rem; border-radius: 50%; border: 2px solid var(--grey-600, #555); justify-self: center; }
+.ob-step--done .ob-step__mark { background: var(--black); border-color: var(--black); }
+.ob-step--waiting .ob-step__mark { border-color: var(--red-600); }
+.ob-step--blocked .ob-step__mark { border-style: dashed; }
+.ob-step--not_needed { opacity: 0.6; }
+.ob-step--not_needed .ob-step__mark { border-color: var(--grey-200); }
+.ob-step__text { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.ob-step__label { font-weight: 600; overflow-wrap: anywhere; }
+.ob-step--done .ob-step__label { font-weight: 400; }
+.ob-step__why { font-size: 0.875rem; color: var(--grey-600, #555); overflow-wrap: anywhere; }
+.ob-step__act { display: flex; justify-content: flex-end; }
+.ob-car + .ob-car { border-top: 1px solid var(--grey-200); padding-top: var(--s-3); }
+@media (max-width: 40rem) {
+  .ob-step { grid-template-columns: 1.25rem minmax(0, 1fr); }
+  .ob-step__act { grid-column: 2; justify-content: flex-start; }
+}
+.ob-photos { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
+.ob-photo { display: grid; gap: var(--s-2); padding: var(--s-3); border: 1px solid var(--grey-200); border-radius: 0.5rem; }
+.ob-photo__head { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: space-between; align-items: center; }
+.ob-photo__acts { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.ob-photo__acts input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ob-forms { width: 100%; }
+.ob-vins td, .ob-vins th { vertical-align: top; }
+.ob-vins .ob-bad { color: var(--red-600); }
+.ob-textarea { width: 100%; min-height: 8rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
