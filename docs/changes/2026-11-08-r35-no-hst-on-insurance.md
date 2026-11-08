@@ -1,6 +1,7 @@
-# Release 35: no HST on the owner Insurance Fee or the Registration Fee (0873)
+# Release 35: no HST on the owner Insurance Fee or the Registration Fee (0873, 0874)
 
-Migration `supabase/migrations/0873_r35_no_hst_on_insurance.sql`. SCHEMA_MARKER 0873.
+Migrations `supabase/migrations/0873_r35_no_hst_on_insurance.sql` and `0874_r35_last_month_one_and_half.sql`.
+SCHEMA_MARKER 0874.
 
 The owner, November 8: "don't charge HST on insurance payments", "nobody has paid HST" and "All the registration cost
 per car were also not HST applicable either". The amounts the owner gave on November 7 (for example $284 a car a
@@ -16,6 +17,12 @@ without HST; the invoices made from them had added HST and been marked paid at t
   to the new total, so it equals what the owner actually paid; the payment's note says so and the change is audited
   (`owner_payment_hst_corrected`). Payments through the card processor or taken from a payout are never changed;
   `app.insurance_hst_charged()` lists anything left for an Admin.
+- Issued invoices are still never edited; only these two one-time corrections pass the guard
+  (`app.owner_line_correction`, set for their own statements).
+- 0874, the owner: a prepayment of 2.5 months is "1.5 months for last". Where it was entered as first and last month
+  plus a separate "Insurance Fee, half of ..." line, the half month moves into the last month's line (1.5 months), the
+  prepaid last month grows by it and the hand-recorded payments move with it: each invoice stays paid in full and the
+  owner's total paid is unchanged.
 - The test suites run with the setting on (they assert the older totals); `99_r35_no_hst_on_insurance.sql` checks the
   default and the hand-typed lines.
 
