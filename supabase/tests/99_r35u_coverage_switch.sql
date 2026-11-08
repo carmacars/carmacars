@@ -10,6 +10,7 @@ select test.mk_user('cs_fleet', 'va', 'fleet');
 select test.mk_user('cs_fin', 'va', 'finance');
 select test.mk_renter('cs_rita');
 update staff_profiles set single_limit_cents = 900000 where user_id in (test.id('cs_cs'), test.id('cs_sales'), test.id('cs_fin'));
+create temp table cs_prog as select id, weekend_premium_bps, staff_may_edit_fees from program_settings;
 update program_settings set weekend_premium_bps = 0, staff_may_edit_fees = true where id = (app.settings()).id;
 
 create table test.cs (k text primary key, v jsonb);
@@ -168,3 +169,7 @@ update bookings set status = 'cancelled' where id = (test.csb('o4')).id;
 set session_replication_role = origin;
 select test.throws('a cancelled booking is refused', format($$select app.coverage_switch(%L, jsonb_build_object('booking', %L, 'to', 'plan'))$$, test.id('cs_admin'), (test.csb('o4')).booking_number), 'cancelled');
 select test.eq('the new email is in the catalogue and emitted by the switch', (select emitted_by || '/' || push_topic from notification_catalogue where code = 'renter_coverage_switched'), 'app.coverage_switch (0890)/bookings');
+-- put the settings back for the tests that follow
+update program_settings p set weekend_premium_bps = w.weekend_premium_bps, staff_may_edit_fees = w.staff_may_edit_fees from cs_prog w where w.id = p.id;
+-- the cars made while the weekend premium was off get their weekend rate back above the daily one
+update rate_cards set weekend_rate_cents = weekend_rate_cents where effective_to is null and weekend_rate_cents <= daily_rate_cents;
