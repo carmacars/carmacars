@@ -95,7 +95,7 @@ test('every admin area lists at most five pages, and its actions are buttons tha
   for (const p of ['/admin/applications', '/admin/owners', '/admin/owner-forms', '/admin/owners/add-car', '/admin/partners', '/admin/referral-partners', '/admin/renters',
     '/admin/settings/staff', '/admin/academy', '/admin/hiring', '/admin/portals', '/admin/investors']) assert.ok(people.also.includes(p), p);
   const cars = sectionLink(ADMIN_SECTIONS, ADMIN_HUBS, 'cars')!;
-  for (const p of ['/admin/vehicles/new', '/admin/vehicles/bulk-rates', '/admin/vehicles/samples', '/admin/vehicles/tracking']) assert.ok(cars.also.includes(p), p);
+  for (const p of ['/admin/vehicles/new', '/admin/vehicles/bulk-rates', '/admin/vehicles/samples', '/admin/vehicles/tracking', '/admin/vehicles/import-photos']) assert.ok(cars.also.includes(p), p);
   const mk = sectionLink(ADMIN_SECTIONS, ADMIN_HUBS, 'marketing')!;
   assert.equal(mk.href, '/admin/marketing/marketplace');
   for (const p of ['/admin/marketing/listings', '/admin/marketing/ads', '/admin/marketing/social', '/admin/marketing/channels', '/admin/marketing/report', '/admin/marketing/recruit', '/admin/marketing/owner-pipeline']) assert.ok(mk.also.includes(p), p);

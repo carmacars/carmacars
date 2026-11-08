@@ -80,6 +80,9 @@ export function cloudflareImages(f: FetchCf = (u, i) => fetch(u, i as RequestIni
       const { brightness, contrast, gamma, saturation, sharpen } = values;
       return transform(sourceUrl, { width, height, fit: 'scale-down', format: 'jpeg', quality: 86, brightness, contrast, gamma, saturation, sharpen }, 'image/jpeg');
     },
+    async toJpeg({ sourceUrl, width }) {
+      return transform(sourceUrl, { width, height: width, fit: 'scale-down', format: 'jpeg', quality: 88 }, 'image/jpeg');
+    },
     async resize({ sourceUrl, width }) {
       return transform(sourceUrl, { width, fit: 'scale-down', format: 'webp', quality: 82 }, 'image/webp');
     }

@@ -3,9 +3,7 @@ import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { storage } from '@/integrations/storage';
 import { sha256Hex } from '@/server/links';
-import { rpc } from '@/lib/db/repo';
-import { visionModel } from '@/integrations/vision';
-import { SORT_PROMPT, SORT_SYSTEM, fileAs, parseSort } from '@/features/listing/photo-sort';
+import { recordSort, sortShot, type SortRecord } from '@/server/listing-sort';
 
 // One listing photo from the capture screen (docs/blueprint/09-listing-pipeline.md section 4). The browser
 // resized it (3000 px on the long side, JPEG); here the user's right to list this car is checked by the
@@ -42,21 +40,12 @@ export async function POST(req: Request) {
   if (!jpg && !png) return NextResponse.json({ ok: false, message: 'That file is not a photo (JPEG or PNG).' }, { status: 400 });
   const type = jpg ? 'image/jpeg' : 'image/png';
   let shot = asked;
-  let sort: { watermark: boolean; model?: string; neurons?: number; ok: boolean; ms: number } | null = null;
+  let sort: SortRecord | null = null;
   if (asked === 'auto') {
     const taken = new Set((cap.shots ?? []).filter((x) => (x.photos ?? []).length > 0).map((x) => x.code));
-    const t0 = Date.now();
-    let parsed: ReturnType<typeof parseSort> = null;
-    let model: string | undefined; let neurons = 0; let ok = false;
-    const gate = (await rpc('server_photo_sort_gate', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as { allowed?: boolean; model?: string; fallback_model?: string | null } | null;
-    if (gate?.allowed && gate.model && bytes.length < 3_400_000) {
-      const r = await (await visionModel()).read({ purpose: 'photo_sort', imageDataUrl: `data:${type};base64,${b64(bytes)}`, system: SORT_SYSTEM, prompt: SORT_PROMPT,
-        schema: { type: 'object' }, maxOutputTokens: 60 }, [gate.model, gate.fallback_model ?? ''].filter(Boolean)).catch(() => null);
-      if (r) { ok = r.ok; model = r.model; neurons = r.usage?.neurons ?? 0; if (r.ok) parsed = parseSort(r.data); }
-    }
-    const f = fileAs(parsed, taken);
-    shot = f.shot;
-    sort = { watermark: f.watermark, model, neurons, ok, ms: Date.now() - t0 };
+    const o = await sortShot(user.id, bytes, type, taken);
+    shot = o.shot;
+    sort = o.sort;
   }
   const key = `vehicles/${cap.vehicle_id}/original/${intake}/${shot}-${crypto.randomUUID().slice(0, 8)}.${jpg ? 'jpg' : 'png'}`;
   await (await storage()).put('vehicle-originals', key, bytes, type);
@@ -65,12 +54,10 @@ export async function POST(req: Request) {
     // the photo's fingerprint: the same image on another listed car is a possible duplicate (migration 0040)
     const r = await door<{ photo_id: string; missing: string[]; complete: boolean; state: string; similar?: number }>(user.id, 'ops_do', 'listing_upload',
       { intake, shot_type: shot, original_path: key, width: num('width'), height: num('height'), byte_size: bytes.length, mime_type: type, sha256: await sha256Hex(bytes) }, aal);
-    if (sort) await rpc('server_photo_sort_record', { p_by: user.id, p: { model: sort.model ?? null, ok: sort.ok, neurons: sort.neurons ?? 0, duration_ms: sort.ms, watermark: sort.watermark, photo_id: r.photo_id } }, { role: 'service_role' }).catch(() => undefined);
+    if (sort) await recordSort(user.id, sort, r.photo_id);
     return NextResponse.json({ ok: true, ...r, shot, watermark: sort?.watermark ?? false });
   } catch (e) {
     await (await storage()).remove('vehicle-originals', key).catch(() => undefined);
     return NextResponse.json({ ok: false, message: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'The photo could not be saved.' }, { status: 422 });
   }
 }
-
-const b64 = (b: Uint8Array) => { let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(s); };
