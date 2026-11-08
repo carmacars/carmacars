@@ -6,6 +6,7 @@ import { DECISION_WORDS, emailLine, type DecisionRow } from '@/features/careers/
 import { Badge, Card, Kv, PageHead, Table, d, t } from '@/features/admin/ui';
 import { Rubric } from '@/features/careers/admin/Rubric';
 import { Hire } from '@/features/careers/admin/Hire';
+import type { HireStatus } from '@/features/careers/hire';
 import { AiInterview, type AiInterviewData } from '@/features/careers/admin/AiInterview';
 import { RECOMMENDATION_WORDS } from '@/features/careers/ai-interview';
 import { fmtSlot, MANILA, SOURCE_WORDS, STATUS_WORDS, type Criterion } from '@/features/careers/model';
@@ -52,6 +53,8 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
     const urls = new Map(await Promise.all(keys.map(async (w) => [w.id, { audio: await link(w.audio_key), video: await link(w.video_key) }] as const)));
     aiData = { ...ai, answers: ai.answers.map((w) => ({ ...w, audio_url: urls.get(w.id)?.audio ?? null, video_url: urls.get(w.id)?.video ?? null })) };
   }
+  // one-step Hire (0730): the onboarding steps once hired this way
+  const onboarding = ['hired', 'interviewed', 'booked', 'invited', 'below_bar'].includes(a.status) ? await read<HireStatus>('hire_status', { id }).catch(() => null) : null;
   const aiOpen = ai && !ai.live_call_at && (ai.state === 'sent' || ai.state === 'started' || ai.state === 'expired');
   // the calls of the same day in time order: Previous and Next go straight to the neighbour's rubric
   let prev: { id: string; full_name: string } | null = null; let next: { id: string; full_name: string } | null = null;
@@ -135,8 +138,11 @@ export default async function Candidate({ params }: { params: Promise<{ id: stri
           <ul className="cr-guide">{(x.role.call_guide.questions ?? []).map(([q, good]) => <li key={q}>{q} <span className="muted small">Good: {good}</span></li>)}</ul>
           {x.role.test_task && <p className="small"><b>The paid test:</b> {x.role.test_task}</p>}
         </Card>
-        {['interviewed', 'hired'].includes(a.status) && <Card title="Decision" testId="cand-hire">
-          <Hire id={id} name={a.full_name} portal={portal} hiredUserId={a.hired_user_id} />
+        {(['interviewed', 'booked', 'invited', 'below_bar'].includes(a.status) || onboarding?.onboarding) && <Card title={onboarding?.onboarding ? 'Onboarding' : 'Hire'} testId="cand-hire">
+          <Hire id={id} name={a.full_name} status={onboarding} />
+        </Card>}
+        {a.status === 'hired' && !onboarding?.onboarding && <Card title="Hired" testId="cand-hire">
+          <p className="small">Hired before one-step Hire: the staff agreement and the academy are on the {portal} page in Settings &gt; Staff.</p>
         </Card>}
       </div>
     </div>

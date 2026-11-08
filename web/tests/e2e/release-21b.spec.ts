@@ -95,7 +95,7 @@ test('the academy: a lesson with captions, a quiz failed then passed, the next s
   const aerr = watch(ap);
   await signIn(ap, admin.email, '/admin');
   await ap.goto('/admin/academy', { waitUntil: 'networkidle' });
-  await expect(ap.getByTestId('academy-staff').locator('tr', { hasText: cs.name })).toContainText('1 of 6');
+  await expect(ap.getByTestId('academy-staff').locator('tr', { hasText: cs.name })).toContainText('1 of 8');
   // the "i": a button with its name; a click or a tap opens it, Escape closes it and gives the focus back
   const tip = ap.getByRole('button', { name: 'About the academy gate' });
   await (phone ? tip.tap() : tip.click());

@@ -42,6 +42,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      academy_enrollments: {
+        Row: {
+          user_id: string;
+          path_code: string;
+          gate: boolean;
+          lock_from: string;
+          source: string;
+          enrolled_by: string | null;
+          enrolled_at: string;
+        };
+        Insert: {
+          user_id: string;
+          path_code: string;
+          gate?: boolean;
+          lock_from?: string;
+          source?: string;
+          enrolled_by?: string | null;
+          enrolled_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          path_code?: string;
+          gate?: boolean;
+          lock_from?: string;
+          source?: string;
+          enrolled_by?: string | null;
+          enrolled_at?: string;
+        };
+        Relationships: [];
+      };
       academy_lesson_views: {
         Row: {
           user_id: string;
@@ -1104,6 +1134,42 @@ export type Database = {
           expires_at?: string;
           used_at?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      api_previews: {
+        Row: {
+          id: string;
+          key_id: string;
+          user_id: string;
+          tool: string;
+          args: Json;
+          before: Json | null;
+          after: Json | null;
+          created_at: string;
+          used_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          key_id: string;
+          user_id: string;
+          tool: string;
+          args: Json;
+          before?: Json | null;
+          after?: Json | null;
+          created_at?: string;
+          used_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          key_id?: string;
+          user_id?: string;
+          tool?: string;
+          args?: Json;
+          before?: Json | null;
+          after?: Json | null;
+          created_at?: string;
+          used_at?: string | null;
         };
         Relationships: [];
       };
@@ -20454,6 +20520,129 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_onboarding: {
+        Row: {
+          application_id: string;
+          user_id: string;
+          role_id: string | null;
+          path: string;
+          start_on: string;
+          pay_basis: string;
+          pay_cents: number | null;
+          pay_currency: string | null;
+          pay_text: string | null;
+          welcome_sent: boolean;
+          agreement_request_id: string | null;
+          agreement_missing: string[];
+          agreement_error: string | null;
+          first_day_tasks: number;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          application_id: string;
+          user_id: string;
+          role_id?: string | null;
+          path: string;
+          start_on: string;
+          pay_basis: string;
+          pay_cents?: number | null;
+          pay_currency?: string | null;
+          pay_text?: string | null;
+          welcome_sent?: boolean;
+          agreement_request_id?: string | null;
+          agreement_missing?: string[];
+          agreement_error?: string | null;
+          first_day_tasks?: number;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          application_id?: string;
+          user_id?: string;
+          role_id?: string | null;
+          path?: string;
+          start_on?: string;
+          pay_basis?: string;
+          pay_cents?: number | null;
+          pay_currency?: string | null;
+          pay_text?: string | null;
+          welcome_sent?: boolean;
+          agreement_request_id?: string | null;
+          agreement_missing?: string[];
+          agreement_error?: string | null;
+          first_day_tasks?: number;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      staff_payout_accounts: {
+        Row: {
+          id: string;
+          user_id: string;
+          method: string;
+          account_holder: string;
+          country: string | null;
+          bank_name: string | null;
+          institution_no: string | null;
+          transit_no: string | null;
+          account_no: string | null;
+          account_last4: string | null;
+          email: string | null;
+          key_version: number | null;
+          is_current: boolean;
+          submitted_by: string | null;
+          verified_at: string | null;
+          verified_by: string | null;
+          verified_method: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          method: string;
+          account_holder: string;
+          country?: string | null;
+          bank_name?: string | null;
+          institution_no?: string | null;
+          transit_no?: string | null;
+          account_no?: string | null;
+          account_last4?: string | null;
+          email?: string | null;
+          key_version?: number | null;
+          is_current?: boolean;
+          submitted_by?: string | null;
+          verified_at?: string | null;
+          verified_by?: string | null;
+          verified_method?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          method?: string;
+          account_holder?: string;
+          country?: string | null;
+          bank_name?: string | null;
+          institution_no?: string | null;
+          transit_no?: string | null;
+          account_no?: string | null;
+          account_last4?: string | null;
+          email?: string | null;
+          key_version?: number | null;
+          is_current?: boolean;
+          submitted_by?: string | null;
+          verified_at?: string | null;
+          verified_by?: string | null;
+          verified_method?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       staff_profiles: {
         Row: {
           user_id: string;
@@ -27126,6 +27315,7 @@ export type Database = {
       server_amendment_record: { Args: { p_amendment: string }; Returns: Json };
       server_api_access_view: { Args: { p_admin: string }; Returns: Json };
       server_api_call: { Args: { p_hash: string; p_tool: string; p_args: Json; p_client?: string }; Returns: Json };
+      server_api_hire_result: { Args: { p_hash: string; p_application: string; p_ok: boolean; p_error: string; p_client?: string }; Returns: Json };
       server_api_key_create: { Args: { p_admin: string; p_user: string; p_name: string; p_scopes: string[]; p_hash: string; p_prefix: string }; Returns: Json };
       server_api_key_revoke: { Args: { p_admin: string; p_id: string }; Returns: Json };
       server_api_oauth_approve: { Args: { p_user: string; p_client_id: string; p_redirect: string; p_challenge: string; p_scopes: string[]; p_code_hash: string }; Returns: Json };

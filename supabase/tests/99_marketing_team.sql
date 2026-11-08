@@ -107,9 +107,9 @@ select test.throws('the report is Admin''s', format($s$select public.door(%L, 'a
 select test.ok('the browser cannot write the table directly', not has_table_privilege('authenticated', 'help_stuck_events', 'insert'));
 
 -- the guides and the Academy (0511)
-select test.ok('the Academy section is last on both Sales paths, with its lessons and quiz', (select count(*) = 2 from academy_path_sections ps join academy_sections s on s.id = ps.section_id
+select test.ok('the Academy section is last on both Sales paths (before the release 33 refresh sections), with its lessons and quiz', (select count(*) = 2 from academy_path_sections ps join academy_sections s on s.id = ps.section_id
   where s.slug = 'marketplace-with-claude' and ps.path_code in ('sales_in_person', 'sales_remote')
-    and ps.sort = (select max(sort) from academy_path_sections x where x.path_code = ps.path_code))
+    and ps.sort = (select max(x.sort) from academy_path_sections x join academy_sections y on y.id = x.section_id where x.path_code = ps.path_code and y.slug not like 'new-%-r28-r32'))
   and (select count(*) from academy_lessons l join academy_sections s on s.id = l.section_id where s.slug = 'marketplace-with-claude') = 2
   and (select count(*) from academy_questions q join academy_sections s on s.id = q.section_id where s.slug = 'marketplace-with-claude') = 5);
 

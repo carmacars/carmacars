@@ -24,7 +24,7 @@ update staff_profiles set sales_work_mode = 'remote' where user_id = test.id('ac
 select test.eq('remote Sales takes the remote path', app.academy_paths_of(test.id('acd_sales')), array['sales_remote']);
 select test.eq('field work', app.academy_paths_of(test.id('acd_field')), array['field']);
 select test.eq('an Admin takes the Admin path', app.academy_paths_of(test.id('acd_admin')), array['admin']);
-select test.eq('the gate is off by default', (app.settings()).academy_gate, false);
+select test.eq('the gate is on by default (0731)', (app.settings()).academy_gate, true);
 select test.eq('the pass mark is 80%', (app.settings()).academy_pass_bps, 8000);
 
 -- ================================================================ 2. the home, a section, the order
@@ -89,6 +89,7 @@ select test.throws('the answer is one of the options',
     test.id('acd_admin'), (select id from academy_sections where slug = 'commission')));
 
 -- ================================================================ 5. the gate
+update program_settings set academy_gate = false where id = (app.settings()).id;
 select test.eq('gate off: never locked', app.academy_locked(test.id('acd_field')), false);
 select test.eq('my_roles says so', (public.my_roles(test.id('acd_field')) ->> 'academy_locked')::boolean, false);
 update program_settings set academy_gate = true where id = (app.settings()).id;

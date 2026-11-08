@@ -3,6 +3,9 @@ import { pageMeta } from '@/features/seo/meta';
 import { vaPage, FN_LABEL } from '@/server/va';
 import { PageHead } from '@/features/admin/ui';
 import { HomeAddressSection, homeAddressOf } from '@/features/staff/HomeAddress';
+import { PayDetails } from '@/features/staff/PayDetails';
+import { door } from '@/server/door';
+import type { PayDetailsView } from '@/features/staff/pay-details';
 import { SignInSettings } from '@/features/portal/SignInSettings';
 import { notifyReach, signInState } from '@/server/sign-in-settings';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
@@ -17,7 +20,8 @@ export const metadata = pageMeta({ title: 'Profile', path: '/staff/profile', noi
 // commission), and sign-in.
 export default async function VaProfile() {
   const { user, roles } = await vaPage('/staff/profile');
-  const [home, si, nc] = await Promise.all([homeAddressOf(user.id, 'va'), signInState(user.id), notifyReach(user.id)]);
+  const [home, si, nc, pay] = await Promise.all([homeAddressOf(user.id, 'va'), signInState(user.id), notifyReach(user.id),
+    door<PayDetailsView>(user.id, 'va_read', 'my_pay_details').catch(() => null)]);
   return (
     <>
       <PageHead title="Profile" />
@@ -25,6 +29,7 @@ export default async function VaProfile() {
         <section className="pt-card stack" aria-labelledby="me-t"><h2 className="d4" id="me-t">{roles.name ?? user.email}</h2>
           <dl className="pt-dl"><div><dt>Email</dt><dd>{user.email}</dd></div><div><dt>Function</dt><dd>{FN_LABEL[roles.va!]}</dd></div></dl></section>
         {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="va" state={home} />}
+        <PayDetails portal="va" view={pay} />
         {si && <SignInSettings state={si} className="pt-card stack" />}
         {nc && <NotifyChannelCard reach={nc} className="pt-card stack" />}
         <StaffDigestChoice userId={user.id} ops refresh={['/staff/profile']} className="pt-card stack" />

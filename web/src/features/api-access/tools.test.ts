@@ -1,11 +1,12 @@
 // API access (release 28, B3): the tool list, the scopes and the secrets.   npm run test:unit
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SCOPES, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor } from './tools.ts';
+import { readFileSync } from 'node:fs';
+import { ADMIN_TOOLS, CONNECTOR_URL, SCOPES, TOOLS, WRITABLE, bearer, newSecret, parseScopes, pkceChallenge, secretPrefix, sha256Hex, toolsFor } from './tools.ts';
 
 test('every tool names a known scope, and only the update tools write', () => {
   for (const t of TOOLS) assert.ok(t.scope === 'any' || (SCOPES as readonly string[]).includes(t.scope), t.name);
-  assert.deepEqual(TOOLS.filter((t) => !t.readOnly).map((t) => t.name).sort(), ['update_booking', 'update_owner', 'update_request']);
+  assert.deepEqual(TOOLS.filter((t) => !t.readOnly && t.scope !== 'admin:write').map((t) => t.name).sort(), ['update_booking', 'update_owner', 'update_request']);
   for (const t of TOOLS.filter((x) => !x.readOnly)) assert.ok(t.scope.endsWith(':write'), t.name);
 });
 
@@ -39,4 +40,35 @@ test('the bearer of an Authorization header', () => {
   assert.equal(bearer('Basic abc'), null);
   assert.equal(bearer(null), null);
   assert.equal(bearer('Bearer short'), null);
+});
+
+// release 33 (0732): the Admin's actions
+const SQL = readFileSync(new URL('../../../../supabase/migrations/0732_connector_admin_actions.sql', import.meta.url), 'utf8');
+
+test('every Admin write is two-step: confirm and preview_id in its input, and the database knows it', () => {
+  const inDb = [...SQL.matchAll(/when '([a-z_]+)'\s+then '\{"call"/g)].map((m) => m[1]).sort();
+  const writes = ADMIN_TOOLS.filter((t) => !t.readOnly);
+  assert.deepEqual(writes.map((t) => t.name).sort(), inDb);
+  for (const t of writes) {
+    const props = (t.inputSchema as { properties: Record<string, unknown> }).properties;
+    assert.ok(props.confirm && props.preview_id, t.name);
+    assert.equal(t.scope, 'admin:write', t.name);
+    assert.match(t.description, /preview/, t.name);
+  }
+});
+
+test('the Admin reads are the database\'s, read only, admin:read', () => {
+  const m = /api_admin_reads\(\) returns text\[\]\s+language sql immutable as \$\$ select array\[([^\]]+)\]/.exec(SQL);
+  assert.ok(m);
+  const inDb = m![1]!.split(',').map((x) => x.trim().replace(/'/g, '')).sort();
+  assert.deepEqual(ADMIN_TOOLS.filter((t) => t.readOnly).map((t) => t.name).sort(), inDb);
+  for (const t of ADMIN_TOOLS.filter((x) => x.readOnly)) assert.equal(t.scope, 'admin:read');
+});
+
+test('a key with the Admin scopes sees the Admin tools; names are unique', () => {
+  const names = TOOLS.map((t) => t.name);
+  assert.equal(new Set(names).size, names.length);
+  assert.ok(toolsFor(['admin:write']).some((t) => t.name === 'hire_applicant'));
+  assert.ok(!toolsFor(['admin:read']).some((t) => t.name === 'cancel_booking'));
+  assert.equal(CONNECTOR_URL, 'https://carmacars.ca/api/mcp');
 });

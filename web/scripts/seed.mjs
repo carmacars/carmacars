@@ -271,6 +271,9 @@ try {
     if (!production) {
       await tx`update car_copy c set next_attempt_at = now() + interval '30 days' from vehicles v
                 where v.id = c.vehicle_id and v.partner_sheet_name is not null and c.status = 'pending'`;
+      // 0731, the local stack only: the academy gate is on everywhere else; the end-to-end tests' staff are made without
+      // an academy enrollment and would open only the academy (the gate's own tests turn it on)
+      await tx`update program_settings set academy_gate = false where academy_gate`;
     }
     // 0093: the partner fleet a migration imports is not "cars on the site" for the sample cars (keyed by its sheet rows)
     const already = await tx`select count(*)::int as n from vehicle_listings l join vehicles v on v.id = l.vehicle_id where v.partner_sheet_name is null`;

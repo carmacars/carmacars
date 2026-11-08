@@ -1,6 +1,7 @@
 import { rpc } from '@/lib/db/repo';
 import { siteUrl } from '@/lib/site';
 import { TOOLS, bearer, sha256Hex } from '@/features/api-access/tools';
+import { oneStepHire } from '@/server/hire';
 
 // The CarmaCars MCP server (release 28, B3; migration 0562): Claude's connector for Abbas and Mahad. Streamable HTTP
 // without a stream: each POST is one JSON-RPC message answered with one JSON response. The bearer is an API key from
@@ -54,7 +55,7 @@ export async function POST(req: Request) {
         protocolVersion: VERSIONS.includes(asked) ? asked : VERSIONS[1],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'carmacars', title: 'CarmaCars', version: '1.0.0' },
-        instructions: 'CarmaCars car rental: read and adjust bookings, booking requests and owners. Each update tool changes only the fields it lists; prices, payments, status, offers and extensions are changed in the CarmaCars portal. Every call is logged with the values before and after.'
+        instructions: 'CarmaCars car rental, as its Admin: bookings, offers, payments, refunds, returns, cars, rates, listings, owners, invoices, staff and hiring. Every write is two calls: first without confirm, which previews what will change and changes nothing; show the preview to the person, and only when they agree call again with the same arguments plus confirm: true and the preview_id. The database checks each action exactly as the Admin screens do. Every call is logged with the values before and after.'
       }));
     }
     case 'notifications/initialized': case 'notifications/cancelled':
@@ -64,13 +65,17 @@ export async function POST(req: Request) {
     case 'tools/list':
       return json(reply(msg.id, { tools: TOOLS.filter((t) => t.scope === 'any' || scopes.includes(t.scope)).map((t) => ({
         name: t.name, title: t.title, description: t.description, inputSchema: t.inputSchema,
-        annotations: { title: t.title, readOnlyHint: t.readOnly, destructiveHint: false, idempotentHint: t.readOnly, openWorldHint: false }
+        annotations: { title: t.title, readOnlyHint: t.readOnly, destructiveHint: t.destructive ?? false, idempotentHint: t.readOnly, openWorldHint: false }
       })) }));
     case 'tools/call': {
       const name = String(msg.params?.name ?? '');
       if (!TOOLS.some((t) => t.name === name)) return json(fail(msg.id, -32602, `Unknown tool: ${name}`));
-      const r = name === 'whoami' ? who : await callTool(hash, name, msg.params?.arguments ?? {}, client);
+      let r = name === 'whoami' ? who : await callTool(hash, name, msg.params?.arguments ?? {}, client);
       if (r.status === 401) return unauthorized(r.error ?? 'Not valid');
+      // a confirmed hire (0732): the database checked the key, the scope, the preview and the arguments; the hire itself runs
+      // here as that Admin (the sign-in is made in the web layer), and its outcome is logged
+      const run = r.ok ? (r.result as { run?: string; actor?: string; params?: { id?: string } & Record<string, unknown> } | undefined) : undefined;
+      if (run?.run === 'hire' && run.actor && run.params?.id) r = await hire(hash, run.actor, run.params as { id: string } & Record<string, unknown>, client);
       const out = r.ok ? withLinks(r.result) : { error: r.error };
       return json(reply(msg.id, { content: [{ type: 'text', text: JSON.stringify(out, null, 1) }], structuredContent: Array.isArray(out) ? { items: out } : out, isError: !r.ok }));
     }
@@ -78,6 +83,16 @@ export async function POST(req: Request) {
       if (isNote) return new Response(null, { status: 202 });
       return json(fail(msg.id, -32601, `Method not found: ${msg.method}`));
   }
+}
+
+async function hire(hash: string, actor: string, p: { id: string } & Record<string, unknown>, client: string): Promise<{ ok: boolean; status?: number; result?: unknown; error?: string }> {
+  let out: Awaited<ReturnType<typeof oneStepHire>>;
+  try {
+    out = await oneStepHire(actor, 'aal2', { id: p.id, function: (p.function as string) ?? null, start_on: (p.start_on as string) ?? null,
+      pay_cents: typeof p.pay_cents === 'number' ? p.pay_cents : null, pay_currency: (p.pay_currency as string) ?? null });
+  } catch (e) { out = { ok: false, message: e instanceof Error ? e.message.replace(/^.*?ERROR:\s*/, '') : 'The hire failed' }; }
+  await rpc('server_api_hire_result', { p_hash: hash, p_application: p.id, p_ok: out.ok, p_error: out.ok ? '' : out.message, p_client: client }, SR).catch(() => null);
+  return out.ok ? { ok: true, result: { done: true, tool: 'hire_applicant', onboarding: out.status, admin_path: `/admin/hiring/${p.id}` } } : { ok: false, status: 400, error: out.message };
 }
 
 /** The portal links in full (the database gives paths). */
