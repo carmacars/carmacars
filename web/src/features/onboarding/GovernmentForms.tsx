@@ -7,9 +7,10 @@ import type { Viewer } from './steps';
 // needs, filled in by itself from the records, with its status, what it still misses, when it was made and its
 // download. An Admin can make a car's forms again. In the owner portal (Documents), on the owner page and on the car
 // page of Admin and staff.
-export interface GovForm { id: string; form_code: string; title: string | null; status: string; mode: string; missing: string[]; generated_at: string; official: boolean; by: string; signed_document_id: string | null }
+export interface GovForm { id: string; form_code: string; title: string | null; status: string; mode: string; missing: string[]; generated_at: string; official: boolean; by: string; signed_document_id: string | null;
+  /** r35 (0870), staff only: the version and the values changed by hand */ version?: number; edits?: number }
 export interface GovCar { vehicle_id: string; name: string; plate: string | null; due: boolean; turo_only: boolean; method: string | null; needed: string[]; forms: GovForm[] }
-export interface GovData { owner_id: string; admin: boolean; cars: GovCar[] }
+export interface GovData { owner_id: string; admin: boolean; cars: GovCar[]; /** r35 (0870): an Admin or fleet may change values and make the forms again */ can_edit?: boolean }
 
 const STATUS: Record<string, string> = { draft: 'Something is missing', ready: 'Ready to print', printed: 'Printed', signed: 'Signed in ink', filed: 'Filed at the registry' };
 const when = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
@@ -17,7 +18,8 @@ const when = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Amer
 export function formHref(viewer: Viewer, f: Pick<GovForm, 'id' | 'official'>): string {
   if (viewer === 'owner') return f.official ? `/owner/documents/forms/${f.id}/official` : `/owner/documents/forms/${f.id}`;
   const base = viewer === 'admin' ? '/admin' : '/staff';
-  return f.official ? `${base}/government-forms/${f.id}` : `${base}/government-forms/${f.id}/sheet`;
+  // r35: staff open the form's page (the official form or its data sheet, the values and the versions)
+  return `${base}/government-forms/${f.id}`;
 }
 
 export function GovernmentForms({ data, viewer, refresh, title = 'Government forms', only }: { data: GovData | null; viewer: Viewer; refresh: string[]; title?: string; only?: string }) {
@@ -45,13 +47,13 @@ export function GovernmentForms({ data, viewer, refresh, title = 'Government for
                         <th scope="row"><b>{code}</b>{f?.title ? <><br /><span className="small">{f.title.replace(code, '').replace(/^[\s:,-]+/, '')}</span></> : null}</th>
                         <td>{f ? <><span className={`badge ${f.status === 'draft' ? 'badge--red' : 'badge--outline'}`} data-testid="government-form-status">{STATUS[f.status] ?? f.status}</span>
                           {f.missing.length > 0 && <><br /><span className="small">Missing: {f.missing.join(', ')}</span></>}</> : <span className="small muted">Not made yet</span>}</td>
-                        <td className="small" data-testid="government-form-made">{f ? <>{when(f.generated_at)}<br /><span className="muted">{f.by === 'automatic' ? 'by itself' : `by ${f.by}`}</span></> : ''}</td>
-                        <td>{f && <Link prefetch={false} className="btn btn--ghost btn--sm" href={formHref(viewer, f)} data-testid="government-form-download">{f.official ? 'Official form' : 'Data sheet (PDF)'}</Link>}</td>
+                        <td className="small" data-testid="government-form-made">{f ? <>{when(f.generated_at)}<br /><span className="muted">{f.by === 'automatic' ? 'by itself' : `by ${f.by}`}{viewer !== 'owner' && f.version ? `, version ${f.version}` : ''}{viewer !== 'owner' && f.edits ? `, ${f.edits} changed by hand` : ''}</span></> : ''}</td>
+                        <td>{f && <Link prefetch={false} className="btn btn--ghost btn--sm" href={formHref(viewer, f)} data-testid="government-form-download">{viewer === 'owner' ? (f.official ? 'Official form' : 'Data sheet (PDF)') : 'Open'}</Link>}</td>
                       </tr>);
                   })}</tbody>
                 </table>
               </div>)}
-          {data.admin && viewer === 'admin' && c.due && !c.turo_only && c.needed.length > 0 && <MakeAgain vehicleId={c.vehicle_id} name={c.name} refresh={refresh} />}
+          {(data.can_edit ?? data.admin) && viewer !== 'owner' && c.due && !c.turo_only && c.needed.length > 0 && <MakeAgain vehicleId={c.vehicle_id} name={c.name} refresh={refresh} />}
         </div>
       ))}
     </section>

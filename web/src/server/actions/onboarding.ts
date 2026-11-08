@@ -106,10 +106,24 @@ export async function onboardingPhotoReview(documentId: string, decision: 'appro
 }
 
 /** Admin: every form the car needs, made again now from what is on file (a form signed or filed is kept). */
-export async function governmentFormsMakeAgain(vehicleId: string, paths: string[] = []): Promise<R<{ made: number; forms: Array<{ form_code: string; made: boolean; why?: string }> }>> {
+export async function governmentFormsMakeAgain(vehicleId: string, paths: string[] = [], discardEdits = false): Promise<R<{ made: number; kept?: number; discarded?: number; forms: Array<{ form_code: string; made: boolean; why?: string }> }>> {
   try {
     const u = await me();
-    const r = await door<{ made: number; forms: Array<{ form_code: string; made: boolean; why?: string }> }>(u.id, 'ops_do', 'government_forms_make_again', { vehicle_id: vehicleId }, u.aal);
+    const r = await door<{ made: number; kept?: number; discarded?: number; forms: Array<{ form_code: string; made: boolean; why?: string }> }>(u.id, u.doCall, 'government_forms_make_again',
+      { vehicle_id: vehicleId, discard_edits: discardEdits }, u.aal);
+    again(paths);
+    return { ok: true, data: r };
+  } catch (e) { return fail(e); }
+}
+
+/** r35 (0870): one box of a government form changed (or back to the records), with a reason: the form is made again as a new
+ *  version. An Admin or fleet; the database checks it. */
+export async function governmentFormEdit(p: { fill: string; field: string; target: 'pdf' | 'sheet'; value?: string; reason: string; restore?: boolean }, paths: string[] = []): Promise<R<{ fill: string; version: number; status: string }>> {
+  try {
+    if (!/^[0-9a-f-]{36}$/.test(p.fill)) throw new Error('Form not found');
+    const u = await me();
+    const r = await door<{ fill: string; version: number; status: string }>(u.id, u.doCall, 'government_form_edit',
+      { fill: p.fill, field: p.field, target: p.target, value: p.restore ? undefined : (p.value ?? '').slice(0, 500), reason: p.reason.slice(0, 500), restore: !!p.restore }, u.aal);
     again(paths);
     return { ok: true, data: r };
   } catch (e) { return fail(e); }
