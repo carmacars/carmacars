@@ -11,6 +11,8 @@ export interface RenterCoverage {
   option: 1 | 2 | 3 | 4 | null; option_label: string; confirmed: boolean; confirmed_at: string | null; booking_status: string;
   return_date: string; min_policy_expiry: string; pickup_at: string; vehicle_class: string | null; rental_days: number;
   can_change: boolean; protection_plan_line: boolean; protection_plan_requested: boolean; card: CardCheck; max_pages: number;
+  /** 0890: the last time staff switched this booking between card coverage and the Protection Plan */
+  last_switch?: null | { at: string; direction: 'to_plan' | 'to_card'; from_label: string; to_label: string; total_before_cents: number; total_after_cents: number; note: string | null };
   proof: null | {
     id: string; option: number; status: 'submitted' | 'confirmed' | 'rejected'; rejection_reason: string | null;
     insurer_name: string | null; policy_number: string | null; policy_expiry: string | null;

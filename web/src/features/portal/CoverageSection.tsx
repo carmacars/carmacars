@@ -6,6 +6,7 @@ import { InsurerSelect } from '@/features/insurers/InsurerSelect';
 import { confirmCardCoverage, requestProtectionPlan, setCoverageOption } from '@/server/actions/portal';
 import type { RenterCoverage } from '@/features/coverage/types';
 import { TypedInput } from '@/components/DateInput';
+import { money } from '@/lib/format';
 
 // Coverage for damage to the car (migration 0071), on the booking's verification page:
 //   option 1, OPCF 27: insurer, policy number, expiry after the return date, and the policy or endorsement as a PDF or
@@ -34,6 +35,8 @@ export function CoverageSection({ number, c }: { number: string; c: RenterCovera
     <div className="stack" data-testid="coverage-section">
       <p><b>{c.option_label}</b>{c.confirmed ? <span data-testid="coverage-confirmed"> · confirmed</span> : null}</p>
       {c.confirmed && <p className="small">Your coverage is confirmed for this rental.</p>}
+      {c.last_switch && (
+        <p className="small" data-testid="coverage-switched">On {fmtDay(c.last_switch.at.slice(0, 10))} our team changed your coverage from {c.last_switch.from_label} to {c.last_switch.to_label}. Your total went from {money(c.last_switch.total_before_cents, { cents: true })} to {money(c.last_switch.total_after_cents, { cents: true })}.{c.last_switch.note ? ` ${c.last_switch.note}` : ''}</p>)}
       {!c.confirmed && p?.status === 'rejected' && p.rejection_reason && (
         <p className="alert alert--error" role="alert" data-testid="coverage-rejected"><span className="alert__title">We could not accept it</span><span>{p.rejection_reason}</span></p>)}
 

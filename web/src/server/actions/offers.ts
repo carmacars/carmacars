@@ -30,12 +30,12 @@ async function me() {
 const withFn = (p: Record<string, unknown>, va: string | null) => (va ? { ...p, _va: va } : p);
 function refreshAll(paths: string[]) { for (const x of paths) revalidatePath(x); }
 
-export type OffersRead = 'offer_form' | 'offer_preview' | 'find_customers' | 'booking_money' | 'booking_fees' | 'booking_periods' | 'booking_edit_form' | 'renter_edit_form';
+export type OffersRead = 'offer_form' | 'offer_preview' | 'find_customers' | 'booking_money' | 'booking_fees' | 'booking_periods' | 'booking_edit_form' | 'renter_edit_form' | 'coverage_switch_state';
 export async function offersRead<T = Record<string, unknown>>(what: OffersRead, p: Record<string, unknown> = {}): Promise<R<T>> {
   try { const { user, aal, va } = await me(); return { ok: true, data: await door<T>(user.id, 'ops_read', what, withFn(p, va), aal) }; } catch (e) { return fail(e); }
 }
 
-export type OffersDo = 'offer_create' | 'offer_revise' | 'record_booking_payment' | 'confirm_offline_booking' | 'deposit_return_offline' | 'payreq_cancel' | 'booking_fees_change' | 'period_record_payment' | 'period_prepare' | 'booking_staff_edit' | 'booking_custom_fee' | 'insurer_fees_set';
+export type OffersDo = 'offer_create' | 'offer_revise' | 'record_booking_payment' | 'confirm_offline_booking' | 'deposit_return_offline' | 'payreq_cancel' | 'booking_fees_change' | 'period_record_payment' | 'period_prepare' | 'booking_staff_edit' | 'booking_custom_fee' | 'insurer_fees_set' | 'coverage_switch';
 export async function offersDo<T = Record<string, unknown>>(action: OffersDo, p: Record<string, unknown> = {}, refresh: string[] = []): Promise<R<T>> {
   try {
     const { user, aal, va } = await me();

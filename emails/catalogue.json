@@ -55,7 +55,7 @@
       "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
     }
   ],
-  "count": 210,
+  "count": 211,
   "emails": [
     {
       "code": "account_password_reset",
@@ -2836,6 +2836,128 @@
       ],
       "template_html": "templates/renter_coverage_needed.html",
       "template_text": "templates/renter_coverage_needed.txt"
+    },
+    {
+      "code": "renter_coverage_switched",
+      "audience": "renter",
+      "category": "transactional",
+      "trigger": "Staff (an Admin, customer service, sales or fleet) switch a confirmed or active booking between the renter's credit card rental coverage and the CarmaCars Protection Plan. Sent once the switch is saved, with what changed, the new price and what the renter does next. A booking that is still an offer gets the revised offer email instead.",
+      "timing": "Immediate",
+      "digest": false,
+      "from": "CarmaCars <bookings@carmacars.ca>",
+      "reply_to": "bookings@carmacars.ca",
+      "subject": "Your coverage on booking {{booking_number}} changed",
+      "preheader": "Here is the new price and what to do next.",
+      "sample_subject": "Your coverage on booking CC-10482 changed",
+      "variables": [
+        {
+          "name": "booking_number",
+          "type": "string",
+          "sample": "CC-10482",
+          "note": "Agreement and booking number shown to the customer."
+        },
+        {
+          "name": "change_rows",
+          "type": "list",
+          "sample": [
+            {
+              "label": "Coverage",
+              "before": "Rental coverage on your credit card",
+              "after": "The CarmaCars Protection Plan"
+            },
+            {
+              "label": "Total with HST",
+              "before": "$468.95",
+              "after": "$581.95"
+            }
+          ],
+          "fields": [
+            "label",
+            "before",
+            "after"
+          ]
+        },
+        {
+          "name": "company_address",
+          "type": "string",
+          "sample": "Mailing address to be confirmed, Toronto, Ontario, Canada",
+          "note": "Mailing address of CarmaCars. Required by the anti-spam law on marketing email. Set once in settings."
+        },
+        {
+          "name": "contact_email",
+          "type": "string",
+          "sample": "contact@carmacars.ca",
+          "note": "Public contact address shown in the footer (site_settings public email)."
+        },
+        {
+          "name": "coverage_now",
+          "type": "string",
+          "sample": "The CarmaCars Protection Plan"
+        },
+        {
+          "name": "coverage_title",
+          "type": "string",
+          "sample": "Your booking now has the Protection Plan"
+        },
+        {
+          "name": "first_name",
+          "type": "string",
+          "sample": "Maya",
+          "note": "First name of the person the email is addressed to."
+        },
+        {
+          "name": "has_reason",
+          "type": "boolean",
+          "sample": true
+        },
+        {
+          "name": "instagram_url",
+          "type": "url",
+          "sample": "https://instagram.com/carmacars.ca",
+          "note": "Instagram profile address (social_links)."
+        },
+        {
+          "name": "money_text",
+          "type": "string",
+          "sample": "You have $113.00 more to pay. We will send you a secure payment link, or you can pay from your booking page."
+        },
+        {
+          "name": "next_step",
+          "type": "string",
+          "sample": "You do not need to send a card coverage document any more. We confirm the Protection Plan for you before pickup."
+        },
+        {
+          "name": "opening_hours",
+          "type": "string",
+          "sample": "Open 24 hours, every day",
+          "note": "Opening hours wording (site_settings.opening_hours_text)."
+        },
+        {
+          "name": "reply_time",
+          "type": "string",
+          "sample": "within 2 hours",
+          "note": "Reply-time promise, used after \"We reply\" (site_settings reply wording)."
+        },
+        {
+          "name": "support_phone",
+          "type": "string",
+          "sample": "289-312-5991",
+          "note": "CarmaCars phone, WhatsApp and 24-hour line, formatted for display (site_settings.phone_display). Set once in settings."
+        },
+        {
+          "name": "switch_reason",
+          "type": "string",
+          "sample": "Your credit card does not include rental coverage for this car."
+        },
+        {
+          "name": "tiktok_url",
+          "type": "url",
+          "sample": "https://tiktok.com/@carmacars.ca",
+          "note": "TikTok profile address (social_links)."
+        }
+      ],
+      "template_html": "templates/renter_coverage_switched.html",
+      "template_text": "templates/renter_coverage_switched.txt"
     },
     {
       "code": "renter_damage_found",
