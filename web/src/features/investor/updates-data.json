@@ -12,7 +12,8 @@
      "One Sign and pay page: the agreement, the signature and the card form together, with exactly what is left and the amount",
      "A signature for an older version of an offer opens the current agreement to sign instead of a dead end",
      "A debit or prepaid deposit shows its card processing fee before paying; the refund returns the full deposit",
-     "Anyone can change their own sign-in email, confirmed by a link"
+     "Anyone can change their own sign-in email, confirmed by a link",
+     "The Sign and pay page states the exact charge and card before you sign"
     ]
    },
    {
