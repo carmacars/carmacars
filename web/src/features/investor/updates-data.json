@@ -75,6 +75,13 @@
     "items": [
      "Every booking on your car billed to a renter is shown in your portal from the start"
     ]
+   },
+   {
+    "area": "Staff tools",
+    "items": [
+     "A photo import from a shared folder takes a whole fleet folder in one run",
+     "A new hire's pay terms read as plain percentages"
+    ]
    }
   ]
  },
