@@ -108,10 +108,19 @@ export const CF_EMAIL_STEPS = [
   'Run the next production deploy. Its run says "the Worker gets its EMAIL binding"; this page then shows Cloudflare sending.'
 ] as const;
 
-/** Whether Cloudflare sends the emails, in one sentence; null when it does. */
-export function cfEmailSentence(c: CfEmail | null | undefined): string | null {
+/** Resend's daily allowance in words: the number from the setting (Program settings, Resend emails a day; the email pace
+ * read or the usage row), never a number written here (r35). */
+export function resendDay(n: number | string | null | undefined): string {
+  if (typeof n === 'number' && Number.isFinite(n) && n > 0) return `${n.toLocaleString('en-US')} a day`;
+  if (typeof n === 'string' && n.trim()) return `${n.trim()} a day`;
+  return 'your daily email limit';
+}
+
+/** Whether Cloudflare sends the emails, in one sentence; null when it does. `resend` is Resend's daily allowance now. */
+export function cfEmailSentence(c: CfEmail | null | undefined, resend?: number | string | null): string | null {
   if (!c || c.state === 'ok') return null;
-  if (c.state === 'off') return 'Cloudflare Email Service is turned off in Program settings, so every email goes through Resend (100 a day included).';
-  if (c.state === 'failing') return `Cloudflare Email Service refused the last emails${c.error ? ` (${c.error})` : ''}, so they went through Resend (100 a day included).`;
-  return 'Cloudflare Email Service is not set up yet, so every email goes through Resend, which includes only 100 a day. The one-time setup gives 3,000 a month.';
+  const r = resendDay(resend);
+  if (c.state === 'off') return `Cloudflare Email Service is turned off in Program settings, so every email goes through Resend (${r} included).`;
+  if (c.state === 'failing') return `Cloudflare Email Service refused the last emails${c.error ? ` (${c.error})` : ''}, so they went through Resend (${r} included).`;
+  return `Cloudflare Email Service is not set up yet, so every email goes through Resend, which includes only ${r}. The one-time setup gives ${c.included.toLocaleString('en-US')} a month.`;
 }

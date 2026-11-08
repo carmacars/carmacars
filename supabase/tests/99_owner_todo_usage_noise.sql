@@ -77,7 +77,7 @@ select test.eq('over the red line: red', (select b ->> 'tone' from jsonb_array_e
 update program_settings set usage_banner_red_usd = 5;
 select test.eq('the AI hard stop is unchanged (not priced in this rule)', app.usage_money('workers_ai') ->> 'priced', 'false');
 select app.usage_put('resend_day', app.today(), 'app', 98);
-select test.ok('emails at 98 of 100: still on the banner (they are held at 100), with whether Cloudflare sends',
+select test.ok('emails near Resend''s daily budget (98 used): still on the banner (they are held at the budget), with whether Cloudflare sends',
   (select b ->> 'tone' = 'amber' and b -> 'cf' ->> 'state' is not null from jsonb_array_elements(app.usage_banner(test.id('on_admin'))) b where b ->> 'service' = 'resend_day'));
 select app.usage_put('resend_day', app.today(), 'app', 0);
 

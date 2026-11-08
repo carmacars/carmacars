@@ -1,7 +1,8 @@
 import 'server-only';
 import { agreementPdf } from '@/features/agreement/pdf';
 import type { Block } from '@/features/agreement/model';
-import { HOW_IT_WORKS_AMOUNTS, howItWorksRow, investmentCalc } from './calc';
+import { investmentCalc } from './calc';
+import { EXAMPLE_AMOUNTS, FOOTNOTES, RAISE, TERMS, optionOneRow } from '../deck/pitch';
 import { longDate, monthLabel } from '../deck/returns';
 import type { InvestorModel } from '@/server/investor-model';
 
@@ -29,24 +30,17 @@ export function investorModelBlocks(m: InvestorModel, multiplier: number | null)
     blocks.push({ t: 'p', text: 'Your investment appears here once your agreement is signed and your funds have cleared.' });
   }
   blocks.push({ t: 'h2', text: 'How it works' });
-  if (multiplier) blocks.push({ t: 'p', text: `${multiplier}x multiplier on money invested in the fleet: the company's headline figure (internal, not audited, not a forecast and not a promise of any return).` });
-  blocks.push({ t: 'table', head: ['The terms', ''], kv: true, rows: [
-    ['Minimum investment', $(terms.min_cents)],
-    ['Your return', `${pct(terms.offer_bps)} a year on our current offer, paid monthly. Each investor's rate is set in their own agreement.`],
-    ['Lockup', `The first ${terms.lockup_months} months. No return accrues during the lockup.`],
-    ['Your principal', 'Stays invested, with no fixed term. Keep it in, or reinvest your monthly returns.'],
-    ['Getting your money out', 'Sell your investment to another investor, or have it bought back by the company.'],
-    ['Company repayment', "The company can repay your investment at any time with 6 months' notice."],
-    ['What it is', 'An investment, not a loan. Investors receive no shares in the company.'],
-    ...(terms.company ? [['Who you invest with', terms.company] as [string, string]] : [])] });
-  blocks.push({ t: 'table', head: ['Amount invested', 'Monthly payout', 'Paid by month 24', 'Paid by month 36'],
-    rows: HOW_IT_WORKS_AMOUNTS.map((a) => { const x = howItWorksRow(a, terms.offer_bps / 10000, terms.lockup_months); return [$d(a), $d(x.monthly), $d(x.by24), $d(x.by36)]; }) });
+  // r35: the terms of the 2026 deck (features/deck/pitch.ts), the same as every investor page
+  if (multiplier) blocks.push({ t: 'p', text: `${multiplier}x multiplier on money invested in the fleet: CarmaCars' figure. ${FOOTNOTES.internal} Not a forecast and not a promise of any return.` });
+  blocks.push({ t: 'table', head: ['The terms', ''], kv: true, rows: TERMS.map(([k, v]) => [k, v] as [string, string]) });
+  blocks.push({ t: 'table', head: ['Amount invested', `Monthly at ${RAISE.option1.lowPct}%`, `Monthly at ${RAISE.option1.highPct}%`, `Yearly at ${RAISE.option1.lowPct}%`, `Yearly at ${RAISE.option1.highPct}%`],
+    rows: EXAMPLE_AMOUNTS.map((a) => { const x = optionOneRow(a); return [$d(a), $d(x.monthlyLow), $d(x.monthlyHigh), $d(x.yearlyLow), $d(x.yearlyHigh)]; }) });
   const c = investmentCalc({ amount: m.calc.amount, start: m.calc.start, rate: m.calc.rate, lockupMonths: terms.lockup_months, reinvest: m.calc.reinvest });
   blocks.push({ t: 'h2', text: `Calculator: ${$d(m.calc.amount)} from ${longDate(m.calc.start)} at ${+(m.calc.rate * 100).toFixed(2)}%` });
   blocks.push({ t: 'table', head: ['Result', ''], kv: true, rows: [
     ['Monthly payout to you', $d(c.monthlyPayout)], ['Lockup ends', longDate(c.lockupEnds)], ['First monthly payment', longDate(c.firstPayment)],
     ['Total paid to you by month 36', $d(c.paidBy36)], ['Value at month 36', `${$d(c.value36)} (${c.multiple36.toFixed(2)}x)`]] });
-  blocks.push({ t: 'p', text: 'For information only and not an offer by itself. The signed investment agreement governs. Like any investment, it carries risk.' });
+  blocks.push({ t: 'p', text: `For information only and not an offer by itself. ${FOOTNOTES.offer}. Like any investment, it carries risk.` });
   return blocks;
 }
 

@@ -6,7 +6,7 @@ import { money } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { signCount } from '@/features/manual/SignPages';
 import { More } from '@/features/portal/Chrome';
-import type { DeckFigures } from '@/features/deck/types';
+import { RAISE } from '@/features/deck/pitch';
 import { investorPlan, type InvestorHome, type ReturnRow } from '@/features/investor/plan';
 import { ActionTiles, DocumentList, DocumentRow, LineChart, PortalHero, ProgressRing, PuIcon, StatCard, Timeline, TimelineItem, type ActionTileItem } from '@/components/portal-ui';
 
@@ -26,8 +26,6 @@ export default async function InvestorHome() {
   const [h, rows, deck, toSign] = await Promise.all([door<InvestorHome>(user.id, 'investor_read', 'home'), door<ReturnRow[]>(user.id, 'investor_read', 'statements').catch(() => [] as ReturnRow[]),
     door<{ visible: boolean }>(user.id, 'investor_read', 'deck_visible').then((r) => r.visible).catch(() => false), signCount(user.id)]);
   const today = torontoToday();
-  // the deck's headline figures, as the Admin set them (deck_settings); only these two are shown here
-  const headline = deck ? await door<DeckFigures>(user.id, 'investor_read', 'deck').then((f) => ({ multiplier: Number(f.settings.deck_multiplier), bps: f.settings.deck_return_bps })).catch(() => null) : null;
   const plan = investorPlan(h, rows, today);
   // what needs the investor first (portal cleanup, October 23, 2026), then the numbers
   const attention: ActionTileItem[] = [
@@ -117,12 +115,13 @@ export default async function InvestorHome() {
           {deck && <section className="pu-panel pu-panel--ink iv-deck" data-testid="deck-promo" aria-labelledby="dk-t">
             <p className="pu-eyebrow">For investors</p>
             <h2 className="d3" id="dk-t">The CarmaCars investor deck</h2>
-            {headline && <div className="iv-deck__figs pu-on-ink">
-              {headline.multiplier > 0 && <StatCard label="Our multiplier on money invested in the fleet" value={headline.multiplier} format="x" testId="deck-tile-multiplier" />}
-              {headline.bps > 0 && <StatCard label="Our current offer, a year" value={headline.bps / 100} format="pct1" />}
-            </div>}
-            {headline && headline.multiplier > 0 && <p className="xs muted">The multiplier is CarmaCars&apos; own internal figure, not audited, not a forecast and not a promise of any return. Your Return is the Yearly Percentage in your agreement.</p>}
-            <p className="small muted">What we built, how CarmaCars makes money, how your Return builds month by month, and a calculator for your own numbers.</p>
+            {/* r35: the terms of the 2026 deck (features/deck/pitch.ts), the same on every investor page */}
+            <div className="iv-deck__figs pu-on-ink">
+              <StatCard label="Option 1: a year, paid monthly, simple interest" value={`${RAISE.option1.lowPct} to ${RAISE.option1.highPct}%`} testId="deck-tile-option-1" />
+              <StatCard label="Option 2: profit share from the cars this money puts on the road" value={`${RAISE.option2.lowPct} to ${RAISE.option2.highPct}%`} testId="deck-tile-option-2" />
+            </div>
+            <p className="xs muted">Offered only to eligible investors under a prospectus exemption. Final terms are set in the signed agreement.</p>
+            <p className="small muted">The model, the demand, what one car earns, and the ask, in eight slides.</p>
             <p><Link href="/investor/deck" prefetch={false} className="btn btn--primary btn--sm iv-deck__cta"><PuIcon name="play" />Open the deck</Link></p>
           </section>}
           {h.requests.length > 0 && <section className="pu-panel" aria-labelledby="rq-t"><h2 className="pu-title" id="rq-t">Your notices</h2><ul className="small">{h.requests.map((r, i) => <li key={i}>{when(r.created_at)}: {r.title} ({r.status === 'done' ? 'recorded' : 'received'})</li>)}</ul></section>}

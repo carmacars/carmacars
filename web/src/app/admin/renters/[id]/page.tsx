@@ -3,11 +3,8 @@ import { notFound } from 'next/navigation';
 import { pageMeta } from '@/features/seo/meta';
 import { page } from '@/server/admin/api';
 import { Badge, BookingLink, Card, Kv, PageHead, Table, d, t } from '@/features/admin/ui';
-import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
-import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
 import { ReachCard } from '@/features/admin/ReachCard';
 import type { Reach } from '@/features/phone/alerts';
-import type { PhoneTimelineData } from '@/features/phone/client';
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
 import { RenterMerge, type DuplicateRow } from '@/features/money/RenterMerge';
 import { door } from '@/server/door';
@@ -18,12 +15,14 @@ import { nameChangesFor } from '@/server/self-profile';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 import { RenterNotes } from '@/features/caller/RenterNotes';
 import type { NotesRead } from '@/features/caller/model';
+import { ActivityLog } from '@/features/activity/ActivityLog';
+import { activityQuery, readParams, type ActivityPage } from '@/features/activity/model';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Renter', path: '/admin/renters', noindex: true, description: 'One renter: details, bookings and visits on the site.' });
 
 type R = { id: string; name: string; email: string | null; mobile: string | null; identity_status: string; created_at: string; city: string | null; is_blocked: boolean;
-  bookings: Array<{ number: string; status: string; pickup_at: string; return_at: string; car: string }>; timeline: TimelineData;
+  bookings: Array<{ number: string; status: string; pickup_at: string; return_at: string; car: string }>;
   email_confirmed?: boolean; has_sign_in?: boolean; account_opened_from_form?: boolean; account_closed?: boolean;
   captured?: Array<{ form: string; name: string | null; email: string | null; phone: string | null; at: string; done: boolean }> };
 
@@ -32,7 +31,9 @@ export default async function Renter({ params, searchParams }: { params: Promise
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { read, user } = await page(`/admin/renters/${id}`);
-  const [r, calls] = await Promise.all([read<R>('renter_live', { renter_id: id }).catch(() => null), read<PhoneTimelineData>('phone_timeline', { renter_id: id }).catch(() => null)]);
+  // r35 (0850): one Activity log of everything about the renter, in place of the calls, visits and messages cards
+  const [r, activity] = await Promise.all([read<R>('renter_live', { renter_id: id }).catch(() => null),
+    read<ActivityPage>('renter_activity', { renter_id: id, ...readParams(activityQuery(sp)) }).catch(() => null)]);
   const [reach, notes, nameChanges] = await Promise.all([read<Reach>('notify_reach', { renter_id: id }).catch(() => null), read<NotesRead>('renter_notes', { renter_id: id }).catch(() => null), nameChangesFor(user.id, { renter_id: id })]);
   if (!r) notFound();
   // correct the renter's details (0132)
@@ -63,17 +64,18 @@ export default async function Renter({ params, searchParams }: { params: Promise
             { key: 'car', label: 'Car' }, { key: 'status', label: 'Status', render: (b) => <Badge s={b.status} /> }, { key: 'pickup_at', label: 'Pickup', render: (b) => t(b.pickup_at) }]} /></Card>
         </div>
         <div className="stack">
-          {/* r34 (0800): renter notes, also on the caller pop-up and the staff portal's renter */}
-          <Card title="Notes" testId="renter-notes-card">{notes ? <RenterNotes renterId={id} initial={notes.notes} canRemove={notes.can_remove} /> : <p className="small muted">The notes could not be read. Reload the page.</p>}</Card>
           <ReachCard reach={reach} who={{ renter_id: id }} />
-          <Card title="Calls and texts" testId="renter-calls"><PhoneTimeline t={calls} inbox="/admin/visitors?view=chat" /></Card>
-          <Card title="On the site" testId="renter-visits"><VisitorTimeline t={r.timeline} chatBase="/admin/visitors?view=chat" /></Card>
         </div>
       </div>
+      {/* r35 (0850): everything in one log; the note box (r34, 0800) above it, Email, Call and Text on it */}
+      <ActivityLog data={activity} base={`/admin/renters/${id}`} sp={sp} emailHref={chosen ? `/admin/renters/${id}${sp.booking ? `?booking=${encodeURIComponent(sp.booking)}` : ''}#email` : null}
+        chatBase="/admin/visitors?view=chat" inbox="/admin/visitors?view=chat" phone={r.mobile} name={r.name} booking={chosen?.number ?? null} canRemoveNotes={!!notes?.can_remove}>
+        <div data-testid="renter-notes-card">{notes ? <RenterNotes renterId={id} initial={notes.notes} canRemove={notes.can_remove} formOnly /> : <p className="small muted">The notes could not be read. Reload the page.</p>}</div>
+      </ActivityLog>
       <section className="stack" id="email" data-testid="renter-email">
         <h2 className="d4">Email the renter</h2>
         {r.bookings.length > 1 && <p className="small">About booking: {r.bookings.map((b, i) => <span key={b.number}>{i ? ' · ' : ''}{b.number === chosen?.number ? <b>{b.number}</b> : <Link prefetch={false} className="link" href={`/admin/renters/${id}?booking=${encodeURIComponent(b.number)}#email`}>{b.number}</Link>}</span>)}</p>}
-        {conv ? <BookingConversation c={conv} refresh={[`/admin/renters/${id}`]} />
+        {conv ? <BookingConversation c={conv} refresh={[`/admin/renters/${id}`]} composeOnly />
           : <p className="small muted">{r.bookings.length ? 'The messages could not be read. Reload the page.' : 'An email goes with one of the renter\u2019s bookings, so they can answer it in their account. This renter has no booking yet: call them, or answer their request or chat.'}</p>}
       </section>
     </>

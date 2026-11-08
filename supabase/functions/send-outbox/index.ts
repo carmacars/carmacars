@@ -4,7 +4,7 @@
 // app.outbox_claim() (daily and monthly caps, priorities), renders each row with emails/src/engine.mjs
 // (copied next to this file at deploy time as engine.mjs), sends it through Resend and reports back with
 // app.outbox_mark_sent() or app.outbox_mark_failed(). Resend's own limits (HTTP 429: 2 requests a second, and
-// the free plan's 100 a day for the whole account, Supabase Auth's emails included) hold the row with
+// the plan's daily limit for the whole account, Supabase Auth's emails included; the numbers are Program settings') hold the row with
 // app.outbox_defer() without spending an attempt (0043): a rate refusal for a minute, a quota refusal for two hours
 // (a spread of its own; 2026-11-06), together with the rest of the batch. Sends are spaced to stay under the rate.
 //

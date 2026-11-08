@@ -131,7 +131,7 @@ test('admin: dashboard, review a request, adjust, re-price, send the offer, the 
   expect(b!.status).toBe('offered');
   expect(b!.d).toBe(Math.round(newDaily * 100));
   await ap.goto(`/admin/bookings/${req.booking_number}?tab=history`, { waitUntil: 'networkidle' });
-  await expect(ap.getByTestId('timeline')).toContainText('offer sent');
+  await expect(ap.getByTestId('activity-log')).toContainText('Offer sent');
   await check(ap, 'booking history');
 
   // the renter sees the offer with the new price and the message

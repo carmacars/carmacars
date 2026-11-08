@@ -6,9 +6,6 @@ import { ReopenOffer } from '@/features/offers/ReopenOffer';
 import { BookingInsurer, type BookingInsurerData } from '@/features/insurers/BookingInsurer';
 import { InsurerClaimEdit, type AdjusterOpt } from '@/features/insurers/InsurerClaimEdit';
 import { StaffDocUpload } from '@/features/admin/StaffDocUpload';
-import { VisitorTimeline, type TimelineData } from '@/features/live/VisitorTimeline';
-import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
-import type { PhoneTimelineData } from '@/features/phone/client';
 import { Act } from '@/features/admin/Act';
 import { DepositSettle } from '@/features/admin/DepositSettle';
 import { depositStatus } from '@/features/money/deposit-words';
@@ -51,6 +48,8 @@ import { bookingCan, portalBase } from '@/features/shared-pages/viewer';
 import { rpc } from '@/lib/db/repo';
 import { signPayOf, signPayWords } from '@/features/portal/sign-pay';
 import type { ChargeReasons } from '@/features/money/charge-reasons';
+import { ActivityLog } from '@/features/activity/ActivityLog';
+import { activityQuery, readParams, type ActivityPage } from '@/features/activity/model';
 
 // r31 "Simple": one booking page for Admin and staff (03-admin.md section 4, 05-va.md sections 2 to 5). The loader picks
 // the access path from the viewer (PageCtx) and reads only what the viewer's function uses; every section and button
@@ -141,7 +140,7 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     can.scheduleJob ? read<{ staff: Array<{ id: string; name: string }> }>('fleet_board') : { staff: [] as Array<{ id: string; name: string }> },
     // the late-return panel (05-va.md section 3.4) while the car is out past its time
     can.latePanel && b.status === 'on_rent' ? read<Late | null>('late_panel', { booking: b.id }).catch(none(null)) : null]);
-  const [driverLinks, manual, paper, moneyByPart, fees, editForm, renterForm, visits, calls, conv] = await Promise.all([
+  const [driverLinks, manual, paper, moneyByPart, fees, editForm, renterForm, activity, conv] = await Promise.all([
     can.driverLinks && section === 'documents' ? read<DriverLinkRow[]>('driver_links', { booking: b.id }).catch(none([] as DriverLinkRow[])) : [] as DriverLinkRow[],
     // payments received another way and documents signed on paper (migration 0044)
     can.manualPayments && on('money') ? ops<ManualRow[]>('manual_payments', { booking: b.id }).catch(none([] as ManualRow[])) : [] as ManualRow[],
@@ -151,9 +150,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
     on('money') || on('overview') ? ops<Fees>('booking_fees', { booking: b.booking_number }, true).catch(none(null)) : null,
     on('overview') && !['requested', 'offered', 'pending_payment', 'tentative'].includes(String(b.status)) ? ops<EditForm>('booking_edit_form', { booking: b.booking_number }, true).catch(none(null)) : null,
     on('overview') || on('review') ? ops<RenterForm>('renter_edit_form', { booking: b.booking_number }, true).catch(none(null)) : null,
-    // the renter's visits on the site (0060) and the calls and texts with them (0085)
-    on('history') ? own<TimelineData>('visitor_timeline', { booking_id: b.id }).catch(none(null)) : null,
-    on('history') ? own<PhoneTimelineData>('phone_timeline', { booking_id: b.id }).catch(none(null)) : null,
+    // r35 (0850): the booking's one Activity log (emails, texts, chat, calls, notes, events, payments, documents, visits)
+    on('history') ? ops<ActivityPage>('renter_activity', { booking: b.booking_number, ...readParams(activityQuery(sp)) }, true).catch(none(null)) : null,
     // Email the renter or the adjuster, with the booking's conversation and emails (0187)
     on('messages') ? ops<Conversation>('booking_conversation', { booking: b.booking_number }, true).catch(none(null)) : null]);
   const [policyNote, adjusters, pay, periods, duplicates] = await Promise.all([
@@ -371,20 +369,12 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
           <Card title="Questions to the renter"><Table rows={b.info_requests} empty="No questions." cols={[{ key: 'asked_at', label: 'Asked', render: (r) => t(r.asked_at) }, { key: 'question', label: 'Question', className: 'wrap' }, { key: 'status', label: 'Status' }, { key: 'reply', label: 'Reply', className: 'wrap' }]} /></Card>
         </div>
       )}
-      {on('messages') && (conv ? <BookingConversation c={conv} refresh={[base]} initialTo={sp.to === 'adjuster' ? 'adjuster' : 'renter'} /> : <p className="small muted">The messages could not be read. Reload the page.</p>)}
-      {on('history') && (
-        <div className="ad-cols ad-cols--2">
-          <Card title="Timeline" testId="timeline">
-            <ol className="ad-timeline">{b.events.map((e) => <li key={String(e.id)}><time>{t(e.created_at)}</time><span><b>{label(e.kind)}</b>{can.admin && e.from_status && e.to_status && e.from_status !== e.to_status ? ` ${label(e.from_status)} to ${label(e.to_status)}` : ''}{can.admin && e.offer_version ? `, offer v${String(e.offer_version)}` : ''}{e.note ? `: ${String(e.note)}` : ''} <span className="muted small">{String(e.actor_name ?? e.actor_type ?? '')}</span></span></li>)}</ol>
-          </Card>
-          <div className="stack">
-            {can.admin && <Card title="Status history"><ol className="ad-timeline">{(b.history ?? []).map((h, i) => <li key={i}><time>{t(h.at)}</time><span>{label(h.from)} to <b>{label(h.to)}</b> <span className="muted small">{String(h.by ?? '')}</span></span></li>)}</ol></Card>}
-            {(can.admin || calls) && <Card title="Calls and texts" testId="booking-calls"><PhoneTimeline t={calls} inbox={`${portal}/visitors?view=chat`} /></Card>}
-            <Card title="On the site" testId="booking-visits"><VisitorTimeline t={visits} chatBase={`${portal}/visitors?view=chat`} /></Card>
-            {can.admin && <Card title="Emails sent"><Table rows={b.emails ?? []} empty="No emails." cols={[{ key: 'created_at', label: 'When', render: (r) => t(r.created_at) }, { key: 'code', label: 'Email' }, { key: 'to', label: 'To' }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }]} /></Card>}
-          </div>
-        </div>
-      )}
+      {/* r35 (0850): one Activity log in place of the messages, timeline, calls, visits and emails cards; the email form under it */}
+      {section === 'activity' && <div className="stack">
+        <ActivityLog data={activity} base={`${base}?tab=activity`} sp={sp} emailHref={b.renter ? '#email' : null} chatBase={inbox} inbox={inbox}
+          phone={b.renter?.mobile} name={b.renter?.legal_name} booking={b.booking_number} />
+        <div id="email">{conv ? <BookingConversation c={conv} refresh={[base]} initialTo={sp.to === 'adjuster' ? 'adjuster' : 'renter'} composeOnly /> : <p className="small muted">The email form could not be read. Reload the page.</p>}</div>
+      </div>}
       {section === 'documents' && (
         <div className="ad-cols ad-cols--2" data-testid="booking-documents-section">
           {can.renterDocs && ['pending_payment', 'confirmed', 'on_rent', 'requested', 'offered'].includes(b.status) && <RenterDocs b={b} refresh={[base]} />}

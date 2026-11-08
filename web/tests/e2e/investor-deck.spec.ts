@@ -4,15 +4,17 @@ import { randomBytes, randomUUID, scryptSync } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { acceptCookies, db, noOverflow, pdfText } from './helpers';
 
-// The investor deck (migration 0083), end to end at 375 and 1440: a signed-in investor finds it on the portal home and in
-// the menu, moves through the slides by keyboard and buttons, uses the calculator (the agreement's numbers: $20,000 at
-// 30% pays $500.00 a month, first paid about 7.5 months after investing), and prints it to PDF (one landscape page per
-// slide, with the forward-looking notice). An Admin previews it, changes its settings, and hides it: the investor then
-// sees neither the link nor the deck. Fictional people only (example.test).
+// The investor deck, end to end at 375 and 1440 (r35: the 2026 pitch deck, features/deck/pitch.ts): a signed-in investor
+// finds it on the portal home and in the menu, reads the eight slides as HTML (the owner's words and numbers), moves through
+// them by keyboard and buttons, and prints it to PDF (one landscape page per slide, with the notice). An Admin previews it,
+// changes the multiplier, and hides it: the investor then sees neither the link nor the deck. Fictional people only.
 const SHOTS = 'test-results/investor-deck';
 const PW = 'correct horse battery';
 const LOCK = 780083; // the "Show the deck to investors" switch is global: tests that read or change it take turns
-const COPY_RULES: Array<[RegExp, string]> = [[/[—–]/, 'long dash'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b/, 'brand misspelled'], [/18122211|\d{6,}\s+Canada|Canada Inc\b/i, 'numbered company name']];
+// r35: the deck names the legal entity, 18122211 Canada Inc., and no other; never the fleet's size, its utilization, the
+// insurance premium or internal costs
+const COPY_RULES: Array<[RegExp, string]> = [[/[\u2014\u2013]/, 'long dash'], [/\bCarma[ -]+Cars\b|\bCarmacars\b|\bCARMACARS\b|\bcarmaCars\b/, 'brand misspelled'],
+  [/\b(?!18122211)\d{6,}\s+Canada|\bCorp\b|\bLtd\b|Almash/i, 'another legal entity'], [/utili[sz]ation|fleet size|\bpremium\b|internal costs?|\b\d+\s+(cars|vehicles)\b/i, 'investor rule']];
 type Sql = ReturnType<typeof db>;
 mkdirSync(SHOTS, { recursive: true });
 
@@ -57,61 +59,55 @@ test.describe('investor deck', () => {
   test.beforeAll(() => { sql = db(); });
   test.afterAll(async () => { await sql.end(); });
 
-  test('an investor opens the deck, moves through it, uses the calculator', async ({ browser }) => {
+  test('an investor opens the deck and moves through its eight slides', async ({ browser }) => {
     test.setTimeout(240_000);
     await sql`select pg_advisory_lock(${LOCK})`;
     try {
-      await sql`update deck_settings set show_to_investors = true, deck_multiplier = 3.2, deck_return_bps = 3000`;
+      await sql`update deck_settings set show_to_investors = true, deck_multiplier = 3.2, deck_return_bps = 1000`;
       const inv = await mkPerson(sql, 'investor', 'Dana Example');
       const page = await ctx(browser);
       await signIn(page, inv.email);
       await page.goto('/investor', { waitUntil: 'networkidle' });
       await expect(page.getByTestId('deck-promo')).toBeVisible();
+      await expect(page.getByTestId('deck-tile-option-1')).toContainText('10 to 15%');
+      await expect(page.getByTestId('deck-tile-option-2')).toContainText('20 to 25%');
       await expect(page.getByTestId('nav-deck')).toBeVisible();
       await page.getByTestId('deck-promo').getByRole('link', { name: 'Open the deck' }).click();
       await page.waitForURL('**/investor/deck');
       await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
       await expect(page.getByTestId('deck')).toHaveAttribute('data-ready', 'true', { timeout: 60_000 });
-      const n = await page.getByTestId('deck-slide').count();
-      expect(n).toBeGreaterThan(40);
-      await expect(page.getByTestId('deck-count')).toHaveText(`1 / ${n}`);
+      await expect(page.getByTestId('deck-slide')).toHaveCount(8);
+      // the slides are HTML text, not pictures of slides
+      await expect(page.locator('.dk-slide img:not(.dk-logo)')).toHaveCount(0); // only the brand logo is a picture
+      await expect(page.locator('#cover')).toContainText('Car rental, rebuilt for Ontario.');
+      await expect(page.getByTestId('deck-tagline')).toHaveText('What goes around, drives around.');
+      await expect(page.locator('#model')).toContainText('Insurer-billed replacement rentals');
+      await expect(page.getByTestId('deck-us')).toContainText('Delivered anywhere in Ontario');
+      await expect(page.getByTestId('deck-demand')).toContainText('8 to 11');
+      await expect(page.getByTestId('deck-demand')).toContainText('$45k+');
+      await expect(page.getByTestId('deck-per-day')).toHaveText('$112');
+      await expect(page.getByTestId('deck-per-car')).toHaveText('$2,800');
       await expect(page.getByTestId('deck-multiplier')).toHaveText('3.2x');
-      await expect(page.locator('#offer')).toContainText('30% a year on our current offer, set in your agreement');
-      await expect(page.locator('#risks')).toContainText('unsecured');
+      await expect(page.locator('#per-car')).toContainText('illustration, not a forecast');
+      await expect(page.getByTestId('deck-funds')).toContainText('$400,000');
+      await expect(page.getByTestId('deck-funds')).not.toContainText(/marketing/i);
+      await expect(page.getByTestId('deck-option-1')).toContainText('$4,167 to $6,250 a month on $500,000');
+      await expect(page.getByTestId('deck-option-2')).toContainText('20 to 25% profit share');
+      await expect(page.locator('#ask')).toContainText('prospectus exemption');
+      await expect(page.locator('#ask')).toContainText('18122211 Canada Inc.');
+      await expect(page.locator('#about')).toContainText('Abbas and Mahad run the business side by side.');
       await check(page, 'deck');
-      await shot(page, 'title');
+      await shot(page, 'cover');
 
       // next by button, then by keyboard
       await page.getByTestId('deck-next').click();
-      await expect(page.getByTestId('deck-count')).toHaveText(`2 / ${n}`);
+      await expect(page.getByTestId('deck-count')).toHaveText('2 / 8');
       await page.keyboard.press('ArrowRight');
-      await expect(page.getByTestId('deck-count')).toHaveText(`3 / ${n}`);
+      await expect(page.getByTestId('deck-count')).toHaveText('3 / 8');
       await page.keyboard.press('End');
-      await expect(page.getByTestId('deck-count')).toHaveText(`${n} / ${n}`);
+      await expect(page.getByTestId('deck-count')).toHaveText('8 / 8');
       await page.keyboard.press('Home');
-      await expect(page.getByTestId('deck-count')).toHaveText(`1 / ${n}`);
-
-      // the sample rental and the tiers come from the database
-      await expect(page.getByTestId('deck-tiers').locator('tbody tr')).toHaveCount(Number((await sql`select count(*)::int n from owner_fee_grid g where g.effective_from = (select max(effective_from) from owner_fee_grid where effective_from <= current_date)`)[0]!.n));
-
-      // the calculator: the agreement's numbers
-      const calc = page.getByTestId('deck-calculator');
-      await calc.scrollIntoViewIfNeeded();
-      await page.getByTestId('calc-amount').fill('20000');
-      await page.getByTestId('calc-mode-pay').click();
-      await expect(page.getByTestId('calc-monthly')).toHaveText('$500.00');
-      await expect(calc).toContainText('about 7.5 months after you invest');
-      await page.getByTestId('calc-years').selectOption('3');
-      await page.getByTestId('calc-mode-switch').click();
-      await expect(page.getByTestId('calc-monthly')).toHaveText('$672.44');
-      await page.getByTestId('calc-mode-reinvest').click();
-      await expect(page.getByTestId('calc-paid')).toHaveText('$0.00');
-      await page.getByTestId('calc-amount').fill('100');
-      await expect(calc.getByRole('alert')).toContainText('At least $20,000');
-      await page.getByTestId('calc-amount').fill('50000');
-      await page.getByTestId('calc-mode-pay').click();
-      await expect(page.getByTestId('calc-monthly')).toHaveText('$1,250.00');
-      await calc.screenshot({ path: `${SHOTS}/${test.info().project.name}-calculator.png` });
+      await expect(page.getByTestId('deck-count')).toHaveText('1 / 8');
       await noOverflow(page);
       await page.context().close();
     } finally { await sql`select pg_advisory_unlock(${LOCK})`; }
@@ -143,8 +139,8 @@ test.describe('investor deck', () => {
       expect(pages).toBe(n);
       const text = await pdfText(pdf);
       expect(text).toContain('CarmaCars');
-      expect(text).toContain('not part of any offering memorandum');
-      expect(text).toContain('prospectus exemptions');
+      expect(text).toContain('prospectus exemption');
+      expect(text).toContain('internal and unaudited');
       expect(text).not.toMatch(/Investments\s+Statements\s+Profile and notices/); // the portal menu is not printed
       expect(text).not.toMatch(/[—–]/);
       await page.context().close();
@@ -156,7 +152,7 @@ test.describe('investor deck', () => {
     test.setTimeout(240_000);
     await sql`select pg_advisory_lock(${LOCK})`;
     try {
-      await sql`update deck_settings set show_to_investors = true, deck_multiplier = 3.2, deck_return_bps = 3000`;
+      await sql`update deck_settings set show_to_investors = true, deck_multiplier = 3.2, deck_return_bps = 1000`;
       const admin = await mkPerson(sql, 'admin', 'Sam Example');
       const inv = await mkPerson(sql, 'investor', 'Jordan Example');
       const a = await ctx(browser);
@@ -176,7 +172,6 @@ test.describe('investor deck', () => {
       await a.getByTestId('deck-save-submit').click();
       await expect(a.getByTestId('deck-visibility')).toContainText('Hidden from investors', { timeout: 15_000 });
       await expect(a.getByTestId('deck-multiplier')).toHaveText('3.5x');
-      await expect(a.locator('#offer')).toContainText('24% a year');
       const row = (await sql`select show_to_investors, deck_multiplier::text m, deck_return_bps from deck_settings`)[0]!;
       expect([row.show_to_investors, row.m, row.deck_return_bps]).toEqual([false, '3.50', 2400]);
       await shot(a, 'admin-preview');
@@ -200,7 +195,7 @@ test.describe('investor deck', () => {
       await expect(p.getByTestId('deck')).toBeVisible();
       await a.context().close(); await p.context().close();
     } finally {
-      await sql`update deck_settings set show_to_investors = true, deck_multiplier = 3.2, deck_return_bps = 3000`;
+      await sql`update deck_settings set show_to_investors = true, deck_multiplier = 3.2, deck_return_bps = 1000`;
       await sql`select pg_advisory_unlock(${LOCK})`;
     }
   });

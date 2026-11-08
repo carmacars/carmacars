@@ -227,7 +227,7 @@ test('Admin: Visitors and Live chat in the menu, a car shows its interest, the r
   const [r] = await sql`select id from renters order by created_at limit 1`;
   if (r) {
     await page.goto(`/admin/renters/${r.id}`, { waitUntil: 'networkidle' });
-    await expect(page.getByTestId('renter-visits')).toBeVisible();
+    await expect(page.getByTestId('activity-log')).toBeVisible();
     await check(page, 'admin renter page');
   }
   await sql.end();

@@ -155,14 +155,15 @@ test('Admin: the booking\'s History tab and the renter page show the calls and t
   const admin = await mkUser(sql, 'admin');
   await signIn(page, admin.email, '/admin');
   await page.goto(`/admin/bookings/${encodeURIComponent(att!.booking_number)}?tab=history`, { waitUntil: 'networkidle' });
-  const card = page.getByTestId('booking-calls');
+  // r35 (0850): calls and texts are in the booking's one Activity log
+  const card = page.getByTestId('activity-log');
   await expect(card.getByText('Running ten minutes late').first()).toBeVisible();
-  await expect(card.getByTestId('call-summary').filter({ hasText: 'Renter asked to move the pickup by an hour.' })).toBeVisible();
+  await expect(card.getByTestId('activity-item').filter({ hasText: 'Renter asked to move the pickup by an hour.' })).toBeVisible();
   // the line does not record calls: no transcript or recording section on a call without them
   await expect(card.getByRole('button', { name: 'Transcript' })).toHaveCount(0);
   await check(page, 'admin booking history');
   await page.goto(`/admin/renters/${r.renter_id}`, { waitUntil: 'networkidle' });
-  await expect(page.getByTestId('renter-calls').getByText('Running ten minutes late').first()).toBeVisible();
+  await expect(page.getByTestId('activity-log').getByText('Running ten minutes late').first()).toBeVisible();
   await check(page, 'admin renter page');
   await page.goto('/admin/visitors?view=chat&inbox=phone', { waitUntil: 'networkidle' });
   await expect(page.getByTestId('phone-inbox')).toBeVisible();

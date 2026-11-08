@@ -1,0 +1,27 @@
+/* The renter's Activity log (migration 0850, release 35): the filter chips, the search and one time-ordered list, grouped by
+   day. Black on white with the portals' red for what came from the renter; wraps on a phone, no sideways scroll. */
+.al { display: grid; gap: 12px; min-width: 0; }
+.al-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.al-head h2 { margin: 0; }
+.al-acts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.al-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.al-chip { display: inline-flex; align-items: center; min-height: 32px; padding: 4px 12px; border: 1px solid var(--grey-300); border-radius: 999px; font-size: 0.85rem;
+  color: var(--text); text-decoration: none; background: var(--white); }
+.al-chip:hover { border-color: var(--grey-700); }
+.al-chip[aria-current] { background: var(--grey-900, #111); border-color: var(--grey-900, #111); color: var(--white); }
+.al-chip:focus-visible { outline: 3px solid var(--red-600); outline-offset: 2px; }
+.al-search { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0; }
+.al-search .input { flex: 1 1 14rem; min-width: 0; }
+.al-day { margin: 8px 0 4px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--grey-700); }
+.al-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.al-item { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: 4px 12px; padding: 10px 0; border-top: 1px solid var(--grey-200, #eee); overflow-wrap: anywhere; }
+.al-item time { font-size: 0.85rem; color: var(--grey-700); padding-top: 2px; }
+.al-main { display: grid; gap: 4px; min-width: 0; }
+.al-main p { margin: 0; }
+.al-type { display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 999px; background: var(--grey-100); font-size: 0.75rem; font-weight: 600; color: var(--grey-800, #333); }
+.al-item.is-in .al-type { background: var(--red-50, #fdecec); color: var(--red-700, #a30d14); }
+.al-body { white-space: pre-line; }
+.al-more { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 37.49rem) {
+  .al-item { grid-template-columns: minmax(0, 1fr); }
+}

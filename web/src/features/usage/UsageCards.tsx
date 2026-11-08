@@ -75,7 +75,8 @@ export function UsageBannerView({ rows }: { rows: BannerRow[] }) {
   const amber = rows.filter((r) => bannerTone(r) === 'amber');
   const note = rows.filter((r) => bannerTone(r) === 'note');
   const cf = rows.find((r) => r.cf)?.cf;
-  const cfLine = cfEmailSentence(cf);
+  // r35: Resend's allowance from its usage row (the setting), never a number written here
+  const cfLine = cfEmailSentence(cf, rows.find((r) => r.service === 'resend_day')?.included_text);
   const emailRow = [...red, ...amber].some((r) => r.service === 'resend_day' || r.service === 'resend_month');
   const settings = <Link prefetch={false} className="link" href="/admin/settings/usage">Settings &gt; Usage</Link>;
   const setup = cfLine && emailRow ? <span className="ug-banner__cf" data-testid="usage-banner-cf">{cfLine} <Link prefetch={false} className="link" href={CF_EMAIL_STEPS_HREF}>The 4 setup steps</Link></span> : null;
@@ -100,14 +101,14 @@ export function paceLine(p: EmailPace): string {
 export async function EmailSetup({ userId }: { userId: string }) {
   const [c, pace] = await Promise.all([door<CfEmail>(userId, 'ops_read', 'usage_email_setup').catch(() => null), door<EmailPace>(userId, 'ops_read', 'email_pace').catch(() => null)]);
   if (!c) return null;
-  const line = cfEmailSentence(c);
+  const line = cfEmailSentence(c, pace?.resend_budget);
   return (
     <section id="email-setup" className={`pt-card ad-card${line ? ' ad-card--warn' : ''}`} aria-labelledby="email-setup-h" data-testid="usage-email-setup" data-state={c.state}>
       <div className="pt-card__head"><h2 className="d4" id="email-setup-h">{line ? 'Emails: Cloudflare Email Service is not sending' : 'Emails: Cloudflare Email Service sends them'}</h2></div>
       {pace && <p className="small" data-testid="usage-email-pace">{paceLine(pace)}</p>}
       {line ? (
         <>
-          <p className="small">{line} Until then a busy day holds emails once Resend&apos;s 100 are used.</p>
+          <p className="small">{line} Until then a busy day holds emails once {pace ? `Resend\u2019s ${pace.resend_budget.toLocaleString('en-US')}` : 'your daily email limit'} are used.</p>
           <ol className="small ug-steps">{CF_EMAIL_STEPS.map((s) => <li key={s}>{s}</li>)}</ol>
         </>
       ) : <p className="small">{c.sent_month.toLocaleString('en-US')} of {c.included.toLocaleString('en-US')} included this month. Resend takes over only if Cloudflare refuses or the month&apos;s emails are used.</p>}

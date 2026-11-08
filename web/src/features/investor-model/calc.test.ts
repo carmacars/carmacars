@@ -45,20 +45,22 @@ test('How it works examples: $20,000 at 30% is $500 a month, $9,000 by month 24,
   near(x.monthly, 500); near(x.yearly, 6000); near(x.by24, 9000); near(x.by36, 15_000);
 });
 
-test('Fund a car: the workbook example ($7,000 car, $80 a day, 25 days, 70%) pays $1,075 a month', () => {
+test('Fund a car: the deck example ($7,000 car, $112 a rented day, 25 days, 70%) pays $1,960 a month before the fees of the agreement', () => {
   const c = fundCar(CAR_DEFAULTS);
-  near(c.gross, 2000); near(c.company, 600); near(c.ownerShare, 1400); near(c.cash, 1075);
-  near(c.depreciation, 87.5); near(c.net, 987.5); near(c.yearlyCash, 12_900); near(c.yearlyNet, 11_850);
-  near(c.roi, 11_850 / 7000); near(c.paybackMonths ?? 0, 7000 / 1075); near(c.upfront, 650);
+  near(c.gross, 2800); near(c.company, 840); near(c.ownerShare, 1960); near(c.cash, 1960);
+  near(c.depreciation, 87.5); near(c.net, 1872.5); near(c.yearlyCash, 23_520); near(c.yearlyNet, 22_470);
+  near(c.roi, 22_470 / 7000); near(c.paybackMonths ?? 0, 7000 / 1960); near(c.upfront, 0);
   const all = fundCars([CAR_DEFAULTS, BLANK_CAR, BLANK_CAR]);
-  near(all.total.cash, 1075); near(all.total.roi, 11_850 / 7000);
-  const s = carPayoutSchedule('2026-12-01', 1075);
-  assert.equal(s[0]!.paidOn, '2027-01-10'); near(s[11]!.cumulative, 12_900);
+  near(all.total.cash, 1960); near(all.total.roi, 22_470 / 7000);
+  const s = carPayoutSchedule('2026-12-01', 1960);
+  assert.equal(s[0]!.paidOn, '2027-01-10'); near(s[11]!.cumulative, 23_520);
+  // with the agreement's monthly fees entered, they come off the payout
+  near(fundCar({ ...CAR_DEFAULTS, insuranceFee: 100, trackerFee: 20 }).cash, 1840);
 });
 
 test('commissions come off before the split', () => {
   const c = fundCar({ ...CAR_DEFAULTS, commissions: 0.1 });
-  near(c.commissions, 200); near(c.company, 540); near(c.ownerShare, 1260);
+  near(c.commissions, 280); near(c.company, 756); near(c.ownerShare, 1764);
 });
 
 // "My investment": records first, then the agreement's formula

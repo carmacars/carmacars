@@ -17,7 +17,7 @@ fi
 # shellcheck source=email-binding.sh
 . "$HERE/email-binding.sh"
 if ! cf_email_on "${CF_EMAIL_BINDING:-}"; then
-  rows=$(jq -c '. + [{key: "cf_email", feature: "Emails through Cloudflare Email Service (3,000 a month; until then Resend, 100 a day)",
+  rows=$(jq -c '. + [{key: "cf_email", feature: "Emails through Cloudflare Email Service (until then Resend alone, at its daily budget in Program settings)",
     step: "Cloudflare dashboard > Compute (Workers) > Email Service: enable it and add the sending domain carmacars.ca with the DNS records it shows; then GitHub > the repository > Settings > Secrets and variables > Actions > Variables: CF_EMAIL_BINDING = 1; then deploy (Admin > Settings > Usage, Emails)"}]' <<<"$rows")
 fi
 n=$(jq 'length' <<<"$rows")

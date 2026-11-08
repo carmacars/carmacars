@@ -102,7 +102,7 @@ test('gaps: customer service and the renter write to each other on the booking, 
   await va.locator('#em-subject').fill('Your pickup time');
   await va.locator('#em-body').fill('Hello Riley, we can have the car ready at 9:00. Does that work?');
   await va.getByTestId('email-send').click();
-  await expect(va.getByTestId('messages')).toContainText('ready at 9:00', { timeout: 15_000 });
+  await expect(va.getByTestId('activity-log')).toContainText('ready at 9:00', { timeout: 15_000 }); // r35: the one Activity log
   await check(va, 'va booking messages');
   await expect.poll(async () => { await sql`select app.process_events(1000)`; return (await sql`select count(*)::int n from notification_outbox where code = 'renter_staff_message' and booking_id = ${req.booking_id} and payload ->> 'message_body' like '%ready at 9:00%'`)[0]!.n; }, { timeout: 90_000 }).toBe(1); // one pass of the whole queue can pass 15 seconds (r27: staff alerts go to every Admin)
   const rp = await ctx(browser, phone);
