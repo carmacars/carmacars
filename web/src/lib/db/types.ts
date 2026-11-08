@@ -15960,6 +15960,7 @@ export type Database = {
           debit_deposit_fee_bps: number;
           debit_deposit_fee_cents: number;
           google_drive_api_key: string | null;
+          owner_hide_insurance_only: boolean;
         };
         Insert: {
           id?: string;
@@ -16602,6 +16603,7 @@ export type Database = {
           debit_deposit_fee_bps?: number;
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
+          owner_hide_insurance_only?: boolean;
         };
         Update: {
           id?: string;
@@ -17244,6 +17246,7 @@ export type Database = {
           debit_deposit_fee_bps?: number;
           debit_deposit_fee_cents?: number;
           google_drive_api_key?: string | null;
+          owner_hide_insurance_only?: boolean;
         };
         Relationships: [];
       };
