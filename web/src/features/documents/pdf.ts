@@ -105,6 +105,8 @@ function receipt(f: F): Block[] {
   const blocks = header(f, [['Paid by', s(payer.legal_name)]], [['Receipt', s(f.receipt_number)], ['Date', day(f.paid_at)],
     ...(f.booking_number ? [['Booking', s(f.booking_number)] as [string, string]] : []), ...(f.invoice_number ? [['Invoice', s(f.invoice_number)] as [string, string]] : []),
     ...(f.vehicle ? [['Vehicle', s(f.vehicle)] as [string, string]] : []), ['For', label(f.purpose)],
+    // r33 (0750): why it was charged (the reason chosen from the list, with its note)
+    ...(f.reason ? [['Reason', s(f.reason)] as [string, string]] : []),
     ['Paid with', f.card_brand ? `${label(f.card_brand)} ending ${s(f.card_last4)}` : label(f.method)]]);
   if (lines.length) blocks.push({ t: 'table', head: ['Item', 'Amount', 'HST'], rows: lines.map((l) => [s(l.label), dollars(l.amount_cents), dollars(l.hst_cents)]) });
   blocks.push({ t: 'table', head: ['Amount paid', ''], kv: true, rows: [['**Total paid**', `**${dollars(f.amount_cents)}**`]] });

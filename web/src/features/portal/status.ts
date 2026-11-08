@@ -1,6 +1,7 @@
 import type { BookingStatus, BookingSummary, MyBooking } from './types';
 import { when } from '@/features/agreement/model';
 import { money } from '@/lib/format';
+import { signPayOf, signPayWords, type SignPay } from './sign-pay';
 
 // What each status means to the renter and what to do next (02-booking-and-renter.md sections 2 and 7.1).
 export const STATUS: Record<BookingStatus, { label: string; badge: string; blurb: string }> = {
@@ -37,17 +38,13 @@ export function nextStep(b: BookingSummary | MyBooking, now = Date.now()): NextS
       return { title: 'Offer on its way', note: 'We are checking the car and dates. Your offer arrives by email and here.', href: path(), cta: 'View request' };
     }
     case 'offered': return { title: 'Approve your offer', note: b.offer_expires_at ? `Offer open until ${when(b.offer_expires_at)}.` : 'Review the price and terms.', href: path('offer'), cta: 'Review offer', urgent: true };
-    case 'pending_payment': {
-      const signed = full?.agreement?.status === 'signed' || full?.agreement?.status === 'completed';
-      return signed
-        ? { title: 'Booked: payment due', note: 'Your car is booked and your agreement is signed. Pay before pickup.', href: path('pay'), cta: 'Pay now', urgent: true }
-        : { title: 'Booked: sign and pay', note: 'Your car is booked. Sign the rental agreement, then pay before pickup.', href: path('sign'), cta: 'Sign agreement', urgent: true };
-    }
+    case 'pending_payment': return signPayStep(b, path) ?? { title: 'Booked', note: STATUS.pending_payment.blurb, href: path(), cta: 'View booking' };
     case 'confirmed': {
       // a rental staff added by hand (0046): confirmed before the agreement is signed
       // 0185: paid another way before signing, the same
-      if (full && ((full as { added_by_staff?: boolean }).added_by_staff || full.paid_unsigned) && full.agreement?.status !== 'completed' && full.agreement?.status !== 'signed') {
-        return { title: 'Sign your rental agreement', note: 'Your rental is booked. Read and sign the agreement before pickup.', href: path('sign'), cta: 'Sign agreement', urgent: true };
+      if (full && ((full as { added_by_staff?: boolean }).added_by_staff || full.paid_unsigned)) {
+        const sp = signPayStep(b, path);
+        if (sp) return { ...sp, note: `Your rental is booked. ${sp.note} Do it before pickup.` };
       }
       const missing = full?.readiness?.missing ?? [];
       if (full && (missing.includes('identity') || missing.includes('coverage'))) return { title: 'Upload your licence', note: 'Licence photos, a selfie and proof of coverage are needed before pickup.', href: path('verify'), cta: 'Upload documents', urgent: true };
@@ -56,16 +53,24 @@ export function nextStep(b: BookingSummary | MyBooking, now = Date.now()): NextS
     }
     case 'on_rent':
       // a rental staff added while already underway (0074): sign it, then pay online with a payment link
-      if (full?.added_live && full.agreement?.status !== 'completed' && full.agreement?.status !== 'signed') {
-        return { title: 'Sign your rental agreement', note: 'Your rental has started. Read and sign the agreement now.', href: path('sign'), cta: 'Sign agreement', urgent: true };
+      if (full?.added_live || full?.link_due) {
+        const sp = signPayStep(b, path);
+        if (sp) return { ...sp, note: `Your rental has started. ${sp.note}` };
       }
-      if (full?.link_due) return { title: 'Pay for your rental', note: 'Your agreement is signed. Pay the amount due online.', href: path('pay'), cta: 'Pay now', urgent: true };
       return { title: `Return by ${when(b.return_at)}`, note: 'Need longer? Ask for an extension before the return time.', href: path(), cta: 'Return details' };
     case 'returned': return { title: 'Car returned', note: 'Your final statement is on its way.', href: path(), cta: 'View booking' };
     case 'closed': return { title: 'Rental complete', note: 'Your statements and receipts are in your documents.', href: '/account/documents', cta: 'Documents' };
     case 'expired': return { title: 'Offer expired', note: 'Call or message us and we will send it again.', href: path(), cta: 'View booking' };
     default: return { title: STATUS[b.status].label, note: STATUS[b.status].blurb, href: path(), cta: 'View booking' };
   }
+}
+
+/** The Sign and pay step from the one rule (0750): one card, one button, the page that does both. */
+export function signPayStep(b: BookingSummary | MyBooking, path: (s?: string) => string): NextStep | null {
+  const s: SignPay = signPayOf(b as { sign_pay?: SignPay | null });
+  const w = signPayWords(s);
+  if (!w) return null;
+  return { title: w.title, note: w.left, href: path('checkout'), cta: w.cta, urgent: true };
 }
 
 export function group(list: BookingSummary[], now = Date.now()) {
@@ -82,14 +87,15 @@ export function progress(b: MyBooking): Progress[] {
   const after = (s: BookingStatus[]) => s.includes(b.status);
   const live: BookingStatus[] = ['confirmed', 'on_rent', 'returned', 'closed'];
   const path = (s = '') => bookingPath(b.booking_number, s);
-  const renterSigned = !!b.agreement?.signers.find((s) => s.role === 'renter')?.signed_at;
+  const sp = signPayOf(b);
+  const renterSigned = sp.signed || (sp.step === 'none' && !!b.agreement?.signers.find((s) => s.role === 'renter')?.signed_at);
   const paid = b.payments.some((p) => p.purpose === 'booking_total' && p.status === 'succeeded');
   const missing = b.readiness?.missing ?? ['identity', 'coverage'];
   return [
     { label: 'Request sent', done: true },
     { label: 'Offer approved', done: b.offer_approved_version !== null && after(['pending_payment', ...live]), href: b.status === 'offered' ? path('offer') : undefined },
-    { label: 'Agreement signed', done: renterSigned || (after(live) && !awaitingSignature(b)), href: b.status === 'pending_payment' && !renterSigned ? path('sign') : undefined },
-    { label: 'Paid', done: paid || after(live), href: b.status === 'pending_payment' && renterSigned ? path('pay') : undefined },
+    { label: 'Agreement signed', done: renterSigned || (after(live) && !awaitingSignature(b)), href: sp.step === 'sign' || sp.step === 'drivers' ? path('checkout') : undefined },
+    { label: 'Paid', done: paid || after(live), href: sp.step === 'pay' ? path('checkout') : undefined },
     { label: 'Drivers verified', done: after(live) && !missing.includes('identity'), href: b.status === 'confirmed' ? path('verify') : undefined },
     { label: 'Coverage confirmed', done: !!b.coverage_confirmed_at, href: b.status === 'confirmed' ? path('verify') : undefined },
     { label: 'Pickup', done: !!b.handed_over_at },

@@ -195,7 +195,7 @@ test('renter: a rental already underway with a payment link: sign in the portal,
   await page.goto(`/account/bookings/${number}`, { waitUntil: 'networkidle' });
   await check(page, 'renter: rental underway');
   await page.getByTestId('live-sign').click();
-  await page.waitForURL(new RegExp(`/account/bookings/${number}/sign`), { timeout: 20_000 });
+  await page.waitForURL(new RegExp(`/account/bookings/${number}/checkout`), { timeout: 20_000 });
   // decide only once the page has rendered either the details form or the agreement (on a phone the form can arrive later)
   await expect(page.locator('#pt-d-address_line1').or(page.getByTestId('complete-details')).or(page.locator('.agreement')).first()).toBeVisible({ timeout: 30_000 });
   if (await page.locator('#pt-d-address_line1').isVisible()) {
@@ -213,9 +213,9 @@ test('renter: a rental already underway with a payment link: sign in the portal,
   await check(page, 'renter: sign a rental underway');
   await page.getByTestId('consents-all').check();
   await strongSign(page);
-  await page.getByRole('button', { name: 'Sign the agreement' }).click();
-  await page.waitForURL(new RegExp(`/account/bookings/${number}/pay`), { timeout: 30_000 });
-  await expect(page.getByRole('heading', { name: 'Pay for your rental' })).toBeVisible();
+  await page.getByRole('button', { name: /^Sign, then pay/ }).click();
+  await page.waitForURL(new RegExp(`/account/bookings/${number}/checkout\\?signed=1`), { timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: 'Sign and pay for your rental' })).toBeVisible();
   await expect(page.getByTestId('fake-card')).toBeVisible();
   await check(page, 'renter: pay a rental underway');
   await page.locator('#pt-card-name').fill(renter.name);

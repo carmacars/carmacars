@@ -10,7 +10,7 @@ import { when } from '@/features/agreement/model';
 import { LinkedNotice } from '@/features/portal/LinkedNotice';
 import { More, PageHeader } from '@/features/portal/Chrome';
 import { MyCodes, type MyCode } from '@/features/portal/MyCodes';
-import { PastTripCard, TripCard, TripHero, ourAddress, tripPhoto } from '@/features/portal/trip';
+import { PastTripCard, TripCard, TripHero, carTitle, ourAddress, tripPhoto } from '@/features/portal/trip';
 import { placeText } from '@/features/portal/Blocks';
 import { renterNow } from '@/features/portal/now';
 import { NowPanel } from '@/features/portal-nav/NowPanel';
@@ -18,6 +18,7 @@ import { EmptyState, PortalIcon } from '@/components/portal-ui';
 import { licenceState, renterMissing } from '@/features/portal/LicenceNotice';
 import { quickLinks } from '@/features/portal/quick-links';
 import { QuickLinks } from '@/features/portal/QuickLinks';
+import { SignPayCard } from '@/features/portal/SignPayCard';
 
 type Links = { verified: boolean; new: Array<{ kind: string; detail: string | null; booking_number: string | null }>; driver_trips: Array<{ booking_number: string; status: string; pickup_at: string; return_at: string; vehicle_name: string; accepted: boolean }> };
 
@@ -67,6 +68,8 @@ export default async function Account({ searchParams }: { searchParams: Promise<
         <div className="pu-home">
           {now && <NowPanel testId="next-step" titleId="now-renter" kicker={now.kicker} headline={now.headline} detail={now.detail} urgent={now.urgent} actions={now.actions}
             extra={phone && ['confirmed', 'on_rent'].includes(full!.status) ? <a className="btn now__btn" href={`tel:${settings?.phone ?? phone}`} data-testid="now-call">Call us</a> : null} />}
+          {/* r33: every other trip still to sign or pay, one card each (the nearest one's is the panel above) */}
+          {others.map((b) => <SignPayCard key={`sp-${b.id}`} b={b} testId={`sign-pay-${b.booking_number}`} label={`${carTitle(b)}, ${b.booking_number}`} />)}
           {full && <QuickLinks number={full.booking_number} links={quick} />}
           {full && <TripHero b={full} photo={photo(full)} titleAs="h2" settings={settings} href={bookingPath(full.booking_number)} />}
           {others.length > 0 && (

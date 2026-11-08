@@ -31,6 +31,17 @@ test('pending_payment: the amount open, record or send a pay link (Money tab)', 
   assert.doesNotMatch(nextStep(x({ status: 'pending_payment', dueCents: 100, paidCents: 100 })).text, /open/);
 });
 
+test('r33: pending_payment states what the renter sees (the one rule, 0750)', () => {
+  const left = 'Two steps left: sign the rental agreement, then pay $1,000.00.';
+  const s = nextStep(x({ status: 'pending_payment', dueCents: 100000, renterStep: 'sign', renterLeft: left }));
+  assert.match(s.text, /still has to sign, then pay \$1,000\.00\. The renter sees: "Two steps left: sign the rental agreement, then pay \$1,000\.00\."/);
+  assert.equal(s.action?.testId, 'next-step-sign');
+  const p = nextStep(x({ status: 'pending_payment', dueCents: 100000, renterStep: 'pay', renterLeft: 'One step left: pay $1,000.00. Your agreement is signed.' }));
+  assert.match(p.text, /approved the offer and signed\. Payment due: \$1,000\.00 open\. The renter sees: "One step left: pay/);
+  assert.equal(p.essentials?.find((e) => e.key === 'agreement')?.done, true);
+  assert.equal(s.essentials?.find((e) => e.key === 'agreement')?.done, false);
+});
+
 test('confirmed, agreement not signed: the renter signs (on this device)', () => {
   const s = nextStep(x({ status: 'confirmed', awaitingSignature: true, depositCents: 50000 }));
   assert.equal(s.step, 'sign');

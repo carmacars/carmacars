@@ -141,8 +141,8 @@ test('the Blind Spot agreement: uploaded and checked by an Admin, filled for the
     await page.getByTestId('consents-all').check();
     // 0154: the code, the initials, the consents and the drawn signature sign both agreements
     await strongSign(page);
-    await page.getByRole('button', { name: 'Sign and continue to payment' }).click();
-    await page.waitForURL(/\/pay$/, { timeout: 30_000 });
+    await page.getByRole('button', { name: /^Sign, then pay/ }).click();
+    await page.waitForURL(/\/checkout\?signed=1/, { timeout: 30_000 });
     const [c1] = await sql`select c.status, s.signer_role from rental_agreement_companions c join signature_records s on s.id = c.renter_record_id where c.booking_id = ${bk.booking_id} and c.status <> 'superseded'`;
     expect(c1).toMatchObject({ status: 'signed', signer_role: 'renter' });
 

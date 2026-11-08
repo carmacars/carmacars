@@ -29,6 +29,10 @@ export interface NextStepInput {
   checkoutPhotosOk?: boolean | null;
   /** Release 24b: the return Condition Report has its photos, km and fuel */
   checkinOk?: boolean | null;
+  /** r33 (0750): what the renter sees still to do, the same sentence as their Sign and pay card (sign-pay.ts) */
+  renterLeft?: string | null;
+  /** r33 (0750): the renter's step from the one rule: sign, drivers, pay */
+  renterStep?: string | null;
   /** what this person may do: false hides a button they could not use (staff without that function) */
   can?: Partial<Record<'offer' | 'money' | 'sign' | 'handover' | 'settle', boolean>>;
 }
@@ -52,7 +56,7 @@ export function essentials(x: NextStepInput): Essential[] | undefined {
   const depositDone = !(Number(x.depositCents ?? 0) > 0) || x.insurerBilled === true || HELD.has(String(x.depositStatus ?? ''));
   const out: Essential[] = [
     { key: 'licence', label: 'Driver\'s licence approved', done: x.licenceOk !== false },
-    { key: 'agreement', label: 'Rental agreement signed', done: x.status !== 'pending_payment' && !x.awaitingSignature },
+    { key: 'agreement', label: 'Rental agreement signed', done: x.status === 'pending_payment' ? x.renterStep === 'pay' : !x.awaitingSignature },
     { key: 'deposit', label: 'Deposit taken (or waived by an Admin)', done: depositDone },
     { key: 'checkout_photos', label: 'Check-out photos', done: x.status === 'on_rent' || x.checkoutPhotosOk === true }
   ];
@@ -93,8 +97,13 @@ function nextStepOnly(x: NextStepInput): NextStep {
       return { step: 'wait_offer', who: 'The renter', text: `Waiting for the renter to approve the offer${x.offerExpiresAt ? ` (open until ${when(x.offerExpiresAt)})` : ''}. Nothing to do unless they call: then use Renter approved by phone in More actions.` };
     case 'pending_payment': {
       const open = Math.max(0, Number(x.dueCents ?? 0) - Number(x.paidCents ?? 0));
+      // r33: the same thing the renter sees ("The renter sees: Two steps left: sign the rental agreement, then pay $X.")
+      const sees = x.renterLeft ? ` The renter sees: "${x.renterLeft}"` : '';
+      if (x.renterStep === 'sign' || x.renterStep === 'drivers') return { step: 'wait_payment', who: 'The renter',
+        text: `Booked: the renter approved the offer and still has to sign${open > 0 ? `, then pay ${money(open)}` : ''}.${sees} To sign in person, use Sign on this device.`,
+        ...btn('sign', 'Sign on this device', `${x.base}/sign-now`, 'next-step-sign') };
       return { step: 'wait_payment', who: 'The renter, or staff when they pay another way',
-        text: `Booked: the renter approved the offer. Payment due${open > 0 ? `: ${money(open)} open` : ''}. Record cash or e-Transfer, or send a pay link.`,
+        text: `Booked: the renter approved the offer${x.renterStep === 'pay' ? ' and signed' : ''}. Payment due${open > 0 ? `: ${money(open)} open` : ''}.${sees} Record cash or e-Transfer, or send a pay link.`,
         ...btn('money', 'Record a payment or send a pay link', `${x.base}?tab=money`, 'next-step-pay') };
     }
     case 'confirmed': {

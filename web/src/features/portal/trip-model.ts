@@ -72,7 +72,7 @@ export function moneyParts(m: MoneyInput): { parts: Part[]; paidCents: number; o
   if (refunded > 0) parts.push({ key: 'refunds', label: 'Refunded to you', cents: refunded, state: 'refunded' });
 
   // what is open: only what the renter can act on, each with where to do it
-  if (m.status === 'pending_payment' || m.link_due) parts.push({ key: 'owe-booking', label: 'Rental', cents: m.renter_due_at_booking_cents, state: 'owing', sub: m.signed ? 'pay' : 'sign', cta: m.signed ? 'Pay now' : 'Sign, then pay' });
+  if (m.status === 'pending_payment' || m.link_due) parts.push({ key: 'owe-booking', label: 'Rental', cents: m.renter_due_at_booking_cents, state: 'owing', sub: 'checkout', cta: m.signed ? 'Pay now' : 'Sign and pay' });
   for (const e of m.extensions) if (e.status === 'approved' && !e.paid_at && (e.total_cents ?? 0) > 0) parts.push({ key: `owe-ext-${e.id}`, label: 'Extension', cents: e.total_cents ?? 0, state: 'owing', sub: 'extend', cta: 'Pay for the extension' });
   const addonOpen = m.addons.filter((a) => a.after_booking && !a.paid && a.status === 'confirmed').reduce((s, a) => s + (a.amount_cents ?? 0) + (a.hst_cents ?? 0), 0);
   if (addonOpen > 0) parts.push({ key: 'owe-addons', label: 'Add-ons', cents: addonOpen, state: 'owing', sub: 'addons/pay', cta: 'Pay for your add-ons' });

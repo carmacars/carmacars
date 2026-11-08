@@ -10,6 +10,7 @@ import { CardTools, type CardRule } from './CardTools';
 import { depositAutoText, type DepositAuto } from './deposit-auto-text';
 import { DateInput } from '@/components/DateInput';
 import { depositNext, depositWord, isDeposit, paidTotals, rentalDue } from './money-panels';
+import { CHARGE_REASONS, reasonText, type ChargeReasons } from './charge-reasons';
 
 // The money of a booking (migration 0129; r29 C0: two panels, Rental charges and Security deposit, side by side on a
 // wide screen and stacked on a phone, with a strip of Rental due, Deposit status and Total paid; collecting one never
@@ -58,22 +59,36 @@ const cents = (s: string) => { const t = s.replace(/[$,\s]/g, ''); return t ? Ma
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
 export interface PanelLine { id: string; description: string | null; charge_type: string; stage?: string | null; amount_cents: number }
-const WORD_CLASS: Record<string, string> = { 'Not collected': 'ad-b--amber', Held: 'ad-b--light', Charged: 'ad-b--light', Released: 'ad-b--light', 'Partly kept': 'ad-b--amber', Waived: 'ad-b--light', 'No deposit': 'ad-b--light' };
+const WORD_CLASS: Record<string, string> = { 'Hold expired': 'ad-b--amber', 'Not collected': 'ad-b--amber', Held: 'ad-b--light', Charged: 'ad-b--light', Released: 'ad-b--light', 'Partly kept': 'ad-b--amber', Waived: 'ad-b--light', 'No deposit': 'ad-b--light' };
 
-export function BookingMoney({ m, lines = [], totalCents, waived = false, rentalExtras, depositExtras, depositSettle }: {
+/** The reason dropdown of a charge after the trip (r33, 0750): the list, and Other with its note (required). */
+function ReasonFields({ id, code, note, set }: { id: string; code: string; note: string; set: (code: string, note: string) => void }) {
+  return <>
+    <div className="field ad-field"><label className="label" htmlFor={`${id}-code`}>Reason (on the renter&apos;s receipt)</label>
+      <select className="select" id={`${id}-code`} value={code} onChange={(e) => set(e.target.value, note)} data-testid={`${id}-code`} required>
+        <option value="">Choose a reason</option>{CHARGE_REASONS.map(([c, l]) => <option key={c} value={c}>{l}</option>)}</select></div>
+    <div className="field ad-field ad-field--wide"><label className="label" htmlFor={`${id}-note`}>{code === 'other' ? 'What it is for (required)' : 'Note (optional)'}</label>
+      <input className="input" id={`${id}-note`} value={note} required={code === 'other'} onChange={(e) => set(code, e.target.value)} placeholder={code === 'other' ? 'Lost key fob' : 'A quarter tank, 407 ETR'} data-testid={`${id}-note`} /></div>
+  </>;
+}
+
+export function BookingMoney({ m, lines = [], totalCents, waived = false, rentalExtras, depositExtras, depositSettle, reasons = null }: {
   m: Money; lines?: PanelLine[]; totalCents?: number | null; waived?: boolean;
+  /** r33 (0750): the reason of each charge, and the card fee of a debit deposit */ reasons?: ChargeReasons | null;
   /** server-rendered pieces of each panel (fees, refunds, payments received another way; waive, debit cards, the settlement) */
   rentalExtras?: ReactNode; depositExtras?: ReactNode; depositSettle?: ReactNode;
 }) {
   const router = useRouter();
-  type Open = '' | 'rcollect' | 'later' | 'dcollect' | 'capture' | 'release';
+  type Open = '' | 'rcollect' | 'later' | 'dcollect' | 'capture' | 'release' | 'charge';
   const [open, setOpen] = useState<Open>('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string; at: 'rental' | 'deposit' } | null>(null);
   const [pending, run] = useTransition();
   const { due_cents: due, later_cents: later } = rentalDue(m.parts);
   const paid = paidTotals(m.payments);
   const dep = m.deposit;
-  const word = depositWord(dep, m.deposit_cents, waived);
+  // r33: a capture Stripe refused because the hold lapsed marks it expired at once (the page then reloads it so)
+  const [lapsedNow, setLapsedNow] = useState(false);
+  const word = lapsedNow && dep?.status === 'held' ? 'Hold expired' : depositWord(dep, m.deposit_cents, waived);
   const next = depositNext(word, m.status);
   const depAmount = dep && !['pending', 'failed'].includes(dep.status) ? dep.amount_cents : (m.debit_deposit?.takes && m.debit_deposit.cents ? m.debit_deposit.cents : m.deposit_cents);
   const openPart = (c: string) => (c === 'balance' ? due : m.parts.find((p) => p.covers === c)?.open_cents ?? 0);
@@ -81,11 +96,13 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
   const [rc, setRc] = useState({ how: (m.card && m.may.charge ? 'saved' : m.renter_has_mobile ? 'text' : 'device') as 'saved' | 'text' | 'email' | 'device' | 'record',
     covers: 'balance' as 'balance' | 'rental' | 'fees', method: m.rental_pay_method !== 'card' ? m.rental_pay_method : 'e_transfer', amount: '', reference: '', received_on: today(), note: '' });
   // a later charge (fuel, km, late return): the saved card or a payment received another way
-  const [lt, setLt] = useState({ how: (m.card && m.may.charge ? 'saved' : 'record') as 'saved' | 'record' | 'link' | 'device', amount: '', reason: '', method: 'e_transfer', reference: '' });
+  const [lt, setLt] = useState({ how: (m.card && m.may.charge ? 'saved' : 'record') as 'saved' | 'record' | 'link' | 'device', amount: '', code: '', note: '', method: 'e_transfer', reference: '' });
   // Collect $X deposit: a hold on the card on file, a hold link, a charge, or cash or e-Transfer
   const [dc, setDc] = useState({ how: (m.card && m.may.hold ? 'hold_saved' : m.renter_has_mobile ? 'hold_text' : 'hold_device') as 'hold_saved' | 'hold_text' | 'hold_email' | 'hold_device' | 'charge_saved' | 'record',
     method: 'cash', reference: '', received_on: today() });
-  const [cap, setCap] = useState({ amount: '', reason: '' });
+  const [cap, setCap] = useState({ amount: '', code: '', note: '' });
+  // r33 (owner, November 7): one "Charge the renter" after the return; the platform picks where the money comes from
+  const [ch, setCh] = useState({ amount: '', code: '', note: '' });
   const [rel, setRel] = useState('');
   const [ret, setRet] = useState<Record<string, string>>({});
   const done = (at: 'rental' | 'deposit', ok: boolean, text: string) => { setMsg({ ok, text, at }); if (ok) { setOpen(''); router.refresh(); } };
@@ -111,7 +128,7 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
   const history = (rows: Money['payments'], id: string, caption: string, empty: string) => (
     <Table testId={id} caption={caption} empty={empty} rows={rows as unknown as Array<Record<string, unknown>>} cols={[
       { key: 'when', label: 'When', render: (r) => when(String(r.processed_at ?? r.created_at)) },
-      { key: 'covers', label: 'For', render: (r) => `${PART[String(r.covers ?? '')] ?? words(PURPOSE, r.purpose)}${splitWords(r.parts as Money['payments'][number]['parts'])}${r.kind !== 'charge' ? ` (${words(KIND, r.kind)})` : ''}` },
+      { key: 'covers', label: 'For', render: (r) => `${PART[String(r.covers ?? '')] ?? words(PURPOSE, r.purpose)}${splitWords(r.parts as Money['payments'][number]['parts'])}${r.kind !== 'charge' ? ` (${words(KIND, r.kind)})` : ''}${reasonOf(String(r.id)) ? `: ${reasonOf(String(r.id))}` : ''}${feeOf(String(r.id)) ? ` (includes a non-refundable card processing fee for a debit deposit of ${fmt(feeOf(String(r.id)))})` : ''}` },
       { key: 'method', label: 'By', render: (r) => `${METHOD[String(r.method)] ?? String(r.method)}${r.card_last4 ? ` ${String(r.card_last4)}` : ''}` },
       { key: 'amount_cents', label: 'Amount', num: true, render: (r) => fmt(Number(r.amount_cents)) },
       { key: 'status', label: 'Status', render: (r) => (r.voided ? 'Voided' : words(STATUS, r.status)) },
@@ -146,15 +163,58 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
   });
   const chargeLater = () => run(async () => {
     const amount = cents(lt.amount);
-    if (lt.how === 'saved') { const r = await chargeSavedCard({ booking: m.booking_number, amount_cents: amount, reason: lt.reason, covers: 'later' }); done('rental', r.ok && r.data.ok, r.ok ? (r.data.ok ? 'Charged. The renter has the receipt by email.' : `Declined: ${r.data.message}`) : r.message); return; }
+    const reason = reasonText(lt.code, lt.note);
+    if (!reason) { done('rental', false, lt.code === 'other' ? 'Other: say what the charge is for.' : 'Choose the reason.'); return; }
+    const code = { reason_code: lt.code, reason_note: lt.note.trim() };
+    if (lt.how === 'saved') { const r = await chargeSavedCard({ booking: m.booking_number, amount_cents: amount, reason, covers: 'later', ...code }); done('rental', r.ok && r.data.ok, r.ok ? (r.data.ok ? 'Charged. The renter has the receipt by email.' : r.data.message ?? 'Not charged.') : r.message); return; }
     if (lt.how === 'link' || lt.how === 'device') {
-      const r = await startCardRequest({ booking: m.booking_number, kind: 'charge', covers: 'later', amount_cents: amount, reason: lt.reason, channel: lt.how === 'device' ? 'device' : m.renter_has_mobile ? 'text' : 'email' });
+      const r = await startCardRequest({ booking: m.booking_number, kind: 'charge', covers: 'later', amount_cents: amount, reason, channel: lt.how === 'device' ? 'device' : m.renter_has_mobile ? 'text' : 'email' });
       if (r.ok && lt.how === 'device') { router.push(r.data.url); return; }
       done('rental', r.ok && !!r.data.sent?.ok, r.ok ? (r.data.sent?.ok ? 'Payment link sent.' : `Not sent: ${r.data.sent?.reason ?? 'no answer'}`) : r.message); return;
     }
-    const r = await offersDo('record_booking_payment', { booking: m.booking_number, covers: 'later', method: lt.method, amount_cents: amount, reference: lt.reference, received_on: today(), note: lt.reason });
+    const r = await offersDo('record_booking_payment', { booking: m.booking_number, covers: 'later', method: lt.method, amount_cents: amount, reference: lt.reference, received_on: today(), note: reason, ...code });
     done('rental', r.ok, r.ok ? 'Recorded.' : r.message);
   });
+  // the hold expired: the card on file instead, the amount and the reason carried over
+  const chargeInstead = (amount: string, code: string, note: string) => { setLt({ ...lt, how: m.card && m.may.charge ? 'saved' : m.may.collect ? 'link' : 'record', amount, code, note }); setOpen('later'); };
+  // Charge the renter: keep from the hold while it is valid (and covers it), else the card on file, else a pay link
+  const holdLeft = dep && dep.method === 'card_hold' && dep.status === 'held' && word !== 'Hold expired' ? dep.amount_cents : 0;
+  const chAmount = cents(ch.amount) ?? 0;
+  const source: 'hold' | 'card' | 'link' | 'record' | null = chAmount <= 0 ? null
+    : holdLeft >= chAmount && m.may.hold ? 'hold' : m.card && m.may.charge ? 'card' : m.may.collect ? 'link' : m.may.record ? 'record' : null;
+  const sourceLine = !source ? (chAmount > 0 ? 'You cannot charge this booking: ask Finance or an Admin.' : 'Enter the amount: the line below says where it comes from.')
+    : source === 'hold' ? `It is kept from the deposit hold (${fmt(holdLeft)} held). ${chAmount < holdLeft ? `The rest of the hold (${fmt(holdLeft - chAmount)}) is released at the same time.` : 'That uses the whole hold.'}`
+    : source === 'card' ? `It is charged to the card on file (${m.card!.brand} ending ${m.card!.last4})${holdLeft > 0 ? ': more than the deposit hold covers, so the hold stays as it is' : word === 'Hold expired' ? ': the deposit hold has expired' : ''}. The renter gets the receipt by email.`
+    : source === 'link' ? `No card on file: a pay link goes to the renter by ${m.renter_has_mobile ? 'text' : 'email'}.`
+    : 'No card and no pay link: record it once the renter pays another way.';
+  const chargeRenter = () => run(async () => {
+    const reason = reasonText(ch.code, ch.note);
+    if (!reason) { done('rental', false, ch.code === 'other' ? 'Other: say what the charge is for.' : 'Choose the reason.'); return; }
+    if (!source || chAmount <= 0) { done('rental', false, sourceLine); return; }
+    const code = { reason_code: ch.code, reason_note: ch.note.trim() };
+    if (source === 'hold') {
+      const r = await holdAction({ booking: m.booking_number, action: 'capture', amount_cents: chAmount, reason, ...code });
+      if (r.ok && !r.data.ok && r.data.lapsed && m.card && m.may.charge) {
+        // the hold lapsed meanwhile: the card on file at once, the same amount and reason
+        setLapsedNow(true);
+        const c = await chargeSavedCard({ booking: m.booking_number, amount_cents: chAmount, reason, covers: 'later', ...code });
+        done('rental', c.ok && c.data.ok, c.ok ? (c.data.ok ? `The deposit hold had expired, so ${fmt(chAmount)} was charged to the card on file instead. The renter has the receipt by email.` : c.data.message ?? 'Not charged.') : c.message);
+        return;
+      }
+      if (r.ok && r.data.lapsed) setLapsedNow(true);
+      done('rental', r.ok && r.data.ok, r.ok ? (r.data.ok ? `${fmt(chAmount)} kept from the deposit hold${chAmount < holdLeft ? '; the rest is released' : ''}. The renter has the receipt.` : r.data.message ?? 'Not kept.') : r.message);
+      return;
+    }
+    if (source === 'card') { const r = await chargeSavedCard({ booking: m.booking_number, amount_cents: chAmount, reason, covers: 'later', ...code }); done('rental', r.ok && r.data.ok, r.ok ? (r.data.ok ? 'Charged to the card on file. The renter has the receipt by email.' : r.data.message ?? 'Not charged.') : r.message); return; }
+    if (source === 'link') {
+      const r = await startCardRequest({ booking: m.booking_number, kind: 'charge', covers: 'later', amount_cents: chAmount, reason, channel: m.renter_has_mobile ? 'text' : 'email' });
+      done('rental', r.ok && !!r.data.sent?.ok, r.ok ? (r.data.sent?.ok ? `Pay link for ${fmt(chAmount)} sent${r.data.sent.to ? ` to ${r.data.sent.to}` : ''}.` : `Not sent: ${r.data.sent?.reason ?? 'no answer'}`) : r.message); return;
+    }
+    setLt({ ...lt, how: 'record', amount: ch.amount, code: ch.code, note: ch.note }); setOpen('later');
+  });
+  const afterReturn = ['returned', 'closed'].includes(m.status);
+  const reasonOf = (id: string) => { const x = reasons?.reasons.find((r) => r.payment_id === id); return x ? `${x.label}${x.note ? `: ${x.note}` : ''}` : null; };
+  const feeOf = (id: string) => reasons?.fees.find((f) => f.payment_id === id)?.fee_cents ?? 0;
   // the deposit: a hold on the card on file, a hold link, a charge as the deposit, or cash or e-Transfer (never the rental)
   const collectDeposit = () => run(async () => {
     if (dc.how === 'hold_saved') { const r = await holdSavedCard({ booking: m.booking_number }); done('deposit', r.ok && r.data.ok, r.ok ? (r.data.ok ? `Deposit of ${fmt(r.data.amount_cents)} held on the card on file.` : r.data.message ?? 'Not held.') : r.message); return; }
@@ -191,7 +251,8 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
           </dl>
           <div className="ad-actions">
             {due > 0 && (m.may.record || m.may.collect || m.may.charge) && <button className="btn btn--primary btn--sm" type="button" aria-expanded={open === 'rcollect'} onClick={() => toggle('rcollect')} data-testid="bm-rental-collect">Collect {fmt(due)} rental</button>}
-            {(m.may.charge || m.may.record) && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'later'} onClick={() => toggle('later')} data-testid="bm-later-open">A later charge</button>}
+            {afterReturn && (m.may.charge || m.may.record || m.may.collect || m.may.hold) && <button className="btn btn--primary btn--sm" type="button" aria-expanded={open === 'charge'} onClick={() => toggle('charge')} data-testid="bm-charge-open">Charge the renter</button>}
+            {!afterReturn && (m.may.charge || m.may.record) && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'later'} onClick={() => toggle('later')} data-testid="bm-later-open">A later charge</button>}
             {m.may.collect && <button className="btn btn--quiet btn--sm" type="button" disabled={pending} data-testid="bm-save-card" onClick={() => run(async () => {
               const r = await startCardRequest({ booking: m.booking_number, kind: 'setup', reason: 'Card on file', channel: 'device' }); if (r.ok) router.push(r.data.url); else done('rental', false, r.message); })}>Save a card</button>}
           </div>
@@ -219,13 +280,22 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
               <p className="hint">{m.moto ? 'Typing a card the renter reads out (phone order) is on: use On this device.' : 'Staff never type a card number: the renter types it in Stripe\'s form.'} The deposit is not touched.</p>
               <button className="btn btn--primary btn--sm" type="submit" disabled={pending} data-testid="bm-rcollect-go">{pending ? 'Working' : rc.how === 'saved' ? 'Charge the rental' : rc.how === 'record' ? 'Record the rental payment' : rc.how === 'device' ? 'Open the card form' : 'Send the rental link'}</button>
             </form>)}
+          {open === 'charge' && (
+            <form className="ad-form ad-form--narrow" aria-label="Charge the renter" data-testid="bm-charge" onSubmit={(e) => { e.preventDefault(); chargeRenter(); }}>
+              <div className="ad-fields">
+                <ReasonFields id="bm-ch" code={ch.code} note={ch.note} set={(code, note) => setCh({ ...ch, code, note })} />
+                <div className="field ad-field"><label className="label" htmlFor="bm-ch-amount">Amount ($)</label><input className="input" id="bm-ch-amount" inputMode="decimal" required value={ch.amount} onChange={(e) => setCh({ ...ch, amount: e.target.value })} data-testid="bm-ch-amount" /></div>
+              </div>
+              <p className="ad-tie" role="status" data-testid="bm-ch-source"><b>{sourceLine}</b></p>
+              <button className="btn btn--primary btn--sm" type="submit" disabled={pending || !source} data-testid="bm-ch-go">{pending ? 'Working' : chAmount > 0 ? `Charge ${fmt(chAmount)}` : 'Charge'}</button>
+            </form>)}
           {open === 'later' && (
             <form className="ad-form ad-form--narrow" aria-label="A later charge" data-testid="bm-later" onSubmit={(e) => { e.preventDefault(); chargeLater(); }}>
               <div className="ad-fields">
                 {channelFields('bm-lhow', lt.how, (v) => setLt({ ...lt, how: v as typeof lt.how }), [
                   ...(m.card && m.may.charge ? [['saved', 'Charge the card on file'] as [string, string]] : []), ...(m.may.collect ? [['link', 'Send a payment link'], ['device', 'On this device: hand it to the renter']] as Array<[string, string]> : []), ...(m.may.record ? [['record', 'Received another way (record it)'] as [string, string]] : [])])}
                 <div className="field ad-field"><label className="label" htmlFor="bm-lamount">Amount ($)</label><input className="input" id="bm-lamount" inputMode="decimal" value={lt.amount} onChange={(e) => setLt({ ...lt, amount: e.target.value })} placeholder={(later / 100).toFixed(2)} data-testid="bm-lamount" /></div>
-                <div className="field ad-field ad-field--wide"><label className="label" htmlFor="bm-lreason">Reason (on the renter&apos;s receipt)</label><input className="input" id="bm-lreason" value={lt.reason} onChange={(e) => setLt({ ...lt, reason: e.target.value })} placeholder="Extra km, fuel, damage, late return" data-testid="bm-lreason" /></div>
+                <ReasonFields id="bm-lreason" code={lt.code} note={lt.note} set={(code, note) => setLt({ ...lt, code, note })} />
                 {lt.how === 'record' && <><div className="field ad-field"><label className="label" htmlFor="bm-lmethod">Paid by</label><select className="select" id="bm-lmethod" value={lt.method} onChange={(e) => setLt({ ...lt, method: e.target.value })}>{['e_transfer', 'cash', 'cheque', 'bank_transfer', 'insurer', 'other'].map((x) => <option key={x} value={x}>{METHOD[x]}</option>)}</select></div>
                   <div className="field ad-field"><label className="label" htmlFor="bm-lref">Reference</label><input className="input" id="bm-lref" value={lt.reference} onChange={(e) => setLt({ ...lt, reference: e.target.value })} /></div></>}
               </div>
@@ -248,20 +318,23 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
           <dl className="pt-dl pt-dl--money">
             <div><dt>Amount</dt><dd data-testid="bm-deposit">{fmt(depAmount)}</dd></div>
             <div><dt>Method</dt><dd>{depMethod}</dd></div>
-            {dep?.method === 'card_hold' && dep.status === 'held' && dep.hold_expires_at && <div><dt>Hold expires</dt><dd>{when(dep.hold_expires_at)}{dep.hold_days_left !== null ? ` (${dep.hold_days_left} day${dep.hold_days_left === 1 ? '' : 's'} left)` : ''}</dd></div>}
+            {dep?.method === 'card_hold' && dep.status === 'held' && dep.hold_expires_at && word !== 'Hold expired' && <div><dt>Hold expires</dt><dd>{when(dep.hold_expires_at)}{dep.hold_days_left !== null ? ` (${dep.hold_days_left} day${dep.hold_days_left === 1 ? '' : 's'} left)` : ''}</dd></div>}
             {!!dep?.captured_cents && <div><dt>Kept</dt><dd>{fmt(dep.captured_cents)}</dd></div>}
             {!!dep?.released_cents && <div><dt>Released</dt><dd>{fmt(dep.released_cents)}</dd></div>}
           </dl>
           <div className="ad-actions">
             {next === 'collect' && (m.may.collect || m.may.hold || m.may.record) && <button className="btn btn--primary btn--sm" type="button" aria-expanded={open === 'dcollect'} onClick={() => toggle('dcollect')} data-testid="bm-deposit-collect">Collect {fmt(depAmount)} deposit</button>}
-            {next === 'held' && m.may.hold && <>
-              <button className="btn btn--primary btn--sm" type="button" aria-expanded={open === 'release'} onClick={() => toggle('release')} data-testid="bm-release">Release</button>
-              <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'capture'} onClick={() => toggle('capture')} data-testid="bm-capture-open">Keep part (damage/fees)</button>
+            {next === 'expired' && <>
+              <p className="small" data-testid="bm-hold-expired">The card hold expired{dep?.hold_expires_at ? ` ${when(dep.hold_expires_at)}` : ''}: nothing is held on the card any more, so nothing can be kept from it.</p>
+              {(m.may.charge || m.may.collect || m.may.record) && <button className="btn btn--primary btn--sm" type="button" onClick={() => chargeInstead(cap.amount, cap.code, cap.note)} data-testid="bm-charge-instead">Charge the card on file instead</button>}</>}
+            {(next === 'held' || (afterReturn && word === 'Held')) && m.may.hold && <>
+              <button className={`btn ${afterReturn ? 'btn--ghost' : 'btn--primary'} btn--sm`} type="button" aria-expanded={open === 'release'} onClick={() => toggle('release')} data-testid="bm-release">Release</button>
+              {!afterReturn && <button className="btn btn--ghost btn--sm" type="button" aria-expanded={open === 'capture'} onClick={() => toggle('capture')} data-testid="bm-capture-open">Keep part (damage/fees)</button>}
               {m.card && <button className="btn btn--quiet btn--sm" type="button" disabled={pending} data-testid="bm-reauth" onClick={() => run(async () => {
                 const r = await reauthorizeHold({ booking: m.booking_number });
                 done('deposit', r.ok && r.data.ok, r.ok ? (r.data.ok ? `Re-authorized on the saved card${r.data.hold_expires_at ? `: held until ${when(r.data.hold_expires_at)}` : ''}. The old hold is released.` : r.data.message ?? 'Not re-authorized.') : r.message);
               })}>Re-authorize the hold</button>}</>}
-            {(next === 'settle' || (['returned', 'closed'].includes(m.status) && !['Released', 'Partly kept', 'Waived', 'No deposit'].includes(word))) && depositSettle}
+            {(next === 'settle' || (['returned', 'closed'].includes(m.status) && !['Released', 'Partly kept', 'Waived', 'No deposit', 'Hold expired'].includes(word))) && depositSettle}
           </div>
           {open === 'dcollect' && (
             <form className="ad-form ad-form--narrow" aria-label="Collect the deposit" data-testid="bm-dcollect" onSubmit={(e) => { e.preventDefault(); collectDeposit(); }}>
@@ -281,12 +354,16 @@ export function BookingMoney({ m, lines = [], totalCents, waived = false, rental
             </form>)}
           {open === 'capture' && dep && (
             <form className="ad-form ad-form--narrow" aria-label="Keep part of the deposit" data-testid="bm-capture" onSubmit={(e) => { e.preventDefault(); run(async () => {
-              const r = await holdAction({ booking: m.booking_number, action: 'capture', amount_cents: cents(cap.amount), reason: cap.reason });
+              const reason = reasonText(cap.code, cap.note);
+              if (!reason) { done('deposit', false, cap.code === 'other' ? 'Other: say what is kept for.' : 'Choose the reason.'); return; }
+              const r = await holdAction({ booking: m.booking_number, action: 'capture', amount_cents: cents(cap.amount), reason, reason_code: cap.code, reason_note: cap.note.trim() });
+              // the hold expired: marked so, Keep and Release hidden, and the card on file offered with the amount and reason
+              if (r.ok && r.data.lapsed) { setLapsedNow(true); setOpen(''); setMsg({ ok: false, text: r.data.message ?? 'The card hold has expired.', at: 'deposit' }); return; }
               done('deposit', r.ok && r.data.ok, r.ok ? (r.data.ok ? (cents(cap.amount) !== null && cents(cap.amount)! < dep.amount_cents ? 'Kept; the rest of the hold is released.' : 'Kept.') : r.data.message ?? 'Not kept.') : r.message);
             }); }}>
               <div className="ad-fields">
                 <div className="field ad-field"><label className="label" htmlFor="bm-kamount">Amount to keep ($, up to {fmt(dep.amount_cents)})</label><input className="input" id="bm-kamount" inputMode="decimal" value={cap.amount} onChange={(e) => setCap({ ...cap, amount: e.target.value })} placeholder={(dep.amount_cents / 100).toFixed(2)} /></div>
-                <div className="field ad-field"><label className="label" htmlFor="bm-kreason">Reason (damage, tolls, fees)</label><input className="input" id="bm-kreason" value={cap.reason} onChange={(e) => setCap({ ...cap, reason: e.target.value })} /></div>
+                <ReasonFields id="bm-kreason" code={cap.code} note={cap.note} set={(code, note) => setCap({ ...cap, code, note })} />
               </div>
               <button className="btn btn--primary btn--sm" type="submit" disabled={pending}>Keep it</button>
             </form>)}
