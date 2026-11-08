@@ -26,7 +26,9 @@ function writeDismissed(d: Record<string, number>) {
   try { window.localStorage.setItem(KEY, JSON.stringify(d)); } catch { /* private window: closing lasts for this page */ }
 }
 
-export function CallerPopup({ portal }: { portal: Portal }) {
+// quiet (r34): an Admin viewing a portal as someone (read only) sees the same empty region, and nothing is read: the live
+// read is the Admin's own, refused while viewing
+export function CallerPopup({ portal, quiet = false }: { portal: Portal; quiet?: boolean }) {
   const [calls, setCalls] = useState<LiveCall[]>([]);
   const [dismissed, setDismissed] = useState<Record<string, number>>(readDismissed);
   const stopped = useRef(false);
@@ -36,17 +38,18 @@ export function CallerPopup({ portal }: { portal: Portal }) {
     catch (e) { if (e instanceof Error && /Admins and customer service|Sign in|Unknown read/.test(e.message)) stopped.current = true; }
   }, []);
   useEffect(() => {
+    if (quiet) return;
     const first = setTimeout(() => void load(), 0);
     const due = poller(CALLER_POLL_MS);
     const t = setInterval(() => { if (due()) void load(); }, CALLER_POLL_MS);
     return () => { clearTimeout(first); clearInterval(t); };
-  }, [load]);
+  }, [load, quiet]);
   const close = (id: string) => setDismissed((d) => { const n = { ...d, [id]: Date.now() }; writeDismissed(n); return n; });
   const shown = visibleCalls(calls, dismissed);
   return (
-    <div className="cp" aria-live="polite" data-testid="caller-popup-region">
+    <div className="cpop" aria-live="polite" data-testid="caller-popup-region">
       {shown.length > 0 && (
-        <section className="cp-panel" aria-label="Who is calling" data-testid="caller-popup">
+        <section className="cpop-panel" aria-label="Who is calling" data-testid="caller-popup">
           {shown.map((c) => <CallCard key={c.id} c={c} portal={portal} onClose={() => close(c.id)} />)}
         </section>)}
     </div>
@@ -56,14 +59,14 @@ export function CallerPopup({ portal }: { portal: Portal }) {
 function CallCard({ c, portal, onClose }: { c: LiveCall; portal: Portal; onClose: () => void }) {
   const r = c.renter;
   return (
-    <article className={`cp-card${c.live ? ' is-live' : ''}`} data-testid="caller-card" data-kind={c.kind}>
-      <header className="cp-head">
+    <article className={`cpop-card${c.live ? ' is-live' : ''}`} data-testid="caller-card" data-kind={c.kind}>
+      <header className="cpop-head">
         <div>
-          <p className="small cp-state"><span className="cp-dot" aria-hidden="true" />{callState(c)} · <span suppressHydrationWarning>{clock(c.at)}</span></p>
-          <h2 className="cp-title" data-testid="caller-name">{callerTitle(c)}</h2>
+          <p className="small cpop-state"><span className="cpop-dot" aria-hidden="true" />{callState(c)} · <span suppressHydrationWarning>{clock(c.at)}</span></p>
+          <h2 className="cpop-title" data-testid="caller-name">{callerTitle(c)}</h2>
           <p className="small muted">{c.display}{c.kind !== 'unknown' && c.kind !== 'renter' ? ` · ${KIND_WORDS[c.kind]}` : ''}{r?.is_blocked ? ' · Blocked' : ''}</p>
         </div>
-        <button type="button" className="cp-x" aria-label={`Close the call from ${callerTitle(c)}`} onClick={onClose} data-testid="caller-close">×</button>
+        <button type="button" className="cpop-x" aria-label={`Close the call from ${callerTitle(c)}`} onClick={onClose} data-testid="caller-close">×</button>
       </header>
       {r ? <RenterBody c={c} portal={portal} /> : c.kind === 'unknown' ? <Unknown c={c} portal={portal} /> : null}
     </article>
@@ -82,17 +85,17 @@ function RenterBody({ c, portal }: { c: LiveCall; portal: Portal }) {
     try { await phoneDo('caller_open', { call_id: c.id }); router.push(href); } catch (x) { setErr(x instanceof Error ? x.message : 'Could not open the record'); }
   };
   return (
-    <div className="cp-body">
-      <dl className="cp-kv">
+    <div className="cpop-body">
+      <dl className="cpop-kv">
         <div><dt>Booking</dt><dd data-testid="caller-booking">{r.booking ? <Link prefetch={false} className="link" href={bookingHref(portal, r.booking.number)}>{bookingWords(r)}</Link> : bookingWords(r)}</dd></div>
-        <div><dt>Balance</dt><dd data-testid="caller-balance" className={r.balance.overdue ? 'cp-warn' : undefined}>{balanceWords(r.balance)}</dd></div>
+        <div><dt>Balance</dt><dd data-testid="caller-balance" className={r.balance.overdue ? 'cpop-warn' : undefined}>{balanceWords(r.balance)}</dd></div>
         <div><dt>Deposit</dt><dd data-testid="caller-deposit">{depositWords(r.deposit)}</dd></div>
         <div><dt>Waiting on</dt><dd data-testid="caller-requests">{r.requests.length ? (
-          <ul className="cp-reqs">{r.requests.slice(0, 4).map((q, i) => <li key={i}>{q.label}{q.booking_number ? ` (${q.booking_number})` : ''}</li>)}</ul>) : 'Nothing open'}</dd></div>
+          <ul className="cpop-reqs">{r.requests.slice(0, 4).map((q, i) => <li key={i}>{q.label}{q.booking_number ? ` (${q.booking_number})` : ''}</li>)}</ul>) : 'Nothing open'}</dd></div>
       </dl>
       <RenterNotes key={c.id} renterId={r.id} initial={r.notes} total={r.notes_count} callId={c.id} compact />
-      <p className="cp-foot"><Link prefetch={false} className="btn btn--ghost btn--sm" href={href} onClick={(e) => void open(e)} data-testid="caller-open">Open the renter&apos;s page</Link>
-        {err && <span className="small cp-warn" role="alert">{err}</span>}</p>
+      <p className="cpop-foot"><Link prefetch={false} className="btn btn--ghost btn--sm" href={href} onClick={(e) => void open(e)} data-testid="caller-open">Open the renter&apos;s page</Link>
+        {err && <span className="small cpop-warn" role="alert">{err}</span>}</p>
     </div>
   );
 }
@@ -106,12 +109,12 @@ function Unknown({ c, portal }: { c: LiveCall; portal: Portal }) {
     catch (x) { setErr(x instanceof Error ? x.message : 'Not created. Try again.'); setState('idle'); }
   };
   return (
-    <div className="cp-body">
+    <div className="cpop-body">
       <p className="small">This number is not matched to a renter, owner or lead.</p>
-      <p className="cp-foot">{state === 'done'
+      <p className="cpop-foot">{state === 'done'
         ? <span role="status" className="small">Lead created. <Link prefetch={false} className="link" href={portal === 'admin' ? '/admin/visitors?view=chat&inbox=phone' : '/staff/visitors?view=chat&inbox=phone'}>Open the conversation</Link></span>
         : <button type="button" className="btn btn--primary btn--sm" onClick={() => void create()} disabled={state === 'busy'} data-testid="caller-create-lead">{state === 'busy' ? 'Creating' : 'Create lead'}</button>}
-        {err && <span className="small cp-warn" role="alert">{err}</span>}</p>
+        {err && <span className="small cpop-warn" role="alert">{err}</span>}</p>
     </div>
   );
 }
