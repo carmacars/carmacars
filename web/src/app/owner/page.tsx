@@ -11,6 +11,8 @@ import { ApplicationTask, type AppTask } from '@/features/owner/ApplicationTask'
 import { amountText, carThisMonth, nextPayout, upcoming, viewOf } from '@/features/owner/insights';
 import { OwnerMonths } from '@/features/owner/OwnerMonths';
 import { PageHeader } from '@/features/portal/Chrome';
+import { OnboardingChecklist } from '@/features/onboarding/OnboardingChecklist';
+import { onboardingData } from '@/server/onboarding';
 import { FleetLeaseCard } from '@/features/owner/FleetLeaseCard';
 import { ActionTiles, PortalHero, Sparkline, StatCard, Timeline, TimelineItem, type ActionTileItem } from '@/components/portal-ui';
 
@@ -33,6 +35,9 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
   // 0067: an updated Vehicle Schedule to sign comes first; cars set up by staff can be reviewed and corrected before signing
   const changes = ((await rpc('server_owner_schedule_changes', { p_by: user.id }, { role: 'service_role' }).catch(() => [])) ?? []) as unknown as Array<{ change_id: string; vehicle_name: string; effective_from: string }>;
   const [view, mtd] = await Promise.all([ownerView(user, home), ownerMonthToDate(user)]);
+  // r34: the one Onboarding checklist, while a car is onboarding
+  const onboarding = home.kind !== 'partner' && home.vehicles.some((v) => v.checklist && v.onboarding_status !== 'enrolled')
+    ? (await onboardingData(user.id, 'ops_read', { owner_id: home.owner.id })).overview : null;
   const due = home.invoices.filter((i) => i.payable);
   const pending = home.invoices.filter((i) => i.pending && i.status !== 'paid');
   const partner = home.kind === 'partner' ? home.partner ?? null : null;
@@ -144,6 +149,7 @@ export default async function OwnerHomePage({ searchParams }: { searchParams: Pr
         <OwnerMonths months={months} />
       </div>
       {pending.length > 0 && <section className="stack" aria-labelledby="ow-open"><div className="row" style={{ justifyContent: 'space-between' }}><h2 className="pt-section-title" id="ow-open">Invoices being paid</h2><Link prefetch={false} className="link small" href="/owner/money?tab=invoices">All invoices</Link></div><InvoiceRows items={pending.slice(0, 3)} /></section>}
+      {onboarding && onboarding.cars.length > 0 && <OnboardingChecklist data={onboarding} />}
       <section className="stack" aria-labelledby="ow-cars">
         <div className="row" style={{ justifyContent: 'space-between' }}><h2 className="pt-section-title" id="ow-cars">Your cars ({home.vehicles.length})</h2>{!partner && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/list-your-car/apply">Add a vehicle</Link>}</div>
         <ul className="ow-cars">{home.vehicles.slice(0, 4).map((v) => <VehicleCard key={v.vehicle_id} v={v} compact trackers={home.trackers_available} photo={photo[v.vehicle_id]} live={live[v.vehicle_id]} month={carThisMonth(months, v.vehicle_id)} next={nextOf(v.vehicle_id)} />)}</ul>

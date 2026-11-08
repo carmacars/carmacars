@@ -1,0 +1,59 @@
+import Link from '@/components/Link';
+import './onboarding.css';
+import { MakeAgain } from './MakeAgain';
+import type { Viewer } from './steps';
+
+// The government (ServiceOntario) registration forms of an owner's cars, or of one car (r34, 0822): each form the car
+// needs, filled in by itself from the records, with its status, what it still misses, when it was made and its
+// download. An Admin can make a car's forms again. In the owner portal (Documents), on the owner page and on the car
+// page of Admin and staff.
+export interface GovForm { id: string; form_code: string; title: string | null; status: string; mode: string; missing: string[]; generated_at: string; official: boolean; by: string; signed_document_id: string | null }
+export interface GovCar { vehicle_id: string; name: string; plate: string | null; due: boolean; turo_only: boolean; method: string | null; needed: string[]; forms: GovForm[] }
+export interface GovData { owner_id: string; admin: boolean; cars: GovCar[] }
+
+const STATUS: Record<string, string> = { draft: 'Something is missing', ready: 'Ready to print', printed: 'Printed', signed: 'Signed in ink', filed: 'Filed at the registry' };
+const when = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+
+export function formHref(viewer: Viewer, f: Pick<GovForm, 'id' | 'official'>): string {
+  if (viewer === 'owner') return f.official ? `/owner/documents/forms/${f.id}/official` : `/owner/documents/forms/${f.id}`;
+  const base = viewer === 'admin' ? '/admin' : '/staff';
+  return f.official ? `${base}/government-forms/${f.id}` : `${base}/government-forms/${f.id}/sheet`;
+}
+
+export function GovernmentForms({ data, viewer, refresh, title = 'Government forms', only }: { data: GovData | null; viewer: Viewer; refresh: string[]; title?: string; only?: string }) {
+  if (!data) return null;
+  const cars = data.cars.filter((c) => !only || c.vehicle_id === only);
+  return (
+    <section className="pt-card stack" id="gov-forms" aria-labelledby="gov-forms-h" data-testid="government-forms">
+      <h2 className="d4" id="gov-forms-h">{title}</h2>
+      <p className="small muted">The ServiceOntario registration forms each car needs, filled in by themselves from {viewer === 'owner' ? 'your' : 'the owner\'s'} application and the car as soon as the terms are approved, and again whenever a value changes. Print them and sign them in ink; the fees are paid to ServiceOntario directly.</p>
+      {cars.length === 0 && <p className="small muted">No car yet.</p>}
+      {cars.map((c) => (
+        <div key={c.vehicle_id} className="stack" data-testid="government-forms-car" data-vehicle={c.vehicle_id}>
+          {!only && <h3 className="d5">{c.name}{c.plate ? <span className="small muted"> {c.plate}</span> : null}</h3>}
+          {c.turo_only ? <p className="small muted">Turo-Only: no registry form is needed.</p>
+            : !c.due ? <p className="small muted" data-testid="government-forms-later">Made by themselves once the terms are approved.</p>
+            : c.needed.length === 0 ? <p className="small muted" data-testid="government-forms-none">No registry form is needed for this method{c.method === 'transfer' ? ': the ownership is transferred on the back of the permit' : ''}.</p>
+            : (
+              <div className="table-scroll" tabIndex={0} role="region" aria-label={`Government forms of the ${c.name}`}>
+                <table className="ad-table ad-table--dense ob-forms">
+                  <thead><tr><th scope="col">Form</th><th scope="col">Status</th><th scope="col">Made</th><th scope="col"><span className="vh">Download</span></th></tr></thead>
+                  <tbody>{c.needed.map((code) => {
+                    const f = c.forms.find((x) => x.form_code === code);
+                    return (
+                      <tr key={code} data-testid="government-form" data-code={code}>
+                        <th scope="row"><b>{code}</b>{f?.title ? <><br /><span className="small">{f.title.replace(code, '').replace(/^[\s:,-]+/, '')}</span></> : null}</th>
+                        <td>{f ? <><span className={`badge ${f.status === 'draft' ? 'badge--red' : 'badge--outline'}`} data-testid="government-form-status">{STATUS[f.status] ?? f.status}</span>
+                          {f.missing.length > 0 && <><br /><span className="small">Missing: {f.missing.join(', ')}</span></>}</> : <span className="small muted">Not made yet</span>}</td>
+                        <td className="small" data-testid="government-form-made">{f ? <>{when(f.generated_at)}<br /><span className="muted">{f.by === 'automatic' ? 'by itself' : `by ${f.by}`}</span></> : ''}</td>
+                        <td>{f && <Link prefetch={false} className="btn btn--ghost btn--sm" href={formHref(viewer, f)} data-testid="government-form-download">{f.official ? 'Official form' : 'Data sheet (PDF)'}</Link>}</td>
+                      </tr>);
+                  })}</tbody>
+                </table>
+              </div>)}
+          {data.admin && viewer === 'admin' && c.due && !c.turo_only && c.needed.length > 0 && <MakeAgain vehicleId={c.vehicle_id} name={c.name} refresh={refresh} />}
+        </div>
+      ))}
+    </section>
+  );
+}

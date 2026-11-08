@@ -13,7 +13,7 @@ import { InviteRecordButton, PasswordLinkButton } from '@/features/admin/Account
 import { ViewAsButton } from '@/features/admin/ViewAs';
 import { adminOwner, requireAdmin } from '@/server/admin/data';
 import { adminRead } from '@/server/admin/api';
-import { $, Badge, Card, Table, t as at } from '@/features/admin/ui';
+import { $, Card, Table, t as at } from '@/features/admin/ui';
 import { PhoneTimeline } from '@/features/phone/PhoneTimeline';
 import type { PhoneTimelineData } from '@/features/phone/client';
 import Link from '@/components/Link';
@@ -31,6 +31,11 @@ import { FleetLease, type FleetLeaseData } from '@/features/owner-agreements/Fle
 import { NameChangeCard } from '@/features/admin/NameChangeCard';
 import { nameChangesFor } from '@/server/self-profile';
 import { AgreementsChecklist, type AgreementOwner } from '@/features/owner-agreements/AgreementsChecklist';
+import { OnboardingChecklist } from '@/features/onboarding/OnboardingChecklist';
+import { OnboardingPhotos } from '@/features/onboarding/OnboardingPhotos';
+import { GovernmentForms } from '@/features/onboarding/GovernmentForms';
+import { VinList } from '@/features/onboarding/VinList';
+import { onboardingData } from '@/server/onboarding';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Owner', path: '/admin/owners', noindex: true, description: 'An owner application.' });
@@ -99,10 +104,7 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
     const list = await door<InvoiceListData>(user.id, 'ops_read', 'owner_invoices_admin', { owner_id: id });
     return <>{head}<InvoiceList data={list} owner={false} newHref={`/admin/invoices/new?owner=${id}`} testId="owner-invoice-list" /></>;
   }
-  const [rec, witnessed] = await Promise.all([
-    adminRead<{ documents: Array<Record<string, unknown>>; statements: Array<Record<string, unknown>>; payouts: Array<Record<string, unknown>>; deductions: Array<Record<string, unknown>> }>(user.id, 'owner_records', { id }),
-    // Forms C and D signed with witnesses (migration 0040)
-    adminRead<Array<{ code: string; vehicle_name: string | null; title: string; status: string; reject_reason: string | null; uploaded_at: string | null }>>(user.id, 'owner_witnessed_forms', { owner: id }).catch(() => [])]);
+  const rec = await adminRead<{ documents: Array<Record<string, unknown>>; statements: Array<Record<string, unknown>>; payouts: Array<Record<string, unknown>>; deductions: Array<Record<string, unknown>> }>(user.id, 'owner_records', { id });
   // what is paid and signed, the paper signatures and the payments recorded by hand (migration 0044)
   const cosigners = await door<CosignerRow[]>(user.id, 'ops_read', 'owner_cosigners', { owner_id: id }).catch(() => [] as CosignerRow[]);
   const calls = await door<PhoneTimelineData>(user.id, 'admin_read', 'phone_timeline', { owner_id: id }).catch(() => null);
@@ -112,12 +114,15 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
     door<PaperRow[]>(user.id, 'ops_read', 'paper_signatures', { owner: id }).catch(() => [] as PaperRow[]),
     Promise.all(d.invoices.filter((i) => (i.manual ?? []).length > 0).map(async (i) => [i.id, await door<ManualRow[]>(user.id, 'ops_read', 'manual_payments', { invoice: i.id }).catch(() => [] as ManualRow[])] as const)).then((x) => new Map(x))]);
   const here = [`/admin/owners/${id}`];
+  // r34: the one Onboarding checklist, the onboarding photos and the government forms (0821 to 0823)
+  const ob = await onboardingData(user.id, 'ops_read', { owner_id: id });
   const o = d.owner;
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Toronto', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const issuable = d.vehicles.filter((v) => !v.upfront_invoice && ISSUABLE.includes(v.onboarding.status) && v.schedule && ['managed', 'self_managed'].includes(v.billing_case)).length;
   return (
     <>
       {head}
+      <OnboardingChecklist data={ob.overview} />
       {carTerms && <CarTermsTable data={carTerms} paths={here} />}
       <div className="pt-split">
         <div className="stack-lg">
@@ -153,6 +158,10 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
               {v.upfront_invoice && <p className="small">Upfront invoice <a href={`#inv-${v.upfront_invoice.invoice_number}`}>{v.upfront_invoice.invoice_number}</a>: {money(v.upfront_invoice.total_cents, { cents: true })}, {invoiceStatus({ status: v.upfront_invoice.status, pending: false }).label.toLowerCase()}.</p>}
             </section>
           ))}
+          <OnboardingPhotos photos={ob.photos} ownerId={id} viewer="admin" refresh={here} cars={d.vehicles.map((v) => ({ vehicle_id: v.vehicle_id, name: v.name }))} />
+          <GovernmentForms data={ob.forms} viewer="admin" refresh={here} />
+          {!(o as { onboarding_route?: string | null }).onboarding_route?.startsWith('fleet') && <details className="pt-card" id="add-vins"><summary className="link">Add cars from a list of VINs</summary>
+            <VinList ownerId={id} viewer="admin" refresh={here} /></details>}
           {checklist && (
             <section className="pt-card stack" id="checklist" aria-labelledby="ad-ck"><h2 className="d4" id="ad-ck">Paid and signed</h2>
               <p className="small">Everything this owner signs and pays to get their cars on the road, and how each was done. A payment received by e-Transfer, cheque, cash or bank transfer, or an official ServiceOntario form signed in ink, is recorded here and counts everywhere. Every agreement is signed in the owner portal (no paper signature).</p>
@@ -176,26 +185,24 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
         </div>
         <aside className="pt-split__aside stack-lg">
           <ReachCard reach={reach} who={{ owner_id: id }} />
-          <section className="pt-card" aria-labelledby="ad-up"><h2 className="d4" id="ad-up">Upfront invoices</h2>
+          <section className="pt-card" id="ad-up" aria-labelledby="ad-up-h"><h2 className="d4" id="ad-up-h">Upfront invoices</h2>
             <p className="small">The first and last month amount agreed on each car&apos;s terms, with HST, one invoice per vehicle whose terms are set. For other amounts or to choose what is sent, use the Invoices tab. The Tracker Install Fee is a separate invoice, issued per vehicle when trackers arrive{d.trackers_available ? '' : ' (trackers are not available yet)'}. Registry costs are never billed.</p>
             <IssueInvoices ownerId={o.id} count={issuable} />
           </section>
           <section className="pt-card" aria-labelledby="ad-owner"><h2 className="d4" id="ad-owner">Owner</h2>
-            <Dl rows={[['Address', [o.address_line1, o.city, o.province, o.postal_code].filter(Boolean).join(', ')], ['Corporation', o.corporation_name ? `${String(o.corporation_name)}, no. ${String(o.corporation_number ?? '')}` : ''], ['HST number', String(o.hst_number ?? '')], ['Licence', o.private?.licence_number ? `${o.private.licence_number} (${o.private.licence_province ?? 'ON'})` : ''], ['Date of birth', o.private?.date_of_birth ?? ''], ['Sign-in', o.user_email ?? 'No account'], ['Agreements', `Enrollment ${d.signing.enrollment ?? 'not prepared'}, title ${d.signing.title_holding ?? 'not prepared'}`], ['Still missing', o.missing.join(', ')]]} />
+            <Dl rows={[['Address', [o.address_line1, o.city, o.province, o.postal_code].filter(Boolean).join(', ')], ['Corporation', o.corporation_name ? `${String(o.corporation_name)}, no. ${String(o.corporation_number ?? '')}` : ''], ['HST number', String(o.hst_number ?? '')], ['Licence', o.private?.licence_number ? `${o.private.licence_number} (${o.private.licence_province ?? 'ON'})` : ''], ['Date of birth', o.private?.date_of_birth ?? ''], ['Sign-in', o.user_email ?? 'No account'], ['Agreements', `Enrollment ${d.signing.enrollment ?? 'not prepared'}, title ${d.signing.title_holding ?? 'not prepared'}`]]} />
           </section>
           <Card title="Owners in the Title Schedule" testId="owner-cosigners-card">
             <Cosigners ownerId={id} ownerName={o.legal_name} rows={cosigners} locked={d.signing.enrollment === 'signed'} /></Card>
           <Card title="Statements and payouts"><Table rows={rec.statements} empty="No statements." cols={[{ key: 'statement_month', label: 'Month', render: (r) => <Link prefetch={false} className="link" href={`/admin/statements/${String(r.id)}`}>{monthOf(String(r.statement_month))}</Link> }, { key: 'status', label: 'Status' }, { key: 'payout_cents', label: 'Payout', num: true, render: (r) => $(r.payout_cents) }]} />
             <Table rows={rec.payouts} empty="No payouts." cols={[{ key: 'kind', label: 'Payout' }, { key: 'amount_cents', label: 'Amount', num: true, render: (r) => $(r.amount_cents) }, { key: 'status', label: 'Status' }]} /></Card>
-          <Card title="Forms C and D" aside={<Link prefetch={false} className="link small" href="/admin/owner-forms">Review queue</Link>}>
-            <Table rows={witnessed} testId="owner-witnessed" empty="No witnessed form is needed yet." cols={[{ key: 'title', label: 'Form', render: (r) => <>{String(r.title)}{r.vehicle_name ? <><br /><span className="small">{String(r.vehicle_name)}</span></> : null}</> }, { key: 'status', label: 'Status', render: (r) => <Badge s={String(r.status)} /> }, { key: 'reject_reason', label: 'Note', className: 'wrap' }, { key: 'uploaded_at', label: 'Uploaded', render: (r) => at(r.uploaded_at) }]} /></Card>
           <Card title="Calls and texts" testId="owner-calls"><PhoneTimeline t={calls} inbox="/admin/visitors?view=chat" /></Card>
           <Card title="Documents"><Table rows={rec.documents} empty="No documents." cols={[{ key: 'title', label: 'Document' }, { key: 'kind', label: 'Kind' }, { key: 'created_at', label: 'Added', render: (r) => at(r.created_at) }]} /></Card>
           <section className="pt-card stack" aria-labelledby="ad-signin"><h2 className="d4" id="ad-signin">Owner portal sign-in</h2>
             {o.user_id ? <><p className="small">Signs in as <b>{o.user_email ?? o.email}</b>.</p>
               <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--s-2)' }}><ViewAsButton user={String(o.user_id)} portal="owner" testId="view-as-owner" /><PasswordLinkButton userId={String(o.user_id)} /></div></>
               : <><p className="small muted">No sign-in yet.</p><InviteRecordButton role="owner" recordId={o.id} email={o.email} name={o.legal_name} testId="invite-owner" /></>}</section>
-          <section className="pt-card" aria-labelledby="ad-link"><h2 className="d4" id="ad-link">Send the owner a link</h2><SendLinkForm kind="portal" email={o.email ?? ''} name={o.legal_name} /></section>
+          <section className="pt-card" id="send-link" aria-labelledby="ad-link"><h2 className="d4" id="ad-link">Send the owner a link</h2><SendLinkForm kind="portal" email={o.email ?? ''} name={o.legal_name} /></section>
         </aside>
       </div>
     </>

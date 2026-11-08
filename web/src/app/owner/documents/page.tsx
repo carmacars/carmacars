@@ -39,7 +39,7 @@ export default async function OwnerDocuments() {
               meta={f.signed_at ? <span>{day(f.signed_at)}</span> : <span>Signed on this screen</span>}
               status={<span className={`badge ${f.status === 'signed' ? 'badge--outline' : 'badge--red'}`} data-testid="screen-form-status">{f.status === 'signed' ? `Signed ${f.method === 'paper' ? 'on paper' : 'on screen'}` : 'To sign'}</span>} />))}
           </DocumentList></section>}
-        {witnessed.length > 0 && <section className="stack" aria-labelledby="ow-wit"><h2 className="pt-section-title" id="ow-wit">Forms to sign with witnesses</h2>
+        {witnessed.length > 0 && <section className="stack" id="ow-wit" aria-labelledby="ow-wit-h"><h2 className="pt-section-title" id="ow-wit-h">Forms to sign with witnesses</h2>
           <p className="small muted">Form D of your Title Agreement is signed on screen with two witnesses beside you, and Form C with one, on the same device. {witnessed.every((f) => f.status === 'approved') ? 'All approved.' : `${witnessed.filter((f) => f.status !== 'approved').length} still to finish.`}</p>
           <WitnessedForms forms={witnessed} />
         </section>}
@@ -53,12 +53,13 @@ export default async function OwnerDocuments() {
         </section>
         </div>
         <aside className="pt-split__aside">
-          <section className="pt-card" aria-labelledby="ow-forms"><h2 className="d4" id="ow-forms">Government forms</h2>
+          <section className="pt-card" id="ow-forms" aria-labelledby="ow-forms-h"><h2 className="d4" id="ow-forms-h">Government forms</h2>
+            <p className="small">The ServiceOntario registration forms of each car, filled in by themselves from your application once its terms are approved, and again when a value changes.</p>
             {forms.length ? <DocumentList testId="owner-gov-forms" label="Government forms">{forms.map((f) => (
               <DocumentRow key={f.id} external href={f.official ? `/owner/documents/forms/${f.id}/official` : `/owner/documents/forms/${f.id}`} badge="FORM" title={f.form_code}
-                meta={<><span>{f.official ? (f.status === 'signed' || f.status === 'filed' ? 'Official form, signed' : 'Official form, filled for you') : f.has_pdf ? 'Pre-filled PDF' : 'Data sheet'}</span><span>{f.vehicle_name}</span>{f.missing.length > 0 && <span>Missing: {f.missing.join(', ')}</span>}</>} />))}
+                meta={<><span>{f.official ? (f.status === 'signed' || f.status === 'filed' ? 'Official form, signed' : 'Official form, filled for you') : f.has_pdf ? 'Pre-filled PDF' : 'Data sheet'}</span><span>{f.vehicle_name}</span><span data-testid="owner-gov-form-made">Made {day(f.generated_at)}</span>{f.missing.length > 0 && <span>Missing: {f.missing.join(', ')}</span>}</>} />))}
             </DocumentList>
-              : <p className="small muted">Prepared for each vehicle once its onboarding method is set.</p>}
+              : <p className="small muted">Made by themselves for each car once its terms are approved.</p>}
             <p className="small muted">You pay ServiceOntario, the inspection station and the appraiser directly. CarmaCars does not collect these amounts.</p>
           </section>
         </aside>

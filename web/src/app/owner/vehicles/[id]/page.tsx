@@ -4,7 +4,7 @@ import { pageMeta } from '@/features/seo/meta';
 import { money, pct } from '@/lib/format';
 import { when } from '@/features/agreement/model';
 import { Back, Dl } from '@/features/portal/Blocks';
-import { CarPhoto, Checklist, day, InvoiceRows, OwnerBookingRow } from '@/features/owner/Blocks';
+import { CarPhoto, day, InvoiceRows, OwnerBookingRow } from '@/features/owner/Blocks';
 import { ExitNoticeForm } from '@/features/owner/OwnerForms';
 import { OwnerUpload } from '@/features/owner/OwnerUpload';
 import { MODE_LABEL, ONBOARDING_STATUS, TRACKER_LATER } from '@/features/owner/types';
@@ -22,6 +22,9 @@ import { rpc } from '@/lib/db/repo';
 import { OwnerTermsHistory } from '@/features/owner-billing/OwnerTerms';
 import type { CarTermsData } from '@/features/owner-billing/terms-shared';
 import { OwnerHandoffs } from '@/features/handover/OwnerHandoffs';
+import { OnboardingChecklist } from '@/features/onboarding/OnboardingChecklist';
+import { OnboardingPhotos } from '@/features/onboarding/OnboardingPhotos';
+import { onboardingData } from '@/server/onboarding';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Vehicle', path: '/owner/vehicles', noindex: true, description: 'One of your vehicles: status, fees, bookings and leaving.' });
@@ -50,6 +53,8 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
   // the car's terms over time and the notices (0135)
   // 0710: a fleet supplier's car: its lease (tier, a month, next payment), the ownership copy only, no fees or invoices
   const fleetCar = home.fleet_supplier ? home.fleet_lease?.cars.find((c) => c.vehicle_id === id) ?? null : null;
+  // r34: the one Onboarding checklist and the car's onboarding photos (replace or remove one)
+  const ob = v.checklist ? await onboardingData(user.id, 'ops_read', { owner_id: home.owner.id, vehicle_id: id }) : null;
   const terms = fleetCar ? null : ((await rpc('server_owner_car_terms', { p_by: user.id }, { role: 'service_role' }).catch(() => null)) as unknown as CarTermsData | null)?.cars.find((c) => c.vehicle_id === id) ?? null;
   return (
     <>
@@ -63,19 +68,19 @@ export default async function OwnerVehicle({ params }: { params: Promise<{ id: s
       </header>
       <div className="pt-split">
         <div className="stack-lg">
-          {v.checklist && <section className="pt-card" aria-labelledby="ow-check"><h2 className="d4" id="ow-check">Onboarding</h2>
-            {v.next && <p className="ow-car__next"><b>{v.next.item}</b>{v.next.action && <span>{v.next.action}</span>}</p>}
-            <Checklist items={v.checklist} trackers={home.trackers_available} intake={v.onboarding_status === 'intake'} />
-            {v.status === 'onboarding' && (
+          {v.checklist && ob && <OnboardingChecklist data={ob.overview} only={id} title="Onboarding" />}
+          {v.checklist && v.status === 'onboarding' && (
+            <section className="pt-card stack" aria-labelledby="ow-up"><h2 className="d4" id="ow-up">Add photos</h2>
               <div className="pt-uploads">
                 <OwnerUpload vehicleId={id} kind="ownership_permit" title="Ownership permit" hint="Both sides, flat and readable. Photos or a PDF." done={v.checklist.some((c) => c.code === 'documents' && c.status === 'done')} />
                 {!home.fleet_supplier && <>
                 <OwnerUpload vehicleId={id} kind="finance_party_permission" title="Lender or lessor permission" hint="If your vehicle is financed or leased: their written permission." done={false} />
                 <OwnerUpload vehicleId={id} kind="owner_insurance_proof" title="Your insurance" hint="Your current insurance card. Keep your insurance until we confirm in writing." done={false} /></>}
               </div>
-            )}
-            {v.estimate_cents !== null && !home.fleet_supplier && <p className="small muted">Registry and inspection estimate: about {money(v.estimate_cents)}, which you pay directly to ServiceOntario and the inspection station, not to CarmaCars. Amounts may vary.</p>}
-          </section>}
+              {v.estimate_cents !== null && !home.fleet_supplier && <p className="small muted">Registry and inspection estimate: about {money(v.estimate_cents)}, which you pay directly to ServiceOntario and the inspection station, not to CarmaCars. Amounts may vary.</p>}
+            </section>
+          )}
+          {ob && (ob.photos.length > 0 || v.status === 'onboarding') && <OnboardingPhotos photos={ob.photos} ownerId={home.owner.id} viewer="owner" refresh={[`/owner/vehicles/${id}`]} only={id} title="Your onboarding photos" />}
           {listable && !current?.open && <section className="pt-card" aria-labelledby="ow-list"><h2 className="d4" id="ow-list">Listing photos</h2>
             <p className="small">{v.listing_path ? 'Your car is on the website. New photos replace the current ones once our team approves them.' : 'Take the photos for the website: 13 set angles and the odometer. We write the details, edit the backgrounds and publish the car after a review.'}</p>
             <StartListing vehicleId={id} label={v.listing_path ? 'Take new photos' : 'Add listing photos'} />

@@ -40,7 +40,8 @@ export default async function OwnerCars({ searchParams }: { searchParams: Promis
     );
   }
   const tab = tabOf(OWNER_CARS_TABS, sp.tab);
-  const add = home.kind !== 'partner' ? <Link prefetch={false} className="btn btn--primary btn--sm" href="/list-your-car/apply">Add a vehicle</Link> : undefined;
+  const add = home.kind !== 'partner' ? <span className="row" style={{ gap: 'var(--s-2)', flexWrap: 'wrap' }}><Link prefetch={false} className="btn btn--primary btn--sm" href="/list-your-car/apply">Add a vehicle</Link>
+    {!home.fleet_supplier && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/owner/vehicles/add" data-testid="owner-add-cars">Add cars from a VIN list</Link>}</span> : undefined;
   if (tab.key === 'bookings') {
     return (
       <>
