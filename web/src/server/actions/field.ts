@@ -40,7 +40,8 @@ export async function fieldAct<T = Record<string, unknown>>(action: typeof ACTIO
 }
 
 /** Clock in or out (0165, My hours): the database checks the person is field staff and the shift's rules; its refusal is shown as written. */
-export async function fieldClock<T = Record<string, unknown>>(what: 'in' | 'out', note: string | null): Promise<R<T>> {
+export interface ClockLoc { lat: number; lng: number; accuracy: number; located_at: string }
+export async function fieldClock<T = Record<string, unknown>>(what: 'in' | 'out', note: string | null, loc: ClockLoc | null = null, reason: string | null = null): Promise<R<T>> {
   try {
     const user = await currentUser();
     if (!user) throw new Error('Sign in first.');
@@ -48,7 +49,7 @@ export async function fieldClock<T = Record<string, unknown>>(what: 'in' | 'out'
     if (!roles.field) throw new Error('Only field staff clock in and out.');
     const aal = await sessionAal();
     if (roles.two_step_required && aal !== 'aal2') throw new Error('Two-step sign-in is required.');
-    const data = await door<T>(user.id, 'ops_do', what === 'in' ? 'field_clock_in' : 'field_clock_out', { note: note?.trim() || null }, aal);
+    const data = await door<T>(user.id, 'ops_do', what === 'in' ? 'field_clock_in' : 'field_clock_out', { note: note?.trim() || null, ...(loc ? { lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy, located_at: loc.located_at } : {}), location_reason: reason?.trim() || null }, aal);
     revalidatePath('/staff/field/hours');
     revalidatePath('/staff/field');
     revalidatePath('/staff/field-hours');

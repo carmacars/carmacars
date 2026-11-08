@@ -1,6 +1,8 @@
 import { pageMeta } from '@/features/seo/meta';
 import { vaPage } from '@/server/va';
-import { door } from '@/server/door';
+import { redirect } from 'next/navigation';
+import { door, rolesOf } from '@/server/door';
+import { currentUser } from '@/server/portal/data';
 import { FieldJobsBoard, type Board } from '@/features/va/FieldJobs';
 import type { CalVehicle } from '@/features/va/carboard';
 import { requestNow } from '@/features/va/lanes';
@@ -13,6 +15,9 @@ export const metadata = pageMeta({ title: 'Field jobs', path: '/staff/fleet', no
 // times and place, given to the least busy field staff member who passed the academy and holds a shift that day (0880).
 // The board is the one shared with the Admin's page (features/va/FieldJobs.tsx).
 export default async function Fleet() {
+  // an Admin account is only an Admin (0882): it opens the same board in the Admin portal, with every action
+  const me = await currentUser();
+  if (me && (await rolesOf(me.id)).admin) redirect('/admin/field-jobs');
   const { user, aal, read } = await vaPage('/staff/fleet', ['fleet']);
   const now = requestNow();
   const [b, cal] = await Promise.all([door<Board>(user.id, 'ops_read', 'field_board', {}, aal),

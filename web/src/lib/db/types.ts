@@ -7020,6 +7020,7 @@ export type Database = {
           reshoot_shots: string[] | null;
           auto_at: string | null;
           auto_place: string | null;
+          work_day: string | null;
         };
         Insert: {
           id?: string;
@@ -7050,6 +7051,7 @@ export type Database = {
           reshoot_shots?: string[] | null;
           auto_at?: string | null;
           auto_place?: string | null;
+          work_day?: string | null;
         };
         Update: {
           id?: string;
@@ -7080,6 +7082,7 @@ export type Database = {
           reshoot_shots?: string[] | null;
           auto_at?: string | null;
           auto_place?: string | null;
+          work_day?: string | null;
         };
         Relationships: [];
       };
@@ -7251,6 +7254,87 @@ export type Database = {
         };
         Relationships: [];
       };
+      field_shift_plans: {
+        Row: {
+          id: string;
+          slot_id: string;
+          staff_id: string;
+          starts_at: string;
+          ends_at: string;
+          note: string | null;
+          created_by: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slot_id: string;
+          staff_id: string;
+          starts_at: string;
+          ends_at: string;
+          note?: string | null;
+          created_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          slot_id?: string;
+          staff_id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          note?: string | null;
+          created_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      field_shift_slots: {
+        Row: {
+          id: string;
+          starts_at: string;
+          ends_at: string;
+          capacity: number;
+          note: string | null;
+          created_by: string | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          starts_at: string;
+          ends_at: string;
+          capacity?: number;
+          note?: string | null;
+          created_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          capacity?: number;
+          note?: string | null;
+          created_by?: string | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       field_shifts: {
         Row: {
           id: string;
@@ -7265,6 +7349,20 @@ export type Database = {
           voided_by: string | null;
           created_at: string;
           updated_at: string;
+          in_lat: number | null;
+          in_lng: number | null;
+          in_accuracy_m: number | null;
+          in_located_at: string | null;
+          in_distance_m: number | null;
+          in_flag: string | null;
+          in_reason: string | null;
+          out_lat: number | null;
+          out_lng: number | null;
+          out_accuracy_m: number | null;
+          out_located_at: string | null;
+          out_distance_m: number | null;
+          out_flag: string | null;
+          out_reason: string | null;
         };
         Insert: {
           id?: string;
@@ -7279,6 +7377,20 @@ export type Database = {
           voided_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          in_lat?: number | null;
+          in_lng?: number | null;
+          in_accuracy_m?: number | null;
+          in_located_at?: string | null;
+          in_distance_m?: number | null;
+          in_flag?: string | null;
+          in_reason?: string | null;
+          out_lat?: number | null;
+          out_lng?: number | null;
+          out_accuracy_m?: number | null;
+          out_located_at?: string | null;
+          out_distance_m?: number | null;
+          out_flag?: string | null;
+          out_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -7293,6 +7405,20 @@ export type Database = {
           voided_by?: string | null;
           created_at?: string;
           updated_at?: string;
+          in_lat?: number | null;
+          in_lng?: number | null;
+          in_accuracy_m?: number | null;
+          in_located_at?: string | null;
+          in_distance_m?: number | null;
+          in_flag?: string | null;
+          in_reason?: string | null;
+          out_lat?: number | null;
+          out_lng?: number | null;
+          out_accuracy_m?: number | null;
+          out_located_at?: string | null;
+          out_distance_m?: number | null;
+          out_flag?: string | null;
+          out_reason?: string | null;
         };
         Relationships: [];
       };

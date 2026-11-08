@@ -32,6 +32,7 @@ export function FieldJobsBoard({ b, cal, now, photos, base }: { b: Board; cal: C
     <div className="fj-board">
       <PageHead title="Field jobs" kicker={`${b.unscheduled.length} without a job · ${b.jobs.filter((j) => !j.assigned_to).length} unassigned`} purpose="Today's handovers, returns and moves by the clock, every car's state now, then every job of the next three days. Where every car is: Fleet map." />
       <p className="small muted" data-testid="fleet-auto-note">Handover and return jobs are made from each confirmed booking, at its times and place. They are given automatically only to field staff who passed the academy and hold a shift that day, and work lands only on days with shifts. Change the time, the place or the person below.</p>
+      {base === '/admin' && <p className="small" data-testid="admin-field-portal">Jobs given to you open on the <Link prefetch={false} className="link" href="/staff/field">field portal</Link>. You do not need a Fleet role: an Admin has every action here.</p>}
       {b.no_shift_days.length > 0 && (
         <div className="alert alert--warn" role="status" data-testid="no-shift-days">
           <p><b>{b.no_shift_days.length === 1 ? 'One handover or return falls' : `${b.no_shift_days.length} handovers and returns fall`} on a day with no shifts.</b> Someone must cover {b.no_shift_days.length === 1 ? 'it' : 'them'}, or the booking time must move.</p>
