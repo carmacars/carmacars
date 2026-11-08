@@ -38,7 +38,9 @@ type Line = { id: string; charge_type: string; description: string | null; amoun
 type Priced = { booking_number: string; billable_days: number; hst_bps?: number; rate_applied: string | null; rental_charge_cents: number; deposit_cents: number; hst_at_booking_cents: number;
   total_due_at_booking_cents: number; renter_due_at_booking_cents: number | null; km_allowance_total: number | null; overage_cents_per_km: number; pickup_place: string | null; return_place: string | null;
   rate_sheet_rental_cents: number | null; price_flags: string[]; lines: Line[]; vehicle: { name: string } | null; pickup_at: string; return_at: string };
-type Sent = { booking_number: string; version: number; total_cents: number; due_cents: number; expires_at: string; renter_existing: boolean; notified: boolean; text?: { ok: boolean; to?: string; reason?: string } | null; price_flags?: string[] };
+type Sent = { booking_number: string; version: number; total_cents: number; due_cents: number; expires_at: string; renter_existing: boolean; notified: boolean; text?: { ok: boolean; to?: string; reason?: string } | null; price_flags?: string[];
+  /** 0770: Book it now: approved at once (an Admin) or waiting for an Admin (staff) */
+  book_now?: { status: 'approved' | 'requested' | 'already' } | null };
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const local = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -101,6 +103,8 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     setTaxMode(draft.data.tax_mode ?? (draft.data.f?.price_tax === 'included' ? 'after' : 'before'));
   }, [draft, setTaxMode]);
   const [problem, setProblem] = useState<string | null>(null);
+  // 0770: Book it now (no renter approval): an Admin's offer is approved at once; staff's waits for an Admin
+  const [bookNow, setBookNow] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [sent, setSent] = useState<Sent | null>(null);
   const [pending, run] = useTransition();
@@ -243,7 +247,7 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
     const m = missingNow();
     if (m.length) { setErr(`Still needed: ${m.join(', ')}.`); return; }
     const o = ownerChoicePayload(ownerChoice, owner);
-    const r = await offersDo<Sent & { booking_id: string }>('offer_create', draft ? { ...payload, ...o, draft: true } : { ...payload, ...o }, [`${base}/bookings`]);
+    const r = await offersDo<Sent & { booking_id: string }>('offer_create', draft ? { ...payload, ...o, draft: true } : { ...payload, ...o, ...(bookNow ? { book_now: true } : {}) }, [`${base}/bookings`]);
     if (!r.ok) { setErr(r.message); return; }
     if (draftId) void draftClose(draftId, 'done');
     if (draft) { router.push(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`, scrollOption(`${base}/bookings/${encodeURIComponent(r.data.booking_number)}?tab=review`)); return; }
@@ -252,7 +256,9 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
 
   if (sent) return (
     <section className="pt-card stack" aria-labelledby="oc-sent" data-testid="offer-sent">
-      <h2 className="d3" id="oc-sent">Offer {sent.booking_number} sent</h2>
+      <h2 className="d3" id="oc-sent">{sent.book_now?.status === 'approved' ? `Booking ${sent.booking_number} booked` : `Offer ${sent.booking_number} sent`}</h2>
+      {sent.book_now?.status === 'approved' && <p className="alert alert--ok" role="status" data-testid="oc-booked-now"><span>Booked without the renter&apos;s approval: the car is held and the booking waits for payment. The renter gets one link to sign and pay; or open the booking to have them sign and pay on this device (Sign now on this device, Take the card).</span></p>}
+      {sent.book_now?.status === 'requested' && <p className="alert alert--warn" role="status" data-testid="oc-book-now-asked"><span>Book it now is waiting for an Admin: once they approve, the booking waits for payment and the renter gets the Sign and pay link. Until then the offer is out as usual.</span></p>}
       <p>{sent.notified ? `The renter has the link${offerChannels(f).email ? ' by email' : ''}${offerChannels(f).email && offerChannels(f).text ? ' and' : ''}${offerChannels(f).text ? ' by text' : ''}.` : 'Not sent to the renter: tell them yourself, or press Send again later from the booking.'}
         {' '}Total {fmt(sent.total_cents)}, open until {when(sent.expires_at)}. The car is reserved once they approve, sign{f.rental_pay === 'card' ? ' and pay' : ' and you record the payment'}.</p>
       {sent.text && !sent.text.ok && <p className="alert alert--warn" role="status"><span>The text was not sent: {sent.text.reason}</span></p>}
@@ -520,6 +526,8 @@ export function OfferComposer({ base, initialCar = null, draft = null, owner = n
             {owner?.may && <OwnerChoice d={owner} value={ownerChoice} onChange={setOwnerChoice} testPrefix="oc" />}
             <div className="field"><label className="label" htmlFor="oc-note">Internal note (staff only)</label>
               <textarea className="input ad-textarea" id="oc-note" value={f.note} onChange={(e) => set('note')(e.target.value)} /></div></>)}
+          <div className="field" data-testid="oc-book-now-field"><label className="check" htmlFor="oc-book-now"><input id="oc-book-now" type="checkbox" checked={bookNow} onChange={(e) => setBookNow(e.target.checked)} data-testid="oc-book-now" /> <span>Book it now (no renter approval)</span></label>
+            <p className="hint">{admin ? 'The offer becomes the booking at once: the car is held, and the renter gets one link to sign and pay (or signs and pays on this device).' : 'An Admin approves it in one tap; then the booking waits for payment and the renter gets the link to sign and pay.'}</p></div>
           <p className={`oc-ready${missingList.length ? ' is-missing' : ' is-ready'}`} role="status" aria-live="polite" data-testid="oc-ready">{missingList.length ? <>Missing: {missingList.map((m) => m.short).join(', ')}</> : <>Ready to send</>}</p>
           {err && <p className="alert alert--error" role="alert" data-testid="oc-error"><span>{err}</span></p>}
           {pickupPassed(f.pickup_at) && <p className="alert alert--error" role="alert" data-testid="oc-pickup-passed"><span>{PICKUP_PASSED}</span></p>}

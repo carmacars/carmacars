@@ -136,6 +136,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
   const [choice, setChoice] = useState<Choice>('');
   const [problem, setProblem] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  // 0770: Book it now (no renter approval): an Admin's offer is approved at once; staff's waits for an Admin
+  const [bookNow, setBookNow] = useState(false);
   const [pending, run] = useTransition();
   const [opts, setOpts] = useState<Opt[]>([]);
   // add-ons (0066): staff add, remove and confirm them here; the price below follows
@@ -347,10 +349,14 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
     if (action === 'send_offer') {
       if (needChoice && !choice && va) { setProblem('Choose "I sourced this client" or "Entered for CarmaCars".'); return; }
       body.message = v.message; body.expires_at = expiresAt(); body.expected_version = shownVersion(b); if (needChoice && choice) body.sales_choice = choice;
+      if (bookNow) body.book_now = true;
     }
     const r = await adminAct(action, body, va ? [] : [`/admin/bookings/${b.booking_number}`, '/admin/requests']);
     if (!r.ok) { setProblem(r.message); return; }
-    setDone(action === 'send_offer' ? 'Offer sent. The renter has it by email and in their account.' : 'Saved.');
+    const bn = action === 'send_offer' ? (r.data as { book_now?: { status?: string } } | null)?.book_now?.status : undefined;
+    setDone(bn === 'approved' ? 'Booked without the renter\'s approval: the car is held and the booking waits for payment. The renter has one link to sign and pay; or have them sign and pay on this device.'
+      : bn === 'requested' ? 'Offer sent. Book it now waits for an Admin\'s approval.'
+      : action === 'send_offer' ? 'Offer sent. The renter has it by email and in their account.' : 'Saved.');
     router.refresh();
   });
 
@@ -489,6 +495,8 @@ export function BookingReview({ b, insurers, kmChoices, offerHours, editable, in
                 {[...new Set([6, 12, 24, 48, 72, offerHours])].filter((h) => !va || h <= 48).sort((a, z) => a - z).map((h) => <option key={h} value={h}>{h} hours</option>)}</select></div>
             {needChoice && <SourcedChoice id="rv" value={choice} onChange={setChoice} optional={!va} />}
             {!needChoice && <p className="small muted" data-testid="review-choice">{b.sales_claim_by ? 'Someone said they sourced this client: an Admin decides.' : b.sales_choice === 'sourced' ? 'Marked "I sourced this client".' : 'Entered for CarmaCars.'}</p>}
+            <div className="field ad-field" data-testid="review-book-now-field"><label className="check" htmlFor="rv-book-now"><input id="rv-book-now" type="checkbox" checked={bookNow} onChange={(e) => setBookNow(e.target.checked)} data-testid="review-book-now" /> <span>Book it now (no renter approval)</span></label>
+              <p className="hint">{va ? 'An Admin approves it in one tap; then the booking waits for payment and the renter gets the link to sign and pay.' : 'The offer becomes the booking at once: the car is held, and the renter gets one link to sign and pay (or signs and pays on this device).'}</p></div>
             {pickupPassed(String(v.pickup_at ?? '')) && <p className="alert alert--error" role="alert" data-testid="review-pickup-passed"><span>{PICKUP_PASSED}</span></p>}
             <button className="btn btn--primary" type="submit" disabled={pending || pickupPassed(String(v.pickup_at ?? ''))} data-testid="review-send">{pending ? 'Sending' : dirty ? 'Save and send the offer' : 'Send the offer'}</button>
           </form>

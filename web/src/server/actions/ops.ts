@@ -5,6 +5,7 @@ import type { ActionResult } from '@/features/forms/schemas';
 import { currentUser } from '@/server/portal/data';
 import { door, sessionAal } from '@/server/door';
 import { payments } from '@/integrations/payments';
+import { bookNowAgreement } from '@/server/book-now';
 
 // The money screens of migration 0032 (through the door's ops calls): issue an approved refund through the
 // payments module, the guided Deposit settlement, a notice on a toll, the insurer invoice email. The
@@ -46,6 +47,9 @@ export async function opsAct<T = Record<string, unknown>>(action: string, p: Rec
       ? (await issueRefund(user.id, aal, String(p.id ?? ''))) as unknown as T
       : await door<T>(user.id, 'ops_do', action, p, aal);
     for (const x of refresh) revalidatePath(x);
+    // 0770: an offer booked now (an Admin approved staff's Book it now): its agreement now, and the renter's Sign and pay link
+    if (action === 'override_decide') await bookNowAgreement(data);
+    if (action === 'override_decide' || action === 'handover_override') { revalidatePath('/admin/bookings', 'layout'); revalidatePath('/staff/bookings', 'layout'); }
     // Publish now (0070), and with its rates from Admin > Today (0078), puts a car on the public pages
     if (action === 'listing_publish_now' || action === 'todo_publish') revalidatePath('/', 'layout');
     return { ok: true, data };
