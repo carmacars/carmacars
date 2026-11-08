@@ -55,8 +55,9 @@ day: a quiet day, a timeout counted as a refusal (the email then went through Re
 "not set up", and `app.email_day_cap` dropped Cloudflare's budget.
 
 - `app.cf_email_ever_sent` also counts a success the sender recorded (`email_provider_state.cf_ok_at`).
-- `app.cf_email_setup` is `ok` after a success unless Cloudflare refused in the last 15 minutes (it rests) or the Worker has no
-  binding (`absent`).
+- `app.cf_email_setup` is `ok` after a success, however long ago, unless Cloudflare refused since (a timeout is not a refusal
+  once its 15 minutes of rest are over) or the Worker has no binding (`absent`).
+- `app.cf_email_counted`: Cloudflare's budget counts while it is switched on, has sent, and its binding is not reported missing.
 - `app.email_day_cap`: Cloudflare's budget plus Resend's whenever Cloudflare is on and works.
 - The email pace read carries `cf_state` and `cf_counted`; the booking page's Email the renter box, Settings > Usage and
   Admin > Logs all say it the same way from that read: "98 of 100 today: only Resend is sending (Cloudflare Email Service is not

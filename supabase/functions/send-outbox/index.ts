@@ -165,7 +165,7 @@ async function sendOne(r: Row): Promise<'sent' | 'failed' | Held> {
       if (m && m.subject && m.parts.length > 1) {
         const rendered = [{ subject, html, text }];
         for (const p of m.parts.slice(1)) {
-          if (!p.template_html || !p.template_text) continue;
+          if (!p.template_html || !p.template_text) { await sql`select app.outbox_merge_detach(${p.id}::uuid)`; continue; }
           const v = { ...(await senderValues(p)), ...p.payload };
           try {
             rendered.push({ subject: p.subject, html: tagLinks({ ...p, category: r.category }, render(p.template_html, v)), text: tagLinks({ ...p, category: r.category }, renderText(p.template_text, v)) });

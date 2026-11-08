@@ -29,7 +29,7 @@
 --   5. Cloudflare Email Service: the site counted Cloudflare as sending only from the outbox's history of 'cf:' rows and a
 --      success in the last day, so the day's cap fell to Resend's budget and Settings > Usage said "not set up" while
 --      Cloudflare was sending. A recorded success now counts (app.cf_email_ever_sent), the state is 'ok' after a success
---      unless Cloudflare refused in the last 15 minutes or the binding is missing, and the cap is Cloudflare's budget plus
+--      unless Cloudflare refused since (a timeout is not a refusal) or the binding is missing, and the cap is Cloudflare's budget plus
 --      Resend's whenever Cloudflare works. The booking page's email box and Settings > Usage read the same email pace.
 -- No applied migration is edited: functions are wrapped (_pre0900) or patched in place (pg_temp.patch_fn).
 set local check_function_bodies = off;
@@ -571,19 +571,26 @@ language sql stable security definer set search_path = public, app as $$
       or exists (select 1 from notification_outbox o where o.status in ('sent', 'merged') and o.provider_id like 'cf:%')
 $$;
 
--- ok after a success, unless Cloudflare refused in the last 15 minutes (it rests) or the Worker has no binding
+-- ok after a success, even days ago, unless Cloudflare refused since; a timeout is not a refusal (the email may well have
+-- gone) once its 15 minutes of rest are over
 select pg_temp.patch_fn('app.cf_email_setup(timestamptz)'::regprocedure,
   E'when e.cf_ok_at is not null and e.cf_ok_at > p_now - interval ''1 day'' and (e.cf_failed_at is null or e.cf_failed_at < e.cf_ok_at) then ''ok''',
-  E'when e.cf_ok_at is not null and (e.cf_failed_at is null or e.cf_failed_at < e.cf_ok_at\n                                         or (e.cf_failed_at < p_now - interval ''15 minutes'' and coalesce(e.cf_error, '''') not ilike ''%binding%'')) then ''ok''');
+  E'when e.cf_ok_at is not null and (e.cf_failed_at is null or e.cf_failed_at < e.cf_ok_at\n                                         or (e.cf_failed_at < p_now - interval ''15 minutes'' and (e.cf_error ilike ''%timeout%'' or e.cf_error ilike ''%aborted%''))) then ''ok''');
+
+-- Cloudflare counts in the day's cap: switched on, it has sent (an outbox row or a success the sender recorded), and the
+-- Worker's binding is not reported missing since
+create or replace function app.cf_email_counted(p_now timestamptz default now()) returns boolean
+language sql stable security definer set search_path = public, app as $$
+  select coalesce((app.settings_base(app.local_date(p_now))).cf_email_enabled, false) and app.cf_email_ever_sent()
+     and not coalesce((select coalesce(e.cf_error, '') ilike '%binding%' and e.cf_failed_at > coalesce(e.cf_ok_at, '-infinity'::timestamptz)
+                         from email_provider_state e limit 1), false)
+$$;
 
 -- the day's cap: Cloudflare's budget plus Resend's whenever Cloudflare is on and works
 create or replace function app.email_day_cap(p_now timestamptz default now()) returns integer
 language sql stable security definer set search_path = public, app as $$
   -- the setting as the Admin wrote it (app.settings lowers notify_daily_cap to Resend's own plan, which is Resend's alone)
-  select greatest(0, least(s.notify_daily_cap,
-           (case when coalesce(s.cf_email_enabled, false) and app.cf_email_ever_sent()
-                      and coalesce((app.cf_email_setup(p_now)) ->> 'state', '') <> 'absent' then s.notify_cf_daily_budget else 0 end)
-           + s.notify_resend_daily_budget))::integer
+  select greatest(0, least(s.notify_daily_cap, (case when app.cf_email_counted(p_now) then s.notify_cf_daily_budget else 0 end) + s.notify_resend_daily_budget))::integer
     from app.settings_base(app.local_date(p_now)) s
 $$;
 
@@ -592,9 +599,7 @@ alter function app.email_pace(timestamptz) rename to email_pace_pre0900;
 create function app.email_pace(p_now timestamptz default now()) returns jsonb
 language sql stable security definer set search_path = public, app as $$
   select app.email_pace_pre0900(p_now) || jsonb_build_object('cf_state', coalesce(app.cf_email_setup(p_now) ->> 'state', 'absent'),
-           'cf_counted', coalesce((app.cf_email_setup(p_now) ->> 'state') = 'ok', false) or (coalesce(s.cf_email_enabled, false) and app.cf_email_ever_sent()
-                          and coalesce(app.cf_email_setup(p_now) ->> 'state', '') <> 'absent'))
-    from app.settings_base(app.local_date(p_now)) s
+           'cf_counted', app.cf_email_counted(p_now))
 $$;
 select pg_temp.copy_grants('app.email_pace(timestamptz)'::regprocedure, 'app.email_pace_pre0900(timestamptz)'::regprocedure);
 
@@ -643,7 +648,7 @@ begin
   for f in
     select p.oid::regprocedure as sig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'app' and p.proname = any (array['outbox_repeat_guard', 'owner_void_payload', 'outbox_merge_hold', 'words_and',
-              'outbox_merge_parts', 'outbox_merge_release', 'outbox_merge_detach', 'phone_ref', 'phone_repeat_guard', 'sms_merge_body', 'phone_merge_hold',
+              'cf_email_counted', 'outbox_merge_parts', 'outbox_merge_release', 'outbox_merge_detach', 'phone_ref', 'phone_repeat_guard', 'sms_merge_body', 'phone_merge_hold',
               'notification_repeat_guard', 'ntf_confirmation_covers', 'renter_todo', 'renter_todo_any',
               'outbox_mark_sent_pre0900', 'outbox_mark_failed_pre0900', 'outbox_claim_pre0900', 'agreement_changes_pre0900', 'ntf_booking_pre0900',
               'recovery_staff_handling_pre0900', 'notification_payload_pre0900', 'notification_recipients_pre0900', 'email_pace_pre0900',

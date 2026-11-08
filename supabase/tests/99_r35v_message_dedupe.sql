@@ -2,6 +2,8 @@
 -- owner's November 8 list, the repeat guard for emails, texts and portal notices, the combined email and text, and how
 -- Cloudflare Email Service is detected and counted in the day's cap. Fixtures start with "v35"; addresses are example.test.
 select test.suite('99 r35v fewer repeat messages');
+-- the production defaults (helpers.sql turns both off for the suites before this one)
+update program_settings set notify_merge_window_minutes = 2, notify_repeat_window_minutes = 30;
 
 select test.mk_owner('v35_owner');
 select test.mk_vehicle('V35A', 'v35_owner');
@@ -165,6 +167,7 @@ select test.eq('the same portal notice twice is shown once', (select count(*)::i
 
 -- ---------------------------------------------------------------- 5. Cloudflare Email Service: detected and counted
 create temp table v35_ps as select * from email_provider_state;
+create temp table v35_cf as select bool_or(cf_email_enabled) as was_on from program_settings;
 update email_provider_state set cf_ok_at = now() - interval '3 days', cf_failed_at = null, cf_error = null;
 update program_settings set cf_email_enabled = true;
 select test.ok('a recorded success counts as Cloudflare sending', app.cf_email_ever_sent());
@@ -173,10 +176,12 @@ select test.eq('the cap is Cloudflare''s budget plus Resend''s',
   app.email_day_cap(now()), (select least(s.notify_daily_cap, s.notify_cf_daily_budget + s.notify_resend_daily_budget) from app.settings_base(app.local_date(now())) s));
 select test.eq('the pace read says so', (app.email_pace(now()) ->> 'cf_counted')::boolean, true);
 update email_provider_state set cf_failed_at = now() - interval '1 hour', cf_error = 'Cloudflare: The operation was aborted due to timeout';
-select test.eq('a refusal an hour ago does not make it "not sending"', app.cf_email_setup(now()) ->> 'state', 'ok');
+select test.eq('a timeout an hour ago is not a refusal', app.cf_email_setup(now()) ->> 'state', 'ok');
 update email_provider_state set cf_failed_at = now(), cf_error = 'Cloudflare 502: refused';
-select test.eq('a refusal just now: it rests', app.cf_email_setup(now()) ->> 'state', 'failing');
+select test.eq('a refusal since the last success: failing', app.cf_email_setup(now()) ->> 'state', 'failing');
 update email_provider_state set cf_failed_at = now() - interval '1 hour', cf_error = 'Cloudflare 503: no EMAIL binding on the Worker (Email Service not set up)';
 select test.eq('no binding: not set up, and only Resend counts', (app.cf_email_setup(now()) ->> 'state') || '/' || app.email_day_cap(now()),
   'absent/' || (select least(s.notify_daily_cap, s.notify_resend_daily_budget) from app.settings_base(app.local_date(now())) s));
 update email_provider_state e set cf_ok_at = p.cf_ok_at, cf_failed_at = p.cf_failed_at, cf_error = p.cf_error from v35_ps p;
+update program_settings set cf_email_enabled = (select was_on from v35_cf);
+update program_settings set notify_merge_window_minutes = 0, notify_repeat_window_minutes = 0;

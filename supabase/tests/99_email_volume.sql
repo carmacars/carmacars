@@ -10,6 +10,8 @@ insert into notification_outbox (code, category, priority, audience, to_address,
 select code, 'transactional', 1, 'renter', 'ev.cf@example.test', 'Ev Cf', '{}'::jsonb, 'ev-cf-sent', 'sent', now() - interval '3 days', 'cf:ev-test', now() - interval '3 days' from ev_code;
 -- the providers' budgets as shipped (an earlier test file may have left a dated settings row with other values)
 update program_settings set notify_daily_cap = 300, notify_cf_daily_budget = 200, notify_resend_daily_budget = 100;
+-- 0900: Cloudflare's budget counts while Cloudflare Email Service is switched on (off for the suites, helpers.sql)
+update program_settings set cf_email_enabled = true;
 select test.eq('once Cloudflare has sent: 300 (the setting, within the providers'' 200 + 100)', app.email_day_cap(), 300);
 update program_settings set notify_daily_cap = 250;
 select test.eq('the Admin setting lowers it', app.email_day_cap(), 250);
@@ -109,3 +111,6 @@ select test.throws('Sales do not send it', format($$select app.door(%L, 'aal2', 
 select test.eq('Finance sends the owner the sign-up link',
   (app.door(test.id('ev_fin'), 'aal2', 'ops_do', 'owner_debit_setup_link', jsonb_build_object('owner', test.id('owner:ev_olga'))) ->> 'message'), 'Sign-up link sent to Ev Olga');
 select test.eq('the owner''s set-up email is on its way', (select count(*) from app_events where code = 'owner_debit_setup_needed' and entity_id = test.id('owner:ev_olga')), 1::bigint);
+-- 0900: switched off, Cloudflare's budget does not count (and the suites after this one start with it off, helpers.sql)
+update program_settings set cf_email_enabled = false;
+select test.eq('Cloudflare switched off: only Resend''s budget counts', app.email_day_cap(), (select least(s.notify_daily_cap, s.notify_resend_daily_budget) from app.settings_base(app.local_date(now())) s));
