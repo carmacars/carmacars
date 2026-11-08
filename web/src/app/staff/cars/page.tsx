@@ -17,7 +17,8 @@ export default async function FindCar({ searchParams }: { searchParams: Promise<
   const q = (sp.q ?? '').trim();
   const found = q.length >= 3 ? await read<Found[]>('find_car', { q }).catch(() => [] as Found[]) : [];
   return (<>
-    <PageHead title="Find a car"><Search action="/staff/cars" value={q} placeholder="Car code (CC-7F3A), plate, VIN or name" /></PageHead>
+    <PageHead title="Find a car"><Search action="/staff/cars" value={q} placeholder="Car code (CC-7F3A), plate, VIN or name" />
+      {fn === 'fleet' && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/staff/vehicles/incident-cards" data-testid="incident-cards-link">Incident cards</Link>}</PageHead>
     {q && q.length < 3 && <p className="small muted">Type at least 3 characters.</p>}
     {q.length >= 3 && <Card title="Cars" testId="car-matches"><Table rows={found as unknown as Array<Record<string, unknown>>} empty="No car matches." cols={[
       { key: 'car_code', label: 'Car code' }, { key: 'name', label: 'Car', render: (r) => opens ? <Link prefetch={false} className="link" href={`/staff/vehicles/${String(r.vehicle_id)}`}>{String(r.name)}</Link> : String(r.name) },

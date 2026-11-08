@@ -3,6 +3,8 @@ import { ProfileForm } from '@/features/portal/ProfileForm';
 import { myProfile } from '@/server/portal/data';
 import { SignInSettings } from '@/features/portal/SignInSettings';
 import { notifyReach, signInState } from '@/server/sign-in-settings';
+import { selfProfile } from '@/server/self-profile';
+import { SelfProfile } from '@/features/portal/SelfProfile';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
@@ -12,19 +14,20 @@ const STATUS: Record<string, string> = { verified: 'Verified', pending: 'In revi
 
 // Account > Profile: who you are, how you sign in, your contact details, card on file and drivers.
 export async function ProfileTab({ user }: { user: SessionUser }) {
-  const [p, si, nc] = await Promise.all([myProfile(user), signInState(user.id), notifyReach(user.id)]);
+  const [p, si, nc, sp] = await Promise.all([myProfile(user), signInState(user.id), notifyReach(user.id), selfProfile(user.id)]);
   const r = p.renter;
   return (
     <div className="pt-split">
       <div className="stack-lg">
         <section className="pt-card" aria-labelledby="pt-me"><h2 className="d4" id="pt-me">You</h2>
           <Dl rows={[['Legal name', r?.legal_name ?? p.user?.full_name ?? ''], ['Email', p.user?.email ?? user.email ?? ''], ['Identity', r ? STATUS[r.identity_status] ?? r.identity_status : 'Checked with your first booking']]} />
-          <p className="small muted">Your legal name is locked once you are verified. To change it, call or message us. You change your email under Sign-in below.</p>
+          <p className="small muted">Your legal name is locked once you are verified: ask for a change under Your name and password. You change your email under Sign-in below.</p>
         </section>
         <section className="pt-card" aria-labelledby="pt-contact"><h2 className="d4" id="pt-contact">Contact details</h2>
           {r ? <ProfileForm initial={{ mobile: r.mobile ?? p.user?.phone ?? '', address_line1: r.address_line1 ?? '', address_line2: r.address_line2 ?? '', city: r.city ?? '', province: r.province ?? '', postal_code: r.postal_code ?? '', country: r.country ?? 'Canada' }} />
             : <p className="muted">Your contact details are saved with your first booking request.</p>}
         </section>
+        {sp && <SelfProfile data={sp} />}
         {si && <SignInSettings state={si} />}
         <AppProfile userId={user.id} deletion />
       </div>

@@ -28,6 +28,8 @@ import { CarTermsTable, type CarTermsData } from '@/features/owner-billing/CarTe
 import { ProfitExtras } from '@/features/profit-extras/ProfitExtras';
 import { ReferralLinks, type ReferralLinksData } from '@/features/admin/ReferralLinks';
 import { FleetLease, type FleetLeaseData } from '@/features/owner-agreements/FleetLease';
+import { NameChangeCard } from '@/features/admin/NameChangeCard';
+import { nameChangesFor } from '@/server/self-profile';
 import { AgreementsChecklist, type AgreementOwner } from '@/features/owner-agreements/AgreementsChecklist';
 
 export const dynamic = 'force-dynamic';
@@ -49,11 +51,13 @@ export default async function AdminOwner({ params, searchParams }: { params: Pro
   // 0340: who sourced the owner (only an Admin changes it, with a reason)
   const src = await door<{ staff_id: string | null; name: string | null; via: string | null; options: Array<{ id: string; name: string }> } | null>(user.id, 'admin_read', 'owner_sourced', { owner_id: id }).catch(() => null);
   if (!d) notFound();
+  const nameChanges = await nameChangesFor(user.id, { owner_id: id });
   // the tabs of 0067: Overview (as before), Terms (negotiated per owner and car), Invoices (every invoice, drafts included)
   const tab = sp.tab === 'terms' || sp.tab === 'invoices' || sp.tab === 'profit' ? sp.tab : 'overview';
   const tabs: Array<[string, string, number?]> = [[`/admin/owners/${id}`, 'Overview'], [`/admin/owners/${id}?tab=terms`, 'Terms'], [`/admin/owners/${id}?tab=invoices`, 'Invoices', d.invoices.length], [`/admin/owners/${id}?tab=profit`, 'Kickbacks and repairs']];
   const head = (
     <>
+      <NameChangeCard items={nameChanges} refresh={[`/admin/owners/${id}`]} />
       <Back href="/admin/owners">Owner applications</Back>
       <header className="stack"><p className="pt-kicker">{d.applications.map((a) => a.application_number).join(', ')} · {d.owner.owner_type === 'corporation' ? 'Corporation' : 'Individual'}</p><h1 className="d2">{d.owner.legal_name}</h1>
         <p className="muted">{[d.owner.email, d.owner.phone].filter(Boolean).join(' · ')}</p>

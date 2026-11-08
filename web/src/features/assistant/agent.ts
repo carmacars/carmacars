@@ -158,6 +158,13 @@ async function read(d: Deps, tool: ToolName, a: Record<string, unknown>): Promis
   }
 }
 
+/** The card's Book it now rows: what happens, and for staff that an Admin approves first (the database decides by the role). */
+function bookNowSection(d: Deps): Details[number] {
+  const admin = d.who.portal === 'admin';
+  return { title: 'Book it now', rows: [
+    { label: 'Renter approval', value: 'Not needed: the offer is booked as if the customer approved it' },
+    { label: 'Then', value: admin ? 'The booking waits for the customer to sign and pay; the car is held; they get the Sign and pay link' : 'An Admin approves in one tap first; then the booking waits for the customer to sign and pay and the car is held' }] };
+}
 const dollars = (v: number) => `$${v.toLocaleString('en-CA', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
 const ACTIVE = ['requested', 'offered', 'pending_payment', 'confirmed', 'on_rent', 'returned'];
 
@@ -364,6 +371,7 @@ async function prepare(d: Deps, tool: ToolName, a: Record<string, unknown>): Pro
       if (a.expires_hours) args.expires_at = new Date((d.now ? d.now() : Date.now()) + Number(a.expires_hours) * 3_600_000).toISOString();
       const { price, priced, check } = await priceFromWords(d, a, args, 'Agreed with the customer');
       Object.assign(args, price);
+      if (a.book_now) { args.book_now = true; if (a.book_now_reason) args.book_now_reason = a.book_now_reason; }
       if (!priced.ok) return { out: { type: 'text', text: `The offer cannot be made: ${priced.error}. Nothing was sent.` } };
       if (priced.available === false) return { out: { type: 'question', text: `The ${k.car} is not free from ${shortDate(String(a.pickup_at))} to ${shortDate(String(a.return_at))}. Which other car or dates?`, options: [] } };
       const b = priced.booking;
@@ -375,8 +383,17 @@ async function prepare(d: Deps, tool: ToolName, a: Record<string, unknown>): Pro
         { title: 'Payments', rows: [
           { label: 'Rental', value: a.rental_pay && a.rental_pay !== 'card' ? `By ${PAY_WORDS[String(a.rental_pay)]}: staff confirm the booking once the money is in` : 'By card, when the customer signs and pays online' },
           { label: 'Deposit', value: `${money(b.deposit_cents)} by ${PAY_WORDS[String(a.deposit_pay ?? 'card')]} at pickup` },
-          { label: 'Sent', value: notify === 'none' ? 'Not sent: send the link from the booking' : `By ${notify === 'both' ? 'email and text' : notify}${a.expires_hours ? `, open ${String(a.expires_hours)} hours` : ''}` }] }];
+          { label: 'Sent', value: notify === 'none' ? 'Not sent: send the link from the booking' : `By ${notify === 'both' ? 'email and text' : notify}${a.expires_hours ? `, open ${String(a.expires_hours)} hours` : ''}` }] },
+        ...(a.book_now ? [bookNowSection(d)] : [])];
       return { name: 'offer_create', summary: summary(tool, a, k), args, details };
+    }
+    case 'book_offer_now': {
+      const p = await one(d, 'booking', String(a.booking), 'booking', (r) => `${String(r.booking_number)} (${String(r.renter ?? '')})`, (r) => norm(String(r.booking_number)) === norm(String(a.booking)));
+      if ('out' in p) return p;
+      if (String(p.row.status) !== 'offered') return { out: { type: 'text', text: `Booking ${String(p.row.booking_number)} is ${String(p.row.status).replace(/_/g, ' ')}: there is no open offer to book. Nothing was prepared.` } };
+      a.booking = String(p.row.booking_number); k.renter = String(p.row.renter ?? '');
+      return { name: 'offer_book_now', summary: summary(tool, a, k), args: { booking: a.booking, ...(a.reason ? { reason: a.reason } : {}) },
+        details: [{ title: 'Book it now', rows: [{ label: 'Booking', value: `${String(a.booking)}${k.renter ? ` · ${k.renter}` : ''}` }, ...bookNowSection(d).rows] }] };
     }
     case 'send_payment_link': {
       if (a.booking) {

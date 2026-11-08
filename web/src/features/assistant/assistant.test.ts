@@ -298,6 +298,51 @@ describe('offers and rentals through the assistant (0133)', () => {
     assert.deepEqual(calls.map((c) => c.what), ['find_customers', 'offer_preview']);
     assert.deepEqual(calls[1]!.p, a);
   });
+  it('Book it now (0810): create_offer with book_now adds the flag to the stored action and a card section; an Admin books at once, staff wait for an Admin', async () => {
+    const args = { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'maya@example.com', book_now: true, book_now_reason: 'Agreed by phone' };
+    const cust = { find_customers: [{ id: 'r1', legal_name: 'Maya Chen', email: 'maya@example.com', mobile: '4165550100', date_of_birth: '1990-01-01', is_blocked: false }] };
+    const admin = staffDeps(stub({ action: 'tool', tool: 'create_offer', args }), cust);
+    const r = await ask(admin.d, { text: 'send an offer and book it now' });
+    const card = r.out[0] as { summary: string; details: Array<{ title: string; rows: Array<{ label: string; value: string }> }> };
+    assert.match(card.summary, /booked now without the customer's approval\?$/);
+    const a = admin.proposed[0]!.args as Record<string, unknown>;
+    assert.deepEqual([admin.proposed[0]!.name, a.book_now, a.book_now_reason], ['offer_create', true, 'Agreed by phone']);
+    const section = card.details.find((x) => x.title === 'Book it now')!;
+    assert.match(section.rows.map((x) => x.value).join(' '), /waits for the customer to sign and pay/);
+    // the price preview never carries the flag (the database previews the price, not the booking)
+    assert.equal(admin.calls.find((c) => c.what === 'offer_preview')!.p.book_now, undefined);
+    const staff = staffDeps(stub({ action: 'tool', tool: 'create_offer', args }), cust, { portal: 'va', fn: 'cs' });
+    const r2 = await ask(staff.d, { text: 'send an offer and book it now' });
+    const rows2 = (r2.out[0] as { details: Array<{ title: string; rows: Array<{ value: string }> }> }).details.find((x) => x.title === 'Book it now')!.rows.map((x) => x.value).join(' ');
+    assert.match(rows2, /An Admin approves in one tap first/);
+  });
+  it('without book_now the offer is as before: no flag, no section', async () => {
+    const { d, proposed } = staffDeps(stub({ action: 'tool', tool: 'create_offer', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', customer: 'maya@example.com' } }),
+      { find_customers: [{ id: 'r1', legal_name: 'Maya Chen', email: 'maya@example.com', mobile: '4165550100', date_of_birth: '1990-01-01' }] });
+    const r = await ask(d, { text: 'offer' });
+    assert.equal('book_now' in (proposed[0]!.args as object), false);
+    assert.ok(!(r.out[0] as { details: Array<{ title: string }> }).details.some((x) => x.title === 'Book it now'));
+  });
+  it('book_offer_now: a card for an offer that is out; the booking must be offered; Admin, customer service and Sales have the tool', async () => {
+    assert.ok(toolsFor({ portal: 'admin' }).includes('book_offer_now') && toolsFor({ portal: 'va', fn: 'cs' }).includes('book_offer_now') && toolsFor({ portal: 'va', fn: 'sales' }).includes('book_offer_now'));
+    assert.ok(!toolsFor({ portal: 'va', fn: 'fleet' }).includes('book_offer_now') && !toolsFor({ portal: 'va', fn: 'finance' }).includes('book_offer_now') && !toolsFor({ portal: 'field' }).includes('book_offer_now'));
+    assert.equal(checkArgs('book_offer_now', { booking: 'R-000123', reason: 'Agreed by phone' }).ok, true);
+    assert.equal(checkArgs('book_offer_now', {}).ok, false);
+    const { d, proposed } = staffDeps(stub({ action: 'tool', tool: 'book_offer_now', args: { booking: 'R-000123', reason: 'Agreed by phone' } }));
+    const r = await ask(d, { text: 'book R-000123 now' });
+    assert.equal((r.out[0] as { type: string }).type, 'proposal');
+    assert.match((r.out[0] as { summary: string }).summary, /^Book the offer of R-000123 \(Maya Chen\) now, without the customer's approval\?$/);
+    assert.deepEqual([proposed[0]!.name, proposed[0]!.args], ['offer_book_now', { booking: 'R-000123', reason: 'Agreed by phone' }]);
+    // a booking that is not offered gets no card
+    const other = staffDeps(stub({ action: 'tool', tool: 'book_offer_now', args: { booking: 'R-000123' } }));
+    const was = ROWS.booking![0]!.status;
+    ROWS.booking![0]!.status = 'confirmed';
+    try {
+      const r2 = await ask(other.d, { text: 'book it now' });
+      assert.match((r2.out[0] as { text: string }).text, /is confirmed: there is no open offer to book/);
+      assert.equal(other.proposed.length, 0);
+    } finally { ROWS.booking![0]!.status = was; }
+  });
   it('a refused preview (the car not bookable, a blocked customer) is said, and no card is made', async () => {
     const m = stub({ action: 'tool', tool: 'create_offer', args: { car: 'CBXT123', pickup_at: '2026-11-02 10:00', return_at: '2026-11-04 10:00', renter_name: 'New Person', renter_email: 'np@example.com', renter_mobile: '4165550199', renter_date_of_birth: '1995-05-05' } });
     const { d, proposed } = staffDeps(m, { offer_preview: { ok: false, error: 'ERROR:  The car is not available for those dates' } });

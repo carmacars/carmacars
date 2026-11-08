@@ -1,5 +1,6 @@
 'use client';
 import './live.css';
+import { opsAct } from '@/server/actions/ops';
 import Link from '@/components/Link';
 import { useState } from 'react';
 import { ACTION_WORDS, GROUP_WORDS, liveDo, type SignalAction, type SignalConfig, type SignalRule, type SignalSettingsData } from './staff';
@@ -74,6 +75,12 @@ export function SignalSettings({ initial }: { initial: SignalSettingsData }) {
                   <NumField id={`w-${r.code}`} label="Points" value={r.weight} onChange={(v) => set(r.code, { weight: v ?? 0 })} />
                 </div>
                 <p className="small muted">{r.explain}</p>
+                <label className="check small"><input type="checkbox" checked={!!r.alert_on_own} data-testid={`alert-own-${r.code}`} onChange={async (e) => {
+                  const on = e.target.checked; setRules((rs) => rs.map((x) => (x.code === r.code ? { ...x, alert_on_own: on } : x)));
+                  const res = await opsAct('live_signal_alert_save', { code: r.code, alert_on_own: on });
+                  setMsg(res.ok ? `${r.label}: ${on ? 'alerts on its own now' : 'no longer alerts on its own'}.` : res.message);
+                  if (!res.ok) setRules((rs) => rs.map((x) => (x.code === r.code ? { ...x, alert_on_own: !on } : x)));
+                }} /><span>Alert on its own (Admins and on-duty customer service and Sales, once a visitor a day)</span></label>
                 <div className="ss-grid">
                   {r.t1_label && <NumField id={`t1-${r.code}`} label={r.t1_label} value={r.t1} onChange={(v) => set(r.code, { t1: v })} />}
                   {r.t2_label && <NumField id={`t2-${r.code}`} label={r.t2_label} value={r.t2} onChange={(v) => set(r.code, { t2: v })} />}

@@ -2,6 +2,7 @@ import { rpc } from '@/lib/db/repo';
 import { siteUrl } from '@/lib/site';
 import { TOOLS, bearer, sha256Hex } from '@/features/api-access/tools';
 import { oneStepHire } from '@/server/hire';
+import { bookNowAgreement } from '@/server/book-now';
 
 // The CarmaCars MCP server (release 28, B3; migration 0562): Claude's connector for Abbas and Mahad. Streamable HTTP
 // without a stream: each POST is one JSON-RPC message answered with one JSON response. The bearer is an API key from
@@ -12,6 +13,8 @@ import { oneStepHire } from '@/server/hire';
 export const dynamic = 'force-dynamic';
 const SR = { role: 'service_role' as const };
 const VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
+
+const BOOK_NOW_TOOLS = ['send_offer', 'create_offer', 'book_offer_now'];
 
 type Rpc = { jsonrpc: '2.0'; id?: string | number | null; method?: string; params?: Record<string, unknown> };
 const json = (body: unknown, status = 200, extra: Record<string, string> = {}) =>
@@ -76,6 +79,12 @@ export async function POST(req: Request) {
       // here as that Admin (the sign-in is made in the web layer), and its outcome is logged
       const run = r.ok ? (r.result as { run?: string; actor?: string; params?: { id?: string } & Record<string, unknown> } | undefined) : undefined;
       if (run?.run === 'hire' && run.actor && run.params?.id) r = await hire(hash, run.actor, run.params as { id: string } & Record<string, unknown>, client);
+      // Book it now (0770, 0810): a confirmed offer booked at once gets the renter's agreement made here, as the screens do
+      // (staff-style requests wait for an Admin: bookNowAgreement does nothing until the booking is approved)
+      if (r.ok && BOOK_NOW_TOOLS.includes(name)) {
+        const done = r.result as { done?: boolean; result?: unknown } | undefined;
+        if (done?.done) await bookNowAgreement(done.result);
+      }
       const out = r.ok ? withLinks(r.result) : { error: r.error };
       return json(reply(msg.id, { content: [{ type: 'text', text: JSON.stringify(out, null, 1) }], structuredContent: Array.isArray(out) ? { items: out } : out, isError: !r.ok }));
     }

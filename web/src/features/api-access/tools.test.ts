@@ -43,7 +43,8 @@ test('the bearer of an Authorization header', () => {
 });
 
 // release 33 (0732): the Admin's actions
-const SQL = readFileSync(new URL('../../../../supabase/migrations/0732_connector_admin_actions.sql', import.meta.url), 'utf8');
+const SQL = readFileSync(new URL('../../../../supabase/migrations/0732_connector_admin_actions.sql', import.meta.url), 'utf8')
+  + readFileSync(new URL('../../../../supabase/migrations/0810_r34o_book_now_connector.sql', import.meta.url), 'utf8');
 
 test('every Admin write is two-step: confirm and preview_id in its input, and the database knows it', () => {
   const inDb = [...SQL.matchAll(/when '([a-z_]+)'\s+then '\{"call"/g)].map((m) => m[1]).sort();
@@ -71,4 +72,19 @@ test('a key with the Admin scopes sees the Admin tools; names are unique', () =>
   assert.ok(toolsFor(['admin:write']).some((t) => t.name === 'hire_applicant'));
   assert.ok(!toolsFor(['admin:read']).some((t) => t.name === 'cancel_booking'));
   assert.equal(CONNECTOR_URL, 'https://carmacars.ca/api/mcp');
+});
+
+// release 34 (0810): Book it now from the connector
+test('Book it now: send_offer and create_offer take book_now, book_offer_now books an offer that is out, each two-step', () => {
+  for (const n of ['send_offer', 'create_offer']) {
+    const t = ADMIN_TOOLS.find((x) => x.name === n)!;
+    const props = (t.inputSchema as { properties: Record<string, { type?: string }> }).properties;
+    assert.equal(props.book_now?.type, 'boolean', n);
+    assert.ok(props.book_now_reason, n);
+  }
+  const t = ADMIN_TOOLS.find((x) => x.name === 'book_offer_now')!;
+  assert.equal(t.scope, 'admin:write');
+  assert.deepEqual((t.inputSchema as { required: string[] }).required, ['booking']);
+  assert.match(t.description, /Two steps/);
+  assert.match(t.description, /without the renter's approval/);
 });

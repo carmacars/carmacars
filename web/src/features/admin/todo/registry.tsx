@@ -18,6 +18,12 @@ export const TASK_PROMPTS: Record<string, (p: Prompt) => ReactNode> = {
   // until its own pop-up plugs in here: the owner's Terms tab, where the choice is made
   first_last_decide: (p) => (p.owner_id ? <Link prefetch={false} className="btn btn--primary btn--sm" href={`/admin/owners/${p.owner_id}?tab=terms`} data-testid={`todo-act-${p.key}`}>Decide</Link> : null),
   // 0770: staff asked for an override (a pickup, a return, a past trip, or an offer booked now): one tap approves it
+  // 0812: someone asked to change the legal name on their agreements
+  name_change_approve: (p) => (p.related_id ? (
+    <span className="ad-actions">
+      <Act ops action="name_change_decide" payload={{ id: p.related_id, decision: 'approve' }} label="Approve" variant="primary" refresh={['/admin']} testId={`todo-act-${p.key}-approve`} done="Name changed." />
+      <Act ops action="name_change_decide" payload={{ id: p.related_id, decision: 'decline' }} label="Decline" fields={[{ name: 'note', label: 'Why (kept in the log)', type: 'text' }]} refresh={['/admin']} testId={`todo-act-${p.key}-decline`} done="Declined." />
+    </span>) : null),
   override_approve: (p) => (p.related_id ? (
     <span className="ad-actions">
       <Act ops action="override_decide" payload={{ id: p.related_id, decision: 'approve' }} label="Approve" variant="primary" refresh={['/admin']} testId={`todo-act-${p.key}-approve`} done="Approved." />

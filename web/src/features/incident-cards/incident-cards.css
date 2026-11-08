@@ -1,0 +1,36 @@
+/* Release 34: the incident card. Screen: the cards on a grey sheet. Print: Letter, two 7.5 x 4.75 in cards a page with crop marks. */
+.ic-sheets { display: flex; flex-direction: column; gap: 1.25rem; align-items: center; }
+.ic-sheet { width: 8.5in; background: #fff; color: #111; padding: 0.5in 0.5in; display: flex; flex-direction: column; gap: 0.5in; align-items: center; box-shadow: 0 0 0 1px #c9c9c9; box-sizing: border-box; }
+.ic-card { position: relative; width: 7.5in; height: 4.75in; box-sizing: border-box; padding: 0.18in 0.22in; font: 9.5pt/1.3 system-ui, sans-serif; color: #111; background: #fff; display: flex; flex-direction: column; gap: 0.08in; overflow: hidden; }
+.ic-crop { position: absolute; width: 0.14in; height: 0.14in; border: 0 solid #111; }
+.ic-crop--tl { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
+.ic-crop--tr { top: 0; right: 0; border-top-width: 1px; border-right-width: 1px; }
+.ic-crop--bl { bottom: 0; left: 0; border-bottom-width: 1px; border-left-width: 1px; }
+.ic-crop--br { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
+.ic-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.15in; border-bottom: 2px solid #111; padding-bottom: 0.05in; }
+.ic-brand { font-size: 15pt; letter-spacing: 0.02em; }
+.ic-car { font-size: 8.5pt; text-align: right; }
+.ic-body { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0.2in; flex: 1; min-height: 0; }
+.ic-body h2 { font-size: 10.5pt; margin: 0 0 0.04in; }
+.ic-steps ol { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 0.03in; }
+.ic-report { display: flex; align-items: center; gap: 0.1in; margin-top: 0.07in; font-size: 8.5pt; }
+.ic-qr { width: 0.85in; height: 0.85in; flex: none; }
+.ic-qr svg { width: 100%; height: 100%; display: block; }
+.ic-slip { border: 1px solid #111; padding: 0.07in; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.ic-slip__file { width: 100%; flex: 1; min-height: 0; object-fit: contain; }
+.ic-dl { margin: 0; display: grid; gap: 0.04in; }
+.ic-dl div { display: grid; grid-template-columns: 0.95in 1fr; gap: 0.05in; }
+.ic-dl dt { font-weight: 600; }
+.ic-dl dd { margin: 0; overflow-wrap: anywhere; }
+.ic-none { margin: 0; }
+@media (max-width: 9in) { .ic-sheets { align-items: flex-start; overflow-x: auto; } }
+@media print {
+  @page { size: letter portrait; margin: 0; }
+  html, body { background: #fff !important; }
+  body * { visibility: hidden; }
+  .ic-sheets, .ic-sheets * { visibility: visible; }
+  .ic-sheets { position: absolute; inset: 0 auto auto 0; gap: 0; display: block; }
+  .ic-sheet { box-shadow: none; page-break-after: always; break-after: page; height: 11in; }
+  .ic-sheet:last-child { page-break-after: auto; break-after: auto; }
+  .ic-card { break-inside: avoid; }
+}

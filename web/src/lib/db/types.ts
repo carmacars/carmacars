@@ -7347,6 +7347,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      fleet_insurance_policies: {
+        Row: {
+          id: string;
+          insurer_name: string;
+          policy_number: string;
+          effective_on: string;
+          expires_on: string;
+          named_insured: string;
+          roadside_phone: string | null;
+          claims_phone: string | null;
+          slip_document_id: string | null;
+          is_current: boolean;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          insurer_name: string;
+          policy_number: string;
+          effective_on: string;
+          expires_on: string;
+          named_insured?: string;
+          roadside_phone?: string | null;
+          claims_phone?: string | null;
+          slip_document_id?: string | null;
+          is_current?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          insurer_name?: string;
+          policy_number?: string;
+          effective_on?: string;
+          expires_on?: string;
+          named_insured?: string;
+          roadside_phone?: string | null;
+          claims_phone?: string | null;
+          slip_document_id?: string | null;
+          is_current?: boolean;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       fleet_report_vehicles: {
         Row: {
           id: string;
@@ -10848,6 +10896,45 @@ export type Database = {
           last_error?: string | null;
           updated_by?: string | null;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      name_change_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          current_name: string;
+          requested_name: string;
+          reason: string | null;
+          status: string;
+          requested_at: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          decision_note: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          current_name: string;
+          requested_name: string;
+          reason?: string | null;
+          status?: string;
+          requested_at?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          current_name?: string;
+          requested_name?: string;
+          reason?: string | null;
+          status?: string;
+          requested_at?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
         };
         Relationships: [];
       };
@@ -23099,6 +23186,7 @@ export type Database = {
           is_test: boolean | null;
           alerts_asked_at: string | null;
           staff_email_digest: string;
+          display_name: string | null;
         };
         Insert: {
           id?: string;
@@ -23122,6 +23210,7 @@ export type Database = {
           is_test?: boolean | null;
           alerts_asked_at?: string | null;
           staff_email_digest?: string;
+          display_name?: string | null;
         };
         Update: {
           id?: string;
@@ -23145,6 +23234,7 @@ export type Database = {
           is_test?: boolean | null;
           alerts_asked_at?: string | null;
           staff_email_digest?: string;
+          display_name?: string | null;
         };
         Relationships: [];
       };
@@ -26406,6 +26496,7 @@ export type Database = {
           sort: number;
           updated_at: string;
           updated_by: string | null;
+          alert_on_own: boolean;
         };
         Insert: {
           code: string;
@@ -26427,6 +26518,7 @@ export type Database = {
           sort?: number;
           updated_at?: string;
           updated_by?: string | null;
+          alert_on_own?: boolean;
         };
         Update: {
           code?: string;
@@ -26448,6 +26540,7 @@ export type Database = {
           sort?: number;
           updated_at?: string;
           updated_by?: string | null;
+          alert_on_own?: boolean;
         };
         Relationships: [];
       };

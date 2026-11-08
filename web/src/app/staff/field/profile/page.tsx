@@ -9,6 +9,8 @@ import { PayDetails } from '@/features/staff/PayDetails';
 import type { PayDetailsView } from '@/features/staff/pay-details';
 import { SignInSettings } from '@/features/portal/SignInSettings';
 import { notifyReach, signInState } from '@/server/sign-in-settings';
+import { selfProfile } from '@/server/self-profile';
+import { SelfProfile } from '@/features/portal/SelfProfile';
 import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
@@ -23,7 +25,7 @@ export default async function Profile() {
   const { user } = await requireStaff('field', '/staff/field/profile');
   const [p, factors, home, si, pay] = await Promise.all([door<P>(user.id, 'field_read', 'profile'), (await auth()).mfaFactors().catch(() => []), homeAddressOf(user.id, 'field'), signInState(user.id),
     door<PayDetailsView>(user.id, 'field_read', 'my_pay_details').catch(() => null)]);
-  const nc = await notifyReach(user.id);
+  const [nc, sp] = await Promise.all([notifyReach(user.id), selfProfile(user.id)]);
   const twoStep = factors.some((f) => f.verified);
   return (
     <div className="stack">
@@ -35,6 +37,7 @@ export default async function Profile() {
       </section>
       {home.missing ? <p className="small" data-testid="home-address-above">Fill in your home address at the top of the page.</p> : <HomeAddressSection portal="field" state={home} />}
         <PayDetails portal="field" view={pay} />
+      {sp && <SelfProfile data={sp} className="fd-card stack" password={false} />}
       {si && <SignInSettings state={si} className="fd-card stack" />}
       {nc && <NotifyChannelCard reach={nc} className="fd-card stack" />}
       <PushAlerts userId={user.id} portal="field" className="fd-card stack" />

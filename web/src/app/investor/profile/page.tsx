@@ -10,6 +10,10 @@ import { NotifyChannelCard } from '@/features/portal/NotifyChannel';
 import { PushAlerts } from '@/features/push/PushAlerts';
 import { AppProfile } from '@/features/app-shell/AppProfile';
 import { ChangeEmail } from '@/features/portal/ChangeEmail';
+import { SignInSettings } from '@/features/portal/SignInSettings';
+import { signInState } from '@/server/sign-in-settings';
+import { selfProfile } from '@/server/self-profile';
+import { SelfProfile } from '@/features/portal/SelfProfile';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Account', path: '/investor/profile', noindex: true, description: 'Contact details, notices and sign-in.' });
@@ -22,7 +26,7 @@ type Home = { investor: { legal_name: string; email: string | null; phone: strin
 export default async function Profile() {
   const { user } = await requireInvestor('/investor/profile');
   const [h, factors] = await Promise.all([door<Home>(user.id, 'investor_read', 'home'), (await auth()).mfaFactors().catch(() => [])]);
-  const nc = await notifyReach(user.id);
+  const [nc, si, sp] = await Promise.all([notifyReach(user.id), signInState(user.id), selfProfile(user.id)]);
   const twoStep = factors.some((f) => f.verified);
   const eff = new Intl.DateTimeFormat('en-CA', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${h.election_effective_month}T12:00:00Z`));
   return (
@@ -31,9 +35,10 @@ export default async function Profile() {
       <section className="pt-card" aria-labelledby="ct-t"><h2 className="d4" id="ct-t">Contact details</h2>
         <dl className="pt-dl"><div><dt>Name</dt><dd>{h.investor.legal_name}</dd></div><div><dt>Email</dt><dd>{h.investor.email ?? ''}</dd></div><div><dt>Phone</dt><dd>{h.investor.phone ?? ''}</dd></div>
           <div><dt>Address</dt><dd>{h.investor.address ?? ''}</dd></div><div><dt>Bank account</dt><dd>{h.bank_last4 ? `ending ${h.bank_last4}` : 'none on file'}</dd></div></dl>
-        <ChangeEmail current={h.investor.email} />
         <p className="small">To update the rest of these, ask us; we confirm by phone.</p>
       </section>
+      {sp && <SelfProfile data={sp} />}
+      {si ? <SignInSettings state={si} /> : <section className="pt-card"><ChangeEmail current={h.investor.email} /></section>}
       {nc && <NotifyChannelCard reach={nc} />}
       <PushAlerts userId={user.id} portal="investor" />
       <AppProfile userId={user.id} lock />

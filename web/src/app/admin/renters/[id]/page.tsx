@@ -13,6 +13,8 @@ import { RenterMerge, type DuplicateRow } from '@/features/money/RenterMerge';
 import { door } from '@/server/door';
 import { BookingConversation } from '@/features/messages/BookingConversation';
 import type { Conversation } from '@/features/messages/email-choices';
+import { NameChangeCard } from '@/features/admin/NameChangeCard';
+import { nameChangesFor } from '@/server/self-profile';
 import { ContactButtons } from '@/features/phone/QuoButtons';
 import { RenterNotes } from '@/features/caller/RenterNotes';
 import type { NotesRead } from '@/features/caller/model';
@@ -31,7 +33,7 @@ export default async function Renter({ params, searchParams }: { params: Promise
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { read, user } = await page(`/admin/renters/${id}`);
   const [r, calls] = await Promise.all([read<R>('renter_live', { renter_id: id }).catch(() => null), read<PhoneTimelineData>('phone_timeline', { renter_id: id }).catch(() => null)]);
-  const [reach, notes] = await Promise.all([read<Reach>('notify_reach', { renter_id: id }).catch(() => null), read<NotesRead>('renter_notes', { renter_id: id }).catch(() => null)]);
+  const [reach, notes, nameChanges] = await Promise.all([read<Reach>('notify_reach', { renter_id: id }).catch(() => null), read<NotesRead>('renter_notes', { renter_id: id }).catch(() => null), nameChangesFor(user.id, { renter_id: id })]);
   if (!r) notFound();
   // correct the renter's details (0132)
   const rf = await door<RenterForm>(user.id, 'ops_read', 'renter_edit_form', { renter: id }).catch(() => null);
@@ -47,6 +49,7 @@ export default async function Renter({ params, searchParams }: { params: Promise
       <PageHead title={r.name} kicker="Renter"><Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/renters">All renters</Link></PageHead>
       <div className="ad-cols ad-cols--2">
         <div className="stack">
+          <NameChangeCard items={nameChanges} refresh={[`/admin/renters/${id}`]} />
           {rf && <RenterEdit x={rf} />}
           <RenterMerge renterId={id} name={r.name} rows={dupes} />
           <Card title="Details"><Kv rows={[['Email', <span key="e">{r.email ?? ''}{r.has_sign_in && !r.email_confirmed && <> <span className="ad-b ad-b--amber" data-testid="email-not-confirmed">Email not confirmed</span></>}</span>], ['Phone', r.mobile ? <ContactButtons key="p" phone={r.mobile} name={r.name} look="link" inbox="/admin/visitors?view=chat" testId="renter-phone">{r.mobile}</ContactButtons> : ''], ['City', r.city ?? ''], ['Identity', <Badge key="i" s={r.identity_status} />], ['Blocked', r.is_blocked ? 'Yes' : 'No'], ['Since', d(r.created_at)]]} /></Card>

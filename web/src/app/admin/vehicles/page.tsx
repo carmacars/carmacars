@@ -35,6 +35,7 @@ export default async function Vehicles({ searchParams }: { searchParams: Promise
       <PageHead title="Vehicles" kicker={`${rows.length} of ${all.length}`} purpose="The fleet. Open a car for its rates, calendar, photos, documents and money.">
         <Link prefetch={false} className="btn btn--primary btn--sm" href="/admin/vehicles/new" data-testid="add-car-link">Add a car</Link>
         <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/vehicles/bulk-rates">Bulk rate change</Link>
+        <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/vehicles/incident-cards" data-testid="incident-cards-link">Incident cards</Link>
         {settings.sample_cars > 0 && <Link prefetch={false} className="btn btn--ghost btn--sm" href="/admin/vehicles/samples" data-testid="sample-cars-link">Sample cars ({settings.sample_cars})</Link>}
         {samples && <SampleCarsToggle publicCount={samples.public} compact />}
         <Act action="listing_start" label="Start a listing" variant="primary" fields={[{ name: 'plate', label: 'Plate', type: 'text' }, { name: 'vin', label: 'or VIN', type: 'vin' }, { name: 'notes', label: 'Notes', type: 'text' }]} go="/admin/listings/{intake_id}" />
