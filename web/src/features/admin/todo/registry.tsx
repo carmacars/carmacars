@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import Link from '@/components/Link';
+import { Act } from '@/features/admin/Act';
 import type { Prompt } from './types';
 
 // The pop-up of a task on Admin > Today, by task type (migration 0078). A task the database raises for the Admin (or for
@@ -15,5 +16,12 @@ import type { Prompt } from './types';
 //   first_last_decide: (p) => <FirstLastChoice vehicleId={p.vehicle_id!} ownerId={p.owner_id!} />,
 export const TASK_PROMPTS: Record<string, (p: Prompt) => ReactNode> = {
   // until its own pop-up plugs in here: the owner's Terms tab, where the choice is made
-  first_last_decide: (p) => (p.owner_id ? <Link prefetch={false} className="btn btn--primary btn--sm" href={`/admin/owners/${p.owner_id}?tab=terms`} data-testid={`todo-act-${p.key}`}>Decide</Link> : null)
+  first_last_decide: (p) => (p.owner_id ? <Link prefetch={false} className="btn btn--primary btn--sm" href={`/admin/owners/${p.owner_id}?tab=terms`} data-testid={`todo-act-${p.key}`}>Decide</Link> : null),
+  // 0770: staff asked for an override (a pickup, a return, a past trip, or an offer booked now): one tap approves it
+  override_approve: (p) => (p.related_id ? (
+    <span className="ad-actions">
+      <Act ops action="override_decide" payload={{ id: p.related_id, decision: 'approve' }} label="Approve" variant="primary" refresh={['/admin']} testId={`todo-act-${p.key}-approve`} done="Approved." />
+      <Act ops action="override_decide" payload={{ id: p.related_id, decision: 'decline' }} label="Decline" fields={[{ name: 'note', label: 'Why (the person who asked sees it on the booking)', type: 'text' }]} refresh={['/admin']} testId={`todo-act-${p.key}-decline`} done="Declined." />
+      {p.booking_number && <Link prefetch={false} className="btn btn--ghost btn--sm" href={`/admin/bookings/${encodeURIComponent(p.booking_number)}`} data-testid={`todo-act-${p.key}-open`}>Open the booking</Link>}
+    </span>) : null)
 };

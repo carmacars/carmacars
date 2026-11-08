@@ -15,6 +15,7 @@ import { Plate } from '@/features/field/Plate';
 import { FdIcon } from '@/features/field/icons';
 import { KIND, STATUS, clock, maps } from '@/features/field/format';
 import { ContactButtons } from '@/features/phone/QuoButtons';
+import { HandoverOverride } from '@/features/handover/HandoverOverride';
 
 export const dynamic = 'force-dynamic';
 export const metadata = pageMeta({ title: 'Job', path: '/staff/field', noindex: true, description: 'One field job and its checklist.' });
@@ -76,6 +77,8 @@ export default async function FieldJobPage({ params }: { params: Promise<{ id: s
           {b.prepaid_fuel && <p className="pt-note small" data-testid="job-prepaid-fuel"><b>Prepaid fuel.</b> The renter may return the car at any fuel level. Do not charge for fuel.</p>}
         </section>
       )}
+      {/* 0770: a check stops the pickup or the return and the trip must go ahead: ask an Admin from here (one tap for them) */}
+      {b && !done && (j.report_kind === 'pickup' || j.report_kind === 'return') && <HandoverOverride booking={b.id} userId={user.id} refresh={[`/staff/field/jobs/${id}`]} />}
       {lic && (
         <section className="fd-card" aria-labelledby="lic-t" data-testid="job-licence">
           <h2 className="fd-section-h" id="lic-t">Check the licence</h2>

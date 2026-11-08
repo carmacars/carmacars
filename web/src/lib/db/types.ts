@@ -2469,6 +2469,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_overrides: {
+        Row: {
+          id: string;
+          booking_id: string;
+          action: string;
+          checks: string[];
+          reason: string;
+          payload: Json;
+          status: string;
+          requested_by: string | null;
+          requested_at: string;
+          decided_by: string | null;
+          decided_at: string | null;
+          decision_note: string | null;
+          used_at: string | null;
+          result: Json | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          action: string;
+          checks?: string[];
+          reason: string;
+          payload?: Json;
+          status?: string;
+          requested_by?: string | null;
+          requested_at?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          used_at?: string | null;
+          result?: Json | null;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          action?: string;
+          checks?: string[];
+          reason?: string;
+          payload?: Json;
+          status?: string;
+          requested_by?: string | null;
+          requested_at?: string;
+          decided_by?: string | null;
+          decided_at?: string | null;
+          decision_note?: string | null;
+          used_at?: string | null;
+          result?: Json | null;
+        };
+        Relationships: [];
+      };
       booking_owner_expenses: {
         Row: {
           id: string;

@@ -28,6 +28,7 @@ import { BookingPeriods, type PeriodRow } from '@/features/money/BookingPeriods'
 import { RenterEdit, type RenterForm } from '@/features/money/RenterEdit';
 import { RenterMerge, type DuplicateRow } from '@/features/money/RenterMerge';
 import { HandoverPanel } from '@/features/handover/HandoverPanel';
+import { HandoverOverride } from '@/features/handover/HandoverOverride';
 import { BookingSummary } from '@/features/admin/BookingSummary';
 import { ReviewPanel } from '@/features/reviews/ReviewPanel';
 import { AgreementPanel } from '@/features/agreements/AgreementPanel';
@@ -214,6 +215,8 @@ export async function BookingPage({ ctx, number, sp }: { ctx: PageCtx; number: s
       {can.admin && <BookingSummary status={b.status} pickupAt={b.pickup_at} returnAt={b.return_at} days={Number(b.billable_days)} totalCents={Number(b.total_due_at_booking_cents)} billTo={b.bill_to} />}
       {/* the six sections right under the summary */}
       <Tabs current={`${base}?tab=${section}`} items={tabs} />
+      {/* 0770: what stops the pickup or the return, the Admin override (staff ask), a past trip, the requests waiting */}
+      {(section === 'overview' || section === 'car') && (can.handover || can.admin) && ['offered', 'pending_payment', 'confirmed', 'on_rent'].includes(b.status) && <HandoverOverride booking={b.id} userId={user.id} aal={aal} refresh={[base]} />}
       {(section === 'overview' || section === 'car') && ['pending_payment', 'confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <HandoverPanel userId={user.id} aal={aal} base={base} canHandover={can.handover} canSign={can.sign}
         b={{ id: b.id, booking_number: b.booking_number, status: b.status, return_at: b.return_at, checked_in_at: (b.checked_in_at as string | null | undefined) ?? null, minutes_late: (b.minutes_late as number | null | undefined) ?? null }} />}
       {section === 'activity' && ['confirmed', 'on_rent', 'returned', 'closed'].includes(b.status) && <ReviewPanel booking={b.booking_number} userId={user.id} aal={aal} refresh={[base]} />}

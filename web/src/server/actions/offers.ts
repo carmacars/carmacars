@@ -40,6 +40,8 @@ export async function offersDo<T = Record<string, unknown>>(action: OffersDo, p:
   try {
     const { user, aal, va } = await me();
     const data = await door<T>(user.id, 'ops_do', action, withFn(p, va), aal);
+    // 0770: an offer made with Book it now: its agreement and the renter's Sign and pay link
+    if (action === 'offer_create' && p.book_now) await (await import('@/server/book-now')).bookNowAgreement(data);
     refreshAll([...refresh, '/admin/bookings', '/admin/requests', '/staff/requests', '/admin/calendar']);
     return { ok: true, data };
   } catch (e) { return fail(e); }

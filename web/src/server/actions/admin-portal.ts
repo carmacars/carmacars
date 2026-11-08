@@ -60,6 +60,8 @@ export async function adminAct<T = Record<string, unknown>>(action: string, p: R
       if (!(await generatedFile('owner_statement', p.id, admin.id))) throw new Error('The statement PDF could not be made.');
     }
     const data = await door<T>(admin.id, 'admin_do', action, p);
+    // 0770: an offer sent with Book it now: its agreement and the renter's Sign and pay link
+    if (action === 'send_offer' && p.book_now) await (await import('@/server/book-now')).bookNowAgreement(data);
     rebuild([...(PUBLIC[action] ?? []), ...refresh]);
     return { ok: true, data };
   } catch (e) { return fail(e); }

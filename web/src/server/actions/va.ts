@@ -28,6 +28,8 @@ export async function vaAct<T = Record<string, unknown>>(action: string, p: Reco
   try {
     const { user, aal } = await assertVa();
     const data = await door<T>(user.id, 'va_do', action, p, aal);
+    // 0770: an offer sent with Book it now (staff: it waits for an Admin; nothing to make yet)
+    if (action === 'send_offer' && p.book_now) await (await import('@/server/book-now')).bookNowAgreement(data);
     for (const x of refresh) if (x.startsWith('/staff')) revalidatePath(x);
     if (['listing_review', 'listing_publish', 'listing_publish_now', 'review_publish', 'block_create', 'block_end', 'block_update'].includes(action)) revalidatePath('/', 'layout');
     return { ok: true, data };
