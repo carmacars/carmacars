@@ -385,6 +385,9 @@ select test.eq('A every table that holds money, pricing or status is audited',
     where n.nspname = 'public' and c.relkind = 'r'
       and c.relname not in ('audit_log', 'status_history', 'data_access_log', 'job_runs', 'tracker_status',
                             'condition_report_photos', 'vehicle_photos', 'photo_jobs', 'messages', 'incident_events', 'app_events',
+                            -- Drive photo import (0760): the folders and files a run walks, progress rows with no money, pricing or status
+                            -- (the run itself, drive_imports, is audited)
+                            'drive_import_folders', 'drive_import_files',
                             -- live visitors and chat (0060): high-volume visit and chat records, no money, pricing or status of a booking
                             'visitor_sessions', 'visitor_events', 'visitor_signals', 'vehicle_interest_daily', 'chat_conversations', 'chat_messages', 'chat_staff_prefs',
                             -- calendar sync, recovery and the site check (0062): sync state written every few minutes; adding, changing and removing a
