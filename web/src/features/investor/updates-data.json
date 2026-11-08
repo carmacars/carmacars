@@ -27,6 +27,9 @@
    {
     "area": "Staff tools",
     "items": [
+     "An Admin can override any check blocking a pickup or return, with a reason; staff ask and an Admin approves in one tap",
+     "Record a past trip: both times in one form, then settle the deposit",
+     "Book it now: an offer becomes a booking at once, the renter signs and pays on one page; staff offers wait for an Admin's approval",
      "Charge the renter after a return in one step: choose the reason, the amount, and the platform takes it from the deposit, the card on file or a pay link",
      "Deposit holds renew by themselves before they expire; an expired hold is shown as such with the card on file offered instead",
      "Reasons for keeping part of a deposit come from one list, shown on the renter's receipt",
